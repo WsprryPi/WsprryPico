@@ -4,6 +4,15 @@ Recorded: 2026-10-03. Updated: 2026-10-07.
 Status: source implementation and deterministic acceptance complete; thirteen
 target GPIO/RF cases passed, including reviewed standalone STOP. External LED
 and GP14 fixture acceptance remains open.
+
+The external GP15 lamp wiring is now operator-confirmed. Remaining LED
+functional checks use GPIO/SDR evidence without another LED, camera, rewiring
+or operator session; see the [updated six-step TODO](phase13-1-closeout-steps.md).
+The remaining selected check is one existing external-high TX-only/AP/Identify
+case, followed by restoration/review. Reuse timing/shutdown and software polarity
+evidence; do not build another GP14 stimulus or repeat a polarity campaign for
+LED closure. A separately wired active-low lamp and mechanical button/header
+qualification are outside this selected scope and are not marked PASS.
 Roadmap assignment: **Phase 13 / P13.1**, selected on 2026-10-05; see the
 [feature backlog](../implementation-plan.md#phase-13-feature-backlog).
 Final hardware/release qualification follows in Phase 14.

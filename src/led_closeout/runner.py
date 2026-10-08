@@ -213,7 +213,42 @@ class Runner:
         if case['cue']:
             for command in case['cue'].split('_'):
                 if active or command == 'AP':
-                    self.backend.command(self.board, command)
+                    require(self.backend.command(self.board, command).get('ok') is True,
+                            'LED cue command refused')
+
+    def onboard_pin(self, info):
+        require(info.get('indicator_onboard_readback_known') is True and
+                type(info.get('indicator_onboard_readback_error')) is int and
+                info['indicator_onboard_readback_error'] == 0 and
+                type(info.get('indicator_onboard_readback_on')) is bool,
+                'onboard GPIO readback mismatch/unknown')
+        return info['indicator_onboard_readback_on']
+
+    def external_cues(self, case, image, phase):
+        """Sample each existing cue with real external OFF/onboard activity."""
+        for command in case['cue'].split('_'):
+            require(self.backend.command(self.board, command).get('ok') is True,
+                    'LED cue command refused')
+            observed = set()
+            until = self.backend.now() + 2.2
+            while self.backend.now() < until:
+                if phase == 'loaded':
+                    self.renew()
+                info, status = self.observe(image)
+                require(not status['output_active'] and not info['tx_indicator_requested'],
+                        'non-TX cue unexpectedly active')
+                if phase == 'loaded':
+                    require(status['state'] == 'loaded' and status['owner_id'] == self.owner and
+                            status['job_id'] == case['job']['job_id'], 'cue ownership changed')
+                else:
+                    require(status['owner_id'] is None and status['state'] in ('empty', 'complete') and
+                            status['job_id'] in (None, case['job']['job_id']), 'cue ownership changed')
+                self.checked_pin(info, image, False)
+                observed.add(self.onboard_pin(info))
+                self.backend.sleep(.05)
+            require(observed == {False, True}, 'onboard cue did not change GPIO state')
+            self.e.event('external_cue_checked', dict(case=case['id'], phase=phase,
+                command=command, external_on=False, onboard_states=sorted(observed)))
 
     def execute_case(self, case):
         image = self.manifest['images'][case['image']]
@@ -284,6 +319,9 @@ class Runner:
                 if image['selection'] in (1,2):
                     require(loaded_info['indicator_output_known'] and not loaded_info['indicator_output_on'],
                             'external LED used for a non-TX cue')
+                    self.checked_pin(loaded_info, image, False)
+                    if self.gpio and case['cue']:
+                        self.external_cues(case, image, 'loaded')
                 self.backend.sleep(1)
                 self.renew()
                 clock_requested = self.backend.now()
@@ -302,6 +340,7 @@ class Runner:
                     require(armed['state'] == 'armed' and not armed['output_active'], 'armed cancellation')
                     self.backend.request('ABORT', dict(job_id=case['job']['job_id']))
                 ran = acted = False
+                onboard_states = set()
                 inactive_since = None
                 terminal = None
                 end = armed_at + duration - 8
@@ -332,6 +371,8 @@ class Runner:
                                 require(info['indicator_output_known'] and info['indicator_output_on'] and
                                         info['tx_indicator_ready'], 'active TX lacks checked indicator')
                                 self.checked_pin(info, image, True)
+                                if self.gpio and image['selection'] in (1,2) and case['cue']:
+                                    onboard_states.add(self.onboard_pin(info))
                             else:
                                 require(not info['tx_indicator_requested'] and not info['indicator_output_on'],
                                         'disabled indication requested an output')
@@ -357,6 +398,10 @@ class Runner:
                     require(self.backend.now()-running_at >= int(case['job']['total_duration_ns'])/1e9-3,
                             'premature completion')
                 require(not terminal['output_active'], 'terminal engine still active')
+                if self.gpio and image['selection'] in (1,2) and case['cue']:
+                    require(onboard_states == {False, True}, 'onboard cue stuck during external TX')
+                    self.e.event('external_tx_cue_checked', dict(case=case['id'],
+                        external_on=True, onboard_states=sorted(onboard_states)))
                 require(ran or action in ('cancel', 'fail'), 'premature terminal without running observation')
                 if action == 'fail':
                     require(info['led_rejected_writes'] > 0 and not ran, 'fault did not block launch')
@@ -371,7 +416,10 @@ class Runner:
                     final_info, _ = self.observe(image)
                     self.checked_pin(final_info, image, False)
             if case['action'] == 'complete':
-                self.cues(case, active=True) # Independent post-TX Identify observation.
+                if self.gpio and image['selection'] in (1,2) and case['cue']:
+                    self.external_cues(case, image, 'released')
+                else:
+                    self.cues(case, active=True) # Independent post-TX Identify observation.
             self.backend.sleep(3) # Capture post-stop cues/tail; no operator response needed.
             self.backend.finish_captures()
             if self.gpio and hasattr(self.backend, 'assess_rf'):

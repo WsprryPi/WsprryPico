@@ -117,6 +117,18 @@ complete SDR evidence. All thirteen available GPIO/RF checks now pass. B is
 restored inhibited and A unchanged; external high/low and GP14 fixture tests
 remain open. The earlier failed/partial ledgers are retained.
 
+The operator has now confirmed the external GP15 LED using a minimal RF-free
+sketch, followed by verified inhibited restoration. The updated
+[six-step TODO](phase13-1-closeout-steps.md) and
+[completed operator setup](phase13-1-step2-operator-setup.md) remove additional
+LEDs, rewiring, camera and stimulus-wire requirements for the selected scope.
+The operator subsequently rejected redundant timing/polarity campaigns and
+new stimulus development. The remaining LED work is one existing external-high
+TX-only/AP/Identify check, then restoration and review, with no further operator
+action. Reuse prior timing/shutdown and software polarity evidence. No new GP14
+stimulus is planned for LED closeout; physical button/header qualification stays
+separate and unqualified by that decision.
+
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.
 For an RF-inhibited Pico build, set `PICO_SDK_PATH` to the locally retained

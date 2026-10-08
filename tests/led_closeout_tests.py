@@ -33,6 +33,7 @@ class Fake:
         self.fail_on, self.gp14, self.loaded_at = False, False, 0
         self.setup = {}
         self.clock_reads = 0
+        self.cue_started = None
 
     def now(self): return self.t
     def sleep(self, seconds): self.t += seconds
@@ -46,6 +47,7 @@ class Fake:
         self.states[board] = 'empty'
         self.owner, self.job, self.started = None, None, None
         self.fail_on = self.gp14 = False
+        self.cue_started = None
     def info(self, board):
         state = self.states[board]
         if self.started is not None:
@@ -67,6 +69,12 @@ class Fake:
             active=False
         if self.fault == 'active_terminal' and state == 'complete': active = True
         boot = self.boots[board] if self.fault != 'boot' or state != 'running' else 'rebooted'
+        external_cue = image['selection'] in (1,2) and self.cue_started is not None
+        onboard = bool(int((self.t-self.cue_started)*10) % 2) if external_cue else active and image['selection'] != 3
+        if self.fault == 'onboard_stuck' or self.fault == 'onboard_tx_stuck' and active:
+            onboard = False
+        external_wrong = (self.fault == 'external_loaded_pin' and state == 'loaded' or
+                          self.fault == 'external_released_pin' and state == 'empty' and self.admissions)
         return dict(ok=True, system_clock_hz=138000000, device_id=BOARDS[board]['device_id'], revision=image['revision'],
             led_boot_pins=image['pins'], led_acceptance=image['acceptance'], led_selection=image['selection'],
             access_state='healthy', rf_safety_inhibited=self.gp14, led_rejected_writes=int(self.fail_on),
@@ -74,10 +82,10 @@ class Fake:
             indicator_pin_readback_known=self.fault != 'gpio_unknown' and image['selection'] != 3,
             indicator_pin_readback_error=-1 if self.fault == 'gpio_unknown' or image['selection'] == 3 else 0,
             indicator_pin_readback_on=None if self.fault == 'gpio_unknown' or image['selection'] == 3 else
-                (active and self.fault != 'gpio_mismatch' or
+                (active and self.fault != 'gpio_mismatch' or external_wrong or
                  self.fault == 'standalone_stop_pin' and state == 'aborted'),
-            indicator_onboard_readback_known=True, indicator_onboard_readback_error=0,
-            indicator_onboard_readback_on=active and image['selection'] != 3,
+            indicator_onboard_readback_known=self.fault != 'onboard_unknown', indicator_onboard_readback_error=0,
+            indicator_onboard_readback_on=onboard,
             tx_indicator_ready=active and image["selection"] != 3,
             tx_indicator_requested=active and image["selection"] != 3 or
                 self.fault == 'standalone_stop_request' and state == 'aborted',
@@ -88,6 +96,9 @@ class Fake:
     def hello(self): return dict(boot_id=self.boots[self.dut])
     def command(self, board, command):
         self.commands.append((board, command))
+        if command in ('AP','IDENTIFY'):
+            if self.fault == 'cue_refused': return dict(ok=False)
+            self.cue_started = self.t
         if command == 'FAIL': self.fail_on=True
         if command == 'SCHEDULE':
             assert self.e.state['jobs'] > self.admissions
@@ -109,6 +120,7 @@ class Fake:
             if self.fault == 'fixture': raise TimeoutError('fixture timeout')
             self.states[self.dut]='aborted';self.gp14=True;self.owner=None
             if self.fault == 'slow_fixture':self.t+=3
+        return dict(ok=True)
     def request(self, op, body):
         clock_snapshot=int(self.t*1e9)
         if op == 'GET_CLOCK':
@@ -162,6 +174,33 @@ class Fake:
 
 
 class RunnerTests(unittest.TestCase):
+    def test_external_gpio_cues_are_checked_before_during_and_after_one_job(self):
+        e,fake,_=self.exercise()
+        fake.setup={'evidence_mode':'gpio-readback'}
+        result=Runner(make_plan(),manifest(),'B',fake,e,cases=['external_high']).run()
+        self.assertEqual(result['jobs'],1)
+        self.assertEqual(result['rf_ns'],17_000_000_000)
+        self.assertEqual(result['result'],'PASS_GPIO_FUNCTIONAL_RF_REVIEW_PENDING')
+        self.assertEqual(fake.restored,['B'])
+        events=[json.loads(v) for v in (e.root/'events.jsonl').read_text().splitlines()]
+        checked=[v['data'] for v in events if v['kind']=='external_cue_checked']
+        self.assertEqual([(v['phase'],v['command']) for v in checked],
+                         [('loaded','AP'),('loaded','IDENTIFY'),('released','AP'),('released','IDENTIFY')])
+        self.assertTrue(all(v['onboard_states']==[False,True] for v in checked))
+        self.assertEqual(sum(v['kind']=='external_tx_cue_checked' for v in events),1)
+
+    def test_external_cue_rejects_real_gpio_faults_despite_cached_off(self):
+        for fault in ('external_loaded_pin','external_released_pin','onboard_stuck',
+                      'onboard_tx_stuck','onboard_unknown','cue_refused'):
+            with self.subTest(fault=fault):
+                e,fake,_=self.exercise(fault)
+                fake.setup={'evidence_mode':'gpio-readback'}
+                with self.assertRaises(ValueError):
+                    Runner(make_plan(),manifest(),'B',fake,e,cases=['external_high']).run()
+                self.assertEqual(e.state['result'],'STOP')
+                self.assertEqual(fake.restored,['B'])
+                self.assertEqual(fake.admissions,1 if fault in ('external_released_pin','onboard_tx_stuck') else 0)
+
     def test_standalone_stop_binds_real_job_and_accepts_retained_aborted_job(self):
         e,fake,_=self.exercise()
         fake.setup={'evidence_mode':'gpio-readback'}
