@@ -113,6 +113,16 @@ def resources(infos,clock):
     fields=('allocator_failures','tls_allocation_failures','dma_errors','exhausted_successor_links',
             'refill_invalid_reserves','refill_irq_unpaired','core0_stack_fault_status','core1_stack_fault_status',
             'flash_read_failures','flash_erase_failures','flash_program_failures')
+    import copy
+    import re
+    def counter(value):
+        if type(value) is int and 0<=value<2**64:return value
+        if type(value) is str and re.fullmatch('0|[1-9][0-9]*',value) and int(value)<2**64:return int(value)
+        raise ValueError('invalid unsigned resource counter')
+    infos=copy.deepcopy(infos)
+    for info in infos:
+        for field in fields+('heap_available_bytes','heap_allocated_bytes','max_refill_irq_to_ready_ns'):
+            info[field]=counter(info[field])
     issues=[];baseline=infos[0]
     for info in infos:
         if info['system_clock_hz']!=clock or info['status']['boot_id']!=baseline['status']['boot_id']:

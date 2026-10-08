@@ -15,7 +15,7 @@ def digest(path):
 
 def collect(root):
     root=Path(root).resolve();observations=[];attempts=[]
-    for path in sorted(root.glob('*/physical.json'))+sorted(root.glob('*/*/physical.json')):
+    for path in sorted(root.rglob('physical.json')):
         value=json.loads(path.read_text());attempt=dict(path=str(path.relative_to(root)),sha256=digest(path),
             result=value['result'],board=value['board'],band=value['band'],mode=value['mode'],clock_hz=value['clock_hz'],
             source_revision=value['source_revision'],firmware_sha256=value['firmware_sha256'],boot_id=value['boot_id'],

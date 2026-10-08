@@ -31,6 +31,7 @@ def main():
             p.add_argument('--duration',type=int)
             p.add_argument('--reference',action='store_true')
             p.add_argument('--workload',choices=('normal','max-events'),default='normal')
+            p.add_argument('--browser-credentials',type=Path)
             p.add_argument('--action',choices=('complete','abort','disconnect'),default='complete')
     args=parser.parse_args()
     if args.op=='matrix':print(json.dumps(matrix(),indent=2));return
@@ -78,7 +79,7 @@ def main():
                         before=rig.idle(args.board)
                         if before['revision']!=manifest['source_commit'][:12]:raise ValueError('installed candidate source mismatch')
                         rig.execute(args.board,args.clock,band,mode,sequence,duration=args.duration,
-                                    action=args.action,image_hash=image['sha256'],workload=args.workload)
+                                    action=args.action,image_hash=image['sha256'],workload=args.workload,browser_credentials=args.browser_credentials)
             print(json.dumps(rig.inventory([args.board])))
     finally:rig.close()
 

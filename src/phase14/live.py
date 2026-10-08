@@ -94,7 +94,7 @@ class Rig:
         return {b:dict(revision=v['info']['revision'],clock=v['info']['system_clock_hz'],
                        engine=v['info']['status']['engine'],state=v['responses']['STATUS']['state'])
                 for b,v in values.items()}
-    def execute(self,board,clock,band,mode,sequence,*,duration=None,action='complete',image_hash=None,workload='normal'):
+    def execute(self,board,clock,band,mode,sequence,*,duration=None,action='complete',image_hash=None,workload='normal',browser_credentials=None):
         root=self.e.root/(str(sequence)+'-'+board+'-'+str(clock)+'-'+band+'-'+mode)
         root.mkdir(mode=0o700)
         before=self.idle(board);peer=self.device.peer(board)
@@ -107,6 +107,11 @@ class Rig:
                     'unrelated reference settings changed')
         # Every capture has one attributable Pico and an inactive peer board.
         other='B' if board=='A' else 'A';self.idle(other)
+        browser=None
+        if browser_credentials:
+            require(before['provisioning_source']=='provisioned','browser workload requires engineering profile')
+            from phase14.browser import Browser
+            browser=Browser(browser_credentials,before)
         value=job(mode,band,clock,uuid.uuid4().hex,duration,workload)
         settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,
                       center_frequency_hz=BANDS[band]-25000,gain_db=20,channel=0,agc=False,bias_tee=False)
@@ -119,7 +124,7 @@ class Rig:
         record=dict(schema='phase14-physical/1',board=board,serial=BOARDS[board][0],
             device_id=BOARDS[board][1],source_revision=before['revision'],boot_id=peer.boot,
             firmware_sha256=image_hash,clock_hz=clock,divider=1,engine='pio-dma-gp2',rf_gp=2,
-            session_id=peer.session,
+            session_id=peer.session,browser_activity=[],
             band=band,mode=mode,workload=workload,job=value,reference=reference,receiver_command=argv,receiver_helper_sha256=sha256(CAPTURE),
             receiver_settings=settings,action=action,result='PENDING',status=[],before=before,
             path='each source -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no LPF; operator-owned filtering')
@@ -144,7 +149,7 @@ class Rig:
                 record['arm']=peer.request('ARM',dict(job_id=value['job_id'],start_utc_ns=str(start),max_start_uncertainty_ns='500000000'))
                 save(root/'physical.json',record)
                 end=time.monotonic()+int(value['total_duration_ns'])/1e9+10
-                action_done=False;disconnected=False;running_since=None;last_info=0;last_renew=time.monotonic()
+                action_done=False;disconnected=False;running_since=None;last_info=0;last_renew=time.monotonic();last_browser=0;browser_index=0
                 while time.monotonic()<end:
                     require(process.poll() is None,'capture ended before terminal RF')
                     if disconnected:
@@ -162,6 +167,11 @@ class Rig:
                     if not disconnected and time.monotonic()-last_renew>=25:
                         peer.request('RENEW',dict(owner_id=owner,lease_ms=60000))
                         last_renew=time.monotonic()
+                    if browser and time.monotonic()-last_browser>=10:
+                        paths=('/','/api/v1/status','/api/v1/capabilities','/api/v1/jobs')
+                        activity=browser.get(paths[browser_index%4]);browser_index+=1
+                        record['browser_activity'].append(dict(utc_ns=time.time_ns(),response=activity))
+                        self.e.event('browser_activity',activity);last_browser=time.monotonic()
                     if time.monotonic()-last_info>=10:
                         self.info(board);last_info=time.monotonic()
                     if status['state'] in ('complete','aborted','missed','failed'):

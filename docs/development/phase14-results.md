@@ -124,3 +124,24 @@ binary, disabled ancillary GPIO and a finite iteration/request. No shared
 operational INI or sibling source is modified. Receiver captures and independent
 Console observation bind its actual job and boot; process exit alone cannot
 establish completed RF or shutdown.
+
+
+Both complete alternative-clock Tone sweeps finished: 13 band points per board
+at 132 MHz and 14 per board at 150 MHz, including the representable 4 m point.
+All 54 jobs completed and both boards were returned to the identified 138 MHz
+candidate, with settings preserved. Analysis initially mishandled decimal-string
+uint64 counters; the repaired reducer validates canonical unsigned values and
+rejects booleans, negatives, non-finite spellings and overflow. Original captures
+are reused under new immutable analysis labels; no firmware repair was needed.
+The first current-image 80 m full WSPR frame also completed and decoded, retaining
+its cold-frame screen failure. The acceptance batch resumes after this host repair.
+
+The first temporary B engineering-profile attempt selected the correct profile,
+accepted GPS-PPS-backed NTP from wspr5 and started its TLS server, but its host
+readiness check incorrectly required the consumer-only `lan_wtp_ready` flag.
+It rolled back the preserved settings and verified the original consumer state.
+The repaired readiness check uses `network.control_listening` for engineering
+profiles; the retry verifies activation, identity, source/clock, inactive output
+and USB WTP inventory. The original failure and rollback remain retained.
+The configured time server is wspr5's existing GPS-PPS chrony service, which was
+already admitting this LAN; no NTP/service configuration was changed.

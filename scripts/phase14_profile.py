@@ -19,7 +19,9 @@ def ready(rig):
     while time.monotonic()<end:
         try:
             value=rig.device.console('B','INFO')
-            if value['lan_wtp_ready'] and value['status']['clock_state']=='synchronized':
+            ready_transport=(value['lan_wtp_ready'] if value['provisioning_source']=='consumer_preclock' else
+                             value['provisioning_source']=='provisioned' and value['network']['control_listening'])
+            if ready_transport and value['status']['clock_state']=='synchronized':
                 return rig.idle('B')
         except (FileNotFoundError,TimeoutError,ValueError):pass
         time.sleep(.5)

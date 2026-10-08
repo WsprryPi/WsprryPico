@@ -102,6 +102,10 @@ class Tests(unittest.TestCase):
             heap_available_bytes=100000,heap_allocated_bytes=30000,core0_stack_guard_valid=1,
             core1_stack_guard_valid=1,max_refill_irq_to_ready_ns=1500000)
         self.assertTrue(resources([info,copy.deepcopy(info)],138000000)['passed'])
+        wire=copy.deepcopy(info);wire['max_refill_irq_to_ready_ns']='1500000'
+        self.assertTrue(resources([info,wire],138000000)['passed'])
+        for invalid in (True,'-1','01','NaN','18446744073709551616'):
+            with self.assertRaises(ValueError):resources([dict(info,max_refill_irq_to_ready_ns=invalid)],138000000)
         for changes in ({'heap_available_bytes':32767},{'exhausted_successor_links':1},
                         {'max_refill_irq_to_ready_ns':4000000},{'core1_stack_guard_valid':0}):
             self.assertFalse(resources([info,dict(info,**changes)],138000000)['passed'])
