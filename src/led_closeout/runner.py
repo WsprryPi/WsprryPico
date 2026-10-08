@@ -174,6 +174,7 @@ class Runner:
         self.identity, self.fixture, self.steps = BOARDS[board], fixture, steps
         self.owner, self.boot = uuid.uuid4().hex, None
         self.lease_at = 0
+        self.identify_until = 0
         self.gpio = getattr(backend, 'setup', {}).get('evidence_mode') == 'gpio-readback'
 
     def checked_pin(self, info, image, on):
@@ -213,8 +214,13 @@ class Runner:
         if case['cue']:
             for command in case['cue'].split('_'):
                 if active or command == 'AP':
+                    if command == 'IDENTIFY' and self.backend.now() < self.identify_until:
+                        self.e.event('identify_still_active', dict(case=case['id']))
+                        continue # The previously acknowledged ten-second cue spans launch.
                     require(self.backend.command(self.board, command).get('ok') is True,
                             'LED cue command refused')
+                    if command == 'IDENTIFY':
+                        self.identify_until = self.backend.now() + 10
 
     def onboard_pin(self, info):
         require(info.get('indicator_onboard_readback_known') is True and
@@ -229,6 +235,8 @@ class Runner:
         for command in case['cue'].split('_'):
             require(self.backend.command(self.board, command).get('ok') is True,
                     'LED cue command refused')
+            if command == 'IDENTIFY':
+                self.identify_until = self.backend.now() + 10
             observed = set()
             until = self.backend.now() + 2.2
             while self.backend.now() < until:
@@ -253,6 +261,7 @@ class Runner:
     def execute_case(self, case):
         image = self.manifest['images'][case['image']]
         self.backend.deploy(self.board, image)
+        self.identify_until = 0
         status = quiescent(self.backend.info(self.board), self.identity, image)
         self.boot = status['boot_id']
         clock_deadline = self.backend.now()+90

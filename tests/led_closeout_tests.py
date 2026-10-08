@@ -34,6 +34,7 @@ class Fake:
         self.setup = {}
         self.clock_reads = 0
         self.cue_started = None
+        self.identify_until = 0
 
     def now(self): return self.t
     def sleep(self, seconds): self.t += seconds
@@ -48,6 +49,7 @@ class Fake:
         self.owner, self.job, self.started = None, None, None
         self.fail_on = self.gp14 = False
         self.cue_started = None
+        self.identify_until = 0
     def info(self, board):
         state = self.states[board]
         if self.started is not None:
@@ -98,6 +100,9 @@ class Fake:
         self.commands.append((board, command))
         if command in ('AP','IDENTIFY'):
             if self.fault == 'cue_refused': return dict(ok=False)
+            if command == 'IDENTIFY':
+                if self.t < self.identify_until: return dict(ok=False)
+                self.identify_until = self.t+10
             self.cue_started = self.t
         if command == 'FAIL': self.fail_on=True
         if command == 'SCHEDULE':
@@ -188,6 +193,7 @@ class RunnerTests(unittest.TestCase):
                          [('loaded','AP'),('loaded','IDENTIFY'),('released','AP'),('released','IDENTIFY')])
         self.assertTrue(all(v['onboard_states']==[False,True] for v in checked))
         self.assertEqual(sum(v['kind']=='external_tx_cue_checked' for v in events),1)
+        self.assertEqual(sum(v['kind']=='identify_still_active' for v in events),1)
 
     def test_external_cue_rejects_real_gpio_faults_despite_cached_off(self):
         for fault in ('external_loaded_pin','external_released_pin','onboard_stuck',
