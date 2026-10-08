@@ -33,16 +33,25 @@ def original_config(settings):
     return value
 
 
+def reenumerated(rig):
+    ready=time.monotonic()+30
+    while time.monotonic()<ready:
+        try:return rig.info('B')
+        except FileNotFoundError:time.sleep(.5)
+    raise TimeoutError('USB reauthorization enumeration')
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--settings',type=Path,required=True);p.add_argument('--frames',type=int,choices=(1,2,3),default=3)
+    p.add_argument('--usb-unavailable',action='store_true')
     a=p.parse_args();require(os.geteuid()==0 and sys.platform.startswith('linux'),'Linux bench ownership')
     require(a.output.resolve().is_relative_to((ROOT/'build').resolve()),'private evidence')
     old=original_config(a.settings)
     def interrupted(signum,frame):raise InterruptedError('signal '+str(signum))
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
     os.umask(0o077);rig=Rig(a.output,ROOT,board='B',receiver=True,reference=True)
-    process=None;changed=False;record=None
+    process=None;changed=False;record=None;usb=None
     try:
         from phase14.candidate import candidate
         manifest,image,_=candidate(ROOT)
@@ -81,7 +90,21 @@ def main():
             require(configured['enabled'] and not configured['reboot_required'] and not configured['suspended'],'standalone configuration active')
             expected=['eeeeeeeeeeeeeeee'+format(slot*1000000000,'016x') for slot in slots]
             observed=set();end=time.monotonic()+seconds-5
-            while time.monotonic()<end:
+            if a.usb_unavailable:
+                from phase14.usb import UsbUnavailable
+                rig.device.close_peer('B');usb=UsbUnavailable('B',rig.e);usb.start()
+                record['usb_unavailable']=dict(path=str(usb.path),serial=usb.serial,power_unchanged=True,
+                    observation='pre/post device state and independent IQ; no running Console samples during USB deauthorization')
+                while time.time()<slots[-1]+114.5:
+                    require(time.monotonic()<end and process.poll() is None,'bounded USB-unavailable capture')
+                    time.sleep(.5)
+                usb.close()
+                info=reenumerated(rig)
+                s=info['status'];record['status'].append(dict(utc_ns=time.time_ns(),info=info))
+                require(s['boot_id']==before['status']['boot_id'] and info['revision']==before['revision'] and
+                    s['job_id']==expected[-1] and s['state']=='complete' and s['owner_id'] is None and
+                    s['output_active'] is False,'USB-unavailable standalone final job/boot/output')
+            while not a.usb_unavailable and time.monotonic()<end:
                 info=rig.info('B');s=info['status'];record['status'].append(dict(utc_ns=time.time_ns(),info=info))
                 require(s['boot_id']==before['status']['boot_id'] and info['revision']==before['revision'],'standalone source/boot continuity')
                 if s['state'] in ('loaded','armed','running'):
@@ -90,7 +113,8 @@ def main():
                 if len(observed)==a.frames and s['owner_id'] is None and not s['output_active'] and s['state'] in ('empty','complete'):
                     break
                 time.sleep(.5)
-            else:raise TimeoutError('all finite standalone frames not completed')
+            else:
+                if not a.usb_unavailable:raise TimeoutError('all finite standalone frames not completed')
             require(int(info['status']['watermark_utc_ns'])==slots[-1]*1000000000,'durable final reservation')
             require(info['status']['last_error'] is None,'standalone job error')
             record['completed_info']=info
@@ -99,7 +123,7 @@ def main():
             record['after']=rig.idle('B')
             require(process.wait(timeout=max(1,end-time.monotonic()+20))==0,'complete standalone capture')
             meta=json.loads((rig.e.root/'capture.json').read_text());validate_capture(meta,rig.e.root/'capture.cf32',settings)
-            record.update(result='CONTROL_COMPLETE',job_ids=expected,capture_sha256=meta['output']['sha256'],metadata_sha256=sha256(rig.e.root/'capture.json'))
+            record.update(result='END_STATE_VERIFIED' if a.usb_unavailable else 'CONTROL_COMPLETE',job_ids=expected,capture_sha256=meta['output']['sha256'],metadata_sha256=sha256(rig.e.root/'capture.json'))
             save(rig.e.root/'result.json',record)
         print(json.dumps(dict(result=record['result'],frames=a.frames,slots_utc_s=slots)))
     except BaseException as error:
@@ -107,6 +131,8 @@ def main():
         raise
     finally:
         try:
+            if usb and usb.active:
+                usb.close();reenumerated(rig)
             if changed:
                 info=rig.info('B');s=info['status']
                 if s['owner_id']=='eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' and s['state'] in ('loaded','armed','running'):

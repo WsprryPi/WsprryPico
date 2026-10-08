@@ -217,4 +217,17 @@ class Tests(unittest.TestCase):
         self.assertEqual(result['transmitter_frequency_correction_ppb'],0)
         for invalid in (True,0,float('nan'),1.1):
             with self.assertRaises(ValueError):quantities(measurement,dict(reference,scale_nominal_to_true_time=invalid))
+    def test_usb_deauthorization_refuses_changed_port_identity(self):
+        from phase14.usb import UsbUnavailable
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);device=root/'3-1.2';device.mkdir()
+            (device/'serial').write_text('CDDBF8767C506C07');(device/'authorized').write_text('1')
+            change=UsbUnavailable('B',Mock(),sysroot=root);change.start()
+            self.assertEqual((device/'authorized').read_text().strip(),'0')
+            (device/'serial').write_text('foreign')
+            with self.assertRaises(ValueError):change.close()
+            self.assertEqual((device/'authorized').read_text().strip(),'0')
+            (device/'serial').write_text('CDDBF8767C506C07');change.close()
+            self.assertEqual((device/'authorized').read_text().strip(),'1')
 if __name__=='__main__':unittest.main()

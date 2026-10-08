@@ -285,3 +285,19 @@ isolated failed control row and continues independent rows only after verified
 inactive/unowned readback; uncertain output still stops the batch. A new triplet
 and remaining rows are running under a new evidence root. All 165 host groups
 pass after this repair; the original failure remains.
+
+The repeated A 80 m WSPR triplet under that bound completes and passes all three
+operational waveform/decoder screens. The band/keyed matrix continues; this is
+one repeated screen row and remains release-unqualified pending the other gates.
+
+Prepared power-only transport variant: deauthorize only the exact B USB device
+at its live serial-bound sysfs path, keep USB power present, close owned CDC
+handles, and run finite standalone slots using Wi-Fi NTP. Restore that same
+device's host authorization and verify source/boot/final reservation/last job/
+inactive output before restoring the disabled schedule. During deauthorization,
+there are no fabricated running Console samples: control records use
+`END_STATE_VERIFIED`, with complete independent IQ required to establish frame
+count and behavior. This tests powered operation without host USB endpoints,
+not an electrically disconnected cable or a hard power cycle. The existing hub
+reports ganged power switching; no power switch or unrelated USB device is
+changed by this variant. Fourteen rejection/relay/axis/USB restoration tests pass.

@@ -15,7 +15,9 @@ from phase14.live import save
 
 def analyze(directory,deployment=None):
     directory=Path(directory).resolve();record=json.loads((directory/'result.json').read_text())
-    require(record['result']=='CONTROL_COMPLETE','producer control incomplete')
+    require(record['result']=='CONTROL_COMPLETE' or
+        (record['schema']=='phase14-standalone/1' and record.get('usb_unavailable') and record['result']=='END_STATE_VERIFIED'),
+        'producer control incomplete')
     before=record['before'];after=record['after'];boot=before['status']['boot_id']
     firmware=record.get('firmware_sha256');deployment_binding=None
     if firmware is None:
