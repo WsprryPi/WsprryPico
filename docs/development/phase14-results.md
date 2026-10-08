@@ -642,3 +642,36 @@ and immediately before/after the eight-hour soak, in addition to the final
 post-comparison reference check. These bracket receiver sampling drift over the
 actual long acquisition windows; they neither discipline the Pico nor alter
 the frozen mode screens. No continuation RF step has begun at this checkpoint.
+
+The primary 138 MHz batch is now complete: 104/104 rows and 174 finite complete
+jobs (90 A, 84 B). Original dispositions remain 34 repeated legacy-screen passes
+and 70 excluded legacy-screen rows. QRSS-family drift flags are subsequently
+assessed separately under the operator amendment; these totals do not declare
+release qualification. The guarded continuation completed inventory and its
+preflight reference comparison, then began missing human-copy repetitions.
+
+An independent standard-library audit rehashed every actual IQ file and capture
+metadata, verified exact requested/retained counts, receiver identity/integrity,
+board/source/clock/pin/engine bindings, submitted/accepted finite event sequences,
+same-job/boot natural completion and inactive boundaries, analysis/tool hashes
+and each matrix row's underlying results. All 174 captures and 104 rows pass
+integrity binding. Private receipt `build/matrix-audit-9303d17/result.json` has
+SHA-256 `dc5ad5857e501a0074a9863b3fd5b715a124e9fb7c554b145b785531e7b42a4d`;
+its independent script SHA-256 is
+`1ca86ee5f42d2567d916adf63c0b63411b9c550416e7491f9ff8d9efc724f859`.
+Separate deployment comparison confirms all A/B captures share the respective
+verified current-image boot (`340bb6e9548571b196528c07286e1d44` /
+`ac148eba9e05ea4afa5a7ebc46cb0302`) and identified 138 MHz UF2 hash.
+
+The post-matrix ABBA result estimates nominal-to-true sampling scale
+`1.000001039854018`, actual rate `249999.7400367658` Hz and engineering
+repeatability bound `0.3158151020136663` ppm. Its comparison SHA-256 is
+`0defc22fae5910406b7a878fc510051c914dae20a481e15198a28ed4cebd5026`.
+The center differs by about 0.062 ppm from the pre-RC1 comparison; the explicit
+1 ppb reference assumption remains uncertified. Both reference comparisons were
+applied separately to all 42 original WSPR reports, retaining 84 supplementary
+derived-axis files beside immutable original analyses. Original waveform screens
+and Pico correction remain unchanged. At the next repetition checkpoint,
+13/78 human-copy rows (16.7%) have three passing observations, including A's
+80 m QRSS/FSKCW/DFCW; four additional finite jobs have completed. Other release
+gates remain open.
