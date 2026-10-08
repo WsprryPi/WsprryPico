@@ -204,4 +204,17 @@ class Tests(unittest.TestCase):
             self.assertFalse(worker.is_alive());self.assertEqual(received,[source])
             self.assertEqual((Path(directory)/'client-to-device.bin').read_bytes(),source)
             self.assertEqual((Path(directory)/'device-to-client.bin').read_bytes(),answer)
+    def test_sampling_axis_correction_preserves_reference_anchor_and_original(self):
+        from phase14.calibration import quantities
+        reference=dict(schema='phase14-reference/1',scale_nominal_to_true_time=1.000002,repeatability_bound_ppm=.2,
+            reference_accuracy_assumption_ppb=1,traceable_calibration=False)
+        measurement=dict(reference_hz=3530100,observed_duration_s=110.592,tone_spacing_hz=1.46484375,
+            measurements=[dict(index=0,reference_compared_hz=3570100.08)])
+        original=copy.deepcopy(measurement);result=quantities(measurement,reference)
+        self.assertEqual(measurement,original)
+        self.assertAlmostEqual(result['reference_subtracted_frequencies'][0]['frequency_hz_true_axis'],3570100,places=6)
+        self.assertGreater(result['observed_duration_s_true_axis'],measurement['observed_duration_s'])
+        self.assertEqual(result['transmitter_frequency_correction_ppb'],0)
+        for invalid in (True,0,float('nan'),1.1):
+            with self.assertRaises(ValueError):quantities(measurement,dict(reference,scale_nominal_to_true_time=invalid))
 if __name__=='__main__':unittest.main()

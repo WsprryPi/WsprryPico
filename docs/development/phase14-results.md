@@ -247,3 +247,30 @@ Prepared endurance automation fixes the proposed soak to eight finite one-hour
 jobs, alternating both boards and Tone/512-event FSKCW, with ten-second HTTPS
 activity on B and equivalent post-release idle sampling. Raw IQ and resource
 observations are retained for separate assessment. Preparation is not execution.
+
+The expanded current host run enables the seven retained Harness analyzer
+groups and passes 165/165 groups. The subsequent pure receiver-axis regression
+also passes: the reference anchor stays fixed, frequency differences/spacing
+divide by the measured scale, durations multiply by it, original measurements
+stay unchanged and Pico correction stays zero. Derived quantities are saved
+separately with hashes of the original analysis and reference comparison;
+they never rewrite original screening flags. Absolute UTC, certified reference
+accuracy and phase-fit bias remain separate limits.
+
+The exact native FSKCW retry independently passes timing, phase coherence and
+resources, but fails the retained 0.2 Hz state-frequency residual screen.
+Its measured separation is 5.0238063443 Hz, phase residuals 0.0088--0.1404 rad,
+and all four transition errors are approximately -0.3 ms. This is a retained
+RF screen failure, not a successful release repetition. The repaired candidate's
+first two new 80 m WSPR repetitions on A pass; the adaptive batch remains active.
+
+Spectral acquisition method fixed before its new survey: both boards at 138 MHz,
+80 m and 6 m, harmonic orders one through five, sample-clock and twice-clock
+lines and their plus/minus-carrier images. Each target has two-second RF-off and
+RF-on acquisitions at gain 12 and 20, exact receiver metadata/hash validation,
+and a final fundamental RF-off capture requiring at least 10 dB on/off contrast.
+The source uses one finite 120-second Tone per survey and natural completion.
+Report per-tune dBFS and on/off contrast; cross-frequency receiver/path response
+is uncalibrated, and these controls do not exclude every receiver-generated
+product. This evaluates the recorded unfiltered path; operator LPF work remains
+outside Phase 14. The new survey is prepared and has not run yet.
