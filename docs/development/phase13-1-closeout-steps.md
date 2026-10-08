@@ -1,32 +1,32 @@
 # LED closeout: fixed steps 1–6
 
-Updated 2026-10-08 after the operator rejected redundant LED testing and further
-stimulus development. Reuse the accepted timing/shutdown results, thirteen
-passed target GPIO/RF cases, software polarity tests and confirmed GP15 lamp
-wiring. One focused external TX-only cue check remains; no new harness is needed.
+Updated 2026-10-08. **CLOSED_SCOPED**: accepted timing/shutdown results, thirteen
+preceding target GPIO/RF cases, software polarity coverage, confirmed GP15 lamp
+wiring and the [passing external TX-only cue check](phase13-1-step4-review.md)
+close the selected LED work. No operator action remains.
 
 | Step | Work | Current status | Operator needed |
 | --- | --- | --- | --- |
-| 1 | Existing runner, finite cases, firmware/image checks and evidence collection. | Complete. Prepare only the image needed for the existing external-high case; no new GP14 stimulus or harness. | No |
+| 1 | Existing runner, finite cases, firmware/image checks and evidence collection. | Complete. Only restore/high images prepared for the final case; no new GP14 stimulus or harness. | No |
 | 2 | Confirm board identity and external LED wiring. | Complete. B's GP15 HIGH sketch lit the LED; operator confirmed it. B restored, A unchanged. | No further interaction |
 | 3 | Onboard warmup, five modes, completion, active abort, armed cancellation and inhibited behavior. | Complete. Reuse the passed target evidence; do not repeat the timing matrix. | No |
-| 4 | Confirm AP/Identify stay on the onboard output and never activate the external TX LED. | One existing `external_high` case, using the verified GP15 circuit and actual GPIO readback. This includes a short RF interval; it is not another timing campaign. | No |
+| 4 | Confirm AP/Identify stay on the onboard output and never activate the external TX LED. | Complete. Actual GP15 OFF for each non-RF cue; ON during RF while onboard GPIO changes independently. Complete SDR evidence reviewed. | No |
 | 5 | LED shutdown and failure handling. | Satisfied within the selected LED scope by the passed STOP/abort/failure evidence. Do not develop another GP14 stimulus for this closeout. Physical GP14/button qualification remains separate and is not marked PASS. | No for LED closeout |
-| 6 | Restore, review the one remaining result, resolve actionable findings and publish closeout. | Pending the step-4 check. Reuse existing evidence and retain all original failed/partial ledgers. | No |
+| 6 | Restore, review the final result, resolve actionable findings and publish closeout. | Complete within selected scope. B restored inhibited/settings preserved, A unchanged, review findings repaired and reassessed. Original STOP/partial ledgers retained. | No |
 
-## The one remaining check
+## Final check and accepted scope
 
-Use the existing external-high case on B's GP15. Before/after RF, observe the
-external pin OFF while AP/Identify activity is confined to the onboard output.
-During the short RF interval, observe the selected external pin ON while those
-cues remain onboard. Use real GPIO readback; cached controller state alone is
-not enough. Existing managed SDR collection and finite cleanup may be reused.
-No optical recording or operator observation is required.
+The existing external-high case passed on B's GP15. Before/after RF, actual
+external GPIO was OFF while each AP/Identify cue changed the onboard GPIO.
+During RF, GP15 was ON in all 27 active observations while the onboard GPIO
+changed independently. Managed SDR evidence passed and restoration was verified.
+No optical recording or operator observation was required.
 
-The selected case reserves one admission / 17 seconds including warmup, with
-no automatic RF retry. Preserve prior spent accounting. Restoring firmware and
-original settings, reviewing the result and recording the final scope complete
-this LED closeout. This TODO edit does not execute or claim PASS for that case.
+The initial attempt stopped on an insufficient onboard-activity observation.
+After the checker repair and verified restoration, one separately reserved
+corrective run passed. Both admissions remain charged: 34 seconds including
+warmup, making the aggregate 18 admissions / 687.368002568 seconds across the
+separate campaigns. No automatic RF retry or refund occurred.
 
 No second LED, reversal/rewiring, bias-resistor fixture, camera, recording setup,
 button press, A-to-B stimulus wire or active-low target repeat is required here.

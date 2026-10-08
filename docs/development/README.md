@@ -123,11 +123,13 @@ sketch, followed by verified inhibited restoration. The updated
 [completed operator setup](phase13-1-step2-operator-setup.md) remove additional
 LEDs, rewiring, camera and stimulus-wire requirements for the selected scope.
 The operator subsequently rejected redundant timing/polarity campaigns and
-new stimulus development. The remaining LED work is one existing external-high
-TX-only/AP/Identify check, then restoration and review, with no further operator
-action. Reuse prior timing/shutdown and software polarity evidence. No new GP14
-stimulus is planned for LED closeout; physical button/header qualification stays
-separate and unqualified by that decision.
+new stimulus development. The [step-4 execution/review](phase13-1-step4-review.md)
+now closes the remaining external-high TX-only/AP/Identify assertion with actual
+GPIO and complete SDR evidence. B is restored inhibited/settings preserved and
+A unchanged. Existing timing/shutdown and software polarity evidence is reused;
+the selected LED scope is **CLOSED_SCOPED**, with no further operator work.
+Physical active-low wiring, button/header checks and calibrated optical/release
+qualification remain separate. No new GP14 stimulus was introduced.
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.

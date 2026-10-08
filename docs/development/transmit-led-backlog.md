@@ -1,17 +1,18 @@
 # Transmit LED backlog
 
-Recorded: 2026-10-03. Updated: 2026-10-07.
-Status: source implementation and deterministic acceptance complete; thirteen
-target GPIO/RF cases passed, including reviewed standalone STOP. External LED
-and GP14 fixture acceptance remains open.
+Recorded: 2026-10-03. Updated: 2026-10-08.
+Status: **CLOSED_SCOPED** for the operator-selected LED work. Source/host checks,
+thirteen preceding target cases, reviewed standalone STOP and the
+[external GP15 routing result](phase13-1-step4-review.md) pass. No operator work
+remains; broader hardware/release qualification retains its separate scope.
 
-The external GP15 lamp wiring is now operator-confirmed. Remaining LED
-functional checks use GPIO/SDR evidence without another LED, camera, rewiring
-or operator session; see the [updated six-step TODO](phase13-1-closeout-steps.md).
-The remaining selected check is one existing external-high TX-only/AP/Identify
-case, followed by restoration/review. Reuse timing/shutdown and software polarity
-evidence; do not build another GP14 stimulus or repeat a polarity campaign for
-LED closure. A separately wired active-low lamp and mechanical button/header
+The external GP15 lamp wiring is operator-confirmed. The final functional
+check used GPIO/SDR evidence without another LED, camera, rewiring or operator
+session; see the [completed six-step TODO](phase13-1-closeout-steps.md).
+The existing external-high TX-only/AP/Identify case passed with actual GPIO,
+complete SDR evidence and reviewed restoration. Timing/shutdown and software
+polarity evidence is reused; no new GP14 stimulus or polarity campaign was
+needed for closure. A separately wired active-low lamp and mechanical button/header
 qualification are outside this selected scope and are not marked PASS.
 Roadmap assignment: **Phase 13 / P13.1**, selected on 2026-10-05; see the
 [feature backlog](../implementation-plan.md#phase-13-feature-backlog).
@@ -78,7 +79,8 @@ The [execution prompt](phase13-1-transmit-led-prompt.md),
 [adversarial review and validation](phase13-1-transmit-led-review.md),
 [proposed physical packet](phase13-1-transmit-led-physical-packet.md) and
 [complete finite jobs](phase13-1-transmit-led-cases.json) record this slice.
-Physical acceptance remains open. Legacy single-core RFBench/RFWTP diagnostic
+That original physical packet is historical; the selected functional acceptance
+is now closed by the step-4 record. Legacy single-core RFBench/RFWTP diagnostic
 images are outside this application indicator graph; their historical warmup
 captures do not qualify the new application LED. External wiring, physical
 edge timing and broader engine/mode/band/clock qualification require recorded

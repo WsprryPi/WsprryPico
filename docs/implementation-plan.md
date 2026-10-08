@@ -137,14 +137,16 @@ treated as long-term product documentation.
 
 Selected on 2026-10-05 to follow Phase 12 and precede final qualification.
 P13.1 now has a checked launch handshake and TX-only external routing through
-the shared indicator owner. Its source/host validation is complete;
-[physical acceptance](development/phase13-1-transmit-led-physical-packet.md) is open.
+the shared indicator owner. The operator-selected functional acceptance is
+[CLOSED_SCOPED](development/phase13-1-step4-review.md), with fourteen target
+GPIO/RF case results and verified restoration. Calibrated optical, physical
+active-low wiring and mechanical GP14/header qualification remain separate.
 External Si5351 implementation remains deferred. Additional features can be
 added here as the user identifies them; no further feature scope is selected.
 
 | Milestone | Selected work | Status |
 | --- | --- | --- |
-| P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) across RF activation and cleanup; selected external LED is TX-only with operational cues onboard, or shared onboard TX takes priority over blinking. | Source/host complete; 13 target checks passed; external/GP14 acceptance open |
+| P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) across RF activation and cleanup; selected external LED is TX-only with operational cues onboard, or shared onboard TX takes priority over blinking. | CLOSED_SCOPED; source/host and 14 selected target case results accepted; no operator work remains |
 | P13.2 — Si5351 engine | [External Si5351 transmission](development/si5351-transmission-backlog.md) through the shared job service for standalone and WsprryPi-controlled jobs, with local RP2350 timing, exclusive I²C ownership and engine failure/shutdown handling. | Planned |
 
 Each feature includes its implementation and applicable behavior/target
