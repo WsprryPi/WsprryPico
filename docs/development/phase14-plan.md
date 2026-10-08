@@ -1,7 +1,10 @@
 # Phase 14 PIO/DMA qualification and release plan
 
 Status: ACTIVE. Authorized 2026-10-08. This plan is frozen before new RF
-measurements. Results and any explicit method amendments are recorded in
+measurements. The operator subsequently clarified, before acquisition, that
+there is specifically no LPF and that LPF development/application is their
+responsibility. Qualification therefore covers the existing unfiltered
+conducted path; building or qualifying an LPF is not a Phase 14 completion gate. Results and any explicit method amendments are recorded in
 [phase14-results.md](phase14-results.md); historical failures remain unchanged.
 P13.1 is complete, P13.2 Si5351 and GP14 production enablement remain deferred.
 
@@ -46,8 +49,9 @@ is no antenna. This established setup is accepted, with 60 dB nominal source
 path loss; no further operator setup confirmation is required. No assembled
 output filter, buffer, matching or coupling network is identified by this
 setup. Raw GPIO/attenuator/combiner results cannot qualify an output filter.
-Loading, calibrated insertion loss and post-filter emission performance remain
-unqualified until actual hardware measurements establish them.
+Loading and calibrated path loss are reported where measurable. Post-filter
+emissions are outside this campaign. Release instructions require the operator
+to develop/apply suitable filtering; no antenna-ready emission claim follows.
 
 Automatically bind Pico A `0BF4B4AEC9FFB344` / device
 `fd6127d11d6aca42a9905fa3fb1bf1d5`, B `CDDBF8767C506C07` / device
@@ -75,7 +79,7 @@ it does not by itself establish sampling-time scale. Report this separately.
 | Operational keyed RF | Existing analyzer: 20 ms relative envelope, >=10 dB contrast, phase residual <=0.15 rad; two-state separation/residual <=0.2 Hz; frequency-transition fit <=20 ms and <=0.15 Hz. This retains a consistent screen; ambiguity is reported, not relabeled. |
 | Operational WSPR | Complete 162-symbol, 110.592 s frame and quiet before/after; 375/256 Hz spacing, existing <=0.05 Hz separation / <=0.1 Hz residual / <=10 ms transition screens; independent exact-message decode. A decode alone cannot satisfy the other assertions. |
 | Release timing/frequency | Report error and uncertainty independently. WTP permits launch within the requested UTC second, subject to admitted clock uncertainty. No inferred microsecond UTC claim. Physical symbol/frame precision and calibrated absolute carrier remain unqualified if receiver/reference uncertainty is not bounded. Historical suggested 10 us/100 us/0.1 Hz budgets are not promoted into new contracts. |
-| Spectra/filter | Record close-in sidebands, in-window spurs, separately tuned harmonics/images through at least fifth harmonic where receiver coverage permits; exact coverage and receiver attribution. Retain operator's better-than-WsprryPi close-in benchmark. No all-band or filtered-output acceptance without applicable measurements of the actual output network. |
+| Spectra/filter | Record close-in sidebands, in-window spurs, separately tuned harmonics/images through at least fifth harmonic where receiver coverage permits; exact coverage and receiver attribution. Retain operator's better-than-WsprryPi close-in benchmark. Qualify the recorded unfiltered path only; LPF development/application belongs to the operator. No filtered-output or antenna-ready emission claim. |
 | Resources | No new unexpected allocator/TLS/DMA/stack faults; refill-to-ready below actual full-buffer period, no exhausted predecessor; >=32 KiB preserved authority reserve. Compare equivalent idle windows for growth, with the established 1,024-byte return screen and retained raw samples. |
 | Endurance | Finite 60-minute complete jobs, maximum 512-event and 32-character workloads, repeated jobs, transport recovery, realistic Wi-Fi/browser load, natural completion/abort/cancel; no output afterward. An eight-hour mixed soak is proposed for final release, distinct from the historical inhibited soak. |
 | Reproducibility | Same pinned SDK 2.3.1, Arm GCC 15.3.1 and picotool commit; clean independent build directories; identical UF2 payload/artifact hashes or investigated differences. No generated firmware or secrets committed. |
@@ -113,4 +117,5 @@ actual RF inactivity and disabled schedules, retain useful RF firmware, close
 owned connections/processes, and commit/push only intended Phase 14 files.
 Phase 14 is complete only after all required qualification and release gates,
 final review, commit/push and independently checked remote parity. An unresolved
-physical output-network requirement must be reported as an open phase.
+firmware or required measurement assertion must be reported as open; an LPF
+is an operator responsibility, not an unresolved Phase 14 firmware gate.

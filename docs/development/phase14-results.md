@@ -20,3 +20,9 @@ records; ordinary Plain LAN inventory is used next.
 
 Detailed physical results, release-candidate artifact bindings, final board
 state, adversarial findings and publication outcome will be appended here.
+
+Before RF acquisition, the operator explicitly clarified that there is no LPF
+and that LPF development/application remains their responsibility. The plan
+records this scope amendment; no filter development or post-filter qualification
+is required to close the firmware campaign. The complete repaired host suite
+passes 158/158 groups.
