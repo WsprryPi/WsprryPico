@@ -35,10 +35,15 @@ prepare only the necessary ordinary inhibited restore and external-high images.
 Verify serials, hashes, pins, clock, retained settings and receiver identity.
 Keep captures, local paths and credentials in ignored/private evidence only.
 
-Execute exactly `external_high` once. Reserve one admission / 17 seconds of RF
-including warmup; no automatic RF retry. Preserve preceding campaign ledgers
+Initially execute exactly `external_high` once. Reserve one admission / 17
+seconds of RF including warmup; no automatic RF retry. If review demonstrates
+a checker defect after definite terminal/verified inhibited restoration, the
+user-requested repair iteration may use one separately recorded corrective
+admission / 17 seconds. Preserve its predecessor as STOP, with no refund or
+replay of an uncertain admission. Preserve preceding campaign ledgers
 and their spent 16 admissions / 653.368002568 seconds. The separate current
-reservation makes the aggregate 17 admissions / 670.368002568 seconds if charged.
+reservation makes the aggregate 17 admissions / 670.368002568 seconds if charged;
+one charged corrective admission makes 18 / 687.368002568 seconds.
 Review the complete managed capture for actual RF and an inactive tail, with
 exact count, receiver settings, artifact hashes and verified cleanup.
 

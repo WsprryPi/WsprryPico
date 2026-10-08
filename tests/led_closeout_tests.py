@@ -194,6 +194,7 @@ class RunnerTests(unittest.TestCase):
         self.assertTrue(all(v['onboard_states']==[False,True] for v in checked))
         self.assertEqual(sum(v['kind']=='external_tx_cue_checked' for v in events),1)
         self.assertEqual(sum(v['kind']=='identify_still_active' for v in events),1)
+        self.assertEqual(sum(command=='IDENTIFY' for _,command in fake.commands),3)
 
     def test_external_cue_rejects_real_gpio_faults_despite_cached_off(self):
         for fault in ('external_loaded_pin','external_released_pin','onboard_stuck',

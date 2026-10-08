@@ -350,6 +350,8 @@ class Runner:
                     self.backend.request('ABORT', dict(job_id=case['job']['job_id']))
                 ran = acted = False
                 onboard_states = set()
+                refreshed_identify = False
+                polls = 0
                 inactive_since = None
                 terminal = None
                 end = armed_at + duration - 8
@@ -374,6 +376,10 @@ class Runner:
                             running_at = self.backend.now()
                             ran = True
                             self.cues(case, active=True) # Exercise Identify/AP while TX is actually active.
+                        elif (self.gpio and image['selection'] in (1,2) and case['cue'] and
+                              not refreshed_identify and self.backend.now() >= self.identify_until):
+                            self.cues(case, active=True)
+                            refreshed_identify = True
                         if action != 'inhibited':
                             require(s['output_active'] is True, 'running without active engine')
                             if image['selection'] != 3:
@@ -399,7 +405,9 @@ class Runner:
                     if s['state'] in ('complete', 'aborted', 'failed', 'missed'):
                         terminal = s
                         break
-                    self.backend.sleep(.1)
+                    polls += 1
+                    self.backend.sleep((.03, .17, .07)[polls % 3] if
+                        self.gpio and image['selection'] in (1,2) and case['cue'] else .1)
                 require(terminal is not None, 'missing terminal state')
                 expected = ('failed','missed') if action == 'fail' else ('aborted',) if action in ('cancel', 'abort', 'gp14') else ('complete',)
                 require(terminal['state'] in expected, 'unexpected terminal state')
