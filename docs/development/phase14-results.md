@@ -468,3 +468,21 @@ classification. The complete receiver capture must remain at least 10 dB below
 the live baseline through the 1 ms Hann detector, with a healthy simultaneous
 GPSDO reference; shorter-transient and calibrated-UTC claims are excluded.
 This supplements the separate active-job abort workload and has not run yet.
+
+Execution checkpoint at 18:15 UTC: all 165 host groups pass after the amended
+human-copy and cancellation changes (84.19 seconds). The original bounded
+138 MHz matrix remains active; it has completed 49 of 104 board/band/mode rows.
+Its legacy flags remain diagnostic inputs for keyed modes. An isolated finite
+continuation using tool snapshot `b153d46` is waiting for the exact predecessor
+process to exit. No continuation RF step has started at this checkpoint.
+It is bounded to retained-capture human assessment/missing repetitions, matched
+keying and compensation comparisons, repeated installed-controller and maximum
+message jobs, standalone operation without host USB endpoints, clock loss,
+pending cancellation/active abort/disconnect, maximum-event load, eight finite
+one-hour jobs, spectral surveys and alternative-clock comparison. Each adapter
+reverifies board availability and retains failed/partial results. The queue
+stops on an unhandled failure; it does not imply qualification or completion.
+Final candidate applicability/build/smoke, adversarial closeout, original B
+profile restoration, commit/push and remote parity remain separate outstanding
+work. Temporary queued versions were stopped while still waiting, without RF
+steps or interruption of the active matrix; their records remain preserved.
