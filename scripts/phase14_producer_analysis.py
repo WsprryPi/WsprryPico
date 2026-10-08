@@ -13,7 +13,7 @@ from measure_rf_bench import baseband
 from phase14.live import save
 
 
-def analyze(directory,deployment=None):
+def analyze(directory,deployment=None,analysis_name='analysis-producer'):
     directory=Path(directory).resolve();record=json.loads((directory/'result.json').read_text())
     require(record['result']=='CONTROL_COMPLETE' or
         (record['schema']=='phase14-standalone/1' and record.get('usb_unavailable') and record['result']=='END_STATE_VERIFIED'),
@@ -36,16 +36,26 @@ def analyze(directory,deployment=None):
     require(record['capture_sha256']==sha256(directory/'capture.cf32') and record['metadata_sha256']==sha256(directory/'capture.json'),'producer capture binding')
     iq,_,capture_sha=load_capture(directory/'capture.cf32',directory/'capture.json')
     settings=record['receiver_settings'];rate=settings['sample_rate_hz'];center=settings['center_frequency_hz']
-    output=directory/'analysis-producer';output.mkdir(mode=0o700)
+    import re
+    require(re.fullmatch('[a-z][a-z0-9-]{0,63}',analysis_name),'safe producer analysis label')
+    output=directory/analysis_name;output.mkdir(mode=0o700)
     reports=[]
+    terminal=None
     if record['schema']=='phase14-controller/1':
         from phase14.relay import transaction
         submitted=transaction((directory/'client-to-device.bin').read_bytes(),(directory/'device-to-client.bin').read_bytes(),
             json.loads((ROOT/'docs/protocol/wtp-1.schema.json').read_text()),before['device_id'],boot,record['job_id'])
         require(submitted==record['wtp_transaction'],'controller transaction substitution')
+        from phase14.relay import terminal_proof
+        terminal=terminal_proof((directory/'device-to-client.bin').read_bytes(),
+            json.loads((ROOT/'docs/protocol/wtp-1.schema.json').read_text()),submitted['arm_reply'],boot,record['job_id'])
         job=accepted_events(submitted['load_request']['body'],submitted['load_reply']['body']['adjustments'])
+        require(job['mode'].upper()==record['mode'],'producer mode substitution')
         frequency=next(int(v['frequency_nhz'])/1e9 for v in job['events'] if v['rf_on'])
         report=wspr(iq,rate,center,frequency,output,Path('/usr/bin/wsprd'),0,reference_hz=record['reference']['f1']) if record['mode']=='WSPR' else keyed(iq,rate,center,frequency,job)
+        if record['mode']!='WSPR':
+            from phase14.human_copy import assess
+            report['human_copy']=assess(report,job)
         reports.append(report)
     elif record['schema']=='phase14-standalone/1':
         import numpy as np
@@ -70,13 +80,18 @@ def analyze(directory,deployment=None):
         capture_sha256=capture_sha,source_revision=before['revision'],firmware_sha256=firmware,
         deployment_binding=deployment_binding,boot_id=boot,device_id=before['device_id'],
         reports=reports,resources=assessment,passed=all(r['passed'] for r in reports) and assessment['passed'],
-        release_qualified=False,tools={str(Path(__file__).relative_to(ROOT)):sha256(__file__)},
+        terminal_evidence=terminal,
+        human_copy_passed=all(r['human_copy']['passed'] for r in reports) and assessment['passed'] if all('human_copy' in r for r in reports) else None,
+        release_qualified=False,tools={str(p.relative_to(ROOT)):sha256(p) for p in
+            (Path(__file__),ROOT/'src/campaign/analysis.py',ROOT/'src/phase14/human_copy.py',ROOT/'src/phase14/relay.py',
+             ROOT/'scripts/measure_rf_bench.py',ROOT/'scripts/analyze_rf_bench.py',ROOT/'scripts/decode_rf_wspr.py')},
         limitations=['Nominal receiver axes; reference subtraction does not discipline Pico frequency.',
             'Retained operational screens and raw failures; no filtered-output or calibrated power claim.'])
     save(output/'result.json',result)
-    return dict(passed=result['passed'],frames=len(reports),source_revision=before['revision'])
+    return dict(passed=result['passed'],human_copy_passed=result['human_copy_passed'],frames=len(reports),source_revision=before['revision'])
 
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('directory',type=Path);parser.add_argument('--deployment',type=Path)
-    args=parser.parse_args();print(json.dumps(analyze(args.directory,args.deployment)))
+    parser.add_argument('--analysis-name',default='analysis-producer');args=parser.parse_args()
+    print(json.dumps(analyze(args.directory,args.deployment,args.analysis_name)))

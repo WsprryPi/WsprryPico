@@ -77,6 +77,7 @@ it does not by itself establish sampling-time scale. Report this separately.
 | Synthesis | Source range/quantization, all requested states distinct; reject unsupported LOAD without ARM; no fifth distinct frequency. |
 | Screening carrier | Complete on/off capture, >=10 dB contrast, no clipping/overflow; existing analysis's 100 Hz acquisition window is a screening locator, not a calibrated carrier specification. |
 | Operational keyed RF | Existing analyzer: 20 ms relative envelope, >=10 dB contrast, phase residual <=0.15 rad; two-state separation/residual <=0.2 Hz; frequency-transition fit <=20 ms and <=0.15 Hz. This retains a consistent screen; ambiguity is reported, not relabeled. |
+| Human-copy QRSS family, explicit operator amendment on 2026-10-08 | QRSS, FSKCW and DFCW are intended for human copy. Drift and phase/coherence residuals are diagnostics, not automatic mode failures. Assess acquired continuous marks, correct envelope/gaps and transitions, >=10 dB contrast, amplitude ratio >=0.5, independent final silence and distinct locally ordered frequency states. For the requested 5 Hz states, require at least half the accepted separation near each change as a visibility margin. Keep 20 ms relative timing screens and all resource/control gates. Preserve legacy results and publish a separate human-copy assessment; WSPR criteria are unchanged. |
 | Operational WSPR | Complete 162-symbol, 110.592 s frame and quiet before/after; 375/256 Hz spacing, existing <=0.05 Hz separation / <=0.1 Hz residual / <=10 ms transition screens; independent exact-message decode. A decode alone cannot satisfy the other assertions. |
 | Release timing/frequency | Report error and uncertainty independently. WTP permits launch within the requested UTC second, subject to admitted clock uncertainty. No inferred microsecond UTC claim. Physical symbol/frame precision and calibrated absolute carrier remain unqualified if receiver/reference uncertainty is not bounded. Historical suggested 10 us/100 us/0.1 Hz budgets are not promoted into new contracts. |
 | Spectra/filter | Record close-in sidebands, in-window spurs, separately tuned harmonics/images through at least fifth harmonic where receiver coverage permits; exact coverage and receiver attribution. Retain operator's better-than-WsprryPi close-in benchmark. Qualify the recorded unfiltered path only; LPF development/application belongs to the operator. No filtered-output or antenna-ready emission claim. |
@@ -91,6 +92,13 @@ configurations require three complete WSPR frames and three keyed repetitions,
 including disconnect/reconnect, plus both-board consistency. A rejected Tone
 screen may exclude that configuration from expensive acceptance, with an explicit
 failed/unresolved disposition for dependent modes rather than a false pass.
+
+The operator's human-copy amendment supersedes automatic rejection of QRSS-family
+rows for smooth drift or long-mark phase residuals. Retained captures may be
+reanalyzed with this separately identified method. Rows previously stopped by
+the legacy diagnostic screen require their missing repetitions if the new
+human-copy, timing and resource assessment passes. Do not erase or relabel the
+original screen; do not apply this amendment to WSPR machine decoding.
 
 Retain raw phase/timing/spectral measurements even when a historical analyzer's
 composite flag fails. Investigate receiver artifacts with retuning/gain/reference-

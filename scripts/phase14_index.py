@@ -43,6 +43,13 @@ def collect(root,source_revision=None):
                 capture_sha256=report['capture_sha256'],metadata_sha256=report['metadata_sha256'],
                 decoded=report.get('decoded'),issues=m.get('issues',[]),spectrum=report.get('spectrum'),
                 resources=report.get('resources'),limitations=report['limitations'],tools=report['tools'])
+            if report.get('human_copy'):
+                human=report['human_copy']
+                observation['human_copy']={k:human[k] for k in ('schema','passed','overall_screen_passed','issues',
+                    'operator_amendment','legacy_screen_passed','diagnostic_issues','method','limitations') if k in human}
+                observation['human_copy']['frequency_state_pairs']=[{k:pair[k] for k in
+                    ('before_event_index','after_event_index','expected_jump_hz','observed_jump_hz','before_interval_s','after_interval_s')
+                    if k in pair} for pair in human.get('frequency_state_pairs',[])]
             for key in ('observed_duration_s','expected_duration_s','spacing_hz','fitted_spacing_hz',
                         'max_symbol_residual_hz','max_transition_error_s','fitted_drift_hz_s','alignment_s','transitions'):
                 if key in m:observation[key]=m[key]
@@ -60,7 +67,15 @@ def collect(root,source_revision=None):
             v['requested_frequency_compensation_ppb']==0 and (source_revision is None or v['source_revision']==source_revision)]
         if row['disposition']!='UNSUPPORTED_CONFIGURATION' and row['observations']:
             # Operational screens are checkpoints; this index cannot promote release support.
-            row['disposition']='SCREEN_FAIL' if any(observations[n]['disposition']=='OPERATIONAL_SCREEN_FAIL' for n in row['observations']) else 'SCREEN_PASS_RELEASE_UNQUALIFIED'
+            legacy='SCREEN_FAIL' if any(observations[n]['disposition']=='OPERATIONAL_SCREEN_FAIL' for n in row['observations']) else 'SCREEN_PASS_RELEASE_UNQUALIFIED'
+            row['legacy_screen_disposition']=legacy
+            if row['mode'] in ('QRSS','FSKCW','DFCW'):
+                assessed=[n for n in row['observations'] if 'human_copy' in observations[n]]
+                row['human_copy_observations']=assessed
+                row['disposition']=('HUMAN_COPY_NOT_ASSESSED' if not assessed else
+                    'HUMAN_COPY_SCREEN_PASS_RELEASE_UNQUALIFIED' if all(observations[n]['human_copy'].get('overall_screen_passed') is True for n in assessed) else
+                    'HUMAN_COPY_SCREEN_FAIL')
+            else:row['disposition']=legacy
     return dict(schema='phase14-public-index/1',phase14_complete=False,release_qualified=False,
         path='each Pico GP2 and GPSDO -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no LPF',
         filtering_responsibility='operator',selected_matrix_source_revision=source_revision,

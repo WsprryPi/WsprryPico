@@ -45,6 +45,24 @@ def synth(job, *, extra=False, wrong_shift=False, dropout=False):
 
 
 class AnalysisTests(unittest.TestCase):
+    def test_human_copy_preserves_slow_drift_but_rejects_missing_or_collapsed_marks(self):
+        from phase14.human_copy import assess
+        for mode in ('QRSS','FSKCW','DFCW'):
+            job=make_job(mode,3570100,keyed_dot_ns=3000000000);iq,rate=synth(job)
+            t=np.arange(len(iq))/rate;iq*=np.exp(.03j*np.pi*t*t)
+            report=keyed(iq,rate,3568100,3570100,job)
+            self.assertFalse(report['passed'],mode)
+            human=assess(report,job);self.assertTrue(human['passed'],(mode,human))
+            self.assertFalse(human['legacy_screen_passed'])
+            for fault in ('extra','dropout'):
+                bad,rate=synth(job,**{fault:True})
+                self.assertFalse(assess(keyed(bad,rate,3568100,3570100,job),job)['passed'],(mode,fault))
+            if mode!='QRSS':
+                bad,rate=synth(job,wrong_shift=True)
+                self.assertFalse(assess(keyed(bad,rate,3568100,3570100,job),job)['passed'])
+                forged=copy.deepcopy(report);forged['human_frequency_state_pairs'][0]['expected_jump_hz']=.01
+                self.assertFalse(assess(forged,job)['passed'])
+
     def test_long_capture_scan_rejects_nonfinite_after_chunk_boundary(self):
         from analyze_rf_bench import load_capture
         with tempfile.TemporaryDirectory() as directory:

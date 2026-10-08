@@ -52,6 +52,29 @@ def transaction(client,server,schema,device_id,boot,job_id):
     return dict(load_request=loads[0][0],load_reply=loads[0][1],arm_request=arms[0][0],arm_reply=arms[0][1],hellos=hellos)
 
 
+def terminal_proof(server,schema,arm_reply,boot,job_id):
+    """Require same-session natural completion after the exact ARM response."""
+    armed=False;proof=None
+    for index,response in enumerate(messages(server,schema)):
+        if response==arm_reply:armed=True;continue
+        if not armed or response['session_id']!=arm_reply['session_id']:continue
+        candidates=[]
+        if response['type']=='event' and response['event']=='JOB_STATE':
+            if response['boot_id']!=boot:raise ValueError('terminal event boot substitution')
+            candidates=[response['body']]
+        elif response['type']=='response' and response['op']=='STATUS' and response['ok']:
+            if response['body']['boot_id']!=boot:raise ValueError('terminal status boot substitution')
+            candidates=[response['body'],*response['body']['terminal_records']]
+        for status in candidates:
+            if status.get('job_id')!=job_id or status['state'] not in ('complete','aborted','missed','failed'):continue
+            if status['state']!='complete' or status['output_active'] is not False or 'error' in status:
+                raise ValueError('controller did not naturally complete with known inactive output')
+            if proof is None:
+                proof=dict(message_index=index,session_id=response['session_id'],boot_id=boot,terminal=status)
+    if proof:return proof
+    raise ValueError('same-job completion after ARM not captured')
+
+
 class Relay:
     def __init__(self,root,address,port,*,listen_port=31582):
         self.root=Path(root);self.address=address;self.port=port

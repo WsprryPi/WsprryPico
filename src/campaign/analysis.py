@@ -208,6 +208,7 @@ def keyed(iq, rate, center, frequency, job):
             measurement["contrast_db"] = float(
                 10 * np.log10(np.median(power[a:b]) / noise)
             )
+            measurement['active_interior_complete']=bool(np.all(active[a:b]))
             measurements.append(measurement)
             if (
                 not np.all(active[a:b])
@@ -284,6 +285,22 @@ def keyed(iq, rate, center, frequency, job):
             issues.append("keyed frequency transition timing failed")
         if residual > 0.15:
             issues.append("keyed frequency transition fit residual exceeds 0.15 Hz")
+    state_pairs=[]
+    on_events=[(i,e) for i,e in enumerate(job['events']) if e['rf_on']]
+    for (i,previous),(j,current) in zip(on_events,on_events[1:]):
+        if previous['frequency_nhz']==current['frequency_nhz']:continue
+        previous_end=offset+(int(previous['offset_ns'])+int(previous['duration_ns']))/1e9
+        current_start=offset+int(current['offset_ns'])/1e9
+        width=min(.5,.4*int(previous['duration_ns'])/1e9,.4*int(current['duration_ns'])/1e9)
+        if width<.008:continue
+        a,b=round((previous_end-.02-width)*brate),round((previous_end-.02)*brate)
+        c,d=round((current_start+.02)*brate),round((current_start+.02+width)*brate)
+        if min(a,c)<0 or max(b,d)>len(bb):continue
+        before=phase_fit(bb[a:b],brate,frequency);after=phase_fit(bb[c:d],brate,frequency)
+        state_pairs.append(dict(before_event_index=i,after_event_index=j,
+            expected_jump_hz=(int(current['frequency_nhz'])-int(previous['frequency_nhz']))/1e9,
+            observed_jump_hz=after['indicated_hz']-before['indicated_hz'],
+            before_interval_s=[a/brate,b/brate],after_interval_s=[c/brate,d/brate]))
     return dict(
         passed=not issues,
         issues=issues,
@@ -295,5 +312,6 @@ def keyed(iq, rate, center, frequency, job):
         measurements=measurements,
         spacing_hz=spacing,
         transitions=transitions,
+        human_frequency_state_pairs=state_pairs,
         limitation="relative carrier/channel tests; uncalibrated UTC and spectrum",
     )

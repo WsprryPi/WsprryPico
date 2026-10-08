@@ -180,6 +180,24 @@ class Tests(unittest.TestCase):
         broken=bytearray(raw);broken[-1]^=1
         for invalid in (raw[:-1],raw[:8],bytes(broken),raw+b'extra'):
             with self.assertRaises(ValueError):messages(invalid,schema)
+    def test_controller_terminal_requires_same_job_boot_and_post_arm_completion(self):
+        from phase14.relay import terminal_proof
+        from validate_wtp_contract import frame
+        schema=json.loads((ROOT/'docs/protocol/wtp-1.schema.json').read_text())
+        clock=dict(state='synchronized',utc_now_ns='0',monotonic_now_ns='0',uncertainty_ns='0',sync_age_ns='0',leap='normal')
+        arm=dict(type='response',protocol='WTP/1',session_id='a'*32,request_id='b'*32,op='ARM',ok=True,
+            body=dict(job_id='c'*32,state='armed',start_utc_ns='1000000000',start_monotonic_ns='1000000000',clock=clock))
+        end=dict(type='event',protocol='WTP/1',session_id='a'*32,boot_id='d'*32,event_id='1',event='JOB_STATE',
+            body=dict(job_id='c'*32,state='complete',output_active=False))
+        def wire(values):return b''.join(frame(json.dumps(v,separators=(',',':')).encode()) for v in values)
+        self.assertEqual(terminal_proof(wire([arm,end]),schema,arm,'d'*32,'c'*32)['terminal'],end['body'])
+        cases=[[end,arm],[arm,dict(end,boot_id='e'*32)],
+            [arm,dict(end,body=dict(end['body'],job_id='e'*32))],
+            [arm,dict(end,body=dict(end['body'],state='aborted'))],
+            [arm,dict(end,body=dict(end['body'],output_active=True))],
+            [arm,end,dict(end,event_id='2',body=dict(end['body'],state='aborted'))]]
+        for values in cases:
+            with self.assertRaises(ValueError):terminal_proof(wire(values),schema,arm,'d'*32,'c'*32)
     def test_controller_relay_drains_fragmented_bytes_at_half_close(self):
         from phase14.relay import Relay
         import socket,threading
@@ -261,6 +279,18 @@ class Tests(unittest.TestCase):
             self.assertEqual(len(value['observations']),4)
             row=next(r for r in value['matrix'] if r['band']=='80m' and r['mode']=='TONE' and r['clock_hz']==138000000)
             self.assertEqual(row['observations'],[0]);self.assertFalse(value['release_qualified'])
+            self.assertNotIn('must never be exported',json.dumps(value))
+            physical=root/'0/physical.json';v=json.loads(physical.read_text());v['mode']='QRSS';physical.write_text(json.dumps(v))
+            path=root/'0/analysis/result.json';report=json.loads(path.read_text());report['mode']='QRSS'
+            report['physical_sha256']=hashlib.sha256(physical.read_bytes()).hexdigest()
+            report['disposition']='OPERATIONAL_SCREEN_FAIL'
+            report['human_copy']=dict(schema='phase14-human-copy/1',passed=True,overall_screen_passed=True,issues=[],
+                private_secret='must never be exported',frequency_state_pairs=[dict(before_event_index=1,after_event_index=3,
+                observed_jump_hz=5,private_secret='must never be exported')])
+            path.write_text(json.dumps(report));value=collect(root,'a'*12)
+            row=next(r for r in value['matrix'] if r['band']=='80m' and r['mode']=='QRSS' and r['clock_hz']==138000000)
+            self.assertEqual(row['disposition'],'HUMAN_COPY_SCREEN_PASS_RELEASE_UNQUALIFIED')
+            self.assertEqual(row['legacy_screen_disposition'],'SCREEN_FAIL')
             self.assertNotIn('must never be exported',json.dumps(value))
             path=root/'0/analysis/result.json';report=json.loads(path.read_text());report['board']='B';path.write_text(json.dumps(report))
             with self.assertRaises(ValueError):collect(root,'a'*12)

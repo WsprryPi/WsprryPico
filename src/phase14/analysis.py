@@ -39,6 +39,8 @@ def analyze(directory, output_label="analysis"):
         result['decoder_sha256']=sha256('/usr/bin/wsprd')
     else:
         result=established.keyed(iq,rate,center,frequency,job)
+        from phase14.human_copy import assess
+        result['human_copy']=assess(result,job)
         if physical.get('reference') and result.get('alignment_s') is not None:
             from measure_rf_bench import baseband,phase_fit
             ref_hz=physical['reference']['f1'];ref,ref_rate=baseband(iq,rate,center,ref_hz)
@@ -75,6 +77,9 @@ def analyze(directory, output_label="analysis"):
         disposition='OPERATIONAL_SCREEN_PASS' if result['passed'] else 'OPERATIONAL_SCREEN_FAIL',
         tools={str(p.relative_to(Path(__file__).resolve().parents[2])):sha256(p) for p in
             (Path(__file__),Path(__file__).resolve().parents[2]/'scripts/measure_rf_bench.py',
+             Path(__file__).resolve().parents[2]/'scripts/analyze_rf_bench.py',
+             Path(__file__).resolve().parents[2]/'scripts/decode_rf_wspr.py',
+             Path(__file__).resolve().with_name('human_copy.py'),
              Path(__file__).resolve().parents[1]/'campaign/analysis.py')},
         limitations=['Nominal SDR sample/time scale; no calibrated absolute UTC claim.',
                      'No measured output filter, insertion loss or calibrated source power.',
@@ -88,6 +93,8 @@ def analyze(directory, output_label="analysis"):
                 info['status']['job_id']==job['job_id']):infos.append(info)
     infos.append(physical['after'])
     result['resources']=resources(infos,physical['clock_hz'])
+    if 'human_copy' in result:
+        result['human_copy']['overall_screen_passed']=result['human_copy']['passed'] and result['resources']['passed']
     if not result['resources']['passed']:
         result['passed']=False;result['disposition']='OPERATIONAL_SCREEN_FAIL'
     # A sampled low tail is mandatory even when an analyzer reports success.

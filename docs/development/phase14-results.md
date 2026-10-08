@@ -3,6 +3,15 @@
 Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+Current acceptance amendment, 2026-10-08: the operator explicitly stated that
+QRSS, FSKCW and DFCW are intended for human copy and that having drift is not
+an immediate failure. Earlier `OPERATIONAL_SCREEN_FAIL` labels in this record
+are retained machine/phase diagnostics, not automatic human-mode rejections.
+The plan now separates a human-copy assessment of marks, spaces, timing, locally
+distinct frequency states and shutdown from phase/drift diagnostics. Resource,
+identity/control and WSPR machine-decoding gates remain unchanged. Fresh
+source-bound assessments and missing keyed repetitions are still required.
+
 The initial host baseline passed 155/157 CTest groups. Two known test-harness
 failures were reproduced: the extracted capacity-pressure fixture omitted the
 production HTTPS authority helper; explicit admission-budget tests mixed their
@@ -412,3 +421,19 @@ before launch, exercising launch refusal rather than running-job independence.
 The finite running job is followed by the retained aged-clock ARM refusal,
 owned-rule removal and recovery checks. The probe uses the same five-second
 administration response bound. This workload remains unexecuted.
+
+The operator's human-copy amendment now has a separate analyzer result. RF-on
+interior continuity is recorded explicitly, and short frequency fits near
+adjacent distinct marks assess state ordering without fitting all message drift
+to a single offset. Original phase, state residual and transition-fit diagnostics
+are retained. Eleven RF fixtures include smooth-drift examples that pass the
+human-copy assessment while retaining their legacy failures; dropouts, extra RF,
+collapsed states and substituted expected jumps still reject. Eighteen portable
+checks and all ten affected host groups pass.
+
+Native-producer analysis also requires same-job, same-boot natural completion
+after the exact ARM response in the retained WTP byte stream. An empty successor
+and process exit code alone cannot establish completion. Pre-ARM terminal
+records, foreign jobs/boots, aborted/active terminals and contradictory later
+terminals reject. The currently running legacy batch and waiting continuation
+retain their exact old tool snapshots; new assessments are stored separately.
