@@ -161,8 +161,6 @@ class Rig:
                 require(clock_value['state']=='synchronized' and int(clock_value['uncertainty_ns'])<=500000000,'WTP clock not admissible')
                 start=(int(clock_value['utc_now_ns'])//1000000000+4)*1000000000
                 record['arm']=peer.request('ARM',dict(job_id=value['job_id'],start_utc_ns=str(start),max_start_uncertainty_ns='500000000'))
-                if block:
-                    block.start();record['ntp_block_table']=block.table
                 save(root/'physical.json',record)
                 end=time.monotonic()+int(value['total_duration_ns'])/1e9+10
                 action_done=False;disconnected=False;running_since=None;last_info=0;last_renew=time.monotonic();last_browser=0;browser_index=0
@@ -175,6 +173,11 @@ class Rig:
                     require(status['boot_id']==record['boot_id'] and status['job_id']==value['job_id'],'job/boot observation mismatch')
                     record['status'].append(dict(utc_ns=time.time_ns(),monotonic_ns=time.monotonic_ns(),status=status))
                     if status['state']=='running' and running_since is None:running_since=time.monotonic()
+                    if block and not block.active and status['state']=='running' and status['output_active']:
+                        # Suppress observations after RF actually starts. Blocking
+                        # during the four-second arm lead can age a nearly-stale
+                        # clock before launch, testing a different assertion.
+                        block.start();record['ntp_block_table']=block.table
                     if running_since and not action_done and time.monotonic()-running_since>=2:
                         if action=='abort':peer.request('ABORT',dict(job_id=value['job_id']))
                         elif action=='disconnect':

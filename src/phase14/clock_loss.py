@@ -22,7 +22,7 @@ def reject_aged_arm(peer,evidence,value):
         request=dict(type='request',protocol='WTP/1',session_id=peer.session,request_id=uuid.uuid4().hex,
             op='ARM',body=dict(job_id=value['job_id'],start_utc_ns=str((int(clock['utc_now_ns'])//1000000000+4)*1000000000),max_start_uncertainty_ns='500000000'))
         response=exchange(peer.fd,frame(json.dumps(request,separators=(',',':')).encode()),
-            time.monotonic()+3,peer.emit,True,expected=request,receive_buffer=peer.received)
+            time.monotonic()+5,peer.emit,True,expected=request,receive_buffer=peer.received)
         evidence.event('aged_arm_observation',dict(clock=clock,request=request,response=response))
         require(not peer.validator.errors(response,peer.schema) and response.get('ok') is False and
             response.get('error',{}).get('code')=='CLOCK_UNSYNCHRONIZED','aged clock did not refuse ARM')

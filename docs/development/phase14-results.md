@@ -404,3 +404,11 @@ bin width. This is a relative peak-bin observation, not a resolved spur or
 calibrated emission claim. The QRSS waveform disposition remains
 `OPERATIONAL_SCREEN_FAIL`; the phase measurements and limits are unchanged.
 The corrected analysis is a new immutable result beside the original.
+
+Clock-loss preparation review moved NTP suppression from immediately after ARM
+to the first observed same-job Running/active state. Suppressing during the
+four-second arm lead could instead age an already nearly-stale observation
+before launch, exercising launch refusal rather than running-job independence.
+The finite running job is followed by the retained aged-clock ARM refusal,
+owned-rule removal and recovery checks. The probe uses the same five-second
+administration response bound. This workload remains unexecuted.
