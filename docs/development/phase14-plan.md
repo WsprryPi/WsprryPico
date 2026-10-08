@@ -85,6 +85,11 @@ it does not by itself establish sampling-time scale. Report this separately.
 | Endurance | Finite 60-minute complete jobs, maximum 512-event and 32-character workloads, repeated jobs, transport recovery, realistic Wi-Fi/browser load, natural completion/abort/cancel; no output afterward. An eight-hour mixed soak is proposed for final release, distinct from the historical inhibited soak. |
 | Reproducibility | Same pinned SDK 2.3.1, Arm GCC 15.3.1 and picotool commit; clean independent build directories; identical UF2 payload/artifact hashes or investigated differences. No generated firmware or secrets committed. |
 
+Separately tuned spectral surveys use a finite 240-second Tone;
+each two-second receiver capture requires the same active Running job/boot both
+before and after capture so that a job ending during acquisition cannot be
+misclassified as an RF-on measurement.
+
 Use short Tone screens across band/clock on both boards before expensive mode
 acceptance. Start with Tone and complete WSPR at 80 m/138 MHz on both boards.
 Then screen all representable band/clock candidates. For promising release

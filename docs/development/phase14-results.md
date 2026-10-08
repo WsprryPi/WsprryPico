@@ -500,3 +500,20 @@ other bytes identical. The private comparison JSON records both artifact hashes.
 This supports runtime evidence applicability beyond source-file assumptions;
 it does not substitute for final both-board installation/smoke/cleanup. Current
 physical batches retain their original deployed image and exact tool identities.
+
+Further independent assessment of current-image Pico B 80 m QRSS and FSKCW also
+passes human-copy marks/timing/states and resource screens while preserving the
+original drift-related failures. FSKCW local changes measure approximately
+5.01–5.02 Hz in the correct order. Neither observation supplies its still-missing
+three-repetition release evidence.
+
+Pre-execution spectral review found an attribution gap: Running was checked
+before each separately tuned capture, but a job could finish during that capture.
+The survey now requires the same active Running job/boot both before and after
+every complete 500,000-sample capture. A stop, inactive state, foreign job or
+restart rejects the attribution. The finite Tone window is increased from 120
+to 240 seconds because 22 receiver initializations plus two-second captures leave
+little margin at the observed helper overhead. This changes acquisition budget,
+not spectral acceptance thresholds; no survey has run yet. Nineteen affected
+portable rejection/relay tests pass, including both sides of the stop/restart
+boundary. The active matrix's files and deployed firmware remain unchanged.

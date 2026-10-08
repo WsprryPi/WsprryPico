@@ -86,6 +86,14 @@ class Tests(unittest.TestCase):
         validate_physical(cancelled)
         cancelled['status'][0]['status'].update(state='running',output_active=True)
         with self.assertRaises(ValueError):validate_physical(cancelled)
+    def test_spectral_capture_cannot_straddle_stop_or_restart(self):
+        from phase14.plan import validate_spectral_window
+        running=dict(state='running',output_active=True,boot_id='a'*32,job_id='b'*32)
+        validate_spectral_window(running,copy.deepcopy(running),'a'*32,'b'*32)
+        for change in ({'state':'complete','output_active':False},{'output_active':False},
+                       {'boot_id':'c'*32},{'job_id':'d'*32}):
+            for before,after in ((dict(running,**change),running),(running,dict(running,**change))):
+                with self.assertRaises(ValueError):validate_spectral_window(before,after,'a'*32,'b'*32)
     def test_settings_journal_corruption_never_rolls_back(self):
         from phase14.profiles import engineering_record,profile
         value=dict(device_id='b'*32,version=1,wifi=dict(ssid='test',password='private'),tls={})

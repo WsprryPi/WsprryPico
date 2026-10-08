@@ -64,6 +64,14 @@ def validate_capture(metadata, iq, expected):
             raise ValueError('capture hash')
 
 
+def validate_spectral_window(before, after, boot_id, job_id):
+    """A tuned on capture must remain inside one continuously running job."""
+    for status in (before, after):
+        if (status['state'] != 'running' or status['output_active'] is not True or
+            status['boot_id'] != boot_id or status['job_id'] != job_id):
+            raise ValueError('spectral capture extends outside its running job')
+
+
 def validate_physical(value):
     """Reject substituted device, source, boot, workload and lifecycle evidence."""
     import re

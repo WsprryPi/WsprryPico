@@ -12,7 +12,7 @@ import uuid
 ROOT=Path(__file__).resolve().parents[1];sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.live import Rig,CAPTURE,save
 from phase14.candidate import candidate
-from phase14.plan import BANDS,job,accepted_events,validate_capture
+from phase14.plan import BANDS,job,accepted_events,validate_capture,validate_spectral_window
 from led_closeout.runner import require,sha256
 
 
@@ -23,6 +23,7 @@ def capture(rig,label,frequency,gain):
     with (root/'receiver.log').open('x') as log:
         subprocess.run(argv,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,timeout=20,check=True)
     meta=json.loads((root/'capture.json').read_text());validate_capture(meta,root/'capture.cf32',settings)
+    require(meta['requested_sample_count']==meta['retained_sample_count']==500000,'complete two-second spectral capture required')
     from analyze_rf_bench import load_capture
     import numpy as np
     iq,_,digest=load_capture(root/'capture.cf32',root/'capture.json')
@@ -63,11 +64,14 @@ def main():
         for label,tune in targets:
             for gain in (12,20):record['captures'].append(dict(state='off',target=label,measurement=capture(rig,'off-'+label+'-'+str(gain),tune,gain)))
         peer=rig.device.peer(a.board);peer.request('CLAIM',dict(owner_id=owner,lease_ms=60000));claimed=True
-        submitted=job('TONE',a.band,138000000,uuid.uuid4().hex,120)
+        # Twenty-two separately initialized captures leave little margin in
+        # the previous 120-second window at the observed helper cadence. Keep
+        # a finite margin and reject any capture that reaches completion.
+        submitted=job('TONE',a.band,138000000,uuid.uuid4().hex,240)
         loaded=peer.request('LOAD',submitted,timeout=30);record['accepted_job']=accepted_events(submitted,loaded['adjustments']);record['load']=loaded
         utc=peer.request('GET_CLOCK',{});require(utc['state']=='synchronized' and int(utc['uncertainty_ns'])<=500000000,'spectral UTC admission')
         record['arm']=peer.request('ARM',dict(job_id=submitted['job_id'],start_utc_ns=str((int(utc['utc_now_ns'])//1000000000+4)*1000000000),max_start_uncertainty_ns='500000000'))
-        end=time.monotonic()+130
+        end=time.monotonic()+250
         while time.monotonic()<end:
             s=peer.request('STATUS',{});record['status'].append(s)
             if s['state']=='running':break
@@ -75,8 +79,13 @@ def main():
         require(s['state']=='running','spectral launch deadline')
         for label,tune in targets:
             for gain in (12,20):
-                s=peer.request('STATUS',{});require(s['state']=='running' and s['output_active'] and s['job_id']==submitted['job_id'] and s['boot_id']==record['boot_id'],'spectral on interval/job/boot')
-                record['captures'].append(dict(state='on',target=label,measurement=capture(rig,'on-'+label+'-'+str(gain),tune,gain)))
+                before_capture=peer.request('STATUS',{})
+                validate_spectral_window(before_capture,before_capture,record['boot_id'],submitted['job_id'])
+                measurement=capture(rig,'on-'+label+'-'+str(gain),tune,gain)
+                after_capture=peer.request('STATUS',{})
+                validate_spectral_window(before_capture,after_capture,record['boot_id'],submitted['job_id'])
+                record['captures'].append(dict(state='on',target=label,measurement=measurement,
+                    status_before=before_capture,status_after=after_capture))
                 peer.request('RENEW',dict(owner_id=owner,lease_ms=60000));rig.info(a.board)
         while time.monotonic()<end:
             s=peer.request('STATUS',{});record['status'].append(s)
