@@ -693,3 +693,17 @@ finite DFCW case using that message is required before final closeout to exercis
 both glyph-frequency roles at the maximum message length. The same three-second
 dot, 32-character limit and finite capture bound apply. Syntax/help/diff checks
 pass. No running or queued source file was overwritten by this local repair.
+
+Offline B reassessment was pipelined with A's new RF repetitions after the
+predecessor files were closed. All 63 retained B QRSS/FSKCW/DFCW captures pass
+human-copy/resource checks, including the 6 m captures. Combined with A's 69,
+132/132 retained family captures pass the amended assessment across both boards
+and all 13 representable points. Their original legacy flags remain unchanged.
+Private `build/offline-human-B/result.json` under the `bd6c2c1-bracketed` snapshot
+has SHA-256 `9fd24fe8040bef446c738d3fb1000106c6e08d0052828793748b89e266917914`;
+the offline script hash is
+`8a4305cb2838da719796cb0107d977085bf9eb6e78905d41d683e43d39a637d3`.
+The RF repetition stage reuses these immutable analyses; it has reached 31/78
+three-observation rows (39.7%), all passing, while missing repetitions continue.
+This is waveform/resource evidence under the human-copy method, not final
+release qualification or a formal human listening study.
