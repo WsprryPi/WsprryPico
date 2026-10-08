@@ -74,3 +74,32 @@ locks the shared receiver for RF/reference batches. All RF jobs still verify
 the other board is inactive. Constructor failure and reference restoration
 failure release owned handles. The rejected overlapping deployment changed
 no board. No firmware runtime change was needed for these automation repairs.
+
+
+## Evidence-validation and resource checkpoint
+
+All 26 reference-attributed Tone jobs at the 13 representable 138 MHz band
+points completed, with disabled schedules and inactive successors. Immutable
+reanalysis passes 25 operational screens; Pico A's 6 m capture fails the raw
+100 Hz acquisition screen. The calibrated-reference comparison is retained
+separately; that original failure is not replaced. Wider 132/150 MHz screening
+is in progress. All 158 deterministic host groups pass again after the stronger
+evidence/source/job/boot checks and spectral reference-exclusion repair.
+
+Per-job resource assessment now includes both stack guards, observed authority
+reserve, allocator/TLS/flash/DMA fault counters, predecessor exhaustion and
+refill-to-ready versus the clock-specific 16,384-word buffer period. Idle memory
+deltas are retained without treating unmatched replay-history windows as leak
+proof. Long-job and normalized-soak assertions remain pending.
+
+The current consumer profile intentionally suspends standalone recurrence and
+USB WTP and has no station browser API. Those disabled policy surfaces cannot
+be claimed as failed transports. A temporary B engineering profile is prepared
+for the existing USB, mTLS browser and standalone paths. Changing that profile
+creates a concrete settings-preservation need: preserve only its 16 KiB profile
+plus 16 KiB standalone configuration/watermark region, verify CRC/SHA journals,
+leave application/access/bond/E10 bytes untouched, and restore those specific
+settings afterward. This does not reopen GP14 or LED/button qualification.
+New test credentials remain private under ignored `config/local/` and the
+private authorized-host evidence root. Journal corruption tests reject torn
+newer records rather than resurrecting older authority.

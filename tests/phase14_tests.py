@@ -75,4 +75,30 @@ class Tests(unittest.TestCase):
         for mutation in mutations:
             invalid=copy.deepcopy(physical);mutation(invalid)
             with self.assertRaises(ValueError):validate_physical(invalid)
+    def test_settings_journal_corruption_never_rolls_back(self):
+        from phase14.profiles import engineering_record,profile
+        value=dict(device_id='b'*32,version=1,wifi=dict(ssid='test',password='private'),tls={})
+        raw=engineering_record(7,value)
+        self.assertEqual(profile(raw),(7,1,value))
+        for at in (0,8,16,24,252,260,7936,7944,7952,8188):
+            broken=bytearray(raw);broken[at]^=1
+            with self.assertRaises(ValueError):profile(broken)
+        for sequence in (0,True,2**64):
+            with self.assertRaises(ValueError):engineering_record(sequence,value)
+        # A valid older slot must not hide a torn newer slot.
+        broken=bytearray(engineering_record(8,value)[:8192]+raw[:8192]);broken[260]^=1
+        with self.assertRaises(ValueError):profile(broken)
+    def test_refill_faults_and_growth_samples(self):
+        from phase14.plan import resources
+        fields=('allocator_failures','tls_allocation_failures','dma_errors','exhausted_successor_links',
+                'refill_invalid_reserves','refill_irq_unpaired','core0_stack_fault_status','core1_stack_fault_status',
+                'flash_read_failures','flash_erase_failures','flash_program_failures')
+        info=dict.fromkeys(fields,0);info.update(system_clock_hz=138000000,status=dict(boot_id='a'*32),
+            heap_available_bytes=100000,heap_allocated_bytes=30000,core0_stack_guard_valid=1,
+            core1_stack_guard_valid=1,max_refill_irq_to_ready_ns=1500000)
+        self.assertTrue(resources([info,copy.deepcopy(info)],138000000)['passed'])
+        for changes in ({'heap_available_bytes':32767},{'exhausted_successor_links':1},
+                        {'max_refill_irq_to_ready_ns':4000000},{'core1_stack_guard_valid':0}):
+            self.assertFalse(resources([info,dict(info,**changes)],138000000)['passed'])
+        with self.assertRaises(ValueError):resources([info,dict(info,system_clock_hz=132000000)],138000000)
 if __name__=='__main__':unittest.main()

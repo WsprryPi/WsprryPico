@@ -94,3 +94,28 @@ def validate_physical(value):
             r['pps1'] or r['f1']!=BANDS[value['band']]-40000):
             raise ValueError('reference identity/settings binding')
     return value
+
+
+def resources(infos,clock):
+    """Evaluate observed current-boot authority reserve and RF fault counters."""
+    if not infos:raise ValueError('resource samples absent')
+    fields=('allocator_failures','tls_allocation_failures','dma_errors','exhausted_successor_links',
+            'refill_invalid_reserves','refill_irq_unpaired','core0_stack_fault_status','core1_stack_fault_status',
+            'flash_read_failures','flash_erase_failures','flash_program_failures')
+    issues=[];baseline=infos[0]
+    for info in infos:
+        if info['system_clock_hz']!=clock or info['status']['boot_id']!=baseline['status']['boot_id']:
+            raise ValueError('resource clock/boot substitution')
+        for field in fields:
+            if info[field]!=baseline[field]:issues.append('new '+field)
+        if not info['core0_stack_guard_valid'] or not info['core1_stack_guard_valid']:
+            issues.append('stack guard invalid')
+        if info['heap_available_bytes']<32768:issues.append('authority reserve below 32 KiB')
+        if info['max_refill_irq_to_ready_ns']>=16384*32*1000000000/clock:
+            issues.append('refill misses full-buffer period')
+    return dict(passed=not issues,issues=sorted(set(issues)),samples=len(infos),
+        minimum_observed_heap_available_bytes=min(v['heap_available_bytes'] for v in infos),
+        maximum_refill_irq_to_ready_ns=max(v['max_refill_irq_to_ready_ns'] for v in infos),
+        full_buffer_period_ns=16384*32*1000000000/clock,
+        idle_allocated_delta_bytes=infos[-1]['heap_allocated_bytes']-baseline['heap_allocated_bytes'],
+        limitation='Observed INFO samples and cumulative per-boot high-water counters; same-shape normalized idle windows required for growth assertions.')

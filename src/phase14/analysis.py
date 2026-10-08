@@ -4,7 +4,7 @@ from pathlib import Path
 from analyze_rf_bench import load_capture
 from campaign import analysis as established
 from measure_rf_bench import measure
-from phase14.plan import GOLDEN37, BANDS, validate_capture, validate_physical
+from phase14.plan import GOLDEN37, BANDS, validate_capture, validate_physical, resources
 from phase14.live import save
 from led_closeout.runner import sha256, require
 
@@ -56,6 +56,17 @@ def analyze(directory, output_label="analysis"):
         limitations=['Nominal SDR sample/time scale; no calibrated absolute UTC claim.',
                      'No measured output filter, insertion loss or calibrated source power.',
                      'Screening is not final repeated release acceptance.'])
+    infos=[physical['before']]
+    for line in (directory.parent/'events.jsonl').read_text().splitlines():
+        entry=json.loads(line)
+        if entry['kind']=='info' and entry['value']['board']==physical['board']:
+            info=entry['value']['info']
+            if (info['status']['boot_id']==physical['boot_id'] and
+                info['status']['job_id']==job['job_id']):infos.append(info)
+    infos.append(physical['after'])
+    result['resources']=resources(infos,physical['clock_hz'])
+    if not result['resources']['passed']:
+        result['passed']=False;result['disposition']='OPERATIONAL_SCREEN_FAIL'
     # A sampled low tail is mandatory even when an analyzer reports success.
     require(intervals and intervals[-1][1]+.5<len(iq)/rate,'RF-off capture tail absent')
     save(output/'result.json',result)
