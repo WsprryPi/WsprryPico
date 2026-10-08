@@ -437,3 +437,11 @@ and process exit code alone cannot establish completion. Pre-ARM terminal
 records, foreign jobs/boots, aborted/active terminals and contradictory later
 terminals reject. The currently running legacy batch and waiting continuation
 retain their exact old tool snapshots; new assessments are stored separately.
+
+Isolated snapshot `14ee874` has now assessed the retained current-image A 80 m
+QRSS capture and exact native FSKCW capture. Both pass human-copy timing/marks/
+states and resources; the native stream independently contains same-job natural
+Complete/inactive terminal evidence after ARM. Their original machine-screen
+flags remain false. These are source-bound human-copy observations, not final
+three-repetition release qualification. A finite adapter will assess retained
+keyed captures and complete missing repetitions after the legacy matrix ends.
