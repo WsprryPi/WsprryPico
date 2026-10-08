@@ -16,8 +16,27 @@ from led_closeout.runner import require,sha256
 
 def assess(directory):
     output=directory/'analysis-human-copy/result.json'
-    if not output.exists():analyze(directory,'analysis-human-copy')
-    report=json.loads(output.read_text());physical=json.loads((directory/'physical.json').read_text())
+    unresolved=directory/'analysis-human-copy-error.json'
+    physical=json.loads((directory/'physical.json').read_text())
+    if unresolved.exists():
+        failure=json.loads(unresolved.read_text())
+        require(failure['physical_sha256']==sha256(directory/'physical.json') and
+            failure['capture_sha256']==physical['capture_sha256'] and
+            failure['metadata_sha256']==physical['metadata_sha256'],'unresolved human analysis substitution')
+        return dict(path=str(directory),physical_sha256=failure['physical_sha256'],
+            analysis_error_sha256=sha256(unresolved),human_copy_passed=False,
+            disposition='ANALYSIS_UNRESOLVED',error=failure['error'])
+    if not output.exists():
+        try:analyze(directory,'analysis-human-copy')
+        except ValueError as error:
+            # Receiver/analysis ambiguity excludes this row, while the already
+            # inactive finite job permits independent rows to continue. Preserve
+            # any partial analysis directory and its exact failure separately.
+            save(unresolved,dict(schema='phase14-human-analysis-error/1',
+                physical_sha256=sha256(directory/'physical.json'),capture_sha256=physical['capture_sha256'],
+                metadata_sha256=physical['metadata_sha256'],error=str(error),script_sha256=sha256(__file__)))
+            return assess(directory)
+    report=json.loads(output.read_text())
     require(report['physical_sha256']==sha256(directory/'physical.json') and
         report['capture_sha256']==physical['capture_sha256'] and report['metadata_sha256']==physical['metadata_sha256'] and
         all(report[k]==physical[k] for k in ('board','band','mode','clock_hz','source_revision','firmware_sha256','boot_id')) and

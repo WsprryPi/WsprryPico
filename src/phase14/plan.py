@@ -56,6 +56,11 @@ def validate_capture(metadata, iq, expected):
         metadata.get('primary_outcome')!='success' or metadata.get('cleanup',{}).get('outcome')!='verified' or
         metadata.get('output',{}).get('complete') is not True):
         raise ValueError('receiver identity/settings/integrity')
+    if (type(metadata.get('requested_sample_count')) is not int or
+        type(metadata.get('retained_sample_count')) is not int or
+        metadata['requested_sample_count']<=0 or
+        metadata['requested_sample_count']!=metadata['retained_sample_count']):
+        raise ValueError('complete requested capture count required')
     path=Path(iq)
     if path.stat().st_size!=metadata['retained_sample_count']*8 or path.stat().st_size!=metadata['output']['size_bytes']:
         raise ValueError('capture sample count')

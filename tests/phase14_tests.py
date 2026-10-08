@@ -44,11 +44,13 @@ class Tests(unittest.TestCase):
             metadata=dict(resolved_device=dict(driver='sdrplay',serial='2404058C60'),actual_settings=settings,
                           overflow_count=0,clipping=dict(sample_count=0),primary_outcome='success',
                           cleanup=dict(outcome='verified'),retained_sample_count=10,
+                          requested_sample_count=10,
                           output=dict(complete=True,size_bytes=80,sha256=hashlib.sha256(path.read_bytes()).hexdigest()))
             validate_capture(metadata,path,settings)
             for key,value in [('resolved_device',dict(driver='sdrplay',serial='foreign')),('overflow_count',1),
                               ('clipping',dict(sample_count=1)),('primary_outcome','failure'),
                               ('cleanup',dict(outcome='unknown')),('retained_sample_count',11),
+                              ('requested_sample_count',11),('requested_sample_count',True),
                               ('output',dict(complete=True,size_bytes=80,sha256='0'*64))]:
                 invalid=copy.deepcopy(metadata);invalid[key]=value
                 with self.assertRaises(ValueError):validate_capture(invalid,path,settings)
@@ -319,4 +321,17 @@ class Tests(unittest.TestCase):
         with self.assertRaises(ValueError):idle_growth(windows[:7])
         windows[4]=[True,10000,10000]
         with self.assertRaises(ValueError):idle_growth(windows)
+    def test_unresolved_human_capture_is_retained_without_promoting_or_rerunning(self):
+        from phase14_human_repetitions import assess
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);physical=root/'physical.json'
+            value=dict(capture_sha256='a'*64,metadata_sha256='b'*64)
+            physical.write_text(json.dumps(value))
+            with patch('phase14_human_repetitions.analyze',side_effect=ValueError('no acquired carrier')) as analyze:
+                first=assess(root);second=assess(root)
+                self.assertFalse(first['human_copy_passed']);self.assertEqual(first,second)
+                self.assertEqual(first['disposition'],'ANALYSIS_UNRESOLVED');analyze.assert_called_once()
+                physical.write_text(json.dumps(dict(value,capture_sha256='c'*64)))
+                with self.assertRaises(ValueError):assess(root)
 if __name__=='__main__':unittest.main()

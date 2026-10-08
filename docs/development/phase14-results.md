@@ -517,3 +517,16 @@ little margin at the observed helper overhead. This changes acquisition budget,
 not spectral acceptance thresholds; no survey has run yet. Nineteen affected
 portable rejection/relay tests pass, including both sides of the stop/restart
 boundary. The active matrix's files and deployed firmware remain unchanged.
+
+Additional preparation review tightened receiver integrity: a successful,
+complete file must contain the exact positive integer requested sample count,
+not just a size consistent with its retained count. Shortened requested-count
+substitutions reject. Human-mode repetition analysis now retains a separately
+hashed unresolved result and any partial analysis without retrying over it;
+that row cannot pass, while independently verified inactive rows can continue.
+A changed physical/capture binding rejects reuse of that unresolved result.
+Twenty affected portable checks pass. The new tools are prepared locally; the
+active matrix and waiting snapshot remain unchanged until a separate snapshot
+is staged. Review also confirmed that long Tone measurements already fit
+roughly half-second interior segments rather than one linear phase across the
+whole hour. No Tone stability criterion was changed.
