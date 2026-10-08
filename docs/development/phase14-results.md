@@ -530,3 +530,25 @@ active matrix and waiting snapshot remain unchanged until a separate snapshot
 is staged. Review also confirmed that long Tone measurements already fit
 roughly half-second interior segments rather than one linear phase across the
 whole hour. No Tone stability criterion was changed.
+
+The isolated offline A reassessment is complete: all 69 retained current-image
+QRSS/FSKCW/DFCW captures pass the human-copy and resource checks across the 13
+representable band points. Their original flags remain retained. Missing
+repetitions still have to run. The finite continuation now waits with reviewed
+tool snapshot `f22a115`; its coordinator hash is
+`2ad1e833e6b3d32a5532bd2f01789a432cfebd57c454b7dd1c752db773fea913`.
+It includes the existing finite workloads plus one current-image Tone sweep on
+both boards after the alternative-clock comparison/restarts. This directly
+binds Tone/spectral observations to the repaired runtime; earlier sweeps predate
+the launch repair. No continuation hardware step has started at this checkpoint.
+
+Prepared matched close-in assessment uses the retained Pi benchmark's
+0.238419 Hz Hann bins, measured-carrier centering, +/-120 Hz searches and an equal
+trailing-off window. Source/boot/job/capture/analysis hashes are bound, >=10 dB
+carrier on/off attribution is required, and the original waveform disposition
+remains unchanged. Known -26.02/-30 dBc synthetic sidebands are recovered;
+incomplete or reversed windows reject. All twelve RF-analysis fixtures pass.
+The current-image Tone comparison has not executed yet. The inspectable private
+80 m/6 m QRSS figure under `build/phase14-qrss-human-copy.png` and its hash manifest
+show the requested three-second dots/nine-second dash; they retain nominal
+receiver axes and do not substitute for repetition or absolute-frequency evidence.

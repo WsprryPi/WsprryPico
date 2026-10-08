@@ -89,6 +89,11 @@ Separately tuned spectral surveys use a finite 240-second Tone;
 each two-second receiver capture requires the same active Running job/boot both
 before and after capture so that a job ending during acquisition cannot be
 misclassified as an RF-on measurement.
+The retained 80 m Pi close-in benchmark is compared using a full 1,048,576-sample
+Hann window at 250 ksps (0.238419 Hz bins), measured-carrier centering, searches
+within +/-2 Hz of +/-120 Hz and an equal trailing-off window. Require >=10 dB
+carrier on/off contrast. Preserve phase/waveform flags separately; this relative
+peak-bin comparison does not establish integrated emissions or calibrated power.
 
 Use short Tone screens across band/clock on both boards before expensive mode
 acceptance. Start with Tone and complete WSPR at 80 m/138 MHz on both boards.

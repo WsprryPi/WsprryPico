@@ -45,6 +45,19 @@ def synth(job, *, extra=False, wrong_shift=False, dropout=False):
 
 
 class AnalysisTests(unittest.TestCase):
+    def test_closein_peak_ratio_and_incomplete_window_rejection(self):
+        from phase14.closein import compare
+        rate=12000;time=np.arange(12*rate)/rate
+        rng=np.random.default_rng(95)
+        iq=1e-5*(rng.normal(size=len(time))+1j*rng.normal(size=len(time)))
+        on=(time>=2)&(time<7)
+        iq[on]+=.2*np.exp(2j*np.pi*2000*time[on])+.01*np.exp(2j*np.pi*1880*time[on])+.0063245553*np.exp(2j*np.pi*2120*time[on])
+        result=compare(iq,rate,3568100,3570100,[2,7],24000)
+        self.assertAlmostEqual(result['lower_120']['peak_dbc'],-26.0206,places=2)
+        self.assertAlmostEqual(result['upper_120']['peak_dbc'],-30,places=2)
+        self.assertGreater(result['carrier_on_minus_off_db'],60)
+        for interval in ([2,3],[2,11],[7,2]):
+            with self.assertRaises(ValueError):compare(iq,rate,3568100,3570100,interval,24000)
     def test_human_copy_preserves_slow_drift_but_rejects_missing_or_collapsed_marks(self):
         from phase14.human_copy import assess
         for mode in ('QRSS','FSKCW','DFCW'):
