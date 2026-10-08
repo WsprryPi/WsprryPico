@@ -57,6 +57,8 @@ def main():
     try:
         before=rig.idle(a.board);rig.idle('B' if a.board=='A' else 'A')
         require(before['revision']==manifest['source_commit'][:12] and before['system_clock_hz']==138000000,'spectral candidate source/clock')
+        from phase14_reference import gps
+        record['reference_before']=gps()
         record['before']=before;record['boot_id']=before['status']['boot_id'];frequency=BANDS[a.band];clock=138000000
         targets=[('harmonic-'+str(n),frequency*n) for n in range(1,6)]+[
             ('clock-minus',clock-frequency),('clock-plus',clock+frequency),('2clock-minus',2*clock-frequency),
@@ -95,6 +97,8 @@ def main():
         quiet_contrast=on_fundamental['peak_dbfs']-record['final_off']['peak_dbfs']
         record['final_quiet_contrast_db']=quiet_contrast
         require(quiet_contrast>=10,'spectral RF-off capture contrast insufficient')
+        record['reference_after']=gps()
+        require(record['reference_after']==record['reference_before'],'spectral reference settings/readiness changed')
         pairs=[]
         for label,tune in targets:
             for gain in (12,20):

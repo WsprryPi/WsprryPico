@@ -612,3 +612,11 @@ benchmark ratios and on/off requirements stay unchanged. A stronger synthetic
 sideband benchmark; the existing -120/+120 Hz fixture remains applicable. The
 comparison now explicitly distinguishes matched bins/search widths from its
 different RF windows and dates. No earlier RF result or original flag changed.
+All twelve affected RF-analysis fixtures pass after the search-width repair.
+
+The unstarted separately tuned spectral survey now records GPSDO identity,
+frequency/output/level settings and readiness before and after its on/off batch,
+requiring unchanged readback. It does not tune or otherwise change the reference.
+This supplies the per-result reference binding requested for those surveys;
+ordinary IQ jobs already retain their simultaneous reference settings. Syntax
+and diff checks pass; the live matrix and its tools remain unchanged.
