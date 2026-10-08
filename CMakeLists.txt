@@ -6,6 +6,13 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
     set(PICO_BOARD pico2_w CACHE STRING "Pico SDK board" FORCE)
     include(cmake/pico_sdk_import.cmake)
     project(WsprryPico LANGUAGES C CXX ASM)
+    # SDK overlays contain diagnostic __FILE__ strings in the flashed image.
+    # Normalize both roots so an independent build does not change .rodata,
+    # relocate the image, or disclose a developer's filesystem layout.
+    add_compile_options(
+        "-ffile-prefix-map=${CMAKE_SOURCE_DIR}=wsprrypico-source"
+        "-ffile-prefix-map=${CMAKE_BINARY_DIR}=wsprrypico-build"
+    )
 else()
     project(WsprryPico LANGUAGES CXX)
 endif()
