@@ -30,12 +30,13 @@ def idle_growth(windows):
         method='Compare median of three samples after identical 45-second idle; reject spreads or positive growth above 1024 bytes.')
 
 
-def assess(directory,analysis_name='analysis-soak'):
+def assess(directory,analysis_name='analysis-soak',assessment_name='assessment'):
     from phase14.analysis import analyze
     from phase14.plan import validate_physical,resources
     from phase14.live import save
     from led_closeout.runner import require,sha256
     require(re.fullmatch('[a-z][a-z0-9-]{0,63}',analysis_name),'safe immutable analysis label')
+    require(re.fullmatch('[a-z][a-z0-9-]{0,63}',assessment_name),'safe immutable assessment label')
     directory=directory.resolve();summary=json.loads((directory/'result.json').read_text())
     require(summary['schema']=='phase14-soak/1' and summary['result']=='CONTROL_COMPLETE' and
         summary['planned_jobs']==8 and summary['planned_rf_seconds']==28800 and
@@ -84,6 +85,7 @@ def assess(directory,analysis_name='analysis-soak'):
         reports.append(dict(index=index,board=board,mode=mode,physical_sha256=sha256(path/'physical.json'),
             analysis_sha256=sha256(output),disposition=report['disposition'],resources=report['resources'],
             idle_resources=idle_resources,idle_sha256=sha256(idle_path),browser_requests=item['browser_requests'],
+            human_copy=report.get('human_copy'),
             waveform_issues=report.get('measurement',report).get('issues',[])))
     growth=idle_growth(windows)
     result=dict(schema='phase14-soak-assessment/1',source_commit=summary['source_commit'],
@@ -91,13 +93,17 @@ def assess(directory,analysis_name='analysis-soak'):
         script_sha256=sha256(__file__),jobs=reports,idle_growth=growth,
         resources_passed=growth['passed'] and all(r['resources']['passed'] and r['idle_resources']['passed'] for r in reports),
         all_rf_screens_passed=all(r['disposition']=='OPERATIONAL_SCREEN_PASS' for r in reports),
+        all_rf_human_aware_screens_passed=(all(r['human_copy']['overall_screen_passed'] if r['mode']=='FSKCW' else
+            r['disposition']=='OPERATIONAL_SCREEN_PASS' for r in reports) if
+            all(r['human_copy'] is not None for r in reports if r['mode']=='FSKCW') else None),
         release_qualified=False)
-    output=directory/'assessment.json';require(not output.exists(),'immutable soak assessment already exists')
+    output=directory/(assessment_name+'.json');require(not output.exists(),'immutable soak assessment already exists')
     save(output,result)
-    return {k:result[k] for k in ('resources_passed','all_rf_screens_passed','release_qualified')}
+    return {k:result[k] for k in ('resources_passed','all_rf_screens_passed','all_rf_human_aware_screens_passed','release_qualified')}
 
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('directory',type=Path)
-    p.add_argument('--analysis-name',default='analysis-soak');a=p.parse_args()
-    print(json.dumps(assess(a.directory,a.analysis_name)))
+    p.add_argument('--analysis-name',default='analysis-soak')
+    p.add_argument('--assessment-name',default='assessment');a=p.parse_args()
+    print(json.dumps(assess(a.directory,a.analysis_name,a.assessment_name)))

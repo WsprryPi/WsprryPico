@@ -445,3 +445,18 @@ Complete/inactive terminal evidence after ARM. Their original machine-screen
 flags remain false. These are source-bound human-copy observations, not final
 three-repetition release qualification. A finite adapter will assess retained
 keyed captures and complete missing repetitions after the legacy matrix ends.
+
+Prepared alternative-clock comparison uses the current repaired candidate on
+both boards at 132 and 150 MHz. At each representable band point, a complete
+Tone screen precedes one full WSPR/QRSS/FSKCW/DFCW screen. Failed or unresolved
+Tone acquisition leaves dependent mode rows explicitly unresolved. Each clock/
+board also runs a finite 128-second, 512-event workload, with HTTPS activity on
+B, to repeat affected contention checks. Unsupported points receive no ARM.
+The selected 138 MHz candidate is returned to both boards after successful
+completion. These are comparison screens, not alternative-clock release
+qualification; this prepared batch has not executed.
+
+The endurance assessment now also records a separate human-aware FSKCW result
+when the amended analyzer is used. Its legacy RF flags and resource/growth
+assertions remain separate and unchanged. Alternate immutable assessment names
+permit later method/source-bound review without overwriting the original result.
