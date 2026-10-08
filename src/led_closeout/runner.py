@@ -65,7 +65,8 @@ class Evidence:
         require(case['id'] not in {a['case'] for a in self.state['attempts']}, 'case already charged')
         self.state['jobs'] += 1
         self.state['rf_ns'] += case['charge_ns']
-        attempt = dict(case=case['id'], job_id=case['job']['job_id'], boot_id=boot,
+        attempt = dict(case=case['id'], job_id=None if case['action'] == 'standalone' else
+                       case['job']['job_id'], boot_id=boot,
                        charge_ns=case['charge_ns'], result='ADMISSION_PENDING')
         self.state['attempts'].append(attempt)
         self.save() # BEFORE ambiguous ARM or locally scheduled admission.
@@ -242,19 +243,25 @@ class Runner:
         self.backend.start_captures(case_root, duration)
         try:
             if case['action'] == 'standalone':
-                self.e.charge(case, self.boot)
+                attempt = self.e.charge(case, self.boot)
                 self.backend.command(self.board, 'SCHEDULE')
                 info, status = self.wait(image, self.backend.now() + 130,
                     lambda i, s: s['state'] == 'running' and s['output_active'], lease=False)
-                require(status['owner_id'] == 'e' * 32 and status['job_id'], 'standalone owner')
+                job_id = status['job_id']
+                require(status['owner_id'] == 'e' * 32 and isinstance(job_id, str) and
+                        len(job_id) == 32 and all(c in '0123456789abcdef' for c in job_id),
+                        'standalone owner/job identity')
+                attempt['job_id'] = job_id
+                self.e.save() # Bind the actual autonomous job before STOP can lose its authority.
+                self.e.event('standalone_job_bound', dict(boot_id=self.boot, job_id=job_id))
                 self.checked_pin(info, image, True)
                 self.backend.sleep(1)
                 self.backend.command(self.board, 'STOP')
                 self.backend.command(self.board, 'DISABLE')
-                self.wait(image, self.backend.now() + 5,
-                          lambda i, s: s['state'] == 'empty' and not s['output_active'] and
-                          s['owner_id'] is None and s['job_id'] is None, lease=False)
-                final_info, _ = self.observe(image)
+                final_info, _ = self.wait(image, self.backend.now() + 5,
+                          lambda i, s: s['state'] == 'aborted' and not s['output_active'] and
+                          s['owner_id'] is None and s['job_id'] == job_id and
+                          s['enabled'] is False and not i['tx_indicator_requested'], lease=False)
                 self.checked_pin(final_info, image, False)
             else:
                 if case['action'] == 'fail':

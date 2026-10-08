@@ -62,6 +62,7 @@ class Fake:
         if self.fault == 'transient_stop' and self.started is not None and self.job and self.t >= self.started+int(self.job['total_duration_ns'])/1e9 and self.t < self.started+int(self.job['total_duration_ns'])/1e9+.3:
             state='running';self.states[board]=state
         active = state == 'running' and image['engine'] == 'pio-dma-gp2'
+        if self.fault == 'standalone_stop_active' and state == 'aborted': active=True
         if self.fault == 'transient_stop' and self.started is not None and self.job and self.t >= self.started+int(self.job['total_duration_ns'])/1e9:
             active=False
         if self.fault == 'active_terminal' and state == 'complete': active = True
@@ -73,12 +74,16 @@ class Fake:
             indicator_pin_readback_known=self.fault != 'gpio_unknown' and image['selection'] != 3,
             indicator_pin_readback_error=-1 if self.fault == 'gpio_unknown' or image['selection'] == 3 else 0,
             indicator_pin_readback_on=None if self.fault == 'gpio_unknown' or image['selection'] == 3 else
-                (active and self.fault != 'gpio_mismatch'),
+                (active and self.fault != 'gpio_mismatch' or
+                 self.fault == 'standalone_stop_pin' and state == 'aborted'),
             indicator_onboard_readback_known=True, indicator_onboard_readback_error=0,
             indicator_onboard_readback_on=active and image['selection'] != 3,
             tx_indicator_ready=active and image["selection"] != 3,
-            tx_indicator_requested=active and image["selection"] != 3, status=dict(boot_id=boot, output_active=active,
-            enabled=False, storage_healthy=True, state=state, engine=image['engine'],
+            tx_indicator_requested=active and image["selection"] != 3 or
+                self.fault == 'standalone_stop_request' and state == 'aborted',
+            status=dict(boot_id=boot, output_active=active,
+            enabled=self.fault == 'standalone_stop_enabled' and state == 'aborted',
+            storage_healthy=True, state=state, engine=image['engine'],
             owner_id=self.owner, job_id=self.job['job_id'] if self.job else None))
     def hello(self): return dict(boot_id=self.boots[self.dut])
     def command(self, board, command):
@@ -86,13 +91,20 @@ class Fake:
         if command == 'FAIL': self.fail_on=True
         if command == 'SCHEDULE':
             assert self.e.state['jobs'] > self.admissions
+            assert json.loads((self.e.root/'state.json').read_text())['attempts'][-1]['job_id'] is None
             self.admissions += 1
             case=next(c for c in make_plan()['cases'] if c['action']=='standalone')
-            self.job, self.owner = case['job'], 'e'*32
+            self.job, self.owner = dict(case['job'],job_id='d'*32), 'e'*32
+            if self.fault == 'standalone_bad_job': self.job=dict(self.job,job_id='invalid')
+            if self.fault == 'standalone_bad_owner': self.owner='a'*32
             self.started = self.t+10
             self.states[board]='armed'
         if command == 'STOP':
-            self.states[board]='empty';self.owner=None;self.job=None
+            assert json.loads((self.e.root/'state.json').read_text())['attempts'][-1]['job_id'] == self.job['job_id']
+            self.states[board]=('complete' if self.fault == 'standalone_stop_complete' else
+                                'empty' if self.fault == 'standalone_stop_empty' else 'aborted')
+            if self.fault != 'standalone_stop_owner': self.owner=None
+            if self.fault == 'standalone_stop_job': self.job=dict(self.job,job_id='a'*32)
         if command == 'HOLD':
             if self.fault == 'fixture': raise TimeoutError('fixture timeout')
             self.states[self.dut]='aborted';self.gp14=True;self.owner=None
@@ -150,6 +162,44 @@ class Fake:
 
 
 class RunnerTests(unittest.TestCase):
+    def test_standalone_stop_binds_real_job_and_accepts_retained_aborted_job(self):
+        e,fake,_=self.exercise()
+        fake.setup={'evidence_mode':'gpio-readback'}
+        result=Runner(make_plan(),manifest(),'A',fake,e,cases=['standalone_stop']).run()
+        attempt=result['attempts'][0]
+        planned=next(c for c in make_plan()['cases'] if c['id']=='standalone_stop')
+        self.assertNotEqual(attempt['job_id'],planned['job']['job_id'])
+        self.assertEqual(attempt['job_id'],'d'*32)
+        self.assertEqual(attempt['result'],'PASS_GPIO_FUNCTIONAL')
+        self.assertEqual(result['rf_ns'],planned['charge_ns'])
+        self.assertEqual(fake.admissions,1)
+        self.assertEqual(fake.commands.count(('A','SCHEDULE')),1)
+        self.assertEqual(result['cleanup'],'VERIFIED_INHIBITED')
+
+    def test_standalone_stop_refuses_wrong_terminal_authority_or_pin(self):
+        for fault in ('standalone_stop_complete','standalone_stop_empty','standalone_stop_owner','standalone_stop_job',
+                      'standalone_stop_active','standalone_stop_request','standalone_stop_enabled',
+                      'standalone_stop_pin'):
+            with self.subTest(fault=fault):
+                e,fake,_=self.exercise(fault)
+                fake.setup={'evidence_mode':'gpio-readback'}
+                with self.assertRaises((ValueError,TimeoutError)):
+                    Runner(make_plan(),manifest(),'A',fake,e,cases=['standalone_stop']).run()
+                self.assertEqual(e.state['result'],'STOP')
+                self.assertEqual(e.state['attempts'][0]['result'],'ADMISSION_PENDING')
+                self.assertEqual(fake.admissions,1)
+                self.assertEqual(fake.restored,['A'])
+
+    def test_standalone_job_binding_refuses_invalid_or_foreign_authority(self):
+        for fault in ('standalone_bad_job','standalone_bad_owner'):
+            with self.subTest(fault=fault):
+                e,fake,_=self.exercise(fault)
+                with self.assertRaisesRegex(ValueError,'standalone owner/job identity'):
+                    Runner(make_plan(),manifest(),'A',fake,e,cases=['standalone_stop']).run()
+                self.assertIsNone(e.state['attempts'][0]['job_id'])
+                self.assertNotIn(('A','STOP'),fake.commands)
+                self.assertEqual(e.state['cleanup'],'VERIFIED_INHIBITED')
+
     def test_controlled_launch_miss_is_a_non_rf_failure(self):
         e,fake,_=self.exercise('launch_missed')
         Runner(make_plan(),manifest(),'A',fake,e,cases=['led_write_launch_failure']).run()
