@@ -683,3 +683,13 @@ unchanged. Existing lifecycle substitution tests include that case. This is a
 metadata validation repair: every original capture already passed the stricter
 independent mode binding, and the active immutable continuation is not modified.
 Later evidence is subject to the same independent audit before release.
+
+Review of the queued maximum-message cases found that 32 T characters in DFCW
+exercise only its dash-frequency state. That is a valid length/resource workload,
+but cannot establish the separate two-state human-copy assertion. The existing
+queued case remains unchanged and its flags will be retained. The controller
+helper now also accepts a 32-character alternating E/T message; an additional
+finite DFCW case using that message is required before final closeout to exercise
+both glyph-frequency roles at the maximum message length. The same three-second
+dot, 32-character limit and finite capture bound apply. Syntax/help/diff checks
+pass. No running or queued source file was overwritten by this local repair.

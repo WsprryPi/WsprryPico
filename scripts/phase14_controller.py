@@ -18,7 +18,7 @@ from led_closeout.runner import require,sha256
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--template',type=Path,required=True);p.add_argument('--mode',choices=('WSPR','QRSS','FSKCW','DFCW'),required=True)
-    p.add_argument('--message',choices=('ETE','T'*32),default='ETE');p.add_argument('--dot',type=float,default=3)
+    p.add_argument('--message',choices=('ETE','T'*32,'ET'*16),default='ETE');p.add_argument('--dot',type=float,default=3)
     a=p.parse_args();require(os.geteuid()==0 and sys.platform.startswith('linux'),'exclusive Linux owner')
     require(0<a.dot<=3 and 1<=len(a.message)<=32,'finite message workload')
     require(a.output.resolve().is_relative_to((ROOT/'build').resolve()),'private evidence')
@@ -50,7 +50,8 @@ def main():
         elif a.mode=='FSKCW':argv+=['--fskcw-message',a.message,'--fskcw-mark-frequency','3570100','--fskcw-space-frequency','3570095','--fskcw-dot-seconds',str(a.dot)]
         elif a.mode=='DFCW':argv+=['--dfcw-message',a.message,'--dfcw-dot-frequency','3570100','--dfcw-dash-frequency','3570095','--dfcw-dot-seconds',str(a.dot)]
         # Largest supported message at dot <=3 is <=2,016 seconds (32 all-dash Morse digits),
-        # but the requested ETE or 32 T workload is much shorter. Cap all invocations.
+        # but the requested ETE, 32 T or alternating 32 E/T workload is much shorter.
+        # Cap all invocations.
         seconds=270 if a.mode=='WSPR' else (650 if len(a.message)>3 else 85)
         from phase14_reference import gps
         reference=gps(3530100)
