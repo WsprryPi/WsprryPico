@@ -36,7 +36,7 @@ class Evidence:
 class Rig:
     def __init__(self,root,source,*,board=None,receiver=True,reference=False):
         self.e=Evidence(root)
-        self.device=Device({'picotool':dict(path=PICOTOOL),'evidence_mode':'gpio-readback'},self.e,source)
+        self.device=Device({'picotool':dict(path=PICOTOOL),'evidence_mode':'gpio-readback','wtp_request_timeout':5},self.e,source)
         self.lock=None
         self.reference_before=None
         try:
@@ -206,7 +206,7 @@ class Rig:
                             from phase11_5_inventory import exclusive_port
                             context=exclusive_port(Path(self.device.base(board)+'-if02'));fd=context.__enter__()
                         self.device.peer_contexts[board]=context
-                        peer=Peer(fd,self.e,self.device.root);peer.session=record['session_id']
+                        peer=Peer(fd,self.e,self.device.root,timeout=5);peer.session=record['session_id']
                         peer.request('HELLO',dict(versions=['WTP/1'],client_name='Phase14',client_version='1'))
                         self.device.peers[board]=peer
                     else:

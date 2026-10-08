@@ -211,8 +211,9 @@ def retained_settings(info):
 
 
 class Peer:
-    def __init__(self, fd, evidence, root):
+    def __init__(self, fd, evidence, root, *, timeout=3):
         self.fd, self.e, self.session = fd, evidence, uuid.uuid4().hex
+        self.timeout=timeout
         self.schema = json.loads((Path(root)/'docs/protocol/wtp-1.schema.json').read_text())
         self.validator = SchemaValidator(self.schema)
         self.received, self.boot, self.event_boots = bytearray(), None, set()
@@ -227,7 +228,8 @@ class Peer:
                 require(value['event'] != 'SESSION_REPLACED', 'WTP session replaced')
         self.e.event(kind, value)
 
-    def request(self, op, body, *, timeout=3):
+    def request(self, op, body, *, timeout=None):
+        if timeout is None:timeout=self.timeout
         require(type(timeout) in (int, float) and 0 < timeout <= 30, 'bounded WTP request deadline')
         request = dict(type='request', protocol='WTP/1', session_id=self.session,
                        request_id=uuid.uuid4().hex, op=op, body=body)
@@ -307,7 +309,7 @@ class Device:
             self.peer_contexts[board] = context
             try:
                 self.e.event('transport', transport)
-                peer = Peer(fd, self.e, self.root)
+                peer = Peer(fd, self.e, self.root,timeout=self.setup.get('wtp_request_timeout',3))
                 hello = peer.request('HELLO', dict(versions=['WTP/1'],
                     client_name='LED-closeout', client_version='1'))
                 require(hello['device_id'] == BOARDS[board]['device_id'], 'WTP device identity')

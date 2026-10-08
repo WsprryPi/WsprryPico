@@ -43,7 +43,16 @@ def main():
                     dispositions=[]
                     for repeat in range(3):
                         sequence+=1
-                        directory=rig.execute(board,138000000,band,mode,sequence,image_hash=image['sha256'])
+                        try:
+                            directory=rig.execute(board,138000000,band,mode,sequence,image_hash=image['sha256'])
+                        except (ValueError,TimeoutError,ConnectionError) as error:
+                            # Preserve the failed capture/control attempt. Only a
+                            # verified inactive, unowned board permits independent
+                            # rows to continue; uncertain RF still stops the batch.
+                            rig.device.close_peer(board);rig.idle(board)
+                            dispositions.append('CONTROL_ATTEMPT_FAILED')
+                            rig.e.event('isolated_control_failure',dict(band=band,mode=mode,error=repr(error)))
+                            break
                         try:
                             result=analyze(directory,'analysis-acceptance')
                         except ValueError as error:

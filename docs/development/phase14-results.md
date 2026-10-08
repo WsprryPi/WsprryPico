@@ -274,3 +274,14 @@ Report per-tune dBFS and on/off contrast; cross-frequency receiver/path response
 is uncalibrated, and these controls do not exclude every receiver-generated
 product. This evaluates the recorded unfiltered path; operator LPF work remains
 outside Phase 14. The new survey is prepared and has not run yet.
+
+The third A WSPR attempt in `rc1-mode-acceptance-138` exceeded the host's
+three-second STATUS response deadline. It was safely aborted, released and
+verified inactive, retaining the incomplete capture. That triplet is not three
+consecutive complete frames. Phase 14 now uses the previously accepted
+five-second single-flight administration bound (LOAD remains bounded at 30 s).
+Other historical runners keep their default. The adaptive batch records an
+isolated failed control row and continues independent rows only after verified
+inactive/unowned readback; uncertain output still stops the batch. A new triplet
+and remaining rows are running under a new evidence root. All 165 host groups
+pass after this repair; the original failure remains.
