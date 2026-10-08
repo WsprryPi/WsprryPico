@@ -9,9 +9,8 @@ import sys
 import time
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src'))
 from phase14.live import Rig,save
-from phase14.profiles import profile,engineering_record
+from phase14.profiles import profile,engineering_record,durable_settings,restoration_payload,restoration_settings
 from led_closeout.runner import require,sha256
-from led_closeout.device import retained_settings
 
 
 def ready(rig):
@@ -63,15 +62,21 @@ def main():
             rig.device.pt('B',['load','-v',str(temporary),'-t','bin','-o','0x103f7000'])
         else:
             receipt=json.loads(a.settings.with_suffix('.json').read_text());require(sha256(a.settings)==receipt['settings_sha256'],'original settings identity')
-            require(before['provisioning_source']=='provisioned','expected temporary engineering profile')
-            rig.device.pt('B',['load','-v',str(a.settings),'-t','bin','-o','0x103f7000'])
+            require(before['provisioning_source']=='provisioned' and before['status']['storage_healthy'],'expected healthy temporary engineering profile')
+            original=a.settings.read_bytes();sequence,source,value=profile(original[:16384])
+            require(source==5 and value['device_id']==before['device_id'] and
+                sequence==int(receipt['before']['provisioning_generation']),'original consumer profile identity')
+            expected=restoration_settings(receipt['before'],before)
+            require(expected['config']['enabled'] is False,'original recurrence must remain disabled')
+            temporary=rig.e.root/'original-profile-config.bin';temporary.write_bytes(restoration_payload(original))
+            rig.device.pt('B',['load','-v',str(temporary),'-t','bin','-o','0x103f7000'])
         rig.device.pt('B',['reboot']);rom=False;after=ready(rig)
         if a.operation=='enter':
             require(after['provisioning_source']=='provisioned' and int(after['provisioning_generation'])==sequence+1,
                     'engineering profile activation')
             require(after['network']['ntp_server']=='192.168.1.54','owned NTP reference selection')
         else:
-            require(retained_settings(after)==retained_settings(receipt['before']),'original settings restoration')
+            require(durable_settings(after)==expected,'original profile/configuration and current cursor restoration')
         rig.inventory(['B']);save(rig.e.root/'result.json',dict(operation=a.operation,before=before,after=after,firmware_sha256=image['sha256'],source_commit=manifest['source_commit'],settings_sha256=sha256(a.settings),result='VERIFIED'))
         print(json.dumps(dict(operation=a.operation,result='VERIFIED',source=after['provisioning_source'])))
     except BaseException:
@@ -79,10 +84,11 @@ def main():
             if not rom:rig.device.rom('B')
             receipt=json.loads(a.settings.with_suffix('.json').read_text())
             require(sha256(a.settings)==receipt['settings_sha256'],'rollback settings identity')
-            rig.device.pt('B',['load','-v',str(a.settings),'-t','bin','-o','0x103f7000'])
+            temporary=rig.e.root/'rollback-profile-config.bin';temporary.write_bytes(restoration_payload(a.settings.read_bytes()))
+            rig.device.pt('B',['load','-v',str(temporary),'-t','bin','-o','0x103f7000'])
             rig.device.pt('B',['reboot']);rom=False
             restored=ready(rig)
-            require(retained_settings(restored)==retained_settings(receipt['before']),'failed experiment settings rollback')
+            require(durable_settings(restored)==restoration_settings(receipt['before'],before),'failed experiment settings rollback')
             save(rig.e.root/'rollback.json',dict(result='VERIFIED',info=restored))
         elif rom:
             rig.device.pt('B',['reboot']);rom=False

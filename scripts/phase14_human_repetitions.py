@@ -7,11 +7,17 @@ from pathlib import Path
 import signal
 import sys
 ROOT=Path(__file__).resolve().parents[1];sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
-from phase14.analysis import analyze
 from phase14.candidate import candidate
 from phase14.live import Rig,save
 from phase14.plan import BANDS
 from led_closeout.runner import require,sha256
+
+
+def analyze(*args):
+    # The standard rejection checks do not need the optional scientific/Harness
+    # dependencies. Load them only when an actual IQ assessment is requested.
+    from phase14.analysis import analyze as analyze_rf
+    return analyze_rf(*args)
 
 
 def assess(directory):

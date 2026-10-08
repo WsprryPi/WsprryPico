@@ -109,6 +109,22 @@ class Tests(unittest.TestCase):
         # A valid older slot must not hide a torn newer slot.
         broken=bytearray(engineering_record(8,value)[:8192]+raw[:8192]);broken[260]^=1
         with self.assertRaises(ValueError):profile(broken)
+    def test_reboot_comparison_preserves_cursor_but_ignores_volatile_display(self):
+        from phase14.profiles import durable_settings,restoration_payload,restoration_settings
+        before=dict(device_id='a'*32,access_state='active',access_generation=2,
+            access_default_password=False,provisioning_generation=3,provisioning_source='consumer_preclock',
+            status=dict(configured=True,enabled=False,expires_utc_s=0,schedule_base_frequency_nhz='3570100000000000',
+                schedules=[],station={},watermark_utc_ns='100',last_job='old-display'))
+        after=copy.deepcopy(before);after['status']['last_job']=''
+        self.assertEqual(durable_settings(before),durable_settings(after))
+        after['status']['watermark_utc_ns']='200'
+        self.assertNotEqual(durable_settings(before),durable_settings(after))
+        self.assertEqual(restoration_settings(before,after)['config']['watermark_utc_ns'],'200')
+        after['status']['watermark_utc_ns']='99'
+        with self.assertRaises(ValueError):restoration_settings(before,after)
+        original=b'p'*16384+b'c'*8192+b'w'*8192
+        self.assertEqual(restoration_payload(original),b'p'*16384+b'c'*8192)
+        with self.assertRaises(ValueError):restoration_payload(original[:-1])
     def test_refill_faults_and_growth_samples(self):
         from phase14.plan import resources
         fields=('allocator_failures','tls_allocation_failures','dma_errors','exhausted_successor_links',

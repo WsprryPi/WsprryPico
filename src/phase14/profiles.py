@@ -9,6 +9,32 @@ COMMIT=0x31544d4d4f435057
 SELECTION=0x324c455350435057
 
 
+def durable_settings(info):
+    from led_closeout.device import retained_settings
+    value=retained_settings(info)
+    # Scheduler::last_job_ is an in-memory display, empty after a reboot. The
+    # separately persisted no-repeat cursor must still compare exactly.
+    del value['config']['last_job']
+    return value
+
+
+def restoration_payload(original):
+    if type(original) is not bytes or len(original)!=32768:
+        raise ValueError('exact original profile/configuration/cursor region required')
+    # Profile 16 KiB + configuration 8 KiB. Never rewrite the current cursor
+    # at 0x103fd000..0x103fefff from a pre-experiment settings snapshot.
+    return original[:24576]
+
+
+def restoration_settings(original_info,current_info):
+    expected=durable_settings(original_info)
+    original=int(expected['config']['watermark_utc_ns'])
+    current=int(current_info['status']['watermark_utc_ns'])
+    if current<original:raise ValueError('current standalone cursor rolled back')
+    expected['config']['watermark_utc_ns']=current_info['status']['watermark_utc_ns']
+    return expected
+
+
 def profile(data):
     if len(data)!=16384:raise ValueError('exact profile region required')
     records=[]

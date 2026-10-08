@@ -108,7 +108,9 @@ for the existing USB, mTLS browser and standalone paths. Changing that profile
 creates a concrete settings-preservation need: preserve only its 16 KiB profile
 plus 16 KiB standalone configuration/watermark region, verify CRC/SHA journals,
 leave application/access/bond/E10 bytes untouched, and restore those specific
-settings afterward. This does not reopen GP14 or LED/button qualification.
+settings afterward. Later restoration review narrows the write to the original
+16 KiB profile plus 8 KiB configuration, preserving the current 8 KiB no-repeat
+cursor; see the checkpoint below. This does not reopen GP14 or LED/button qualification.
 New test credentials remain private under ignored `config/local/` and the
 private authorized-host evidence root. Journal corruption tests reject torn
 newer records rather than resurrecting older authority.
@@ -552,3 +554,26 @@ The current-image Tone comparison has not executed yet. The inspectable private
 80 m/6 m QRSS figure under `build/phase14-qrss-human-copy.png` and its hash manifest
 show the requested three-second dots/nine-second dash; they retain nominal
 receiver axes and do not substitute for repetition or absolute-frequency evidence.
+
+Standard-environment review found that the new unresolved-analysis fixture
+imported the optional Harness/scientific package at module load. The earlier
+venv check masked this dependency. Moving that import to the actual IQ call
+restores hardware-free independence; all 21 portable checks now pass with plain
+Python, and both affected CTest groups pass under their configured interpreters.
+The queued Linux snapshot already has its required analysis dependencies and
+does not need this import-timing change to execute its RF measurements.
+
+Pre-execution restart/restoration review also found two host-helper defects.
+`Scheduler::last_job_` is an in-memory display and becomes empty after reboot;
+the durable-settings comparison now excludes that display while still requiring
+the persisted watermark and all other operator settings to match. Final B
+restoration writes only the original 16 KiB profile and 8 KiB configuration at
+`0x103f7000..0x103fcfff`. It preserves the current 8 KiB cursor at
+`0x103fd000..0x103fefff`, rejects a cursor older than the original snapshot and
+keeps recurrence disabled. A source-backed fixture accepts display reset but
+rejects watermark rollback and proves the payload cannot include cursor bytes.
+The saved 32 KiB original remains private evidence; it will not be loaded in
+full for final restoration. Application/access/bond/E10 regions remain untouched.
+These helper fixes are prepared locally; no device setting or active RF job was
+changed by this review. A new isolated continuation snapshot is required before
+the later clock-comparison restarts; the live matrix remains on its original tools.

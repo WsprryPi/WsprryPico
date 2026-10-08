@@ -10,7 +10,8 @@ import subprocess
 import time
 import uuid
 
-from led_closeout.device import Device, Peer, retained_settings
+from led_closeout.device import Device, Peer
+from phase14.profiles import durable_settings
 from led_closeout.runner import require, sha256
 from phase14.plan import BOARDS, BANDS, job, accepted_events, validate_capture
 
@@ -83,7 +84,7 @@ class Rig:
             raise TimeoutError('candidate boot/LAN readiness')
         value=self.idle(board)
         require(value['revision']==commit[:12] and value['status']['engine']=='pio-dma-gp2', 'candidate source/engine')
-        require(retained_settings(before)==retained_settings(value), 'firmware load changed retained settings')
+        require(durable_settings(before)==durable_settings(value), 'firmware load changed durable settings')
         self.e.event('deployment_verified',dict(board=board,uf2=str(image),sha256=self.image_hash,info=value))
     def inventory(self,boards=BOARDS):
         values={}
