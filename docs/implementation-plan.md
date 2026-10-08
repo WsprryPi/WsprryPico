@@ -144,7 +144,7 @@ added here as the user identifies them; no further feature scope is selected.
 
 | Milestone | Selected work | Status |
 | --- | --- | --- |
-| P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) across RF activation and cleanup; selected external LED is TX-only with operational cues onboard, or shared onboard TX takes priority over blinking. | Source/host complete; 12 target checks passed; standalone checker and external/GP14 acceptance open |
+| P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) across RF activation and cleanup; selected external LED is TX-only with operational cues onboard, or shared onboard TX takes priority over blinking. | Source/host complete; 13 target checks passed; external/GP14 acceptance open |
 | P13.2 — Si5351 engine | [External Si5351 transmission](development/si5351-transmission-backlog.md) through the shared job service for standalone and WsprryPi-controlled jobs, with local RP2350 timing, exclusive I²C ownership and engine failure/shutdown handling. | Planned |
 
 Each feature includes its implementation and applicable behavior/target

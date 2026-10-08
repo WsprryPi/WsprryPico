@@ -109,11 +109,13 @@ fixtures and stop wiring remain open. The operator then declined camera setup
 and selected actual hardware GPIO readback. The [GPIO validation prompt](phase13-1-gpio-validation-prompt.md)
 and [execution/review](phase13-1-gpio-validation-review.md) cover 13 available
 cases, autonomous SDR evidence and restoration using existing retained recovery
-data, with no new backups or operator recording setup. Twelve full GPIO/RF
-checks passed; standalone STOP has partial target evidence and open terminal/
-job-ID checker findings. B was restored inhibited; external/GP14 fixtures and
-full standalone acceptance remain open. Further runner work stopped after
-the operator raised cost/time concerns.
+data, with no new backups or operator recording setup. The later
+[step-1/5 closeout prompt](phase13-1-standalone-stop-closeout-prompt.md) and
+[execution/review](phase13-1-standalone-stop-closeout-review.md) repair the
+standalone terminal/job-ID checker findings and pass one target repeat with
+complete SDR evidence. All thirteen available GPIO/RF checks now pass. B is
+restored inhibited and A unchanged; external high/low and GP14 fixture tests
+remain open. The earlier failed/partial ledgers are retained.
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.

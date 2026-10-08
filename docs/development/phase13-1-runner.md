@@ -64,6 +64,13 @@ explicit test images so ordinary consumer suspension stays intact, admits one fi
 uses actual `Scheduler::command("STOP")`; DISABLE then removes the temporary
 schedule before restoration. GP14 remains off in ordinary builds.
 
+Standalone admission is charged with unknown job ID before SCHEDULE. Matching
+Running authority supplies the actual scheduler ID, which is persisted before
+STOP. The checker requires that same job `aborted`, inactive and unowned, with
+disabled schedules, cleared TX request and actual GPIO OFF. It does not require
+the terminal job to disappear. The [step-1/5 follow-up](phase13-1-standalone-stop-closeout-review.md)
+records complete target acceptance of this behavior.
+
 The second Pico's HOLD command exists only in the inhibited stimulus image.
 Its unallocated GP15 pulls low for 1.2 seconds, then an alarm releases it to input.
 This crosses the actual 0.9-second held-stop threshold without requesting reset

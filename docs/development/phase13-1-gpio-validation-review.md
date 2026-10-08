@@ -6,10 +6,16 @@ visual observations. The [executed prompt](phase13-1-gpio-validation-prompt.md)
 uses no camera, repeats no visual operator check and creates no new backups.
 Both named Picos retain RF authorization. B is the DUT; A stays unchanged.
 
-**Final disposition: twelve full GPIO/RF cases passed; standalone STOP has
-partial target evidence and an open checker finding.** External LED polarity
+**Original round disposition: twelve full GPIO/RF cases passed; standalone STOP had
+partial target evidence and open checker findings.** External LED polarity
 and GP14 fixture tests remain open. This round stopped after restoration;
 no additional runner development or RF repetition was performed.
+
+**Later follow-up:** the operator subsequently authorized the
+[step-1/5 standalone closeout](phase13-1-standalone-stop-closeout-review.md).
+Both checker findings were repaired and one target repeat passed with complete
+SDR evidence and verified restoration. Current available coverage is thirteen
+passes; the historical STOPs and partial evidence below remain unchanged.
 
 ## Reviewed implementation
 
