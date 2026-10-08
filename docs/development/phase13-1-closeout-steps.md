@@ -3,7 +3,10 @@
 Updated 2026-10-08. **CLOSED_SCOPED**: accepted timing/shutdown results, thirteen
 preceding target GPIO/RF cases, software polarity coverage, confirmed GP15 lamp
 wiring and the [passing external TX-only cue check](phase13-1-step4-review.md)
-close the selected LED work. No operator action remains.
+complete the LED work. LED addressability and external TX-only operation are
+verified; existing button operation is recorded in the
+[Phase 12 closeout](phase12-closure-matrix.md). No LED work or operator action
+remains.
 
 | Step | Work | Current status | Operator needed |
 | --- | --- | --- | --- |
@@ -11,7 +14,7 @@ close the selected LED work. No operator action remains.
 | 2 | Confirm board identity and external LED wiring. | Complete. B's GP15 HIGH sketch lit the LED; operator confirmed it. B restored, A unchanged. | No further interaction |
 | 3 | Onboard warmup, five modes, completion, active abort, armed cancellation and inhibited behavior. | Complete. Reuse the passed target evidence; do not repeat the timing matrix. | No |
 | 4 | Confirm AP/Identify stay on the onboard output and never activate the external TX LED. | Complete. Actual GP15 OFF for each non-RF cue; ON during RF while onboard GPIO changes independently. Complete SDR evidence reviewed. | No |
-| 5 | LED shutdown and failure handling. | Satisfied within the selected LED scope by the passed STOP/abort/failure evidence. Do not develop another GP14 stimulus for this closeout. Physical GP14/button qualification remains separate and is not marked PASS. | No for LED closeout |
+| 5 | LED shutdown and failure handling. | Complete using the passed STOP/abort/failure evidence. Existing button use is recorded in Phase 12; no new GP14 stimulus or button test is required for LED completion. | No |
 | 6 | Restore, review the final result, resolve actionable findings and publish closeout. | Complete within selected scope. B restored inhibited/settings preserved, A unchanged, review findings repaired and reassessed. Original STOP/partial ledgers retained. | No |
 
 ## Final check and accepted scope
@@ -30,10 +33,10 @@ separate campaigns. No automatic RF retry or refund occurred.
 
 No second LED, reversal/rewiring, bias-resistor fixture, camera, recording setup,
 button press, A-to-B stimulus wire or active-low target repeat is required here.
-Software tests retain polarity coverage; a physically wired active-low lamp is
-not newly qualified. Mechanical button/header checks and broader hardware/
-release qualification remain outside this selected scope. The earlier proposal
-for local GP14 stimulus was not implemented and is withdrawn from LED work.
+Software tests retain polarity coverage. No LED calibration, additional polarity
+campaign or button/header test is carried forward into Phase 14. The earlier
+proposal for local GP14 stimulus was not implemented and is withdrawn from LED
+work. Phase 14 retains RF qualification and release work.
 
 ## Existing evidence
 

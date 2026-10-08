@@ -1,5 +1,11 @@
 # P13.1 GPIO functional execution and adversarial review
 
+Current status: **P13.1 complete (CLOSED_SCOPED)** under the
+[final closeout](phase13-1-closeout-steps.md). The original round and intermediate
+remaining-work statements below are historical; no LED calibration, additional
+polarity campaign or button test remains. Original failed/partial evidence is
+preserved.
+
 The operator declined recording setup on 2026-10-07 and selected command
 results plus actual hardware pin reads, accepting the preceding B OFF/ON/OFF
 visual observations. The [executed prompt](phase13-1-gpio-validation-prompt.md)

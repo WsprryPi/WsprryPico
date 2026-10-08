@@ -1,9 +1,14 @@
-> Step-1 update: the [six-step closeout](phase13-1-closeout-steps.md) and
+> Current status: **P13.1 complete (CLOSED_SCOPED)**. This unexecuted proposal is
+> historical and superseded by the [completed closeout](phase13-1-closeout-steps.md).
+> It creates no remaining LED, optical calibration, polarity or button task.
+>
+> Historical step-1 update: the [six-step closeout](phase13-1-closeout-steps.md) and
 > [unattended runner](phase13-1-runner.md) now provide the executable 16-case
 > packet, eight checked candidate roles and automatic captures/restoration.
 > The seven jobs below remain the historical onboard preparation subset;
 > their older proposed transport/board description does not constrain the new
-> identity-bound USB/Plain-LAN runner. Physical acceptance remains unexecuted.
+> identity-bound USB/Plain-LAN runner. This original packet was not executed;
+> later target results completed the selected acceptance.
 
 # P13.1 proposed physical acceptance packet
 

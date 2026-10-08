@@ -1,5 +1,10 @@
 # P13.1 step 4: external transmit LED routing
 
+Status: **Completed**; the [execution/review](phase13-1-step4-review.md) and
+[final closeout](phase13-1-closeout-steps.md) close P13.1. The instructions below
+are retained as the historical executed prompt, not an active work queue or
+additional LED calibration, polarity or button requirement.
+
 Work on `devel`. Read README.md, CONTRACT.md, docs/architecture.md and AGENTS.md;
 inspect and preserve the current work. Execute this prompt, repair actionable
 adversarial findings, reassess, commit and push the reviewed result.

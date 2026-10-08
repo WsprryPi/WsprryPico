@@ -1,10 +1,12 @@
 # Transmit LED backlog
 
 Recorded: 2026-10-03. Updated: 2026-10-08.
-Status: **CLOSED_SCOPED** for the operator-selected LED work. Source/host checks,
+Status: **Complete (CLOSED_SCOPED)**. LED addressability and external TX-only
+operation are verified. Source/host checks,
 thirteen preceding target cases, reviewed standalone STOP and the
 [external GP15 routing result](phase13-1-step4-review.md) pass. No operator work
-remains; broader hardware/release qualification retains its separate scope.
+remains. Existing button operation is recorded in the
+[Phase 12 closeout](phase12-closure-matrix.md).
 
 The external GP15 lamp wiring is operator-confirmed. The final functional
 check used GPIO/SDR evidence without another LED, camera, rewiring or operator
@@ -12,11 +14,11 @@ session; see the [completed six-step TODO](phase13-1-closeout-steps.md).
 The existing external-high TX-only/AP/Identify case passed with actual GPIO,
 complete SDR evidence and reviewed restoration. Timing/shutdown and software
 polarity evidence is reused; no new GP14 stimulus or polarity campaign was
-needed for closure. A separately wired active-low lamp and mechanical button/header
-qualification are outside this selected scope and are not marked PASS.
+needed for closure. No LED calibration, additional polarity campaign or
+button/header test is required or carried forward from P13.1.
 Roadmap assignment: **Phase 13 / P13.1**, selected on 2026-10-05; see the
 [feature backlog](../implementation-plan.md#phase-13-feature-backlog).
-Final hardware/release qualification follows in Phase 14.
+Phase 14 RF qualification and release follows without reopening the LED work.
 The operator authorized P13.1 implementation, review, commit and push on
 2026-10-07. Live testing follows the current [project instructions](../../AGENTS.md):
 the user's statement that a named Pico is connected to the SDR authorizes RF
@@ -82,9 +84,10 @@ The [execution prompt](phase13-1-transmit-led-prompt.md),
 That original physical packet is historical; the selected functional acceptance
 is now closed by the step-4 record. Legacy single-core RFBench/RFWTP diagnostic
 images are outside this application indicator graph; their historical warmup
-captures do not qualify the new application LED. External wiring, physical
-edge timing and broader engine/mode/band/clock qualification require recorded
-target evidence, with final release qualification remaining Phase 14.
+captures are separate from the accepted application LED results. The selected
+external wiring and functional behavior are accepted by the recorded target
+evidence. Phase 14 retains broader RF mode/band/clock and release qualification;
+it has no additional LED calibration or fixture task from this closeout.
 
 The [GPIO execution record](phase13-1-gpio-validation-review.md) records actual
 onboard readback, RF results, retained failed ledgers and restoration. No camera

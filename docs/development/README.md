@@ -83,9 +83,9 @@ A rows remained open. The later automatic closeout above supersedes that
 checkpoint's automatic journal, carrier, recovery and resource gaps. P12.3
 remains CLOSED_SCOPED within its historical boundary.
 The [Phase 13 feature backlog](../implementation-plan.md#phase-13-feature-backlog)
-contains transmit LED and external Si5351 work, with room for further
-user-selected features. Phase 14 broad hardware/release qualification remains
-open.
+records P13.1 transmit LED work as complete (`CLOSED_SCOPED`) and P13.2 external
+Si5351 implementation as deferred. No active feature work remains selected.
+Phase 14 PIO/DMA RF qualification and release is next on the roadmap.
 The [P13.1 LED execution/review](phase13-1-transmit-led-review.md) implements a
 checked local launch handshake, TX-only external indication and retained
 onboard operational cues. Deterministic checks and both firmware cross-links
@@ -127,9 +127,13 @@ new stimulus development. The [step-4 execution/review](phase13-1-step4-review.m
 now closes the remaining external-high TX-only/AP/Identify assertion with actual
 GPIO and complete SDR evidence. B is restored inhibited/settings preserved and
 A unchanged. Existing timing/shutdown and software polarity evidence is reused;
-the selected LED scope is **CLOSED_SCOPED**, with no further operator work.
-Physical active-low wiring, button/header checks and calibrated optical/release
-qualification remain separate. No new GP14 stimulus was introduced.
+the LED work is **complete (CLOSED_SCOPED)**. LED addressability and external
+TX-only operation are verified; existing button operation is recorded in the
+[Phase 12 closeout](phase12-closure-matrix.md). No LED calibration, additional
+polarity campaign or button/header test remains in P13.1 or is carried forward
+from it into Phase 14. Earlier preparation and intermediate remaining-work
+lists are historical. No new GP14 stimulus was introduced. GP14 production
+default enablement remains a separate deferred decision.
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.

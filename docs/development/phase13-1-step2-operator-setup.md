@@ -29,11 +29,10 @@ TX-only routing versus onboard AP/Identify, with verified restoration and review
 Existing timing/shutdown evidence and software polarity coverage is reused;
 another active-low target campaign is not required. The
 [fixed TODO](phase13-1-closeout-steps.md) is complete in the selected LED scope.
-The proposed new local GP14 stimulus
-is withdrawn from LED closeout. Physical button/header qualification is separate
-and is not silently marked PASS.
+The proposed new local GP14 stimulus is withdrawn from LED closeout. Existing
+button operation is recorded in the [Phase 12 closeout](phase12-closure-matrix.md);
+no additional button/header test or LED calibration is required for P13.1.
 
 The earlier [preparation/review record](phase13-1-step2-review.md) and prompts
-remain historical evidence, not current setup requirements. All further work
-follows the fixed steps 1–6 without timed operator responses or another onboard
-visual check.
+remain historical evidence, not current setup requirements. The fixed steps
+1–6 are complete; no further LED work or operator setup is pending.

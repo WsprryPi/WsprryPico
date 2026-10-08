@@ -104,8 +104,9 @@ and assessment), `final-readback/`, `prior-ledgers.json` and
 | Final live candidate manifest | `9316d1670719826ac78a5afe518324e138d59a7b2e6c14f95055db0cff211544` |
 | Corrective reservation | `1a2b287a146f50a431ffee30bafa332683a3e6cf13267bef0a0803d612cfad17` |
 
-The [fixed steps 1–6](phase13-1-closeout-steps.md) are complete within the selected
-LED scope. A physically wired active-low lamp, mechanical GP14/header tests,
-calibrated optical edge timing and broad engine/mode/band/clock/release
-qualification are not newly qualified. Those exclusions do not reopen the
-operator-accepted LED work.
+The [fixed steps 1–6](phase13-1-closeout-steps.md) are complete. LED addressability
+and external TX-only operation are verified. Existing button operation is
+recorded in the [Phase 12 closeout](phase12-closure-matrix.md). No LED calibration,
+additional polarity campaign or button/header test remains or is carried
+forward from P13.1 into Phase 14. Phase 14 retains RF qualification and release
+work; P13.2 Si5351 implementation is deferred.

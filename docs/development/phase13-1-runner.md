@@ -1,5 +1,11 @@
 # Transmit LED unattended runner
 
+Current status: **P13.1 complete (CLOSED_SCOPED)**; see the
+[final closeout](phase13-1-closeout-steps.md). The preparation, optional optical
+configuration and GP14 stimulus proposal below are historical engineering
+material, not remaining work or prerequisites. LED addressability and external
+TX-only operation are verified. No LED calibration or new button test is pending.
+
 This is the engineering preparation for [closeout step 1](phase13-1-closeout-steps.md).
 Step 2 is the single untimed operator setup. Steps 3–5 then run without button
 presses, rewiring or operator response deadlines; step 6 assesses the independent
@@ -7,9 +13,9 @@ observations and publishes the actual qualification disposition.
 
 The operator subsequently selected hardware GPIO readback plus autonomous SDR
 capture, with no camera setup. Use `evidence_mode: "gpio-readback"`, `camera: null`,
-and only the fixtures required by selected cases. The optical configuration
-below remains optional for a separately selected optical scope. No calibrated
-optical edge timing is claimed by the GPIO mode.
+and only the fixtures required by selected cases. GPIO readback and SDR evidence
+completed the selected functional acceptance. The optical configuration below
+was not required and is not part of the current work queue.
 
 ## Prepared cases and candidates
 

@@ -62,8 +62,11 @@ within that scope, including the 11.4 inhibited matrix/eight-hour soak, 11.5 at
 control still defaults off. Broader mode/band/clock, timing, spectra, filtering,
 reliability and release qualification remain in Phase 14. The
 [Phase 13 feature backlog](docs/implementation-plan.md#phase-13-feature-backlog)
-places transmit LED completion and external Si5351 work before final qualification and
-remains open for additional user-selected features.
+records P13.1 transmit LED work as complete (`CLOSED_SCOPED`): LED addressability
+and external TX-only operation are verified. Existing button operation is
+recorded in Phase 12. P13.2 external Si5351 implementation is deferred; no
+active Phase 13 feature work remains selected. Phase 14 RF qualification and
+release is next on the roadmap.
 
 [Phase 12 provisioning](docs/development/phase12-plan.md) is `CLOSED_SCOPED`
 by the operator's 2026-10-06 acceptance of the frozen matrix and documented

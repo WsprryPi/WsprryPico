@@ -124,30 +124,34 @@ treated as long-term product documentation.
     and GP14 production default enablement is deferred. Stage B and Phases 13
     and 14 remain separate; this closeout starts no new feature work.
 
-13. **Planned:** feature completion before final qualification: complete
-    solid RF-active transmit LED acceptance using the existing source wiring,
-    and implement external Si5351 transmission support.
-    This phase is open for additional user-selected features; see the
+13. **Selected LED work complete; Si5351 deferred:** P13.1 transmit LED work is
+    **CLOSED_SCOPED**, with addressability and external TX-only operation verified.
+    P13.2 external Si5351 implementation is deferred. No active feature work
+    remains selected; see the
     [Phase 13 feature backlog](#phase-13-feature-backlog).
-14. **Planned:** final hardware qualification and release, including the output
-    network and filters, calibrated GPIO-edge timing, supported mode/band
-    combinations and a reproducible release UF2.
+14. **Next planned phase:** hardware/RF qualification and release for the
+    implemented PIO/DMA engine, including the output network and filters,
+    calibrated RF-output timing, supported mode/band/clock combinations,
+    reliability and a reproducible release UF2. Si5351 remains deferred.
 
 ## Phase 13 feature backlog
 
 Selected on 2026-10-05 to follow Phase 12 and precede final qualification.
 P13.1 now has a checked launch handshake and TX-only external routing through
-the shared indicator owner. The operator-selected functional acceptance is
-[CLOSED_SCOPED](development/phase13-1-step4-review.md), with fourteen target
-GPIO/RF case results and verified restoration. Calibrated optical, physical
-active-low wiring and mechanical GP14/header qualification remain separate.
-External Si5351 implementation remains deferred. Additional features can be
-added here as the user identifies them; no further feature scope is selected.
+the shared indicator owner. LED addressability and external TX-only operation
+are verified. The LED work is [complete (CLOSED_SCOPED)](development/phase13-1-step4-review.md),
+with fourteen target GPIO/RF case results and verified restoration. Existing
+button operation is recorded in the [Phase 12 closeout](development/phase12-closure-matrix.md).
+No LED calibration, additional polarity campaign or button/header test is
+required to close P13.1 or carried forward from it into Phase 14.
+
+External Si5351 implementation remains deferred. No further feature scope is
+selected; Phase 14 RF qualification and release is next on the roadmap.
 
 | Milestone | Selected work | Status |
 | --- | --- | --- |
-| P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) across RF activation and cleanup; selected external LED is TX-only with operational cues onboard, or shared onboard TX takes priority over blinking. | CLOSED_SCOPED; source/host and 14 selected target case results accepted; no operator work remains |
-| P13.2 — Si5351 engine | [External Si5351 transmission](development/si5351-transmission-backlog.md) through the shared job service for standalone and WsprryPi-controlled jobs, with local RP2350 timing, exclusive I²C ownership and engine failure/shutdown handling. | Planned |
+| P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) across RF activation and cleanup; selected external LED is TX-only with operational cues onboard, or shared onboard TX takes priority over blinking. | Complete (CLOSED_SCOPED); source/host and 14 selected target case results accepted; no remaining LED work |
+| P13.2 — Si5351 engine | [External Si5351 transmission](development/si5351-transmission-backlog.md) through the shared job service for standalone and WsprryPi-controlled jobs, with local RP2350 timing, exclusive I²C ownership and engine failure/shutdown handling. | Deferred; unimplemented |
 
 Each feature includes its implementation and applicable behavior/target
 acceptance. Phase 14 retains the final supported engine/mode/band/clock matrix,
@@ -374,16 +378,14 @@ Phase 14 qualification work.
 1. Phase 11 is closed within its documented software, bounded physical and
    scoped conducted-RF acceptance; do not broaden that result into release
    qualification.
-2. Phase 12: finish the accepted BLE/SoftAP engineering boundary and the
-   separately gated Safari/SoftAP consumer contract, offline controller UTC,
-   indicator behavior and recovery acceptance.
-3. Phase 13: complete transmit LED acceptance using existing source and
-   implement/accept the external Si5351 engine;
-   collect additional user-selected features in the
+2. Phase 12 is CLOSED_SCOPED under its accepted commissioning/recovery
+   dispositions, with no remaining operator queue.
+3. Phase 13: P13.1 transmit LED work is complete; P13.2 external Si5351 is
+   deferred. No active feature work remains selected in the
    [feature backlog](#phase-13-feature-backlog).
-4. Phase 14: qualify supported engine/mode/band/clock combinations, timing, RF
-   and reliability; finish output networks/filters and release a reproducible
-   WsprryPico-x.y.z.uf2.
+4. Phase 14 is next: qualify supported PIO/DMA mode/band/clock combinations,
+   RF-output timing, spectra and reliability; finish output networks/filters
+   and release a reproducible WsprryPico-x.y.z.uf2. Si5351 remains deferred.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
