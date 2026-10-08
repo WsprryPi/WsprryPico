@@ -486,3 +486,17 @@ Final candidate applicability/build/smoke, adversarial closeout, original B
 profile restoration, commit/push and remote parity remain separate outstanding
 work. Temporary queued versions were stopped while still waiting, without RF
 steps or interruption of the active matrix; their records remain preserved.
+
+Fresh candidate source `ffcb1bd3aeee70d8ba4047211f56578d858c9300` is built locally
+with the same pinned SDK/toolchain/picotool inputs, version 0.1.0-rc.1 and RF
+configuration. Its 132/138/150 MHz UF2 hashes are respectively
+`6f66aaabd7d76cae27d0b829817979a8e3e2a2b6d39d51f2073d6f5f34958e0f`,
+`aecf5d7da924f33b18a26737f27c27869741ec20838977930e2d844b16c2b81b` and
+`914c60bfc3e994edeb91532125433e0317715bb483d13c8807f637f6104d78d6`.
+A clean independent 138 MHz rebuild is byte-identical. Exact full-UF2 comparison
+against the deployed `bd45bc1bb638` image at each clock finds only two copies of
+the 12-character Git revision changed: 24 bytes in each complete UF2, with all
+other bytes identical. The private comparison JSON records both artifact hashes.
+This supports runtime evidence applicability beyond source-file assumptions;
+it does not substitute for final both-board installation/smoke/cleanup. Current
+physical batches retain their original deployed image and exact tool identities.
