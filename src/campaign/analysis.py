@@ -90,7 +90,7 @@ def tone(iq, rate, center, frequency, directory):
     return dict(passed=bool(passed), measurement=report, carrier_metrics=metrics)
 
 
-def wspr(iq, rate, center, frequency, directory, decoder, slot_utc):
+def wspr(iq, rate, center, frequency, directory, decoder, slot_utc, *, reference_hz=None):
     report = measure(
         iq,
         rate,
@@ -98,6 +98,7 @@ def wspr(iq, rate, center, frequency, directory, decoder, slot_utc):
         frame=True,
         base_hz=frequency,
         symbols=[int(c) for c in GOLDEN37],
+        reference_hz=reference_hz,
     )
     decoded = False
     if report.get("intervals_s"):

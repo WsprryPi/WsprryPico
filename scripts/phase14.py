@@ -30,6 +30,7 @@ def main():
             p.add_argument('--repetitions',type=int,choices=range(1,25),default=1)
             p.add_argument('--duration',type=int)
             p.add_argument('--reference',action='store_true')
+            p.add_argument('--workload',choices=('normal','max-events'),default='normal')
             p.add_argument('--action',choices=('complete','abort','disconnect'),default='complete')
     args=parser.parse_args()
     if args.op=='matrix':print(json.dumps(matrix(),indent=2));return
@@ -56,7 +57,7 @@ def main():
         # Validate the entire finite batch before opening devices or acquiring RF.
         from phase14.plan import job
         for band in args.bands:
-            for mode in args.modes:job(mode,band,args.clock,'preflight',args.duration)
+            for mode in args.modes:job(mode,band,args.clock,'preflight',args.duration,args.workload)
     from phase14.live import Rig
     def interrupted(signum,frame):
         signal.signal(signum,signal.SIG_IGN)
@@ -77,7 +78,7 @@ def main():
                         before=rig.idle(args.board)
                         if before['revision']!=manifest['source_commit'][:12]:raise ValueError('installed candidate source mismatch')
                         rig.execute(args.board,args.clock,band,mode,sequence,duration=args.duration,
-                                    action=args.action,image_hash=image['sha256'])
+                                    action=args.action,image_hash=image['sha256'],workload=args.workload)
             print(json.dumps(rig.inventory([args.board])))
     finally:rig.close()
 

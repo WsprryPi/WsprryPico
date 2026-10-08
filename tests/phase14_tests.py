@@ -21,6 +21,11 @@ class Tests(unittest.TestCase):
         for mode in ('WSPR','QRSS','FSKCW','DFCW'):
             value=job(mode,'80m',138000000,'test')
             self.assertEqual(sum(int(e['duration_ns']) for e in value['events']),int(value['total_duration_ns']))
+        maximum=job('FSKCW','80m',138000000,'test',3600,'max-events')
+        self.assertEqual(len(maximum['events']),512)
+        self.assertEqual(sum(int(e['duration_ns']) for e in maximum['events']),3600000000000)
+        for mode in ('TONE','WSPR','QRSS','DFCW'):
+            with self.assertRaises(ValueError):job(mode,'80m',138000000,'test',3600,'max-events')
         self.assertEqual(job('TONE','80m',138000000,'test',3600)['total_duration_ns'],'3600000000000')
         for value in (0,3601,True):
             with self.assertRaises(ValueError):job('TONE','80m',138000000,'test',value)

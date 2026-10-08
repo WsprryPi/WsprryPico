@@ -11,9 +11,20 @@ def matrix():
             for clock in CLOCKS for band,frequency in BANDS.items() for mode in MODES]
 
 
-def job(mode, band, clock, token, duration_s=None):
+def job(mode, band, clock, token, duration_s=None, workload="normal"):
     value=make_job(mode,BANDS[band],sample_rate_hz=clock,keyed_dot_ns=3000000000)
-    if duration_s is not None:
+    if workload=='max-events':
+        if mode!='FSKCW' or type(duration_s) is not int or not 128<=duration_s<=3600:
+            raise ValueError('maximum-event workload requires finite FSKCW')
+        total=duration_s*1000000000
+        edges=[total*i//512 for i in range(513)]
+        value['events']=[dict(offset_ns=str(a),duration_ns=str(b-a),rf_on=True,
+            frequency_nhz=str((BANDS[band]-(5 if i%2 else 0))*1000000000))
+            for i,(a,b) in enumerate(zip(edges,edges[1:]))]
+        value['total_duration_ns']=str(total)
+    elif workload!='normal':
+        raise ValueError('unknown qualification workload')
+    elif duration_s is not None:
         if mode!='TONE' or type(duration_s) is not int or not 1<=duration_s<=3600:
             raise ValueError('duration override requires finite Tone')
         value['events'][0]['duration_ns']=str(duration_s*1000000000)

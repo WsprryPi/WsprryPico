@@ -94,7 +94,7 @@ class Rig:
         return {b:dict(revision=v['info']['revision'],clock=v['info']['system_clock_hz'],
                        engine=v['info']['status']['engine'],state=v['responses']['STATUS']['state'])
                 for b,v in values.items()}
-    def execute(self,board,clock,band,mode,sequence,*,duration=None,action='complete',image_hash=None):
+    def execute(self,board,clock,band,mode,sequence,*,duration=None,action='complete',image_hash=None,workload='normal'):
         root=self.e.root/(str(sequence)+'-'+board+'-'+str(clock)+'-'+band+'-'+mode)
         root.mkdir(mode=0o700)
         before=self.idle(board);peer=self.device.peer(board)
@@ -107,7 +107,7 @@ class Rig:
                     'unrelated reference settings changed')
         # Every capture has one attributable Pico and an inactive peer board.
         other='B' if board=='A' else 'A';self.idle(other)
-        value=job(mode,band,clock,uuid.uuid4().hex,duration)
+        value=job(mode,band,clock,uuid.uuid4().hex,duration,workload)
         settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,
                       center_frequency_hz=BANDS[band]-25000,gain_db=20,channel=0,agc=False,bias_tee=False)
         seconds=math.ceil(int(value['total_duration_ns'])/1e9)+15
@@ -120,7 +120,7 @@ class Rig:
             device_id=BOARDS[board][1],source_revision=before['revision'],boot_id=peer.boot,
             firmware_sha256=image_hash,clock_hz=clock,divider=1,engine='pio-dma-gp2',rf_gp=2,
             session_id=peer.session,
-            band=band,mode=mode,job=value,reference=reference,receiver_command=argv,receiver_helper_sha256=sha256(CAPTURE),
+            band=band,mode=mode,workload=workload,job=value,reference=reference,receiver_command=argv,receiver_helper_sha256=sha256(CAPTURE),
             receiver_settings=settings,action=action,result='PENDING',status=[],before=before,
             path='each source -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no LPF; operator-owned filtering')
         save(root/'physical.json',record)
@@ -205,7 +205,9 @@ class Rig:
                         self.device.console(board,'ABORT')
                     current=self.device.info(board)['status']
                     require(current['output_active'] is False,'cleanup output uncertain')
-                    record['cleanup']=current
+                    if current.get('owner_id')==owner:
+                        peer.request('RELEASE',{});claimed=False
+                    record['cleanup']=self.device.info(board)['status']
                 except BaseException as cleanup:
                     record['cleanup_error']=repr(cleanup)
                 raise

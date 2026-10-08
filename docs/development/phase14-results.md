@@ -103,3 +103,24 @@ settings afterward. This does not reopen GP14 or LED/button qualification.
 New test credentials remain private under ignored `config/local/` and the
 private authorized-host evidence root. Journal corruption tests reject torn
 newer records rather than resurrecting older authority.
+
+
+Mode acceptance follows the plan's economical screening rule: for each 138 MHz
+board/band/mode, acquire one complete waveform, then perform the remaining two
+repetitions when that screen passes. A failed screen excludes that row from
+expensive repetition; its raw result remains. Both boards' initial 80 m WSPR
+settling triplets are always completed to diagnose cold/warm behavior. All
+results remain release-unqualified until resources, lifecycle, spectra,
+endurance, final-image applicability and adversarial review are finished.
+Optional simultaneous-reference WSPR comparison uses the existing analyzer's
+reference subtraction, retaining the same timing, separation and residual
+limits. Keyed jobs retain their existing screen and add independent reference
+phase diagnostics over the same intervals to distinguish common receiver drift.
+
+Prepared finite reliability workloads include a 512-event FSKCW job (128 to
+3,600 seconds), a one-hour Tone and native-controller ETE/32-character messages.
+The native controller uses a private temporary INI, the already installed
+binary, disabled ancillary GPIO and a finite iteration/request. No shared
+operational INI or sibling source is modified. Receiver captures and independent
+Console observation bind its actual job and boot; process exit alone cannot
+establish completed RF or shutdown.

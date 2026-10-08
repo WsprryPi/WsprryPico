@@ -31,12 +31,25 @@ def analyze(directory, output_label="analysis"):
     elif mode=='WSPR':
         # Existing decoder and waveform are independent. Do not correct RF drift,
         # timing, or tune error to manufacture a successful decode.
-        result=established.wspr(iq,rate,center,frequency,output,Path('/usr/bin/wsprd'),0)
+        reference=physical.get('reference')
+        result=established.wspr(iq,rate,center,frequency,output,Path('/usr/bin/wsprd'),0,
+                                reference_hz=reference['f1'] if reference else None)
         require((output/'decode.json').exists(),'independent decoder result absent')
         result['decode']=json.loads((output/'decode.json').read_text())
         result['decoder_sha256']=sha256('/usr/bin/wsprd')
     else:
         result=established.keyed(iq,rate,center,frequency,job)
+        if physical.get('reference') and result.get('alignment_s') is not None:
+            from measure_rf_bench import baseband,phase_fit
+            ref_hz=physical['reference']['f1'];ref,ref_rate=baseband(iq,rate,center,ref_hz)
+            diagnostics=[]
+            for event in job['events']:
+                if event['rf_on']:
+                    left=result['alignment_s']+int(event['offset_ns'])/1e9+.02
+                    right=result['alignment_s']+(int(event['offset_ns'])+int(event['duration_ns']))/1e9-.02
+                    fit=phase_fit(ref[round(left*ref_rate):round(right*ref_rate)],ref_rate,ref_hz)
+                    fit['interval_s']=[left,right];diagnostics.append(fit)
+            result['reference_diagnostics']=diagnostics
     intervals=result.get('measurement',{}).get('intervals_s',result.get('observed_intervals_s',[]))
     frequencies=[m['indicated_hz'] for m in result.get('measurement',result).get('measurements',[])]
     excluded=[physical['reference']['f1']] if physical.get('reference') else []
