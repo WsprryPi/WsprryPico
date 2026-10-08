@@ -72,6 +72,7 @@ class Tests(unittest.TestCase):
                       status=[dict(status=running),dict(status=terminal)],terminal=terminal,before=idle,after=idle)
         validate_physical(physical)
         mutations=[lambda v:v.update(board='B'),lambda v:v.update(boot_id='c'*32),
+                   lambda v:v.update(mode='DFCW'),
                    lambda v:v.update(firmware_sha256='bad'),
                    lambda v:v['accepted_job']['events'][0].update(duration_ns='1'),
                    lambda v:v['arm'].update(job_id='d'*32),

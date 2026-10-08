@@ -91,6 +91,8 @@ def validate_physical(value):
         not re.fullmatch('[0-9a-f]{32}',value['boot_id'])):
         raise ValueError('physical candidate/device identity')
     submitted=value['job'];accepted=value['accepted_job']
+    if submitted['mode'].upper()!=value['mode']:
+        raise ValueError('declared mode differs from submitted job')
     if accepted!=accepted_events(submitted,value['load']['adjustments']):
         raise ValueError('accepted workload binding')
     if not re.fullmatch('[0-9a-f]{32}',submitted['job_id']):

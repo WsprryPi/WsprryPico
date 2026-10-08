@@ -675,3 +675,11 @@ and Pico correction remain unchanged. At the next repetition checkpoint,
 13/78 human-copy rows (16.7%) have three passing observations, including A's
 80 m QRSS/FSKCW/DFCW; four additional finite jobs have completed. Other release
 gates remain open.
+
+The independent audit's explicit declared-mode/submitted-job check exposed a
+missing equivalent rejection in the shared physical-record validator. The host
+validator now rejects a changed mode label even when the accepted job remains
+unchanged. Existing lifecycle substitution tests include that case. This is a
+metadata validation repair: every original capture already passed the stricter
+independent mode binding, and the active immutable continuation is not modified.
+Later evidence is subject to the same independent audit before release.
