@@ -135,7 +135,13 @@ std::size_t available() {
         return std::numeric_limits<std::size_t>::max();
     const auto used = live + (whole ? page_live : reply_pages) + background;
     const auto capacity = whole ? 219712 : heap;
-    const auto free = std::min(memory_cap, used < capacity ? capacity - used : 0);
+    // A supplied cap injects the admission callback's exact available-byte
+    // boundary. Combining it with host STL occupancy makes the supposedly
+    // deterministic adjacent-byte test depend on the host ABI. Uncapped runs
+    // still measure the full allocation model and its independent reserve.
+    const auto free = memory_cap == std::numeric_limits<std::size_t>::max()
+                          ? (used < capacity ? capacity - used : 0)
+                          : memory_cap;
     if (calls < 16)
         samples[calls] = {live, reply_pages, free};
     ++calls;

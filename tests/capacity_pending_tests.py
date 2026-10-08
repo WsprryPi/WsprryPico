@@ -4,6 +4,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"scripts"))
 
 import copy,unittest
 from capacity_pending import assess,run
+from inhibited_network_acceptance import https_authority
 class Tests(unittest.TestCase):
  def test_pending_then_actual_reset_reclaims_and_timeout_never_passes(self):
   b=dict(boot='b',source='s',active=2,pending=0,pool=10,timeouts=0,rejected=0)
@@ -35,6 +36,7 @@ class CallerTests(unittest.TestCase):
   def connect(*a,**kw):calls.append(('connector',kw));return None
   def pending(connector,observe,*a):observe();connector(15);calls.append('pending')
   env.update(connect=connect,pending_capacity=pending)
+  env['https_authority']=https_authority
   exec(compile(ast.fix_missing_locations(ast.Module(body=nodes,type_ignores=[])),'private','exec'),env)
   self.assertEqual(sum(isinstance(x,tuple) and x[0]=='connector' for x in calls),1)
   self.assertIn(('connector',{'observer_deadline':15}),calls)

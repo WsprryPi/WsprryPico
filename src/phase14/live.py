@@ -1,0 +1,205 @@
+"""Linux physical adapter reusing existing identity-bound control and receiver tools."""
+import contextlib
+import fcntl
+import json
+import math
+import os
+from pathlib import Path
+import signal
+import subprocess
+import time
+import uuid
+
+from led_closeout.device import Device, Peer, retained_settings
+from led_closeout.runner import require, sha256
+from phase14.plan import BOARDS, BANDS, job, accepted_events, validate_capture
+
+CAPTURE='/home/pi/wsprrypi-qualification-runs/complete-test-deployment-284c7e04a3fdd079c46e782b/wspq-capture-soapy'
+PICOTOOL='/home/pi/phase11-4-e1/picotool-build/picotool'
+
+
+def save(path,value):
+    temporary=Path(str(path)+'.pending')
+    temporary.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n')
+    temporary.replace(path)
+
+
+class Evidence:
+    def __init__(self,root):
+        self.root=Path(root)
+        self.root.mkdir(parents=True,exist_ok=False,mode=0o700)
+        self.events=(self.root/'events.jsonl').open('x',buffering=1)
+    def event(self,kind,value):
+        self.events.write(json.dumps(dict(kind=kind,utc_ns=time.time_ns(),monotonic_ns=time.monotonic_ns(),value=value))+'\n')
+
+
+class Rig:
+    def __init__(self,root,source):
+        self.e=Evidence(root)
+        self.device=Device({'picotool':dict(path=PICOTOOL),'evidence_mode':'gpio-readback'},self.e,source)
+        self.device.lock_boards('A','B')
+        self.lock=open('/tmp/wsprrypico-phase14-receiver.lock','a')
+        fcntl.flock(self.lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    def info(self,board):
+        value=self.device.info(board)
+        require(value['device_id']==BOARDS[board][1], 'named device mismatch')
+        self.e.event('info',dict(board=board,info=value))
+        return value
+    def idle(self,board):
+        value=self.info(board);s=value['status']
+        require(not s['enabled'] and not s['output_active'] and s['owner_id'] is None and
+                s['state'] not in ('armed','running','loaded','failed'), 'board not available for finite test')
+        return value
+    def deploy(self,board,image,commit):
+        before=self.idle(board)
+        require(sha256(image)==self.image_hash, 'firmware artifact hash')
+        self.device.rom(board)
+        self.device.pt(board,['load','-v',str(image)])
+        self.device.pt(board,['reboot'])
+        deadline=time.monotonic()+90
+        while time.monotonic()<deadline:
+            try:
+                value=self.device.console(board,'INFO')
+                if value.get('lan_wtp_ready'):
+                    break
+            except (FileNotFoundError,ValueError,TimeoutError):
+                pass
+            time.sleep(.5)
+        else:
+            raise TimeoutError('candidate boot/LAN readiness')
+        value=self.idle(board)
+        require(value['revision']==commit[:12] and value['status']['engine']=='pio-dma-gp2', 'candidate source/engine')
+        require(retained_settings(before)==retained_settings(value), 'firmware load changed retained settings')
+        self.e.event('deployment_verified',dict(board=board,uf2=str(image),sha256=self.image_hash,info=value))
+    def inventory(self):
+        values={}
+        for board in BOARDS:
+            value=self.idle(board)
+            peer=self.device.peer(board)
+            responses={op:peer.request(op,{}) for op in ('CAPS','GET_CLOCK','STATUS','PING')}
+            values[board]=dict(info=value,responses=responses)
+        save(self.e.root/'inventory.json',values)
+        return {b:dict(revision=v['info']['revision'],clock=v['info']['system_clock_hz'],
+                       engine=v['info']['status']['engine'],state=v['responses']['STATUS']['state'])
+                for b,v in values.items()}
+    def execute(self,board,clock,band,mode,sequence,*,duration=None,action='complete',image_hash=None):
+        root=self.e.root/(str(sequence)+'-'+board+'-'+str(clock)+'-'+band+'-'+mode)
+        root.mkdir(mode=0o700)
+        before=self.idle(board);peer=self.device.peer(board)
+        require(before['system_clock_hz']==clock and before['status']['engine']=='pio-dma-gp2','RF clock/engine mismatch')
+        # Every capture has one attributable Pico and an inactive peer board.
+        other='B' if board=='A' else 'A';self.idle(other)
+        value=job(mode,band,clock,uuid.uuid4().hex,duration)
+        settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,
+                      center_frequency_hz=BANDS[band]-25000,gain_db=20,channel=0,agc=False,bias_tee=False)
+        seconds=math.ceil(int(value['total_duration_ns'])/1e9)+15
+        count=seconds*250000
+        argv=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60',str(settings['center_frequency_hz']),
+              str(count),'20','250000','200000','0','false','false','100000',str(seconds+12),
+              str(root/'capture.cf32'),str(root/'capture.json'),root.name]
+        require(__import__('shutil').disk_usage(root).free>count*8+256*1024*1024,'capture storage')
+        record=dict(schema='phase14-physical/1',board=board,serial=BOARDS[board][0],
+            device_id=BOARDS[board][1],source_revision=before['revision'],boot_id=peer.boot,
+            firmware_sha256=image_hash,clock_hz=clock,divider=1,engine='pio-dma-gp2',rf_gp=2,
+            session_id=peer.session,
+            band=band,mode=mode,job=value,receiver_command=argv,receiver_helper_sha256=sha256(CAPTURE),
+            receiver_settings=settings,action=action,result='PENDING',status=[],before=before,
+            path='each source -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no characterized filter')
+        save(root/'physical.json',record)
+        process=None;claimed=False;owner=uuid.uuid4().hex;terminal=None
+        with (root/'receiver.log').open('x') as log:
+            try:
+                process=subprocess.Popen(argv,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+                deadline=time.monotonic()+8
+                while not (root/'capture.cf32.incomplete').exists() or (root/'capture.cf32.incomplete').stat().st_size<65536:
+                    require(process.poll() is None and time.monotonic()<deadline,'capture readiness')
+                    time.sleep(.05)
+                # Retain quiet before any RF and give network framing a generous finite arm margin.
+                time.sleep(1)
+                response=peer.request('CLAIM',dict(owner_id=owner,lease_ms=60000));claimed=True
+                require(response['owner_id']==owner,'CLAIM owner')
+                response=peer.request('LOAD',value)
+                record['load']=response;record['accepted_job']=accepted_events(value,response['adjustments'])
+                clock_value=peer.request('GET_CLOCK',{})
+                require(clock_value['state']=='synchronized' and int(clock_value['uncertainty_ns'])<=500000000,'WTP clock not admissible')
+                start=(int(clock_value['utc_now_ns'])//1000000000+4)*1000000000
+                record['arm']=peer.request('ARM',dict(job_id=value['job_id'],start_utc_ns=str(start),max_start_uncertainty_ns='500000000'))
+                save(root/'physical.json',record)
+                end=time.monotonic()+int(value['total_duration_ns'])/1e9+10
+                action_done=False;disconnected=False;running_since=None;last_info=0;last_renew=time.monotonic()
+                while time.monotonic()<end:
+                    require(process.poll() is None,'capture ended before terminal RF')
+                    if disconnected:
+                        status=self.info(board)['status']
+                    else:
+                        status=peer.request('STATUS',{})
+                    require(status['boot_id']==record['boot_id'] and status['job_id']==value['job_id'],'job/boot observation mismatch')
+                    record['status'].append(dict(utc_ns=time.time_ns(),monotonic_ns=time.monotonic_ns(),status=status))
+                    if status['state']=='running' and running_since is None:running_since=time.monotonic()
+                    if running_since and not action_done and time.monotonic()-running_since>=2:
+                        if action=='abort':peer.request('ABORT',dict(job_id=value['job_id']))
+                        elif action=='disconnect':
+                            self.device.close_peer(board);disconnected=True
+                        action_done=True
+                    if not disconnected and time.monotonic()-last_renew>=25:
+                        peer.request('RENEW',dict(owner_id=owner,lease_ms=60000))
+                        last_renew=time.monotonic()
+                    if time.monotonic()-last_info>=10:
+                        self.info(board);last_info=time.monotonic()
+                    if status['state'] in ('complete','aborted','missed','failed'):
+                        terminal=status;break
+                    time.sleep(.5)
+                require(terminal is not None and terminal['output_active'] is False,'no authoritative terminal inactivity')
+                record['terminal']=terminal
+                if disconnected:
+                    require(terminal['owner_id'] in (None,owner),'foreign successor owner')
+                    if terminal['owner_id']==owner:
+                        self.device.close_peer(board)
+                        # Same logical session is permitted to reconnect; expiry does not abort RF.
+                        address=before['network']['ipv4']
+                        connection=__import__('socket').create_connection((address,31417),timeout=5)
+                        connection.setblocking(False)
+                        context=contextlib.closing(connection);context.__enter__()
+                        self.device.peer_contexts[board]=context
+                        peer=Peer(connection.fileno(),self.e,self.device.root);peer.session=record['session_id']
+                        peer.request('HELLO',dict(versions=['WTP/1'],client_name='Phase14',client_version='1'))
+                        self.device.peers[board]=peer
+                    else:
+                        peer=self.device.peer(board);claimed=False
+                if terminal['owner_id'] is None:
+                    claimed=False
+                if claimed:
+                    peer.request('RELEASE',{});claimed=False
+                after=self.idle(board)
+                record['after']=after
+                # Finish the planned receiver capture with its trailing quiet.
+                require(process.wait(timeout=max(1,end-time.monotonic()+15))==0,'capture failed')
+                metadata=json.loads((root/'capture.json').read_text())
+                validate_capture(metadata,root/'capture.cf32',settings)
+                require(metadata['retained_sample_count']==count,'capture planned count')
+                record.update(result='CONTROL_COMPLETE' if terminal['state']==('aborted' if action=='abort' else 'complete') else 'CONTROL_FAILED',
+                              capture_sha256=metadata['output']['sha256'],metadata_sha256=sha256(root/'capture.json'))
+            except BaseException as error:
+                record.update(result='FAILED',error=repr(error))
+                try:
+                    current=self.device.info(board)['status']
+                    if current.get('job_id')==value['job_id'] and current['state'] in ('loaded','armed','running'):
+                        self.device.console(board,'ABORT')
+                    current=self.device.info(board)['status']
+                    require(current['output_active'] is False,'cleanup output uncertain')
+                    record['cleanup']=current
+                except BaseException as cleanup:
+                    record['cleanup_error']=repr(cleanup)
+                raise
+            finally:
+                if process and process.poll() is None:
+                    os.killpg(process.pid,signal.SIGTERM)
+                    try:process.wait(timeout=3)
+                    except subprocess.TimeoutExpired:
+                        os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=3)
+                record['session_id']=peer.session
+                save(root/'physical.json',record)
+        print(json.dumps(dict(path=str(root),result=record['result'],board=board,clock=clock,band=band,mode=mode)),flush=True)
+        return root
+    def close(self):
+        self.device.close();self.lock.close();self.e.events.close()

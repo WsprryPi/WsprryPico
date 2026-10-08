@@ -129,7 +129,9 @@ treated as long-term product documentation.
     P13.2 external Si5351 implementation is deferred. No active feature work
     remains selected; see the
     [Phase 13 feature backlog](#phase-13-feature-backlog).
-14. **Next planned phase:** hardware/RF qualification and release for the
+14. **Active:** [Phase 14 qualification plan](development/phase14-plan.md) and
+    [result record](development/phase14-results.md) track hardware/RF qualification
+    and release for the
     implemented PIO/DMA engine, including the output network and filters,
     calibrated RF-output timing, supported mode/band/clock combinations,
     reliability and a reproducible release UF2. Si5351 remains deferred.

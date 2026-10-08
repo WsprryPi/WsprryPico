@@ -411,6 +411,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/provisioning_contract_tests.py)
     add_test(NAME capacity_pending_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/capacity_pending_tests.py)
+    add_test(NAME phase14_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase14_tests.py)
     add_test(NAME raspberry_pi_ble_client_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/raspberry_pi_ble_client_tests.py)
     add_test(NAME network_transport_contract_tests COMMAND ${Python3_EXECUTABLE}

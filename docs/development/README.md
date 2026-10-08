@@ -85,7 +85,8 @@ remains CLOSED_SCOPED within its historical boundary.
 The [Phase 13 feature backlog](../implementation-plan.md#phase-13-feature-backlog)
 records P13.1 transmit LED work as complete (`CLOSED_SCOPED`) and P13.2 external
 Si5351 implementation as deferred. No active feature work remains selected.
-Phase 14 PIO/DMA RF qualification and release is next on the roadmap.
+Phase 14 PIO/DMA RF qualification and release is active under the
+[pre-acquisition plan](phase14-plan.md) and [result record](phase14-results.md).
 The [P13.1 LED execution/review](phase13-1-transmit-led-review.md) implements a
 checked local launch handshake, TX-only external indication and retained
 onboard operational cues. Deterministic checks and both firmware cross-links
