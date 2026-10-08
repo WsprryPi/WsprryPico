@@ -383,3 +383,24 @@ before each job. It compares the same nine-second interval at job offset 13,
 with 20 ms edge exclusions, common-reference phase removal and an independent
 25 Hz FIR. No compensation is applied; original full-job flags are retained.
 Temperature is unmeasured, so this comparison cannot by itself prove heating.
+
+Endurance assessment is prepared before execution: require eight complete
+3,600-second jobs, exact Tone/512-event FSKCW alternation, unchanged per-board
+boots/source/image, independent full-capture analysis and inactive idle windows.
+Each B job must have at least 300 successful browser requests spanning at least
+3,500 seconds. Equivalent idle allocation compares the median of three samples
+after the same 45-second wait; either sample spread or positive median growth
+above 1,024 bytes fails the resource screen. RF screening and resource results
+are separate fields and neither can promote release qualification. A leak and
+an unstable idle fixture both fail; malformed sample counts/counters reject.
+The prepared soak has not executed yet.
+
+The corrected reference mask has now been applied independently to the retained
+A 80 m QRSS capture using isolated tool snapshot `4003ce0`; the running batch's
+files were not replaced. The reference-edge comparison bin at 3,530,123.499 Hz,
+-35.633 dBc, is removed from the coarse spectral comparison. The strongest
+remaining comparison bin is 3,570,132.043 Hz at -41.124 dBc with 7.629 Hz FFT
+bin width. This is a relative peak-bin observation, not a resolved spur or
+calibrated emission claim. The QRSS waveform disposition remains
+`OPERATIONAL_SCREEN_FAIL`; the phase measurements and limits are unchanged.
+The corrected analysis is a new immutable result beside the original.

@@ -264,4 +264,15 @@ class Tests(unittest.TestCase):
             self.assertNotIn('must never be exported',json.dumps(value))
             path=root/'0/analysis/result.json';report=json.loads(path.read_text());report['board']='B';path.write_text(json.dumps(report))
             with self.assertRaises(ValueError):collect(root,'a'*12)
+    def test_soak_growth_rejects_leak_and_unstable_idle(self):
+        from phase14_soak_analyze import idle_growth
+        windows=[[10000,10032,10000] for _ in range(8)]
+        self.assertTrue(idle_growth(windows)['passed'])
+        windows[4]=[12048,12048,12048]
+        self.assertFalse(idle_growth(windows)['passed'])
+        windows[4]=[9000,10000,12000]
+        self.assertFalse(idle_growth(windows)['passed'])
+        with self.assertRaises(ValueError):idle_growth(windows[:7])
+        windows[4]=[True,10000,10000]
+        with self.assertRaises(ValueError):idle_growth(windows)
 if __name__=='__main__':unittest.main()
