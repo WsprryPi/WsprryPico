@@ -20,7 +20,7 @@ class Hardware final : public rf::PioDmaHardware {
     Handler handler = nullptr;
     void* context = nullptr;
     std::uint64_t time = 1'000'000, epoch = 0, sequence = 0;
-    std::uint64_t last_alarm = 0, last_launch_target = 0;
+    std::uint64_t last_alarm = 0, last_launch_target = 0, retry_elapsed_ns = 0;
     std::optional<std::uint64_t> launch_observed_override;
     bool launch_on_unlock = false;
     bool enabled = false, busy = false, repeat = false, txstall = false;
@@ -93,7 +93,8 @@ class Hardware final : public rf::PioDmaHardware {
         return !fail_alarm;
     }
     bool retry_alarm(std::uint64_t when, std::uint64_t epoch) override {
-        return alarm(when, epoch);
+        time += retry_elapsed_ns; // SDK/guard work consumes timer time before programming.
+        return when > time && alarm(when, epoch);
     }
     std::uint64_t launch_observed_ns() const override {
         return launch_observed_override.value_or(time);
@@ -896,6 +897,42 @@ void indicator_cancel_before_launch() {
     }
 }
 
+void early_alarm_retry_race() {
+    Hardware hw;
+    hw.retry_elapsed_ns = 50'000;
+    rf::IndicatorGate gate;
+    rf::PioDmaSink sink(hw, &gate);
+    std::array<std::uint32_t, 32> words{};
+    CHECK(sink.submit(1, 0, words, words.size() * 32));
+    auto start = hw.time + 1'000'000;
+    rf::LaunchGuard guard{
+        [](void* p) { return rf::LaunchTarget{true, *static_cast<std::uint64_t*>(p)}; }, &start,
+        start + 1'000'000'000};
+    CHECK(sink.arm(1, start, words.size() * 32, guard));
+    hw.time = start - 25'000;
+    hw.alarm_event(1);
+    CHECK(sink.poll(hw.time).state == wtp::EngineState::Armed);
+    CHECK(!gate.requested() && !hw.enabled); // No pre-start indicator or RF.
+    hw.time = hw.last_alarm;
+    hw.alarm_event(1);
+    CHECK(gate.requested() && !hw.enabled);
+    gate.acknowledge(gate.requested());
+    hw.time = hw.last_alarm;
+    hw.alarm_event(1);
+    CHECK(sink.poll(hw.time).state == wtp::EngineState::Running);
+    CHECK(hw.enabled && hw.launches == 1 && hw.time < guard.deadline_ns);
+    CHECK(sink.stop(hw.time));
+    // Retrying must still refuse a wake outside the admitted UTC second.
+    CHECK(sink.submit(2, 0, words, words.size() * 32));
+    const auto next = hw.time + 1'000'000;
+    rf::LaunchGuard deadline_guard{nullptr, nullptr, next + 50'000};
+    CHECK(sink.arm(2, next, words.size() * 32, deadline_guard));
+    hw.time = next;
+    hw.alarm_event(2);
+    CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed);
+    CHECK(!hw.enabled && !gate.requested() && hw.launches == 1);
+}
+
 void indicator_modes_and_tail() {
     // RF-producing warmup is an ordinary tone through this same launch gate.
     // Synthetic plans exercise engine gating; existing encoder/service tests
@@ -981,6 +1018,7 @@ int main() {
         indicator_launch_and_shutdown();
         indicator_stale_ack_and_timeout();
         indicator_cancel_before_launch();
+        early_alarm_retry_race();
         indicator_modes_and_tail();
         std::cout << "PIO/DMA checks passed\n";
     } catch (const std::exception& e) {

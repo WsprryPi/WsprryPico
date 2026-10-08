@@ -44,8 +44,10 @@ def main():
     os.umask(0o077);rig=Rig(a.output,ROOT,board='B',receiver=True,reference=True)
     process=None;changed=False;record=None
     try:
+        from phase14.candidate import candidate
+        manifest,image,_=candidate(ROOT)
         before=rig.idle('B');rig.idle('A')
-        require(before['revision']=='144e8e83e598' and before['system_clock_hz']==138000000 and
+        require(before['revision']==manifest['source_commit'][:12] and before['system_clock_hz']==138000000 and
                 before['provisioning_source']=='provisioned','standalone engineering candidate')
         clock=rig.device.peer('B').request('GET_CLOCK',{})
         require(clock['state']=='synchronized' and int(clock['uncertainty_ns'])<=500000000,'standalone UTC admission')

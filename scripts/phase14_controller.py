@@ -27,7 +27,9 @@ def main():
     os.umask(0o077);rig=Rig(a.output,ROOT,board='A',receiver=True,reference=True)
     capture=controller=None;current_job=None;before=None
     try:
-        before=rig.idle('A');rig.idle('B');require(before['system_clock_hz']==138000000 and before['revision']=='144e8e83e598','qualified candidate identity')
+        from phase14.candidate import candidate
+        manifest,image,_=candidate(ROOT)
+        before=rig.idle('A');rig.idle('B');require(before['system_clock_hz']==138000000 and before['revision']==manifest['source_commit'][:12],'qualified candidate identity')
         config=configparser.ConfigParser();config.optionxform=str;config.read(a.template)
         for section,values in {
             'Meta':{'Loop TX':'false','TX Iterations':'1','debug_logging':'true'},
@@ -54,7 +56,7 @@ def main():
         reference=gps(3530100)
         settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,center_frequency_hz=3545100,gain_db=20,channel=0,agc=False,bias_tee=False)
         command=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60','3545100',str(seconds*250000),'20','250000','200000','0','false','false','100000',str(seconds+12),str(rig.e.root/'capture.cf32'),str(rig.e.root/'capture.json'),'phase14-controller-'+a.mode]
-        record=dict(schema='phase14-controller/1',mode=a.mode,message=a.message,dot_s=a.dot,before=before,
+        record=dict(schema='phase14-controller/1',mode=a.mode,message=a.message,dot_s=a.dot,before=before,firmware_sha256=image['sha256'],source_commit=manifest['source_commit'],
                     controller_command=argv,controller_sha256=sha256(argv[0]),receiver_command=command,
                     receiver_settings=settings,reference=reference,status=[],result='PENDING')
         save(rig.e.root/'result.json',record)

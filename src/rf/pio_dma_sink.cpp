@@ -139,6 +139,7 @@ void PioDmaSink::event(DriverEvent event) {
         const auto deadline = guard_.deadline_ns ? guard_.deadline_ns : start_ + 1;
         const auto target = guard_.target(start_);
         if (!target.admissible || target.monotonic_ns >= deadline) {
+            failure_ = "launch_clock_guard_rejected";
             state_ =
                 halt_output(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
             return;
@@ -150,14 +151,20 @@ void PioDmaSink::event(DriverEvent event) {
             // attempt at/after the local start requests the checked on write.
             if (now < start_ || !indicator_->request_launch()) {
                 constexpr std::uint64_t retry_ns = 100'000;
-                const auto wake = now < start_ ? start_ : now + retry_ns;
-                if (wake < now || wake >= deadline || !hw_.retry_alarm(wake, epoch_))
+                // The timer can advance while entering/programming the SDK alarm.
+                // Retain a full retry margin even when the guarded start is only
+                // a few microseconds ahead; the original UTC deadline still bounds it.
+                const auto wake = std::max(start_, now + retry_ns);
+                if (wake < now || wake >= deadline || !hw_.retry_alarm(wake, epoch_)) {
+                    failure_ = "launch_retry_alarm_rejected";
                     state_ = halt_output(now) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+                }
                 return;
             }
         }
         const auto launch = hw_.launch(start_, deadline);
         if (launch == LaunchResult::Rejected) {
+            failure_ = "launch_driver_rejected";
             state_ =
                 halt_output(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
         } else if (launch == LaunchResult::Launched) {

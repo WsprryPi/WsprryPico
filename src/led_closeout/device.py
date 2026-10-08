@@ -227,11 +227,12 @@ class Peer:
                 require(value['event'] != 'SESSION_REPLACED', 'WTP session replaced')
         self.e.event(kind, value)
 
-    def request(self, op, body):
+    def request(self, op, body, *, timeout=3):
+        require(type(timeout) in (int, float) and 0 < timeout <= 30, 'bounded WTP request deadline')
         request = dict(type='request', protocol='WTP/1', session_id=self.session,
                        request_id=uuid.uuid4().hex, op=op, body=body)
         response = exchange(self.fd, frame(json.dumps(request, separators=(',', ':')).encode()),
-                            time.monotonic()+3, self.emit, True, expected=request,
+                            time.monotonic()+timeout, self.emit, True, expected=request,
                             receive_buffer=self.received)
         require(not self.validator.errors(response, self.schema), 'WTP response schema')
         require(response.get('ok') is True, 'WTP ' + op + ' rejected')

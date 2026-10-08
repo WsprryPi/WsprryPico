@@ -128,7 +128,7 @@ establish completed RF or shutdown.
 
 Both complete alternative-clock Tone sweeps finished: 13 band points per board
 at 132 MHz and 14 per board at 150 MHz, including the representable 4 m point.
-All 54 jobs completed and both boards were returned to the identified 138 MHz
+Of 54 jobs, 53 completed and A's 132 MHz/80 m job safely returned `MISSED_START` without running. Both boards were returned to the identified 138 MHz
 candidate, with settings preserved. Analysis initially mishandled decimal-string
 uint64 counters; the repaired reducer validates canonical unsigned values and
 rejects booleans, negatives, non-finite spellings and overflow. Original captures
@@ -145,3 +145,45 @@ profiles; the retry verifies activation, identity, source/clock, inactive output
 and USB WTP inventory. The original failure and rollback remain retained.
 The configured time server is wspr5's existing GPS-PPS chrony service, which was
 already admitting this LAN; no NTP/service configuration was changed.
+
+
+The repaired B profile has successful, certificate-pinned HTTPS page/status/
+capabilities/jobs preflight. During acceptance, offline IQ analysis outlived
+an idle Plain LAN connection; the next CLAIM hit a reset socket before any
+RF job was submitted. The failure and incomplete receiver attempt remain.
+The host now closes its inactive released transport before offline analysis
+and negotiates a fresh connection for the next job. It does not replay an
+uncertain mutation or reinterpret that failed attempt as RF qualification.
+
+
+## Launch retry repair
+
+The original 132 MHz/80 m missed job remains excluded. It terminated about
+301 microseconds after the admitted monotonic start, with synchronized clock,
+normal leap state, 118 ms uncertainty below the 500 ms admission ceiling, and
+no allocator/DMA fault. Original diagnostics do not identify its precise rejection
+branch, so the causal attribution remains an inference.
+
+Source review found an actionable early-alarm race: when the UTC target is only
+a few microseconds ahead, the sink rescheduled exactly that instant; SDK/timer
+work could consume the remaining lead and reject the retry inside the otherwise
+valid one-second launch window. A deterministic 25-microsecond early entry with
+50 microseconds of timer-programming work reproduces `Missed` on the original
+code. The repair always retains the existing 100-microsecond retry margin,
+bounded by the original UTC deadline. A second case still refuses a retry beyond
+that deadline, with no RF. Checked indicator acknowledgement and stale-ticket
+handling are unchanged. New static diagnostics distinguish clock guard, retry
+alarm and driver launch rejection, retaining WTP `MISSED_START` semantics.
+Affected host, firmware, both-board launch/resource and acceptance checks are
+required on the new candidate. Old waveform/frequency/spectral captures remain
+identified historical observations; they do not close the repaired launch gate.
+
+All 158 host groups pass after the launch repair. Nine Phase 14 rejection tests
+also pass, including candidate artifact substitution/reserved-flash writes and
+NTP-rule removal when counter observation times out. The initial low-band WSPR
+LOAD timed out under the host's three-second response deadline; its outcome is
+retained as a control failure. The repaired host waits up to 30 seconds for that
+single LOAD and never retries an uncertain mutation. Verified Console cleanup
+is recorded before any RELEASE attempt that may itself encounter a reset socket.
+The next candidate uses version `0.1.0-rc.1`; host workloads now bind its generated
+manifest rather than a historical hard-coded source revision.

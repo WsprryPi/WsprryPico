@@ -39,7 +39,9 @@ def main():
     def interrupted(signum,frame):raise InterruptedError('signal '+str(signum))
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
     try:
-        before=rig.idle('B');require(before['revision']=='144e8e83e598','reviewed candidate source')
+        from phase14.candidate import candidate
+        manifest,image,_=candidate(ROOT)
+        before=rig.idle('B');require(before['revision']==manifest['source_commit'][:12],'reviewed candidate source')
         rig.device.rom('B');rom=True
         if a.operation=='enter':
             rig.device.pt('B',['save','-r','0x103f7000','0x103ff000','-v',str(a.settings),'-t','bin'])
@@ -54,7 +56,7 @@ def main():
                      server_private_key=(credentials/'server/server.key').read_text(),
                      client_ca=(credentials/'server/client-ca.crt').read_text()))
             temporary=rig.e.root/'engineering-profile.bin';temporary.write_bytes(engineering_record(sequence+1,engineering))
-            save(a.settings.with_suffix('.json'),dict(settings_sha256=sha256(a.settings),before=before,
+            save(a.settings.with_suffix('.json'),dict(settings_sha256=sha256(a.settings),before=before,firmware_sha256=image['sha256'],source_commit=manifest['source_commit'],
                  purpose='Temporary engineering USB/browser/standalone tests require changing only profile/configuration settings; application, access, bonds and E10 preserved.',
                  engineering_profile_sha256=sha256(temporary)))
             mutated=True
@@ -70,7 +72,7 @@ def main():
             require(after['network']['ntp_server']=='192.168.1.54','owned NTP reference selection')
         else:
             require(retained_settings(after)==retained_settings(receipt['before']),'original settings restoration')
-        rig.inventory(['B']);save(rig.e.root/'result.json',dict(operation=a.operation,before=before,after=after,settings_sha256=sha256(a.settings),result='VERIFIED'))
+        rig.inventory(['B']);save(rig.e.root/'result.json',dict(operation=a.operation,before=before,after=after,firmware_sha256=image['sha256'],source_commit=manifest['source_commit'],settings_sha256=sha256(a.settings),result='VERIFIED'))
         print(json.dumps(dict(operation=a.operation,result='VERIFIED',source=after['provisioning_source'])))
     except BaseException:
         if a.operation=='enter' and mutated:

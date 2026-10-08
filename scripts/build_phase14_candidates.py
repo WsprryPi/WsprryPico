@@ -21,7 +21,10 @@ def output(args):
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()
 
 
-def build(destination, clocks, *, independent=False):
+def build(destination, clocks, *, independent=False, version="0.1.0-rc.1"):
+    import re
+    if not 1<=len(version)<=64 or not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:-[a-z0-9.-]+)?',version):
+        raise ValueError('bounded semantic firmware version required')
     destination = destination.resolve()
     if not destination.is_relative_to((ROOT/'build').resolve()):
         raise ValueError('artifacts must remain in ignored build/')
@@ -36,7 +39,7 @@ def build(destination, clocks, *, independent=False):
             raise ValueError('dirty retained dependency')
     destination.mkdir(parents=True, exist_ok=False)
     manifest = dict(schema='phase14-candidates/1', source_commit=commit,
-        firmware_version='0.0.0-phase14-candidate', sdk_commit=SDK_SHA,
+        firmware_version=version, sdk_commit=SDK_SHA,
         picotool_commit=PT_SHA, toolchain=output(['arm-none-eabi-gcc', '--version']).splitlines()[0],
         board='pico2_w', engine='pio-dma-gp2', divider=1, rf_gp=2,
         gp14_enabled=False, fixtures_enabled=False, release_qualified=False,
@@ -76,8 +79,9 @@ def main():
     parser.add_argument('--clocks',type=int,nargs='+',choices=(132000000,138000000,150000000),
                         default=[132000000,138000000,150000000])
     parser.add_argument('--independent',action='store_true')
+    parser.add_argument('--version',default='0.1.0-rc.1')
     args=parser.parse_args()
-    manifest=build(args.output,args.clocks,independent=args.independent)
+    manifest=build(args.output,args.clocks,independent=args.independent,version=args.version)
     print(json.dumps({k:v['uf2']['sha256'] for k,v in manifest['images'].items()}))
 
 

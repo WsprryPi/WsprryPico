@@ -242,6 +242,8 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         if (report.consumed_samples != 0 || active) {
             return fail(now_ns);
         }
+        const auto reason = sink_.diagnostic();
+        failure_ = reason.empty() ? "missed_launch" : reason.data();
         state_ = wtp::EngineState::Missed;
         return {state_, false, launch_ns_};
     }

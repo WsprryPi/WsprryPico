@@ -110,4 +110,43 @@ class Tests(unittest.TestCase):
                         {'max_refill_irq_to_ready_ns':4000000},{'core1_stack_guard_valid':0}):
             self.assertFalse(resources([info,dict(info,**changes)],138000000)['passed'])
         with self.assertRaises(ValueError):resources([info,dict(info,system_clock_hz=132000000)],138000000)
+    def test_clock_loss_cannot_target_a_foreign_ntp_peer(self):
+        from phase14.clock_loss import NtpBlock
+        value=dict(provisioning_source='provisioned',network=dict(ntp_address='192.168.1.54',ipv4='192.168.1.53'))
+        NtpBlock(value,None)
+        for change in ('public','foreign','consumer'):
+            invalid=copy.deepcopy(value)
+            if change=='public':invalid['network']['ntp_address']='1.1.1.1'
+            elif change=='foreign':invalid['network']['ipv4']='192.168.2.53'
+            else:invalid['provisioning_source']='consumer_preclock'
+            with self.assertRaises(ValueError):NtpBlock(invalid,None)
+    def test_clock_loss_observation_failure_still_removes_owned_rule(self):
+        from phase14.clock_loss import NtpBlock
+        from unittest.mock import Mock,patch
+        import subprocess
+        block=NtpBlock(dict(provisioning_source='provisioned',network=dict(ntp_address='192.168.1.54',ipv4='192.168.1.53')),Mock())
+        block.active=True
+        with patch('phase14.clock_loss.subprocess.check_output',side_effect=subprocess.TimeoutExpired('nft',5)),patch('phase14.clock_loss.subprocess.run',return_value=Mock(returncode=1)) as run:
+            with self.assertRaises(subprocess.TimeoutExpired):block.close()
+            self.assertEqual(run.call_args_list[0].args[0][1:4],['delete','table','inet'])
+            self.assertFalse(block.active)
+    def test_candidate_hash_and_reserved_region_substitutions_are_rejected(self):
+        from phase14.candidate import candidate
+        from standalone_image_tests import block
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);artifacts=root/'artifacts';artifacts.mkdir()
+            path=artifacts/'candidate.uf2';path.write_bytes(block(0x10000000)+block(0x10FFFF00,True))
+            manifest=dict(schema='phase14-candidates/1',source_commit='a'*40,board='pico2_w',engine='pio-dma-gp2',divider=1,rf_gp=2,
+                gp14_enabled=False,fixtures_enabled=False,release_qualified=False,
+                sdk_commit='079c6f39023649b154152db30f1d781e884879bc',picotool_commit='6f6458d792b93685a11423b244a585eaa99eafcf',
+                images={'138000000':{'uf2':dict(path=str(path),sha256=hashlib.sha256(path.read_bytes()).hexdigest())}})
+            def publish():(artifacts/'manifest.json').write_text(json.dumps(manifest))
+            publish();self.assertEqual(candidate(root)[2],path)
+            manifest['fixtures_enabled']=True;publish()
+            with self.assertRaises(ValueError):candidate(root)
+            manifest['fixtures_enabled']=False;publish();path.write_bytes(b'wrong firmware')
+            with self.assertRaises(ValueError):candidate(root)
+            path.write_bytes(block(0x103F8000))
+            manifest['images']['138000000']['uf2']['sha256']=hashlib.sha256(path.read_bytes()).hexdigest();publish()
+            with self.assertRaises(ValueError):candidate(root)
 if __name__=='__main__':unittest.main()

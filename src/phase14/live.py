@@ -72,7 +72,9 @@ class Rig:
         while time.monotonic()<deadline:
             try:
                 value=self.device.console(board,'INFO')
-                if value.get('lan_wtp_ready'):
+                ready=(value.get('lan_wtp_ready') if value.get('provisioning_source')=='consumer_preclock' else
+                       value.get('provisioning_source')=='provisioned' and value.get('network',{}).get('control_listening'))
+                if ready:
                     break
             except (FileNotFoundError,ValueError,TimeoutError):
                 pass
@@ -94,7 +96,7 @@ class Rig:
         return {b:dict(revision=v['info']['revision'],clock=v['info']['system_clock_hz'],
                        engine=v['info']['status']['engine'],state=v['responses']['STATUS']['state'])
                 for b,v in values.items()}
-    def execute(self,board,clock,band,mode,sequence,*,duration=None,action='complete',image_hash=None,workload='normal',browser_credentials=None):
+    def execute(self,board,clock,band,mode,sequence,*,duration=None,action='complete',image_hash=None,workload='normal',browser_credentials=None,clock_loss=False):
         root=self.e.root/(str(sequence)+'-'+board+'-'+str(clock)+'-'+band+'-'+mode)
         root.mkdir(mode=0o700)
         before=self.idle(board);peer=self.device.peer(board)
@@ -129,6 +131,12 @@ class Rig:
             receiver_settings=settings,action=action,result='PENDING',status=[],before=before,
             path='each source -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no LPF; operator-owned filtering')
         save(root/'physical.json',record)
+        block=None
+        if clock_loss:
+            require(board=='B' and mode=='TONE' and duration is not None and 220<=duration<=3600 and action=='complete',
+                    'finite B Tone clock-loss workload')
+            from phase14.clock_loss import NtpBlock
+            block=NtpBlock(before,self.e)
         process=None;claimed=False;owner=uuid.uuid4().hex;terminal=None
         with (root/'receiver.log').open('x') as log:
             try:
@@ -141,12 +149,16 @@ class Rig:
                 time.sleep(1)
                 response=peer.request('CLAIM',dict(owner_id=owner,lease_ms=60000));claimed=True
                 require(response['owner_id']==owner,'CLAIM owner')
-                response=peer.request('LOAD',value)
+                # Initial low-band waveform preparation can exceed a short control
+                # round trip. Bound the single mutation; never retry an uncertain LOAD.
+                response=peer.request('LOAD',value,timeout=30)
                 record['load']=response;record['accepted_job']=accepted_events(value,response['adjustments'])
                 clock_value=peer.request('GET_CLOCK',{})
                 require(clock_value['state']=='synchronized' and int(clock_value['uncertainty_ns'])<=500000000,'WTP clock not admissible')
                 start=(int(clock_value['utc_now_ns'])//1000000000+4)*1000000000
                 record['arm']=peer.request('ARM',dict(job_id=value['job_id'],start_utc_ns=str(start),max_start_uncertainty_ns='500000000'))
+                if block:
+                    block.start();record['ntp_block_table']=block.table
                 save(root/'physical.json',record)
                 end=time.monotonic()+int(value['total_duration_ns'])/1e9+10
                 action_done=False;disconnected=False;running_since=None;last_info=0;last_renew=time.monotonic();last_browser=0;browser_index=0
@@ -184,12 +196,16 @@ class Rig:
                     if terminal['owner_id']==owner:
                         self.device.close_peer(board)
                         # Same logical session is permitted to reconnect; expiry does not abort RF.
-                        address=before['network']['ipv4']
-                        connection=__import__('socket').create_connection((address,31417),timeout=5)
-                        connection.setblocking(False)
-                        context=contextlib.closing(connection);context.__enter__()
+                        if before['provisioning_source']=='consumer_preclock':
+                            address=before['network']['ipv4']
+                            connection=__import__('socket').create_connection((address,before['lan_wtp_port']),timeout=5)
+                            connection.setblocking(False)
+                            context=contextlib.closing(connection);context.__enter__();fd=connection.fileno()
+                        else:
+                            from phase11_5_inventory import exclusive_port
+                            context=exclusive_port(Path(self.device.base(board)+'-if02'));fd=context.__enter__()
                         self.device.peer_contexts[board]=context
-                        peer=Peer(connection.fileno(),self.e,self.device.root);peer.session=record['session_id']
+                        peer=Peer(fd,self.e,self.device.root);peer.session=record['session_id']
                         peer.request('HELLO',dict(versions=['WTP/1'],client_name='Phase14',client_version='1'))
                         self.device.peers[board]=peer
                     else:
@@ -200,6 +216,9 @@ class Rig:
                     peer.request('RELEASE',{});claimed=False
                 after=self.idle(board)
                 record['after']=after
+                # No owned job remains. Offline IQ analysis may exceed the listener's
+                # idle timeout, so release this transport and negotiate afresh next job.
+                self.device.close_peer(board)
                 # Finish the planned receiver capture with its trailing quiet.
                 require(process.wait(timeout=max(1,end-time.monotonic()+15))==0,'capture failed')
                 metadata=json.loads((root/'capture.json').read_text())
@@ -215,6 +234,7 @@ class Rig:
                         self.device.console(board,'ABORT')
                     current=self.device.info(board)['status']
                     require(current['output_active'] is False,'cleanup output uncertain')
+                    record['cleanup']=current
                     if current.get('owner_id')==owner:
                         peer.request('RELEASE',{});claimed=False
                     record['cleanup']=self.device.info(board)['status']
@@ -222,13 +242,18 @@ class Rig:
                     record['cleanup_error']=repr(cleanup)
                 raise
             finally:
-                if process and process.poll() is None:
-                    os.killpg(process.pid,signal.SIGTERM)
-                    try:process.wait(timeout=3)
-                    except subprocess.TimeoutExpired:
-                        os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=3)
-                record['session_id']=peer.session
-                save(root/'physical.json',record)
+                try:
+                    if block:block.close()
+                finally:
+                    try:
+                        if process and process.poll() is None:
+                            os.killpg(process.pid,signal.SIGTERM)
+                            try:process.wait(timeout=3)
+                            except subprocess.TimeoutExpired:
+                                os.killpg(process.pid,signal.SIGKILL);process.wait(timeout=3)
+                    finally:
+                        record['session_id']=peer.session
+                        save(root/'physical.json',record)
         print(json.dumps(dict(path=str(root),result=record['result'],board=board,clock=clock,band=band,mode=mode)),flush=True)
         return root
     def close(self):

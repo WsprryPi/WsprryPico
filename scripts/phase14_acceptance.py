@@ -29,11 +29,8 @@ def main():
             require(time.monotonic()<end,'predecessor did not complete; no dependent RF');time.sleep(2)
         # Inventory publication is atomic; allow its device handles to close.
         time.sleep(2)
-    manifest=json.loads((ROOT/'artifacts/manifest.json').read_text());image=manifest['images']['138000000']['uf2']
-    candidate=ROOT/'artifacts'/Path(image['path']).name
-    require(manifest['source_commit']=='144e8e83e598615a3fb98d2646fc64488a36eedb' and not manifest['release_qualified'] and
-            sha256(candidate)==image['sha256'],'exact unqualified RF candidate')
-    validate_uf2(candidate.read_bytes());os.umask(0o077)
+    from phase14.candidate import candidate
+    manifest,image,_=candidate(ROOT);os.umask(0o077)
     a.output.mkdir(mode=0o700,parents=True,exist_ok=False);results=[]
     for board in ('A','B'):
         rig=Rig(a.output/board,ROOT,board=board,receiver=True,reference=True)
