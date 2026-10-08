@@ -3,6 +3,9 @@
 
 import sys
 import copy
+import hashlib
+import json
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -42,6 +45,22 @@ def synth(job, *, extra=False, wrong_shift=False, dropout=False):
 
 
 class AnalysisTests(unittest.TestCase):
+    def test_long_capture_scan_rejects_nonfinite_after_chunk_boundary(self):
+        from analyze_rf_bench import load_capture
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);path=root/'capture.cf32';metadata=root/'capture.json'
+            iq=np.ones(1048577,dtype='<c8');iq.tofile(path)
+            value=dict(primary_outcome='success',cleanup=dict(outcome='verified'),
+                output=dict(size_bytes=path.stat().st_size,sha256=hashlib.sha256(path.read_bytes()).hexdigest(),complete=True),
+                retained_sample_count=len(iq),actual_settings=dict(sample_rate_hz=250000,center_frequency_hz=3545100),
+                wire_format=dict(sample_format='CF32',component_type='IEEE754_binary32',interleave='real_imaginary',
+                    byte_order='little_endian',bytes_per_complex_sample=8))
+            metadata.write_text(json.dumps(value));loaded,_,_=load_capture(path,metadata)
+            self.assertEqual(len(loaded),len(iq));del loaded
+            iq[-1]=complex(float('nan'),0);iq.tofile(path)
+            value['output']['sha256']=hashlib.sha256(path.read_bytes()).hexdigest();metadata.write_text(json.dumps(value))
+            with self.assertRaisesRegex(ValueError,'Non-finite'):load_capture(path,metadata)
+
     def test_qrss_filter_rejects_distant_carrier_and_retains_slow_drift(self):
         from phase14_qrss_diagnostic import narrow_fir,polynomial
         rate=12000;t=np.arange(36000)/rate
@@ -52,6 +71,17 @@ class AnalysisTests(unittest.TestCase):
         self.assertGreater(report['linear_phase_rms_rad'],.15)
         self.assertLess(report['quadratic_phase_rms_rad'],1e-10)
         self.assertAlmostEqual(report['fitted_frequency_drift_hz_per_s'],-.01,places=10)
+
+    def test_reference_pair_removes_common_phase_without_removing_source_drift(self):
+        from phase14_qrss_diagnostic import polynomial
+        t=np.arange(9000)/1000
+        reference=np.exp(.6j*np.sin(2*np.pi*.4*t))
+        source=reference*np.exp(-.01j*np.pi*(t-4.5)**2)
+        corrected=source*np.conj(reference)/np.abs(reference)
+        report=polynomial(corrected,1000)
+        self.assertGreater(report['linear_phase_rms_rad'],.15)
+        self.assertAlmostEqual(report['fitted_frequency_drift_hz_per_s'],-.01,places=10)
+        self.assertLess(polynomial(reference*np.conj(reference)/np.abs(reference),1000)['linear_phase_rms_rad'],1e-12)
     def test_short_terminal_off_still_requires_independent_quiet(self):
         job=make_job('FSKCW',3570100)
         job['events'][-1]['duration_ns']='1000'
@@ -109,6 +139,15 @@ class AnalysisTests(unittest.TestCase):
         )
         self.assertAlmostEqual(report["strongest_other_bin_dbc"], -20, delta=1)
         self.assertFalse(spectrum(iq[:10], rate, 0, [2000], [[0, 0.001]])["available"])
+
+    def test_spectrum_excludes_measured_reference_with_receiver_offset(self):
+        rate=12000;t=np.arange(24000)/rate
+        iq=np.exp(2j*np.pi*2000*t)+10*np.exp(2j*np.pi*1040*t)+.1*np.exp(2j*np.pi*3500*t)
+        nominal=spectrum(iq,rate,0,[2000],[[0,2]],excluded_frequencies=[1000])
+        self.assertAlmostEqual(nominal['strongest_other_bin_hz'],1040,delta=rate/nominal['fft_samples'])
+        measured=spectrum(iq,rate,0,[2000],[[0,2]],excluded_frequencies=[1000,1040])
+        self.assertAlmostEqual(measured['strongest_other_bin_hz'],3500,delta=rate/measured['fft_samples'])
+        self.assertAlmostEqual(measured['strongest_other_bin_dbc'],-20,delta=1)
 
     def test_fsk_timing_cannot_hide_in_continuous_carrier(self):
         expected = make_job("FSKCW", 3570100)

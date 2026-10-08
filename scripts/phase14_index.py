@@ -13,23 +13,33 @@ def digest(path):
     with path.open('rb') as f:return hashlib.file_digest(f,'sha256').hexdigest()
 
 
-def collect(root):
+def collect(root,source_revision=None):
+    import re
+    if source_revision is not None and not re.fullmatch('[0-9a-f]{12}',source_revision):
+        raise ValueError('exact 12-character firmware source required')
     root=Path(root).resolve();observations=[];attempts=[]
     for path in sorted(root.rglob('physical.json')):
         value=json.loads(path.read_text());attempt=dict(path=str(path.relative_to(root)),sha256=digest(path),
             result=value['result'],board=value['board'],band=value['band'],mode=value['mode'],clock_hz=value['clock_hz'],
             source_revision=value['source_revision'],firmware_sha256=value['firmware_sha256'],boot_id=value['boot_id'],
-            job_id=value['job']['job_id'])
+            job_id=value['job']['job_id'],action=value['action'],workload=value.get('workload','normal'),
+            engine_frequency_correction_ppb=value.get('engine_frequency_correction_ppb',0),
+            requested_frequency_compensation_ppb=value.get('requested_frequency_compensation_ppb',0))
         attempts.append(attempt)
         analyses=sorted(path.parent.glob('analysis*/result.json'))
         for analysis in analyses:
             report=json.loads(analysis.read_text())
             if report['physical_sha256']!=attempt['sha256']:raise ValueError('analysis/physical substitution')
+            if any(report[key]!=attempt[key] for key in ('board','band','mode','clock_hz','source_revision','firmware_sha256','boot_id','job_id')):
+                raise ValueError('analysis candidate/job substitution')
             m=report.get('measurement',report);fits=m.get('measurements',[])
             observation=dict(attempt_path=attempt['path'],analysis_path=str(analysis.relative_to(root)),
                 analysis_sha256=digest(analysis),disposition=report['disposition'],board=report['board'],
                 band=report['band'],mode=report['mode'],clock_hz=report['clock_hz'],source_revision=report['source_revision'],
                 firmware_sha256=report['firmware_sha256'],boot_id=report['boot_id'],job_id=report['job_id'],
+                action=attempt['action'],workload=attempt['workload'],
+                engine_frequency_correction_ppb=attempt['engine_frequency_correction_ppb'],
+                requested_frequency_compensation_ppb=attempt['requested_frequency_compensation_ppb'],
                 capture_sha256=report['capture_sha256'],metadata_sha256=report['metadata_sha256'],
                 decoded=report.get('decoded'),issues=m.get('issues',[]),spectrum=report.get('spectrum'),
                 resources=report.get('resources'),limitations=report['limitations'],tools=report['tools'])
@@ -45,18 +55,22 @@ def collect(root):
             observations.append(observation)
     rows=matrix()
     for row in rows:
-        row['observations']=[n for n,v in enumerate(observations) if all(v[k]==row[k] for k in ('band','mode','clock_hz'))]
+        row['observations']=[n for n,v in enumerate(observations) if all(v[k]==row[k] for k in ('band','mode','clock_hz')) and
+            v['action']=='complete' and v['workload']=='normal' and v['engine_frequency_correction_ppb']==0 and
+            v['requested_frequency_compensation_ppb']==0 and (source_revision is None or v['source_revision']==source_revision)]
         if row['disposition']!='UNSUPPORTED_CONFIGURATION' and row['observations']:
             # Operational screens are checkpoints; this index cannot promote release support.
             row['disposition']='SCREEN_FAIL' if any(observations[n]['disposition']=='OPERATIONAL_SCREEN_FAIL' for n in row['observations']) else 'SCREEN_PASS_RELEASE_UNQUALIFIED'
     return dict(schema='phase14-public-index/1',phase14_complete=False,release_qualified=False,
         path='each Pico GP2 and GPSDO -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no LPF',
-        filtering_responsibility='operator',attempts=attempts,observations=observations,matrix=rows)
+        filtering_responsibility='operator',selected_matrix_source_revision=source_revision,
+        matrix_policy='Baseline natural-completion normal workloads with zero correction/compensation only; all historical and special-workload observations remain separately retained.',
+        attempts=attempts,observations=observations,matrix=rows)
 
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('root',type=Path);p.add_argument('output',type=Path)
-    a=p.parse_args();value=collect(a.root)
+    p.add_argument('--source-revision');a=p.parse_args();value=collect(a.root,a.source_revision)
     with a.output.open('x') as out:json.dump(value,out,indent=2,allow_nan=False);out.write('\n')
     print(json.dumps(dict(attempts=len(value['attempts']),analyses=len(value['observations']),rows=len(value['matrix']))))
 

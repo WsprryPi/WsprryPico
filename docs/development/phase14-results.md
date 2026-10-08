@@ -343,3 +343,43 @@ and no automatic Pico discipline is claimed. Original uncorrected qualification
 rows stay separate from this finite correction experiment. Fifteen portable
 checks verify compensation sign, changed job identity, bounded inputs and
 unchanged elapsed-time requests. This physical comparison has not run yet.
+
+Matched current-image A 80 m FSKCW captures contain a nine-second mark at the
+same carrier and job offset (13 seconds) as the failed QRSS dash. Three marks
+have linear-phase residuals of 0.075572, 0.071680 and 0.079716 rad. The preceding
+nine seconds contain RF at the space frequency in FSKCW and RF off in QRSS.
+This strengthens the evidence for a preceding-state effect; it does not prove
+a thermal mechanism. A continuous-Tone comparison remains pending while the
+shared receiver is occupied by the finite matrix batch.
+
+Evidence-index review now requires matching analysis/physical board, band, mode,
+clock, firmware/source, boot and job identities. Its baseline matrix excludes
+intentional aborts, special workloads and nonzero engine/request compensation,
+while retaining those observations separately. An optional exact firmware-source
+selection prevents historical images from entering a current-candidate matrix.
+A rejection fixture proves a substituted board cannot be indexed and that
+compensation/abort experiments cannot promote baseline acceptance. Sixteen
+portable Phase 14 checks and all 165 host groups pass (84.45 seconds for the
+full host run). Release qualification remains false.
+
+Further analysis review found that the coarse in-band spectral mask excluded
+the nominal GPSDO frequency only. Receiver tuning offset can place its actual
+peak outside that mask and falsely list the reference as the strongest other
+component. New analysis records and masks the measured simultaneous reference
+positions as well as the nominal position. A synthetic offset reference/known
+spur fixture rejects that misattribution. This does not alter waveform acceptance
+limits; original spectra remain retained, with corrected analysis saved separately.
+The active batch's loaded tools remain untouched until it ends.
+
+The CF32 reader already uses a memory map and the carrier mixer processes
+bounded blocks. Its finite-sample check now also scans bounded blocks, avoiding
+a roughly 900 MB temporary boolean array for a one-hour capture at 250 ksps.
+An invalid sample just beyond a chunk boundary is rejected. This is preparation
+for long-capture assessment; no endurance result follows from host tests.
+
+The prepared keying comparison fixes three pairs of 35-second Tone/QRSS jobs
+on A at 80 m/138 MHz, alternating pair order with 45 seconds of verified idle
+before each job. It compares the same nine-second interval at job offset 13,
+with 20 ms edge exclusions, common-reference phase removal and an independent
+25 Hz FIR. No compensation is applied; original full-job flags are retained.
+Temperature is unmeasured, so this comparison cannot by itself prove heating.

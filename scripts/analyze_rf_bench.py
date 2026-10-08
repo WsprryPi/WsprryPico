@@ -25,7 +25,11 @@ def load_capture(iq_path, metadata_path):
     settings = metadata['actual_settings']
     rate, center = settings['sample_rate_hz'], settings['center_frequency_hz']
     iq = np.memmap(iq_path, dtype='<c8', mode='r')
-    if not np.isfinite(rate) or rate <= 0 or not np.isfinite(center) or not np.isfinite(iq).all():
+    # An hour at 250 ksps is 900 million samples. Keep the nonfinite scan
+    # bounded rather than allocating one full-capture boolean array.
+    if (not np.isfinite(rate) or rate <= 0 or not np.isfinite(center) or
+            any(not np.isfinite(iq[first:first + 1048576]).all()
+                for first in range(0, len(iq), 1048576))):
         raise ValueError('Non-finite samples or invalid settings')
     return iq, metadata, digest
 

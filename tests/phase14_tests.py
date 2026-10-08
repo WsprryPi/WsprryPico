@@ -242,4 +242,26 @@ class Tests(unittest.TestCase):
         self.assertEqual([(e['offset_ns'],e['duration_ns']) for e in positive['events']],[(e['offset_ns'],e['duration_ns']) for e in value['events']])
         for invalid in (True,100001,-100001,1.5):
             with self.assertRaises(ValueError):request_compensated(value,invalid)
+    def test_public_index_does_not_mix_compensation_or_abort_with_baseline(self):
+        from phase14_index import collect
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            for index,(action,compensation,source) in enumerate((('complete',0,'a'*12),('abort',0,'a'*12),('complete',1500,'a'*12),('complete',0,'b'*12))):
+                folder=root/str(index);folder.mkdir();analysis=folder/'analysis';analysis.mkdir()
+                value=dict(result='CONTROL_COMPLETE',board='A',band='80m',mode='TONE',clock_hz=138000000,
+                    source_revision=source,firmware_sha256='f'*64,boot_id='c'*32,job=dict(job_id=str(index)*32),
+                    action=action,workload='normal',requested_frequency_compensation_ppb=compensation,
+                    private_secret='must never be exported')
+                path=folder/'physical.json';path.write_text(json.dumps(value))
+                report=dict(physical_sha256=hashlib.sha256(path.read_bytes()).hexdigest(),disposition='OPERATIONAL_SCREEN_PASS',
+                    board='A',band='80m',mode='TONE',clock_hz=138000000,source_revision=source,
+                    firmware_sha256='f'*64,boot_id='c'*32,job_id=str(index)*32,capture_sha256='d'*64,metadata_sha256='e'*64,limitations=[],tools={})
+                (analysis/'result.json').write_text(json.dumps(report))
+            value=collect(root,'a'*12)
+            self.assertEqual(len(value['observations']),4)
+            row=next(r for r in value['matrix'] if r['band']=='80m' and r['mode']=='TONE' and r['clock_hz']==138000000)
+            self.assertEqual(row['observations'],[0]);self.assertFalse(value['release_qualified'])
+            self.assertNotIn('must never be exported',json.dumps(value))
+            path=root/'0/analysis/result.json';report=json.loads(path.read_text());report['board']='B';path.write_text(json.dumps(report))
+            with self.assertRaises(ValueError):collect(root,'a'*12)
 if __name__=='__main__':unittest.main()

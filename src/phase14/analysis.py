@@ -52,10 +52,20 @@ def analyze(directory, output_label="analysis"):
             result['reference_diagnostics']=diagnostics
     intervals=result.get('measurement',{}).get('intervals_s',result.get('observed_intervals_s',[]))
     frequencies=[m['indicated_hz'] for m in result.get('measurement',result).get('measurements',[])]
-    excluded=[physical['reference']['f1']] if physical.get('reference') else []
+    excluded=[]
+    if physical.get('reference'):
+        # A nominal-only mask can miss the reference peak when receiver tuning
+        # error exceeds the mask width. Use measured simultaneous reference
+        # positions as well; retain those exact exclusions in the report.
+        excluded.append(physical['reference']['f1'])
+        excluded.extend(m['reference']['indicated_hz'] for m in
+                        result.get('measurement',result).get('measurements',[]) if 'reference' in m)
+        excluded.extend(m['indicated_hz'] for m in result.get('reference_diagnostics',[]))
+        excluded=sorted(set(excluded))
     result['spectrum']=established.spectrum(iq,rate,center,frequencies,intervals,excluded_frequencies=excluded)
     if physical.get('reference'):
         result['spectrum']['reference_excluded_hz']=physical['reference']['f1']
+        result['spectrum']['reference_excluded_positions_hz']=excluded
         result['spectrum']['limitation']+='; excludes the known reference; normalization uses only the Pico carrier'
     result.update(schema='phase14-analysis/1',physical_sha256=sha256(directory/'physical.json'),
         capture_sha256=capture_sha,metadata_sha256=sha256(directory/'capture.json'),
