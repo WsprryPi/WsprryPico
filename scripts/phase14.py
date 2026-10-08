@@ -33,6 +33,7 @@ def main():
             p.add_argument('--workload',choices=('normal','max-events'),default='normal')
             p.add_argument('--browser-credentials',type=Path)
             p.add_argument('--clock-loss',action='store_true')
+            p.add_argument('--request-compensation-ppb',type=int,default=0)
             p.add_argument('--action',choices=('complete','abort','disconnect'),default='complete')
     args=parser.parse_args()
     if args.op=='matrix':print(json.dumps(matrix(),indent=2));return
@@ -59,7 +60,9 @@ def main():
         # Validate the entire finite batch before opening devices or acquiring RF.
         from phase14.plan import job
         for band in args.bands:
-            for mode in args.modes:job(mode,band,args.clock,'preflight',args.duration,args.workload)
+                for mode in args.modes:
+                    from phase14.calibration import request_compensated
+                    request_compensated(job(mode,band,args.clock,'preflight',args.duration,args.workload),args.request_compensation_ppb)
     from phase14.live import Rig
     def interrupted(signum,frame):
         signal.signal(signum,signal.SIG_IGN)
@@ -80,7 +83,7 @@ def main():
                         before=rig.idle(args.board)
                         if before['revision']!=manifest['source_commit'][:12]:raise ValueError('installed candidate source mismatch')
                         rig.execute(args.board,args.clock,band,mode,sequence,duration=args.duration,
-                                    action=args.action,image_hash=image['sha256'],workload=args.workload,browser_credentials=args.browser_credentials,clock_loss=args.clock_loss)
+                                    action=args.action,image_hash=image['sha256'],workload=args.workload,browser_credentials=args.browser_credentials,clock_loss=args.clock_loss,request_compensation_ppb=args.request_compensation_ppb)
             if args.clock_loss:
                 import time
                 end=time.monotonic()+120

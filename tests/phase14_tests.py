@@ -230,4 +230,16 @@ class Tests(unittest.TestCase):
             self.assertEqual((device/'authorized').read_text().strip(),'0')
             (device/'serial').write_text('CDDBF8767C506C07');change.close()
             self.assertEqual((device/'authorized').read_text().strip(),'1')
+    def test_requested_compensation_changes_frequency_without_changing_time(self):
+        from phase14.calibration import request_compensated
+        value=job('WSPR','80m',138000000,'compensation')
+        self.assertEqual(request_compensated(value,0),value)
+        positive=request_compensated(value,1500);negative=request_compensated(value,-1500)
+        self.assertLess(int(positive['events'][0]['frequency_nhz']),int(value['events'][0]['frequency_nhz']))
+        self.assertGreater(int(negative['events'][0]['frequency_nhz']),int(value['events'][0]['frequency_nhz']))
+        self.assertNotEqual(positive['job_id'],negative['job_id'])
+        self.assertEqual(positive['total_duration_ns'],value['total_duration_ns'])
+        self.assertEqual([(e['offset_ns'],e['duration_ns']) for e in positive['events']],[(e['offset_ns'],e['duration_ns']) for e in value['events']])
+        for invalid in (True,100001,-100001,1.5):
+            with self.assertRaises(ValueError):request_compensated(value,invalid)
 if __name__=='__main__':unittest.main()

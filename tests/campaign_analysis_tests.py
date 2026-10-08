@@ -42,6 +42,16 @@ def synth(job, *, extra=False, wrong_shift=False, dropout=False):
 
 
 class AnalysisTests(unittest.TestCase):
+    def test_qrss_filter_rejects_distant_carrier_and_retains_slow_drift(self):
+        from phase14_qrss_diagnostic import narrow_fir,polynomial
+        rate=12000;t=np.arange(36000)/rate
+        filtered=narrow_fir(1+.5*np.exp(2j*np.pi*2000*t),rate,25)
+        self.assertLess(float(np.max(np.abs(filtered[4000:-4000]-1))),.0001)
+        t=np.arange(9000)/1000
+        report=polynomial(np.exp(2j*np.pi*t-.01j*np.pi*(t-4.5)**2),1000)
+        self.assertGreater(report['linear_phase_rms_rad'],.15)
+        self.assertLess(report['quadratic_phase_rms_rad'],1e-10)
+        self.assertAlmostEqual(report['fitted_frequency_drift_hz_per_s'],-.01,places=10)
     def test_short_terminal_off_still_requires_independent_quiet(self):
         job=make_job('FSKCW',3570100)
         job['events'][-1]['duration_ns']='1000'

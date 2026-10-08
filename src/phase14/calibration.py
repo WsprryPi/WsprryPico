@@ -2,6 +2,21 @@
 import math
 
 
+def request_compensated(value,ppb):
+    """Explicit job-frequency adjustment; ordinary engine correction stays zero."""
+    import copy
+    from campaign.plan import digest
+    if type(ppb) is not int or not -100000<=ppb<=100000:raise ValueError('bounded integer frequency compensation required')
+    result=copy.deepcopy(value)
+    if ppb:
+        divisor=1000000000+ppb
+        for event in result['events']:
+            if event['rf_on']:
+                event['frequency_nhz']=str((int(event['frequency_nhz'])*1000000000+divisor//2)//divisor)
+        result['job_id']=digest(dict(original_job_id=value['job_id'],events=result['events'],request_compensation_ppb=ppb))[:32]
+    return result
+
+
 def quantities(measurement,reference):
     scale=reference['scale_nominal_to_true_time'];bound=reference['repeatability_bound_ppm']
     if (type(scale) not in (int,float) or not math.isfinite(scale) or abs(scale-1)>=100e-6 or

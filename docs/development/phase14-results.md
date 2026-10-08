@@ -301,3 +301,45 @@ count and behavior. This tests powered operation without host USB endpoints,
 not an electrically disconnected cable or a hard power cycle. The existing hub
 reports ganged power switching; no power switch or unrelated USB device is
 changed by this variant. Fourteen rejection/relay/axis/USB restoration tests pass.
+
+## QRSS failure investigation
+
+The current A 80 m QRSS waveform has exact 3/9/3-second RF marks, 9-second
+gaps, about 66.6 dB on/off contrast and minimum mark amplitude ratios above
+0.998. Timing, continuity and quiet pass. Only the 9-second dash exceeds the
+retained 0.15 rad constant-frequency/linear-phase screen: 0.165819 rad versus
+0.038725 and 0.034114 rad for the dots. This is not a demonstrated CW keying
+failure. Comparing this screen directly with WSPR's much shorter symbol-fit
+windows or DFCW's three-second marks is not a like-for-like stability comparison.
+FSKCW also retains RF through its low-frequency spaces, unlike QRSS's quiet gaps.
+
+Independent 4,097-tap Kaiser-windowed sinc FIRs at 25 and 100 Hz, centered on the
+observed carrier, reproduce the dash residual at 0.165838 rad. The simultaneous
+GPSDO residual over that mark is only 0.006702 rad; paired common-reference phase
+removal still leaves 0.159252 rad. Thus distant harmonic/reference leakage or
+the original wider decimator does not explain this result. A quadratic phase
+diagnostic estimates -0.008687 Hz/s, approximately -0.078 Hz over the mark, and
+reduces unexplained phase RMS to 0.028775 rad. Increasing edge exclusions from
+20 ms to 100 ms leaves 0.159477 rad; half/one-second exclusions give 0.129583/
+0.096554 rad as the remaining interval shortens. These diagnostics support slow
+carrier drift. Its physical cause remains an inference pending controlled Tone/
+keying comparisons; no thermal attribution or new PASS is asserted.
+
+The original screen is unchanged. The complete hashed IQ, diagnostic JSON and
+exact diagnostic tool snapshot remain private. Its first launch needed SciPy,
+which was unavailable; that failed analysis log is retained. The successful
+independent FIR uses existing NumPy and installs nothing. An offline fixture
+rejects a distant interfering carrier while retaining a known slow drift;
+seven RF-analysis fixtures and fifteen portable Phase 14 checks pass. The wider
+batch has also produced passing 2200 m QRSS screens, consistent with the need
+to distinguish keying functionality from the chosen long-mark stability metric.
+
+Prepared frequency-correction comparison: complete ordinary jobs at zero and
+plus/minus 1,500 ppb requested compensation, using explicit per-job frequency
+adjustment and simultaneous GPSDO reference. Positive means a fast oscillator
+and lowers requested frequencies; event offsets/durations remain unchanged.
+Ordinary engine correction remains zero, no persistent setting is introduced,
+and no automatic Pico discipline is claimed. Original uncorrected qualification
+rows stay separate from this finite correction experiment. Fifteen portable
+checks verify compensation sign, changed job identity, bounded inputs and
+unchanged elapsed-time requests. This physical comparison has not run yet.
