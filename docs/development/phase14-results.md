@@ -187,3 +187,63 @@ single LOAD and never retries an uncertain mutation. Verified Console cleanup
 is recorded before any RELEASE attempt that may itself encounter a reset socket.
 The next candidate uses version `0.1.0-rc.1`; host workloads now bind its generated
 manifest rather than a historical hard-coded source revision.
+
+## Repaired release-candidate checkpoint
+
+Committed runtime source `bd45bc1bb638839610f28ae529c97d51ec345f6d` builds the
+ordinary `0.1.0-rc.1` candidate at all three clocks. The first build hit the
+known Command Line Tools linker/SDK mismatch while building host pioasm;
+the documented full-Xcode environment repaired this build prerequisite without
+changing source or dependencies. Both build logs remain. The clean independent
+138 MHz rebuild is byte-identical. Local artifacts are under
+`build/phase14-rc1-launch-repaired-xcode/`, with the independent build under
+`build/phase14-rc1-independent/`. UF2 SHA-256 values:
+
+- 132 MHz: `361e88297619253bbdd00bfc3fc73e9f11158b54747ee445b5c8f9191a173850`.
+- 138 MHz: `5034a3fc2140deb7e5475ba0ff7043ada52c340c556401f8a24f6b11d264fa30`.
+- 150 MHz: `562c47d81ad7779501f572e154e3739666394989527634aac91638df38a1c3c8`.
+
+Both named boards have verified 138 MHz deployment with preserved settings.
+The fresh receiver ABBA bracket measures a 1.1018203105 ppm nominal-to-true-time
+scale offset, with 0.1755081261 ppm repeatability bound. It agrees with the earlier
+bracket within those bounds. It is an engineering comparison with the previously
+declared reference assumption, not a calibration certificate. Pico frequency
+correction remains zero; NTP supplies UTC, not RF frequency discipline.
+
+Pico B completed three ordinary standalone WSPR reservations, with local
+ownership, durable watermark, no scheduler error, and disabled configuration
+restored afterward. Independent decoding succeeds on all three. The first
+frame fails the retained tone-spacing/order residual screen; the next two pass.
+Resources pass. This establishes three actual frames and two operational screen
+passes, not three passing release repetitions. The original result is retained
+under private `build/rc1-standalone-three/`. Its analyzer additionally binds the
+actual deployment record because this original producer record omitted the UF2
+hash. Future records include that hash directly.
+
+The installed native WsprryPi controller completed FSKCW on A and released
+ownership. Initial attempts exposed its fixed singleton port and the temporary
+INI's startup gate policy. The verified active `wsprrypi.service` is paused only
+for a finite native test and restored on exit; the shared operational INI is
+unchanged. A private loopback byte relay now retains the exact submitted LOAD
+and ARM exchange and verifies device, boot, job, schema and CRC. Its first attempt
+misclassified a native client's reset after completed RELEASE; complete valid
+critical transactions were retained, but that receiver attempt stayed incomplete.
+The repaired retry has complete control and receiver evidence under private
+`build/rc1-controller-FSKCW-relay-repaired/`. Original failures remain.
+
+Method amendment before wider producer analysis: a producer's terminal off
+event can be one microsecond, too short for an interior phase fit. The keyed
+analyzer skips that final off-event interior only and still requires the captured
+half-second final quiet tail, correct envelope, no extra RF and unchanged mark/
+transition/coherence criteria. Synthetic truncated tails and extra RF still fail.
+Six independent RF fixture checks pass in the retained Harness environment;
+the normal 158 host groups do not include these optional analyzer groups.
+Twelve Phase 14 rejection/relay checks pass, including fragmented-byte drain
+at half-close, corrupt/truncated envelopes and cleanup after unexpected ARM
+admission in the clock-loss probe. Loopback validation requires network-enabled
+execution on this Mac; no hardware is used by that test.
+
+Prepared endurance automation fixes the proposed soak to eight finite one-hour
+jobs, alternating both boards and Tone/512-event FSKCW, with ten-second HTTPS
+activity on B and equivalent post-release idle sampling. Raw IQ and resource
+observations are retained for separate assessment. Preparation is not execution.

@@ -149,4 +149,59 @@ class Tests(unittest.TestCase):
             path.write_bytes(block(0x103F8000))
             manifest['images']['138000000']['uf2']['sha256']=hashlib.sha256(path.read_bytes()).hexdigest();publish()
             with self.assertRaises(ValueError):candidate(root)
+    def test_clock_probe_unexpected_admission_still_aborts_its_job(self):
+        from phase14.clock_loss import reject_aged_arm
+        from unittest.mock import Mock,patch
+        value=job('TONE','80m',138000000,'clock-probe',5)
+        for admitted in (False,True):
+            peer=Mock(fd=1,session='a'*32,received=bytearray(),schema={})
+            peer.validator.errors.return_value=[]
+            owner=[None];operations=[]
+            def request(op,body,**kwargs):
+                operations.append(op)
+                if op=='CLAIM':owner[0]=body['owner_id'];return dict(owner_id=owner[0])
+                if op=='GET_CLOCK':return dict(state='unsynchronized',utc_now_ns='1000000000')
+                if op=='STATUS':return dict(job_id=value['job_id'],owner_id=owner[0],output_active=False,state='armed' if admitted else 'loaded')
+                return {}
+            peer.request.side_effect=request
+            response=dict(ok=admitted,error=dict(code='CLOCK_UNSYNCHRONIZED'))
+            with patch('phase11_5_inventory.exchange',return_value=response):
+                if admitted:
+                    with self.assertRaises(ValueError):reject_aged_arm(peer,Mock(),value)
+                else:reject_aged_arm(peer,Mock(),value)
+            self.assertEqual(operations[-3:],['ABORT','STATUS','RELEASE'])
+    def test_controller_relay_rejects_truncated_and_corrupt_frames(self):
+        from phase14.relay import messages
+        from validate_wtp_contract import frame
+        schema=json.loads((ROOT/'docs/protocol/wtp-1.schema.json').read_text())
+        value=dict(type='request',protocol='WTP/1',session_id='a'*32,request_id='b'*32,op='PING',body={})
+        raw=frame(json.dumps(value,separators=(',',':')).encode())
+        self.assertEqual(messages(raw,schema),[value])
+        broken=bytearray(raw);broken[-1]^=1
+        for invalid in (raw[:-1],raw[:8],bytes(broken),raw+b'extra'):
+            with self.assertRaises(ValueError):messages(invalid,schema)
+    def test_controller_relay_drains_fragmented_bytes_at_half_close(self):
+        from phase14.relay import Relay
+        import socket,threading
+        source=b'complete local job'*8192;answer=b'complete response'*4096
+        received=[]
+        with tempfile.TemporaryDirectory() as directory,socket.socket() as server:
+            server.bind(('127.0.0.1',0));server.listen(1)
+            def endpoint():
+                with server.accept()[0] as connection:
+                    connection.settimeout(5);parts=[]
+                    while data:=connection.recv(4096):parts.append(data)
+                    received.append(b''.join(parts));connection.sendall(answer)
+            worker=threading.Thread(target=endpoint);worker.start()
+            relay=Relay(directory,'127.0.0.1',server.getsockname()[1],listen_port=0)
+            try:
+                with socket.create_connection(('127.0.0.1',relay.listen_port),timeout=5) as client:
+                    for at in range(0,len(source),137):client.sendall(source[at:at+137])
+                    client.shutdown(socket.SHUT_WR);parts=[]
+                    while data:=client.recv(4096):parts.append(data)
+                    self.assertEqual(b''.join(parts),answer)
+            finally:relay.close();worker.join(timeout=5)
+            self.assertFalse(worker.is_alive());self.assertEqual(received,[source])
+            self.assertEqual((Path(directory)/'client-to-device.bin').read_bytes(),source)
+            self.assertEqual((Path(directory)/'device-to-client.bin').read_bytes(),answer)
 if __name__=='__main__':unittest.main()

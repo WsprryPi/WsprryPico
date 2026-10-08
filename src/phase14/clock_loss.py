@@ -4,8 +4,37 @@ import json
 from pathlib import Path
 import subprocess
 import uuid
+import time
 
 NFT='/usr/sbin/nft'
+
+
+def reject_aged_arm(peer,evidence,value):
+    """One new finite LOAD after completion; prove aged clock cannot admit ARM."""
+    from phase11_5_inventory import exchange,require
+    from validate_wtp_contract import frame
+    owner=uuid.uuid4().hex;claimed=False
+    try:
+        peer.request('CLAIM',dict(owner_id=owner,lease_ms=60000));claimed=True
+        peer.request('LOAD',value,timeout=30)
+        clock=peer.request('GET_CLOCK',{})
+        require(clock['state']=='unsynchronized','clock must have aged beyond holdover')
+        request=dict(type='request',protocol='WTP/1',session_id=peer.session,request_id=uuid.uuid4().hex,
+            op='ARM',body=dict(job_id=value['job_id'],start_utc_ns=str((int(clock['utc_now_ns'])//1000000000+4)*1000000000),max_start_uncertainty_ns='500000000'))
+        response=exchange(peer.fd,frame(json.dumps(request,separators=(',',':')).encode()),
+            time.monotonic()+3,peer.emit,True,expected=request,receive_buffer=peer.received)
+        evidence.event('aged_arm_observation',dict(clock=clock,request=request,response=response))
+        require(not peer.validator.errors(response,peer.schema) and response.get('ok') is False and
+            response.get('error',{}).get('code')=='CLOCK_UNSYNCHRONIZED','aged clock did not refuse ARM')
+        evidence.event('aged_arm_refused',dict(clock=clock,request=request,response=response))
+        return dict(clock=clock,request=request,response=response)
+    finally:
+        if claimed:
+            status=peer.request('STATUS',{})
+            require(status['job_id']==value['job_id'] and status['owner_id']==owner,'clock probe authority changed')
+            if status['state'] in ('loaded','armed','running'):peer.request('ABORT',dict(job_id=value['job_id']))
+            require(peer.request('STATUS',{})['output_active'] is False,'clock probe output uncertain')
+            peer.request('RELEASE',{})
 
 
 class NtpBlock:

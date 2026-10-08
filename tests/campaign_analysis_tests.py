@@ -42,6 +42,19 @@ def synth(job, *, extra=False, wrong_shift=False, dropout=False):
 
 
 class AnalysisTests(unittest.TestCase):
+    def test_short_terminal_off_still_requires_independent_quiet(self):
+        job=make_job('FSKCW',3570100)
+        job['events'][-1]['duration_ns']='1000'
+        job['total_duration_ns']=str(int(job['events'][-1]['offset_ns'])+1000)
+        iq,rate=synth(job)
+        result=keyed(iq,rate,3568100,3570100,job)
+        self.assertTrue(result['passed'],result['issues'])
+        end=round((2+int(job['total_duration_ns'])/1e9)*rate)
+        truncated=keyed(iq[:end+round(.2*rate)],rate,3568100,3570100,job)
+        self.assertFalse(truncated['passed']);self.assertIn('missing final silence',truncated['issues'])
+        iq[end+rate:end+2*rate]+=.2*np.exp(2j*np.pi*2000*np.arange(rate)/rate)
+        extra=keyed(iq,rate,3568100,3570100,job)
+        self.assertFalse(extra['passed'])
     def test_keyed_modes_and_faults(self):
         for mode in ("QRSS", "FSKCW", "DFCW"):
             job = make_job(mode, 3570100)

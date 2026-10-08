@@ -194,6 +194,10 @@ def keyed(iq, rate, center, frequency, job):
                 envelope.append([left, right])
         a, b = round((left + 0.02) * brate), round((right - 0.02) * brate)
         if b <= a:
+            if not event['rf_on'] and event_index == len(job['events']) - 1:
+                # A producer may use a very short terminal off event; the
+                # independent >=0.5-second captured quiet tail below tests stop.
+                continue
             issues.append("event too short")
             continue
         if event["rf_on"]:

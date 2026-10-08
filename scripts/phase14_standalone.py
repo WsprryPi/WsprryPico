@@ -65,6 +65,8 @@ def main():
         settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,center_frequency_hz=3545100,gain_db=20,channel=0,agc=False,bias_tee=False)
         argv=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60','3545100',str(seconds*250000),'20','250000','200000','0','false','false','100000',str(seconds+12),str(rig.e.root/'capture.cf32'),str(rig.e.root/'capture.json'),'phase14-standalone']
         record=dict(schema='phase14-standalone/1',before=before,slots_utc_s=slots,frames=a.frames,
+            firmware_sha256=image['sha256'],source_commit=manifest['source_commit'],
+            standalone_script_sha256=sha256(__file__),
             configuration_sha256=__import__('hashlib').sha256(json.dumps(config,sort_keys=True).encode()).hexdigest(),
             reference=reference,receiver_settings=settings,receiver_helper_sha256=sha256(CAPTURE),
             source_revision=before['revision'],status=[],result='PENDING')

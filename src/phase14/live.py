@@ -117,7 +117,7 @@ class Rig:
         value=job(mode,band,clock,uuid.uuid4().hex,duration,workload)
         settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,
                       center_frequency_hz=BANDS[band]-25000,gain_db=20,channel=0,agc=False,bias_tee=False)
-        seconds=math.ceil(int(value['total_duration_ns'])/1e9)+15
+        seconds=math.ceil(int(value['total_duration_ns'])/1e9)+45
         count=seconds*250000
         argv=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60',str(settings['center_frequency_hz']),
               str(count),'20','250000','200000','0','false','false','100000',str(seconds+12),
@@ -141,6 +141,7 @@ class Rig:
         with (root/'receiver.log').open('x') as log:
             try:
                 process=subprocess.Popen(argv,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+                capture_deadline=time.monotonic()+seconds+12
                 deadline=time.monotonic()+8
                 while not (root/'capture.cf32.incomplete').exists() or (root/'capture.cf32.incomplete').stat().st_size<65536:
                     require(process.poll() is None and time.monotonic()<deadline,'capture readiness')
@@ -220,10 +221,16 @@ class Rig:
                 # idle timeout, so release this transport and negotiate afresh next job.
                 self.device.close_peer(board)
                 # Finish the planned receiver capture with its trailing quiet.
-                require(process.wait(timeout=max(1,end-time.monotonic()+15))==0,'capture failed')
+                require(process.wait(timeout=max(1,capture_deadline-time.monotonic()))==0,'capture failed')
                 metadata=json.loads((root/'capture.json').read_text())
                 validate_capture(metadata,root/'capture.cf32',settings)
                 require(metadata['retained_sample_count']==count,'capture planned count')
+                if block:
+                    from phase14.clock_loss import reject_aged_arm
+                    probe=job('TONE',band,clock,uuid.uuid4().hex,5)
+                    record['aged_arm_probe']=reject_aged_arm(self.device.peer(board),self.e,probe)
+                    record['after']=self.idle(board)
+                    self.device.close_peer(board)
                 record.update(result='CONTROL_COMPLETE' if terminal['state']==('aborted' if action=='abort' else 'complete') else 'CONTROL_FAILED',
                               capture_sha256=metadata['output']['sha256'],metadata_sha256=sha256(root/'capture.json'))
             except BaseException as error:

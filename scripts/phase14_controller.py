@@ -25,7 +25,7 @@ def main():
     def interrupted(signum,frame):raise InterruptedError('signal '+str(signum))
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
     os.umask(0o077);rig=Rig(a.output,ROOT,board='A',receiver=True,reference=True)
-    capture=controller=None;current_job=None;before=None
+    capture=controller=relay=None;current_job=None;before=None
     try:
         from phase14.candidate import candidate
         manifest,image,_=candidate(ROOT)
@@ -33,10 +33,10 @@ def main():
         config=configparser.ConfigParser();config.optionxform=str;config.read(a.template)
         for section,values in {
             'Meta':{'Loop TX':'false','TX Iterations':'1','debug_logging':'true'},
-            'Operation':{'Mode':a.mode,'Transmit':'true' if a.mode=='WSPR' else 'false','Transmit Backend':'wtp',
-                'Enable on Boot':'Never','Use LED':'false','Use Amp':'false','Use Shutdown':'false','Web Port':'31580','Socket Port':'31581'},
+            'Operation':{'Mode':a.mode,'Transmit':'true','Transmit Backend':'wtp',
+                'Enable on Boot':'Follow','Use LED':'false','Use Amp':'false','Use Shutdown':'false','Web Port':'31580','Socket Port':'31581'},
             'WTP Server':{'Enabled':'false'},'Experimental':{'Allow Unqualified Frequency':'true'},
-            'WTP':{'Transport':'network_plain','Hostname':before['network']['ipv4'],'TCP Port':'31417',
+            'WTP':{'Transport':'network_plain','Hostname':'127.0.0.1','TCP Port':'31582',
                 'Device ID':before['device_id'],'Start Uncertainty ns':'500000000','Allow Frequency Adjustment':'true'},
             'WSPR':{'Call Sign':'AA0NT','Grid Square':'EM18','TX Power':'37','Frequency':'3568600','Use Random Offset':'false'},
             'CW':{'Fade Shape':'none','Fade In Ms':'0','Fade Out Ms':'0','Fade Slice Ms':'5','DFCW Inter Character Gap':'1.0'}}.items():
@@ -66,6 +66,8 @@ def main():
             while not (rig.e.root/'capture.cf32.incomplete').exists() or (rig.e.root/'capture.cf32.incomplete').stat().st_size<65536:
                 require(capture.poll() is None and time.monotonic()<deadline,'capture readiness');time.sleep(.05)
             time.sleep(1)
+            from phase14.relay import Relay,transaction
+            relay=Relay(rig.e.root,before['network']['ipv4'],before['lan_wtp_port'])
             controller=subprocess.Popen(argv,stdout=ctrlog,stderr=subprocess.STDOUT,start_new_session=True)
             end=time.monotonic()+seconds-5;seen_running=False;last=None
             while time.monotonic()<end:
@@ -80,6 +82,11 @@ def main():
                     break
                 time.sleep(.5)
             else:raise TimeoutError('finite controller deadline')
+            relay.close();record['relay_terminations']=relay.terminations;relay=None
+            record['wtp_transaction']=transaction((rig.e.root/'client-to-device.bin').read_bytes(),
+                (rig.e.root/'device-to-client.bin').read_bytes(),json.loads((ROOT/'docs/protocol/wtp-1.schema.json').read_text()),
+                before['device_id'],before['status']['boot_id'],current_job)
+            record['controller_script_sha256']=sha256(__file__)
             record['after']=rig.idle('A');require(capture.wait(timeout=max(1,end-time.monotonic()+20))==0,'complete capture')
             meta=json.loads((rig.e.root/'capture.json').read_text());validate_capture(meta,rig.e.root/'capture.cf32',settings)
             record.update(result='CONTROL_COMPLETE',job_id=current_job,capture_sha256=meta['output']['sha256'],metadata_sha256=sha256(rig.e.root/'capture.json'))
@@ -106,7 +113,10 @@ def main():
                     os.killpg(capture.pid,signal.SIGTERM)
                     try:capture.wait(timeout=3)
                     except subprocess.TimeoutExpired:os.killpg(capture.pid,signal.SIGKILL);capture.wait(timeout=3)
-            finally:rig.close()
+            finally:
+                try:
+                    if relay:relay.close()
+                finally:rig.close()
 
 
 if __name__=='__main__':main()
