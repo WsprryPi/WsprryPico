@@ -595,3 +595,20 @@ ownership; bad-terminal and deadline cases reject. All 22 portable checks and
 the affected configured CTest group pass. This changes only the host survey
 helper. It requires a fresh waiting tool snapshot before that survey runs; no
 active matrix tool or Pico firmware changed.
+
+The full documented host check after that repair passes all 165 groups in
+95.59 seconds. The repaired finite continuation waits on snapshot `e535ee2`,
+coordinator SHA-256
+`291c9bcc51dd4e9701d0e0248b74aeadcad33f19c0db4b84bef9c6e6685acf23`.
+Its staged archive and every extracted source file were verified; all replaced
+coordinators stopped while waiting with zero RF steps.
+
+The retained Pi benchmark source specifies +/-5 Hz feature searches, whereas
+the prepared new helper used +/-2 Hz. Before the first current-image matched
+Tone acquisition, the new helper's feature searches were widened to +/-5 Hz;
+this prevents a stronger displaced feature from being omitted. The FFT size,
+benchmark ratios and on/off requirements stay unchanged. A stronger synthetic
+-124 Hz feature is recovered at -20 dBc and therefore fails the retained lower
+sideband benchmark; the existing -120/+120 Hz fixture remains applicable. The
+comparison now explicitly distinguishes matched bins/search widths from its
+different RF windows and dates. No earlier RF result or original flag changed.

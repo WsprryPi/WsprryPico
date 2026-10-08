@@ -91,9 +91,13 @@ before and after capture so that a job ending during acquisition cannot be
 misclassified as an RF-on measurement.
 The retained 80 m Pi close-in benchmark is compared using a full 1,048,576-sample
 Hann window at 250 ksps (0.238419 Hz bins), measured-carrier centering, searches
-within +/-2 Hz of +/-120 Hz and an equal trailing-off window. Require >=10 dB
+within +/-5 Hz of +/-120 Hz and an equal trailing-off window. Require >=10 dB
 carrier on/off contrast. Preserve phase/waveform flags separately; this relative
 peak-bin comparison does not establish integrated emissions or calibrated power.
+The feature search was widened from the prepared +/-2 Hz helper before its first
+current-image acquisition to match the retained Pi benchmark's +/-5 Hz search.
+This includes more potentially stronger features and leaves the benchmark limits
+unchanged; RF windows and measurement dates remain different.
 
 Use short Tone screens across band/clock on both boards before expensive mode
 acceptance. Start with Tone and complete WSPR at 80 m/138 MHz on both boards.

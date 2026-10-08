@@ -38,7 +38,7 @@ def analyze(directory,analysis,output,fft_samples=1048576):
         result['historical_pi_benchmark']=dict(source='docs/development/rf-clock-validation.md',
             lower_120_dbc=-21.66,upper_120_dbc=-21.49,
             relative_peak_bin_comparison_passed=result['lower_120']['peak_dbc']<=-21.66 and result['upper_120']['peak_dbc']<=-21.49,
-            limitation='Matched 0.238419 Hz Hann bins against the retained Pi comparison; different measurement dates and uncalibrated path/receiver attribution remain.')
+            limitation='Matched 0.238419 Hz Hann bins and +/-5 Hz feature searches against the retained Pi comparison; different RF windows, measurement dates and uncalibrated path/receiver attribution remain.')
     save(output,result);return result
 
 

@@ -56,6 +56,12 @@ class AnalysisTests(unittest.TestCase):
         self.assertAlmostEqual(result['lower_120']['peak_dbc'],-26.0206,places=2)
         self.assertAlmostEqual(result['upper_120']['peak_dbc'],-30,places=2)
         self.assertGreater(result['carrier_on_minus_off_db'],60)
+        # The retained Pi benchmark searches within 5 Hz of +/-120 Hz. A
+        # displaced stronger feature must not hide outside a narrower search.
+        iq[on]+=.02*np.exp(2j*np.pi*1876*time[on])
+        result=compare(iq,rate,3568100,3570100,[2,7],24000)
+        self.assertAlmostEqual(result['lower_120']['offset_hz'],-124,places=2)
+        self.assertAlmostEqual(result['lower_120']['peak_dbc'],-20,places=2)
         for interval in ([2,3],[2,11],[7,2]):
             with self.assertRaises(ValueError):compare(iq,rate,3568100,3570100,interval,24000)
     def test_human_copy_preserves_slow_drift_but_rejects_missing_or_collapsed_marks(self):

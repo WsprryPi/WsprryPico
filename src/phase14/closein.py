@@ -6,7 +6,7 @@ import numpy as np
 def compare(iq,rate,center,carrier,interval,fft_samples=1048576):
     if (type(fft_samples) is not int or fft_samples<8 or
         any(not math.isfinite(v) for v in (rate,center,carrier)) or rate<=0 or
-        fft_samples/rate<1 or abs(carrier-center)+122>=rate/2):
+        fft_samples/rate<1 or abs(carrier-center)+125>=rate/2):
         raise ValueError('usable close-in FFT span required')
     start,end=interval
     if not 0<=start<end<=len(iq)/rate:raise ValueError('complete on interval required')
@@ -33,7 +33,7 @@ def compare(iq,rate,center,carrier,interval,fft_samples=1048576):
         on_interval_s=[on/rate,(on+fft_samples)/rate],off_interval_s=[off/rate,(off+fft_samples)/rate],
         carrier_indicated_hz=carrier,
         carrier_on_minus_off_db=float(10*np.log10(reference/max(float(quiet[main].max()),1e-300))),
-        lower_120=peak(np.abs(bins+120)<=2),upper_120=peak(np.abs(bins-120)<=2),
+        lower_120=peak(np.abs(bins+120)<=5),upper_120=peak(np.abs(bins-120)<=5),
         nearby_2_to_50=peak((np.abs(bins)>2)&(np.abs(bins)<=50)),
-        method='One full Hann window inside on RF and one equal trailing-off window; measured-carrier centering; +/-2 Hz around +/-120 Hz.',
+        method='One full Hann window inside on RF and one equal trailing-off window; measured-carrier centering; +/-5 Hz around +/-120 Hz.',
         limitation='Relative peak-bin/on-off diagnostic; no integrated emissions, filtered-output, absolute power or UTC claim.')
