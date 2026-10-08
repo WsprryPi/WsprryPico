@@ -620,3 +620,25 @@ requiring unchanged readback. It does not tune or otherwise change the reference
 This supplies the per-result reference binding requested for those surveys;
 ordinary IQ jobs already retain their simultaneous reference settings. Syntax
 and diff checks pass; the live matrix and its tools remain unchanged.
+
+Numeric progress checkpoint: the main current-image 138 MHz matrix has recorded
+92/104 rows (88.5%); all 52 A rows are finished and B is through 15 m. These are
+completed attempts, including original failures, rather than qualified support.
+Three of the nine original workstreams are established: initial review, plan/
+acceptance record and bench preparation. The other six remain open. All 165 host
+groups pass, with the affected twelve RF-analysis fixtures subsequently passing
+after the more conservative sideband search. Final board installation/smokes,
+soak, surveys, alternative-clock mode comparison, final review and push remain.
+
+The reviewed continuation uses immutable source snapshot `bd6c2c1` in private
+`build/follow-on-tools-bd6c2c1-bracketed`, coordinator SHA-256
+`c04d2c1b0428625016e872ab504e549e6621cef38f065a6f09769331cbddb7fa`.
+The source archive SHA-256 is
+`2e368c34feea968cbc475e2bad081e4d0cfad2ce9d86e62fc3c08d4056031d3a`;
+every extracted source file was verified. Its zero-step waiting predecessor was
+stopped by exact process identity without changing the active matrix. Three
+additional finite GPSDO-only ABBA comparisons are queued before follow-on work
+and immediately before/after the eight-hour soak, in addition to the final
+post-comparison reference check. These bracket receiver sampling drift over the
+actual long acquisition windows; they neither discipline the Pico nor alter
+the frozen mode screens. No continuation RF step has begun at this checkpoint.
