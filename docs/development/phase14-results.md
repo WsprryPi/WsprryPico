@@ -577,3 +577,21 @@ full for final restoration. Application/access/bond/E10 regions remain untouched
 These helper fixes are prepared locally; no device setting or active RF job was
 changed by this review. A new isolated continuation snapshot is required before
 the later clock-comparison restarts; the live matrix remains on its original tools.
+
+The `efb545c` isolated continuation was staged with every archived file verified,
+and its waiting coordinator hash is
+`35eff91dd6a731b3a1d9d5b6ef3ed36550fba4e15f1ff9cc6b491a4aeebb4025`.
+The predecessor remains unchanged. At the following live checkpoint, 76 of its
+104 rows and 147 complete jobs were recorded. All 52 A rows were finished; B had
+recorded 24 rows through 40 m. No continuation RF step had begun.
+
+Further pre-execution review found an unrenewed final wait in the separately
+tuned spectral survey. WTP preserves a running job after lease expiry, but then
+releases ownership at its terminal state, making the subsequent owned RELEASE
+fail. The survey now renews while awaiting natural completion and rejects wrong
+boot/job identities, unexpected terminals and active completion. A virtual
+120-second tail exceeds the original 60-second lease and verifies retained
+ownership; bad-terminal and deadline cases reject. All 22 portable checks and
+the affected configured CTest group pass. This changes only the host survey
+helper. It requires a fresh waiting tool snapshot before that survey runs; no
+active matrix tool or Pico firmware changed.

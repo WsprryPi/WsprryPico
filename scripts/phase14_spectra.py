@@ -13,6 +13,7 @@ ROOT=Path(__file__).resolve().parents[1];sys.path[:0]=[str(ROOT/'src'),str(ROOT/
 from phase14.live import Rig,CAPTURE,save
 from phase14.candidate import candidate
 from phase14.plan import BANDS,job,accepted_events,validate_capture,validate_spectral_window
+from phase14.spectral_control import wait_complete
 from led_closeout.runner import require,sha256
 
 
@@ -87,11 +88,7 @@ def main():
                 record['captures'].append(dict(state='on',target=label,measurement=measurement,
                     status_before=before_capture,status_after=after_capture))
                 peer.request('RENEW',dict(owner_id=owner,lease_ms=60000));rig.info(a.board)
-        while time.monotonic()<end:
-            s=peer.request('STATUS',{});record['status'].append(s)
-            if s['state']=='complete':break
-            require(s['state']=='running','spectral unexpected terminal');time.sleep(.5)
-        require(s['state']=='complete' and s['output_active'] is False and s['job_id']==submitted['job_id'] and s['boot_id']==record['boot_id'],'spectral completion')
+        wait_complete(peer,owner,record['boot_id'],submitted['job_id'],end,record['status'])
         peer.request('RELEASE',{});claimed=False;record['after']=rig.idle(a.board)
         record['final_off']=capture(rig,'final-off-fundamental',frequency,20)
         on_fundamental=next(v['measurement'] for v in record['captures'] if v['state']=='on' and v['target']=='harmonic-1' and v['measurement']['gain_db']==20)

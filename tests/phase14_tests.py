@@ -96,6 +96,38 @@ class Tests(unittest.TestCase):
                        {'boot_id':'c'*32},{'job_id':'d'*32}):
             for before,after in ((dict(running,**change),running),(running,dict(running,**change))):
                 with self.assertRaises(ValueError):validate_spectral_window(before,after,'a'*32,'b'*32)
+    def test_spectral_long_tail_preserves_owner_and_rejects_bad_terminals(self):
+        from phase14.spectral_control import wait_complete
+        class Peer:
+            def __init__(self, change=None):
+                self.time=0;self.expiry=60;self.change=change;self.renewals=0
+            def request(self, operation, body):
+                if self.time>=self.expiry:raise ValueError('lease expired')
+                if operation=='RENEW':
+                    self.expiry=self.time+body['lease_ms']/1000;self.renewals+=1
+                    return {}
+                result=dict(boot_id='a'*32,job_id='b'*32,state='running',output_active=True)
+                if self.time>=120:
+                    result.update(state='complete',output_active=False)
+                    if self.change:result.update(self.change)
+                return result
+            def sleep(self, seconds):self.time+=30
+        peer=Peer();statuses=[]
+        terminal=wait_complete(peer,'owner','a'*32,'b'*32,150,statuses,
+            now=lambda:peer.time,sleep=peer.sleep)
+        self.assertEqual(terminal['state'],'complete')
+        self.assertGreater(peer.renewals,2)
+        self.assertLess(peer.time,peer.expiry)
+        for change in ({'boot_id':'c'*32},{'job_id':'d'*32},
+                       {'state':'failed'},{'output_active':True}):
+            peer=Peer(change)
+            with self.assertRaises(ValueError):
+                wait_complete(peer,'owner','a'*32,'b'*32,150,[],
+                    now=lambda:peer.time,sleep=peer.sleep)
+        peer=Peer()
+        with self.assertRaises(TimeoutError):
+            wait_complete(peer,'owner','a'*32,'b'*32,90,[],
+                now=lambda:peer.time,sleep=peer.sleep)
     def test_settings_journal_corruption_never_rolls_back(self):
         from phase14.profiles import engineering_record,profile
         value=dict(device_id='b'*32,version=1,wifi=dict(ssid='test',password='private'),tls={})
