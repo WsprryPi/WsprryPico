@@ -67,7 +67,8 @@ treated as long-term product documentation.
     Phase 11.5 at 6/6 families for that configuration.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
     The systematic band x mode x clock comparison, final supported configurations,
-    filters, spectral qualification and release firmware belong to Phase 14.
+    spectral qualification and release firmware belong to Phase 14. Filter
+    development/application is the operator's responsibility.
 12. **Closed within selected scope:** Phase 12 provisioning/local control and consumer commissioning.
     The [Phase 12 plan](development/phase12-plan.md), operator-selected
     [field contract](development/phase12-field-access-contract.md) and
@@ -132,9 +133,12 @@ treated as long-term product documentation.
 14. **Active:** [Phase 14 qualification plan](development/phase14-plan.md) and
     [result record](development/phase14-results.md) track hardware/RF qualification
     and release for the
-    implemented PIO/DMA engine, including the output network and filters,
-    calibrated RF-output timing, supported mode/band/clock combinations,
-    reliability and a reproducible release UF2. Si5351 remains deferred.
+    implemented PIO/DMA engine: the established unfiltered conducted path,
+    RF-output timing/frequency with uncertainty reported, supported
+    mode/band/clock combinations, reliability and a reproducible release UF2.
+    There is no LPF in the bench; the operator develops/applies filtering.
+    Drift alone does not fail the human-copy QRSS, FSKCW or DFCW assessment.
+    Si5351 remains deferred.
 
 ## Phase 13 feature backlog
 
@@ -157,7 +161,10 @@ selected; Phase 14 RF qualification and release is next on the roadmap.
 
 Each feature includes its implementation and applicable behavior/target
 acceptance. Phase 14 retains the final supported engine/mode/band/clock matrix,
-calibrated timing, RF, reliability, filters and release qualification.
+timing/frequency measurements, RF spectra, reliability and release qualification.
+The operator's Phase 14 amendment assigns LPF development/application to the
+operator and treats QRSS-family drift as a diagnostic rather than an immediate
+human-copy failure; see the current plan for the separate retained assessments.
 
 Numbering changed on 2026-10-05: the former Phase 13 qualification/release work
 is now Phase 14. Historical acceptance records and execution prompts retain
@@ -342,8 +349,8 @@ from successful decodes and repaired-image evidence.
 
 The operator accepts better-than-WsprryPi close-in sidebands as a practical
 benchmark. The earlier comparison meets that criterion; eliminating those
-sidebands is not a prerequisite for further development. Planned output
-filtering remains part of the final hardware assessment.
+sidebands is not a prerequisite for further development. The operator develops
+and applies output filtering; Phase 14 measures the established unfiltered path.
 
 ## Completed eighth Step 8 slice: USB UTC and RF job integration
 
@@ -371,9 +378,10 @@ outage/reconnection and watchdog recovery. The subsequent
 [RF and wall-power record](development/standalone-rf-power-validation.md) adds
 independently decoded recurring frames without USB job commands, a physical
 separate-power boot, USB-host absence, and retained configuration/watermark.
-This closes Phase 9's bounded functional acceptance. Calibrated timing,
-output/filter performance, wider network compatibility and endurance remain
-Phase 14 qualification work.
+This closes Phase 9's bounded functional acceptance. Timing/frequency
+measurements, unfiltered output performance, wider network compatibility and
+endurance remain Phase 14 qualification work. Filter development/application
+belongs to the operator.
 
 ## Subsequent slices
 
@@ -385,9 +393,10 @@ Phase 14 qualification work.
 3. Phase 13: P13.1 transmit LED work is complete; P13.2 external Si5351 is
    deferred. No active feature work remains selected in the
    [feature backlog](#phase-13-feature-backlog).
-4. Phase 14 is next: qualify supported PIO/DMA mode/band/clock combinations,
-   RF-output timing, spectra and reliability; finish output networks/filters
-   and release a reproducible WsprryPico-x.y.z.uf2. Si5351 remains deferred.
+4. Phase 14 is active: qualify supported PIO/DMA mode/band/clock combinations,
+   RF-output timing/frequency, unfiltered spectra and reliability; release a
+   reproducible WsprryPico-x.y.z.uf2. The operator develops/applies filtering.
+   Si5351 remains deferred.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
