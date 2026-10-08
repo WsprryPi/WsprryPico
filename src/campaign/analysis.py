@@ -17,7 +17,7 @@ def write(path, value):
         stream.write(json.dumps(value, indent=2, allow_nan=False) + "\n")
 
 
-def spectrum(iq, rate, center, frequencies, intervals):
+def spectrum(iq, rate, center, frequencies, intervals, *, excluded_frequencies=()):
     """Average non-overlapping Hann FFTs inside active RF intervals only."""
     n = 2 ** int(np.floor(np.log2(min(65536, rate * 0.25))))
     window = np.hanning(n)
@@ -37,7 +37,10 @@ def spectrum(iq, rate, center, frequencies, intervals):
     for frequency in frequencies:
         main |= np.abs(bins - frequency) <= half_width
     retained = np.abs(bins - center) < min(90000, rate * 0.4)
-    indexes = np.flatnonzero(retained & ~main)
+    excluded = np.zeros(n, dtype=bool)
+    for frequency in excluded_frequencies:
+        excluded |= np.abs(bins - frequency) <= half_width
+    indexes = np.flatnonzero(retained & ~main & ~excluded)
     if not np.any(main & retained) or not len(indexes):
         return dict(available=False, reason="insufficient main and comparison span")
     strongest = indexes[np.argmax(power[indexes])]

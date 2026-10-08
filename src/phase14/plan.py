@@ -51,3 +51,46 @@ def validate_capture(metadata, iq, expected):
     with path.open('rb') as stream:
         if hashlib.file_digest(stream,'sha256').hexdigest()!=metadata['output']['sha256']:
             raise ValueError('capture hash')
+
+
+def validate_physical(value):
+    """Reject substituted device, source, boot, workload and lifecycle evidence."""
+    import re
+    board=value['board']
+    if (value['schema']!='phase14-physical/1' or board not in BOARDS or
+        (value['serial'],value['device_id'])!=BOARDS[board] or
+        value['clock_hz'] not in CLOCKS or value['band'] not in BANDS or
+        value['mode'] not in MODES or value['divider']!=1 or value['rf_gp']!=2 or
+        value['engine']!='pio-dma-gp2' or value['result']!='CONTROL_COMPLETE' or
+        not re.fullmatch('[0-9a-f]{12}',value['source_revision']) or
+        not re.fullmatch('[0-9a-f]{64}',value['firmware_sha256']) or
+        not re.fullmatch('[0-9a-f]{32}',value['boot_id'])):
+        raise ValueError('physical candidate/device identity')
+    submitted=value['job'];accepted=value['accepted_job']
+    if accepted!=accepted_events(submitted,value['load']['adjustments']):
+        raise ValueError('accepted workload binding')
+    if not re.fullmatch('[0-9a-f]{32}',submitted['job_id']):
+        raise ValueError('submitted job identity')
+    if value['load']['job_id']!=submitted['job_id'] or value['arm']['job_id']!=submitted['job_id']:
+        raise ValueError('LOAD/ARM job identity')
+    states=[v['status'] for v in value['status']]
+    expected='aborted' if value['action']=='abort' else 'complete'
+    if (not states or not any(v['state']=='running' for v in states) or
+        any(v['boot_id']!=value['boot_id'] or v['job_id']!=submitted['job_id'] for v in states) or
+        value['terminal']!=states[-1] or value['terminal']['state']!=expected or
+        value['terminal']['output_active'] is not False):
+        raise ValueError('terminal job/boot/output binding')
+    for key in ('before','after'):
+        info=value[key];status=info['status']
+        if (info['device_id']!=value['device_id'] or info['revision']!=value['source_revision'] or
+            info['system_clock_hz']!=value['clock_hz'] or status['boot_id']!=value['boot_id'] or
+            status['engine']!=value['engine'] or status['output_active'] is not False or
+            status['owner_id'] is not None or status['enabled'] is not False or
+            status['state'] in ('loaded','armed','running','failed')):
+            raise ValueError('candidate idle successor binding')
+    if value.get('reference'):
+        r=value['reference']
+        if (r['serial']!='0673ED0FA107' or not all(r[k] for k in ('sat_lock','pll_lock','ant_ok','out1')) or
+            r['pps1'] or r['f1']!=BANDS[value['band']]-40000):
+            raise ValueError('reference identity/settings binding')
+    return value

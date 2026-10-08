@@ -4,14 +4,14 @@ from pathlib import Path
 from analyze_rf_bench import load_capture
 from campaign import analysis as established
 from measure_rf_bench import measure
-from phase14.plan import GOLDEN37, BANDS, validate_capture
+from phase14.plan import GOLDEN37, BANDS, validate_capture, validate_physical
 from phase14.live import save
 from led_closeout.runner import sha256, require
 
 
-def analyze(directory):
+def analyze(directory, output_label="analysis"):
     directory=Path(directory).resolve()
-    physical=json.loads((directory/'physical.json').read_text())
+    physical=validate_physical(json.loads((directory/'physical.json').read_text()))
     require(physical['result']=='CONTROL_COMPLETE','physical execution incomplete')
     meta=json.loads((directory/'capture.json').read_text())
     validate_capture(meta,directory/'capture.cf32',physical['receiver_settings'])
@@ -20,7 +20,9 @@ def analyze(directory):
     iq,metadata,capture_sha=load_capture(directory/'capture.cf32',directory/'capture.json')
     settings=metadata['actual_settings'];rate=settings['sample_rate_hz'];center=settings['center_frequency_hz']
     frequency=BANDS[physical['band']];mode=physical['mode'];job=physical['accepted_job']
-    output=directory/'analysis';output.mkdir(mode=0o700)
+    import re
+    require(re.fullmatch('[a-z][a-z0-9-]{0,63}',output_label),'safe analysis label')
+    output=directory/output_label;output.mkdir(mode=0o700)
     if mode=='TONE':
         reference=physical.get('reference')
         report=measure(iq,rate,center,duration_s=int(job['total_duration_ns'])/1e9,base_hz=frequency,
@@ -37,7 +39,11 @@ def analyze(directory):
         result=established.keyed(iq,rate,center,frequency,job)
     intervals=result.get('measurement',{}).get('intervals_s',result.get('observed_intervals_s',[]))
     frequencies=[m['indicated_hz'] for m in result.get('measurement',result).get('measurements',[])]
-    result['spectrum']=established.spectrum(iq,rate,center,frequencies,intervals)
+    excluded=[physical['reference']['f1']] if physical.get('reference') else []
+    result['spectrum']=established.spectrum(iq,rate,center,frequencies,intervals,excluded_frequencies=excluded)
+    if physical.get('reference'):
+        result['spectrum']['reference_excluded_hz']=physical['reference']['f1']
+        result['spectrum']['limitation']+='; excludes the known reference; normalization uses only the Pico carrier'
     result.update(schema='phase14-analysis/1',physical_sha256=sha256(directory/'physical.json'),
         capture_sha256=capture_sha,metadata_sha256=sha256(directory/'capture.json'),
         board=physical['board'],boot_id=physical['boot_id'],job_id=job['job_id'],clock_hz=physical['clock_hz'],

@@ -16,6 +16,7 @@ def main():
     sub=parser.add_subparsers(dest='op',required=True)
     sub.add_parser('matrix')
     analyze=sub.add_parser('analyze');analyze.add_argument('directory',type=Path)
+    analyze.add_argument('--analysis-name',default='analysis')
     for name in ('inventory','deploy','run'):
         p=sub.add_parser(name);p.add_argument('--output',type=Path,required=True)
         if name!='inventory':
@@ -34,7 +35,7 @@ def main():
     if args.op=='matrix':print(json.dumps(matrix(),indent=2));return
     if args.op=='analyze':
         from phase14.analysis import analyze
-        print(json.dumps(analyze(args.directory)));return
+        print(json.dumps(analyze(args.directory,args.analysis_name)));return
     if not sys.platform.startswith('linux') or os.geteuid()!=0:
         parser.error('physical operations require exclusive Linux/wspr5 access')
     os.umask(0o077)

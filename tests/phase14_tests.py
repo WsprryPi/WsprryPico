@@ -8,7 +8,7 @@ import tempfile
 import unittest
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
-from phase14.plan import matrix,job,accepted_events,validate_capture
+from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical
 
 class Tests(unittest.TestCase):
     def test_clock_boundaries_and_full_jobs(self):
@@ -49,4 +49,30 @@ class Tests(unittest.TestCase):
                 with self.assertRaises(ValueError):validate_capture(invalid,path,settings)
             path.write_bytes(b'\1'*80)
             with self.assertRaises(ValueError):validate_capture(metadata,path,settings)
+    def test_lifecycle_and_source_substitutions_are_rejected(self):
+        value=job('TONE','80m',138000000,'test')
+        idle=dict(device_id='fd6127d11d6aca42a9905fa3fb1bf1d5',revision='144e8e83e598',
+                  system_clock_hz=138000000,status=dict(boot_id='a'*32,engine='pio-dma-gp2',
+                  owner_id=None,output_active=False,enabled=False,state='empty'))
+        running=dict(boot_id='a'*32,job_id=value['job_id'],state='running',output_active=True)
+        terminal=dict(running,state='complete',output_active=False)
+        physical=dict(schema='phase14-physical/1',board='A',serial='0BF4B4AEC9FFB344',
+                      device_id=idle['device_id'],source_revision=idle['revision'],
+                      clock_hz=138000000,band='80m',mode='TONE',divider=1,rf_gp=2,engine='pio-dma-gp2',
+                      result='CONTROL_COMPLETE',firmware_sha256='b'*64,boot_id='a'*32,job=value,
+                      accepted_job=copy.deepcopy(value),load=dict(job_id=value['job_id'],adjustments=[]),
+                      arm=dict(job_id=value['job_id']),action='complete',
+                      status=[dict(status=running),dict(status=terminal)],terminal=terminal,before=idle,after=idle)
+        validate_physical(physical)
+        mutations=[lambda v:v.update(board='B'),lambda v:v.update(boot_id='c'*32),
+                   lambda v:v.update(firmware_sha256='bad'),
+                   lambda v:v['accepted_job']['events'][0].update(duration_ns='1'),
+                   lambda v:v['arm'].update(job_id='d'*32),
+                   lambda v:v['status'][0]['status'].update(boot_id='d'*32),
+                   lambda v:v['terminal'].update(output_active=True),
+                   lambda v:v['after']['status'].update(enabled=True),
+                   lambda v:v['after'].update(revision='0123456789ab')]
+        for mutation in mutations:
+            invalid=copy.deepcopy(physical);mutation(invalid)
+            with self.assertRaises(ValueError):validate_physical(invalid)
 if __name__=='__main__':unittest.main()
