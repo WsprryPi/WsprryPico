@@ -460,3 +460,11 @@ The endurance assessment now also records a separate human-aware FSKCW result
 when the amended analyzer is used. Its legacy RF flags and resource/growth
 assertions remain separate and unchanged. Alternate immutable assessment names
 permit later method/source-bound review without overwriting the original result.
+
+Prepared pending-cancellation workload first establishes one complete five-second
+Tone/on baseline, then cancels a second same-source/clock/boot job while Armed
+and observed inactive. Any Running/active observation rejects pending-cancel
+classification. The complete receiver capture must remain at least 10 dB below
+the live baseline through the 1 ms Hann detector, with a healthy simultaneous
+GPSDO reference; shorter-transient and calibrated-UTC claims are excluded.
+This supplements the separate active-job abort workload and has not run yet.

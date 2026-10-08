@@ -161,6 +161,13 @@ class Rig:
                 require(clock_value['state']=='synchronized' and int(clock_value['uncertainty_ns'])<=500000000,'WTP clock not admissible')
                 start=(int(clock_value['utc_now_ns'])//1000000000+4)*1000000000
                 record['arm']=peer.request('ARM',dict(job_id=value['job_id'],start_utc_ns=str(start),max_start_uncertainty_ns='500000000'))
+                if action=='cancel':
+                    pending=peer.request('STATUS',{})
+                    require(pending['boot_id']==record['boot_id'] and pending['job_id']==value['job_id'] and
+                        pending['state']=='armed' and pending['output_active'] is False,'pending cancellation reached RF')
+                    record['status'].append(dict(utc_ns=time.time_ns(),monotonic_ns=time.monotonic_ns(),status=pending))
+                    record['cancel_requested_utc_ns']=time.time_ns()
+                    record['cancel_reply']=peer.request('ABORT',dict(job_id=value['job_id']))
                 save(root/'physical.json',record)
                 end=time.monotonic()+int(value['total_duration_ns'])/1e9+10
                 action_done=False;disconnected=False;running_since=None;last_info=0;last_renew=time.monotonic();last_browser=0;browser_index=0
@@ -237,7 +244,7 @@ class Rig:
                     record['aged_arm_probe']=reject_aged_arm(self.device.peer(board),self.e,probe)
                     record['after']=self.idle(board)
                     self.device.close_peer(board)
-                record.update(result='CONTROL_COMPLETE' if terminal['state']==('aborted' if action=='abort' else 'complete') else 'CONTROL_FAILED',
+                record.update(result='CONTROL_COMPLETE' if terminal['state']==('aborted' if action in ('abort','cancel') else 'complete') else 'CONTROL_FAILED',
                               capture_sha256=metadata['output']['sha256'],metadata_sha256=sha256(root/'capture.json'))
             except BaseException as error:
                 record.update(result='FAILED',error=repr(error))

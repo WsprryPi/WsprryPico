@@ -80,6 +80,12 @@ class Tests(unittest.TestCase):
         for mutation in mutations:
             invalid=copy.deepcopy(physical);mutation(invalid)
             with self.assertRaises(ValueError):validate_physical(invalid)
+        cancelled=copy.deepcopy(physical);cancelled['action']='cancel'
+        cancelled['status'][0]['status'].update(state='armed',output_active=False)
+        cancelled['status'][-1]['status']['state']='aborted';cancelled['terminal']=cancelled['status'][-1]['status']
+        validate_physical(cancelled)
+        cancelled['status'][0]['status'].update(state='running',output_active=True)
+        with self.assertRaises(ValueError):validate_physical(cancelled)
     def test_settings_journal_corruption_never_rolls_back(self):
         from phase14.profiles import engineering_record,profile
         value=dict(device_id='b'*32,version=1,wifi=dict(ssid='test',password='private'),tls={})

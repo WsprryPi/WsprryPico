@@ -34,7 +34,7 @@ def main():
             p.add_argument('--browser-credentials',type=Path)
             p.add_argument('--clock-loss',action='store_true')
             p.add_argument('--request-compensation-ppb',type=int,default=0)
-            p.add_argument('--action',choices=('complete','abort','disconnect'),default='complete')
+            p.add_argument('--action',choices=('complete','abort','cancel','disconnect'),default='complete')
     args=parser.parse_args()
     if args.op=='matrix':print(json.dumps(matrix(),indent=2));return
     if args.op=='analyze':

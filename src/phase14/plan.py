@@ -85,8 +85,11 @@ def validate_physical(value):
     if value['load']['job_id']!=submitted['job_id'] or value['arm']['job_id']!=submitted['job_id']:
         raise ValueError('LOAD/ARM job identity')
     states=[v['status'] for v in value['status']]
-    expected='aborted' if value['action']=='abort' else 'complete'
-    if (not states or not any(v['state']=='running' for v in states) or
+    if value['action'] not in ('complete','abort','cancel','disconnect'):raise ValueError('unknown lifecycle action')
+    expected='aborted' if value['action'] in ('abort','cancel') else 'complete'
+    activity=(any(v['state']=='armed' for v in states) and not any(v['state']=='running' or v['output_active'] for v in states)
+        if value['action']=='cancel' else any(v['state']=='running' for v in states))
+    if (not states or not activity or
         any(v['boot_id']!=value['boot_id'] or v['job_id']!=submitted['job_id'] for v in states) or
         value['terminal']!=states[-1] or value['terminal']['state']!=expected or
         value['terminal']['output_active'] is not False):
