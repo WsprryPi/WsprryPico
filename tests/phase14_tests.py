@@ -51,6 +51,7 @@ class Tests(unittest.TestCase):
         with self.assertRaises(ValueError):assess(dict(measurement=changed),[reference,reference])
 
     def test_keyed_placement_removes_frequency_states_and_preserves_drift_information(self):
+        import numpy as np
         from phase14.wspr_segment import describe
         value=job('DFCW','80m',138000000,'test')
         fits=[];refs=[]
@@ -67,6 +68,9 @@ class Tests(unittest.TestCase):
         bounded=describe(dict(measurements=fits,reference_diagnostics=refs),value,'DFCW',3530100,(3570100,3570101))
         self.assertEqual(bounded['observed_relation'],'mean_frequencies_extend_outside_window')
         self.assertIsNone(bounded['pass_fail_determination'])
+        fits[0]['indicated_hz']=np.float64(fits[0]['indicated_hz'])
+        refs[0]['interval_s']=[np.float64(v) for v in refs[0]['interval_s']]
+        self.assertAlmostEqual(describe(dict(measurements=fits,reference_diagnostics=refs),value,'DFCW',3530100)['fitted_offset_drift_hz_per_s'],.5)
 
     def test_full_2m_gate_rehashes_actual_pilot_decode_files_and_rejects_substitution(self):
         from unittest.mock import patch

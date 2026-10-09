@@ -1,5 +1,6 @@
 """Informational frequency placement; never determine mode or band acceptance."""
 import math
+from numbers import Real
 from campaign.plan import GOLDEN37
 from phase14.calibration import quantities
 
@@ -90,7 +91,7 @@ def describe(report,job,mode,reference_hz=None,window_hz=None):
             interval=ref['interval_s'];basis='simultaneous_reference_nominal_sample_axis'
         if interval is None:
             interval=[int(event['offset_ns'])/1e9,(int(event['offset_ns'])+int(event['duration_ns']))/1e9]
-        if not all(type(v) in (int,float) and math.isfinite(v) for v in (value,expected,*interval)):
+        if not all(isinstance(v,Real) and not isinstance(v,bool) and math.isfinite(v) for v in (value,expected,*interval)):
             raise ValueError('finite frequency observation required')
         points.append(dict(event_index=fit.get('event_index',fit.get('index',index)),
             time_s=sum(interval)/2,frequency_hz=value,requested_offset_hz=value-expected,basis=basis))
