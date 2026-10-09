@@ -26,6 +26,7 @@ submission after 25 complete steps; its completed cases remain closed.
 | 6. Additional native WSPR at accepted 160 m point | 3/3, all full-screen passing | 100% |
 | 6. Maximum-message cases including alternating DFCW | 4/4 complete and analyzed | 100% of attempts |
 | 6. USB-unavailable standalone WSPR | 3/3 frames analyzed, 2/3 full-screen passing | 100% of attempts; 66.7% passing |
+| 6. Clock-loss/cancel/abort/disconnect/maximum-event scenarios | 4/9 assessed | 44.4% |
 | 6. Eight finite one-hour soak jobs | 0/8 | 0% |
 | 7. Candidate clock images built | 3/3 | 100% |
 | 7. Independent selected-image rebuild | 1/1, complete bytes identical | 100% |
@@ -248,6 +249,40 @@ All 24 affected portable checks pass, including actual failure/recovery heap
 values and unchanged 512-event duration; syntax/diff checks pass. The first
 sandboxed CTest attempt could not bind its localhost relay socket; the same
 configured check passes with the required local-socket access.
+
+The host-preflight repair is committed as `a11686b`; devel is 39 commits beyond
+the starting remote with no push. Fresh immutable continuation
+`build/resume-tools-a11686b-retry` has archive SHA-256
+`e61c96d69efd0d25f8e8ff208030fbdd294a51b5d2a90c92e1d8e76a5cd34ae5`,
+coordinator SHA-256
+`419479ee555031f605c70d45a5edc1956e0d85ecd4f549723ad5c7757385d9ae`
+and 1,794 verified extracted files. It requires the exact 25-complete/one-failed
+predecessor, failed LOAD, physical quiet and unarmed diagnostic receipts, releases
+only the identified unarmed diagnostic job with ordinary CLAIM/RELEASE, refreshes
+the reference and resumes A's 512-event case followed by B's remaining cases,
+soak, spectra and clocks. Its first private coordinator attempt stopped after
+read-only inventory because setting child PYTHONPATH did not update its own
+import path; it performed no RF. That failed startup remains retained, and the
+separate retry explicitly initializes the current process path.
+
+The separate action-aware A abort assessment passes. It binds one actual same-job
+ABORT request between Running and Aborted observations, rehashes the complete IQ
+and metadata, checks a single deliberately shortened burst and every captured
+off sample beyond 20 ms edge exclusions, requires a healthy post-stop reference
+and checks resources. Observed RF lasts 2.874 s rather than the requested 10 s;
+the remaining 47.757 s of capture is quiet at least 54.546 dB below on. Detector
+cadence is 1 ms; no absolute request-to-GPIO 100 ms latency claim is made.
+The original full-duration duration/missing-segment failure is unchanged.
+Receipt SHA-256 is
+`6f35d88d0285e4d0ef003fddc9785e2b961e0b5cd04620d2986ef645b387c798`;
+independent analysis script SHA-256 is
+`722e2aa39e7c074802c6cb138d173ef53c49deb410cf1eef60d7d160b5a9fd5a`.
+All 25 affected portable checks pass, including rejection of natural full
+completion, extra bursts, two-millisecond RF tails, pre-launch RF, missing RF
+and invalid samples. The first standalone invocation omitted the established
+external Harness library path and stopped before analysis; its log is retained.
+The retry with that path produces the bound assessment above. Firmware and
+active campaign modules remain unchanged.
 
 Current acceptance amendment, 2026-10-08: the operator explicitly stated that
 QRSS, FSKCW and DFCW are intended for human copy and that having drift is not

@@ -11,6 +11,21 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit,load_workspace_bytes
 
 class Tests(unittest.TestCase):
+    def test_abort_assessment_rejects_extra_rf_and_full_duration(self):
+        import numpy as np
+        from phase14_abort import envelope
+        power=np.zeros(12000);power[2000:4874]=1
+        self.assertTrue(envelope(power,1000,10)['passed'])
+        for case in ('complete','extra','tail','leading','missing'):
+            invalid=power.copy()
+            if case=='complete':invalid[2000:]=1
+            elif case=='extra':invalid[7000:7500]=1
+            elif case=='tail':invalid[8000:8002]=.2
+            elif case=='leading':invalid[:3]=.2
+            else:invalid[:]=0
+            self.assertFalse(envelope(invalid,1000,10)['passed'],case)
+        power[100]=float('nan')
+        with self.assertRaises(ValueError):envelope(power,1000,10)
     def test_maximum_load_waits_for_existing_decoder_and_authority_reserves(self):
         value=job('FSKCW','80m',138000000,'test',128,'max-events')
         needed=load_workspace_bytes(value)
