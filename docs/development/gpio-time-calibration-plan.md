@@ -10,7 +10,7 @@ not firmware implementation, hardware testing, or new release requirements.
 
 | Stage | Question and intended outcome | Decision gate |
 | --- | --- | --- |
-| 1. NTP filtering and UTC discipline | Determine whether existing SNTP observations need filtering and whether correcting the software UTC rate improves start reliability and timekeeping. | Compare existing behavior, bounded filtering, and filtering plus rate discipline. Implement only a demonstrated improvement. |
+| 1. NTP observation quality, filtering and UTC discipline | Assess receive timestamps, network delay and Pico processing latency; determine whether filtering and correcting the software UTC rate improve start reliability and timekeeping. | Compare existing behavior, bounded filtering, and filtering plus rate discipline. Implement only a demonstrated improvement. |
 | 2. NTP-derived Pico calibration | Estimate the Pico oscillator rate from independent raw monotonic/UTC observations, then consider applying a qualified estimate to GPIO carrier generation. | Require stability, an uncertainty bound, and independent RF agreement. Carrier correction and symbol-duration correction are separate slices. |
 | 3. Optional GPS UTC + PPS | Feed validated, UTC-labelled PPS observations into the same time/rate subsystem for better calibration and holdover. | Measure capture error and source-transition behavior before applying corrections or extending holdover. |
 
@@ -25,6 +25,29 @@ maximum source age for launch. Preserve these until evidence supports a revised
 policy. Keep the raw timer monotonic. A future rate-aware UTC mapping must supply
 both forward time projection and inverse UTC-to-alarm conversion. Freeze each
 job's selected RF calibration from preparation through completion.
+
+## Optional local NTP source
+
+WsprryPico must retain standalone time acquisition from its configured NTP
+server; a local WsprryPi installation is optional. Where a WsprryPi host exists
+and its operating-system NTP daemon is configured to serve the Pico, that host
+can provide a local reference whose clock has already been filtered and
+disciplined. Serving NTP is a host service, not a transmitter-application
+function, and installing WsprryPi does not by itself enable that service.
+Another suitably configured local Unix host can provide the same option.
+
+The host can discipline its clock using upstream NTP alone; GPS UTC + PPS can
+strengthen its reference when available. This makes a local host a useful
+Stage 1 comparison source, without establishing the accuracy of any particular
+host or removing LAN/Wi-Fi delay and Pico receive-timestamp/processing error.
+Source quality must still be evaluated before Stage 2 calibration. GPS/PPS on
+the host reaches the Pico through NTP; direct UTC-labelled PPS capture on the
+Pico remains the separate, optional Stage 3.
+
+The existing standalone configuration accepts an NTP server hostname or IPv4
+address and defaults to `pool.ntp.org`. Automatic discovery, preference and
+fallback between local and public servers remain unselected proposals. This
+clarification authorizes no host-service, firmware or campaign changes.
 
 ## Si5351 remains conditional and deferred
 
@@ -82,6 +105,7 @@ reproducible methods, evidence gates and separately authorized Git publication.
 - `src/time/sntp.cpp`: `Sntp::receive`, lines 32-79.
 - `src/time/utc_discipline.cpp`: `observe`/`snapshot`, lines 23-92.
 - `src/standalone/wtp_profile.hpp`: standalone clock/service limits, lines 7-18.
+- `src/standalone/config.hpp`: default time server and configured server field, lines 12 and 24.
 - `src/standalone/scheduler.cpp`: admission/occurrence construction, lines 70-139.
 - `src/rf/waveform.cpp`: nominal sample counts and corrected increments, lines 9-24 and 87-115.
 - `src/phase14/live.py`: existing INFO collection and event recording.
@@ -89,3 +113,7 @@ reproducible methods, evidence gates and separately authorized Git publication.
 See [RFC 5905](https://www.rfc-editor.org/rfc/rfc5905.html), sections 10-12,
 for filtering/clock-discipline concepts. These are design references, not a
 claim that the present restricted SNTP client implements full NTP.
+The [chrony FAQ](https://chrony-project.org/faq.html), sections 2.1-2.3 and 2.7,
+describes host clock discipline, explicitly enabled NTP serving and the limits
+of measurements affected by network delay. It is a design reference, not
+evidence of the historical test host's configuration or accuracy.
