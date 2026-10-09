@@ -13,7 +13,7 @@ import uuid
 from led_closeout.device import Device, Peer
 from phase14.profiles import durable_settings
 from led_closeout.runner import require, sha256
-from phase14.plan import BOARDS, BANDS, job, accepted_events, validate_capture
+from phase14.plan import BOARDS, BANDS, job, accepted_events, validate_capture, capture_elapsed_limit
 
 CAPTURE='/home/pi/wsprrypi-qualification-runs/complete-test-deployment-284c7e04a3fdd079c46e782b/wspq-capture-soapy'
 PICOTOOL='/home/pi/phase11-4-e1/picotool-build/picotool'
@@ -122,8 +122,9 @@ class Rig:
                       center_frequency_hz=BANDS[band]-25000,gain_db=20,channel=0,agc=False,bias_tee=False)
         seconds=math.ceil(int(value['total_duration_ns'])/1e9)+45
         count=seconds*250000
+        capture_limit=capture_elapsed_limit(count,250000)
         argv=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60',str(settings['center_frequency_hz']),
-              str(count),'20','250000','200000','0','false','false','100000',str(seconds+12),
+              str(count),'20','250000','200000','0','false','false','100000',str(capture_limit),
               str(root/'capture.cf32'),str(root/'capture.json'),root.name]
         require(__import__('shutil').disk_usage(root).free>count*8+256*1024*1024,'capture storage')
         record=dict(schema='phase14-physical/1',board=board,serial=BOARDS[board][0],
@@ -145,7 +146,7 @@ class Rig:
         with (root/'receiver.log').open('x') as log:
             try:
                 process=subprocess.Popen(argv,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
-                capture_deadline=time.monotonic()+seconds+12
+                capture_deadline=time.monotonic()+capture_limit+20
                 deadline=time.monotonic()+8
                 while not (root/'capture.cf32.incomplete').exists() or (root/'capture.cf32.incomplete').stat().st_size<65536:
                     require(process.poll() is None and time.monotonic()<deadline,'capture readiness')

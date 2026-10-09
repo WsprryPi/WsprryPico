@@ -11,7 +11,7 @@ import sys
 import time
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src'))
 from phase14.live import Rig,CAPTURE,save
-from phase14.plan import BANDS,validate_capture
+from phase14.plan import BANDS,validate_capture,capture_elapsed_limit
 from led_closeout.runner import require,sha256
 
 
@@ -56,15 +56,17 @@ def main():
         # but the requested ETE, 32 T or alternating 32 E/T workload is much shorter.
         # Cap all invocations.
         seconds=270 if a.mode=='WSPR' else (650 if len(a.message)>3 else 85)
+        capture_limit=capture_elapsed_limit(seconds*250000,250000)
         from phase14_reference import gps
         reference=gps(base-40000)
         settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,center_frequency_hz=base-25000,gain_db=20,channel=0,agc=False,bias_tee=False)
-        command=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60',str(base-25000),str(seconds*250000),'20','250000','200000','0','false','false','100000',str(seconds+12),str(rig.e.root/'capture.cf32'),str(rig.e.root/'capture.json'),'phase14-controller-'+a.mode]
+        command=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60',str(base-25000),str(seconds*250000),'20','250000','200000','0','false','false','100000',str(capture_limit),str(rig.e.root/'capture.cf32'),str(rig.e.root/'capture.json'),'phase14-controller-'+a.mode]
         record=dict(schema='phase14-controller/1',mode=a.mode,band=band,message=a.message,dot_s=a.dot,before=before,firmware_sha256=image['sha256'],source_commit=manifest['source_commit'],
                     controller_command=argv,controller_sha256=sha256(argv[0]),receiver_command=command,
                     receiver_settings=settings,reference=reference,status=[],result='PENDING')
         save(rig.e.root/'result.json',record)
         with (rig.e.root/'receiver.log').open('x') as caplog,(rig.e.root/'controller.log').open('x') as ctrlog:
+            capture_deadline=time.monotonic()+capture_limit+20
             capture=subprocess.Popen(command,stdout=caplog,stderr=subprocess.STDOUT,start_new_session=True)
             deadline=time.monotonic()+8
             while not (rig.e.root/'capture.cf32.incomplete').exists() or (rig.e.root/'capture.cf32.incomplete').stat().st_size<65536:
@@ -96,7 +98,7 @@ def main():
                 require(submitted['mode'].upper()=='WSPR' and frequencies and
                     all(abs(f-base)<=4 for f in frequencies),'actual native WSPR band differs from requested point')
             record['controller_script_sha256']=sha256(__file__)
-            record['after']=rig.idle('A');require(capture.wait(timeout=max(1,end-time.monotonic()+20))==0,'complete capture')
+            record['after']=rig.idle('A');require(capture.wait(timeout=max(1,capture_deadline-time.monotonic()))==0,'complete capture')
             meta=json.loads((rig.e.root/'capture.json').read_text());validate_capture(meta,rig.e.root/'capture.cf32',settings)
             record.update(result='CONTROL_COMPLETE',job_id=current_job,capture_sha256=meta['output']['sha256'],metadata_sha256=sha256(rig.e.root/'capture.json'))
             save(rig.e.root/'result.json',record)

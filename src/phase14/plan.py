@@ -47,6 +47,21 @@ def accepted_events(value, adjustments):
     return result
 
 
+def capture_elapsed_limit(sample_count, sample_rate_hz):
+    """Bound sampling plus CF32 hashing/cleanup; never extend the local RF job.
+
+    The capture helper checks its elapsed limit after hashing and cleanup too.
+    Allow finalization at 32 MiB/s (below the observed roughly 99 MB/s), plus
+    startup/cleanup margin. Small captures retain at least 30 seconds of margin.
+    """
+    if (type(sample_count) is not int or sample_count<=0 or
+        type(sample_rate_hz) is not int or sample_rate_hz<=0):
+        raise ValueError('positive integer capture count and rate required')
+    seconds=(sample_count+sample_rate_hz-1)//sample_rate_hz
+    hashing=(sample_count*8+32*1024*1024-1)//(32*1024*1024)
+    return seconds+max(30,hashing+15)
+
+
 def validate_capture(metadata, iq, expected):
     from pathlib import Path
     import hashlib

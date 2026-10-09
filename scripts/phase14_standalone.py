@@ -14,7 +14,7 @@ import time
 import zlib
 ROOT=Path(__file__).resolve().parents[1];sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.live import Rig,CAPTURE,save
-from phase14.plan import validate_capture
+from phase14.plan import validate_capture,capture_elapsed_limit
 from led_closeout.runner import require,sha256
 
 
@@ -71,8 +71,9 @@ def main():
         reference=gps(3530100)
         seconds=math.ceil(slots[-1]-now)+127
         require(120<=seconds<=530,'finite standalone capture')
+        capture_limit=capture_elapsed_limit(seconds*250000,250000)
         settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,center_frequency_hz=3545100,gain_db=20,channel=0,agc=False,bias_tee=False)
-        argv=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60','3545100',str(seconds*250000),'20','250000','200000','0','false','false','100000',str(seconds+12),str(rig.e.root/'capture.cf32'),str(rig.e.root/'capture.json'),'phase14-standalone']
+        argv=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60','3545100',str(seconds*250000),'20','250000','200000','0','false','false','100000',str(capture_limit),str(rig.e.root/'capture.cf32'),str(rig.e.root/'capture.json'),'phase14-standalone']
         record=dict(schema='phase14-standalone/1',before=before,slots_utc_s=slots,frames=a.frames,
             firmware_sha256=image['sha256'],source_commit=manifest['source_commit'],
             standalone_script_sha256=sha256(__file__),
@@ -81,6 +82,7 @@ def main():
             source_revision=before['revision'],status=[],result='PENDING')
         save(rig.e.root/'result.json',record)
         with (rig.e.root/'receiver.log').open('x') as log:
+            capture_deadline=time.monotonic()+capture_limit+20
             process=subprocess.Popen(argv,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
             end=time.monotonic()+8
             while not (rig.e.root/'capture.cf32.incomplete').exists() or (rig.e.root/'capture.cf32.incomplete').stat().st_size<65536:
@@ -121,7 +123,7 @@ def main():
             restored=rig.device.console('B','CONFIG '+json.dumps(old,separators=(',',':')));changed=False
             require(not restored['enabled'] and not restored['reboot_required'],'original disabled config restored')
             record['after']=rig.idle('B')
-            require(process.wait(timeout=max(1,end-time.monotonic()+20))==0,'complete standalone capture')
+            require(process.wait(timeout=max(1,capture_deadline-time.monotonic()))==0,'complete standalone capture')
             meta=json.loads((rig.e.root/'capture.json').read_text());validate_capture(meta,rig.e.root/'capture.cf32',settings)
             record.update(result='END_STATE_VERIFIED' if a.usb_unavailable else 'CONTROL_COMPLETE',job_ids=expected,capture_sha256=meta['output']['sha256'],metadata_sha256=sha256(rig.e.root/'capture.json'))
             save(rig.e.root/'result.json',record)

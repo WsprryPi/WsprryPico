@@ -21,8 +21,8 @@ not an estimate of elapsed effort). The live finite continuation remains active.
 | 5. Paired Tone/QRSS diagnostic captures | 6/6, plus all separate analyses | 100% |
 | 5. Requested frequency-compensation trials | 6/6 | 100% |
 | 5. Dedicated wideband spectral surveys | 0/4 | 0% |
-| 6. Refreshed ordinary native-controller jobs | 3/12 complete and analyzed | 25% |
-| 6. Additional native WSPR at accepted 160 m point | 0/3, host helper prepared | 0% |
+| 6. Refreshed ordinary native-controller jobs | 12/12 complete and analyzed | 100% of attempts |
+| 6. Additional native WSPR at accepted 160 m point | 0/3, guarded queue waiting | 0% |
 | 6. Maximum-message cases including alternating DFCW | 0/4 | 0% |
 | 6. Eight finite one-hour soak jobs | 0/8 | 0% |
 | 7. Candidate clock images built | 3/3 | 100% |
@@ -137,6 +137,49 @@ retained, and criteria are unchanged. This is an additional qualification case,
 not a restart of independent work. Installed CLI help and local deserialization
 source confirm the frequency interface; syntax/help/diff checks pass. Active
 immutable campaign files and Pico firmware remain unchanged.
+
+The isolated `85e8906` native-low-band snapshot is verified (1,794 archived files),
+source archive SHA-256
+`6ef1beb255d9ab7ff12385b58c70d557137356ea1deb56512c1d34422ed37b2a`,
+coordinator SHA-256
+`cfe6cd930a05607fadbb08588a6689f2bfdb571a1e8c29fbc56bd8312c19dccb`.
+It waits on the exact DFCW supplement PID/start identity and requires its complete
+success receipt before taking board/receiver ownership. At verification it had
+zero RF steps. The active original sequence has completed eight of twelve
+ordinary native jobs; all three QRSS and the first two FSKCW analyses pass human
+copy and resources. Devel now has 37 local commits beyond the starting remote;
+no push has been made and no firmware source changed.
+
+All twelve original ordinary native-controller jobs are now complete and
+analyzed. QRSS, FSKCW and DFCW each have three passing human-copy/resource
+observations (9/9 total). WSPR retains three correct decodes and one full-screen
+pass; its two residual-screen failures are not promoted. The 32-character QRSS
+workload is active. The added 160 m WSPR and alternating 32-character DFCW queues
+remain guarded and unstarted; remaining reliability and release gates stay open.
+
+The first maximum-length QRSS job completed its 567.000001-second local waveform,
+but receiver finalization failed. All 162,500,000 requested samples were retained
+with zero overflows/clipping; the helper's complete-file hash and cleanup took
+its elapsed time to 664.93 s, beyond the configured 662 s limit. The existing
+capture helper checks its deadline after SHA-256 and cleanup and removes failed
+output, so no complete IQ artifact remains for qualification. The original
+failure metadata and controller record remain unchanged. This is acquisition
+failure, not a Pico timing/engine failure or an accepted maximum-message result.
+The coordinator stopped at step 56 after 55 complete steps. Both dependent
+queues stopped with zero RF steps. Original host service is active; both named
+boards report disabled schedules, no owner and inactive output.
+
+An independent fresh five-second quiet capture with healthy simultaneous GPSDO
+reference is 54.926/54.763 dB below the same-setting, current-boot A/B on baselines.
+It verifies receiver-visible inactivity before resumption. New host budgets
+separate RF job duration from sampling and file finalization: nominal sample
+duration plus at least 30 s margin, or CF32 hashing at 32 MiB/s plus 15 s,
+whichever margin is larger. This conservative rate is below the observed roughly
+99 MB/s. Parent waits cover the same helper deadline with 20 s startup margin.
+The 650 s capture budget is now 704 s; a 3,645 s hour-job capture has a 3,878 s
+budget. RF duration, exact sample counts, overflow/clipping and cleanup gates
+are unchanged. All 23 affected portable checks and the configured CTest group
+pass. Only unfinished cases will resume in a fresh immutable tool snapshot.
 
 Current acceptance amendment, 2026-10-08: the operator explicitly stated that
 QRSS, FSKCW and DFCW are intended for human copy and that having drift is not

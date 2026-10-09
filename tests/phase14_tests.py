@@ -8,9 +8,25 @@ import tempfile
 import unittest
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
-from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical
+from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit
 
 class Tests(unittest.TestCase):
+    def test_long_capture_finalization_has_a_separate_finite_budget(self):
+        # Actual failed 650-second acquisition retained every sample, then
+        # hashing/cleanup finished at 664.93 seconds, beyond the old 662 limit.
+        count=162500000
+        observed_complete_s=664.93271909200121
+        self.assertGreater(observed_complete_s,650+12)
+        self.assertGreater(capture_elapsed_limit(count,250000),observed_complete_s)
+        self.assertLess(capture_elapsed_limit(count,250000),800)
+        # A one-hour RF job still requests exactly one hour; only receiver
+        # finalization scales with its ~7.29 GB complete CF32 file.
+        hour_count=(3600+45)*250000
+        self.assertGreater(capture_elapsed_limit(hour_count,250000),3645+hour_count*8/99000000+2)
+        self.assertLess(capture_elapsed_limit(hour_count,250000),4000)
+        self.assertEqual(job('TONE','80m',138000000,'test',3600)['total_duration_ns'],'3600000000000')
+        for invalid in ((0,250000),(True,250000),(count,0),(count,True),(count,'250000')):
+            with self.assertRaises(ValueError):capture_elapsed_limit(*invalid)
     def test_clock_boundaries_and_full_jobs(self):
         rows=matrix();self.assertEqual(len(rows),225)
         self.assertEqual(sum(r['disposition']=='UNSUPPORTED_CONFIGURATION' for r in rows),25)
