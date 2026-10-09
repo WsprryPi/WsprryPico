@@ -19,8 +19,8 @@ closed cases remain closed.
 | 2. Established plan and acceptance record | 1/1 | 100% |
 | 3. Bench identity and tooling preparation | 1/1 | 100% |
 | 4. Main 138 MHz WSPR/keyed matrix attempts | 104/104 rows, 174 finite jobs | 100% of attempts |
-| 4. WSPR external decode acceptance | 42/42 captures; 26/26 tested board/band rows | 100% |
-| 4. WSPR rows with three frames | 8/26; 36 additional frames required | 30.8% |
+| 4. WSPR external decode acceptance | 52/52 captures; 26/26 tested board/band rows | 100% |
+| 4. WSPR rows with three frames | 13/26; 26 additional frames required | 50% |
 | 4. Three-observation human-copy rows | 78/78, all passing, 234 observations | 100% |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
@@ -262,6 +262,26 @@ separate assessment and final inventory. Neither earlier queue was stopped or
 modified; active PID 2312716/start ticks 46309764 is unchanged. The added
 validation allowance is now 2–4 hours, with unresolved cause and original
 failure still explicit; the remaining estimate is 15–25 hours at this checkpoint.
+
+At the 2026-10-09 18:50 UTC checkpoint, all eight original one-hour jobs have
+separate diagnostic analyses. Their per-job resources, comparable idle-growth
+assessment and human-aware RF aggregate pass. The original browser workload
+still fails and the original strict RF composite flags remain unchanged.
+Private assessment `assessment-original-diagnostic.json` has SHA-256
+`7e959f90dcdcb5b5e2a086d78c278c94144f59b2e7b9f4e3e4fb8fce3dff1b24`.
+Its offline analysis took 5,411.30 seconds (90.19 minutes).
+
+The active continuation has moved to its 36 missing main WSPR frames. Ten
+additional frames are verified against immutable analysis/physical/job identities;
+all externally decode and pass their resource assessment. This yields 52/78
+required frames (66.7%) and 13/26 complete three-frame rows (50%). A's 60 m,
+40 m, 30 m, 20 m and 17 m rows gained their two missing observations. The other
+26 additional frames remain queued. Current observed acquisition/analysis throughput
+is about 199 seconds per added frame; remaining capture time is about 1.13 hours,
+plus analysis/finalization. Neither the 2 m/4 m queue nor the memory follow-up
+has started; their verified process identities remain unchanged. No active
+test was interrupted or duplicated. Phase 14 remains at three closed workstreams;
+the refreshed overall estimate is 14–24 hours, including the pending memory check.
 
 The completed independent external-decode reduction rehashes all 42 original
 IQ/metadata pairs, checks source/device/job/analysis identities, verifies each
