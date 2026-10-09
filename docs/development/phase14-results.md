@@ -249,6 +249,20 @@ All 36 affected deterministic tests pass on the Mac, including malformed-window
 rejection and preservation of the original 2,696-byte failure. No firmware build
 input changes in this diagnostic/validation preparation.
 
+The follow-up is now concretely queued from committed host tools `21ef82e`.
+All 36 tests also pass on wspr5. Archive SHA-256 is
+`95c659581a9d227b5e51529b4ddc38247fb00b2b3a5d9ddaf081d38520d9c7dc`,
+with all 1,811 extracted files verified. Finite coordinator SHA-256 is
+`88ab46e03ca640b7637c9a6fd4a6d62be64c684c8a52e4c31e54208a7c432874`.
+PID 2418816/start ticks 48657084 is verified waiting with zero started steps
+for the exact `6443197` coordinator PID 2335036/start ticks 46766222, its
+unchanged script hash and successful conditional five/eight-step boundary.
+It then runs pre-inventory, reference brackets, two finite follow-up jobs,
+separate assessment and final inventory. Neither earlier queue was stopped or
+modified; active PID 2312716/start ticks 46309764 is unchanged. The added
+validation allowance is now 2–4 hours, with unresolved cause and original
+failure still explicit; the remaining estimate is 15–25 hours at this checkpoint.
+
 The completed independent external-decode reduction rehashes all 42 original
 IQ/metadata pairs, checks source/device/job/analysis identities, verifies each
 actual decoder invocation and unchanged wsprd binary, and hashes decoder
