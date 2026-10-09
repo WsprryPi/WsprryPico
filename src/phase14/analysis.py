@@ -20,6 +20,9 @@ def analyze(directory, output_label="analysis"):
     iq,metadata,capture_sha=load_capture(directory/'capture.cf32',directory/'capture.json')
     settings=metadata['actual_settings'];rate=settings['sample_rate_hz'];center=settings['center_frequency_hz']
     frequency=BANDS[physical['band']];mode=physical['mode'];job=physical['accepted_job']
+    if physical.get('output_route'):
+        from phase14.harmonic import measurement_job
+        job=measurement_job(physical)
     import re
     require(re.fullmatch('[a-z][a-z0-9-]{0,63}',output_label),'safe analysis label')
     output=directory/output_label;output.mkdir(mode=0o700)
@@ -83,10 +86,16 @@ def analyze(directory, output_label="analysis"):
              Path(__file__).resolve().parents[2]/'scripts/decode_rf_wspr.py',
              Path(__file__).resolve().with_name('human_copy.py'),
              Path(__file__).resolve().with_name('wspr_decode.py'),
+             Path(__file__).resolve().with_name('harmonic.py'),
              Path(__file__).resolve().parents[1]/'campaign/analysis.py')},
         limitations=['Nominal SDR sample/time scale; no calibrated absolute UTC claim.',
                      'No measured output filter, insertion loss or calibrated source power.',
                      'Screening is not final repeated release acceptance.'])
+    if physical.get('output_route'):
+        from campaign.plan import digest
+        result['output_route']=physical['output_route']
+        result['measurement_job_sha256']=digest(job)
+        result['limitations'].append('Explicit third-harmonic receive-axis trial; firmware still accepts underlying direct frequencies. Native 2 m scheduler/controller frequency mapping is not implemented.')
     infos=[physical['before']]
     for line in (directory.parent/'events.jsonl').read_text().splitlines():
         entry=json.loads(line)

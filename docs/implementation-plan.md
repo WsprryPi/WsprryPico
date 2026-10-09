@@ -142,6 +142,8 @@ treated as long-term product documentation.
     2026-10-09 amendment; residual measurements remain diagnostics. Coverage
     records all candidate bands from 2200 m through 2 m, including explicit
     direct-frequency configuration limits.
+    Actual 2 m harmonic output investigation remains open; rejection of a
+    direct 2 m request does not satisfy its positive RF qualification.
     Si5351 remains deferred.
 
 ## Phase 13 feature backlog

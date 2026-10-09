@@ -24,6 +24,7 @@ evidence reduction and waits for that exact continuation; closed cases remain cl
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
 | 4. 150 MHz/4 m repeated mode rows | 0/10; follow-up prepared | 0% |
 | 4. Direct 2 m boundary checks | 0/30; unarmed checks prepared | 0% |
+| 4. Actual 2 m third-harmonic mode/clock rows | 0/30; trial prepared | 0% |
 | 5. Main timing/capture analyses | 174/174 | 100% |
 | 5. Paired Tone/QRSS diagnostic captures | 6/6, plus all separate analyses | 100% |
 | 5. Requested frequency-compensation trials | 6/6 | 100% |
@@ -86,6 +87,19 @@ acquires only missing accepted repetitions. It also checks all five direct
 configuration checks with no ARM attempt. An unexpectedly admitted LOAD is
 aborted and released. These checks establish the current firmware boundary,
 rather than a physical impossibility of generating a harmonic/image at 2 m.
+
+The operator subsequently challenged treating this direct limitation as
+exclusion of 2 m. Actual 2 m output is an open engineering/qualification item,
+rather than completed coverage through rejection alone. The prepared host-only
+third-harmonic trial submits a 48.1635 MHz complete job and receives at
+144.4905 MHz. Frequency-state spacing is divided by three before LOAD; accepted
+frequencies are multiplied by three in the measurement expectation. Timings and
+captured IQ/audio remain unchanged. WSPR is decoded at the actual 2 m receiver
+tune. Both boards/all three clocks are covered, with missing repetitions of
+passing 138 MHz rows acquired in the same finite batch. Existing firmware and
+its direct-frequency API are unchanged; native standalone/controller 2 m
+frequency routing remains unimplemented and cannot be claimed from this trial.
+No 2 m RF transmission has been performed yet.
 
 The original soak's four B jobs made 290-292 successful browser requests
 per hour, below the frozen 300-request minimum despite spanning the full hour.

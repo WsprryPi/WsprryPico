@@ -126,6 +126,9 @@ def validate_physical(value):
         raise ValueError('declared mode differs from submitted job')
     if accepted!=accepted_events(submitted,value['load']['adjustments']):
         raise ValueError('accepted workload binding')
+    if 'output_route' in value:
+        from phase14.harmonic import measurement_job
+        measurement_job(value)
     if not re.fullmatch('[0-9a-f]{32}',submitted['job_id']):
         raise ValueError('submitted job identity')
     if value['load']['job_id']!=submitted['job_id'] or value['arm']['job_id']!=submitted['job_id']:

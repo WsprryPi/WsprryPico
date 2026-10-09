@@ -34,8 +34,8 @@ are inherited from the Phase 11.6 plan (2200 m through 2 m). At 132/138 MHz,
 4 m and 2 m are unsupported for direct synthesis. At 150 MHz, 4 m is a synthesis
 candidate and direct 2 m remains unsupported. Every band through 2 m remains
 in the coverage record: a source limit requires an explicit unsupported
-disposition, rather than omission or a failed decode. Harmonic output, if
-investigated, requires a separately identified output route and does not
+disposition, rather than omission or a failed decode. Harmonic output requires
+a separately identified output route and does not
 establish native direct-frequency support. Representability alone is not release support.
 Modes are Tone, WSPR, QRSS, FSKCW and DFCW. DFCW retains dot-high/dash-low.
 
@@ -128,6 +128,21 @@ the direct 2 m boundary using finite unarmed LOAD requests on both boards at
 each supported clock; an unexpected admission must be aborted and released.
 This checks the advertised implementation limit and does not declare harmonic
 or image output physically impossible.
+
+The operator's 2026-10-09 clarification requires investigation of actual 2 m
+output rather than stopping at direct-frequency rejection. Run a finite,
+explicit third-harmonic trial: nominal engine base 48.1635 MHz, measured output
+144.4905 MHz. Divide WSPR tone spacing and QRSS-family frequency shifts by three
+in the submitted complete job; preserve symbol/mark/gap timing. Multiply accepted
+engine frequencies by three only for the RF measurement's expected-state axis.
+Tune the SDR and simultaneous GPSDO reference to the actual 2 m region. Use
+unmodified captured IQ/audio and the same external-decode/human-copy criteria.
+Compare both boards at all three clocks; at 138 MHz acquire three observations
+of each passing WSPR/keyed row and one Tone. Preserve unsuccessful observations.
+This trial does not change firmware, advertise native 2 m requests, qualify an
+operator filter, or establish standalone 2 m mapping. Positive RF results require
+an explicit application frequency-routing implementation before native 2 m can
+be declared supported; the direct rejection checks remain separate boundary evidence.
 
 Retain raw phase/timing/spectral measurements even when a historical analyzer's
 composite flag fails. Investigate receiver artifacts with retuning/gain/reference-

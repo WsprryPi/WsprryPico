@@ -11,6 +11,41 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit,load_workspace_bytes
 
 class Tests(unittest.TestCase):
+    def test_harmonic_trial_scales_frequency_states_without_changing_time_or_symbols(self):
+        from phase14.harmonic import trial_job,measurement_job,ROUTE
+        from campaign.plan import make_job,GOLDEN37
+        for clock in (132000000,138000000,150000000):
+            for mode in ('TONE','WSPR','QRSS','FSKCW','DFCW'):
+                direct=make_job(mode,48163500,sample_rate_hz=clock,keyed_dot_ns=3000000000)
+                value=trial_job(mode,clock,'test')
+                self.assertEqual(value['total_duration_ns'],direct['total_duration_ns'])
+                self.assertEqual([(e['offset_ns'],e['duration_ns'],e['rf_on']) for e in value['events']],
+                    [(e['offset_ns'],e['duration_ns'],e['rf_on']) for e in direct['events']])
+                physical=dict(band='2m',mode=mode,clock_hz=clock,output_route=copy.deepcopy(ROUTE),job=value,
+                    accepted_job=copy.deepcopy(value),load=dict(adjustments=[]),action='complete')
+                received=measurement_job(physical)
+                self.assertEqual(received['job_id'],value['job_id'])
+                if mode=='WSPR':
+                    self.assertEqual([int(e['frequency_nhz']) for e in received['events']],
+                        [144490500000000000+int(s)*1464843750 for s in GOLDEN37])
+                    self.assertEqual(value['total_duration_ns'],'110592000000')
+                if mode in ('FSKCW','DFCW'):
+                    frequencies={int(e['frequency_nhz']) for e in received['events'] if e['rf_on']}
+                    self.assertEqual(max(frequencies)-min(frequencies),5000000001)
+                changed=copy.deepcopy(physical);first=next(i for i,e in enumerate(value['events']) if e['rf_on'])
+                before=value['events'][first]['frequency_nhz'];after=str(int(before)+20000000)
+                changed['load']['adjustments']=[dict(event_index=first,requested_frequency_nhz=before,realized_frequency_nhz=after)]
+                changed['accepted_job']=accepted_events(value,changed['load']['adjustments'])
+                self.assertEqual(measurement_job(changed)['events'][first]['frequency_nhz'],str(3*int(after)))
+                for case in ('route','band','waveform','accepted','compensation','native_flag'):
+                    changed=copy.deepcopy(physical)
+                    if case=='route':changed['output_route']['harmonic']=5
+                    elif case=='band':changed['band']='6m'
+                    elif case=='waveform':changed['job']['events'][first]['duration_ns']='1'
+                    elif case=='accepted':changed['accepted_job']['events'][first]['frequency_nhz']='1'
+                    elif case=='compensation':changed['requested_frequency_compensation_ppb']=1500
+                    else:changed['output_route']['native_output_frequency_api']=0
+                    with self.assertRaises(ValueError):measurement_job(changed)
     def test_direct_2m_rejection_never_arms_and_cleans_unexpected_load(self):
         from phase14_upper_band import reject_2m
         from unittest.mock import Mock,patch
@@ -491,6 +526,18 @@ class Tests(unittest.TestCase):
             self.assertEqual(row['disposition'],'HUMAN_COPY_SCREEN_PASS_RELEASE_UNQUALIFIED')
             self.assertEqual(row['legacy_screen_disposition'],'SCREEN_FAIL')
             self.assertNotIn('must never be exported',json.dumps(value))
+            from phase14.harmonic import ROUTE
+            v['band']='2m';v['output_route']=copy.deepcopy(ROUTE);physical.write_text(json.dumps(v))
+            report['band']='2m';report['output_route']=copy.deepcopy(ROUTE)
+            report['physical_sha256']=hashlib.sha256(physical.read_bytes()).hexdigest();path.write_text(json.dumps(report))
+            value=collect(root,'a'*12)
+            row=next(r for r in value['matrix'] if r['band']=='2m' and r['mode']=='QRSS' and r['clock_hz']==138000000)
+            self.assertEqual(row['observations'],[])
+            self.assertEqual(row['disposition'],'UNSUPPORTED_CONFIGURATION')
+            self.assertEqual(value['harmonic_output_observations'],[0])
+            changed=copy.deepcopy(report);changed['output_route']['harmonic']=5;path.write_text(json.dumps(changed))
+            with self.assertRaises(ValueError):collect(root,'a'*12)
+            path.write_text(json.dumps(report))
             path=root/'0/analysis/result.json';report=json.loads(path.read_text());report['board']='B';path.write_text(json.dumps(report))
             with self.assertRaises(ValueError):collect(root,'a'*12)
     def test_soak_growth_rejects_leak_and_unstable_idle(self):

@@ -27,12 +27,14 @@ def collect(root,source_revision=None):
             engine_frequency_correction_ppb=value.get('engine_frequency_correction_ppb',0),
             requested_frequency_compensation_ppb=value.get('requested_frequency_compensation_ppb',0))
         attempts.append(attempt)
+        if value.get('output_route'):attempt['output_route']=value['output_route']
         analyses=sorted(path.parent.glob('analysis*/result.json'))
         for analysis in analyses:
             report=json.loads(analysis.read_text())
             if report['physical_sha256']!=attempt['sha256']:raise ValueError('analysis/physical substitution')
             if any(report[key]!=attempt[key] for key in ('board','band','mode','clock_hz','source_revision','firmware_sha256','boot_id','job_id')):
                 raise ValueError('analysis candidate/job substitution')
+            if report.get('output_route')!=value.get('output_route'):raise ValueError('analysis output-route substitution')
             m=report.get('measurement',report);fits=m.get('measurements',[])
             observation=dict(attempt_path=attempt['path'],analysis_path=str(analysis.relative_to(root)),
                 analysis_sha256=digest(analysis),disposition=report['disposition'],board=report['board'],
@@ -44,6 +46,7 @@ def collect(root,source_revision=None):
                 capture_sha256=report['capture_sha256'],metadata_sha256=report['metadata_sha256'],
                 decoded=report.get('decoded'),issues=m.get('issues',[]),spectrum=report.get('spectrum'),
                 resources=report.get('resources'),limitations=report['limitations'],tools=report['tools'])
+            if report.get('output_route'):observation['output_route']=report['output_route']
             if report['mode']=='WSPR':
                 receipt=analysis.parent/'decode.json';stdout=analysis.parent/'wsprd.stdout'
                 if receipt.exists() and stdout.exists():
@@ -71,6 +74,7 @@ def collect(root,source_revision=None):
     for row in rows:
         row['observations']=[n for n,v in enumerate(observations) if all(v[k]==row[k] for k in ('band','mode','clock_hz')) and
             v['action']=='complete' and v['workload']=='normal' and v['engine_frequency_correction_ppb']==0 and
+            'output_route' not in v and
             v['requested_frequency_compensation_ppb']==0 and (source_revision is None or v['source_revision']==source_revision)]
         if row['disposition']!='UNSUPPORTED_CONFIGURATION' and row['observations']:
             # Operational screens are checkpoints; this index cannot promote release support.
@@ -93,7 +97,8 @@ def collect(root,source_revision=None):
         path='each Pico GP2 and GPSDO -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no LPF',
         filtering_responsibility='operator',selected_matrix_source_revision=source_revision,
         matrix_policy='Baseline natural-completion normal workloads with zero correction/compensation only; all historical and special-workload observations remain separately retained.',
-        attempts=attempts,observations=observations,matrix=rows)
+        attempts=attempts,observations=observations,matrix=rows,
+        harmonic_output_observations=[n for n,v in enumerate(observations) if 'output_route' in v])
 
 
 def main():

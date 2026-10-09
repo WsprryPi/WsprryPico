@@ -97,7 +97,14 @@ class Rig:
         return {b:dict(revision=v['info']['revision'],clock=v['info']['system_clock_hz'],
                        engine=v['info']['status']['engine'],state=v['responses']['STATUS']['state'])
                 for b,v in values.items()}
-    def execute(self,board,clock,band,mode,sequence,*,duration=None,action='complete',image_hash=None,workload='normal',browser_credentials=None,clock_loss=False,request_compensation_ppb=0):
+    def execute(self,board,clock,band,mode,sequence,*,duration=None,action='complete',image_hash=None,workload='normal',browser_credentials=None,clock_loss=False,request_compensation_ppb=0,output_harmonic=1):
+        require(type(output_harmonic) is int and output_harmonic in (1,3),'explicit supported output route')
+        route=None
+        if output_harmonic==3:
+            require(band=='2m' and duration is None and action=='complete' and workload=='normal' and
+                browser_credentials is None and not clock_loss and request_compensation_ppb==0,'bounded unmodified 2 m harmonic trial')
+            from phase14.harmonic import trial_job,ROUTE
+            route=dict(ROUTE)
         root=self.e.root/(str(sequence)+'-'+board+'-'+str(clock)+'-'+band+'-'+mode)
         root.mkdir(mode=0o700)
         before=self.idle(board);peer=self.device.peer(board)
@@ -115,7 +122,7 @@ class Rig:
             require(before['provisioning_source']=='provisioned','browser workload requires engineering profile')
             from phase14.browser import Browser
             browser=Browser(browser_credentials,before)
-        value=job(mode,band,clock,uuid.uuid4().hex,duration,workload)
+        value=(trial_job(mode,clock,uuid.uuid4().hex) if route else job(mode,band,clock,uuid.uuid4().hex,duration,workload))
         from phase14.calibration import request_compensated
         value=request_compensated(value,request_compensation_ppb)
         admission=None
@@ -160,6 +167,7 @@ class Rig:
             band=band,mode=mode,workload=workload,job=value,reference=reference,receiver_command=argv,receiver_helper_sha256=sha256(CAPTURE),
             receiver_settings=settings,action=action,result='PENDING',status=[],before=before,
             path='each source -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no LPF; operator-owned filtering')
+        if route:record['output_route']=route
         save(root/'physical.json',record)
         block=None
         if clock_loss:
