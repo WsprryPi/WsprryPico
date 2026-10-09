@@ -16,10 +16,24 @@ from led_closeout.runner import require
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
-    p.add_argument('--browser-credentials',type=Path,required=True);a=p.parse_args()
+    p.add_argument('--browser-credentials',type=Path,required=True)
+    p.add_argument('--resume-rows',type=Path);a=p.parse_args()
     require(os.geteuid()==0 and sys.platform.startswith('linux'),'Linux exclusive bench owner')
     require(a.output.resolve().is_relative_to((ROOT/'build').resolve()),'private evidence')
-    os.umask(0o077);a.output.mkdir(parents=True,exist_ok=False,mode=0o700);rows=[]
+    rows=[]
+    if a.resume_rows:
+        from phase14.clock_resume import resume_rows
+        manifests={clock:candidate(ROOT,clock) for clock in (132000000,150000000)}
+        require(len({v[0]['source_commit'] for v in manifests.values()})==1,'clock candidates differ in source')
+        rows=resume_rows(a.resume_rows,manifests[132000000][0]['source_commit'],
+                         {clock:value[1]['sha256'] for clock,value in manifests.items()})
+    reused={(r['board'],r['clock_hz'],r['band'],r['mode']) for r in rows}
+    os.umask(0o077);a.output.mkdir(parents=True,exist_ok=False,mode=0o700)
+    if a.resume_rows:
+        from led_closeout.runner import sha256
+        save(a.output/'resumption.json',dict(rows_sha256=sha256(a.resume_rows),rows_path=str(a.resume_rows.resolve()),
+            reused_rows=len(rows),original_evidence_unchanged=True,release_qualified=False))
+        save(a.output/'rows.json',rows)
     def interrupted(signum,frame):
         signal.signal(signum,signal.SIG_IGN);raise InterruptedError('signal '+str(signum))
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
@@ -33,9 +47,11 @@ def main():
                 for band,frequency in BANDS.items():
                     if frequency>=clock//2-6:
                         for mode in ('TONE','WSPR','QRSS','FSKCW','DFCW'):
+                            if (board,clock,band,mode) in reused:continue
                             rows.append(dict(board=board,clock_hz=clock,band=band,mode=mode,disposition='UNSUPPORTED_CONFIGURATION'))
                         save(a.output/'rows.json',rows);continue
                     for mode in ('TONE','WSPR','QRSS','FSKCW','DFCW'):
+                        if (board,clock,band,mode) in reused:continue
                         sequence+=1
                         try:directory=rig.execute(board,clock,band,mode,sequence,image_hash=image['sha256'])
                         except (ValueError,TimeoutError,ConnectionError) as error:
@@ -52,6 +68,7 @@ def main():
                                 report=json.loads((directory/'analysis-clock-comparison/result.json').read_text())
                                 row=dict(board=board,clock_hz=clock,band=band,mode=mode,path=str(directory),
                                     disposition=report['disposition'],human_copy=report.get('human_copy'),resources=report['resources'],release_qualified=False)
+                                row['path']=str(directory.resolve())
                                 if mode=='WSPR':
                                     row['legacy_screen_disposition']=row['disposition']
                                     row['wspr_decode_acceptance']=report['wspr_decode_acceptance']

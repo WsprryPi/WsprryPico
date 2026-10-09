@@ -11,6 +11,58 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit,load_workspace_bytes
 
 class Tests(unittest.TestCase):
+    def test_clock_resume_rehashes_closed_evidence_and_rejects_substitutions(self):
+        from phase14.clock_resume import resume_rows
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);campaign=root/'build/clocks';folder=campaign/'132-A/1';folder.mkdir(parents=True)
+            tool=root/'src/tool.py';tool.parent.mkdir();tool.write_text('original')
+            digest=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+            iq=folder/'capture.cf32';iq.write_bytes(b'\0'*80)
+            settings=dict(format='CF32',sample_rate_hz=250000)
+            metadata=dict(resolved_device=dict(driver='sdrplay',serial='2404058C60'),actual_settings=settings,
+                overflow_count=0,clipping=dict(sample_count=0),primary_outcome='success',cleanup=dict(outcome='verified'),
+                retained_sample_count=10,requested_sample_count=10,output=dict(complete=True,size_bytes=80,sha256=digest(iq)))
+            meta=folder/'capture.json';meta.write_text(json.dumps(metadata))
+            physical=dict(board='A',clock_hz=132000000,band='80m',mode='TONE',boot_id='a'*32,
+                source_revision='c'*12,firmware_sha256='b'*64,action='complete',job=dict(job_id='d'*32),
+                receiver_settings=settings,capture_sha256=digest(iq),metadata_sha256=digest(meta))
+            physical_path=folder/'physical.json';physical_path.write_text(json.dumps(physical))
+            report={k:physical[k] for k in ('board','clock_hz','band','mode','boot_id','source_revision','firmware_sha256')}
+            report.update(physical_sha256=digest(physical_path),capture_sha256=digest(iq),metadata_sha256=digest(meta),
+                job_id='d'*32,tools={'src/tool.py':digest(tool)},disposition='OPERATIONAL_SCREEN_PASS',resources={'passed':True})
+            analysis=folder/'analysis-clock-comparison/result.json';analysis.parent.mkdir();analysis.write_text(json.dumps(report))
+            row=dict(board='A',clock_hz=132000000,band='80m',mode='TONE',path='build/clocks/132-A/1')
+            rows=campaign/'rows.json';rows.write_text(json.dumps([row]))
+            with patch('phase14.clock_resume.validate_physical',side_effect=lambda v:v):
+                restored=resume_rows(rows,'c'*40,{132000000:'b'*64})
+                self.assertEqual(restored[0]['path'],str(folder.resolve()))
+                self.assertEqual(restored[0]['reused_analysis_sha256'],digest(analysis))
+                for changed in ([row,row],[dict(row,board='B')],[dict(row,path='../escape')]):
+                    rows.write_text(json.dumps(changed))
+                    with self.assertRaises(ValueError):resume_rows(rows,'c'*40,{132000000:'b'*64})
+                rows.write_text(json.dumps([row]))
+                with self.assertRaises(ValueError):resume_rows(rows,'e'*40,{132000000:'b'*64})
+                with self.assertRaises(ValueError):resume_rows(rows,'c'*40,{132000000:'e'*64})
+                for target,content in ((iq,b'\1'*80),(tool,b'changed'),
+                    (analysis,json.dumps(dict(report,job_id='e'*32)).encode()),
+                    (physical_path,json.dumps(dict(physical,action='abort')).encode())):
+                    old=target.read_bytes();target.write_bytes(content)
+                    with self.assertRaises(ValueError):resume_rows(rows,'c'*40,{132000000:'b'*64})
+                    target.write_bytes(old)
+
+    def test_clock_resume_cannot_skip_a_supported_row_as_unsupported(self):
+        from phase14.clock_resume import resume_rows
+        with tempfile.TemporaryDirectory() as temporary:
+            campaign=Path(temporary)/'build/clocks';campaign.mkdir(parents=True)
+            path=campaign/'rows.json'
+            row=dict(board='A',clock_hz=132000000,band='2m',mode='WSPR',disposition='UNSUPPORTED_CONFIGURATION')
+            path.write_text(json.dumps([row]))
+            self.assertEqual(resume_rows(path,'c'*40,{}),[row])
+            for changed in (dict(row,band='80m'),dict(row,path='fake'),dict(row,disposition='OPERATIONAL_SCREEN_PASS')):
+                path.write_text(json.dumps([changed]))
+                with self.assertRaises(ValueError):resume_rows(path,'c'*40,{})
+
     def test_idle_growth_followup_keeps_threshold_and_rejects_invalid_windows(self):
         from phase14_idle_growth import compare
         self.assertTrue(compare([[39316,39308,39308],[39324,39324,39316]])['passed'])

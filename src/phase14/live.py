@@ -263,12 +263,18 @@ class Rig:
                         peer=self.device.peer(board);claimed=False
                 if terminal['owner_id'] is None:
                     claimed=False
-                if claimed:
+                if claimed and terminal['state']!='failed':
                     peer.request('RELEASE',{});claimed=False
-                after=self.idle(board)
+                # Failed is latched by the WTP contract. Retain the actual
+                # terminal and finish its receiver evidence before local recovery.
+                # RELEASE would be invalid and would mask the original fault.
+                after=self.info(board) if terminal['state']=='failed' else self.idle(board)
+                if terminal['state']=='failed':
+                    record['terminal_error']=next((v.get('error') for v in terminal.get('terminal_records',[])
+                        if v['job_id']==value['job_id']),None)
                 record['after']=after
-                # No owned job remains. Offline IQ analysis may exceed the listener's
-                # idle timeout, so release this transport and negotiate afresh next job.
+                # Close this transport before offline analysis. A failed job
+                # remains latched for identity-bound local recovery.
                 self.device.close_peer(board)
                 # Finish the planned receiver capture with its trailing quiet.
                 require(process.wait(timeout=max(1,capture_deadline-time.monotonic()))==0,'capture failed')

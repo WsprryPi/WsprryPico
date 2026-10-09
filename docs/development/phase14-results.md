@@ -6,12 +6,12 @@ No Phase 14 release support is claimed at this checkpoint.
 ## Numeric progress checkpoint
 
 Three of the nine original workstreams are complete (33.3% by workstream count,
-not an estimate of elapsed effort). The finite `2fdfdf8` continuation is active
-after the original eight-hour soak closed and its browser-load assessment
-failed. The independent WSPR evidence reduction is complete. Its original
-waiting upper-band queue was replaced before any RF work by `6443197`, which
-starts with a 2 m WSPR pilot and conditionally expands to the full harmonic trial;
-closed cases remain closed.
+not an estimate of elapsed effort). At the 2026-10-09 22:47 UTC checkpoint,
+the finite `2fdfdf8` continuation has stopped on A's 17 m DFCW completion at
+132 MHz after 44 completed comparison rows. Both dependent queues stopped
+without beginning RF work. The failure and all completed evidence remain
+preserved. A bounded same-image recovery diagnostic is running before the
+remaining clock, Tone, pilot/upper-band and memory cases are resumed.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
@@ -23,6 +23,7 @@ closed cases remain closed.
 | 4. WSPR rows with three frames | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows | 78/78, all passing, 234 observations | 100% |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
+| 4. Alternative-clock physical rows | 44/270 complete; one additional failed attempt | 16.3% |
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
 | 4. 150 MHz/4 m repeated mode rows | 0/10; follow-up prepared | 0% |
 | 4. Direct 2 m boundary checks | 0/30; unarmed checks prepared | 0% |
@@ -307,6 +308,47 @@ The same finite coordinator is now running alternate clocks (six initial
 132 MHz/A rows complete at inspection). Both dependent queues remain waiting;
 memory validation, remaining clock/band coverage and final release work remain
 open. The refreshed overall estimate is 12–22 hours; three workstreams are closed.
+
+At the 2026-10-09 22:47 UTC inspection, the clock comparison had stopped after
+44 completed A/132 MHz rows: nine Tone screens, nine expected-message WSPR
+decodes, 26 human-copy results and all 44 resource assessments pass. Eleven
+legacy keyed residual/phase flags remain diagnostics. The next 17 m DFCW job
+(`795c72945bea5f8f06450df7e1ad4090`, boot
+`ba1515d7709465b1915075fa1b8e7741`) reached `failed` with `DEVICE_FAULT` and
+`output_active=false`. RELEASE was correctly rejected in this latched state.
+No engine diagnostic or DMA-error increment identifies its cause. Its terminal
+timestamp is 109 microseconds after the reported launch plus the requested
+17-second duration; this is an observation, not a proved completion-race diagnosis.
+
+The closed coordinator boundary hashes are `2fdfdf8`
+`bba41f5080e14c495cbc60830fdb720c2a128c1a6055ec0853229880cde4181f`,
+`6443197` `c8c13924f80edeb6a9fcec9f1cfb058f3c9f0393a7f4c451a0198aa92406351c`
+and `21ef82e` `2c85e482cbf7cdec15f24b68c45c15690ff7bd4aaac546e4d74450e4fcffeb9a`.
+Both dependent coordinators started zero steps. Preserved failed physical
+receipt SHA-256 is
+`4040ce0b2a9f7de493105a533f446f07ee1304127d648ef3a2429e011e1f79f2`;
+its incomplete IQ file is retained with SHA-256
+`7617f4d6a281b81e3788a2d71069e5b71a1e31c04e91998301710712fe418b20`.
+The 44-row snapshot has SHA-256
+`81f8304524bb57d221cf576b94fcf0536a6fcee5fc17fcddd2af114f52ce420e`.
+
+A locked receiver-visible check found 57.38 dB on-to-quiet contrast relative to
+the preceding same-boot, same-setting 17 m FSKCW capture. After ownership expired,
+ordinary Console REBOOT recovered A without changing its bd45 source, 132 MHz
+clock or durable settings. A finite three-job 17 m DFCW diagnostic is running;
+its first observation completes and passes human-copy/resources. A repeated
+success does not erase the original fault or establish its cause. The first
+diagnostic attempt stopped on an offline interval-field lookup before reboot
+or RF; that attempt and its quiet capture also remain preserved.
+
+The host adapter now retains a failed terminal and finishes the planned capture
+before recovery, instead of masking the fault with an invalid RELEASE. The
+clock runner can resume into a new evidence directory: it rehashes raw IQ,
+metadata, physical receipts, analyses and their original tools before reusing
+closed rows, rejects identity/path/source/workload substitutions and duplicate
+entries, and reacquires only missing rows. Existing failed evidence is not
+rewritten. All 38 affected deterministic host tests pass. These host changes do
+not change firmware inputs or claim that the completion fault is repaired.
 
 The completed independent external-decode reduction rehashes all 42 original
 IQ/metadata pairs, checks source/device/job/analysis identities, verifies each
