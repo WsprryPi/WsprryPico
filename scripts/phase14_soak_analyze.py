@@ -30,6 +30,18 @@ def idle_growth(windows):
         method='Compare median of three samples after identical 45-second idle; reject spreads or positive growth above 1024 bytes.')
 
 
+def browser_load(times):
+    if (any(type(t) is not int or not 0<t<2**64 for t in times) or
+        any(a>=b for a,b in zip(times,times[1:]))):
+        raise ValueError('strictly ordered browser response timestamps required')
+    span=times[-1]-times[0] if times else 0
+    issues=[]
+    if len(times)<300:issues.append('fewer than 300 successful browser requests')
+    if span<3500000000000:issues.append('browser activity spans less than 3500 seconds')
+    return dict(passed=not issues,issues=issues,requests=len(times),span_ns=span,
+                required_requests=300,required_span_ns=3500000000000)
+
+
 def assess(directory,analysis_name='analysis-soak',assessment_name='assessment'):
     from phase14.analysis import analyze
     from phase14.plan import validate_physical,resources
@@ -57,11 +69,13 @@ def assess(directory,analysis_name='analysis-soak',assessment_name='assessment')
         require(len(physical['accepted_job']['events'])==(512 if mode=='FSKCW' else 1),'soak event limit workload')
         require(board not in boots or boots[board]==physical['boot_id'],'soak board restarted')
         boots[board]=physical['boot_id']
+        browser_assessment=None
         if board=='B':
-            require(item['browser_requests']==len(physical['browser_activity']) and item['browser_requests']>=300,
-                'sustained browser activity absent')
-            times=[v['utc_ns'] for v in physical['browser_activity']]
-            require(times[-1]-times[0]>=3500000000000,'browser activity does not span the hour')
+            require(item['browser_requests']==len(physical['browser_activity']),
+                'browser activity count substitution')
+            require(all(v['response']['status']==200 for v in physical['browser_activity']),
+                'browser response failure')
+            browser_assessment=browser_load([v['utc_ns'] for v in physical['browser_activity']])
         output=path/analysis_name/'result.json'
         if not output.exists():analyze(path,analysis_name)
         report=json.loads(output.read_text())
@@ -85,6 +99,7 @@ def assess(directory,analysis_name='analysis-soak',assessment_name='assessment')
         reports.append(dict(index=index,board=board,mode=mode,physical_sha256=sha256(path/'physical.json'),
             analysis_sha256=sha256(output),disposition=report['disposition'],resources=report['resources'],
             idle_resources=idle_resources,idle_sha256=sha256(idle_path),browser_requests=item['browser_requests'],
+            browser_load=browser_assessment,
             human_copy=report.get('human_copy'),
             waveform_issues=report.get('measurement',report).get('issues',[])))
     growth=idle_growth(windows)
@@ -92,6 +107,7 @@ def assess(directory,analysis_name='analysis-soak',assessment_name='assessment')
         firmware_sha256=summary['firmware_sha256'],summary_sha256=sha256(directory/'result.json'),
         script_sha256=sha256(__file__),jobs=reports,idle_growth=growth,
         resources_passed=growth['passed'] and all(r['resources']['passed'] and r['idle_resources']['passed'] for r in reports),
+        browser_load_passed=all(r['browser_load']['passed'] for r in reports if r['board']=='B'),
         all_rf_screens_passed=all(r['disposition']=='OPERATIONAL_SCREEN_PASS' for r in reports),
         all_rf_human_aware_screens_passed=(all(r['human_copy']['overall_screen_passed'] if r['mode']=='FSKCW' else
             r['disposition']=='OPERATIONAL_SCREEN_PASS' for r in reports) if
@@ -99,7 +115,7 @@ def assess(directory,analysis_name='analysis-soak',assessment_name='assessment')
         release_qualified=False)
     output=directory/(assessment_name+'.json');require(not output.exists(),'immutable soak assessment already exists')
     save(output,result)
-    return {k:result[k] for k in ('resources_passed','all_rf_screens_passed','all_rf_human_aware_screens_passed','release_qualified')}
+    return {k:result[k] for k in ('resources_passed','browser_load_passed','all_rf_screens_passed','all_rf_human_aware_screens_passed','release_qualified')}
 
 
 if __name__=='__main__':

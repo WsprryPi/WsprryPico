@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bounded adaptive 138 MHz mode acceptance; failed screens stop that expensive row."""
+"""Bounded 138 MHz acceptance using operator-selected decode and human-copy criteria."""
 import argparse
 import json
 import os
@@ -59,13 +59,15 @@ def main():
                             result=dict(board=board,band=band,mode=mode,clock_hz=138000000,
                                         disposition='ANALYSIS_UNRESOLVED',error=str(error))
                             save(directory/'analysis-unresolved.json',result)
-                        dispositions.append(result['disposition'])
+                        disposition=(('WSPR_EXTERNAL_DECODE_PASS' if result.get('wspr_decode_passed') is True else 'WSPR_EXTERNAL_DECODE_FAIL')
+                            if mode=='WSPR' else ('HUMAN_COPY_SCREEN_PASS' if result.get('human_copy_passed') is True else 'HUMAN_COPY_SCREEN_FAIL'))
+                        dispositions.append(disposition)
                         print(json.dumps(result),flush=True)
                         # Initial 80 m WSPR settling repeats are explicitly required.
-                        if result['disposition']!='OPERATIONAL_SCREEN_PASS' and not (band=='80m' and mode=='WSPR'):
+                        if disposition not in ('HUMAN_COPY_SCREEN_PASS','WSPR_EXTERNAL_DECODE_PASS') and not (band=='80m' and mode=='WSPR'):
                             break
                     row=dict(board=board,band=band,mode=mode,clock_hz=138000000,dispositions=dispositions,
-                             result='REPEATED_SCREEN_PASS' if len(dispositions)==3 and all(x=='OPERATIONAL_SCREEN_PASS' for x in dispositions) else 'FAILED_SCREEN_EXCLUDED',
+                             result='REPEATED_SCREEN_PASS' if len(dispositions)==3 and all(x in ('HUMAN_COPY_SCREEN_PASS','WSPR_EXTERNAL_DECODE_PASS') for x in dispositions) else 'FAILED_SCREEN_EXCLUDED',
                              release_qualified=False)
                     results.append(row);save(a.output/'rows.json',results)
             rig.inventory([board])

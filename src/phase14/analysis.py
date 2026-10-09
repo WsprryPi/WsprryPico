@@ -37,6 +37,8 @@ def analyze(directory, output_label="analysis"):
         require((output/'decode.json').exists(),'independent decoder result absent')
         result['decode']=json.loads((output/'decode.json').read_text())
         result['decoder_sha256']=sha256('/usr/bin/wsprd')
+        from phase14.wspr_decode import assess
+        result['wspr_decode_acceptance']=assess(result,result['decode'],(output/'wsprd.stdout').read_text())
     else:
         result=established.keyed(iq,rate,center,frequency,job)
         from phase14.human_copy import assess
@@ -80,6 +82,7 @@ def analyze(directory, output_label="analysis"):
              Path(__file__).resolve().parents[2]/'scripts/analyze_rf_bench.py',
              Path(__file__).resolve().parents[2]/'scripts/decode_rf_wspr.py',
              Path(__file__).resolve().with_name('human_copy.py'),
+             Path(__file__).resolve().with_name('wspr_decode.py'),
              Path(__file__).resolve().parents[1]/'campaign/analysis.py')},
         limitations=['Nominal SDR sample/time scale; no calibrated absolute UTC claim.',
                      'No measured output filter, insertion loss or calibrated source power.',
@@ -100,4 +103,9 @@ def analyze(directory, output_label="analysis"):
     # A sampled low tail is mandatory even when an analyzer reports success.
     require(intervals and intervals[-1][1]+.5<len(iq)/rate,'RF-off capture tail absent')
     save(output/'result.json',result)
-    return {k:result[k] for k in ('board','clock_hz','band','mode','disposition')}
+    summary={k:result[k] for k in ('board','clock_hz','band','mode','disposition')}
+    if 'wspr_decode_acceptance' in result:
+        summary['wspr_decode_passed']=result['wspr_decode_acceptance']['passed']
+    if 'human_copy' in result:
+        summary['human_copy_passed']=result['human_copy']['overall_screen_passed']
+    return summary

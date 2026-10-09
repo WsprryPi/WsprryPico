@@ -6,8 +6,8 @@ No Phase 14 release support is claimed at this checkpoint.
 ## Numeric progress checkpoint
 
 Three of the nine original workstreams are complete (33.3% by workstream count,
-not an estimate of elapsed effort). The latest finite continuation stopped at an isolated unarmed maximum-event
-submission after 25 complete steps; its completed cases remain closed.
+not an estimate of elapsed effort). The finite `dbf1f3e` continuation is active after preserving the isolated
+unarmed maximum-event submission and preflight stops; completed cases remain closed.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
@@ -15,6 +15,8 @@ submission after 25 complete steps; its completed cases remain closed.
 | 2. Established plan and acceptance record | 1/1 | 100% |
 | 3. Bench identity and tooling preparation | 1/1 | 100% |
 | 4. Main 138 MHz WSPR/keyed matrix attempts | 104/104 rows, 174 finite jobs | 100% of attempts |
+| 4. WSPR external decode acceptance | 42/42 captures; 26/26 tested board/band rows | 100% |
+| 4. WSPR rows with three frames | 8/26; 36 additional frames required | 30.8% |
 | 4. Three-observation human-copy rows | 78/78, all passing, 234 observations | 100% |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
@@ -25,9 +27,9 @@ submission after 25 complete steps; its completed cases remain closed.
 | 6. Refreshed ordinary native-controller jobs | 12/12 complete and analyzed | 100% of attempts |
 | 6. Additional native WSPR at accepted 160 m point | 3/3, all full-screen passing | 100% |
 | 6. Maximum-message cases including alternating DFCW | 4/4 complete and analyzed | 100% of attempts |
-| 6. USB-unavailable standalone WSPR | 3/3 frames analyzed, 2/3 full-screen passing | 100% of attempts; 66.7% passing |
-| 6. Clock-loss/cancel/abort/disconnect/maximum-event scenarios | 4/9 assessed | 44.4% |
-| 6. Eight finite one-hour soak jobs | 0/8 | 0% |
+| 6. USB-unavailable standalone WSPR | 3/3 externally decoded | 100% |
+| 6. Clock-loss/cancel/abort/disconnect/maximum-event scenarios | 9/9 assessed | 100% |
+| 6. Eight finite one-hour soak jobs | 7/8 closed; eighth active | 87.5% of jobs |
 | 7. Candidate clock images built | 3/3 | 100% |
 | 7. Independent selected-image rebuild | 1/1, complete bytes identical | 100% |
 | 7. Final both-board installation/smokes | 0/2 | 0% |
@@ -38,17 +40,37 @@ All 165 deterministic host groups pass. The independent main integrity audit
 passes 174/174 captures and 104/104 rows. These are completed checks rather than
 release promotion. Intermediate repairs and initial controller/standalone tests
 are retained; remaining reliability/failure workloads and final applicability
-still have to finish. At this checkpoint devel has 38 local commits beyond the
+still have to finish. At this checkpoint devel has 41 local commits beyond the
 verified starting remote, no push has been made, and the unrelated untracked
 Si5351 directory remains preserved.
 
-Completed matrix attempts include failures. The frozen WSPR screen has seven
-passing repeated board/band rows of 26 (26.9%); both-board agreement is at the
-2200 m, 630 m and 160 m points. A's 80 m triplet also passes. Higher-frequency
-independent decodes do not erase the retained residual/drift screen failures.
-This differs from the separately amended human-copy family, whose 78 rows pass.
+The operator explicitly amended WSPR acceptance on 2026-10-09: a correct
+external decode passes WSPR. All 42 main-matrix captures decode AA0NT EM18 37,
+so all 26 tested board/band rows pass this criterion, from 2200 m through 6 m.
+The previous 19 exclusions arose from the selected 0.1 Hz symbol-residual
+screen, rather than failed decodes. Preserve its original seven passing and
+19 excluded row flags as diagnostics; they no longer determine WSPR acceptance.
+Eight rows already have three decoded frames, while 18 need two more frames
+each. Ordinary native 80 m and 160 m WSPR and the USB-unavailable standalone
+triplet each have 3/3 correct decodes under the same criterion. The separate
+human-copy family has 78/78 passing rows.
 The final supported/failed/unresolved release dispositions await the remaining
 reference, spectral, producer, reliability and final-image assertions.
+
+All 15 candidate bands, 2200 m through 2 m, remain required coverage entries.
+Current direct synthesis ends below half the sample clock: 4 m is representable
+at 150 MHz, while 2 m is outside the direct-frequency contract at 132, 138 and
+150 MHz. These source limits are distinct from failed transmissions or decoding.
+The refreshed comparison must attempt every representable mode and retain
+explicit unsupported entries for the others.
+
+The original soak's completed B jobs made 290-291 successful browser requests
+per hour, below the frozen 300-request minimum despite spanning the full hour.
+The host timer measured ten seconds from request completion, adding latency
+to each interval. The repaired timer measures from request start. Preserve the
+original eight-hour evidence and its browser-load failure, and repeat only
+the four B one-hour browser cases; resource and RF results remain separately
+assessed. This is a workload-generation defect, not an observed transmitter fault.
 
 The human-copy repetition stage has completed all 78 rows: three modes at all
 13 representable points on both boards. All 234 observations pass the separate
@@ -296,6 +318,39 @@ workload). Target admission remains authoritative; failure there still stops
 without replaying LOAD. Firmware, frame capacity, cache TTLs and RF/resource
 acceptance criteria are unchanged. All 25 affected tests pass, including the
 observed failed, diagnostic-success and recovered-preflight heap states.
+
+Fresh `dbf1f3e` continuation has resumed the unfinished cases from verified
+archive SHA-256
+`392a0df02dc6b753c6c4a51eebfa7e9b91b18467cfab39bfed31b05cf368e159`,
+coordinator SHA-256
+`6c70859cade85ca88673af045c86bc22d1f17eaf877b26a579a4ca56620230dd`
+and 1,795 verified extracted files. It additionally binds the exact preflight-only
+stop and previous diagnostic RELEASE, without repeating diagnostic mutations.
+A's 512-event case now completes and passes the separate human-aware/resource
+assessment. Its original strict machine screen fails and remains unchanged.
+Receipt SHA-256 is
+`89d4412cd39c40a2f2ac2768d8e1ae5a4d45281e6ace6bd2665a13a99c55dcaa`.
+B cancellation also passes (54.691 dB below its matched live baseline, with
+resources passing). B abort/disconnect/maximum-event cases are next; the soak remains
+0/8 at this checkpoint. There is no firmware change and no push.
+
+An independent source/raw/control/resource integrity audit passes all eight
+closed producer captures (the four maximum-message cases, three native 160 m
+WSPR captures and one three-frame USB-unavailable standalone capture). It
+rehashes actual IQ and metadata, binds board/source/boot/image/reference, compares
+resource reducers with raw INFO observations, and independently parses retained
+relay headers/CRC and actual LOAD/ARM/completion messages. It keeps the original
+waveform flags and does not promote release qualification. Private receipt
+`build/producer-integrity-audit-dbf1f3e-retry/result.json` under the `c126bc5`
+snapshot has SHA-256
+`d7f3747c4d871b65b1676c8fb7a784d81be93933996ae382d4ed144657f4970b`;
+independent audit script SHA-256 is
+`393de03cb5f8d837a8d5e6926d74c7841e1782f5ab995c77458f94a013a9cbf7`.
+The initial audit assumed nonexistent top-level relay digest fields and rejected
+that schema. A separate corrected audit checks the actual transaction records
+against framed raw wire bytes. An intermediate private-script indentation error
+stopped before evidence access; its log is retained. The passing script is
+syntax checked and separately identified above; source/captures did not change.
 
 Current acceptance amendment, 2026-10-08: the operator explicitly stated that
 QRSS, FSKCW and DFCW are intended for human copy and that having drift is not

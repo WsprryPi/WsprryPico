@@ -4,6 +4,15 @@ import json
 from pathlib import Path
 import socket
 import ssl
+import time
+
+
+def activity(browser,path):
+    """Retain request-start cadence independently of HTTPS completion latency."""
+    started=time.monotonic_ns()
+    response=browser.get(path)
+    return dict(utc_ns=time.time_ns(),started_monotonic_ns=started,
+                completed_monotonic_ns=time.monotonic_ns(),response=response)
 
 
 class Browser:

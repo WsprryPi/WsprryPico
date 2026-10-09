@@ -35,11 +35,7 @@ def main():
                         for mode in ('TONE','WSPR','QRSS','FSKCW','DFCW'):
                             rows.append(dict(board=board,clock_hz=clock,band=band,mode=mode,disposition='UNSUPPORTED_CONFIGURATION'))
                         save(a.output/'rows.json',rows);continue
-                    acquired=False
                     for mode in ('TONE','WSPR','QRSS','FSKCW','DFCW'):
-                        if mode!='TONE' and not acquired:
-                            rows.append(dict(board=board,clock_hz=clock,band=band,mode=mode,
-                                disposition='UNRESOLVED_AFTER_TONE_SCREEN',release_qualified=False));continue
                         sequence+=1
                         try:directory=rig.execute(board,clock,band,mode,sequence,image_hash=image['sha256'])
                         except (ValueError,TimeoutError,ConnectionError) as error:
@@ -56,7 +52,10 @@ def main():
                                 report=json.loads((directory/'analysis-clock-comparison/result.json').read_text())
                                 row=dict(board=board,clock_hz=clock,band=band,mode=mode,path=str(directory),
                                     disposition=report['disposition'],human_copy=report.get('human_copy'),resources=report['resources'],release_qualified=False)
-                                if mode=='TONE':acquired=report['disposition']=='OPERATIONAL_SCREEN_PASS'
+                                if mode=='WSPR':
+                                    row['legacy_screen_disposition']=row['disposition']
+                                    row['wspr_decode_acceptance']=report['wspr_decode_acceptance']
+                                    row['disposition']='WSPR_EXTERNAL_DECODE_PASS' if report['wspr_decode_acceptance']['passed'] else 'WSPR_EXTERNAL_DECODE_FAIL'
                         rows.append(row);save(a.output/'rows.json',rows);print(json.dumps(row),flush=True)
                 sequence+=1
                 directory=rig.execute(board,clock,'80m','FSKCW',sequence,image_hash=image['sha256'],duration=128,

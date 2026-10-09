@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src'))
 from phase14.plan import matrix
+from phase14.wspr_decode import assess as assess_decode
 
 
 def digest(path):
@@ -43,6 +44,12 @@ def collect(root,source_revision=None):
                 capture_sha256=report['capture_sha256'],metadata_sha256=report['metadata_sha256'],
                 decoded=report.get('decoded'),issues=m.get('issues',[]),spectrum=report.get('spectrum'),
                 resources=report.get('resources'),limitations=report['limitations'],tools=report['tools'])
+            if report['mode']=='WSPR':
+                receipt=analysis.parent/'decode.json';stdout=analysis.parent/'wsprd.stdout'
+                if receipt.exists() and stdout.exists():
+                    observation['wspr_decode_acceptance']=assess_decode(report,json.loads(receipt.read_text()),stdout.read_text())
+                    observation['decoder_receipt_sha256']=digest(receipt)
+                    observation['decoder_stdout_sha256']=digest(stdout)
             if report.get('human_copy'):
                 human=report['human_copy']
                 observation['human_copy']={k:human[k] for k in ('schema','passed','overall_screen_passed','issues',
@@ -75,6 +82,12 @@ def collect(root,source_revision=None):
                 row['disposition']=('HUMAN_COPY_NOT_ASSESSED' if not assessed else
                     'HUMAN_COPY_SCREEN_PASS_RELEASE_UNQUALIFIED' if all(observations[n]['human_copy'].get('overall_screen_passed') is True for n in assessed) else
                     'HUMAN_COPY_SCREEN_FAIL')
+            elif row['mode']=='WSPR':
+                assessed=[n for n in row['observations'] if 'wspr_decode_acceptance' in observations[n]]
+                row['wspr_decode_observations']=assessed
+                row['disposition']=('WSPR_EXTERNAL_DECODE_NOT_ASSESSED' if not assessed else
+                    'WSPR_EXTERNAL_DECODE_PASS_RELEASE_UNQUALIFIED' if all(observations[n]['wspr_decode_acceptance']['passed'] for n in assessed) else
+                    'WSPR_EXTERNAL_DECODE_FAIL')
             else:row['disposition']=legacy
     return dict(schema='phase14-public-index/1',phase14_complete=False,release_qualified=False,
         path='each Pico GP2 and GPSDO -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no LPF',

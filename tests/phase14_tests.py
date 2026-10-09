@@ -11,6 +11,66 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit,load_workspace_bytes
 
 class Tests(unittest.TestCase):
+    def test_wspr_external_decode_accepts_residual_diagnostics_but_rejects_wrong_message(self):
+        from phase14.wspr_decode import assess
+        line='2359 40 -0.0 3.570100 0 AA0NT EM18 37 '
+        report=dict(decoded=True,passed=False,measurement=dict(max_symbol_residual_hz=1.68))
+        receipt=dict(returncode=0,decoded=True,matches=[line])
+        self.assertTrue(assess(report,receipt,line+'\n')['passed'])
+        self.assertFalse(assess(report,receipt,line.replace('AA0NT','N0CALL'))['passed'])
+        self.assertFalse(assess(report,dict(receipt,returncode=True),line)['passed'])
+        self.assertFalse(assess(report,dict(receipt,returncode=1),line)['passed'])
+        self.assertFalse(assess(dict(report,decoded=False),receipt,line)['passed'])
+        self.assertFalse(assess(report,dict(receipt,matches=['invented']),line)['passed'])
+    def test_browser_request_latency_does_not_reduce_one_hour_workload(self):
+        from unittest.mock import patch
+        from phase14.browser import activity
+        class Clock:
+            now=0
+        clock=Clock()
+        class SlowBrowser:
+            def get(self,path):
+                clock.now+=2400000000
+                return dict(path=path,status=200)
+        samples=[];last=-10000000000
+        with patch('phase14.browser.time.monotonic_ns',side_effect=lambda:clock.now), \
+             patch('phase14.browser.time.time_ns',side_effect=lambda:clock.now):
+            while clock.now<3600000000000:
+                if clock.now-last>=10000000000:
+                    sample=activity(SlowBrowser(),'/api/v1/status')
+                    samples.append(sample);last=sample['started_monotonic_ns']
+                clock.now+=500000000
+        self.assertGreaterEqual(len(samples),300)
+        self.assertGreaterEqual(samples[-1]['utc_ns']-samples[0]['utc_ns'],3500000000000)
+        self.assertTrue(all(s['completed_monotonic_ns']-s['started_monotonic_ns']==2400000000 for s in samples))
+        # The prior completion-anchored interval produces only ~290 requests.
+        self.assertLess(3600/(10+2.4),300)
+    def test_browser_load_retains_original_request_count_rejection(self):
+        from phase14_soak_analyze import browser_load
+        origin=1791514876518283981
+        original=[origin+i*12400000000 for i in range(291)]
+        result=browser_load(original)
+        self.assertFalse(result['passed'])
+        self.assertEqual(result['issues'],['fewer than 300 successful browser requests'])
+        repaired=[origin+i*10000000000 for i in range(360)]
+        self.assertTrue(browser_load(repaired)['passed'])
+        self.assertFalse(browser_load(repaired[:300])['passed'])
+        self.assertFalse(browser_load([])['passed'])
+        for invalid in ([True],[origin,origin],[origin,origin-1]):
+            with self.assertRaises(ValueError):browser_load(invalid)
+    def test_browser_repeat_compares_equivalent_mode_idle_windows(self):
+        from phase14_browser_soak import idle_return
+        windows=[[27124,27132,27124],[42068,42068,42068],
+                 [27100,27100,27100],[42000,42008,42000]]
+        result=idle_return(windows)
+        self.assertTrue(result['passed'])
+        self.assertEqual([p['median_growth_bytes'] for p in result['pairs']],[-24,-68])
+        invalid=copy.deepcopy(windows);invalid[2]=[28149]*3
+        self.assertFalse(idle_return(invalid)['passed'])
+        invalid=copy.deepcopy(windows);invalid[3][1]+=2048
+        self.assertFalse(idle_return(invalid)['passed'])
+        for invalid in (windows[:3],[[True]*3]*4,[[-1]*3]*4):
+            with self.assertRaises(ValueError):idle_return(invalid)
     def test_abort_assessment_rejects_extra_rf_and_full_duration(self):
         import numpy as np
         from phase14_abort import envelope

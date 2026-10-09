@@ -222,9 +222,11 @@ class Rig:
                         last_renew=time.monotonic()
                     if browser and time.monotonic()-last_browser>=10:
                         paths=('/','/api/v1/status','/api/v1/capabilities','/api/v1/jobs')
-                        activity=browser.get(paths[browser_index%4]);browser_index+=1
-                        record['browser_activity'].append(dict(utc_ns=time.time_ns(),response=activity))
-                        self.e.event('browser_activity',activity);last_browser=time.monotonic()
+                        from phase14.browser import activity
+                        sample=activity(browser,paths[browser_index%4]);browser_index+=1
+                        record['browser_activity'].append(sample)
+                        self.e.event('browser_activity',sample['response'])
+                        last_browser=sample['started_monotonic_ns']/1e9
                     if time.monotonic()-last_info>=10:
                         self.info(board);last_info=time.monotonic()
                     if status['state'] in ('complete','aborted','missed','failed'):

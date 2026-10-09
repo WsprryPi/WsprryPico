@@ -11,6 +11,7 @@ from analyze_rf_bench import load_capture
 from campaign.analysis import keyed,wspr
 from measure_rf_bench import baseband
 from phase14.live import save
+from phase14.wspr_decode import assess as assess_decode
 
 
 def analyze(directory,deployment=None,analysis_name='analysis-producer'):
@@ -73,6 +74,11 @@ def analyze(directory,deployment=None,analysis_name='analysis-producer'):
             report['capture_sample_interval']=[left,right];reports.append(report)
         require(not np.any(power[round((groups[-1][-1]+1)/brate*brate)+20:]>threshold),'standalone final RF tail')
     else:raise ValueError('unknown producer evidence')
+    for index,report in enumerate(reports):
+        if record.get('mode')=='WSPR' or record['schema']=='phase14-standalone/1':
+            target=output/str(index) if record['schema']=='phase14-standalone/1' else output
+            report['wspr_decode_acceptance']=assess_decode(report,json.loads((target/'decode.json').read_text()),
+                (target/'wsprd.stdout').read_text())
     infos=[before]+[v['info'] for v in record['status']]+[after]
     require(all(v['revision']==before['revision'] and v['status']['boot_id']==boot for v in infos),'producer source/boot continuity')
     assessment=resources(infos,before['system_clock_hz'])
@@ -82,13 +88,14 @@ def analyze(directory,deployment=None,analysis_name='analysis-producer'):
         reports=reports,resources=assessment,passed=all(r['passed'] for r in reports) and assessment['passed'],
         terminal_evidence=terminal,
         human_copy_passed=all(r['human_copy']['passed'] for r in reports) and assessment['passed'] if all('human_copy' in r for r in reports) else None,
+        wspr_decode_passed=all(r['wspr_decode_acceptance']['passed'] for r in reports) if all('wspr_decode_acceptance' in r for r in reports) else None,
         release_qualified=False,tools={str(p.relative_to(ROOT)):sha256(p) for p in
-            (Path(__file__),ROOT/'src/campaign/analysis.py',ROOT/'src/phase14/human_copy.py',ROOT/'src/phase14/relay.py',
+            (Path(__file__),ROOT/'src/campaign/analysis.py',ROOT/'src/phase14/human_copy.py',ROOT/'src/phase14/wspr_decode.py',ROOT/'src/phase14/relay.py',
              ROOT/'scripts/measure_rf_bench.py',ROOT/'scripts/analyze_rf_bench.py',ROOT/'scripts/decode_rf_wspr.py')},
         limitations=['Nominal receiver axes; reference subtraction does not discipline Pico frequency.',
             'Retained operational screens and raw failures; no filtered-output or calibrated power claim.'])
     save(output/'result.json',result)
-    return dict(passed=result['passed'],human_copy_passed=result['human_copy_passed'],frames=len(reports),source_revision=before['revision'])
+    return dict(passed=result['passed'],human_copy_passed=result['human_copy_passed'],wspr_decode_passed=result['wspr_decode_passed'],frames=len(reports),source_revision=before['revision'])
 
 
 if __name__=='__main__':

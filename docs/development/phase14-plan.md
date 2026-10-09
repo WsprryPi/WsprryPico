@@ -31,8 +31,12 @@ Direct synthesis supports 100 kHz through sample-clock/2 minus 1 Hz, at most
 four distinct NCO increments, 512 events and 3,600 seconds per job. Compare
 132, 138 and 150 MHz/divider 1/RAM renderer on GP2. The 15 candidate band points
 are inherited from the Phase 11.6 plan (2200 m through 2 m). At 132/138 MHz,
-4 m and 2 m are unsupported. At 150 MHz, 4 m is a synthesis candidate and
-2 m remains unsupported. Representability alone is not release support.
+4 m and 2 m are unsupported for direct synthesis. At 150 MHz, 4 m is a synthesis
+candidate and direct 2 m remains unsupported. Every band through 2 m remains
+in the coverage record: a source limit requires an explicit unsupported
+disposition, rather than omission or a failed decode. Harmonic output, if
+investigated, requires a separately identified output route and does not
+establish native direct-frequency support. Representability alone is not release support.
 Modes are Tone, WSPR, QRSS, FSKCW and DFCW. DFCW retains dot-high/dash-low.
 
 Positive correction ppb means a fast oscillator and reduces the NCO increment.
@@ -78,7 +82,8 @@ it does not by itself establish sampling-time scale. Report this separately.
 | Screening carrier | Complete on/off capture, >=10 dB contrast, no clipping/overflow; existing analysis's 100 Hz acquisition window is a screening locator, not a calibrated carrier specification. |
 | Operational keyed RF | Existing analyzer: 20 ms relative envelope, >=10 dB contrast, phase residual <=0.15 rad; two-state separation/residual <=0.2 Hz; frequency-transition fit <=20 ms and <=0.15 Hz. This retains a consistent screen; ambiguity is reported, not relabeled. |
 | Human-copy QRSS family, explicit operator amendment on 2026-10-08 | QRSS, FSKCW and DFCW are intended for human copy. Drift and phase/coherence residuals are diagnostics, not automatic mode failures. Assess acquired continuous marks, correct envelope/gaps and transitions, >=10 dB contrast, amplitude ratio >=0.5, independent final silence and distinct locally ordered frequency states. For the requested 5 Hz states, require at least half the accepted separation near each change as a visibility margin. Keep 20 ms relative timing screens and all resource/control gates. Preserve legacy results and publish a separate human-copy assessment; WSPR criteria are unchanged. |
-| Operational WSPR | Complete 162-symbol, 110.592 s frame and quiet before/after; 375/256 Hz spacing, existing <=0.05 Hz separation / <=0.1 Hz residual / <=10 ms transition screens; independent exact-message decode. A decode alone cannot satisfy the other assertions. |
+| Original WSPR diagnostic screen | Complete 162-symbol, 110.592 s frame and quiet before/after; 375/256 Hz spacing, historical <=0.05 Hz separation / <=0.1 Hz residual / <=10 ms transition screens. Retain these measurements and original flags as diagnostics. The operator's 2026-10-09 amendment supersedes their use as WSPR pass/fail gates. |
+| WSPR acceptance, explicit operator amendment on 2026-10-09 | WSPR passes when the external tool decodes the expected transmission. Require successful external wsprd execution and the exact AA0NT EM18 37 message in retained stdout, bound to the capture and decoder receipt. Drift, frequency residual and transition-fit flags cannot exclude a decoded WSPR row. Control, capture integrity, resource and cleanup assertions are assessed separately. |
 | Release timing/frequency | Report error and uncertainty independently. WTP permits launch within the requested UTC second, subject to admitted clock uncertainty. No inferred microsecond UTC claim. Physical symbol/frame precision and calibrated absolute carrier remain unqualified if receiver/reference uncertainty is not bounded. Historical suggested 10 us/100 us/0.1 Hz budgets are not promoted into new contracts. |
 | Spectra/filter | Record close-in sidebands, in-window spurs, separately tuned harmonics/images through at least fifth harmonic where receiver coverage permits; exact coverage and receiver attribution. Retain operator's better-than-WsprryPi close-in benchmark. Qualify the recorded unfiltered path only; LPF development/application belongs to the operator. No filtered-output or antenna-ready emission claim. |
 | Resources | No new unexpected allocator/TLS/DMA/stack faults; refill-to-ready below actual full-buffer period, no exhausted predecessor; >=32 KiB preserved authority reserve. Compare equivalent idle windows for growth, with the established 1,024-byte return screen and retained raw samples. |
@@ -103,16 +108,19 @@ Use short Tone screens across band/clock on both boards before expensive mode
 acceptance. Start with Tone and complete WSPR at 80 m/138 MHz on both boards.
 Then screen all representable band/clock candidates. For promising release
 configurations require three complete WSPR frames and three keyed repetitions,
-including disconnect/reconnect, plus both-board consistency. A rejected Tone
-screen may exclude that configuration from expensive acceptance, with an explicit
-failed/unresolved disposition for dependent modes rather than a false pass.
+including disconnect/reconnect, plus both-board consistency. Under the operator's
+amendments, attempt each representable band and mode even if a preliminary
+Tone diagnostic screen fails. Uncertain output or invalid capture/control
+evidence still prevents a dependent RF attempt until resolved.
 
 The operator's human-copy amendment supersedes automatic rejection of QRSS-family
 rows for smooth drift or long-mark phase residuals. Retained captures may be
 reanalyzed with this separately identified method. Rows previously stopped by
 the legacy diagnostic screen require their missing repetitions if the new
 human-copy, timing and resource assessment passes. Do not erase or relabel the
-original screen; do not apply this amendment to WSPR machine decoding.
+original screen. The separate 2026-10-09 WSPR amendment makes external decoding
+the WSPR acceptance criterion. Reuse existing exact-message decodes and acquire
+only missing repetitions; do not repeat accepted captures to erase diagnostics.
 
 Retain raw phase/timing/spectral measurements even when a historical analyzer's
 composite flag fails. Investigate receiver artifacts with retuning/gain/reference-
