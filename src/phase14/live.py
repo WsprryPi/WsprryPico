@@ -13,7 +13,7 @@ import uuid
 from led_closeout.device import Device, Peer
 from phase14.profiles import durable_settings
 from led_closeout.runner import require, sha256
-from phase14.plan import BOARDS, BANDS, job, accepted_events, validate_capture, capture_elapsed_limit
+from phase14.plan import BOARDS, BANDS, job, accepted_events, validate_capture, capture_elapsed_limit, load_workspace_bytes
 
 CAPTURE='/home/pi/wsprrypi-qualification-runs/complete-test-deployment-284c7e04a3fdd079c46e782b/wspq-capture-soapy'
 PICOTOOL='/home/pi/phase11-4-e1/picotool-build/picotool'
@@ -118,6 +118,30 @@ class Rig:
         value=job(mode,band,clock,uuid.uuid4().hex,duration,workload)
         from phase14.calibration import request_compensated
         value=request_compensated(value,request_compensation_ppb)
+        admission=None
+        if workload=='max-events':
+            # Closed-session replay/history can temporarily occupy decoding
+            # space. Wait before capture/CLAIM/LOAD, without replaying a mutation
+            # or changing target reserves, cache TTLs or the finite RF duration.
+            self.device.close_peer(board)
+            needed=load_workspace_bytes(value);deadline=time.monotonic()+360
+            admission=dict(required_available_bytes=needed,wait_limit_s=360,samples=[])
+            while True:
+                observed=self.idle(board)
+                require(observed['revision']==before['revision'] and
+                        observed['status']['boot_id']==before['status']['boot_id'] and
+                        observed['system_clock_hz']==clock,'load preflight source/boot/clock changed')
+                available=observed['heap_available_bytes']
+                require(type(available) is int and available>=0,'load preflight heap counter')
+                admission['samples'].append(dict(utc_ns=time.time_ns(),heap_available_bytes=available))
+                if available>=needed:break
+                require(time.monotonic()<deadline,'maximum LOAD workspace did not recover within 360 seconds')
+                time.sleep(2)
+            self.e.event('maximum_load_admission',admission)
+            # A 30-second idle network connection cannot span the bounded
+            # workspace wait. Negotiate once after admission, before CLAIM.
+            peer=self.device.peer(board)
+            require(peer.boot==before['status']['boot_id'],'load preflight transport boot changed')
         settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,
                       center_frequency_hz=BANDS[band]-25000,gain_db=20,channel=0,agc=False,bias_tee=False)
         seconds=math.ceil(int(value['total_duration_ns'])/1e9)+45
@@ -131,6 +155,7 @@ class Rig:
             device_id=BOARDS[board][1],source_revision=before['revision'],boot_id=peer.boot,
             firmware_sha256=image_hash,clock_hz=clock,divider=1,engine='pio-dma-gp2',rf_gp=2,
             session_id=peer.session,browser_activity=[],
+            load_admission=admission,
             engine_frequency_correction_ppb=0,requested_frequency_compensation_ppb=request_compensation_ppb,
             band=band,mode=mode,workload=workload,job=value,reference=reference,receiver_command=argv,receiver_helper_sha256=sha256(CAPTURE),
             receiver_settings=settings,action=action,result='PENDING',status=[],before=before,

@@ -8,9 +8,21 @@ import tempfile
 import unittest
 ROOT=Path(__file__).resolve().parents[1]
 sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
-from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit
+from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit,load_workspace_bytes
 
 class Tests(unittest.TestCase):
+    def test_maximum_load_waits_for_existing_decoder_and_authority_reserves(self):
+        value=job('FSKCW','80m',138000000,'test',128,'max-events')
+        needed=load_workspace_bytes(value)
+        # The failed 52,601-byte payload was legal, but its 107,488-byte
+        # available heap could not hold input plus the existing decode reserve.
+        self.assertEqual(needed,52601+16+32768+32768+8192)
+        self.assertLess(107488,needed)
+        # The independent unarmed diagnostic succeeded after cache expiry.
+        self.assertGreaterEqual(131216,needed)
+        self.assertEqual(value['total_duration_ns'],'128000000000')
+        self.assertEqual(len(value['events']),512)
+        with self.assertRaises(ValueError):load_workspace_bytes(dict(value,extra='x'*65536))
     def test_long_capture_finalization_has_a_separate_finite_budget(self):
         # Actual failed 650-second acquisition retained every sample, then
         # hashing/cleanup finished at 664.93 seconds, beyond the old 662 limit.

@@ -47,6 +47,20 @@ def accepted_events(value, adjustments):
     return result
 
 
+def load_workspace_bytes(value):
+    """Host preflight for the existing target frame/decode reserve, not a limit change."""
+    import json
+    request=dict(type='request',protocol='WTP/1',session_id='0'*32,
+                 request_id='0'*32,op='LOAD',body=value)
+    payload=json.dumps(request,separators=(',', ':'),allow_nan=False).encode()
+    if not 1<=len(payload)<=65536:
+        raise ValueError('LOAD exceeds fixed WTP payload limit')
+    # Target keeps input resident beside its 32 KiB decoder workspace and
+    # separate 32 KiB authority reserve. Allow another 8 KiB for HELLO/CLAIM,
+    # paged allocation overhead and concurrent management before submission.
+    return len(payload)+16+32768+32768+8192
+
+
 def capture_elapsed_limit(sample_count, sample_rate_hz):
     """Bound sampling plus CF32 hashing/cleanup; never extend the local RF job.
 

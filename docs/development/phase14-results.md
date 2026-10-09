@@ -6,7 +6,8 @@ No Phase 14 release support is claimed at this checkpoint.
 ## Numeric progress checkpoint
 
 Three of the nine original workstreams are complete (33.3% by workstream count,
-not an estimate of elapsed effort). The live finite continuation remains active.
+not an estimate of elapsed effort). The latest finite continuation stopped at an isolated unarmed maximum-event
+submission after 25 complete steps; its completed cases remain closed.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
@@ -22,8 +23,9 @@ not an estimate of elapsed effort). The live finite continuation remains active.
 | 5. Requested frequency-compensation trials | 6/6 | 100% |
 | 5. Dedicated wideband spectral surveys | 0/4 | 0% |
 | 6. Refreshed ordinary native-controller jobs | 12/12 complete and analyzed | 100% of attempts |
-| 6. Additional native WSPR at accepted 160 m point | 0/3, guarded queue waiting | 0% |
-| 6. Maximum-message cases including alternating DFCW | 0/4 | 0% |
+| 6. Additional native WSPR at accepted 160 m point | 3/3, all full-screen passing | 100% |
+| 6. Maximum-message cases including alternating DFCW | 4/4 complete and analyzed | 100% of attempts |
+| 6. USB-unavailable standalone WSPR | 3/3 frames analyzed, 2/3 full-screen passing | 100% of attempts; 66.7% passing |
 | 6. Eight finite one-hour soak jobs | 0/8 | 0% |
 | 7. Candidate clock images built | 3/3 | 100% |
 | 7. Independent selected-image rebuild | 1/1, complete bytes identical | 100% |
@@ -35,7 +37,7 @@ All 165 deterministic host groups pass. The independent main integrity audit
 passes 174/174 captures and 104/104 rows. These are completed checks rather than
 release promotion. Intermediate repairs and initial controller/standalone tests
 are retained; remaining reliability/failure workloads and final applicability
-still have to finish. At this checkpoint devel has 36 local commits beyond the
+still have to finish. At this checkpoint devel has 38 local commits beyond the
 verified starting remote, no push has been made, and the unrelated untracked
 Si5351 directory remains preserved.
 
@@ -180,6 +182,72 @@ The 650 s capture budget is now 704 s; a 3,645 s hour-job capture has a 3,878 s
 budget. RF duration, exact sample counts, overflow/clipping and cleanup gates
 are unchanged. All 23 affected portable checks and the configured CTest group
 pass. Only unfinished cases will resume in a fresh immutable tool snapshot.
+
+Unfinished work has resumed from immutable `c126bc5` in
+`build/resume-tools-c126bc5`, archive SHA-256
+`b3c9bcf78041dc23e8798380490c29168e4b4744ab1243eb4e5c24987684970f`,
+coordinator SHA-256
+`82e17d4228b2a8a34bf4d292f17e69cc0b2ff88c2f17766ed20ff23b224c70cc`.
+All 1,794 extracted files were verified. The coordinator requires exact hashes
+of the previous 55-complete/one-failed boundary, failure metadata and new physical
+quiet receipt before taking ownership. It retries the failed maximum QRSS
+capture, runs the three other maximum-message cases and added native 160 m WSPR
+triplet, then continues the previously unfinished standalone/failure/soak/
+spectral/clock/Tone/reference work. Earlier successful batches are not restarted.
+The eight RF jobs remain exactly one hour each; their finite host-step ceiling
+is ten hours to include capture tails, hashes and identical idle windows.
+Devel has 38 local commits beyond the starting remote, no push, and no firmware
+implementation change from the identified runtime.
+
+The resumed maximum-message cases are now 4/4 acquired and analyzed. QRSS,
+FSKCW and alternating E/T DFCW pass human-copy/resource assertions. The 32-T DFCW
+case passes waveform/resources but cannot assess two frequency roles because
+its requested content contains only dashes; the separate alternating case
+covers that requirement. Original strict machine flags remain unchanged.
+The added native 160 m WSPR triplet is 3/3 full-screen passing. USB-unavailable
+standalone reproduces and analyzes all three 80 m frames; two full screens pass
+and the first retained failure remains. B clock-loss/recovery and A cancellation,
+abort and disconnect control cases are complete. A cancellation resolves no RF
+above its off criterion, 54.734 dB below its matched live baseline. Clock-loss
+and disconnect operational analyses pass. The generic full-Tone analyzer flags
+the deliberately shortened abort as a duration/missing-segment failure; a
+separate action-aware abort assessment is required before qualification.
+
+The continuation stopped at step 26 after 25 complete steps: A's 512-event LOAD
+connection reset. The submitted JSON payload is 52,601 bytes, below the fixed
+65,536-byte framing limit. No LOAD reply or ARM was recorded; Console cleanup
+shows the predecessor complete and output inactive. RELEASE on the broken socket
+also fails, so ownership expiry is explicitly checked rather than assumed.
+Both boards subsequently have no owner, disabled recurrence and inactive output.
+A fresh five-second physical quiet capture with healthy simultaneous GPSDO is
+55.970/55.807 dB below the same-setting/current-boot A/B live baselines. Original
+failed submission and receiver records remain. Source-bound transport/resource
+diagnosis is underway; the eight-hour soak and later spectral/clock cases have
+not started. No firmware replacement or campaign-wide restart has occurred.
+
+A separate finite unarmed diagnostic accepted the identical 512-event workload
+on the unchanged source/boot after available heap recovered from 107,488 to
+131,216 bytes. It never called ARM, reconciled the loaded job through Console
+ABORT, and verified ownership expiry/disabled recurrence/output inactivity.
+Private diagnostic receipt SHA-256 is
+`917dd9ddb350531c7442fc94fd6179b564a633858ede8bcb67d47e4520059cfc`.
+The failed transport close reason is 4 (endpoint closure); source retains a
+complete frame for at most five seconds when its existing 32 KiB decoder work
+plus separate 32 KiB authority reserve cannot be admitted. Recovery after
+retained control history ages is consistent with resource pressure, without
+proving which individual allocations occupied every byte.
+
+The host maximum-event path now waits up to 360 seconds before capture/CLAIM/LOAD
+for the serialized request bytes plus those unchanged target reserves and 8 KiB
+of connection/management margin. It continuously requires the same source,
+boot and clock, no owner, disabled schedule and inactive output. The transport
+is closed during the wait and negotiated afresh afterward; uncertain mutations
+are never retried. Failure to recover stops the case before RF. This does not
+change firmware, retention TTLs, event count, RF duration or acceptance screens.
+All 24 affected portable checks pass, including actual failure/recovery heap
+values and unchanged 512-event duration; syntax/diff checks pass. The first
+sandboxed CTest attempt could not bind its localhost relay socket; the same
+configured check passes with the required local-socket access.
 
 Current acceptance amendment, 2026-10-08: the operator explicitly stated that
 QRSS, FSKCW and DFCW are intended for human copy and that having drift is not
