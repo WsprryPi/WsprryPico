@@ -9,7 +9,7 @@ Three of the nine original workstreams are complete (33.3% by workstream count,
 not an estimate of elapsed effort). The finite `2fdfdf8` continuation is active
 after the original eight-hour soak closed and its browser-load assessment
 failed. The independent WSPR evidence reduction is complete. Its original
-waiting upper-band queue was replaced before any RF work by `c5f0e57`, which
+waiting upper-band queue was replaced before any RF work by `6443197`, which
 starts with a 2 m WSPR pilot and conditionally expands to the full harmonic trial;
 closed cases remain closed.
 
@@ -153,7 +153,7 @@ pass on both the Mac and wspr5. The source archive SHA-256 is
 `2505ba3f63264f710e1ba395eec457de24114c42ae811c78da237800eb486c77`;
 all 1,803 extracted files were verified. Private coordinator SHA-256 is
 `cc73b7badbdf523f33ae4225d21fdb1d825d6542820618a6407d7bf817dbd4b4`.
-It is verified waiting as PID 2333498/start ticks 46742547, with zero steps
+That first pilot queue was verified waiting as PID 2333498/start ticks 46742547, with zero steps
 started, for the unchanged active PID 2312716/start ticks 46309764 and its
 71-step successful boundary. It runs the pilot first, verifies/reuses successful
 pilot decode evidence for conditional full expansion, then continues the
@@ -166,6 +166,27 @@ and replacement receipt SHA-256 is
 `21a0dd8ac5b1e4b72f31fc6ea3afd76c1ef2a7fcd55e12262472b73f300049ac`.
 No active test was stopped or changed. No firmware build input changed and no
 push has been made at this checkpoint.
+
+Retained-IQ integration then found that the new WSPR annotation rejected NumPy
+real scalar interval values. Repair `6443197` accepts finite real scalars while
+still rejecting booleans/nonfinite data. All 35 deterministic tests pass on both
+hosts. A fresh immutable archive has SHA-256
+`951c727f9fca4c4a0a292b6754201149749e8658e84c3ebc5f4db18eca7f93ef`,
+with 1,803 verified files. The repaired coordinator has SHA-256
+`0dcb0518b729539e1c4c4bc042890a9fd5f3c7090feead28e473b51b9ef2b71f`
+and is verified waiting with zero steps as PID 2335036/start ticks 46766222.
+It preserves the same active predecessor and pilot-first finite sequence.
+The stopped, never-started pilot queue boundary has SHA-256
+`8ccef399f0f5359bc76d2814a5c2fc617c9996a79ad22e7fa94568dea9496a6a`;
+replacement receipt SHA-256 is
+`8ade43b594f46fa3cfb70696fb7fed6fcd1ec3004e2d7154f19e26865f1a5141`.
+No active test was stopped. New immutable retained-IQ analyses confirm that
+the WSPR result still externally decodes and QRSS still passes human copy while
+its legacy composite screen fails. QRSS reports a 0.03499 Hz state-removed
+frequency excursion and -0.000878 Hz/s fitted drift, `window_unspecified` and a
+null pass/fail determination. The initial incomplete WSPR annotation output
+is preserved; repaired analysis uses a new label. These are offline analysis
+verification observations, not additional RF repetitions.
 
 The original soak's four B jobs made 290-292 successful browser requests
 per hour, below the frozen 300-request minimum despite spanning the full hour.
