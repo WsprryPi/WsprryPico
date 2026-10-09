@@ -89,9 +89,12 @@ void WorkerEngine::step() {
         if (op_ == Op::Schedule || op_ == Op::Correct)
             result_ = false;
     }
-    report_ = (op_ == Op::Inspect || op_ == Op::Metrics) && !safety_inhibited()
-                  ? observed
-                  : engine_.poll(now_());
+    // The initial poll can precede publication of this request. Reusing it
+    // after the rendezvous can report Running after completion and make the
+    // caller reject the job at its bounded acknowledgement deadline. Inspect
+    // only after accepting the request and its clock, as for mutation replies.
+    report_ = engine_.poll(now_());
+    worker_state_ = report_.state;
     diagnostic_ = safety_inhibited() ? "gp14_safety_inhibit" : engine_.diagnostic();
     ++worker_metrics_.commands;
     // Stack scans and driver snapshots are diagnostic work, not ordinary RPC work.

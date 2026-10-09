@@ -208,6 +208,47 @@ void threaded_safety_with_busy_producer() {
     finish.store(true);
     owner.join();
 }
+
+std::atomic<bool> inspection_observed{false}, inspection_requested{false};
+std::uint64_t inspection_now() {
+    return inspection_requested.load() ? 1'000'102'000ULL : 1'000'095'000ULL;
+}
+void inspection_wait() {
+    // call() has published the request before invoking its wait hook.
+    inspection_requested.store(true);
+    std::this_thread::yield();
+}
+struct CompletionRaceEngine : Engine {
+    wtp::EngineReport poll(std::uint64_t) override {
+        if (polls.fetch_add(1) == 0) {
+            // Capture Running before the producer requests its inspection,
+            // then let that request arrive before step() checks the rendezvous.
+            const wtp::EngineReport stale{wtp::EngineState::Running, true};
+            inspection_observed.store(true);
+            while (!inspection_requested.load())
+                std::this_thread::yield();
+            return stale;
+        }
+        return {wtp::EngineState::Complete, false};
+    }
+};
+void inspection_after_completion_race(bool output_query) {
+    inspection_observed.store(false);
+    inspection_requested.store(false);
+    CompletionRaceEngine engine;
+    time::UtcDiscipline clock(clock_now, nullptr);
+    rf::WorkerEngine proxy(engine, clock, inspection_now, inspection_wait, failure, mask, restore);
+    std::thread owner([&] { proxy.step(); });
+    while (!inspection_observed.load())
+        std::this_thread::yield();
+    if (output_query) {
+        CHECK(!proxy.output_active());
+    } else {
+        const auto report = proxy.poll(inspection_now());
+        CHECK(report.state == wtp::EngineState::Complete && !report.output_active);
+    }
+    owner.join();
+}
 } // namespace
 rf::WorkerEngine* recursive = nullptr;
 void reentrant_wait() {
@@ -250,6 +291,8 @@ int main(int argc, char** argv) {
     safety_during_prepare();
     safety_during_schedule();
     threaded_safety_with_busy_producer();
+    inspection_after_completion_race(false);
+    inspection_after_completion_race(true);
     std::atomic<bool> stop{false};
     std::atomic<unsigned> probes{0};
     proxy.set_probe(

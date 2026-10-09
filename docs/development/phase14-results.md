@@ -11,8 +11,11 @@ the finite `2fdfdf8` continuation has stopped on A's 17 m DFCW completion at
 132 MHz after 44 completed comparison rows. Both dependent queues stopped
 without beginning RF work. The failure and all completed evidence remain
 preserved. Three same-image recovery observations completed successfully.
-The new `ff1cb6c` finite continuation is running the remaining clock, Tone,
-pilot/upper-band and memory cases; the original completion fault remains open.
+The `ff1cb6c` continuation subsequently stopped on the same completion failure
+at 10 m after 59 closed comparison rows. A worker snapshot race is reproduced
+by a deterministic rejection test and repaired in source. New firmware build
+and physical requalification are in progress; old-source counts below remain
+historical evidence and do not qualify the repaired runtime automatically.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
@@ -24,7 +27,7 @@ pilot/upper-band and memory cases; the original completion fault remains open.
 | 4. WSPR rows with three frames | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows | 78/78, all passing, 234 observations | 100% |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
-| 4. Alternative-clock physical rows | 44/270 complete; one additional failed attempt | 16.3% |
+| 4. Alternative-clock physical rows, preceding firmware | 59/270 complete; two additional failed attempts | 21.9% |
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
 | 4. 150 MHz/4 m repeated mode rows | 0/10; follow-up prepared | 0% |
 | 4. Direct 2 m boundary checks | 0/30; unarmed checks prepared | 0% |
@@ -377,6 +380,57 @@ remain separate required work. The hourly automation now inspects this actual
 coordinator. The estimate is 12–24 hours: 5.37 hours of remaining clock capture,
 the existing analysis/final-work and memory allowances, plus 1–3 hours reserved
 for the unresolved completion fault. No additional workstream is closed.
+
+At the 2026-10-09 23:49 UTC checkpoint, `ff1cb6c` has stopped after 59 completed
+A/132 MHz rows: 12 Tone screens, 12 expected-message WSPR decodes, 35 human-copy
+results and all 59 resource assessments pass under the operator's criteria.
+Twenty legacy keyed phase/residual flags remain diagnostic. A's next 10 m
+DFCW job (`1b0d1d870273786f7d412c90d2b5dec8`, boot
+`db9625a325064e1b82786cfac666dfe5`) reaches `DEVICE_FAULT` 102 microseconds
+after reported launch plus requested duration, with no engine diagnostic or
+DMA-error increment. The host evidence-preservation repair retains its full
+124 MB capture and actual terminal error. Its closed coordinator boundary
+SHA-256 is `a075eeb62032e9673faa542901666c302c6612f809248bd425316221fc3b1172`;
+failed physical receipt SHA-256 is
+`919aaf37d77c0bf1e62520f3b437add793f691185f3ee43d0b689358d8945a73`.
+A separate offline diagnostic rehashes the raw capture and confirms reproduced
+human-copy marks and resource checks while retaining `CONTROL_FAILED`.
+Diagnostic SHA-256 is
+`f9db188e875d16a6c8a00ad580e33e1e820d4992747e4ed4b0378ef4563c76b0`.
+
+Source review identifies a cross-core completion race: `WorkerEngine::step`
+can take its initial Running snapshot before core 0 publishes an inspection,
+then acknowledge that later request using the earlier snapshot. `JobService`
+can therefore see stale Running just beyond its unchanged 100-microsecond
+completion acknowledgement bound, despite the hardware having completed.
+A deterministic threaded fixture forces this ordering; the exact stopped
+worker source fails the completion assertion. The repair polls again after
+accepting the request and staged clock and updates the worker's cached state
+from that fresh reply. The fixture passes for both lifecycle and output
+inspection, and existing missing-worker/reentrancy/unverified-shutdown tests
+still fail closed. This reproduces a concrete source defect consistent with
+both hardware timestamps; physical validation of the repair remains required.
+
+All 165 documented host test groups pass, including the repaired RF worker and
+stream/PIO/core checks; all 39 affected Phase 14 Python tests pass. The memory
+follow-up retains its default bd45 source guard and now requires an explicit,
+exact full commit when intentionally testing the repaired candidate. Its
+same-boot/settings requirement and both 45-second and cache-expired windows,
+1024-byte threshold and original failed assessment remain unchanged.
+
+Because this changes firmware RPC/poll behavior, the preceding candidate is
+superseded. Requalification will bind every result to the rebuilt source:
+the selected 138 MHz WSPR/keyed three-observation matrix, full 132/150 MHz
+comparison and affected contention, current-image Tone/spectral assessments,
+producer/failure checks, eight-hour mixed soak and the separate two-job memory
+follow-up. Existing raw waveforms and failures remain useful component/history
+evidence; their old-source lifecycle/resource acceptance is not silently
+promoted to the new firmware. The first finite stage verifies both-board
+132 MHz DFCW at the two affected points, returns both to 138 MHz, establishes
+80 m Tone/WSPR control/decoding, then runs the requested 2 m pilot and conditional
+full harmonic trial. Remaining broad qualification follows that closed stage;
+this early pilot avoids postponing the outstanding 2 m decision until another
+long qualification run. Frequency placement and drift remain informational.
 
 The completed independent external-decode reduction rehashes all 42 original
 IQ/metadata pairs, checks source/device/job/analysis identities, verifies each

@@ -11,6 +11,14 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit,load_workspace_bytes
 
 class Tests(unittest.TestCase):
+    def test_idle_followup_repaired_source_requires_explicit_exact_binding(self):
+        from phase14_idle_growth import verify_source
+        original='bd45bc1bb638839610f28ae529c97d51ec345f6d'
+        verify_source(original)
+        verify_source('c'*40,'c'*40)
+        for source,expected in (('c'*40,None),('c'*40,'d'*40),('c'*40,'c'*12),('c'*12,'c'*12),(True,None)):
+            with self.assertRaises(ValueError):verify_source(source,expected)
+
     def test_clock_resume_rehashes_closed_evidence_and_rejects_substitutions(self):
         from phase14.clock_resume import resume_rows
         from unittest.mock import patch

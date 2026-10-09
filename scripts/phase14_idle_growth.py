@@ -26,20 +26,28 @@ def compare(windows):
         spreads_bytes=spreads,limit_bytes=1024)
 
 
-def samples(rig,boot):
+def verify_source(source,expected=None):
+    import re
+    require(isinstance(source,str) and re.fullmatch('[0-9a-f]{40}',source),'exact firmware source required')
+    require(source.startswith('bd45bc1bb638') if expected is None else
+        isinstance(expected,str) and re.fullmatch('[0-9a-f]{40}',expected) and source==expected,
+        'unchanged campaign firmware or explicitly identified repaired firmware required')
+
+
+def samples(rig,boot,revision):
     values=[]
     for _ in range(3):
         v=rig.idle('B')
         require(v['status']['boot_id']==boot and v['system_clock_hz']==138000000 and
-            v['revision']=='bd45bc1bb638','same-boot/source/clock idle samples required')
+            v['revision']==revision,'same-boot/source/clock idle samples required')
         values.append(v);time.sleep(1)
     return values
 
 
-def acquire(output,credentials):
+def acquire(output,credentials,expected_source_commit=None):
     require(os.geteuid()==0 and sys.platform.startswith('linux'),'Linux exclusive bench owner')
     manifest,image,_=candidate(ROOT,138000000)
-    require(manifest['source_commit'].startswith('bd45bc1bb638'),'unchanged campaign firmware required')
+    verify_source(manifest['source_commit'],expected_source_commit)
     output.mkdir(mode=0o700,parents=True,exist_ok=False)
     record=dict(schema='phase14-idle-growth-followup/1',source_commit=manifest['source_commit'],
         firmware_sha256=image['sha256'],planned_jobs=2,jobs=[],result='PENDING',release_qualified=False,
@@ -61,11 +69,11 @@ def acquire(output,credentials):
             # execute closes its WTP peer and completes capture finalization.
             require(not rig.device.peers,'owned WTP peer must already be closed')
             ended=time.monotonic_ns();time.sleep(45)
-            early=samples(rig,boot);save(rig.e.root/'idle-45.json',early)
+            early=samples(rig,boot,manifest['source_commit'][:12]);save(rig.e.root/'idle-45.json',early)
             time.sleep(max(0,350-(time.monotonic_ns()-ended)/1e9))
             elapsed=(time.monotonic_ns()-ended)/1e9
             require(elapsed>=350 and not rig.device.peers,'declared replay-expiry observation boundary')
-            settled=samples(rig,boot);save(rig.e.root/'idle-expired.json',settled)
+            settled=samples(rig,boot,manifest['source_commit'][:12]);save(rig.e.root/'idle-expired.json',settled)
             require(all(durable_settings(v)==settings for v in early+settled),'persistent settings changed during idle observations')
             entry=dict(index=index,path=str(directory),job_id=json.loads((directory/'physical.json').read_text())['job']['job_id'],
                 boot_id=boot,post_transport_elapsed_s=elapsed,
@@ -117,9 +125,10 @@ def assess(output):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('operation',choices=('run','analyze'))
-    p.add_argument('--output',type=Path,required=True);p.add_argument('--browser-credentials',type=Path);a=p.parse_args()
+    p.add_argument('--output',type=Path,required=True);p.add_argument('--browser-credentials',type=Path)
+    p.add_argument('--source-commit');a=p.parse_args()
     a.output=a.output.resolve();require(a.output.is_relative_to((ROOT/'build').resolve()),'private evidence required');os.umask(0o077)
     def interrupted(signum,frame):signal.signal(signum,signal.SIG_IGN);raise InterruptedError('signal '+str(signum))
     signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted)
-    if a.operation=='run':require(a.browser_credentials is not None,'existing browser credentials required');acquire(a.output,a.browser_credentials)
+    if a.operation=='run':require(a.browser_credentials is not None,'existing browser credentials required');acquire(a.output,a.browser_credentials,a.source_commit)
     else:assess(a.output)
