@@ -10,17 +10,21 @@ ROOT=Path(__file__).resolve().parents[1];sys.path[:0]=[str(ROOT/'src'),str(ROOT/
 from phase14.live import Rig,save
 from phase14.candidate import candidate
 from phase14.harmonic import ROUTE
+from phase14.wspr_segment import verified_pilot
 from led_closeout.runner import require,sha256
 
 
 def main():
     from phase14.analysis import analyze
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--pilot',type=Path,required=True);a=p.parse_args()
     require(os.geteuid()==0 and sys.platform.startswith('linux'),'Linux exclusive bench owner')
     require(a.output.resolve().is_relative_to((ROOT/'build').resolve()),'private harmonic evidence')
+    manifest,image,_=candidate(ROOT,138000000)
+    pilot=verified_pilot(a.pilot,ROOT,manifest['source_commit'],image['sha256'])
     os.umask(0o077);a.output.mkdir(parents=True,mode=0o700,exist_ok=False)
     record=dict(schema='phase14-harmonic-trial/1',output_route=ROUTE,script_sha256=sha256(__file__),
-        planned_initial_jobs=30,jobs=[],rows=[],result='PENDING',release_qualified=False,
+        planned_initial_rows=30,maximum_new_jobs=40,pilot_sha256=sha256(a.pilot),jobs=[],rows=[],result='PENDING',release_qualified=False,
         limitation='Receive-axis harmonic qualification trial; native 2 m application frequency mapping remains unimplemented.')
     save(a.output/'result.json',record)
     for clock in (138000000,132000000,150000000):
@@ -33,6 +37,12 @@ def main():
                 require(rig.idle(board)['revision']==manifest['source_commit'][:12],'harmonic runtime source binding')
                 sequence=0
                 for mode in ('TONE','WSPR','QRSS','FSKCW','DFCW'):
+                    if clock==138000000 and mode=='WSPR':
+                        reused=[entry for entry in pilot['jobs'] if entry['board']==board]
+                        record['rows'].append(dict(board=board,clock_hz=clock,mode=mode,observations=len(reused),
+                            accepted=True,resources_passed=True,required_repetitions=3,release_qualified=False,
+                            reused_pilot_observations=reused))
+                        save(a.output/'result.json',record);continue
                     assessments=[];repeats=3 if clock==138000000 and mode!='TONE' else 1
                     for repeat in range(repeats):
                         sequence+=1;directory=rig.execute(board,clock,'2m',mode,sequence,image_hash=image['sha256'],output_harmonic=3)

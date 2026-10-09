@@ -26,7 +26,8 @@ closed cases remain closed.
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
 | 4. 150 MHz/4 m repeated mode rows | 0/10; follow-up prepared | 0% |
 | 4. Direct 2 m boundary checks | 0/30; unarmed checks prepared | 0% |
-| 4. Actual 2 m third-harmonic mode/clock rows | 0/30; trial prepared | 0% |
+| 4. Actual 2 m WSPR pilot | 0/6 frames; pilot prepared | 0% |
+| 4. Actual 2 m third-harmonic mode/clock rows | 0/30; conditional on reliable pilot decoding | 0% |
 | 5. Main timing/capture analyses | 174/174 | 100% |
 | 5. Paired Tone/QRSS diagnostic captures | 6/6, plus all separate analyses | 100% |
 | 5. Requested frequency-compensation trials | 6/6 | 100% |
@@ -102,6 +103,32 @@ passing 138 MHz rows acquired in the same finite batch. Existing firmware and
 its direct-frequency API are unchanged; native standalone/controller 2 m
 frequency routing remains unimplemented and cannot be claimed from this trial.
 No 2 m RF transmission has been performed yet.
+
+The later operator amendment requires a quick WSPR pilot before expanding this
+trial: three complete frames per board at 138 MHz. All six must decode the exact
+expected message with valid control/capture/resource evidence before the full
+five-mode/all-clock batch runs. The full batch reuses those six captures.
+Frequency placement and drift are informational only, with an explicit null
+pass/fail determination and no band exclusion; calibration remains undecided.
+The 2 m pilot adds bracketed GPSDO/sample-scale frequency-envelope, edge-clearance
+and drift estimates against the conventional WSPR window defined in the plan.
+General mode reports retain state-removed frequency excursion and fitted drift.
+The QRSS bench workloads do not specify an operator operating segment, so they
+report `window_unspecified` rather than inventing boundaries or a confinement
+verdict. An outside-window estimate can coexist with a successful decode and
+does not prevent expansion. No final support or release claim follows from a
+pilot alone.
+
+The initial time estimate at 2026-10-09 12:34 UTC is 18–26 hours remaining,
+including analysis, conditional full 2 m testing, final both-board smokes,
+adversarial review and commit/push/closeout. Three of nine workstreams are closed
+(33.3% by count). The estimate uses about 3.4 hours of browser repetition remaining,
+6.42 hours of alternative-clock captures and 1.57 hours of missing WSPR captures,
+plus remaining analysis/control/finalization work. New defects or implementation
+needed for native 2 m routing may extend it. An hourly heartbeat refreshes the
+private `build/phase14-progress-estimate.json` from actual progress and reports
+one line in the operator-selected count/percent/time-remaining format. This
+schedule does not stop an active test.
 
 The harmonic adapter and meaningful waveform/identity/index rejection checks
 are committed as `f0d5434e3158541e0bfe7dccdc90cb43e7dd2d7f`; all 31 affected

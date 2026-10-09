@@ -11,6 +11,108 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit,load_workspace_bytes
 
 class Tests(unittest.TestCase):
+    def test_2m_pilot_uses_decode_and_resources_independently_of_segment_or_drift(self):
+        from phase14.wspr_segment import pilot_decision
+        rows=[dict(board=b,job_id=b+str(i),decode_passed=True,resources_passed=True,
+            segment=dict(observed_relation='estimates_extend_outside_window',fitted_drift_hz_s_true_axes=[-10]))
+            for b in ('A','B') for i in range(3)]
+        self.assertTrue(pilot_decision(rows)['expand_full_qualification'])
+        self.assertFalse(pilot_decision(rows[:-1])['expand_full_qualification'])
+        for key in ('decode_passed','resources_passed'):
+            invalid=copy.deepcopy(rows);invalid[0][key]=False
+            self.assertFalse(pilot_decision(invalid)['expand_full_qualification'])
+        invalid=copy.deepcopy(rows);invalid[-1]['job_id']=invalid[0]['job_id']
+        with self.assertRaises(ValueError):pilot_decision(invalid)
+        invalid=copy.deepcopy(rows);invalid[-1]['board']='A'
+        with self.assertRaises(ValueError):pilot_decision(invalid)
+
+    def test_2m_placement_bounds_are_annotations_and_missing_fits_are_not_failures(self):
+        from phase14.wspr_segment import assess
+        from campaign.plan import GOLDEN37
+        reference=dict(schema='phase14-reference/1',band='2m',center_hz=144490500,
+            scale_nominal_to_true_time=1,repeatability_bound_ppm=.01,
+            reference_accuracy_assumption_ppb=1,traceable_calibration=False)
+        measurement=dict(reference_hz=144450500,linear_drift_hz_per_s=0,
+            measurements=[dict(index=i,tone=int(t),reference_compared_hz=144490500+int(t)*1.46484375,
+                interval_s=[i*.6826667+.08,(i+1)*.6826667-.08],phase_residual_rms_rad=.01,amplitude_min_ratio=1,
+                reference=dict(phase_residual_rms_rad=.01,amplitude_min_ratio=1,local_contrast_db=40)) for i,t in enumerate(GOLDEN37)])
+        inside=assess(dict(measurement=measurement),[reference,reference])
+        self.assertEqual(inside['observed_relation'],'estimates_inside_window')
+        changed=copy.deepcopy(measurement)
+        for fit in changed['measurements']:fit['reference_compared_hz']-=250
+        outside=assess(dict(measurement=changed),[reference,reference])
+        self.assertEqual(outside['observed_relation'],'estimates_extend_outside_window')
+        self.assertLess(outside['minimum_edge_clearance_hz'],0)
+        for annotation in (inside,outside,assess({},[])):
+            self.assertIsNone(annotation['pass_fail_determination'])
+            self.assertEqual(annotation['qualification_effect'],'informational_only_no_band_exclusion')
+            self.assertNotIn('passed',annotation)
+        changed['measurements'][0]['tone']=9
+        with self.assertRaises(ValueError):assess(dict(measurement=changed),[reference,reference])
+
+    def test_keyed_placement_removes_frequency_states_and_preserves_drift_information(self):
+        from phase14.wspr_segment import describe
+        value=job('DFCW','80m',138000000,'test')
+        fits=[];refs=[]
+        for index,event in enumerate(value['events']):
+            if not event['rf_on']:continue
+            left=int(event['offset_ns'])/1e9;right=left+int(event['duration_ns'])/1e9
+            fits.append(dict(event_index=index,indicated_hz=int(event['frequency_nhz'])/1e9+40+(left+right)/2*.5))
+            refs.append(dict(indicated_hz=3530100+40,interval_s=[left,right]))
+        result=describe(dict(measurements=fits,reference_diagnostics=refs),value,'DFCW',3530100)
+        self.assertAlmostEqual(result['fitted_offset_drift_hz_per_s'],.5)
+        self.assertEqual(result['observed_relation'],'window_unspecified')
+        self.assertIsNone(result['pass_fail_determination'])
+        self.assertGreater(result['requested_offset_excursion_hz'],0)
+        bounded=describe(dict(measurements=fits,reference_diagnostics=refs),value,'DFCW',3530100,(3570100,3570101))
+        self.assertEqual(bounded['observed_relation'],'mean_frequencies_extend_outside_window')
+        self.assertIsNone(bounded['pass_fail_determination'])
+
+    def test_full_2m_gate_rehashes_actual_pilot_decode_files_and_rejects_substitution(self):
+        from unittest.mock import patch
+        from phase14.wspr_segment import verified_pilot,pilot_decision
+        from phase14.harmonic import ROUTE
+        from led_closeout.runner import sha256 as actual_sha
+        source='a'*40;image='b'*64;line='2359 40 -0.0 144.490100 0 AA0NT EM18 37\n'
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();directory=root/'build/pilot';directory.mkdir(parents=True);rows=[]
+            for index in range(6):
+                job_dir=directory/str(index);analysis_dir=job_dir/'analysis-wspr-pilot';analysis_dir.mkdir(parents=True)
+                physical=dict(result='CONTROL_COMPLETE',board='A' if index<3 else 'B',band='2m',mode='WSPR',clock_hz=138000000,
+                    source_revision=source[:12],firmware_sha256=image,output_route=ROUTE,job=dict(job_id=str(index)*32),
+                    boot_id='c'*32,receiver_settings={})
+                (job_dir/'physical.json').write_text(json.dumps(physical));(job_dir/'capture.json').write_text('{}');(job_dir/'capture.cf32').write_bytes(b'iq')
+                wav=analysis_dir/'test.wav';wav.write_bytes(b'wave')
+                receipt=dict(command=['/usr/bin/wsprd','-d','-H','-f','144.489',str(wav)],decoded=True,returncode=0,matches=[line.rstrip()])
+                for name,value in (('decode.json',json.dumps(receipt)),('wsprd.stdout',line),('wsprd.stderr','')):(analysis_dir/name).write_text(value)
+                analysis={key:physical[key] for key in ('board','boot_id','clock_hz','source_revision','firmware_sha256','band','mode','output_route')}
+                analysis.update(job_id=physical['job']['job_id'],decoded=True,decode=receipt,wspr_decode_acceptance=dict(passed=True),
+                    resources=dict(passed=True),decoder_sha256='d'*64,**{key:actual_sha(job_dir/name) for key,name in
+                    (('capture_sha256','capture.cf32'),('metadata_sha256','capture.json'),('physical_sha256','physical.json'))})
+                (analysis_dir/'result.json').write_text(json.dumps(analysis))
+                rows.append(dict(board=physical['board'],job_id=analysis['job_id'],boot_id=physical['boot_id'],path=str(job_dir),
+                    analysis_sha256=actual_sha(analysis_dir/'result.json'),decode_passed=True,resources_passed=True,
+                    decoder_files_sha256={name:actual_sha(analysis_dir/name) for name in ('decode.json','wsprd.stdout','wsprd.stderr')},
+                    wav=dict(path=str(wav),sha256=actual_sha(wav)),segment=dict(observed_relation='estimates_extend_outside_window')))
+            value=dict(schema='phase14-wspr-pilot/1',result='CONTROL_ANALYSIS_COMPLETE',source_commit=source,firmware_sha256=image,
+                output_route=ROUTE,jobs=rows,decision=pilot_decision(rows),reference_brackets=[])
+            for name in ('reference-before.json','reference-after.json'):
+                reference=directory/name;reference.write_text('{}');value['reference_brackets'].append(dict(path=str(reference),sha256=actual_sha(reference)))
+            path=directory/'result.json';path.write_text(json.dumps(value))
+            # Capture and physical validators have their own rejection coverage;
+            # isolate this new gate's complete decoder/hash/identity binding.
+            with patch('phase14.plan.validate_physical',side_effect=lambda p:p),patch('phase14.plan.validate_capture'), \
+                 patch('led_closeout.runner.sha256',side_effect=lambda p:'d'*64 if str(p)=='/usr/bin/wsprd' else actual_sha(p)):
+                self.assertTrue(verified_pilot(path,root,source,image)['decision']['expand_full_qualification'])
+                for name in ('test.wav','wsprd.stdout','decode.json'):
+                    target=directory/'0/analysis-wspr-pilot'/name;before=target.read_bytes();target.write_bytes(b'substituted')
+                    with self.assertRaises((ValueError,json.JSONDecodeError)):verified_pilot(path,root,source,image)
+                    target.write_bytes(before)
+                for key,substitute in (('source_commit','f'*40),('firmware_sha256','e'*64),('result','PENDING')):
+                    invalid=copy.deepcopy(value);invalid[key]=substitute;path.write_text(json.dumps(invalid))
+                    with self.assertRaises(ValueError):verified_pilot(path,root,source,image)
+                path.write_text(json.dumps(value));self.assertTrue(verified_pilot(path,root,source,image)['decision']['expand_full_qualification'])
+
     def test_harmonic_trial_scales_frequency_states_without_changing_time_or_symbols(self):
         from phase14.harmonic import trial_job,measurement_job,ROUTE
         from campaign.plan import make_job,GOLDEN37

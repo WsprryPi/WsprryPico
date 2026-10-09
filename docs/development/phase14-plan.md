@@ -137,12 +137,38 @@ in the submitted complete job; preserve symbol/mark/gap timing. Multiply accepte
 engine frequencies by three only for the RF measurement's expected-state axis.
 Tune the SDR and simultaneous GPSDO reference to the actual 2 m region. Use
 unmodified captured IQ/audio and the same external-decode/human-copy criteria.
-Compare both boards at all three clocks; at 138 MHz acquire three observations
-of each passing WSPR/keyed row and one Tone. Preserve unsuccessful observations.
+Start with a short WSPR pilot: three complete frames on each board at 138 MHz.
+Expand to the full five-mode/all-clock trial only after six of six expected
+external decodes with valid control/capture/resource evidence. Reuse these
+six pilot frames as the 138 MHz WSPR repetitions. For keyed modes acquire
+three observations at 138 MHz and one at each comparison clock; Tone uses one.
+Preserve unsuccessful observations; a decode failure leaves the pilot unresolved
+for diagnosis rather than proving a physical band limitation.
 This trial does not change firmware, advertise native 2 m requests, qualify an
 operator filter, or establish standalone 2 m mapping. Positive RF results require
 an explicit application frequency-routing implementation before native 2 m can
 be declared supported; the direct rejection checks remain separate boundary evidence.
+
+The operator's later 2026-10-09 amendment makes frequency placement and drift
+informational for every band and mode. Calibration has not been selected.
+Record requested/accepted/measured frequency, excursion over the observation,
+fitted drift, defined segment edges and available clearance/uncertainty. Annotate
+observed movement that could hinder reliable operation without a segment or drift
+pass/fail determination or band exclusion. WSPR remains accepted by external
+expected-message decode; QRSS/FSKCW/DFCW remain assessed for human copy.
+
+For the 2 m pilot, the conventional WSPR window is derived as
+144.489 MHz USB dial plus 1400–1600 Hz, or 144.490400–144.490600 MHz
+([WSPRnet dial list](https://www.wsprnet.org/drupal/WSPRnet/map?destination=WSPRnet%2Fmap),
+[K1JT's WSPR subband description](https://sourceforge.net/p/wsjt/mailman/wsjt-devel/thread/54E7E4EF.70308%40princeton.edu/)).
+Report the union of simultaneous-reference per-symbol frequencies on both
+bracketed receiver sample scales, with explicitly stated engineering estimator
+and reference allowances. This describes the wanted component, not all unfiltered
+RF energy or a regulatory spectral mask. The general WSPR annotation records
+the 200 Hz window centered on the requested bench point. QRSS bench jobs have
+no assigned operator segment: report their frequency offsets and state-removed
+drift with `window_unspecified`, without inventing segment boundaries from a
+WSPR frequency. No segment observation gates the 2 m expansion decision.
 
 Retain raw phase/timing/spectral measurements even when a historical analyzer's
 composite flag fails. Investigate receiver artifacts with retuning/gain/reference-

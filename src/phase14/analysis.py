@@ -57,6 +57,11 @@ def analyze(directory, output_label="analysis"):
                     fit=phase_fit(ref[round(left*ref_rate):round(right*ref_rate)],ref_rate,ref_hz)
                     fit['interval_s']=[left,right];diagnostics.append(fit)
             result['reference_diagnostics']=diagnostics
+    if mode in ('WSPR','QRSS','FSKCW','DFCW'):
+        from phase14.wspr_segment import describe
+        result['frequency_placement']=describe(result,job,mode,
+            (physical.get('reference') or {}).get('f1'),
+            (frequency-100,frequency+100) if mode=='WSPR' else None)
     intervals=result.get('measurement',{}).get('intervals_s',result.get('observed_intervals_s',[]))
     frequencies=[m['indicated_hz'] for m in result.get('measurement',result).get('measurements',[])]
     excluded=[]
@@ -86,6 +91,7 @@ def analyze(directory, output_label="analysis"):
              Path(__file__).resolve().parents[2]/'scripts/decode_rf_wspr.py',
              Path(__file__).resolve().with_name('human_copy.py'),
              Path(__file__).resolve().with_name('wspr_decode.py'),
+             Path(__file__).resolve().with_name('wspr_segment.py'),
              Path(__file__).resolve().with_name('harmonic.py'),
              Path(__file__).resolve().parents[1]/'campaign/analysis.py')},
         limitations=['Nominal SDR sample/time scale; no calibrated absolute UTC claim.',
