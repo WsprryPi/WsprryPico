@@ -8,8 +8,10 @@ No Phase 14 release support is claimed at this checkpoint.
 Three of the nine original workstreams are complete (33.3% by workstream count,
 not an estimate of elapsed effort). The finite `2fdfdf8` continuation is active
 after the original eight-hour soak closed and its browser-load assessment
-failed. The upper-band `1464d26` queue has completed the independent WSPR
-evidence reduction and waits for that exact continuation; closed cases remain closed.
+failed. The independent WSPR evidence reduction is complete. Its original
+waiting upper-band queue was replaced before any RF work by `f0d5434`, which
+adds actual 2 m third-harmonic trials and waits for that exact continuation;
+closed cases remain closed.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
@@ -101,6 +103,23 @@ its direct-frequency API are unchanged; native standalone/controller 2 m
 frequency routing remains unimplemented and cannot be claimed from this trial.
 No 2 m RF transmission has been performed yet.
 
+The harmonic adapter and meaningful waveform/identity/index rejection checks
+are committed as `f0d5434e3158541e0bfe7dccdc90cb43e7dd2d7f`; all 31 affected
+deterministic tests pass. Its source archive SHA-256 is
+`636a7a81e1c8540193515b03e4f3c008d971e425ef219925287d30921e6a7f53`,
+with all 1,801 extracted files verified. Finite coordinator SHA-256 is
+`a732cf0ce14e5dcc49d518b92900d1476682fd4fb6f0b449e748ebe068a4406f`.
+It is waiting on the exact active `2fdfdf8` PID/start identity, then runs
+2 m reference brackets, the actual harmonic mode/clock trials, and the retained
+4 m repetitions/direct-limit checks. It does not alter the active browser job.
+The former `1464d26` queue was stopped only while waiting, with its single
+completed offline audit preserved and zero RF steps started. Queue replacement
+receipt SHA-256 is
+`ed74a90ef37567b6156a5c6b51c8226589ce7accc0034186f7dbd370fa9d73b4`.
+Positive harmonic reception also needs source-attribution assessment before a
+transmitter-support claim; on/off reception alone does not exclude a
+receiver-generated harmonic. Native 2 m mapping and that attribution remain open.
+
 The original soak's four B jobs made 290-292 successful browser requests
 per hour, below the frozen 300-request minimum despite spanning the full hour.
 The host timer measured ten seconds from request completion, adding latency
@@ -137,6 +156,11 @@ Live recorded INFO shows source `bd45bc1bb638`, 138 MHz, the preserved B boot
 requests returned 200, and the receiver file grew 3,999,744 bytes in two seconds.
 This confirms actual execution; it is not yet a completed browser workload or
 final soak acceptance. The wsprrypi service remains active.
+
+A later live checkpoint confirms the same B job remains Running/output active,
+with 129 browser requests observed and 2,706,020,352 of 7,290,000,000 capture
+bytes retained (37.1%). Completed browser-repeat jobs remain 0/4; count-based
+progress uses closed jobs, rather than promoting a partially captured hour.
 
 ## Retained execution checkpoints
 
