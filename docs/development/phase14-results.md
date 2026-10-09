@@ -3,6 +3,141 @@
 Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## Numeric progress checkpoint
+
+Three of the nine original workstreams are complete (33.3% by workstream count,
+not an estimate of elapsed effort). The live finite continuation remains active.
+
+| Workstream | Completed count | Percentage |
+| --- | --- | --- |
+| 1. Initial source and historical-evidence review | 1/1 | 100% |
+| 2. Established plan and acceptance record | 1/1 | 100% |
+| 3. Bench identity and tooling preparation | 1/1 | 100% |
+| 4. Main 138 MHz WSPR/keyed matrix attempts | 104/104 rows, 174 finite jobs | 100% of attempts |
+| 4. Three-observation human-copy rows | 78/78, all passing, 234 observations | 100% |
+| 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
+| 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
+| 5. Main timing/capture analyses | 174/174 | 100% |
+| 5. Paired Tone/QRSS diagnostic captures | 6/6, plus all separate analyses | 100% |
+| 5. Requested frequency-compensation trials | 6/6 | 100% |
+| 5. Dedicated wideband spectral surveys | 0/4 | 0% |
+| 6. Refreshed ordinary native-controller jobs | 3/12 complete and analyzed | 25% |
+| 6. Additional native WSPR at accepted 160 m point | 0/3, host helper prepared | 0% |
+| 6. Maximum-message cases including alternating DFCW | 0/4 | 0% |
+| 6. Eight finite one-hour soak jobs | 0/8 | 0% |
+| 7. Candidate clock images built | 3/3 | 100% |
+| 7. Independent selected-image rebuild | 1/1, complete bytes identical | 100% |
+| 7. Final both-board installation/smokes | 0/2 | 0% |
+| 8. Final adversarial assessment | 0/1 | 0% |
+| 9. Final push, remote parity and closeout | 0/1 | 0% |
+
+All 165 deterministic host groups pass. The independent main integrity audit
+passes 174/174 captures and 104/104 rows. These are completed checks rather than
+release promotion. Intermediate repairs and initial controller/standalone tests
+are retained; remaining reliability/failure workloads and final applicability
+still have to finish. At this checkpoint devel has 36 local commits beyond the
+verified starting remote, no push has been made, and the unrelated untracked
+Si5351 directory remains preserved.
+
+Completed matrix attempts include failures. The frozen WSPR screen has seven
+passing repeated board/band rows of 26 (26.9%); both-board agreement is at the
+2200 m, 630 m and 160 m points. A's 80 m triplet also passes. Higher-frequency
+independent decodes do not erase the retained residual/drift screen failures.
+This differs from the separately amended human-copy family, whose 78 rows pass.
+The final supported/failed/unresolved release dispositions await the remaining
+reference, spectral, producer, reliability and final-image assertions.
+
+The human-copy repetition stage has completed all 78 rows: three modes at all
+13 representable points on both boards. All 234 observations pass the separate
+human-copy/resource method. The stage supplied 102 additional finite jobs,
+reusing 132 retained observations without changing their original machine flags.
+Its closed receipt permits an independent raw-evidence audit, pipelined with
+the next paired Tone/QRSS diagnostic. This completes the repetition subtask;
+other clock, spectral, reliability and release gates remain open.
+
+A separate immutable `afaeb70` host-tool snapshot has queued the additional
+32-character alternating E/T DFCW controller case. Coordinator SHA-256
+`38f83fe98c70a1d7037fbd137ac9f1b754d94b1bd37ca1e19ebb75862fda6512` and
+source archive SHA-256
+`6e77bea81e5fb47760b890713f05ddcfef43d15a5b97b0cf9bd015c5c39f6f3f`
+were verified, along with all 1,794 extracted files. It waits on the exact active
+predecessor PID/start identity and requires every continuation step to complete
+successfully before RF begins. It has performed zero RF steps at this checkpoint.
+
+The independent human-copy audit passes all 234 observations and 78 rows. It
+rehashes actual IQ/metadata, binds all three unique jobs per row, checks accepted
+event continuity, same-boot natural completion/inactive boundaries and GPSDO
+readback, verifies analysis/tool hashes, and independently checks requested
+envelopes, mark continuity/contrast, local frequency-state ordering and raw INFO
+resource counters. Private receipt
+`build/human-triplet-independent-audit-afaeb70-retry/result.json` has SHA-256
+`8d2832aacb4435db48faba2ba9db622ec09cda097c4f05bb90a6544907ef6f76`;
+independent script SHA-256 is
+`bdff6890eb215e638736fa8a60d4619f7951ce6e8c062f19e57f80043eabc726`.
+The original audit rejection is retained: its strict Boolean assumption did not
+recognize the Console's numeric stack-guard value `1`. The separate retry accepts
+only Boolean true or integer 1; no resource criterion or RF record changed.
+This audit does not promote release qualification. The paired Tone/QRSS stage
+has completed all six planned finite captures and their separate diagnostics.
+
+Three balanced Tone/QRSS pairs use identical 45-second pre-job idle and the same
+nine-second interior at event offset 13 s, with 20 ms excluded at each edge.
+QRSS fitted drift across that interval is -0.08648/-0.08675/-0.08806 Hz; Tone is
+-0.03949/-0.03704/-0.03582 Hz. Linear phase RMS is 0.1835-0.1870 rad for QRSS
+and 0.0752-0.0829 rad for Tone. Independent 25 Hz FIR results agree closely.
+Reference pairing retains the difference; quadratic phase fits reduce QRSS
+residuals to 0.0269-0.0287 rad. This supports smooth mark curvature as the origin
+of the legacy phase flag. It does not establish a thermal cause or exclude
+every possible in-band contaminant. Three-second dots/nine-second dashes and
+human-copy assertions pass, with original machine flags retained.
+
+All three matched 80 m Tone close-in comparisons meet the retained Pi peak-bin
+benchmark. Receiver-visible search-region peaks are about -89.4 to -91.7 dBc;
+some on/off differences are below 10 dB, so those particular weak features are
+not independently attributed to the Pico. The measured region bounds remain
+well below the historical -21.66/-21.49 dBc benchmark. Different dates/windows
+and uncalibrated path/receiver response remain explicit limitations. The next
+finite step compares zero and +/-1,500 ppb requested compensation on both boards;
+Pico engine correction stays zero.
+
+All six requested-compensation trials are complete and pass waveform/resource
+screens. For A, mean reference-compared carriers at zero/+1,500/-1,500 ppb are
+3,570,102.3207 / 3,570,096.9516 / 3,570,107.7179 Hz; for B they are
+3,570,094.8527 / 3,570,089.4490 / 3,570,100.1915 Hz. Positive request compensation
+lowers the carrier, negative raises it, consistent with the roughly 5.36 Hz
+request change at 3.5701 MHz and quantization/settling differences. These values
+use nominal sampling axes with simultaneous GPSDO subtraction; they are not an
+absolute traceable calibration or a persisted Pico setting. Engine correction
+remains zero, and later baseline jobs request zero compensation.
+Private closed-analysis checkpoint `build/keying-compensation-closed-checkpoint.json`
+under the immutable continuation snapshot has SHA-256
+`64ef6009ad480fc0f974bde76d66605d4a43c42a6b781b7f633a29bed8dab09f`.
+It binds the six paired and six compensation analyses by hash, retaining original
+flags and separate human/resource outcomes. Refreshed native-controller
+repetitions have started; final release gates remain open.
+
+The first three refreshed native WSPR control runs have completed with captured
+inactive successors. The first frame decodes correctly and passes resources,
+spacing, 110.592-second duration and 1.1 ms maximum transition error, but its
+0.102417 Hz symbol residual exceeds the frozen 0.1 Hz screen. The second frame
+fully passes at 0.095782 Hz residual and decodes correctly. The first failure
+is retained; no native three-frame RF pass is inferred. Third-frame analysis
+also decodes and passes resources, but fails at 0.104659 Hz residual. Thus the
+original native 80 m triplet is 3/3 decoded and 1/3 full-screen passing.
+The remaining ordinary and maximum-message
+controller cases continue independently through the shared JobService.
+
+Before further native WSPR acquisition, the host controller helper now accepts
+an explicit low-band point, sets the matching INI dial frequency, receiver tune
+and GPSDO reference, records the band and checks the actual submitted RF states
+against that point. Existing calls still default to 80 m. Three additional
+finite native WSPR frames at 160 m are required to bind the controller path to
+a both-board accepted WSPR candidate point. The failed original 80 m triplet is
+retained, and criteria are unchanged. This is an additional qualification case,
+not a restart of independent work. Installed CLI help and local deserialization
+source confirm the frequency interface; syntax/help/diff checks pass. Active
+immutable campaign files and Pico firmware remain unchanged.
+
 Current acceptance amendment, 2026-10-08: the operator explicitly stated that
 QRSS, FSKCW and DFCW are intended for human copy and that having drift is not
 an immediate failure. Earlier `OPERATIONAL_SCREEN_FAIL` labels in this record

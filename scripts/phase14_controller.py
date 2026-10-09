@@ -11,15 +11,17 @@ import sys
 import time
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT/'src'))
 from phase14.live import Rig,CAPTURE,save
-from phase14.plan import validate_capture
+from phase14.plan import BANDS,validate_capture
 from led_closeout.runner import require,sha256
 
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--template',type=Path,required=True);p.add_argument('--mode',choices=('WSPR','QRSS','FSKCW','DFCW'),required=True)
+    p.add_argument('--wspr-band',choices=('2200m','630m','160m','80m'),default='80m')
     p.add_argument('--message',choices=('ETE','T'*32,'ET'*16),default='ETE');p.add_argument('--dot',type=float,default=3)
     a=p.parse_args();require(os.geteuid()==0 and sys.platform.startswith('linux'),'exclusive Linux owner')
+    require(a.mode=='WSPR' or a.wspr_band=='80m','band override is for WSPR producer qualification')
     require(0<a.dot<=3 and 1<=len(a.message)<=32,'finite message workload')
     require(a.output.resolve().is_relative_to((ROOT/'build').resolve()),'private evidence')
     def interrupted(signum,frame):raise InterruptedError('signal '+str(signum))
@@ -30,6 +32,7 @@ def main():
         from phase14.candidate import candidate
         manifest,image,_=candidate(ROOT)
         before=rig.idle('A');rig.idle('B');require(before['system_clock_hz']==138000000 and before['revision']==manifest['source_commit'][:12],'qualified candidate identity')
+        band=a.wspr_band if a.mode=='WSPR' else '80m';base=BANDS[band]
         config=configparser.ConfigParser();config.optionxform=str;config.read(a.template)
         for section,values in {
             'Meta':{'Loop TX':'false','TX Iterations':'1','debug_logging':'true'},
@@ -38,7 +41,7 @@ def main():
             'WTP Server':{'Enabled':'false'},'Experimental':{'Allow Unqualified Frequency':'true'},
             'WTP':{'Transport':'network_plain','Hostname':'127.0.0.1','TCP Port':'31582',
                 'Device ID':before['device_id'],'Start Uncertainty ns':'500000000','Allow Frequency Adjustment':'true'},
-            'WSPR':{'Call Sign':'AA0NT','Grid Square':'EM18','TX Power':'37','Frequency':'3568600','Use Random Offset':'false'},
+            'WSPR':{'Call Sign':'AA0NT','Grid Square':'EM18','TX Power':'37','Frequency':str(base-1500),'Use Random Offset':'false'},
             'CW':{'Fade Shape':'none','Fade In Ms':'0','Fade Out Ms':'0','Fade Slice Ms':'5','DFCW Inter Character Gap':'1.0'}}.items():
             if section not in config:config[section]={}
             config[section].update(values)
@@ -54,10 +57,10 @@ def main():
         # Cap all invocations.
         seconds=270 if a.mode=='WSPR' else (650 if len(a.message)>3 else 85)
         from phase14_reference import gps
-        reference=gps(3530100)
-        settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,center_frequency_hz=3545100,gain_db=20,channel=0,agc=False,bias_tee=False)
-        command=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60','3545100',str(seconds*250000),'20','250000','200000','0','false','false','100000',str(seconds+12),str(rig.e.root/'capture.cf32'),str(rig.e.root/'capture.json'),'phase14-controller-'+a.mode]
-        record=dict(schema='phase14-controller/1',mode=a.mode,message=a.message,dot_s=a.dot,before=before,firmware_sha256=image['sha256'],source_commit=manifest['source_commit'],
+        reference=gps(base-40000)
+        settings=dict(format='CF32',sample_rate_hz=250000,bandwidth_hz=200000,center_frequency_hz=base-25000,gain_db=20,channel=0,agc=False,bias_tee=False)
+        command=[CAPTURE,'--enable-physical-sdr','sdrplay','2404058C60',str(base-25000),str(seconds*250000),'20','250000','200000','0','false','false','100000',str(seconds+12),str(rig.e.root/'capture.cf32'),str(rig.e.root/'capture.json'),'phase14-controller-'+a.mode]
+        record=dict(schema='phase14-controller/1',mode=a.mode,band=band,message=a.message,dot_s=a.dot,before=before,firmware_sha256=image['sha256'],source_commit=manifest['source_commit'],
                     controller_command=argv,controller_sha256=sha256(argv[0]),receiver_command=command,
                     receiver_settings=settings,reference=reference,status=[],result='PENDING')
         save(rig.e.root/'result.json',record)
@@ -87,6 +90,11 @@ def main():
             record['wtp_transaction']=transaction((rig.e.root/'client-to-device.bin').read_bytes(),
                 (rig.e.root/'device-to-client.bin').read_bytes(),json.loads((ROOT/'docs/protocol/wtp-1.schema.json').read_text()),
                 before['device_id'],before['status']['boot_id'],current_job)
+            if a.mode=='WSPR':
+                submitted=record['wtp_transaction']['load_request']['body']
+                frequencies=[int(e['frequency_nhz'])/1e9 for e in submitted['events'] if e['rf_on']]
+                require(submitted['mode'].upper()=='WSPR' and frequencies and
+                    all(abs(f-base)<=4 for f in frequencies),'actual native WSPR band differs from requested point')
             record['controller_script_sha256']=sha256(__file__)
             record['after']=rig.idle('A');require(capture.wait(timeout=max(1,end-time.monotonic()+20))==0,'complete capture')
             meta=json.loads((rig.e.root/'capture.json').read_text());validate_capture(meta,rig.e.root/'capture.cf32',settings)
