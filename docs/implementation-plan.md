@@ -138,6 +138,10 @@ treated as long-term product documentation.
     mode/band/clock combinations, reliability and a reproducible release UF2.
     There is no LPF in the bench; the operator develops/applies filtering.
     Drift alone does not fail the human-copy QRSS, FSKCW or DFCW assessment.
+    WSPR acceptance uses correct external decoding under the operator's
+    2026-10-09 amendment; residual measurements remain diagnostics. Coverage
+    records all candidate bands from 2200 m through 2 m, including explicit
+    direct-frequency configuration limits.
     Si5351 remains deferred.
 
 ## Phase 13 feature backlog

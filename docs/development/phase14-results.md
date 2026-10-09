@@ -20,6 +20,8 @@ unarmed maximum-event submission and preflight stops; completed cases remain clo
 | 4. Three-observation human-copy rows | 78/78, all passing, 234 observations | 100% |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
+| 4. 150 MHz/4 m repeated mode rows | 0/10; follow-up prepared | 0% |
+| 4. Direct 2 m boundary checks | 0/30; unarmed checks prepared | 0% |
 | 5. Main timing/capture analyses | 174/174 | 100% |
 | 5. Paired Tone/QRSS diagnostic captures | 6/6, plus all separate analyses | 100% |
 | 5. Requested frequency-compensation trials | 6/6 | 100% |
@@ -40,7 +42,7 @@ All 165 deterministic host groups pass. The independent main integrity audit
 passes 174/174 captures and 104/104 rows. These are completed checks rather than
 release promotion. Intermediate repairs and initial controller/standalone tests
 are retained; remaining reliability/failure workloads and final applicability
-still have to finish. At this checkpoint devel has 42 local commits beyond the
+still have to finish. At this checkpoint devel has 43 local commits beyond the
 verified starting remote, no push has been made, and the unrelated untracked
 Si5351 directory remains preserved.
 
@@ -89,6 +91,30 @@ to each interval. The repaired timer measures from request start. Preserve the
 original eight-hour evidence and its browser-load failure, and repeat only
 the four B one-hour browser cases; resource and RF results remain separately
 assessed. This is a workload-generation defect, not an observed transmitter fault.
+
+The completed independent external-decode reduction rehashes all 42 original
+IQ/metadata pairs, checks source/device/job/analysis identities, verifies each
+actual decoder invocation and unchanged wsprd binary, and hashes decoder
+receipt/stdout/audio files. It confirms 26/26 accepted rows, 42 correct decodes,
+all resource assessments passing and exactly 36 missing repetitions. Private
+receipt `build/resume-tools-1464d26/build/main-wspr-external-evidence-verified.json`
+has SHA-256 `994aa84adc175a0c911455bea4633bc27817d237510b84997683f121c9be8e1e`;
+the reducer script SHA-256 is
+`28e1224034a2850b480f6060af57857fda7b5f4725efc1ea25b0d532ace40b28`.
+The separate upper-band continuation archive SHA-256 is
+`87d3bf7283057c131bf8aeea3d2b19bb7a2faedf04778891ce80c4679d73876c`,
+with all 1,799 files verified; coordinator SHA-256 is
+`434ed4449a850b6b0afaed782194aefe0c508ba2926a40f378f00d3319cfb83e`.
+It requires the exact active predecessor and all 71 remaining steps to close
+successfully before any upper-band RF work. All 30 affected deterministic
+tests pass. Neither continuation installs the final release candidate or
+claims Phase 14 complete.
+
+## Retained execution checkpoints
+
+The following entries retain the evidence and knowledge at each earlier
+checkpoint. The current counts and operator amendments above supersede older
+active/queued descriptions and older composite-screen acceptance statements.
 
 The human-copy repetition stage has completed all 78 rows: three modes at all
 13 representable points on both boards. All 234 observations pass the separate
