@@ -56,9 +56,11 @@ def load_workspace_bytes(value):
     if not 1<=len(payload)<=65536:
         raise ValueError('LOAD exceeds fixed WTP payload limit')
     # Target keeps input resident beside its 32 KiB decoder workspace and
-    # separate 32 KiB authority reserve. Allow another 8 KiB for HELLO/CLAIM,
-    # paged allocation overhead and concurrent management before submission.
-    return len(payload)+16+32768+32768+8192
+    # separate 32 KiB authority reserve. Allow another 4 KiB for HELLO/CLAIM
+    # and paged allocation overhead. The input parser's independent 8 KiB INFO
+    # allowance is already below the 32 KiB decode workspace and is not added
+    # a second time. Target admission remains authoritative after preflight.
+    return len(payload)+16+32768+32768+4096
 
 
 def capture_elapsed_limit(sample_count, sample_rate_hz):

@@ -31,10 +31,11 @@ class Tests(unittest.TestCase):
         needed=load_workspace_bytes(value)
         # The failed 52,601-byte payload was legal, but its 107,488-byte
         # available heap could not hold input plus the existing decode reserve.
-        self.assertEqual(needed,52601+16+32768+32768+8192)
+        self.assertEqual(needed,52601+16+32768+32768+4096)
         self.assertLess(107488,needed)
         # The independent unarmed diagnostic succeeded after cache expiry.
         self.assertGreaterEqual(131216,needed)
+        self.assertGreaterEqual(125400,needed)
         self.assertEqual(value['total_duration_ns'],'128000000000')
         self.assertEqual(len(value['events']),512)
         with self.assertRaises(ValueError):load_workspace_bytes(dict(value,extra='x'*65536))

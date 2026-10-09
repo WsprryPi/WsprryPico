@@ -284,6 +284,19 @@ external Harness library path and stopped before analysis; its log is retained.
 The retry with that path produces the bound assessment above. Firmware and
 active campaign modules remain unchanged.
 
+The first maximum-load preflight stopped after its finite 360-second wait,
+without opening a receiver capture or submitting CLAIM/LOAD/ARM. Available heap
+recovered to 125,400 bytes, below the initial 126,345-byte host estimate. That
+preparation failure remains retained. Source accounting shows the parser's
+8 KiB INFO allowance and the 32 KiB decode workspace are serialized; adding an
+extra 8 KiB to both unchanged 32 KiB reserves was unnecessarily restrictive.
+The host estimate retains the full request/header plus both 32 KiB reserves
+and uses 4 KiB for connection/paged-allocation overhead (122,249 bytes for this
+workload). Target admission remains authoritative; failure there still stops
+without replaying LOAD. Firmware, frame capacity, cache TTLs and RF/resource
+acceptance criteria are unchanged. All 25 affected tests pass, including the
+observed failed, diagnostic-success and recovered-preflight heap states.
+
 Current acceptance amendment, 2026-10-08: the operator explicitly stated that
 QRSS, FSKCW and DFCW are intended for human copy and that having drift is not
 an immediate failure. Earlier `OPERATIONAL_SCREEN_FAIL` labels in this record
