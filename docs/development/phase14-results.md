@@ -10,8 +10,9 @@ not an estimate of elapsed effort). At the 2026-10-09 22:47 UTC checkpoint,
 the finite `2fdfdf8` continuation has stopped on A's 17 m DFCW completion at
 132 MHz after 44 completed comparison rows. Both dependent queues stopped
 without beginning RF work. The failure and all completed evidence remain
-preserved. A bounded same-image recovery diagnostic is running before the
-remaining clock, Tone, pilot/upper-band and memory cases are resumed.
+preserved. Three same-image recovery observations completed successfully.
+The new `ff1cb6c` finite continuation is running the remaining clock, Tone,
+pilot/upper-band and memory cases; the original completion fault remains open.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
@@ -335,8 +336,8 @@ The 44-row snapshot has SHA-256
 A locked receiver-visible check found 57.38 dB on-to-quiet contrast relative to
 the preceding same-boot, same-setting 17 m FSKCW capture. After ownership expired,
 ordinary Console REBOOT recovered A without changing its bd45 source, 132 MHz
-clock or durable settings. A finite three-job 17 m DFCW diagnostic is running;
-its first observation completes and passes human-copy/resources. A repeated
+clock or durable settings. All three finite 17 m DFCW diagnostic jobs complete
+and pass human-copy/resources. A repeated
 success does not erase the original fault or establish its cause. The first
 diagnostic attempt stopped on an offline interval-field lookup before reboot
 or RF; that attempt and its quiet capture also remain preserved.
@@ -349,6 +350,33 @@ closed rows, rejects identity/path/source/workload substitutions and duplicate
 entries, and reacquires only missing rows. Existing failed evidence is not
 rewritten. All 38 affected deterministic host tests pass. These host changes do
 not change firmware inputs or claim that the completion fault is repaired.
+
+The replacement finite continuation is actually running under
+`build/resume-tools-ff1cb6c`, PID 2500834/start ticks 50448441. Its source archive
+SHA-256 is `a941f49371cd4884ded74d8e338fab184606db3ae95702043bb87fde956cc392`
+(1,812 extracted files verified); coordinator SHA-256 is
+`037e7deb1d1fba34841fb0d12f2cf9670dca2886cd4aa5a28397ab03c7f048cf`.
+The completed three-job diagnostic receipt has SHA-256
+`907380dacf7c62fbfc40fd42a3d880860209c78b2bb787aaba9484c8e9460398`.
+The new coordinator checks each exact stopped predecessor boundary and this
+diagnostic before acquiring RF. Inventory and reference preflight complete;
+its third step is the clock comparison, with all 44 original rows rehashed and
+reused. The first two source-identical DFCW observations were not confused with
+the original failed job; none of the failed receipts were rewritten.
+
+The current queue is a single finite coordinator: remaining clock rows and
+four affected maximum-event contention cases; return both boards to 138 MHz;
+26 current-image Tone captures and separate analysis/close-in assessments;
+reference/inventory; six-frame 2 m WSPR pilot; conditional full harmonic
+qualification; 4 m repetitions and direct 2 m boundary checks; then the two
+one-hour B memory-follow-up jobs and their assessments. It has 70 steps if the
+full 2 m trial does not start, or 73 if it does. A failed pilot remains open for
+decode diagnosis and does not exclude the band. Final candidate installation,
+completion-fault diagnosis/repair, independent audits and release closeout
+remain separate required work. The hourly automation now inspects this actual
+coordinator. The estimate is 12–24 hours: 5.37 hours of remaining clock capture,
+the existing analysis/final-work and memory allowances, plus 1–3 hours reserved
+for the unresolved completion fault. No additional workstream is closed.
 
 The completed independent external-decode reduction rehashes all 42 original
 IQ/metadata pairs, checks source/device/job/analysis identities, verifies each
