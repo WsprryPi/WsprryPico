@@ -6,8 +6,10 @@ No Phase 14 release support is claimed at this checkpoint.
 ## Numeric progress checkpoint
 
 Three of the nine original workstreams are complete (33.3% by workstream count,
-not an estimate of elapsed effort). The finite `dbf1f3e` continuation is active after preserving the isolated
-unarmed maximum-event submission and preflight stops; completed cases remain closed.
+not an estimate of elapsed effort). The finite `2fdfdf8` continuation is active
+after the original eight-hour soak closed and its browser-load assessment
+failed. The upper-band `1464d26` queue has completed the independent WSPR
+evidence reduction and waits for that exact continuation; closed cases remain closed.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
@@ -31,7 +33,8 @@ unarmed maximum-event submission and preflight stops; completed cases remain clo
 | 6. Maximum-message cases including alternating DFCW | 4/4 complete and analyzed | 100% of attempts |
 | 6. USB-unavailable standalone WSPR | 3/3 externally decoded | 100% |
 | 6. Clock-loss/cancel/abort/disconnect/maximum-event scenarios | 9/9 assessed | 100% |
-| 6. Eight finite one-hour soak jobs | 8/8 closed; offline assessment active | 100% of jobs |
+| 6. Eight finite one-hour soak jobs | 8/8 closed; original browser-load failure retained | 100% of jobs |
+| 6. Repaired browser-load hour jobs | 0/4 closed; first B job active | 0% of jobs |
 | 7. Candidate clock images built | 3/3 | 100% |
 | 7. Independent selected-image rebuild | 1/1, complete bytes identical | 100% |
 | 7. Final both-board installation/smokes | 0/2 | 0% |
@@ -42,7 +45,7 @@ All 165 deterministic host groups pass. The independent main integrity audit
 passes 174/174 captures and 104/104 rows. These are completed checks rather than
 release promotion. Intermediate repairs and initial controller/standalone tests
 are retained; remaining reliability/failure workloads and final applicability
-still have to finish. At this checkpoint devel has 43 local commits beyond the
+still have to finish. At the reviewed `1464d26` tool snapshot, devel had 43 local commits beyond the
 verified starting remote, no push has been made, and the unrelated untracked
 Si5351 directory remains preserved.
 
@@ -84,7 +87,7 @@ configuration checks with no ARM attempt. An unexpectedly admitted LOAD is
 aborted and released. These checks establish the current firmware boundary,
 rather than a physical impossibility of generating a harmonic/image at 2 m.
 
-The original soak's completed B jobs made 290-291 successful browser requests
+The original soak's four B jobs made 290-292 successful browser requests
 per hour, below the frozen 300-request minimum despite spanning the full hour.
 The host timer measured ten seconds from request completion, adding latency
 to each interval. The repaired timer measures from request start. Preserve the
@@ -109,6 +112,17 @@ It requires the exact active predecessor and all 71 remaining steps to close
 successfully before any upper-band RF work. All 30 affected deterministic
 tests pass. Neither continuation installs the final release candidate or
 claims Phase 14 complete.
+
+The original coordinator stopped at its expected browser-count assertion after
+14 completed steps. Closed boundary SHA-256 is
+`7c90f03dd8314141102508b686d16c20bd15bb86a3e34170aff600bd5dc694d2`.
+The repaired continuation passed inventory, its separate 42-capture acceptance
+reduction and reference preflight, and began the first B one-hour browser job.
+Live recorded INFO shows source `bd45bc1bb638`, 138 MHz, the preserved B boot
+`ac148eba9e05ea4afa5a7ebc46cb0302`, Running and output active. Six observed HTTPS
+requests returned 200, and the receiver file grew 3,999,744 bytes in two seconds.
+This confirms actual execution; it is not yet a completed browser workload or
+final soak acceptance. The wsprrypi service remains active.
 
 ## Retained execution checkpoints
 
