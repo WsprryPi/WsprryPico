@@ -19,8 +19,8 @@ closed cases remain closed.
 | 2. Established plan and acceptance record | 1/1 | 100% |
 | 3. Bench identity and tooling preparation | 1/1 | 100% |
 | 4. Main 138 MHz WSPR/keyed matrix attempts | 104/104 rows, 174 finite jobs | 100% of attempts |
-| 4. WSPR external decode acceptance | 52/52 captures; 26/26 tested board/band rows | 100% |
-| 4. WSPR rows with three frames | 13/26; 26 additional frames required | 50% |
+| 4. WSPR external decode acceptance | 78/78 captures; 26/26 tested board/band rows | 100% |
+| 4. WSPR rows with three frames | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows | 78/78, all passing, 234 observations | 100% |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
@@ -31,7 +31,7 @@ closed cases remain closed.
 | 5. Main timing/capture analyses | 174/174 | 100% |
 | 5. Paired Tone/QRSS diagnostic captures | 6/6, plus all separate analyses | 100% |
 | 5. Requested frequency-compensation trials | 6/6 | 100% |
-| 5. Dedicated wideband spectral surveys | 0/4 | 0% |
+| 5. Dedicated wideband spectral surveys | 4/4 complete; interpretation/audit remain | 100% of acquisitions |
 | 6. Refreshed ordinary native-controller jobs | 12/12 complete and analyzed | 100% of attempts |
 | 6. Additional native WSPR at accepted 160 m point | 3/3, all full-screen passing | 100% |
 | 6. Maximum-message cases including alternating DFCW | 4/4 complete and analyzed | 100% of attempts |
@@ -282,6 +282,31 @@ plus analysis/finalization. Neither the 2 m/4 m queue nor the memory follow-up
 has started; their verified process identities remain unchanged. No active
 test was interrupted or duplicated. Phase 14 remains at three closed workstreams;
 the refreshed overall estimate is 14–24 hours, including the pending memory check.
+
+At the 2026-10-09 20:48 UTC checkpoint, all 36 additional main WSPR frames have
+completed and externally decoded with passing resource assessments. Combined
+coverage is 78/78 frames and 26/26 three-frame board/band rows, from 2200 m
+through 6 m at 138 MHz. A separate check rebinds all new immutable analysis
+hashes, physical hashes and source/device/boot/job identities; full independent
+raw-IQ auditing remains pending. Closed repetition-summary SHA-256 is
+`b0c7b3e952c629df715bfc949c39ea08ed909237b7a2f74c0ba4bfe9321ca10e`.
+No residual/drift flag excludes any decoded WSPR row.
+
+All four A/B × 80 m/6 m spectral surveys completed. Each contains 44 source
+on/off captures at 11 tunes and two gains, plus independent final-off evidence:
+180 receiver captures in total. Coverage includes harmonics one through five,
+sample-clock and twice-clock images. These qualify recorded acquisition/control
+coverage only; uncalibrated cross-frequency response and receiver-product
+attribution still limit interpretation, and no output filter was present.
+Survey result SHA-256 values are A/80 m
+`aeadd4ae5f562e8722f3d3ff63667fefc4a92e6ab6aec3e56cc342f4911d8a4b`,
+B/80 m `94185aadf2574a65f7541e5b0fc31027f10ed4ea0ceacd8b1fca6b78c86d32c3`,
+A/6 m `cd3ab00ecbf8dc6d59192120d33d20944bdb01fe6a57bd5e52cfb74c7d32886f`
+and B/6 m `cc5e4c0722e09ba8a84f61f14f0061016a6abf65165deb7aac3468ec3ac23ee7`.
+The same finite coordinator is now running alternate clocks (six initial
+132 MHz/A rows complete at inspection). Both dependent queues remain waiting;
+memory validation, remaining clock/band coverage and final release work remain
+open. The refreshed overall estimate is 12–22 hours; three workstreams are closed.
 
 The completed independent external-decode reduction rehashes all 42 original
 IQ/metadata pairs, checks source/device/job/analysis identities, verifies each
