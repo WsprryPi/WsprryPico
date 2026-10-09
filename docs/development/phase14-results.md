@@ -38,7 +38,7 @@ closed cases remain closed.
 | 6. USB-unavailable standalone WSPR | 3/3 externally decoded | 100% |
 | 6. Clock-loss/cancel/abort/disconnect/maximum-event scenarios | 9/9 assessed | 100% |
 | 6. Eight finite one-hour soak jobs | 8/8 closed; original browser-load failure retained | 100% of jobs |
-| 6. Repaired browser-load hour jobs | 0/4 closed; first B job active | 0% of jobs |
+| 6. Repaired browser-load hour jobs | 4/4 closed and analyzed; idle-growth failure retained | 100% of jobs |
 | 7. Candidate clock images built | 3/3 | 100% |
 | 7. Independent selected-image rebuild | 1/1, complete bytes identical | 100% |
 | 7. Final both-board installation/smokes | 0/2 | 0% |
@@ -195,6 +195,35 @@ to each interval. The repaired timer measures from request start. Preserve the
 original eight-hour evidence and its browser-load failure, and repeat only
 the four B one-hour browser cases; resource and RF results remain separately
 assessed. This is a workload-generation defect, not an observed transmitter fault.
+
+At the 2026-10-09 16:46 UTC checkpoint, all four browser repeats have completed
+and their RF/browser assessments are finished. They made 341/339/338/338
+successful requests; all meet the frozen count/span requirements. Both Tone
+jobs pass the operational screen and both FSKCW jobs pass human copy. Every
+per-job resource assessment passes, but the equivalent FSKCW idle-window median
+grew by 2,696 bytes, above the frozen 1,024-byte limit. Tone idle median growth
+is 480 bytes. The batch therefore fails its idle-growth/resource aggregate;
+do not relabel that failure or infer an RF/drift failure. Assessment SHA-256 is
+`7bc2b0a0fc7f3c0bd5da2618057f2989a6d1f545ee355e69d3f8a78274018d49`.
+Four-job offline analysis took 2,892.23 seconds (48.20 minutes). The unchanged
+finite coordinator is now analyzing the original soak and continues independent
+work; full qualification remains open.
+
+A finite read-only B observation, made only after confirming the predecessor
+was doing offline analysis and acquiring the normal board lock, preserved its
+boot/source/138 MHz clock and inactive output. After the existing replay-cache
+expiry interval, heap samples are 36,628/36,620/36,628 bytes, below the failed
+45-second FSKCW samples of 42,004/42,004/42,012 bytes. TLS allocation remains
+4,397 bytes. Private receipt
+`build/resume-tools-6443197/build/heap-post-expiry-20261009T1649/samples.json`
+has SHA-256
+`cd706e6a7584899209e1135bfdc801f917cc5ad776268065bec54107dfb48d32`.
+Source retains responses/sessions for 300 seconds, while the repeat sampler
+waited 45 seconds. Cached state is therefore a possible contributor, not a
+proved cause or a passing replacement assessment. The original four B soak
+idle windows had only 296 bytes of equivalent FSKCW median growth. Diagnose
+the retained-state contribution and obtain comparable evidence before closure;
+no firmware repair is claimed. No active test was interrupted or duplicated.
 
 The completed independent external-decode reduction rehashes all 42 original
 IQ/metadata pairs, checks source/device/job/analysis identities, verifies each
