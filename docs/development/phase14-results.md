@@ -9,8 +9,8 @@ Three of the nine original workstreams are complete (33.3% by workstream count,
 not an estimate of elapsed effort). The finite `2fdfdf8` continuation is active
 after the original eight-hour soak closed and its browser-load assessment
 failed. The independent WSPR evidence reduction is complete. Its original
-waiting upper-band queue was replaced before any RF work by `f0d5434`, which
-adds actual 2 m third-harmonic trials and waits for that exact continuation;
+waiting upper-band queue was replaced before any RF work by `c5f0e57`, which
+starts with a 2 m WSPR pilot and conditionally expands to the full harmonic trial;
 closed cases remain closed.
 
 | Workstream | Completed count | Percentage |
@@ -130,13 +130,13 @@ private `build/phase14-progress-estimate.json` from actual progress and reports
 one line in the operator-selected count/percent/time-remaining format. This
 schedule does not stop an active test.
 
-The harmonic adapter and meaningful waveform/identity/index rejection checks
+The original harmonic adapter and meaningful waveform/identity/index rejection checks
 are committed as `f0d5434e3158541e0bfe7dccdc90cb43e7dd2d7f`; all 31 affected
 deterministic tests pass. Its source archive SHA-256 is
 `636a7a81e1c8540193515b03e4f3c008d971e425ef219925287d30921e6a7f53`,
 with all 1,801 extracted files verified. Finite coordinator SHA-256 is
 `a732cf0ce14e5dcc49d518b92900d1476682fd4fb6f0b449e748ebe068a4406f`.
-It is waiting on the exact active `2fdfdf8` PID/start identity, then runs
+That earlier queue waited on the exact active `2fdfdf8` PID/start identity, then planned
 2 m reference brackets, the actual harmonic mode/clock trials, and the retained
 4 m repetitions/direct-limit checks. It does not alter the active browser job.
 The former `1464d26` queue was stopped only while waiting, with its single
@@ -146,6 +146,26 @@ receipt SHA-256 is
 Positive harmonic reception also needs source-attribution assessment before a
 transmitter-support claim; on/off reception alone does not exclude a
 receiver-generated harmonic. Native 2 m mapping and that attribution remain open.
+
+The pilot-first and informational-frequency tools are committed as
+`c5f0e579d68720743502ee5a60468b2c73ec4bc0`. All 35 affected deterministic tests
+pass on both the Mac and wspr5. The source archive SHA-256 is
+`2505ba3f63264f710e1ba395eec457de24114c42ae811c78da237800eb486c77`;
+all 1,803 extracted files were verified. Private coordinator SHA-256 is
+`cc73b7badbdf523f33ae4225d21fdb1d825d6542820618a6407d7bf817dbd4b4`.
+It is verified waiting as PID 2333498/start ticks 46742547, with zero steps
+started, for the unchanged active PID 2312716/start ticks 46309764 and its
+71-step successful boundary. It runs the pilot first, verifies/reuses successful
+pilot decode evidence for conditional full expansion, then continues the
+independent 4 m repetitions/direct-frequency API boundary checks. A pilot decode
+problem leaves full expansion pending diagnosis; frequency annotations never
+make that decision. The replaced `f0d5434` coordinator had no started steps;
+its preserved stopped boundary SHA-256 is
+`8b217cbeec0b0a2183b97380a32036230118cf746b96dc5cd47a1befe99db74a`
+and replacement receipt SHA-256 is
+`21a0dd8ac5b1e4b72f31fc6ea3afd76c1ef2a7fcd55e12262472b73f300049ac`.
+No active test was stopped or changed. No firmware build input changed and no
+push has been made at this checkpoint.
 
 The original soak's four B jobs made 290-292 successful browser requests
 per hour, below the frozen 300-request minimum despite spanning the full hour.
