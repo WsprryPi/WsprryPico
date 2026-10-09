@@ -26,13 +26,19 @@ def collect(directory):
         require(r['physical_sha256']==sha256(p) and r['capture_sha256']==v['capture_sha256'] and
             r['metadata_sha256']==v['metadata_sha256'] and r['job_id']==v['job']['job_id'] and
             all(r[k]==v[k] for k in ('board','band','mode','clock_hz','source_revision','firmware_sha256','boot_id')),'original analysis substitution')
-        meta=p.parent/'capture.json';validate_capture(json.loads(meta.read_text()),p.parent/'capture.cf32',v['receiver_settings'])
-        require(sha256(meta)==v['metadata_sha256'],'original metadata substitution')
+        meta=p.parent/'capture.json';metadata=json.loads(meta.read_text())
+        validate_capture(metadata,p.parent/'capture.cf32',v['receiver_settings'])
+        require(sha256(meta)==v['metadata_sha256'] and metadata['output']['sha256']==v['capture_sha256'],'original metadata/capture substitution')
         receipt=a.parent/'decode.json';stdout=a.parent/'wsprd.stdout'
-        accepted=assess(r,json.loads(receipt.read_text()),stdout.read_text())
+        decoded=json.loads(receipt.read_text());command=decoded.get('command',[])
+        require(len(command)==6 and command[:4]==['/usr/bin/wsprd','-d','-H','-f'] and
+            command[4]==str((BANDS[v['band']]-1500)/1e6) and Path(command[5]).parent==a.parent,'original decoder invocation substitution')
+        require(r['decoder_sha256']==sha256('/usr/bin/wsprd'),'original external decoder binary changed')
+        accepted=assess(r,decoded,stdout.read_text())
         observations.append(dict(board=v['board'],band=v['band'],clock_hz=v['clock_hz'],job_id=v['job']['job_id'],
             physical_path=str(p),physical_sha256=sha256(p),analysis_sha256=sha256(a),capture_sha256=v['capture_sha256'],
             metadata_sha256=v['metadata_sha256'],decoder_receipt_sha256=sha256(receipt),decoder_stdout_sha256=sha256(stdout),
+            decoder_sha256=r['decoder_sha256'],decoder_audio_sha256=sha256(command[5]),
             acceptance=accepted,resources_passed=r['resources']['passed'],legacy_disposition=r['disposition']))
     for board in ('A','B'):
         for band,f in BANDS.items():

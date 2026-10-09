@@ -11,6 +11,35 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit,load_workspace_bytes
 
 class Tests(unittest.TestCase):
+    def test_direct_2m_rejection_never_arms_and_cleans_unexpected_load(self):
+        from phase14_upper_band import reject_2m
+        from unittest.mock import Mock,patch
+        for admitted in (False,True):
+            peer=Mock(fd=1,session='a'*32,received=bytearray(),schema={})
+            peer.validator.errors.return_value=[]
+            owner=[None];submitted=[None];operations=[]
+            def request(op,body,**kwargs):
+                operations.append(op)
+                if op=='CLAIM':owner[0]=body['owner_id']
+                if op=='STATUS':return dict(owner_id=owner[0],job_id=submitted[0] if admitted else 'b'*32,
+                    state='loaded' if admitted else 'complete',output_active=False)
+                return {}
+            peer.request.side_effect=request
+            def exchange(*args,**kwargs):
+                value=kwargs['expected']['body'];submitted[0]=value['job_id']
+                self.assertEqual(kwargs['expected']['op'],'LOAD')
+                self.assertTrue(all(int(e['frequency_nhz'])>75000000*1000000000 for e in value['events'] if e['rf_on']))
+                return dict(ok=admitted,error=dict(code='FREQUENCY_REJECTED'))
+            with patch('phase11_5_inventory.exchange',side_effect=exchange):
+                if admitted:
+                    with self.assertRaises(ValueError):reject_2m(peer,Mock(),'WSPR',150000000)
+                    self.assertIn('ABORT',operations)
+                else:
+                    result=reject_2m(peer,Mock(),'WSPR',150000000)
+                    self.assertEqual(result['disposition'],'UNSUPPORTED_CONFIGURATION')
+                    self.assertNotIn('ABORT',operations)
+                self.assertNotIn('ARM',operations)
+                self.assertEqual(operations[-1],'RELEASE')
     def test_wspr_external_decode_accepts_residual_diagnostics_but_rejects_wrong_message(self):
         from phase14.wspr_decode import assess
         line='2359 40 -0.0 3.570100 0 AA0NT EM18 37 '
@@ -22,6 +51,7 @@ class Tests(unittest.TestCase):
         self.assertFalse(assess(report,dict(receipt,returncode=1),line)['passed'])
         self.assertFalse(assess(dict(report,decoded=False),receipt,line)['passed'])
         self.assertFalse(assess(report,dict(receipt,matches=['invented']),line)['passed'])
+        self.assertFalse(assess(dict(report,decode=dict(receipt,returncode=1)),receipt,line)['passed'])
     def test_browser_request_latency_does_not_reduce_one_hour_workload(self):
         from unittest.mock import patch
         from phase14.browser import activity

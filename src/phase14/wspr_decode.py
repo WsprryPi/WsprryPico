@@ -8,6 +8,7 @@ def assess(report,receipt,stdout):
     if type(receipt.get('returncode')) is not int or receipt['returncode']!=0:issues.append('external decoder did not complete successfully')
     if report.get('decoded') is not True or receipt.get('decoded') is not True or not matches:issues.append('expected message was not independently decoded')
     if receipt.get('matches')!=matches:issues.append('decoder receipt differs from actual stdout')
+    if 'decode' in report and report['decode']!=receipt:issues.append('decoder receipt differs from retained analysis')
     return dict(schema='phase14-wspr-decode-acceptance/1',passed=not issues,issues=issues,
         expected=list(EXPECTED),matches=matches,legacy_screen_passed=report.get('passed'),
         operator_amendment='2026-10-09: WSPR passes when the external tool decodes the expected transmission.',

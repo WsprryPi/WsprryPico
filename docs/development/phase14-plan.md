@@ -122,6 +122,13 @@ original screen. The separate 2026-10-09 WSPR amendment makes external decoding
 the WSPR acceptance criterion. Reuse existing exact-message decodes and acquire
 only missing repetitions; do not repeat accepted captures to erase diagnostics.
 
+Include three accepted observations for the representable 150 MHz/4 m keyed
+and WSPR rows, reusing their first comparison capture when applicable. Verify
+the direct 2 m boundary using finite unarmed LOAD requests on both boards at
+each supported clock; an unexpected admission must be aborted and released.
+This checks the advertised implementation limit and does not declare harmonic
+or image output physically impossible.
+
 Retain raw phase/timing/spectral measurements even when a historical analyzer's
 composite flag fails. Investigate receiver artifacts with retuning/gain/reference-
 only controls; do not weaken frozen limits to obtain PASS. Preserve every failed

@@ -29,7 +29,7 @@ unarmed maximum-event submission and preflight stops; completed cases remain clo
 | 6. Maximum-message cases including alternating DFCW | 4/4 complete and analyzed | 100% of attempts |
 | 6. USB-unavailable standalone WSPR | 3/3 externally decoded | 100% |
 | 6. Clock-loss/cancel/abort/disconnect/maximum-event scenarios | 9/9 assessed | 100% |
-| 6. Eight finite one-hour soak jobs | 7/8 closed; eighth active | 87.5% of jobs |
+| 6. Eight finite one-hour soak jobs | 8/8 closed; offline assessment active | 100% of jobs |
 | 7. Candidate clock images built | 3/3 | 100% |
 | 7. Independent selected-image rebuild | 1/1, complete bytes identical | 100% |
 | 7. Final both-board installation/smokes | 0/2 | 0% |
@@ -40,7 +40,7 @@ All 165 deterministic host groups pass. The independent main integrity audit
 passes 174/174 captures and 104/104 rows. These are completed checks rather than
 release promotion. Intermediate repairs and initial controller/standalone tests
 are retained; remaining reliability/failure workloads and final applicability
-still have to finish. At this checkpoint devel has 41 local commits beyond the
+still have to finish. At this checkpoint devel has 42 local commits beyond the
 verified starting remote, no push has been made, and the unrelated untracked
 Si5351 directory remains preserved.
 
@@ -54,6 +54,17 @@ Eight rows already have three decoded frames, while 18 need two more frames
 each. Ordinary native 80 m and 160 m WSPR and the USB-unavailable standalone
 triplet each have 3/3 correct decodes under the same criterion. The separate
 human-copy family has 78/78 passing rows.
+
+The acceptance/workload repair is committed as `2fdfdf87fc25a7c677391598b5af5b0e1ceff37a`.
+Its immutable source archive SHA-256 is
+`300e6790575994f018ba50c89302608d4790e61c2e70469173b442a227835d6a`;
+all 1,798 extracted files were verified. Finite continuation script SHA-256
+`d1a29ec4ee8033f71a0b73ee5e8e5a0852417e23759fecd372c65218a1f0d3ac`
+waits for the exact predecessor process/start identity and its expected closed
+browser-load failure. It then collects the 42 actual external decode receipts,
+repeats four B hour cases, separately assesses the retained original soak,
+acquires 36 missing WSPR frames, and continues spectra/alternative clocks/Tone
+checks. No firmware build input changed in this repair.
 The final supported/failed/unresolved release dispositions await the remaining
 reference, spectral, producer, reliability and final-image assertions.
 
@@ -63,6 +74,13 @@ at 150 MHz, while 2 m is outside the direct-frequency contract at 132, 138 and
 150 MHz. These source limits are distinct from failed transmissions or decoding.
 The refreshed comparison must attempt every representable mode and retain
 explicit unsupported entries for the others.
+
+The finite upper-band follow-up retains the first 150 MHz/4 m mode screens and
+acquires only missing accepted repetitions. It also checks all five direct
+2 m LOAD requests on both boards at 132, 138 and 150 MHz: 30 explicit negative
+configuration checks with no ARM attempt. An unexpectedly admitted LOAD is
+aborted and released. These checks establish the current firmware boundary,
+rather than a physical impossibility of generating a harmonic/image at 2 m.
 
 The original soak's completed B jobs made 290-291 successful browser requests
 per hour, below the frozen 300-request minimum despite spanning the full hour.
