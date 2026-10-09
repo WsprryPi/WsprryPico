@@ -11,6 +11,14 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit,load_workspace_bytes
 
 class Tests(unittest.TestCase):
+    def test_idle_growth_followup_keeps_threshold_and_rejects_invalid_windows(self):
+        from phase14_idle_growth import compare
+        self.assertTrue(compare([[39316,39308,39308],[39324,39324,39316]])['passed'])
+        self.assertFalse(compare([[39316,39308,39308],[42004,42004,42012]])['passed'])
+        self.assertFalse(compare([[23084]*3,[23084,23084,24109]])['passed'])
+        for windows in ([],[[1]*3],[[True]*3,[1]*3],[[-1]*3,[1]*3],[[1,2],[1,2,3]]):
+            with self.assertRaises(ValueError):compare(windows)
+
     def test_2m_pilot_uses_decode_and_resources_independently_of_segment_or_drift(self):
         from phase14.wspr_segment import pilot_decision
         rows=[dict(board=b,job_id=b+str(i),decode_passed=True,resources_passed=True,

@@ -225,6 +225,30 @@ idle windows had only 296 bytes of equivalent FSKCW median growth. Diagnose
 the retained-state contribution and obtain comparable evidence before closure;
 no firmware repair is claimed. No active test was interrupted or duplicated.
 
+At the next hourly checkpoint, a second same-boot/source/clock locked INFO-only
+observation after the one-hour terminal-history lifetime records stable
+23,084-byte idle allocation, 31,284 allocator-live bytes and unchanged 4,397-byte
+TLS allocation. Output is inactive throughout. Private receipt
+`build/resume-tools-6443197/build/heap-post-terminal-expiry-20261009T1754/samples.json`
+has SHA-256
+`1f20c06f8c4fcfc2366a0edbab5b447e7906d9c23caea16f3302199ad7c2fbcd`.
+This shows bounded memory return; it does not identify the original pair's
+2,696-byte difference or replace its failed assessment.
+
+The prepared host-only `phase14_idle_growth.py` follow-up acquires exactly two
+additional B/138 MHz/80 m one-hour, 512-event FSKCW/browser jobs on unchanged
+`bd45bc1bb638` firmware. Each preserves the existing 45-second idle window and
+adds three INFO-only observations at least 350 seconds after owned transport
+closure, beyond the contract's 300-second replay/session lifetime. Source,
+boot, settings, inactive output and complete capture/resource/browser/RF evidence
+must bind both observations. Compare both policies separately using the unchanged
+1,024-byte growth/spread limit; no automatic release promotion follows. The
+original failure remains immutable. This follow-up must wait for the active
+batch and existing 2 m/4 m continuation; it must not interrupt an active test.
+All 36 affected deterministic tests pass on the Mac, including malformed-window
+rejection and preservation of the original 2,696-byte failure. No firmware build
+input changes in this diagnostic/validation preparation.
+
 The completed independent external-decode reduction rehashes all 42 original
 IQ/metadata pairs, checks source/device/job/analysis identities, verifies each
 actual decoder invocation and unchanged wsprd binary, and hashes decoder
