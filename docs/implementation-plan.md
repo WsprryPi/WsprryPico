@@ -157,13 +157,18 @@ button operation is recorded in the [Phase 12 closeout](development/phase12-clos
 No LED calibration, additional polarity campaign or button/header test is
 required to close P13.1 or carried forward from it into Phase 14.
 
-External Si5351 implementation remains deferred. No further feature scope is
-selected; Phase 14 RF qualification and release is next on the roadmap.
+External Si5351 implementation remains conditional and deferred, depending on
+ongoing GPIO RF qualification. No further feature implementation is selected;
+Phase 14 RF qualification and release remains active. The 2026-10-09
+[GPIO timekeeping/calibration research plan](development/gpio-time-calibration-plan.md)
+selects three stages of consideration: NTP filtering and UTC discipline,
+NTP-derived Pico calibration, then optional GPS UTC + PPS. It adds no hardware
+jobs, implementation requirement or completion gate to the active campaign.
 
 | Milestone | Selected work | Status |
 | --- | --- | --- |
 | P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) across RF activation and cleanup; selected external LED is TX-only with operational cues onboard, or shared onboard TX takes priority over blinking. | Complete (CLOSED_SCOPED); source/host and 14 selected target case results accepted; no remaining LED work |
-| P13.2 — Si5351 engine | [External Si5351 transmission](development/si5351-transmission-backlog.md) through the shared job service for standalone and WsprryPi-controlled jobs, with local RP2350 timing, exclusive I²C ownership and engine failure/shutdown handling. | Deferred; unimplemented |
+| P13.2 — Si5351 engine | [Conditional external Si5351 transmission](development/si5351-transmission-backlog.md) through the shared job service for standalone and WsprryPi-controlled jobs, with local RP2350 timing, exclusive I²C ownership and engine failure/shutdown handling. | Conditional on GPIO results; deferred; unimplemented |
 
 Each feature includes its implementation and applicable behavior/target
 acceptance. Phase 14 retains the final supported engine/mode/band/clock matrix,

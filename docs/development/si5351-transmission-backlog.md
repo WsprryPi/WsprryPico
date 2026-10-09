@@ -1,14 +1,25 @@
 # Si5351 transmission backlog
 
-Recorded: 2026-10-03. Status: selected future feature; implementation deferred.
+Recorded: 2026-10-03. Updated: 2026-10-09. Status: conditional future feature;
+implementation deferred.
 Roadmap assignment: **Phase 13 / P13.2**, selected on 2026-10-05; see the
 [feature backlog](../implementation-plan.md#phase-13-feature-backlog).
-Final hardware/release qualification follows in Phase 14.
-The user requested backlog/documentation/memory only. This entry does not
+The original assignment placed final hardware/release qualification in Phase 14.
+The active Phase 14 campaign covers the implemented PIO engine; any future
+Si5351 implementation and qualification require a separately selected scope.
+The operator clarified on 2026-10-09 that Si5351 is a possible future addition
+depending on the GPIO RF testing underway. That conditional decision supersedes
+the earlier unconditional feature selection, while retaining the historical
+P13.2 assignment. The current investigation is
+[GPIO timekeeping and calibration](gpio-time-calibration-plan.md): NTP filtering
+and UTC discipline, then NTP-derived Pico calibration, then optional GPS/PPS.
+Si5351 transmission and CLK2 feedback are outside that work.
+
+The original request was backlog/documentation/memory only. This entry does not
 authorize firmware implementation, hardware control or RF output.
 
-Implement transmissions through an external Si5351 as an interchangeable Pico
-RF engine, usable by standalone operation and WsprryPi/backend jobs through
+If selected later, implement transmissions through an external Si5351 as an
+interchangeable Pico RF engine, usable by standalone operation and WsprryPi/backend jobs through
 the existing shared job service. Complete jobs and symbol timing remain local
 to RP2350; no per-symbol USB or network delivery dependency is permitted.
 
@@ -40,5 +51,6 @@ or RF performance are qualified by this backlog entry.
   board, firmware, Si5351/reference, bus, output, drive, mode, clock, RF path and
   restoration state. Host tests and cross-linking do not qualify RF behavior.
 
-This selects the future engine feature; detailed hardware choices and supported
-capabilities remain to be established in a bounded implementation tranche.
+This retains a conditional future engine proposal. It selects no implementation;
+detailed hardware choices and supported capabilities remain to be established
+if the operator selects a bounded implementation tranche after GPIO results.
