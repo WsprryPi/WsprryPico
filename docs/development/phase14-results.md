@@ -32,7 +32,7 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 81/104 closed; 80 repeated passes and 1 original nominal-decode failure | 77.9% closed |
+| 4. Repaired-firmware main three-observation rows | 93/104 closed; 92 repeated passes and 1 original nominal-decode failure | 89.4% closed |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -934,6 +934,52 @@ receiver retune, waveform, time or drift correction was applied. The original
 failure is preserved; this additional unsuccessful decode does not establish
 its cause or change the unresolved pilot, frequency/drift annotations or
 conditional full-qualification state.
+
+At October 10 10:03 UTC, the exact original coordinator, start ticks, script
+and firmware remain unchanged and running. There are 93 of 104 closed row
+attempts (89.4%): 92 complete repeated passes and the preserved original
+A/6 m nominal-decode failure, with its accepted supplement and two prepared
+missing physical repetitions. The 279 of 312 closed observations (89.4%)
+have 278 original mode passes plus the independently reverified supplement;
+all 279 resources pass. WSPR has 69 nominal expected-message decodes plus
+one supplemental decode; QRSS has 71 human-copy passes and FSKCW/DFCW have
+69 each. Partial-row observations do not close that row. No new matrix
+failure appeared; B/12 m QRSS is active at this checkpoint. The private receipt
+is `build/progress-evidence-20261010T1005-verified.json` under the active root,
+SHA-256 `7c68be047aa6a474d5f3537dd2770f2e5ad079e45c53602227d721ca7fe6a833`;
+its rows SHA-256 is
+`b9f6e8d687ce99fa33cddf585a24e55ea467bd091ae2f8a89fdf4b0ad0a078ef`.
+Actual decoder stdout/receipts, resources and source/job/metadata/analysis
+bindings were rechecked. The later full independent raw-IQ audit remains open.
+
+The refreshed estimate is 26–40 hours, with three of nine workstreams (33.3%)
+closed. Required main capture is 3,086 seconds (0.86 hours); observed
+helper/analysis intervals project 0.97 hours for 33 required slots, including
+the two prepared A/6 m frames. The active stage has 31 jobs left, followed
+by its 26 Tone jobs, analyses, close-in reductions and final reference/inventory.
+Other fixed capture/observation work remains 17.76 hours, with the inclusive
+6.3–20.3-hour additional-work allowance. Remaining core raw data is 122.82 GiB
+before other work/reserve, against 126.28 GiB free on wspr5. The current stage
+fits; storage relocation remains necessary before later acquisition.
+
+A separate private relocation helper is prepared at
+`build/phase14-relocate-verified-raw-prepared.py`, SHA-256
+`5c10fab4f81152ac5b996c5a0f1d90e6aada68b0cafe8378b7c007689b3d6dc9`.
+It pins the existing copy-only helper, exact four-job archive plan and successful
+copy receipt/checksum. At the successful current-stage quiet boundary, it
+holds both board/receiver locks, independently rehashes every destination file
+and unchanged source, publishes explicit location/retrieval records on all
+three hosts and locally, then reverifies each destination raw before removing
+only its redundant, exact source raw file. It checks the source raw hash,
+inode/size/timestamps and unchanged physical/metadata receipts immediately
+before removal. All original receipts and retained archive bytes remain.
+Separate final or partial-failure records preserve recovery locations and
+identify removals without overwriting the copy receipts. Its bounded operations
+fit inside the existing six-hour quiet guard. Local/generated-script compilation
+passes, and live `--probe` returns `BUSY` before any copy/removal operation.
+Actual successful transfer and relocation paths remain unexecuted/unvalidated;
+no evidence has been copied or relocated and no active RF test was changed.
+The 2 m pilot remains unresolved with informational frequency/drift annotations.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
