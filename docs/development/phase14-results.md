@@ -16,22 +16,31 @@ at 10 m after 59 closed comparison rows. A worker snapshot race is reproduced
 by a deterministic rejection test and repaired in source. New firmware build
 and physical requalification are in progress; old-source counts below remain
 historical evidence and do not qualify the repaired runtime automatically.
+The repaired runtime now has 12/12 passing affected DFCW observations and
+both-board 80 m Tone/WSPR baselines. Its first 2 m frame on each board completed
+valid control/capture/resources but neither decoded (0/2 observed; six-frame
+reliability unresolved). The finite pilot continuation is closed. The new
+138 MHz 104-row/312-job matrix followed by 26 Tone observations is running
+under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
 | 1. Initial source and historical-evidence review | 1/1 | 100% |
 | 2. Established plan and acceptance record | 1/1 | 100% |
 | 3. Bench identity and tooling preparation | 1/1 | 100% |
-| 4. Main 138 MHz WSPR/keyed matrix attempts | 104/104 rows, 174 finite jobs | 100% of attempts |
-| 4. WSPR external decode acceptance | 78/78 captures; 26/26 tested board/band rows | 100% |
-| 4. WSPR rows with three frames | 26/26; all main repetitions complete | 100% |
-| 4. Three-observation human-copy rows | 78/78, all passing, 234 observations | 100% |
+| 4. Main 138 MHz WSPR/keyed matrix attempts, preceding firmware | 104/104 rows, 174 finite jobs | 100% of attempts |
+| 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
+| 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
+| 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
+| 4. Repaired-firmware main three-observation rows | 0/104 closed; finite batch active | 0% |
+| 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
+| 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
 | 4. Alternative-clock physical rows, preceding firmware | 59/270 complete; two additional failed attempts | 21.9% |
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
 | 4. 150 MHz/4 m repeated mode rows | 0/10; follow-up prepared | 0% |
 | 4. Direct 2 m boundary checks | 0/30; unarmed checks prepared | 0% |
-| 4. Actual 2 m WSPR pilot | 0/6 frames; pilot prepared | 0% |
+| 4. Actual 2 m WSPR pilot | 0/2 observed decodes; 2/6 planned frames executed, repetitions stopped for diagnosis | 0% of required decodes |
 | 4. Actual 2 m third-harmonic mode/clock rows | 0/30; conditional on reliable pilot decoding | 0% |
 | 5. Main timing/capture analyses | 174/174 | 100% |
 | 5. Paired Tone/QRSS diagnostic captures | 6/6, plus all separate analyses | 100% |
@@ -559,6 +568,45 @@ informational frequency-window annotations where reference quality permits.
 The repaired firmware is unchanged. The first broad 138 MHz matrix/Tone stage
 can proceed independently with 2 m decoding unresolved; no positive 2 m result
 requiring native mapping is being promoted or bypassed.
+
+The first broad repaired-runtime stage is now running under
+`build/resume-tools-df16f5e`, coordinator PID 2539333/start ticks 51272956.
+Its `matrix-continuation.py` SHA-256 is
+`ff94d275727a7c6237fa23e00f192aa31b0349ccf84a6ebc1adab59140c969a7`;
+state is in `build/repaired-matrix-state/status.json`. Source archive SHA-256
+is `27355ac1bbc942acb297c07282c8ff996a43c1bf3ae9541a016d09ccece6ebaa`,
+with all 1,812 files independently verified. The exact Linux snapshot passes
+all 39 portable and 17 RF measurement tests. The source snapshot changes host
+analysis; deployed firmware remains 119477a. The start guard rehashes the closed
+pilot boundary, verifies its unresolved decision and the exact 138 MHz source/
+UF2, requires the old coordinator to be gone, and reserves at least 70 GiB for
+this first stage. Inventory and the pre-matrix reference are complete; the
+first A/80 m WSPR capture is active. This finite stage has 312 planned main
+jobs, 26 Tone jobs with analyses/close-in reductions, and final reference/
+inventory. No later clock/soak/memory batch is claimed queued or running.
+
+The new separate 2 m informational reduction has SHA-256
+`2e0225a23c77af0563d72bff94022fe3031afa0e2c4771bda2e48b73499b9225`
+at `build/resume-tools-df16f5e/build/2m-informational-rereduction.json`.
+Both unchanged nominal external decodes still fail and resources still pass.
+The corrected reference contrast recovers bounded wanted-tone estimates:
+A 144,490,634.04–144,490,654.03 Hz, B 144,490,339.09–144,490,359.21 Hz.
+Their estimated occupied envelopes extend about 56.35 Hz above the upper
+conventional WSPR edge and 63.23 Hz below the lower edge, respectively.
+Both annotations explicitly retain null pass/fail and no band exclusion.
+This establishes an observed frequency-placement problem without deciding the
+future calibration method or proving the cause of the failed decodes.
+
+The estimate remains 34–48 hours, three of nine workstreams (33.3%), with the
+2 m decoding investigation still open. Exact remaining core captures total
+169.57 GiB: 8.19 hours main matrix, 6.42 hours alternative-clock rows plus
+692 seconds contention, 1,300 seconds Tone, 29,160 seconds mixed-soak capture
+and 7,290 seconds memory-pair capture. Idle observations, per-job analysis,
+other producer/failure/upper-band/spectral work, audits, checked archives and
+final installation/review/commit/push remain additional. About 176 GiB is free
+on wspr5; first-stage capacity is sufficient, while later stages require
+checked evidence archival capacity and reserve. No raw evidence has been
+relocated or discarded.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
