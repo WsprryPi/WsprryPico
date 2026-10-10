@@ -32,7 +32,7 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 72/104 closed; 71 repeated passes and 1 original nominal-decode failure | 69.2% closed |
+| 4. Repaired-firmware main three-observation rows | 81/104 closed; 80 repeated passes and 1 original nominal-decode failure | 77.9% closed |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -887,6 +887,53 @@ later acquisition. The archive and two-frame helpers remain prepared and
 unexecuted. Reviewing their guards and the alternative-clock candidate/receiver
 handling did not change an active test or firmware. The 2 m decode outcome
 remains unresolved, with all placement/drift annotations informational.
+
+At October 10 08:56 UTC, the original coordinator, start ticks, script and
+firmware remain unchanged. There are 81 of 104 closed row attempts (77.9%):
+80 complete repeated passes and the preserved original A/6 m nominal-decode
+failure with its accepted supplement and two prepared missing repetitions.
+There are 243 of 312 closed observations (77.9%); 242 original mode passes
+plus the independently reverified supplemental decode accept all 243, and
+all 243 resources pass. WSPR has 60 nominal expected-message decodes plus
+one supplemental decode; QRSS has 62 human-copy passes and FSKCW/DFCW have
+60 each. Partial-row observations are counted without calling that row
+complete. No new matrix failure appeared. B/20 m QRSS is active at this
+checkpoint. The private receipt is
+`build/progress-evidence-20261010T0858-verified.json` under the active root,
+SHA-256 `b5768fdf2dee4634ca4abb2d70150ad7cc7045355bedd7fc5a8e88bfa1d5e12b`;
+its rows SHA-256 is
+`833bae1c135eaa3e9728aef98456ec133180fd7d4ed14413172bcdb47d9f308b`.
+Actual decoder stdout/receipts, resource results and physical/metadata/analysis
+bindings were rechecked; the later full raw-IQ audit remains required.
+
+The refreshed estimate remains 27–41 hours, with three of nine workstreams
+(33.3%) closed. Required main capture has fallen to 6,488 seconds (1.80 hours);
+observed helper/analysis intervals project 2.03 hours for 69 remaining slots,
+including the two separately prepared A/6 m frames. The active stage has
+67 jobs left. The unchanged fixed capture/observation workload is 17.76 hours,
+plus the inclusive 6.3–20.3-hour allowance described above. The resulting
+26.10–40.10-hour range rounds upward to 27–41 hours; this is a calculation
+from remaining work, rather than an elapsed-time countdown. Remaining core
+raw data is 129.16 GiB before other work/reserve, against 132.55 GiB free on
+wspr5. Archive transfer/relocation remains prepared for the successful quiet
+boundary and has not been executed. No active test or firmware was changed.
+
+A separate low-priority offline diagnostic at 08:58 UTC ran the installed
+external decoder on B's unchanged retained 2 m WAV, using its original
+receiver frequency/window and adding only `-o 1`. Installed decoder help
+confirms this OSD depth is supported. The 90-second bounded process exited
+normally in 5.15 seconds with `<DecodeFinished>` and no expected-message match.
+Receipt `build/2m-b-osd1-diagnostic-20261010T0902/result.json` under the active
+root has SHA-256
+`151070bfe3a743bb3dfd22b64b3b50e028839a5e511fa22d61544cdec36dacbd`.
+The private source helper SHA-256 is
+`ad15823385acf085c03815e171f507d0252575f1d8dc6a709f8aa480fe471d49`.
+Independent verification rehashed actual stdout/stderr, decoder and all bound
+original WAV/control/metadata/analysis/decoder receipts. No RF, transmitter,
+receiver retune, waveform, time or drift correction was applied. The original
+failure is preserved; this additional unsuccessful decode does not establish
+its cause or change the unresolved pilot, frequency/drift annotations or
+conditional full-qualification state.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
