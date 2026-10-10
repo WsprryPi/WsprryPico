@@ -32,7 +32,7 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 28/104 closed and passing; finite batch active | 26.9% |
+| 4. Repaired-firmware main three-observation rows | 38/104 closed and passing; finite batch active | 36.5% |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -719,6 +719,46 @@ These observations identify a useful next investigation without isolating the
 physical cause or proving why decoding fails. No new RF/decoder trial or full
 2 m qualification has begun; drift/placement retains null pass/fail and no
 band exclusion.
+
+At October 10 04:57 UTC, the original coordinator still has the same
+PID/start ticks/script hash and is running the main matrix. Thirty-eight of
+104 repeated rows are closed and passing (36.5%); 115 of 312 observations are
+closed (36.9%). Actual external decoder stdout/receipts confirm 30 expected-
+message WSPR decodes; 30 QRSS, 28 FSKCW and 27 DFCW observations pass human-copy
+checks. All 115 resources pass, with no new mode/resource/control failure.
+A/15 m FSKCW is active. The private verified progress snapshot under the
+active root is `build/progress-evidence-20261010T0457-verified.json`, SHA-256
+`037be7f85f6612c9e39cbeaf2e9c811ae48e344303e2aba629dee3c3b2b6af5c`;
+its rows SHA-256 is
+`95455ba09157dd70dc84ed7f086aa29f7d0f690cdd7c662cc09e4be1ca3b5ad6`.
+
+The refreshed overall estimate is 30–44 hours, still three of nine workstreams
+(33.3%) closed. Main remaining capture time is 18,490 seconds (5.14 hours);
+measured helper runtimes and analysis publication intervals project 5.79 hours
+for the remaining 197 observations before the 26 Tone/reference/inventory tail.
+All other clocks/contention, soak/memory, producer/failure/upper-band/spectral
+work, 2 m investigation, archives/audits and final installation/review/commit/
+push remain included. Available wspr5 capacity is about 155 GiB; remaining
+core captures require 149.09 GiB before other work/reserve. The 2 m pilot
+remains unresolved; no new RF/decoder trial or native mapping was initiated.
+
+Pre-transfer review repaired the private archive helper's quiet guard lifetime:
+the earlier two-hour guard could expire before both hosts' combined bounded
+transfer/hash operations. Its finite lifetime is now six hours, with explicit
+liveness checks after copying/verification and before final publication.
+A failed attempt now preserves a failed-copy receipt and all partial copies.
+The copied file inventory also includes the exact closed soak summary,
+original assessment (including its browser failure), and historical candidate
+source/toolchain/runtime-input manifest, alongside per-index IQ, metadata,
+physical/control/idle/events and both original/diagnostic analyses. Independent
+destination and unchanged-source verification covers those companions as well.
+The original helper is retained privately as
+`build/phase14-archive-closed-evidence-0678421c.py`. The prepared current helper
+at `build/phase14-archive-closed-evidence.py` has SHA-256
+`5962aa5ad62dcca9293119407725ba73f46fb86ccaaaa7dc79f7c10a42ef4606`.
+Syntax/plan validation passes, and its live probe still returns `BUSY` before
+locks/copies for the exact active coordinator. Actual transfers remain
+unvalidated and unexecuted; no source file has been removed or relocated.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
