@@ -32,7 +32,9 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 93/104 closed; 92 repeated passes and 1 original nominal-decode failure | 89.4% closed |
+| 4. Repaired-firmware main three-observation rows | 104/104 attempts closed; 103 repeated passes, 1 original nominal-decode failure; 2 repetitions prepared | 100% of attempts |
+| 4. Repaired-firmware main observations | 310/312 accepted captures including 1 supplemental external decode | 99.4% |
+| 4. Pre-clock Tone captures and analyses | 3/26 control/captures complete; 0/26 analyses closed | 11.5% captured |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -980,6 +982,40 @@ passes, and live `--probe` returns `BUSY` before any copy/removal operation.
 Actual successful transfer and relocation paths remain unexecuted/unvalidated;
 no evidence has been copied or relocated and no active RF test was changed.
 The 2 m pilot remains unresolved with informational frequency/drift annotations.
+
+At October 10 11:02 UTC, the main matrix step is complete while the exact
+original coordinator continues its pre-clock Tone sweep. All 104 row attempts
+are closed: 103 have complete passing repetitions, while the preserved original
+A/6 m nominal-decode failure has an independently accepted supplement and
+two new physical repetitions still prepared separately. The 310 closed main
+observations out of 312 required (99.4%) satisfy operator mode criteria and resource checks:
+309 original mode passes plus the reverified supplement. WSPR has 75 nominal
+expected-message decodes plus one supplemental decode; QRSS, FSKCW and DFCW
+have 78 human-copy passes each. No new matrix failure appeared and no band is
+excluded. Three of 26 pre-clock Tone control/captures are complete (11.5%),
+with zero completed analyses or close-in reductions; A/80 m Tone is active.
+Captures are not promoted to analyzed Tone acceptance. Firmware, PID/start
+ticks and script hash remain unchanged. The private receipt is
+`build/progress-evidence-20261010T1105-verified.json` under the active root,
+SHA-256 `80bba683b1e2a90b6d286e0a83432aa92c34ddcb1314af1cac29566299bed8fd`;
+its matrix rows SHA-256 is
+`265da12e0085df149d11c482e482f0552e89b9c65debfba77553e426576a9142`.
+Actual decoder stdout/receipts and source/job/metadata/analysis/resources were
+rechecked; the later full independent raw-IQ audit remains required.
+
+The refreshed estimate is 25–39 hours, with three of nine workstreams (33.3%)
+closed. Required main capture is now only the two prepared A/6 m frames,
+312 seconds (0.087 hours), with an observed pipeline estimate of 0.103 hours.
+The active stage still owes 23 pre-clock Tone captures, all 26 analyses/close-in
+reductions and its final reference/inventory. Remaining fixed capture/observation
+work totals 17.72 hours after deducting the 150 verified Tone capture seconds;
+the inclusive additional-work allowance remains 6.3–20.3 hours. Remaining core
+raw data is 117.38 GiB before other work/reserve, against 120.79 GiB free on
+wspr5. All follow-ons, archive copies and relocation remain prepared rather
+than running. The exact successful main/Tone quiet boundary has not yet been
+reached, so neither follow-up acquisition nor evidence relocation was started.
+The 2 m pilot remains unresolved and all frequency/drift annotations remain
+informational. No active test or firmware was changed.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
