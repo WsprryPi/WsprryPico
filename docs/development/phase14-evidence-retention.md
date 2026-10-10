@@ -13,9 +13,10 @@ original result records, failed evidence and complete raw sample contents.
   summaries and retrieval receipts on the Mac. Remove rebuildable intermediates
   after the relevant build closes; retain source, pinned inputs and final UF2/
   ELF artifacts.
-- Preserve the currently active four-file archive recovery. It already targets
-  wspr4/wspr2 under a fixed plan and must finish or report its actual outcome
-  before any change to those files. Do not start another archive transfer.
+- The fixed four-recording archive on wspr4/wspr2 has completed independent
+  destination and unchanged-source verification. Retain all original source
+  recordings and every earlier failed-copy receipt. Do not start another
+  routine archive transfer.
 - The operator subsequently added a 1 TB external SSD to wspr5. Future captures
   use that verified filesystem as described below. The previously prepared
   four-file source relocation is no longer needed to make space for the next
@@ -63,13 +64,17 @@ Private receipts and prepared tooling are:
 - `build/phase14-post-clock-tone-ssd-prepared.py`
 
 The older relocation and clock/Tone wrappers remain historical prepared tools.
-Both copy attempts have now closed with preserved timeout receipts; all
-destination raw bytes were copied, but final full verification remains open.
-The separate `9770a57e` verification-only recovery rehashes the complete
-destination files and unchanged sources under a fresh quiet guard. It copies
-and removes no recordings. Only its actual positive closure can support the
-separately identified runtime-corrected SSD stages; see the current
-[results](phase14-results.md). All original source recordings remain retained.
+Both copy attempts closed with preserved timeout receipts. The separate
+`9770a57e` verification-only recovery completed both full destination and
+unchanged-source rehashes, retrieval publication and guard release at October
+10 18:48:58 UTC. Its immutable final receipt is
+`build/phase14-archive-verification-final-1791658138038212000.json`, SHA-256
+`05e818ccbd9ed3dc6779bf5e6d90f5fe7af1d1b3b63500200eb0ec4398412058`.
+It copied and removed no recordings. All source originals remain, and no source
+relocation is needed. The corrected clock campaign now stores new captures on
+the verified SSD; see the current [results](phase14-results.md). Receiver
+continuity failures remain separate from filesystem capacity or verified
+archive integrity; the active test settings and storage routing are unchanged.
 
 ## Lossless raw retention
 
