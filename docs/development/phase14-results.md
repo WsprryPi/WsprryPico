@@ -19,9 +19,12 @@ historical evidence and do not qualify the repaired runtime automatically.
 The repaired runtime now has 12/12 passing affected DFCW observations and
 both-board 80 m Tone/WSPR baselines. Its first 2 m frame on each board completed
 valid control/capture/resources but neither decoded (0/2 observed; six-frame
-reliability unresolved). The finite pilot continuation is closed. The new
-138 MHz 104-row/312-job matrix followed by 26 Tone observations is running
-under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
+reliability unresolved). The finite pilot continuation is closed. The repaired
+138 MHz matrix and 26 pre-clock Tone observations are closed under
+`resume-tools-df16f5e`; all 312 required main observations are accepted with
+separate 6 m decoding/closeout reconciliation. Copy-only archiving is active;
+a bounded observer waits for its unchanged predecessor before any conditional
+recovery. Further clock/soak/memory stages remain prepared.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
@@ -1121,14 +1124,51 @@ with three of nine workstreams (33.3%) closed. Remaining fixed core raw data
 is 114.65 GiB, versus 117.94 GiB free on wspr5 before relocation; all other
 work and reserve remain additional. The 2 m decode outcome stays unresolved.
 
-The revised overall estimate is 34–48 hours, with three of nine workstreams
-closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
+At October 10 13:13 UTC, the original copy remains active under unchanged
+PID 81492 and quiet guard 2721842/start ticks 55261620. The first destination
+has 10,993,935,488 raw bytes streamed; none is yet claimed independently
+verified and every source raw file remains. Recent throughput is about
+3.22 MB/s. The failed/partial-copy recovery is now prepared separately at
+`build/phase14-resume-archive-prepared.py`, SHA-256
+`030b131092a664207dfdfbb0c37271473410594f06e365e7161b85ebc392ff39`.
+Seven tiny Linux fixtures pass complete-copy/hash rejection, matching-prefix
+append, changed-prefix rejection, truncated-stream preservation, empty partial
+handling and symlink rejection. Positive evidence transfer remains unvalidated.
+
+A finite observer, local PID 97384, now waits for the exact original process
+to end, leaving it unchanged. Its receipt is
+`build/phase14-archive-boundary-supervisor-1791638061972813000.json`,
+script SHA-256
+`d11a48b3ea41ce3f14aafcf4ea2510b8ba4916527b705a0314b73f219b162e8c`.
+It starts recovery only after a preserved failed original receipt; recovery
+also checks old guard/tar processes are gone and takes the existing quiet locks.
+A success or unknown outcome cannot trigger a fresh duplicate copy. Recovery
+rehashes every existing prefix against its source, appends only missing bytes,
+then independently verifies full destinations and unchanged sources and saves
+separate location receipts. Its 19,800-second lifetime fits within the
+21,600-second guard. It never removes source files.
+
+The separate relocation helper that accepts this honestly identified recovery
+provenance is prepared as `build/phase14-relocate-after-resume-prepared.py`,
+SHA-256 `0319637d0953eec81cae5131224c04cd6bbc852b7f488c52c1b86c85c1dbbbe0`.
+It pins the new helper and original failed receipt, while retaining full
+source/destination verification and location publication before redundant raw
+removal. Both original helpers remain unchanged. Relocation and clock testing
+are not running. The estimate remains 24–39 hours, three of nine workstreams
+(33.3%) closed, because no archive destination is yet accepted and the remaining
+fixed RF/settled-observation work is still 17.40 hours. Transfer progress informs
+remaining streaming time without manufacturing completed workstreams. The 2 m
+pilot remains unresolved.
+
+At the earlier repaired-runtime checkpoint, the estimate was 34–48 hours,
+with three of nine workstreams closed. That historical estimate included about
+25 hours of main-matrix, alternative-clock, mixed-soak
 and memory-follow-up capture/observation workloads on the repaired runtime,
 plus diagnostic/pilot/upper-band tests, analysis/audits, evidence storage work,
 final installations and review/commit/push/closeout. This increase follows a
 regression-proven firmware defect and required requalification, rather than
-slower elapsed-time subtraction. About 179 GiB remains on wspr5; the Mac has
-about 4 GiB, wspr4 22 GiB and wspr2 20 GiB. Broad acquisition requires a checked
+slower elapsed-time subtraction. About 179 GiB remained on wspr5 then; the Mac
+had about 4 GiB, wspr4 22 GiB and wspr2 20 GiB. Broad acquisition requires a checked
 storage plan and, if necessary, verified relocation of closed raw evidence
 between these already-authorized hosts, preserving every original receipt and
 the only copy of every capture.
