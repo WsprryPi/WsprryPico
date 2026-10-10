@@ -432,6 +432,44 @@ full harmonic trial. Remaining broad qualification follows that closed stage;
 this early pilot avoids postponing the outstanding 2 m decision until another
 long qualification run. Frequency placement and drift remain informational.
 
+The repaired candidate source is
+`119477a9c8c891db6f50c7a7dab7c9fbd2e16fac`, version `0.1.0-rc.2`.
+All three images build from the retained SDK/toolchain. UF2 hashes are
+132 MHz `32dbb9ffcc3864c7f3d16804fedb8cacc3b9a0c4cf6568b2f88277b5c1957bdf`,
+138 MHz `7a73b0598c037a28edcc5886078a891701f1f76a3b26b1c4fc4c68868ab998a3`,
+150 MHz `ebef8cb7ce57e9421a48ae92140e3138b6a540791d0c1ac15852379105cff247`.
+An independent clean 138 MHz rebuild is identical across all 3,674,112 UF2
+bytes. The primary manifest SHA-256 is
+`32ef4de23d2397519bde961b0c56fea136f4ffccc28a67f0ac28124940716804`;
+the local candidates and reproducibility receipt remain under
+`build/phase14-rc3-worker-repair/`, outside source control.
+
+The finite bootstrap is actually running on wspr5 under
+`build/resume-tools-119477a`, coordinator PID 2518696/start ticks 50840921,
+SHA-256 `9edfbc962416b375eb775599c9f45478454867dc00fd7500dd87912a4fb8f4f5`.
+Its source archive SHA-256 is
+`0cfdd0e4ec0fb36cb54322a9bab8f5551ead49541f6c4f10cd4e7e3cc3ff8996`
+(1,812 verified files); artifact archive SHA-256 is
+`07d764ea9ead7bc0532e94e66e8a506eb0ec7ef8c20e4a8a902f36aa5690eb8f`.
+Before recovery, a locked same-setting capture verifies 57.05 dB RF inactivity
+relative to the retained failed-job mark. The ordinary unowned Console recovery
+and new-image loads preserve durable settings. The first stage is the 12-job
+DFCW verification, followed by the 80 m baseline, pilot and conditional full
+2 m harmonic trial. No broad requalification coordinator is claimed running
+yet; that follow-on is prepared after the closed bootstrap and pilot outcome.
+
+The revised overall estimate is 34–48 hours, with three of nine workstreams
+closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
+and memory-follow-up capture/observation workloads on the repaired runtime,
+plus diagnostic/pilot/upper-band tests, analysis/audits, evidence storage work,
+final installations and review/commit/push/closeout. This increase follows a
+regression-proven firmware defect and required requalification, rather than
+slower elapsed-time subtraction. About 179 GiB remains on wspr5; the Mac has
+about 4 GiB, wspr4 22 GiB and wspr2 20 GiB. Broad acquisition requires a checked
+storage plan and, if necessary, verified relocation of closed raw evidence
+between these already-authorized hosts, preserving every original receipt and
+the only copy of every capture.
+
 The completed independent external-decode reduction rehashes all 42 original
 IQ/metadata pairs, checks source/device/job/analysis identities, verifies each
 actual decoder invocation and unchanged wsprd binary, and hashes decoder
