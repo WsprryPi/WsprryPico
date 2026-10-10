@@ -62,9 +62,14 @@ Private receipts and prepared tooling are:
 - `build/phase14-next-clock-ssd-stage-prepared.py`
 - `build/phase14-post-clock-tone-ssd-prepared.py`
 
-The older relocation and clock/Tone wrappers remain historical prepared tools;
-use the SSD-aware wrappers for the next stages. The current archive recovery
-continues under its original fixed plan and process identities.
+The older relocation and clock/Tone wrappers remain historical prepared tools.
+Both copy attempts have now closed with preserved timeout receipts; all
+destination raw bytes were copied, but final full verification remains open.
+The separate `9770a57e` verification-only recovery rehashes the complete
+destination files and unchanged sources under a fresh quiet guard. It copies
+and removes no recordings. Only its actual positive closure can support the
+separately identified runtime-corrected SSD stages; see the current
+[results](phase14-results.md). All original source recordings remain retained.
 
 ## Lossless raw retention
 

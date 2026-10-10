@@ -23,8 +23,11 @@ valid control/capture/resources but neither decoded (0/2 observed; six-frame
 reliability unresolved). The finite pilot continuation is closed. The repaired
 138 MHz matrix and 26 pre-clock Tone observations are closed under
 `resume-tools-df16f5e`; all 312 required main observations are accepted with
-separate 6 m decoding/closeout reconciliation. Content-verified archive recovery is active; the original
-copy timed out and its failed receipt and partial destinations remain preserved. Further clock/soak/memory stages remain prepared.
+separate 6 m decoding/closeout reconciliation. Both archive copy attempts are
+closed with preserved timeout evidence; all destination recording bytes were
+copied, but the second attempt's final whole-directory verification timed out.
+A separate verification-only recovery is active. Further clock/soak/memory
+stages have not begun RF work at this checkpoint.
 The first destination has independent full verification. The operator-added
 1 TB external SSD is now erased, repartitioned, mounted and verified on wspr5;
 the future tool root's build output uses it through a persistent bind mount.
@@ -32,26 +35,41 @@ About 927 GiB is available. SSD-aware clock and post-clock Tone wrappers are
 staged but remain blocked by the active archive guard. The earlier source-raw
 relocation is no longer required for acquisition capacity; all originals remain.
 
-At October 10 17:12 UTC, the unchanged recovery still has one fully verified
-destination. The last wspr2 recording has 5,854,199,808 of 7,290,000,000 bytes
-copied; recent actual byte growth projects about 20 minutes of remaining
-streaming, followed by full destination/source verification. The original
-timeout receipt and every source recording remain retained. The SSD UUID,
-distinct filesystem and 927 GiB free were reverified; no clock stage has started.
+At October 10 18:26 UTC, both earlier archive observers and the original
+recovery processes are gone. All four destination raw recordings have their
+complete 7,290,000,000 bytes and passed the recovery's individual file hashes.
+The final wspr2 whole-directory verification exceeded its 900-second bound at
+17:59 UTC. That attempt remains `FAILED_RESUME_EVIDENCE_PRESERVED`; the old
+clock handoff correctly closed without dispatching RF. Individual checks do
+not replace the pending final destination/source reconciliation.
 
-A separate finite handoff observer now waits for this exact recovery and its
-existing observer to exit successfully. Mac PID 72511 started at 17:11:16 UTC;
-private helper `build/phase14-clock-after-archive-observer.py` has SHA-256
-`ab038ead55d0f4d91c37f31497d00867ce84ae11e79d9a74a10f7c391e4dadc4`.
-Eleven closure/rejection checks and the identified Linux runtime import passed.
-Its two-hour observation bound never changes active predecessors. Only after
-both verified archive destinations, unchanged source hashes, positive recovered
-receipt, ended Mac predecessors and released Pi guard does it dispatch the
-staged SSD clock wrapper `2926a34f` once. Persistent local/remote reservations
-prevent blind retries after an unknown dispatch outcome. This is a waiting
-handoff, not an already-running RF batch; the clock wrapper retains its own
-source, image, SSD, idle-board and lock checks. Three of nine workstreams remain
-closed and the estimate remains 24–39 hours.
+Verification-only helper `9770a57e` is now active as Mac PID 90868, with fresh
+wspr5 guard PID 2812686/start ticks 57403108. It rehashes both destinations and
+unchanged sources, saves progress after each 64 MiB, allows 5,400 seconds per
+destination and publishes separate retrieval records. It copies or removes no
+raw data and preserves both earlier timeout receipts. Its live wspr4 progress
+has reached 7,180,648,448 bytes of the second recording; fresh receipts govern
+subsequent closure. The guard and active verifier must not be changed.
+
+Read-only execution checks found a separate handoff defect: the verifier's
+already-pinned launch uses system Python, which cannot import the existing
+qualification-harness package. The qualified Python 3.13.5 environment loads
+the analyzer and all seven relevant command entrypoints. Separate runtime
+wrappers explicitly select that interpreter and put the current Pico source
+and scripts before the harness source in `PYTHONPATH`. They passed 27 closure
+checks, five archive-integrity fixtures and eight runtime/boundary checks.
+Firmware, RF settings, jobs and acceptance criteria are unchanged.
+
+A distinct finite observer, Mac PID 93506, waits for the active verifier to
+close successfully and for its exact dispatched process to end. It dispatches
+the corrected clock wrapper only after independently checking the known import
+failure, absent original RF output, ended processes, positive full archive
+receipt and actual SSD identity. Unknown outcomes and different failures stop
+this observer for inspection; it never kills or alters a predecessor. Its six
+closure fixtures pass. Corrected clock helper `64ab8175` uses separate state
+and output directories; subsequent Tone `ee04ee8d` and reliability `bbd4efbc`
+wrappers are staged but not queued. Three of nine workstreams remain closed;
+24–39 hours remain, with archive verification and the runtime handoff pending.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
