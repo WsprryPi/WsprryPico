@@ -30,6 +30,20 @@ def capture(frame=False, gap=False, wrong=False, duration=2, delayed_boundary=Fa
     return iq
 
 class Tests(unittest.TestCase):
+    def test_simultaneous_reference_contrast_follows_observed_receiver_peak(self):
+        iq=capture()
+        iq*=np.exp(2j*np.pi*158.7*np.arange(len(iq))/RATE)
+        reference_hz=BASE-3000
+        iq+=.01*np.exp(2j*np.pi*(reference_hz-CENTER+158.7)*np.arange(len(iq))/RATE)
+        result=measure(iq,RATE,CENTER,duration_s=2,reference_hz=reference_hz)
+        self.assertTrue(result['measurements'])
+        for fit in result['measurements']:
+            self.assertGreater(fit['reference']['local_contrast_db'],30)
+            self.assertAlmostEqual(fit['reference']['indicated_hz'],reference_hz+158.7,delta=.02)
+            self.assertAlmostEqual(fit['reference_compared_hz'],BASE+7.25,delta=.02)
+        # The old frequency diagnostic remains separate from reference SNR.
+        self.assertFalse(result['relative_checks_passed'])
+
     def test_reference_acquisition_handles_receiver_tuning_offset_and_rejects_noise(self):
         import numpy as np
         from phase14_reference import reference_observation

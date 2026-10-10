@@ -113,7 +113,7 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
             reference = phase_fit(ref[int(round(left * brate)):int(round(right * brate))],
                                   brate, reference_hz)
             reference['local_contrast_db'] = local_contrast(
-                iq[round(left * rate):round(right * rate)], rate, center, reference_hz)
+                iq[round(left * rate):round(right * rate)], rate, center, reference['indicated_hz'])
             result['reference'] = reference
             result['reference_compared_hz'] = result['indicated_hz'] - (reference['indicated_hz'] - reference_hz)
             if (reference['local_contrast_db'] < 20 or reference['phase_residual_rms_rad'] > .15 or reference['amplitude_min_ratio'] < .5 or

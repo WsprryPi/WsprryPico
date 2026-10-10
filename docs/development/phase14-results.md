@@ -518,6 +518,48 @@ overflow storage is verified at 22.57 GiB on wspr4, 20.39 GiB on wspr2 and
 storage, but the complete remaining campaign needs checked archival capacity.
 No archive relocation has yet occurred and no broad coordinator is running.
 
+The pilot continuation subsequently closed four steps with status SHA-256
+`8ed7e492b22e9eb35b8d043401c1229881cb0c86f01946a8b237e8730869b02e`;
+PID 2534731 no longer exists. Its pilot receipt SHA-256 is
+`0bbb6a194a26b48cb20bfa5eb5defd3d4f084588a44144267554d8667242cd45`.
+Both first WSPR frames complete control, capture and resource checks, but
+neither externally decodes. The finite screen therefore stops repetitions on
+each board after its first failed decode: 0/2 observed decodes, with the planned
+six-frame reliable pilot unresolved. The aggregate six-frame resource decision
+is false because coverage is incomplete; both observed per-job resource checks
+pass. Full harmonic qualification is not initiated and native 2 m routing
+remains unimplemented. This leaves 2 m open for investigation and does not
+exclude a band from candidate coverage.
+
+Pico A's indicated received tones are 144,490,793.06–144,490,816.91 Hz.
+Subtracting its simultaneous nominal-axis GPSDO indication gives a fitted
+base of 144,490,646.43 Hz, fitted drift -0.1263 Hz/s and 3.67 Hz maximum
+state/drift-fit residual. B's fitted reference-compared base is
+144,490,349.73 Hz, drift -0.1146 Hz/s and 5.61 Hz residual. These observed
+frequency movements may hinder reliable WSPR reception; they carry no
+frequency/drift pass/fail judgement because calibration is undecided.
+Their nonlinear evolution may explain some decode difficulty, but it has not
+been isolated as the cause. A fixed +300 Hz receiver DDC/dial retune on A's
+unchanged IQ also fails the expected-message decode. That diagnostic receipt
+SHA-256 is `7c3004f4dd8502556f742b876d072d6dc444673d5b627c6e84ab7d4e69388a3e`.
+A documented wideband/OSD-depth-five decode on the identical audio exceeds its
+90-second finite budget; timeout receipt SHA-256 is
+`589ac8ac80720b30d67f2a6e1bb1f04b760474604bc452fa41d31fffaeda304d`.
+Neither diagnostic changes the transmitter, sample time, drift or original
+nominal failed evidence.
+
+The per-symbol simultaneous reference contrast has the same nominal-mask
+defect as the GPSDO-only reference CLI. Its contrast measurement now also
+centers on the observed reference frequency. The old absolute-offset diagnostic
+remains separate, and no transmitter/receiver samples are corrected. A noisy
+synthetic signal/reference test verifies acquired reference contrast and
+frequency subtraction despite the displaced receiver axis. New reductions of
+the closed 2 m captures will preserve the original analyses while recovering
+informational frequency-window annotations where reference quality permits.
+The repaired firmware is unchanged. The first broad 138 MHz matrix/Tone stage
+can proceed independently with 2 m decoding unresolved; no positive 2 m result
+requiring native mapping is being promoted or bypassed.
+
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
 and memory-follow-up capture/observation workloads on the repaired runtime,
