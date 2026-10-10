@@ -66,6 +66,10 @@ class ConsoleResponse {
     ConsoleResponse& operator+=(std::string_view bytes) {
         return append(bytes);
     }
+    ConsoleResponse& operator+=(char byte) {
+        push_back(byte);
+        return *this;
+    }
     void push_back(char byte) {
         append(std::string_view(&byte, 1));
     }

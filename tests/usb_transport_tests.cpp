@@ -167,9 +167,12 @@ int main() {
         }
     };
     auto paged = ConsoleResponse::paged();
-    paged += info;
+    paged += info.front();
+    paged += std::string_view(info).substr(1);
     CHECK(paged.valid() && live_pages == 3);
     CHECK(reply.begin(std::move(paged)));
+    reply.poll([](std::string_view) { return false; });
+    CHECK(reply.pending() && live_pages == 3);
     std::string delivered;
     while (reply.pending())
         reply.poll([&](std::string_view bytes) {
