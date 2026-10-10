@@ -1089,6 +1089,38 @@ the remaining fixed core workload is 17.40 hours plus the inclusive analysis,
 diagnosis, storage and final-work allowance. The estimate is 24–38 hours,
 three of nine workstreams (33.3%) closed. The 2 m pilot remains unresolved.
 
+The committed inventory repair is `1024529dfe315938bc9c1299fd50d5c232a78222`.
+Its separate future tool root is `build/resume-tools-1024529` on wspr5;
+all 1,812 staged source files independently match source archive SHA-256
+`f169db7c5d6840dee6573dea37496e5ae9ce0e69d015a01a2dc8304c95f2be47`.
+Verification receipt `build/tool-source-verification.json` in that new root
+has SHA-256
+`b6e38a518030596aae34287aa5c29af5d4643513ac35237eb1d4653a55f12042`.
+It reuses the unchanged identified 119477a firmware artifact manifest through
+a private link. No firmware load or further RF job was started.
+
+The next finite clock-stage helper is prepared privately, SHA-256
+`837777737663ef5d955d305babf382271b5e4617e8f3404a889df820f8b5c01e`.
+Its read-only probe recognizes the separately recovered RF closeout and
+returns `RF_PREDECESSORS_CLOSED_STORAGE_RECEIPT_REQUIRED`. It remains unstaged
+for execution and must wait for verified archive copies, successful necessary
+relocation, 140 GiB available, exact self/source/image/runner identities and
+live idle-board checks. Its 12-hour child bound covers the full clock comparison
+and contention; the later post-clock Tone sweep remains separate work.
+
+The copy is still active, with zero independently verified destinations and
+all source files retained. Two read-only size samples show approximately
+3.38 MB/s raw throughput, projecting 2.40 hours of streaming for all four raw
+captures. At that rate the existing 3,600-second per-host copy bound may expire.
+The active helper is not changed or restarted. Any failure/unknown outcome
+requires inspection of preserved partial copies and source/prefix/full hashes
+before bounded recovery. A 0–1-hour recovery uncertainty allowance is added
+without adding the projected transfer duration again: it is already inside
+the inclusive other-work allowance. The revised estimate is 24–39 hours,
+with three of nine workstreams (33.3%) closed. Remaining fixed core raw data
+is 114.65 GiB, versus 117.94 GiB free on wspr5 before relocation; all other
+work and reserve remain additional. The 2 m decode outcome stays unresolved.
+
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
 and memory-follow-up capture/observation workloads on the repaired runtime,
