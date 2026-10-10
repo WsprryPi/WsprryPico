@@ -32,7 +32,7 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 6/104 closed and passing; finite batch active | 5.8% |
+| 4. Repaired-firmware main three-observation rows | 16/104 closed and passing; finite batch active | 15.4% |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -639,6 +639,38 @@ finite stages; the active matrix is unchanged. No copy or relocation is claimed
 performed. Both independent destination and unchanged source verification,
 explicit location/retrieval manifests and preservation of original failed
 receipts are required before any source-space relocation.
+
+At October 10 02:51 UTC, the same coordinator is still running with its
+original PID/start ticks/script hash. Sixteen of 104 repeated rows are closed
+and passing (15.4%), covering A/80 m, 2200 m, 630 m and 160 m in all four
+main modes. Forty-nine of 312 observations are closed (15.7%): 13 expected-
+message WSPR decodes and 12 observations each of QRSS, FSKCW and DFCW. All 49
+mode and resource checks pass. A/60 m WSPR is active. Private progress snapshot
+`build/progress-evidence-20261010T0251.json` under the active root has SHA-256
+`f963d3f4a6004cdc5d557c353bb5d2496d915ba4823f946cfdfba6e1bf93c833`;
+the row snapshot SHA-256 is
+`f95589be29e9e5c3ed5770ea77b0f2c1a54ddcddc670ba9904b7fefdd8106288`.
+
+The new overall estimate is 32–46 hours, with three of nine workstreams
+(33.3%) closed. Remaining main capture time is 24,792 seconds (6.89 hours);
+observed helper/analysis medians project about 7.74 hours for the remaining
+263 main observations before the Tone/reference tail. Other clocks, soak/
+memory, producer/failure/upper-band/spectral work, 2 m diagnosis, audits,
+evidence storage and final installation/review/commit/push remain included.
+The estimate credits verified completed jobs and measured runtimes without
+closing a partial workstream. Available wspr5 storage is about 167 GiB.
+
+The private copy-only helper is prepared at
+`build/phase14-archive-closed-evidence.py`, SHA-256
+`0678421c980f05e7bdeff1e195a8262087efcd3af9071815dfcacb65ce7fda48`.
+Local plan validation/compilation passes. Its live `--probe` correctly returns
+`BUSY` for the exact active coordinator before taking bench locks or creating
+archives. It requires a successfully closed main/Tone stage and verified final
+idle inventory, holds the existing receiver/board locks only at that quiet
+boundary, streams closed evidence to the authorized destinations, independently
+hashes destination and unchanged source files, and records explicit locations.
+It has no source-removal operation. Real copying and destination verification
+have not run; no archives or relocated raw evidence are claimed completed.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
