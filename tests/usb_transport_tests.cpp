@@ -145,6 +145,62 @@ int main() {
     reply.reset();
     CHECK(!reply.pending() && reply.begin("fresh session\n"));
     reply.reset();
+    // Fragmented heaps may admit 4 KiB pages while rejecting a 16 KiB growth.
+    // A paged response preserves exact bytes across page and USB boundaries.
+    std::size_t page_calls = 0, live_pages = 0, fail_at = 0;
+    static std::size_t *calls, *live, *failure;
+    calls = &page_calls;
+    live = &live_pages;
+    failure = &fail_at;
+    wsprrypico::wtp::allocate_input = [](std::size_t bytes) -> void* {
+        CHECK(bytes <= 4096);
+        ++*calls;
+        if (*calls == *failure)
+            return nullptr;
+        ++*live;
+        return std::malloc(bytes);
+    };
+    wsprrypico::wtp::deallocate_input = [](void* bytes) {
+        if (bytes) {
+            --*live;
+            std::free(bytes);
+        }
+    };
+    auto paged = ConsoleResponse::paged();
+    paged += info;
+    CHECK(paged.valid() && live_pages == 3);
+    CHECK(reply.begin(std::move(paged)));
+    std::string delivered;
+    while (reply.pending())
+        reply.poll([&](std::string_view bytes) {
+            delivered += bytes;
+            return true;
+        });
+    CHECK(delivered == info && live_pages == 0);
+    for (const auto failed_page : {1u, 2u, 3u}) {
+        page_calls = 0;
+        fail_at = failed_page;
+        auto failed = ConsoleResponse::paged();
+        failed += info;
+        CHECK(!failed.valid());
+        const bool admitted = reply.begin(std::move(failed));
+        CHECK(!admitted && !reply.pending() && live_pages == 0);
+        CHECK(reply.begin(ConsoleResponse::constant("{\"ok\":false}\n")));
+        reply.reset();
+        CHECK(live_pages == 0);
+    }
+    fail_at = 0;
+    auto excessive = ConsoleResponse::paged();
+    excessive += std::string(65'537, 'x');
+    CHECK(!excessive.valid() && live_pages == 0);
+    auto complete = ConsoleResponse::paged();
+    complete += std::string(65'536, 'x');
+    CHECK(complete.valid() && live_pages == 16);
+    CHECK(reply.begin(std::move(complete)));
+    reply.reset();
+    CHECK(live_pages == 0);
+    wsprrypico::wtp::allocate_input = std::malloc;
+    wsprrypico::wtp::deallocate_input = std::free;
     ports[0].delivered.assign(banner.begin(), banner.end());
     ports[0].pending.push_back('x');
     CHECK(console_output_pending());

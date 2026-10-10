@@ -178,7 +178,8 @@ std::size_t stack_used() {
 }
 // Serialize one field at a time: a single giant operator+ expression retains
 // many string temporaries, inflating the very heap and stack INFO observes.
-__attribute__((noinline)) void number_field(std::string& result, std::string_view name,
+template <typename Response>
+__attribute__((noinline)) void number_field(Response& result, std::string_view name,
                                             std::uint64_t value, bool quoted = false,
                                             bool present = true) {
     result.append(",\"").append(name).append("\":");
@@ -195,7 +196,8 @@ __attribute__((noinline)) void number_field(std::string& result, std::string_vie
         result.push_back('"');
 }
 #ifdef WSPRRY_PICO_STANDALONE_RF
-void reserve_field(std::string& result, std::string_view name,
+template <typename Response>
+void reserve_field(Response& result, std::string_view name,
                    const wsprrypico::rf::RefillMetrics::Reserve& reserve) {
     result.append(",\"").append(name).append("\":");
     if (!reserve.observations) {
@@ -719,7 +721,7 @@ int main() {
 #ifdef WSPRRY_PICO_GP14_RF_ACCEPTANCE
     bool gp14_rf_busy_used = false;
 #endif
-    auto command = [&](std::string_view text) -> std::string {
+    auto command = [&](std::string_view text) -> wsprrypico::usb::ConsoleResponse {
         if (reset_coordinator.blocks_admission() || recovery_reset_at)
             return "{\"ok\":false,\"error\":\"reset_pending\"}\n";
         if (text.starts_with("ACTIVITYTRACE ")) {
@@ -825,10 +827,7 @@ int main() {
             // Build the network snapshot before allocating the outer INFO
             // buffer: its formatter has its own temporary strings.
             auto network_status = network.status();
-            std::string result;
-            // Avoid retaining old and doubled buffers while a maximum WTP
-            // input is resident. Reserve the normal INFO size in one allocation.
-            result.reserve(8192);
+            auto result = wsprrypico::usb::ConsoleResponse::paged();
             result +=
                 "{\"ok\":true,\"device_id\":" +
                 wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
@@ -1901,9 +1900,11 @@ int main() {
             if (b == '\n') {
                 auto response = overflow ? "{\"ok\":false,\"error\":\"line_too_long\"}\n"
                                          : command(std::string_view(line.data(), length));
+                const bool unavailable = !response.valid();
                 if (!console_reply.begin(std::move(response)))
-                    (void)console_reply.begin(
-                        "{\"ok\":false,\"error\":\"console_response_capacity\"}\n");
+                    (void)console_reply.begin(wsprrypico::usb::ConsoleResponse::constant(
+                        unavailable ? "{\"ok\":false,\"error\":\"diagnostic_unavailable\"}\n"
+                                    : "{\"ok\":false,\"error\":\"console_response_capacity\"}\n"));
                 std::fill(line.begin(), line.end(), 0);
                 length = 0;
                 overflow = false;

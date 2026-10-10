@@ -24,10 +24,13 @@ class InfoFormattingTests(unittest.TestCase):
 #include <cstddef>
 #include <cstdlib>
 #include <iostream>
+#include <new>
 #include <string>
-static std::size_t live = 0, peak = 0;
+#include "usb/console_reply.hpp"
+static std::size_t live = 0, peak = 0, allocation_limit = 0;
 struct alignas(std::max_align_t) Header { std::size_t size; };
 void* operator new(std::size_t n) {
+    if (allocation_limit && n > allocation_limit) throw std::bad_alloc();
     auto* p = static_cast<Header*>(std::malloc(sizeof(Header) + n));
     if (!p) std::abort();
     p->size = n; live += n; peak = std::max(peak, live); return p + 1;
@@ -41,6 +44,8 @@ struct Scheduler {
     std::string status() { return value; }
 };
 std::string format(std::string result, Scheduler& scheduler) { ACTUAL_SUFFIX }
+wsprrypico::usb::ConsoleResponse format_pages(wsprrypico::usb::ConsoleResponse result,
+                                            Scheduler& scheduler) { ACTUAL_SUFFIX }
 int main() {
     for (const auto payload : {std::string{}, std::string("{}"), std::string(1100, 's')}) {
         for (const bool newline : {false, true}) {
@@ -57,18 +62,41 @@ int main() {
             std::cout << payload.size() << ' ' << newline << ' ' << temporary_peak << '\n';
         }
     }
+    // The real INFO suffix crosses the old 8192-byte capacity while a maximum
+    // job leaves small heap holes. Reproduce its doubled allocation failure,
+    // then retain the identical response with nullable page allocation.
+    Scheduler scheduler{std::string(1100, 's') + "\n"};
+    const std::string prefix(8100, 'i');
+    const auto expected = prefix + ",\"status\":" + std::string(1100, 's') + "}\n";
+    std::string original; original.reserve(8192); original += prefix;
+    bool rejected = false;
+    allocation_limit = 8193;
+    try { (void)format(std::move(original), scheduler); }
+    catch (const std::bad_alloc&) { rejected = true; }
+    if (!rejected) return 2;
+    auto pages = wsprrypico::usb::ConsoleResponse::paged();
+    pages += prefix;
+    auto actual = format_pages(std::move(pages), scheduler);
+    if (!actual.valid()) return 3;
+    allocation_limit = 0;
+    std::string decoded;
+    for (std::size_t offset = 0; offset < actual.size();) {
+        const auto part = actual.at(offset, 64); decoded += part; offset += part.size();
+    }
+    if (decoded != expected) return 4;
+    std::cout << "paged INFO preserves bytes after original growth failure\n";
 }
 '''.replace('ACTUAL_SUFFIX', suffix)
         with tempfile.TemporaryDirectory(prefix='r3-info-format-') as directory:
             root = Path(directory)
             cpp, executable = root / 'check.cpp', root / 'check'
             cpp.write_text(code)
-            built = subprocess.run([compiler, '-std=c++20', '-O2', str(cpp), '-o', str(executable)],
+            built = subprocess.run([compiler, '-std=c++20', '-O2', '-I'+str(repo/'src'), str(cpp), '-o', str(executable)],
                                    capture_output=True, text=True, timeout=60)
             self.assertEqual(built.returncode, 0, built.stderr)
             checked = subprocess.run([str(executable)], capture_output=True, text=True, timeout=15)
             self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)
-            self.assertEqual(len(checked.stdout.splitlines()), 6)
+            self.assertEqual(len(checked.stdout.splitlines()), 7)
 
 
 if __name__ == '__main__':

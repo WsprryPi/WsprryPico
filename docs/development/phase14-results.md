@@ -4,6 +4,41 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## INFO allocation repair and closed raw audit
+
+Fresh October 10 USB readback identifies A's stopped contention recovery boot
+at source `119477a9c8c8`/132 MHz. Its saved fault record reports stage 5,
+allocation panic hash `3833354787`, a null 16,385-byte allocation and disabled
+network service. The preserved event log ends with `INFO` immediately after
+the 512-event job was armed. B remains empty, unowned and reachable at 138 MHz.
+The old timeout, missing terminal receipt, incomplete recording and failed
+stage remain unchanged. The private diagnosis is
+`build/phase14-info-allocation-diagnosis-20261010.json`.
+
+The old INFO suffix deterministically reproduces a doubled allocation when
+its 8 KiB string grows under a constrained host allocator. The source repair
+retains complete INFO bytes in checked 4 KiB pages and drains them through the
+existing 64-byte USB writes. A page-allocation failure returns
+`diagnostic_unavailable` through an allocation-free literal rather than
+publishing a partial JSON response. WTP limits, job ownership, the 32 KiB
+authority reserve, RF workload and 100-us Worker acknowledgement bound are
+unchanged. Tests cover exact bytes across page boundaries, blocked writes,
+failed page allocation, reset/release and the unchanged 65,536-byte reply limit.
+The saved allocation size and source regression support this diagnosis; the
+exact failing caller address was not retained. Target requalification is still
+required, and this finding does not isolate receiver overflow causation.
+
+At a verified quiet boundary, the separately identified `b9fa1aec` auditor
+completed full-stream hashing of all 338 closed repaired main/pre-clock Tone/
+supplemental 6 m captures: 61,568,000,000 bytes in 174.98 seconds. Every full raw
+hash/size and unchanged metadata, physical and analysis binding matched;
+symlinks and unstable source identities were rejected. Its result is
+`FULL_CLOSED_RAW_CONTENT_AUDIT_COMPLETE`, local receipt
+`build/phase14-closed-main-full-raw-audit-20261010.json`, SHA-256
+`875ed168c2b4141c51226c08444eda9d005be82f5fc1f40df5c812dae7ab256e`.
+No raw file or original result was changed or removed. This closes that audit
+scope; alternative-clock, later reliability and final release audits remain.
+
 ## Operator storage correction and stopped clock stage
 
 The operator rejected direct external-SSD writes during acquisition and
