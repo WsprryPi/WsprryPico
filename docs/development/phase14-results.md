@@ -444,7 +444,7 @@ bytes. The primary manifest SHA-256 is
 the local candidates and reproducibility receipt remain under
 `build/phase14-rc3-worker-repair/`, outside source control.
 
-The finite bootstrap is actually running on wspr5 under
+The finite bootstrap began on wspr5 under
 `build/resume-tools-119477a`, coordinator PID 2518696/start ticks 50840921,
 SHA-256 `9edfbc962416b375eb775599c9f45478454867dc00fd7500dd87912a4fb8f4f5`.
 Its source archive SHA-256 is
@@ -457,6 +457,35 @@ and new-image loads preserve durable settings. The first stage is the 12-job
 DFCW verification, followed by the 80 m baseline, pilot and conditional full
 2 m harmonic trial. No broad requalification coordinator is claimed running
 yet; that follow-on is prepared after the closed bootstrap and pilot outcome.
+
+At the October 10 00:54 UTC inspection, that coordinator had stopped after
+13 completed steps. All 12 repaired-image DFCW observations pass human-copy
+and resource checks, and both 138 MHz 80 m Tone/WSPR baselines pass their
+applicable checks, including both external expected-message decodes. Step 14
+failed during the GPSDO-only reference acquisition, before any Pico 2 m job.
+The closed status SHA-256 is
+`3fb50b8e0cd9d43a6ed1ccde91af1c5e08a29d8d30a70d24d2852cd97c44c1ea`;
+the original failed pilot receipt SHA-256 is
+`ac4a7cb54e6e91b69753555e4e03c03c0a9c4dce0da3c5dcefa9397f66c209be`.
+
+The retained reference IQ is strong and coherent: its measured peak is
+144,470,658.71 Hz, about 158.71 Hz from the requested 144,470,500 Hz on the
+uncalibrated receiver axis. All six phase residuals are below 0.066 rad.
+The nominal +/-100 Hz contrast mask misses the peak and reports 26.15 dB;
+centering that same mask at the measured reference reports 99.23 dB. The
+reference analyzer now uses the measured peak and saves its fit before
+checking the unchanged 30 dB contrast and 0.15 rad coherence limits. A
+synthetic displaced-reference/noise regression passes with all 16 RF
+measurement fixtures; all 39 portable Phase 14 tests also pass. This host
+analysis repair changes neither firmware nor receiver samples, transmitter
+frequency correction or the informational-only frequency/drift policy.
+Original capture SHA-256 is
+`e92f173c6c03dcf49c02ddd45a96c6bff001e44fd074a3d36fc88171169962b6`;
+the separate diagnostic receipt under the stopped root has SHA-256
+`964f0a9bab9cb5a39fb75db6493add542098bfe0e74202a1891c9647129ed970`.
+Both Picos were idle afterward, and the GPSDO readback restored both outputs
+to 10 MHz. The stopped receipts remain unchanged; a new finite pilot
+continuation will carry only unfinished work.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak

@@ -17,6 +17,20 @@ GPSPY='/home/pi/lbgpsdo/.venv/bin/python'
 FIELDS=('serial','sat_lock','pll_lock','ant_ok','out1','out2','pps1','f1','f2','out1low','out2low')
 
 
+def reference_observation(iq,rate,center,frequency):
+    from measure_rf_bench import baseband,phase_fit,local_contrast
+    import numpy as np
+    bb,fit_rate=baseband(iq,rate,center,frequency)
+    fitted=[phase_fit(bb[int(left*fit_rate):int((left+1)*fit_rate)],fit_rate,frequency) for left in range(1,7)]
+    indicated=float(np.mean([v['indicated_hz'] for v in fitted]))
+    # The receiver's uncalibrated tuning error can move a valid reference
+    # outside a nominal +/-100 Hz mask. Assess its observed peak instead.
+    contrast=local_contrast(iq[rate:2*rate],rate,center,indicated)
+    return dict(fits=fitted,contrast_db=contrast,contrast_center_hz=indicated,
+                mean_indicated_hz=indicated,
+                acquisition_passed=contrast>=30 and all(v['phase_residual_rms_rad']<.15 for v in fitted))
+
+
 def gps(frequency=None):
     code=('import sys,json;sys.path.insert(0,"/home/pi/lbgpsdo");import lbe142x;'
           'd=lbe142x.GPSDODevice.open(serial="0673ED0FA107");')
@@ -55,17 +69,13 @@ def main():
                 subprocess.run(argv,stdout=log,stderr=subprocess.STDOUT,check=True,timeout=25)
             meta=json.loads((directory/'capture.json').read_text());validate_capture(meta,directory/'capture.cf32',settings)
             from analyze_rf_bench import load_capture
-            from measure_rf_bench import baseband,phase_fit,local_contrast
             import numpy as np
             iq,_,capture_sha=load_capture(directory/'capture.cf32',directory/'capture.json')
-            bb,rate=baseband(iq,250000,center,frequency)
-            fitted=[phase_fit(bb[int(left*rate):int((left+1)*rate)],rate,frequency) for left in range(1,7)]
-            contrast=local_contrast(iq[250000:500000],250000,center,frequency)
-            require(contrast>=30 and all(v['phase_residual_rms_rad']<.15 for v in fitted),'reference acquisition/coherence')
-            value=dict(frequency_hz=frequency,reference=reference,fits=fitted,contrast_db=contrast,
-                       mean_indicated_hz=float(np.mean([v['indicated_hz'] for v in fitted])),
+            value=dict(frequency_hz=frequency,reference=reference,**reference_observation(iq,250000,center,frequency),
                        capture_sha256=capture_sha,metadata_sha256=sha256(directory/'capture.json'))
-            values.append(value);save(directory/'fit.json',value)
+            save(directory/'fit.json',value)
+            require(value['acquisition_passed'],'reference acquisition/coherence')
+            values.append(value)
         low=np.mean([values[i]['mean_indicated_hz'] for i in (0,3)])
         high=np.mean([values[i]['mean_indicated_hz'] for i in (1,2)])
         scale=float((high-low)/40000)

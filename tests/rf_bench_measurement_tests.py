@@ -30,6 +30,21 @@ def capture(frame=False, gap=False, wrong=False, duration=2, delayed_boundary=Fa
     return iq
 
 class Tests(unittest.TestCase):
+    def test_reference_acquisition_handles_receiver_tuning_offset_and_rejects_noise(self):
+        import numpy as np
+        from phase14_reference import reference_observation
+        from measure_rf_bench import local_contrast
+        rate=250000;center=144490500;frequency=center-20000
+        t=np.arange(7*rate)/rate
+        rng=np.random.default_rng(19)
+        noise=.001*(rng.normal(size=len(t))+1j*rng.normal(size=len(t)))
+        iq=.1*np.exp(2j*np.pi*(frequency-center+158.7)*t)+noise
+        self.assertLess(local_contrast(iq[rate:2*rate],rate,center,frequency),30)
+        result=reference_observation(iq,rate,center,frequency)
+        self.assertTrue(result['acquisition_passed'])
+        self.assertAlmostEqual(result['mean_indicated_hz'],frequency+158.7,places=2)
+        self.assertFalse(reference_observation(noise,rate,center,frequency)['acquisition_passed'])
+
     def test_decode_audio_preserves_frequency_and_time(self):
         audio = audio_from_iq(capture(), RATE, CENTER)
         self.assertEqual(len(audio), 120 * 12000)
