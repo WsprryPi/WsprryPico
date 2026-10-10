@@ -17,8 +17,9 @@ original result records, failed evidence and complete raw sample contents.
   destination and unchanged-source verification. Retain all original source
   recordings and every earlier failed-copy receipt. Do not start another
   routine archive transfer.
-- The operator subsequently added a 1 TB external SSD to wspr5. Future captures
-  use that verified filesystem as described below. The previously prepared
+- The operator subsequently added a 1 TB external SSD to wspr5, then clarified
+  that live captures must use the faster internal SSD. Record on wspr5's
+  internal NVMe and transfer closed recordings to the external SSD. The previously prepared
   four-file source relocation is no longer needed to make space for the next
   batch; retain those original recordings. Further storage savings, when needed,
   come from verified lossless compaction on wspr5.
@@ -49,11 +50,55 @@ unmount/remount through fstab, and their generated systemd mount units reached
 actual future capture directory. Available space was about 927.30 GiB.
 The system remains booted from `/dev/nvme0n1p2`.
 
-Future finite stage wrappers require the recorded SSD UUID and a filesystem
-device distinct from the system disk before running. The SSD-aware clock
-wrapper requires the existing archive recovery to finish with its actual
-successful verification receipt and release its guard. Provisioning changed
-no active archive, RF settings or retained measurement bytes.
+### Internal recording amendment
+
+The initial storage setup bound the future tool root's build directory directly
+to the external SSD. The operator subsequently rejected direct external writes
+during acquisition because the external disk is slower. That acquisition route
+is superseded; its existing mount and evidence remain intact.
+
+New live acquisition uses the separate tool root
+`/home/pi/phase14-qualification-20261008/build/resume-tools-1024529-internal-first`.
+Its `build` directory resolves to `/dev/nvme0n1p2`, UUID
+`ed6c7f1b-238b-41a1-b4b6-7bcdef3270fe`, filesystem device 66306, distinct
+from the external device 2049. All 1,812 pinned tool-source files and the three
+ordinary firmware candidates were copied and independently hash-verified.
+A flushed 4 MiB write/read check passed, with about 117.90 GiB free.
+No firmware, sample format, rate, duration or acceptance rule changed.
+
+Use the external SSD for completed evidence at
+`/mnt/phase14-testing/phase14-closed-internal-first`. Copy only after acquisition
+and analysis have closed and their exact processes have ended. Do not overlap
+the external transfer with a live capture. Independently hash the full destination
+and unchanged source, retain every metadata/control/decoder/analysis record,
+and publish durable retrieval locations. Free internal space only after those
+checks by removing a redundant representation; never remove the only retained
+sample bytes. Maintain enough internal reserve for the next finite stage and
+one largest recording, and restore archived recordings to internal storage
+before reanalysis when necessary.
+
+The former external-acquisition clock, Tone and reliability wrappers are
+superseded and must not be invoked for new recordings. The old clock campaign
+ended independently with preserved failure evidence before this change.
+Its historical external files remain untouched. Small preparation receipts are
+`build/phase14-internal-workspace-preparation-20261010.json` locally and
+`build/internal-workspace.json` under the new host root.
+
+Three subsequent 156-second GPSDO-only captures on internal NVMe completed
+with zero overflow/clipping and restored reference/USB-idle state. After their
+process ended, 17 closed files/936,191,802 bytes were copied and independently
+hash-verified on the external SSD in 32.19 seconds. All internal originals
+remain. The external location is
+`/mnt/phase14-testing/phase14-closed-internal-first/receiver-internal-20261010T2045`,
+with a durable `retrieval.json` record. The local summary is
+`build/phase14-internal-first-storage-result-20261010.json`. This validates the
+storage workflow without identifying the earlier receiver/control failures.
+
+The preceding external-aware wrappers required the external UUID and a
+filesystem distinct from the system disk. Those acquisition wrappers are now
+historical. Future acquisition checks require the recorded internal UUID;
+closed-file archival checks independently require the external UUID.
+Provisioning changed no active archive, RF settings or retained sample bytes.
 
 Private receipts and prepared tooling are:
 
@@ -71,10 +116,12 @@ unchanged-source rehashes, retrieval publication and guard release at October
 `build/phase14-archive-verification-final-1791658138038212000.json`, SHA-256
 `05e818ccbd9ed3dc6779bf5e6d90f5fe7af1d1b3b63500200eb0ec4398412058`.
 It copied and removed no recordings. All source originals remain, and no source
-relocation is needed. The corrected clock campaign now stores new captures on
-the verified SSD; see the current [results](phase14-results.md). Receiver
+relocation is needed. The stopped clock campaign stored its captures on
+the external SSD. Subsequent live capture uses internal NVMe under the
+operator amendment above; see the current [results](phase14-results.md). Receiver
 continuity failures remain separate from filesystem capacity or verified
-archive integrity; the active test settings and storage routing are unchanged.
+archive integrity. Original capture settings, failed flags and historical
+recordings remain unchanged.
 
 ## Lossless raw retention
 

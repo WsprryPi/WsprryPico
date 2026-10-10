@@ -4,6 +4,76 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## Operator storage correction and stopped clock stage
+
+The operator rejected direct external-SSD writes during acquisition and
+required internal recording. The external build bind is retained as historical
+evidence; it is superseded for new acquisition. The separate tool root
+`resume-tools-1024529-internal-first` records on wspr5's internal NVMe, UUID
+`ed6c7f1b-238b-41a1-b4b6-7bcdef3270fe`. Its 1,812 source files and three
+candidate images match their pinned hashes. A flushed 4 MiB write/read check
+passed with about 117.90 GiB free. Completed, analyzed recordings can be
+transferred to the external SSD at a verified quiet boundary, with independent
+full source/destination hashes and durable retrieval records before any
+redundant internal representation is removed. No transfer overlaps acquisition.
+The [retention policy](phase14-evidence-retention.md) records this amendment.
+
+Before that change, the original `64ab8175` clock campaign independently stopped
+at October 10 20:37:40 UTC. Its final failed state has SHA-256
+`b2c379edbec8ad83368460577148295faf16564aeb7015f182a3edea9413c4db`;
+75 logical rows have closed, with 55 accepted physical observations, 10
+receiver overflow failures and 10 unsupported labels. The final small-receipt
+reduction is `build/progress-evidence-clock-20261010T2050-closed.json`, SHA-256
+`ff70aac25ab6bd17876a1c37cf2d7b33fc05f09cdb74193f5414a8e6a1cb2d28`.
+It does not replace a full raw-stream audit or establish negative LOAD checks.
+
+The stage stopped during its A/132 MHz/80 m/512-event FSKCW contention check
+on `Inventory exchange deadline`, followed by `USB EOF` during cleanup.
+That is separate from the ten receiver overflows. Its original terminal/cleanup
+state was not obtained. The 26,062,848-byte incomplete recording remains
+retained and does not qualify that job. A USB disconnect/re-enumeration and
+changed A boot identity were observed; the cause remains unisolated. Separate
+fresh USB INFO confirms both boards empty, disabled and unowned at unchanged
+source `119477a9c8c8`, A at 132 MHz and B at 138 MHz. Full WTP inventory was
+unavailable because A's consumer LAN listener/time was not ready; it is not
+claimed as passed. The small reconciliation is
+`build/phase14-clock-contention-stop-20261010.json`.
+
+The old external-acquisition clock, receiver, Tone and reliability wrappers are
+superseded and must not be run. A separate finite GPSDO-only receiver diagnostic
+completed three 156-second internal-NVMe captures with zero overflows/clipping,
+the original receiver settings and no Pico jobs. Reference restoration and
+same-boot/source/clock USB-idle checks passed. Its result receipt is
+`build/phase14-receiver-internal-result-20261010.json`, SHA-256
+`96cfcbebef87bc6d701f23a7e2c48beca9e70a0cbb8c2bfc433ae045e14bd766`.
+It is closed; do not repeat its completed jobs.
+
+After that process ended, a separate copy-only transfer independently verified
+17 files/936,191,802 bytes on the external SSD and unchanged internal sources,
+with durable retrieval receipts. It took 32.19 seconds; no capture was active
+and no source file was removed. The archive is
+`/mnt/phase14-testing/phase14-closed-internal-first/receiver-internal-20261010T2045`.
+Its retrieval receipt has SHA-256
+`e39db2494e6849e149ad5d0056af5a03eae9af50c7a872f99948f59ad0c2be6b`.
+The private local summary is `build/phase14-internal-first-storage-result-20261010.json`.
+These observations verify the internal-recording/closed-archive workflow;
+they do not isolate the earlier overflows, qualify Pico RF or establish
+hour-long reliability. Original failed rows, control receipts and external
+recordings remain unchanged. The separate USB/control failure requires
+reconciliation before resuming qualification.
+
+The refreshed estimate is 24–47 hours, with only three of nine workstreams
+closed. It credits 4,444 accepted clock capture seconds and the 468-second
+receiver diagnostic once. Remaining fixed capture/settled observations are
+58,206 seconds (16.17 hours); the ten missing overflow slots and all four
+contention jobs remain required. The existing 3.90–17.90-hour other-work
+allowance remains, and the receiver range becomes 0.87–5.87 hours after its
+completed diagnostic. New USB/control diagnosis adds 1–4 hours. Applying the
+measured closed-transfer/verification time to remaining raw bytes adds
+1.09–2.18 hours for this newly required storage workflow. The resulting
+23.03–46.12 hours are rounded upward. Larger source repairs can extend it;
+2 m decoding and final audits, installation, review and push remain open.
+
 ## Numeric progress checkpoint
 
 Three of the nine original workstreams are complete (33.3% by count).
@@ -31,12 +101,13 @@ The pinned system-Python clock handoff then failed before RF because it could
 not import the existing qualification harness. Its failed state and logs remain
 preserved, with no original RF output. The runtime observer independently
 confirmed that exact failure and dispatched corrected helper `64ab8175` once.
-Both Mac observers are now closed. The corrected clock coordinator is active
+Both Mac observers are now closed. The corrected clock coordinator ran
 on wspr5 as PID 2821523/start ticks 57594160, child PID 2821541/start ticks
 57594346, using the qualified Python 3.13.5 environment and explicit current
 Pico source/scripts before the harness source. Its state and rows are under
 `resume-tools-1024529/build/repaired-runtime-clock-state` and
-`repaired-runtime-clock-comparison`. Do not duplicate or change this campaign.
+`repaired-runtime-clock-comparison`. It has since stopped as recorded above;
+do not restart it or invoke its superseded external-acquisition wrapper.
 
 At the independently checked October 10 20:23 UTC snapshot, 57 of 300 clock
 row attempts were closed. Forty-eight complete captures have accepted mode and
@@ -91,13 +162,13 @@ captures using the unchanged 250 ksample/s CF32 receiver settings, no Pico
 transmissions, preserved GPSDO settings and final restoration/inventory.
 This is receiver-continuity evidence, not a transmitter qualification claim.
 
-Corrected post-clock Tone `ee04ee8d` and reliability `bbd4efbc` wrappers remain
-staged, not queued. Required finite checks and affected receiver coverage must
+The external-acquisition post-clock Tone `ee04ee8d` and reliability `bbd4efbc`
+wrappers are now superseded, not queued. Required finite checks and affected receiver coverage must
 be reconciled before long reliability testing. All new bulk recordings use the
 verified wspr5 SSD; 919.77 GiB was free at this checkpoint. No recording is
 copied to the Mac or added to a routine SD-card archive.
 
-The refreshed estimate is 22–41 hours. It credits 3,950 seconds of accepted
+The preceding 20:23 estimate was 22–41 hours. It credited 3,950 seconds of accepted
 clock captures and retains the 964 seconds represented by failed slots in the
 required clock budget. The completed 2.396-hour archive allowance has been
 credited once; its verification uncertainty is closed. Remaining core raw
@@ -106,7 +177,7 @@ capture is 57,604 seconds (107.30 GiB); including settled observations gives
 3.90–17.90 hours. Continuing overflows across six bands replace the previous
 0.5–3-hour receiver diagnosis allowance with 1–6 hours for diagnosis and
 affected validation. Missing capture durations remain in the fixed budget.
-This includes the finite diagnostic
+That allowance included the finite diagnostic
 and retains 2 m, audits, installation, review, commit/push and closeout.
 Measured helper-start-to-analysis-publication medians project about 6.03 hours
 for the remaining clock slots; their analysis/control overhead is already
@@ -128,8 +199,8 @@ with null pass/fail and no band exclusions because calibration is undecided.
 | 4. Pre-clock Tone captures and analyses | 26/26 captured/analyzed/close-in; 26 resource passes, 1 frequency-only legacy flag retained | 100% of observations |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
-| 4. Refreshed alternative-clock campaigns | 0/2 closed; first campaign running | 0% of closed campaigns |
-| 4. Repaired-firmware alternative-clock accepted physical observations | 48/270; 57 closed attempts, 9 receiver overflow failures | 17.8% accepted |
+| 4. Refreshed alternative-clock campaigns | 0/2 successfully closed; preserved stopped campaign | 0% of accepted campaigns |
+| 4. Repaired-firmware alternative-clock accepted physical observations | 55/270; 75 logical attempts, 10 receiver overflow failures and 10 unsupported labels | 20.4% accepted |
 | 4. Alternative-clock physical rows, preceding firmware | 59/270 complete; two additional failed attempts | 21.9% |
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
 | 4. 150 MHz/4 m repeated mode rows | 0/10; follow-up prepared | 0% |
