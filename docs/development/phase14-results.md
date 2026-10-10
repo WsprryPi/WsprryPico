@@ -32,7 +32,7 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 38/104 closed and passing; finite batch active | 36.5% |
+| 4. Repaired-firmware main three-observation rows | 50/104 closed; 49 repeated passes and 1 original nominal-decode failure | 48.1% closed |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -759,6 +759,57 @@ at `build/phase14-archive-closed-evidence.py` has SHA-256
 Syntax/plan validation passes, and its live probe still returns `BUSY` before
 locks/copies for the exact active coordinator. Actual transfers remain
 unvalidated and unexecuted; no source file has been removed or relocated.
+
+At October 10 06:01 UTC, the same original coordinator remains running with
+unchanged PID/start ticks/script hash. Fifty of 104 row attempts are closed
+(48.1%): 49 have three passing observations and A/6 m WSPR retains one original
+nominal-receiver decode failure. There are 150 of 312 physical observations
+closed (48.1%). The original analyses have 149 mode passes and 150 resource
+passes: 36 nominal expected-message WSPR decodes, 39 QRSS, 38 FSKCW and 36 DFCW
+human-copy observations. A/6 m FSKCW analysis was active. Private verified
+snapshot `build/progress-evidence-20261010T0559-verified.json` under the active
+root has SHA-256
+`06fa783b41d0863a3a42fd0187bd8b5f0d96d0fc883096b1ebf6277b5a3c4eeb`;
+its rows SHA-256 is
+`4bdefa85f64d4919c361ed862f634cbafd927426be0000d1fa05e4de3c6b7ac0`.
+The failed first-frame row caused the original runner to omit its remaining
+two WSPR repetitions. This does not exclude 6 m from qualification.
+
+The retained A/6 m signal is indicated at 50,294,622.86–50,294,632.23 Hz,
+roughly 125 Hz above the decoder's nominal center. One separate fixed +125 Hz
+receiver-demodulation trial on the unchanged IQ recovers AA0NT EM18 37 in
+2.10 seconds with the same external decoder/options. No transmitter, time or
+drift correction was applied. Supplementary receipt
+`receiver-retune-125hz-diagnostic/result.json` beside the original case has
+SHA-256 `ddd3039fde8d1118050ed13962e6de57ca4fe5ff1dbd035720ec229efa53a22c`;
+the exact offline tool SHA-256 is
+`79846d76e8f14a022c9eba9242a4ddbb406282625dd4ac51b9ba8c19dacb23d2`.
+Independent stdout/audio/decoder verification is saved under the active root
+as `build/6m-receiver-retune-verification-20261010T0603.json`, SHA-256
+`af513f765b2b12c4ec350f5408f4ce38faba465a3ad8ac77e671bd3d39c3f8aa`.
+This accepts that one retained capture under the operator's external-decode
+criterion: 37 externally decoded WSPR captures and 150 total accepted mode/
+resource observations including the supplement. Original failed decoder,
+analysis and matrix row flags remain unchanged; reliable three-frame coverage
+still requires two new physical A/6 m WSPR observations. Their finite plan is
+private `build/phase14-6m-missing-repetition-plan.json`, prepared for a verified
+quiet boundary after the current stage and not queued or running. The 2 m
+pilot remains unresolved; frequency/drift annotations do not fail any band.
+
+The refreshed overall estimate is 29–43 hours, still three of nine workstreams
+(33.3%) closed. Remaining required main capture is 15,320 seconds (4.26 hours);
+observed helper/analysis intervals project 4.81 hours for 162 remaining slots,
+including the two missing 6 m frames. Only 160 of those jobs remain in the
+actual first-stage queue; the two follow-up frames are already included in
+this budget. Other clocks/contention, soak/memory, producer/failure/upper-band/
+spectral work, 2 m diagnosis, archives/audits and final installation/review/
+commit/push remain included. Storage accounting explicitly includes another
+26 Tone captures after the alternative clocks: the current stage's 26 Tone
+jobs precede that comparison and cannot close its documented post-comparison
+sweep. These 1,300 seconds were already inside the other-work time allowance;
+the explicit full core baseline is now 171.99 GiB and remaining core raw data
+145.61 GiB before other work/reserve, against about 149 GiB free on wspr5.
+No archive transfer, relocation or active-test/firmware change occurred.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
