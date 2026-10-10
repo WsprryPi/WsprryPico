@@ -32,7 +32,7 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 60/104 closed; 59 repeated passes and 1 original nominal-decode failure | 57.7% closed |
+| 4. Repaired-firmware main three-observation rows | 72/104 closed; 71 repeated passes and 1 original nominal-decode failure | 69.2% closed |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -852,6 +852,41 @@ when the nominal external decode fails. It verifies natural completion,
 resources and final inactive inventory and restores reference settings; failed
 cleanup cannot publish a successful stage. This helper has not been staged
 for execution or run RF. The active tests and firmware remain unchanged.
+
+At October 10 08:06 UTC, the exact original coordinator, start ticks and
+script hash are unchanged and the matrix is still running. There are 72 of
+104 closed row attempts (69.2%): 71 full repeated passes and the preserved
+original A/6 m nominal-decode failure, whose supplemental decode is accepted
+but whose two remaining physical repetitions are prepared separately. The
+216 of 312 closed observations (69.2%) have 215 original mode passes plus
+that independently reverified supplemental pass; all 216 resources pass.
+WSPR has 53 nominal expected-message decodes plus one supplemental decode;
+QRSS, FSKCW and DFCW each have 54 human-copy passes. No new failure appeared.
+B/40 m WSPR is active at this checkpoint. The private progress receipt is
+`build/progress-evidence-20261010T0802-verified.json` under the active root,
+SHA-256 `f4bddfba8838ec5bd472cf1f228d94e13a18598825faba13340dd94c1be8614f`;
+its rows SHA-256 is
+`a80d2a6aa704628eb3fbe3d51fd991cf21afe74ffa147164a9e89372e25e7906`.
+This verifies actual expected-message decoder stdout/receipts, physical and
+analysis bindings, capture metadata/size and resources. Full independent raw
+IQ rehashing remains part of the later audit.
+
+The refreshed estimate is 27–41 hours, with three of nine workstreams (33.3%)
+closed. Required main capture is 9,072 seconds (2.52 hours); observed
+helper/analysis intervals project 2.84 hours for 96 remaining slots, including
+the two prepared A/6 m frames. The active stage itself has 94 jobs left.
+Other fixed capture/observation work totals 17.76 hours: alternative clocks,
+contention, both 26-Tone sweeps, the eight-hour mixed soak and the memory pair.
+An inclusive additional 6.3–20.3-hour allowance covers remaining RF checks,
+analysis, 2 m/memory diagnosis, evidence storage/audits and final installation,
+review, commit, push and closeout. These diagnosis/analysis subdivisions are
+not additional quantities to add again. Remaining core raw data is 133.97 GiB
+before other work/reserve, against 137.34 GiB free on wspr5. The current stage
+fits; independently verified archives and necessary relocation must precede
+later acquisition. The archive and two-frame helpers remain prepared and
+unexecuted. Reviewing their guards and the alternative-clock candidate/receiver
+handling did not change an active test or firmware. The 2 m decode outcome
+remains unresolved, with all placement/drift annotations informational.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
