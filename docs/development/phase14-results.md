@@ -22,9 +22,8 @@ valid control/capture/resources but neither decoded (0/2 observed; six-frame
 reliability unresolved). The finite pilot continuation is closed. The repaired
 138 MHz matrix and 26 pre-clock Tone observations are closed under
 `resume-tools-df16f5e`; all 312 required main observations are accepted with
-separate 6 m decoding/closeout reconciliation. Copy-only archiving is active;
-a bounded observer waits for its unchanged predecessor before any conditional
-recovery. Further clock/soak/memory stages remain prepared.
+separate 6 m decoding/closeout reconciliation. Content-verified archive recovery is active; the original
+copy timed out and its failed receipt and partial destinations remain preserved. Further clock/soak/memory stages remain prepared.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
@@ -1159,6 +1158,20 @@ are not running. The estimate remains 24–39 hours, three of nine workstreams
 fixed RF/settled-observation work is still 17.40 hours. Transfer progress informs
 remaining streaming time without manufacturing completed workstreams. The 2 m
 pilot remains unresolved.
+
+The original copy subsequently hit its 3,600-second destination timeout at
+13:20:58 UTC. Its closed failed receipt SHA-256 is
+`21db39e094984e1938e603eb5fde9413ff096b50ca70579714840a1fd3628036`;
+PID 81492 and its guard are gone. The finite observer launched exactly one
+recovery child, Mac PID 99470, at 13:21:07 UTC. Its separate mutable receipt is
+`build/phase14-evidence-resume-1791638471854100000.json`.
+The new wspr5 guard PID 2738054/start ticks 55626280 holds all three expected
+lock files; its code retains SHA-256
+`8232e20d1cc8f6a3c80da8ec4eef0940d3788b69d3de112f2b8e50e52fb029b1`.
+Preserved destination raw sizes are 7,290,000,000 and 5,218,783,744 bytes.
+Recovery has entered source/destination verification, without claiming any
+accepted archive or removing source files. Relocation and clocks remain
+prepared. The estimate remains 24–39 hours, three of nine workstreams closed.
 
 At the earlier repaired-runtime checkpoint, the estimate was 34–48 hours,
 with three of nine workstreams closed. That historical estimate included about
