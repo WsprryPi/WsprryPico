@@ -107,7 +107,8 @@ tune. Both boards/all three clocks are covered, with missing repetitions of
 passing 138 MHz rows acquired in the same finite batch. Existing firmware and
 its direct-frequency API are unchanged; native standalone/controller 2 m
 frequency routing remains unimplemented and cannot be claimed from this trial.
-No 2 m RF transmission has been performed yet.
+The October 10 repaired-firmware pilot continuation below is the first actual
+2 m acquisition; completed evidence is counted only after capture and analysis.
 
 The later operator amendment requires a quick WSPR pilot before expanding this
 trial: three complete frames per board at 138 MHz. All six must decode the exact
@@ -486,6 +487,36 @@ the separate diagnostic receipt under the stopped root has SHA-256
 Both Picos were idle afterward, and the GPSDO readback restored both outputs
 to 10 MHz. The stopped receipts remain unchanged; a new finite pilot
 continuation will carry only unfinished work.
+
+The unfinished pilot continuation is genuinely running on wspr5 at the
+October 10 01:04 UTC checkpoint under `build/resume-tools-26f0e56`, coordinator
+PID 2534731/start ticks 51188218, script SHA-256
+`dc789cfd1ba4c4c0c671b4201be2895178e0748dd368622237637888e4d8814b`.
+Its source archive SHA-256 is
+`e82462e1478cdabe0621a38785bb586c1e66fae62f729c154396a62c3884287f`,
+with all 1,812 files independently verified. It uses the exact repaired
+119477a firmware artifacts; 26f0e56 changes host analysis and documentation.
+All 39 portable and 16 RF measurement fixtures pass in the exact Linux
+snapshot too. Its guard rehashes the stopped bootstrap boundary and checks the
+exact candidate source/image before any new job. The 13 completed predecessor
+steps are not repeated. The new four-capture 2 m reference bracket completed
+(SHA-256 `4cd25b8f6117a79a2d48d27618ba37fde6d0e790259ba8e59f00f0b33995fd00`),
+and the first Pico A WSPR capture is active. No 2 m decode is counted yet.
+The finite continuation conditionally runs the full harmonic trial only after
+six valid expected-message pilot decodes, then records final reference and
+inventory. Native 2 m application routing still requires a separate decision
+from these physical results before broad qualification begins.
+
+The refreshed estimate remains 34–48 hours and three of nine workstreams
+(33.3%). It credits the closed diagnostics and baseline and uses recent closed
+captures: median DFCW helper 64.93 seconds plus 2.29 seconds analysis, and
+80 m WSPR helper about 160.6 seconds plus 29–30 seconds analysis/finalization.
+The roughly 25 hours of broad matrix/clock/soak/memory capture work remains,
+with the separate analysis/audit/storage/final release allowance. Available
+overflow storage is verified at 22.57 GiB on wspr4, 20.39 GiB on wspr2 and
+18.31 GiB on wspr1; wspr5 has about 177 GiB. The first broad matrix fits current
+storage, but the complete remaining campaign needs checked archival capacity.
+No archive relocation has yet occurred and no broad coordinator is running.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
