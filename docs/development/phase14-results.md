@@ -32,7 +32,7 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 50/104 closed; 49 repeated passes and 1 original nominal-decode failure | 48.1% closed |
+| 4. Repaired-firmware main three-observation rows | 60/104 closed; 59 repeated passes and 1 original nominal-decode failure | 57.7% closed |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -810,6 +810,48 @@ sweep. These 1,300 seconds were already inside the other-work time allowance;
 the explicit full core baseline is now 171.99 GiB and remaining core raw data
 145.61 GiB before other work/reserve, against about 149 GiB free on wspr5.
 No archive transfer, relocation or active-test/firmware change occurred.
+
+At October 10 06:58 UTC, the same original coordinator is running with its
+unchanged PID/start ticks/script hash. Sixty of 104 row attempts are closed
+(57.7%): 59 have complete passing repetitions, while the original A/6 m nominal
+decode failure remains preserved with its accepted supplemental decode and
+two physical repetitions still missing. There are 180 of 312 closed captures
+(57.7%). Original analyses pass 179 mode checks; the independently reverified
+6 m supplement accepts the remaining capture. All 180 resources pass. WSPR has
+44 nominal expected-message decodes plus one supplemental decode; QRSS, FSKCW
+and DFCW each have 45 human-copy passes. No new failure appeared. B/630 m WSPR
+is active. The private progress snapshot under the active root is
+`build/progress-evidence-20261010T0658-verified.json`, SHA-256
+`f18d7b162c41dba4cabac55758d7fa527e6fd3bc72950a663ea628f90a5ae926`;
+its rows SHA-256 is
+`31c40b4d853b6cd5a8de8e3a1509bb2f81216b3c98d37a88205d514fd7fc0046`.
+
+The refreshed estimate is 28–42 hours, with three of nine workstreams (33.3%)
+closed. Remaining required main capture is 12,474 seconds (3.47 hours); measured
+helper/analysis intervals project 3.91 hours for 132 remaining slots, including
+the two missing A/6 m frames. The active stage has 130 jobs left; those two
+follow-up frames remain separate prepared work. Both Tone sweeps, alternative
+clocks/contention, soak/memory, producer/failure/upper-band/spectral work, 2 m
+investigation, archives/audits and final installation/review/commit/push remain
+included. Remaining core raw data is 140.31 GiB before other work/reserve;
+about 144 GiB is free on wspr5. Storage work still waits for the quiet boundary,
+with no archive transfers or relocation. The 2 m pilot remains unresolved.
+
+The finite two-frame acquisition helper is prepared privately at
+`build/phase14-6m-followup-prepared.py`, SHA-256
+`ebea05fe7a6838a737c7f2577e5f0acfd63914ea0493f62e865c6b3e65339d80`.
+Syntax checking and its live `--probe` pass: it returns `BUSY` before device
+access during the active campaign. Before execution it requires successful
+closure of the exact current main/Tone stage, the predecessor process to be
+gone, matching final inventory, independently reverified retained first-frame
+IQ/metadata/control/audio/decoder evidence, an exact staged helper checksum,
+and matching live source/clock/boot on both boards. It takes both board locks
+and the receiver lock, admits only two new finite WSPR frames with a 30-minute
+script bound, preserves nominal analyses and uses a fixed receiver retune only
+when the nominal external decode fails. It verifies natural completion,
+resources and final inactive inventory and restores reference settings; failed
+cleanup cannot publish a successful stage. This helper has not been staged
+for execution or run RF. The active tests and firmware remain unchanged.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
