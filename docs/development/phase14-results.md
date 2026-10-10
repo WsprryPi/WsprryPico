@@ -38,34 +38,50 @@ Pico source/scripts before the harness source. Its state and rows are under
 `resume-tools-1024529/build/repaired-runtime-clock-state` and
 `repaired-runtime-clock-comparison`. Do not duplicate or change this campaign.
 
-At the independently checked October 10 19:30 UTC snapshot, 24 of 300 clock
-row attempts were closed. Twenty-one complete captures have accepted mode and
-resource evidence: 4 expected-message WSPR decodes, 4 Tone, 5 QRSS, 4 FSKCW
-and 4 DFCW observations. Verification binds actual control, capture metadata,
+At the independently checked October 10 20:23 UTC snapshot, 57 of 300 clock
+row attempts were closed. Forty-eight complete captures have accepted mode and
+resource evidence: 8 expected-message WSPR decodes, 10 Tone, 10 QRSS, 9 FSKCW
+and 11 DFCW observations. Verification binds actual control, capture metadata,
 analysis and firmware/job identities, plus decoder stdout/audio/receipts.
 The immutable progress receipt is
-`build/progress-evidence-clock-20261010T193039.json`, SHA-256
-`ead52c93260e66f982abd86e133f8a303a46f7b8c59574795d04aa7d70d1066f`.
+`build/progress-evidence-clock-20261010T2030.json`, SHA-256
+`d872201945ca3bbf6aa65a4371ca613bbb60084a4cd70bc4f8f6e3d699222b70`.
 Full independent raw-stream rehashing remains pending; this checkpoint does
 not substitute for that audit or close an original workstream.
-Three keyed rows retain legacy frequency/coherence flags: A/132 MHz/80 m QRSS
-and 60 m QRSS/FSKCW. Their separately serialized human-copy and overall human
-screens and resource checks pass; these informational flags do not invalidate
-those observations or exclude their bands.
+Sixteen keyed rows retain legacy frequency/coherence flags. Their separately
+serialized human-copy and overall human screens and resource checks pass;
+these informational flags do not invalidate those observations or exclude
+their bands. The preceding 19:30 checkpoint and every original flag remain
+preserved.
 
-Three attempts have unusable receiver evidence: A/132 MHz/2200 m Tone,
-2200 m FSKCW and 160 m WSPR. Every capture helper reports one SDR stream
+Nine attempts have unusable receiver evidence, all on A at 132 MHz:
+2200 m Tone/FSKCW, 160 m WSPR, 30 m WSPR, 20 m QRSS,
+17 m Tone/WSPR/FSKCW and 15 m WSPR. Every capture helper reports one SDR stream
 overflow, zero clipping and verified receiver cleanup. The existing helper
 removed incomplete raw files while retaining their sizes/hashes and failure
-receipts. Tone and WSPR reached completed Pico jobs; FSKCW was aborted during
-cleanup after the receiver ended early. These observations establish capture
+receipts. Some Pico jobs completed; others were aborted during cleanup after
+the receiver ended early. These observations establish capture
 failures and missing qualification coverage, without isolating their cause or
 establishing transmitter failure. The original row flags stay failed. Their
-three physical slots remain required, and no repetitions have been queued.
+nine physical slots remain required, and no repetitions have been queued.
+The private missing-coverage snapshot is
+`build/phase14-missing-clock-coverage-plan-20261010T2024.json`;
+it must be reconciled against the final closed campaign before execution.
+This partial snapshot is not a final follow-on scope.
 
 Read-only USB inspection places the RSP1B and external SSD on different USB
 controllers. The snapshot showed available memory and no corresponding SDR
-reset in the kernel log; it does not isolate the overflow cause. A separate
+reset in the kernel log; it does not isolate the overflow cause. A further
+39-second read-only host observation retained 40 samples, with at least
+3,465,824 KiB available memory, low load and no recent kernel errors.
+Source inspection shows synchronous CF32 encoding/writing between receiver
+reads. Write or scheduling latency is a hypothesis requiring closed-boundary
+measurement, not an established cause or proof of the deployed binary's build
+provenance. The inspected source hashes match the existing wspr5 Harness
+checkout; no sibling source, active process, settings or storage route changed.
+The separate investigation record is
+`build/phase14-receiver-overflow-investigation-20261010T2025.json`.
+A separate
 GPSDO-only diagnostic is staged as `phase14-receiver-overflow-probe-f63b9cda.py`,
 SHA-256 `f63b9cda108230562008c3e78cb007c80f6fd946d34dd40132c6eddfaf0d498b`.
 Six closure/rejection checks and exact tool hashes pass; its live probe returns
@@ -78,18 +94,21 @@ This is receiver-continuity evidence, not a transmitter qualification claim.
 Corrected post-clock Tone `ee04ee8d` and reliability `bbd4efbc` wrappers remain
 staged, not queued. Required finite checks and affected receiver coverage must
 be reconciled before long reliability testing. All new bulk recordings use the
-verified wspr5 SSD; 923.84 GiB was free at this checkpoint. No recording is
+verified wspr5 SSD; 919.77 GiB was free at this checkpoint. No recording is
 copied to the Mac or added to a routine SD-card archive.
 
-The refreshed estimate is 22–38 hours. It credits 1,792 seconds of accepted
-clock captures, retains the 286 seconds represented by failed slots in the
-required clock budget, and removes the completed 2.396-hour archive allowance
-and its verification uncertainty. Remaining core raw capture is 59,762 seconds
-(111.32 GiB); including settled observations gives 60,858 seconds (16.91 hours).
-The remaining other-work allowance is 3.90–17.90 hours, plus 0.5–3 hours for
-new receiver diagnosis/affected validation. This includes the finite diagnostic
+The refreshed estimate is 22–41 hours. It credits 3,950 seconds of accepted
+clock captures and retains the 964 seconds represented by failed slots in the
+required clock budget. The completed 2.396-hour archive allowance has been
+credited once; its verification uncertainty is closed. Remaining core raw
+capture is 57,604 seconds (107.30 GiB); including settled observations gives
+58,700 seconds (16.31 hours). The remaining other-work allowance is
+3.90–17.90 hours. Continuing overflows across six bands replace the previous
+0.5–3-hour receiver diagnosis allowance with 1–6 hours for diagnosis and
+affected validation. Missing capture durations remain in the fixed budget.
+This includes the finite diagnostic
 and retains 2 m, audits, installation, review, commit/push and closeout.
-Measured helper-start-to-analysis-publication medians project about 6.69 hours
+Measured helper-start-to-analysis-publication medians project about 6.03 hours
 for the remaining clock slots; their analysis/control overhead is already
 inside the other-work allowance. Timeout bounds are not predicted runtimes.
 Larger repairs can extend the estimate. Placement/drift remain informational,
@@ -110,7 +129,7 @@ with null pass/fail and no band exclusions because calibration is undecided.
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 closed; first campaign running | 0% of closed campaigns |
-| 4. Repaired-firmware alternative-clock accepted physical observations | 21/270; 24 closed attempts, 3 receiver overflow failures | 7.8% accepted |
+| 4. Repaired-firmware alternative-clock accepted physical observations | 48/270; 57 closed attempts, 9 receiver overflow failures | 17.8% accepted |
 | 4. Alternative-clock physical rows, preceding firmware | 59/270 complete; two additional failed attempts | 21.9% |
 | 4. Required post-comparison 138 MHz Tone sweep | 0/26 | 0% |
 | 4. 150 MHz/4 m repeated mode rows | 0/10; follow-up prepared | 0% |
