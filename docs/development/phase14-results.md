@@ -124,6 +124,34 @@ running. New source-bound reliability, upper-band investigation, remaining
 finite checks, final audits/installation/profile restoration/review/push remain
 open.
 
+At October 10 22:37 UTC, the unchanged internal clock continuation has 63
+closed, accepted ordinary observations: 55 retained with their original
+source/image identities and eight new RC3 observations. The eight replacement
+captures have valid control, metadata, resource and receiver-integrity records;
+the three WSPR jobs also bind actual expected-message decoder stdout and audio.
+No new receiver overflow, control error or resource failure is recorded. Their
+new full raw-stream audit remains a closure task; this checkpoint checks
+finalized size/hash receipts and small records without reading active samples.
+
+The separately prepared internal-storage follow-on helper is staged under
+the RC3 root as `build/phase14-internal-followons-5657e98c.py`, SHA-256
+`5657e98c5edf939f021f6610018119943fecdbc3b29bf19daf21375801fd67e0`.
+It offers three separate finite executions: 26 post-clock Tone/close-in jobs,
+eight mixed one-hour jobs, and the two-job memory follow-up. All 34 Linux
+closure/evidence rejection checks pass, all twelve pinned tool hashes match,
+and each staged probe reports BUSY before device access. Preparation receipt
+`build/phase14-internal-followon-preparation-20261010.json` records zero RF
+jobs and no queue. The helper requires the actual predecessor to end, internal
+NVMe identity/reserve, qualified analyzer runtime and a separately reviewed
+reconciliation receipt binding actual control/metadata/analysis/decoder records.
+The mixed soak additionally requires the remaining finite gates reconciled.
+Memory acquisition explicitly passes source `e95334aa56d816b31a62255b980b540b849cf6ff`;
+its original and cache-expired growth assessments remain separate. All live
+recordings stay internal; closed transfer remains a separate quiet-boundary
+operation. B's existing engineering profile stays available for browser load;
+final consumer-profile restoration still preserves its current 8 KiB cursor.
+None of these prepared executions has started.
+
 ## Operator storage correction and stopped clock stage
 
 The operator rejected direct external-SSD writes during acquisition and
