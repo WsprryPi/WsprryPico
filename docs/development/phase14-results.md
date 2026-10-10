@@ -25,6 +25,12 @@ reliability unresolved). The finite pilot continuation is closed. The repaired
 `resume-tools-df16f5e`; all 312 required main observations are accepted with
 separate 6 m decoding/closeout reconciliation. Content-verified archive recovery is active; the original
 copy timed out and its failed receipt and partial destinations remain preserved. Further clock/soak/memory stages remain prepared.
+The first destination has independent full verification. The operator-added
+1 TB external SSD is now erased, repartitioned, mounted and verified on wspr5;
+the future tool root's build output uses it through a persistent bind mount.
+About 927 GiB is available. SSD-aware clock and post-clock Tone wrappers are
+staged but remain blocked by the active archive guard. The earlier source-raw
+relocation is no longer required for acquisition capacity; all originals remain.
 
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |

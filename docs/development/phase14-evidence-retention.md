@@ -16,9 +16,55 @@ original result records, failed evidence and complete raw sample contents.
 - Preserve the currently active four-file archive recovery. It already targets
   wspr4/wspr2 under a fixed plan and must finish or report its actual outcome
   before any change to those files. Do not start another archive transfer.
-- After that archive is verified, perform the already prepared safe relocation
-  to recover wspr5 space. Further storage savings should come from verified
-  lossless compaction on wspr5, rather than more SD-card transfers.
+- The operator subsequently added a 1 TB external SSD to wspr5. Future captures
+  use that verified filesystem as described below. The previously prepared
+  four-file source relocation is no longer needed to make space for the next
+  batch; retain those original recordings. Further storage savings, when needed,
+  come from verified lossless compaction on wspr5.
+
+## October 10 external SSD
+
+The operator authorized erasing and repartitioning the newly attached USB
+WD Black SN770 1 TB, serial `012345678906`, size `1000204886016` bytes.
+Its stable device link is
+`/dev/disk/by-id/usb-WD_BLACK_SN770_1TB_012345678906-0:0`.
+The external disk now has one GPT Linux data partition, formatted as ext4
+with label `phase14-testing` and UUID
+`d9df35dd-f27b-45e0-9dff-c74e1bbfabe6`.
+
+The filesystem mounts at `/mnt/phase14-testing`. The future tool root's build
+directory,
+`/home/pi/phase14-qualification-20261008/build/resume-tools-1024529/build`,
+is a bind mount of
+`/mnt/phase14-testing/phase14-qualification-20261008/resume-tools-1024529/build`.
+This preserves the existing capture paths while storing new bulk bytes on the
+external SSD. Its existing tool-source verification record was copied and
+independently matched before mounting; the internal copy is retained.
+
+The UUID and bind mount are saved in `/etc/fstab`, with the original file
+backed up as `/etc/fstab.phase14-ssd-20261010.bak`. Both entries passed a real
+unmount/remount through fstab, and their generated systemd mount units reached
+`active/mounted`. A flushed 4 MiB write/read hash check passed through the
+actual future capture directory. Available space was about 927.30 GiB.
+The system remains booted from `/dev/nvme0n1p2`.
+
+Future finite stage wrappers require the recorded SSD UUID and a filesystem
+device distinct from the system disk before running. The SSD-aware clock
+wrapper requires the existing archive recovery to finish with its actual
+successful verification receipt and release its guard. Provisioning changed
+no active archive, RF settings or retained measurement bytes.
+
+Private receipts and prepared tooling are:
+
+- `build/phase14-external-ssd-provision-20261010.json`
+- `build/phase14-external-ssd-mount-verification-20261010.json`
+- `build/phase14-ssd-staged-helper-verification-20261010.json`
+- `build/phase14-next-clock-ssd-stage-prepared.py`
+- `build/phase14-post-clock-tone-ssd-prepared.py`
+
+The older relocation and clock/Tone wrappers remain historical prepared tools;
+use the SSD-aware wrappers for the next stages. The current archive recovery
+continues under its original fixed plan and process identities.
 
 ## Lossless raw retention
 
