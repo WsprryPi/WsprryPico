@@ -32,7 +32,7 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 0/104 closed; finite batch active | 0% |
+| 4. Repaired-firmware main three-observation rows | 6/104 closed and passing; finite batch active | 5.8% |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -607,6 +607,38 @@ final installation/review/commit/push remain additional. About 176 GiB is free
 on wspr5; first-stage capacity is sufficient, while later stages require
 checked evidence archival capacity and reserve. No raw evidence has been
 relocated or discarded.
+
+At the October 10 01:58 UTC checkpoint, the exact broad-stage process remains
+PID 2539333/start ticks 51272956 with its original script hash. Six of 104
+three-observation rows are closed and passing (5.8%); 20 of 312 individual
+observations are closed (6.4%). All 20 applicable mode and resource checks pass:
+six expected-message WSPR decodes, six QRSS, five FSKCW and three DFCW
+observations. The closed rows cover A/80 m in all four modes and A/2200 m WSPR
+and QRSS; the partial FSKCW row is still open. Private source/job-bound progress
+snapshot `build/progress-evidence-20261010T0158.json` under the active root has
+SHA-256 `0b97e5cb6df49c6698cce7e12bba22af3869969c746a6314e7b5492c60b6027d`.
+Its row snapshot SHA-256 is
+`3cf9cb1da2c02914d2d8dbaa1bb910700a2f626317cfb7274599e7805f785d05`.
+
+The refreshed overall estimate is 33–47 hours. Remaining main capture time is
+27,482 seconds (7.63 hours); applying observed closed-job pipeline medians gives
+about 8.57 hours for its remaining 292 observations before the Tone/reference
+tail. Median WSPR helper/analysis pipeline is 184.22 seconds, QRSS 86.23,
+FSKCW 86.58 and DFCW 67.27. The complete remaining work still includes other
+clocks, reliability/memory, producer/failure/upper-band/spectral testing, audits,
+storage and final release work. Three of nine workstreams remain closed
+(33.3%); partial rows do not close a workstream. The 2 m decode investigation
+remains unresolved, with all placement/drift findings informational.
+
+Available wspr5 capacity is about 172 GiB. The private archive plan
+`build/phase14-evidence-archive-plan.json` identifies four complete historical
+A soak captures (indices 0, 2, 4 and 6, 27.16 GiB total), with exact raw/
+metadata/physical hashes, for independently verified copies on authorized
+wspr4/wspr2. Execution is prepared for a verified acquisition boundary between
+finite stages; the active matrix is unchanged. No copy or relocation is claimed
+performed. Both independent destination and unchanged source verification,
+explicit location/retrieval manifests and preservation of original failed
+receipts are required before any source-space relocation.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
