@@ -1,6 +1,7 @@
 # Phase 14 qualification results
 
 Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
+Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
 ## Numeric progress checkpoint
