@@ -11,6 +11,32 @@ sys.path[:0]=[str(ROOT/'src'),str(ROOT/'scripts')]
 from phase14.plan import matrix,job,accepted_events,validate_capture,validate_physical,capture_elapsed_limit,load_workspace_bytes
 
 class Tests(unittest.TestCase):
+    def test_inventory_refreshes_idle_peer_without_disrupting_owned_jobs(self):
+        from unittest.mock import Mock,patch
+        from phase14.live import Rig
+        rig=object.__new__(Rig);rig.e=Mock();rig.e.root=Path('/unused')
+        stale=Mock();stale.request.side_effect=ValueError('HELLO_REQUIRED')
+        fresh=Mock();fresh.request.side_effect=lambda op,body:{'state':'empty'} if op=='STATUS' else {}
+        peers={'A':stale}
+        rig.device=Mock()
+        rig.device.close_peer.side_effect=lambda board:peers.pop(board,None)
+        rig.device.peer.side_effect=lambda board:peers.setdefault(board,fresh)
+        info=dict(revision='c'*12,system_clock_hz=138000000,
+                  status=dict(engine='pio-dma-gp2',state='empty',enabled=False,
+                              output_active=False,owner_id=None))
+        rig.info=Mock(return_value=info)
+        with patch('phase14.live.save') as saved:
+            self.assertEqual(rig.inventory(['A'])['A']['state'],'empty')
+            self.assertEqual([x.args[0] for x in fresh.request.call_args_list],
+                             ['CAPS','GET_CLOCK','STATUS','PING'])
+            stale.request.assert_not_called();saved.assert_called_once()
+            self.assertEqual(saved.call_args.args[1]['A']['info'],info)
+        # An owned/running job must be rejected before replacing its session.
+        rig.device.close_peer.reset_mock();rig.device.peer.reset_mock()
+        rig.info.return_value=dict(info,status=dict(info['status'],owner_id='owner',state='running',output_active=True))
+        with self.assertRaises(ValueError):rig.inventory(['A'])
+        rig.device.close_peer.assert_not_called();rig.device.peer.assert_not_called()
+
     def test_idle_followup_repaired_source_requires_explicit_exact_binding(self):
         from phase14_idle_growth import verify_source
         original='bd45bc1bb638839610f28ae529c97d51ec345f6d'

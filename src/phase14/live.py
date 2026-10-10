@@ -90,6 +90,10 @@ class Rig:
         values={}
         for board in boards:
             value=self.idle(board)
+            # Long tests can leave the other board's cached transport without
+            # a negotiated session. Refresh only after proving it is unowned
+            # and inactive; the new peer performs HELLO before inventory RPCs.
+            self.device.close_peer(board)
             peer=self.device.peer(board)
             responses={op:peer.request(op,{}) for op in ('CAPS','GET_CLOCK','STATUS','PING')}
             values[board]=dict(info=value,responses=responses)

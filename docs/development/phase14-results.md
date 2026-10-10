@@ -32,9 +32,9 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 104/104 attempts closed; 103 repeated passes, 1 original nominal-decode failure; 2 repetitions prepared | 100% of attempts |
-| 4. Repaired-firmware main observations | 310/312 accepted captures including 1 supplemental external decode | 99.4% |
-| 4. Pre-clock Tone captures and analyses | 3/26 control/captures complete; 0/26 analyses closed | 11.5% captured |
+| 4. Repaired-firmware main three-observation rows | 104/104 accepted with separate 6 m reconciliation; original 103-pass/1-failure flags preserved | 100% |
+| 4. Repaired-firmware main observations | 312/312 accepted captures, including 3 supplemental external decodes | 100% |
+| 4. Pre-clock Tone captures and analyses | 26/26 captured/analyzed/close-in; 26 resource passes, 1 frequency-only legacy flag retained | 100% of observations |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -1016,6 +1016,78 @@ than running. The exact successful main/Tone quiet boundary has not yet been
 reached, so neither follow-up acquisition nor evidence relocation was started.
 The 2 m pilot remains unresolved and all frequency/drift annotations remain
 informational. No active test or firmware was changed.
+
+The finite main/Tone stage closed successfully at October 10 11:28 UTC,
+with all 59 steps complete and coordinator PID 2539333 gone. Its immutable
+status SHA-256 is
+`4130d4fa3eec9aafd58ff706e0814228df54f5855fc85b1b058ce482bcb5a1db`;
+final idle inventory SHA-256 is
+`14c26ee225b092705652e4e0d3879beaf18c2589e6dfa55ede559ea3cff9ea06`.
+All 26 Tone captures, analyses and close-in reductions are closed with valid
+resources. The retained A/6 m Tone legacy flag arises solely from nominal
+receiver-axis offsets of +136.36 to +137.24 Hz exceeding the old 100 Hz screen.
+All ten coherence/amplitude/reference checks pass: maximum phase residual
+0.01673 rad, minimum amplitude ratio 0.99783; reference-compared mean is
+50,294,579.95 Hz with 0.868 Hz peak-to-peak range. Under the operator amendment
+this frequency observation has null pass/fail and excludes no band. Its
+original analysis SHA-256 remains
+`376907b5bcc61e533a159ab5f696fe2e6913a6d00d76951038eae0b8c36c5a5e`.
+The separate closed-stage progress receipt under the original root is
+`build/progress-evidence-20261010T1208-verified.json`, SHA-256
+`7d31866b99fa060ec208c22602edf92ec34add46522357b65fe97ac2aa7b357c`.
+
+At the verified quiet boundary, the exact two-frame helper was staged and
+executed on unchanged 119477a/138 MHz firmware. Both new A/6 m frames completed
+control/capture/resources and decoded AA0NT EM18 37 after the same fixed
++125 Hz receiver demodulation retune. No transmitter, waveform, time or drift
+correction was applied. All 312 required main observations now meet operator
+mode criteria/resources: 75 nominal plus three supplemental WSPR decodes,
+and 78 human-copy observations in each keyed mode. The original failed 6 m
+row remains unchanged; its third-frame coverage is accepted separately.
+
+The follow-up's final inventory rejected CAPS with `HELLO_REQUIRED` from a
+cached WTP peer. The original failed closeout receipt is preserved at
+`build/repaired-main-6m-missing-repetitions/result.json`, SHA-256
+`2409c1aec9156af380b9fb7c1beb4001343f4920eeb1afed8821a3a3df819621`.
+Its two decoded RF frames were not repeated. A separate fresh-session inventory
+confirmed both named boards unowned, disabled and empty on the expected
+firmware/clock; SHA-256
+`7ce17508656e9fe554c1bb4f3908217d8ef5216eda43faa7150bde8a03f6c3c3`.
+Independent verification rehashed both actual raw captures, metadata/control,
+nominal analyses, supplemental WAVs/decoder/stdout/stderr and the recovery
+inventory. Reconciliation receipt
+`build/sixmetre-followup-reconciliation-20261010T1222.json`, SHA-256
+`5eca42406d8d377c03f9fd1b858ebb2069147732f24b63d12134c88bdc0931e7`,
+records three-frame RF acceptance and separately recovered closeout; it does
+not relabel the original failed receipt or establish why negotiation was lost.
+
+The inventory tool now reconnects only after validating that the board is
+unowned and inactive, so its new peer negotiates HELLO before inventory RPCs.
+A deterministic stale-peer fixture rejects the original implementation with
+`HELLO_REQUIRED`; all 40 affected tests and 17 measurement fixtures pass on
+the isolated Linux snapshot. The fixture also rejects an owned/running board
+before disconnecting its peer. A live repaired-tool inventory succeeds on
+both boards, SHA-256
+`47e06b9d73652d5fbc8b3839e095e7f1df5f306566a545743557e80cea55b4f5`;
+tested `live.py` SHA-256 is
+`62e58a5718d0009921c94699ee30f1d6d45e46d90b764ab23c89ded66ec4219e`.
+Mac Python 3.9 lacks the existing `hashlib.file_digest` API: its new focused
+fixture passes, while the complete suite uses the verified Linux runtime.
+Firmware and the original closed tool snapshot remain unchanged.
+
+Copy-only evidence archiving is now running at the verified idle boundary,
+using frozen private plan SHA-256
+`9faa959e3a49a796f4ab6013f0296c38906531c5177c65d6fdba2ceb4be16f19`.
+Local helper PID 81492 started October 10 12:20:24 UTC; wspr5 quiet guard
+PID 2721842/start ticks 55261620 holds the board/receiver locks. Receipt
+`build/phase14-evidence-copy-1791634825243653000.json` records the active copy
+and all verification state. Both destination capacity checks pass. No source
+raw file has been removed and no archive copy is yet claimed independently
+verified. Relocation and the next clock stage remain prepared, not running.
+The full repaired matrix and pre-clock Tone capture budget is complete;
+the remaining fixed core workload is 17.40 hours plus the inclusive analysis,
+diagnosis, storage and final-work allowance. The estimate is 24–38 hours,
+three of nine workstreams (33.3%) closed. The 2 m pilot remains unresolved.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
