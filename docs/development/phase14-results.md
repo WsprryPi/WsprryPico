@@ -32,6 +32,27 @@ About 927 GiB is available. SSD-aware clock and post-clock Tone wrappers are
 staged but remain blocked by the active archive guard. The earlier source-raw
 relocation is no longer required for acquisition capacity; all originals remain.
 
+At October 10 17:12 UTC, the unchanged recovery still has one fully verified
+destination. The last wspr2 recording has 5,854,199,808 of 7,290,000,000 bytes
+copied; recent actual byte growth projects about 20 minutes of remaining
+streaming, followed by full destination/source verification. The original
+timeout receipt and every source recording remain retained. The SSD UUID,
+distinct filesystem and 927 GiB free were reverified; no clock stage has started.
+
+A separate finite handoff observer now waits for this exact recovery and its
+existing observer to exit successfully. Mac PID 72511 started at 17:11:16 UTC;
+private helper `build/phase14-clock-after-archive-observer.py` has SHA-256
+`ab038ead55d0f4d91c37f31497d00867ce84ae11e79d9a74a10f7c391e4dadc4`.
+Eleven closure/rejection checks and the identified Linux runtime import passed.
+Its two-hour observation bound never changes active predecessors. Only after
+both verified archive destinations, unchanged source hashes, positive recovered
+receipt, ended Mac predecessors and released Pi guard does it dispatch the
+staged SSD clock wrapper `2926a34f` once. Persistent local/remote reservations
+prevent blind retries after an unknown dispatch outcome. This is a waiting
+handoff, not an already-running RF batch; the clock wrapper retains its own
+source, image, SSD, idle-board and lock checks. Three of nine workstreams remain
+closed and the estimate remains 24–39 hours.
+
 | Workstream | Completed count | Percentage |
 | --- | --- | --- |
 | 1. Initial source and historical-evidence review | 1/1 | 100% |
