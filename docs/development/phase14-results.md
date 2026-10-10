@@ -25,8 +25,51 @@ authority reserve, RF workload and 100-us Worker acknowledgement bound are
 unchanged. Tests cover exact bytes across page boundaries, blocked writes,
 failed page allocation, reset/release and the unchanged 65,536-byte reply limit.
 The saved allocation size and source regression support this diagnosis; the
-exact failing caller address was not retained. Target requalification is still
-required, and this finding does not isolate receiver overflow causation.
+exact failing caller address was not retained. This finding does not isolate
+receiver overflow causation.
+
+Source `e95334aa56d816b31a62255b980b540b849cf6ff` includes the repair and
+the subsequently cross-compiled character-field append fix. All 160 configured
+Linux test groups pass cumulatively; the original environment failures and
+their identified Git-history, temporary-directory and retained-JavaScript
+dependency reruns remain recorded. The affected INFO/USB checks pass again
+after the character-field fix. No dependency was installed. The candidate
+build uses the retained, hash-checked native picotool/pioasm binaries with the
+existing pinned Arm toolchain and SDK; the failed default native-tool rebuild
+and earlier character-field compile attempt remain historical failures.
+
+The new ordinary RC3 UF2 hashes are:
+
+- 132 MHz: `979bc9c5354a141f7909170d20573afea6194809c01404ce9ad2beb3f687b3ee`
+- 138 MHz: `f8b21a53924bb90de0ea00a5b910e487c8f4cc14cf715041bd95c5e29af23f43`
+- 150 MHz: `3c876431da087fa8107cf40f8b9afad9af666b339cab1cf1e03fb176c08dda7f`
+
+The independently rebuilt 138 MHz UF2 is byte-identical. Manifest SHA-256 is
+`133b3d47dcba2f0dc109cf46314d0a2362192c7ec7778bbc26c2a82d9569afe5`.
+The separately staged root
+`/home/pi/phase14-qualification-20261008/build/resume-tools-e95334a-internal-first`
+has 1813 independently verified source files and all three verified images.
+Its build directory is on the internal NVMe UUID
+`ed6c7f1b-238b-41a1-b4b6-7bcdef3270fe`, distinct from the external SSD.
+
+The first finite target attempt completed A/132 MHz/80 m/512-event FSKCW,
+job `bfab86e1ae7236083b0fe286ac369ea3`, with accepted human-copy and resource
+checks and no receiver overflow/clipping. The original legacy screen flag
+remains. Both-board WTP inventory then succeeded, but the private helper's
+filename construction raised `TypeError` before the four baselines. Its
+`FAILED_EVIDENCE_PRESERVED` receipt remains unchanged, SHA-256
+`774856500dad7f6b1fb3a71a246e56250e8e97a19df14a757026cdeb87194c9c`.
+The GPSDO was restored, the helper ended, and the accepted physical job was
+full-hash reverified. A separately identified four-job continuation runs only
+the missing both-board Tone/WSPR baselines, preserving that original failure
+and the accepted first job. That continuation closed all four jobs: both Tone
+screens and both expected-message WSPR decodes meet operator/resource criteria,
+with zero overflow/clipping. Both new-image boards are empty/unowned/disabled
+at 138 MHz, and independent GPSDO readback matches restoration. All five raw
+files, 1,170,000,000 bytes, and actual decoder/control/analysis/inventory bindings
+were independently reverified in
+`build/phase14-info-repair-target-reconciliation-20261010.json`, SHA-256
+`2b76025e3d465709a1c96fb0229e84b9b32adecc2aa7e1f9846db21d11c42bdf`.
 
 At a verified quiet boundary, the separately identified `b9fa1aec` auditor
 completed full-stream hashing of all 338 closed repaired main/pre-clock Tone/
@@ -37,7 +80,49 @@ symlinks and unstable source identities were rejected. Its result is
 `build/phase14-closed-main-full-raw-audit-20261010.json`, SHA-256
 `875ed168c2b4141c51226c08444eda9d005be82f5fc1f40df5c812dae7ab256e`.
 No raw file or original result was changed or removed. This closes that audit
-scope; alternative-clock, later reliability and final release audits remain.
+scope; later reliability and final release audits remain.
+
+A separate quiet-boundary audit full-stream hashed the 55 accepted historical
+clock recordings, 8,888,000,000 bytes, in 225.80 seconds. Every original
+raw/metadata/physical/analysis binding matched. Its local receipt is
+`build/phase14-55-clock-full-raw-audit-20261010.json`, SHA-256
+`f3097e985b023be511aa0925473dcd3f88791d6a205743ef07426b80d6d32ad0`.
+Those observations remain bound to source `119477a9c8c8` and its actual
+132 MHz image/boot identities. The review identifies 232 unchanged compiled
+inputs; only INFO construction and USB reply retention changed. Reviewed reuse
+is limited to unchanged ordinary RF algorithms, with changed diagnostics,
+contention, resources, long reliability and final installation requalified on
+the new image. Neither the old failed rows nor their source identities are
+rewritten. The reviewed applicability receipt is
+`build/phase14-info-repair-source-applicability-reviewed-20261010.json`, SHA-256
+`60edde42f2fa490a0521529a67d0467b236c3bed08e23b05709bc17517413ab8`.
+It does not promote historical long-soak/memory resources to new-image evidence.
+
+The first internal-first recovery fully rebound the 55 retained rows, then
+rejected an unnecessary B consumer-to-engineering conversion. B already had
+its engineering journal, source 1/generation 4. The profile tool rejected before
+writing, retained its exact 32 KiB read and rebooted B; fresh WTP inventory
+confirmed both new-image boards healthy, idle and at 138 MHz. That failed
+preflight started no new RF and remains `FAILED_INTERNAL_CLOCK_EVIDENCE_PRESERVED`,
+status SHA-256 `5104841618f5a104b2522d21f10425e84e27569ed1e9c9553b00eed7a9aaf4ef`.
+
+A separately guarded continuation uses B's existing engineering profile and
+rechecks its identity-bound authenticated browser before acquisition. It repeats
+only 215 missing ordinary physical slots and three remaining contention jobs,
+retaining the accepted new-image A/132 MHz/512-event job separately. All 300
+logical rows keep explicit old/new source/image/boot identities; unsupported
+labels do not establish negative LOAD checks. It uses the unchanged receiver
+and scientific workloads, a 43,200-second bound, preserved settings/current
+cursor, and final return to 138 MHz. Its helper SHA-256 is
+`6367f622111f64bd392648e85146768ac7c6f1434c165df1742874a9a88a2697`;
+PID 2886637/start ticks 58849933 was dispatched once at October 10 22:18:28 UTC.
+Status/rows live under the new root's `build/internal-clock-profile-recovered-state/`
+and `build/internal-clock-profile-recovered/`. The browser preflight passed and
+the first replacement capture completed with verified receiver integrity;
+analysis/overall campaign closure remain pending. No later Tone/soak queue is
+running. New source-bound reliability, upper-band investigation, remaining
+finite checks, final audits/installation/profile restoration/review/push remain
+open.
 
 ## Operator storage correction and stopped clock stage
 
