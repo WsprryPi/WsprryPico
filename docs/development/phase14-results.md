@@ -32,7 +32,7 @@ under `resume-tools-df16f5e`; further clock/soak/memory stages remain prepared.
 | 4. WSPR external decode acceptance, preceding firmware | 78/78 captures; 26/26 tested board/band rows | 100% |
 | 4. WSPR rows with three frames, preceding firmware | 26/26; all main repetitions complete | 100% |
 | 4. Three-observation human-copy rows, preceding firmware | 78/78, all passing, 234 observations | 100% |
-| 4. Repaired-firmware main three-observation rows | 16/104 closed and passing; finite batch active | 15.4% |
+| 4. Repaired-firmware main three-observation rows | 28/104 closed and passing; finite batch active | 26.9% |
 | 4. Repaired-firmware affected DFCW observations | 12/12 human/resource passes | 100% of diagnostics |
 | 4. Repaired-firmware 80 m Tone/WSPR baselines | 4/4 pass, including 2/2 external decodes | 100% of baselines |
 | 4. Refreshed alternative-clock campaigns | 0/2 | 0% |
@@ -671,6 +671,54 @@ boundary, streams closed evidence to the authorized destinations, independently
 hashes destination and unchanged source files, and records explicit locations.
 It has no source-removal operation. Real copying and destination verification
 have not run; no archives or relocated raw evidence are claimed completed.
+
+At October 10 04:01 UTC, the original coordinator remains running with the
+same PID/start ticks/script hash. Twenty-eight of 104 three-observation rows
+are closed and passing (26.9%), covering A/80 m, 2200 m, 630 m, 160 m, 60 m,
+40 m and 30 m in all four main modes. Eighty-five of 312 observations are
+closed (27.2%): 22 expected-message external WSPR decodes and 21 observations
+each of QRSS, FSKCW and DFCW. All 85 applicable mode/resource checks pass;
+A/20 m WSPR analysis/repetitions are active. The private verified snapshot
+`build/progress-evidence-20261010T0404-verified.json` under the active root has
+SHA-256 `5f95f0544c0a4a09777feb47522c0ba04761b1a06c1fe798a9e181a8dca00028`;
+its rows SHA-256 is
+`81a637900753e94a854598650d413f5721c405d25213e0d294a60c3da0337902`.
+WSPR acceptance is independently checked against actual decoder stdout and
+its serialized receipt. An initial private progress reduction incorrectly
+looked for the in-memory summary flag in the persisted report; its false
+WSPR flags are superseded by this verified reduction, with no test or original
+result changed.
+
+The refreshed estimate is 31–45 hours, with three of nine workstreams (33.3%)
+closed. Remaining main capture time is 21,390 seconds (5.94 hours); measured
+helper runtimes and analysis publication intervals project 6.69 hours for the
+remaining 227 observations, before 26 Tone jobs and final reference/inventory.
+Other clocks/contention, mixed soak, memory follow-up, producer/failure/
+upper-band/spectral work, 2 m diagnosis, archives/audits and final installation/
+review/commit/push remain included. About 160 GiB remains on wspr5; remaining
+core captures require 154.50 GiB before other workloads/reserve. Checked archive
+execution is still prepared for the quiet boundary, with no copies or source
+relocation performed.
+
+A separate offline 2 m symbol reduction is retained under the active root as
+`build/2m-symbol-diagnostics-20261010T0406.json`, SHA-256
+`ceaf4fe8a062dc9106dd93465001f6ef715fa7d97faf3323c5acecc11bbcd97b`.
+The exact reducer binding is saved beside it; the reducer SHA-256 is
+`b006d9b95a9deea2c8a402a7704d20e8b143d140cd9dab6fb21aaf75f5840e36`.
+It subtracts exact accepted harmonic event frequencies from existing symbol
+fits for diagnostics only, preserving original IQ, audio and decoder results.
+A's indicated received tones span 144,490,793.06–144,490,816.91 Hz; B's span
+144,490,496.19–144,490,519.09 Hz, close to the nominal decoder center. Thus a
+constant tuning displacement alone does not explain both failed decodes.
+Both boards show a nonlinear transient: reference-compared, state-removed
+slopes over the first 20 symbols are about -0.354/-0.490 Hz/s for A/B, reducing
+to -0.073/-0.046 Hz/s over the last 40. Whole-frame linear residual RMS is
+0.933/1.412 Hz. Symbol phase residuals remain below 0.077 rad, minimum amplitude
+ratios exceed 0.928, and fitted transitions are within 3.3/1.6 ms for A/B.
+These observations identify a useful next investigation without isolating the
+physical cause or proving why decoding fails. No new RF/decoder trial or full
+2 m qualification has begun; drift/placement retains null pass/fail and no
+band exclusion.
 
 The revised overall estimate is 34–48 hours, with three of nine workstreams
 closed. It includes about 25 hours of main-matrix, alternative-clock, mixed-soak
