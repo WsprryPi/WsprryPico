@@ -256,6 +256,65 @@ pass. The live probe is BUSY before device access. Preparation receipt
 `build/phase14-4m-staging-20261011.json` records zero acquisitions/transfers and
 no queue; the actual positive repetition path remains unexecuted.
 
+At October 11 02:43 UTC, the unchanged coordinator has 218 closed logical rows:
+197 accepted ordinary physical observations (55 retained and 142 RC3), one
+unaccepted RC3 observation and 20 unsupported labels. All 143 new ordinary
+recordings have valid receiver/control/resource bindings and zero overflow or
+clipping. Two of four contention jobs are accepted. The independent new full
+raw audit and actual campaign closure remain pending. Private checkpoint
+`build/phase14-clock-profile-recovered-checkpoint-20261011T0243.json` has SHA-256
+`9b659091a9f68e3f4ab3b605fa0cb9aeae7b02b9b0224ca0900cee8c4ed09b47`.
+
+The unaccepted observation is A/150 MHz/4 m WSPR, job
+`4bab612b59fa47b79decd671a31aa120`. The original decoder exited zero with no
+expected-message match; control completed naturally, resources passed and
+receiver cleanup was verified. Its retained analysis SHA-256 is
+`24abb31c951c61410287b262714f5b2fe89e97b204d5d17e8a615d5a03cc00ef`.
+The measured nominal receiver-axis carrier lies above the requested demodulation
+center; that observation is informational and does not establish the cause.
+No diagnostic retune, new RF repetition or original flag change has run.
+This missing acceptance remains inside the ordinary clock workload budget.
+The prepared closure/repetition guards require separate accepted evidence;
+clock closure alone cannot admit the later Tone or reliability stages.
+
+A separately staged retained-recording diagnostic,
+`build/phase14-4m-fixed-receiver-retune-a644ed92.py`, has SHA-256
+`a644ed920a711280632ba5a55c9295703665636e43b8bfd7be501ebed07c5c4f`.
+Only after actual clock closure and ended predecessors, it takes all bench and
+workflow locks, verifies the unchanged 312 MB recording and its original
+control/analysis/decoder bindings, and reproduces the nominal audio payload
+byte-for-byte. It then permits one fixed +150 Hz receiver demodulation trial
+using the same sample window, converter and external decoder. The decoder and
+whole-stage bounds are 90 and 600 seconds. No transmitter, time, drift or sample
+correction is applied. An actual expected-message decode would require separate
+review and reconciliation; it cannot change the original failure or automatically
+admit later stages. All 38 Linux guard checks and the actual closed-record layout
+check pass. Its live probe is BUSY before device or IQ access. Preparation receipt
+`build/phase14-fixed-retune-staging-20261011.json` has SHA-256
+`0fd05f48c8170318ac1f59f763133b46d9558b9a56e87de76156cc030a42ba2d`.
+No decoder trial, RF job, transfer or removal has run; the positive execution
+path remains unvalidated.
+
+A separate internal spectrum/compensation helper is staged as
+`build/phase14-spectra-compensation-internal-9f5103d9.py`, SHA-256
+`9f5103d9689de38ccab96fcd388e82b28836c0d678b50524547537a348471944`.
+After accepted post-clock Tone closure and ended predecessors, it requires exact
+RC3/runtime/tool/image bindings, internal NVMe reserve and all bench/workflow
+locks. It performs four A/B 80 m/6 m surveys with paired 12/20 dB receiver gains,
+off/on/final-off captures and same Running job/boot on both sides of each
+measurement. Six separate 35-second 80 m Tone trials use zero and +/-1,500 ppb
+per-job requests; engine correction and persistent settings remain unchanged.
+The workload is 840 capture seconds/1.68 GB, within the existing additional RF
+allowance, with a 7,200-second finite bound. Complete recordings receive
+independent full hashes, actual INFO resource checks and unchanged quality
+checks, with settings/GPSDO restoration. All 53 Linux guard checks and 15 tool
+hashes pass. Its live probe is BUSY before device access; no acquisition or
+transfer is queued. The small preparation receipt
+`build/phase14-spectra-staging-20261011.json` has SHA-256
+`37368a320471d97b4e14ee1202327c0799b75184d2553bc1e9f6df95c0e54c45`.
+Its positive execution path remains unvalidated; no calibrated power, filtered
+output or selected Pico calibration is claimed.
+
 ## Operator storage correction and stopped clock stage
 
 The operator rejected direct external-SSD writes during acquisition and
