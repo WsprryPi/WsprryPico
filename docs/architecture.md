@@ -207,6 +207,14 @@ preparation. [Bounded physical validation](development/standalone-rf-power-valid
 now demonstrates recurring decoded frames after a separate-power boot without
 a USB host on the recorded setup.
 
+The application wraps that one engine admission point with a portable frequency
+policy. Persisted, default-off `allow_unqualified_frequency` and
+`allow_non_amateur_frequency` settings select experimental consent for all job
+sources without adding transport-specific WTP fields. The underlying engine
+keeps physical limits, timing and ownership. Saved flags do not alter band
+qualification or the Phase 14 all-mode 4 m/2 m exclusions; see
+[standalone configuration](development/standalone.md).
+
 ## Remaining implementation and qualification choices
 
 The implemented autonomous UTC source is configured unicast SNTPv4. Phase 12

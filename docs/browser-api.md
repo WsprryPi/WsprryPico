@@ -97,6 +97,16 @@ The existing station, recurrence, overlap, expiry and storage rules remain in
 force, including the fixed standalone WSPR frequency of 3,570,100 Hz. Broader
 mode/band configuration remains outside this phase.
 
+Optional top-level `allow_unqualified_frequency` and
+`allow_non_amateur_frequency` booleans are advanced, persisted settings. Both
+default to false; non-amateur operation requires both true. A full config PUT
+that omits them turns them off, whereas station/hardware/schedule updates and
+ordinary browser form saves preserve them. False values are omitted from the
+canonical config response; status reports both booleans. They take effect on
+subsequent admissions while idle, without reboot. See the
+[frequency policy](development/standalone.md) for failed/untested bands,
+per-event checks and the hardware limits that neither setting overrides.
+
 ETags are quoted opaque hashes of boot identity, persisted config and successful
 network-change/restart revision. Send the exact ETag in `If-Match` for any configuration,
 schedule or network PUT, and restart POST. Missing revisions return 428; stale revisions return

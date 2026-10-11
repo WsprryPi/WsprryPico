@@ -159,6 +159,11 @@ $('config').onsubmit = event => { event.preventDefault(); return action(async ()
     const [period_s,phase_s] = line.split('/').map(Number); return {period_s,phase_s};
   });
   const config = {version:1,enabled:f.enabled.checked,station:{callsign:f.callsign.value.trim().toUpperCase(),locator:f.locator.value.trim().toUpperCase(),power_dbm:Number(f.power_dbm.value)},wifi:{ssid:f.ssid.value,password:f.password.value || null,ntp_ipv4:f.ntp_ipv4.value.trim()},schedules,pins:pinChoices ? readPins() : currentConfig?.pins,expires_utc_s:f.expiry.value ? Date.parse(f.expiry.value + 'Z') / 1000 : 0};
+  // Advanced opt-ins are managed through CONFIG/API, outside the ordinary form.
+  // A station/network edit must preserve the operator's saved choices.
+  for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) {
+    if (currentConfig?.[name] === true) config[name] = true;
+  }
   const result = await api('config','PUT',config,revision); revision = result.revision; fill(result.data.config);
   await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Restart device to apply network or pin changes.' : 'Settings saved and applied.');
 }); };

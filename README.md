@@ -30,6 +30,11 @@ The current [Phase 14 support disposition](docs/development/phase14-band-support
 excludes 4 m and 2 m for all five modes following failed WSPR reliability with
 complete synthesis and valid fault/resource/capture evidence. Other Phase 14
 release gates remain in progress.
+The application source now has persisted, default-off
+`allow_unqualified_frequency` and `allow_non_amateur_frequency` settings matching
+WsprryPi's experimental opt-ins. See
+[configuration and frequency policy](docs/development/standalone.md).
+Neither setting changes qualification status or overrides engine limits.
 The later [focused 2200 m investigation](docs/development/2200m-investigation.md)
 passes all five operational modes at 138 MHz with QRSS3 workloads, compares
 132/138/150 MHz clocks and retains an unfiltered Pi GPIO4 benchmark.

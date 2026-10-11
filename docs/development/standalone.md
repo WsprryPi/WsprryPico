@@ -32,6 +32,12 @@ See [host acceptance prerequisites](phase10-host-acceptance.md) for image select
 frequency adjustment, clock budgets and the remaining joint target gates.
 The separate `WsprryPico-RFBench` and USB-time `WsprryPico-RFWTP` remain available.
 
+The application images also enforce the saved experimental frequency policy
+below before engine preparation. Numeric capabilities describe representability;
+they do not bypass the application policy or establish supported-band status.
+The separate diagnostic bench images retain their explicit experimental,
+numeric-only scope and do not consume the application configuration.
+
 Standalone and USB WTP share one `JobService`. The scheduler claims a distinct
 local principal, encodes a complete Type 1 WSPR job, then LOADs and ARMs it. It
 never steals an external ownership lease, depends on a USB connection, or sends
@@ -89,6 +95,52 @@ enterprise, WPA3-only and raw hexadecimal PSK provisioning are not implemented.
 Keep local credentials in ignored `config/local/` or another private location.
 Credentials are stored in flash without encryption, but never returned by
 `STATUS` or included in maintained firmware build inputs. Configuration is available through Console or authenticated browser management.
+
+Two optional top-level JSON booleans match WsprryPi's advanced settings:
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `allow_unqualified_frequency` | `false` | Permit an untested or failed amateur band within the engine's actual limits. |
+| `allow_non_amateur_frequency` | `false` | Together with `allow_unqualified_frequency:true`, permit frequencies outside the recognized amateur-band correlation ranges. |
+
+Set these with a complete `CONFIG` document or authenticated
+`PUT /api/v1/config`, for example by adding
+`"allow_unqualified_frequency": true` to the sanitized document above. For a
+non-amateur experiment, also add `"allow_non_amateur_frequency": true`.
+Omission means false; strings, numbers, null and duplicate fields are rejected.
+False settings are omitted from canonical storage/readback to preserve legacy
+default configuration bytes. `STATUS` reports both effective booleans. A full
+configuration replacement that omits a flag revokes that opt-in. Ordinary
+browser form saves, station-only, hardware-only and schedule-only updates
+preserve saved opt-ins. These advanced settings are outside the ordinary form.
+
+Changes require the existing idle, unowned configuration boundary and apply to
+the next new job without reboot. They persist in the existing configuration
+journal and do not reset its separate transmission watermark. USB WTP, LAN WTP,
+BLE/local browser jobs, compiled `LOAD_MESSAGE` jobs and autonomous schedules
+all enter the same application policy. Every RF-on event and any realized engine
+adjustment is checked; a disallowed mark or space rejects LOAD with
+`FREQUENCY_REJECTED` before ARM. `allow_frequency_adjustment` remains a separate
+per-job consent to engine quantization.
+WsprryPi's host opt-ins do not automatically change the Pico's saved settings;
+an experiment must satisfy both members' admission policies.
+
+Default admission retains the thirteen ordinary bands from 2200 m through
+6 m in the Phase 14 matrix. The additional 8 m and 5 m correlation ranges are
+untested and require `allow_unqualified_frequency`; 4 m and 2 m remain
+[unsupported for every release mode](phase14-band-support.json) after failed
+required WSPR decoding. Experimental consent does not change that disposition,
+promote prior failed results, or complete Phase 14 qualification. Correlation
+envelopes match WsprryPi's Band-Lookup catalog and are not jurisdiction-specific
+operating authority.
+
+Neither flag overrides an unavailable engine, numeric frequency limits, mode,
+event or duration limits, clock, ownership or output safety checks. Direct 2 m
+synthesis remains outside all current clocks' limits; these settings add no
+native harmonic mapping. At 150 MHz a 4 m experiment can be admitted with
+explicit unqualified consent, while 132/138 MHz direct-synthesis bounds still
+reject it. The RF-inhibited application uses the same admission policy for
+diagnostics and continues to generate no physical output.
 
 The document is limited to 1,800 bytes and eight schedules. Station validation
 uses the existing strict uppercase callsign, four- or six-character Maidenhead locator

@@ -97,7 +97,8 @@ std::optional<Config> parse_config(std::string_view text) {
     auto root = parse(text);
     if (!root ||
         !fields(*root, {"version", "enabled", "station", "wifi", "schedules"},
-                {"expires_utc_s", "pins"}) ||
+                {"expires_utc_s", "pins", "allow_unqualified_frequency",
+                 "allow_non_amateur_frequency"}) ||
         root->get("version")->raw != "1" ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
@@ -113,6 +114,15 @@ std::optional<Config> parse_config(std::string_view text) {
         if (wifi.get(name)->type() != '"')
             return {};
     Config c;
+    for (const auto name : {"allow_unqualified_frequency", "allow_non_amateur_frequency"}) {
+        if (const auto flag = root->get(name)) {
+            if (flag->raw != "true" && flag->raw != "false")
+                return {};
+            (name == std::string_view("allow_unqualified_frequency")
+                 ? c.allow_unqualified_frequency
+                 : c.allow_non_amateur_frequency) = flag->boolean();
+        }
+    }
     if (const auto pins = root->get("pins")) {
         auto parsed = hardware::parse_plan(std::string(pins->raw));
         if (!parsed || !hardware::operational(*parsed))
@@ -186,6 +196,12 @@ std::string serialize_config(const Config& c) {
     // assignments require the new firmware; older images reject that extension.
     if (c.pins != hardware::PinPlan{})
         result += ",\"pins\":" + hardware::serialize_plan(c.pins);
+    // Default-off records retain their legacy canonical bytes. Opt-ins require
+    // firmware that understands these extensions; old firmware rejects them.
+    if (c.allow_unqualified_frequency)
+        result += ",\"allow_unqualified_frequency\":true";
+    if (c.allow_non_amateur_frequency)
+        result += ",\"allow_non_amateur_frequency\":true";
     return result + "}";
 }
 } // namespace wsprrypico::standalone

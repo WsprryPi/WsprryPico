@@ -4,6 +4,40 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 11 experimental frequency controls
+
+The application source now implements WsprryPi-compatible, persisted,
+default-off `allow_unqualified_frequency` and `allow_non_amateur_frequency`
+settings. Failed/untested amateur bands require the first; frequencies outside
+the recognized correlation catalog require both. Every normal job source uses
+the same guarded engine preparation, including RF-on mark/space events and
+realized adjustments. Numeric limits and WTP ownership/time/safety remain
+authoritative. The existing all-mode 4 m/2 m exclusion is unchanged; opt-in is
+experimental permission, not qualification. Configuration details are in the
+[standalone guide](standalone.md).
+
+An isolated wspr5 Linux build passed eleven targeted CTest groups covering
+frequency policy, standalone/configuration/journals, browser/network/application
+resources, provisioning/reset/consumer storage and the portable WTP core.
+A second build with autonomous WSPR base `40000100` Hz passed the policy test,
+including default refusal, subsequent explicit consent and no repetition of a
+reserved rejected occurrence. Browser behavior, WTP contract validation and
+the existing standalone image/Console source checks also passed. The original
+test-initializer, request-digest and spy-counter failures remain in the private
+build logs; they were corrected in the test fixture without changing production
+thresholds or RF algorithms. Source hashes and final results are recorded in
+`build/phase14-experimental-frequency-validation-20261011.json`.
+
+This is source/host validation. No new RF, receiver/decoder trial, firmware
+installation or sample transfer occurred. Both installed boards retain their
+actual `e95334a` RC3 images and all prior evidence identities. A new candidate
+cross-build and target admission/readback checks remain before release. The
+retained SDK found on wspr5 is 2.3.0, rather than the pinned 2.3.1, and no Linux
+Arm compiler was found; no SDK/tool installation or Mac C++ build was attempted.
+The new application admission boundary needs explicit source applicability
+review before subsequent current-image qualification. The old mixed/memory
+entry remains superseded and must not run as-is.
+
 ## October 11 upper-band diagnosis and operator exclusion
 
 The operator amended the release decision: when required WSPR decoding fails

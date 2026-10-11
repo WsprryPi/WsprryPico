@@ -158,6 +158,10 @@ std::string Scheduler::status() const {
     }
     return "{\"ok\":true,\"configured\":" + std::string(store_.config() ? "true" : "false") +
            ",\"enabled\":" + (store_.config() && store_.config()->enabled ? "true" : "false") +
+           ",\"allow_unqualified_frequency\":" +
+           (store_.config() && store_.config()->allow_unqualified_frequency ? "true" : "false") +
+           ",\"allow_non_amateur_frequency\":" +
+           (store_.config() && store_.config()->allow_non_amateur_frequency ? "true" : "false") +
            ",\"suspended\":" + (suspended_ ? "true" : "false") + ",\"expires_utc_s\":" +
            std::to_string(store_.config() ? store_.config()->expires_utc_s : 0) +
            ",\"owner_id\":" + (s.owner_id ? wtp::json::quote(*s.owner_id) : "null") +

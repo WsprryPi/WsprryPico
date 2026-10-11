@@ -54,6 +54,7 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/genera
 
 add_library(wsprrypico_core
     src/application/resources.cpp
+    src/application/frequency_policy.cpp
     src/hardware/pins.cpp
     src/provisioning/profile.cpp
     src/provisioning/network_profile.cpp
@@ -89,6 +90,7 @@ add_library(wsprrypico_core
     src/encoding/wspr.cpp
     src/standalone/dry_run_engine.cpp
     src/standalone/config.cpp
+    src/standalone/frequency_policy_engine.cpp
     src/standalone/storage.cpp
     src/standalone/scheduler.cpp
     src/time/sntp.cpp
@@ -316,6 +318,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_definitions(standalone_tests PRIVATE WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
     target_compile_options(standalone_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME standalone_tests COMMAND standalone_tests)
+    add_executable(frequency_policy_tests tests/frequency_policy_tests.cpp)
+    target_link_libraries(frequency_policy_tests PRIVATE wsprrypico_core)
+    target_compile_options(frequency_policy_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME frequency_policy_tests COMMAND frequency_policy_tests)
     add_executable(provisioning_tests tests/provisioning_tests.cpp)
     target_link_libraries(provisioning_tests PRIVATE wsprrypico_core)
     target_compile_options(provisioning_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

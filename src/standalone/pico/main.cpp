@@ -61,6 +61,7 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "runtime/pico/btstack_pool_metrics.hpp"
 #include "runtime/pico/heap_metrics.h"
 #include "runtime/pico/stack_guard.h"
+#include "standalone/frequency_policy_engine.hpp"
 #include "standalone/heap_probe.hpp"
 #include "standalone/pico/adapters.hpp"
 #include "standalone/scheduler.hpp"
@@ -380,7 +381,9 @@ int main() {
 #else
     const auto config = wsprrypico::standalone::wtp_profile(false);
 #endif
-    static wsprrypico::wtp::JobService service(clock, engine, identities, config);
+    static wsprrypico::standalone::FrequencyPolicyEngine policy_engine(
+        engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz);
+    static wsprrypico::wtp::JobService service(clock, policy_engine, identities, config);
     static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),
                                               wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::wtp::Endpoint ble_endpoint(service, identities.device_id(),

@@ -17,6 +17,8 @@ struct Schedule {
 struct Config {
     hardware::PinPlan pins;
     bool enabled = false;
+    bool allow_unqualified_frequency = false;
+    bool allow_non_amateur_frequency = false;
     std::uint64_t expires_utc_s = 0; // Zero preserves unbounded version-1 schedules.
     std::string callsign, locator;
     unsigned power_dbm = 0;

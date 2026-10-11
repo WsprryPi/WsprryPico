@@ -54,6 +54,8 @@ void readings_and_scoped_saves() {
     auto enabled = *m.f.store.config();
     enabled.enabled = true;
     enabled.expires_utc_s = 1'900'000'000;
+    enabled.allow_unqualified_frequency = true;
+    enabled.allow_non_amateur_frequency = true;
     REQUIRE(m.f.store.save(enabled));
     const auto initial = *m.f.store.config();
     const auto watermark = m.f.store.watermark();
@@ -80,6 +82,8 @@ void readings_and_scoped_saves() {
     REQUIRE(m.f.store.config()->schedules == initial.schedules);
     REQUIRE(m.f.store.config()->expires_utc_s == initial.expires_utc_s);
     REQUIRE(m.f.store.config()->pins == initial.pins && m.f.store.watermark() == watermark);
+    REQUIRE(m.f.store.config()->allow_unqualified_frequency &&
+            m.f.store.config()->allow_non_amateur_frequency);
     REQUIRE(m.scheduler.status().find("\"suspended\":true") != std::string::npos);
     standalone::Store reload(m.f.flash);
     REQUIRE(reload.load() && reload.config() == m.f.store.config() &&

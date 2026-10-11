@@ -24,7 +24,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1'}};
     const calls = [];
     let sequence = 0;
-    const f = {elements,state,calls,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512};
+    const f = {elements,state,calls,config,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512};
     class TestDate extends Date { static now() { return f.now; } }
     const context = vm.createContext({Option,document:{getElementById:id=>elements[id]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
         fetch:async (path, options) => {
@@ -77,6 +77,15 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     return f;
 }
 (async () => {
+    const experimental = await fixture();
+    experimental.config.allow_unqualified_frequency = true;
+    experimental.config.allow_non_amateur_frequency = true;
+    await experimental.elements['reload-config'].onclick();
+    experimental.form.locator.value = 'FN42';
+    await experimental.elements.config.onsubmit({preventDefault(){}});
+    const experimentalSave = JSON.parse(experimental.calls.find(c=>c.path.endsWith('config') && c.options.method==='PUT').options.body);
+    assert.equal(experimentalSave.allow_unqualified_frequency,true);
+    assert.equal(experimentalSave.allow_non_amateur_frequency,true);
     const localPage = await fixture(true, true, true);
     assert.equal(vm.runInContext('session',localPage.context),localPage.mappedSession);
     assert.ok(localPage.calls.filter(c=>c.path.startsWith('/api/')).every(c=>c.options.headers['X-WsprryPico-Session']===localPage.mappedSession));
