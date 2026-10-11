@@ -5,6 +5,38 @@ to about 3.9 GiB free; wspr1, wspr2 and wspr4 use SD cards. This amendment
 changes storage and encoding, while retaining the required measurements,
 original result records, failed evidence and complete raw sample contents.
 
+## October 11 reserve audit in progress
+
+The actual ready-stage review demonstrated approximately 7.6 GB of additional
+space needed for the eight mixed captures plus the 10 GiB reserve. The new
+verifier, helper SHA-256
+`0a9e1d49a1206993b7b2defd18585603cf7db664668b0eec2217afa419b91e2d`,
+was dispatched exactly once with `--verify` and removes zero files. Its private
+receipt is `build/clock-reserve-full-audit-20261011T184656/result.json` under
+the clean internal root below. It full-hashes both unchanged sources and durable
+destinations for the closed clock and Tone catalogs: 2,014 pairs totaling
+41,826,678,767 bytes, including all companion logs and all 253 raw pairs.
+All four locks exclude acquisition, analysis and other archival workflows.
+This audit is a new mandatory prerequisite for duplicate release, not a repeat
+of accepted RF work. Existing copy/audit receipts and every source remain intact.
+
+The release candidate derives its 218 eligible clock raws from the actual
+original full clock audit. The copy-only catalog's zero release count stays
+zero, and its 49 empty decoder stderr companions remain empty and retained.
+Both initial reader refusals, with zero raw reads, removals or reservations,
+are preserved in the private preparation receipts.
+
+The running verifier and its inputs must remain unchanged. Its release entry
+is superseded because the mixed coordinator received an additional closeout
+guard repair. Once the verification is complete and all processes are gone,
+independently review that coordinator successor, then bind a separately
+identified release-only helper to the actual completed full audit and current
+ready-stage review. Publish retrieval on both filesystems before each unlink,
+full-hash the unchanged source and destination immediately, check exact file
+identities and active users, remove only redundant internal raw and stop when
+the reserve is met. Keep the retained A132 maximum raw, all nonraw companions,
+profiles and current cursors. No release or mixed stage is queued.
+
 ## October 11 clean candidate staging
 
 The new clean source/tool root is

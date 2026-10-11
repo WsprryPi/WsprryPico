@@ -4,6 +4,57 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 11 mixed coordinator and reserve verification
+
+The amended eight-hour mixed coordinator retains the byte-identical
+`phase14_soak.py` and `phase14_reference.py` drivers, including all eight
+one-hour jobs, B's browser workload and the original 45-second idle sampling.
+A private Unix socket hands only the selected board and receiver locks to
+the exact child PID/start/UID. The parent retains the inactive board and owns
+all three bench locks between children and during analysis; the workflow lock
+spans the complete stage. Firmware, WTP and scientific criteria are unchanged.
+
+The separate execution review
+`build/phase14-amended-mixed-execution-independent-review-20261011.json`,
+SHA-256 `e6e931356b9d788705090e79b3d88c7e02a492318f02e058ac19ea1ecbe423c2`,
+passed 40 Linux checks, including real socket/wrapper exchanges, constructor
+failure and ordered lock handoffs. It also verified actual clean-image idle
+boards, settings/cursors, GPSDO and authenticated B browser status. A later
+closeout review found that checking immediately after SIGKILL could report
+uncertainty before the child actually exited and omit the final failure receipt.
+The separately identified successor
+`4c1e50b05f966d6dda6f6d4e46774fbed3832289c718910d3fc5cf815a0e633a`
+waits for registered own groups to exit and publishes failed closeout before
+skipping device re-entry when cleanup remains uncertain. Its 34 isolated
+ownership/cleanup checks pass, including a separate receiver-like child,
+signal resistance and stale PID/start refusal. Its separate execution review
+remains pending; the first coordinator has never run RF and is superseded.
+
+The independently implemented reserve verifier passed 15 isolated removal
+and retrieval failure checks and bound the actual two closed archive catalogs.
+It is running only its `--verify` entry at
+`build/clock-reserve-full-audit-20261011T184656/result.json` under the clean
+internal tool root, PID 3218955/start 66220732, helper SHA-256
+`0a9e1d49a1206993b7b2defd18585603cf7db664668b0eec2217afa419b91e2d`.
+It independently full-hashes all 2,014 source/archive pairs, 41,826,678,767
+bytes, including all 253 raw pairs and every companion. This new verification
+is required before releasing duplicates for the demonstrated next-stage
+shortage; it repeats no RF, decoder or scientific analysis. At the 18:52 UTC
+snapshot it had verified 12.612 GB without error. All four locks remain owned;
+no capture, raw transfer, sample removal or later queue is active.
+
+Preserved preflight refusals caught the original copy-only receipt's intentional
+zero release count and 49 legitimate zero-byte decoder stderr companions.
+Separate successor readers corrected those assumptions without changing the
+catalogs, thresholds or original flags. Eligibility is derived from the original
+218-record full clock audit, excluding the separately retained A132 maximum job.
+After verification closes, the coordinator successor needs its independent
+review and a separately bound release-only successor before any removal or
+mixed RF launch. Count and conservative ETA remain three of nine workstreams,
+33.3%, and 15–37 hours; verification and preparation add no capture/transfer
+credit. Final consumer API validation, mixed/memory qualification and release
+closeout remain unfinished.
+
 ## October 11 clean installation and target admission
 
 The clean experimental-frequency candidate is installed on both boards at
