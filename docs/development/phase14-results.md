@@ -4,6 +4,45 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 11 13:27 UTC checkpoint
+
+The connection-action comparison and its independent audit are now closed,
+with both expected-message decodes false. The B-only continuation retained
+already audited A and acquired only the missing B frame. Both recordings pass
+resources and receiver integrity with zero overflow/clipping. The exact
+coordinator, acquisition/analysis children and independent auditor have ended;
+both boards returned to RC3/138 MHz with settings, current cursors and GPSDO
+restored. The actual terminal receipt is
+`build/phase14-action-b-prefix-recovery-closed-result-20261011.json`, SHA-256
+`035441f921713b5523381665a34350ddf535e0bdc65e2bd9562ad63485063d9f`.
+
+The independent audit full-hashed only B's new 312 MB and reused A's completed
+312 MB independent hash with unchanged exact file identities. It verified
+624 MB in total, actual source/image/boot/job/control/metadata, decoder stdout/
+audio, unchanged 13 resource samples per frame, receiver and restored state.
+Its receipt is
+`build/phase14-action-prefix-independent-closed-audit-20261011.json`, SHA-256
+`650c20dd93ecbdd22b4856afb7864a9238e031577fab3071cda829e9c0b7b90e`.
+Original failed stages, nominal flags and earlier diagnostics remain unchanged.
+Neither the comparison nor its audit may be repeated.
+
+Keeping the normal connection after minimum 350-second idle did not resolve
+either expected decode. A separate read-only summary binds existing symbol
+estimates and the unchanged converter/decoder commands; it reads no IQ and
+runs no new decoder or RF trial. Its placement/drift estimates remain
+informational and establish no transmitter, receiver, thermal or waveform
+cause, calibration, correction or band exclusion. Four-metre repetition and
+physical 2 m decoding remain unresolved; mixed and memory reliability are
+unqueued and still require actual accepted finite prerequisites.
+
+Fresh closure checks found no active campaign process and all four locks
+available, with the actual internal/external UUIDs and devices 66306/2049.
+All internal samples remain. The two comparison raws add 624 MB to finite
+retention once, now 19.288 GB inside the existing allowance; they receive no
+capture or mode-acceptance credit. The closed-clock transfer credit remains
+unchanged. Three of nine original workstreams remain closed (33.3%); estimated
+remaining time is 15–37 hours, with upper-band diagnosis able to extend it.
+
 ## October 11 13:11 UTC checkpoint
 
 The connection-action comparison ended after A's acquisition and analysis.

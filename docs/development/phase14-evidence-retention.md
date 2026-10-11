@@ -84,6 +84,30 @@ Its historical external files remain untouched. Small preparation receipts are
 `build/phase14-internal-workspace-preparation-20261010.json` locally and
 `build/internal-workspace.json` under the new host root.
 
+### October 11 13:27 UTC closed comparison and independent audit
+
+The B-only continuation and all acquisition/analysis processes have ended.
+Both normal-connection comparison frames retain their actual false expected
+decodes, passing resources and zero receiver overflow/clipping. The independent
+auditor has also ended after full-hashing only B's new 312,000,000 bytes and
+reusing A's completed 312,000,000-byte independent audit with unchanged exact
+source identities. Its receipt is
+`build/phase14-action-prefix-independent-closed-audit-20261011.json`, SHA-256
+`650c20dd93ecbdd22b4856afb7864a9238e031577fab3071cda829e9c0b7b90e`.
+All raw/control/metadata/analysis/decoder/audio and original failed records
+remain on internal NVMe; no raw was removed or transferred during this work.
+
+Fresh process and four-lock closure checks passed with the actual internal
+and external UUIDs and devices 66306/2049. The comparison adds 624 MB once to
+pending finite retention, now 19.288 GB within the existing allowance. Its
+full integrity audit creates no 4 m acceptance, capture credit or raw-removal
+authority. Preserve the separate original failed reader, A audit, continuation
+and whole audit; none may be blindly rerun. Any later archive still requires
+its own guarded closed-evidence catalog, full durable-copy/source verification
+and retrieval records. The verified 38.720 GB clock transfer credit and every
+internal original remain unchanged. Mixed reliability remains blocked by
+4 m acceptance; no long queue or raw-release operation is armed.
+
 ### October 11 13:11 UTC retained A and active B-only comparison
 
 The original connection-action comparison is closed with its host INFO-prefix
