@@ -5,7 +5,70 @@ to about 3.9 GiB free; wspr1, wspr2 and wspr4 use SD cards. This amendment
 changes storage and encoding, while retaining the required measurements,
 original result records, failed evidence and complete raw sample contents.
 
-## October 11 reserve audit in progress
+## October 11 closed reserve release and active mixed acquisition
+
+The full independent source/destination verification completed for all 2,014
+closed clock/Tone pairs, 41,826,678,767 bytes and 253 raw pairs. Its immutable
+receipt is `build/phase14-clock-reserve-full-audit-complete-20261011.json`,
+SHA-256 `2d27bb6f2fb9bf2e77a50f47008d182f5eb3c1c7a1ae49949093b4d88baff06d`.
+Its identical durable retrieval is
+`/mnt/phase14-testing/phase14-closed-internal-first/reserve-verification-1791744416866697703/retrieval.json`.
+
+The separately recorded duplicate-only release removed exactly 24 eligible
+internal clock raws/7.590 GB, receipt
+`build/phase14-clock-reserve-owned-release-result-20261011.json`, SHA-256
+`f53b01f2f04bae5e7aad028ca3f609c04206e35d2cc733a962de56534ce69668`.
+Its durable retrieval is
+`/mnt/phase14-testing/phase14-closed-internal-first/reserve-release-1791746425065388223/retrieval.json`.
+Every sample remains in the original clock archive, with its full source and
+destination proof, unchanged source identity before unlink, independently
+published per-file retrieval on both filesystems and immediate final full
+hash/stat/user checks. The independent post-release review full-hashed all
+24 destinations/7.590 GB and 1,758 distinct small companion pairs; it reused the exact
+unchanged identities of the remaining 229 raw pairs. Its receipt
+`build/phase14-clock-reserve-release-independent-post-review-20261011.json`
+has SHA-256 `decbfa28da4889a045f2dca430f5522fa0066ee646501257de15f51acd958aaa`.
+
+The unchanged before/after GPSDO references require another 128 MB of raw
+storage. A separate state-aware correction, bound to the accepted 24-file
+review, released only one additional 312 MB internal duplicate. The original
+release was never repeated. The correction receipt is
+`build/phase14-clock-reference-reserve-delta-result-20261011.json`, SHA-256
+`0113ba95ef30c44a70d08276bcd34183babf066afb56f7ace5753c5d2732a38c`;
+its durable retrieval is
+`/mnt/phase14-testing/phase14-closed-internal-first/reserve-release-1791747120324807917/retrieval.json`.
+An independent final check full-hashed the new destination, reused the accepted
+24-file proof, verified retrieval ordering and retained both releases' complete
+closeout controls. The final review SHA-256 is
+`4d4dff0dca9e616a6e9fd92e8532f7fa31a11576c4533f326058cf54da5541a8`,
+identical in the clean internal root and the correction archive as
+`independent-final-reserve-review.json`.
+
+Cumulatively, 25 internal duplicates/7.902 GB were removed. No only-copy sample,
+nonraw companion, retained A132 max raw or Tone/reference raw was removed.
+The old copy-only zero-removal flags remain immutable historical records; the
+separate release receipts identify the actual later source absence. Restore
+archived samples to their recorded internal paths and full-hash before reanalysis.
+Never rerun helpers that assume all original sources exist; any later release
+requires a new ready-stage shortage and state-aware verification.
+
+The actual mixed dispatch rechecked internal/external UUIDs and all four locks,
+then 69,384,732,672 bytes free against the complete 69,185,418,240-byte requirement
+(58.32 GB mixed raw + 128 MB reference raw + 10 GiB). Coordinator
+3233082/start 66510419 is active at clean-root
+`build/amended-clean-mixed-20261011T193513/result.json`. No further archive,
+raw release or audit may overlap its acquisition/analysis. Memory remains
+a separate stage after actual independently accepted eight-job results and
+gone processes. Verification and duplicate removal add no capture or transfer
+credit and close no original qualification workstream.
+
+The earlier wrong self-hash command argument refused before devices, raw reads,
+output or reservation; its corrected probe and original refusal are retained
+in `build/phase14-release-self-hash-argument-refusal-20261011.json`. Prepared
+`7373e15d`, `151e06bd` and `eceb7c54` entries were never executed on campaign
+evidence; their distinct successors and actual receipts supply the evidence above.
+
+## October 11 earlier reserve audit snapshot
 
 The actual ready-stage review demonstrated approximately 7.6 GB of additional
 space needed for the eight mixed captures plus the 10 GiB reserve. The new

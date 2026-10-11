@@ -4,7 +4,59 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
-## October 11 mixed coordinator and reserve verification
+## October 11 amended mixed run started
+
+The clean-image mixed qualification is running exactly once under coordinator
+3233082/start 66510419, source `8538564583f1cb67ce9882755d2464e6b2297600`,
+138 MHz image `d60985822da465b6840bf921f05eedff558e109beef0568115dda70f35916ab9`.
+The actual output is
+`/home/pi/phase14-qualification-20261008/build/resume-tools-8538564-clean-internal-first/build/amended-clean-mixed-20261011T193513/result.json`.
+The 19:36 UTC snapshot showed the reference-before capture active, successful
+parent/child ownership handoff and no error or published mixed observation.
+It makes no whole-stage acceptance or capture-time credit claim.
+
+The separate current coordinator review
+`build/phase14-amended-mixed-owned-closeout-independent-review-20261011.json`,
+SHA-256 `06ae722b410562e184f2db8e0fc8add6aad490582a797abcfa351697875e2f92`,
+passed 43 Linux ownership/closeout/socket checks and actual current-image
+prerequisite, settings, cursor, reference and browser readbacks. It accepts
+the separately identified `4c1e50b0` coordinator for execution. The earlier
+`9623fcac` entry remains unexecuted and superseded.
+
+Full independent pre-release verification is closed: 2,014 source/archive
+pairs, 41,826,678,767 bytes and 253 raw pairs, receipt
+`build/phase14-clock-reserve-full-audit-complete-20261011.json`, SHA-256
+`2d27bb6f2fb9bf2e77a50f47008d182f5eb3c1c7a1ae49949093b4d88baff06d`.
+The finite duplicate-only release removed 24 eligible internal clock raws,
+7.590 GB, with retrieval published on both filesystems and immediate full
+hash/stat/user checks before each unlink. An independent review full-hashed
+all 24 durable destinations and 1,758 distinct small companion pairs. A separately guarded
+state-aware correction released one additional 312 MB duplicate to include
+the unchanged eight GPSDO reference recordings in the storage budget. Its
+independent final review full-hashed that destination and retained fresh
+closeout controls. All durable samples and nonraw companions remain.
+
+The actual cumulative release is 25 internal duplicates/7.902 GB. The final
+review is `build/phase14-reference-inclusive-final-reserve-review-20261011.json`,
+SHA-256 `4d4dff0dca9e616a6e9fd92e8532f7fa31a11576c4533f326058cf54da5541a8`.
+Launch independently rechecked 69,384,732,672 bytes free against
+69,185,418,240 bytes required: 58.32 GB mixed raw, 128 MB reference raw and
+10 GiB reserve. The correction changes storage accounting, not the workload,
+scientific criteria, old results or original copy-only flags.
+
+No archive, release or later queue overlaps the active mixed acquisition.
+The workflow owns the whole stage; child handoffs retain the inactive board
+and reacquire all bench locks between children and during analysis. The owned
+service restoration remains pending while testing runs. All SDR requests
+retain bias-T disabled. Eight accepted job results and a separate independent
+review are required before a separately identified memory follow-up. No
+4 m/2 m RF, decoder or diagnosis is authorized for this release.
+
+Progress remains 3 of 9 original workstreams (33.3%); the conservative estimate
+is 15–37 hours, including 10.429444 hours of fixed mixed/memory work. No elapsed,
+preparation, verification, duplicate-removal or active-job credit was applied.
+
+## October 11 earlier mixed coordinator and reserve verification
 
 The amended eight-hour mixed coordinator retains the byte-identical
 `phase14_soak.py` and `phase14_reference.py` drivers, including all eight
