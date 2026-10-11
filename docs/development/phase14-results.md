@@ -505,6 +505,73 @@ No RF, retune or transmitter/time/drift/sample correction is added. This is
 preparation only; an actual expected-message decode and separate review would
 still be required. The completed fixed-retune trials must not be repeated.
 
+Standalone recovery closed at October 11 08:02 UTC. All three adjacent WSPR
+frames externally decoded `AA0NT EM18 37` while host USB was unavailable and
+USB power stayed unchanged. The 472-second recording contains 944,000,000
+complete bytes with zero receiver overflow or clipping. The independent
+review full-stream hashed the raw file, checked stable file identity and
+bound actual control, metadata, INFO resources, decoder stdout/audio/tool
+hashes, the same boot across the three frames and USB disable/restore events.
+The original analysis's false legacy flag remains unchanged. Advanced current
+watermark, durable settings and the engineering profile were preserved;
+the owned service, GPSDO and both idle RC3/138 MHz boards were restored.
+Coordinator 3052618/start ticks 62288662 and every child are gone. Actual
+status SHA-256 is
+`c6d4fe3571455988cb5fefbcba4c94e35d90b19ac2082c34066e5475b74de5b1`;
+the separately accepted review
+`build/phase14-standalone-independent-review-20261011.json` has SHA-256
+`3e877d522fc365d068e13ca8284b99c03c52a507cccb4392ca5248be980214a0`.
+Those frames and their full raw audit must not be repeated.
+
+Both separate OSD-depth-one trials on the two failed 4 m nominal WAV files
+also closed without expected decodes. Each used the byte-unchanged nominal
+audio, original receiver frequency and original decode window with only
+the installed decoder's `-o1` option added. A coordinator 3055289/start ticks
+62380450 and B coordinator 3055690/start ticks 62388131 and their decoders
+are gone. Actual result SHA-256 values are
+`b8b2fc51c15a7884255f194f8118c51c5c6c116e15775cda0d72780ec14c0e5b`
+and `61e352549a84d9b35f873cad7c58c546699b73de5a280e7b7d80e1526606d7ad`.
+No RF, IQ modification, retune or transmitter/time/drift/sample correction
+was used. Preserve these negative trials; the complete 4 m repetition gate
+remains unaccepted, and its prepared positive reviewer has not run.
+
+The first lifecycle attempt closed at 08:18 UTC after its valid B clock-loss
+capture and analysis. Its host assertion mistakenly passed the actual opaque
+job ID back as a constructor seed, producing a different expected ID. Every
+scientific job field matched; actual LOAD/ARM/terminal identities remain bound.
+Coordinator 3056654/start ticks 62405576 and both children ended. Its failed
+status, SHA-256
+`b2a411303668a4b0827db8b7836c5d28e2709e4892bd6a47f0a7b13e5f4434f2`,
+keeps zero published accepted observations and its original error. The owned
+NTP rule was removed, fresh synchronization recovered, and the service,
+GPSDO and both idle RC3/138 MHz boards were restored.
+
+A separate review independently full-stream hashed that unchanged 570 MB
+recording and verified its 285-second receiver record, finite Tone quality,
+actual resources and exact clock-loss request/response/events. The aged ARM
+request actually returned `CLOCK_UNSYNCHRONIZED`; its own block, refusal,
+removal and recovered synchronization occur in the required order. Review
+`build/phase14-lifecycle-clock-loss-independent-review-20261011.json`, SHA-256
+`ab29dbc053fd5bf3ac0f274d431398cb30619501c400fc73009c38d70a881bda`,
+separately accepts that case without rewriting the failed stage. Its raw hash
+is `67aa92131d32ab9f8bcd81eca35071ee24cff0e9ed7aa3b7f10e1955fbfcc37b`.
+The case must not be repeated. Lifecycle coverage remains incomplete.
+
+The separately identified continuation normalizes only the expected opaque
+job ID before comparing the entire unchanged job body; the physical validator
+still independently binds the actual ID to accepted LOAD/ARM/terminal records.
+Eighty-four existing guards and twelve opaque-ID/body rejection checks pass.
+Helper SHA-256 is
+`91ac22d4ed086b7d214ffcfe389f4a2a688eb58fc6e57fb5d34e6a29080f3142`.
+Coordinator 3062849/start ticks 62561372 was dispatched once at 08:37 UTC,
+retaining the separately accepted clock-loss case and acquiring only eight
+missing cancel/abort/disconnect/512-event cases on internal NVMe. Their planned
+capture is 926 seconds/1,852,000,000 bytes within a 7,200-second whole bound.
+The 08:41 small-receipt checkpoint shows the same process and A cancellation
+child, with only the retained case published. No new partial case is credited.
+No active helper, firmware, scientific workload or threshold was changed.
+Later controller and reliability stages remain separate, unqueued work.
+
 The original `9f5103d9` spectra attempt closed with a connection reset before
 CLAIM, LOAD or ARM; coordinator 3016363/start ticks 61576755 is gone. Its failed
 status `b3c3f5e918417fa68ca3b337bf293b34104482ff31505c175c0c2f495b58d2b0`
