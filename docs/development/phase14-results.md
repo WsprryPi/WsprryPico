@@ -572,6 +572,68 @@ child, with only the retained case published. No new partial case is credited.
 No active helper, firmware, scientific workload or threshold was changed.
 Later controller and reliability stages remain separate, unqueued work.
 
+A read-only comparison binds the 28 existing ordinary RC3/150 MHz WSPR
+reports and four new 4 m repetitions to unchanged physical/metadata/analysis
+records and tool hashes. It reads no IQ, runs no decoder and starts no RF.
+The two new failed frames have retained monotonic launch observations at
+A 25.348 s and B 15.235 s after reboot; the following decoded frames begin
+at A 220.330 s and B 216.270 s on their respective same boots. Their first
+20 symbol slopes relative to the simultaneous reference are A -0.335 and
+B -0.584 Hz/s, versus -0.147 and -0.206 Hz/s in the following frames.
+The separately recorded reference slopes are much smaller, but this does not
+calibrate the Pico or isolate a transmitter mechanism.
+
+Boot age alone is insufficient: the initial A 4 m frame still missed its
+nominal decode at 6,883 s uptime, before its separately accepted fixed receiver
+demodulation. Its first-20-symbol relative slope is -0.135 Hz/s. Initial B
+decoded at 6,859 s with -0.210 Hz/s. Boot age, controller disconnect, elapsed
+time and previous RF workload are confounded. The comparison is informational,
+keeps frequency/drift pass/fail null and changes no original acceptance flag.
+Private receipt `build/phase14-upper-band-boot-age-reference-cohort-20261011-complete.json`
+has SHA-256 `be5b6e0cf5210a7b0c0a2ce64e186a6e554a61e3a23da81cbe4e42ae7716d5a6`.
+Earlier read-only layout/count refusals remain recorded; 150 MHz has fourteen
+representable bands per board, so this comparison contains 32 physical jobs.
+
+The lifecycle continuation closed all nine cases at October 11 08:59 UTC.
+Coordinator 3062849/start ticks 62561372 and every child ended with no error
+or unresolved cleanup. Actual terminal status SHA-256 is
+`417a56f65b0e5d6b2fb8d3336d25263ca9398a415f218ff6bbe54c967ff11711`.
+The independent reviewer then full-stream hashed the ten new recordings/
+1,852,000,000 bytes, reusing the existing full audit and unchanged identity
+of the 570 MB clock-loss recording. All nine cases and eleven actual jobs
+passed source/image/boot/job/control/metadata/event/analysis/tool/resource/
+receiver binding, including paired cancellation baselines, deliberately
+truncated aborts, disconnect completion and B's browser-loaded 512-event case.
+Fresh before/after inventory, settings and GPSDO readback passed at the quiet
+boundary; the owned service was restored. The original failed lifecycle stage
+and nominal diagnostic flags remain unchanged.
+
+Auditor 3066587/start ticks 62704147 is gone. The accepted private review
+`build/phase14-lifecycle-independent-review-20261011.json` has SHA-256
+`2305f2203f28fe7f0fbef0b4a62a5429ee9ff3743570a81985f465bd8bf4ffac`.
+Its predecessor reviewer was superseded before execution to account explicitly
+for the serialized overall human-copy/resource field. That reader change kept
+the existing assessment and thresholds; the actual closed 512-event record
+matched. These cases and completed audits must not be repeated.
+
+The next native producer/max-message gate was dispatched once at 09:03 UTC
+after accepted lifecycle closure and a fresh quiet source/tool/storage probe.
+Coordinator 3067306/start ticks 62717429 uses the prepared `d0075b85` helper,
+SHA-256 `d0075b85ee9ed9fe6883edee3edcc9a2e2abf705402595149d52b264d8c39990`.
+It retains the existing nineteen-job workload: twelve ordinary 80 m producer
+repetitions, four maximum-message cases and three native 160 m WSPR frames.
+The 32-dash DFCW case supplies capacity evidence; its separate alternating E/T
+case supplies two-state evidence. Planned capture is 4,985 seconds/9.97 GB,
+with the unchanged finite stage/child bounds and internal-storage ownership.
+The 09:06 small-state snapshot shows the coordinator and first controller
+child, with no analysis-closed job credited. The service was active before its
+owned stop. Actual closure, independent acceptance and restoration remain
+pending. No external transfer overlaps this active workflow, and mixed/long
+memory work is not queued. The unresolved 4 m and physical 2 m WSPR evidence
+remains open. The estimate is 16–38 hours with three of nine original
+workstreams closed; the newly accepted 926 lifecycle capture seconds are
+credited once in the inclusive other-work allowance.
+
 The original `9f5103d9` spectra attempt closed with a connection reset before
 CLAIM, LOAD or ARM; coordinator 3016363/start ticks 61576755 is gone. Its failed
 status `b3c3f5e918417fa68ca3b337bf293b34104482ff31505c175c0c2f495b58d2b0`
