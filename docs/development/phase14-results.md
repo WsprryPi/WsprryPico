@@ -444,6 +444,67 @@ nominal audio and the original 4.669 s/120 s window. It adds no RF or
 transmitter/time/drift/sample correction. It is not running or queued; only
 actual external stdout and a separate review could accept this recording.
 
+The sixteen missing 4 m repetitions closed at October 11 07:43 UTC with
+3,024,000,000 complete, independently hashed sample bytes. Coordinator
+3039713/start ticks 62039003 ended, both RC3 boards returned empty at 138 MHz,
+settings/current cursors were preserved and the GPSDO was restored. Terminal
+status SHA-256 is
+`ae2cd42bb105949b7d5889fa26232805d831596ef7678b5224fae16bd03f76d2`.
+All sixteen resource and receiver records pass with zero overflow/clipping;
+fourteen new observations meet mode criteria. The two first WSPR repetitions,
+A job `e54aaac9b904c5b0aadba08c4a09eb84` and B job
+`e7cc7bf7f353e2947fc3bf6bc5062e7c`, lack expected nominal decodes. Each following
+frame decoded correctly. Those observations do not resolve the first-frame
+failures or qualify three-frame reliability.
+
+Separate single +150 Hz receiver-demodulation diagnostics on the two unchanged
+312 MB recordings also ended without expected decodes. Each regenerated its
+original nominal audio byte-for-byte and retained its original decode window:
+A 4.669 s/120 s and B 4.158 s/120 s. Full raw hashes before/after match. Result
+SHA-256 values are
+`8352acab1dc7b5cb53d7ad23c55ab9a7db30ffb48bca63c8aac14d4f45d717f5`
+and `545087a3d99ba6ab16485c1c05ae95ee86385cdda4fc2082bab8160823201606`.
+Both diagnostic coordinators/decoders ended; no transmitter, time, drift,
+sample or device-setting correction was applied. Preserve these completed
+trials and every original nominal flag. The 4 m gate remains unaccepted;
+neither repetition nor diagnostic is to be blindly repeated. A prepared
+evidence reviewer rejects missing expected-message evidence and has not run.
+
+The first standalone preflight stopped before settings reads, child execution
+or RF because its prepared browser credential path lacked `server/deployment.json`.
+Coordinator 3050869/start ticks 62256676 ended with no observations or child
+steps, restored reference state and both RC3/138 MHz boards empty. The failed
+status SHA-256 is
+`a57c0378e5e25d0779e0682effa38fefe03bce43a87a69f7e0fec9fb2ebabc89`.
+The separately identified `b83ba6b2` standalone/lifecycle recovery binds that
+exact closed failure and the existing credential directory already used by
+the clock/browser campaign. Its 84 existing guards plus 13 failure-admission
+checks pass, and actual identity-bound HTTPS readback returned 200 before RF.
+No firmware, scientific workload or threshold changed. Preparation's receipt
+parser failure remains recorded; the offline guard's accidental historical
+receipt replacement was preserved separately and the independently retained
+original bytes restored. The successor guard has its own output.
+
+That recovery has been dispatched once for the existing three USB-unavailable
+standalone frames on internal NVMe. Exact coordinator 3052618/start ticks
+62288662 and child 3052808/start ticks 62292381 were active at the checkpoint.
+The fresh 32 KiB read verified B's existing engineering profile generation 4
+and disabled configuration; it wrote no flash profile. Analysis, actual
+external decodes, settings/current-watermark restoration and whole-stage
+closure remain pending. Lifecycle, controller and long reliability stages are
+not queued. The original `fc0e92c7` standalone/lifecycle entry is superseded;
+the current standalone execution must not be repeated. Lifecycle remains a
+separate guarded execution after the bench becomes quiet.
+
+The separately staged `b53d2482` decoder diagnostic permits one installed
+OSD-depth-one trial per new failed 4 m recording, with the original nominal
+WAV, receiver frequency and decode window unchanged. Thirty Linux guards pass;
+both probes refuse the active standalone workflow before sample/device access.
+Each decoder is bounded to 90 seconds and its enclosing trial to 600 seconds.
+No RF, retune or transmitter/time/drift/sample correction is added. This is
+preparation only; an actual expected-message decode and separate review would
+still be required. The completed fixed-retune trials must not be repeated.
+
 The original `9f5103d9` spectra attempt closed with a connection reset before
 CLAIM, LOAD or ARM; coordinator 3016363/start ticks 61576755 is gone. Its failed
 status `b3c3f5e918417fa68ca3b337bf293b34104482ff31505c175c0c2f495b58d2b0`
