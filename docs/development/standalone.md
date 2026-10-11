@@ -142,6 +142,13 @@ explicit unqualified consent, while 132/138 MHz direct-synthesis bounds still
 reject it. The RF-inhibited application uses the same admission policy for
 diagnostics and continues to generate no physical output.
 
+An experimental 2 m signal needs a manually prepared third-harmonic job at a
+lower fundamental, with the job's tone spacing also divided by three. A
+fundamental around 48.16 MHz is outside this correlation catalog and requires
+both flags. Supplying a normal 144 MHz job still fails the numeric limit;
+neither flag converts it into a harmonic job. This is experimental use and
+does not restore release support for 2 m.
+
 The document is limited to 1,800 bytes and eight schedules. Station validation
 uses the existing strict uppercase callsign, four- or six-character Maidenhead locator
 and supported exact WSPR dBm values. The full locator is saved, and the existing

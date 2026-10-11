@@ -28,15 +28,41 @@ build logs; they were corrected in the test fixture without changing production
 thresholds or RF algorithms. Source hashes and final results are recorded in
 `build/phase14-experimental-frequency-validation-20261011.json`.
 
-This is source/host validation. No new RF, receiver/decoder trial, firmware
-installation or sample transfer occurred. Both installed boards retain their
-actual `e95334a` RC3 images and all prior evidence identities. A new candidate
-cross-build and target admission/readback checks remain before release. The
-retained SDK found on wspr5 is 2.3.0, rather than the pinned 2.3.1, and no Linux
-Arm compiler was found; no SDK/tool installation or Mac C++ build was attempted.
-The new application admission boundary needs explicit source applicability
-review before subsequent current-image qualification. The old mixed/memory
-entry remains superseded and must not run as-is.
+The initial validation receipt records source/host checks before any firmware
+build or installation. Its Linux inventory found SDK 2.3.0 and no Arm compiler;
+that inventory does not describe the retained pinned tools on the Mac. The
+original Phase 14 task authorizes Pico firmware cross-builds with those inputs.
+No SDK or tool installation was needed.
+
+Source `8538564583f1cb67ce9882755d2464e6b2297600` has now built at all three
+clocks with retained SDK 2.3.1 and Arm GNU 15.3.1. Existing native pioasm and
+picotool binaries were imported without rebuilding them. An independent 138 MHz
+build produced byte-identical ELF and UF2 files. Candidate UF2 hashes are:
+
+| Clock | SHA-256 |
+| --- | --- |
+| 132 MHz | `8bfb652396b369fcb902bc08bed844b477f9b37c4a05c6c35d7b037906ee3127` |
+| 138 MHz | `6fe71e3f51b4c7ce3dccce49fee91299c899fe9f9411886c289b807e23005950` |
+| 150 MHz | `c27eb773b794ae97d0f16a6b68785baf3f567d5251f7b791af59ed4c2ab47add` |
+
+The finite build status is
+`build/phase14-experimental-frequency-arm-candidates-20261011T1623/status.json`,
+SHA-256 `e33e366659616d47833fde0afa2213cecc555784496796bb98c2ada5d3e127a6`.
+Independent artifact/source/layout review is
+`build/phase14-experimental-frequency-arm-artifact-independent-review-20261011.json`,
+SHA-256 `46cc9f4ef436bc66ac93c93d23d23041b5db251d132382d5737db68bd89610bd`.
+All four ELF/UF2 sets passed the existing stack, heap, worker and reserved-flash
+checks. The source applicability review,
+`build/phase14-experimental-frequency-source-applicability-review-20261011.json`,
+SHA-256 `06a802583e78c6ff45141ca92e3969affaed8b1760fab8698176cfd3de44da86`,
+retains unchanged RF, encoding, clock and WTP evidence under its original
+identities. It does not qualify the new admission boundary or linked image.
+
+No new RF, receiver/decoder trial, firmware installation or sample transfer
+occurred. Both installed boards retain their actual `e95334a` RC3 images.
+Target flag persistence/admission checks and current-image reliability/final
+installation remain. The old mixed/memory entry remains superseded and must
+not run as-is. Builds and reviews add no capture credit or workstream closure.
 
 ## October 11 upper-band diagnosis and operator exclusion
 
