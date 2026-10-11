@@ -228,6 +228,34 @@ state/rows throughout verification and rejects unpublished physical results.
 It changes no active script or scientific criterion. The full new raw audit,
 remaining clocks/contention, later finite gates and reliability remain pending.
 
+At October 11 01:38 UTC, the same coordinator has 181 closed logical rows:
+161 accepted ordinary physical observations (55 retained and 106 RC3) and
+20 unsupported labels. Both 132 MHz maximum-event contention jobs are accepted,
+including B's authenticated browser load; the two 150 MHz contention jobs
+remain. All 106 new ordinary recordings and both accepted contention captures
+have zero receiver overflow/clipping and accepted mode/resource bindings.
+The source/process identities are unchanged. Full new raw audit and actual
+clock closure remain pending. Private checkpoint
+`build/phase14-clock-profile-recovered-checkpoint-20261011T0138.json` has SHA-256
+`163a8e5a54fb27351c880022e2acb6f9f9263ebdfef8e9626b5ab1fb51e571e8`.
+
+The separately staged 4 m repetition helper is
+`build/phase14-4m-internal-repetitions-8d358736.py`, SHA-256
+`8d358736480b832c71494f9642682799312c15cca6e2d8db1a8a1d01a5c0f8de`.
+It requires the actual accepted clock full audit/reconciliation, accepted
+26-job post-clock Tone closure, ended predecessors, all bench/workflow locks,
+current RC3 images and internal NVMe reserve. It reuses ten accepted 150 MHz/4 m
+first observations, then acquires exactly sixteen missing WSPR/keyed repetitions,
+including disconnect/reconnect. The finite workload is 1,512 capture seconds,
+3,024,000,000 raw bytes and a 7,200-second stage bound. Each new analysis is
+followed by independent full raw hashing; actual decoder, receiver, control,
+resource, tool and source/image bindings govern acceptance. Original flags
+remain unchanged, and both boards return to 138 MHz with settings/reference
+restoration. All 39 Linux guard checks and five finalized record-layout checks
+pass. The live probe is BUSY before device access. Preparation receipt
+`build/phase14-4m-staging-20261011.json` records zero acquisitions/transfers and
+no queue; the actual positive repetition path remains unexecuted.
+
 ## Operator storage correction and stopped clock stage
 
 The operator rejected direct external-SSD writes during acquisition and
