@@ -4,6 +4,54 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 11 12:49 UTC checkpoint
+
+The closed-clock archive is now independently verified and its exact copy
+process has ended. It retains 219 raw recordings/38.720 GB and their companions,
+1,726 files/39,086,734,892 bytes in total, at
+`/mnt/phase14-testing/phase14-closed-internal-first/clock-rc3-1791719809192454023`.
+The successful status and identical durable retrieval receipt both have SHA-256
+`44efa33e035f255ac928afebc9e635ce41dc25fd31a1bd949b0dc17ee4bdf132`.
+Every internal original remains; no source bytes were removed.
+
+The separate closure reader verified the retrieval bytes, all retained source
+identities and 1,507 small companion hashes/366,734,892 bytes, reusing the actual
+copy's full raw hashes. Its receipt is
+`build/phase14-clock-copy-independent-closure-review-v3-20261011T1245.json`.
+Two preceding read-only reader failures are preserved: the copy receipt uses a
+compact inventory summary, and WTP STATUS does not contain the scheduler's
+`enabled` field. The corrected reader binds the summary to full stored INFO and
+WTP boot/owner/output records, and checks disabled configuration in INFO. The
+successful archive and all original qualification flags were unchanged.
+
+Fresh process, lock, UUID and reserve checks then passed. The separately
+identified two-slot connection-action comparison was dispatched once as
+PID 3117468/start ticks 64055343, helper `e2fbfb31`. A is in its fresh 150 MHz,
+minimum 350-second idle period; no observation was closed at the snapshot.
+Its receipt is
+`build/phase14-four-metre-connection-action-live-20261011T1247.json`, SHA-256
+`9e57c3d4a1758c49a8b9466cc8aedd0cb8d7abb42c84696ef3894df9c4ad74e7`.
+This comparison changes only the connection action described below and retains
+the two original failed slots, waveform, receiver settings and decoder. It
+must not be duplicated or automatically promoted to 4 m acceptance. No archive,
+source removal or later queue overlaps the active workflow.
+
+An independent closed-comparison audit is separately prepared and unqueued.
+Thirty isolated Linux refusal checks pass, including rejection of false decode
+promotion; its actual positive path remains unexecuted. The audit requires the
+actual comparison terminal/hash, ended processes, full new raw/control/decoder/
+resource bindings and restored board/settings/reference state. Neither a
+diagnostic terminal nor an audit template accepts the 4 m release gate.
+
+Only three of nine original workstreams are closed (33.3%). Crediting the
+actually completed clock transfer once leaves 75.5 GB of core transfer. The
+estimate is still 15–37 hours: its optimistic transfer rate uses the earlier
+verified small copy, while its conservative rate now uses twice the measured
+2,604.05-second large-clock copy per 38.720 GB of raw, including companion and
+verification overhead. No failed settling, unaccepted repetition or active
+comparison capture receives completion credit; no elapsed time is subtracted.
+Physical 2 m decoding, reliability and final release gates remain open.
+
 ## October 11 12:18 UTC checkpoint
 
 Three of nine original workstreams remain complete (33.3%); the estimate is

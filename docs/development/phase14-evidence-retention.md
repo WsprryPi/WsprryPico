@@ -84,6 +84,41 @@ Its historical external files remain untouched. Small preparation receipts are
 `build/phase14-internal-workspace-preparation-20261010.json` locally and
 `build/internal-workspace.json` under the new host root.
 
+### October 11 12:49 UTC verified closed-clock archive
+
+The copy-only `7b0e63a0` operation is now `INDEPENDENT_CLOSED_CLOCK_COPY_VERIFIED`.
+Exact PID 3103666/start ticks 63759990 and its verification process have ended.
+All 219 closed clock raws/38.720 GB and required companions, 1,726 files and
+39,086,734,892 total bytes, have full independent destination and unchanged-source
+hash verification and durable retrieval. The archive location is
+`/mnt/phase14-testing/phase14-closed-internal-first/clock-rc3-1791719809192454023`.
+Its `retrieval-1791719809192454023.json` is byte-identical to the terminal status,
+SHA-256 `44efa33e035f255ac928afebc9e635ce41dc25fd31a1bd949b0dc17ee4bdf132`.
+All internal sources remain; removals are zero.
+
+The separate actual closure review is
+`build/phase14-clock-copy-independent-closure-review-v3-20261011T1245.json`.
+It reuses the completed raw hashes with unchanged exact source identities,
+independently rehashes the 1,507 small companions/366,734,892 bytes, and validates
+the actual compact inventory through stored full INFO/WTP control records.
+Preserve its earlier inventory-wrapper and STATUS-field parser refusals. They
+changed no archive, raw or original result. The copy's own full closeout-control
+files remain retained internally and must accompany any later durable catalog
+before redundant raw release.
+
+The 38.720 GB closed core transfer is now credited once; pending core transfer
+is 75.5 GB, including unrecorded mixed/memory captures and closed post-clock Tone.
+No raw release is armed. Future release still requires a separately guarded,
+state-aware operation, demonstrated reserve shortage, durable retrieval and
+full independent archive/source/companion checks before each eligible unlink.
+Mixed reliability remains blocked by 4 m acceptance.
+
+After actual copy closure and fresh quiet checks, the bounded two-slot
+connection-action comparison was dispatched once on internal NVMe as
+PID 3117468/start ticks 64055343. No external transfer or source removal may
+overlap its acquisition or analysis. Original failed settling recordings and
+their independent audit remain unchanged; no automatic later queue exists.
+
 ### October 11 12:18 UTC closed-clock copy checkpoint
 
 The copy-only `7b0e63a0` helper is now executing once, after the two-slot idle
