@@ -59,11 +59,31 @@ The profile-aware successor used B's engineering CONFIG interface. A's consumer
 settings API opt-in path remains unverified; Console refusal is not a failed
 frequency-policy test. Original failed receipts and reservations remain intact.
 
-Four separately bounded current-image 80 m baselines are in progress: A/B
-five-second Tone and one nominal WSPR frame each, at 138 MHz. The planned
-412 capture seconds/824 MB are not credited before independent acceptance.
-No excluded 4 m/2 m trial is included. Every capture explicitly disables
-SDRplay bias-T, with actual metadata checked for `bias_tee:false`.
+Four separately bounded current-image 80 m baselines are closed and
+independently accepted: A/B five-second Tone and one nominal WSPR frame each,
+at 138 MHz. Both external decoders returned `AA0NT EM18 37`; Tone/resource
+checks pass and receiver overflow/clipping are zero. The full independent
+824 MB raw/control/resource/decoder review has SHA-256
+`f5c68e209c58b99332c699f5d74db67a50c3044c7aa7a040d32287856f11a4c2`;
+actual stage SHA-256 is
+`1ed59102a4d9addb234001e9183d4c2014649f069a9345bf0bb6a149f71a7dcc`.
+The original WSPR legacy analysis flags remain false; external expected-message
+acceptance is recorded separately under the unchanged informational
+frequency/drift policy. All four captures explicitly disable SDRplay bias-T,
+and their actual metadata confirms `bias_tee:false`. Both boards remain clean
+138 MHz, empty/unowned/inactive/disabled, with settings/cursors/GPSDO and owned
+service restored. No excluded-band trial or decoder rerun occurred.
+
+A separate amended mixed prerequisite review binds the accepted historical
+finite gates under their actual e953 identities, current-image baseline/flag
+proofs, source applicability and the operator's all-mode upper-band exclusion.
+It replaces the old positive 4 m prerequisite without claiming a 4 m pass.
+Receipt `f9e0043ceb909f055892a5c49e9796c7a28d1b2d156bd1475c1d38f37035d568`
+measured a 7,571,194,880-byte shortage for the 58.32 GB mixed captures plus
+10 GiB reserve. A separately reviewed execution/ownership adapter and guarded
+state-aware reserve release are still needed. No long stage or raw release is
+queued; the old ed93 entries remain superseded. The accepted additional
+412 baseline seconds do not reduce the fixed remaining mixed/memory workload.
 Long reliability, final consumer/API checks, retained-band closeout, final
 review and push remain. Only three of nine original workstreams are closed.
 

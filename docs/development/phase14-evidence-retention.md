@@ -25,8 +25,9 @@ are retained locally. Both installation and B flag checks preserved the current
 restored the original configuration. A's refused consumer Console request
 left its full 32 KiB region byte-identical.
 
-The four new-image 80 m baselines acquire only to this internal root with
-SDRplay bias-T disabled. They do not start a later queue or permit raw release.
+The four new-image 80 m baselines closed on this internal root with
+SDRplay bias-T disabled. All 824 MB of complete raw samples remain internal,
+independently full-hashed with their immutable control/decoder companions. They do not start a later queue or permit raw release.
 Existing independently verified clock and Tone external archives remain
 unchanged, with every internal original retained. Any future reserve release
 still requires actual ready-stage shortage, a separately identified state-aware

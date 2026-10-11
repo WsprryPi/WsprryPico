@@ -1,6 +1,6 @@
 # Phase 14 band, clock and mode results
 
-Accepted conducted evidence on both Pico A and B; final release qualification remains in progress. These results retain their actual old source/image identities. The clean experimental-frequency candidate is installed on both boards; engineering flag persistence/default admission passed, and current-image RF baselines are in progress. The table remains historical evidence under its recorded source identities.
+Accepted conducted evidence on both Pico A and B; final release qualification remains in progress. These results retain their actual old source/image identities. The clean experimental-frequency candidate is installed on both boards; engineering flag persistence/default admission and four current-image 80 m RF baselines passed independent review. The table remains historical evidence under its recorded source identities.
 
 Relative power is the received **fundamental carrier**, at the 138 MHz Pico clock, relative to each board's own 80 m result (0 dB), then averaged across A and B in linear power before conversion to dB. They include SDR, attenuator and cable response; they are not calibrated transmitter watts/dBm. The large 6 m increase is not isolated as higher transmitter output.
 
