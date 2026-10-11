@@ -152,6 +152,49 @@ operation. B's existing engineering profile stays available for browser load;
 final consumer-profile restoration still preserves its current 8 KiB cursor.
 None of these prepared executions has started.
 
+At October 10 23:55 UTC, the same coordinator has 116 closed logical rows,
+including 10 unsupported labels and 106 accepted ordinary physical observations:
+55 retained and 51 RC3 captures. The 51 new captures have zero overflows or
+clipping, accepted mode/resource records, and actual decoder bindings for WSPR.
+All ten unusable original A/132 MHz overflow slots now have separate accepted
+replacements; their original failures remain unchanged. Three contention jobs,
+the remaining ordinary clock slots and final return/inventory remain pending.
+
+Review of the prepared admission helper found that NaN quality values could
+evade numeric comparisons. The separately identified successor rejects
+nonfinite Tone coherence/amplitude/reference values and a missing expected
+reference, retaining the existing thresholds and informational placement/drift
+policy. All 41 admission checks pass. Decisions match all 21 closed Tone reports
+checked; no original report or running clock criterion changed. Use the staged
+successor `build/phase14-internal-followons-ed93f302.py`, SHA-256
+`ed93f302dac44d74891ad26347e12a14d2274e78abd54adc747d96045dde4025`.
+The earlier `5657e98c` helper remains preserved and superseded for future runs.
+
+Two additional finite helpers are staged and unexecuted. The closure auditor,
+`build/phase14-clock-closure-audit-1db6c8c5.py`, SHA-256
+`1db6c8c5797862a145685af3b5728792952784b1c7d24348358ce2219696d95f`,
+requires successful 300-row clock closure, its process gone and all bench locks.
+It full-stream hashes the 218 newly produced captures, 38,374,000,000 bytes,
+reuses the completed full-hash receipts for 55 old jobs and the accepted new
+maximum-event job, independently recomputes resources from actual INFO events,
+and binds all 274 physical jobs. A positive next-stage reconciliation is
+published only after decoder/quality/integrity checks and actual final idle
+inventory. Closure or planning alone does not establish that result.
+
+The closed-retention helper, `build/phase14-closed-clock-retention-d54a18f6.py`,
+SHA-256 `d54a18f63215f22c3ebaf25618a7f490937da4366b30993bff7d1e7d3dec9774`,
+separately copies audited closed clock evidence to the external SSD with full
+destination and unchanged-source verification and durable retrieval records.
+Its optional redundant-raw release is a separate invocation: it requires an
+actual successful copy, a demonstrated next-stage reserve shortage, immediate
+full archive/source rechecks, unchanged small companions and durable location
+records before unlinking only eligible redundant raw files. Partial/unknown
+outcomes retain recovery locations and require inspection before retry. Both
+helpers pass 18 Linux guard checks; all staged probes stop at the active bench
+lock. No current campaign audit, transfer or removal has run. The exact small
+preparation receipt is `build/phase14-finite-quality-and-retention-preparation-20261010.json`,
+SHA-256 `ccc5d7202a47edbab91f2ca8d88f52d2815f8e341388217a19d5c9cc53bd44fa`.
+
 ## Operator storage correction and stopped clock stage
 
 The operator rejected direct external-SSD writes during acquisition and
