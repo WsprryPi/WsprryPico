@@ -417,12 +417,14 @@ the independent review `build/phase14-direct-2m-verified-result-20261011.json`
 has SHA-256 `849fa6ca0bba81cf8d320a8030f14a7da6b0bdc44a6760b9484e8b01ccbaed1e`.
 This closes the control gate; physical 2 m decoding remains unresolved.
 
-The separately staged 4 m successor `855c05a4` preserves the original A
+The 4 m successor `855c05a4` preserves the original A
 nominal failure and admits its actual reviewed receiver decode. It checks
 all ten retained raw identities before reuse. Its 61 Linux rejection checks,
 ten actual closed layouts and fifteen tool hashes pass; the probe refused
 at the then-active Tone workflow lock before device or sample access.
-It is prepared only, with sixteen missing repetitions unchanged. Preserve
+It is now running as coordinator 3039713/start ticks 62039003, acquiring only
+the sixteen missing repetitions on internal NVMe at 150 MHz. Its initial ten
+observations are retained; whole-stage closure is not yet claimed. Preserve
 the old shared `8d358736` binding utilities; do not execute its old RF entry
 or the superseded `38fa079d` preparation.
 
@@ -436,18 +438,58 @@ receipt has SHA-256
 `557c5c125f612f123ccb449b6f6fb908e41f7fc3f99ca15c8636473acf085cc4`.
 No transmitter job or accepted survey ran in that attempt.
 
-A separately identified recovery `ec2c44d4` is active as coordinator
-3025774/start ticks 61779527. It proves the board is still idle and unowned,
-then refreshes the cached LAN peer after receiver-only backgrounds and before
-CLAIM. It preserves the four paired surveys, six per-job compensation trials,
-thresholds and internal NVMe recording. Seventy-seven Linux guard checks passed;
-the October 11 06:34 UTC snapshot shows one survey published and a later
-receiver capture running. Whole-stage completion and acceptance remain open.
+A separately identified recovery `ec2c44d4`, coordinator 3025774/start ticks
+61779527, completed all four paired surveys. It then closed at 06:49 UTC with
+a stale connection reset at the first compensation CLAIM, before LOAD or ARM.
+Its failed status has SHA-256
+`8a712e32f2de5235783617cf8c0af12b60c2a640801c74a7e94ee33744e2ddd6`;
+its process is gone, both RC3/138 MHz boards are idle and GPSDO restoration
+passed. All four accepted surveys and 180 independent full-raw receipts/
+720,000,000 bytes remain unchanged. No compensation RF ran in that attempt.
+
+The separate `fcf105c9` continuation runs only the six missing compensation
+trials, refreshing a peer only after proving the board idle and unowned.
+Coordinator 3035716/start ticks 61956963 closed all six trials and is gone. Fifty-four
+Linux guard checks, all four persisted survey layouts, their original INFO
+prefixes and all 180 audited raw identities pass. The earlier read-only
+tuple/list, resource-prefix and shared-helper compatibility failures remain
+preserved; they changed no source, samples or RF result. No survey is repeated.
+Actual status `fceb7197e92df730c8505e98151c7285344dfe28758f9b826c1642521b741bc1`
+records successful closure and restoration. Independent review of all ten
+jobs, 186 full-raw receipts/1,680,000,000 bytes, actual controls, resources,
+receiver and finite Tone quality passed. The separate reviewed receipt has
+SHA-256 `f04a870159c12ab4e6e7961e6c5748182302c673a0dd350f309de874c7339a9e`.
+Frequency/power/filter qualification and selected calibration are not inferred.
 All clock/Tone originals remain; no external transfer or raw release overlaps
 capture/analysis, and no later reliability queue is armed.
 The remaining standalone scope is the existing three USB-unavailable frames
-and nine lifecycle cases; sixteen tool hashes/imports match, but no new
-executable standalone recovery stage or positive evidence is claimed.
+and nine lifecycle cases. A separate driver is staged as
+`build/phase14-standalone-lifecycle-fc0e92c7.py`, SHA-256
+`fc0e92c7d90e70c3d35dcd1de5778cfb90f20048e698460124a6f7a178437b89`.
+Its 84 Linux rejection checks, 33 source/tool hashes, qualified imports and
+52 actual closed INFO identity checks pass. Both stage probes refused the active workflow
+before device or sample access. It is not running or queued.
+
+Standalone and lifecycle are separate finite invocations, each with a
+7,200-second bound and all bench/workflow ownership. Standalone reads a fresh
+disabled configuration, retains B's engineering profile and observes three
+frames while host USB is unavailable; configuration restoration preserves the
+current scheduler cursor. Lifecycle retains the existing clock-loss, cancel,
+abort, disconnect and 512-event cases. Maximum capture is 1,741 seconds/
+3,482,000,000 bytes, already in the other-RF allowance. Original nominal flags
+remain; independent decoder/control/resource/full-raw checks and actual
+restoration are required before acceptance. No positive execution is claimed.
+
+Adversarial preparation review distinguished USB serials from WTP device IDs
+in the standalone and native-producer guards. Old `34d5bdff` and `fbd408ba`
+helpers remain preserved and superseded. The native successor is
+`build/phase14-native-producer-device-identity-d0075b85.py`, SHA-256
+`d0075b85ee9ed9fe6883edee3edcc9a2e2abf705402595149d52b264d8c39990`;
+65 Linux rejection checks pass. The actual protocol IDs are
+A `fd6127d11d6aca42a9905fa3fb1bf1d5` and B
+`29f20b7342051ef947aa56cb9d4fab42`; their USB serials remain unchanged.
+No RF ran under either superseded guard. The new helpers are prepared only;
+their scientific jobs and thresholds are unchanged.
 
 Only three of nine release workstreams are closed; the estimate is 17–39 hours.
 It credits actual reviewed clock acceptance once and includes completed clock
