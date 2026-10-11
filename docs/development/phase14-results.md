@@ -295,6 +295,19 @@ check pass. Its live probe is BUSY before device or IQ access. Preparation recei
 No decoder trial, RF job, transfer or removal has run; the positive execution
 path remains unvalidated.
 
+At October 11 03:41 UTC, the unchanged clock coordinator has 251 closed
+logical rows: 225 accepted ordinary observations (55 retained and 170 RC3),
+one unaccepted RC3 WSPR observation and 25 unsupported labels. Three of four
+contention jobs are accepted. All 171 new finalized ordinary recordings have
+verified control/resource/receiver bindings and zero overflow or clipping;
+the same A/150 MHz/4 m decode remains unresolved. Independent full new raw
+hashing, final clock closure and the remaining contention job are pending.
+Internal NVMe free space is 86.658 GiB. Private checkpoint
+`build/phase14-clock-profile-recovered-checkpoint-20261011T0341.json` has SHA-256
+`066ac17d3c270cbe631d6dbc5aa58cab28254a55b9d9f99d839ba64d78a44ea0`.
+Only three of nine release workstreams are closed; the estimate is 18–40 hours
+from verified remaining workloads, with 4 m/2 m decode uncertainty retained.
+
 A separate internal spectrum/compensation helper is staged as
 `build/phase14-spectra-compensation-internal-9f5103d9.py`, SHA-256
 `9f5103d9689de38ccab96fcd388e82b28836c0d678b50524547537a348471944`.
@@ -314,6 +327,35 @@ transfer is queued. The small preparation receipt
 `37368a320471d97b4e14ee1202327c0799b75184d2553bc1e9f6df95c0e54c45`.
 Its positive execution path remains unvalidated; no calibrated power, filtered
 output or selected Pico calibration is claimed.
+
+A separate current-image native producer stage is prepared at
+`build/phase14-native-producer-internal-fbd408ba.py`, SHA-256
+`fbd408baf5a7f0ebfa923231d279265e674c7006c2735722a1b2e66e02e5bf75`.
+It retains the existing twelve ordinary 80 m producer repetitions, four
+maximum-message cases and three native 160 m WSPR repetitions. Its 4,985
+capture seconds/9.97 GB are within the existing additional RF allowance.
+After accepted post-clock Tone closure and ended predecessors, it requires
+RC3/138 MHz idle boards, the actual internal NVMe, 10 GiB reserve and pinned
+controller/template/receiver/tool/runtime hashes. The workflow lock spans
+child gaps; the parent holds B's lock while the controller child owns A and
+the receiver, then holds all three locks during analysis and full raw hashing.
+Actual relay requests, natural-completion responses, metadata, decoder stdout,
+resources and quality are independently bound. The 32-dash DFCW case establishes
+single-state envelope/capacity only; the separate alternating E/T case supplies
+two-state evidence without changing the original flags. Owned service state,
+GPSDO settings and both idle boards must be restored at the finite closeout.
+The stage bound is 14,400 seconds; acquisition/analysis child bounds are
+1,200/900 seconds and do not predict runtime.
+
+All 62 Linux rejection/coverage fixtures, 21 tool hashes and qualified runtime
+imports pass. Four retained keyed record layouts were checked without IQ reads;
+a historical WSPR report missing the current serialized acceptance field was
+rejected and preserved separately. Historical records were not promoted to
+RC3 evidence. The live probe returns BUSY before device access. Preparation
+receipt `build/phase14-native-producer-staging-20261011.json` has SHA-256
+`8aa32c5666b8abe094694dfc83e63bb9d50227d25e356d630fbc4bdb2b9f790d`.
+No RF, transfer, source removal or automatic queue has run. The positive
+execution path remains unvalidated.
 
 ## Operator storage correction and stopped clock stage
 
