@@ -84,7 +84,38 @@ Its historical external files remain untouched. Small preparation receipts are
 `build/phase14-internal-workspace-preparation-20261010.json` locally and
 `build/internal-workspace.json` under the new host root.
 
-### RC3 closed-clock companion preparation
+### October 11 12:18 UTC closed-clock copy checkpoint
+
+The copy-only `7b0e63a0` helper is now executing once, after the two-slot idle
+diagnostic and its independent 624 MB audit closed and all acquisition/analysis
+processes ended. Exact coordinator PID 3103666/start ticks 63759990 holds
+workflow and all three bench locks. It copies the 219 closed clock raw files,
+38.720 GB, and their original control/metadata/decoder/analysis/source/audit/
+retune/review companions to
+`/mnt/phase14-testing/phase14-closed-internal-first/clock-rc3-1791719809192454023`.
+Both filesystems were verified as the recorded internal/external UUIDs and
+distinct devices 66306/2049. Every internal original remains; the helper has no
+raw-release entry.
+
+The small checkpoint
+`build/phase14-clock-companion-copy-live-20261011T1218.json`, SHA-256
+`89068a4f928bdcb6dbe5afc46dc88749a694d9fdc2d1fafef1ba33d7e310f198`,
+records 192 independently verified partial entries/33.468 GB, no errors and
+zero removals. Whole-archive verification and durable retrieval publication
+remain pending. Do not duplicate the copy or credit partial bytes as a closed
+archive. No RF capture or analysis overlaps this transfer. The two failed idle
+diagnostic recordings add 624 MB to pending finite retention within the existing
+allowance; neither their complete raw audit nor their failed decode results
+authorize sample removal or qualification acceptance.
+
+Any subsequent RF stage requires this copy's actual successful terminal and
+retrieval hashes, ended process and fresh ownership/storage checks. A future
+redundant raw release still needs a separately identified guarded operation,
+independent durable-copy checks and a demonstrated next-stage reserve shortage.
+The mixed stage remains blocked by 4 m acceptance; no source removal or later
+queue is armed.
+
+### RC3 closed-clock companion preparation at 11:25 UTC
 
 The current RC3 root is
 `/home/pi/phase14-qualification-20261008/build/resume-tools-e95334a-internal-first`.

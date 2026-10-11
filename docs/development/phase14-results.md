@@ -4,6 +4,55 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 11 12:18 UTC checkpoint
+
+Three of nine original workstreams remain complete (33.3%); the estimate is
+15–37 hours. The two-slot 4 m idle-settling diagnostic closed with complete
+recordings, passing resources and zero receiver overflow/clipping, but neither
+new frame decoded the expected message. Holding each fresh 150 MHz boot idle
+for at least 350 seconds did not resolve those decoding failures. Both boards
+returned to RC3/138 MHz with settings, current cursors and GPSDO state restored.
+The actual terminal receipt is
+`build/phase14-four-metre-idle-settling-closed-result-20261011.json`, SHA-256
+`0db0afc909553473fd02fabd97ddae7b074c08cc64f3f77ae107d98ba9df1e40`.
+
+A separate closed-boundary audit independently full-hashed the two recordings,
+624,000,000 bytes, and verified their unchanged source, control, metadata,
+decoder, audio, resource and receiver bindings. Its receipt is
+`build/phase14-idle-settling-closed-audit-20261011.json`, SHA-256
+`c35d03b097ee7b210addc6a074c04b1b82359492b873ff117e12b5a0f7c04a52`.
+The diagnostic and auditor have ended. Both new mode results remain unaccepted;
+the original repetition failures and all earlier retune/OSD results are
+unchanged. Neither these 312 diagnostic seconds nor the unaccepted 1,512-second
+4 m repetition gate receives completion credit. Physical 2 m decoding also
+remains unresolved; no transmitter cause or calibration has been selected.
+
+After that audit and every acquisition/analysis process ended, the copy-only
+closed-clock helper `7b0e63a0` was dispatched once. Coordinator PID 3103666,
+start ticks 63759990, is copying the 219 closed clock recordings/38.720 GB and
+all required companions to the external SSD while retaining every internal
+original. At the latest small checkpoint, 192 entries/33.468 GB had independent
+destination and unchanged-source verification, with no errors or removals.
+Whole-archive verification and durable retrieval remain pending; partial copy
+progress receives no transfer credit. The actual active receipt is
+`build/phase14-clock-companion-copy-live-20261011T1218.json`, SHA-256
+`89068a4f928bdcb6dbe5afc46dc88749a694d9fdc2d1fafef1ba33d7e310f198`.
+No RF acquisition or sample analysis overlaps this copy.
+
+A separately identified two-slot connection-action comparison is staged and
+unqueued. It keeps the same fresh 150 MHz boot, minimum 350-second idle period,
+WSPR job, receiver settings and nominal decoder, while maintaining the normal
+connection/lease renewals instead of disconnecting. Thirty-six new refusal
+guards pass; its probe refused the active archive lock before device access.
+Preparation is recorded in
+`build/phase14-four-metre-connection-action-staging-20261011.json`, SHA-256
+`3ef38633fab5c9a9db0b837a4d4f28dbad93c4d823fad2802d5f8dd466277ab8`.
+Positive execution is unvalidated and requires the actual successful archive
+receipt, retrieval hash, ended process and fresh quiet-boundary checks. It is
+bounded to two original failed slots, 312 capture seconds and 624 MB. Even a
+positive comparison would require separate review before accepting the 4 m
+disconnect/reliability gate. No long reliability queue or raw release is armed.
+
 ## October 11 11:25 UTC checkpoint
 
 Three of nine original workstreams remain complete (33.3%). The nineteen-job
