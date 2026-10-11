@@ -634,6 +634,57 @@ remains open. The estimate is 16–38 hours with three of nine original
 workstreams closed; the newly accepted 926 lifecycle capture seconds are
 credited once in the inclusive other-work allowance.
 
+The native stage closed at 09:26 UTC with a preserved host assertion failure;
+coordinator 3067306/start ticks 62717429 and its children ended. Six jobs were
+published as accepted, and the seventh FSKCW acquisition and analysis also
+completed. Its requested space state was exactly 3,570,095 Hz. The recorded
+accepted realization was 3,570,094.991941005 Hz, 0.008058995 Hz below the
+wrapper's coarse lower bound. This assertion concerned the accepted event
+representation; it was not a failed measured RF-frequency or drift criterion.
+The actual FSKCW human-copy, resource and receiver checks passed, with zero
+overflow or clipping. Service, GPSDO, settings and both RC3/138 MHz idle boards
+were restored. Original failed status SHA-256 is
+`a187e32df01aa13d8262f2a9fc20b279bbdf7c9b151e72bc9440ad0bc57f4aa6`.
+
+A separately identified recovery validates the exact requested native frequency
+states and retains the recorded accepted adjustments, relay transactions and
+existing waveform/resource criteria. It preserves all nineteen original jobs:
+seven completed recordings supply 1,150 capture seconds/2.3 GB, leaving twelve
+missing jobs/3,835 seconds/7.67 GB. It does not repeat the completed RF jobs or
+change firmware, controller, scientific workload or measurement thresholds.
+The existing 65 Linux guards and 19 recovery guards pass; seven actual closed
+record layouts match. Earlier shell-access refusals, a mistaken centered-WSPR
+request assumption and a serialized file-identity comparison refusal are
+preserved separately. These were preparation/review failures, not new RF
+failures. The corrected reviewer reuses six completed full-hash receipts with
+unchanged file identities and independently full-hashes the seventh recording.
+Its actual acceptance remains separate from preparation and whole-gate closure.
+
+That seven-job review has now closed with actual acceptance, SHA-256
+`2bf8eb7996598238a569612a6839d19e32fa7b487ee9a9cc8205cc90520bb043`,
+at private `build/phase14-native-seven-prefix-independent-review-final-20261011.json`.
+Reviewer 3079872/start ticks 63042677 is gone. It reused the six existing
+full-hash receipts/2.13 GB with unchanged file identities and fully hashed the
+seventh 170 MB recording. All actual controls, metadata, INFO resources,
+accepted relay events, analysis tools, expected WSPR decoder stdout/audio and
+keyed human-copy records matched. Fresh idle inventory, durable settings,
+GPSDO and active-service restoration passed. The original stage remains failed;
+the separately accepted prefix does not close the full native gate.
+
+The missing-job continuation was dispatched once at 09:59 UTC, coordinator
+3080610/start ticks 63057499, using
+`build/phase14-native-prefix-reviewed-identity-3c9094cc.py`, SHA-256
+`3c9094ccad0f0414cf2c2f3cc6686b42e4e813ae6f00bf232f68bb21aea1d656`.
+Its first child is acquiring `ordinary-FSKCW-1`; the seven retained jobs are
+already bound to the actual admission receipt. The read-only live checkpoint
+`build/phase14-native-prefix-recovery-live-20261011T1000.json`, SHA-256
+`64b6e1de71d004b5839ae2f08f9ad6d890777f822029c4bf049ab38f23516282`,
+confirms the exact process identities, no error, 67.009 GiB internal free and
+distinct internal/external filesystems. This finite twelve-job continuation
+must not be duplicated or changed. No external transfer or later queue is
+running, and no native capture credit is applied before whole-gate acceptance.
+The original three-of-nine workstream count and 16–38-hour estimate remain.
+
 The original `9f5103d9` spectra attempt closed with a connection reset before
 CLAIM, LOAD or ARM; coordinator 3016363/start ticks 61576755 is gone. Its failed
 status `b3c3f5e918417fa68ca3b337bf293b34104482ff31505c175c0c2f495b58d2b0`
