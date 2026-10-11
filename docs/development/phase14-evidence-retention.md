@@ -84,6 +84,53 @@ Its historical external files remain untouched. Small preparation receipts are
 `build/phase14-internal-workspace-preparation-20261010.json` locally and
 `build/internal-workspace.json` under the new host root.
 
+### October 11 14:28 UTC closed Tone and reference archive
+
+The accepted post-clock Tone archive and its independent full review are
+closed. All acquisition, analysis, decoder and audit predecessors had ended
+before copying. Workflow and all three bench locks covered the copy; actual
+internal/external UUIDs and distinct devices 66306/2049 were checked. No
+external transfer overlapped acquisition or analysis.
+
+The durable location is
+`/mnt/phase14-testing/phase14-closed-internal-first/post-tone-rc3-1791728421022595521`.
+It contains 288 evidence files/2,739,943,875 bytes, including 26 accepted Tone
+raws/2,600,000,000 bytes and eight closed GPSDO reference raws/128,000,000 bytes.
+Metadata, control, decoder, analysis, close-in, original flags, source and
+audit companions are retained. The previous clock copy's full closeout
+controls and this copy's own full closeout controls are also durable.
+The successful local receipt is
+`build/phase14-closed-tone-copy-result-20261011.json`, SHA-256
+`b4f46fe8689731f9dcffe5f9301575ac447e454d11d71885dbb2ca6a2cc3b00d`;
+the archive's `retrieval-1791728421022595521.json` has identical bytes.
+
+The copier independently verified full destination and unchanged source
+contents and flushed the archive. A separate review then full-hashed every
+source/destination evidence pair, verified retrieval and companion bindings,
+recorded exact identities for all 34 raw pairs, and checked live restored
+boards/settings/current cursors/GPSDO. Its local receipt is
+`build/phase14-closed-tone-copy-independent-review-20261011.json`, SHA-256
+`77b7340d1052af48ec0ad86d1bd74211751c95d648a7a53168663c6130f9a6a3`;
+identical review bytes are retained internally and in the archive.
+
+The earlier catalog refusal omitted eight reference companion raws and is
+preserved; it stopped before samples, devices, copy or reservation. The
+corrected copy includes those exact closed companions. Thirty-nine Linux
+refusal checks passed before the actual copy. Preparation alone supplied no
+archive proof; the closed copy and independent review supply that proof now.
+Neither copy nor review may be repeated. All internal originals remain, with
+zero bytes removed and no release entry.
+
+The independently verified Tone transfer credits 2.6 GB once, leaving 72.9 GB
+of unrecorded core transfer. The 128 MB reference retention remains inside the
+existing other-work allowance and adds no capture credit. The separately
+closed A carrier-search diagnostic remains negative and changes no original
+acceptance flag. Final process/four-lock/UUID checks found no active campaign
+or later queue, with about 58.584 GiB internal free. Mixed reliability remains
+blocked by 4 m acceptance and requires more reserve; do not release raws now.
+Any later redundant release still requires its own guarded, state-aware
+operation, full durable verification and retrieval records before each unlink.
+
 ### October 11 13:27 UTC closed comparison and independent audit
 
 The B-only continuation and all acquisition/analysis processes have ended.

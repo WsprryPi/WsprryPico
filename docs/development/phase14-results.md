@@ -4,6 +4,54 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 11 14:28 UTC checkpoint
+
+One separately identified decoder diagnostic on the closed normal-connection
+A frame is complete and independently verified, with no expected-message
+decode. Inspection of the exact installed Debian WSJT-X 2.7.0 package payload
+and its source confirmed that `wsprd -w` widens the carrier search from
+±110 Hz to ±150 Hz. Existing A estimates motivated this one trial; B received
+no additional trial. The diagnostic used A's byte-identical nominal audio and
+original 5.07-second start/120-second window, adding only `-w` to the original
+command. It read no IQ and acquired no new RF. Transmitter, receiver tuning,
+time, drift, samples, waveform and settings remained unchanged.
+
+The helper and decoder have ended. The actual receipt is
+`build/phase14-closed-action-A-wide-search-result-20261011.json`, SHA-256
+`306ed02adbcb66b5275a734dc7c22ac3502f07cba449ab66dad1f62200194bf4`.
+The independent negative review is
+`build/phase14-closed-action-A-wide-search-independent-review-20261011.json`,
+SHA-256 `d6e86b13aff311cf72f27ce08387865a7c89cddf92e6db7b09d5f8ea6e18c34d`.
+It verifies unchanged original audio/control/metadata/resource/receiver and
+raw identities, plus restored boards/settings/reference state. Widening this
+search alone did not resolve A's decode. No cause, calibration, mode acceptance
+or capture credit follows; original failed flags remain unchanged. This trial
+must not be repeated or followed by blind decoder-option loops.
+
+The accepted post-clock Tone evidence is now durably archived: 26 Tone raws
+(2.6 GB), eight closed GPSDO reference raws (128 MB) and all companions,
+288 files/2,739,943,875 bytes in total. The archive also includes the clock
+copy's full closeout controls and this copy's own full closeout controls.
+Its location is
+`/mnt/phase14-testing/phase14-closed-internal-first/post-tone-rc3-1791728421022595521`.
+The copy receipt and identical durable retrieval record have SHA-256
+`b4f46fe8689731f9dcffe5f9301575ac447e454d11d71885dbb2ca6a2cc3b00d`.
+The separate full source-and-destination review is
+`build/phase14-closed-tone-copy-independent-review-20261011.json`, SHA-256
+`77b7340d1052af48ec0ad86d1bd74211751c95d648a7a53168663c6130f9a6a3`.
+All internal originals remain; no source bytes were removed. Copy and review
+processes are closed, and their entries must not be repeated.
+
+Fresh process/four-lock/UUID checks found no active campaign or later queue.
+Both boards are idle at RC3/138 MHz with settings, current cursors and GPSDO
+restored. The actual 2.6 GB Tone transfer receives credit once; the eight
+reference companions remain within the existing retention allowance and add
+no capture credit. Pending core transfer is now only the unrecorded 72.9 GB.
+Three of nine original workstreams remain closed (33.3%); the estimate remains
+15–37 hours. Four-metre and physical 2 m decoding still block qualification,
+and mixed/memory reliability remains unqueued. No raw release is due while
+the required 4 m acceptance remains unresolved.
+
 ## October 11 13:27 UTC checkpoint
 
 The connection-action comparison and its independent audit are now closed,
