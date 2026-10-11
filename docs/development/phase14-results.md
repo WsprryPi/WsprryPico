@@ -394,12 +394,57 @@ flags and cannot admit this separate reconciliation. Preserve its shared
 binding utilities and prepare an identified successor before the sixteen
 still-required 4 m repetitions; do not rewrite the original failed row.
 
-The separate 26-job post-clock Tone sweep is now active on internal NVMe under
-`ed93f302`, coordinator PID 3004539/start ticks 61345766. Its GPSDO bracket
-completed and the first A batch is acquiring at RC3/138 MHz; no full Tone-stage
-closure is claimed. This is separate from the closed 26 pre-clock captures.
-All clock originals remain. No current clock copy, raw release or external
-transfer overlaps this capture/analysis, and no later reliability queue is armed.
+The separate 26-job post-clock Tone sweep closed on internal NVMe at October 11
+05:44 UTC under `ed93f302`; coordinator 3004539/start ticks 61345766 and all
+children ended. Its terminal status has SHA-256
+`4fb3edebc0cb05628608ad08a98d46a3df63b2de25e8748320b008327e4e69d1`.
+The separate audit verified all 26 complete recordings/2,600,000,000 bytes in
+6.871 seconds, with actual control/analysis/metadata/INFO resources, finite
+coherence/amplitude/reference gates and matched close-in records accepted.
+The audit receipt `build/phase14-post-clock-tone-full-raw-audit-20261011.json`
+has SHA-256 `13efa68802775a57a59cd03f6d1947065a12d58282187660c77dc62ace4a6c07`.
+The original A/6 m nominal placement flag remains false; it does not exclude
+the band or select calibration. Both boards returned idle at RC3/138 MHz.
+These 26 jobs are separate from the closed 26 pre-clock captures.
+
+All thirty unarmed direct 2 m LOAD boundaries have now actually returned
+`FREQUENCY_REJECTED` on two boards, five modes and three clocks. There were no
+ARM requests or RF captures. Six resource groups were independently recomputed
+from actual INFO events, and both boards returned empty, disabled and unowned
+at 138 MHz. The stage status has SHA-256
+`97f5aac45e297723e5316ee6a2ae5fd712554d3be54b70f1df10bb13ee9b7060`;
+the independent review `build/phase14-direct-2m-verified-result-20261011.json`
+has SHA-256 `849fa6ca0bba81cf8d320a8030f14a7da6b0bdc44a6760b9484e8b01ccbaed1e`.
+This closes the control gate; physical 2 m decoding remains unresolved.
+
+The separately staged 4 m successor `855c05a4` preserves the original A
+nominal failure and admits its actual reviewed receiver decode. It checks
+all ten retained raw identities before reuse. Its 61 Linux rejection checks,
+ten actual closed layouts and fifteen tool hashes pass; the probe refused
+at the then-active Tone workflow lock before device or sample access.
+It is prepared only, with sixteen missing repetitions unchanged. Preserve
+the old shared `8d358736` binding utilities; do not execute its old RF entry
+or the superseded `38fa079d` preparation.
+
+The original `9f5103d9` spectra attempt closed with a connection reset before
+CLAIM, LOAD or ARM; coordinator 3016363/start ticks 61576755 is gone. Its failed
+status `b3c3f5e918417fa68ca3b337bf293b34104482ff31505c175c0c2f495b58d2b0`
+and partial survey remain unchanged. A separate reconciliation fully hashed
+22 receiver-only background recordings/88,000,000 bytes, with zero overflow
+or clipping, restored GPSDO settings and both RC3/138 MHz boards idle. Its
+receipt has SHA-256
+`557c5c125f612f123ccb449b6f6fb908e41f7fc3f99ca15c8636473acf085cc4`.
+No transmitter job or accepted survey ran in that attempt.
+
+A separately identified recovery `ec2c44d4` is active as coordinator
+3025774/start ticks 61779527. It proves the board is still idle and unowned,
+then refreshes the cached LAN peer after receiver-only backgrounds and before
+CLAIM. It preserves the four paired surveys, six per-job compensation trials,
+thresholds and internal NVMe recording. Seventy-seven Linux guard checks passed;
+the October 11 06:34 UTC snapshot shows one survey published and a later
+receiver capture running. Whole-stage completion and acceptance remain open.
+All clock/Tone originals remain; no external transfer or raw release overlaps
+capture/analysis, and no later reliability queue is armed.
 The remaining standalone scope is the existing three USB-unavailable frames
 and nine lifecycle cases; sixteen tool hashes/imports match, but no new
 executable standalone recovery stage or positive evidence is claimed.
@@ -407,7 +452,7 @@ executable standalone recovery stage or positive evidence is claimed.
 Only three of nine release workstreams are closed; the estimate is 17–39 hours.
 It credits actual reviewed clock acceptance once and includes completed clock
 recordings awaiting closed-file archival in addition to unrecorded samples.
-The remaining fixed core is 38,846 capture/settled seconds; finite gates,
+The remaining fixed core is 37,546 capture/settled seconds; finite gates,
 4 m reliability, unresolved 2 m, later audits, installation/review and push
 remain unfinished.
 
