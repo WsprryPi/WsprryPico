@@ -428,6 +428,22 @@ observations are retained; whole-stage closure is not yet claimed. Preserve
 the old shared `8d358736` binding utilities; do not execute its old RF entry
 or the superseded `38fa079d` preparation.
 
+The October 11 07:25 UTC snapshot has seven new closed observations, six
+meeting mode criteria. All seven have accepted resources and zero receiver
+overflow/clipping. New A/150 MHz/4 m WSPR job
+`e54aaac9b904c5b0aadba08c4a09eb84` is missing its nominal expected decode;
+the following WSPR frame decoded correctly. No transmitter cause is inferred.
+The original failed analysis remains unchanged. A distinct receiver-only
+diagnostic is staged as `build/phase14-new-4m-fixed-retune-825ee3f6.py`,
+SHA-256 `825ee3f61482c8ab0906c2ebc46626127f4c7138b400ab4bd1bc022951593c27`.
+Its 38 Linux rejection checks and actual closed-record binding pass; the probe
+refuses the active workflow before IQ or device access. After actual sixteen-job
+closure, ended processes and restored idle 138 MHz boards, it permits one fixed
++150 Hz receiver-demodulation trial on unchanged IQ, requiring byte-identical
+nominal audio and the original 4.669 s/120 s window. It adds no RF or
+transmitter/time/drift/sample correction. It is not running or queued; only
+actual external stdout and a separate review could accept this recording.
+
 The original `9f5103d9` spectra attempt closed with a connection reset before
 CLAIM, LOAD or ARM; coordinator 3016363/start ticks 61576755 is gone. Its failed
 status `b3c3f5e918417fa68ca3b337bf293b34104482ff31505c175c0c2f495b58d2b0`
