@@ -84,6 +84,41 @@ Its historical external files remain untouched. Small preparation receipts are
 `build/phase14-internal-workspace-preparation-20261010.json` locally and
 `build/internal-workspace.json` under the new host root.
 
+### RC3 closed-clock companion preparation
+
+The current RC3 root is
+`/home/pi/phase14-qualification-20261008/build/resume-tools-e95334a-internal-first`.
+Its closed clock evidence includes 218 new recordings/38.374 GB and the
+separately retained new A132 max-contention recording/346 MB. The latter was
+omitted from the preceding transfer estimate; pending closed-clock raw is
+38.720 GB. Including closed post-clock Tone and unrecorded mixed/memory raw,
+pending core transfer is 114.220 GB. This corrects retention accounting without
+adding capture credit or claiming any completed copy.
+
+The original unexecuted `d54a18f6` copy helper omits the separately accepted
+receiver-retune/review companions and retained max-job evidence. It remains
+preserved; its copy entry is superseded by a copy-only helper `7b0e63a0`, SHA-256
+`7b0e63a0290399819f79fde069039cd2d2deda8a6f523f3bb65129d05bb8a23d`.
+The successor includes the closed full-audit directory, original successful
+A4m receiver-only diagnostic, separately reviewed clock reconciliation and
+retained max-job raw/control/analysis records. Eighteen isolated Linux guards
+and 29 actual companion layouts/353,807,381 bytes were checked without campaign
+IQ reads, device access, transfer or removal. Its positive campaign copy path
+remains unexecuted and unvalidated.
+
+Any later copy requires every acquisition, analyzer, audit and workflow process
+to have ended, workflow/all three bench locks, actual idle RC3/138 MHz boards,
+the actual internal/external UUIDs and sufficient external reserve. Independent
+full destination and unchanged-source hashes, fsync and durable retrieval
+records are required. The existing exclusive clock-copy reservation prevents
+old/new helper duplicates. This successor has no raw-release entry and removes
+no source files. A future redundant raw release requires a separately guarded
+operation after an actual verified copy and demonstrated next-stage reserve
+shortage, with durable retrieval locations and full independent checks before
+each unlink. Do not transfer while the active two-slot settling diagnostic or
+any later acquisition/analysis uses the bench. Current clock/Tone/finite copied
+and removed bytes remain zero.
+
 Three subsequent 156-second GPSDO-only captures on internal NVMe completed
 with zero overflow/clipping and restored reference/USB-idle state. After their
 process ended, 17 closed files/936,191,802 bytes were copied and independently

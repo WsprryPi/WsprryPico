@@ -4,6 +4,22 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 11 11:25 UTC checkpoint
+
+Three of nine original workstreams remain complete (33.3%). The nineteen-job
+RC3 native producer/max-message gate is now independently accepted, including
+all actual control, raw, decoder, resource and restoration bindings. Its 4,985
+capture seconds are credited once within the existing other-work allowance.
+The estimate is 15–37 hours; unresolved 4 m and physical 2 m decoding and the
+remaining reliability, audit, installation, review and push gates can extend it.
+
+One separately bounded settling diagnostic is active on the two failed 4 m
+slots. It holds each freshly loaded 150 MHz board idle for at least 350 seconds,
+then takes one unchanged WSPR job per board. No diagnostic observation was
+closed at the recorded checkpoint. Original failures remain immutable; this
+diagnostic cannot automatically accept the 4 m gate or launch reliability work.
+No current clock, Tone or finite-stage raw bytes have been archived or removed.
+
 ## INFO allocation repair and closed raw audit
 
 Fresh October 10 USB readback identifies A's stopped contention recovery boot
@@ -684,6 +700,70 @@ distinct internal/external filesystems. This finite twelve-job continuation
 must not be duplicated or changed. No external transfer or later queue is
 running, and no native capture credit is applied before whole-gate acceptance.
 The original three-of-nine workstream count and 16–38-hour estimate remain.
+
+The continuation subsequently closed all nineteen jobs at 11:12 UTC, status
+SHA-256 `5c0415b92cefd577772f300cec44f8c2ca24e5dee587fe1bf09db5fa12c6fe8a`.
+Coordinator 3080610/start ticks 63057499 and all 24 acquisition/analysis children
+are gone. A separate bounded reviewer, helper `5793cc85`, independently hashed
+the twelve new recordings/7.67 GB and reused the accepted seven-job prefix/
+2.3 GB with unchanged exact file identities. It rebound every actual controller,
+private template, relay LOAD/ARM/natural terminal, metadata, analysis, expected
+WSPR stdout/audio/decoder, human-copy, INFO resource and receiver record.
+Before/after idle inventory, durable settings/current cursor, GPSDO and active
+service restoration passed. Reviewer 3091023/start ticks 63498720 is gone.
+Its actual accepted receipt is
+`build/phase14-native-nineteen-independent-review-20261011.json`, SHA-256
+`1d0c21f758a4dc7562d606d66dce2578a5d53d48fad623fba289937c701e4b85`.
+This accepts the existing nineteen-job native gate, 4,985 capture seconds/
+9.97 GB, while preserving the original failed `d0075b85` stage. These jobs and
+completed audits must not be repeated.
+
+A six-record informational comparison used only retained symbol reports and
+small source/control/metadata/tool bindings, without IQ reads, new decoding or
+device access. The failed new A/B frames show greater within-frame frequency
+movement than their following decoded frames. The actual receiver-indicated
+offset ranges are 158.02–174.05 Hz versus 155.10–161.95 Hz on A, and
+21.82–46.62 Hz versus 18.32–27.30 Hz on B. GPSDO-relative estimates are retained
+separately. Neither those correlations nor the fit residuals isolate a
+transmitter, receiver, thermal, restart or disconnect cause, select calibration,
+or create frequency/drift pass/fail or band exclusions. The private receipt is
+`build/phase14-four-metre-carrier-placement-informational-20261011.json`, SHA-256
+`4ed4ede393d4976ede95bc2630313f7082bd9eaa6c1fad629dc7c9d76e2fd253`.
+
+The separately identified two-slot diagnostic was dispatched once at 11:23 UTC,
+coordinator 3094063/start ticks 63560563, helper `612a4347`, SHA-256
+`612a434745f0d475f05cb388158d30bc9ddef8d9c3ae86bd387c8622d196340b`.
+It changes only the observed idle settling interval before these two failed
+slots: both boards use the same RC3/150 MHz image, original WSPR workload and
+disconnect action, receiver settings, nominal decoder and acceptance criteria.
+Firmware monotonic boot age must reach 350 seconds while the board remains
+empty, unowned and disabled. The two 156-second captures use internal NVMe;
+the whole-stage bound is 2,400 seconds. New raw hashes and all control/resource/
+receiver/decoder bindings must pass, and both boards/settings/current cursor/
+GPSDO must return to their original 138 MHz state. There is no RF warmup,
+transmitter/time/drift/sample correction, selected calibration or automatic
+4 m reconciliation.
+
+The first preparation refused a resource mismatch before IQ/device/RF access;
+its reader had included INFO records appended after the original analysis.
+That refusal and unexecuted helper `35790ebe` remain preserved. The successor
+checks the exact original INFO prefix, sample count and terminal snapshot with
+unchanged thresholds. The 27 original Linux guard checks, ten affected prefix
+guards and two actual failed-record layouts passed. Preparation is not RF
+qualification. At the read-only checkpoint
+`build/phase14-four-metre-idle-settling-live-20261011T1128.json`, SHA-256
+`c85bc7b85769b52e19a4c2e843a969983788cd81838aee40650ba131b53d5a3d`,
+the same coordinator was waiting on A, with zero closed observations. Do not
+duplicate or alter this active work. Mixed reliability and memory follow-up
+remain unqueued and require separately reviewed 4 m acceptance.
+
+The revised 15–37-hour estimate credits the accepted native duration once,
+leaves 4 m and this new diagnostic uncredited, and includes 346 MB of retained
+new A132 max-contention samples previously omitted from the core archive
+estimate. Pending core raw transfer is 114.220 GB: 72.9 GB unrecorded mixed/
+memory, 38.720 GB closed clock including that retained max job, and 2.6 GB
+post-clock Tone. No elapsed-time or archive credit is taken. Other finite raw
+retention stays within the existing inclusive other-work allowance.
 
 The original `9f5103d9` spectra attempt closed with a connection reset before
 CLAIM, LOAD or ARM; coordinator 3016363/start ticks 61576755 is gone. Its failed
