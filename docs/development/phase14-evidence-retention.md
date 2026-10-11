@@ -5,6 +5,34 @@ to about 3.9 GiB free; wspr1, wspr2 and wspr4 use SD cards. This amendment
 changes storage and encoding, while retaining the required measurements,
 original result records, failed evidence and complete raw sample contents.
 
+## October 11 clean candidate staging
+
+The new clean source/tool root is
+`/home/pi/phase14-qualification-20261008/build/resume-tools-8538564-clean-internal-first`.
+It is on the existing internal NVMe, UUID
+`ed6c7f1b-238b-41a1-b4b6-7bcdef3270fe`, device 66306. The 1,825 source/artifact
+files and qualified imports were verified; staging receipt SHA-256 is
+`4fecf34cd093851a418e4f055224f49f2fd6f1714fd6ff158ebe7dabe42d0358`.
+The fresh root retains clean 132/138/150 MHz candidates and the independent
+138 MHz rebuild proof. Existing e953 and first 853 staging roots remain
+unchanged, including the earlier dirty-identity installation failure.
+
+Current profile/configuration/cursor ROM snapshots for the unarmed admission
+checks remain private on wspr5. They contain credentials and are not copied
+to the Mac or committed. Small public source/control/result/review receipts
+are retained locally. Both installation and B flag checks preserved the current
+8 KiB cursor; the B flag experiment independently verified profile bytes and
+restored the original configuration. A's refused consumer Console request
+left its full 32 KiB region byte-identical.
+
+The four new-image 80 m baselines acquire only to this internal root with
+SDRplay bias-T disabled. They do not start a later queue or permit raw release.
+Existing independently verified clock and Tone external archives remain
+unchanged, with every internal original retained. Any future reserve release
+still requires actual ready-stage shortage, a separately identified state-aware
+helper, full source/destination/companion verification and published retrieval
+before immediately rechecking each redundant raw file for unlink.
+
 ## Storage placement
 
 - Keep new bulk captures on wspr5. Do not copy additional raw recordings to

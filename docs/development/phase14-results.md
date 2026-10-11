@@ -4,6 +4,74 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 11 clean installation and target admission
+
+The clean experimental-frequency candidate is installed on both boards at
+138 MHz, with exact revision `8538564583f1`. A source-bound independent
+readback verified the retained settings, profiles, current cursors, inactive
+outputs and restored service/GPSDO. Installation receipt
+`build/phase14-clean-8538564-target-installation-20261011.json` has SHA-256
+`a782880f7561f906974453208dccdcfd3cc566fc1c9eb25e9fc543e358384e58`;
+independent review SHA-256 is
+`b794756c0ff77383a4a6d01474a1c39924167e1d9730552a1d58fd2ad92a297b`.
+
+The first build from the primary checkout embedded `8538564583f1-dirty`
+because an unrelated retained documentation edit was present. Its initial
+artifact review missed that exact compiled-identity distinction. The first
+installation stopped on the identity guard after loading A; B was not loaded.
+Failure receipt `3516fcca38a5d2478dfc84aa3e1c3a67091bab92f888eaf923cfe72db28340fb`
+and all earlier artifacts remain unchanged. A separate clean managed checkout
+of the exact source produced these replacements with the same pinned inputs:
+
+| Clock | Clean UF2 SHA-256 |
+| --- | --- |
+| 132 MHz | `7c97b216a87ddf0c89d6705d8c0618b6da9ff0ae64b32983de254123db813071` |
+| 138 MHz | `d60985822da465b6840bf921f05eedff558e109beef0568115dda70f35916ab9` |
+| 150 MHz | `18af2e50391255d457e92e98ea4f2a6ed02ec444b479705c3b9daaa481256ec0` |
+
+The independent 138 MHz ELF/UF2 rebuild is byte-identical. Build status
+`33d2a1345f0c2b9bc67dbe5ced441083a25c1ac307b79d5046ed3a05daf537e0`
+and independent review
+`132040aa5f595c3b2edf46b7cb0082e8a1c356d76d7d2a1b772c11df4ac5baba`
+bind exact generated revision, source and reserved-flash/stack/heap checks.
+The new internal tool root is
+`/home/pi/phase14-qualification-20261008/build/resume-tools-8538564-clean-internal-first`;
+its 1,825 source/artifact files were independently verified. No SDK/tool
+installation or native helper rebuild occurred.
+
+Seventeen actual unarmed LOAD checks passed: three default-admission checks
+on A, and fourteen combination, numeric-limit, reboot-persistence and restored
+default checks on B. Every accepted LOAD was aborted/released without ARM.
+B's original configuration was restored and its profile/current 8 KiB cursor
+were independently verified byte-identical. Actual result
+`dd86f752d012bb7c6369eb14c09289420ec68ab2391bd7d012b87be24ca9717a`
+and independent review
+`231c0d6c856191279d41d66846f857758b75ba2741cbab7478210911a7c51a8e`
+are retained in the new tool root and locally in the corresponding
+`build/phase14-frequency-profile-aware-target-*` receipts.
+
+A's consumer Console intentionally rejects CONFIG with
+`profile_runtime_unavailable`; the initial target plan stopped before any LOAD
+or accepted configuration change. Its full 32 KiB profile/configuration/cursor
+snapshot remained byte-identical, independently verified in receipt
+`b06deb0753f66ee30a411ed2473342d36898d05005ca37229a01bf07eeec9b55`.
+The profile-aware successor used B's engineering CONFIG interface. A's consumer
+settings API opt-in path remains unverified; Console refusal is not a failed
+frequency-policy test. Original failed receipts and reservations remain intact.
+
+Four separately bounded current-image 80 m baselines are in progress: A/B
+five-second Tone and one nominal WSPR frame each, at 138 MHz. The planned
+412 capture seconds/824 MB are not credited before independent acceptance.
+No excluded 4 m/2 m trial is included. Every capture explicitly disables
+SDRplay bias-T, with actual metadata checked for `bias_tee:false`.
+Long reliability, final consumer/API checks, retained-band closeout, final
+review and push remain. Only three of nine original workstreams are closed.
+
+The [band/clock/mode table](phase14-band-mode-qualification.md) records accepted
+historical RF evidence with average A/B received relative carrier power. Those
+power values include receiver/path response and are not calibrated transmitter
+power; no historical capture is relabeled as this new image.
+
 ## October 11 experimental frequency controls
 
 The application source now implements WsprryPi-compatible, persisted,
@@ -37,7 +105,9 @@ No SDK or tool installation was needed.
 Source `8538564583f1cb67ce9882755d2464e6b2297600` has now built at all three
 clocks with retained SDK 2.3.1 and Arm GNU 15.3.1. Existing native pioasm and
 picotool binaries were imported without rebuilding them. An independent 138 MHz
-build produced byte-identical ELF and UF2 files. Candidate UF2 hashes are:
+build produced byte-identical ELF and UF2 files. These historical first-build
+UF2 hashes embed the dirty revision described above and are superseded for
+installation by the clean replacements:
 
 | Clock | SHA-256 |
 | --- | --- |
@@ -58,10 +128,10 @@ SHA-256 `06a802583e78c6ff45141ca92e3969affaed8b1760fab8698176cfd3de44da86`,
 retains unchanged RF, encoding, clock and WTP evidence under its original
 identities. It does not qualify the new admission boundary or linked image.
 
-No new RF, receiver/decoder trial, firmware installation or sample transfer
-occurred. Both installed boards retain their actual `e95334a` RC3 images.
-Target flag persistence/admission checks and current-image reliability/final
-installation remain. The old mixed/memory entry remains superseded and must
+At that initial build checkpoint, no new RF, receiver/decoder trial, firmware
+installation or sample transfer had occurred. Both boards then retained their
+actual `e95334a` RC3 images. The later clean installation and target checks are
+recorded above; current-image reliability/final installation remain. The old mixed/memory entry remains superseded and must
 not run as-is. Builds and reviews add no capture credit or workstream closure.
 
 ## October 11 upper-band diagnosis and operator exclusion
