@@ -4,6 +4,60 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 11 13:11 UTC checkpoint
+
+The connection-action comparison ended after A's acquisition and analysis.
+Its host evidence reader required the final job-filtered INFO sample to equal
+physical after-INFO. Natural completion had cleared `job_id`, so the unchanged
+analyzer appended that final INFO separately. The reader rejected that layout;
+its original failed status, zero published observations and every original
+flag remain unchanged. The exact coordinator and children ended, and both
+boards returned to RC3/138 MHz with settings, current cursors and GPSDO restored.
+The saved failure is
+`build/phase14-four-metre-connection-action-failed-result-20261011.json`, SHA-256
+`011221633e1206b62c60fa05c86da8be1961e54d99f6a3a3e6d488e48f2b3886`.
+
+A separate reader now matches the unchanged analyzer's original sample count,
+ordered job/boot/clock-bound INFO prefix and separately appended after-INFO.
+Resource and scientific thresholds remain unchanged. An independent closed
+boundary audit full-hashed A's unchanged 312 MB and checked its actual control,
+metadata, source/image/boot/job, 13 resource samples, receiver, decoder stdout
+and audio, plus live restored settings/reference state. A's expected-message
+decode is false; resources pass with zero receiver overflow/clipping. The audit
+and its process have ended. Its receipt is
+`build/phase14-action-a-prefix-independent-audit-20261011.json`, SHA-256
+`b0094111e10601e62f91c40331e5d9bf9aaf85c8c509cc2655a1479cc080b520`.
+This supplies integrity reuse, with no mode acceptance or capture credit.
+
+After fresh process, four-lock, UUID and reserve checks, the separately
+identified B-only continuation `a097f0b0` was dispatched once as
+PID 3123957/start ticks 64186195. It retains audited A and acquires only the
+missing B comparison: one unchanged 156-second WSPR capture after a fresh
+150 MHz boot and at least 350 seconds idle, with the normal connection retained.
+At the snapshot B is still settling, no new observation is closed, and the
+single published observation is retained A with its false decode. The receipt
+is `build/phase14-action-b-prefix-recovery-live-20261011T1311.json`, SHA-256
+`07ae760e772ac74dca2b6c748a77376a906f1153c983df00e17f724127c205dd`.
+There is no firmware, waveform, calibration or acceptance change, and no
+external transfer, raw release or automatic later queue.
+
+Thirty-three prefix guards and 33 continuation guards pass, with five actual
+closed layouts checked. A separate recovered-comparison audit is staged with
+32 refusal checks; its BUSY probe rejected the active workflow before sample
+or device access. Its positive path remains unexecuted. It requires actual
+continuation closure, matching hashes, ended processes and restored state;
+it reuses A's completed full audit and independently hashes only B's new
+312 MB. The earlier `39fa6bbe` audit is superseded and must not be invoked
+against the failed original comparison. None of these integrity checks
+accepts the 4 m repetition or disconnect-reliability gate.
+
+Three of nine original workstreams remain closed (33.3%); the estimate remains
+15–37 hours. A adds 312 MB of closed finite evidence to pending retention once,
+inside the existing allowance, with no completion credit. The verified
+38.720 GB clock transfer credit is unchanged. The 4 m failures, physical 2 m
+decoding, long reliability and final release work remain unresolved; further
+repairs can extend the estimate.
+
 ## October 11 12:49 UTC checkpoint
 
 The closed-clock archive is now independently verified and its exact copy

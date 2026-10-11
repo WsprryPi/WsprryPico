@@ -84,6 +84,37 @@ Its historical external files remain untouched. Small preparation receipts are
 `build/phase14-internal-workspace-preparation-20261010.json` locally and
 `build/internal-workspace.json` under the new host root.
 
+### October 11 13:11 UTC retained A and active B-only comparison
+
+The original connection-action comparison is closed with its host INFO-prefix
+reader failure preserved. A's acquisition and analysis completed; B had not
+started. Its original zero-observation/error receipt remains unchanged. A's
+separate independent audit full-hashed 312,000,000 unchanged bytes and bound
+the original control, metadata, decoder/audio/stdout, resource and receiver
+records. The audit process ended, and its receipt is
+`build/phase14-action-a-prefix-independent-audit-20261011.json`, SHA-256
+`b0094111e10601e62f91c40331e5d9bf9aaf85c8c509cc2655a1479cc080b520`.
+The actual expected decode remains false. Preserve all original records;
+this audit authorizes integrity reuse without mode acceptance or raw removal.
+
+A separately identified continuation is active exactly once as
+PID 3123957/start ticks 64186195, helper `a097f0b0`. It retains A's full audit
+and acquires only the missing B recording/312 MB on internal NVMe. At the
+13:11 UTC snapshot B is in its minimum 350-second idle period, and no new
+observation has closed. All four locks, actual UUIDs and distinct devices
+66306/2049 were checked at the preceding quiet boundary. No archive transfer
+or source removal may overlap this acquisition or analysis.
+
+The additional closed A recording adds 312 MB once to finite retention,
+now 18.976 GB within the existing allowance. Add B's new 312 MB only after
+its actual capture closes. A later independent recovered-comparison audit
+is prepared but unqueued; it reuses unchanged A full-hash identities and
+independently hashes only the new B recording after actual whole closure
+and process termination. Neither integrity closure nor a diagnostic contrast
+permits automatic 4 m acceptance or redundant raw removal. The verified clock
+archive, its 38.720 GB transfer credit and every internal original remain
+unchanged. Mixed reliability is still blocked by 4 m acceptance.
+
 ### October 11 12:49 UTC verified closed-clock archive
 
 The copy-only `7b0e63a0` operation is now `INDEPENDENT_CLOSED_CLOCK_COPY_VERIFIED`.
