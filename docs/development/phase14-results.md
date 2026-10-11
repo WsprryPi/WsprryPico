@@ -195,6 +195,39 @@ lock. No current campaign audit, transfer or removal has run. The exact small
 preparation receipt is `build/phase14-finite-quality-and-retention-preparation-20261010.json`,
 SHA-256 `ccc5d7202a47edbab91f2ca8d88f52d2815f8e341388217a19d5c9cc53bd44fa`.
 
+The separate direct-2 m boundary helper is staged as
+`build/phase14-direct-2m-internal-e11f28e2.py`, SHA-256
+`e11f28e29986ca945d394a7ab4823ff6256a50dbdeb2f23d386e83404a3bcfbb`.
+All 31 Linux closure, coverage and fake-transport checks pass, including
+unexpected LOAD admission followed by ABORT/RELEASE, an uncertain exchange
+without replay, a different rejection and foreign-owner preservation. Its
+live probe stops at the active receiver lock with zero device/ARM requests.
+No actual boundary request or new firmware load has run through this helper.
+
+After the accepted RC3 post-clock Tone observations and their processes close,
+this finite 3,600-second batch requires exact source/tool/image hashes,
+internal NVMe identity, the workflow and all three bench locks, and idle boards.
+It submits five direct 2 m LOAD requests per board at each of three clocks,
+without ARM, requires `FREQUENCY_REJECTED`, and records actual request/response,
+boot, inactive successor, ownership and resource bindings. Each new peer is
+negotiated only after proving idle/unowned state. Unexpected admission is
+aborted/released and preserved as a failure; the batch returns both boards to
+138 MHz while retaining settings and the current scheduler cursor. These
+checks establish a direct-request boundary only. They neither exclude physical
+third-harmonic 2 m output nor resolve the failed external-decoding pilot.
+
+At October 11 00:41 UTC, the unchanged clock continuation's rows contain 150
+closed logical attempts: 130 accepted ordinary physical observations (55
+retained and 75 RC3) and 20 unsupported labels. All 75 new ordinary captures
+have zero receiver overflow/clipping and accepted mode/resource records with
+actual WSPR decoder bindings. B's 132 MHz maximum-event contention job is
+active and uncredited. The coordinator counter remains at 140 until its next
+publication; the independently checked extra ten entries are unsupported
+labels only. The separately identified read-only reducer requires unchanged
+state/rows throughout verification and rejects unpublished physical results.
+It changes no active script or scientific criterion. The full new raw audit,
+remaining clocks/contention, later finite gates and reliability remain pending.
+
 ## Operator storage correction and stopped clock stage
 
 The operator rejected direct external-SSD writes during acquisition and
