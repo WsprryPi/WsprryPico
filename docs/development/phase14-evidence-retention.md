@@ -84,6 +84,39 @@ Its historical external files remain untouched. Small preparation receipts are
 `build/phase14-internal-workspace-preparation-20261010.json` locally and
 `build/internal-workspace.json` under the new host root.
 
+### October 11 upper-band exclusion and diagnostic retention
+
+The latest operator amendment excludes 4 m and 2 m for all five modes after
+failed required WSPR decoding without synthesis-preventing faults. See
+[phase14-band-support.json](phase14-band-support.json). Preserve every original
+successful/failed capture, metadata, control, decoder, analysis and flag; this
+support decision removes no evidence and changes no historical result.
+
+Four separate synthetic audio controls have closed, with steady-carrier decodes
+and negative observed-trajectory controls at both bands. Their actual result is
+retained internally at
+`build/synthetic-carrier-controls-20261011T1521/result.json` under the current
+tool root, SHA-256
+`9447089103621853a3638aeba7e7032fdbd91336bcb8bdd4123eeb2de57608ba`.
+Keep all four synthetic WAV/stdout/stderr files and the original small-file/
+raw-identity bindings. The byte-identical independent review is
+`build/upper-band-synthetic-independent-review-20261011T1534.json`, SHA-256
+`59463f0c9a1fff724d0cc5512807791f76d1511b1c5f71e3fe39b54889bdb1e4`.
+No retained IQ/audio was edited or copied to the Mac, no new RF ran, and no
+qualification/capture credit follows. Do not repeat these decoder controls.
+
+The native nineteen-job archive remains unexecuted and unqueued. Its new
+preparation encountered a zero-ended-time guard refusal before copying; retain
+that refusal and correct/review a separately identified successor before any
+copy. No source bytes were removed. Clock/Tone archive credits remain unchanged.
+
+The former positive 4 m prerequisite is superseded by the operator exclusion.
+Mixed reliability still requires reviewed amended admission and enough internal
+reserve before launch. Any redundant raw release needs its own guarded helper,
+actual next-stage shortage, independent durable/source/companion verification
+and retrieval publication; no release is currently armed. The checkpoint below
+records the earlier support boundary and is preserved as history.
+
 ### October 11 14:28 UTC closed Tone and reference archive
 
 The accepted post-clock Tone archive and its independent full review are

@@ -8,6 +8,32 @@ conducted path; building or qualifying an LPF is not a Phase 14 completion gate.
 [phase14-results.md](phase14-results.md); historical failures remain unchanged.
 P13.1 is complete, P13.2 Si5351 and GP14 production enablement remain deferred.
 
+## October 11 upper-band support amendment
+
+The operator now excludes **4 m and 2 m from release support for every mode**:
+Tone, WSPR, QRSS, FSKCW and DFCW, on both boards and at all candidate clocks.
+Required external WSPR decoding failed despite complete synthesis with valid
+control, resource and receiver evidence. The separately checked records show
+no fault that prevented synthesis. The machine-readable disposition is
+[phase14-band-support.json](phase14-band-support.json).
+
+This supersedes the earlier requirement to continue diagnosing/repeating 4 m
+and to expand conditional 2 m qualification. No further upper-band acquisition,
+decoder experiment or native harmonic mapping is required for this release.
+Retain all existing successful and failed observations with their actual source,
+image and boot identities. In particular, successful individual 4 m decodes and
+keyed-mode observations remain successful evidence; the new all-mode exclusion
+does not rewrite them or claim that generating RF is mathematically impossible.
+Frequency and drift still have no pass/fail determination. Other bands remain
+subject to their existing criteria and final release gates.
+
+Mixed reliability must admit the explicit operator exclusion as a separate
+support disposition, instead of demanding a positive 4 m repetition receipt.
+The old prepared admission entry must not run as-is or receive a fabricated
+positive result. Review the amended admission and actual remaining prerequisites
+before dispatch; storage reserve, finite bounds and restoration still apply.
+The original acquisition plan below is preserved as historical scope.
+
 ## Source review and intended scope
 
 The starting checkout is devel at `4b42a5d624cc68aa318b6e8d69c84f9460dc1bb4`.

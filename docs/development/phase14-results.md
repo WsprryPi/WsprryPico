@@ -4,6 +4,67 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 11 upper-band diagnosis and operator exclusion
+
+The operator amended the release decision: when required WSPR decoding fails
+without a fault preventing synthesis, exclude 4 m and 2 m for **all modes**.
+Both bands are now `UNSUPPORTED_RELEASE` for Tone, WSPR, QRSS, FSKCW and DFCW,
+on A/B and across the three candidate clocks. The authoritative coverage is
+[phase14-band-support.json](phase14-band-support.json). This supersedes the
+earlier mandatory 4 m repetition and conditional 2 m expansion requirements;
+no further upper-band diagnosis or native harmonic mapping is required.
+The independent support-scope review is
+`build/phase14-upper-band-support-independent-scope-review-20261011.json`,
+SHA-256 `0256bc692acdb0b82d993f367a67e266b889d8ae48ecae017d972058d988a946`.
+The decision and five small evidence receipts are durably retained at
+`build/upper-band-support-amendment-20261011` under the current wspr5 tool root.
+
+A separate check of the two failed 4 m repetitions and both original 2 m
+pilots verified complete 162-symbol synthesis, four distinct accepted RF states,
+same-job/boot natural completion and inactive output. Stack/fault/allocation/
+refill records show no fault preventing synthesis; resources pass and receiver
+overflow/clipping are zero. The expected-message decoder outcomes remain false.
+Receipt `build/phase14-upper-band-synthesis-fault-review-20261011.json` has
+SHA-256 `6dea07c6d5b8a15d853e2a1cb0bbeb3110e941cf1248dea754803842d808d1f8`.
+The retained 2 m captures keep their actual `119477a9c8c8` identities and the
+existing source-applicability review; they are not relabeled RC3.
+
+The diagnosis found carrier movement rather than collapsed tone states.
+Independent fits to received steps give approximately the accepted separation
+at both bands. In representative failed B frames, state-removed carrier spans
+are 11.447 Hz at 4 m and 19.175 Hz at 2 m; simultaneous-reference spans are
+2.083/2.891 Hz, leaving 9.364/16.286 Hz movement relative to the GPSDO. Existing
+five-second constant-carrier observations also show relative movement, so it
+does not require WSPR tone switching. These remain informational measurements;
+they do not select calibration or isolate crystal, PLL or thermal origin.
+
+Exactly four separate ideal-audio decoder controls are closed: at each band,
+the steady-carrier version decoded `AA0NT EM18 37`, while the otherwise-identical
+version following the measured common-carrier trajectory did not. Thus measured
+movement alone suffices to defeat this installed decoder in the model. This is
+software diagnostic evidence, not an accepted decode of the failed recordings.
+No new RF, IQ read, retained-audio edit or transmitter/receiver/time/drift/sample
+correction occurred. The actual terminal receipt has SHA-256
+`9447089103621853a3638aeba7e7032fdbd91336bcb8bdd4123eeb2de57608ba`;
+its separate independent review is
+`build/phase14-upper-band-synthetic-independent-review-v2-20261011.json`,
+SHA-256 `59463f0c9a1fff724d0cc5512807791f76d1511b1c5f71e3fe39b54889bdb1e4`.
+All children are gone, originals remain unchanged and both boards/settings/
+cursors/GPSDO were independently checked at idle RC3/138 MHz. The controls and
+their reservation must not run again. The initial independent reviewer refusal
+at an alternate floating-point symbol-boundary formula is preserved; the
+corrected reader verifies the exact recorded convention without changing audio.
+
+Some retained 4 m frames and keyed observations passed; they retain those
+outcomes. The new all-mode release exclusion does not claim synthesis is
+mathematically impossible or rewrite any flag. Direct 2 m remains outside the
+NCO range, while the observed third-harmonic states remain distinct. The old
+mixed/memory entry must not run as-is: prepare separately reviewed admission
+that binds this operator exclusion instead of demanding positive 4 m evidence.
+Storage reserve, remaining-band criteria, reliability and final audits/install/
+review/push still apply. No long queue or redundant raw release is armed, and
+the scope disposition alone closes no additional original workstream.
+
 ## October 11 14:28 UTC checkpoint
 
 One separately identified decoder diagnostic on the closed normal-connection

@@ -26,6 +26,10 @@ without a USB host. The [conducted PIO band campaign](docs/development/band-camp
 records a five-mode matrix with eight narrowly qualified operational entries,
 RF failures and USB-related blockage. Calibrated timing, spectra and production
 engine/mode/band qualification remain open.
+The current [Phase 14 support disposition](docs/development/phase14-band-support.json)
+excludes 4 m and 2 m for all five modes following failed WSPR reliability with
+complete synthesis and valid fault/resource/capture evidence. Other Phase 14
+release gates remain in progress.
 The later [focused 2200 m investigation](docs/development/2200m-investigation.md)
 passes all five operational modes at 138 MHz with QRSS3 workloads, compares
 132/138/150 MHz clocks and retains an unfiltered Pi GPIO4 benchmark.

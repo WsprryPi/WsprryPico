@@ -1,0 +1,134 @@
+{
+  "schema": "phase14-band-support-disposition/1",
+  "status": "OPERATOR_AMENDED_RELEASE_SCOPE",
+  "amended_date": "2026-10-11",
+  "source_commit": "e95334aa56d816b31a62255b980b540b849cf6ff",
+  "version": "0.1.0-rc.3",
+  "engine": "pio-dma-gp2",
+  "boards": [
+    "A",
+    "B"
+  ],
+  "clocks_hz": [
+    132000000,
+    138000000,
+    150000000
+  ],
+  "operator_instruction": "If WSPR cannot decode it, 2m and 4m, so long as there were no faults that prevented synthesis, cross them off as not supported for all modes",
+  "criterion": "Required reliable external expected-message WSPR decoding was not achieved despite complete synthesized transmissions and valid control/resource/capture evidence; exclude each entire band from Phase 14 release support.",
+  "unsupported_bands": [
+    "4m",
+    "2m"
+  ],
+  "modes": [
+    "TONE",
+    "WSPR",
+    "QRSS",
+    "FSKCW",
+    "DFCW"
+  ],
+  "dispositions": [
+    {
+      "band": "4m",
+      "mode": "TONE",
+      "disposition": "UNSUPPORTED_RELEASE",
+      "reason": "OPERATOR_EXCLUSION_AFTER_WSPR_DECODE_FAILURE_WITHOUT_SYNTHESIS_PREVENTING_FAULT",
+      "applies_to_all_candidate_clocks": true
+    },
+    {
+      "band": "4m",
+      "mode": "WSPR",
+      "disposition": "UNSUPPORTED_RELEASE",
+      "reason": "OPERATOR_EXCLUSION_AFTER_WSPR_DECODE_FAILURE_WITHOUT_SYNTHESIS_PREVENTING_FAULT",
+      "applies_to_all_candidate_clocks": true
+    },
+    {
+      "band": "4m",
+      "mode": "QRSS",
+      "disposition": "UNSUPPORTED_RELEASE",
+      "reason": "OPERATOR_EXCLUSION_AFTER_WSPR_DECODE_FAILURE_WITHOUT_SYNTHESIS_PREVENTING_FAULT",
+      "applies_to_all_candidate_clocks": true
+    },
+    {
+      "band": "4m",
+      "mode": "FSKCW",
+      "disposition": "UNSUPPORTED_RELEASE",
+      "reason": "OPERATOR_EXCLUSION_AFTER_WSPR_DECODE_FAILURE_WITHOUT_SYNTHESIS_PREVENTING_FAULT",
+      "applies_to_all_candidate_clocks": true
+    },
+    {
+      "band": "4m",
+      "mode": "DFCW",
+      "disposition": "UNSUPPORTED_RELEASE",
+      "reason": "OPERATOR_EXCLUSION_AFTER_WSPR_DECODE_FAILURE_WITHOUT_SYNTHESIS_PREVENTING_FAULT",
+      "applies_to_all_candidate_clocks": true
+    },
+    {
+      "band": "2m",
+      "mode": "TONE",
+      "disposition": "UNSUPPORTED_RELEASE",
+      "reason": "OPERATOR_EXCLUSION_AFTER_WSPR_DECODE_FAILURE_WITHOUT_SYNTHESIS_PREVENTING_FAULT",
+      "applies_to_all_candidate_clocks": true
+    },
+    {
+      "band": "2m",
+      "mode": "WSPR",
+      "disposition": "UNSUPPORTED_RELEASE",
+      "reason": "OPERATOR_EXCLUSION_AFTER_WSPR_DECODE_FAILURE_WITHOUT_SYNTHESIS_PREVENTING_FAULT",
+      "applies_to_all_candidate_clocks": true
+    },
+    {
+      "band": "2m",
+      "mode": "QRSS",
+      "disposition": "UNSUPPORTED_RELEASE",
+      "reason": "OPERATOR_EXCLUSION_AFTER_WSPR_DECODE_FAILURE_WITHOUT_SYNTHESIS_PREVENTING_FAULT",
+      "applies_to_all_candidate_clocks": true
+    },
+    {
+      "band": "2m",
+      "mode": "FSKCW",
+      "disposition": "UNSUPPORTED_RELEASE",
+      "reason": "OPERATOR_EXCLUSION_AFTER_WSPR_DECODE_FAILURE_WITHOUT_SYNTHESIS_PREVENTING_FAULT",
+      "applies_to_all_candidate_clocks": true
+    },
+    {
+      "band": "2m",
+      "mode": "DFCW",
+      "disposition": "UNSUPPORTED_RELEASE",
+      "reason": "OPERATOR_EXCLUSION_AFTER_WSPR_DECODE_FAILURE_WITHOUT_SYNTHESIS_PREVENTING_FAULT",
+      "applies_to_all_candidate_clocks": true
+    }
+  ],
+  "evidence": {
+    "no_synthesis_preventing_faults": {
+      "receipt": "build/phase14-upper-band-synthesis-fault-review-20261011.json",
+      "sha256": "6dea07c6d5b8a15d853e2a1cb0bbeb3110e941cf1248dea754803842d808d1f8",
+      "failed_job_ids": [
+        "e54aaac9b904c5b0aadba08c4a09eb84",
+        "e7cc7bf7f353e2947fc3bf6bc5062e7c",
+        "07bc7572e2fc71f005b08d3c7cf60d78",
+        "0fe66fe7f40dcec722d42dde633bb5c5"
+      ]
+    },
+    "synthetic_drift_diagnostic": {
+      "receipt": "build/phase14-upper-band-synthetic-controls-result-20261011.json",
+      "sha256": "9447089103621853a3638aeba7e7032fdbd91336bcb8bdd4123eeb2de57608ba",
+      "independent_review_sha256": "59463f0c9a1fff724d0cc5512807791f76d1511b1c5f71e3fe39b54889bdb1e4",
+      "flat_expected_decodes": 2,
+      "observed_trajectory_expected_decodes": 0,
+      "qualification": false
+    },
+    "retained_two_metre_source": "119477a9c8c8",
+    "source_applicability_review_sha256": "60edde42f2fa490a0521529a67d0467b236c3bed08e23b05709bc17517413ab8"
+  },
+  "four_metre_note": "The 150 MHz image synthesizes four distinct states and some retained frames decode. Failed required repetitions and later diagnostics remain negative; occasional successes do not restore support under the operator's all-mode exclusion.",
+  "two_metre_note": "Direct synthesis is outside all three clocks' range. Third-harmonic pilots produced four distinct RF states but neither expected WSPR message decoded. No native harmonic mapping is claimed.",
+  "frequency_drift_pass_fail": null,
+  "mathematical_synthesis_impossibility_claimed": false,
+  "original_rows_flags_and_receipts_changed": false,
+  "further_upper_band_qualification_required": false,
+  "upper_band_diagnostics_queued": false,
+  "other_bands_final_release_qualified": false,
+  "phase14_complete": false,
+  "continuation": "Preserve existing positive/negative evidence. Replace the former mandatory positive 4m prerequisite with independently bound operator exclusion in a separately reviewed follow-on admission; do not execute the old mixed/memory entry as-is. Internal reserve and all remaining release gates still apply."
+}
