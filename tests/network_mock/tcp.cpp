@@ -16,15 +16,45 @@
 #include <unistd.h>
 #include <vector>
 static std::vector<tcp_pcb*> listeners;
+static std::vector<tcp_pcb*> clients;
 static bool fragment_writes = false, block_write = false, hold_next_ack = false;
 void mock_tcp_hold_next_ack() {
     hold_next_ack = true;
+}
+tcp_pcb* mock_tcp_pending_burst(unsigned& refused) {
+    // Two segments arrive in one network poll, before foreground TLS setup.
+    // Pinned lwIP retains an ERR_MEM packet and drops later data while it is
+    // still refused (tcp_in.c). Count refusal without hiding it behind the
+    // host kernel's automatic TCP acknowledgement/retransmission behavior.
+    assert(!listeners.empty());
+    auto* pcb = tcp_new_ip_type(IPADDR_TYPE_V4);
+    clients.push_back(pcb);
+    assert(listeners.front()->accept(listeners.front()->arg, pcb, ERR_OK) == ERR_OK);
+    refused = 0;
+    for (u16_t bytes : {1460, 47}) {
+        auto* packet = new pbuf{bytes, new unsigned char[bytes]{}};
+        const auto result = pcb->receive(pcb->arg, pcb, packet, ERR_OK);
+        assert(result == ERR_OK || result == ERR_MEM);
+        if (result == ERR_MEM) {
+            ++refused;
+            pbuf_free(packet);
+        }
+    }
+    return pcb;
+}
+void mock_tcp_pending_disconnect(tcp_pcb* pcb, bool reset) {
+    if (reset) {
+        const auto callback = pcb->error;
+        auto* context = pcb->arg;
+        tcp_abort(pcb);
+        callback(context, ERR_ABRT);
+    } else
+        assert(pcb->receive(pcb->arg, pcb, nullptr, ERR_OK) == ERR_ABRT);
 }
 void mock_tcp_fragment_writes(bool enabled) {
     fragment_writes = enabled;
     block_write = false;
 }
-static std::vector<tcp_pcb*> clients;
 std::uint64_t time_us_64() {
     static const auto origin = std::chrono::steady_clock::now();
     static const auto scale =

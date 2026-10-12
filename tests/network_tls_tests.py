@@ -68,6 +68,13 @@ def http(path='/api/v1/status', method='GET', body=None, headers=None, fragment=
 try:
     ready = process.stdout.readline().strip()
     assert ready == 'READY 18443 PSA 1 PEAK 2', (ready, process.stderr.read())
+    # A multi-segment ClientHello must fit an already available receive slot
+    # before the foreground poll; neither FIN nor reset may retain its bytes.
+    # No TLS work/allocation is permitted from the raw TCP callback.
+    for outcome in ('FIN', 'RESET'):
+        control('PENDING BURST ' + outcome)
+        assert process.stdout.readline().strip() == 'PENDING 1507 1 0 0 0 1'
+        assert http()[0] == 200
     assert http()[0] == 200
     # A transient validator nests one PSA owner under the live server without
     # freeing global crypto state or disrupting the established TLS connection.

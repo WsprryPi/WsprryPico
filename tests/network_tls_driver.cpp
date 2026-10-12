@@ -195,8 +195,8 @@ int main(int argc, char** argv) {
     if (admission == network::PicoServer::Admission::LocalWtp &&
         server.configure_credentials(credentials))
         std::abort();
-    if (plain && (!server.start_plain(18444) || !server.plain_listening() ||
-                  server.start_plain(18444)))
+    if (plain &&
+        (!server.start_plain(18444) || !server.plain_listening() || server.start_plain(18444)))
         std::abort();
     {
         network::PicoServer competing(service, api, device, "duplicate", credentials);
@@ -229,8 +229,8 @@ int main(int argc, char** argv) {
     bool allow_http_steps = true;
     std::string commands;
     std::cout << "READY " << server.port() << " PSA " << network::PsaCryptoOwner::owners()
-              << " PEAK " << network::PsaCryptoOwner::peak_owners()
-              << (plain ? " PLAIN 18444" : "") << std::endl;
+              << " PEAK " << network::PsaCryptoOwner::peak_owners() << (plain ? " PLAIN 18444" : "")
+              << std::endl;
     while (!stopping) {
         char bytes[128];
         const auto count = read(STDIN_FILENO, bytes, sizeof(bytes));
@@ -242,7 +242,18 @@ int main(int argc, char** argv) {
             commands.erase(0, end + 1);
             if (command == "RESTART COUNT")
                 std::cout << "RESTARTS " << restarts << std::endl;
-            else if (command == "CLOSE METRICS")
+            else if (command == "PENDING BURST FIN" || command == "PENDING BURST RESET") {
+                const auto allocated = server.tls_allocated();
+                unsigned refused = 0;
+                auto* pcb = mock_tcp_pending_burst(refused);
+                const auto staged = server.resources();
+                mock_tcp_pending_disconnect(pcb, command == "PENDING BURST RESET");
+                const auto closed = server.resources();
+                std::cout << "PENDING " << staged.buffered_rx_bytes << ' '
+                          << staged.pending_connections << ' ' << refused << ' '
+                          << closed.buffered_rx_bytes << ' ' << closed.pending_connections << ' '
+                          << (allocated == server.tls_allocated()) << std::endl;
+            } else if (command == "CLOSE METRICS")
                 std::cout << "CLOSE " << server.metrics().last_wtp_close_reason << ' '
                           << server.metrics().last_wtp_tls_result << std::endl;
             else if (command == "PSA STATUS")

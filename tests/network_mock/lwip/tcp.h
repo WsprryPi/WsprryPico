@@ -47,3 +47,5 @@ void mock_tcp_ack_and_close(bool reset);
 
 void mock_tcp_fragment_writes(bool enabled);
 void mock_tcp_hold_next_ack();
+tcp_pcb* mock_tcp_pending_burst(unsigned& refused);
+void mock_tcp_pending_disconnect(tcp_pcb*, bool reset);

@@ -160,6 +160,7 @@ class PicoServer {
     tcp_pcb* plain_listener_ = nullptr;
     unsigned plain_port_ = 0;
     tcp_pcb* pending_ = nullptr;
+    Connection* pending_slot_ = nullptr;
     bool pending_softap_ = false, pending_plain_ = false;
     std::uint64_t pending_since_ms_ = 0, generation_ = 0;
     std::size_t turn_ = 0;

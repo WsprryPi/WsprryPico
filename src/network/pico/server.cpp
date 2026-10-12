@@ -248,12 +248,10 @@ err_t PicoServer::accept_plain(void* context, tcp_pcb* pcb, err_t err) {
 err_t PicoServer::accept_connection(tcp_pcb* pcb, err_t err, bool plain) {
     const auto clock = service_.clock_snapshot();
     const bool softap = classifier_ && classifier_(pcb, classifier_context_);
-    const bool wtp_occupied = std::any_of(connections_.begin(), connections_.end(),
-                                          [](const auto& connection) {
-                                              return connection.client_ && connection.wtp_;
-                                          });
-    if (err != ERR_OK || !admission_open_ || pending_ || busy() ||
-        (plain && wtp_occupied) ||
+    const bool wtp_occupied =
+        std::any_of(connections_.begin(), connections_.end(),
+                    [](const auto& connection) { return connection.client_ && connection.wtp_; });
+    if (err != ERR_OK || !admission_open_ || pending_ || busy() || (plain && wtp_occupied) ||
         (softap && (plain || admission_ == Admission::LocalWtp)) ||
         (!softap && !plain && admission_ == Admission::SoftApOnly) ||
         (!softap && (clock.state == wtp::ClockState::Unsynchronized || clock.utc_now_ns == 0))) {
@@ -262,6 +260,15 @@ err_t PicoServer::accept_connection(tcp_pcb* pcb, err_t err, bool plain) {
         return ERR_ABRT;
     }
     pending_ = pcb;
+    // Reserve an existing receive buffer before the next foreground poll.
+    // Refusing the first ClientHello segment makes lwIP drop later segments
+    // while refused_data is retained, even when a connection slot is free.
+    // TLS setup and application work still run only from poll().
+    for (auto& connection : connections_)
+        if (!connection.client_ && !connection.generation_) {
+            pending_slot_ = &connection;
+            break;
+        }
     pending_softap_ = softap;
     pending_plain_ = plain;
     pending_since_ms_ = time_us_64() / 1000;
@@ -302,19 +309,24 @@ void PicoServer::Connection::activate(tcp_pcb* pcb, bool softap, bool plain) {
     else if (softap_ || owner_.admission_ == Admission::LocalWtp)
         mbedtls_ssl_set_hs_authmode(&ssl_, MBEDTLS_SSL_VERIFY_NONE);
 }
-err_t PicoServer::pending_receive(void* context, tcp_pcb* pcb, pbuf* packet, err_t) {
-    if (packet)
-        return ERR_MEM; // lwIP retains bounded receive-window data until promotion.
+err_t PicoServer::pending_receive(void* context, tcp_pcb* pcb, pbuf* packet, err_t err) {
     auto& self = *static_cast<PicoServer*>(context);
-    self.pending_ = nullptr;
-    self.pending_softap_ = false;
-    self.pending_plain_ = false;
-    tcp_abort(pcb);
+    if (packet && err == ERR_OK) {
+        if (!self.pending_slot_)
+            return ERR_MEM; // All slots occupied: retain bounded TCP window data.
+        return Connection::receive(self.pending_slot_, pcb, packet, err);
+    }
+    if (packet)
+        pbuf_free(packet);
+    self.close_pending();
     return ERR_ABRT;
 }
 void PicoServer::pending_error(void* context, err_t) {
     auto& self = *static_cast<PicoServer*>(context);
     self.pending_ = nullptr;
+    if (self.pending_slot_)
+        self.pending_slot_->close(false);
+    self.pending_slot_ = nullptr;
     self.pending_softap_ = false;
     self.pending_plain_ = false;
 }
@@ -429,6 +441,9 @@ void PicoServer::close_pending() {
     tcp_recv(pending_, nullptr);
     tcp_abort(pending_);
     pending_ = nullptr;
+    if (pending_slot_)
+        pending_slot_->close(false);
+    pending_slot_ = nullptr;
     pending_softap_ = false;
     pending_plain_ = false;
 }
@@ -493,10 +508,10 @@ void PicoServer::poll(bool station_link_up, bool softap_link_up, std::string sta
     for (const auto& c : connections_)
         handshaking |= c.client_ && !c.handshake_;
     if (pending_ && !handshaking && generation_ != UINT64_MAX) {
-        const bool wtp_occupied = std::any_of(connections_.begin(), connections_.end(),
-                                              [](const auto& connection) {
-                                                  return connection.client_ && connection.wtp_;
-                                              });
+        const bool wtp_occupied =
+            std::any_of(connections_.begin(), connections_.end(), [](const auto& connection) {
+                return connection.client_ && connection.wtp_;
+            });
         if (pending_plain_ && wtp_occupied) {
             ++metrics_.rejected;
             close_pending();
@@ -504,12 +519,13 @@ void PicoServer::poll(bool station_link_up, bool softap_link_up, std::string sta
     }
     if (pending_ && !handshaking && generation_ != UINT64_MAX) {
         for (auto& c : connections_)
-            if (!c.client_ && !c.generation_) {
+            if (!c.client_ && !c.generation_ && (!pending_slot_ || pending_slot_ == &c)) {
                 auto* next = pending_;
                 pending_ = nullptr;
                 const bool next_softap = pending_softap_;
                 const bool next_plain = pending_plain_;
                 pending_softap_ = pending_plain_ = false;
+                pending_slot_ = nullptr;
                 c.activate(next, next_softap, next_plain);
                 break;
             }
@@ -517,6 +533,8 @@ void PicoServer::poll(bool station_link_up, bool softap_link_up, std::string sta
     unsigned active = 0;
     for (std::size_t i = 0; i < connections_.size(); ++i) {
         auto& c = connections_[(turn_ + i) % connections_.size()];
+        if (&c == pending_slot_)
+            continue;
         c.poll(c.softap_ ? softap_link_up : station_link_up,
                c.softap_ ? std::string_view(softap_authority) : std::string_view(station_authority),
                softap_surface, allow_http_steps);
@@ -655,8 +673,8 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
                 }
             }
         } else
-            result = mbedtls_ssl_write(&ssl_, output.data(),
-                                       std::min<std::size_t>(output.size(), 1024));
+            result =
+                mbedtls_ssl_write(&ssl_, output.data(), std::min<std::size_t>(output.size(), 1024));
         service_.poll();
         if (result > 0) {
             progress_ms_ = now;

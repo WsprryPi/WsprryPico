@@ -154,7 +154,7 @@ bool MbedTlsCredentialValidator::validate_impl(CredentialMaterial material,
     };
     last_error_ = mbedtls_x509_crt_verify_with_profile(
         &context.certificate, &context.ca, nullptr, &mbedtls_x509_crt_profile_suiteb,
-        hostname.c_str(), &verify_flags_, allow_time_unknown ? ignore_time : nullptr, nullptr);
+        hostname.c_str(), &verify_flags_, allow_time_unknown ? +ignore_time : nullptr, nullptr);
     return last_error_ == 0 && verify_flags_ == 0;
 }
 } // namespace wsprrypico::provisioning
