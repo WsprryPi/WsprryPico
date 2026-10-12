@@ -112,9 +112,36 @@ This demonstrates a plateau in the selected empty-job portable host fixture,
 without isolating Pico B's target cause or qualifying newlib/TLS/lwIP and the
 active 512-event job lifetime. All processes are gone, all four locks are
 available and the service is active. No device, RF, raw read, external archive
-or sample release occurred. The next capacity-attribution runner is a distinct
-unimplemented plan, not an admission or queue. Progress remains 3 of 9 original
+or sample release occurred. The subsequent attribution is recorded below.
+Progress remains 3 of 9 original
 workstreams (33.3%); estimated 15–37 hours remaining, subject to repair extension.
+
+### Closed response-capacity attribution
+
+The distinct twelve-GET host experiment attributes its whole 1,922-byte retained
+step to two closed response bodies. Each retains 960 capacity bytes plus a
+terminator allocation; releasing them individually reclaims 961 bytes and one
+block each, returning to the construction baseline. Static root responses
+preserve the previous dynamic body's capacity. Full fixture destruction returns
+all tracked C++ bytes/blocks to zero. Thirteen static guards and a separate
+source/dependency/binary admission passed before execution; prior completed
+controls and the 1,600-GET experiment were not rerun.
+
+Actual receipt `build/phase14-http-response-capacity-attribution-result-20261012.json`
+has SHA-256 `89ec7137e28ca2793663f4aa07f9c24892d559ee9865ea809538d7dac7ec8df8`.
+Separate offline verification checked all 29 samples, body capacities, path/count
+order and individual release arithmetic; its SHA-256 is
+`859d62c488b6ce7bd4483284637a114cdc385264a01aa09a482045a0bcf72435`.
+The attribution coordinator and all children are gone, the service is active, and no
+target, raw sample, RF, archive or removal action occurred.
+
+Metadata-only inspection of the four B browser records shows different final
+paths: capabilities, root, status and status. The last FSKCW status response
+reports completion and one terminal record. These recorded differences and
+the host attribution motivate a separate idle target path contrast, without
+isolating B's allocator cause or accepting the failed comparison. Its bounded
+six-GET plan is unimplemented and unqueued. Original flags, 1,024-byte limits,
+source/image identity and the blocked qualifying memory follow-up are unchanged.
 
 ## October 11 amended mixed run started
 

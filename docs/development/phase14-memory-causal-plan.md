@@ -1,6 +1,6 @@
 # Phase 14 memory failure causal plan — October 12, 2026
 
-Status: first bounded host diagnostic closed and recomputed; target cause
+Status: bounded host diagnostics closed and recomputed; target cause
 unisolated and no target successor admitted.
 Progress remains 3 of 9 original workstreams (33.3%); estimated 15–37 hours
 remaining, with repairs potentially extending that range.
@@ -227,7 +227,7 @@ follows. All coordinators and children are gone, all four locks are available
 and the owned service is active. No device, RF, decoder, raw sample, external
 archive or removal action occurred.
 
-## Next capacity-attribution plan, unimplemented and unqueued
+## Capacity-attribution plan and actual closed result
 
 The next distinct hardware-free runner should answer whether the portable
 connection slots' response-body capacities account for their retained C++
@@ -256,3 +256,110 @@ remains scoped to the portable host implementation. A subsequent target/newlib,
 TLS/lwIP or 512-event causal experiment needs a separate finite plan and admission
 with fresh source/image/boot/settings/cursor/process/lock/UUID safeguards.
 The qualifying memory follow-up remains blocked by the original mixed failure.
+
+The twelve-GET runner has now executed once under a separate bounded
+coordinator. Thirteen static acceptance/refusal cases verified its exact paths,
+counts, timeout, unchanged fixture/ledger/close implementation and destruction
+check. A separate admission program bound the source, dependencies, generated
+assets, immutable library and new binary before any diagnostic GET; it refused
+the old execution/control arguments. No completed predecessor calibration,
+control, localization or 1,600-GET workload was invoked.
+
+Actual parent `build/phase14-http-response-capacity-attribution-result-20261012.json`
+has SHA-256 `89ec7137e28ca2793663f4aa07f9c24892d559ee9865ea809538d7dac7ec8df8`.
+The separate program admission SHA-256 is
+`75ac63cdda4eb8033c48ea4ced6fdc358d0c90957fe4076b7141d825ba6ab40a`.
+The internal directory `build/http-response-capacity-attribution-20261012`
+retains the source/plan/manifest, probe-only build, admission, verbatim log and
+closeout. Its unique reservation prohibits repetition. All processes are gone
+and the service remained active; no target or sample was accessed.
+
+Each host slot retains 2,488 body-capacity bytes after the capabilities response,
+then 960 after the status/jobs responses. The intervening static root GETs
+preserve the preceding capacity even though the closed body's size is zero.
+After all twelve requests, the fixture retains 5,705 requested C++ bytes versus
+3,783 at construction. Releasing the two bodies individually reclaims 961 bytes
+and one allocation block each, returning exactly to the constructed baseline;
+full fixture destruction returns to zero. Every one of the 29 samples satisfies
+the ledger equation: construction plus each heap-backed body's capacity and
+terminator. This attributes the entire 1,922-byte step in this host experiment
+to response bodies, without modifying production close behavior.
+
+The separate offline hash/order/arithmetic review is
+`build/phase14-http-response-capacity-attribution-offline-review-20261012.json`,
+SHA-256 `859d62c488b6ce7bd4483284637a114cdc385264a01aa09a482045a0bcf72435`.
+The earlier four-by-400 source schedule leaves one slot with a capabilities
+response and the other with status/jobs; the measured capacities predict
+`3783 + 2489 + 961 = 7233`, matching its recorded plateau. This is an inference
+from the source schedule and the new attribution, not a previously recorded
+per-slot measurement. Neither experiment isolates Pico B's newlib/TLS/lwIP or
+active 512-event cause.
+
+## Recorded B response context
+
+A new metadata-only inspection bound the four original B physical records to
+their existing independent failure-review hashes. It selected only the last
+response for each of the four permitted browser paths, with no new HTTP,
+device or raw request. Receipt
+`build/phase14-browser-last-response-inspection-20261012.json`, SHA-256
+`aabb9eeb1e42e31fbbb0889397829a7653b0a761683b7614a9babcccc135ede4`,
+records these different end states:
+
+| Mixed job | Mode | Last successful GET | Last response bytes | Job state in that response |
+| --- | --- | --- | ---: | --- |
+| 1 | Tone | capabilities | 1,301 | Not a status view |
+| 3 | FSKCW | root | 38,461 | Static asset; preceding jobs view was running |
+| 5 | Tone | status | 2,880 | Running, no terminal record |
+| 7 | FSKCW | status | 3,006 | Complete, one terminal record |
+
+Those are recorded payload lengths, not allocated capacities. Python compact
+JSON reserialization matches the capabilities hashes, but does not reconstruct
+the original status/jobs body hashes from their parsed values. Preserve that
+limitation and the original hashes; no body or result was rewritten. The
+different final paths and terminal state make retained response capacity a
+specific target hypothesis, without assigning the failed 1,384/1,704-byte
+growth to it or treating the unchanged comparisons as accepted.
+
+## Next target path-contrast plan, unimplemented and unqueued
+
+The next distinct causal runner should test whether idle B's allocated heap
+changes with its final read-only browser path while source, boot, configuration
+and RF state stay fixed. This is a diagnostic of an idle engineering-profile
+board, not the blocked qualifying two-hour memory workload or a reproduction
+of active 512-event operation.
+
+Use exactly six sequential authenticated B GETs in this order:
+`/api/v1/capabilities`, `/`, `/api/v1/status`, `/`,
+`/api/v1/capabilities`, `/`. The capabilities/status/capabilities sequence is
+the causal contrast; root responses test persistence after empty-body
+assignment. Use the existing credential-device, TLS 1.3, ALPN, certificate,
+hostname, status-200 and content-length checks. Preserve each actual response
+hash, length and parsed value, without canonicalizing it into replacement
+evidence. Any additional raw HTTP-body retention needs a separately source-bound
+host collector; it does not authorize IQ capture.
+
+Record three B Console INFO samples before traffic and three samples one second
+apart after the original 45-second idle following each completed response.
+After the final root response, also sample three times at least 350 seconds
+after completion. Keep both heap counters, TLS allocation and all connection,
+input, resource/fault observations; the two heap counters remain the same
+underlying newlib quantity. Record medians/spreads and the reversible path
+contrast without converting them into release acceptance or leak freedom.
+
+Require a fresh unique reservation and separate program admission before any
+device access, followed by live admission before the first GET. Hold all four
+locks throughout a maximum 900-second workflow. Bind the exact clean853 source
+and 138 MHz artifact/installation proof, named A/B serial/protocol identities,
+current expected boots, empty/inactive/unowned/disabled state and false flags.
+Verify public durable settings/current watermark before and after; permit only
+Console INFO and the six GETs. Do not use WTP HELLO/CLAIM/LOAD/ARM/RELEASE,
+CONFIG, ROM, flash operations, reboot, GPIO, receiver, decoder or GPSDO requests.
+Same-boot public cursor checks are not fresh full-flash byte proofs; preserve
+that limitation. No profile/configuration/cursor write is permitted.
+
+Keep the service's verified state unchanged and preserve the installed useful
+images. Independently check runtime/import/source/credential bindings, refusal
+guards, finite owned-process cleanup, actual filesystem UUIDs and a fresh quiet
+boundary before dispatch. The runner and its admission are not implemented or
+executed. No target repair, changed firmware, threshold relaxation, RF rerun,
+raw release or automatic memory-stage chaining is selected or admitted.

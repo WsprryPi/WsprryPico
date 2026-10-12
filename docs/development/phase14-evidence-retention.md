@@ -77,6 +77,30 @@ and external filesystem identities and service active. No new raw read,
 external transfer, removal, firmware change or qualification credit occurred.
 The target resource failure and blocked memory follow-up remain unchanged.
 
+The distinct twelve-GET attribution is retained at clean-root
+`build/http-response-capacity-attribution-20261012`, including its pinned-library
+build, new source/plan/manifest, separate admission, verbatim log, full closeout
+and unique reservation. It must not be repeated. The actual parent SHA-256 is
+`89ec7137e28ca2793663f4aa07f9c24892d559ee9865ea809538d7dac7ec8df8`;
+the admission SHA-256 is
+`75ac63cdda4eb8033c48ea4ced6fdc358d0c90957fe4076b7141d825ba6ab40a`.
+Local private `phase14-http-response-capacity-attribution-*` receipts preserve
+the same result, admission and log bytes. The separate offline review SHA-256 is
+`859d62c488b6ce7bd4483284637a114cdc385264a01aa09a482045a0bcf72435`.
+Metadata-only inspection of recorded B browser response selections is
+`build/phase14-browser-last-response-inspection-20261012.json`, SHA-256
+`aabb9eeb1e42e31fbbb0889397829a7653b0a761683b7614a9babcccc135ede4`.
+Original physical/body hashes and parsed values remain unchanged; no original
+HTTP body is replaced by a JSON reserialization.
+
+Fresh closure `build/phase14-http-attribution-final-quiet-20261012.json`, SHA-256
+`7982f977604af18dbb36dad9265fba6b548138f9d4709ea8df7d700507b40147`,
+verifies exact attribution processes gone, all four locks available, filesystem
+identities and service active. There was no device, RF, new HTTP, IQ, external
+transfer or raw removal in the metadata inspection. Host attribution supplies
+no target acceptance or new capture/transfer credit. The next target path
+contrast is a separately prepared, unimplemented plan only.
+
 ## October 11 closed reserve release and active mixed acquisition
 
 The full independent source/destination verification completed for all 2,014
