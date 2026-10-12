@@ -57,6 +57,34 @@ remaining. Repairs can extend that range. Final installation, consumer API,
 profile/configuration, smokes, evidence retention, review, push and closeout
 remain unfinished.
 
+### Closed host memory lifetime control
+
+The separately bounded [causal plan](phase14-memory-causal-plan.md) now records
+a completed Linux-only probe of unchanged clean-source WTP HELLO/STATUS
+lifetimes. A separate admission program checked source/dependency/binary
+bindings, seven static acceptance/refusal cases and allocation controls before
+the probe ran. The first admission's ineffective loop-bound guard refusal is
+preserved; a distinct corrected successor reused the completed binary and
+executed the synthetic probe once. Both coordinators and their children are
+gone; no board, RF, decoder, sample, firmware or external-storage action occurred.
+
+The one-session case retains 2,769 requested C++ bytes after expiry across all
+four epochs. The twelve-session case changes from 4,809 to 6,089 bytes, then
+plateaus for the remaining epochs. Both return all tracked bytes/blocks to zero
+on full service destruction. Actual host receipt
+`build/phase14-wtp-lifetime-host-result-20261012.json`, SHA-256
+`9c20517a50cf2759bf1e84e9c8029d679a6ad2d8f21f8c99315fed9e0474f661`,
+and separate offline recomputation
+`build/phase14-wtp-lifetime-host-result-review-20261012.json`, SHA-256
+`0caf807dd90e2aeea1b7b27314fe64975833d72d94b8fe1a0630e05cf9818181`,
+bind these limited findings. They do not identify B's target cause or qualify
+its allocator, HTTP/TLS/lwIP or 512-event job lifetime. Browser GET status/jobs
+views bypass WTP replay insertion, so this host retention step does not explain
+the browser-loaded failure. Both INFO heap counters use the same underlying
+newlib `mallinfo().uordblks` at different times; they are not independent leak
+measurements. Further HTTP lifetime preparation remains unexecuted and unqueued.
+No original failure, threshold, source identity, workstream count or credit changed.
+
 ## October 11 amended mixed run started
 
 The clean-image mixed qualification is running exactly once under coordinator

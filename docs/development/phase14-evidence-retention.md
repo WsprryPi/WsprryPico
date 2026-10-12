@@ -38,6 +38,22 @@ state-aware workflow and the established full verification/retrieval rules;
 no only-copy sample or nonraw companion may be removed. The active-run wording
 below records earlier snapshots, not the current closed state.
 
+The separate October 12 [causal plan](phase14-memory-causal-plan.md) retains a
+new metadata-only eight-window counter comparison and closed Linux-only WTP
+lifetime experiment. Internal clean-root `build/wtp-lifetime-host-20261012`
+preserves the completed host build and initial admission refusal;
+`build/wtp-lifetime-host-admission-recovery-20261012` preserves corrected
+admission, unchanged-binary reuse, verbatim probe log, original plan snapshot,
+source manifest and full coordinator closeout. Their unique reservations must
+not be repeated. Local receipts
+`build/phase14-wtp-lifetime-host-first-refusal-20261012.json`,
+`build/phase14-wtp-lifetime-host-admission-20261012.json`,
+`build/phase14-wtp-lifetime-host-result-20261012.json` and
+`build/phase14-wtp-lifetime-host-result-review-20261012.json` preserve the
+refusal and scoped host findings. No target cause, acceptance, capture/transfer
+credit, firmware change, external archive or raw removal follows from them.
+All failed mixed samples and original companions remain intact.
+
 ## October 11 closed reserve release and active mixed acquisition
 
 The full independent source/destination verification completed for all 2,014
