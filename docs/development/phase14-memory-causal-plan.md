@@ -476,19 +476,22 @@ The reviewed UF2 SHA-256 is
 Both builders and all registered children are gone. Preserve the earlier
 checksum and sandbox process-inspection refusals; neither compiled firmware.
 
-Next stage the exact repaired source and reviewed candidate into a NEW internal
-toolroot, verify every source/artifact/dependency binding, then implement a
-distinct finite application-only installer and its independent program
-admission before device access. Require both named boards empty/inactive,
-unowned, disabled and default-false flags at their expected old boots. Preserve
-their public durable settings/current watermarks before and after loading only
-the reviewed application UF2; require exact new source revision, new boots,
-138 MHz, unchanged settings/current watermarks and final idle state. Do not
-write profile/config/cursor journals, perform RF jobs or issue GPSDO/receiver
-requests. Keep all four locks and service state; bound each verified own
-picotool child to 45 seconds, boot readiness to 90 seconds and whole install to
-900 seconds. Closeout must restore only an owned service and prove exact
-children gone. Public settings/cursor equality is not a fresh full-flash proof.
+That separately admitted application-only installation is now complete on both
+named boards. The new internal toolroot is
+`resume-tools-2d67224-http-body-repair-internal-first`; staging full-hashed all
+1,830 cataloged files. Installation took 73.820458429 seconds, used separate
+21-case program admission before devices and actual live admission before ROM,
+and passed both named application flash verifications. Parent SHA-256 is
+`cf8e7c0dddd6bd0ef3b06354b1d89fd4f289e363306f1facbcc128a7eb2508db`;
+independent installation review SHA-256 is
+`a12806c24e630c713ef6c8122c039e723863f63888fb6aa1f0cc9e085a353f15`.
+Both now run clean2d67224dbddc/138 MHz at new A/B boots
+`7d0c2ee267b74819c9d406b1b9bf177b` /
+`5ec92f9b2249ca263109f90220f425ac`. All exact processes are gone; public
+durable settings/current watermarks and empty/inactive/unowned/disabled/false
+flags were preserved, with the owned service restored active. No RF, GPIO,
+receiver/GPSDO or profile/config/cursor write occurred. Public equality is not
+a fresh full-flash byte proof. Never repeat the completed installer or review.
 
 Preserve the old clean853 worktree and useful images. Installation and subsequent
 read-only repaired-image contrast need fresh program/live admissions, exact
@@ -497,6 +500,110 @@ UUID checks, finite owned-process cleanup and unchanged-service proofs. Do not
 infer original active-512-event acceptance from the idle contrast. A new mixed
 qualification needs its own repaired-source admission and storage reserve;
 there is no automatic memory follow-up, raw release or threshold relaxation.
+
+### Repaired-image validation refusals and finite remaining-path continuation
+
+The first new read-only validation refused before any GET because it compared
+the current DHCP address to the installer's still-joining empty address. Its
+four INFOs and closed parent SHA-256
+`27c4a58ab0e0ae26cb7235263b95c4f868b5f5b4189a5eaa8fdfb5884fe9db12`
+remain immutable. A distinct address-aware successor retained the named source,
+new boots, MAC/deployment hostname/device/certificate and durable settings
+guards, with 28 program cases and live admission before traffic. It completed
+capabilities/root GETs and their 45-second groups, then its next TCP connect
+timed out before TLS or HTTP. Parent SHA-256 is
+`ec69002d2ed61193804179a299c853bb95c1a8b007caa17e824206f200de6984`.
+The two completed post-response groups both show heap 16,912, allocator 21,016
+and TLS 4,397 bytes, with zero spread. Remaining paths and 350 seconds were not
+executed by that helper. Independent metadata-only failure review SHA-256 is
+`d5e58cf26404af9e6f50f7ca9c483baa02a6db235c563d2038793f1c77dee323`.
+Never rerun either closed helper, reservation or completed prefix GET.
+
+The distinct remaining-path continuation permits only status/root/capabilities/
+root once each, with no retry loop or timeout change. Its independent program
+admission binds the actual two-response prefix and failure review before any
+device access. Fresh live admission checks exact source/image/new boots,
+settings/current watermarks/idle/false flags/resources/faults, assigned IP
+`192.168.1.53`, link ready, unchanged MAC/hostname/device/certificate, listening
+service and zero selected retained connection/input counts before any GET.
+It admits 20 INFOs: A before/after, three B before, three one-second-spaced B
+samples after at least 45 seconds following each response, and three at least
+350 seconds after final root. All four locks, a new unique reservation,
+filesystem/runtime/credential guards, 840-second probe/850-second launcher/
+900-second whole bounds and exact owned cleanup/service proofs are mandatory.
+Only direct INFO and the four authenticated GETs are permitted; no other device,
+RF, receiver/GPSDO, raw, external transfer/removal or later queue is admitted.
+
+The gap between stages, additional admission INFOs and failed TCP attempt must
+be explicit. This split contrast cannot be called the original uninterrupted
+six-GET/26-INFO protocol. Require whole closure, exact processes gone and a NEW
+independent metadata-only result review before reporting final arithmetic.
+Any further failure is preserved for separately bounded diagnosis, with no
+endless continuations. Even successful idle results do not isolate the original
+active-512-event mixed cause or admit qualifying RF/memory/release acceptance.
+
+The continuation is now complete in 506.366945095 seconds, with 30 program
+cases, 1,026 source bindings, actual live admission, exactly 20 INFOs and four
+remaining GETs. Parent SHA-256 is
+`06b82e3095cd12041b01c9559d60474532379337c747204f6d4a931066c981d5`;
+independent split-result review SHA-256 is
+`f8fbf96f455d1489060b6b5b25a58efc0736d56daf5d732e29c59441b9445cd3`.
+All six actual closed-response 45-second medians across the two stages, and the
+final at-least-350-second group, are heap 16,912 / allocator 21,016 / TLS 4,397
+bytes with zero spread. The old idle status/capabilities step is absent in this
+scoped repaired-image observation. Preserve the original TCP timeout, ownership
+gap, warm-up allocations and original mixed failure. No target container
+capacity, leak freedom, active-512-event cause or long qualification is proved.
+Every exact parent/child/reviewer is gone; final quiet proof SHA-256 is
+`0c848718b4b1f9e2e8c2da81ead547351c48c17112131fe67ddef599f26b9ce6`.
+Never repeat these completed helpers or their reservations.
+
+### Next repaired-source mixed admission and reserve preparation
+
+This is plan only; no new RF coordinator, storage helper, raw release or later
+queue is admitted. Prepare a separately identified clean2d67224/138/new-boot
+mixed coordinator and independent program/live admission. Keep the exact
+unchanged eight one-hour A/B Tone and 512-event FSKCW/B-browser workloads,
+45-second idle, INFO cadence, 1,024-byte growth/spread screens, all scientific
+criteria, before/after reference captures and original source identities of
+retained finite evidence. The existing byte-identical science drivers and
+reviewed RF source applicability can be retained narrowly; do not relabel old
+RF as new-image observations. Bind the actually installed repaired source,
+candidate and installation review, scoped idle repair evidence, operator
+4 m/2 m exclusions and original failed mixed receipts. Do not execute the old
+4c/ed93/e953/853 RF entries as-is. Preserve the private ownership handoff model,
+all four locks, exact runtime/import/receiver identities, internal-only live
+raw capture, finite owned-child cleanup and final settings/current watermark/
+GPSDO/owned-service restoration. Qualifying memory remains separately blocked
+until a new whole mixed run is independently accepted and gone.
+
+Fresh internal free space is 10,444,853,248 bytes versus the unchanged full
+58.32 GB mixed + 128 MB references + 10 GiB requirement of 69,185,418,240 bytes:
+the demonstrated planning deficit is 58,740,564,992 bytes. Recheck actual space
+at every admission; this arithmetic does not authorize deletion. Once the new
+RF program's actual independent admission establishes ready-stage requirements,
+prepare a distinct retention-only copy/review of the closed failed mixed raws
+and all companions to a fresh external catalog. Keep every original failure,
+source/image/job/control/analysis identity. Verify actual UUIDs/closed processes/
+four locks, complete source raw hashes and stat identities, full durable
+destination hashes, unchanged source and all companion files, fsync and
+identical retrieval publications on both filesystems. No transfer overlaps
+any acquisition/analysis; no Mac/SD raw archive, source removal, compaction or
+only-copy/nonraw deletion is admitted by that copy stage.
+
+Only after actual full durable copy/catalog review is closed and gone may a
+separately reviewed state-aware redundant-raw release be considered. It must
+bind current shortage, the new ready-source RF admission and actual durable
+proofs, exclude the 25 already removed clock duplicates, preserve only copies,
+nonraw companions and retained maximum-job samples, and publish each retrieval
+on both filesystems before immediate source/destination hash/stat/user checks
+and each unlink. Stop once the actual full reserve is met. Copying/releasing
+58.448 GB of failed mixed/reference duplicates alone would still leave about
+292.6 MB of this planning deficit; any additional eligible duplicate needs its
+own exact existing durable proof and state-aware checks. No storage helper or
+release is implemented, executed or queued at this boundary. Repaired-source
+mixed capture requires its own fresh actual admission/reserve and exactly-once
+dispatch; there is no automatic stage chain or acceptance/capture credit.
 
 ## Historical unexecuted source-candidate proposal
 

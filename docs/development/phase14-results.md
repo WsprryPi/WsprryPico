@@ -4,6 +4,104 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 12 repaired application installation and target validation
+
+Both named boards now run clean repaired source
+`2d67224dbddc16b320e43c9fce3ccb74f8d102ce` at 138 MHz. The application-only
+installer completed in 73.820458429 seconds, after separate program admission
+(21 cases) and live admission before ROM access. Both named application loads
+passed actual flash verification. Public durable settings/current watermarks,
+consumer A and engineering B profiles, false experimental flags and final
+empty/inactive/unowned/disabled state were preserved. Only the owned service
+was stopped and restored active. No RF, GPIO, receiver, GPSDO or
+profile/configuration/cursor write occurred.
+
+The new internal toolroot is
+`/home/pi/phase14-qualification-20261008/build/resume-tools-2d67224-http-body-repair-internal-first`.
+Its source-stage receipt SHA-256 is
+`3234720e1e2cf248e73a78a0834edabe22ef5a1a26fed2322cc09bac3112f63b`;
+all 1,830 source/artifact files matched their catalog. The application installer
+receipt SHA-256 is
+`cf8e7c0dddd6bd0ef3b06354b1d89fd4f289e363306f1facbcc128a7eb2508db`.
+Independent installation review SHA-256 is
+`a12806c24e630c713ef6c8122c039e723863f63888fb6aa1f0cc9e085a353f15`.
+It verified the source/artifacts, actual admissions, six named picotool commands,
+27 successful Console TX/RX bindings, preserved settings/current watermarks,
+active service and exact processes gone. New A/B boots are
+`7d0c2ee267b74819c9d406b1b9bf177b` /
+`5ec92f9b2249ca263109f90220f425ac`. Public settings/cursor equality is not
+a fresh full-flash byte proof. Canonical small evidence is retained in
+`build/phase14-repaired-install-closed-20261012/`. Earlier statements below
+that the repair was not installed describe their historical checkpoints.
+
+The first repaired-image read-only validation refused before any GET: the
+installer had recorded B still joining Wi-Fi with an empty IPv4 address,
+while fresh same-boot INFO showed the assigned address `192.168.1.53`.
+Its immutable receipt SHA-256 is
+`27c4a58ab0e0ae26cb7235263b95c4f868b5f5b4189a5eaa8fdfb5884fe9db12`.
+A distinct address-aware successor passed 28 program cases and live admission,
+then completed capabilities and root GETs and their 45-second idle windows.
+Both post-response heap medians were 16,912 bytes, allocator medians 21,016
+and TLS allocation 4,397, with zero spread. Its next TCP connection timed out
+before TLS/HTTP traffic, so the six-GET validation did not complete.
+Its closed receipt SHA-256 is
+`ec69002d2ed61193804179a299c853bb95c1a8b007caa17e824206f200de6984`.
+
+Independent metadata-only failure review SHA-256
+`d5e58cf26404af9e6f50f7ca9c483baa02a6db235c563d2038793f1c77dee323`
+binds both refusals, original serial/response/source/admission evidence,
+counts, timing and exact processes gone. Last INFO before the TCP timeout
+showed the same source/boot, ready network, zero selected input/connection
+counts and unchanged fault observations; it is not a readback after the failure
+or a cause attribution. Preserve these failures and do not repeat their helpers.
+
+A separately admitted finite continuation reuses the two completed responses
+and permits only the remaining status/root/capabilities/root requests once,
+with 20 fresh INFO samples, 45-second windows and a final at-least-350-second
+window. Its fresh live admission checks source, new boots, settings/current
+watermarks, ready network identity and zero selected retained connection/input
+counts. This split validation has an ownership gap, extra admission INFOs and
+the recorded failed TCP attempt; it cannot be promoted to the original
+uninterrupted six-GET/26-INFO protocol. Whole closure and a separate independent
+result review were required before reporting its final observations.
+
+The remaining-four-GET stage is now closed in 506.366945095 seconds, with
+20 INFOs, four successful responses, no error/closeout error, all exact
+registered processes gone and service active. Its parent SHA-256 is
+`06b82e3095cd12041b01c9559d60474532379337c747204f6d4a931066c981d5`;
+program admission passed 30 cases and 1,026 source bindings. Independent
+split-result review SHA-256 is
+`f8fbf96f455d1489060b6b5b25a58efc0736d56daf5d732e29c59441b9445cd3`.
+It verifies original serial/response/source/new-boot/settings bindings, exact
+remaining path order, 45/350-second timing, one-second sample spacing, arithmetic
+and process closure while preserving the failed prefix receipt and ownership gap.
+
+| Closed idle observation | Heap bytes | Allocator bytes | TLS bytes |
+|---|---:|---:|---:|
+| First capabilities/root prefix, each after 45 seconds | 16,912 | 21,016 | 4,397 |
+| Remaining status/root/capabilities/root, each after 45 seconds | 16,912 | 21,016 | 4,397 |
+| Final root after at least 350 seconds | 16,912 | 21,016 | 4,397 |
+
+Every three-sample window has zero spread. Status versus capabilities and all
+root controls now show zero heap step, compared with the separately recorded
+old853 reversible 2,552-byte step. The first repaired-image traffic increased
+heap by 656 and TLS allocation by 648 bytes; that warm-up difference is not
+individual-container attribution. Selected connection/input counters remain
+zero and recorded cumulative faults are unchanged. Both heap counters still
+share newlib `uordblks` at different formatting points, with a 4,104-byte offset.
+This supports the deployed repair's scoped idle behavior; it does not establish
+the original active-512-event mixed cause or leak freedom. The TCP timeout
+remains an original unisolated failure; the later status request succeeded.
+
+Fresh quiet receipt SHA-256
+`0c848718b4b1f9e2e8c2da81ead547351c48c17112131fe67ddef599f26b9ce6`
+observed at 1791813235522697016 ns proves all campaign/registered processes
+gone, four locks simultaneously available, expected filesystem identities
+and active service. Internal free space is 10,444,853,248 bytes. No original
+mixed or qualifying memory acceptance, leak-freedom or release credit follows.
+Counts remain 3 of 9 workstreams (33.3%); estimated 15–37 hours remaining,
+with unresolved mixed resource failure and possible repair extension.
+
 ## October 12 response-body repair and Linux regression
 
 The operator requested that the identified defect be fixed. The source now

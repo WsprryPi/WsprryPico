@@ -5,6 +5,66 @@ to about 3.9 GiB free; wspr1, wspr2 and wspr4 use SD cards. This amendment
 changes storage and encoding, while retaining the required measurements,
 original result records, failed evidence and complete raw sample contents.
 
+## October 12 repaired installation and target refusal evidence
+
+Retain the new internal toolroot
+`resume-tools-2d67224-http-body-repair-internal-first`, its 1,830-file staging
+catalog/source proof, reviewed application artifacts and unique stage/installer
+reservations. Source-stage receipt SHA-256 is
+`3234720e1e2cf248e73a78a0834edabe22ef5a1a26fed2322cc09bac3112f63b`.
+The closed application-only installation under
+`build/application-only-repair-install-20261012/` has parent SHA-256
+`cf8e7c0dddd6bd0ef3b06354b1d89fd4f289e363306f1facbcc128a7eb2508db`;
+adjacent independent installation review SHA-256 is
+`a12806c24e630c713ef6c8122c039e723863f63888fb6aa1f0cc9e085a353f15`.
+Local `build/phase14-repaired-install-closed-20261012/` preserves actual
+program/live admissions, complete serial events, all seven command logs,
+source/artifact bindings and the independent review verbatim. No credentials
+or RF samples were copied. Both repaired application images are now installed;
+older not-installed statements below are historical.
+
+Preserve the new pre-GET IPv4-join refusal at
+`build/repaired-image-idle-six-get-validation-20261012/`, parent SHA-256
+`27c4a58ab0e0ae26cb7235263b95c4f868b5f5b4189a5eaa8fdfb5884fe9db12`,
+and the distinct two-GET TCP timeout at
+`build/repaired-image-idle-six-get-address-aware-20261012/`, parent SHA-256
+`ec69002d2ed61193804179a299c853bb95c1a8b007caa17e824206f200de6984`.
+Their canonical small mirrors are
+`build/phase14-repaired-six-get-pretraffic-refusal-closed-20261012/` and
+`build/phase14-repaired-address-aware-refusal-closed-20261012/`.
+Retain source plans/manifests, actual admissions, original INFO RX/TX, completed
+response hashes/lengths/parsed values and the actual failure logs. The separate
+metadata-only failure review SHA-256 is
+`d5e58cf26404af9e6f50f7ca9c483baa02a6db235c563d2038793f1c77dee323`.
+Its initial missing-success-field reader refusal is preserved separately; no
+device request or original evidence rewrite occurred during either review.
+
+Never repeat these completed workflows or reservations. Any remaining-path
+validation must reuse the two completed GETs, preserve the failed TCP attempt
+and ownership gap, and obtain its own finite program/live admission and result
+review. That distinct remaining-path stage is now closed and independently
+reviewed. Keep new-root `build/repaired-image-remaining-four-get-validation-20261012/`
+and its unique reservation, with parent SHA-256
+`06b82e3095cd12041b01c9559d60474532379337c747204f6d4a931066c981d5`.
+Its adjacent independent split-result review SHA-256 is
+`f8fbf96f455d1489060b6b5b25a58efc0736d56daf5d732e29c59441b9445cd3`.
+Canonical local `build/phase14-repaired-four-get-closed-20261012/` contains
+explicitly named public evidence files and logs; credential files, raw samples
+and generated Python caches are excluded. Preserve the refused directory-wide
+export; the completed export instead used a fixed evidence-file allowlist,
+hash/size checks and private-key marker refusal. No original file was rewritten.
+
+Fresh quiet proof
+`build/phase14-repaired-install-and-split-validation-final-quiet-20261012.json`,
+SHA-256 `0c848718b4b1f9e2e8c2da81ead547351c48c17112131fe67ddef599f26b9ce6`,
+records all campaign and exact registered processes gone, four locks available,
+actual UUID/device identities, active service and zero new device/raw requests.
+Do not repeat the completed remaining-path program, traffic, review or reservation.
+No original mixed raw or companion was transferred or removed. All
+58.32 GB plus 128 MB references remain internal under the old853 root, with
+immutable failed flags. The earlier 25 redundant clock removals and durable
+retrieval proofs remain unchanged; no new raw release is admitted.
+
 ## October 12 response-body repair controls
 
 Retain the distinct repair validation directory on internal wspr5 storage:
