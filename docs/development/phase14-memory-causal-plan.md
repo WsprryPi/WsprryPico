@@ -1,10 +1,95 @@
 # Phase 14 memory failure causal plan — October 12, 2026
 
-Status: guarded final reserve and RF-off cleanup independently complete;
-corrected repaired-source mixed qualification actually running. Prior failed
-receipts remain immutable; whole mixed/memory acceptance is still open.
+Status: corrected repaired-source mixed qualification closed with a B TLS
+handshake failure; saved failure metadata independently reviewed. Guarded
+retention remains complete. Prior receipts are immutable; whole mixed/memory
+acceptance and source-bound TLS diagnosis remain open.
 Progress remains 3 of 9 original workstreams (33.3%); estimated 15–37 hours
 remaining, with repairs potentially extending that range.
+
+## October 12 corrected repaired mixed closed with B TLS-handshake failure
+
+This is the current state. It supersedes the earlier running snapshots below;
+all older results, source identities and failure flags remain immutable.
+The corrected run stopped during B's first Tone job after 322 successful
+browser responses. The primary error is
+`TimeoutError('_ssl.c:1012: The handshake operation timed out')` in
+`ssl.do_handshake`, after TCP connection and before HTTP request `sendall`.
+The failed next path is inferred as `/api/v1/capabilities` from the fixed
+root/status/capabilities/jobs rotation; no HTTP request for that attempt was
+sent. The last completed response was status, HTTP 200, 2,881 bytes, SHA-256
+`ff2f3c5049679e199d3b911140fbbc2283b9a7e33e06c2bfbd2c3ae12ab6a2e9`.
+This boundary does not isolate a firmware, TLS, network or host cause.
+
+Actual failed parent receipt in the repaired source root is
+`build/repaired-source-mixed-service-guard-20261012T192001/result.json`, SHA-256
+`9de8b772e92c3325b596d3c3357c8c5815e2c9d084e39ee8ea568dc03f1bf993`.
+The corrected coordinator preserved the primary child log/exit and two completed
+Rig handoffs, reporting `ChildProcessError` without a secondary closeout error.
+A's Tone control completed; B aborted with exact job
+`455cc28378217a68172801116b89f9f1`. No whole mixed qualification completed,
+no independent RF/raw acceptance occurred, and no workstream or capture credit
+is added. The original 4-second browser connection/handshake timeout, scientific
+limits, 8-job workload, 45-second idle, one-second INFO spacing and 1,024-byte
+growth/spread screens were unchanged. No retry, firmware change or later stage
+was dispatched.
+
+A distinct saved-metadata inventory and independent metadata-only review are
+actually complete. Review SHA-256 is
+`23620e6a10bcefa9515661f702510d993d782f42e95e4ca3cded3ffcd2e04861`;
+its helper is `f0924c04c266519654ca77eaa99e6fec60685eb3533a2c72a24c8a72cae9ce1a`.
+It hash-bound eight explicitly named result/log/live-admission/raw-Console/
+browser/physical metadata files, decoded final Console TX/RX, verified all
+322 completed browser response records and fixed order, exact source/image/
+new boots/public durable settings/current watermarks, cleanup and process
+closure. Its scope is failure integrity, not independent IQ or whole RF
+acceptance. Local private proof/source files are identically durable in the
+repaired root's `build/repaired-mixed-tls-failure-metadata-closed-20261012/`;
+fixed four-file size/hash/private-key-marker checks passed, with no credentials
+or sample files copied.
+
+Recorded final A is empty; B retains the exact safely aborted job. Both remain
+clean repaired `2d67224dbddc` / reviewed 138 MHz image / expected new boots /
+RF off / unowned / disabled / default-false flags. Public durable settings,
+current watermarks and saved consumer profile equality passed; this is not a
+new full-flash byte proof. Selected final connection/pending/RX/TCP counts and
+fault/allocator/DMA/stack observations are zero. These are saved target
+readbacks, not new device requests. B's last saved INFO is after cleanup and
+must not be described as pre-timeout telemetry. GPSDO restoration is recorded
+by the coordinator, while this metadata review made no GPSDO request.
+
+Fresh host checks at observed_ns `1791840962174421871` verify all 18 registered
+process identities gone, including parent 3519766/start 75059297, acquisition
+3519966/start 75067112 and both captures. All campaign processes are gone;
+all four locks were simultaneously available; actual internal/external UUIDs
+and devices 66306/2049 match; `wsprrypi.service` is active and restoration is
+not pending. Internal free is 55,316,123,648 bytes. The new run retains four
+16 MB references, A's complete 7,290,000,000-byte raw and B's partial
+6,898,074,624-byte raw internally. This review used sample stats only, performed
+no new full IQ hash, transfer or removal, and preserved the earlier failed
+partial recording, all original durable samples/companions/flags, useful images
+and exactly 31 known clock-source absences. Closed retention/diagnostic/cleanup/
+RF helpers and their reservations must not be repeated.
+
+Next work is source-bound TLS failure diagnosis. First inspect exact deployed
+TLS/connection lifecycle source and the saved B network/resource chronology.
+If new measurement is required, prepare a distinct finite RF-off TLS-handshake
+contrast with separate actual program/live admission, unchanged timeout,
+source/image/new-boot/public-settings/current-watermark/aborted-job/credential/
+process/lock/UUID/service safeguards, no HTTP mutations or RF. No diagnostic,
+cleanup, new retention/release or RF successor is admitted or queued here.
+Do not blindly rerun either failed mixed entry, relax deadlines or repeat the
+closed GET/STATUS probes. Qualifying memory remains blocked until an actual
+repaired whole mixed result is independently accepted and all processes gone.
+Any future storage shortage must bind an actually ready new programme and
+fresh reserve; the present free-space figure alone does not admit raw release.
+
+Harness: STOPPED. Progress remains 3 of 9 original workstreams (33.3%);
+estimated 15–37 hours remaining, with unresolved mixed/memory failures possibly
+extending the estimate. Fixed remaining 37,546 seconds is unchanged. Hourly
+reports remain active. Final push/remote parity/Phase 14 closeout are unfinished;
+no native Mac C++ build, SDK/tool installation, publication or excluded-band
+RF/decoder work occurred.
 
 ## October 12 final reserve closed; corrected repaired mixed actually running
 
