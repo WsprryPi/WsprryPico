@@ -464,9 +464,32 @@ offline source/log/order review SHA-256 is
 The completed harness and children are gone. No hardware or raw access occurred.
 Do not repeat that validation or any previous closed diagnostic helper.
 
-Next produce a separately identified clean-source 138 MHz Arm candidate and
-independent byte-identical 138 MHz rebuild using retained pinned inputs, then
-review artifact layout and exact source identity before finite installation.
+The selected repair commit is
+`2d67224dbddc16b320e43c9fce3ccb74f8d102ce`. Its distinct clean-source 138 MHz
+candidate and independent rebuild are now complete and ELF/UF2 byte-identical.
+Actual build receipt SHA-256 is
+`33a20e76b07234663c66dccd61400d30048fa913b4fd2135fbe21b04bea09cd7`;
+independent exact source, artifact and layout review SHA-256 is
+`8579cff2fd4055860c737201064ccf56a59709b529d982792e8d66a919d2656f`.
+The reviewed UF2 SHA-256 is
+`6d5ee077e711d008422a0b881f4912e17e7c2fad56abf47c9fc6bcd4ee974787`.
+Both builders and all registered children are gone. Preserve the earlier
+checksum and sandbox process-inspection refusals; neither compiled firmware.
+
+Next stage the exact repaired source and reviewed candidate into a NEW internal
+toolroot, verify every source/artifact/dependency binding, then implement a
+distinct finite application-only installer and its independent program
+admission before device access. Require both named boards empty/inactive,
+unowned, disabled and default-false flags at their expected old boots. Preserve
+their public durable settings/current watermarks before and after loading only
+the reviewed application UF2; require exact new source revision, new boots,
+138 MHz, unchanged settings/current watermarks and final idle state. Do not
+write profile/config/cursor journals, perform RF jobs or issue GPSDO/receiver
+requests. Keep all four locks and service state; bound each verified own
+picotool child to 45 seconds, boot readiness to 90 seconds and whole install to
+900 seconds. Closeout must restore only an owned service and prove exact
+children gone. Public settings/cursor equality is not a fresh full-flash proof.
+
 Preserve the old clean853 worktree and useful images. Installation and subsequent
 read-only repaired-image contrast need fresh program/live admissions, exact
 image/new boot/settings/current-watermark bindings, all four locks, filesystem

@@ -41,6 +41,35 @@ live state is reported as `UNKNOWN`. Counts remain 3 of 9 workstreams (33.3%);
 estimated 15–37 hours remaining, with possible repair extension. Host tests and
 elapsed time supply no original-workstream acceptance credit.
 
+The repair is checkpointed at
+`2d67224dbddc16b320e43c9fce3ccb74f8d102ce`. A new clean managed worktree
+produced the 138 MHz candidate and an independent rebuild using retained
+Arm GNU 15.3.1, SDK 2.3.1 and existing native helper binaries. Both ELF and
+UF2 files are byte-identical. Candidate UF2 SHA-256 is
+`6d5ee077e711d008422a0b881f4912e17e7c2fad56abf47c9fc6bcd4ee974787`;
+ELF SHA-256 is
+`f2217384b31a5cea2ee09367e0efdf8abe1eb6ab28e8fbf9f71e5808e1637a5d`.
+The exact clean revision is `2d67224dbddc`. Independent source/layout review
+SHA-256 `8579cff2fd4055860c737201064ccf56a59709b529d982792e8d66a919d2656f`
+confirms the dedicated 16 KiB worker stack, 32 KiB primary stack and reserved
+flash boundaries. Only the two HTTP response source files differ from clean853
+within production source, firmware, SDK helpers and scripts.
+
+The actual Arm build receipt SHA-256 is
+`33a20e76b07234663c66dccd61400d30048fa913b4fd2135fbe21b04bea09cd7`.
+The builder and every registered child are gone. Preserve the preceding
+wrong-expected-self-hash refusal and sandbox process-inspection refusal; neither
+started firmware compilation. The successful distinct successor used a fresh
+reservation and verified process access before creating it. No native Mac C++
+build, SDK/tool installation or device request occurred.
+
+Fresh quiet receipt `build/phase14-response-body-repair-final-quiet-20261012.json`,
+SHA-256 `9f8bbb336bb0499fdab98d058e8a1690a1724243df35a998d7321e26c1b0d6ff`,
+verifies the harness stopped, all campaign and exact registered processes gone,
+four locks simultaneously available, expected filesystem identities and active
+service. The repaired candidate is built and reviewed; it is not installed or
+target-qualified yet. The original mixed failure and counts remain unchanged.
+
 ## October 12 mixed resource failure and closed workflow
 
 The exactly-once clean-image mixed run is closed with
