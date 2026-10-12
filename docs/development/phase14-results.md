@@ -82,8 +82,39 @@ its allocator, HTTP/TLS/lwIP or 512-event job lifetime. Browser GET status/jobs
 views bypass WTP replay insertion, so this host retention step does not explain
 the browser-loaded failure. Both INFO heap counters use the same underlying
 newlib `mallinfo().uordblks` at different times; they are not independent leak
-measurements. Further HTTP lifetime preparation remains unexecuted and unqueued.
+measurements. The subsequent HTTP result is recorded below.
 No original failure, threshold, source identity, workstream count or credit changed.
+
+### Closed portable HTTP lifetime control
+
+The distinct HTTP/API/parser runner completed 1,600 successful rotating GETs
+with two reused slots, four epochs, virtual 10-second spacing and 45/350-second
+idle samples. All twelve post-workload/idle samples retain 7,233 requested C++
+bytes in 26 blocks; construction retains 3,783 bytes in 24 blocks and full
+fixture destruction returns both counters to zero. The parent receipt is
+`build/phase14-http-lifetime-capacity-aware-result-20261012.json`, SHA-256
+`9c731733b978b0bbb36a2f9d756ea9f04e3c13d85573deb0d40948eafacdd568`.
+Separate admission passed 15 static guards plus source/dependency/binary and
+allocation/capacity controls before execution. A separate offline result
+review verified hashes, execution order and all 14 samples; its SHA-256 is
+`cf4ad02dc33f2990d2d8712b5387af539f71d9c34f3f018b8c29429140b95878`.
+
+The first host admission aborted on an incorrect fixture assumption that
+production closure releases all response string capacity. A distinct bounded
+localization preserved the abort and identified that assertion. The corrected
+synthetic control measures 4,097 retained requested bytes for an injected body;
+explicit body release restores baseline. That release occurs only in the
+control. Production source, firmware and the main workload close path remain
+unchanged. All failed/corrected receipts and unique reservations are retained;
+none may be blindly repeated.
+
+This demonstrates a plateau in the selected empty-job portable host fixture,
+without isolating Pico B's target cause or qualifying newlib/TLS/lwIP and the
+active 512-event job lifetime. All processes are gone, all four locks are
+available and the service is active. No device, RF, raw read, external archive
+or sample release occurred. The next capacity-attribution runner is a distinct
+unimplemented plan, not an admission or queue. Progress remains 3 of 9 original
+workstreams (33.3%); estimated 15–37 hours remaining, subject to repair extension.
 
 ## October 11 amended mixed run started
 

@@ -54,6 +54,29 @@ refusal and scoped host findings. No target cause, acceptance, capture/transfer
 credit, firmware change, external archive or raw removal follows from them.
 All failed mixed samples and original companions remain intact.
 
+The subsequent portable HTTP experiment is also closed. Clean-root
+`build/http-lifetime-host-20261012` retains the original build and failed
+fixture admission; `build/http-controls-localization-20261012` retains the
+distinct bounded assertion localization and its admission;
+`build/http-lifetime-capacity-aware-host-20261012` retains the capacity-aware
+successor, immutable-library binding, separate admission, source manifest,
+verbatim 1,600-GET log and complete closeout. All unique reservations prohibit
+blind repetition. The first failed parent SHA-256 is
+`9cc4b4e46ab3cdad637d04a769f840b9d60630e21c14e055b2503f0365df7a8b`;
+the completed successor SHA-256 is
+`9c731733b978b0bbb36a2f9d756ea9f04e3c13d85573deb0d40948eafacdd568`.
+Verbatim local receipts use the `phase14-http-lifetime-*` and
+`phase14-http-controls-localization-*` names in private `build/`.
+The separate offline result review is
+`build/phase14-http-lifetime-host-result-review-20261012.json`, SHA-256
+`cf4ad02dc33f2990d2d8712b5387af539f71d9c34f3f018b8c29429140b95878`.
+Fresh metadata-only closure is `build/phase14-http-causal-final-quiet-20261012.json`,
+SHA-256 `d03f79d487060d701f2e8e737a11f1981293d3dc86e1c536e60432c80d66972e`.
+It verifies exact host processes gone, all four locks available, actual internal
+and external filesystem identities and service active. No new raw read,
+external transfer, removal, firmware change or qualification credit occurred.
+The target resource failure and blocked memory follow-up remain unchanged.
+
 ## October 11 closed reserve release and active mixed acquisition
 
 The full independent source/destination verification completed for all 2,014

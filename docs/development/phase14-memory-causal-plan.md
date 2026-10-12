@@ -151,10 +151,10 @@ as the browser cause. No cause or target leak freedom is established, no
 qualification credit is applied, and the original mixed failure and blocked
 memory follow-up remain unchanged.
 
-## Next causal preparation, unexecuted
+## HTTP preparation and actual closed result
 
-The next distinct host runner should test the portable HTTP/API response and
-parser lifetimes for those four exact GET paths. Reuse the production portable
+The next distinct host runner was planned to test the portable HTTP/API response
+and parser lifetimes for those four exact GET paths. Reuse the production portable
 API and HTTP parser with source-bound fake clock/network/storage adapters;
 abort on RF prepare/begin or any mutation. Retain two connection-slot objects
 and mirror the production close/reset order. Use four epochs of 400 successful
@@ -163,11 +163,96 @@ idle observations. All response temporaries must be gone at sampling. Record
 the same C++ ledger and prove full fixture destruction returns its baseline.
 Keep source, paths, request count and close/reset semantics fixed after admission.
 
-Admission must bind the new runner, exact source and reused fixture hashes,
-reject non-GET or unexpected paths/mutations, validate ledger and close/reset
+Admission was required to bind the new runner, exact source and reused fixture
+hashes, reject non-GET or unexpected paths/mutations, validate ledger and close/reset
 controls, and enforce at most 600-second Linux build, 120-second probe and
 900-second whole bounds. A fresh unique reservation and actual separate
-admission receipt are required before execution. This runner is not yet
-implemented, admitted or queued. It will still exclude Pico newlib, TLS, lwIP
-and the 512-event job lifetime; any subsequent target or allocator experiment
-needs its own causal question and admission. No firmware repair is selected.
+admission receipt were required before execution. The implementation and actual receipts
+below supersede this earlier preparation state. It excludes Pico newlib, TLS,
+lwIP and the 512-event job lifetime. No firmware repair is selected.
+
+The first Linux build completed against unchanged clean853 portable sources,
+but a fixture assertion aborted during separate admission. It had incorrectly
+required production response closure to return immediately to the constructed
+allocation baseline. No 1,600-GET diagnostic executed. The preserved parent
+receipt `build/phase14-http-lifetime-first-refusal-20261012.json` has SHA-256
+`9cc4b4e46ab3cdad637d04a769f840b9d60630e21c14e055b2503f0365df7a8b`.
+The original build, binary, logs and reservation remain intact in clean-root
+`build/http-lifetime-host-20261012` and must not be rerun.
+
+A distinct, separately admitted assertion localization reused the immutable
+portable library. It added source-location reporting and permitted only a
+single bounded fixture invocation, refusing the larger experiment. The actual
+abort identifies the post-close baseline assertion, before any GET fixture
+traffic. Its receipt `build/phase14-http-controls-localization-result-20261012.json`
+has SHA-256 `2ca8348863f29ecc21d242fe1e4ea522d0f75ec267c91f55e2da8ccf15cf7ca6`.
+This localizes a host fixture assumption, without locating the target cause.
+
+A separately identified capacity-aware successor kept the production close
+order and original four-by-400 GET workload unchanged. Its new synthetic
+control measures the response body capacity after closure: 4,097 requested
+C++ bytes remain for the deliberately injected 4,096-byte body. Explicitly
+swapping out that body in the control returns exactly to baseline; this swap
+is absent from the workload close path and production firmware. The control
+therefore distinguishes retained string capacity from destruction without
+altering any target acceptance threshold.
+
+Fifteen static acceptance/refusal cases, exact production close-order checks,
+source/dependency/asset and immutable-library bindings, binary argument refusal,
+allocation/alignment and capacity controls passed before the diagnostic ran.
+The actual separate admission is
+`build/phase14-http-lifetime-capacity-aware-admission-20261012.json`, SHA-256
+`e02f76fe2a25bd93c62fbb75421e0556c30d2cd624c2a92f89407e0e1939edba`.
+The successor compiled only its new host probe against the preserved library;
+no production rebuild, target flash or accepted target job was repeated.
+
+The main probe completed once: 1,600 successful rotating GETs with virtual
+10-second spacing, two reused slots and four epochs. Construction retains
+3,783 requested C++ bytes in 24 blocks. Every closed-400, 45-second and
+350-second sample retains 7,233 bytes in 26 blocks, including all four epochs.
+Full fixture destruction returns both counters to zero. The parent receipt is
+`build/phase14-http-lifetime-capacity-aware-result-20261012.json`, SHA-256
+`9c731733b978b0bbb36a2f9d756ea9f04e3c13d85573deb0d40948eafacdd568`.
+A separate offline program verified original hashes, admission-before-probe
+order and all 14 samples/time/count calculations against the verbatim log:
+`build/phase14-http-lifetime-host-result-review-20261012.json`, SHA-256
+`cf4ad02dc33f2990d2d8712b5387af539f71d9c34f3f018b8c29429140b95878`.
+
+These results establish a plateau for the selected empty-job host fixture and
+capacity retention in its synthetic response-body control. They do not assign
+the main plateau to individual objects, reproduce Pico B's same-boot active
+512-event workload, or isolate its newlib/TLS/lwIP memory failure. No leak
+freedom, target repair, qualification, time credit or memory-stage admission
+follows. All coordinators and children are gone, all four locks are available
+and the owned service is active. No device, RF, decoder, raw sample, external
+archive or removal action occurred.
+
+## Next capacity-attribution plan, unimplemented and unqueued
+
+The next distinct hardware-free runner should answer whether the portable
+connection slots' response-body capacities account for their retained C++
+allocation step. Reuse the pinned portable library and the same source-bound
+empty-job fixture, fake clock/network/read-only storage and abort-on-RF/mutation
+adapters. Do not repeat the completed four-by-400 workload or any completed
+coordinator, admission control or localization.
+
+Use exactly two slots and six GETs per slot, in this fixed order:
+`/api/v1/capabilities`, `/`, `/api/v1/status`, `/`, `/api/v1/jobs`, `/`.
+Record requested bytes/blocks and both slots' body size/capacity before requests
+and after each production close. The static root response provides a contrasting
+empty-body assignment after each dynamic response. After all twelve requests,
+release each response body separately in the host attribution control and
+record each exact ledger decrement; then destroy the whole fixture and require
+the initial baseline. The explicit release is a causal host control, never a
+firmware repair or altered production close. Sample printing must not retain
+C++ allocations.
+
+Require a fresh unique reservation, source/library/dependency/binary hashes,
+exact-path/count/order refusal guards, and separate program admission before
+execution. Bounds are at most 120 seconds for its Linux probe-only compile,
+30 seconds for the attribution program and 300 seconds for the whole workflow;
+hold all four locks and verify fresh quiet/UUID/service boundaries. Any outcome
+remains scoped to the portable host implementation. A subsequent target/newlib,
+TLS/lwIP or 512-event causal experiment needs a separate finite plan and admission
+with fresh source/image/boot/settings/cursor/process/lock/UUID safeguards.
+The qualifying memory follow-up remains blocked by the original mixed failure.
