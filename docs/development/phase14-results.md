@@ -4,6 +4,43 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 12 response-body repair and Linux regression
+
+The operator requested that the identified defect be fixed. The source now
+releases the dynamic HTTP response body when a connection closes or an
+acknowledged keep-alive response finishes. Both paths call the shared
+`HttpResponse::reset()` primitive in the existing transport cleanup order.
+Response bytes remain available until that boundary. RF algorithms, job timing,
+browser content and the original resource acceptance limits are unchanged.
+
+A distinct Linux validation rebuilt the portable core and passed all six
+affected test groups: network, response lifetime, bootstrap HTTP, browser,
+owner-claim HTTP and transport contracts. The allocation regression checks
+30 cases across two slots, including empty/static, small and large bodies,
+completed/cancelled responses and acknowledged keep-alive reset. Every repaired
+reset returns requested C++ allocations to its construction baseline. A separate
+control changes only the reset call back to the previous empty-response
+assignment and fails the reclamation assertion with 65 retained requested bytes
+in three blocks. This demonstrates that the regression detects the old behavior.
+
+The completed parent receipt is
+`build/phase14-response-body-repair-host-closed-20261012/result.json`, SHA-256
+`a367788c516ecf882af7a64913692487e07048217cc85700bee55d1a509467ab`.
+Offline source/log/order verification is
+`build/phase14-response-body-repair-host-offline-review-20261012.json`, SHA-256
+`e6f609c2528a337599209baf1a882ba158fa583d529233024a30fc42dc2002ea`.
+The finite harness and children are gone; the owned service remained active.
+No device, RF, raw sample, external transfer or removal occurred. The useful
+installed images still contain the original source. Clean Arm build, artifact
+review, installation and target validation remain before any deployed-repair
+claim. The original mixed failure remains unchanged and unaccepted.
+
+Hourly reports now include a freshly verified `Harness: RUNNING` or
+`Harness: STOPPED` indicator alongside counts, percentage and ETA; unavailable
+live state is reported as `UNKNOWN`. Counts remain 3 of 9 workstreams (33.3%);
+estimated 15–37 hours remaining, with possible repair extension. Host tests and
+elapsed time supply no original-workstream acceptance credit.
+
 ## October 12 mixed resource failure and closed workflow
 
 The exactly-once clean-image mixed run is closed with

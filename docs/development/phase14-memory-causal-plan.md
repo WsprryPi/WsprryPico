@@ -445,7 +445,37 @@ blocked. No leak-freedom, target repair or release acceptance follows. Counts
 remain 3 of 9 workstreams (33.3%); estimated 15–37 hours remaining, with possible
 repair extension and no diagnostic/elapsed-time credit.
 
-## Next source-candidate preparation, unexecuted
+## Selected source repair and completed host validation
+
+The operator's direct request to fix the defect supersedes the historical
+unselected-proposal limits below. Production source now has one shared
+`HttpResponse::reset()` method that releases its dynamic body before resetting
+response metadata. Connection closure and acknowledged keep-alive completion
+call it after the existing mutation-finish and cookie-scrub operations.
+Transport, TCP/TLS, parser cleanup, response contents and RF ordering remain
+unchanged.
+
+The distinct Linux regression rebuilt the changed portable core and passed six
+affected test groups. Its 30 allocation cases return to construction baselines;
+the separate previous-assignment control fails as expected. Actual parent
+SHA-256 is `a367788c516ecf882af7a64913692487e07048217cc85700bee55d1a509467ab`;
+offline source/log/order review SHA-256 is
+`e6f609c2528a337599209baf1a882ba158fa583d529233024a30fc42dc2002ea`.
+The completed harness and children are gone. No hardware or raw access occurred.
+Do not repeat that validation or any previous closed diagnostic helper.
+
+Next produce a separately identified clean-source 138 MHz Arm candidate and
+independent byte-identical 138 MHz rebuild using retained pinned inputs, then
+review artifact layout and exact source identity before finite installation.
+Preserve the old clean853 worktree and useful images. Installation and subsequent
+read-only repaired-image contrast need fresh program/live admissions, exact
+image/new boot/settings/current-watermark bindings, all four locks, filesystem
+UUID checks, finite owned-process cleanup and unchanged-service proofs. Do not
+infer original active-512-event acceptance from the idle contrast. A new mixed
+qualification needs its own repaired-source admission and storage reserve;
+there is no automatic memory follow-up, raw release or threshold relaxation.
+
+## Historical unexecuted source-candidate proposal
 
 A private, unselected proposal is retained as
 `build/phase14-response-body-release-candidate-20261012.patch`, SHA-256

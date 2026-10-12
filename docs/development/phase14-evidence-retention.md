@@ -5,6 +5,29 @@ to about 3.9 GiB free; wspr1, wspr2 and wspr4 use SD cards. This amendment
 changes storage and encoding, while retaining the required measurements,
 original result records, failed evidence and complete raw sample contents.
 
+## October 12 response-body repair controls
+
+Retain the distinct repair validation directory on internal wspr5 storage:
+`resume-tools-8538564-clean-internal-first/build/response-body-repair-host-validation-20261012`.
+Its actual parent receipt SHA-256 is
+`a367788c516ecf882af7a64913692487e07048217cc85700bee55d1a509467ab`.
+The source bundle SHA-256 is
+`dc96802b81a47ff74a04e7eadafeb0d7f9b5fb349b214deff1a11da363154021`;
+the unique reservation and coordinator identity prohibit blindly repeating
+this completed build, tests or negative control. Preserve the source snapshot,
+rebuilt core, binaries, commands and all step logs, including the expected
+old-assignment assertion failure. No production or historical evidence was
+rewritten by that control.
+
+Small canonical receipt/log copies are retained locally in
+`build/phase14-response-body-repair-host-closed-20261012/`. Offline hash/source
+verification is
+`build/phase14-response-body-repair-host-offline-review-20261012.json`, SHA-256
+`e6f609c2528a337599209baf1a882ba158fa583d529233024a30fc42dc2002ea`.
+There were zero device/raw reads, RF jobs, external transfers or removals.
+Useful old images and every mixed failure raw/companion remain intact. The
+source repair has host evidence only; no repaired firmware is installed yet.
+
 ## October 12 failed mixed stage retained intact
 
 The amended mixed workflow and every child are now gone. All eight acquisitions

@@ -46,6 +46,12 @@ struct HttpResponse {
     // An empty override retains the main browser policy.
     std::string_view content_security_policy{};
     std::string_view location{};
+    void reset() {
+        // Empty-string assignment can retain the preceding response's heap
+        // buffer. Return it when the transport finishes or cancels a response.
+        std::string{}.swap(body);
+        *this = HttpResponse{};
+    }
     std::size_t body_size() const {
         if (!static_parts.empty()) {
             std::size_t size = 0;

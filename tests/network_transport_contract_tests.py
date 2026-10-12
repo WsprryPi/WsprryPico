@@ -15,6 +15,20 @@ mbedtls = (ROOT / "src/network/pico/mbedtls_config.h").read_text()
 protocol = (ROOT / "docs/protocol/WTP.md").read_text()
 lwipopts = (ROOT / "src/standalone/pico/lwipopts.h").read_text()
 
+# Reclaim the previous response only at completed/cancelled close or after
+# keep-alive acknowledgement and delivery-safe mutation completion.
+close = server[server.index("void PicoServer::Connection::close("):
+               server.index("void PicoServer::close_pending(")]
+keepalive = server[server.index("if (response_.keep_alive)"):
+                   server.index("if (!close_notify_)")]
+assert close.count("response_.reset();") == 1
+assert close.index("api_.finish_request(generation_, apply)") < close.index("response_.reset();")
+assert keepalive.count("response_.reset();") == 1
+assert keepalive.index("if (!response_acknowledged())") < keepalive.index("response_.reset();")
+assert keepalive.index("api_.finish_request(generation_, true)") < keepalive.index("response_.reset();")
+assert server.count("response_.reset();") == 2
+assert "response_ = HttpResponse{};" not in server
+
 # Product default is off; a deployment selects its port explicitly.
 assert 'set(WSPRRY_PICO_NETWORK_PORT "0"' in network_cmake
 assert "TLS listener port; 0 disables network control" in network_cmake

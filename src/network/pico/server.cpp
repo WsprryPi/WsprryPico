@@ -413,7 +413,7 @@ void PicoServer::Connection::close(bool apply, unsigned reason, int tls_result) 
     generation_ = 0;
     rx_size_ = plain_size_ = plain_offset_ = response_offset_ = 0;
     scrub(response_.set_cookie);
-    response_ = HttpResponse{};
+    response_.reset();
     scrub(response_headers_);
     scrub(principal_);
     http_.reset_secure();
@@ -683,7 +683,7 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
             response_tcp_remaining_.reset();
             response_offset_ = 0;
             scrub(response_.set_cookie);
-            response_ = HttpResponse{};
+            response_.reset();
             scrub(response_headers_);
             http_.reset_secure();
             http_ = HttpParser{};
