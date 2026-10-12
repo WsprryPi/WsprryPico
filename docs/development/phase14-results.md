@@ -4,6 +4,67 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 12 repaired-source mixed program admission closed
+
+A new repaired-source mixed coordinator is implemented and its separate Linux
+program admission is actually closed. Program receipt SHA-256 is
+`279bde21ec2df3742480f3bb3443840cb9a0cd283658dd01380071a0614cc10b`, in new-root
+`build/repaired-source-mixed-program-20261012/program-admission.json`.
+The reviewer passed 85 policy/live-record/admission/output refusal cases and
+four new relocated-wrapper socket fixtures using fake Rig/science, with zero
+device, RF, raw-sample, external-transfer or removal requests. All 1,830
+source/artifact catalog files, 27 exact receipts and 68 retained dependency
+hashes matched. No completed old helper, control, RF job or admission was run.
+
+New coordinator SHA-256 is
+`e1e07a8a1b2c5b8b44757e5d28494e4dbad534749e5c4a49cee89b9b28456b00`;
+wrapper `c6dccfff0b71eca057534e3d1ba27df32579b49658669505b36013c69cb45ff4`;
+reviewer `3cef0c2f1b79b072f6adfaea297f99836de05b6cf3e9abb1dcb0efdd4b40cd45`;
+manifest `1554d658a2183954265170d669b20f4a9094facc6a44ce4fd6e2e4297cf1769c`.
+The exact five-file internal staging bundle is 81,920 bytes, SHA-256
+`41f01952ea281a511fea1d41207d153325c96f3fccc93bff8f2cc2871f16fb6b`.
+Canonical local files and the verbatim admission are in
+`build/phase14-repaired-source-mixed-program-20261012/`.
+
+The program retains byte-identical science/reference/analysis commands and
+AST-identical peer, ordered handoff, owned-child cleanup and quality checks.
+Source review caught the new longer toolroot exceeding the Linux Unix-socket
+path limit before execution. Its separately identified private socket now uses
+`/tmp/p14-repaired-mixed-<parent-pid>.sock`, with root ownership, mode 0600 and
+existing PID/start/UID/request/sequence verification. The new RF entry requires
+its exact program admission, source/image/boots, full reference-inclusive
+reserve and unique fresh output/reservation before any device access. Its
+future live admission uses direct named Console INFO under all four locks,
+preserving public durable settings/current watermarks, default-false flags,
+empty/inactive/unowned/disabled state, faults and network identity. Public
+readback remains distinct from a fresh full-flash byte proof.
+
+All eight original hour jobs, 512-event FSKCW/B-browser load, 45-second idle,
+one-second INFO cadence, 1,024-byte growth/spread screens and scientific
+criteria remain unchanged. Retained old finite RF evidence keeps its actual
+source identities; 4 m/2 m exclusions remain. Actual live admission, RF dispatch,
+retention copy/review, redundant-only release and qualifying memory are still
+unexecuted/unadmitted; no later queue exists. The closed program review now
+establishes ready-stage storage requirements for preparing the separate
+retention-only copy/full review of preserved failed mixed evidence.
+
+Fresh quiet receipt `build/phase14-repaired-mixed-program-admission-final-quiet-20261012.json`, SHA-256
+`fdc8310c8dce7a9a9a25deca02762c3d10eb0fe287edd47d700f2dfea066d90f`, observed_ns
+`1791815244458743757`, confirms the actual reviewer and its four fixture
+children gone, every campaign process gone, all four locks simultaneously
+available, actual internal/external UUID/device identities and service active.
+Internal free is 10,444,759,040 bytes against the unchanged
+69,185,418,240-byte full requirement; current planning deficit is
+58,740,659,200 bytes. The preserved failed mixed
+58.32 GB and 128 MB references remain internal. Copy/release needs its own
+reviewed program, complete durable catalog/source/companion proofs and fresh
+state checks; no removal follows from this arithmetic.
+
+Progress stays 3 of 9 original workstreams (33.3%), estimated 15–37 hours
+remaining. Program/fixture/preparation time earns no acceptance or capture
+credit. Repair is installed and scoped idle behavior passed, while the original
+memory screen still needs mixed requalification and may extend the estimate.
+
 ## October 12 repaired application installation and target validation
 
 Both named boards now run clean repaired source
