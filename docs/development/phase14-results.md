@@ -4,6 +4,59 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 12 mixed resource failure and closed workflow
+
+The exactly-once clean-image mixed run is closed with
+`FAILED_AMENDED_CLEAN_MIXED_EVIDENCE_PRESERVED`. All eight one-hour acquisitions
+and both GPSDO reference batches completed normally. The unchanged science
+analyzer returned zero within its 7,200-second bound, then the coordinator
+refused qualification because the aggregate resource assessment failed.
+The final parent receipt SHA-256 is
+`3b0a10cd3687a629473dc61640cac223faa3146f626d4b46b69b52b615e31a32`;
+the assessment SHA-256 is
+`7d538fee857bbdb7b87ac637922bc4a874b25e35d0bc42e61f0985063a61d9e9`.
+These supersede the active-run snapshots below for current process state.
+
+Equivalent three-sample windows after the original 45-second idle show B's
+median allocated growth at 1,384 bytes for Tone and 1,704 bytes for FSKCW,
+exceeding the unchanged 1,024-byte limit. A's corresponding changes are zero
+and minus 16 bytes. Every individual active/idle resource and cumulative fault
+screen passes; B's four browser workloads each pass the required request count
+and time span. The aggregate human-copy-aware RF screen passes, while all four
+original FSKCW legacy screens remain false. No original flag was promoted.
+This identifies a resource acceptance failure, without isolating a leak or
+its physical or software cause.
+
+A separate finite metadata-only review independently checked all eight actual
+job/source/image/boot/control/metadata/analysis bindings, recomputed active and
+idle resource checks from the recorded INFO events, recalculated equivalent
+idle growth and browser counts/spans, and verified the recorded final settings,
+current cursor, inactive/unowned/disabled state and unchanged GPSDO controls.
+Its receipt is
+`build/phase14-mixed-resource-failure-independent-review-20261012.json`, SHA-256
+`f6531bb570f4324fd6318f19893256d58c7ac1c6b283f06327459408add7e8f7`,
+identical to clean-root
+`build/mixed-resource-failure-review-20261012T0610/result.json`.
+Ten isolated idle-window boundary/refusal checks passed. The reviewer held all
+four locks, verified all campaign processes gone and independently read the
+restored `wsprrypi.service` as active. It made zero raw reads and zero device
+requests; current board/reference readbacks are the recorded coordinator
+closeout, not new independent live-device measurements.
+
+All 58.32 GB of mixed raw samples remain internal. This review binds their
+current stat identities to the completed science hashes, and does not replace
+independent full-raw qualification. The failed coordinator reached neither
+the later Tone close-in checks nor whole independent acceptance. No mixed
+capture credit was applied. The separate memory follow-up is not admitted;
+the completed run, analyzer and reservations must never be blindly repeated.
+Any causal successor needs a separate bounded plan at a fresh quiet boundary,
+preserving source identities and the original workload/acceptance limits.
+
+Progress remains 3 of 9 original workstreams (33.3%); estimated 15–37 hours
+remaining. Repairs can extend that range. Final installation, consumer API,
+profile/configuration, smokes, evidence retention, review, push and closeout
+remain unfinished.
+
 ## October 11 amended mixed run started
 
 The clean-image mixed qualification is running exactly once under coordinator

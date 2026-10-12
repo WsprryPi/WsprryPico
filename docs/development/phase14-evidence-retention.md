@@ -5,6 +5,39 @@ to about 3.9 GiB free; wspr1, wspr2 and wspr4 use SD cards. This amendment
 changes storage and encoding, while retaining the required measurements,
 original result records, failed evidence and complete raw sample contents.
 
+## October 12 failed mixed stage retained intact
+
+The amended mixed workflow and every child are now gone. All eight acquisitions
+and both reference batches completed; the completed assessment rejected B's
+1,384-byte Tone and 1,704-byte FSKCW equivalent idle growth against the unchanged
+1,024-byte screen. The parent failed with evidence preserved and restored its
+owned service. No memory stage, archive transfer, raw release or later queue
+was dispatched.
+
+All eight mixed raws/58.32 GB and the eight reference raws/128 MB remain at
+their original internal paths under clean-root
+`build/amended-clean-mixed-20261011T193513`, with all metadata, INFO events,
+browser responses, analyses, idle windows, failure logs and closeout controls.
+The parent receipt SHA-256 is
+`3b0a10cd3687a629473dc61640cac223faa3146f626d4b46b69b52b615e31a32`;
+the completed assessment SHA-256 is
+`7d538fee857bbdb7b87ac637922bc4a874b25e35d0bc42e61f0985063a61d9e9`.
+The metadata-only independent failure reconciliation is retained locally as
+`build/phase14-mixed-resource-failure-independent-review-20261012.json` and
+identically at clean-root `build/mixed-resource-failure-review-20261012T0610/result.json`,
+SHA-256 `f6531bb570f4324fd6318f19893256d58c7ac1c6b283f06327459408add7e8f7`.
+It hashes nonraw companions and independently recomputes the failing resource
+screen, while reusing completed science raw hashes with current stat checks.
+It performs no new raw read, RF test, device request, external transfer or
+sample removal and supplies no full-raw or whole RF acceptance.
+
+This closed failure adds no capture or transfer credit. The earlier 25-file
+duplicate-only release and its durable retrieval proofs remain unchanged.
+Any future archive or duplicate release still requires a separately identified
+state-aware workflow and the established full verification/retrieval rules;
+no only-copy sample or nonraw companion may be removed. The active-run wording
+below records earlier snapshots, not the current closed state.
+
 ## October 11 closed reserve release and active mixed acquisition
 
 The full independent source/destination verification completed for all 2,014
