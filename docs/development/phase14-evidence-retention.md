@@ -5,6 +5,215 @@ to about 3.9 GiB free; wspr1, wspr2 and wspr4 use SD cards. This amendment
 changes storage and encoding, while retaining the required measurements,
 original result records, failed evidence and complete raw sample contents.
 
+## October 12 final reserve closed; corrected repaired mixed actually running
+
+This leading state supersedes the earlier failure/diagnostic-active/prepared
+snapshots below. The original repaired first-A failure remains immutable
+(`cc3140e1...`): header-only Plain LAN STATUS timeout, partial recording and
+actual safe aborted cleanup; zero completed jobs or acceptance credit.
+
+The distinct RF-off diagnostic actually closed and was independently reviewed:
+1,024 STATUS exchanges / 60 direct INFO, one Plain LAN HELLO, no mutations or
+RF. Result SHA-256 is
+`e2766646638dcda9ff0fa8609021c56eb1c08718a850b9fdb6f29fa780f260f8`;
+independent review is
+`5663a7c0744bc3bebf0bff05dc785cfaa89be640fb72d225b69d42c21f3a4a82`.
+Maximum STATUS latency was 1.42726568 seconds with the original five-second
+deadline. The earlier active-RF timeout cause remains unisolated; this scope
+is not long qualification or leak freedom. Exact diagnostic/reviewer processes
+are gone. Do not repeat the probe/reviewer or its reservations.
+
+A new mixed child-error candidate passed actual 106 guards and three new real
+socket/fake-Rig fixtures (`5056acdb...`). Further review found service ownership
+and uncertain-restoration publication flaws in its unexecuted cleanup-only mode;
+that candidate/receipt remain preserved and must not execute as-is. A distinct
+service-guard successor passed six new service-failure fixtures and fresh source/
+artifact/runtime/receipt binding. Narrow AST applicability retains the actual
+106/three prior proofs without repeating or relabeling them. Its PROGRAM
+admission SHA-256 is
+`7e97e79c1c6e75863dcfe3e3e79cadeef8fbaab6280f0ee2d09796ce8e286b67`.
+The RF execution/science/handoff/owned-process cleanup and original limits are
+unchanged. Primary child exit/log now remains visible instead of being masked
+by incomplete-Rig EOF; failure final readbacks preserve exact own job-bound safe
+aborted states, while initial/success admission still requires empty.
+
+The successor's separately admitted finite cleanup-only entry actually closed:
+only eight direct INFO and A HELLO/own 5,000 ms CLAIM/RELEASE. It cleared the
+exact retained aborted job with zero RF/LOAD/ARM/flash/config/profile/cursor
+writes. Result SHA-256 is
+`d982ab8d2d67f4e9691983ede2e3db4a2db484c3fe87fca957ee0dc057b19799`;
+independent raw-control/source/boot/public-settings/current-watermark/empty/
+unowned/disabled/RF-off/owned-service/quiet review is
+`a27da856fab08db489d9a273e8080e1425ed2faa0d1dfbc08653f8b13ce8bf57`.
+Both source/new boots/138 MHz and useful images remain. Public equality is not
+a new full-flash byte proof. Cleanup and reviewer are gone; never repeat them.
+
+The failed partial recording remained internal, causing a fresh approximately
+1.062 GB deficit against the stricter host reserve. The actual new readiness/
+cleanup/shortage bound a distinct four-clock duplicate-only reserve program.
+Its selected recursive catalog SHA-256 is
+`d8c8b53b0b0f7561867775df685acb99c491851145026d31700262d5218e0712`:
+four A150 WSPR raws (30 m/20 m/17 m/15 m), each 312 MB, and 48 recursive
+metadata/decoder/audio companions plus clock-closeout controls. The earlier
+16-direct-file catalog is unselected; no IQ read/removal occurred from it.
+The first staged reserve program's broad private-key phrase check also matched
+its own source; it remained unexecuted. A distinct safe-controls successor
+uses complete PEM-header checks and fixed source-control inventory.
+
+Actual separate reserve PROGRAM admission passed 17 guards/tiny-owned-file
+refusals and full source/durable hashing of all 52 selected pairs/controls:
+`d98750bfc6e53c53531b63e9e217f495e8b3eb803b3b9054a9cecaf24cc075a9`.
+Actual release removed only those four proved redundant internal raws /
+1,248,000,000 bytes after per-file retrieval publication on both filesystems
+preceded immediate full hash/stat/user/process/UUID checks and unlink.
+Release SHA-256 is
+`807b73c891723c2fffce8b2bf9ec60ba923daf4cbbb4e42278c519bdbb5bc944`;
+separate independent full durable/raw/recursive-companion/control/retrieval-
+order/known-absence/process/service/UUID/reserve post review is
+`e5f398e1c5139c336d0be02946c0b0cbeecd01e609b774c8202a2530f52e1744`.
+Both release/post-review parents are gone. Every durable recording, nonraw,
+original flag, maximum sample and old/new useful image remains. Exactly 31
+clock-source absences are known (prior 27 plus these four); do not repeat old
+helpers or assume all original sources exist. Restore archived samples internally
+and full-hash before reanalysis. No new raw copy or acceptance credit occurred.
+
+Internal free space was 69,613,322,240 bytes at independent closure, above
+69,427,613,010 bytes (original 69,185,418,240-byte raw/reference/10 GiB reserve
+plus measured companions/32 MiB allowance). All four locks were available;
+actual internal/external UUIDs/devices and active service matched. No extra
+retention/removal is queued.
+
+The corrected repaired-source mixed qualification was dispatched exactly once
+at 19:20 UTC. Exact parent PID 3519766/start 75059297 runs coordinator
+`78c491467c3cae2734349af97b91ecc7d0523c8aecb0c8f6214e34f7441d8bdc`;
+manifest is
+`51b77adecac97dcc429c8e08a338ef134d2c91159999ecd5488d61f81f22ede1`.
+Output in the repaired root is
+`build/repaired-source-mixed-service-guard-20261012T192001/result.json`.
+Actual fresh live admission SHA-256 is
+`daa609d0c917453dbc5419523f93b10609fc9bc72c89786be6c19c5d900e772c`:
+named A/B clean `2d67224dbddc` / 138 MHz / reviewed UF2 / expected new boots /
+public durable settings/current watermarks/default-false flags/empty inactive
+unowned disabled/resources/network/GPSDO guards passed before RF. Reference-before completed with return code 0 and balanced AB handoffs.
+Acquisition child PID 3519966/start 75067112 and capture PID 3519975/start
+75068078 are active for first A 80 m / 138 MHz Tone, 911,250,000 samples /
+3,645 seconds, 250,000 samples/s CF32, explicit AGC false and bias-tee false,
+internal NVMe only. Capture writes approximately 2 MB/s; the earlier heavy
+reads were full copy/hash/reclamation checks, now closed. No raw sample was
+transferred to the Mac. Parent holds B/workflow while the child owns A/receiver.
+Parent/child identities must be verified fresh before action/report. Only this
+coordinator restores its stopped initially active service. Never duplicate,
+modify, signal or redirect active inputs or overlap transfer/removal/audit/device
+probes with acquisition/analysis. Monitor only the new SSH-stdin live reader.
+
+All eight original one-hour A/B Tone/512-event FSKCW/B-browser jobs, 45-second
+idle, one-second INFO spacing, 1,024-byte growth/spread screens, unchanged
+science/reference workload and 43,200/36,000/7,200-second bounds remain.
+No timeout/threshold/cadence relaxation or later queue. Actual whole eight-job
+closure/full raw/control/source/image/boot/resource/browser/human-copy/Tone/
+reference/restoration review and exact process closure are required before any
+acceptance credit or separately admitted qualifying-memory followup.
+
+Harness: RUNNING; 3 of 9 original workstreams (33.3%) complete; estimated
+15–37 hours remaining. Mixed/memory requalification remains open, the prior
+active-RF LAN timeout is unisolated, and failures may extend the estimate.
+Fixed remaining 37,546 seconds is unchanged; retention/diagnostic/cleanup/
+preparation/launch/elapsed time add no capture or workstream credit. Hourly
+reports stay active and must verify actual current processes/receipts. Final
+push/remote parity/Phase 14 closeout remain unfinished. No native Mac C++ build,
+SDK/tool installation, publication or excluded 4 m/2 m work occurred.
+
+## October 12 repaired mixed failure closed; RF-off LAN diagnosis active
+
+This leading checkpoint supersedes the earlier mixed-running snapshot below.
+Guarded retention completed and remains independently reviewed: 18 redundant
+internal raws / 59,072,000,000 bytes released; all durable samples, companions,
+original failures and maximum samples retained. The closed helpers/reservations
+must not be repeated. Exactly 27 known clock-source absences include the prior
+25 and the two new clock duplicates. No new retention or raw release is admitted.
+
+The repaired-source mixed run stopped during its first A hour job. Exact
+parent PID 3495730/start 74484964 and every registered descendant are gone.
+The failed result SHA-256 is
+`cc3140e1c402ca1f75b7e3cee84189f596326602cb01101dc473d7c0a59d8034`.
+Its primary acquisition error is `TimeoutError('Inventory exchange deadline')`
+on A's Plain LAN WTP connection `192.168.1.47:31417`, not USB. The failed
+STATUS received only a 16-byte header advertising a 363-byte payload before
+the unchanged five-second deadline. Preceding Console INFO showed 363 pending
+TCP bytes; post-timeout INFO showed 379. This localizes the transaction but
+does not isolate the target/network/host cause.
+
+The parent separately reported an unfinished handoff sequence. Its final empty
+state assertion also failed because A retained the aborted job
+`c0bd4da6ca2ab22d5e88c4025a8d2cbe`. Recorded cleanup/final direct Console bytes
+show both boards on clean repaired `2d67224dbddc` / 138 MHz / expected new
+boots, both outputs false, owners null, disabled, fault fields zero and selected
+network connection/input counts zero. A is aborted; B is empty. Public durable
+settings and current watermarks match the pre-run values. Owned service was
+restored active. Public equality is not a new full-flash byte proof.
+
+A new metadata-only reader independently checked saved result/log/event/physical
+hashes, decoded both actual final Console TX/RX streams, bound the failed header
+and cleanup, and verified fresh registered/campaign process closure, all four
+locks simultaneously available, both filesystem UUIDs/devices and active
+service. Local receipt
+`build/phase14-repaired-mixed-failure-pending-aware-readonly-inspection-20261012.json`
+has SHA-256
+`067155de5e1b9973fd58d3ed4144bc5f25378ca8f6d75930eb1075658274d8d5`.
+The earlier metadata reader's incorrect expectation of 363 pending bytes after
+the timeout refused with zero device/raw/RF/output; the distinct reader binds
+the actual 379 bytes honestly. Host quiet is fresh; these target values are
+recorded final readbacks. No original failed flag was rewritten.
+
+Reference-before completed, retaining 64 MB. The first A receiver retained only
+1,077,543,936 bytes in `capture.cf32.incomplete`; no complete first hour or later
+job exists. That partial recording, controls and raw event bytes remain internal;
+no full raw hash or new archive/removal has occurred. Zero jobs or original
+workstreams are credited. Fresh internal free space at the reader was
+68,370,612,224 bytes, below the new mixed reserve; any later ready stage needs
+fresh admission and separately proof-bound redundant-only retention.
+
+A distinct finite RF-off Plain LAN diagnostic passed separate actual program
+admission before devices: 48 real-record/refusal/call-inventory checks, all
+1,830 source/artifact bindings and pinned dependencies/failure/install proofs.
+Admission SHA-256 is
+`f668f0a72941aab90fd12be298b73db5a25c20fb1a4b5aecd457a7e4e8822afb`.
+Exact parent PID 3505003/start 74717805 is active at this checkpoint, under all
+four locks with only its initially active service stopped. Fresh direct Console
+live admission preserved the exact A aborted job / B empty state, source, boots,
+138 MHz, public settings/current watermarks, default-false flags and RF-off
+unowned disabled state. Workload permits only direct INFO (at most 130), one
+A Plain LAN HELLO and at most 1,024 sequential STATUS requests, 0.5 seconds
+after completed responses, INFO when ten seconds have elapsed, unchanged
+five-second WTP deadline. No retry, mutation, RF, receiver, GPSDO, HTTP, flash,
+profile/config/cursor write, raw read, transfer or removal is permitted. Operational
+bound is 1,200 seconds plus at most 60 seconds of closure; no later queue.
+Only this probe restores its owned service. Monitor fresh PID/start/argv and
+receipt; never modify, duplicate or signal active work. A separate metadata-only
+result review is required after actual closure and exact process exit.
+
+A distinct private mixed child-error/closeout candidate is prepared only. It
+records actual child exit/log and partial ownership roles before raising,
+preserving full handoff requirements for successful children. Failure final
+readbacks are saved before validation; only an exact source/image/boot/board/job-
+bound own aborted/unowned/RF-off cleanup can admit that terminal failure state.
+It changes no production firmware, science, eight-hour workloads, 45-second idle,
+one-second INFO spacing, 1,024-byte limits or 43,200/36,000/7,200-second bounds.
+It is unadmitted, unstaged, unexecuted and unqueued. A separate source-bound
+finite no-RF CLAIM/RELEASE cleanup could empty the exact own aborted job after
+actual diagnostic closure/review, without flash/config/cursor writes; it is not
+implemented or admitted at this checkpoint. No RF or qualifying-memory successor
+is admitted. Never rerun the closed mixed coordinator/wrapper/reservations.
+
+Harness: RUNNING (RF-off transport diagnostic); 3 of 9 original workstreams
+(33.3%) complete; estimated 15–37 hours remaining. Original mixed memory
+requalification and the new LAN timeout remain unresolved; diagnosis may extend
+the estimate. Fixed remaining work stays 37,546 seconds. No partial, diagnostic,
+retention, elapsed or source-preparation acceptance credit. Hourly reports remain
+active and must verify current activity afresh. Final push/parity/Phase 14 closeout
+remain unfinished; no native Mac C++ build, SDK/tool installation, release
+publication or excluded 4 m/2 m work occurred.
+
 ## October 12 guarded retention closed; repaired-source mixed running
 
 Guarded retention is complete and independently reviewed. The original failed
