@@ -4,6 +4,249 @@ Status: IN PROGRESS. See the pre-acquisition [plan](phase14-plan.md).
 Storage follows the operator-amended [evidence retention policy](phase14-evidence-retention.md).
 No Phase 14 release support is claimed at this checkpoint.
 
+## October 12 guarded retention closed; repaired-source mixed running
+
+Guarded retention is complete and independently reviewed. The original failed
+853 mixed/reference evidence and all companions remain durable in
+`/mnt/phase14-testing/phase14-closed-internal-first/failed-mixed-853-retention-1791816708337667176`.
+Copy, separate full source/durable review, separate release program admission,
+redundant-only release and separate full post review all actually closed;
+every exact registered parent is gone. Their respective SHA-256 receipts are:
+
+- Copy: `28c048f22b3e415006cbb0a3e5ef2a4d7e1c0e0d9d5e4f75c4bef34bed3d34bb`.
+- Full retention review: `a50a732d14dbaaf17fdba55499b56e955d245695cd9a48b1c0b14086129f094f`.
+- Release program admission: `17bb9ee415f2ffd1382a9e386e29417f0b3975ed9f002a4c13dc65fee330dd66`.
+- Actual release: `a690b1c77e67cc612a82e04dc5fb681c58ff07ab84dc4bc7b43a855c2e2af118`.
+- Independent post review: `9868c41a05b5f89597ec34a3aa3d5fb382e4ccb4241e1151c1d3dfa0a701426b`.
+
+The copy/full review checked all 105 source/durable pairs / 58,656,640,338
+bytes. The 18-guard release admission also freshly verified both additional
+clock raw pairs and all 26 companions. Exactly 18 redundant internal raws /
+59,072,000,000 bytes were released: 16 failed mixed/reference copies and two
+312 MB clock duplicates. Both-filesystem per-file retrieval publication
+preceded immediate full source/durable hash/stat/user/UUID rechecks and unlink.
+The post reviewer independently full-hashed every removed durable raw, all
+companions/controls and retrieval order, verifying only known source absences.
+All nonraws, durable samples, original failed flags and retained maximum samples
+remain. Prior 25 clock removals are separate; exactly 27 clock-source absences
+are now known. Never repeat these closed helpers or reservations. Restore
+archived samples internally and full-hash before any later reanalysis.
+
+Post-review internal free space was 69,516,165,120 bytes. Fresh pre-dispatch
+free space was 69,516,161,024 bytes, above the stricter 69,427,613,010-byte
+host reserve (original raw/reference/10 GiB plus measured companion volume
+and 32 MiB allowance). Both actual filesystem UUIDs/devices matched, all four
+locks were simultaneously available and service was active. Only five fixed
+metadata proof files were mirrored locally, with exact byte/hash/size/private-
+key-marker checks: `build/phase14-failed-mixed-retention-release-closed-20261012/`.
+No credential file or raw sample was copied to the Mac.
+
+The separately identified repaired-source mixed qualification was actually
+dispatched exactly once at 17:44 UTC. Parent PID 3495730/start 74484964 runs
+admitted coordinator `e1e07a8a1b2c5b8b44757e5d28494e4dbad534749e5c4a49cee89b9b28456b00`
+on installed clean `2d67224dbddc16b320e43c9fce3ccb74f8d102ce` / 138 MHz,
+image `6d5ee077e711d008422a0b881f4912e17e7c2fad56abf47c9fc6bcd4ee974787`.
+New output is
+`build/repaired-source-mixed-20261012T174418/result.json` in the repaired root.
+Actual separate live admission SHA-256 is
+`dd3d3a53e67440d2880b66259a2c1ba89520c7242a3d044a611100fc27ab4d16`;
+named A/B source/new boots/clock/public settings/current watermarks/default-
+false flags/empty inactive unowned disabled/input/resource/GPSDO guards passed
+before acquisition. Public equality is not a new full-flash byte proof.
+
+At observed_ns 1791827298802549356 the reference-before child had returned 0
+and its AB ownership handoffs were balanced. Acquisition child PID
+3495930/start 74492792 owns A plus receiver while the parent holds B and the
+workflow lock. Exact capture PID 3495938/start 74493758 is active for the
+first A 80 m / 138 MHz Tone: 911,250,000 samples / 3,645 seconds, internal
+NVMe only, explicit AGC false and bias-tee false. Owned active service was
+stopped for qualification; only this coordinator may restore it at closeout.
+Do not duplicate, change, stop or redirect active inputs/processes, issue
+competing device probes or overlap external retention work with acquisition
+or analysis. Monitor only the SSH-stdin private live reader.
+
+All eight original one-hour A/B Tone/512-event FSKCW/B-browser jobs, 45-second
+idle windows, one-second INFO spacing, 1,024-byte growth/spread screens,
+reference workload and byte-unchanged science remain. Bounds remain 43,200
+seconds whole / 36,000 acquisition / 7,200 analysis. Current zero whole-review
+observations are not acceptance or capture credit. Whole closure requires
+separate independent eight-job/raw/control/source/image/boot/resource/browser/
+human-copy/Tone-quality/reference/restoration/process review. Memory followup
+remains blocked until that actual whole acceptance and process closure;
+no automatic memory chain or new raw release is queued.
+
+Harness: RUNNING; 3 of 9 original workstreams (33.3%) complete; estimated
+15–37 hours remaining, with memory requalification pending and possible
+extension. Storage, host tests, installation, preparation and elapsed time
+add no workstream/capture/acceptance credit. Earlier stopped/partial-retention/
+undispatched snapshots below are immutable history. Final push, remote parity
+and Phase 14 closeout remain unfinished; no publication, native Mac C++ build,
+SDK/tool installation or upper-band RF work occurred.
+
+## October 12 guarded redundant release closed; post review active
+
+The new duplicate-only release actually closed, with result SHA-256
+`a690b1c77e67cc612a82e04dc5fb681c58ff07ab84dc4bc7b43a855c2e2af118`.
+Exact parent PID 3467127/start 73965462 is gone. It removed only 18 proved
+redundant internal raws / 59,072,000,000 bytes: all 16 failed mixed/reference
+copies (58,448,000,000 bytes) plus two eligible 312 MB clock duplicates.
+Every durable sample, nonraw companion, useful image and original failed flag
+remains. Per-file identical retrievals were published on both filesystems
+before immediate full source/durable hash/stat/no-active-user/UUID rechecks
+and unlink. Source absences are separately recorded; original copy receipts
+keep their historical zero-removal flags. Prior 25 clock removals remain
+separate; there are now exactly 27 known clock-source absences.
+
+Final measured internal free space was 69,516,210,176 bytes, above the
+69,427,613,010-byte dispatch target. This is reserve readiness, not RF
+acceptance. No original scientific or acquisition/analysis limit changed.
+
+The actual separate post reviewer is active, PID 3487857/start 74312745,
+under all four locks and a 3,600-second bound. Output is new-root
+`build/failed-mixed-redundant-release-post-review-20261012/result.json`.
+It independently full-hashes every removed durable IQ, all companions and
+controls, each both-filesystem retrieval and publication/unlink order,
+exactly known source absences, UUIDs, service state and full reserve.
+It performs no deletion, device/RF request or transfer. Positive whole post
+review and exact process gone remain required before the repaired-source
+mixed live/RF admission. Never repeat the closed release, admissions, copy,
+full review or reservations; do not change active post-review inputs.
+
+Harness: STOPPED (independent post review running); 3 of 9 original
+workstreams (33.3%) complete; estimated 15–37 hours remaining, with
+requalification potentially extending the estimate. No new capture or
+workstream credit is earned by retention. Earlier partial-release snapshots
+below are immutable history, not current source-presence claims.
+
+## October 12 retention copy/full review closed; guarded release active
+
+The actual separate full retention review passed all 105 source/durable
+pairs, all 16 IQs and companions, ten copied controls, exact file/stat lists
+and identical retrievals. Receipt SHA-256 is
+`a50a732d14dbaaf17fdba55499b56e955d245695cd9a48b1c0b14086129f094f`.
+Reviewer PID 3457841/start 73780246 is gone; do not repeat the review or copy.
+
+The final new redundant-only program was staged and separately admitted.
+Manifest SHA-256 is
+`c09b0f86e893b975dfe0d3adc9d9084f0dc9065550404b4ddcc035ddcaf1c3ea`;
+release helper `83fe2db93ecc7169ea215143c0ddab14aa5fa5d5432ce243a9e0e8847c20b560`.
+Actual program admission
+`17bb9ee415f2ffd1382a9e386e29417f0b3975ed9f002a4c13dc65fee330dd66`
+passed 18 guards/tiny-owned-fixture cases and freshly full-hashed both
+additional eligible clock raw pairs and all 26 companions, excluding the
+25 previously removed clock duplicates. Admission PID 3466200/start
+73953716 is gone. All earlier release draft bundles remain unexecuted.
+
+Actual release PID 3467127/start 73965462 is active under all four locks,
+with a finite 7,200-second bound chosen before program admission from the
+observed full-review I/O cost and two required per-file full-pair rechecks.
+This changes none of the original RF acquisition/analysis/scientific limits.
+Result is new-root
+`build/failed-mixed-redundant-release-1791821864373158198/result.json`.
+At observed_ns 1791822091829313226, eight redundant reference raws /
+128,000,000 bytes had been removed after both-filesystem retrieval publication
+and immediate full source/durable hash/stat/no-active-user/UUID checks.
+All durable samples, nonraw companions and original failed flags remain.
+This partial source state supersedes earlier all-originals-present snapshots.
+Never repeat or modify the active helper, admitted inputs or reservations.
+
+Whole release closure, exact parent gone and a separately executed positive
+post review remain required before new repaired mixed live/RF admission.
+The post reviewer must full-hash every removed durable raw, all companions,
+per-file retrieval/order and exactly known source absences, verifying service,
+UUIDs and free space above the 69,427,613,010-byte host dispatch target.
+No RF job or later stage is queued. Progress remains 3 of 9 (33.3%), estimated
+15–37 hours remaining, with requalification potentially extending the range.
+
+## October 12 copy closed and independent full retention review active
+
+The copy actually closed with 105 verified files / 58,656,640,338 bytes and
+zero source removals. Actual copy receipt SHA-256 is
+`28c048f22b3e415006cbb0a3e5ef2a4d7e1c0e0d9d5e4f75c4bef34bed3d34bb`.
+Exact copier PID 3442893/start 73449924 is gone. The external catalog retains
+all 16 failed mixed/reference IQs, original flags and all companions, with
+identical copy retrieval on both filesystems.
+
+A distinct actual independent full review is active under all four locks,
+PID 3457841/start 73780246, bound 7,200 seconds. It rehashes all 105 source
+and durable pairs, exact file/stat identities, ten copied controls and
+retrievals. Output is new-root
+`build/failed-mixed-retention-full-review-20261012/result.json`.
+Review progress is not closure or removal permission. Do not repeat or
+change either admitted program, its reservations or active inputs.
+
+Only after positive whole review and exact process gone may the new
+redundant-only release program be staged and independently admitted.
+Its final prepared manifest is
+`cb9e3831670ed9c5cddfd1922633e6b34aae432a96b6e1f62a8fcb915c751f25`;
+release `84c7ab25be91f527141a5eac2f53b3df04da124a69e35092c25574a201667585`;
+post reviewer `0678b3dbc4cb26bc7ca940a823e5916708438db91c8d307d3634c0e06aa23839`.
+These remain unexecuted/unadmitted. Actual source/durable clock proof,
+per-file retrieval before immediate full rechecks/unlink, separate removed-
+durable post review and fresh stricter reserve are still required before
+new repaired mixed live/RF admission. Original RF/science limits are unchanged.
+
+Harness: STOPPED (retention full review running); 3 of 9 original
+workstreams (33.3%) complete; estimated 15–37 hours remaining, with
+requalification potentially extending the estimate. Storage closure adds
+no RF qualification credit. Earlier active-copy wording below is history.
+
+## October 12 guarded failed-mixed retention copy active
+
+The operator requested completion of guarded retention followed by repaired-source
+mixed qualification with the original limits. A distinct copy-only program is
+now active under all four locks, with parent PID 3442893/start 73449924 and a
+7,200-second bound. Separate program admission SHA-256
+`6fd5602d15c36cf33663f2d395e37f074281b70b26c80ec71d811df1f4e6add8`
+passed 24 new catalog/source/alias/hash/tiny-fixture checks, with no actual IQ,
+device or RF access. No older completed control/helper was run.
+
+The exact 105-file catalog contains all 16 failed mixed/reference IQs,
+58,448,000,000 raw bytes and 58,656,640,338 total bytes, with original expected
+hashes, source stat identities and every companion. Catalog SHA-256 is
+`6f66bbf25582ca7d7de734857b24df06c6aa252afc8b660ab5bbb77de824fe81`.
+Preserve the initial metadata inventory refusal before copy/IQ/reservation: its
+small-read limit did not compute hashes for large recorded serial metadata.
+The separately identified successor uses their existing immutable f653 hashes;
+actual copy and independent review still verify every byte. No original failed
+flag, scientific criterion or source/image/job identity is changed.
+
+New copier SHA-256 is
+`b58d1451f30194e9424d8c37558ad32b14df8c48b307b1fdf1f8b15aa2d7df53`;
+manifest `664dd9add51db7dadc0298f61168cbde3da7139bc2b48fe5dcf4be69a5afdfc4`.
+It copies only to a fresh external retention catalog, fsyncs and verifies full
+source/durable bytes and unchanged source identities. Every original remains.
+Internal result is new-root
+`build/failed-mixed-retention-copy-1791816708337667176/result.json`;
+external catalog is
+`/mnt/phase14-testing/phase14-closed-internal-first/failed-mixed-853-retention-1791816708337667176`.
+Dispatch/copy reservations prohibit duplicate launches or blind retries.
+Current progress is not whole copy closure or independent acceptance.
+
+After actual copy closure and exact parent gone, a separate already admitted
+full reviewer must independently hash all 105 source/durable pairs, exact
+file lists/stat tuples, all companions/controls and identical retrievals on
+both filesystems. Full reviewer SHA-256 is
+`aa66d9763a8ef35b9923ba0bc5eeb4035054a37f34f72072183f796ca717628b`.
+No evidence is removed by either program. The following redundant-only release
+and its independent post review are separately prepared, unexecuted and
+unadmitted. Two still-present eligible 312 MB clock duplicates are identified
+from the old full archive proof and all 26 companions, explicitly excluding
+all 25 previous removals; they still require fresh full proof before release.
+No maximum retained clock job or nonraw file is eligible. Unknown/partial
+outcomes require inspection and a distinct state-aware successor.
+
+The original raw/reference/10 GiB minimum remains 69,185,418,240 bytes.
+The observed failed-run companion volume is another 208,640,338 bytes; a
+32 MiB host allowance gives a stricter dispatch target of 69,427,613,010 bytes.
+This keeps room for metadata while preserving the original working margin.
+It changes no RF duration, job count, cadence, growth/spread limit, science or
+acceptance threshold. The new release program will stop at that target.
+
+No RF stage or later queue is active. Progress remains 3 of 9 original
+workstreams (33.3%), estimated 15–37 hours remaining, subject to extension.
+Copy/retention/elapsed time adds no qualification acceptance or capture credit.
+
 ## October 12 repaired-source mixed program admission closed
 
 A new repaired-source mixed coordinator is implemented and its separate Linux
