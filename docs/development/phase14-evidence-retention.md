@@ -38,6 +38,28 @@ state-aware workflow and the established full verification/retrieval rules;
 no only-copy sample or nonraw companion may be removed. The active-run wording
 below records earlier snapshots, not the current closed state.
 
+The distinct six-GET idle B path contrast is also closed and independently
+reviewed. Clean-root `build/idle-browser-path-contrast-20261012` and its adjacent unique
+reservation retain the original plan, program/live admissions, source manifest,
+Console TX/RX/event bytes, actual response hashes/lengths/parsed values, all
+26 INFO samples, timing groups and parent closeout. Local
+`build/phase14-idle-browser-path-contrast-closed-20261012` mirrors the small
+closed evidence verbatim; no RF samples or private credentials were copied.
+Parent SHA-256 is
+`254bbe284a50f46f095789dcf6def69994f12a6a5d7d80aee125953a710220c1`;
+its separate metadata-only independent review SHA-256 is
+`75b235fac04cf28ebb9191003e4d548d73e239a6b15bfcc2c48695c46db5c018`.
+Final quiet proof
+`build/phase14-idle-browser-path-contrast-final-quiet-20261012.json`, SHA-256
+`9eac8b037003ffa6b40cfa40472216624e88884a33ac698bf9405c6afd068f5d`,
+verifies exact processes gone, all four locks available, actual UUIDs and active
+service with no new device request. The reversible 2,552-byte idle endpoint
+heap effect earns no acceptance, capture, transfer or elapsed-time credit.
+Never repeat this workflow, admission, traffic or completed review. The private
+unselected body-release patch and source comparison are preparation only;
+production source, useful images and all failed mixed evidence remain intact.
+No target successor, raw release or automatic qualifying memory stage is admitted.
+
 The separate October 12 [causal plan](phase14-memory-causal-plan.md) retains a
 new metadata-only eight-window counter comparison and closed Linux-only WTP
 lifetime experiment. Internal clean-root `build/wtp-lifetime-host-20261012`

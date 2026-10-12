@@ -320,7 +320,7 @@ different final paths and terminal state make retained response capacity a
 specific target hypothesis, without assigning the failed 1,384/1,704-byte
 growth to it or treating the unchanged comparisons as accepted.
 
-## Next target path-contrast plan, unimplemented and unqueued
+## Target path-contrast plan executed October 12
 
 The next distinct causal runner should test whether idle B's allocated heap
 changes with its final read-only browser path while source, boot, configuration
@@ -360,6 +360,125 @@ that limitation. No profile/configuration/cursor write is permitted.
 Keep the service's verified state unchanged and preserve the installed useful
 images. Independently check runtime/import/source/credential bindings, refusal
 guards, finite owned-process cleanup, actual filesystem UUIDs and a fresh quiet
-boundary before dispatch. The runner and its admission are not implemented or
-executed. No target repair, changed firmware, threshold relaxation, RF rerun,
-raw release or automatic memory-stage chaining is selected or admitted.
+boundary before dispatch. The separately implemented runner completed once under actual program and live
+admissions, as recorded below. No target repair, changed firmware, threshold
+relaxation, RF rerun, raw release or automatic memory-stage chaining is selected
+or admitted.
+
+
+## Actual idle B path contrast and independent closure
+
+The six-GET target diagnostic completed once at 11:35 UTC on October 12 in
+607.194409293 seconds, within the 900-second whole bound. Coordinator
+`/tmp/phase14-idle-browser-path-contrast-owned-coordinator-20261012.py`, SHA-256
+`04779a174319c27b1eae3c4ce0cad123ef04283e9a4ae1fe514d982a75884417`,
+held all four locks. Parent PID 3386514/start 72210778, both registered launchers,
+the actual probe and admission reviewer are gone. Preserve the unique
+`build/phase14-idle-browser-path-contrast-dispatch-reservation-20261012.json`;
+never repeat this coordinator, probe, admission, traffic or review.
+
+The separate program admission checked 692 source bindings, the retained clean
+138 MHz candidate and installation proof, Python/import/credential identities,
+owned-process bounds and 19 static/fixture/refusal cases before device access.
+Its SHA-256 is
+`255a2496999f70755aac18cc89ccdb5e82f4bb9af22b8485a5d88127c87f5d8d`.
+Separate live admission, SHA-256
+`fc3a8bd7f297eb74410a2f860eadc20ec3e9f0cd6a82df4112412d7a33f104a8`,
+verified the named A/B clean853/138 identities, expected boots, public durable
+settings/current watermarks, empty/inactive/unowned/disabled state and false
+flags before the first GET. Only 26 direct Console INFO commands and the six
+specified authenticated B GETs executed. No WTP peer/fallback, RF, GPIO,
+receiver, decoder, GPSDO, configuration, profile, cursor or firmware operation
+occurred. The owned service remained active without a state change.
+
+| Completed boundary | Heap median, bytes | Allocator median, bytes | TLS allocated, bytes |
+| --- | ---: | ---: | ---: |
+| Before traffic | 22,912 | 27,016 | 4,397 |
+| Capabilities, then root, each after 45 seconds | 19,864 | 23,968 | 4,397 |
+| Status, then root, each after 45 seconds | 22,416 | 26,520 | 4,397 |
+| Capabilities, then root, each after 45 seconds | 19,864 | 23,968 | 4,397 |
+| Final root after at least 350 seconds | 19,864 | 23,968 | 4,397 |
+
+Every three-sample heap/allocator/TLS window has zero spread. Status raises the
+heap median 2,552 bytes relative to capabilities; returning to capabilities
+reverses exactly that step. Each root control preserves the preceding level,
+and the final 350-second observation preserves the last capabilities level.
+The initial capabilities response lowers the pre-traffic median by 3,048 bytes;
+its prior retained state is not attributed to a particular container. All
+selected connection/pending/RX/TCP/SoftAP/BLE/WTP-input counts are zero and
+observed cumulative resource/fault counters remain unchanged. The two heap
+counters retain a 4,104-byte offset because they sample the same underlying
+newlib quantity at different INFO formatting points; they are not independent
+allocation measurements.
+
+Actual response lengths are 1,301/38,461/2,758/38,461/1,301/38,461 bytes. The two
+capabilities hashes match, and all three root hashes match. Each actual
+response hash, length and parsed value is retained; no raw HTTP body was
+separately collected or reconstructed. The full Console RX/TX bytes are also
+retained and independently bind all 26 parsed INFO observations.
+
+Actual clean-root `build/idle-browser-path-contrast-20261012/result.json`,
+SHA-256 `254bbe284a50f46f095789dcf6def69994f12a6a5d7d80aee125953a710220c1`,
+is mirrored verbatim in local
+`build/phase14-idle-browser-path-contrast-closed-20261012/result.json`.
+The separate metadata-only hash/order/timing/arithmetic/source/settings/resource/
+process/service review is mirrored as that directory's `independent-review.json`,
+SHA-256 `75b235fac04cf28ebb9191003e4d548d73e239a6b15bfcc2c48695c46db5c018`.
+It verified the actual 45/350-second boundaries, one-second sample spacing,
+admission order, exact traffic counts, original Console bytes, median/spread
+arithmetic and unchanged public settings/current watermarks, without making a
+new device request. Fresh final quiet receipt
+`build/phase14-idle-browser-path-contrast-final-quiet-20261012.json`, SHA-256
+`9eac8b037003ffa6b40cfa40472216624e88884a33ac698bf9405c6afd068f5d`,
+observed at 1791805104759786283 ns, verifies every exact registered identity gone,
+all campaign processes gone, four locks simultaneously available, expected
+filesystem UUIDs and active service. Internal free space is 10,625,249,280 bytes;
+external free space is 943,881,781,248 bytes. No external transfer/removal occurred.
+
+This establishes a reversible idle target heap dependence on the completed
+browser path, consistent with the separately identified host response-body
+retention. It does not measure an individual target container's capacity or
+isolate the original active 512-event mixed failure. Same-boot/public cursor
+checks are not fresh full-flash byte proofs. The original mixed failure and
+1,024-byte acceptance limit remain unchanged; qualifying memory follow-up is
+blocked. No leak-freedom, target repair or release acceptance follows. Counts
+remain 3 of 9 workstreams (33.3%); estimated 15–37 hours remaining, with possible
+repair extension and no diagnostic/elapsed-time credit.
+
+## Next source-candidate preparation, unexecuted
+
+A private, unselected proposal is retained as
+`build/phase14-response-body-release-candidate-20261012.patch`, SHA-256
+`c07cf49f0417fd8958afebac1f738f40225e400f05bf8a2f01ffac7c02a827fe`.
+It adds only `std::string{}.swap(response_.body);` immediately before the two
+existing `HttpResponse{}` resets in `Connection::close` and acknowledged
+keep-alive completion. Existing TCP/TLS/acknowledgement, mutation-finish,
+parser, cookie/header/principal cleanup and RF/service order remain unchanged
+in this proposal. The patch is not applied to production, built or installed;
+no target repair is selected. Exact original/candidate/patch hashes are retained
+in `build/phase14-response-body-release-candidate-source-review-20261012.json`.
+
+Next implement a distinct Linux-only candidate fixture and separate program
+admission before execution. Reuse the pinned portable core and source-bound
+fixture/ledger dependencies without rerunning any completed probe, calibration,
+localization, four-by-400 workload or twelve-GET attribution. Use no GETs or
+physical adapters. Five bounded synthetic cases exercise empty/static body,
+15-byte body, 16-byte body, 1,301-byte body and 2,758-byte body across two slots;
+verify response bytes remain unchanged while active, then compare complete,
+partial/cancelled and acknowledged keep-alive reset boundaries. The unchanged
+reset is a scoped control; the proposed reset must return each released body
+allocation to its construction baseline. Record requested C++ bytes/blocks and
+body size/capacity, and require complete destruction to return all tracked
+allocations to zero. This qualifies only the private candidate's host behavior.
+
+Require a fresh unique reservation, exact two-line source-delta and reset-order
+acceptance/refusal guards, source/library/dependency/binary/runtime bindings,
+separate actual admission, calibrated ledger/alignment checks appropriate to
+the new fixture, fresh quiet/UUID/service checks and all four locks. Bounds:
+120 seconds for probe-only Linux compilation, 30 seconds for the candidate
+fixture, 300 seconds whole. Do not rebuild the portable core, install tools or
+an SDK, touch firmware or select a target successor. Any later source change,
+Arm build, installation, target repeat or RF/memory qualification requires its
+own finite admission and source/image/boot/settings/current-cursor safeguards.
+The useful installed clean853 images and immutable failed mixed evidence remain
+unchanged; no automatic stage chaining or raw release is admitted.

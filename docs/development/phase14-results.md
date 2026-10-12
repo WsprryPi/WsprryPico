@@ -57,6 +57,40 @@ remaining. Repairs can extend that range. Final installation, consumer API,
 profile/configuration, smokes, evidence retention, review, push and closeout
 remain unfinished.
 
+### Closed idle B browser path contrast
+
+The separately admitted six-GET idle target diagnostic completed once in
+607.194409293 seconds. Program admission passed 19 static/fixture/refusal checks
+and 692 source bindings before device access; live admission verified the
+expected clean853/138 boots, idle state, false flags and public durable
+settings/current watermarks before traffic. Exactly 26 direct Console INFO
+commands and capabilities/root/status/root/capabilities/root GETs executed.
+All processes are gone, all four locks are available and the service stayed
+active. No WTP, RF, firmware, profile/cursor, receiver or GPSDO action occurred.
+
+B's 45-second heap medians were 19,864 bytes after capabilities/root, 22,416
+after status/root, then 19,864 after capabilities/root again. All windows had
+zero spread; each root preserved the preceding level and the final at-least-
+350-second window remained 19,864. TLS allocated stayed 4,397 bytes; selected
+connection/input counts stayed zero. This demonstrates a reversible 2,552-byte
+idle path effect, consistent with host response-body retention. It does not
+isolate an individual target container or the original active mixed failure,
+prove leak freedom, select firmware repair or relax the original resource gate.
+
+Verbatim parent receipt
+`build/phase14-idle-browser-path-contrast-closed-20261012/result.json`, SHA-256
+`254bbe284a50f46f095789dcf6def69994f12a6a5d7d80aee125953a710220c1`,
+and separate `independent-review.json`, SHA-256
+`75b235fac04cf28ebb9191003e4d548d73e239a6b15bfcc2c48695c46db5c018`,
+retain actual response hashes/lengths/parsed values, Console bytes, all INFO
+observations and independent timing/arithmetic/source/settings/process review.
+Same-boot/public cursor checks are not fresh full-flash byte proofs. The
+[causal plan](phase14-memory-causal-plan.md) records exact admissions, final
+quiet proof and a private, unselected response-body release proposal for future
+bounded host validation. Production source and installed images remain
+unchanged. Qualifying memory follow-up stays blocked; counts remain 3 of 9
+(33.3%), estimated 15–37 hours remaining with possible repair extension.
+
 ### Closed host memory lifetime control
 
 The separately bounded [causal plan](phase14-memory-causal-plan.md) now records
