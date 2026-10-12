@@ -242,7 +242,10 @@ int main(int argc, char** argv) {
             commands.erase(0, end + 1);
             if (command == "RESTART COUNT")
                 std::cout << "RESTARTS " << restarts << std::endl;
-            else if (command == "PENDING BURST FIN" || command == "PENDING BURST RESET") {
+            else if (command == "NAGLE HOLD") {
+                mock_tcp_hold_next_handshake_ack();
+                std::cout << "NAGLE HOLD READY" << std::endl;
+            } else if (command == "PENDING BURST FIN" || command == "PENDING BURST RESET") {
                 const auto allocated = server.tls_allocated();
                 unsigned refused = 0;
                 auto* pcb = mock_tcp_pending_burst(refused);

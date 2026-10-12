@@ -66,6 +66,10 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     add_test(NAME network_tls_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_tls_tests.py
         $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
     set_tests_properties(network_tls_tests PROPERTIES TIMEOUT 90 RUN_SERIAL TRUE)
+    add_test(NAME network_tls_nagle_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/network_tls_nagle_tests.py
+        $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
+    set_tests_properties(network_tls_nagle_tests PROPERTIES TIMEOUT 15 RUN_SERIAL TRUE)
     add_test(NAME network_local_wtp_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/network_local_wtp_tests.py
         $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})

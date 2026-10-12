@@ -1,8 +1,10 @@
 # Phase 14 TLS handshake repair
 
-Status: source repair and Linux validation complete; a clean Arm candidate,
-installation and target validation remain. The installed boards still run
-`2d67224dbddc` at 138 MHz. No mixed qualification acceptance is claimed.
+Status: receive repair installed and independently reviewed; its new target
+validation failed in the outgoing TLS flight. A distinct Nagle repair passes
+Linux validation and awaits Arm build, installation and target validation.
+Both boards currently run `62ea7b1b157d` at 138 MHz. No mixed qualification
+acceptance is claimed.
 
 The original failed mixed result remains immutable at
 `repaired-source-mixed-service-guard-20261012T192001/result.json`, SHA-256
@@ -94,3 +96,64 @@ can resume. Do not repeat the failed mixed entries or automatically chain the
 memory follow-up. Progress remains 3 of 9 workstreams (33.3%); the recorded
 15–37-hour estimate may extend. No partial, diagnostic, host or elapsed credit
 is applied.
+
+## Installed receive repair and preserved outgoing-flight failure
+
+The clean receive repair was checkpointed at `62ea7b1b157d`, cross-built at
+138 MHz and independently rebuilt with identical ELF/UF2 bytes. Its UF2 hash is
+`b9f2d3ad359df8d813769c6adbccfd440c24c2303d327e552407d34813a9bf1f`.
+The artifact review is
+`3aaffe23fb1b923e759513b0a15c36ca06320370e5676d681b2df266c8763a93`.
+Both named boards received only that application image. Installation result
+`fa587685ee32178f484a2215e761eb3ca53e705e1cdc7c0bcfc815c08ccc100a`
+and independent review
+`800e4e3c7442adb6167ed37aba6e914f0c3119dba52880036324b16646eae41e`
+verify new boots, preserved public settings/current watermarks and final idle.
+A's boot is `1545782ba6b560b232e778325cf71b2f`; B's is
+`c6d497690f7325d1b085a979f91399a5`. This is not a fresh full-flash byte proof.
+
+A separately admitted, RF-off browser validation on that image completed
+15 authenticated GET responses, then failed request 16 in TLS setup at the
+unchanged four-second timeout. Result
+`55e9277e8530105ccab06d0e9530431033923be5291cf5d1a4b9a5903b15d7ef`
+remains failed. Its 632-packet, zero-drop TCP-header trace has hash
+`f97b8a710b37bcbea26bcaea9a23f5a3b553db9fad3318dfbcccd9b8ac774529`.
+The failing connection acknowledges the entire 1,507-byte ClientHello about
+16 ms after its tail. The receive repair therefore addresses that observed
+input defect, but it did not resolve target TLS timeout acceptance.
+
+The server sends a 127-byte first record. The Pi immediately acknowledges it,
+but the server retransmits that record about 2.47 seconds later. The remaining
+863 bytes first appear after the client's timeout/FIN. INFO at failure records
+990 pending TCP bytes, 29,163 TLS bytes allocated and no allocation/stack/DMA
+fault. The source-pinned lwIP Nagle rule holds one short unsent segment behind
+unacknowledged data. This identifies an avoidable outgoing-flight ACK
+dependency; the reason B failed to process the timely Pi ACK is still not
+isolated. The failure, response hashes, raw Console bindings and packet trace
+are preserved. Both boards subsequently returned to empty/inactive/unowned/
+disabled states with selected IO counts zero; the owned service was restored.
+
+## TLS flight repair
+
+TLS connection activation now disables Nagle before TLS setup. Plain TCP
+activation retains its existing behavior. No TLS version, cipher, certificate
+policy, client timeout, retry, RF algorithm, scientific threshold or capture
+cadence changes.
+
+A new host fixture models the pinned lwIP short-segment rule and withholds the
+first server-flight ACK until client authentication arrives. With the old
+Nagle behavior, the actual TLS handshake times out. With the repaired
+transport, authenticated TLS 1.3/ALPN and a complete HTTP 200 response pass.
+Affected TLS, Local WTP and Plain TCP WTP checks also pass. Closed Linux result:
+`cab51eda37ee8ef117a179087f1fcf8a8e0929a1027f5c1445142cc80bc822e2`.
+Independent source/log/process review:
+`e3de8ed041b7503da2da60be9bba4701ff8f5397d42a19227f327846f70ce4e2`.
+The first missing test-support include path and subsequent HTTP reason-phrase/
+bytearray parser assertions remain preserved fixture failures. The successful
+validation reused unchanged compiled repair objects and the actual old-Nagle
+negative proof without replaying that control.
+
+The Nagle repair still needs a clean Arm build/review, application-only
+installation and a new target validation. Both boards currently retain the
+installed `62ea7b1b157d` receive-only repair. Mixed and memory qualification
+remain unaccepted and undispatched; no new retention or removal is admitted.

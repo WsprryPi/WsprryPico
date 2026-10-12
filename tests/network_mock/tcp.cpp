@@ -18,6 +18,10 @@
 static std::vector<tcp_pcb*> listeners;
 static std::vector<tcp_pcb*> clients;
 static bool fragment_writes = false, block_write = false, hold_next_ack = false;
+static bool hold_next_handshake_ack = false;
+void mock_tcp_hold_next_handshake_ack() {
+    hold_next_handshake_ack = true;
+}
 void mock_tcp_hold_next_ack() {
     hold_next_ack = true;
 }
@@ -115,6 +119,9 @@ void tcp_err(tcp_pcb* p, void (*f)(void*, err_t)) {
 void tcp_sent(tcp_pcb* p, err_t (*f)(void*, tcp_pcb*, u16_t)) {
     p->sent = f;
 }
+void tcp_nagle_disable(tcp_pcb* p) {
+    p->nagle_disabled = true;
+}
 void tcp_abort(tcp_pcb* p) {
     listeners.erase(std::remove(listeners.begin(), listeners.end(), p), listeners.end());
     close(p->fd);
@@ -134,6 +141,11 @@ err_t tcp_write(tcp_pcb* p, const void* b, u16_t n, int) {
         if (block_write)
             return ERR_MEM;
     }
+    if (p->model_nagle) {
+        const auto* bytes = static_cast<const unsigned char*>(b);
+        p->unsent.insert(p->unsent.end(), bytes, bytes + n);
+        return ERR_OK;
+    }
     // Small writes on the local socket are atomic in this bounded test adapter.
     const auto sent = send(p->fd, b, n, 0);
     if (sent == n)
@@ -142,7 +154,19 @@ err_t tcp_write(tcp_pcb* p, const void* b, u16_t n, int) {
            : (sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) ? ERR_MEM
                                                                      : ERR_ABRT;
 }
-err_t tcp_output(tcp_pcb*) {
+err_t tcp_output(tcp_pcb* p) {
+    if (p->model_nagle && !p->unsent.empty()) {
+        // Pinned lwIP tcp_do_output_nagle(): one short unsent segment is
+        // held while another is unacked unless TF_NODELAY is set. Hold the
+        // first-flight ACK until the client can send its authentication.
+        if (p->pending && !p->nagle_disabled && p->unsent.size() < 1460)
+            return ERR_OK;
+        const auto n = send(p->fd, p->unsent.data(), p->unsent.size(), 0);
+        if (n < 0)
+            return errno == EAGAIN || errno == EWOULDBLOCK ? ERR_MEM : ERR_ABRT;
+        p->pending += static_cast<unsigned>(n);
+        p->unsent.erase(p->unsent.begin(), p->unsent.begin() + n);
+    }
     return ERR_OK;
 }
 void tcp_recved(tcp_pcb*, u16_t) {}
@@ -190,17 +214,21 @@ void mock_tcp_poll() {
             pcb->fd = fd;
             pcb->hold_ack = hold_next_ack;
             hold_next_ack = false;
+            pcb->model_nagle = pcb->hold_handshake_ack = hold_next_handshake_ack;
+            hold_next_handshake_ack = false;
             clients.push_back(pcb);
             listener->accept(listener->arg, pcb, ERR_OK);
         }
     }
     const auto copy = clients;
     for (auto* pcb : copy) {
-        if (pcb->pending && pcb->sent && !pcb->hold_ack) {
+        if (pcb->pending && pcb->sent && !pcb->hold_ack && !pcb->hold_handshake_ack) {
             const auto n = pcb->pending;
             pcb->pending = 0;
             pcb->sent(pcb->arg, pcb, n);
         }
+        if (pcb->model_nagle)
+            (void)tcp_output(pcb);
         if (!pcb->receive)
             continue;
         // Peek first so ERR_MEM faithfully leaves data available for retry.
@@ -221,6 +249,8 @@ void mock_tcp_poll() {
             }
             continue;
         }
+        if (pcb->model_nagle && pcb->pending)
+            pcb->hold_handshake_ack = false;
         auto* packet = new pbuf{static_cast<u16_t>(n), new unsigned char[n]};
         std::copy_n(buffer.data(), n, packet->payload);
         const auto result = pcb->receive(pcb->arg, pcb, packet, ERR_OK);

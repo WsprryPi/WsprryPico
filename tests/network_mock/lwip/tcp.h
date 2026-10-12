@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 #ifndef LWIP_ASSERT
 #define LWIP_ASSERT(message, expression) assert((expression) && (message))
 #endif
@@ -22,6 +23,8 @@ struct tcp_pcb {
     err_t (*sent)(void*, tcp_pcb*, u16_t) = nullptr;
     unsigned pending = 0;
     bool hold_ack = false;
+    bool nagle_disabled = false, model_nagle = false, hold_handshake_ack = false;
+    std::vector<unsigned char> unsent;
     void (*error)(void*, err_t) = nullptr;
 };
 tcp_pcb* tcp_new_ip_type(int);
@@ -32,6 +35,7 @@ void tcp_accept(tcp_pcb*, err_t (*)(void*, tcp_pcb*, err_t));
 void tcp_recv(tcp_pcb*, err_t (*)(void*, tcp_pcb*, pbuf*, err_t));
 void tcp_err(tcp_pcb*, void (*)(void*, err_t));
 void tcp_sent(tcp_pcb*, err_t (*)(void*, tcp_pcb*, u16_t));
+void tcp_nagle_disable(tcp_pcb*);
 void tcp_abort(tcp_pcb*);
 err_t tcp_close(tcp_pcb*);
 unsigned tcp_sndbuf(tcp_pcb*);
@@ -47,5 +51,6 @@ void mock_tcp_ack_and_close(bool reset);
 
 void mock_tcp_fragment_writes(bool enabled);
 void mock_tcp_hold_next_ack();
+void mock_tcp_hold_next_handshake_ack();
 tcp_pcb* mock_tcp_pending_burst(unsigned& refused);
 void mock_tcp_pending_disconnect(tcp_pcb*, bool reset);

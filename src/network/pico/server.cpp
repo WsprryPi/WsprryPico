@@ -302,6 +302,9 @@ void PicoServer::Connection::activate(tcp_pcb* pcb, bool softap, bool plain) {
         endpoint_.connect(principal_);
         return;
     }
+    // TLS emits several short records in one flight. Do not hold a later
+    // record behind an earlier record's TCP ACK (or its retransmission).
+    tcp_nagle_disable(client_);
     mbedtls_ssl_init(&ssl_);
     setup_ = true;
     if (mbedtls_ssl_setup(&ssl_, &owner_.config_))
