@@ -6,6 +6,12 @@ This file is useful while implementation is active. Remove roadmap sequencing,
 completed-work narration and other progress material before the documentation is
 treated as long-term product documentation.
 
+Current position, 2026-10-14: Phases 1–12 and Phase 14 are closed within their
+recorded scopes. P13.1 transmit LED work is complete. Remaining conditional,
+deferred and unselected proposals are listed under
+[remaining deferred and backlog items](#remaining-deferred-and-backlog-items).
+No Phase 14 workstream or LED task remains open.
+
 ## Current roadmap snapshot
 
 1. **Complete:** architecture and protocol boundaries.
@@ -21,8 +27,8 @@ treated as long-term product documentation.
 9. **Complete:** persistent station/schedules, device SNTP, retained watermark,
    Wi-Fi loss/reconnection and recovery controls, plus recurring standalone RF
    frames independently decoded after a wall-power boot without a USB host.
-   This is bounded functional acceptance; final RF/reliability qualification
-   remains in Phase 14.
+   This is bounded functional acceptance; later RF/reliability acceptance is
+   recorded in the [Phase 14 closeout](development/phase14-closeout-ledger.md).
 10. **Complete:** WsprryPi client/backend integration, published operator manual,
     installed Linux release and bounded joint USB/conducted acceptance. Repaired
     physical timing, streaming, clock-refresh and launch-status findings were
@@ -31,7 +37,7 @@ treated as long-term product documentation.
     recorded 135500 Hz conducted setup. Final inhibited clock-loss, cancellation
     and USB reconciliation checks passed; inhibited firmware and original host
     services are restored. This is functional integration acceptance, with
-    broader qualification retained in Phase 14. See the
+    later conducted qualification recorded in Phase 14. See the
     [target review](development/phase10-target-review.md) and
     [host acceptance guide](development/phase10-host-acceptance.md).
 11. **Complete within documented scope:** optional mutually authenticated
@@ -66,9 +72,9 @@ treated as long-term product documentation.
     [review](development/phase11-5-package11-retry4-review.md) close R6 and
     Phase 11.5 at 6/6 families for that configuration.
     An alternative clock selected during 11.6 must repeat affected 11.5 checks.
-    The systematic band x mode x clock comparison, final supported configurations,
-    spectral qualification and release firmware belong to Phase 14. Filter
-    development/application is the operator's responsibility.
+    The systematic band x mode x clock comparison, supported configurations,
+    unfiltered spectra and reproducible artifact are recorded in the closed
+    Phase 14 scope. Filter development/application is the operator's responsibility.
 12. **Closed within selected scope:** Phase 12 provisioning/local control and consumer commissioning.
     The [Phase 12 plan](development/phase12-plan.md), operator-selected
     [field contract](development/phase12-field-access-contract.md) and
@@ -82,7 +88,8 @@ treated as long-term product documentation.
     are accepted within their recorded scopes. All four declared automatic
     workstreams are complete. The operator accepted the final frozen scope
     dispositions on 2026-10-06; the phase is **CLOSED_SCOPED**. Broader
-    interoperability and RF/release qualification remain unqualified.
+    interoperability is outside that acceptance. Later conducted RF/release
+    acceptance is recorded separately in Phase 14.
 
     P12.1/P12.2 provide the portable profile journal and provisioning state
     machine. P12.4/P12.5 provide strict command decoding, delivery-safe
@@ -125,26 +132,26 @@ treated as long-term product documentation.
     and GP14 production default enablement is deferred. Stage B and Phases 13
     and 14 remain separate; this closeout starts no new feature work.
 
-13. **Selected LED work complete; Si5351 deferred:** P13.1 transmit LED work is
+13. **LED complete; deferred/backlog features:** P13.1 transmit LED work is
     **CLOSED_SCOPED**, with addressability and external TX-only operation verified.
-    P13.2 external Si5351 implementation is deferred. No active feature work
-    remains selected; see the
+    P13.2 external Si5351 implementation is conditional and deferred. P13.3 manual
+    amplifier enable is an unselected backlog proposal. No active feature
+    implementation remains selected; see the
     [Phase 13 feature backlog](#phase-13-feature-backlog).
-14. **Active:** [Phase 14 qualification plan](development/phase14-plan.md) and
-    [result record](development/phase14-results.md) track hardware/RF qualification
-    and release for the
-    implemented PIO/DMA engine: the established unfiltered conducted path,
-    RF-output timing/frequency with uncertainty reported, supported
-    mode/band/clock combinations, reliability and a reproducible release UF2.
-    There is no LPF in the bench; the operator develops/applies filtering.
-    Drift alone does not fail the human-copy QRSS, FSKCW or DFCW assessment.
-    WSPR acceptance uses correct external decoding under the operator's
-    2026-10-09 amendment; residual measurements remain diagnostics. Coverage
-    records all candidate bands from 2200 m through 2 m, including explicit
-    direct-frequency configuration limits.
-    Actual 2 m harmonic output investigation remains open; rejection of a
-    direct 2 m request does not satisfy its positive RF qualification.
-    Si5351 remains deferred.
+14. **Closed within declared scope — 9/9 workstreams (100%)**, 2026-10-14.
+    The [closeout ledger](development/phase14-closeout-ledger.md) supersedes older
+    active/pending descriptions in the [qualification plan](development/phase14-plan.md)
+    and [result record](development/phase14-results.md). Accepted conducted scope
+    covers PIO/DMA GP2 on both Picos, Tone/WSPR/QRSS/FSKCW/DFCW and 13 retained
+    bands, with recorded 132/138/150 MHz comparisons. The selected reproducible
+    release artifact is C96/138 MHz. Timing/frequency, unfiltered spectra,
+    lifecycle/reliability and consumer settings/smoke results retain their exact
+    source/image applicability and measurement limits. Code/evidence commit
+    `74c73d5` and final closeout commit `e501c0d` were pushed with independent
+    remote parity verification. 4 m/2 m are excluded for all modes; 8 m/5 m were
+    outside the agreed matrix. Filtering, calibrated power/absolute RF timing,
+    consumer-image long endurance and documented security limits remain outside
+    acceptance. These are retained scope limits, not unfinished workstreams.
 
 ## Phase 13 feature backlog
 
@@ -157,22 +164,26 @@ button operation is recorded in the [Phase 12 closeout](development/phase12-clos
 No LED calibration, additional polarity campaign or button/header test is
 required to close P13.1 or carried forward from it into Phase 14.
 
-External Si5351 implementation remains conditional and deferred, depending on
-ongoing GPIO RF qualification. No further feature implementation is selected;
-Phase 14 RF qualification and release remains active. The 2026-10-09
+External Si5351 implementation remains conditional and deferred; Phase 14's GPIO
+results inform any future selection. Manual amplifier enable is an unselected
+backlog proposal. No further feature implementation is selected, and Phase 14
+is closed. The 2026-10-09
 [GPIO timekeeping/calibration research plan](development/gpio-time-calibration-plan.md)
 selects three stages of consideration: NTP filtering and UTC discipline,
-NTP-derived Pico calibration, then optional GPS UTC + PPS. It adds no hardware
-jobs, implementation requirement or completion gate to the active campaign.
+NTP-derived Pico calibration, then optional GPS UTC + PPS. Its
+[research/documentation review is complete](development/gpio-time-calibration-review-closure.md);
+future implementation remains unselected and adds no Phase 14 completion gate.
 
 | Milestone | Selected work | Status |
 | --- | --- | --- |
 | P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) across RF activation and cleanup; selected external LED is TX-only with operational cues onboard, or shared onboard TX takes priority over blinking. | Complete (CLOSED_SCOPED); source/host and 14 selected target case results accepted; no remaining LED work |
 | P13.2 — Si5351 engine | [Conditional external Si5351 transmission](development/si5351-transmission-backlog.md) through the shared job service for standalone and WsprryPi-controlled jobs, with local RP2350 timing, exclusive I²C ownership and engine failure/shutdown handling. | Conditional on GPIO results; deferred; unimplemented |
+| P13.3 — Manual amplifier enable | [Enable the amplifier without transmitting](#manual-amplifier-enable-proposal), through a web page, a control point, or both. | Backlog request recorded 2026-10-10; unimplemented; implementation not selected |
 
-Each feature includes its implementation and applicable behavior/target
-acceptance. Phase 14 retains the final supported engine/mode/band/clock matrix,
-timing/frequency measurements, RF spectra, reliability and release qualification.
+Any future selected feature includes its implementation and applicable
+behavior/target acceptance. The closed Phase 14 record retains the supported
+engine/mode/band/clock matrix, timing/frequency measurements, unfiltered spectra,
+reliability and reproducible release artifact within its declared scope.
 The operator's Phase 14 amendment assigns LPF development/application to the
 operator and treats QRSS-family drift as a diagnostic rather than an immediate
 human-copy failure; see the current plan for the separate retained assessments.
@@ -182,14 +193,50 @@ is now Phase 14. Historical acceptance records and execution prompts retain
 their original numbering; their references to Phase 13 qualification mean
 the current Phase 14.
 
+### Manual amplifier enable proposal
+
+Recorded 2026-10-10: provide an explicit way to turn the amplifier enable on
+and off without starting a transmission or generating RF. The operator-facing
+surface remains open: a web page, a control point, or both.
+
+Future design should use the member's single local control authority and
+exclusive amplifier-pin allocation, keep RF output inactive, and report
+amplifier-enable state separately from RF/TX status. Decide ownership/admission,
+interaction with scheduled or controller jobs, and disable behavior on stop,
+reset, fault, disconnect or timeout when implementation is selected. Exact
+commands, endpoints, pin/polarity and timeout policy remain proposals. The Pico
+amplifier adapter remains unavailable; this backlog adds no implementation or
+acceptance gate to the active Phase 14 campaign.
+
+## Remaining deferred and backlog items
+
+Current disposition, 2026-10-14. The manual amplifier proposal above is retained
+verbatim as recorded on 2026-10-10; its reference to an active Phase 14 campaign
+is historical. No feature implementation or new qualification campaign is
+currently selected.
+
+| Item | Remaining decision/work | Status |
+| --- | --- | --- |
+| P13.2 — External Si5351 | Decide whether GPIO results justify selecting a future engine; if selected, define hardware/reference settings, implement and qualify it through the existing JobService. | Conditional; deferred; unimplemented |
+| P13.3 — Manual amplifier enable | Preserve the [recorded proposal](#manual-amplifier-enable-proposal): enable/disable the amplifier without RF through a web page, control point, or both; select the interface and control/failure policies before implementation. | Backlog; unimplemented; implementation not selected |
+| GP14 production-default enablement | Decide whether to enable the existing button behavior by default. Existing functional button evidence and P13.1 LED closure remain accepted. | Deferred decision |
+| GPIO timekeeping/frequency improvements | The [research review is complete](development/gpio-time-calibration-review-closure.md); future NTP filtering/UTC discipline, NTP-derived Pico calibration and optional GPS UTC + PPS implementation remain proposals. | Research closed; implementation unselected |
+
+The [Phase 14 closeout](development/phase14-closeout-ledger.md) retains exclusions
+for LPF/antenna-ready emissions, calibrated power/absolute RF timing,
+consumer-image long endurance, general leak freedom, hostile HTTP-page delivery
+and authenticated Plain LAN. Filter development/application belongs to the
+operator. Expanding those claims would require separately selected work; they
+do not reopen the nine closed Phase 14 workstreams or add an LED/button task.
+
 <a id="planned-qrss-group-message-and-duration-limits"></a>
 
 ## QRSS-group message and duration limits
 
 Decision: selected by the user on 2026-09-13. Implemented in Pico source
 `7d183978d08d` and Pi companion `bba4024`. Phase 11.5 later accepted the limits
-within its recorded 138 MHz/divider-1 physical scope; wider reliability and
-configuration qualification remain in Phase 14.
+within its recorded 138 MHz/divider-1 physical scope; later Phase 14 reliability
+and configuration results retain the accepted scope in its closeout ledger.
 
 - Apply one uniform maximum message length of **32 characters, including
   spaces**, to QRSS, FSKCW and DFCW. Every supported character counts equally;
@@ -211,7 +258,8 @@ configuration qualification remain in Phase 14.
 - Validate 32/33-character and 60-minute duration boundaries, worst-case Morse
   expansion, completion, cancellation, disconnect handling and sustained resource
   use. Hardware-free checks precede separately authorized physical acceptance;
-  long-duration endurance qualification remains in Phase 14.
+  later endurance evidence and its image-specific limits are recorded in the
+  [Phase 14 closeout](development/phase14-closeout-ledger.md).
 
 The implemented RF profile advertises 512 events and 3,600 seconds. The compact
 message compiler expands finite repeats within both bounds; it never streams
@@ -229,6 +277,10 @@ records source applicability and affected checks. The
 preserves each applicable passing assertion without resetting unrelated checks.
 
 ## Completed baseline
+
+The completed implementation history below retains each checkpoint's original
+evidence scope. References to later Phase 14 work in that history are historical;
+current closure and deferred items are recorded above and in the closeout ledger.
 
 - Documented the accepted architectural decisions.
 - Established draft WTP and browser API boundaries.
@@ -402,12 +454,13 @@ belongs to the operator.
 2. Phase 12 is CLOSED_SCOPED under its accepted commissioning/recovery
    dispositions, with no remaining operator queue.
 3. Phase 13: P13.1 transmit LED work is complete; P13.2 external Si5351 is
-   deferred. No active feature work remains selected in the
+   conditional/deferred and P13.3 manual amplifier enable is an unselected backlog
+   proposal. No active feature implementation remains selected in the
    [feature backlog](#phase-13-feature-backlog).
-4. Phase 14 is active: qualify supported PIO/DMA mode/band/clock combinations,
-   RF-output timing/frequency, unfiltered spectra and reliability; release a
-   reproducible WsprryPico-x.y.z.uf2. The operator develops/applies filtering.
-   Si5351 remains deferred.
+4. Phase 14 is closed within its declared scope: 9/9 workstreams, accepted
+   conducted results and reproducible C96/138 MHz artifact. See the
+   [closeout ledger](development/phase14-closeout-ledger.md) and
+   [remaining deferred/backlog items](#remaining-deferred-and-backlog-items).
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
@@ -417,7 +470,8 @@ The firmware builds for Pico 2 W. The portable core and WTP USB endpoint are
 host-tested, and bounded target USB validation passes on the recorded Pico 2 W
 and Mac. Bounded RF bench transmissions, UTC-scheduled WTP integration and CPU
 timing measurements are now recorded. Phase 11 adds its bounded inhibited,
-resource/contention and scoped conducted-RF acceptance. Final supported
-mode/band/clock combinations, calibrated timing and release engine promotion
-remain open in Phase 14. WTP/1 schemas are
+resource/contention and scoped conducted-RF acceptance. Phase 14 closes its
+declared conducted matrix, reviewed reliability/control results and reproducible
+artifact scope. Its explicit measurement, endurance, security and excluded-band
+limits remain documented; no Phase 14 workstream is open. WTP/1 schemas are
 normative; changes to them require an explicit protocol-contract revision.
