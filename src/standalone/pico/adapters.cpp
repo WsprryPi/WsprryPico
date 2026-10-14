@@ -562,7 +562,13 @@ void PicoNetwork::poll() {
         return;
     }
     lookup_.link(link == CYW43_LINK_UP);
-    const auto* station = &cyw43_state.netif[CYW43_ITF_STA];
+    auto* station = &cyw43_state.netif[CYW43_ITF_STA];
+    // The pinned CYW43 driver makes every newly enabled interface the default,
+    // including the consumer setup AP. Keep off-subnet DNS/SNTP traffic on the
+    // connected station; AP-local replies still use their matching subnet.
+    if (link == CYW43_LINK_UP && netif_is_up(station) && netif_is_link_up(station) &&
+        !ip4_addr_isany_val(*netif_ip4_addr(station)))
+        netif_set_default(station);
     if (wsprry_mdns_network_changed())
         mdns_.network_changed();
     if (service_withdrawal_started_us_ &&

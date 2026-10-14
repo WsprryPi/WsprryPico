@@ -122,10 +122,12 @@ class Rig:
         # Every capture has one attributable Pico and an inactive peer board.
         other='B' if board=='A' else 'A';self.idle(other)
         browser=None
+        browser_workload=None
         if browser_credentials:
             require(before['provisioning_source']=='provisioned','browser workload requires engineering profile')
-            from phase14.browser import Browser
+            from phase14.browser import Browser,BrowserWorkload
             browser=Browser(browser_credentials,before)
+            browser_workload=BrowserWorkload(browser)
         value=(trial_job(mode,clock,uuid.uuid4().hex) if route else job(mode,band,clock,uuid.uuid4().hex,duration,workload))
         from phase14.calibration import request_compensated
         value=request_compensated(value,request_compensation_ppb)
@@ -173,6 +175,10 @@ class Rig:
             path='each source -20 dB -> combiner -> -40 dB -> RSP1B; no antenna; no LPF; operator-owned filtering')
         if route:record['output_route']=route
         save(root/'physical.json',record)
+        def retain_browser(sample):
+            if sample is not None:
+                record['browser_activity'].append(sample)
+                self.e.event('browser_activity',sample['response'])
         block=None
         if clock_loss:
             require(board=='B' and mode=='TONE' and duration is not None and 220<=duration<=3600 and action=='complete',
@@ -232,13 +238,12 @@ class Rig:
                     if not disconnected and time.monotonic()-last_renew>=25:
                         peer.request('RENEW',dict(owner_id=owner,lease_ms=60000))
                         last_renew=time.monotonic()
-                    if browser and time.monotonic()-last_browser>=10:
+                    if browser_workload:
+                        retain_browser(browser_workload.poll())
+                    if browser_workload and not browser_workload.pending and time.monotonic()-last_browser>=10:
                         paths=('/','/api/v1/status','/api/v1/capabilities','/api/v1/jobs')
-                        from phase14.browser import activity
-                        sample=activity(browser,paths[browser_index%4]);browser_index+=1
-                        record['browser_activity'].append(sample)
-                        self.e.event('browser_activity',sample['response'])
-                        last_browser=sample['started_monotonic_ns']/1e9
+                        browser_workload.start(paths[browser_index%4]);browser_index+=1
+                        last_browser=browser_workload.started_monotonic_ns/1e9
                     if time.monotonic()-last_info>=10:
                         self.info(board);last_info=time.monotonic()
                     if status['state'] in ('complete','aborted','missed','failed'):
@@ -246,6 +251,8 @@ class Rig:
                     time.sleep(.5)
                 require(terminal is not None and terminal['output_active'] is False,'no authoritative terminal inactivity')
                 record['terminal']=terminal
+                if browser_workload:
+                    retain_browser(browser_workload.close())
                 if disconnected:
                     require(terminal['owner_id'] in (None,owner),'foreign successor owner')
                     if terminal['owner_id']==owner:
@@ -295,6 +302,13 @@ class Rig:
                               capture_sha256=metadata['output']['sha256'],metadata_sha256=sha256(root/'capture.json'))
             except BaseException as error:
                 record.update(result='FAILED',error=repr(error))
+                if browser_workload and browser_workload.error is not None:
+                    network_error=browser_workload.error
+                    record['browser_failure']=dict(error=repr(network_error),
+                        stage=getattr(network_error,'stage',None),
+                        request_budget_seconds=browser.request_budget_seconds,
+                        elapsed_seconds=getattr(network_error,'elapsed_seconds',None),
+                        attribution='harness/network request failure; firmware cause not established')
                 try:
                     current=self.device.info(board)['status']
                     if current.get('job_id')==value['job_id'] and current['state'] in ('loaded','armed','running'):
@@ -310,7 +324,19 @@ class Rig:
                 raise
             finally:
                 try:
-                    if block:block.close()
+                    try:
+                        if browser_workload:
+                            retain_browser(browser_workload.close())
+                    except BaseException as error:
+                        record['browser_cleanup_error']=repr(error)
+                        record['result']='FAILED'
+                        # Preserve an earlier RF/control failure as the primary
+                        # exception; retain a separate browser closure failure.
+                        if 'error' not in record:
+                            record['error']=repr(error)
+                            raise
+                    finally:
+                        if block:block.close()
                 finally:
                     try:
                         if process and process.poll() is None:

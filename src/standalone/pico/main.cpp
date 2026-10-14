@@ -22,6 +22,7 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "hardware/watchdog.h"
 #include "network/identity.hpp"
 #include "network/pico/bootstrap_server.hpp"
+#include "network/pico/consumer_radio_crypto.hpp"
 #include "network/pico/server.hpp"
 #include "network/softap_api.hpp"
 #include "network_credentials.hpp"
@@ -498,8 +499,11 @@ int main() {
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Fault);
-    softap_coordinator.blank_profile(runtime_profile.source() ==
-                                     wsprrypico::provisioning::RuntimeSource::Unprovisioned);
+    // Consumer radio management is AP-local, including while station Wi-Fi is
+    // healthy. Its encrypted authenticated session is independent of setup.
+    softap_coordinator.blank_profile(
+        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
+        consumer_source_selected());
     softap_coordinator.recovery(boot_recovery);
 #ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
     // Test-only, RF-inhibited access window. Consumer USB field commands remain
@@ -547,8 +551,14 @@ int main() {
     server.softap_handler(&softap_api, softap_interface, nullptr);
     static wsprrypico::network::PicoBootstrapServer bootstrap(
         identities.device_id(), wsprrypico::firmware::kFirmwareVersion, softap_interface, nullptr);
-    // Source 5 exposes public owner claim status only. The plaintext listener
-    // must not expose a legacy mutation route to a consumer profile.
+    static wsprrypico::network::PicoConsumerRadioCrypto consumer_radio_crypto;
+    static wsprrypico::network::ConsumerRadioApi consumer_radio(
+        browser_api, profile_store, runtime_profile, random_source, consumer_radio_crypto,
+        identities.device_id(), service.status().boot_id);
+    bootstrap.radio_control(consumer_radio);
+    browser_api.consumer_config(runtime_profile);
+    // Source 5 keeps public commissioning separate from encrypted, password-
+    // authenticated radio requests. Legacy plaintext field mutations stay closed.
     const auto blank_access_available = []() {
         return access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased ||
                (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy &&
@@ -1710,6 +1720,10 @@ int main() {
         if (reset_coordinator.blocks_admission() || recovery_reset_at)
             continue;
         const auto field_now_ms = time_us_64() / 1000ULL;
+        consumer_radio.admission(runtime_profile_loaded && consumer_source_selected() &&
+                                 blank_access_available() && !boot_recovery &&
+                                 !reset_coordinator.pending() && !reboot_at &&
+                                 !bootstrap.owner_claim_pending() && !bootstrap.setup_pending());
         if ((consumer_source_selected() || bootstrap.owner_claim_pending()) && gatt.running())
             gatt.stop();
         if (runtime_profile_loaded && !consumer_source_selected() &&
@@ -1730,11 +1744,15 @@ int main() {
         const bool request_softap = softap_coordinator.poll(field_now_ms);
         const auto surface = softap_coordinator.surface(
             service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
+        const auto access_activity = provisioning_activity(&service);
+        const bool radio_unarmed_access =
+            consumer_source_selected() && consumer_radio.available() &&
+            wsprrypico::network::consumer_radio_network_idle(access_activity);
         const bool blank_captive =
             bootstrap_started &&
             surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
             blank_access_available() &&
-            wsprrypico::provisioning::idle_for_access(provisioning_activity(&service));
+            (wsprrypico::provisioning::idle_for_access(access_activity) || radio_unarmed_access);
         if (softap.running() && softap.captive() != blank_captive) {
             (void)network.softap_name(false, {});
             softap.stop();

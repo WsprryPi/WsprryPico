@@ -28,7 +28,9 @@ application parity is not claimed.
 
 ## Timing and interoperability
 
-- USB CDC is the canonical/reference WTP transport. Network WTP/TCP is a
+- USB CDC is the canonical/reference WTP transport. The saved consumer
+  profile intentionally disables USB WTP, retaining Console inspection and
+  network/application adapters for job control. Network WTP/TCP is a
   first-class job-transfer and job-control transport carrying the identical
   WTP/1 stream to the same `JobService`. Engineering profiles retain TLS 1.3,
   ALPN `wtp/1` and mutual certificate authentication. The standard consumer
@@ -39,14 +41,25 @@ application parity is not claimed.
   WsprryPi supports an explicit Plain LAN connection; one installed fleet
   member/application path has bounded Phase 12 acceptance. Full fleet
   interoperability remains unqualified.
+- Consumer radio settings have a separate AP-local authenticated path at
+  `http://192.168.4.1/radio`, specified by
+  [Consumer-Radio/1](docs/protocol/Consumer-Radio-v1.md). The saved consumer
+  Wi-Fi passphrase authenticates a volatile encrypted session to the shared
+  JSON API. Wi-Fi and station identity remain owned by their setup pages.
+  The HTTP-delivered page retains the open-AP setup threat boundary; this
+  protocol does not authenticate page delivery. Bounded settings persistence
+  and restoration passed on both Picos; final RF smokes and release audits
+  remain separate gates.
 - The implemented engineering provisioning and field-control path uses
   BLE/Bluefy under the
   [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).
   The later [open setup revision](docs/development/phase12-safari-open-setup-revision.md)
   selects an open SoftAP portal with Wi-Fi first and optional station settings
   later. Saving settings requires no button or retained phone owner. A blank
-  Pico starts its open AP automatically; a saved Pico normally keeps it off
-  while station Wi-Fi is healthy. Station loss brings the AP back. The operator
+  Pico starts its open AP automatically. The consumer radio revision retains
+  it during idle and unarmed management even with healthy station Wi-Fi;
+  armed, running, failed or uncertain output states withdraw this AP path.
+  Station loss also brings the AP back when the access guard permits. The operator
   selected a separate active-low GP14 button (physical pin 19): a debounced
   release under 0.4 seconds requests reset; reaching 0.9 seconds held requests
   transmission shutdown; reaching 9 seconds held requests setup AP after

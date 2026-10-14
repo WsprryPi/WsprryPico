@@ -1,5 +1,14 @@
 # Phase 14 band, clock and mode results
 
+Current final audit: all 390 retained board/band/mode/clock cells and 602 accepted
+observations are consolidated at closed proof `912ea1c2...`. Both Picos retain
+the selected consumer C96/138 MHz candidate. Engineering measurements below
+keep their actual source/image identities; 132/150 MHz remain historical
+comparisons. Eight original workstreams are closed within the recorded scope;
+Git and final closeout remain open. See the [current ledger](phase14-closeout-ledger.md).
+
+The following original table introduction describes its historical boundary.
+
 Accepted conducted evidence on both Pico A and B; final release qualification remains in progress. These results retain their actual old source/image identities. The clean experimental-frequency candidate is installed on both boards; engineering flag persistence/default admission and four current-image 80 m RF baselines passed independent review. The table remains historical evidence under its recorded source identities.
 
 Relative power is the received **fundamental carrier**, at the 138 MHz Pico clock, relative to each board's own 80 m result (0 dB), then averaged across A and B in linear power before conversion to dB. They include SDR, attenuator and cable response; they are not calibrated transmitter watts/dBm. The large 6 m increase is not isolated as higher transmitter output.

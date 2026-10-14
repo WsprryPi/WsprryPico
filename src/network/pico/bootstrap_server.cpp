@@ -1,5 +1,6 @@
 #include "network/pico/bootstrap_server.hpp"
 
+#include "network/assets.hpp"
 #include "network/bootstrap_codec.hpp"
 #include "network/bootstrap_http.hpp"
 #include "network/bootstrap_wire.hpp"
@@ -60,6 +61,12 @@ err_t PicoBootstrapServer::accept(void* context, tcp_pcb* pcb, err_t err) {
         return ERR_ABRT;
     }
     self.client_ = pcb;
+    if (self.next_radio_transaction_ == UINT64_MAX) {
+        self.client_ = nullptr;
+        tcp_abort(pcb);
+        return ERR_ABRT;
+    }
+    self.radio_transaction_ = self.next_radio_transaction_++;
     self.accepted_ms_ = time_us_64() / 1000;
     tcp_arg(pcb, &self);
     tcp_recv(pcb, receive);
@@ -127,10 +134,14 @@ void PicoBootstrapServer::error(void* context, err_t) {
         self.bootstrap_submit_delivered_ = true;
         self.bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
     }
+    if (self.radio_)
+        self.radio_->finish_request(self.radio_transaction_, !self.headers_.empty() &&
+            self.header_offset_ == self.headers_.size() &&
+            self.body_offset_ == self.response_.body_size() && self.pending_bytes_ == 0);
     self.client_ = nullptr;
     self.parser_.reset_secure();
     self.parser_ = {};
-    self.response_ = {};
+    self.response_.reset();
     self.headers_.clear();
     self.header_offset_ = self.body_offset_ = self.pending_bytes_ = 0;
     if (submit_response && !delivered_submit)
@@ -141,6 +152,20 @@ void PicoBootstrapServer::dispatch() {
     owner_status_committed_reply_ = false;
     if (parser_.failed())
         response_ = http_error(400, "invalid_http");
+    else if (radio_ && parser_.request().path.starts_with("/api/consumer/v1/"))
+        response_ = radio_->handle(parser_.request(), time_us_64() / 1000, radio_transaction_);
+    else if (radio_ && radio_->available() && parser_.request().method == "GET" &&
+             parser_.request().path == "/radio" &&
+             parser_.request().header("host") == "192.168.4.1") {
+        const auto asset = consumer_radio_asset();
+        response_ = asset ? HttpResponse{200, "", std::string(asset->type), {}}
+                          : http_error(503, "radio_page_unavailable");
+        if (asset) {
+            response_.static_body = asset->body;
+            response_.static_parts = asset->parts;
+            response_.content_security_policy = consumer_radio_csp();
+        }
+    }
     else if (parser_.request().path.starts_with("/api/recovery/v1/"))
         response_ = recovery(parser_.request());
     else if (!setup_admitted_ && (parser_.request().path.starts_with("/api/bootstrap/v1/") ||
@@ -175,6 +200,10 @@ void PicoBootstrapServer::dispatch() {
 }
 
 void PicoBootstrapServer::close(bool peer_finished) {
+    if (radio_)
+        radio_->finish_request(radio_transaction_, !headers_.empty() &&
+            header_offset_ == headers_.size() && body_offset_ == response_.body_size() &&
+            pending_bytes_ == 0);
     const bool submit_response = bootstrap_trial_start_pending_ && !bootstrap_submit_delivered_ &&
                                  parser_.ready() &&
                                  parser_.request().path == "/api/bootstrap/v1/submit" &&
@@ -196,7 +225,7 @@ void PicoBootstrapServer::close(bool peer_finished) {
     client_ = nullptr;
     parser_.reset_secure();
     parser_ = {};
-    response_ = {};
+    response_.reset();
     headers_.clear();
     header_offset_ = body_offset_ = pending_bytes_ = 0;
     if (submit_response && !delivered_submit)
@@ -297,6 +326,10 @@ void PicoBootstrapServer::stop() {
 
 void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admitted) {
     active_ = active;
+    if (radio_) {
+        radio_->poll(time_us_64() / 1000);
+        if (!active_) radio_->close();
+    }
     setup_admitted_ = setup_admitted;
     recovery_slot_.expire(time_us_64() / 1000);
     if (!active_ && !reset_pending_)
@@ -496,6 +529,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
         pending_bytes_ += count;
         (void)tcp_output(client_);
     } else if (!pending_bytes_) {
+        if (radio_) radio_->finish_request(radio_transaction_, true);
         const bool delivered_owner_status =
             parser_.ready() && parser_.request().method == "GET" &&
             parser_.request().path == "/api/owner/v1/claim/status" && response_.status == 200 &&
@@ -522,7 +556,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
             tcp_abort(completed);
         parser_.reset_secure();
         parser_ = {};
-        response_ = {};
+        response_.reset();
         headers_.clear();
         header_offset_ = body_offset_ = 0;
         if (delivered_owner_status)

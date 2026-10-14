@@ -4,6 +4,7 @@
 #include "network/bootstrap_join.hpp"
 #include "network/bootstrap_slot.hpp"
 #include "network/http.hpp"
+#include "network/consumer_radio.hpp"
 #include "network/owner_claim_http.hpp"
 #include "network/pico/bootstrap_crypto.hpp"
 #include "network/pico/owner_claim_crypto.hpp"
@@ -81,6 +82,7 @@ class PicoBootstrapServer {
                (owner_slot_.state() != provisioning::ConsumerClaimState::None &&
                 owner_slot_.state() != provisioning::ConsumerClaimState::Terminal);
     }
+    void radio_control(ConsumerRadioApi& radio) { radio_ = &radio; }
     struct Resources {
         bool connected = false;
         bool setup_pending = false;
@@ -110,6 +112,9 @@ class PicoBootstrapServer {
 
   private:
     HttpResponse recovery(const HttpRequest& request);
+    ConsumerRadioApi* radio_ = nullptr;
+    std::uint64_t radio_transaction_ = 0;
+    std::uint64_t next_radio_transaction_ = std::uint64_t{1} << 63;
     BootstrapSlot recovery_slot_;
     PicoRecoveryCrypto recovery_crypto_;
     bool reset_pending_ = false;

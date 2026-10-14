@@ -10,6 +10,8 @@ struct WebAsset {
 };
 std::string_view web_csp();
 std::optional<WebAsset> web_asset(std::string_view path);
+std::string_view consumer_radio_csp();
+std::optional<WebAsset> consumer_radio_asset();
 std::string_view bootstrap_csp();
 // The credential document is served only when the target admission gate is active.
 std::optional<WebAsset> bootstrap_asset(std::string_view path);

@@ -188,6 +188,7 @@ void HttpParser::reset_secure() {
         scrub(value);
     }
     request_.headers.clear();
+    request_.selected_body.reset();
     request_.buffered_body.reset();
     scrub(headers_);
     content_length_ = 0;

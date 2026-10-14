@@ -6,6 +6,7 @@
 #include "lwip/ip.h"
 #include "lwip/stats.h"
 #include "lwip/timeouts.h"
+#include "lwip/udp.h"
 #include "pico/cyw43_arch.h"
 #include "standalone/pico/adapters.hpp"
 #include "standalone/pico/cyw43_tx_guard.h"
@@ -36,6 +37,7 @@ static unsigned station_service_ptr, station_service_goodbye, ap_service_ptr;
 static unsigned station_plain_txt, station_tls_txt;
 static unsigned station_service_port;
 static unsigned connect_calls;
+static unsigned station_ntp_packets, ap_ntp_packets, ap_local_packets;
 static unsigned leave_calls;
 static std::optional<int> forced_link_status;
 static bool power_failure;
@@ -76,6 +78,20 @@ static err_t output(netif* interface, pbuf* packet, const ip4_addr_t*) {
         return ERR_OK;
     const unsigned udp = (bytes[0] & 15) * 4;
     assert(udp >= 20 && udp + 8 <= bytes.size());
+    if (read16(bytes.data() + udp + 2) == 123) {
+        assert((std::array<unsigned char, 4>{bytes[16], bytes[17], bytes[18], bytes[19]} ==
+                std::array<unsigned char, 4>{203, 0, 113, 123}));
+        if (interface == &cyw43_state.netif[CYW43_ITF_STA])
+            ++station_ntp_packets;
+        else
+            ++ap_ntp_packets;
+        return ERR_OK;
+    }
+    if (read16(bytes.data() + udp + 2) == 4321) {
+        assert(interface == &cyw43_state.netif[CYW43_ITF_AP]);
+        ++ap_local_packets;
+        return ERR_OK;
+    }
     if (read16(bytes.data() + udp + 2) != 5353)
         return ERR_OK;
     const auto* dns = bytes.data() + udp + 8;
@@ -261,7 +277,7 @@ int main(int argc, char** argv) {
     wsprrypico::time::UtcDiscipline clock([](void*) { return now_us * 1000; }, nullptr);
     PicoNetwork network(clock, "pico-a.local");
     wsprrypico::standalone::Config config;
-    config.ntp_ipv4 = "192.0.2.1";
+    config.ntp_ipv4 = "203.0.113.123"; // Off-subnet NTP requires the station route.
     assert(network.status().find("\"tx_credit\":{\"waits\":7,\"preserved\":5,\"timeouts\":1}") !=
            std::string::npos);
     assert(!network.set_enabled(false));
@@ -300,8 +316,21 @@ int main(int argc, char** argv) {
                      setup, ip_input));
     netif_set_link_up(&cyw43_state.netif[CYW43_ITF_AP]);
     netif_set_up(&cyw43_state.netif[CYW43_ITF_AP]);
+    netif_set_default(&cyw43_state.netif[CYW43_ITF_AP]); // Actual CYW43 enable behavior.
+    const auto ntp_before_ap = station_ntp_packets;
     assert(!network.softap_name(true, "wsprrypico-0a60df.local"));
-    advance(network, 5'000'000);
+    advance(network, 70'000'000); // Include the unchanged 64-second retry interval.
+    assert(station_ntp_packets > ntp_before_ap && ap_ntp_packets == 0);
+    // Keeping the station default must not redirect traffic for AP clients.
+    auto* local_pcb = udp_new();
+    auto* local_packet = pbuf_alloc(PBUF_TRANSPORT, 1, PBUF_RAM);
+    ip_addr_t local_destination{};
+    IP_ADDR4(&local_destination, 192, 168, 4, 2);
+    assert(local_pcb && local_packet && udp_sendto(local_pcb, local_packet,
+                                                &local_destination, 4321) == ERR_OK);
+    pbuf_free(local_packet);
+    udp_remove(local_pcb);
+    assert(ap_local_packets == 1);
     assert(network.softap_name(true, "wsprrypico-0a60df.local"));
     assert(ap_service_ptr == 0);
     assert(!network.softap_name(false, {}));

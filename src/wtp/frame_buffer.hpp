@@ -62,6 +62,15 @@ class FrameBuffer {
     InputView view() const {
         return {pages_.data(), size_};
     }
+    // Transport-owned authenticated decryption can reuse the input pages.
+    // Callers must retain exclusive ownership until authentication finishes;
+    // no parser or application may observe the modified bytes before then.
+    std::span<std::uint8_t> mutable_at(std::size_t index) {
+        if (index >= size_)
+            return {};
+        return {pages_[index / page_bytes].data() + index % page_bytes,
+                std::min(size_ - index, page_bytes - index % page_bytes)};
+    }
     auto begin() const {
         return view().begin();
     }

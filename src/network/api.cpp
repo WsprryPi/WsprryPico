@@ -32,19 +32,30 @@ void append(std::string& output, InputView input) {
     }
 }
 } // namespace
+std::optional<standalone::Config> BrowserApi::effective_config() const {
+    if (!store_.healthy())
+        return {};
+    if (consumer_runtime_ && consumer_runtime_->consumer_profile())
+        return consumer_runtime_->overlay(store_.config().value_or(standalone::Config{}));
+    return store_.config();
+}
 std::string BrowserApi::revision() const {
+    const auto config = effective_config();
     const auto data = device_ + ":" + service_.status().boot_id + ":" +
                       std::to_string(network_revision_) + ":" +
                       std::to_string(store_.config_sequence()) + ":" +
-                      (store_.config() ? standalone::serialize_config(*store_.config()) : "null");
+                      (config ? standalone::serialize_config(*config) : "null") +
+                      (consumer_runtime_ && consumer_runtime_->consumer_profile()
+                           ? ":consumer:" + std::to_string(consumer_runtime_->generation())
+                           : "");
     const auto digest =
         sha256(std::span(reinterpret_cast<const std::uint8_t*>(data.data()), data.size()));
     return '"' + hex(digest) + '"';
 }
 HttpResponse BrowserApi::config() const {
     std::string body = "null";
-    if (store_.config()) {
-        auto redacted = *store_.config();
+    if (const auto config = effective_config()) {
+        auto redacted = *config;
         redacted.password.clear();
         body = standalone::serialize_config(redacted);
         const auto pos = body.find("\"password\":\"\"");
@@ -55,10 +66,11 @@ HttpResponse BrowserApi::config() const {
     return result;
 }
 HttpResponse BrowserApi::station_config() const {
-    const bool saved = store_.healthy() && store_.config().has_value();
+    const auto config = effective_config();
+    const bool saved = config.has_value();
     auto result = ok("{\"schema\":" + json::quote(application::station_schema) +
                      ",\"target\":" + application::target(device_, service_.status().boot_id) +
-                     ",\"station\":" + (saved ? application::station(*store_.config()) : "null") +
+                     ",\"station\":" + (saved ? application::station(*config) : "null") +
                      ",\"saved_generation\":" +
                      (saved ? json::quote(std::to_string(store_.config_sequence())) : "null") +
                      ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
@@ -310,7 +322,10 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "\"tail_ns\":\"1000\",\"max_repeat_count\":512,\"modes\":[\"qrss\",\"fskcw\","
                 "\"dfcw\"]}"
                 ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
-                "\"application\":true,\"station\":true,\"hardware\":true,"
+                "\"application\":true,\"station\":true,\"hardware\":true,\"consumer_setup_"
+                "identity\":" +
+                (consumer_runtime_ && consumer_runtime_->consumer_profile() ? "true" : "false") +
+                ","
                 "\"softap\":true,\"ble\":true,\"restart\":" +
                 (restart_ ? "true" : "false") +
                 "},\"application_resources\":{\"schema\":\"transmitter-application/1\","
@@ -426,7 +441,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return http_error(503, "storage_fault");
         if (!store_.config())
             return http_error(409, "not_configured");
-        auto updated = *store_.config();
+        auto updated = *effective_config();
         if (hardware_resource) {
             const auto pins = hardware::parse_plan(std::string(root->get(field)->raw));
             if (!pins)
@@ -448,15 +463,16 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         auto password = wifi ? wifi->get("password") : std::nullopt;
         candidate = std::string(r.body_view());
         if (password && password->raw == "null") {
-            if (!store_.config())
+            const auto current_config = effective_config();
+            if (!current_config)
                 return http_error(400, "password_required");
-            const auto offset = password->raw.offset();
-            candidate.replace(offset, 4, json::quote(store_.config()->password));
+            const auto offset = password->raw.offset() - r.body_view().offset();
+            candidate.replace(offset, 4, json::quote(current_config->password));
         }
     } else {
         if (!store_.config() || !json::fields(*root, {"schedules"}))
             return http_error(400, "invalid_schedules");
-        candidate = standalone::serialize_config(*store_.config());
+        candidate = standalone::serialize_config(*effective_config());
         auto current = json::parse(candidate);
         auto schedules = current->get("schedules")->raw;
         candidate.replace(schedules.offset(), schedules.size(),
@@ -476,6 +492,16 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const auto validated = standalone::parse_config(candidate);
     if (!validated)
         return http_error(400, "invalid_config");
+    if (consumer_runtime_ && consumer_runtime_->consumer_profile()) {
+        const auto effective = consumer_runtime_->overlay(*validated);
+        if (!effective || effective->ssid != validated->ssid ||
+            effective->password != validated->password ||
+            effective->ntp_ipv4 != validated->ntp_ipv4 ||
+            effective->callsign != validated->callsign ||
+            effective->locator != validated->locator ||
+            effective->power_dbm != validated->power_dbm)
+            return http_error(409, "consumer_setup_identity_required");
+    }
     if (station_resource && !encoding::wspr_type1_from_station(
                                 validated->callsign, validated->locator, validated->power_dbm))
         return http_error(400, "unsupported_station_encoding");

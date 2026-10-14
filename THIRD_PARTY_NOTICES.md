@@ -90,3 +90,30 @@ Phase 11.3 also links the exact pinned lwIP mDNS responder (`mdns.c`,
 and [integration record](docs/development/mdns-responder.md) describe the narrow
 project-owned lifecycle wrapper. SDK source is unmodified; no DNS-SD service
 registration or third-party application code is added.
+
+
+The consumer radio page also bundles these pinned browser cryptography
+libraries from the retained npm dependency tree:
+
+- [noble-curves](https://github.com/paulmillr/noble-curves), npm
+  @noble/curves 2.3.0, MIT, copyright 2022 Paul Miller. Retained exact
+  [license](docs/licenses/noble-curves.txt). The page uses its X25519 adapter.
+- [noble-ciphers](https://github.com/paulmillr/noble-ciphers), npm
+  @noble/ciphers 2.3.0, MIT, copyright 2022 Paul Miller and 2016 Thomas Pornin
+  in the package license. Retained exact [license](docs/licenses/noble-ciphers.txt).
+  The page uses ChaCha20-Poly1305. Original module copyright comments are
+  preserved by the bundle's legal-comments setting.
+- [noble-hashes](https://github.com/paulmillr/noble-hashes), npm
+  @noble/hashes 2.3.0, MIT, copyright 2022 Paul Miller. Retained exact
+  [license](docs/licenses/noble-hashes.txt). The page uses SHA-256 and HKDF.
+
+The upstream library sources are unchanged; the original project adapter
+performs identity/session binding and bounded encrypted radio API requests.
+The exact package versions, registry URLs and integrity values are retained
+in src/network/bootstrap_web/package-lock.json. Its build-only esbuild 0.28.2
+bundles and minifies JavaScript; it is not linked into Pico firmware as a tool.
+Its exact MIT license is retained at [esbuild](docs/licenses/esbuild.txt);
+preserve that notice if distributing the build tool.
+The generated radio bundle preserves upstream legal comments. Distribute these
+full retained licenses with the bundled browser assets and firmware materials.
+These notices do not assert a cryptographic or production-security qualification.

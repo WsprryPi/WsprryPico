@@ -44,6 +44,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
+    src/network/bootstrap_web/radio-bundle.js
     src/network/bootstrap_web/owner.html src/network/bootstrap_web/owner-bundle.js
     src/network/bootstrap_web/owner-key-bundle.js
     src/network/bootstrap_web/recovery.html src/network/bootstrap_web/recovery-bundle.js
@@ -85,6 +86,7 @@ add_library(wsprrypico_core
     src/network/owner_challenge.cpp
     src/network/owner_claim_http.cpp
     src/network/api.cpp
+    src/network/consumer_radio.cpp
     src/network/softap_api.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
     src/encoding/wspr.cpp
@@ -278,6 +280,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(network_tests PRIVATE wsprrypico_core)
     target_compile_options(network_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME network_tests COMMAND network_tests)
+    add_executable(consumer_radio_tests tests/consumer_radio_tests.cpp)
+    target_link_libraries(consumer_radio_tests PRIVATE wsprrypico_core)
+    target_compile_options(consumer_radio_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME consumer_radio_tests COMMAND consumer_radio_tests)
     add_executable(http_response_lifetime_tests tests/http_response_lifetime_tests.cpp)
     target_link_libraries(http_response_lifetime_tests PRIVATE wsprrypico_core)
     target_compile_options(http_response_lifetime_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
@@ -430,6 +436,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/capacity_pending_tests.py)
     add_test(NAME phase14_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase14_tests.py)
+    add_test(NAME phase14_browser_deadline_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/phase14_browser_deadline_tests.py)
     add_test(NAME raspberry_pi_ble_client_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/raspberry_pi_ble_client_tests.py)
     add_test(NAME network_transport_contract_tests COMMAND ${Python3_EXECUTABLE}

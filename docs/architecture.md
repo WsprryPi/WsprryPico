@@ -12,7 +12,9 @@ Use WsprryPico for project, repository and application naming; firmware artifact
 
 ## Transport and timing
 
-- USB CDC serial is the canonical/reference control transport.
+- USB CDC serial is the canonical/reference control transport. The saved
+  consumer profile retains Console inspection and disables USB WTP; job
+  control uses the network and authenticated radio application adapters.
 - Network WTP/TCP is a first-class job-transfer and job-control transport;
   Wi-Fi also supports the embedded web UI. Engineering profiles retain TLS 1.3,
   ALPN `wtp/1` and mutual certificate authentication. The standard consumer
@@ -20,13 +22,25 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   and accepted SNTP. Build-time `off` and `tls` choices remain; TLS is never an
   automatic fallback. A Wi-Fi-only profile needs no TLS identity in Plain LAN
   mode.
+- The consumer radio page uses the AP-local
+  [Consumer-Radio/1](protocol/Consumer-Radio-v1.md) adapter to the shared
+  BrowserApi and JobService. A saved Wi-Fi passphrase authenticates volatile
+  encrypted sessions. This authority is separate from engineering mTLS and
+  from the open commissioning pages; profile-owned Wi-Fi and station identity
+  cannot be changed through the radio configuration API. The genuine page's
+  traffic is encrypted, while HTTP page delivery retains the documented
+  open-AP substitution threat. Both Picos have bounded settings/persistence and final four-smoke
+  acceptance under their recorded image identities and narrow source applicability.
+  Final source/coverage/adversarial audits are accepted; Git closeout remains open.
 - BLE/Bluefy remains the implemented engineering provisioning and field-control
   path. A native Raspberry Pi/Linux BlueZ client is an additional local/bench
   controller. If consumer BLE work resumes, it will use a dedicated iPhone app.
 - The [revised open setup contract](development/phase12-safari-open-setup-revision.md)
   selects a captive SoftAP Wi-Fi page followed by optional station settings.
   Saving settings requires no button, code or retained phone owner. With saved
-  credentials the AP is normally off during a healthy station connection; a
+  credentials the consumer radio revision keeps the AP available during idle
+  and unarmed radio management, including a healthy station connection. Armed,
+  running, failed and uncertain output states withdraw the AP path. A
   previously selected runtime BOOTSEL hold is withdrawn after a physical
   failure, and station loss brings the AP back. A separate GP14 input is now
   selected for a connected-station opening gesture: stop is requested at 0.9

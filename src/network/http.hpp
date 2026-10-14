@@ -18,7 +18,12 @@ struct HttpRequest {
     // Parsed bodies retain paged storage when requests are copied. Direct host
     // API callers may still supply body; a parsed body takes precedence.
     std::shared_ptr<wtp::FrameBuffer> buffered_body{};
+    // An authenticated transport envelope may lend its inner JSON body while
+    // buffered_body keeps the complete decrypted input alive.
+    std::optional<wtp::InputView> selected_body{};
     wtp::InputView body_view() const {
+        if (selected_body)
+            return *selected_body;
         return buffered_body ? buffered_body->view() : wtp::InputView(body);
     }
     std::string_view header(std::string_view name) const;

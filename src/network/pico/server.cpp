@@ -510,7 +510,9 @@ void PicoServer::poll(bool station_link_up, bool softap_link_up, std::string sta
     bool handshaking = false;
     for (const auto& c : connections_)
         handshaking |= c.client_ && !c.handshake_;
-    if (pending_ && !handshaking && generation_ != UINT64_MAX) {
+    // Plain LAN admission creates no TLS context. An unrelated TLS handshake
+    // must not hold its complete WTP frame behind the handshake deadline.
+    if (pending_ && (pending_plain_ || !handshaking) && generation_ != UINT64_MAX) {
         const bool wtp_occupied =
             std::any_of(connections_.begin(), connections_.end(), [](const auto& connection) {
                 return connection.client_ && connection.wtp_;
@@ -520,7 +522,7 @@ void PicoServer::poll(bool station_link_up, bool softap_link_up, std::string sta
             close_pending();
         }
     }
-    if (pending_ && !handshaking && generation_ != UINT64_MAX) {
+    if (pending_ && (pending_plain_ || !handshaking) && generation_ != UINT64_MAX) {
         for (auto& c : connections_)
             if (!c.client_ && !c.generation_ && (!pending_slot_ || pending_slot_ == &c)) {
                 auto* next = pending_;

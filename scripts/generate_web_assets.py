@@ -10,6 +10,8 @@ root, output = map(pathlib.Path, sys.argv[1:])
 web = root / 'src/network/web'
 html, css, js = [(web / name).read_text() for name in ('index.html', 'style.css', 'app.js')]
 bootstrap_web = root / 'src/network/bootstrap_web'
+radio_js = (bootstrap_web / 'radio-bundle.js').read_text()
+radio_html = html.replace('<link rel="stylesheet" href="/style.css">', '<style>' + css + '</style>')
 bootstrap_html, bootstrap_css, bootstrap_js = [
     (bootstrap_web / name).read_text()
     for name in ('index.html', 'style.css', 'bundle.js')
@@ -45,7 +47,11 @@ owner_html = script_document(owner_html, [
     '<script src="./owner-key-bundle.js" defer></script>',
     '<script src="./owner-bundle.js" defer></script>'])
 recovery_html = script_document(recovery_html, ['<script src="./recovery-bundle.js" defer></script>'])
-for script in (bootstrap_js, owner_key_js, owner_js, recovery_js):
+radio_html = radio_html.replace('<script src="/app.js" defer></script>', '')
+radio_html = radio_html.removesuffix('</body></html>\n')
+if '</body>' in radio_html or radio_html == html:
+    raise ValueError('Unexpected radio document ending')
+for script in (bootstrap_js, owner_key_js, owner_js, recovery_js, radio_js, js):
     if '</script' in script.lower():
         raise ValueError('Setup script contains an HTML closing tag')
 html = html.replace('<link rel="stylesheet" href="/style.css">', '<style>' + css + '</style>')
@@ -53,6 +59,9 @@ html = html.replace('<script src="/app.js" defer></script>', '')
 html = html.replace('</body>', '<script>' + js + '</script></body>')
 hash_for = lambda text: base64.b64encode(hashlib.sha256(text.encode()).digest()).decode()
 csp = "default-src 'self'; style-src 'sha256-" + hash_for(css) + "'; script-src 'sha256-" + hash_for(js) + "'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+radio_policy = ("default-src 'none'; connect-src 'self'; style-src 'sha256-" + hash_for(css) +
+                "'; script-src 'sha256-" + hash_for(radio_js) + "' 'sha256-" + hash_for(js) +
+                "'; img-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 bootstrap_policy = ("default-src 'none'; script-src 'self' " +
                     ' '.join("'sha256-" + hash_for(script) + "'"
                              for script in (bootstrap_js, owner_key_js, owner_js, recovery_js)) + "; "
@@ -63,6 +72,8 @@ source = '#include "network/assets.hpp"\nnamespace wsprrypico::network {\nnamesp
 for name, text, marker in [
     ('html', html, 'WPHTML'), ('css', css, 'WPCSS'),
     ('js', js, 'WPJS'), ('csp', csp, 'WPCSP'),
+    ('radio_html', radio_html, 'WPRADIO'), ('radio_js', radio_js, 'WPRADIOJS'),
+    ('radio_policy', radio_policy, 'WPRADIOCSP'),
     ('bootstrap_html', bootstrap_html, 'WPBHTML'),
     ('bootstrap_css', bootstrap_css, 'WPBCSS'),
     ('bootstrap_js', bootstrap_js, 'WPBJS'),
@@ -84,6 +95,13 @@ constexpr std::string_view recovery_parts[] = {
 constexpr std::string_view owner_parts[] = {
     owner_html, "<script>", owner_key_js, "</script><script>", owner_js,
     "</script></body>\\n</html>\\n"};
+constexpr std::string_view radio_parts[] = {
+    radio_html, "<script>", radio_js, "</script><script>", js,
+    "</script></body>\\n</html>\\n"};
+}
+std::string_view consumer_radio_csp() { return radio_policy; }
+std::optional<WebAsset> consumer_radio_asset() {
+    return WebAsset{radio_html, "text/html; charset=utf-8", radio_parts};
 }
 std::string_view web_csp() { return csp; }
 std::optional<WebAsset> web_asset(std::string_view path) {

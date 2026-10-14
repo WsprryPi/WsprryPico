@@ -2,6 +2,16 @@
 
 WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the WsprryPi family. It targets Raspberry Pi Pico family hardware, with Pico 2 W / RP2350 as the defined hardware target, and also serves as a hardware transmitter backend for WsprryPi.
 
+Current Phase 14 candidate: both Picos retain the independently rebuilt
+consumer-radio-c96eeeeb4871 / 138 MHz image. Both authenticated consumer
+settings/access paths and the source-bound four smoke screens are accepted;
+Both original retention scopes and final source/coverage/adversarial audits are
+independently accepted. Git commit/push/parity and release closeout remain open.
+See the [current closeout ledger](docs/development/phase14-closeout-ledger.md)
+and [final assertion audit](docs/development/phase14-final-audit.md).
+The development milestones and build-default descriptions below retain their
+historical scopes.
+
 Status: normative WTP/1 contract, host-tested portable core, and an RF-inhibited
 Pico 2 W WTP USB endpoint. [Bounded target USB validation](docs/development/usb-target-validation.md)
 passes on the recorded board and Mac. The experimental GP2 PIO/DMA driver,
@@ -46,8 +56,21 @@ authentication. The standard consumer image defaults to Plain LAN on station
 port 31417 after infrastructure Wi-Fi and accepted SNTP; no certificates are
 needed for its Wi-Fi-only profile. Build-time `off` and `tls` choices remain.
 Plain LAN admits any client that can reach the port on the local network.
+The saved consumer profile intentionally disables its USB WTP endpoint;
+USB retains Console inspection. Consumer job control uses Plain LAN and the
+authenticated AP-local radio adapter. Engineering profiles retain USB WTP.
 WsprryPi has a matching explicit Plain LAN host connection with bounded
 one-member application evidence; full fleet interoperability remains unqualified.
+The consumer profile also supplies an AP-local [radio settings page](http://192.168.4.1/radio)
+through [Consumer-Radio/1](docs/protocol/Consumer-Radio-v1.md). Join the Pico AP
+and log in with the Wi-Fi passphrase saved in its consumer profile. Authenticated
+radio settings use the shared JSON API; Wi-Fi and station identity retain their
+separate setup pages. Both Picos passed bounded settings changes, reboot
+persistence and original configuration restoration with their current cursors
+preserved. All four final RF smoke screens have independent acceptance with
+their actual image identities and narrow source applicability retained.
+Both original durable retention scopes and final source/coverage/adversarial
+audits are accepted. Git and final release closeout remain open.
 The HTTPS browser API and operator UI are implemented
 and include bounded QRSS/FSKCW/DFCW message entry: 32 characters including spaces,
 up to 60 minutes per complete job, subject to the independent 512-event capacity.
@@ -117,8 +140,10 @@ shows Wi-Fi fields immediately, with a show/hide password control, and saves
 the network before optional station details on a separate page. It requires
 no BOOTSEL step or retained phone owner. Another phone may change settings.
 The portal starts automatically with no saved credentials or after a saved
-station network is unavailable for 60 seconds. A healthy station normally
-withdraws the AP after a stable connection. The selected separate GP14 button
+station network is unavailable for 60 seconds. The consumer radio revision
+keeps the AP available during idle and unarmed radio management, including a
+healthy station connection. Armed, running, failed or uncertain output states
+withdraw that AP path. The selected separate GP14 button
 (physical pin 19) requests a device reset on a debounced release under 0.4
 seconds, transmission shutdown on reaching 0.9 seconds held, and setup AP on
 reaching 9 seconds held after shutdown is confirmed. Keeping GP14 low past 10

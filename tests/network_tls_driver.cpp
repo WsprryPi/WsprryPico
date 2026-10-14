@@ -171,8 +171,10 @@ int main(int argc, char** argv) {
             std::abort();
         no_tls.stop();
     }
-    const bool plain = argc > 3 && std::string_view(argv[3]) == "--plain-wtp";
-    const auto admission = plain ? network::PicoServer::Admission::SoftApOnly
+    const bool plain_with_tls = argc > 3 && std::string_view(argv[3]) == "--plain-with-tls";
+    const bool plain = plain_with_tls ||
+                       (argc > 3 && std::string_view(argv[3]) == "--plain-wtp");
+    const auto admission = plain && !plain_with_tls ? network::PicoServer::Admission::SoftApOnly
                            : argc > 3 && std::string_view(argv[3]) == "--local-wtp"
                                ? network::PicoServer::Admission::LocalWtp
                                : network::PicoServer::Admission::ClientCertificate;
@@ -262,6 +264,12 @@ int main(int argc, char** argv) {
             else if (command == "PSA STATUS")
                 std::cout << "PSA " << network::PsaCryptoOwner::owners() << ' '
                           << network::PsaCryptoOwner::peak_owners() << std::endl;
+            else if (command == "NETWORK STATUS") {
+                const auto resources = server.resources();
+                std::cout << "NETWORK " << resources.active_connections << ' '
+                          << resources.pending_connections << ' '
+                          << resources.buffered_rx_bytes << std::endl;
+            }
             else if (command == "VALIDATE GOOD" || command == "VALIDATE BAD") {
                 provisioning::MbedTlsCredentialValidator validator(device, &service);
                 const auto valid = validator.validate(

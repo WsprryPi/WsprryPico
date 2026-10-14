@@ -78,6 +78,10 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
         ${CMAKE_SOURCE_DIR}/tests/network_plain_wtp_tests.py
         $<TARGET_FILE:network_tls_driver>)
     set_tests_properties(network_plain_wtp_tests PROPERTIES TIMEOUT 30 RUN_SERIAL TRUE)
+    add_test(NAME network_plain_admission_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/network_plain_admission_tests.py
+        $<TARGET_FILE:network_tls_driver>)
+    set_tests_properties(network_plain_admission_tests PROPERTIES TIMEOUT 15 RUN_SERIAL TRUE)
     add_executable(bootstrap_crypto_tests tests/bootstrap_crypto_tests.cpp
         src/network/pico/bootstrap_crypto.cpp src/network/pico/psa_lifetime.cpp)
     target_compile_definitions(bootstrap_crypto_tests PRIVATE
@@ -86,6 +90,14 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_compile_options(bootstrap_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME bootstrap_crypto_tests COMMAND bootstrap_crypto_tests
         ${CMAKE_SOURCE_DIR}/docs/protocol/WiFi-Bootstrap-v1-vectors.json)
+    add_executable(consumer_radio_crypto_tests tests/consumer_radio_crypto_tests.cpp
+        src/network/pico/consumer_radio_crypto.cpp src/network/pico/psa_lifetime.cpp)
+    target_compile_definitions(consumer_radio_crypto_tests PRIVATE
+        MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}" WSPRRY_PICO_CONSUMER_RADIO_CRYPTO_TEST=1)
+    target_link_libraries(consumer_radio_crypto_tests PRIVATE wsprrypico_core mbedcrypto)
+    target_compile_options(consumer_radio_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME consumer_radio_crypto_tests COMMAND consumer_radio_crypto_tests
+        ${CMAKE_SOURCE_DIR}/docs/protocol/Consumer-Radio-v1-vectors.json)
     add_executable(recovery_crypto_tests tests/recovery_crypto_tests.cpp
         src/network/pico/recovery_crypto.cpp src/network/pico/psa_lifetime.cpp)
     target_compile_definitions(recovery_crypto_tests PRIVATE

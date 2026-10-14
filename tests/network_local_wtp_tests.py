@@ -50,7 +50,11 @@ try:
     for protocol in ("http/1.1", None):
         with connect(protocol) as stream:
             stream.sendall(b"GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
-            assert not stream.recv(4096), "LAN WTP mode exposed the browser API"
+            try:
+                response = stream.recv(4096)
+            except (ConnectionResetError, BrokenPipeError):
+                response = b""  # An aborted rejected stream also carries no API response.
+            assert not response, "LAN WTP mode exposed the browser API"
     print("LAN WTP accepted a TLS 1.3 client without a client certificate; HTTP was rejected")
 finally:
     process.terminate()
