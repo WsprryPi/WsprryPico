@@ -1,5 +1,78 @@
 # Phase 14 evidence retention and storage
 
+## October 14: Phase 14 completed within the declared scope
+
+**9 of 9 original workstreams are closed (100%).** The operator explicitly
+requested the 56 reviewed Phase14 files committed on devel, pushed to
+origin/devel, independently checked for parity and closed out. Code/evidence
+commit **74c73d548e2e05cf6f61978817d7de264da961ff** contains exactly those 56
+files. Its push succeeded and a separate `git ls-remote` read matched that SHA.
+This final documentation update changes no runtime or installed image bytes.
+The final documentation commit and its independent parity proof are retained
+in the private closeout receipt and reported in the chat; no self-referential
+commit hash is fabricated here.
+
+All 1,039 runtime/build/test blobs in the source commit match the frozen,
+independently rebuilt and installed C96 candidate. The compiled identity remains
+`dda8a6eb1e69-dirty`; it is preserved as build provenance rather than relabelled
+with the later commit. Runtime SHA-256:
+`c96eeeeb4871bdcec40aa5b8fbc1dce42507b5fac6b00ee3a8b41838d5836d64`.
+Selected release artifact: consumer-radio-c96eeeeb4871, PIO/DMA GP2, 138 MHz,
+divider1/RAM renderer. UF2 SHA-256:
+`17065bc7945a91d210bf3e48aedf1c6f5772f4386e7b26c04f364553afc6adad`.
+ELF SHA-256:
+`0fa99101a76735ac1a319e951fd14774ee6f4ce1ba44015ffde38f8d023449f9`.
+Independent 138 MHz ELF and UF2 builds are byte-identical.
+The private UF2 is retained under local
+`build/phase14-consumer-radio-arm-plain-admission-20261014/build-138/firmware/WsprryPico-StandaloneRF.uf2`;
+its closeout manifest is local
+`build/phase14-final-consumer-c96-closeout-manifest-20261014.json`.
+No generated firmware, raw capture, credential or private profile is in Git.
+No GitHub release or additional public artifact publication was performed.
+
+The accepted matrix covers Tone, WSPR, QRSS, FSKCW and DFCW on both boards:
+2200m,630m,160m,80m,60m,40m,30m,20m,17m,15m,12m,10m and6m, with historical
+132/138/150 MHz comparisons and the selected138 candidate. All390 cells and602
+accepted observations are bound to actual source/firmware/boot/job/capture
+identities. Original nominal failures, receiver-only acceptance and keyed
+human-copy amendments remain separate. 4m/2m are excluded for all modes;
+8m/5m were outside the agreed matrix and remain untested.
+
+The timing, spectra, reference, lifecycle, native/standalone, eight-hour mixed
+and separate two-hour memory gates retain their actual reviewed scopes and
+measurement uncertainties. Their full/closed source/control/raw/resource proofs
+and both original retention scopes are accepted. Final source/coverage/
+adversarial proof **912ea1c254067a193d0489707660510c9682a3ef082e5f6ccf019f3d388a9735**
+retains every failed original. Consumer radio access, settings/persistence/
+original restoration and all four smoke screens are independently accepted on
+both boards, with narrow R189/C96 applicability preserved.
+
+Final separately admitted readback verified both Picos C96/138, empty, unowned,
+output-inactive, schedules disabled, synchronized clocks, ready consumer AP and
+Plain LAN listeners, original settings and unchanged current cursors:
+A **1791199541540946076**, B **1791705481000000000**.
+Recorded boots remain A `4ac25bc51decbde2e1eb3f6cce6f75fa`,
+B `67e58db2fc1a86d2f3f4add83e3cf146`. Subsequent Git-only closeout performs no
+Device, flash, profile, config, cursor, RF or GPSDO mutation. Fresh process/
+receipt checks show no active owned programme. Reference state is restored,
+wsprrypi.service is active and wlan2 disconnected; management is preserved.
+All four locks and exact source/durable presence histories remain bound.
+Exactly164 CLOCK and three MIXED source absences remain separate, with all
+retained copies, nonraw controls and failed evidence preserved.
+
+The unfiltered conducted scope establishes no LPF, calibrated watts or antenna-
+ready emissions. Absolute RF/timing calibration, consumer-image long endurance,
+general leak freedom, hostile HTTP-page delivery and authenticated Plain LAN
+remain unqualified. These are explicit retained limits, not new completion
+claims. P13.1 stays complete; P13.2 Si5351 and GP14 default enablement stay deferred.
+The unrelated implementation-plan bytes and Si5351 work are preserved.
+Hourly reports remain ACTIVE until the final documentation push, independent
+remote parity and closeout receipt are verified, then are stopped because this
+Phase14 task is complete.
+
+Earlier dated sections below are immutable historical boundaries; their old
+pending/count/estimate/repository descriptions are superseded by this closeout.
+
 ## October 14: final source, coverage and adversarial audits independently closed
 
 **8 of 9 original workstreams are closed within the recorded scope (88.9%).**

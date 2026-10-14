@@ -5,8 +5,10 @@ WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the 
 Current Phase 14 candidate: both Picos retain the independently rebuilt
 consumer-radio-c96eeeeb4871 / 138 MHz image. Both authenticated consumer
 settings/access paths and the source-bound four smoke screens are accepted;
-Both original retention scopes and final source/coverage/adversarial audits are
-independently accepted. Git commit/push/parity and release closeout remain open.
+Phase 14 is complete within its recorded conducted and consumer-validation
+scope: all nine workstreams are closed, with both retention scopes and final
+source/coverage/adversarial acceptance. See the closeout ledger for exact
+source/image identities, Git parity, evidence locations and retained limits.
 See the [current closeout ledger](docs/development/phase14-closeout-ledger.md)
 and [final assertion audit](docs/development/phase14-final-audit.md).
 The development milestones and build-default descriptions below retain their
@@ -70,7 +72,8 @@ persistence and original configuration restoration with their current cursors
 preserved. All four final RF smoke screens have independent acceptance with
 their actual image identities and narrow source applicability retained.
 Both original durable retention scopes and final source/coverage/adversarial
-audits are accepted. Git and final release closeout remain open.
+audits are accepted. Phase 14 closeout retains the documented measurement,
+consumer-security and endurance limits.
 The HTTPS browser API and operator UI are implemented
 and include bounded QRSS/FSKCW/DFCW message entry: 32 characters including spaces,
 up to 60 minutes per complete job, subject to the independent 512-event capacity.
