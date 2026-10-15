@@ -14,6 +14,11 @@ The [Phase 15 operator review punchlist](../implementation-plan.md#phase-15-oper
 tracks operator findings and requested improvements, beginning with WSPR Type
 2/3 support for WsprryPico (open; unimplemented).
 
+The [WIP Si5351 I²C probe](../../tests/hardware/wip-si5351-i2c/README.md)
+preserves the standalone GP4/GP5 connection diagnostic and historical bench
+record for future Si5351 work. It remains outside the normal application build;
+P13.2 transmitter integration remains deferred.
+
 Phase 11 is closed within its documented software, bounded physical and scoped
 conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
 binds its source pair, assertion-level applicability, host regressions and
