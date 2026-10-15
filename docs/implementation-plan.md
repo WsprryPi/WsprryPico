@@ -321,11 +321,16 @@ must extend the P15.2 compatibility coverage for any affected supported pairs.
   P15.6-P15.8 settle station validation, independent saves and hostname behavior,
   while preserving the existing profile/configuration authority boundaries.
   The page split remains a design option. Status: open; unimplemented.
-- [ ] **P15.10 — Show the hostname as the main-page device identity.** Replace
-  the prominent `Pico <full device ID>` text with the Pico's hostname. Make the
-  full stable device ID available under About or Diagnostics for identification
-  and troubleshooting. Use P15.8's persisted hostname and the resulting P15.9
-  page layout so a saved hostname change is reflected consistently.
+- [ ] **P15.10 — Show the hostname on the main page and in the browser-tab title.**
+  Replace the prominent `Pico <full device ID>` text with the Pico's hostname.
+  Include the hostname first in the HTML page title, for example
+  `<hostname> - Station control`, instead of the generic
+  `WsprryPico - Station control`, so tabs for different Picos are distinguishable.
+  Make the full stable device ID available under About or Diagnostics for
+  identification and troubleshooting. Use P15.8's persisted hostname and the
+  resulting P15.9 page layout so a saved hostname change is reflected
+  consistently in both the page and tab title. Verify distinct titles with two
+  Pico tabs open and correct titles after a hostname change and page reload.
   Status: open; unimplemented.
 
 The operator will probably coordinate P15.1 and P15.2 from the WsprryPi
