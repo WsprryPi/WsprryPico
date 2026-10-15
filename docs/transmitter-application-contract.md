@@ -270,7 +270,11 @@ explicit member/device/boot targets, closed
 [inventory coverage map](protocol/transmitter-application-1-coverage.json).
 These bounded projections reuse the existing configuration coordinator and
 journal. Expanded message/schedule resources and Pi compatibility mapping remain
-implementation gates. Existing routes retain their existing meanings.
+implementation gates. Existing routes retain their meanings except the explicitly selected
+[configuration-preservation policy](development/configuration-updates.md):
+ordinary legacy API PUT preserves omitted optional settings, while a new
+versioned POST distinguishes merge from deliberate replacement. Durable-record
+parsing, initial defaults and Console CONFIG replacement remain unchanged.
 
 In particular, current Pico `/api/v1/config` is its standalone version-1
 configuration. The Pi adapter's `/api/v1/config` projects that remote Pico

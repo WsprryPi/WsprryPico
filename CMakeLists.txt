@@ -54,6 +54,7 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/genera
     COMMAND_ERROR_IS_FATAL ANY)
 
 add_library(wsprrypico_core
+    src/application/config_update.cpp
     src/application/resources.cpp
     src/application/frequency_policy.cpp
     src/hardware/pins.cpp
@@ -320,6 +321,18 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(application_resource_tests PRIVATE wsprrypico_core)
     target_compile_options(application_resource_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME application_resources COMMAND application_resource_tests)
+    add_executable(config_update_tests tests/config_update_tests.cpp)
+    target_link_libraries(config_update_tests PRIVATE wsprrypico_core)
+    target_compile_options(config_update_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME config_updates COMMAND config_update_tests)
+    add_test(NAME config_update_schema COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/config_update_schema_tests.py $<TARGET_FILE:config_update_tests>)
+    set_tests_properties(config_update_schema PROPERTIES SKIP_RETURN_CODE 77)
+    if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME config_update_legacy_pi COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/config_update_legacy_pi_test.py
+            $<TARGET_FILE:config_update_tests> ${WSPRRY_PICO_NODE_EXECUTABLE})
+    endif()
     add_test(NAME application_schema COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/application_schema_tests.py $<TARGET_FILE:application_resource_tests>)
 

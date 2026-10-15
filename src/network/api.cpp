@@ -1,5 +1,6 @@
 #include "network/api.hpp"
 
+#include "application/config_update.hpp"
 #include "application/resources.hpp"
 #include "encoding/wspr.hpp"
 #include "hardware/pins.hpp"
@@ -331,8 +332,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "},\"application_resources\":{\"schema\":\"transmitter-application/1\","
                 "\"read\":\"/api/v1/application\",\"station\":\"/api/v1/station\","
                 "\"hardware\":\"/api/v1/hardware\",\"management_carrier\":\"authenticated_https\"},"
-                "\"active_job_connections\":" +
-                (active_job_connections_ ? "true" : "false") +
+                "\"configuration_updates\":" +
+                application::config_update_capabilities() +
+                ",\"active_job_connections\":" + (active_job_connections_ ? "true" : "false") +
                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
                 "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}");
         }
@@ -376,15 +378,20 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     if (r.method == "POST" && (r.path == "/api/v1/jobs" || r.path.starts_with("/api/v1/jobs/")))
         return job(r, principal);
     const bool restart = r.method == "POST" && r.path == "/api/v1/restart";
+    const bool config_update = r.method == "POST" && r.path == "/api/v1/config/update";
     const bool station_resource = r.path == "/api/v1/station";
     const bool hardware_resource = r.path == "/api/v1/hardware";
     const bool scoped_resource = station_resource || hardware_resource;
-    if (!restart &&
+    if (!restart && !config_update &&
         (r.method != "PUT" || (r.path != "/api/v1/config" && r.path != "/api/v1/schedules" &&
                                r.path != "/api/v1/network" && !scoped_resource)))
         return http_error(404, "not_found");
     if (scoped_resource && r.body_view().size() > application::max_update_bytes)
         return http_error(413, "resource_body_too_large");
+    if (config_update && r.body_view().size() > application::max_config_update_bytes)
+        return http_error(413, "resource_body_too_large");
+    if (r.path == "/api/v1/config" && r.body_view().size() > standalone::max_config_bytes)
+        return http_error(400, "invalid_config");
     if (r.header("if-match").empty())
         return http_error(428, "revision_required");
     if (r.header("if-match") != revision())
@@ -458,17 +465,38 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             const auto station = current->get("station")->raw;
             candidate.replace(station.offset(), station.size(), std::string(root->get(field)->raw));
         }
-    } else if (r.path == "/api/v1/config") {
-        auto wifi = root->get("wifi");
-        auto password = wifi ? wifi->get("password") : std::nullopt;
-        candidate = std::string(r.body_view());
-        if (password && password->raw == "null") {
-            const auto current_config = effective_config();
-            if (!current_config)
-                return http_error(400, "password_required");
-            const auto offset = password->raw.offset() - r.body_view().offset();
-            candidate.replace(offset, 4, json::quote(current_config->password));
+    } else if (r.path == "/api/v1/config" || config_update) {
+        if (!store_.healthy())
+            return http_error(503, "storage_fault");
+        auto supplied = *root;
+        auto mode = application::ConfigWrite::Legacy;
+        if (config_update) {
+            switch (
+                application::validate_config_update(*root, device_, service_.status().boot_id)) {
+            case application::Envelope::Invalid:
+                return http_error(400, "invalid_resource");
+            case application::Envelope::UnsupportedSchema:
+                return http_error(400, "unsupported_resource_schema");
+            case application::Envelope::TargetMismatch:
+                return http_error(409, "target_mismatch");
+            case application::Envelope::Valid:
+                break;
+            }
+            if (!store_.config())
+                return http_error(409, "not_configured");
+            supplied = *root->get("config");
+            mode = root->get("mode")->string() == "merge" ? application::ConfigWrite::Merge
+                                                          : application::ConfigWrite::Replace;
         }
+        auto wifi = supplied.get("wifi");
+        auto password = wifi ? wifi->get("password") : std::nullopt;
+        const auto current_config = effective_config();
+        if (password && password->raw == "null" && !current_config)
+            return http_error(400, "password_required");
+        const auto built = application::config_candidate(supplied, current_config, mode);
+        if (!built)
+            return http_error(400, "invalid_config");
+        candidate = *built;
     } else {
         if (!store_.config() || !json::fields(*root, {"schedules"}))
             return http_error(400, "invalid_schedules");
@@ -508,7 +536,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     auto response = scheduler_.command("CONFIG " + candidate);
     auto value = json::parse(response);
     if (!value || value->get("ok")->raw != "true") {
-        if (scoped_resource && value && value->get("error") &&
+        if (value && value->get("error") &&
             value->get("error")->string() == "output_disable_failed")
             return http_error(503, "output_disable_failed");
         return http_error(503, "storage_fault");

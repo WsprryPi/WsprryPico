@@ -71,7 +71,8 @@ session cookie that page script cannot read.
 | POST `/api/v1/jobs` | Explicit HELLO, CLAIM, RENEW, LOAD, ARM, ABORT or RELEASE through the common service |
 | POST `/api/v1/jobs/{id}/abort` | ABORT only; URL ID must match the request body's job ID |
 | GET `/api/v1/config` | `{"config": <redacted config or null>}` and ETag |
-| PUT `/api/v1/config` | Replace the validated standalone config; requires If-Match; persists and reports whether network changes require restart |
+| PUT `/api/v1/config` | Save required Config v1 fields, preserving omitted optional settings from existing configuration; requires If-Match |
+| POST `/api/v1/config/update` | Advertised atomic merge or explicit replacement, with exact member target and If-Match |
 | GET `/api/v1/schedules` | `{"schedules":[...]}` and ETag |
 | PUT `/api/v1/schedules` | Replace only schedules using the same config validator/journal; requires If-Match |
 | GET `/api/v1/network` | Initialized/enabled/link/IP, requested enable state, control availability and SNTP counters; ETag |
@@ -87,7 +88,8 @@ asset connections. The individual asset paths remain available to tooling.
 ## Configuration and revisions
 
 The configuration schema is the existing [standalone version-1 schema](development/standalone.md).
-An omitted `wifi.ntp_ipv4` uses `pool.ntp.org`; an explicit hostname or IPv4
+On initial setup or explicit replacement, omitted `wifi.ntp_ipv4` uses
+`pool.ntp.org`; ordinary API PUT preserves the saved value. An explicit hostname or IPv4
 address is preserved, and invalid/empty values are rejected. The browser prefills
 the same default for a new configuration.
 Passwords are returned as JSON null. A null password in PUT preserves the stored
@@ -99,13 +101,18 @@ mode/band configuration remains outside this phase.
 
 Optional top-level `allow_unqualified_frequency` and
 `allow_non_amateur_frequency` booleans are advanced, persisted settings. Both
-default to false; non-amateur operation requires both true. A full config PUT
-that omits them turns them off, whereas station/hardware/schedule updates and
-ordinary browser form saves preserve them. False values are omitted from the
+default to false; non-amateur operation requires both true. Ordinary config PUT,
+station/hardware/schedule updates and browser saves preserve omitted flags.
+Explicit false or explicit replacement can reset them. False values are omitted from the
 canonical config response; status reports both booleans. They take effect on
 subsequent admissions while idle, without reboot. See the
 [frequency policy](development/standalone.md) for failed/untested bands,
 per-event checks and the hardware limits that neither setting overrides.
+
+The [configuration-update contract](development/configuration-updates.md) defines
+the intentional change from reset-by-omission PUT policy, exact merge/replace
+envelopes, target/revision checks and bounds. Console CONFIG and durable decoding
+retain complete replacement and existing defaults. No PATCH is added.
 
 ETags are quoted opaque hashes of boot identity, persisted config and successful
 network-change/restart revision. Send the exact ETag in `If-Match` for any configuration,

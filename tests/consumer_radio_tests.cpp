@@ -1,3 +1,4 @@
+#include "application/resources.hpp"
 #include "network/bootstrap_codec.hpp"
 #include "network/consumer_radio.hpp"
 #include "network_support.hpp"
@@ -152,6 +153,49 @@ struct Test {
 };
 } // namespace
 int main() {
+    {
+        Test t;
+        t.login();
+        const auto cursor = t.fixture.store.watermark();
+        const auto profile = t.media.data;
+        const auto target =
+            application::target(std::string(32, 'a'), t.fixture.service.status().boot_id);
+        const auto update = [&](std::string config) {
+            return "{\"schema\":\"transmitter-config-update/1\",\"target\":" + target +
+                   ",\"mode\":\"merge\",\"config\":" + config + '}';
+        };
+        auto result =
+            t.call("POST", "/api/v1/config/update",
+                   update("{\"allow_unqualified_frequency\":true}"), t.fixture.api.revision());
+        assert(result.body.find("\"status\":200") != std::string::npos);
+        assert(t.fixture.store.config()->allow_unqualified_frequency);
+        assert(t.fixture.store.watermark() == cursor && t.media.data == profile);
+        t.api.finish_request(t.transaction - 1, true);
+        const auto generation = t.fixture.store.config_sequence();
+        result =
+            t.call("POST", "/api/v1/config/update",
+                   update("{\"wifi\":{\"ssid\":\"other-network\"}}"), t.fixture.api.revision());
+        assert(result.body.find("consumer_setup_identity_required") != std::string::npos);
+        assert(t.fixture.store.config_sequence() == generation);
+        t.api.finish_request(t.transaction - 1, true);
+        bool setup_busy = true;
+        t.api.setup_handler(nullptr, nullptr, &setup_busy,
+                            [](void* context) { return *static_cast<bool*>(context); });
+        result =
+            t.call("POST", "/api/v1/config/update",
+                   update("{\"allow_unqualified_frequency\":false}"), t.fixture.api.revision());
+        assert(result.body.find("setup_pending") != std::string::npos);
+        assert(t.fixture.store.config_sequence() == generation);
+        t.api.finish_request(t.transaction - 1, true);
+        setup_busy = false;
+        result =
+            t.call("POST", "/api/v1/config/update",
+                   update("{\"allow_unqualified_frequency\":false}"), t.fixture.api.revision());
+        assert(result.body.find("\"status\":200") != std::string::npos);
+        assert(!t.fixture.store.config()->allow_unqualified_frequency);
+        assert(t.fixture.store.watermark() == cursor && t.media.data == profile);
+        t.api.finish_request(t.transaction - 1, true);
+    }
     {
         Test t;
         // Overlapping subnets still cannot move a session between interfaces.

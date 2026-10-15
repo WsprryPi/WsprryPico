@@ -256,7 +256,10 @@ must extend the P15.2 compatibility coverage for any affected supported pairs.
   validation and persistence. Establish the update semantics, capabilities,
   revision/conflict handling and profile-owned field boundaries that later
   settings work will reuse. Legacy PUT protection is required independently of
-  new partial-edit support. Status: backlogged; unimplemented.
+  new partial-edit support. The [configuration-update contract](development/configuration-updates.md)
+  and [review record](development/issue447-review.md) now deliver the Pico-owned
+  implementation and software evidence. Status: Pico implementation complete;
+  paired Pi adoption/version evidence in P15.2 remains open before joint closure.
 - [ ] **P15.2 — Use compatible Pico configuration updates and verify supported
   version pairs.** Track
   [WsprryPi #448](https://github.com/WsprryPi/WsprryPi/issues/448): Pi
