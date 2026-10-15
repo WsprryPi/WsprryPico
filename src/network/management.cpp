@@ -1,9 +1,11 @@
 #include "network/management.hpp"
 
 #include "application/resources.hpp"
+#include "network/consumer_radio.hpp"
 #include "wtp/json.hpp"
 
 namespace wsprrypico::network {
+static_assert(ConsumerRadioApi::session_capacity == 3 && ConsumerRadioApi::pending_capacity == 1);
 std::string management_contract(const ManagementAvailability& state, ManagementCarrier selected,
                                 std::string_view device, std::string_view boot) {
     const char* names[] = {"engineering_mtls", "engineering_field", "consumer_station",
@@ -18,7 +20,7 @@ std::string management_contract(const ManagementAvailability& state, ManagementC
         rows += "{\"carrier\":" + wtp::json::quote(names[i]) +
                 ",\"built_in\":true,\"available\":" + (available[i] ? "true}" : "false}");
     }
-    return "{\"schema\":\"transmitter-management/1\",\"target\":" +
+    return "{\"schema\":\"transmitter-management/2\",\"target\":" +
            application::target(device, boot) +
            ",\"profile\":" + wtp::json::quote(profiles[static_cast<unsigned>(state.profile)]) +
            ",\"preclock\":" + (state.preclock ? "true" : "false") + ",\"profile_generation\":" +
@@ -30,6 +32,7 @@ std::string management_contract(const ManagementAvailability& state, ManagementC
            "\"network\",\"application\",\"management\"],\"PUT\":[\"config\",\"schedules\","
            "\"network\"],\"POST\":[\"config/update\"]},\"limits\":{\"http_body\":32768,"
            "\"consumer_plaintext\":32724,\"config\":1800,\"update\":2048,\"login_ms\":30000,"
-           "\"idle_ms\":300000,\"absolute_ms\":900000,\"consumer_sessions\":1}}";
+           "\"idle_ms\":300000,\"absolute_ms\":900000,\"consumer_sessions\":3,\"consumer_pending_"
+           "logins\":1}}";
 }
 } // namespace wsprrypico::network

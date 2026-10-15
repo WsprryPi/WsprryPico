@@ -85,27 +85,23 @@ bool ConsumerRadioApi::available() const {
            !profile->password.empty();
 }
 void ConsumerRadioApi::listeners(bool ap, std::string_view station_ip, std::string_view hostname) {
-    // The application refreshes this on every poll. Keep stable contexts free
-    // of hostname allocations while the RF worker and transport are resident.
-    if (station_ip == station_ip_ && hostname == hostname_) {
-        if (session_interface_ == ConsumerInterface::AccessPoint && !ap)
-            close();
-        ap_available_ = ap;
+    if (station_ip == station_ip_ && hostname == hostname_ && ap == ap_available_)
         return;
-    }
     const auto name = canonical_local_hostname(hostname);
     const std::string ip = canonical_ipv4(station_ip) && station_ip != "0.0.0.0"
                                ? std::string(station_ip)
                                : std::string{};
     const std::string host = name ? *name : std::string{};
-    if ((session_interface_ == ConsumerInterface::AccessPoint && !ap) ||
-        (session_interface_ == ConsumerInterface::Station &&
-         (ip != station_ip_ || host != hostname_)))
-        close();
+    for (auto& session : sessions_)
+        if ((session.interface == ConsumerInterface::AccessPoint && !ap) ||
+            (session.interface == ConsumerInterface::Station &&
+             (ip != station_ip_ || host != hostname_)))
+            close(session);
     ap_available_ = ap;
     station_ip_ = ip;
     hostname_ = host;
 }
+
 bool ConsumerRadioApi::page_admitted(const HttpRequest& request,
                                      ConsumerInterface interface) const {
     auto host = request.header("host");
@@ -119,35 +115,58 @@ bool ConsumerRadioApi::page_admitted(const HttpRequest& request,
                             (host == station_ip_ || (!hostname_.empty() && host == hostname_))));
 }
 void ConsumerRadioApi::poll(std::uint64_t now_ms) {
-    if (state_ == State::None)
-        return;
-    if (!available() || binding_.generation != store_.sequence() ||
-        elapsed(now_ms, started_ms_, state_ == State::Pending ? login_ms : absolute_ms) ||
-        (state_ == State::Active && elapsed(now_ms, seen_ms_, idle_ms)))
-        close();
+    const bool healthy = available();
+    for (auto& session : sessions_) {
+        if (session.state == State::None)
+            continue;
+        if (!healthy || session.binding.generation != store_.sequence() ||
+            elapsed(now_ms, session.started_ms,
+                    session.state == State::Pending ? login_ms : absolute_ms) ||
+            (session.state == State::Active && elapsed(now_ms, session.seen_ms, idle_ms)))
+            close(session);
+    }
 }
 bool ConsumerRadioApi::active(std::uint64_t now_ms) {
     poll(now_ms);
-    return state_ != State::None;
+    return std::any_of(sessions_.begin(), sessions_.end(),
+                       [](const Session& s) { return s.state != State::None; });
 }
 void ConsumerRadioApi::finish_request(std::uint64_t transaction, bool apply) {
-    if (pending_transaction_ && *pending_transaction_ == transaction) {
+    for (auto& session : sessions_) {
+        if (session.pending_transaction != transaction)
+            continue;
+        // Clear before callbacks: committing a profile can invalidate all sessions.
+        session.pending_transaction.reset();
         api_.finish_request(transaction, apply);
         if (setup_delivery_)
             setup_delivery_(transaction, apply, setup_context_);
-        pending_transaction_.reset();
+        return;
     }
 }
+void ConsumerRadioApi::close(Session& session) {
+    if (session.pending_transaction)
+        finish_request(*session.pending_transaction, false);
+    if (session.crypto)
+        session.crypto->clear();
+    auto* crypto = session.crypto;
+    session = {};
+    session.crypto = crypto;
+}
 void ConsumerRadioApi::close() {
-    if (pending_transaction_)
-        finish_request(*pending_transaction_, false);
-    crypto_.clear();
-    binding_ = {};
-    state_ = State::None;
-    started_ms_ = seen_ms_ = 0;
-    next_sequence_ = 1;
-    session_authority_.clear();
-    session_interface_ = ConsumerInterface::None;
+    for (auto& session : sessions_)
+        close(session);
+}
+ConsumerRadioApi::Session* ConsumerRadioApi::select(wtp::InputView packet) {
+    if (packet.size() < consumer_radio_header_bytes + consumer_radio_tag_bytes ||
+        packet.size() > max_http_body || packet.substr(0, 4) != "CR01")
+        return nullptr;
+    for (auto& session : sessions_)
+        if (session.state != State::None &&
+            std::equal(session.binding.session.begin(), session.binding.session.end(),
+                       packet.substr(4, 16).begin(),
+                       [](std::uint8_t a, char b) { return a == static_cast<std::uint8_t>(b); }))
+            return &session;
+    return nullptr;
 }
 bool ConsumerRadioApi::admitted(const HttpRequest& request, bool binary) const {
     auto host = request.header("host");
@@ -161,9 +180,16 @@ bool ConsumerRadioApi::admitted(const HttpRequest& request, bool binary) const {
             request.header("sec-fetch-site") == "same-origin") &&
            request.header("cookie").empty() && request.body_view().size() <= max_http_body;
 }
-HttpResponse ConsumerRadioApi::start(const HttpRequest& request, std::uint64_t now_ms) {
-    if (state_ != State::None)
-        return http_error(409, "radio_session_busy");
+HttpResponse ConsumerRadioApi::start(const HttpRequest& request, std::uint64_t now_ms,
+                                     ConsumerInterface interface) {
+    if (std::any_of(sessions_.begin(), sessions_.end(),
+                    [](const Session& s) { return s.state == State::Pending; }))
+        return http_error(409, "radio_login_pending");
+    auto slot = std::find_if(sessions_.begin(), sessions_.end(),
+                             [](const Session& s) { return s.crypto && s.state == State::None; });
+    if (slot == sessions_.end())
+        return http_error(409, "radio_session_capacity");
+    auto& session = *slot;
     if (last_start_ms_ && !elapsed(now_ms, *last_start_ms_, 1'000))
         return http_error(429, "radio_login_rate_limited");
     if (request.body_view().size() > 512)
@@ -181,66 +207,95 @@ HttpResponse ConsumerRadioApi::start(const HttpRequest& request, std::uint64_t n
     const auto key = root->get("public_key");
     std::vector<std::uint8_t> decoded;
     if (!key || key->type() != '"' || !bootstrap_unb64url(key->string(), decoded, 32, 32) ||
-        !hex_field(*root, "nonce", binding_.browser_nonce))
+        !hex_field(*root, "nonce", session.binding.browser_nonce))
         return http_error(400, "invalid_radio_key");
-    std::copy(decoded.begin(), decoded.end(), binding_.browser_key.begin());
-    binding_.generation = generation;
-    if (!bootstrap_unhex(device_, binding_.device) || !bootstrap_unhex(boot_, binding_.boot) ||
-        !random_.fill(binding_.session) || !random_.fill(binding_.challenge) || !crypto_.begin()) {
-        close();
+    std::copy(decoded.begin(), decoded.end(), session.binding.browser_key.begin());
+    session.binding.generation = generation;
+    if (session_serial_ == UINT64_MAX)
+        return http_error(503, "radio_session_unavailable");
+    if (!bootstrap_unhex(device_, session.binding.device) ||
+        !bootstrap_unhex(boot_, session.binding.boot) || !random_.fill(session.binding.session) ||
+        std::all_of(session.binding.session.begin(), session.binding.session.end(),
+                    [](std::uint8_t b) { return b == 0; }) ||
+        std::any_of(sessions_.begin(), sessions_.end(),
+                    [&](const Session& other) {
+                        return other.state != State::None &&
+                               other.binding.session == session.binding.session;
+                    }) ||
+        !random_.fill(session.binding.challenge) || !session.crypto->begin()) {
+        close(session);
         return http_error(503, "radio_session_unavailable");
     }
-    binding_.pico_key = crypto_.public_key();
+    // Nonreused boot-local serial prevents stale packets selecting a later occupant,
+    // even if a broken RNG repeats an old (now unoccupied) random session ID.
+    const auto serial = ++session_serial_;
+    for (unsigned i = 0; i < 8; ++i)
+        session.binding.session[8 + i] = static_cast<std::uint8_t>(serial >> (56 - i * 8));
+    session.binding.pico_key = session.crypto->public_key();
     last_start_ms_ = now_ms;
-    state_ = State::Pending;
-    started_ms_ = seen_ms_ = now_ms;
+    session.interface = interface;
+    session.authority = request.header("host");
+    session.state = State::Pending;
+    session.started_ms = session.seen_ms = now_ms;
     return {200,
             "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
                 ",\"boot_id\":" + wtp::json::quote(boot_) +
                 ",\"generation\":" + wtp::json::quote(std::to_string(generation)) +
-                ",\"session_id\":" + wtp::json::quote(bootstrap_hex(binding_.session)) +
-                ",\"public_key\":" + wtp::json::quote(bootstrap_b64url(binding_.pico_key)) +
-                ",\"challenge\":" + wtp::json::quote(bootstrap_hex(binding_.challenge)) +
+                ",\"session_id\":" + wtp::json::quote(bootstrap_hex(session.binding.session)) +
+                ",\"public_key\":" + wtp::json::quote(bootstrap_b64url(session.binding.pico_key)) +
+                ",\"challenge\":" + wtp::json::quote(bootstrap_hex(session.binding.challenge)) +
                 ",\"login_ms\":30000}",
             "application/json",
             {}};
 }
-HttpResponse ConsumerRadioApi::finish(const HttpRequest& request, std::uint64_t now_ms) {
-    if (state_ != State::Pending || !request.buffered_body ||
+HttpResponse ConsumerRadioApi::finish(Session& session, const HttpRequest& request,
+                                      std::uint64_t now_ms) {
+    if (session.state != State::Pending || !request.buffered_body ||
         request.buffered_body.use_count() != 1 ||
-        !consumer_radio_header_matches(request.body_view(), binding_.session, 0))
+        !consumer_radio_header_matches(request.body_view(), session.binding.session, 0))
         return http_error(401, "radio_authentication_required");
     // Every complete finish consumes the pending exchange, even a bad password.
-    state_ = State::None;
-    if (!crypto_.authenticate(*request.buffered_body, binding_,
-                              runtime_.consumer_profile()->password)) {
-        close();
+    session.state = State::None;
+    if (!session.crypto->authenticate(*request.buffered_body, session.binding,
+                                      runtime_.consumer_profile()->password)) {
+        close(session);
         return http_error(401, "radio_authentication_failed");
     }
     const auto plain = "{\"authenticated\":true,\"device_id\":" + wtp::json::quote(device_) +
                        ",\"boot_id\":" + wtp::json::quote(boot_) + "}";
-    auto response = crypto_.seal(plain, binding_, 0);
+    auto response = session.crypto->seal(plain, session.binding, 0);
     if (!response) {
-        close();
+        close(session);
         return http_error(503, "radio_session_unavailable");
     }
-    state_ = State::Active;
-    started_ms_ = seen_ms_ = now_ms;
+    session.state = State::Active;
+    session.started_ms = session.seen_ms = now_ms;
     return std::move(*response);
 }
-HttpResponse ConsumerRadioApi::exchange(const HttpRequest& request, std::uint64_t now_ms,
-                                        std::uint64_t transaction) {
-    if (state_ != State::Active || pending_transaction_ || !request.buffered_body ||
-        request.buffered_body.use_count() != 1 || next_sequence_ == UINT64_MAX ||
-        !consumer_radio_header_matches(request.body_view(), binding_.session, next_sequence_))
+HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& request,
+                                        std::uint64_t now_ms, std::uint64_t transaction) {
+    if (session.state == State::Active && session.next_sequence == UINT64_MAX) {
+        close(session);
         return http_error(401, "radio_authentication_required");
-    const auto sequence = next_sequence_++;
-    const auto plaintext = crypto_.open(*request.buffered_body, binding_, sequence);
+    }
+    if (session.state != State::Active || session.pending_transaction || !request.buffered_body ||
+        request.buffered_body.use_count() != 1 ||
+        !consumer_radio_header_matches(request.body_view(), session.binding.session,
+                                       session.next_sequence))
+        return http_error(401, "radio_authentication_required");
+    // TCP allocates nonreused IDs at accept time. A slow earlier upload may
+    // dispatch after a later connection, so dispatch order cannot be monotonic.
+    if (!transaction || std::any_of(sessions_.begin(), sessions_.end(), [&](const Session& other) {
+            return other.pending_transaction == transaction;
+        }))
+        return http_error(409, "radio_transaction_reused");
+    const auto sequence = session.next_sequence++;
+    const auto plaintext = session.crypto->open(*request.buffered_body, session.binding, sequence);
     if (!plaintext) {
-        close();
+        close(session);
         return http_error(401, "radio_authentication_failed");
     }
-    seen_ms_ = now_ms;
+    session.seen_ms = now_ms;
     const auto root = wtp::json::parse(*plaintext);
     HttpResponse result = http_error(400, "invalid_radio_request");
     if (root && wtp::json::fields(*root, {"method", "path", "if_match", "body"})) {
@@ -254,9 +309,10 @@ HttpResponse ConsumerRadioApi::exchange(const HttpRequest& request, std::uint64_
             (method->string() == "GET" ? body->raw == "null" : body->type() == '{')) {
             if (method->string() == "POST" && path->string() == "/api/v1/consumer/logout" &&
                 body->raw == "{}") {
-                auto response = crypto_.seal(
-                    "{\"status\":200,\"etag\":null,\"body\":{\"ok\":true}}", binding_, sequence);
-                close();
+                auto response =
+                    session.crypto->seal("{\"status\":200,\"etag\":null,\"body\":{\"ok\":true}}",
+                                         session.binding, sequence);
+                close(session);
                 return response ? std::move(*response)
                                 : http_error(503, "radio_response_unavailable");
             }
@@ -284,12 +340,13 @@ HttpResponse ConsumerRadioApi::exchange(const HttpRequest& request, std::uint64_
             } else if (inner.method != "GET" && setup_busy_ && setup_busy_(setup_context_))
                 result = http_error(409, "setup_pending");
             else
-                result = api_.handle(inner, "consumer-radio:" + bootstrap_hex(binding_.session),
-                                     authority, transaction,
-                                     session_interface_ == ConsumerInterface::Station
-                                         ? ManagementCarrier::ConsumerStation
-                                         : ManagementCarrier::ConsumerAp);
-            pending_transaction_ = transaction;
+                result =
+                    api_.handle(inner, "consumer-radio:" + bootstrap_hex(session.binding.session),
+                                authority, transaction,
+                                session.interface == ConsumerInterface::Station
+                                    ? ManagementCarrier::ConsumerStation
+                                    : ManagementCarrier::ConsumerAp);
+            session.pending_transaction = transaction;
         }
     }
     const auto prefix = "{\"status\":" + std::to_string(result.status) + ",\"etag\":" +
@@ -300,7 +357,7 @@ HttpResponse ConsumerRadioApi::exchange(const HttpRequest& request, std::uint64_
     if (size > max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes ||
         !wtp::memory_admitted(size * 2 + 4096) || !envelope.reserve(size)) {
         finish_request(transaction, false);
-        close();
+        close(session);
         return http_error(503, "radio_response_unavailable");
     }
     envelope.append(wtp::InputView(prefix));
@@ -312,13 +369,13 @@ HttpResponse ConsumerRadioApi::exchange(const HttpRequest& request, std::uint64_
     envelope.append(wtp::InputView("}"));
     if (!wtp::json::parse(envelope.view())) {
         finish_request(transaction, false);
-        close();
+        close(session);
         return http_error(503, "radio_response_unavailable");
     }
-    auto response = crypto_.seal(envelope.view(), binding_, sequence);
+    auto response = session.crypto->seal(envelope.view(), session.binding, sequence);
     if (!response) {
         finish_request(transaction, false);
-        close();
+        close(session);
         return http_error(503, "radio_response_unavailable");
     }
     return std::move(*response);
@@ -342,22 +399,17 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
     const bool binary = request.path != "/api/consumer/v1/start";
     if (!admitted(request, binary))
         return http_error(403, "forbidden");
-    if (request.path == "/api/consumer/v1/start") {
-        auto response = start(request, now_ms);
-        if (response.status == 200) {
-            session_interface_ = interface;
-            session_authority_ = request.header("host");
-        }
-        return response;
-    }
-    if (state_ == State::None)
+    if (request.path == "/api/consumer/v1/start")
+        return start(request, now_ms, interface);
+    auto* session = select(request.body_view());
+    if (!session)
         return http_error(401, "radio_authentication_required");
-    if (interface != session_interface_ || request.header("host") != session_authority_)
+    if (interface != session->interface || request.header("host") != session->authority)
         return http_error(403, "radio_session_context_mismatch");
     if (request.path == "/api/consumer/v1/finish")
-        return finish(request, now_ms);
+        return finish(*session, request, now_ms);
     if (request.path == "/api/consumer/v1/request")
-        return exchange(request, now_ms, transaction);
+        return exchange(*session, request, now_ms, transaction);
     return http_error(404, "not_found");
 }
 } // namespace wsprrypico::network

@@ -15,8 +15,14 @@ export class RadioClient {
       headers:{'Content-Type':binary ? 'application/octet-stream' : 'application/json','X-WsprryPico-Radio':'1'},
       body:binary ? body : JSON.stringify(body),signal:AbortSignal.timeout(timeout)});
     if (!response.ok) {
-      const error = new Error(response.status === 401 ? 'Wi-Fi password rejected or radio session expired' : 'Radio request rejected');
-      error.code = 'radio_authentication_required'; throw error;
+      let code; try { code = (await response.json()).error?.code; } catch {}
+      const messages = {
+        radio_session_capacity:'All three radio sessions are in use. Log out another client or wait up to five idle minutes, then log in again.',
+        radio_login_pending:'Another login is in progress. Wait up to 30 seconds, then try again.',
+        radio_login_rate_limited:'Logins must be at least one second apart. Wait a second, then try again.'
+      };
+      const error = new Error(messages[code] || (response.status === 401 ? 'Wi-Fi password rejected or this radio session expired. Log in again.' : 'Radio request rejected'));
+      error.code = messages[code] ? code : 'radio_authentication_required'; throw error;
     }
     if (binary) {
       if (response.headers.get('Content-Type') !== 'application/octet-stream') throw new Error('Unexpected radio response');

@@ -38,7 +38,9 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   [P15.5 transport](development/phase15-5-concurrent-web-service.md) provides two
   cooperative port-80 connection tasks on core 0, each with an absolute
   ten-second deadline and bounded output steps. Application mutations remain
-  serialized; consumer authentication still admits one session until P15.6.
+  serialized. [P15.6](development/phase15-6-sessions.md) provides three fixed
+  independent consumer sessions with at most one pending login among them;
+  transmitter, configuration and deferred board effects retain one authority.
   Historical Phase 14: both Picos have bounded settings/persistence and final four-smoke
   acceptance under their recorded image identities and narrow source applicability.
   Final source/coverage/adversarial audits and Git closeout are accepted within

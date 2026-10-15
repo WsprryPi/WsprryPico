@@ -17,7 +17,9 @@ int main() {
     response = f.api.handle(read, "consumer-radio:test", "127.0.0.1", 0,
                             network::ManagementCarrier::ConsumerStation);
     auto root = wtp::json::parse(response.body);
-    assert(root && root->get("schema")->string() == "transmitter-management/1");
+    assert(root && root->get("schema")->string() == "transmitter-management/2");
+    assert(root->get("limits")->get("consumer_sessions")->raw == "3");
+    assert(root->get("limits")->get("consumer_pending_logins")->raw == "1");
     assert(root->get("profile_generation")->string() == "139");
     assert(root->get("selected")->string() == "consumer_station");
     assert(root->get("preclock")->raw == "true");

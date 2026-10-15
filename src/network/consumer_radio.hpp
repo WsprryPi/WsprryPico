@@ -54,18 +54,34 @@ class ConsumerRadioCrypto {
     virtual void clear() = 0;
 };
 
-// One bounded, volatile interface/origin-bound session. It reuses BrowserApi/
+// Fixed volatile interface/origin-bound sessions. They reuse BrowserApi/
 // JobService and the existing transactional setup authority; it owns no cursor.
 class ConsumerRadioApi {
   public:
+    static constexpr std::size_t session_capacity = 3;
+    static constexpr std::size_t pending_capacity = 1;
     static constexpr std::uint64_t login_ms = 30'000;
     static constexpr std::uint64_t idle_ms = 5 * 60'000;
     static constexpr std::uint64_t absolute_ms = 15 * 60'000;
     ConsumerRadioApi(BrowserApi& api, provisioning::ProfileStore& store,
                      provisioning::RuntimeProfile& runtime, provisioning::RandomSource& random,
-                     ConsumerRadioCrypto& crypto, std::string device, std::string boot)
-        : api_(api), store_(store), runtime_(runtime), random_(random), crypto_(crypto),
-          device_(std::move(device)), boot_(std::move(boot)) {}
+                     const std::array<ConsumerRadioCrypto*, session_capacity>& crypto,
+                     std::string device, std::string boot)
+        : api_(api), store_(store), runtime_(runtime), random_(random), device_(std::move(device)),
+          boot_(std::move(boot)) {
+        // Reject aliased injection without clearing another slot's keys.
+        for (std::size_t i = 0; i < crypto.size(); ++i) {
+            if (!crypto[i])
+                return;
+            for (std::size_t j = 0; j < i; ++j)
+                if (crypto[i] == crypto[j])
+                    return;
+        }
+        for (std::size_t i = 0; i < crypto.size(); ++i)
+            sessions_[i].crypto = crypto[i];
+    }
+    ConsumerRadioApi(const ConsumerRadioApi&) = delete;
+    ConsumerRadioApi& operator=(const ConsumerRadioApi&) = delete;
     ~ConsumerRadioApi() {
         close();
     }
@@ -95,27 +111,36 @@ class ConsumerRadioApi {
     void close();
 
   private:
+    friend struct ConsumerRadioTestAccess;
     enum class State { None, Pending, Active };
+    struct Session {
+        ConsumerRadioCrypto* crypto = nullptr;
+        State state = State::None;
+        ConsumerRadioBinding binding{};
+        std::uint64_t started_ms = 0, seen_ms = 0, next_sequence = 1;
+        std::optional<std::uint64_t> pending_transaction;
+        std::string authority;
+        ConsumerInterface interface = ConsumerInterface::None;
+    };
+    void close(Session& session);
+    Session* select(wtp::InputView packet);
     bool admitted(const HttpRequest& request, bool binary) const;
-    HttpResponse start(const HttpRequest& request, std::uint64_t now_ms);
-    HttpResponse finish(const HttpRequest& request, std::uint64_t now_ms);
-    HttpResponse exchange(const HttpRequest& request, std::uint64_t now_ms,
+    HttpResponse start(const HttpRequest& request, std::uint64_t now_ms,
+                       ConsumerInterface interface);
+    HttpResponse finish(Session& session, const HttpRequest& request, std::uint64_t now_ms);
+    HttpResponse exchange(Session& session, const HttpRequest& request, std::uint64_t now_ms,
                           std::uint64_t transaction);
     BrowserApi& api_;
     provisioning::ProfileStore& store_;
     provisioning::RuntimeProfile& runtime_;
     provisioning::RandomSource& random_;
-    ConsumerRadioCrypto& crypto_;
     std::string device_, boot_;
-    State state_ = State::None;
-    ConsumerRadioBinding binding_{};
-    std::uint64_t started_ms_ = 0, seen_ms_ = 0, next_sequence_ = 1;
-    std::optional<std::uint64_t> pending_transaction_;
+    std::array<Session, session_capacity> sessions_{};
+    std::uint64_t session_serial_ = 0;
     bool admission_open_ = false;
     std::optional<std::uint64_t> last_start_ms_;
     bool ap_available_ = false;
-    std::string station_ip_, hostname_, session_authority_;
-    ConsumerInterface session_interface_ = ConsumerInterface::None;
+    std::string station_ip_, hostname_;
     SetupHandler setup_handler_ = nullptr;
     SetupDelivery setup_delivery_ = nullptr;
     SetupBusy setup_busy_ = nullptr;

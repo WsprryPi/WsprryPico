@@ -120,3 +120,10 @@ test('authenticated network setup preserves transactions and never repeats an un
   client.identity=async()=>({...id,device_id:'aa'.repeat(16)});
   await assert.rejects(checkSetup(client,attempt),/different Pico/);
 });
+test('capacity, pending login and rate refusals have distinct feedback without retries',async()=>{
+  for(const [code,status,message] of [['radio_session_capacity',409,/three radio sessions/],['radio_login_pending',409,/30 seconds/],['radio_login_rate_limited',429,/one second/]]){
+    let calls=0;const client=new RadioClient(async()=>{calls++;return Response.json({error:{code}},{status});});
+    await assert.rejects(client.login('test-password',id),error=>error.code===code&&message.test(error.message));
+    assert.equal(calls,1);assert.equal(client.authenticated,false);
+  }
+});

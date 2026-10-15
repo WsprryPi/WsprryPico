@@ -300,6 +300,11 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
     active_ = ap_active_ || station_active_;
     ap_setup_admitted_ = setup_admitted;
     if (radio_) {
+        // Invalidate withdrawn contexts even if no new HTTP request arrives.
+        // Otherwise an AP down/up interval could leave its old login usable.
+        if (network_)
+            radio_->listeners(ap_active_, station_active_ ? network_->ipv4() : "",
+                              network_->configured_hostname());
         radio_->poll(time_us_64() / 1000);
         if (!active_)
             radio_->close();

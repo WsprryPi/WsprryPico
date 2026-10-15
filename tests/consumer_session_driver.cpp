@@ -1,0 +1,390 @@
+#include "mbedtls/platform.h"
+#include "network/bootstrap_codec.hpp"
+#include "network/pico/consumer_radio_crypto.hpp"
+#include "network/pico/http_server.hpp"
+#include "network_support.hpp"
+#include "provisioning/consumer_profile.hpp"
+#include "wtp/json.hpp"
+#include "wtp/memory_budget.hpp"
+
+#include <cstring>
+#include <iostream>
+#include <map>
+#include <random>
+#include <source_location>
+#include <stdexcept>
+#include <vector>
+
+using namespace wsprrypico::network;
+namespace {
+std::uint64_t now_ms = 0;
+tcp_pcb listener;
+unsigned freed_packets = 0;
+bool bind_fails = false, listen_fails = false, new_fails = false;
+void check(bool condition, std::source_location at = std::source_location::current()) {
+    if (!condition)
+        throw std::runtime_error("HTTP concurrency assertion failed at line " +
+                                 std::to_string(at.line()));
+}
+} // namespace
+std::uint64_t time_us_64() {
+    return now_ms * 1000;
+}
+tcp_pcb* tcp_new_ip_type(int) {
+    listener = {};
+    return new_fails ? nullptr : &listener;
+}
+err_t tcp_bind(tcp_pcb*, const void*, unsigned port) {
+    check(port == 80);
+    return bind_fails ? ERR_MEM : ERR_OK;
+}
+tcp_pcb* tcp_listen_with_backlog(tcp_pcb* pcb, int slots) {
+    check(slots == 2);
+    pcb->listener = !listen_fails;
+    return listen_fails ? nullptr : pcb;
+}
+void tcp_arg(tcp_pcb* pcb, void* arg) {
+    pcb->arg = arg;
+}
+void tcp_accept(tcp_pcb* pcb, err_t (*callback)(void*, tcp_pcb*, err_t)) {
+    pcb->accept = callback;
+}
+void tcp_recv(tcp_pcb* pcb, err_t (*callback)(void*, tcp_pcb*, pbuf*, err_t)) {
+    pcb->receive = callback;
+}
+void tcp_sent(tcp_pcb* pcb, err_t (*callback)(void*, tcp_pcb*, u16_t)) {
+    pcb->sent = callback;
+}
+void tcp_err(tcp_pcb* pcb, void (*callback)(void*, err_t)) {
+    pcb->error = callback;
+}
+void tcp_abort(tcp_pcb* pcb) {
+    check(!pcb->listener && !pcb->closed);
+    pcb->aborted = pcb->closed = true;
+}
+err_t tcp_close(tcp_pcb* pcb) {
+    check(!pcb->closed);
+    if (pcb->close_fails)
+        return ERR_MEM;
+    pcb->closed = true;
+    return ERR_OK;
+}
+unsigned tcp_sndbuf(tcp_pcb* pcb) {
+    return 5840 - pcb->pending;
+}
+err_t tcp_write(tcp_pcb* pcb, const void* data, u16_t count, int flags) {
+    check(!pcb->closed && count <= 1024 && flags == TCP_WRITE_FLAG_COPY);
+    if (pcb->no_memory)
+        return ERR_MEM;
+    if (pcb->write_fails)
+        return ERR_ABRT;
+    ++pcb->writes;
+    pcb->pending += count;
+    check(pcb->pending <= 5840);
+    pcb->wire.append(static_cast<const char*>(data), count);
+    return ERR_OK;
+}
+err_t tcp_output(tcp_pcb*) {
+    return ERR_OK;
+}
+void tcp_recved(tcp_pcb* pcb, u16_t) {
+    check(!pcb->closed);
+}
+u16_t pbuf_copy_partial(const pbuf* packet, void* out, u16_t count, u16_t offset) {
+    std::memcpy(out, static_cast<const char*>(packet->payload) + offset, count);
+    return count;
+}
+void pbuf_free(pbuf*) {
+    ++freed_packets;
+}
+
+extern "C" mbedtls_ms_time_t mbedtls_ms_time(void) {
+    return now_ms;
+}
+extern "C" int mbedtls_hardware_poll(void*, unsigned char* out, std::size_t n,
+                                     std::size_t* received) {
+    std::random_device random;
+    for (std::size_t i = 0; i < n; ++i)
+        out[i] = random();
+    *received = n;
+    return 0;
+}
+namespace wsprrypico::network {
+struct ConsumerRadioTestAccess {
+    static void exhaust(ConsumerRadioApi& api, std::span<const std::uint8_t, 16> id) {
+        const auto header = consumer_radio_header(id, 1);
+        wtp::FrameBuffer bytes;
+        check(bytes.reserve(44));
+        bytes.append(header);
+        bytes.append(wtp::InputView(std::string(16, 'x')));
+        auto* session = api.select(bytes.view());
+        check(session != nullptr);
+        session->next_sequence = UINT64_MAX;
+    }
+};
+} // namespace wsprrypico::network
+namespace {
+using namespace wsprrypico;
+struct Media : provisioning::Media {
+    std::array<std::uint8_t, 16384> bytes{};
+    Media() {
+        bytes.fill(255);
+    }
+    bool read(std::size_t at, std::span<std::uint8_t> out) override {
+        std::copy_n(bytes.begin() + at, out.size(), out.begin());
+        return true;
+    }
+    bool erase(std::size_t at) override {
+        std::fill_n(bytes.begin() + at, 8192, 255);
+        return true;
+    }
+    bool program(std::size_t at, std::span<const std::uint8_t> in) override {
+        std::copy(in.begin(), in.end(), bytes.begin() + at);
+        return true;
+    }
+};
+struct Random : provisioning::RandomSource {
+    bool fail = false, zero = false;
+    bool fill(std::span<std::uint8_t> out) override {
+        // Deliberately repeat randomness: boot-local serials must prevent reuse.
+        std::fill(out.begin(), out.end(), zero ? 0 : 0x55);
+        return !fail;
+    }
+};
+struct Driver {
+    network_test::Fixture f;
+    Media media;
+    provisioning::ProfileStore profiles{media};
+    provisioning::RuntimeProfile runtime;
+    Random random;
+    bool low_memory = false, handler_memory_failure = false;
+    std::uint64_t last_transaction = 0;
+    PsaCryptoOwner engineering_owner;
+    PicoConsumerRadioCrypto crypto[3];
+    ConsumerRadioApi radio{f.api,
+                           profiles,
+                           runtime,
+                           random,
+                           {&crypto[0], &crypto[1], &crypto[2]},
+                           std::string(32, '1'),
+                           std::string(32, '2')};
+    std::array<tcp_pcb, 2> sockets;
+    std::array<std::string, 2> remaining_input;
+    PicoHttpServer server{this, classify, handle, finish};
+    static ConsumerInterface classify(void*, const tcp_pcb* pcb, bool) {
+        return pcb->interface == 1 ? ConsumerInterface::AccessPoint : ConsumerInterface::Station;
+    }
+    static HttpResponse handle(void* p, const HttpRequest& r, ConsumerInterface i,
+                               std::uint64_t tx) {
+        auto& self = *static_cast<Driver*>(p);
+        self.last_transaction = tx;
+        if (self.handler_memory_failure)
+            wtp::available_memory = +[]() -> std::size_t { return 0; };
+        return self.radio.handle(r, now_ms, tx, i);
+    }
+    static void finish(void* p, std::uint64_t tx, bool delivered) {
+        static_cast<Driver*>(p)->radio.finish_request(tx, delivered);
+    }
+    Driver() {
+        provisioning::ConsumerProfile p;
+        p.device_id = std::string(32, '1');
+        p.ssid = "test-network";
+        p.password = "test-password";
+        p.time_server = "192.0.2.1";
+        p.callsign = "AA0NT";
+        p.locator = "EM18";
+        p.power_dbm = 37;
+        p.tls_pending = true;
+        p.tls.hostname = "wsprrypico-0a60df.local";
+        p.request_sha256 = std::string(64, 'a');
+        check(profiles.load() && profiles.select(provisioning::ProfileSource::ConsumerProfile,
+                                                 provisioning::serialize_consumer_profile(p)));
+        check(runtime.load(profiles, p.device_id, provisioning::BuildBundleState::Absent));
+        f.api.consumer_config(runtime);
+        check(f.scheduler.command("CONFIG " + network_test::config).find("true") !=
+              std::string::npos);
+        check(f.store.reserve(1791970000000000000ULL));
+        radio.admission(true);
+        radio.listeners(true, "192.168.1.53", p.tls.hostname);
+        f.api.management_availability(
+            {ManagementProfile::Consumer, 1, true, false, false, true, true});
+        for (auto& pcb : sockets)
+            pcb.closed = true;
+        check(server.start());
+    }
+    void ack(tcp_pcb& pcb, unsigned count = UINT32_MAX) {
+        if (pcb.closed || !pcb.pending)
+            return;
+        count = std::min(count, pcb.pending);
+        pcb.pending -= count;
+        check(pcb.sent(pcb.arg, &pcb, count) == ERR_OK);
+    }
+    void poll(bool acknowledge, tcp_pcb& pcb) {
+        for (unsigned i = 0; i < 100 && !pcb.closed; ++i) {
+            server.poll();
+            if (acknowledge)
+                ack(pcb);
+        }
+    }
+    static std::string field(const wtp::json::Value& v, std::string_view key) {
+        const auto x = v.get(key);
+        check(x && x->type() == '"');
+        return x->string();
+    }
+    std::string command(const wtp::json::Value& v) {
+        const auto op = field(v, "op");
+        if (op == "time") {
+            std::uint64_t time;
+            check(wtp::json::decimal(*v.get("ms"), time));
+            now_ms = time;
+            radio.poll(now_ms);
+            server.poll();
+            return "{}";
+        }
+        if (op == "listeners") {
+            radio.listeners(v.get("ap")->raw == "true", field(v, "ip"), field(v, "host"));
+            return "{}";
+        }
+        if (op == "rng") {
+            random.fail = v.get("fail")->raw == "true";
+            random.zero = v.get("zero")->raw == "true";
+            return "{}";
+        }
+        if (op == "exhaust") {
+            std::array<std::uint8_t, 16> id{};
+            check(bootstrap_unhex(field(v, "id"), id));
+            ConsumerRadioTestAccess::exhaust(radio, id);
+            return "{}";
+        }
+        if (op == "delivery") {
+            std::uint64_t tx;
+            check(wtp::json::decimal(*v.get("tx"), tx));
+            radio.finish_request(tx, v.get("apply")->raw == "true");
+            return "{}";
+        }
+        if (op == "handler_memory") {
+            handler_memory_failure = v.get("fail")->raw == "true";
+            return "{}";
+        }
+        if (op == "memory") {
+            low_memory = v.get("fail")->raw == "true";
+            return "{}";
+        }
+        if (op == "psa_owner") {
+            if (v.get("active")->raw == "true")
+                check(engineering_owner.acquire() == PSA_SUCCESS);
+            else
+                engineering_owner.release();
+            return "{}";
+        }
+        if (op == "generation") {
+            auto profile = *runtime.consumer_profile();
+            profile.ssid = "changed-network";
+            profile.request_sha256 = std::string(64, 'b');
+            check(profiles.select(provisioning::ProfileSource::ConsumerProfile,
+                                  provisioning::serialize_consumer_profile(profile)));
+            check(runtime.load(profiles, std::string(32, '1'),
+                               provisioning::BuildBundleState::Absent));
+            f.api.management_availability(
+                {ManagementProfile::Consumer, profiles.sequence(), true, false, false, true, true});
+            radio.poll(now_ms);
+            return "{}";
+        }
+        if (op == "invalidate") {
+            radio.admission(false);
+            radio.admission(true);
+            return "{}";
+        }
+        if (op == "stats")
+            return "{\"transaction\":" + wtp::json::quote(std::to_string(last_transaction)) +
+                   ",\"connections\":" + std::to_string(server.connections()) +
+                   ",\"pending_bytes\":" + std::to_string(server.pending_bytes()) +
+                   ",\"network_enabled\":" + (f.network.enabled ? "true" : "false") +
+                   ",\"network_pending\":" + (f.network.pending ? "true" : "false") +
+                   ",\"psa_owners\":" + std::to_string(PsaCryptoOwner::owners()) + "}";
+        if (op == "continue") {
+            std::uint64_t index;
+            check(wtp::json::decimal(*v.get("socket"), index) && index < 2);
+            auto& pcb = sockets[index];
+            const auto input = std::move(remaining_input[index]);
+            for (std::size_t at = 0; at < input.size(); at += 317) {
+                pbuf packet{static_cast<u16_t>(std::min<std::size_t>(317, input.size() - at)),
+                            input.data() + at};
+                check(!pcb.closed);
+                pcb.receive(pcb.arg, &pcb, &packet, ERR_OK);
+            }
+            poll(true, pcb);
+            return "{}";
+        }
+        if (op == "complete" || op == "fin" || op == "rst" || op == "ack") {
+            std::uint64_t index;
+            check(wtp::json::decimal(*v.get("socket"), index) && index < 2);
+            auto& pcb = sockets[index];
+            if (!pcb.closed) {
+                if (op == "complete")
+                    poll(true, pcb);
+                else if (op == "fin")
+                    pcb.receive(pcb.arg, &pcb, nullptr, ERR_OK);
+                else if (op == "rst") {
+                    auto cb = pcb.error;
+                    auto arg = pcb.arg;
+                    pcb.closed = true;
+                    cb(arg, ERR_ABRT);
+                } else {
+                    std::uint64_t n;
+                    check(wtp::json::decimal(*v.get("bytes"), n));
+                    ack(pcb, n);
+                }
+            }
+            return "{}";
+        }
+        check(op == "request");
+        unsigned index = 0;
+        while (index < 2 && !sockets[index].closed)
+            ++index;
+        check(index < 2);
+        auto& pcb = sockets[index];
+        pcb = {};
+        pcb.interface = v.get("ap")->raw == "true" ? 1 : 2;
+        check(listener.accept(listener.arg, &pcb, ERR_OK) == ERR_OK);
+        std::vector<std::uint8_t> bytes;
+        const auto body = field(v, "b64");
+        check(body.empty() || bootstrap_unb64url(body, bytes, 0, max_http_body));
+        const auto host = field(v, "host");
+        const auto request = field(v, "method") + " " + field(v, "path") +
+                             " HTTP/1.1\r\nHost: " + host + "\r\nOrigin: http://" + host +
+                             "\r\nX-WsprryPico-Radio: 1\r\nContent-Type: " + field(v, "type") +
+                             "\r\nContent-Length: " + std::to_string(bytes.size()) + "\r\n\r\n" +
+                             std::string(bytes.begin(), bytes.end());
+        wtp::available_memory = low_memory ? +[]() -> std::size_t { return 0; } : nullptr;
+        std::uint64_t cutoff = request.size();
+        if (const auto cut = v.get("cut"))
+            check(wtp::json::decimal(*cut, cutoff) && cutoff < request.size());
+        remaining_input[index] = request.substr(cutoff);
+        // pbuf fragments exercise the production parser without requiring a real socket.
+        for (std::size_t at = 0; at < cutoff && !pcb.closed; at += 317) {
+            pbuf packet{static_cast<u16_t>(std::min<std::size_t>(317, cutoff - at)),
+                        request.data() + at};
+            pcb.receive(pcb.arg, &pcb, &packet, ERR_OK);
+        }
+        poll(v.get("hold")->raw != "true", pcb);
+        wtp::available_memory = nullptr;
+        return "{\"socket\":" + std::to_string(index) + ",\"wire\":" +
+               wtp::json::quote(bootstrap_hex(std::span(
+                   reinterpret_cast<const std::uint8_t*>(pcb.wire.data()), pcb.wire.size()))) +
+               "}";
+    }
+};
+} // namespace
+int main() {
+    Driver driver;
+    std::cerr << "ConsumerRadioApi=" << sizeof(ConsumerRadioApi)
+              << " crypto=" << sizeof(PicoConsumerRadioCrypto) << " HTTP=" << sizeof(PicoHttpServer)
+              << '\n';
+    std::string line;
+    while (std::getline(std::cin, line)) {
+        const auto root = wsprrypico::wtp::json::parse(line);
+        check(bool(root));
+        std::cout << driver.command(*root) << std::endl;
+    }
+}

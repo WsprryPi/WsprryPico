@@ -78,8 +78,17 @@ The browser supplies an ephemeral X25519 public key (canonical unpadded
 base64url, 32 decoded bytes) and random nonce (16 bytes, lowercase hex).
 The Pico verifies current identity/generation, creates an ephemeral X25519 key,
 random session and challenge, and returns those bindings plus `login_ms:30000`.
-Only one pending or authenticated session exists. Successful starts are spaced
-at least one second apart; a pending slot expires after 30 seconds.
+Three independent sessions may coexist, including clients at the same station
+origin. At most one is pending, reserving one of those three slots. Successful
+starts are spaced at least one second apart; a pending slot expires after 30
+seconds. Capacity returns `409 radio_session_capacity`, pending-login quota
+`409 radio_login_pending`, and rate limiting `429 radio_login_rate_limited`.
+These refusals neither evict a client nor authorize a retry of a mutation.
+An abandoned client can occupy a slot until its own idle/absolute expiry.
+Session IDs include a nonreused boot-local serial and random bytes; ID lookup
+alone grants no authority. RNG failure and serial exhaustion fail closed.
+[Management/2](../development/phase15-6-sessions.md) advertises these bounds;
+management/1 remains frozen for historical one-session firmware.
 
 Transcript bytes, in order:
 
@@ -125,11 +134,15 @@ POST logical `/api/v1/consumer/logout`, body `{}`, closes the volatile session
 after constructing its encrypted acknowledgement. It does not abort or release
 a job. Sessions expire after five idle minutes or fifteen total minutes and
 close on profile generation changes, reboot, admission loss or invalid tags.
+Logout, expiry, invalid tags and sequence exhaustion affect only the addressed
+session; every session has its own keys, context, timers and exact sequence.
+Ordinary configuration journal revisions do not expire other logins.
 No automatic mutation retry occurs. On a lost response the page clears its keys,
 preserves edits, and requires login plus status/readback before another action.
 Deferred restart/network-disable actions execute only after the complete reply
-has been acknowledged on the matching transport transaction. Disconnect or
-expiry cancels a still-pending deferred action. Already committed settings or
+has been acknowledged on the matching transport transaction. A lost/partial reply or
+session expiry cancels only that transaction's still-pending deferred action.
+A normally acknowledged HTTP connection close leaves the login usable. Already committed settings or
 accepted WTP operations can remain effective after a lost reply.
 
 DHCP/link/hostname changes close station sessions and cancel pending deferred

@@ -64,6 +64,46 @@ int main(){
                 self.assertEqual(built.returncode, 0, built.stderr)
                 subprocess.run([str(path / 'indicator')], check=True, capture_output=True, timeout=10)
 
+    def test_radio_context_refresh_without_http_dispatch(self):
+        source = (ROOT / 'src/network/pico/bootstrap_server.cpp').read_text()
+        poll_start = source.index('void PicoBootstrapServer::poll(')
+        begin, end = block(source[poll_start:], 'if (radio_)')
+        actual = source[poll_start:][begin:end]
+        program = r'''
+#include <cstdint>
+#include <string>
+#include <stdexcept>
+std::uint64_t time_us_64(){return 1000;}
+struct Network {
+ std::string address="192.168.1.53", name="pico.local";
+ std::string ipv4(){return address;} std::string configured_hostname(){return name;}
+};
+struct Radio {
+ unsigned refreshes=0, polls=0, closed=0; bool ap=true; std::string ip,host;
+ void listeners(bool a,std::string i,std::string h){++refreshes;ap=a;ip=i;host=h;}
+ void poll(std::uint64_t){if(refreshes!=polls+1)throw std::runtime_error("stale context");++polls;}
+ void close(){++closed;}
+};
+int main(){
+ Radio radio;Network network;auto* radio_=&radio;auto* network_=&network;
+ bool ap_active_=false,station_active_=true,active_=true;
+ const auto poll=[&]() ACTUAL;
+ poll(); if(radio.ap||radio.ip!=network.address||radio.host!=network.name||radio.closed)return 1;
+ ap_active_=true;network.address="192.168.1.54";poll();
+ if(!radio.ap||radio.ip!=network.address||radio.closed)return 2;
+ station_active_=false;active_=false;poll();
+ if(!radio.ip.empty()||radio.closed!=1)return 3;
+}
+'''.replace('ACTUAL', actual)
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory)
+            (path / 'contexts.cpp').write_text(program)
+            built = subprocess.run(['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
+                                    str(path / 'contexts.cpp'), '-o', str(path / 'contexts')],
+                                   capture_output=True, text=True, timeout=60)
+            self.assertEqual(built.returncode, 0, built.stderr)
+            subprocess.run([str(path / 'contexts')], check=True, capture_output=True, timeout=10)
+
     def test_actual_setup_receipts_are_transaction_scoped(self):
         source = (ROOT / 'src/network/pico/bootstrap_server.cpp').read_text()
         methods = []

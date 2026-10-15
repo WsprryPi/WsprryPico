@@ -87,8 +87,9 @@ struct Test {
     provisioning::ProfileStore store{media};
     provisioning::RuntimeProfile runtime;
     Random random;
-    Crypto crypto;
-    network::ConsumerRadioApi api{fixture.api, store, runtime, random, crypto, device, boot};
+    Crypto crypto, crypto2, crypto3;
+    network::ConsumerRadioApi api{
+        fixture.api, store, runtime, random, {&crypto, &crypto2, &crypto3}, device, boot};
     std::uint64_t now = 1000, sequence = 1, transaction = 100;
     std::string authority = "192.168.4.1";
     network::ConsumerInterface interface = network::ConsumerInterface::AccessPoint;

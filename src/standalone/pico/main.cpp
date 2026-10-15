@@ -561,9 +561,10 @@ int main() {
     server.softap_handler(&softap_api, softap_interface, nullptr);
     static wsprrypico::network::PicoBootstrapServer bootstrap(
         identities.device_id(), wsprrypico::firmware::kFirmwareVersion, softap_interface, nullptr);
-    static wsprrypico::network::PicoConsumerRadioCrypto consumer_radio_crypto;
+    static wsprrypico::network::PicoConsumerRadioCrypto consumer_radio_crypto[3];
     static wsprrypico::network::ConsumerRadioApi consumer_radio(
-        browser_api, profile_store, runtime_profile, random_source, consumer_radio_crypto,
+        browser_api, profile_store, runtime_profile, random_source,
+        {&consumer_radio_crypto[0], &consumer_radio_crypto[1], &consumer_radio_crypto[2]},
         identities.device_id(), service.status().boot_id);
     bootstrap.radio_control(consumer_radio);
     if (consumer_source_selected())

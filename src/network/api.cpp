@@ -338,7 +338,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "\"hardware\":\"/api/v1/hardware\",\"management_carrier\":\"authenticated_https\"},"
                 "\"configuration_updates\":" +
                 application::config_update_capabilities() +
-                ",\"management_carriers\":{\"schema\":\"transmitter-management/1\",\"path\":\"/api/"
+                ",\"management_carriers\":{\"schema\":\"transmitter-management/2\",\"path\":\"/api/"
                 "v1/management\"}"
                 ",\"active_job_connections\":" +
                 (active_job_connections_ ? "true" : "false") +

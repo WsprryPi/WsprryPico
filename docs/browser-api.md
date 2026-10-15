@@ -70,7 +70,7 @@ session cookie that page script cannot read.
 | Method and path | Behavior |
 |---|---|
 | GET `/api/v1/capabilities` | `api_version`, WTP service capabilities under `wtp`, implemented management `features`, body/connection limits, `active_job_connections` |
-| GET `/api/v1/management` | Independently versioned `transmitter-management/1` carrier support/availability and selected authenticated context; see the [carrier matrix](development/phase15-3-management-carriers.md). |
+| GET `/api/v1/management` | Independently versioned `transmitter-management/2` carrier support/availability and selected authenticated context; see the [carrier matrix](development/phase15-3-management-carriers.md). |
 | GET `/api/v1/status` | `job` service status/terminal records, `standalone` config/clock health, `network` state |
 | GET `/api/v1/jobs` | Same current/retained job inspection snapshot as status |
 | POST `/api/v1/jobs` | Explicit HELLO, CLAIM, RENEW, LOAD, ARM, ABORT or RELEASE through the common service |
@@ -365,7 +365,7 @@ new RF admissions until then. Read saved versus active plans separately.
 ## Management-carrier discovery
 
 Capabilities add a top-level `management_carriers` reference with exactly
-`schema:"transmitter-management/1"` and `path:"/api/v1/management"`. This is
+`schema:"transmitter-management/2"` and `path:"/api/v1/management"`. This is
 outside the closed `application_resources` and application capability objects;
 their legacy `authenticated_https` value is retained for P15.2 compatibility.
 The selected authenticated carrier serves the discovery document. Public
@@ -373,4 +373,9 @@ consumer identity/discovery cannot authorize reads or writes. Unsupported
 versions/types, unavailable selected carriers and identity/profile-generation
 mismatches must refuse without another-carrier retry. The full wire shape,
 operation list, profile matrix and budget interpretation are in the
-[Phase 15.3 contract](development/phase15-3-management-carriers.md).
+[Phase 15.3 contract](development/phase15-3-management-carriers.md), with the
+explicit [P15.6 version-2 evolution](development/phase15-6-sessions.md).
+Version 2 preserves the closed shape and all version-1 limits except integer
+`consumer_sessions:3`, adding integer `consumer_pending_logins:1` to limits.
+Updated Pi accepts each version's exact limits; old Pi refuses version 2.
+No fallback, downgraded authentication or mutation retry is added.
