@@ -1,9 +1,12 @@
 # P15.6 handoff: independent simultaneous consumer login sessions
 
-Status: **prepared, not executed**. This document records a source review and
-an implementation prompt for a separate executing conversation. Preparing or
-reading it does not execute P15.6. P15.5 is complete within its published
-software acceptance; P15.6 implementation remains not started.
+Status: **executed within the recorded software scope**. The originating
+conversation prepared this source review and prompt; the operator authorized a
+separate executing conversation. The [implementation, review and acceptance
+record](phase15-6-sessions.md) binds actual source pairs, checks, publication
+and exclusions. Physical phone/Mac and target resource/RF acceptance remain open.
+P15.5's published closure is unchanged. The operator's requested subsequent
+post-execution review has not been claimed by this execution.
 
 ## Lead repository and reviewed baseline
 

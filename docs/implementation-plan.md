@@ -343,18 +343,18 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   separate. Simultaneous authenticated sessions remain P15.6. See the
   [executed prompt](development/phase15-5-execution-prompt.md). Published
   implementation: `9cf5ba2`; acceptance/checklist closure: `62b33d9`.
-- ☐ **P15.6 — Support multiple simultaneous login sessions.** Allow the
-  operator to stay logged in and use the same Pico from a phone and Mac at the
-  same time without either client being locked out or displacing the other's
-  session. Keep session authentication, logout and expiry independent, while
-  preserving the shared transmitter ownership rules and detecting conflicting
-  settings changes. Use the concurrent service from P15.5 and the update rules
-  from P15.1. Validate concurrent phone/Mac use and continued access when
-  either client logs out, disconnects or expires. Status: open; implementation
-  not started. The reviewed
-  [handoff prompt](development/phase15-6-execution-prompt.md) is ready for a
-  separate executing conversation on `devel`; Pico leads with coordinated Pi
-  discovery/compatibility changes. The prompt has not been executed.
+- ✅ **P15.6 — Support multiple simultaneous login sessions (software scope).**
+  Three independent consumer sessions support phone, Mac and native Pi, with at
+  most one pending login among those three. Logout, expiry, context invalidation,
+  keys and delivery completion are isolated; one scheduler, transmitter owner
+  and configuration authority remain. Management/2 advertises exact limits;
+  updated Pi also retains frozen management/1 support. Genuine crypto/HTTP,
+  mixed native/browser contexts, conflicting settings, quota/expiry/failure,
+  historical source pairs, sanitizer, cross-link and scoped UI checks are in the
+  [acceptance and review record](development/phase15-6-sessions.md). Physical
+  phone/Mac transport, target heap/stack high-water and RF acceptance remain open.
+  The [executed prompt](development/phase15-6-execution-prompt.md) and the
+  operator's later post-execution review are separate evidence boundaries.
 - ☐ **P15.7 — Recover login cleanly after a failed save or lost session.**
   After the callsign-only save was blocked, the operator could no longer log in
   to Pico B and saw "Radio request rejected. Status remains unknown." A live
@@ -461,7 +461,7 @@ roadmap closure accepted, P15.3 returned to WsprryPico and is complete within
 its recorded software scope, with companion Pi changes committed separately.
 P15.4 shared-resource adoption is complete within its recorded software scope.
 P15.5 concurrent web servicing is complete within its recorded software scope.
-P15.6 simultaneous authenticated sessions is next; all later entries remain planned.
+P15.6 independent sessions is complete within its recorded software scope; physical concurrency and all later entries remain open.
 
 ## Remaining deferred and backlog items
 

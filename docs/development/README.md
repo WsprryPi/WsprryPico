@@ -24,15 +24,14 @@ complete within its recorded software acceptance.
 [P15.4 shared-resource adoption](phase15-4-shared-resources.md) is complete within
 its recorded software acceptance using existing Pico resources; firmware, physical/RF and
 installed-service qualification are not established by this software acceptance.
-[P15.5 concurrent web service](phase15-5-concurrent-web-service.md) adds two bounded
-cooperative port-80 connection tasks on core 0; its
-[execution prompt](phase15-5-execution-prompt.md), validation and adversarial
-repairs are recorded separately. Simultaneous authenticated sessions remain
-P15.6, and target contention/RF qualification remains separate.
-The source-reviewed [P15.6 handoff prompt](phase15-6-execution-prompt.md) is
-prepared for a separate conversation working on `devel`. Pico leads session
-isolation with coordinated Pi discovery/compatibility work. The prompt is not
-executed and P15.6 implementation remains not started.
+[P15.5 concurrent web service](phase15-5-concurrent-web-service.md) supplies two
+bounded cooperative port-80 tasks on core 0. [P15.6 independent sessions](phase15-6-sessions.md)
+adds three fixed consumer login slots, one pending-login quota and coordinated
+strict Pi management/1 and management/2 compatibility. Its software acceptance,
+source pair, review repairs, CI and limits are recorded there. The
+[execution prompt](phase15-6-execution-prompt.md) retains the authorized scope
+and source-review baseline. Physical phone/Mac concurrency, target heap/stack
+high-water and RF qualification remain separate; P15.7 recovery remains open.
 
 The [WIP Si5351 I²C probe](../../tests/hardware/wip-si5351-i2c/README.md)
 preserves the standalone GP4/GP5 connection diagnostic and historical bench
