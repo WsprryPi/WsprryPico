@@ -356,7 +356,7 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   The [executed prompt](development/phase15-6-execution-prompt.md) and the
   [completed separate post-execution review](development/phase15-6-sessions.md#separate-post-execution-review)
   retain distinct evidence boundaries.
-- ☐ **P15.7 — Recover login cleanly after a failed save or lost session.**
+- ⏳ **P15.7 — Recover login cleanly after a failed save or lost session.**
   After the callsign-only save was blocked, the operator could no longer log in
   to Pico B and saw "Radio request rejected. Status remains unknown." A live
   check against the earlier single-session firmware returned HTTP 409
@@ -372,7 +372,7 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   service to implement and verify recovery.
   A settings-preserving restart of B restored encrypted login and private
   status access; the verification session was logged out afterward.
-  Status: open; unimplemented.
+  Status: in progress. See the [execution handoff](development/phase15-7-execution-prompt.md).
 - ☐ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Add support for WSPR Type 2
   compound-callsign messages and Type 3 hashed-callsign/six-character-locator
   messages. Settle the corresponding station-validation rules before P15.9

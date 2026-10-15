@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "device_id": "11111111111111111111111111111111",
+  "boot_id": "22222222222222222222222222222222",
+  "generation": "139",
+  "session_id": "33333333333333333333333333333333",
+  "challenge": "44444444444444444444444444444444",
+  "browser_nonce": "55555555555555555555555555555555",
+  "browser_public_key": "ZLEBsdC-WocEvQePmJUAH8A-jp-VIvGI3RKNmEbUhGY",
+  "pico_public_key": "B6N8vBQgk8i3VdwbEOhstCY3StFqqFPtC9_AsrhtHHw",
+  "pico_private_key_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+  "password": "test-only-password",
+  "transcript_sha256": "5d9f702167900335129433a2d4c48e50c8f88f0dc519b3938a2a20e3c416b042",
+  "login_hex": "435230313333333333333333333333333333333300000000000000002c17aafdd762051bd1895d7861f17ca0283b3980ecbdea05c2dbddd99b8d8f8bb68ab036ac93a13a4c80b9a28b2969e1",
+  "request_hex": "435230313333333333333333333333333333333300000000000000017106dbf77485c18bea43c046b1bf5bcceb40162501b75ecdce4d875935ac595a16be37ff2c462d46f90e6b78981f5d1ffe3e6b016e0bed4244797c73498ef75b6747ab201b5f607e5aa0422189acb0dc3d89bf2b",
+  "request_plain": "{\"method\":\"GET\",\"path\":\"/api/v1/config\",\"if_match\":null,\"body\":null}",
+  "response_hex": "43523031333333333333333333333333333333330000000000000001bbf0c1e5388f2a4f5b23a6c5630613659bf71cabb7656827dc5a3c2203d15fb59d8efd355ef56311bb6db01e0ff43374408f393d823acef64592157d51805da98c2bd28625501a75c7f9115b0b3609dae18b1fbc7ba788ad",
+  "response_plain": "{\"status\":200,\"etag\":\"\\\"revision\\\"\",\"body\":{\"config\":{\"enabled\":false}}}",
+  "request_key_hex": "d1f4a5d31a91a5837536fd2c2446512a925311b1662e6a914671a985336009ac",
+  "large_request_sha256": "f73335f18359ab747b86447b95a55ed34af6a14216c661ca27b82ef13e78dded",
+  "recovery": {
+    "target_selector": "66666666666666666666666666666666",
+    "authority": "192.168.1.53",
+    "interface": "station"
+  },
+  "selector_for_session_id": "e1adf81f3688e1b7fcc7f1bb034c63ea"
+}

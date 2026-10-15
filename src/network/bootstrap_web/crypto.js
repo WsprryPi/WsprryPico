@@ -62,18 +62,36 @@ export function available() {
 }
 
 export function begin() {
-  const pair = x25519.keygen();
-  const requestNonce = hex(random(16));
-  return {secretKey: pair.secretKey, browserPublicKey: b64u(pair.publicKey), requestNonce};
+  const owned = x25519.utils.randomSecretKey();
+  try {
+    const pair = x25519.keygen(owned);
+    const requestNonce = hex(random(16));
+    return {secretKey: pair.secretKey, browserPublicKey: b64u(pair.publicKey), requestNonce};
+  } catch (error) { owned.fill(0); throw error; }
 }
 
+export function networkPlaintext(ssidText, passwordText, timeServerText) {
+  const parts=[];
+  try {
+    const ssid=ascii(ssidText,1,32);parts.push(ssid);
+    const password=ascii(passwordText,8,63);parts.push(password);
+    let server;
+    if (timeServerText !== undefined) {
+      server=ascii(timeServerText,1,253);parts.push(server);
+      const ip = timeServerText.split('.');
+      const ipv4 = ip.length === 4 && Number(ip[0]) > 0 && Number(ip[0]) < 224 && Number(ip[0]) !== 127 && ip.every(p=>/^(0|[1-9][0-9]{0,2})$/.test(p) && Number(p)<=255);
+      const labels=timeServerText.replace(/\.$/,'').split('.');
+      const numeric=labels.every(p=>/^(?:[0-9]+|0x[0-9a-f]+)$/i.test(p));
+      if (!ipv4 && (numeric || !labels.every(p=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(p)))) throw new Error('Invalid time server hostname or IPv4 address');
+    }
+    return join(Uint8Array.of(ssid.length),ssid,Uint8Array.of(password.length),password,
+      ...(server ? [Uint8Array.of(server.length),server] : []));
+  } finally {for (const part of parts)part.fill(0);}
+}
 export function seal(pending, start, deviceId, ssidText, passwordText, fixed = {}) {
-  const ssid = ascii(ssidText, 1, 32);
-  const password = ascii(passwordText, 8, 63);
-  const timeServer = fixed.timeServer === undefined ? undefined :
-    ascii(fixed.timeServer, 1, 253);
   let shared, key, plain;
   try {
+    plain = networkPlaintext(ssidText,passwordText,fixed.timeServer);
     const requestId = fixed.requestId || hex(random(16));
     const nonce = fixed.nonce || random(12);
     const picoPublic = fromB64u(start.pico_public_key, 32);
@@ -85,9 +103,6 @@ export function seal(pending, start, deviceId, ssidText, passwordText, fixed = {
     if (shared.every((byte) => byte === 0)) throw new Error('invalid shared secret');
     key = hkdf(sha256, shared, sha256(transcript),
       text('WsprryPico network-only AEAD v1'), 32);
-    plain = join(Uint8Array.of(ssid.length), ssid,
-      Uint8Array.of(password.length), password,
-      ...(timeServer ? [Uint8Array.of(timeServer.length), timeServer] : []));
     const sealed = chacha20poly1305(key, nonce, transcript).encrypt(plain);
     const ackTag = hmac(sha256, key,
       join(text('WsprryPico network-only ACK v1'), transcript));
@@ -99,7 +114,7 @@ export function seal(pending, start, deviceId, ssidText, passwordText, fixed = {
     };
   } finally {
     pending.secretKey.fill(0); shared?.fill(0); key?.fill(0);
-    ssid.fill(0); password.fill(0); timeServer?.fill(0); plain?.fill(0);
+    plain?.fill(0);
   }
 }
 

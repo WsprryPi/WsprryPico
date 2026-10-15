@@ -127,7 +127,11 @@ class PicoBootstrapServer {
 
   private:
     HttpResponse recovery(const HttpRequest& request);
-    HttpResponse consumer_setup(const HttpRequest& request, std::uint64_t transaction);
+    HttpResponse consumer_setup(const HttpRequest& request, std::uint64_t transaction,
+                                std::span<const std::uint8_t, 16> login);
+    void setup_login_closed(std::span<const std::uint8_t, 16> login);
+    void clear_failed_setup();
+    std::array<std::uint8_t, 16> setup_login_{};
     void setup_delivered(std::uint64_t transaction, bool apply);
     std::string setup_reply_path_;
     std::uint64_t setup_transaction_ = 0;

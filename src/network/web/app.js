@@ -12,7 +12,7 @@ function pinOwners(plan, except) {
 if (typeof module !== 'undefined') module.exports = {pinOwners};
 
 const $ = id => document.getElementById(id);
-const passwordFields = ['local-password','config-password','consumer-password'];
+const passwordFields = ['local-password','config-password','consumer-password','retirement-password'];
 function setPasswordVisible(id, visible) {
   const input = $(id), toggle = $(id + '-toggle');
   const blocked = input.readOnly || input.disabled || input.matches?.(':disabled');
@@ -51,6 +51,61 @@ let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let localIdentity = null, localAuthenticated = false;
+let writeState = 'readback', savedReadback = null, saveAttempt = null, retirementDiscovery = null;
+function validSavedConfig(c) {
+  if (c === null) return true;
+  const object = v => v && typeof v === 'object' && !Array.isArray(v);
+  const ascii = (v,min,max) => typeof v === 'string' && v.length >= min && v.length <= max && /^[\x20-\x7e]*$/.test(v);
+  const gp = v => v === null || Number.isInteger(v) && (v >= 0 && v <= 22 || v >= 26 && v <= 28);
+  if (!object(c) || c.version !== 1 || typeof c.enabled !== 'boolean' ||
+      !object(c.station) || !ascii(c.station.callsign,3,12) || !/^[A-Ra-r]{2}[0-9]{2}([A-Xa-x]{2})?$/.test(c.station.locator) ||
+      !Number.isInteger(c.station.power_dbm) || c.station.power_dbm < 0 || c.station.power_dbm > 60 ||
+      !object(c.wifi) || !ascii(c.wifi.ssid,0,32) || c.wifi.password !== null || !ascii(c.wifi.ntp_ipv4,1,253) ||
+      !Array.isArray(c.schedules) || c.schedules.length > 8 || !c.schedules.every(s=>object(s) &&
+        Number.isInteger(s.period_s) && s.period_s >= 120 && s.period_s <= 86400 && s.period_s % 120 === 0 && 86400 % s.period_s === 0 &&
+        Number.isInteger(s.phase_s) && s.phase_s >= 0 && s.phase_s < s.period_s && s.phase_s % 120 === 0) ||
+      c.expires_utc_s !== undefined && (!Number.isSafeInteger(c.expires_utc_s) || c.expires_utc_s !== 0 && (c.expires_utc_s < 1735689600 || c.expires_utc_s >= 4102444800))) return false;
+  for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) if (c[name] !== undefined && typeof c[name] !== 'boolean') return false;
+  if (c.pins !== undefined) {
+    const p=c.pins;
+    if (!object(p) || !['direct','i2c'].includes(p.engine) || !gp(p.rf_gp) || !gp(p.button_gp) || !gp(p.amplifier_gp) || !gp(p.indicator_gp) ||
+        !(p.i2c_pair === null || Number.isInteger(p.i2c_pair) && p.i2c_pair >= 0 && p.i2c_pair < 12) ||
+        !Array.isArray(p.lpf_gps) || p.lpf_gps.length > 26 || !p.lpf_gps.every(n=>n !== null && gp(n)) ||
+        !['onboard_led','external','disabled'].includes(p.indicator) || typeof p.indicator_active_high !== 'boolean') return false;
+  }
+  return true;
+}
+function checkedConfig(result, allowNull = true) {
+  if (!Object.hasOwn(result.data,'config') || !validSavedConfig(result.data.config) || !allowNull && result.data.config === null || !result.revision) {
+    requireReadback(); const e = new Error('Saved settings response is malformed; your draft is preserved'); e.unconfirmed=true; throw e;
+  }
+  return result.data.config;
+}
+function requireReadback() {
+  writeState = 'readback'; revision = ''; savedReadback = null;
+  $('saved-readback-details').hidden = true;
+  $('saved-active-status').textContent = 'Saved and active observations need fresh readback.';
+  $('save-reconcile-status').textContent = 'Saved-state readback required. Your draft is preserved. A status refresh or login cannot confirm an interrupted save.';
+}
+async function readSavedKeepingDraft() {
+  requireReadback();
+  const before = await api('application');
+  const saved = await api('config');
+  const config = checkedConfig(saved), after = await api('application');
+  if (!before.data.target || JSON.stringify(before.data.target) !== JSON.stringify(after.data.target) ||
+      before.revision !== saved.revision || after.revision !== saved.revision) throw new Error('Pico context or saved revision changed during readback');
+  savedReadback = {target:after.data.target,revision:saved.revision,config};
+  $('saved-readback').textContent = JSON.stringify({saved_config:config,application:after.data},null,2);
+  $('saved-readback').hidden = false; writeState = 'review';
+  $('saved-readback-details').hidden = false;
+  const h = after.data.hardware;
+  const pins = p => p === null || !p ? 'Unknown / unavailable' : `RF GP${p.rf_gp}; switch ${p.button_gp === null ? 'disabled' : 'GP' + p.button_gp}; indicator ${p.indicator}`;
+  $('saved-active-status').textContent = `Saved pins: ${pins(h?.saved)}. Active pins: ${pins(h?.active)}. ` +
+    (h?.pending_restart === true ? 'Saved pins require restart. ' : h?.pending_restart === false ? 'No pin restart is pending. ' : 'Restart requirement is unconfirmed. ') +
+    (h?.storage_healthy === false ? 'Storage fault. ' : '') + (h?.application_error ? `Application fault: ${h.application_error}. ` : '') +
+    (after.data.station?.storage_healthy === false ? 'Station storage fault.' : '');
+  $('save-reconcile-status').textContent = 'Current saved settings are shown below. Your draft is unchanged. Review differences before enabling a new explicit save. Matching values do not prove which earlier request saved them.';
+}
 function readSetupReceipt(hash) {
   if (typeof hash !== 'string' || !hash.startsWith('#save=') || hash.length > 512) return null;
   try {
@@ -83,17 +138,39 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
   if (method !== 'GET') Object.assign(headers, {'Content-Type':'application/json','X-WsprryPico-Request':'1'});
   if (etag) headers['If-Match'] = etag;
   let response;
+  const settingWrite = method !== 'GET' && ['config','config/update','schedules','station','hardware'].includes(path);
+  if (settingWrite) {
+    if (writeState !== 'ready' || !revision) throw new Error('Read and review saved settings before a new save');
+    // Bounded context; credentials are never retained in the attempt record.
+    const intended = JSON.parse(JSON.stringify(body));
+    if (intended.wifi) intended.wifi.password = null;
+    saveAttempt = {target:localIdentity ? {...localIdentity} : snapshot?.job.boot_id,path,revision:etag,intended,sent:true};
+  }
   try {
     response = radio ? await radio.request(path,method,body,etag,timeout) :
       await fetch('/api/v1/' + path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(timeout), cache:'no-store'});
   } catch (error) {
+    if (error.local) { if (saveAttempt) saveAttempt.sent=false; throw error; }
+    error.unconfirmed = true;
+    if (settingWrite) requireReadback();
+    snapshot = null; $('state').textContent = 'Unknown · request unconfirmed';
+    $('output').textContent = 'Unknown'; $('job-progress').textContent = 'Progress unavailable · request unconfirmed'; controls(false);
     if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; }
     throw error;
   }
-  const data = await response.json();
+  let data;
+  try {
+    data = await response.json();
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid API response');
+  } catch (error) {
+    if (settingWrite) requireReadback();
+    error.unconfirmed = true; throw error;
+  }
   if (!response.ok || data.ok === false) {
     const code = typeof data.error === 'string' ? data.error : data.error?.code;
     const explanation = {
+      revision_conflict:'Saved settings changed. Your edits are preserved. Read current saved settings and review them before a new save',
+      precondition_failed:'Saved revision changed. Your edits are preserved. Read and review current saved settings',
       pin_conflict:`GP${data.gp} is already assigned to ${data.owner}; choose a different pin for ${data.role}`,
       invalid_gp:'Choose an exposed Pico GPIO from the listed options',
       unsupported_pin_adapter:'The selected amplifier, LPF or I²C RF adapter is not implemented',
@@ -108,7 +185,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
     let message = explanation[code] || code || 'Request rejected';
     if (code === 'message_duration_limit_exceeded') message = 'Calculated duration: ' + durationText(BigInt(data.calculated_duration_ns)) + '. Maximum: ' + durationText(BigInt(data.max_job_duration_ns));
     if (code === 'message_event_limit_exceeded') message = data.calculated_events + ' events exceed the device limit of ' + data.max_events + '. Reduce repetition or use a simpler message';
-    const error = new Error(message); error.code = code; throw error;
+    const error = new Error(message); error.code = code; error.serverResponse=true; throw error;
   }
   return {data, revision:response.headers.get('ETag')};
 }
@@ -163,6 +240,12 @@ function controls(connected) {
   $('reload-config').disabled = busy || !online;
   const idle = online && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
   $('settings').disabled = busy || !idle;
+  $('save-config').disabled = busy || !idle || writeState !== 'ready';
+  $('read-saved').disabled = busy || !online || Boolean(localIdentity && !localAuthenticated);
+  $('review-saved').disabled = busy || !online || writeState !== 'review';
+  $('login-recovery').hidden = !radio;
+  $('inspect-logins').disabled = busy;
+  $('retire-login').disabled = busy || !retirementDiscovery || !$('retirement-target').value;
   $('consumer-setup').hidden = !radio;
   $('consumer-network-settings').disabled = busy || !idle || !localAuthenticated || Boolean(consumerAttempt);
   $('consumer-station-settings').disabled = $('consumer-network-settings').disabled;
@@ -224,14 +307,21 @@ async function refresh(loadConfig = false) {
     }
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
     $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network or pin settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
-    if (loadConfig) { const c = await api('config'); revision = c.revision; fill(c.data.config); }
+    if (loadConfig) { const c = await api('config'); const config=checkedConfig(c); revision = c.revision; fill(config); writeState = 'ready'; }
     updateProgress(); messagePreview();
     notice('Connected · Status updated ' + observedAt); controls(true);
   } catch (e) { snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
 }
 async function action(fn) {
+  if (busy) return;
   busy = true; controls(online);
-  try { await fn(); } catch (e) { await refresh(); notice(e.code === 'revision_conflict' ? 'Saved settings changed. Your edits are preserved. Reload saved settings to discard edits and obtain the latest revision.' : e.message + (online ? '. Status has been checked; an interrupted request may already have completed.' : '. Status remains unknown. Refresh to check whether the interrupted request completed.'), true); }
+  try { await fn(); } catch (e) {
+    if ((e.serverResponse || e.unconfirmed) && (!radio || radio.authenticated)) await refresh();
+    if (['revision_conflict','precondition_failed'].includes(e.code)) requireReadback();
+    if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; requireReadback(); }
+    notice(e.message + (e.code ? ' (' + e.code + ')' : '') + (e.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : ''),true);
+    $('local-status').textContent = localAuthenticated ? 'Authenticated. Request rejected; your edits are preserved.' : 'Connection or session unconfirmed. Inspect occupied logins if login cannot proceed; no action was repeated.';
+  }
   finally { busy = false; controls(online); }
 }
 $('refresh').onclick = () => action(() => refresh());
@@ -245,13 +335,49 @@ $('local-login').onsubmit = event => { event.preventDefault(); return action(asy
     } else await local('login','POST',{version:1,device_id:localIdentity.device_id,password});
   } finally { clearPassword('local-password'); }
   localAuthenticated = true; $('local-login').hidden = true;
+  $('local-status').textContent = radio ? `Authenticated for Pico ${localIdentity.device_id}.` : 'Local session authenticated.';
   if (radio) $('local-logout').hidden = false;
   if (localIdentity.surface === 'provisioned_preclock') {
     try { await supplyPhoneTime(); }
     catch (e) { notice('Local session authorized, but phone time was rejected: ' + e.message + '.', true); return; }
   }
-  await refresh(!dirty); notice(radio ? 'Radio session authorized.' : 'Local SoftAP session authorized.');
+  if (dirty || writeState !== 'ready' && saveAttempt) { await refresh(); await readSavedKeepingDraft(); }
+  else await refresh(true);
+  notice(radio ? 'Radio session authorized. Check saved-state review before another save.' : 'Local SoftAP session authorized.');
 }); };
+$('inspect-logins').onclick = () => action(async () => {
+  retirementDiscovery = null;
+  const discovery = await radio.recovery();
+  const identity = await radio.identity();
+  if (discovery.device_id !== identity.device_id || discovery.boot_id !== identity.boot_id || discovery.generation !== identity.generation) throw new Error('Pico changed during login inspection');
+  retirementDiscovery = discovery;
+  const lost = radio.lostSession;
+  $('retirement-target').replaceChildren(new Option('Choose a login explicitly',''),...discovery.sessions.map(s =>
+    new Option(`${s.selector} · ${s.state}${lost?.selector === s.selector && lost.boot_id === discovery.boot_id ? ' · retained selector from this tab' : ''}`,s.selector)));
+  $('retirement-status').textContent = `Pico ${discovery.device_id}; ${discovery.interface} at ${discovery.authority}. A login may belong to another operator. Retirement ends only that login and cancels its undelivered effects. Saved settings and radio jobs remain. Enter the current saved Wi-Fi password below, select a login, then retire it.`;
+});
+$('retirement-target').onchange = () => controls(online);
+$('retire-login').onclick = () => action(async () => {
+  const target = $('retirement-target').value;
+  if (!retirementDiscovery || !target) throw new Error('Inspect and select an occupied login first');
+  if (!confirm(`Retire login ${target} on Pico ${retirementDiscovery.device_id}? It may belong to another operator. Its unsent reply effects will be cancelled; saved settings and radio jobs remain.`)) return;
+  try {
+    $('retirement-status').textContent = 'Authenticating retirement…';
+    const result = await radio.retire($('retirement-password').value,retirementDiscovery,target);
+    $('retirement-status').textContent = result.present ? 'Selected login retired. Log in explicitly, then read saved settings. No save was repeated.' : 'Selected login is already absent. Log in explicitly and read saved settings. No replacement session was created.';
+    if (!radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; }
+    requireReadback();
+  } catch (e) { $('retirement-status').textContent = 'Retirement result unconfirmed or rejected. Keep this exact selection for a new explicit authenticated retirement; it cannot affect a later occupant. ' + e.message; throw e; }
+  finally {clearPassword('retirement-password');}
+});
+$('read-saved').onclick = () => action(readSavedKeepingDraft);
+$('review-saved').onclick = () => action(async () => {
+  if (writeState !== 'review' || !savedReadback) return;
+  const target = (await api('application')).data.target;
+  if (JSON.stringify(target) !== JSON.stringify(savedReadback.target)) {requireReadback();throw new Error('Pico changed; read saved settings again');}
+  revision = savedReadback.revision; currentConfig = savedReadback.config; writeState='ready';
+  $('save-reconcile-status').textContent = 'Fresh saved revision selected. Your draft is preserved. Save settings sends one new explicit mutation; concurrent changes can still refuse it.';
+});
 $('local-logout').onclick = () => action(async () => {
   clearPasswords();
   await radio.logout(); localAuthenticated = false;
@@ -287,7 +413,7 @@ $('consumer-check-save').onclick = () => action(async () => {
   $('consumer-save-status').textContent = result === 'saved' ? 'Your settings were saved and verified.' :
     result === 'failed' ? 'These settings were not saved. You can correct them and try again.' :
     'The result is still unconfirmed. Wait for the Pico to return, log in and check again. No save has been repeated.';
-  if (result !== 'unconfirmed') { consumerAttempt = null; consumerSetupDirty = false; updateSetupReceipt(); await refresh(true); }
+  if (result !== 'unconfirmed') { consumerAttempt = null; updateSetupReceipt(); await refresh(); await readSavedKeepingDraft(); }
 });
 if (consumerAttempt) $('consumer-save-status').textContent = 'A pending save receipt was recovered. Log in, then select Check saved result. No save has been repeated.';
 $('config').oninput = () => { dirty = true; };
@@ -302,12 +428,18 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
     const [period_s,phase_s] = line.split('/').map(Number); return {period_s,phase_s};
   });
   const config = {version:1,enabled:f.enabled.checked,station:{callsign:f.callsign.value.trim().toUpperCase(),locator:f.locator.value.trim().toUpperCase(),power_dbm:Number(f.power_dbm.value)},wifi:{ssid:f.ssid.value,password:f.password.value || null,ntp_ipv4:f.ntp_ipv4.value.trim()},schedules,pins:pinChoices ? readPins() : currentConfig?.pins,expires_utc_s:f.expiry.value ? Date.parse(f.expiry.value + 'Z') / 1000 : 0};
+  if (radio) {
+    // These fields are read-only in this editor and can change through setup
+    // while an unrelated editable draft survives. Use fresh saved authority.
+    config.station = {...currentConfig.station};
+    config.wifi = {...currentConfig.wifi,password:null};
+  }
   // Advanced opt-ins are managed through CONFIG/API, outside the ordinary form.
   // A station/network edit must preserve the operator's saved choices.
   for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) {
     if (currentConfig?.[name] === true) config[name] = true;
   }
-  const result = await api('config','PUT',config,revision); revision = result.revision; fill(result.data.config);
+  const result = await api('config','PUT',config,revision); const confirmed=checkedConfig(result,false); revision = result.revision; fill(confirmed);
   await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Restart device to apply network or pin changes.' : 'Settings saved and applied.');
 }); };
 async function job(operation, body = {}) {

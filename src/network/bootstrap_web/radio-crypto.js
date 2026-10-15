@@ -33,23 +33,37 @@ const u64 = value => {
 const equal = (a,b) => a.length === b.length && a.every((v,i) => v === b[i]);
 const nonce = sequence => join(new Uint8Array(4),u64(sequence));
 export const header = (session,sequence) => join(text('CR01'),unhex(session,16),u64(sequence));
+export const retirementSelector = (identity,session) => hex(sha256(join(text('WsprryPico/Consumer-Recovery/1/selector\0'),unhex(identity.device_id,16),unhex(identity.boot_id,16),unhex(session,16))).subarray(0,16));
 export function transcript(pending, grant) {
   return join(text('WsprryPico/Consumer-Radio/1\0'),unhex(grant.device_id,16),unhex(grant.boot_id,16),
     unhex(grant.session_id,16),u64(grant.generation),unb64(pending.public_key),unb64(grant.public_key),
     unhex(grant.challenge,16),unhex(pending.nonce,16));
 }
 export function begin(secret, randomNonce) {
-  const pair = x25519.keygen(secret);
-  const bytes = randomNonce || crypto.getRandomValues(new Uint8Array(16));
-  return {secret:pair.secretKey,public_key:b64(pair.publicKey),nonce:hex(bytes)};
+  const owned = secret || x25519.utils.randomSecretKey();
+  try {
+    const pair = x25519.keygen(owned);
+    const bytes = randomNonce || crypto.getRandomValues(new Uint8Array(16));
+    return {secret:pair.secretKey,public_key:b64(pair.publicKey),nonce:hex(bytes)};
+  } catch (error) { owned.fill(0); throw error; }
 }
-export function authenticate(pending, grant, password, identity) {
+export function authenticate(pending, grant, password, identity, recovery) {
   let shared, passwordBytes, passwordHash, secret, login;
   try {
     if (grant.version !== 1 || grant.device_id !== identity.device_id || grant.boot_id !== identity.boot_id ||
-        grant.generation !== identity.generation || grant.login_ms !== 30000 ||
+        grant.generation !== identity.generation || grant.login_ms !== (recovery ? 5000 : 30000) ||
         typeof password !== 'string' || !/^[\x20-\x7e]{8,63}$/.test(password)) throw new Error('Invalid radio login');
-    const digest = sha256(transcript(pending,grant));
+    let binding = transcript(pending,grant);
+    if (recovery) {
+      if (!grant.recovery || Object.keys(grant.recovery).sort().join(',') !== 'authority,interface,target_selector' ||
+          grant.recovery.target_selector !== recovery.target_selector || grant.recovery.authority !== recovery.authority ||
+          grant.recovery.interface !== recovery.interface || !['ap','station'].includes(recovery.interface) ||
+          typeof recovery.authority !== 'string' || !/^[a-z0-9.:-]{1,72}$/.test(recovery.authority)) throw new Error('Recovery scope does not match');
+      const authority = text(recovery.authority);
+      const context = sha256(join(unhex(recovery.target_selector,16),new Uint8Array([recovery.interface === 'ap' ? 1 : 2,authority.length]),authority));
+      binding = join(binding,text('WsprryPico/Consumer-Recovery/1\0'),context);
+    }
+    const digest = sha256(binding);
     shared = x25519.getSharedSecret(pending.secret,unb64(grant.public_key));
     if (shared.every(b => b === 0)) throw new Error('Invalid Pico key');
     passwordBytes = text(password); passwordHash = sha256(passwordBytes);

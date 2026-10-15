@@ -39,8 +39,7 @@ bool derive(std::span<const std::uint8_t> secret, std::span<const std::uint8_t, 
 }
 std::array<std::uint8_t, 60> aad(const ConsumerRadioBinding& binding, std::uint64_t sequence) {
     std::array<std::uint8_t, 60> result{};
-    const auto transcript = consumer_radio_transcript(binding);
-    const auto digest = wtp::sha256(transcript);
+    const auto digest = consumer_radio_digest(binding);
     const auto header = consumer_radio_header(binding.session, sequence);
     std::copy(digest.begin(), digest.end(), result.begin());
     std::copy(header.begin(), header.end(), result.begin() + 32);
@@ -129,8 +128,7 @@ bool PicoConsumerRadioCrypto::authenticate(wtp::FrameBuffer& packet,
     }
     std::array<std::uint8_t, 32> shared{}, login_key{};
     std::array<std::uint8_t, 64> secret{}, traffic{};
-    const auto transcript = consumer_radio_transcript(binding);
-    transcript_hash_ = wtp::sha256(transcript);
+    transcript_hash_ = consumer_radio_digest(binding);
     std::size_t size = 0;
     bool valid = psa_raw_key_agreement(PSA_ALG_ECDH, private_key_, binding.browser_key.data(),
                                        binding.browser_key.size(), shared.data(), shared.size(),
@@ -179,8 +177,7 @@ bool PicoConsumerRadioCrypto::authenticate(wtp::FrameBuffer& packet,
 std::optional<wtp::InputView> PicoConsumerRadioCrypto::open(wtp::FrameBuffer& packet,
                                                             const ConsumerRadioBinding& binding,
                                                             std::uint64_t sequence) {
-    if (!authenticated_ || !sequence ||
-        transcript_hash_ != wtp::sha256(consumer_radio_transcript(binding)))
+    if (!authenticated_ || !sequence || transcript_hash_ != consumer_radio_digest(binding))
         return {};
     return decrypt(packet, binding, sequence, request_key_);
 }
@@ -189,7 +186,7 @@ std::optional<HttpResponse> PicoConsumerRadioCrypto::seal(wtp::InputView plainte
                                                           std::uint64_t sequence) {
     if (!authenticated_ ||
         plaintext.size() > max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes ||
-        transcript_hash_ != wtp::sha256(consumer_radio_transcript(binding)))
+        transcript_hash_ != consumer_radio_digest(binding))
         return {};
     HttpResponse response{200, "", "application/octet-stream", {}};
     const auto header = consumer_radio_header(binding.session, sequence);

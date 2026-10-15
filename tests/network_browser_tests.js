@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '') {
-    const ids = ['local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
+    const ids = ['saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     for (const id of ['consumer-setup','consumer-network-settings','consumer-station-settings',
       'consumer-check-save','consumer-network-form','consumer-station-form','consumer-ssid',
@@ -23,13 +23,14 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     }
     for (const key of ['rf_gp','button_gp','indicator','indicator_gp','indicator_active_high']) elements.config.elements[key] = new Select();
     elements['consumer-power'] = new Select();
+    elements['retirement-target'] = new Select();
     elements.config.elements.indicator.replaceChildren(...['onboard_led','external','disabled'].map(x=>new Option(x,x)));
     elements.config.elements.indicator_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
     const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
     const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1'}};
     elements['config-password'] = elements.config.elements.password;
     elements['local-password-label'].textContent = 'Local-access password';
-    for (const id of ['local-password','config-password','consumer-password']) {
+    for (const id of ['local-password','config-password','consumer-password','retirement-password']) {
         Object.assign(elements[id], {type:'password',selectionStart:0,selectionEnd:0,selectionDirection:'none',
             setSelectionRange(start,end,direction) { this.selectionStart=start;this.selectionEnd=end;this.selectionDirection=direction; }});
         elements[id+'-toggle'] = {attributes:{},setAttribute(name,value) { this.attributes[name]=value; }};
@@ -47,6 +48,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             if (path === '/local/v1/identity') { status = f.localMode ? 200 : 404; data = f.localMode ? {device_id:'1'.repeat(32),surface:'normal'} : {error:{code:'not_found'}}; }
             else if (path === '/local/v1/status') data = {wtp_session:f.mappedSession};
             else if (path.endsWith('pins')) data = {choices:{eligible_gps:[...Array(23).keys(),26,27,28],i2c_pairs:[{controller:0,sda_gp:4,scl_gp:5}]}};
+            else if (path.endsWith('application')) data = {target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},hardware:f.appHardware || {saved:config.pins || null,active:null,pending_restart:true,application_error:null}};
             else if (path.endsWith('capabilities')) data = {features:{restart:true},active_job_connections:activeConnections,message_jobs:{max_characters:32},wtp:{maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
             else if (path.endsWith('restart')) {
                 if (f.restartMode === 'lost') throw new Error('lost restart response');
@@ -54,6 +56,11 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                 status = 202; data = {restart_requested:true};
             } else if (path.endsWith('status')) data = structuredClone(state);
             else if (path.endsWith('config')) {
+                if (options.method === 'PUT' && f.configSaveMode) {
+                    if (f.configSaveMode === 'before') throw new Error('lost before dispatch');
+                    f.configCommits=(f.configCommits||0)+1;Object.assign(config,JSON.parse(options.body));
+                    if (f.configSaveMode === 'lost') throw new Error('lost after commit');
+                }
                 if (options.method === 'PUT' && f.failConfig) { status = 412; data = {error:{code:'revision_conflict'}}; }
                 else data = {config:configured ? structuredClone(config) : null};
             } else if (path.endsWith('jobs')) {
@@ -72,7 +79,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                     throw new Error('lost ' + request.operation + ' response');
                 }
             } else throw new Error('Unexpected request ' + path);
-            return {ok:status>=200&&status<300,json:async()=>data,headers:{get:()=> '"original-revision"'}};
+            return {ok:status>=200&&status<300,json:async()=>{if(path.endsWith('config') && options.method==='PUT'){if(f.configSaveMode==='json')throw new Error('lost body');if(f.configSaveMode==='empty')return {};if(f.configSaveMode==='wrong')return {config:'wrong'};if(f.configSaveMode==='expiry')return {config:{...data.config,expires_utc_s:'bad'}};if(f.configSaveMode==='pins')return {config:{...data.config,pins:{...data.config.pins,indicator:{}}}};if(f.configSaveMode==='null')return {config:null};}return data;},headers:{get:()=> '"original-revision"'}};
         }});
     f.events = {}; context.addEventListener=(name,handler)=>{f.events[name]=handler;};
     context.location={hash:receipt,pathname:'/',search:''};
@@ -88,7 +95,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             },
             prepareNetwork:async()=>({kind:'network',device:'1'.repeat(32),generation:'4',digest:'a'.repeat(64),submit:{secret:'must-not-survive'}}),
             submitSetup:async()=>{ f.setupSubmits=(f.setupSubmits||0)+1; f.radio.authenticated=false; throw new Error('reply lost'); },
-            checkSetup:async()=> 'saved',
+            checkSetup:async()=> f.setupCheckResult || 'saved',
             logout:async()=>{ f.radio.authenticated=false; }
         };
         context.WsprryPicoConsumerRadio={createClient:()=>f.radio};
@@ -138,7 +145,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     visibility.elements['consumer-password-toggle'].onclick();
     assert.equal(visibility.elements['consumer-password'].type,'text');
     await visibility.elements['local-logout'].onclick();
-    for (const id of ['local-password','config-password','consumer-password']) {
+    for (const id of ['local-password','config-password','consumer-password','retirement-password']) {
         assert.equal(visibility.elements[id].value,'');assert.equal(visibility.elements[id].type,'password');
         assert.equal(visibility.elements[id+'-toggle'].attributes['aria-pressed'],'false');
     }
@@ -269,7 +276,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                 assert.equal(lost.elements.output.textContent,'Unknown');
                 assert.equal(lost.elements.abort.disabled,true);
                 assert.equal(lost.elements.release.disabled,true);
-                assert.match(lost.elements.notice.textContent,/Status remains unknown/);
+                assert.match(lost.elements.notice.textContent,/Outcome unconfirmed/);
                 assert.doesNotMatch(lost.elements.notice.textContent,/Status has been checked/);
             }
         }
@@ -358,5 +365,26 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     form.indicator.value='disabled'; form.indicator.onchange();
     assert.equal(form.indicator_gp.disabled,true);
 
+    const localInvalid = await fixture();localInvalid.form.schedules.value='invalid';const localCount=localInvalid.calls.length;
+    await localInvalid.elements.config.onsubmit({preventDefault(){}});assert.equal(localInvalid.calls.length,localCount);
+    for (const mode of ['before','lost','json','empty','wrong','expiry','pins','null']) {
+        const uncertain=await fixture();uncertain.form.schedules.value='240 / 0';uncertain.elements.config.oninput();uncertain.configSaveMode=mode;
+        await uncertain.elements.config.onsubmit({preventDefault(){}});
+        assert.equal(uncertain.form.schedules.value,'240 / 0');assert.equal(uncertain.configCommits||0,mode==='before'?0:1);
+        assert.equal(uncertain.elements['save-config'].disabled,true);assert.equal(vm.runInContext('writeState',uncertain.context),'readback');
+        await uncertain.elements.refresh.onclick();assert.equal(uncertain.elements['save-config'].disabled,true);
+        uncertain.configSaveMode=null;await uncertain.elements['read-saved'].onclick();assert.equal(uncertain.elements['save-config'].disabled,true);
+        assert.equal(uncertain.form.schedules.value,'240 / 0');assert.match(uncertain.elements['saved-readback'].textContent,/"active": null/);
+        await uncertain.elements['review-saved'].onclick();assert.equal(uncertain.elements['save-config'].disabled,false);
+    }
+    for (const expires of [2208988800,4102444799]) {
+        const future=await fixture();future.config.expires_utc_s=expires;await future.elements['reload-config'].onclick();assert.ok(future.form.expiry.value.startsWith(expires===2208988800?'2040':'2099'));
+        future.form.schedules.value='240 / 0';future.elements.config.oninput();await future.elements['read-saved'].onclick();assert.equal(future.form.schedules.value,'240 / 0');await future.elements['review-saved'].onclick();assert.equal(future.elements['save-config'].disabled,false);
+    }
+    const changed=await fixture(true,true,false,true);changed.elements['local-password'].value='test-password';await changed.elements['local-login'].onsubmit({preventDefault(){}});
+    changed.form.schedules.value='240 / 0';changed.elements.config.oninput();changed.config.station={callsign:'K1ABC',locator:'FN42',power_dbm:30};changed.config.wifi={ssid:'new-network',password:null,ntp_ipv4:'pool.ntp.org'};
+    await changed.elements['read-saved'].onclick();await changed.elements['review-saved'].onclick();await changed.elements.config.onsubmit({preventDefault(){}});
+    const outgoing=JSON.parse(changed.calls.filter(c=>c.path.endsWith('config')&&c.options.method==='PUT').at(-1).options.body);
+    assert.equal(outgoing.station.callsign,'K1ABC');assert.equal(outgoing.wifi.ssid,'new-network');assert.equal(outgoing.schedules[0].period_s,240);
     console.log('Browser edit preservation, conflicts, ownership, failure and RF pause tests passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

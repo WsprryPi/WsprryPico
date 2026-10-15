@@ -379,3 +379,25 @@ Version 2 preserves the closed shape and all version-1 limits except integer
 `consumer_sessions:3`, adding integer `consumer_pending_logins:1` to limits.
 Updated Pi accepts each version's exact limits; old Pi refuses version 2.
 No fallback, downgraded authentication or mutation retry is added.
+
+
+## Login retirement and uncertain saves
+
+[Consumer-Recovery/1](protocol/Consumer-Recovery-v1.md) is a separate public
+recovery discovery/proof surface, available before ordinary login. It does not
+change either frozen management discovery shape. Three ordinary slots and one
+pending ordinary login remain; one five-second password-proof workspace can
+retire a deliberately selected login even at full capacity. Public selectors
+are one-way aliases and authorize nothing. Saved Wi-Fi password membership
+cannot identify an old tab's owner. Another operator's selected login may end.
+
+Ordinary API rejection retains healthy authentication. An uncertain encrypted
+exchange clears traffic keys; no application mutation is repeated. Preserve the
+draft, disable saving, authenticate/recover and read fresh saved configuration
+and application resources consistently. Display saved versus draft and
+saved/active/null/fault state. Explicit review adopts fresh revisions for a new
+operator save; matching values do not attribute a past uncertain write.
+Commissioning retains its separate sent-once device/generation/request-digest
+receipt across authentication and origin changes. Failed terminal attempts can
+be corrected explicitly; active trials and unresolved/committed restarts remain
+blocked. See the [execution evidence](development/phase15-7-recovery.md).

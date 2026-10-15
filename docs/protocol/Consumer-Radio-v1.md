@@ -138,7 +138,13 @@ Logout, expiry, invalid tags and sequence exhaustion affect only the addressed
 session; every session has its own keys, context, timers and exact sequence.
 Ordinary configuration journal revisions do not expire other logins.
 No automatic mutation retry occurs. On a lost response the page clears its keys,
-preserves edits, and requires login plus status/readback before another action.
+preserves edits, and blocks saves until authentication, authoritative saved-state
+readback and explicit review establish a fresh revision. Status or login alone
+cannot unlock saving. [Consumer-Recovery/1](Consumer-Recovery-v1.md) adds a
+separately versioned, password-authenticated retirement proof usable at full
+ordinary capacity. It lists one-way retirement aliases, never raw traffic IDs,
+and requires explicit target selection. It creates no replacement session and
+replays no application request.
 Deferred restart/network-disable actions execute only after the complete reply
 has been acknowledged on the matching transport transaction. A lost/partial reply or
 session expiry cancels only that transaction's still-pending deferred action.

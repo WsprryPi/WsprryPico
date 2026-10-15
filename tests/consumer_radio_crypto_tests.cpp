@@ -64,7 +64,19 @@ int main(int argc, char** argv) {
     assert(network::bootstrap_unb64url(field(*root, "pico_public_key"), key, 32, 32));
     std::copy(key.begin(), key.end(), binding.pico_key.begin());
     binding.generation = std::stoull(field(*root, "generation"));
-    const auto hash = wtp::sha256(network::consumer_radio_transcript(binding));
+    if (root->get("selector_for_session_id"))
+        assert(network::bootstrap_hex(network::consumer_recovery_selector(binding)) ==
+               field(*root, "selector_for_session_id"));
+    if (const auto recovery = root->get("recovery")) {
+        std::array<std::uint8_t, 16> target{};
+        assert(network::bootstrap_unhex(field(*recovery, "target_selector"), target));
+        binding.recovery_context = network::consumer_recovery_context(
+            target,
+            field(*recovery, "interface") == "ap" ? network::ConsumerInterface::AccessPoint
+                                                  : network::ConsumerInterface::Station,
+            field(*recovery, "authority"));
+    }
+    const auto hash = network::consumer_radio_digest(binding);
     assert(network::bootstrap_hex(hash) == field(*root, "transcript_sha256"));
     std::array<std::uint8_t, 32> private_key{};
     assert(network::bootstrap_unhex(field(*root, "pico_private_key_hex"), private_key));

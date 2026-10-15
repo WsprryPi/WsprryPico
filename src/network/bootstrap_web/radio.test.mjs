@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {x25519} from '@noble/curves/ed25519.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {chacha20poly1305} from '@noble/ciphers/chacha.js';
-import {authenticate,begin,b64,header,hex,join,open,seal,text,transcript} from './radio-crypto.js';
+import {authenticate,begin,b64,header,hex,join,open,seal,text,transcript,retirementSelector} from './radio-crypto.js';
 import {RadioClient} from './radio-client.js';
 import {prepareNetwork,submitSetup,checkSetup} from './radio-setup.js';
 
@@ -78,12 +78,12 @@ test('client login binds identity, never retries mutation, clears uncertain sess
   now+=300000; assert.equal(client.authenticated,false);
 });
 test('wrong boot acknowledgement, concurrency and active response substitution fail closed',async()=>{
-  const client=new RadioClient(); client.state=vectorState(); client.sequence=1n; client.started=client.seen=Date.now();
+  const client=new RadioClient(); client.state=vectorState(); client.identityContext=id; client.sequence=1n; client.started=client.seen=Date.now();
   client.busy=true;
   await assert.rejects(client.request('config','PUT',{}),/already/);
   client.busy=false; client.fetcher=async()=>Response.json({status:200});
   await assert.rejects(client.request('config'),/Unexpected/); assert.equal(client.authenticated,false);
-  client.state=vectorState(); client.started=client.seen=Date.now();
+  client.state=vectorState(); client.identityContext=id; client.started=client.seen=Date.now();
   client.fetcher=async()=>new Response(response(client.state,99n,{status:200,etag:null,body:{ok:true}}),{headers:{'Content-Type':'application/octet-stream'}});
   await assert.rejects(client.request('config'),/identity/); assert.equal(client.authenticated,false);
 });
@@ -126,4 +126,48 @@ test('capacity, pending login and rate refusals have distinct feedback without r
     await assert.rejects(client.login('test-password',id),error=>error.code===code&&message.test(error.message));
     assert.equal(calls,1);assert.equal(client.authenticated,false);
   }
+});
+test('recovery fixed domain vector and altered scope refuse',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const v=JSON.parse(readFileSync(new URL('../../../docs/protocol/Consumer-Recovery-v1-vectors.json',import.meta.url)));
+  const g={...grant,login_ms:5000,recovery:v.recovery};
+  const s=authenticate(fixed(),g,v.password,id,v.recovery);
+  assert.equal(retirementSelector(v,v.session_id),v.selector_for_session_id);
+  assert.equal(hex(s.digest),v.transcript_sha256);assert.equal(hex(s.finish),v.login_hex);
+  assert.notEqual(hex(s.digest),hex(vectorState().digest));
+  for(const key of ['target_selector','authority','interface'])assert.throws(()=>authenticate(fixed(),g,v.password,id,{...v.recovery,[key]:key==='target_selector'?'7'.repeat(32):'wrong'}));
+});
+test('local validation and RNG failure send nothing, retain healthy keys, and release busy',async()=>{
+  let calls=0;const c=new RadioClient(async()=>{calls++;throw new Error('must not send');});
+  c.state=vectorState();c.identityContext=id;c.sequence=1n;c.started=c.seen=Date.now();
+  await assert.rejects(c.request('config','PUT',{pad:'x'.repeat(32724)}));assert.equal(c.sequence,1n);assert.equal(c.authenticated,true);
+  await assert.rejects(c.login('short',id));assert.equal(c.authenticated,true);
+  const original=globalThis.crypto;
+  try{
+    Object.defineProperty(globalThis,'crypto',{configurable:true,value:{getRandomValues(){throw new Error('RNG failed');}}});
+    await assert.rejects(c.login('test-password',id),/RNG/);assert.equal(c.busy,false);assert.equal(c.authenticated,true);
+    await assert.rejects(c.retire('test-password',{...id,authority:'192.168.1.53',interface:'station'},grant.session_id),/RNG/);assert.equal(c.busy,false);assert.equal(c.authenticated,true);
+  }finally{Object.defineProperty(globalThis,'crypto',{configurable:true,value:original});}
+  assert.equal(calls,0);
+  const malformed=new RadioClient(async()=>Response.json({...grant,session_id:'f'.repeat(100000)}));
+  await assert.rejects(malformed.login('test-password',id));assert.equal(malformed.lostSession,null);assert.equal(malformed.busy,false);
+});
+test('network plaintext validation precedes setup reservation and later/contradictory receipts stay unconfirmed',async()=>{
+  let calls=0;const client={identity:async()=>id,request:async()=>{calls++;throw new Error('unexpected request');}};
+  for(const settings of [{ssid:'réseau',password:'test-password'},{ssid:'x',password:'short'},{ssid:'x',password:'test-password',time_server:'bad name'},{ssid:'x',password:'test-password',time_server:'127.0.0.1'}])await assert.rejects(prepareNetwork(client,id,settings));
+  assert.equal(calls,0);
+  const attempt={kind:'network',device:id.device_id,generation:'140',digest:'a'.repeat(64),sent:true};
+  let status={generation:'141',slot_state:'terminal',request_id_digest:attempt.digest};
+  client.request=async()=>Response.json(status);assert.equal(await checkSetup(client,attempt),'unconfirmed');
+  status={generation:'140',slot_state:'terminal',request_id_digest:'b'.repeat(64),attempt_request_id_digest:attempt.digest};assert.equal(await checkSetup(client,attempt),'unconfirmed');
+  for(const generation of ['-1','1e2','18446744073709551616',null]){status={generation,slot_state:'none'};assert.equal(await checkSetup(client,attempt),'unconfirmed');}
+});
+test('nonce RNG failure scrubs generated radio and setup private keys before returning',async()=>{
+ const network=await import('./crypto.js'),original=globalThis.crypto;
+ try {
+  for(const create of [()=>begin(),()=>network.begin()])for(const failure of [2,3]){
+   let key,calls=0;Object.defineProperty(globalThis,'crypto',{configurable:true,value:{getRandomValues:bytes=>{if(++calls===failure)throw new Error('nonce RNG failed');bytes.fill(7);if(calls===1)key=bytes;return bytes;}}});
+   assert.throws(create,/RNG failed/);assert.equal(key.length,32);assert.ok(key.every(b=>b===0));
+  }
+ } finally {Object.defineProperty(globalThis,'crypto',{configurable:true,value:original});}
 });

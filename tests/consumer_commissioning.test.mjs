@@ -1,0 +1,76 @@
+// Production PicoBootstrapServer dispatch/trials/journals; only board boundaries
+// are explicit doubles. Real Noble bootstrap/owner and Mbed TLS crypto run.
+import assert from 'node:assert/strict';
+import {Fixture} from './consumer_sessions.test.mjs';
+import {p256} from '../src/network/bootstrap_web/node_modules/@noble/curves/nist.js';
+globalThis.WsprryPicoOwnerKey={keygen:()=>p256.keygen(),getPublicKey:(key,compressed)=>p256.getPublicKey(key,compressed)};
+async function run(name,fn){const f=new Fixture(process.argv[2]);try{await f.time(1000);await fn(f);console.log('PASS '+name);}finally{await f.stop();}}
+await run('real network submit cancelled by authenticated retirement before delivery, stale ACK cannot start trial',async f=>{
+ const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
+ const identity=await a.identity(),attempt=await a.prepareNetwork(identity,{ssid:'new-network',password:'new-password',time_server:'pool.ntp.org'});
+ const before=await f.command({op:'stats'});f.holdNext=true;await a.submitSetup(attempt);const held=f.socket;
+ assert.equal((await f.command({op:'stats'})).setup_pending,true);
+ await b.retire('test-password',await b.recovery(),a.retirementSelector);
+ await f.command({op:'complete',socket:held});await f.time(6000);
+ const after=await f.command({op:'stats'});assert.equal(after.trial_starts,before.trial_starts);assert.equal(after.profile_programs,before.profile_programs);assert.equal(after.profile_generation,identity.generation);
+ assert.equal(await b.checkSetup(attempt),'failed');await assert.rejects(a.submitSetup(attempt),/already sent/);
+});
+for(const kind of ['network','station'])await run(`lost ${kind} preparation reply releases only its granted setup on retirement`,async f=>{
+ const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);const transport=a.fetcher,identity=await a.identity(),old=a.retirementSelector;
+ a.fetcher=async(p,o)=>{const response=await transport(p,o);if(p.endsWith('/request'))throw new Error('lost setup preparation reply');return response;};
+ const prepare=c=>kind==='network'?c.prepareNetwork(identity,{ssid:'new-network',password:'new-password',time_server:'pool.ntp.org'}):c.prepareStation(identity,{callsign:'K1ABC',locator:'FN42',powerDbm:30});
+ const before=await f.command({op:'stats'});await assert.rejects(prepare(a));a.fetcher=transport;
+ assert.equal((await f.command({op:'stats'})).setup_pending,true);
+ await b.retire('test-password',await b.recovery(),old);assert.equal((await f.command({op:'stats'})).setup_pending,false);
+ assert.equal((await f.command({op:'stats'})).profile_programs,before.profile_programs);
+ // A corrected explicit preparation is immediately possible, no 180s expiry.
+ const corrected=await prepare(b);assert.ok(corrected.digest);assert.equal((await b.request('status')).status,200);
+});
+await run('real network accepted delivery commits once; result receipt survives lost traffic and profile activation',async f=>{
+ const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
+ const attempt=await a.prepareNetwork(await a.identity(),{ssid:'new-network',password:'new-password',time_server:'pool.ntp.org'});
+ const before=await f.command({op:'stats'}),transport=a.fetcher;let sends=0;
+ a.fetcher=async(p,o)=>{const r=await transport(p,o);if(p.endsWith('/request')){sends++;throw new Error('submit reply lost after complete delivery');}return r;};
+ await assert.rejects(a.submitSetup(attempt));assert.equal(sends,1);a.fetcher=transport;
+ await f.time(5000);await f.time(6000);const after=await f.command({op:'stats'});
+ assert.equal(after.profile_generation,attempt.generation);assert.ok(after.profile_programs>before.profile_programs);assert.equal(after.trial_starts,1);
+ await f.command({op:'activate'});await f.time(7000);await f.login(a,'new-password');assert.equal(await a.checkSetup(attempt),'saved');
+ assert.equal((await f.command({op:'stats'})).profile_programs,after.profile_programs);await assert.rejects(a.submitSetup(attempt),/already sent/);
+});
+await run('real network trial explicit failure retains previous durable profile and correctable receipt',async f=>{
+ const a=f.client();await f.login(a);const attempt=await a.prepareNetwork(await a.identity(),{ssid:'unreachable',password:'new-password',time_server:'pool.ntp.org'});
+ const before=await f.command({op:'stats'});await a.submitSetup(attempt);
+ await f.command({op:'bench_network',linked:false,safe:true});await f.time(4000);await f.time(50000);
+ const after=await f.command({op:'stats'});assert.equal(after.profile_programs,before.profile_programs);assert.equal(after.profile_generation,before.profile_generation);
+ await f.command({op:'bench_network',linked:true,safe:true});await assert.rejects(a.request('status'));await f.login(a);assert.equal(await a.checkSetup(attempt),'failed');
+ const corrected=await a.prepareNetwork(await a.identity(),{ssid:'test-network',password:'test-password',time_server:'pool.ntp.org'});await a.submitSetup(corrected);await f.time(53000);await f.time(54000);assert.equal((await f.command({op:'stats'})).profile_generation,corrected.generation);
+});
+for(const delivered of [false,true])await run(`real station commissioning ${delivered?'complete delivery commits exact receipt':'retirement cancels undelivered submit'}`,async f=>{
+ const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
+ const attempt=await a.prepareStation(await a.identity(),{callsign:'K1ABC',locator:'FN42',powerDbm:30});const before=await f.command({op:'stats'});
+ f.holdNext=!delivered;await a.submitSetup(attempt);const socket=f.socket;
+ if(!delivered){await b.retire('test-password',await b.recovery(),a.retirementSelector);await f.command({op:'complete',socket});}
+ await f.time(3000);const after=await f.command({op:'stats'});
+ assert.equal(after.profile_generation,delivered?attempt.generation:before.profile_generation);
+ if(delivered){assert.ok(after.profile_programs>before.profile_programs);await f.command({op:'activate'});await f.time(4000);await f.login(a);assert.equal(await a.checkSetup(attempt),'saved');}
+ else{assert.equal(after.profile_programs,before.profile_programs);assert.equal(await b.checkSetup(attempt),'failed');}
+});
+await run('failed station trial keeps exact receipt and accepts corrected explicit retry before terminal expiry',async f=>{
+ const a=f.client();await f.login(a);const attempt=await a.prepareStation(await a.identity(),{callsign:'K1ABC',locator:'FN42',powerDbm:30});
+ const before=await f.command({op:'stats'});f.holdNext=true;await a.submitSetup(attempt);const socket=f.socket;
+ await f.command({op:'ack',socket,bytes:'65535'});await f.time(1000);await f.command({op:'bench_network',linked:false,safe:true,start_ok:false});await f.time(2000);
+ const failed=await f.command({op:'stats'});assert.equal(failed.profile_generation,before.profile_generation);assert.equal(failed.profile_programs,before.profile_programs);assert.notEqual(failed.owner_slot,0);
+ await f.command({op:'bench_network',linked:true,safe:true,start_ok:true});await assert.rejects(a.request('status'));await f.time(3000);await f.login(a);
+ assert.equal(await a.checkSetup(attempt),'failed');
+ const corrected=await a.prepareStation(await a.identity(),{callsign:'K2ABC',locator:'FN31',powerDbm:30});await a.submitSetup(corrected);await f.time(4000);
+ assert.equal((await f.command({op:'stats'})).profile_generation,corrected.generation);assert.ok(f.now<60000);
+});
+await run('accepted restart keeps a committed network setup blocked until actual reboot',async f=>{
+ const a=f.client();await f.login(a);const attempt=await a.prepareNetwork(await a.identity(),{ssid:'new-network',password:'new-password',time_server:'pool.ntp.org'});
+ await a.submitSetup(attempt);await f.time(5000);await f.time(6000);const committed=await f.command({op:'stats'});assert.equal(committed.profile_generation,attempt.generation);
+ const ack=await f.fetch('192.168.4.1',true,'/api/bootstrap/v1/ack',{method:'POST',marker:'Bootstrap',body:JSON.stringify(attempt.ack)});assert.equal(ack.status,200);assert.equal((await ack.json()).state,'accepted');
+ await f.time(7000);assert.ok((await f.command({op:'stats'})).restarts>0);
+ const pending=(await import('../src/network/bootstrap_web/crypto.js')).begin();
+ const response=await f.fetch('192.168.4.1',true,'/api/bootstrap/v1/start',{method:'POST',marker:'Bootstrap',body:JSON.stringify({version:1,device_id:attempt.device,browser_public_key:pending.browserPublicKey,request_nonce:pending.requestNonce})});pending.secretKey.fill(0);
+ assert.equal(response.status,409);const after=await f.command({op:'stats'});assert.equal(after.network_slot,0);assert.equal(after.profile_programs,committed.profile_programs);
+});

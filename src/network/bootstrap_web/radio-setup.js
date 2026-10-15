@@ -3,7 +3,7 @@
 // is admitted and bound to the browser's actual station/AP origin by firmware.
 import {x25519} from '@noble/curves/ed25519.js';
 import {sha256} from '@noble/hashes/sha2.js';
-import {begin as beginNetwork, seal as sealNetwork} from './crypto.js';
+import {begin as beginNetwork, seal as sealNetwork, networkPlaintext} from './crypto.js';
 import {sealOwnerClaim, claimPlaintext} from './owner-claim.js';
 import {b64, hex, unhex} from './radio-crypto.js';
 
@@ -21,6 +21,7 @@ export async function setup(client, path, body) {
   return result;
 }
 export async function prepareNetwork(client, identity, settings) {
+  networkPlaintext(settings.ssid,settings.password,settings.time_server).fill(0);
   const pending = beginNetwork();
   try {
     const started = await setup(client, '/api/bootstrap/v1/start', {version:1,device_id:identity.device_id,
@@ -39,8 +40,10 @@ export async function prepareStation(client, identity, settings) {
   const owner = globalThis.WsprryPicoOwnerKey.keygen();
   const ownerPublic = globalThis.WsprryPicoOwnerKey.getPublicKey(owner.secretKey, false);
   owner.secretKey.fill(0);
-  const pair = x25519.keygen(), browserNonce = hex(random(16));
+  const owned = x25519.utils.randomSecretKey();
   try {
+    const pair = x25519.keygen(owned);
+    const browserNonce = hex(random(16));
     const started = await setup(client, '/api/owner/v1/claim/start', {version:1,device_id:identity.device_id,
       owner_public_key:b64(ownerPublic),browser_public_key:b64(pair.publicKey),browser_nonce:browserNonce,
       profile_source:5,generation:identity.generation});
@@ -56,7 +59,7 @@ export async function prepareStation(client, identity, settings) {
     return {kind:'station',device:identity.device_id,generation:(BigInt(identity.generation)+1n).toString(),
       digest:hex(sha256(unhex(requestId,16))),submit:{version:1,device_id:identity.device_id,boot_id:started.boot_id,
         slot_id:started.slot_id,request_id:requestId,aead_nonce:b64(nonce),...envelope}};
-  } finally { pair.secretKey.fill(0); }
+  } finally { owned.fill(0); }
 }
 export async function submitSetup(client, attempt) {
   if (attempt.sent) throw new Error('This save was already sent. Check its result before trying again');
@@ -69,16 +72,28 @@ export async function submitSetup(client, attempt) {
 export async function checkSetup(client, attempt) {
   const path = attempt.kind === 'network' ? '/api/bootstrap/v1/status' : '/api/owner/v1/claim/status';
   const status = await setup(client, path);
-  if (attempt.device !== (await client.identity()).device_id) throw new Error('This is a different Pico');
+  const identity = await client.identity();
+  if (attempt.device !== identity.device_id) throw new Error('This is a different Pico');
   // The legacy bootstrap status uses a JSON number. Never label an uncertain
   // save as failed after JSON parsing rounded a uint64 generation.
-  if (typeof status.generation === 'number' && !Number.isSafeInteger(status.generation))
+  if ((typeof status.generation !== 'string' && typeof status.generation !== 'number') ||
+      (typeof status.generation === 'number' && !Number.isSafeInteger(status.generation)) ||
+      !/^(0|[1-9][0-9]{0,19})$/.test(String(status.generation)) ||
+      !/^[1-9][0-9]{0,19}$/.test(attempt.generation) ||
+      !/^[0-9a-f]{64}$/.test(attempt.digest) ||
+      BigInt(status.generation) > 0xffffffffffffffffn || BigInt(attempt.generation) > 0xffffffffffffffffn ||
+      (status.device_id !== undefined && status.device_id !== attempt.device) ||
+      (status.boot_id !== undefined && status.boot_id !== identity.boot_id))
     return 'unconfirmed';
+  const generation = BigInt(status.generation), expected = BigInt(attempt.generation);
+  if (generation > expected || generation + 1n < expected ||
+      (status.request_id_digest !== null && status.request_id_digest !== undefined && !/^[0-9a-f]{64}$/.test(status.request_id_digest)) ||
+      (status.attempt_request_id_digest !== null && status.attempt_request_id_digest !== undefined && !/^[0-9a-f]{64}$/.test(status.attempt_request_id_digest))) return 'unconfirmed';
   if (String(status.generation) === attempt.generation && status.request_id_digest === attempt.digest)
     return 'saved';
-  if ((status.slot_state === 'terminal' &&
+  if (generation + 1n === expected && ((status.slot_state === 'terminal' &&
        (status.attempt_request_id_digest || status.request_id_digest) === attempt.digest) ||
-      (status.slot_state === 'none' && BigInt(status.generation) + 1n === BigInt(attempt.generation)))
+      status.slot_state === 'none'))
     return 'failed';
   return 'unconfirmed';
 }

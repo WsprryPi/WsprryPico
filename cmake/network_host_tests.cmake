@@ -98,6 +98,8 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_compile_options(consumer_radio_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME consumer_radio_crypto_tests COMMAND consumer_radio_crypto_tests
         ${CMAKE_SOURCE_DIR}/docs/protocol/Consumer-Radio-v1-vectors.json)
+    add_test(NAME consumer_recovery_crypto_tests COMMAND consumer_radio_crypto_tests
+        ${CMAKE_SOURCE_DIR}/docs/protocol/Consumer-Recovery-v1-vectors.json)
     add_executable(consumer_session_driver tests/consumer_session_driver.cpp
         src/network/pico/http_server.cpp src/network/pico/consumer_radio_crypto.cpp
         src/network/pico/psa_lifetime.cpp)
@@ -105,9 +107,22 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_compile_definitions(consumer_session_driver PRIVATE MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}")
     target_link_libraries(consumer_session_driver PRIVATE wsprrypico_core mbedcrypto)
     target_compile_options(consumer_session_driver PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_executable(consumer_bootstrap_driver tests/consumer_session_driver.cpp
+        src/network/pico/consumer_radio_crypto.cpp src/network/pico/psa_lifetime.cpp
+        src/network/pico/http_server.cpp src/network/pico/bootstrap_server.cpp
+        src/network/pico/bootstrap_crypto.cpp src/network/pico/owner_claim_crypto.cpp
+        src/network/pico/recovery_crypto.cpp)
+    target_include_directories(consumer_bootstrap_driver BEFORE PRIVATE tests/bootstrap_server_mock tests/http_server_mock tests)
+    target_compile_definitions(consumer_bootstrap_driver PRIVATE WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST=1 MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}")
+    target_link_libraries(consumer_bootstrap_driver PRIVATE wsprrypico_core mbedcrypto)
+    target_compile_options(consumer_bootstrap_driver PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
         add_test(NAME consumer_sessions COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/consumer_sessions.test.mjs $<TARGET_FILE:consumer_session_driver>)
+        add_test(NAME consumer_recovery COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/consumer_recovery.test.mjs $<TARGET_FILE:consumer_session_driver>)
+        add_test(NAME consumer_commissioning COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/consumer_commissioning.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
     endif()
     add_executable(recovery_crypto_tests tests/recovery_crypto_tests.cpp
         src/network/pico/recovery_crypto.cpp src/network/pico/psa_lifetime.cpp)

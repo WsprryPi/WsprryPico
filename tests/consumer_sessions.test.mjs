@@ -26,13 +26,13 @@ export class Fixture {
   }
   async time(ms) {this.now=ms;await this.command({op:'time',ms:String(ms)});}
   client(host='192.168.1.53',ap=false) {
-    const client=new RadioClient((path,options={})=>this.fetch(host,ap,path,options),()=>this.now);
+    const client=new RadioClient((path,options={})=>this.fetch(host,ap,path,options),()=>this.now,{authority:host,interface:ap?'ap':'station'});
     client.host=host; client.ap=ap; return client;
   }
   async fetch(host,ap,path,options={}) {
     const body=options.body instanceof Uint8Array ? Buffer.from(options.body) : Buffer.from(options.body||'');
     const hold=this.holdNext;this.holdNext=false;
-    const result=await this.command({op:'request',host,ap,path,method:options.method||'GET',type:options.headers?.['Content-Type']||'application/json',b64:body.toString('base64url'),hold:Boolean(hold)});
+    const result=await this.command({op:'request',host,ap,path,method:options.method||'GET',type:options.headers?.['Content-Type']||'application/json',b64:body.toString('base64url'),hold:Boolean(hold),marker:options.marker||'Radio'});
     this.socket=result.socket;
     const wire=Buffer.from(result.wire,'hex'); const end=wire.indexOf('\r\n\r\n'); assert.ok(end>=0);
     const headers=wire.subarray(0,end).toString().split('\r\n');

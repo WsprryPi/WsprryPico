@@ -37,18 +37,24 @@ PicoBootstrapServer::~PicoBootstrapServer() {
 void PicoBootstrapServer::radio_control(ConsumerRadioApi& radio) {
     radio_ = &radio;
     radio.setup_handler(
-        [](const HttpRequest& request, std::uint64_t transaction, void* context) {
-            return static_cast<PicoBootstrapServer*>(context)->consumer_setup(request, transaction);
+        [](const HttpRequest& request, std::uint64_t transaction,
+           std::span<const std::uint8_t, 16> login, void* context) {
+            return static_cast<PicoBootstrapServer*>(context)->consumer_setup(request, transaction,
+                                                                              login);
         },
         [](std::uint64_t transaction, bool apply, void* context) {
             static_cast<PicoBootstrapServer*>(context)->setup_delivered(transaction, apply);
         },
         this,
-        [](void* context) { return static_cast<PicoBootstrapServer*>(context)->setup_pending(); });
+        [](void* context) { return static_cast<PicoBootstrapServer*>(context)->setup_pending(); },
+        [](std::span<const std::uint8_t, 16> login, void* context) {
+            static_cast<PicoBootstrapServer*>(context)->setup_login_closed(login);
+        });
 }
 
 HttpResponse PicoBootstrapServer::consumer_setup(const HttpRequest& request,
-                                                 std::uint64_t transaction) {
+                                                 std::uint64_t transaction,
+                                                 std::span<const std::uint8_t, 16> login) {
     if (setup_transaction_)
         return http_error(409, "setup_response_pending");
     // Called only after ConsumerRadioApi authenticates the complete envelope.
@@ -68,9 +74,35 @@ HttpResponse PicoBootstrapServer::consumer_setup(const HttpRequest& request,
              (request.path == "/api/owner/v1/claim/start" ||
               request.path == "/api/owner/v1/claim/submit"))
         result = owner_mutation(request);
-    if (result.status == 200)
+    if (result.status == 200) {
+        if (request.method == "POST" && (request.path == "/api/bootstrap/v1/start" ||
+                                         request.path == "/api/owner/v1/claim/start"))
+            std::copy(login.begin(), login.end(), setup_login_.begin());
         remember_setup_reply(request, transaction);
+    }
     return result;
+}
+
+void PicoBootstrapServer::setup_login_closed(std::span<const std::uint8_t, 16> login) {
+    if (!std::equal(login.begin(), login.end(), setup_login_.begin()))
+        return;
+    // Preparation has not been submitted. Acknowledged trial/commit authority
+    // survives login loss; an undelivered submit is cancelled by setup_delivered.
+    if (slot_.state() == BootstrapSlotState::Granted ||
+        slot_.state() == BootstrapSlotState::Identify)
+        cancel_slot();
+    if (owner_slot_.state() == provisioning::ConsumerClaimState::Granted ||
+        owner_slot_.state() == provisioning::ConsumerClaimState::Identify)
+        cancel_owner_slot(true);
+    setup_login_.fill(0);
+}
+void PicoBootstrapServer::clear_failed_setup() {
+    if (slot_.state() == BootstrapSlotState::Terminal && !slot_.committed() &&
+        !bootstrap_restart_pending_ && !bootstrap_commit_.reconcile())
+        cancel_slot();
+    if (owner_slot_.state() == provisioning::ConsumerClaimState::Terminal && !owner_reconcile_ &&
+        !owner_restart_pending_)
+        cancel_owner_slot(true);
 }
 
 void PicoBootstrapServer::setup_delivered(std::uint64_t transaction, bool apply) {
@@ -586,6 +618,7 @@ void PicoBootstrapServer::restore_bootstrap_network() {
 }
 
 void PicoBootstrapServer::cancel_slot() {
+    setup_login_.fill(0);
     if (slot_.state() == BootstrapSlotState::Trial)
         restore_bootstrap_network();
     join_.finish();
@@ -789,11 +822,12 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
         if (!owner_claimable() || parsed->device_id != device_ ||
             parsed->source != profile_->source() || parsed->generation != profile_->sequence())
             return http_error(403, "unavailable");
+        if (!claim_platform_->valid_owner_point(parsed->owner_public_key))
+            return http_error(400, "invalid_owner_key");
+        clear_failed_setup(); // Only a validated new explicit attempt replaces failure evidence.
         if (slot_.state() != BootstrapSlotState::None ||
             owner_slot_.state() != provisioning::ConsumerClaimState::None || owner_reconcile_)
             return http_error(409, "busy");
-        if (!claim_platform_->valid_owner_point(parsed->owner_public_key))
-            return http_error(400, "invalid_owner_key");
         std::array<std::uint8_t, 16> slot_id{};
         std::array<std::uint8_t, 65> point{};
         if (!random_->fill(slot_id) || !decode_b64(parsed->owner_public_key, point) ||
@@ -816,6 +850,7 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
             cancel_owner_slot(false);
             return http_error(503, "setup_unavailable");
         }
+        setup_login_.fill(0); // Plain setup owns no consumer login; wrapper sets it below.
         if (access_ && access_->state() == provisioning::AccessStoreState::Erased) {
             provisioning::AccessRecord record;
             record.epoch = 1;
@@ -946,6 +981,7 @@ void PicoBootstrapServer::restore_owner_network() {
 }
 
 void PicoBootstrapServer::cancel_owner_slot(bool restore_network) {
+    setup_login_.fill(0);
     if (restore_network)
         restore_owner_network();
     owner_trial_switched_network_ = false;
@@ -1001,6 +1037,11 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
     }
     if (bootstrap_commit_.reconcile())
         return http_error(409, "busy");
+    if (request.path == "/api/bootstrap/v1/start" && mutation_safe_ && network_setup_authority()) {
+        const auto start = parse_bootstrap_start(request);
+        if (start && start->device_id == device_)
+            clear_failed_setup();
+    }
     if (owner_slot_.state() != provisioning::ConsumerClaimState::None || owner_reconcile_ ||
         owner_restart_pending_)
         return http_error(409, "busy");
@@ -1030,6 +1071,7 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
             return http_error(409, "busy");
         }
         slot_digest_ = bootstrap_digest(slot_id);
+        setup_login_.fill(0);
         if (access_ && access_->state() == provisioning::AccessStoreState::Erased) {
             provisioning::AccessRecord record;
             record.epoch = 1;

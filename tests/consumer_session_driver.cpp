@@ -6,6 +6,11 @@
 #include "provisioning/consumer_profile.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+#include "network/pico/bootstrap_server.hpp"
+#include "provisioning/field_runtime.hpp"
+#include "provisioning/pico/consumer_claim_platform.hpp"
+#endif
 
 #include <cstring>
 #include <iostream>
@@ -127,6 +132,7 @@ namespace {
 using namespace wsprrypico;
 struct Media : provisioning::Media {
     std::array<std::uint8_t, 16384> bytes{};
+    unsigned programs = 0;
     Media() {
         bytes.fill(255);
     }
@@ -139,6 +145,7 @@ struct Media : provisioning::Media {
         return true;
     }
     bool program(std::size_t at, std::span<const std::uint8_t> in) override {
+        ++programs;
         std::copy(in.begin(), in.end(), bytes.begin() + at);
         return true;
     }
@@ -160,17 +167,69 @@ struct Driver {
     bool low_memory = false, handler_memory_failure = false;
     std::uint64_t last_transaction = 0;
     PsaCryptoOwner engineering_owner;
-    PicoConsumerRadioCrypto crypto[3];
+    PicoConsumerRadioCrypto crypto[4];
     ConsumerRadioApi radio{f.api,
                            profiles,
                            runtime,
                            random,
                            {&crypto[0], &crypto[1], &crypto[2]},
                            std::string(32, '1'),
-                           std::string(32, '2')};
+                           std::string(32, '2'),
+                           &crypto[3]};
     std::array<tcp_pcb, 2> sockets;
     std::array<std::string, 2> remaining_input;
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+    struct AccessMedia : provisioning::AccessMedia {
+        std::array<std::uint8_t, 8192> bytes;
+        AccessMedia() {
+            bytes.fill(255);
+        }
+        bool read(std::size_t at, std::span<std::uint8_t> out) override {
+            std::copy_n(bytes.begin() + at, out.size(), out.begin());
+            return true;
+        }
+        bool erase(std::size_t at) override {
+            std::fill_n(bytes.begin() + at, 4096, 255);
+            return true;
+        }
+        bool program(std::size_t at, std::span<const std::uint8_t> in) override {
+            std::copy(in.begin(), in.end(), bytes.begin() + at);
+            return true;
+        }
+    } access_media;
+    provisioning::AccessStore access{access_media};
+    struct Led : provisioning::IndicatorOutput {
+        bool write(bool) override {
+            return true;
+        }
+    } led;
+    provisioning::IndicatorController indicator{led, std::string(32, '1')};
+    standalone::PicoNetwork network;
+    provisioning::PicoConsumerClaimPlatform platform{network};
+    unsigned restarts = 0;
+    PicoBootstrapServer server{std::string(32, '1'), "p157-host",
+                               +[](const tcp_pcb* p, void*) { return p->interface == 1; }, this};
+    void poll_server() {
+        server.poll(true, true, true, true, true);
+    }
+    unsigned connections() const {
+        return server.resources().connected ? 1 : 0;
+    }
+    std::size_t pending_bytes() const {
+        return server.resources().pending_tcp_bytes;
+    }
+#else
     PicoHttpServer server{this, classify, handle, finish};
+    void poll_server() {
+        server.poll();
+    }
+    unsigned connections() const {
+        return server.connections();
+    }
+    std::size_t pending_bytes() const {
+        return server.pending_bytes();
+    }
+#endif
     static ConsumerInterface classify(void*, const tcp_pcb* pcb, bool) {
         return pcb->interface == 1 ? ConsumerInterface::AccessPoint : ConsumerInterface::Station;
     }
@@ -210,7 +269,23 @@ struct Driver {
             {ManagementProfile::Consumer, 1, true, false, false, true, true});
         for (auto& pcb : sockets)
             pcb.closed = true;
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+        check(access.load());
+        server.configure(std::string(32, '2'), access, profiles, random, indicator, network,
+                         runtime, platform, "default-password");
+        server.station_classifier(+[](const tcp_pcb* p, void*) { return p->interface == 2; }, this);
+        server.radio_control(radio);
+        server.restart_control(
+            +[](void* p) {
+                ++static_cast<Driver*>(p)->restarts;
+                return true; // Accepted request, without claiming a physical reboot.
+            },
+            this);
+#endif
         check(server.start());
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+        poll_server();
+#endif
     }
     void ack(tcp_pcb& pcb, unsigned count = UINT32_MAX) {
         if (pcb.closed || !pcb.pending)
@@ -221,7 +296,7 @@ struct Driver {
     }
     void poll(bool acknowledge, tcp_pcb& pcb) {
         for (unsigned i = 0; i < 100 && !pcb.closed; ++i) {
-            server.poll();
+            poll_server();
             if (acknowledge)
                 ack(pcb);
         }
@@ -238,7 +313,7 @@ struct Driver {
             check(wtp::json::decimal(*v.get("ms"), time));
             now_ms = time;
             radio.poll(now_ms);
-            server.poll();
+            poll_server();
             return "{}";
         }
         if (op == "listeners") {
@@ -297,11 +372,39 @@ struct Driver {
         }
         if (op == "stats")
             return "{\"transaction\":" + wtp::json::quote(std::to_string(last_transaction)) +
-                   ",\"connections\":" + std::to_string(server.connections()) +
-                   ",\"pending_bytes\":" + std::to_string(server.pending_bytes()) +
+                   ",\"connections\":" + std::to_string(connections()) +
+                   ",\"pending_bytes\":" + std::to_string(pending_bytes()) +
+                   ",\"profile_programs\":" + std::to_string(media.programs) +
+                   ",\"profile_generation\":" +
+                   wtp::json::quote(std::to_string(profiles.sequence())) + ",\"config_sequence\":" +
+                   wtp::json::quote(std::to_string(f.store.config_sequence())) +
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+                   ",\"trial_starts\":" + std::to_string(network.starts + platform.trial_starts) +
+                   ",\"setup_pending\":" + (server.setup_pending() ? "true" : "false") +
+                   ",\"network_slot\":" + std::to_string(server.resources().network_slot_state) +
+                   ",\"owner_slot\":" + std::to_string(server.resources().owner_slot_state) +
+                   ",\"restarts\":" + std::to_string(restarts) +
+#endif
                    ",\"network_enabled\":" + (f.network.enabled ? "true" : "false") +
                    ",\"network_pending\":" + (f.network.pending ? "true" : "false") +
                    ",\"psa_owners\":" + std::to_string(PsaCryptoOwner::owners()) + "}";
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+        if (op == "bench_network") {
+            network.linked = v.get("linked")->raw == "true";
+            platform.safe = v.get("safe")->raw == "true";
+            if (const auto start = v.get("start_ok"))
+                network.start_ok = start->raw == "true";
+            return "{}";
+        }
+        if (op == "activate") {
+            check(runtime.load(profiles, std::string(32, '1'),
+                               provisioning::BuildBundleState::Absent));
+            f.api.management_availability(
+                {ManagementProfile::Consumer, profiles.sequence(), true, false, false, true, true});
+            poll_server();
+            return "{}";
+        }
+#endif
         if (op == "continue") {
             std::uint64_t index;
             check(wtp::json::decimal(*v.get("socket"), index) && index < 2);
@@ -351,9 +454,12 @@ struct Driver {
         const auto body = field(v, "b64");
         check(body.empty() || bootstrap_unb64url(body, bytes, 0, max_http_body));
         const auto host = field(v, "host");
+        const auto marker = v.get("marker") ? field(v, "marker") : "Radio";
+        check(marker == "Radio" || marker == "Bootstrap" || marker == "Owner");
         const auto request = field(v, "method") + " " + field(v, "path") +
                              " HTTP/1.1\r\nHost: " + host + "\r\nOrigin: http://" + host +
-                             "\r\nX-WsprryPico-Radio: 1\r\nContent-Type: " + field(v, "type") +
+                             "\r\nX-WsprryPico-" + marker +
+                             ": 1\r\nContent-Type: " + field(v, "type") +
                              "\r\nContent-Length: " + std::to_string(bytes.size()) + "\r\n\r\n" +
                              std::string(bytes.begin(), bytes.end());
         wtp::available_memory = low_memory ? +[]() -> std::size_t { return 0; } : nullptr;

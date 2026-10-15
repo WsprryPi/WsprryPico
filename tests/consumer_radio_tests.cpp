@@ -240,7 +240,8 @@ int main() {
             bool applied = false;
         } setup;
         t.api.setup_handler(
-            [](const network::HttpRequest& r, std::uint64_t, void* p) {
+            [](const network::HttpRequest& r, std::uint64_t, std::span<const std::uint8_t, 16>,
+               void* p) {
                 auto& s = *static_cast<Setup*>(p);
                 ++s.requests;
                 assert(r.path == "/api/bootstrap/v1/start");

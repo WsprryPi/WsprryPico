@@ -41,6 +41,12 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   serialized. [P15.6](development/phase15-6-sessions.md) provides three fixed
   independent consumer sessions with at most one pending login among them;
   transmitter, configuration and deferred board effects retain one authority.
+  [P15.7](development/phase15-7-recovery.md) adds a fixed five-second retirement
+  proof workspace outside those quotas. Fresh password authentication retires
+  one deliberately selected login; it never becomes an application session.
+  Authentication closure cancels only that login's undelivered effects and
+  unsubmitted setup preparation. Jobs and durable writes survive. Both UIs
+  preserve drafts and require saved-state readback and review before a new save.
   Historical Phase 14: both Picos have bounded settings/persistence and final four-smoke
   acceptance under their recorded image identities and narrow source applicability.
   Final source/coverage/adversarial audits and Git closeout are accepted within

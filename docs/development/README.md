@@ -31,7 +31,11 @@ strict Pi management/1 and management/2 compatibility. Its software acceptance,
 source pair, review repairs, CI and limits are recorded there. The
 [execution prompt](phase15-6-execution-prompt.md) retains the authorized scope
 and source-review baseline. Physical phone/Mac concurrency, target heap/stack
-high-water and RF qualification remain separate; P15.7 recovery remains open.
+high-water and RF qualification remain separate.
+[P15.7 login/save recovery](phase15-7-recovery.md) records the additive
+authenticated retirement contract, draft/readback workflow, companion Pi
+compatibility, review and current acceptance limits. Its
+[execution prompt](phase15-7-execution-prompt.md) preserves the authorized scope.
 
 The [WIP Si5351 I²C probe](../../tests/hardware/wip-si5351-i2c/README.md)
 preserves the standalone GP4/GP5 connection diagnostic and historical bench
