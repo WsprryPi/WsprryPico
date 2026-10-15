@@ -81,8 +81,9 @@ Sanitized document (replace all station/network fields before using it):
 }
 ```
 
-`pool.ntp.org` is the default for new configurations and for an omitted
-`wifi.ntp_ipv4` member. The browser prefills this default when no saved configuration
+`pool.ntp.org` is the default for initial configuration, Console CONFIG and
+explicit replacement with omitted `wifi.ntp_ipv4`. Ordinary API PUT preserves
+the saved omitted time-server value. The browser prefills this default when no saved configuration
 exists. Explicitly saved servers are preserved; empty or invalid values are rejected.
 You can select another reachable NTP server by DNS hostname or canonical unicast IPv4 address.
 The version-1 JSON key `ntp_ipv4` is retained for stored/config-client compatibility,
@@ -107,12 +108,16 @@ Set these with a complete `CONFIG` document or authenticated
 `PUT /api/v1/config`, for example by adding
 `"allow_unqualified_frequency": true` to the sanitized document above. For a
 non-amateur experiment, also add `"allow_non_amateur_frequency": true`.
-Omission means false; strings, numbers, null and duplicate fields are rejected.
+Initial configuration, Console CONFIG and explicit API replacement default
+omitted flags to false. Ordinary API PUT preserves saved omitted flags; send
+explicit false to revoke them. Strings, numbers, null and duplicate fields reject.
 False settings are omitted from canonical storage/readback to preserve legacy
 default configuration bytes. `STATUS` reports both effective booleans. A full
 configuration replacement that omits a flag revokes that opt-in. Ordinary
 browser form saves, station-only, hardware-only and schedule-only updates
 preserve saved opt-ins. These advanced settings are outside the ordinary form.
+See the [configuration-update contract](configuration-updates.md) for atomic
+merge/replacement, preserved optionals and the explicit compatibility migration.
 
 Changes require the existing idle, unowned configuration boundary and apply to
 the next new job without reboot. They persist in the existing configuration
@@ -191,8 +196,9 @@ Wi-Fi credentials are omitted entirely.
 
 ## Bounded administration and recovery
 
-Optional `expires_utc_s` is a UTC seconds integer in the supported era; omitted
-or zero preserves the unbounded schedule configuration. A nonzero expiry skips
+Optional `expires_utc_s` is a UTC seconds integer in the supported era; zero
+means unbounded. Ordinary API PUT preserves omitted expiry. Initial setup,
+Console CONFIG and explicit replacement default omission to zero. A nonzero expiry skips
 any occurrence whose nominal full WSPR frame would finish after that time.
 The bench client requires explicit `--enable-schedule` and an expiry within one
 hour before provisioning an enabled schedule.

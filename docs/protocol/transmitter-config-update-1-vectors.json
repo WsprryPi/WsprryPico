@@ -1,0 +1,137 @@
+{
+  "schema": "transmitter-config-update/1",
+  "vectors": [
+    {
+      "name": "explicit_false",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"allow_unqualified_frequency\":false}}",
+      "structural_valid": true,
+      "http_status": 200
+    },
+    {
+      "name": "partial_station",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"station\":{\"callsign\":\"K1ABC\"}}}",
+      "structural_valid": true,
+      "http_status": 200
+    },
+    {
+      "name": "partial_wifi_preserves_password",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"wifi\":{\"ntp_ipv4\":\"pool.ntp.org\",\"password\":null}}}",
+      "structural_valid": true,
+      "http_status": 200
+    },
+    {
+      "name": "empty_schedules_when_disabled",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"schedules\":[]}}",
+      "structural_valid": true,
+      "http_status": 200
+    },
+    {
+      "name": "expiry_beyond_signed_32bit",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"expires_utc_s\":2300000000}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "explicit_replace_resets_optionals",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"replace\",\"config\":{\"version\":1,\"enabled\":false,\"station\":{\"callsign\":\"AA0NT\",\"locator\":\"EM18\",\"power_dbm\":37},\"wifi\":{\"ssid\":\"test-network\",\"password\":null},\"schedules\":[]}}",
+      "structural_valid": true,
+      "http_status": 200
+    },
+    {
+      "name": "empty_merge",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "empty_station",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"station\":{}}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "unknown_nested_wifi",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"wifi\":{\"other\":true}}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "null_flag",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"allow_unqualified_frequency\":null}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "unknown_config_member",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"future\":false}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "unsupported_mode",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"patch\",\"config\":{\"enabled\":false}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "unsupported_schema",
+      "raw": "{\"schema\":\"transmitter-config-update/2\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"enabled\":false}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "incomplete_replace",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"replace\",\"config\":{\"enabled\":false}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "enabled_empty_schedule",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"enabled\":true,\"schedules\":[]}}",
+      "structural_valid": true,
+      "http_status": 400
+    },
+    {
+      "name": "overlapping_schedules",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"schedules\":[{\"period_s\":120,\"phase_s\":0},{\"period_s\":120,\"phase_s\":0}]}}",
+      "structural_valid": true,
+      "http_status": 400
+    },
+    {
+      "name": "wrong_device",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"enabled\":false}}",
+      "structural_valid": true,
+      "http_status": 409
+    },
+    {
+      "name": "wrong_boot",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000002\"},\"mode\":\"merge\",\"config\":{\"enabled\":false}}",
+      "structural_valid": true,
+      "http_status": 409
+    },
+    {
+      "name": "unknown_envelope",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"enabled\":false},\"future\":true}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "duplicate_envelope",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"allow_unqualified_frequency\":false},\"mode\":\"merge\"}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "escaped_duplicate",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"enabled\":false,\"enabl\\u0065d\":true}}",
+      "structural_valid": false,
+      "http_status": 400
+    },
+    {
+      "name": "largest_parser_epoch",
+      "raw": "{\"schema\":\"transmitter-config-update/1\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":\"00000000000000000000000000000001\"},\"mode\":\"merge\",\"config\":{\"expires_utc_s\":2147483647}}",
+      "structural_valid": true,
+      "http_status": 200
+    }
+  ]
+}

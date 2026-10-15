@@ -184,7 +184,8 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
           request.path == "/api/v1/network" || request.path == "/api/v1/station" ||
           request.path == "/api/v1/hardware")) ||
         (request.method == "POST" &&
-         (request.path == "/api/v1/restart" || request.path == "/api/v1/pins/validate")))
+         (request.path == "/api/v1/restart" || request.path == "/api/v1/pins/validate" ||
+          request.path == "/api/v1/config/update")))
         return SoftApOperation::Configure;
     valid = false;
     return SoftApOperation::Status;

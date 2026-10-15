@@ -236,6 +236,22 @@ void policy() {
             200);
     REQUIRE(f.store.config()->callsign == "K1ABC");
 
+    auto partial =
+        request("POST", "/api/v1/config/update",
+                "{\"schema\":\"transmitter-config-update/1\",\"target\":" +
+                    application::target(device, f.service.status().boot_id) +
+                    ",\"mode\":\"merge\",\"config\":{\"allow_unqualified_frequency\":true}}");
+    partial.headers["cookie"] = cookie;
+    partial.headers["if-match"] = f.browser.revision();
+    REQUIRE(
+        f.api.handle(partial, provisioning::SoftApSurface::BlankReadOnly, hostname, 8, 11).status ==
+        401);
+    REQUIRE(f.api.handle(partial, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
+                .status == 401);
+    REQUIRE(f.api.handle(partial, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+            200);
+    REQUIRE(f.store.config()->allow_unqualified_frequency && f.store.config()->callsign == "K1ABC");
+
     auto hello = request("POST", "/api/v1/jobs",
                          "{\"session_id\":\"" + std::string(session) +
                              "\",\"request_id\":\"44444444444444444444444444444444\","

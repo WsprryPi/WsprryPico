@@ -56,7 +56,10 @@ Builds with the runtime-button feature disabled do not instantiate that adapter.
 
 ## Persistence, activation and recovery
 
-Legacy configuration without pins retains GP2 RF, GP14 switch and onboard LED.
+Initial/durable configuration and explicit replacement without pins retain
+GP2 RF, GP14 switch and onboard LED. Ordinary API PUT preserves saved omitted
+pins; send a complete default plan or use explicit replacement to reset them.
+See [configuration updates](configuration-updates.md).
 Default pin plans keep the legacy canonical serialized configuration. Nondefault
 plans append the pin object; older firmware rejects that extension, so downgrade
 requires restoring default assignments before loading an older image.

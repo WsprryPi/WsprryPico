@@ -23,6 +23,12 @@ See the [execution prompt](shared-transmitter-application-execution-prompt.md),
 
 `/api/v1/capabilities` advertises these resources and their paths. The resource
 version is independent of WTP/1, Field-GATT/1, firmware and Config v1.
+The [configuration-update contract](configuration-updates.md) adds advertised
+POST `/api/v1/config/update`, schema `transmitter-config-update/1`, bounded to
+2,048 bytes, with explicit merge/replace modes. Ordinary legacy API PUT now
+preserves omitted optional settings. Existing scoped station/hardware budgets
+and durable record defaults are unchanged.
+
 Application is read-only; schedules, network provisioning and jobs retain their
 existing routes. `/api/v1/pins` supplies the eligible GPIOs, fixed I2C pairs and
 adapter support; `/api/v1/pins/validate` reviews candidates without applying them.
