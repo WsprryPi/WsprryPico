@@ -29,6 +29,10 @@ cooperative port-80 connection tasks on core 0; its
 [execution prompt](phase15-5-execution-prompt.md), validation and adversarial
 repairs are recorded separately. Simultaneous authenticated sessions remain
 P15.6, and target contention/RF qualification remains separate.
+The source-reviewed [P15.6 handoff prompt](phase15-6-execution-prompt.md) is
+prepared for a separate conversation working on `devel`. Pico leads session
+isolation with coordinated Pi discovery/compatibility work. The prompt is not
+executed and P15.6 implementation remains not started.
 
 The [WIP Si5351 I²C probe](../../tests/hardware/wip-si5351-i2c/README.md)
 preserves the standalone GP4/GP5 connection diagnostic and historical bench

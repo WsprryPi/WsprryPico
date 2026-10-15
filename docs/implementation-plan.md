@@ -341,7 +341,8 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   after adversarial repair, 189/189 host groups, affected sanitizers and both
   RP2350 cross-links. Physical phone/Mac contention and RF qualification remain
   separate. Simultaneous authenticated sessions remain P15.6. See the
-  [executed prompt](development/phase15-5-execution-prompt.md).
+  [executed prompt](development/phase15-5-execution-prompt.md). Published
+  implementation: `9cf5ba2`; acceptance/checklist closure: `62b33d9`.
 - ☐ **P15.6 — Support multiple simultaneous login sessions.** Allow the
   operator to stay logged in and use the same Pico from a phone and Mac at the
   same time without either client being locked out or displacing the other's
@@ -349,7 +350,11 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   preserving the shared transmitter ownership rules and detecting conflicting
   settings changes. Use the concurrent service from P15.5 and the update rules
   from P15.1. Validate concurrent phone/Mac use and continued access when
-  either client logs out, disconnects or expires. Status: open; unimplemented.
+  either client logs out, disconnects or expires. Status: open; implementation
+  not started. The reviewed
+  [handoff prompt](development/phase15-6-execution-prompt.md) is ready for a
+  separate executing conversation on `devel`; Pico leads with coordinated Pi
+  discovery/compatibility changes. The prompt has not been executed.
 - ☐ **P15.7 — Recover login cleanly after a failed save or lost session.**
   After the callsign-only save was blocked, the operator could no longer log in
   to Pico B and saw "Radio request rejected. Status remains unknown." A live
