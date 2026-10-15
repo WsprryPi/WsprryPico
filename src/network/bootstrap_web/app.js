@@ -115,7 +115,7 @@ function setPasswordVisible(visible) {
   toggle.setAttribute('aria-label', label);
   toggle.setAttribute('aria-pressed', String(visible));
   toggle.title = label;
-  $('password-slash').hidden = !visible;
+  $('password-slash').toggleAttribute('hidden', !visible);
 }
 
 function clearAttempt() {

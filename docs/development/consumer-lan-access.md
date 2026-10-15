@@ -14,7 +14,10 @@ works at `/radio`. Use the hostname actually reported by the Pico; its default
 is `wsprrypico-<last-six-station-MAC-hex>.local`. A network/client without local
 multicast name resolution can use the current IPv4 address directly.
 
-Log in with the Wi-Fi password saved on that Pico. Radio settings, schedules,
+Log in with the Wi-Fi password saved on that Pico. Password fields use the
+network setup page's eye control to show/hide what you type; they start masked.
+The eye never retrieves a saved password. See the
+[password-control review](password-visibility-review.md). Radio settings, schedules,
 pin assignments and job controls use the existing shared application API.
 The separate **Wi-Fi and station setup** section changes the profile-owned
 network or station identity through their existing transactional paths.

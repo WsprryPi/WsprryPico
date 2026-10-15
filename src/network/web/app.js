@@ -12,6 +12,38 @@ function pinOwners(plan, except) {
 if (typeof module !== 'undefined') module.exports = {pinOwners};
 
 const $ = id => document.getElementById(id);
+const passwordFields = ['local-password','config-password','consumer-password'];
+function setPasswordVisible(id, visible) {
+  const input = $(id), toggle = $(id + '-toggle');
+  const blocked = input.readOnly || input.disabled || input.matches?.(':disabled');
+  visible = Boolean(visible && !blocked);
+  // Keep the same input node and its selection; only presentation changes.
+  const type = visible ? 'text' : 'password';
+  if (input.type !== type) {
+    const start = input.selectionStart, end = input.selectionEnd, direction = input.selectionDirection;
+    input.type = type;
+    if (start !== null && start !== undefined) input.setSelectionRange(start,end,direction);
+  }
+  const name = id === 'local-password' ? $('local-password-label').textContent.replace(/^[A-Z]/,c => c.toLowerCase()) : 'Wi-Fi password';
+  const label = (visible ? 'Hide ' : 'Show ') + name;
+  toggle.setAttribute('aria-label',label);
+  toggle.setAttribute('aria-pressed',String(visible));
+  toggle.title = label;
+  toggle.disabled = Boolean(blocked);
+  $(id + '-slash').toggleAttribute('hidden',!visible);
+}
+function clearPassword(id) {
+  $(id).value = '';
+  setPasswordVisible(id,false);
+}
+function clearPasswords() { for (const id of passwordFields) clearPassword(id); }
+for (const id of passwordFields) {
+  $(id + '-toggle').onclick = () => setPasswordVisible(id,$(id).type === 'password');
+  setPasswordVisible(id,false);
+}
+for (const [form,id] of [['local-login','local-password'],['config','config-password'],['consumer-network-form','consumer-password']])
+  $(form).onreset = () => setPasswordVisible(id,false);
+globalThis.addEventListener?.('pagehide',clearPasswords);
 const requestId = () => typeof crypto.randomUUID === 'function' ? crypto.randomUUID().replaceAll('-','') :
   [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2,'0')).join('');
 const radio = globalThis.WsprryPicoConsumerRadio?.createClient();
@@ -141,6 +173,7 @@ function controls(connected) {
   $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
   $('abort').disabled = busy || !online || snapshot?.job.owner_id !== session || !['loaded','armed','running'].includes(snapshot.job.state);
   $('release').disabled = busy || !online || snapshot?.job.owner_id !== session || snapshot.job.output_active !== false || ['armed','running','failed'].includes(snapshot.job.state);
+  for (const id of passwordFields) setPasswordVisible(id,$(id).type === 'text');
 }
 function fill(c) {
   currentConfig = c; dirty = false;
@@ -159,7 +192,7 @@ function fill(c) {
       $('consumer-power').value = c?.station.power_dbm ?? 37;
     }
   }
-  form.password.value = '';
+  clearPassword('config-password');
   form.enabled.checked = c?.enabled ?? false;
   form.schedules.value = (c?.schedules || [{period_s:120,phase_s:0}]).map(s => `${s.period_s} / ${s.phase_s}`).join('\n');
   fillPins(c?.pins);
@@ -204,12 +237,13 @@ async function action(fn) {
 $('refresh').onclick = () => action(() => refresh());
 $('local-login').onsubmit = event => { event.preventDefault(); return action(async () => {
   const password = $('local-password').value;
+  setPasswordVisible('local-password',false);
   try {
     if (radio) {
       localIdentity = await radio.identity();
       await radio.login(password,localIdentity);
     } else await local('login','POST',{version:1,device_id:localIdentity.device_id,password});
-  } finally { $('local-password').value = ''; }
+  } finally { clearPassword('local-password'); }
   localAuthenticated = true; $('local-login').hidden = true;
   if (radio) $('local-logout').hidden = false;
   if (localIdentity.surface === 'provisioned_preclock') {
@@ -219,6 +253,7 @@ $('local-login').onsubmit = event => { event.preventDefault(); return action(asy
   await refresh(!dirty); notice(radio ? 'Radio session authorized.' : 'Local SoftAP session authorized.');
 }); };
 $('local-logout').onclick = () => action(async () => {
+  clearPasswords();
   await radio.logout(); localAuthenticated = false;
   $('local-login').hidden = false; $('local-logout').hidden = true;
   snapshot = null; controls(false); notice('Logged out. Radio job state has not changed.');
@@ -227,6 +262,7 @@ $('consumer-power').replaceChildren(...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,4
   .map(power => new Option(String(power),String(power))));
 for (const id of ['consumer-network-form','consumer-station-form']) $(id).oninput = () => { consumerSetupDirty = true; };
 async function saveConsumer(kind) {
+  setPasswordVisible('consumer-password',false);
   if (consumerAttempt) throw new Error('Check the previous saved result first');
   const status = $('consumer-save-status');
   status.textContent = 'Preparing your settings…';
@@ -242,7 +278,7 @@ async function saveConsumer(kind) {
   } catch (error) {
     status.textContent = consumerAttempt ? 'The save result is unconfirmed. Keep this tab open or use the continuation link. Log in when the Pico returns and select Check saved result before sending another save.' : error.message;
     throw error;
-  } finally { $('consumer-password').value = ''; }
+  } finally { clearPassword('consumer-password'); }
 }
 $('consumer-network-form').onsubmit = event => { event.preventDefault(); return action(() => saveConsumer('network')); };
 $('consumer-station-form').onsubmit = event => { event.preventDefault(); return action(() => saveConsumer('station')); };
@@ -259,7 +295,7 @@ $('reload-config').onclick = () => action(async () => {
   if (dirty && !confirm('Discard your unsaved changes and reload saved settings?')) return;
   await refresh(true);
 });
-$('config').onsubmit = event => { event.preventDefault(); return action(async () => {
+$('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('config-password',false); return action(async () => {
   const f = $('config').elements;
   const schedules = f.schedules.value.trim().split('\n').map(line => {
     if (!/^\s*\d+\s*\/\s*\d+\s*$/.test(line)) throw new Error('Use period / phase for each schedule');

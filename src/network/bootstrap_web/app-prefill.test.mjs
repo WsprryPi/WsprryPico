@@ -13,7 +13,7 @@ async function openPage(readback, editDuringRead = false) {
     'time-server', 'password-toggle', 'password-slash', 'submit', 'change-connected',
     'change-saved', 'retry-button', 'interrupted-button', 'unknown-button']) {
     elements.set(name, {value: '', hidden: true, type: 'password', events: {},
-      classList: {toggle() {}}, setAttribute() {},
+      classList: {toggle() {}}, setAttribute() {}, toggleAttribute() {},
       addEventListener(event, handler) { this.events[event] = handler; }});
   }
   elements.get('time-server').value = 'pool.ntp.org';

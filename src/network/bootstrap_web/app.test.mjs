@@ -13,6 +13,7 @@ for (const name of ['credentials', 'checking', 'accepted', 'unconfirmed', 'conne
                     'change-saved', 'retry-button', 'interrupted-button', 'unknown-button']) {
   elements.set(name, {hidden: true, textContent: '', value: '', type: 'password', disabled: false,
     attributes: {}, setAttribute(key, value) { this.attributes[key] = value; },
+    toggleAttribute(key,value) { this.attributes[key]=value; },
     events: {}, classList: {toggle() {}}, addEventListener(event, handler) {
       this.events[event] = handler;
     }});
@@ -101,6 +102,12 @@ const poll = async () => {
 
 await import('./app.js');
 await new Promise(setImmediate);
+elements.get('password-toggle').events.click();
+assert.equal(elements.get('password').type,'text');
+assert.equal(elements.get('password-slash').attributes.hidden,false);
+elements.get('password-toggle').events.click();
+assert.equal(elements.get('password').type,'password');
+assert.equal(elements.get('password-slash').attributes.hidden,true);
 assert.equal(elements.get('credentials').hidden, false);
 assert.equal(elements.get('submit').disabled, false);
 assert.equal(starts, 0); // Opening the page does not consume a setup slot.

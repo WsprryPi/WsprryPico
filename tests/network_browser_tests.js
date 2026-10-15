@@ -27,6 +27,14 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     elements.config.elements.indicator_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
     const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
     const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1'}};
+    elements['config-password'] = elements.config.elements.password;
+    elements['local-password-label'].textContent = 'Local-access password';
+    for (const id of ['local-password','config-password','consumer-password']) {
+        Object.assign(elements[id], {type:'password',selectionStart:0,selectionEnd:0,selectionDirection:'none',
+            setSelectionRange(start,end,direction) { this.selectionStart=start;this.selectionEnd=end;this.selectionDirection=direction; }});
+        elements[id+'-toggle'] = {attributes:{},setAttribute(name,value) { this.attributes[name]=value; }};
+        elements[id+'-slash'] = {attributes:{hidden:true},toggleAttribute(name,value) { this.attributes[name]=value; }};
+    }
     const calls = [];
     let sequence = 0;
     const f = {elements,state,calls,config,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512};
@@ -66,6 +74,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             } else throw new Error('Unexpected request ' + path);
             return {ok:status>=200&&status<300,json:async()=>data,headers:{get:()=> '"original-revision"'}};
         }});
+    f.events = {}; context.addEventListener=(name,handler)=>{f.events[name]=handler;};
     context.location={hash:receipt,pathname:'/',search:''};
     context.history={replaceState:(_,__,url)=>{context.location.hash=url.includes('#')?url.slice(url.indexOf('#')):'';}};
     if (consumerMode) {
@@ -100,6 +109,49 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     return f;
 }
 (async () => {
+    const visibility = await fixture(true,true,false,true);
+    const password = visibility.elements['local-password'];
+    password.value = 'Correctable 63-char draft: ' + 'x'.repeat(36);
+    password.selectionStart=3;password.selectionEnd=11;password.selectionDirection='backward';
+    const toggle=visibility.elements['local-password-toggle'], requests=visibility.calls.length;
+    toggle.onclick();
+    assert.equal(password.type,'text');
+    assert.equal(password.value.length,63);
+    assert.deepEqual([password.selectionStart,password.selectionEnd,password.selectionDirection],[3,11,'backward']);
+    assert.equal(toggle.attributes['aria-label'],'Hide saved Wi-Fi password');
+    assert.equal(toggle.attributes['aria-pressed'],'true');
+    assert.equal(visibility.elements['local-password-slash'].attributes.hidden,false);
+    assert.equal(visibility.elements['consumer-password'].type,'password');
+    assert.equal(visibility.calls.length,requests); // No login, save or network operation.
+    toggle.onclick();
+    assert.equal(password.type,'password');assert.equal(password.value.length,63);
+    visibility.elements['local-login'].onreset();
+    assert.equal(toggle.attributes['aria-pressed'],'false');
+    await visibility.elements['local-login'].onsubmit({preventDefault(){}});
+    assert.equal(password.value,'');assert.equal(password.type,'password');
+    const readonly=visibility.elements['config-password'];
+    assert.equal(readonly.readOnly,true);
+    visibility.elements['config-password-toggle'].onclick();
+    assert.equal(readonly.type,'password');
+    assert.equal(visibility.elements['config-password-toggle'].disabled,true);
+    visibility.elements['consumer-password'].value='another private draft';
+    visibility.elements['consumer-password-toggle'].onclick();
+    assert.equal(visibility.elements['consumer-password'].type,'text');
+    await visibility.elements['local-logout'].onclick();
+    for (const id of ['local-password','config-password','consumer-password']) {
+        assert.equal(visibility.elements[id].value,'');assert.equal(visibility.elements[id].type,'password');
+        assert.equal(visibility.elements[id+'-toggle'].attributes['aria-pressed'],'false');
+    }
+    password.value='private page-exit draft';toggle.onclick();visibility.events.pagehide();
+    assert.equal(password.value,'');assert.equal(password.type,'password');
+    const rejectedPassword = await fixture(true,true,false,true);
+    rejectedPassword.radio.login=async()=>{throw new Error('wrong password');};
+    rejectedPassword.elements['local-password'].value='private rejected draft';
+    rejectedPassword.elements['local-password-toggle'].onclick();
+    await rejectedPassword.elements['local-login'].onsubmit({preventDefault(){}});
+    assert.equal(rejectedPassword.elements['local-password'].value,'');
+    assert.equal(rejectedPassword.elements['local-password'].type,'password');
+    assert.equal(rejectedPassword.elements['local-password-toggle'].attributes['aria-pressed'],'false');
     const interruptedSetup = await fixture(true,true,false,true);
     interruptedSetup.elements['local-password'].value='test-password';
     await interruptedSetup.elements['local-login'].onsubmit({preventDefault(){}});
@@ -247,8 +299,10 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     await f.elements.refresh.onclick();
     assert.equal(f.form.callsign.value,'N0NEW'); assert.equal(f.form.password.value,'unsaved-test-password'); assert.equal(f.configReads(),1);
     f.confirm = false; await f.elements['reload-config'].onclick(); assert.equal(f.form.callsign.value,'N0NEW');
+    f.elements['config-password-toggle'].onclick();
+    assert.equal(f.form.password.type,'text');
     f.failConfig = true; await f.elements.config.onsubmit({preventDefault(){}});
-    assert.match(f.elements.notice.textContent,/edits are preserved/); assert.equal(f.form.password.value,'unsaved-test-password'); assert.equal(f.configReads(),1);
+    assert.match(f.elements.notice.textContent,/edits are preserved/); assert.equal(f.form.password.value,'unsaved-test-password'); assert.equal(f.form.password.type,'password'); assert.equal(f.elements['config-password-toggle'].attributes['aria-pressed'],'false'); assert.equal(f.configReads(),1);
     f.state.network.configured_hostname = 'wsprrypico-' + 'a'.repeat(32) + '.local';
     for (const state of ['active','conflict','failed','probing','waiting_address']) {
         f.state.network.mdns_state = state; await f.elements.refresh.onclick();
