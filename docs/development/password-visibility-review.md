@@ -98,3 +98,41 @@ no RF job. No firmware was installed as part of this slice. A device shows this 
 change after firmware containing this commit is installed. Native Safari/iOS/Android and assistive-technology user sessions were
 not performed. Authentication, protocols, persistence, scheduling and RF
 implementation remain unchanged.
+
+## Follow-up: installed on B
+
+After the operator reported a missing eye on the iPhone, live page and USB
+inspection confirmed both Picos still served the previous `ae8e703e5afd`
+firmware. The operator subsequently confirmed that login succeeded in Codex's
+iPhone in-app browser; the absent eye was an undeployed UI change, not evidence
+that the saved password was wrong. A live encrypted login on B also accepted
+the recorded password before deployment.
+
+B alone was updated with the committed `7bff45c0f32f` source, firmware
+`0.1.0-rc.3-password-eye-7bff45c`. The RF UF2 SHA-256 is
+`7866f65afe72755178e7a3d3495f5a7f56880dd26d07377190b9a2ea307be457`;
+the standard image SHA-256 is
+`621221a60c16935a4cfa480807871a4e17fd5651c7a9406a8a3fdf3dc124fe61`.
+Both targets rebuilt with their linked checks. Identity-bound, application-only
+loading preserved B's complete saved values, profile generation 5 and current
+cursor `1791705481000000000`. Final output and schedules remain inactive, the
+button capture is healthy, and AP is off. A was only inspected and was not
+updated.
+
+B's actual `http://192.168.1.53/radio` responds 200 with the eye and
+`Cache-Control: no-store`. Chrome `155.0.8059.40` on the Mac passes live IP-origin
+login, private reads and both eye/slash states. A mobile-width capture confirms
+the visible login eye. A subsequent hostname-origin login check encountered
+`Failed to fetch`; it is retained as a failed check, with no password-rejection
+claim or firmware-cause attribution. The operator was given the fresh direct-IP
+`/radio` link, and no further automated logins were run to contend with their
+session. New iPhone confirmation of the deployed eye remains operator evidence,
+not inferred from desktop Chrome.
+
+Private deployment evidence is on wspr5 at
+`/home/pi/password-visibility-20261015/deploy-B-7bff45c`; browser evidence is in
+`build/iphone-password-20261015/B-live-browser`. Mac Safari WebDriver was
+unavailable with existing remote-automation settings; computer use also reported
+a locked Mac at that attempt, which the operator later corrected. No Safari
+security preference was changed. There was no RF job or credential/configuration
+replacement in this follow-up.
