@@ -49,6 +49,8 @@ void PicoBootstrapServer::radio_control(ConsumerRadioApi& radio) {
 
 HttpResponse PicoBootstrapServer::consumer_setup(const HttpRequest& request,
                                                  std::uint64_t transaction) {
+    if (setup_transaction_)
+        return http_error(409, "setup_response_pending");
     // Called only after ConsumerRadioApi authenticates the complete envelope.
     // This closed route set never forwards recovery/reset or arbitrary HTTP.
     HttpResponse result = http_error(404, "not_found");
@@ -66,15 +68,13 @@ HttpResponse PicoBootstrapServer::consumer_setup(const HttpRequest& request,
              (request.path == "/api/owner/v1/claim/start" ||
               request.path == "/api/owner/v1/claim/submit"))
         result = owner_mutation(request);
-    if (result.status == 200) {
-        setup_reply_path_ = request.path;
-        setup_transaction_ = transaction;
-    }
+    if (result.status == 200)
+        remember_setup_reply(request, transaction);
     return result;
 }
 
 void PicoBootstrapServer::setup_delivered(std::uint64_t transaction, bool apply) {
-    if (transaction != setup_transaction_)
+    if (!transaction || transaction != setup_transaction_)
         return;
     if (setup_reply_path_ == "/api/bootstrap/v1/submit" && bootstrap_trial_start_pending_) {
         if (apply) {
@@ -90,151 +90,76 @@ void PicoBootstrapServer::setup_delivered(std::uint64_t transaction, bool apply)
     } else if (apply && setup_reply_path_ == "/api/bootstrap/v1/ack")
         bootstrap_ack_delivered_ = true;
     else if (apply && setup_reply_path_ == "/api/owner/v1/claim/status" &&
-             owner_status_committed_reply_)
+             setup_owner_status_committed_)
         owner_result_restart_.delivered(true, time_us_64() / 1000);
     setup_reply_path_.clear();
     setup_transaction_ = 0;
+    setup_owner_status_committed_ = false;
+}
+
+void PicoBootstrapServer::remember_setup_reply(const HttpRequest& request,
+                                               std::uint64_t transaction) {
+    if (request.path != "/api/bootstrap/v1/submit" && request.path != "/api/bootstrap/v1/ack" &&
+        request.path != "/api/owner/v1/claim/submit" &&
+        !(request.path == "/api/owner/v1/claim/status" && owner_status_committed_reply_))
+        return;
+    setup_reply_path_ = request.path;
+    setup_transaction_ = transaction;
+    setup_owner_status_committed_ = owner_status_committed_reply_;
 }
 
 bool PicoBootstrapServer::start() {
-    if (listener_ || !classifier_ || device_.empty())
-        return false;
-    auto* pcb = tcp_new_ip_type(IPADDR_TYPE_V4);
-    if (!pcb)
-        return false;
-    if (tcp_bind(pcb, IP_ANY_TYPE, 80) != ERR_OK) {
-        tcp_abort(pcb);
-        return false;
-    }
-    listener_ = tcp_listen_with_backlog(pcb, 1);
-    if (!listener_) {
-        tcp_abort(pcb);
-        return false;
-    }
-    tcp_arg(listener_, this);
-    tcp_accept(listener_, accept);
-    return true;
+    return classifier_ && !device_.empty() && http_.start();
 }
 
-err_t PicoBootstrapServer::accept(void* context, tcp_pcb* pcb, err_t err) {
+ConsumerInterface PicoBootstrapServer::classify_client(void* context, const tcp_pcb* pcb,
+                                                       bool accepting) {
     auto& self = *static_cast<PicoBootstrapServer*>(context);
-    const bool ap =
-        self.ap_active_ && self.ap_accepting_ && self.classifier_(pcb, self.classifier_context_);
+    const bool ap = self.ap_active_ && (!accepting || self.ap_accepting_) && self.classifier_ &&
+                    self.classifier_(pcb, self.classifier_context_);
     const bool station = self.station_active_ && self.station_classifier_ &&
                          self.station_classifier_(pcb, self.station_classifier_context_);
-    if (err != ERR_OK || !self.active_ || self.client_ || ap == station) {
-        tcp_abort(pcb);
-        return ERR_ABRT;
-    }
-    self.client_ = pcb;
-    // Replies and subsequent TCP admission stay on the actual incoming netif.
-    if (ip_current_input_netif())
-        tcp_bind_netif(pcb, ip_current_input_netif());
-    self.client_interface_ = ap ? ConsumerInterface::AccessPoint : ConsumerInterface::Station;
-    if (self.next_radio_transaction_ == UINT64_MAX) {
-        self.client_ = nullptr;
-        tcp_abort(pcb);
-        return ERR_ABRT;
-    }
-    self.radio_transaction_ = self.next_radio_transaction_++;
-    self.accepted_ms_ = time_us_64() / 1000;
-    tcp_arg(pcb, &self);
-    tcp_recv(pcb, receive);
-    tcp_sent(pcb, sent);
-    tcp_err(pcb, error);
-    return ERR_OK;
+    if (!self.active_ || ap == station)
+        return ConsumerInterface::None;
+    // Bind replies to the actual receiving interface, never a Host header.
+    if (accepting && ip_current_input_netif())
+        tcp_bind_netif(const_cast<tcp_pcb*>(pcb), ip_current_input_netif());
+    return ap ? ConsumerInterface::AccessPoint : ConsumerInterface::Station;
 }
 
-err_t PicoBootstrapServer::receive(void* context, tcp_pcb*, pbuf* packet, err_t err) {
-    auto& self = *static_cast<PicoBootstrapServer*>(context);
-    if (!packet || err != ERR_OK) {
-        if (packet)
-            pbuf_free(packet);
-        self.close(!packet && err == ERR_OK);
-        return ERR_ABRT;
-    }
-    // A connection carries one request. Never let a pipelined request replace
-    // a partially transmitted static response.
-    if (!self.headers_.empty()) {
-        pbuf_free(packet);
-        self.close();
-        return ERR_ABRT;
-    }
-    std::array<std::uint8_t, 1024> bytes{};
-    const auto total = packet->tot_len;
-    std::size_t offset = 0;
-    while (offset < total && !self.parser_.failed() && !self.parser_.ready()) {
-        const auto wanted = std::min<std::size_t>(bytes.size(), total - offset);
-        const auto count = pbuf_copy_partial(packet, bytes.data(), wanted, offset);
-        if (count != wanted) {
-            pbuf_free(packet);
-            self.close();
-            return ERR_ABRT;
-        }
-        (void)self.parser_.receive(std::span(bytes).first(count));
-        offset += count;
-    }
-    pbuf_free(packet);
-    if (offset != total) {
-        self.close(); // One HTTP request per connection; reject pipelined bytes.
-        return ERR_ABRT;
-    }
-    tcp_recved(self.client_, total);
-    if (self.parser_.failed() || self.parser_.ready())
-        self.dispatch();
-    return ERR_OK;
+HttpResponse PicoBootstrapServer::handle_client(void* context, const HttpRequest& request,
+                                                ConsumerInterface interface,
+                                                std::uint64_t transaction) {
+    return static_cast<PicoBootstrapServer*>(context)->dispatch(request, interface, transaction);
 }
 
-err_t PicoBootstrapServer::sent(void* context, tcp_pcb*, u16_t count) {
+void PicoBootstrapServer::finish_client(void* context, std::uint64_t transaction, bool delivered) {
     auto& self = *static_cast<PicoBootstrapServer*>(context);
-    self.pending_bytes_ -= std::min<std::size_t>(count, self.pending_bytes_);
-    return ERR_OK;
-}
-
-void PicoBootstrapServer::error(void* context, err_t) {
-    auto& self = *static_cast<PicoBootstrapServer*>(context);
-    const bool submit_response = self.bootstrap_trial_start_pending_ &&
-                                 !self.bootstrap_submit_delivered_ && self.parser_.ready() &&
-                                 self.parser_.request().path == "/api/bootstrap/v1/submit" &&
-                                 self.response_.status == 200 && !self.headers_.empty();
-    const bool delivered_submit = submit_response && self.header_offset_ == self.headers_.size() &&
-                                  self.body_offset_ == self.response_.body_size() &&
-                                  self.pending_bytes_ == 0;
-    if (delivered_submit) {
-        self.bootstrap_submit_delivered_ = true;
-        self.bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
-    }
     if (self.radio_)
-        self.radio_->finish_request(
-            self.radio_transaction_,
-            !self.headers_.empty() && self.header_offset_ == self.headers_.size() &&
-                self.body_offset_ == self.response_.body_size() && self.pending_bytes_ == 0);
-    self.client_ = nullptr;
-    self.parser_.reset_secure();
-    self.parser_ = {};
-    self.response_.reset();
-    self.headers_.clear();
-    self.header_offset_ = self.body_offset_ = self.pending_bytes_ = 0;
-    if (submit_response && !delivered_submit)
-        self.cancel_slot();
+        self.radio_->finish_request(transaction, delivered);
+    self.setup_delivered(transaction, delivered);
 }
 
-void PicoBootstrapServer::dispatch() {
+HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
+                                           ConsumerInterface client_interface_,
+                                           std::uint64_t radio_transaction_) {
+    HttpResponse response_;
     // DHCP/link callbacks can run inside network.poll(), before the main loop
     // refreshes listener state. Invalidate the old station context before use.
     if (radio_ && network_)
         radio_->listeners(ap_active_, station_active_ ? network_->ipv4() : "",
                           network_->configured_hostname());
     owner_status_committed_reply_ = false;
-    if (parser_.failed())
-        response_ = http_error(400, "invalid_http");
-    else if (radio_ && parser_.request().path.starts_with("/api/consumer/v1/"))
-        response_ = radio_->handle(parser_.request(), time_us_64() / 1000, radio_transaction_,
-                                   client_interface_);
-    else if (radio_ && radio_->available() && parser_.request().method == "GET" &&
-             (parser_.request().path == "/radio" ||
-              (client_interface_ == ConsumerInterface::Station && parser_.request().path == "/")) &&
-             radio_->page_admitted(parser_.request(), client_interface_)) {
+    if (setup_transaction_ && request.path.starts_with("/api/") &&
+        !request.path.starts_with("/api/consumer/v1/"))
+        response_ = http_error(409, "setup_response_pending");
+    else if (radio_ && request.path.starts_with("/api/consumer/v1/"))
+        response_ =
+            radio_->handle(request, time_us_64() / 1000, radio_transaction_, client_interface_);
+    else if (radio_ && radio_->available() && request.method == "GET" &&
+             (request.path == "/radio" ||
+              (client_interface_ == ConsumerInterface::Station && request.path == "/")) &&
+             radio_->page_admitted(request, client_interface_)) {
         const auto asset = consumer_radio_asset();
         response_ = asset ? HttpResponse{200, "", std::string(asset->type), {}}
                           : http_error(503, "radio_page_unavailable");
@@ -245,74 +170,42 @@ void PicoBootstrapServer::dispatch() {
         }
     } else if (client_interface_ != ConsumerInterface::AccessPoint)
         response_ = http_error(403, "forbidden");
-    else if (parser_.request().path.starts_with("/api/recovery/v1/"))
-        response_ = recovery(parser_.request());
-    else if (!ap_setup_admitted_ && (parser_.request().path.starts_with("/api/bootstrap/v1/") ||
-                                     parser_.request().path.starts_with("/api/owner/v1/")))
+    else if (request.path.starts_with("/api/recovery/v1/"))
+        response_ = recovery(request);
+    else if (!ap_setup_admitted_ && (request.path.starts_with("/api/bootstrap/v1/") ||
+                                     request.path.starts_with("/api/owner/v1/")))
         response_ = http_error(409, "setup_unavailable");
-    else if (parser_.request().path == "/api/bootstrap/v1/status")
-        response_ =
-            parser_.request().method == "GET" && parser_.request().header("host") == "192.168.4.1"
-                ? status()
-                : http_error(400, "invalid_request");
-    else if (parser_.request().path == "/api/bootstrap/v1/time" &&
-             parser_.request().method == "GET")
-        response_ = parser_.request().header("host") == "192.168.4.1"
+    else if (request.path == "/api/bootstrap/v1/status")
+        response_ = request.method == "GET" && request.header("host") == "192.168.4.1"
+                        ? status()
+                        : http_error(400, "invalid_request");
+    else if (request.path == "/api/bootstrap/v1/time" && request.method == "GET")
+        response_ = request.header("host") == "192.168.4.1"
                         ? json("{\"version\":1,\"challenge_ns\":\"" +
                                std::to_string(time_us_64() * 1000) + "\"}")
                         : http_error(400, "invalid_request");
-    else if (parser_.request().path.starts_with("/api/bootstrap/v1/"))
-        response_ = mutation(parser_.request());
-    else if (parser_.request().path == "/api/owner/v1/public-status" ||
-             parser_.request().path == "/api/owner/v1/claim/status")
-        response_ = owner_public_get_admitted(parser_.request(), parser_.request().path)
-                        ? owner_status(parser_.request().path == "/api/owner/v1/claim/status")
+    else if (request.path.starts_with("/api/bootstrap/v1/"))
+        response_ = mutation(request);
+    else if (request.path == "/api/owner/v1/public-status" ||
+             request.path == "/api/owner/v1/claim/status")
+        response_ = owner_public_get_admitted(request, request.path)
+                        ? owner_status(request.path == "/api/owner/v1/claim/status")
                         : http_error(400, "invalid_request");
-    else if (parser_.request().path == "/api/owner/v1/identify" ||
-             parser_.request().path.starts_with("/api/owner/v1/claim/"))
-        response_ = owner_mutation(parser_.request());
+    else if (request.path == "/api/owner/v1/identify" ||
+             request.path.starts_with("/api/owner/v1/claim/"))
+        response_ = owner_mutation(request);
     else
-        response_ = bootstrap_http_response(
-            parser_.request(), device_, firmware_, ap_active_ && ap_setup_admitted_,
-            ap_active_ && ap_setup_admitted_, active_ && reset_begin_);
-    // Dispatch runs inside the network poll. Close competing WTP admission now,
-    // before a later packet in that same poll can claim the idle authority.
+        response_ =
+            bootstrap_http_response(request, device_, firmware_, ap_active_ && ap_setup_admitted_,
+                                    ap_active_ && ap_setup_admitted_, active_ && reset_begin_);
+    if (response_.status == 200 && (request.path.starts_with("/api/bootstrap/v1/") ||
+                                    request.path.starts_with("/api/owner/v1/")))
+        remember_setup_reply(request, radio_transaction_);
+    // Both tasks dispatch serially on core 0. Close competing WTP admission
+    // immediately when setup becomes pending, before returning to network I/O.
     if (setup_pending() && setup_control_)
         setup_control_(setup_control_context_);
-    headers_ = response_.wire_headers();
-}
-
-void PicoBootstrapServer::close(bool peer_finished) {
-    if (radio_)
-        radio_->finish_request(radio_transaction_,
-                               !headers_.empty() && header_offset_ == headers_.size() &&
-                                   body_offset_ == response_.body_size() && pending_bytes_ == 0);
-    const bool submit_response = bootstrap_trial_start_pending_ && !bootstrap_submit_delivered_ &&
-                                 parser_.ready() &&
-                                 parser_.request().path == "/api/bootstrap/v1/submit" &&
-                                 response_.status == 200 && !headers_.empty();
-    const bool delivered_submit = submit_response && header_offset_ == headers_.size() &&
-                                  body_offset_ == response_.body_size() &&
-                                  (peer_finished || pending_bytes_ == 0);
-    if (delivered_submit) {
-        bootstrap_submit_delivered_ = true;
-        bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
-    }
-    if (client_) {
-        tcp_arg(client_, nullptr);
-        tcp_recv(client_, nullptr);
-        tcp_sent(client_, nullptr);
-        tcp_err(client_, nullptr);
-        tcp_abort(client_);
-    }
-    client_ = nullptr;
-    parser_.reset_secure();
-    parser_ = {};
-    response_.reset();
-    headers_.clear();
-    header_offset_ = body_offset_ = pending_bytes_ = 0;
-    if (submit_response && !delivered_submit)
-        cancel_slot();
+    return response_;
 }
 
 HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request) {
@@ -396,15 +289,7 @@ HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request) {
 }
 
 void PicoBootstrapServer::stop() {
-    close();
-    if (listener_) {
-        tcp_arg(listener_, nullptr);
-        tcp_accept(listener_, nullptr);
-        // lwIP requires tcp_close for a LISTEN PCB; tcp_abort panics here.
-        const auto closed = tcp_close(listener_);
-        LWIP_ASSERT("bootstrap listener close must succeed", closed == ERR_OK);
-        listener_ = nullptr;
-    }
+    http_.stop();
 }
 
 void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admitted,
@@ -414,11 +299,6 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
     ap_accepting_ = ap_accepting;
     active_ = ap_active_ || station_active_;
     ap_setup_admitted_ = setup_admitted;
-    if (client_ && ((client_interface_ == ConsumerInterface::AccessPoint && !ap_active_) ||
-                    (client_interface_ == ConsumerInterface::Station &&
-                     (!station_active_ || !station_classifier_ ||
-                      !station_classifier_(client_, station_classifier_context_)))))
-        close();
     if (radio_) {
         radio_->poll(time_us_64() / 1000);
         if (!active_)
@@ -466,7 +346,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
         }
         // Leave the AP on long enough for the browser to render the accepted POST
         // result. A station channel change can otherwise destroy that response.
-        if (bootstrap_trial_start_pending_ && bootstrap_submit_delivered_ && !client_ &&
+        if (bootstrap_trial_start_pending_ && bootstrap_submit_delivered_ && !setup_transaction_ &&
             now_ms >= bootstrap_submit_delivered_ms_ &&
             now_ms - bootstrap_submit_delivered_ms_ >= 3'000)
             start_bootstrap_trial(now_ms);
@@ -475,7 +355,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
         if (old_owner_state != provisioning::ConsumerClaimState::None &&
             owner_slot_.state() == provisioning::ConsumerClaimState::None)
             cancel_owner_slot(true);
-        if (owner_trial_start_pending_ && !client_ && owner_submit_delivered_) {
+        if (owner_trial_start_pending_ && !setup_transaction_ && owner_submit_delivered_) {
             owner_trial_start_pending_ = false;
             const bool reuse = owner_trial_.ssid == previous_network_.ssid &&
                                owner_trial_.password == previous_network_.password &&
@@ -569,7 +449,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
                 end_trial(false, now_ms);
         }
         const auto restart_now_ms = time_us_64() / 1000;
-        if (!client_ && bootstrap_restart_pending_ && restart_ &&
+        if (!setup_transaction_ && bootstrap_restart_pending_ && restart_ &&
             (bootstrap_commit_.reconcile()
                  ? bootstrap_commit_.restart_due(restart_now_ms)
                  : (bootstrap_ack_delivered_ ||
@@ -578,7 +458,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
             if (restart_(restart_context_) && !bootstrap_commit_.reconcile())
                 bootstrap_restart_pending_ = false;
         }
-        if (!client_ && owner_restart_pending_ && restart_ &&
+        if (!setup_transaction_ && owner_restart_pending_ && restart_ &&
             owner_result_restart_.ready(restart_now_ms)) {
             // Keep setup admission blocked until the actual reboot. A scheduled
             // restart may be cancelled by a newly accepted job; retry when safe.
@@ -592,7 +472,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
         stop();
         return;
     }
-    if (!listener_) {
+    if (!http_.listening()) {
         const auto now = time_us_64() / 1000;
         if (now < next_listen_attempt_ms_)
             return;
@@ -600,81 +480,7 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
         if (!start())
             return;
     }
-    if (!client_)
-        return;
-    if (time_us_64() / 1000 - accepted_ms_ >= 10'000) {
-        close();
-        return;
-    }
-    if (headers_.empty())
-        return;
-    if (header_offset_ < headers_.size() || body_offset_ < response_.body_size()) {
-        const bool header = header_offset_ < headers_.size();
-        const auto body =
-            header ? std::span<const std::uint8_t>{} : response_.body_at(body_offset_);
-        const auto* data =
-            header ? headers_.data() + header_offset_ : reinterpret_cast<const char*>(body.data());
-        const auto remaining = header ? headers_.size() - header_offset_ : body.size();
-        const auto count = std::min<std::size_t>({remaining, tcp_sndbuf(client_), 1024});
-        if (!count)
-            return;
-        const auto result =
-            tcp_write(client_, data, static_cast<u16_t>(count), TCP_WRITE_FLAG_COPY);
-        if (result == ERR_MEM)
-            return;
-        if (result != ERR_OK) {
-            close();
-            return;
-        }
-        if (header)
-            header_offset_ += count;
-        else
-            body_offset_ += count;
-        pending_bytes_ += count;
-        (void)tcp_output(client_);
-    } else if (!pending_bytes_) {
-        if (radio_)
-            radio_->finish_request(radio_transaction_, true);
-        const bool delivered_owner_status =
-            parser_.ready() && parser_.request().method == "GET" &&
-            parser_.request().path == "/api/owner/v1/claim/status" && response_.status == 200 &&
-            owner_status_committed_reply_;
-        const bool delivered_owner_submit =
-            parser_.ready() && parser_.request().method == "POST" &&
-            parser_.request().path == "/api/owner/v1/claim/submit" && response_.status == 200 &&
-            owner_trial_start_pending_;
-        const bool delivered_bootstrap_submit =
-            parser_.ready() && parser_.request().method == "POST" &&
-            parser_.request().path == "/api/bootstrap/v1/submit" && response_.status == 200 &&
-            bootstrap_trial_start_pending_;
-        const bool delivered_bootstrap_ack = parser_.ready() &&
-                                             parser_.request().method == "POST" &&
-                                             parser_.request().path == "/api/bootstrap/v1/ack" &&
-                                             response_.status == 200 && bootstrap_restart_pending_;
-        auto* completed = client_;
-        client_ = nullptr;
-        tcp_arg(completed, nullptr);
-        tcp_recv(completed, nullptr);
-        tcp_sent(completed, nullptr);
-        tcp_err(completed, nullptr);
-        if (tcp_close(completed) != ERR_OK)
-            tcp_abort(completed);
-        parser_.reset_secure();
-        parser_ = {};
-        response_.reset();
-        headers_.clear();
-        header_offset_ = body_offset_ = 0;
-        if (delivered_owner_status)
-            owner_result_restart_.delivered(true, time_us_64() / 1000);
-        if (delivered_owner_submit)
-            owner_submit_delivered_ = true;
-        if (delivered_bootstrap_submit) {
-            bootstrap_submit_delivered_ = true;
-            bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
-        }
-        if (delivered_bootstrap_ack)
-            bootstrap_ack_delivered_ = true;
-    }
+    http_.poll();
 }
 
 namespace {

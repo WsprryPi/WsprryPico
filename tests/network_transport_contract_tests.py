@@ -57,7 +57,8 @@ assert "wtp::Endpoint endpoint_;" in server_header
 
 # Activation closes the TLS listener before reboot, and recovery can close the
 # bootstrap listener. lwIP panics if tcp_abort is used on either LISTEN PCB.
-for source in (server, bootstrap):
+http_server = (ROOT / "src/network/pico/http_server.cpp").read_text()
+for source in (server, http_server):
     assert "tcp_close(listener_)" in source
     assert "tcp_abort(listener_)" not in source
 
@@ -74,7 +75,7 @@ assert "static wsprrypico::standalone::Scheduler scheduler(store, service);" in 
 bootstrap_gate = main.index("const bool bootstrap_started")
 bootstrap_call = main.index("bootstrap.poll(", bootstrap_gate)
 assert "derived_identity && blank_access_available()" in main[bootstrap_gate:bootstrap_call]
-assert "if (!listener_)" in bootstrap
+assert "if (!http_.listening())" in bootstrap
 assert "next_listen_attempt_ms_ = now + 1'000;" in bootstrap
 assert "network_setup_authority()" in bootstrap
 assert "bootstrap.configure_recovery(" in main

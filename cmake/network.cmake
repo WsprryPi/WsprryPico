@@ -43,6 +43,7 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
     target_sources(${image} PRIVATE
         ${CMAKE_SOURCE_DIR}/src/network/pico/psa_lifetime.cpp
         ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp
+        ${CMAKE_SOURCE_DIR}/src/network/pico/http_server.cpp
         ${CMAKE_SOURCE_DIR}/src/network/pico/bootstrap_server.cpp
         ${CMAKE_SOURCE_DIR}/src/network/pico/consumer_radio_crypto.cpp
         ${CMAKE_SOURCE_DIR}/src/network/pico/owner_signature.cpp
@@ -63,6 +64,7 @@ endforeach()
 set_source_files_properties(${CMAKE_SOURCE_DIR}/src/network/pico/psa_lifetime.cpp
     ${CMAKE_SOURCE_DIR}/src/network/pico/consumer_radio_crypto.cpp
     ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp
+    ${CMAKE_SOURCE_DIR}/src/network/pico/http_server.cpp
     ${CMAKE_SOURCE_DIR}/src/network/pico/bootstrap_server.cpp
     ${CMAKE_SOURCE_DIR}/src/network/pico/owner_signature.cpp
     ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_claim_platform.cpp

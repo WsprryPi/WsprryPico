@@ -102,6 +102,9 @@ class HttpParser {
     bool ready() const {
         return ready_;
     }
+    bool headers_complete() const {
+        return headers_done_;
+    }
     bool exhausted() const {
         return exhausted_;
     }

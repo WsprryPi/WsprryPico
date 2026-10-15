@@ -7,6 +7,7 @@
 #include "network/http.hpp"
 #include "network/owner_claim_http.hpp"
 #include "network/pico/bootstrap_crypto.hpp"
+#include "network/pico/http_server.hpp"
 #include "network/pico/owner_claim_crypto.hpp"
 #include "network/pico/recovery_crypto.hpp"
 #include "provisioning/consumer_claim.hpp"
@@ -30,7 +31,7 @@ class PicoNetwork;
 }
 namespace wsprrypico::network {
 
-// One bounded port-80 connection, explicitly admitted on AP or consumer station.
+// Two bounded port-80 connection tasks, admitted on AP or consumer station.
 // Commissioning plaintext routes remain AP-only; station setup is authenticated.
 // Setup requires idle/unowned RF authority or the established verified physical
 // stop/setup gate. Automatic recovery never invokes that physical stop override.
@@ -42,7 +43,8 @@ class PicoBootstrapServer {
     PicoBootstrapServer(std::string device, std::string firmware, InterfaceClassifier classifier,
                         void* context)
         : device_(std::move(device)), firmware_(std::move(firmware)), classifier_(classifier),
-          classifier_context_(context) {}
+          classifier_context_(context), http_(this, classify_client, handle_client, finish_client) {
+    }
     ~PicoBootstrapServer();
     bool start();
     void stop();
@@ -81,7 +83,7 @@ class PicoBootstrapServer {
         reset_context_ = context;
     }
     bool listening() const {
-        return listener_ != nullptr;
+        return http_.listening();
     }
     bool owner_claim_pending() const {
         return owner_reconcile_ || owner_restart_pending_ ||
@@ -94,7 +96,7 @@ class PicoBootstrapServer {
         setup_control_context_ = context;
     }
     bool reply_active() const {
-        return client_ && !headers_.empty();
+        return http_.reply_active();
     }
     struct Resources {
         bool connected = false;
@@ -107,11 +109,11 @@ class PicoBootstrapServer {
     };
     Resources resources() const {
         Resources result;
-        result.connected = client_ != nullptr;
+        result.connected = http_.connections() != 0;
         result.setup_pending = setup_pending();
         result.recovery_pending = reset_pending_;
         result.recovery_slot_state = static_cast<unsigned>(recovery_slot_.state());
-        result.pending_tcp_bytes = pending_bytes_;
+        result.pending_tcp_bytes = http_.pending_bytes();
         result.network_slot_state = static_cast<unsigned>(slot_.state());
         result.owner_slot_state = static_cast<unsigned>(owner_slot_.state());
         return result;
@@ -132,8 +134,7 @@ class PicoBootstrapServer {
     void (*setup_control_)(void*) = nullptr;
     void* setup_control_context_ = nullptr;
     ConsumerRadioApi* radio_ = nullptr;
-    std::uint64_t radio_transaction_ = 0;
-    std::uint64_t next_radio_transaction_ = std::uint64_t{1} << 63;
+    bool setup_owner_status_committed_ = false;
     BootstrapSlot recovery_slot_;
     PicoRecoveryCrypto recovery_crypto_;
     bool reset_pending_ = false;
@@ -143,12 +144,11 @@ class PicoBootstrapServer {
     std::string recovery_boot_id_;
     provisioning::AccessStore* recovery_access_ = nullptr;
     provisioning::RandomSource* recovery_random_ = nullptr;
-    static err_t accept(void*, tcp_pcb*, err_t);
-    static err_t receive(void*, tcp_pcb*, pbuf*, err_t);
-    static err_t sent(void*, tcp_pcb*, u16_t);
-    static void error(void*, err_t);
-    void close(bool peer_finished = false);
-    void dispatch();
+    static ConsumerInterface classify_client(void*, const tcp_pcb*, bool accepting);
+    static HttpResponse handle_client(void*, const HttpRequest&, ConsumerInterface, std::uint64_t);
+    static void finish_client(void*, std::uint64_t, bool);
+    HttpResponse dispatch(const HttpRequest&, ConsumerInterface, std::uint64_t);
+    void remember_setup_reply(const HttpRequest&, std::uint64_t);
     HttpResponse mutation(const HttpRequest& request);
     HttpResponse status() const;
     HttpResponse owner_status(bool claim_status);
@@ -203,19 +203,10 @@ class PicoBootstrapServer {
     void* classifier_context_ = nullptr;
     InterfaceClassifier station_classifier_ = nullptr;
     void* station_classifier_context_ = nullptr;
-    ConsumerInterface client_interface_ = ConsumerInterface::None;
     bool ap_active_ = false, station_active_ = false, ap_accepting_ = false;
     bool ap_setup_admitted_ = false;
     std::uint64_t next_listen_attempt_ms_ = 0;
-    tcp_pcb* listener_ = nullptr;
-    tcp_pcb* client_ = nullptr;
-    HttpParser parser_;
-    HttpResponse response_;
-    std::string headers_;
-    std::size_t header_offset_ = 0;
-    std::size_t body_offset_ = 0;
-    std::size_t pending_bytes_ = 0;
-    std::uint64_t accepted_ms_ = 0;
+    PicoHttpServer http_;
     bool active_ = false;
     bool (*restart_)(void*) = nullptr;
     void* restart_context_ = nullptr;

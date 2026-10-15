@@ -64,11 +64,98 @@ int main(){
                 self.assertEqual(built.returncode, 0, built.stderr)
                 subprocess.run([str(path / 'indicator')], check=True, capture_output=True, timeout=10)
 
+    def test_actual_setup_receipts_are_transaction_scoped(self):
+        source = (ROOT / 'src/network/pico/bootstrap_server.cpp').read_text()
+        methods = []
+        for anchor in ('void PicoBootstrapServer::setup_delivered(',
+                       'void PicoBootstrapServer::remember_setup_reply('):
+            start, end = block(source, anchor)
+            methods.append(source[start:end])
+        conditions = []
+        for anchor in ('if (bootstrap_trial_start_pending_ && bootstrap_submit_delivered_',
+                       'if (owner_trial_start_pending_ &&',
+                       'if (!setup_transaction_ && bootstrap_restart_pending_',
+                       'if (!setup_transaction_ && owner_restart_pending_'):
+            start = source.index('(', source.index(anchor))
+            end, depth = start + 1, 1
+            while depth:
+                depth += (source[end] == '(') - (source[end] == ')')
+                end += 1
+            conditions.append(source[start:end])
+        program = r"""
+#include <cstdint>
+#include <stdexcept>
+#include <string>
+struct HttpRequest {std::string path;};
+unsigned time_us_64(){return 123000;}
+void check(bool v){if(!v)throw std::runtime_error("receipt isolation");}
+struct Server {
+ std::string setup_reply_path_;
+ std::uint64_t setup_transaction_=0,bootstrap_submit_delivered_ms_=0;
+ bool setup_owner_status_committed_=false,owner_status_committed_reply_=false;
+ bool bootstrap_trial_start_pending_=true,bootstrap_submit_delivered_=false;
+ bool owner_trial_start_pending_=true,owner_submit_delivered_=false,bootstrap_ack_delivered_=false;
+ unsigned canceled=0,owner_canceled=0;
+ struct Restart {
+  unsigned calls=0;void delivered(bool ok,unsigned now){check(ok&&now==123);++calls;}
+  bool ready(unsigned)const{return true;}
+ } owner_result_restart_;
+ struct Commit {bool reconcile()const{return false;}bool restart_due(unsigned)const{return true;}} bootstrap_commit_;
+ bool bootstrap_restart_pending_=true,owner_restart_pending_=true,restart_=true;
+ unsigned bootstrap_committed_ms_=0,now_ms=5000,restart_now_ms=65000;
+ // No TCP connection state exists in this fixture. Unrelated sockets cannot gate these actions.
+ bool trial_ready()const{return TRIAL;}
+ bool owner_ready()const{return OWNER;}
+ bool restart_ready()const{return RESTART;}
+ bool owner_restart_ready()const{return OWNER_RESTART;}
+ void cancel_slot(){++canceled;}void cancel_owner_slot(bool restore){check(restore);++owner_canceled;}
+ void setup_delivered(std::uint64_t transaction,bool apply) DELIVER
+ void remember_setup_reply(const HttpRequest& request,std::uint64_t transaction) REMEMBER
+};
+int main(){
+ Server s;
+ s.remember_setup_reply({"/api/bootstrap/v1/status"},11);check(s.setup_transaction_==0);
+ s.remember_setup_reply({"/api/bootstrap/v1/submit"},12);
+ s.setup_delivered(0,true);s.setup_delivered(11,true);s.setup_delivered(13,false);
+ check(!s.bootstrap_submit_delivered_&&s.canceled==0&&s.setup_transaction_==12);
+ s.setup_delivered(12,true);check(s.bootstrap_submit_delivered_&&s.bootstrap_submit_delivered_ms_==123);
+ s.setup_delivered(12,false);check(s.canceled==0&&s.setup_transaction_==0);
+ s.remember_setup_reply({"/api/bootstrap/v1/submit"},14);s.setup_delivered(14,false);
+ check(s.canceled==1&&s.setup_transaction_==0);
+ s.remember_setup_reply({"/api/owner/v1/claim/submit"},15);s.setup_delivered(16,true);
+ check(!s.owner_submit_delivered_);s.setup_delivered(15,false);check(s.owner_canceled==1);
+ s.remember_setup_reply({"/api/owner/v1/claim/submit"},17);s.setup_delivered(17,true);
+ check(s.owner_submit_delivered_);
+ s.remember_setup_reply({"/api/bootstrap/v1/ack"},18);s.setup_delivered(19,true);
+ check(!s.bootstrap_ack_delivered_);s.setup_delivered(18,true);check(s.bootstrap_ack_delivered_);
+ s.owner_status_committed_reply_=true;s.remember_setup_reply({"/api/owner/v1/claim/status"},20);
+ s.owner_status_committed_reply_=false; // Another tab dispatches an unrelated static page.
+ s.setup_delivered(19,true);check(s.owner_result_restart_.calls==0);
+ s.setup_delivered(20,true);check(s.owner_result_restart_.calls==1);
+ s.setup_delivered(20,true);check(s.owner_result_restart_.calls==1);
+ s.remember_setup_reply({"/api/owner/v1/claim/status"},21);check(s.setup_transaction_==0);
+ check(s.trial_ready()&&s.owner_ready()&&s.restart_ready()&&s.owner_restart_ready());
+ s.setup_transaction_=22;
+ check(!s.trial_ready()&&!s.owner_ready()&&!s.restart_ready()&&!s.owner_restart_ready());
+}
+""".replace('DELIVER', methods[0]).replace('REMEMBER', methods[1])
+        # Replace the longer marker first, keeping OWNER out of OWNER_RESTART.
+        for key, condition in zip(('TRIAL', 'OWNER', 'RESTART', 'OWNER_RESTART'), conditions):
+            program = program.replace('return ' + key + ';', 'return ' + condition + ';')
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory)
+            (path / 'receipts.cpp').write_text(program)
+            built = subprocess.run(['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
+                                    str(path / 'receipts.cpp'), '-o', str(path / 'receipts')],
+                                   capture_output=True, text=True, timeout=60)
+            self.assertEqual(built.returncode, 0, built.stderr)
+            subprocess.run([str(path / 'receipts')], check=True, capture_output=True, timeout=10)
+
     def test_actual_dispatch_gate_and_console_batch(self):
         source = (ROOT / 'src/network/pico/bootstrap_server.cpp').read_text()
         header = (ROOT / 'src/network/pico/bootstrap_server.hpp').read_text()
         main = (ROOT / 'src/standalone/pico/main.cpp').read_text()
-        start, end = block(source, 'void PicoBootstrapServer::dispatch(')
+        start, end = block(source, 'HttpResponse PicoBootstrapServer::dispatch(')
         dispatch = source[start:end]
         default = re.search(r'#ifdef WSPRRY_PICO_STANDALONE_RF\s+'
                             r'static constexpr bool default_setup_admission = false;.*?#endif',
@@ -162,7 +249,11 @@ DEFAULT
  Response owner_status(bool){return {200,"owner"};}
  Response owner_mutation(const Request&){return {200,"owner mutation"};}
  void cancel_slot(){++canceled;} void cancel_owner_slot(bool){++owner_canceled;}
- void dispatch() DISPATCH
+ std::uint64_t setup_transaction_=0;
+ void remember_setup_reply(const Request&,std::uint64_t){}
+ Response dispatch_request(const Request& request,ConsumerInterface client_interface_,std::uint64_t radio_transaction_) DISPATCH
+ void dispatch(){response_=dispatch_request(parser_.request(),client_interface_,radio_transaction_);}
+
  void advance(bool mutation_safe) {
   mutation_safe_=mutation_safe&&setup_admitted_;
   if (!setup_admitted_) DENIED else {++advanced;}
@@ -203,8 +294,7 @@ int main() {
  network.address="192.0.2.20";server.dispatch();
  check(radio.handled_address==network.address);
  server.station_active_=false;server.dispatch();check(radio.handled_address.empty());
- server.station_active_=true;server.parser_.invalid=true;server.dispatch();
- check(server.response_.status==400&&radio.handled==3);server.parser_.invalid=false;
+ server.station_active_=true;
  server.parser_.value.path="/";server.dispatch();check(server.response_.status==200);
  check(server.response_.static_body=="radio-inline"&&server.response_.static_parts.size()==2);
  check(server.response_.content_security_policy=="test-csp");
@@ -214,6 +304,11 @@ int main() {
  asset_available=true;server.client_interface_=ConsumerInterface::AccessPoint;
  server.parser_.value.path="/radio";server.dispatch();check(server.response_.status==200);
  server.parser_.value.path="/";server.dispatch();check(server.response_.body=="identity");
+ server.setup_transaction_=31;server.parser_.value.path="/api/bootstrap/v1/status";
+ server.dispatch();check(server.response_.status==409&&server.response_.body=="setup_response_pending");
+ server.parser_.value.path="/radio";server.dispatch();check(server.response_.status==200);
+ server.parser_.value.path="/api/consumer/v1/identity";server.dispatch();check(server.response_.body=="radio-api");
+ server.setup_transaction_=0;
  server.pending=true;unsigned paused=0;server.setup_control_context_=&paused;
  server.setup_control_=[](void* context){++*static_cast<unsigned*>(context);};
  server.dispatch();check(paused==1);
