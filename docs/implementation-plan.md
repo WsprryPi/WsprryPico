@@ -157,7 +157,8 @@ No Phase 14 workstream or LED task remains open.
 15. **Open — operator review punchlist:** track requested improvements and
     findings from operator use. Begin with Pico configuration preservation
     (P15.1), then compatible Pi updates and version-pair verification (P15.2).
-    All eleven items remain unimplemented. See the
+    Twelve items are tracked. P15.1's Pico implementation is complete; paired
+    Pi adoption/version evidence remains open in P15.2. See the
     [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
 ## Selected consumer LAN access slice
@@ -249,8 +250,10 @@ saves, and complete hostname persistence and session recovery before changing
 the hostname display. Consolidate the settings pages after those behaviors
 are stable, then finish the main-page identity presentation. Later changes
 must extend the P15.2 compatibility coverage for any affected supported pairs.
-Prepare the user-documentation structure as needed, then finalize P15.11
-against the delivered P15.1-P15.10 behavior to avoid documenting interim flows.
+Run the P15.11 band/mode and clock follow-up after P15.1-P15.10 so its fresh
+results cover the delivered concurrency, WSPR and settings behavior. Prepare
+the user-documentation structure as needed, then finalize P15.12 against that
+behavior and P15.11's support dispositions to avoid documenting interim flows.
 
 - [ ] **P15.1 — Preserve Pico configuration across legacy and partial updates.**
   Track [WsprryPi #447](https://github.com/WsprryPi/WsprryPi/issues/447):
@@ -337,7 +340,39 @@ against the delivered P15.1-P15.10 behavior to avoid documenting interim flows.
   consistently in both the page and tab title. Verify distinct titles with two
   Pico tabs open and correct titles after a hostname change and page reload.
   Status: open; unimplemented.
-- [ ] **P15.11 — Create user documentation for Read the Docs Community.**
+- [ ] **P15.11 — Complete untested-band qualification and resolve clock-dependent support.**
+  Revisit the [band/mode chart](development/phase14-band-mode-qualification.md)
+  and [machine-readable catalog](development/phase14-band-support.json). Test
+  the currently Untested 8 m and 5 m entries across Tone, WSPR, QRSS, FSKCW and
+  DFCW, including the applicable P15.6 WSPR message types. Define finite
+  conducted tests and acceptance criteria against identified current firmware,
+  boards, engine, pins, clock and receiver/RF setup; record failures and
+  unavailable configurations as well as passes. Run after the preceding
+  firmware/interface changes to avoid repeating qualification for those changes.
+
+  Identify and resolve each historical case whose result depended on another
+  clock. Determine explicitly whether the delivered firmware provides the
+  capability itself, needs a separate clock-specific build/reflash, or requires
+  receiver adjustment. Current source uses build-time
+  `WSPRRY_PICO_RF_SAMPLE_RATE_HZ` (138 MHz default; 132/150 MHz alternatives)
+  and sets that clock at boot; automatic per-band clock selection is not
+  implemented. Preserve the distinctions that 4 m is directly representable
+  only at 150 MHz but remains Unqualified under the reliable-WSPR gate, while
+  the 6 m WSPR exception is a receiver-only +125 Hz retune at 138 MHz.
+  Neither establishes automatic firmware clock handling. If intrinsic support
+  is missing, resolve the implementation/support policy explicitly; qualify any
+  selected firmware change, including affected timing/resource/contention and
+  regression checks, before claiming that capability.
+
+  Update the chart/catalog with per-mode, per-clock and exact source/image
+  applicability, normal-firmware behavior, required operator steps and honest
+  Qualified/Unqualified/Unavailable/Untested outcomes. Preserve the closed
+  Phase 14 scope and original results; this is a new follow-up. Historical raw
+  captures and generated firmware were [disposed of](development/phase14-evidence-retention.md#october-15-operator-directed-test-data-disposal),
+  so use the Git records as historical context and acquire fresh evidence.
+  Record setup/settings restoration and review the resulting claims before
+  P15.12 documents them. Status: open; not started.
+- [ ] **P15.12 — Create user documentation for Read the Docs Community.**
   Create operator-focused documentation suitable for building and hosting on
   the community version of Read the Docs. Reuse suitable styling, format and
   navigation conventions from the WsprryPi documentation repository
@@ -350,7 +385,8 @@ against the delivered P15.1-P15.10 behavior to avoid documenting interim flows.
   configuration and dependency declarations compatible with Read the Docs
   Community; validate the build, links, navigation and desktop/mobile rendering.
   Finalize instructions and screenshots against the delivered P15.1-P15.10
-  behavior. Status: open; unimplemented.
+  behavior and P15.11's band/mode/clock support results. Status: open;
+  unimplemented.
 
 The operator will probably coordinate P15.1 and P15.2 from the WsprryPi
 project. That working-project choice remains tentative; #447 owns the Pico
