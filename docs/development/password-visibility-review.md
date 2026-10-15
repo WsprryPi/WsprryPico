@@ -136,3 +136,40 @@ unavailable with existing remote-automation settings; computer use also reported
 a locked Mac at that attempt, which the operator later corrected. No Safari
 security preference was changed. There was no RF job or credential/configuration
 replacement in this follow-up.
+
+## Follow-up: installed on A
+
+The operator confirmed that B now shows the eye on the iPhone and explicitly
+requested the same update on A. A was updated on 2026-10-15 with the identical
+RF UF2 recorded above, not a new build. Before loading, its hash and application
+payload boundaries were checked. The USB operation selected A's serial
+`0BF4B4AEC9FFB344` and confirmed device ID
+`fd6127d11d6aca42a9905fa3fb1bf1d5`, idle/unowned state, disabled schedules and
+inactive output. B was not reflashed or reconfigured during this follow-up.
+
+A's post-load USB readback confirms firmware
+`0.1.0-rc.3-password-eye-7bff45c`, revision `7bff45c0f32f`, 138 MHz and the
+`pio-dma-gp2` engine. Retained identity/access metadata, profile generation 5,
+saved consumer profile, effective station, schedules, frequency flags and boot
+pin assignments match the pre-load readback. Cursor
+`1791199541540946076` is unchanged. Output remains inactive, schedules disabled,
+storage healthy, configured GP14 capture healthy and AP off.
+
+The actual `http://192.168.1.47/radio` returns 200 with `Cache-Control: no-store`
+and the login/Wi-Fi eye controls, including the corrected SVG attribute toggle.
+The page SHA-256 is
+`e7cc5b3da957cad6bdf454d9bbe7613e9783085256b2784a633c11654c43903b`.
+This verifies A's served document; new native iPhone interaction on A was not
+performed. B's visible iPhone eye is operator-confirmed evidence.
+
+The existing `network_browser_tests` and `rf_bench_tests` both pass. Final
+adversarial reassessment checked exact board/image selection, reserved-flash
+boundaries, settings/cursor preservation, inactive output and the served
+document against the recorded claims; no actionable finding remains in this
+deployment scope. No RF job was submitted. The station-input question was
+investigated read-only; validation and WSPR message support were not changed.
+
+Private before/after USB readbacks, served page and verification result are on
+wspr5 at `/home/pi/password-visibility-20261015/deploy-A-7bff45c`. Only this
+review record changes in the repository for the A deployment; firmware source
+remains the already committed `7bff45c0f32f` implementation.
