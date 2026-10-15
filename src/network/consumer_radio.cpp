@@ -1,6 +1,7 @@
 #include "network/consumer_radio.hpp"
 
 #include "network/bootstrap_codec.hpp"
+#include "network/identity.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 
@@ -83,6 +84,40 @@ bool ConsumerRadioApi::available() const {
            profile->device_id == device_ && store_.sequence() == runtime_.generation() &&
            !profile->password.empty();
 }
+void ConsumerRadioApi::listeners(bool ap, std::string_view station_ip, std::string_view hostname) {
+    // The application refreshes this on every poll. Keep stable contexts free
+    // of hostname allocations while the RF worker and transport are resident.
+    if (station_ip == station_ip_ && hostname == hostname_) {
+        if (session_interface_ == ConsumerInterface::AccessPoint && !ap)
+            close();
+        ap_available_ = ap;
+        return;
+    }
+    const auto name = canonical_local_hostname(hostname);
+    const std::string ip = canonical_ipv4(station_ip) && station_ip != "0.0.0.0"
+                               ? std::string(station_ip)
+                               : std::string{};
+    const std::string host = name ? *name : std::string{};
+    if ((session_interface_ == ConsumerInterface::AccessPoint && !ap) ||
+        (session_interface_ == ConsumerInterface::Station &&
+         (ip != station_ip_ || host != hostname_)))
+        close();
+    ap_available_ = ap;
+    station_ip_ = ip;
+    hostname_ = host;
+}
+bool ConsumerRadioApi::page_admitted(const HttpRequest& request,
+                                     ConsumerInterface interface) const {
+    auto host = request.header("host");
+    if (host.ends_with(":80"))
+        host.remove_suffix(3);
+    // Exact bounded authorities: no userinfo, paths, alternative ports, suffix
+    // matches, numeric aliases or arbitrary Host values supplied by DNS rebinding.
+    return available() && ((interface == ConsumerInterface::AccessPoint && ap_available_ &&
+                            host == "192.168.4.1") ||
+                           (interface == ConsumerInterface::Station && !station_ip_.empty() &&
+                            (host == station_ip_ || (!hostname_.empty() && host == hostname_))));
+}
 void ConsumerRadioApi::poll(std::uint64_t now_ms) {
     if (state_ == State::None)
         return;
@@ -98,6 +133,8 @@ bool ConsumerRadioApi::active(std::uint64_t now_ms) {
 void ConsumerRadioApi::finish_request(std::uint64_t transaction, bool apply) {
     if (pending_transaction_ && *pending_transaction_ == transaction) {
         api_.finish_request(transaction, apply);
+        if (setup_delivery_)
+            setup_delivery_(transaction, apply, setup_context_);
         pending_transaction_.reset();
     }
 }
@@ -109,10 +146,14 @@ void ConsumerRadioApi::close() {
     state_ = State::None;
     started_ms_ = seen_ms_ = 0;
     next_sequence_ = 1;
+    session_authority_.clear();
+    session_interface_ = ConsumerInterface::None;
 }
 bool ConsumerRadioApi::admitted(const HttpRequest& request, bool binary) const {
-    return request.method == "POST" && request.header("host") == "192.168.4.1" &&
-           request.header("origin") == "http://192.168.4.1" &&
+    auto host = request.header("host");
+    if (host.ends_with(":80"))
+        host.remove_suffix(3);
+    return request.method == "POST" && request.header("origin") == "http://" + std::string(host) &&
            request.header("x-wsprrypico-radio") == "1" &&
            request.header("content-type") ==
                (binary ? "application/octet-stream" : "application/json") &&
@@ -224,7 +265,7 @@ HttpResponse ConsumerRadioApi::exchange(const HttpRequest& request, std::uint64_
             inner.path = path->string();
             inner.buffered_body = request.buffered_body;
             inner.selected_body = body->raw == "null" ? wtp::InputView{} : body->raw;
-            // A trusted adapter supplies the already-authenticated AP principal;
+            // A trusted adapter supplies the already-authenticated principal;
             // this internal Host/Origin pair is never a public plaintext API.
             const std::string authority = "192.168.4.1";
             inner.headers = {{"host", authority},
@@ -234,8 +275,17 @@ HttpResponse ConsumerRadioApi::exchange(const HttpRequest& request, std::uint64_
                              {"x-wsprrypico-request", "1"}};
             if (match->type() == '"')
                 inner.headers["if-match"] = match->string();
-            result = api_.handle(inner, "consumer-radio:" + bootstrap_hex(binding_.session),
-                                 authority, transaction);
+            if (inner.path.starts_with("/api/v1/consumer/setup/") && setup_handler_) {
+                inner.path.erase(0, std::string_view("/api/v1/consumer/setup").size());
+                inner.headers["origin"] = "http://192.168.4.1";
+                inner.headers["x-wsprrypico-bootstrap"] = "1";
+                inner.headers["x-wsprrypico-owner"] = "1";
+                result = setup_handler_(inner, transaction, setup_context_);
+            } else if (inner.method != "GET" && setup_busy_ && setup_busy_(setup_context_))
+                result = http_error(409, "setup_pending");
+            else
+                result = api_.handle(inner, "consumer-radio:" + bootstrap_hex(binding_.session),
+                                     authority, transaction);
             pending_transaction_ = transaction;
         }
     }
@@ -271,12 +321,14 @@ HttpResponse ConsumerRadioApi::exchange(const HttpRequest& request, std::uint64_
     return std::move(*response);
 }
 HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t now_ms,
-                                      std::uint64_t transaction) {
+                                      std::uint64_t transaction, ConsumerInterface interface) {
     poll(now_ms);
     if (!available())
         return http_error(409, "consumer_radio_unavailable");
+    if (!page_admitted(request, interface))
+        return http_error(403, "forbidden");
     if (request.path == "/api/consumer/v1/identity" && request.method == "GET" &&
-        request.header("host") == "192.168.4.1")
+        page_admitted(request, interface))
         return {200,
                 "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
                     ",\"boot_id\":" + wtp::json::quote(boot_) +
@@ -287,8 +339,18 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
     const bool binary = request.path != "/api/consumer/v1/start";
     if (!admitted(request, binary))
         return http_error(403, "forbidden");
-    if (request.path == "/api/consumer/v1/start")
-        return start(request, now_ms);
+    if (request.path == "/api/consumer/v1/start") {
+        auto response = start(request, now_ms);
+        if (response.status == 200) {
+            session_interface_ = interface;
+            session_authority_ = request.header("host");
+        }
+        return response;
+    }
+    if (state_ == State::None)
+        return http_error(401, "radio_authentication_required");
+    if (interface != session_interface_ || request.header("host") != session_authority_)
+        return http_error(403, "radio_session_context_mismatch");
     if (request.path == "/api/consumer/v1/finish")
         return finish(request, now_ms);
     if (request.path == "/api/consumer/v1/request")

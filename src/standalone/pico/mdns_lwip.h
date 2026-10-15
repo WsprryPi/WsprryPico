@@ -12,6 +12,7 @@ err_t wsprry_mdns_add(struct netif* interface, const char* label);
 // binding is exactly "plain" or "tls"; the SRV record carries port.
 err_t wsprry_mdns_add_wtp_service(struct netif* interface, const char* instance, u16_t port,
                                   const char* binding);
+err_t wsprry_mdns_add_http_service(struct netif* interface, const char* instance);
 // Quiesce replies and submit one goodbye, retaining membership/netif resources.
 // Success is local stack submission, not radio transmission or peer delivery.
 err_t wsprry_mdns_withdraw(struct netif* interface);

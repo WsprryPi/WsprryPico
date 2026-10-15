@@ -129,7 +129,12 @@ try:
                     stream.recv(1024)
                 raise AssertionError(f'{identity}: expected a certificate alert')
             except ssl.SSLError as error:
-                assert error.reason == reason, (identity, error.reason, reason)
+                # OpenSSL/Python versions use two names for the same expired-
+                # certificate alert. Preserve exact certificate-alert checking.
+                accepted = {reason}
+                if reason == 'SSLV3_ALERT_CERTIFICATE_EXPIRED':
+                    accepted.add('TLS_ALERT_CERTIFICATE_EXPIRED')
+                assert error.reason in accepted, (identity, error.reason, reason)
             assert http()[0] == 200
     control('WRITE NORMAL')
     # An unacknowledged fatal alert cannot retain a rejected slot indefinitely.

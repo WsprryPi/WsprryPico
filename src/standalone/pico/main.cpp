@@ -20,6 +20,7 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "hardware/clocks.h"
 #include "hardware/structs/watchdog.h"
 #include "hardware/watchdog.h"
+#include "lwip/ip.h"
 #include "network/identity.hpp"
 #include "network/pico/bootstrap_server.hpp"
 #include "network/pico/consumer_radio_crypto.hpp"
@@ -224,8 +225,17 @@ std::uint64_t monotonic_ms(void*) {
     return time_us_64() / 1000ULL;
 }
 bool softap_interface(const tcp_pcb* pcb, void*) {
-    return pcb && IP_IS_V4(&pcb->local_ip) &&
+    return (!ip_current_input_netif() ||
+            ip_current_input_netif() == &cyw43_state.netif[CYW43_ITF_AP]) &&
+           pcb && IP_IS_V4(&pcb->local_ip) &&
            ip4_addr_cmp(ip_2_ip4(&pcb->local_ip), netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_AP]));
+}
+bool station_interface(const tcp_pcb* pcb, void*) {
+    auto* station = &cyw43_state.netif[CYW43_ITF_STA];
+    return (!ip_current_input_netif() || ip_current_input_netif() == station) && pcb &&
+           netif_is_up(station) && netif_is_link_up(station) &&
+           !ip4_addr_isany_val(*netif_ip4_addr(station)) && IP_IS_V4(&pcb->local_ip) &&
+           ip4_addr_cmp(ip_2_ip4(&pcb->local_ip), netif_ip4_addr(station));
 }
 wsprrypico::provisioning::Activity provisioning_activity(void* context) {
     const auto current = static_cast<wsprrypico::wtp::JobService*>(context)->activity();
@@ -499,11 +509,11 @@ int main() {
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Fault);
-    // Consumer radio management is AP-local, including while station Wi-Fi is
-    // healthy. Its encrypted authenticated session is independent of setup.
-    softap_coordinator.blank_profile(
-        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
-        consumer_source_selected());
+    // Saved consumers use infrastructure normally. AP requests are finite or
+    // automatic outage recovery; they do not recreate station credentials.
+    softap_coordinator.blank_profile(runtime_profile.source() ==
+                                     wsprrypico::provisioning::RuntimeSource::Unprovisioned);
+    softap_coordinator.temporary_access(consumer_source_selected());
     softap_coordinator.recovery(boot_recovery);
 #ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
     // Test-only, RF-inhibited access window. Consumer USB field commands remain
@@ -556,6 +566,13 @@ int main() {
         browser_api, profile_store, runtime_profile, random_source, consumer_radio_crypto,
         identities.device_id(), service.status().boot_id);
     bootstrap.radio_control(consumer_radio);
+    if (consumer_source_selected())
+        bootstrap.setup_control(
+            +[](void* context) {
+                static_cast<wsprrypico::network::PicoServer*>(context)->set_admission(false);
+            },
+            &server);
+    bootstrap.station_classifier(station_interface, nullptr);
     browser_api.consumer_config(runtime_profile);
     // Source 5 keeps public commissioning separate from encrypted, password-
     // authenticated radio requests. Legacy plaintext field mutations stay closed.
@@ -564,8 +581,9 @@ int main() {
                (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy &&
                 access_store.record() && !access_store.record()->reset.pending());
     };
-    const bool bootstrap_started =
-        derived_identity && blank_access_available() && bootstrap.start();
+    // poll() owns bounded listener retries; a temporary PCB shortage at boot
+    // must not permanently disable consumer access.
+    const bool bootstrap_started = derived_identity && blank_access_available();
     browser_api.set_active_job_connections(true);
     bool server_start_attempted = false;
     bool plain_start_attempted = false;
@@ -1701,7 +1719,7 @@ int main() {
 #endif
         // Core 1 owns physical refills/launch. Core 0 reconciles authority and
         // services all transports; packet arrival never times waveform events.
-        if (!reset_coordinator.pending()) {
+        if (!reset_coordinator.pending() && !bootstrap.setup_pending()) {
             scheduler.poll();
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE
             led_schedule.poll();
@@ -1713,7 +1731,10 @@ int main() {
 #endif
         watchdog_hw->scratch[1] = 4;
         const auto network_state = service.activity().state;
-        if (server.listening() || server.plain_listening() ||
+        if (consumer_source_selected() && !boot_recovery && !recovery_reset_at &&
+            !reset_coordinator.pending())
+            server.set_admission(!bootstrap.setup_pending() && !reboot_at);
+        if (consumer_source_selected() || server.listening() || server.plain_listening() ||
             (network_state != wsprrypico::wtp::State::Armed &&
              network_state != wsprrypico::wtp::State::Running))
             network.poll();
@@ -1722,8 +1743,7 @@ int main() {
         const auto field_now_ms = time_us_64() / 1000ULL;
         consumer_radio.admission(runtime_profile_loaded && consumer_source_selected() &&
                                  blank_access_available() && !boot_recovery &&
-                                 !reset_coordinator.pending() && !reboot_at &&
-                                 !bootstrap.owner_claim_pending() && !bootstrap.setup_pending());
+                                 !reset_coordinator.pending() && !reboot_at);
         if ((consumer_source_selected() || bootstrap.owner_claim_pending()) && gatt.running())
             gatt.stop();
         if (runtime_profile_loaded && !consumer_source_selected() &&
@@ -1740,7 +1760,7 @@ int main() {
         softap_coordinator.station(station_ready, field_now_ms);
         softap_coordinator.token_records(
             local_access.live_softap_sessions(field_now_ms, service.owner_session_id()));
-        softap_coordinator.reply_active(server.softap_active() || bootstrap.setup_pending());
+        softap_coordinator.reply_active(server.softap_active() || bootstrap.reply_active());
         const bool request_softap = softap_coordinator.poll(field_now_ms);
         const auto surface = softap_coordinator.surface(
             service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
@@ -1753,40 +1773,60 @@ int main() {
             surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
             blank_access_available() &&
             (wsprrypico::provisioning::idle_for_access(access_activity) || radio_unarmed_access);
-        if (softap.running() && softap.captive() != blank_captive) {
+        const bool ap_transition_safe =
+            wsprrypico::network::consumer_radio_network_idle(access_activity);
+        if (ap_transition_safe && softap.running() && softap.captive() != blank_captive) {
             (void)network.softap_name(false, {});
             softap.stop();
         }
-        if (request_softap && !softap.running() && derived_identity) {
+        if (ap_transition_safe && request_softap && !softap.running() && derived_identity) {
             const auto* access = access_store.record();
             if (blank_captive)
                 (void)softap.start_blank(local_identity);
             else if (surface != wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
                      runtime_profile_loaded && access_store.healthy() && access)
                 (void)softap.start(local_identity, access->password);
-        } else if (!request_softap && softap.running()) {
+        } else if (ap_transition_safe && !request_softap && softap.running()) {
             (void)network.softap_name(false, {});
             softap.stop();
         }
         const bool softap_name_ready = network.softap_name(softap.ready(), local_identity.hostname);
-        const bool bootstrap_active = bootstrap_started && softap.ready();
+        const bool bootstrap_active = bootstrap_started && softap.ready() && blank_captive;
+        const bool consumer_station = bootstrap_started && consumer_source_selected() &&
+                                      consumer_radio.available() && station_ready;
+        consumer_radio.listeners(bootstrap_active, consumer_station ? station_ip : "",
+                                 network.configured_hostname());
         // The open AP accepts encrypted Wi-Fi setup before optional station setup.
         bool setup_admitted = true;
 #ifdef WSPRRY_PICO_STANDALONE_RF
-        setup_admitted = false;
+        // Automatic fallback and LAN commissioning need no physical stop when
+        // the shared authority already proves idle/inactive output. They never
+        // abort an accepted job to obtain this state.
+        const bool factory_blank_access =
+            !recovery && runtime_profile_loaded &&
+            runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned &&
+            access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased;
+        setup_admitted = wsprrypico::provisioning::idle_for_access(access_activity) &&
+                         scheduler.idle() && store.healthy() && profile_store.healthy() &&
+                         blank_access_available() && (!boot_recovery || factory_blank_access) &&
+                         !reboot_at && !reset_coordinator.pending();
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
         const auto setup_authority = service.status();
-        setup_admitted = wsprrypico::provisioning::rf_setup_allowed(
-            {gp14_runtime.stop_verified(), gp14_runtime.setup_accepts() != 0,
-             softap_coordinator.status(field_now_ms).manual_setup, service.output_inhibited(),
-             engine.safety_inhibited(), gp14_capture_ready && !gp14_button.fault(),
-             scheduler.idle(), store.healthy() && profile_store.healthy() && access_store.healthy(),
-             recovery || reboot_at != 0 || reset_coordinator.pending(), setup_authority.state,
-             setup_authority.owner_id.has_value(), setup_authority.job_id.has_value(),
-             setup_authority.output_active});
+        setup_admitted = setup_admitted ||
+                         wsprrypico::provisioning::rf_setup_allowed(
+                             {gp14_runtime.stop_verified(), gp14_runtime.setup_accepts() != 0,
+                              softap_coordinator.status(field_now_ms).manual_setup,
+                              service.output_inhibited(), engine.safety_inhibited(),
+                              gp14_capture_ready && !gp14_button.fault(), scheduler.idle(),
+                              store.healthy() && profile_store.healthy() && access_store.healthy(),
+                              recovery || reboot_at != 0 || reset_coordinator.pending(),
+                              setup_authority.state, setup_authority.owner_id.has_value(),
+                              setup_authority.job_id.has_value(), setup_authority.output_active});
 #endif
 #endif
-        bootstrap.poll(bootstrap_active, claim_platform.safe_to_commit(), setup_admitted);
+        bootstrap.poll(bootstrap_active, claim_platform.safe_to_commit(), setup_admitted,
+                       consumer_station, !softap_coordinator.status(field_now_ms).draining);
+        network.consumer_listener_status(consumer_station && bootstrap.listening());
         const bool softap_service_ready =
             softap.ready() && (surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly
                                    ? bootstrap.listening()
@@ -1870,9 +1910,10 @@ int main() {
             plain_retry_at_ms = field_now_ms + 30'000;
             (void)server.start_plain(plain_lan_port);
         }
-        network.listener_status(
-            server.configured() || plain_lan_wtp, server.listening() || server.plain_listening(),
-            deployment_matches || (plain_lan_wtp && network_hostname_ready) || network_only_source);
+        network.listener_status(server.configured() || plain_lan_wtp || consumer_station,
+                                server.listening() || server.plain_listening(),
+                                deployment_matches || (plain_lan_wtp && network_hostname_ready) ||
+                                    network_only_source || consumer_station);
         static wsprrypico::usb::ReplyPriority reply_priority;
         const bool allow_http_steps =
             !reply_priority.defer_http(time_us_64(), wsprrypico::usb::console_output_pending());

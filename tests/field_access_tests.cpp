@@ -1164,6 +1164,31 @@ void runtime_policy() {
     CHECK(blank_ap.poll(0)); // An erased profile opens AP immediately.
     blank_ap.station(true, 1'000);
     CHECK(blank_ap.poll(1'000)); // Setup remains available until activation restart.
+    provisioning::SoftApCoordinator temporary(store);
+    temporary.temporary_access(true);
+    temporary.station(true, 0);
+    temporary.token_records(2);
+    temporary.reply_active(true);
+    CHECK(!temporary.poll(0)); // Clients/polling cannot open an AP.
+    CHECK(temporary.request_manual_setup(1, true, true));
+    CHECK(!temporary.request_manual_setup(2, true, true));
+    CHECK(temporary.poll(1'000'000)); // Held: no repeated action or timer renewal.
+    temporary.manual_button_released(1'000'000);
+    CHECK(temporary.poll(1'599'999));
+    CHECK(temporary.poll(1'600'000)); // One bounded existing-reply drain.
+    CHECK(temporary.status(1'600'000).draining);
+    CHECK(!temporary.poll(1'610'000));
+    CHECK(!temporary.poll(2'000'000)); // Activity cannot restart the drain.
+    temporary.station(false, 2'000'000);
+    CHECK(!temporary.poll(2'059'999));
+    CHECK(temporary.poll(2'060'000));
+    CHECK(temporary.request_manual_setup(2'060'001, true));
+    CHECK(temporary.poll(2'660'001)); // Manual expiry during outage keeps fallback.
+    temporary.station(true, 2'700'000);
+    CHECK(temporary.poll(2'729'999));
+    temporary.reply_active(false);
+    CHECK(!temporary.poll(2'730'000));
+    CHECK(media.bytes == access_before_manual); // No credentials, journals or cursor writes.
     ap.no_profile(false);
     CHECK(ap.surface(false) == provisioning::SoftApSurface::ProvisionedPreClock);
     CHECK(ap.surface(true) == provisioning::SoftApSurface::Normal);

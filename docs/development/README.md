@@ -1,5 +1,15 @@
 # Development baseline
 
+The selected [consumer LAN access slice](consumer-lan-access.md) now implements
+port-80 station IP/hostname access, saved-password authentication, normally-off
+consumer AP, temporary button access, automatic outage fallback/recovery and
+the delivered configured-button default. Its bounded acceptance and final review
+are complete; see the [results](consumer-lan-access.md#acceptance-record--2026-10-14)
+and [plan](consumer-lan-access-plan.md).
+Earlier AP-only, AP-always-retained and default-disabled-button descriptions
+below retain historical evidence scope and are superseded by this slice.
+Phase 14 and P13.1 closures remain intact.
+
 Phase 11 is closed within its documented software, bounded physical and scoped
 conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
 binds its source pair, assertion-level applicability, host regressions and
@@ -84,9 +94,11 @@ checkpoint's automatic journal, carrier, recovery and resource gaps. P12.3
 remains CLOSED_SCOPED within its historical boundary.
 The [Phase 13 feature backlog](../implementation-plan.md#phase-13-feature-backlog)
 records P13.1 transmit LED work as complete (`CLOSED_SCOPED`) and P13.2 external
-Si5351 implementation as deferred. No active feature work remains selected.
-Phase 14 PIO/DMA RF qualification and release is active under the
-[pre-acquisition plan](phase14-plan.md) and [result record](phase14-results.md).
+Si5351 implementation as deferred. The new consumer LAN/AP slice above is
+selected independently of Phase 13. Phase 14 is closed within its declared
+scope under the [closeout ledger](phase14-closeout-ledger.md); its
+[pre-acquisition plan](phase14-plan.md) and [result record](phase14-results.md)
+retain their historical evidence.
 The [GPIO timekeeping/calibration research plan](gpio-time-calibration-plan.md)
 records the selected NTP filtering/UTC discipline, NTP-derived Pico calibration
 and optional GPS/PPS stages, with Si5351 conditional on GPIO results and deferred.

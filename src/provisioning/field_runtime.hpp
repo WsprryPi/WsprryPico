@@ -12,6 +12,7 @@ inline constexpr std::uint64_t softap_fallback_ms = 60'000;
 inline constexpr std::uint64_t softap_station_stable_ms = 30'000;
 inline constexpr std::uint64_t softap_join_grace_ms = 120'000;
 inline constexpr std::uint64_t softap_manual_setup_ms = 600'000;
+inline constexpr std::uint64_t softap_reply_drain_ms = 10'000;
 
 enum class SoftApSurface { BlankReadOnly, ProvisionedPreClock, Normal };
 
@@ -27,6 +28,7 @@ struct SoftApStatus {
     bool reply_active = false;
     bool manual_setup = false;
     bool manual_button_held = false;
+    bool draining = false;
 };
 
 class SoftApCoordinator {
@@ -51,6 +53,9 @@ class SoftApCoordinator {
     }
     void reply_active(bool value) {
         reply_active_ = value;
+    }
+    void temporary_access(bool value) {
+        temporary_access_ = value;
     }
     void ready(bool value) {
         ready_ = value && requested_;
@@ -79,6 +84,8 @@ class SoftApCoordinator {
     std::uint64_t manual_started_ms_ = 0;
     bool manual_active_ = false;
     bool manual_button_held_ = false;
+    bool temporary_access_ = false, draining_ = false;
+    std::uint64_t drain_started_ms_ = 0;
 };
 
 class IndicatorOutput {

@@ -22,24 +22,34 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   and accepted SNTP. Build-time `off` and `tls` choices remain; TLS is never an
   automatic fallback. A Wi-Fi-only profile needs no TLS identity in Plain LAN
   mode.
-- The consumer radio page uses the AP-local
+- The consumer radio page uses the station/AP
   [Consumer-Radio/1](protocol/Consumer-Radio-v1.md) adapter to the shared
   BrowserApi and JobService. A saved Wi-Fi passphrase authenticates volatile
   encrypted sessions. This authority is separate from engineering mTLS and
   from the open commissioning pages; profile-owned Wi-Fi and station identity
   cannot be changed through the radio configuration API. The genuine page's
   traffic is encrypted, while HTTP page delivery retains the documented
-  open-AP substitution threat. Both Picos have bounded settings/persistence and final four-smoke
+  substitution threat on both interfaces. Port-80 root access uses the current
+  station IPv4 or configured local hostname, independently of UTC/TLS.
+  Interface/authority admission and session invalidation are explicit; public
+  AP commissioning stays AP-only, and LAN setup uses authenticated wrappers
+  around the same trial/commit paths. See the selected
+  [consumer LAN slice](development/consumer-lan-access.md).
+  Historical Phase 14: both Picos have bounded settings/persistence and final four-smoke
   acceptance under their recorded image identities and narrow source applicability.
-  Final source/coverage/adversarial audits are accepted; Git closeout remains open.
+  Final source/coverage/adversarial audits and Git closeout are accepted within
+  their recorded scope; they do not qualify this later slice.
 - BLE/Bluefy remains the implemented engineering provisioning and field-control
   path. A native Raspberry Pi/Linux BlueZ client is an additional local/bench
   controller. If consumer BLE work resumes, it will use a dedicated iPhone app.
 - The [revised open setup contract](development/phase12-safari-open-setup-revision.md)
   selects a captive SoftAP Wi-Fi page followed by optional station settings.
   Saving settings requires no button, code or retained phone owner. With saved
-  credentials the consumer radio revision keeps the AP available during idle
-  and unarmed radio management, including a healthy station connection. Armed,
+  credentials, consumer AP is normally off. A button request opens it while held
+  and for ten minutes after release. A 60-second outage requests automatic
+  fallback; 30-second stable infrastructure recovery withdraws fallback after
+  any manual lease. Activity cannot keep the AP up indefinitely; existing
+  replies get a bounded ten-second drain. Armed,
   running, failed and uncertain output states withdraw the AP path. A
   previously selected runtime BOOTSEL hold is withdrawn after a physical
   failure, and station loss brings the AP back. A separate GP14 input is now
@@ -52,7 +62,8 @@ Use WsprryPico for project, repository and application naming; firmware artifact
   preservation; see the [integrated closeout](development/phase12-gp14-integrated-acceptance.md).
   Production RF cutoff integration retains five strict accepted rows and a
   scoped final long-hold disposition. Strict final 50 ms/90 s assertions remain
-  unqualified and GP14 production default enablement is deferred.
+  unqualified. This later slice enables configured button capture by default,
+  preserving custom and disabled pin selections.
   Safari is one possible
   browser, not a required step. Source implementation and bounded target
   acceptance exist; final selected commissioning results and explicit
@@ -241,7 +252,8 @@ and indicator assertions are closed within the
 [current matrix](development/phase12-closure-matrix.md). Its explicit physical
 timing/peer/fleet exclusions remain unqualified; neither the closed scope nor
 the one-member application check establishes broad interoperability. GP14
-production default enablement is deferred. Earlier native-Pi and iPhone/Bluefy
+production default enablement was deferred at that historical closeout and is
+now selected in the consumer LAN slice. Earlier native-Pi and iPhone/Bluefy
 records retain their exact source/image/evidence scope.
 The [pin-assignment contract](pin-assignment-contract.md) selects the eligible
 GPIO set, exclusive role allocations and fixed I²C pairs. Clock calibration and

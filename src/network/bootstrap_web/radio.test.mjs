@@ -5,12 +5,20 @@ import {sha256} from '@noble/hashes/sha2.js';
 import {chacha20poly1305} from '@noble/ciphers/chacha.js';
 import {authenticate,begin,b64,header,hex,join,open,seal,text,transcript} from './radio-crypto.js';
 import {RadioClient} from './radio-client.js';
+import {prepareNetwork,submitSetup,checkSetup} from './radio-setup.js';
 
 const id={version:1,device_id:'11'.repeat(16),boot_id:'22'.repeat(16),generation:'139',authentication:'saved_wifi_passphrase'};
 const privateKey=Uint8Array.from({length:32},(_,i)=>i+1);
 const grant={version:1,...id,session_id:'33'.repeat(16),public_key:b64(x25519.getPublicKey(privateKey)),challenge:'44'.repeat(16),login_ms:30000};
 const fixed=()=>begin(Uint8Array.from({length:32},(_,i)=>i+65),new Uint8Array(16).fill(0x55));
 const vectorState=()=>authenticate(fixed(),grant,'test-only-password',id);
+test('default native fetch retains its Window receiver',async()=>{
+  const original=globalThis.fetch;
+  try {
+    globalThis.fetch=function(){assert.equal(this,globalThis);return Promise.resolve(Response.json(id));};
+    assert.deepEqual(await new RadioClient().identity(),id);
+  } finally {globalThis.fetch=original;}
+});
 function response(state,sequence,value) {
   const nonce = new Uint8Array(12); new DataView(nonce.buffer).setBigUint64(4,sequence);
   const h=header(state.session,sequence);
@@ -78,4 +86,37 @@ test('wrong boot acknowledgement, concurrency and active response substitution f
   client.state=vectorState(); client.started=client.seen=Date.now();
   client.fetcher=async()=>new Response(response(client.state,99n,{status:200,etag:null,body:{ok:true}}),{headers:{'Content-Type':'application/octet-stream'}});
   await assert.rejects(client.request('config'),/identity/); assert.equal(client.authenticated,false);
+});
+test('authenticated network setup preserves transactions and never repeats an uncertain submit',async()=>{
+  const calls=[];
+  let status={generation:139,slot_state:'trial'};
+  const client={identity:async()=>id,request:async(path,method,body)=>{
+    calls.push({path,method,body});
+    assert.ok(path.startsWith('consumer/setup/api/bootstrap/v1/'));
+    if(path.endsWith('/start')) return Response.json({version:1,device_id:id.device_id,boot_id:id.boot_id,
+      slot_id:'66'.repeat(16),pico_public_key:grant.public_key,slot_expires_in_ms:180000});
+    if(path.endsWith('/submit')) throw new Error('reply lost');
+    return Response.json(status);
+  }};
+  const attempt=await prepareNetwork(client,id,{ssid:'test-network',password:'test-only-password',time_server:'time.local'});
+  assert.equal(attempt.generation,'140');
+  assert.equal(attempt.digest.length,64);
+  assert.equal(JSON.stringify(attempt).includes('test-only-password'),false);
+  await assert.rejects(submitSetup(client,attempt),/lost/);
+  await assert.rejects(submitSetup(client,attempt),/already sent/);
+  assert.equal(calls.filter(c=>c.path.endsWith('/submit')).length,1);
+  assert.equal(await checkSetup(client,attempt),'unconfirmed');
+  status={generation:140,slot_state:'none',request_id_digest:'00'.repeat(32)};
+  assert.equal(await checkSetup(client,attempt),'unconfirmed');
+  status.request_id_digest=attempt.digest;
+  assert.equal(await checkSetup(client,attempt),'saved');
+  status={generation:139,slot_state:'none'};
+  assert.equal(await checkSetup(client,attempt),'failed');
+  const large={...attempt,generation:'9007199254740993'};
+  status={generation:9007199254740992,slot_state:'none',request_id_digest:attempt.digest};
+  assert.equal(await checkSetup(client,large),'unconfirmed');
+  status.generation='9007199254740993';
+  assert.equal(await checkSetup(client,large),'saved');
+  client.identity=async()=>({...id,device_id:'aa'.repeat(16)});
+  await assert.rejects(checkSetup(client,attempt),/different Pico/);
 });

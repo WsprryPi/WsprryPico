@@ -320,6 +320,10 @@ bool PicoNetwork::add(std::string_view label) {
     auto* station = &cyw43_state.netif[CYW43_ITF_STA];
     if (wsprry_mdns_add(station, owned.c_str()) != ERR_OK)
         return false;
+    if (consumer_http_ && wsprry_mdns_add_http_service(station, owned.c_str()) != ERR_OK) {
+        wsprry_mdns_remove(station, 0);
+        return false;
+    }
     if (wtp_binding_ != WtpBinding::None &&
         wsprry_mdns_add_wtp_service(station, owned.c_str(), static_cast<u16_t>(wtp_port_),
                                     wtp_binding_ == WtpBinding::Plain ? "plain" : "tls") !=
@@ -328,6 +332,17 @@ bool PicoNetwork::add(std::string_view label) {
         return false;
     }
     return true;
+}
+void PicoNetwork::consumer_listener_status(bool ready) {
+    if (consumer_http_ == ready)
+        return;
+    consumer_http_ = ready;
+    if (withdrawal_started_us_ || service_withdrawal_started_us_)
+        return;
+    if (mdns_.withdraw(link_up()))
+        service_withdrawal_started_us_ = time_us_64();
+    else
+        mdns_.disable(false);
 }
 void PicoNetwork::wtp_listener_status(WtpBinding binding, unsigned port) {
     if (binding == WtpBinding::None || port == 0 || port > 65535) {
@@ -576,7 +591,7 @@ void PicoNetwork::poll() {
         mdns_.disable(false);
         service_withdrawal_started_us_.reset();
     }
-    mdns_.poll(enabled_ && listening_ && link_up(),
+    mdns_.poll(enabled_ && (listening_ || consumer_http_) && link_up(),
                link_up() ? ip4_addr_get_u32(netif_ip4_addr(station)) : 0, now);
     if (link != CYW43_LINK_UP) {
         sntp_.cancel();
@@ -728,6 +743,8 @@ std::string PicoNetwork::status() const {
            ",\"resume_after_withdrawal\":" + (resume_after_withdrawal_ ? "true" : "false") +
            ",\"control_configured\":" + (configured_ ? "true" : "false") +
            ",\"control_listening\":" + (listening_ ? "true" : "false") +
+           ",\"consumer_web_ready\":" + (consumer_http_ && link_up() ? "true" : "false") +
+           ",\"consumer_web_port\":80" +
            ",\"deployment_identity_matches\":" + (identity_matches_ ? "true" : "false") +
            ",\"station_mac\":" + wtp::json::quote(station_mac_) +
            ",\"stable_hostname\":" + wtp::json::quote(stable_hostname_) +

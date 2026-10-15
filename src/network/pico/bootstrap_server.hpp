@@ -3,8 +3,8 @@
 #include "lwip/tcp.h"
 #include "network/bootstrap_join.hpp"
 #include "network/bootstrap_slot.hpp"
-#include "network/http.hpp"
 #include "network/consumer_radio.hpp"
+#include "network/http.hpp"
 #include "network/owner_claim_http.hpp"
 #include "network/pico/bootstrap_crypto.hpp"
 #include "network/pico/owner_claim_crypto.hpp"
@@ -30,9 +30,10 @@ class PicoNetwork;
 }
 namespace wsprrypico::network {
 
-// One-connection AP-local plaintext server. The standard RF-inhibited image
-// admits one encrypted setup transaction from the open AP; the RF worker
-// build admits the same portal only after verified long-hold output shutdown.
+// One bounded port-80 connection, explicitly admitted on AP or consumer station.
+// Commissioning plaintext routes remain AP-only; station setup is authenticated.
+// Setup requires idle/unowned RF authority or the established verified physical
+// stop/setup gate. Automatic recovery never invokes that physical stop override.
 // Static bodies stream from
 // flash in bounded chunks.
 class PicoBootstrapServer {
@@ -51,7 +52,12 @@ class PicoBootstrapServer {
     static constexpr bool default_setup_admission = true;
 #endif
     void poll(bool active, bool mutation_safe = false,
-              bool setup_admitted = default_setup_admission);
+              bool setup_admitted = default_setup_admission, bool station_active = false,
+              bool ap_accepting = true);
+    void station_classifier(InterfaceClassifier classifier, void* context) {
+        station_classifier_ = classifier;
+        station_classifier_context_ = context;
+    }
     void restart_control(bool (*restart)(void*), void* context) {
         restart_ = restart;
         restart_context_ = context;
@@ -82,7 +88,14 @@ class PicoBootstrapServer {
                (owner_slot_.state() != provisioning::ConsumerClaimState::None &&
                 owner_slot_.state() != provisioning::ConsumerClaimState::Terminal);
     }
-    void radio_control(ConsumerRadioApi& radio) { radio_ = &radio; }
+    void radio_control(ConsumerRadioApi& radio);
+    void setup_control(void (*pause)(void*), void* context) {
+        setup_control_ = pause;
+        setup_control_context_ = context;
+    }
+    bool reply_active() const {
+        return client_ && !headers_.empty();
+    }
     struct Resources {
         bool connected = false;
         bool setup_pending = false;
@@ -112,6 +125,12 @@ class PicoBootstrapServer {
 
   private:
     HttpResponse recovery(const HttpRequest& request);
+    HttpResponse consumer_setup(const HttpRequest& request, std::uint64_t transaction);
+    void setup_delivered(std::uint64_t transaction, bool apply);
+    std::string setup_reply_path_;
+    std::uint64_t setup_transaction_ = 0;
+    void (*setup_control_)(void*) = nullptr;
+    void* setup_control_context_ = nullptr;
     ConsumerRadioApi* radio_ = nullptr;
     std::uint64_t radio_transaction_ = 0;
     std::uint64_t next_radio_transaction_ = std::uint64_t{1} << 63;
@@ -182,6 +201,12 @@ class PicoBootstrapServer {
     std::string firmware_;
     InterfaceClassifier classifier_ = nullptr;
     void* classifier_context_ = nullptr;
+    InterfaceClassifier station_classifier_ = nullptr;
+    void* station_classifier_context_ = nullptr;
+    ConsumerInterface client_interface_ = ConsumerInterface::None;
+    bool ap_active_ = false, station_active_ = false, ap_accepting_ = false;
+    bool ap_setup_admitted_ = false;
+    std::uint64_t next_listen_attempt_ms_ = 0;
     tcp_pcb* listener_ = nullptr;
     tcp_pcb* client_ = nullptr;
     HttpParser parser_;

@@ -89,6 +89,13 @@ struct Test {
     Crypto crypto;
     network::ConsumerRadioApi api{fixture.api, store, runtime, random, crypto, device, boot};
     std::uint64_t now = 1000, sequence = 1, transaction = 100;
+    std::string authority = "192.168.4.1";
+    network::ConsumerInterface interface = network::ConsumerInterface::AccessPoint;
+    network::HttpResponse send(network::HttpRequest r, std::uint64_t tx) {
+        r.headers["host"] = authority;
+        r.headers["origin"] = "http://" + authority;
+        return api.handle(r, now, tx, interface);
+    }
     Test() {
         provisioning::ConsumerProfile profile;
         profile.device_id = device;
@@ -109,16 +116,18 @@ struct Test {
         fixture.api.consumer_config(runtime);
         assert(fixture.scheduler.command("CONFIG " + config).find("true") != std::string::npos);
         api.admission(true);
+        api.listeners(true, "192.168.1.53", "wsprrypico-0a60df.local");
         assert(fixture.store.reserve(1791970000000000000ULL));
     }
     network::HttpResponse start() {
-        return api.handle(
+        return send(
             request(
                 "/api/consumer/v1/start",
                 R"({"version":1,"device_id":"11111111111111111111111111111111","boot_id":"22222222222222222222222222222222","generation":"1","public_key":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","nonce":"00000000000000000000000000000000"})"),
-            now, transaction++);
+            transaction++);
     }
     void login() {
+        sequence = 1;
         auto result = start();
         assert(result.status == 200);
         const auto root = wtp::json::parse(result.body);
@@ -127,8 +136,7 @@ struct Test {
         auto h = network::consumer_radio_header(session, 0);
         std::string packet(h.begin(), h.end());
         packet.resize(44);
-        assert(api.handle(request("/api/consumer/v1/finish", packet, true), now, transaction++)
-                   .status == 200);
+        assert(send(request("/api/consumer/v1/finish", packet, true), transaction++).status == 200);
     }
     network::HttpResponse call(std::string method, std::string path, std::string body = "null",
                                std::string revision = {}) {
@@ -139,11 +147,180 @@ struct Test {
                   ",\"if_match\":" + (revision.empty() ? "null" : wtp::json::quote(revision)) +
                   ",\"body\":" + body + "}";
         packet.resize(packet.size() + 16);
-        return api.handle(request("/api/consumer/v1/request", packet, true), now, transaction++);
+        return send(request("/api/consumer/v1/request", packet, true), transaction++);
     }
 };
 } // namespace
 int main() {
+    {
+        Test t;
+        // Overlapping subnets still cannot move a session between interfaces.
+        t.api.listeners(true, "192.168.4.1", "wsprrypico-0a60df.local");
+        t.interface = network::ConsumerInterface::Station;
+        t.login();
+        t.interface = network::ConsumerInterface::AccessPoint;
+        assert(t.call("GET", "/api/v1/status").status == 403);
+        t.interface = network::ConsumerInterface::Station;
+        t.sequence = 1;
+        t.api.listeners(false, "192.168.4.1", "wsprrypico-0a60df.local");
+        assert(t.call("GET", "/api/v1/status").body.find("\"status\":200") != std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+    }
+    {
+        Test t;
+        bool setup_busy = true;
+        t.api.setup_handler(nullptr, nullptr, &setup_busy,
+                            [](void* context) { return *static_cast<bool*>(context); });
+        t.login();
+        assert(t.call("GET", "/api/v1/status").body.find("\"status\":200") != std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+        const std::string hello =
+            R"({"session_id":"33333333333333333333333333333333","request_id":"44444444444444444444444444444444","operation":"HELLO","body":{"versions":["WTP/1"],"client_name":"test","client_version":"1"}})";
+        assert(t.call("POST", "/api/v1/jobs", hello).body.find("setup_pending") !=
+               std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+        assert(!t.fixture.service.activity().owned && !t.fixture.service.activity().output_active);
+        assert(t.call("PUT", "/api/v1/config", "{}", t.fixture.api.revision())
+                   .body.find("setup_pending") != std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+        setup_busy = false;
+        assert(t.call("POST", "/api/v1/jobs", hello).body.find("\"status\":200") !=
+               std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+    }
+    {
+        Test t;
+        struct Setup {
+            unsigned requests = 0, deliveries = 0;
+            bool applied = false;
+        } setup;
+        t.api.setup_handler(
+            [](const network::HttpRequest& r, std::uint64_t, void* p) {
+                auto& s = *static_cast<Setup*>(p);
+                ++s.requests;
+                assert(r.path == "/api/bootstrap/v1/start");
+                assert(r.header("host") == "192.168.4.1");
+                assert(r.header("origin") == "http://192.168.4.1");
+                assert(r.body_view() == "{}");
+                return network::HttpResponse{200, "{\"ok\":true}", "application/json", {}};
+            },
+            [](std::uint64_t, bool apply, void* p) {
+                auto& s = *static_cast<Setup*>(p);
+                ++s.deliveries;
+                s.applied = apply;
+            },
+            &setup);
+        t.authority = "192.168.1.53";
+        t.interface = network::ConsumerInterface::Station;
+        t.login();
+        assert(t.call("POST", "/api/v1/consumer/setup/api/bootstrap/v1/start", "{}").status == 200);
+        assert(setup.requests == 1 && setup.deliveries == 0);
+        t.api.finish_request(t.transaction + 9, true);
+        assert(setup.deliveries == 0);
+        t.api.listeners(true, {}, "wsprrypico-0a60df.local");
+        assert(setup.deliveries == 1 && !setup.applied);
+        t.api.finish_request(t.transaction - 1, true);
+        assert(setup.deliveries == 1); // Old transaction cannot authorize a successor.
+    }
+    {
+        Test t;
+        t.authority = "192.168.1.53";
+        t.interface = network::ConsumerInterface::Station;
+        t.login();
+        const std::string session(32, '1'), job(32, '2');
+        unsigned id = 1000;
+        const auto command = [&](std::string op, std::string body) {
+            auto result = t.call("POST", "/api/v1/jobs",
+                                 "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
+                                     std::string(28, '0') + std::to_string(++id) +
+                                     "\",\"operation\":\"" + op + "\",\"body\":" + body + "}");
+            assert(result.body.find("\"status\":200") != std::string::npos);
+            t.api.finish_request(t.transaction - 1, true);
+        };
+        command("HELLO", R"({"versions":["WTP/1"],"client_name":"test","client_version":"1"})");
+        command("CLAIM", "{\"owner_id\":\"" + session + "\",\"lease_ms\":30000}");
+        command("LOAD", "{\"job_id\":\"" + job +
+                            "\",\"profile\":\"rf-events/1\",\"mode\":\"tone\","
+                            "\"total_duration_ns\":\"1000000000\",\"events\":[{\"offset_ns\":\"0\","
+                            "\"duration_ns\":\"1000000000\","
+                            "\"rf_on\":true,\"frequency_nhz\":\"3570100000000000\"}],\"allow_"
+                            "frequency_adjustment\":false}");
+        assert(t.call("GET", "/api/v1/status").body.find("\"state\":\"loaded\"") !=
+               std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+        const auto start = t.fixture.clock.snapshot().utc_now_ns + 2'000'000'000ULL;
+        command("ARM", "{\"job_id\":\"" + job + "\",\"start_utc_ns\":\"" + std::to_string(start) +
+                           "\",\"max_start_uncertainty_ns\":\"1000\"}");
+        assert(t.call("GET", "/api/v1/status").body.find("\"state\":\"armed\"") !=
+               std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+        auto refused =
+            t.call("PUT", "/api/v1/network", "{\"enabled\":false}", t.fixture.api.revision());
+        assert(refused.body.find("\"status\":409") != std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+        t.fixture.clock.now += 2'000'000'000ULL;
+        t.fixture.service.poll();
+        assert(t.call("GET", "/api/v1/status").body.find("\"state\":\"running\"") !=
+               std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+        t.api.close(); // Browser loss neither aborts nor releases accepted local execution.
+        assert(t.fixture.service.status().state == wtp::State::Running);
+        assert(t.fixture.service.status().owner_id == session);
+        t.fixture.clock.now += 1'000'000'000ULL;
+        t.fixture.service.poll();
+        assert(t.fixture.service.status().state == wtp::State::Complete);
+    }
+    {
+        Test t;
+        const auto station = network::ConsumerInterface::Station;
+        auto get = request("/api/consumer/v1/identity");
+        get.method = "GET";
+        for (const auto host : {"192.168.1.53", "wsprrypico-0a60df.local", "192.168.1.53:80"}) {
+            get.headers["host"] = host;
+            assert(t.api.handle(get, t.now, 1, station).status == 200);
+            assert(t.api.handle(get, t.now, 1).status == 403);
+        }
+        for (const auto host : {"", "evil.local", "wsprrypico-0a60df.local.evil", "192.168.4.1",
+                                "192.168.1.53:81", "192.168.1.053", "user@192.168.1.53",
+                                "192.168.1.53/", "192.168.1.53:80:80", "[::1]"}) {
+            get.headers["host"] = host;
+            assert(t.api.handle(get, t.now, 1, station).status == 403);
+        }
+        t.authority = "wsprrypico-0a60df.local";
+        t.interface = station;
+        t.login();
+        t.api.listeners(false, "192.168.1.53", t.authority); // AP loss preserves LAN session.
+        assert(t.api.active(t.now));
+        auto result =
+            t.call("PUT", "/api/v1/network", "{\"enabled\":false}", t.fixture.api.revision());
+        assert(result.body.find("\"status\":200") != std::string::npos);
+        assert(t.fixture.network.pending == false);
+        t.api.listeners(false, "192.168.1.54", t.authority); // DHCP cancels deferred action.
+        t.api.finish_request(t.transaction - 1, true);
+        assert(t.fixture.network.enabled && !t.fixture.network.pending);
+        assert(!t.api.active(t.now));
+        t.now += 1000;
+        t.login();
+        t.authority = "192.168.1.54";
+        assert(t.call("GET", "/api/v1/status").status == 403); // Same IP netif, different origin.
+        --t.sequence;
+        t.authority = "wsprrypico-0a60df.local";
+        assert(t.call("GET", "/api/v1/status").status == 200);
+        t.api.finish_request(t.transaction - 1, true);
+        t.api.listeners(false, "192.168.1.54", "renamed.local");
+        assert(!t.api.active(t.now));
+        t.authority = "renamed.local";
+        t.now += 1000;
+        t.login();
+        t.api.listeners(false, {}, t.authority); // Link/explicit network disable.
+        assert(!t.api.active(t.now));
+    }
+    {
+        Test t;
+        t.login();
+        t.api.listeners(false, "192.168.1.53", "wsprrypico-0a60df.local");
+        assert(!t.api.active(t.now)); // AP withdrawal cancels only the AP session.
+    }
     {
         provisioning::Activity activity;
         assert(network::consumer_radio_network_idle(activity));

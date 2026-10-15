@@ -136,7 +136,7 @@ No Phase 14 workstream or LED task remains open.
     **CLOSED_SCOPED**, with addressability and external TX-only operation verified.
     P13.2 external Si5351 implementation is conditional and deferred. P13.3 manual
     amplifier enable is an unselected backlog proposal. No active feature
-    implementation remains selected; see the
+    implementation remains selected in Phase 13; see the
     [Phase 13 feature backlog](#phase-13-feature-backlog).
 14. **Closed within declared scope — 9/9 workstreams (100%)**, 2026-10-14.
     The [closeout ledger](development/phase14-closeout-ledger.md) supersedes older
@@ -153,6 +153,19 @@ No Phase 14 workstream or LED task remains open.
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
 
+## Selected consumer LAN access slice
+
+Selected 2026-10-14 after Phase 14 closure. The
+[implementation/acceptance plan](development/consumer-lan-access-plan.md) and
+[consumer contract](development/consumer-lan-access.md) cover normal LAN
+IP/hostname browser access, authenticated radio and transactional setup,
+temporary button AP, automatic unavailable-network fallback/recovery, default
+configured-button delivery and preserved local RF/ownership authority.
+Implementation, bounded target acceptance and final review are complete; see
+the [acceptance record](development/consumer-lan-access.md#acceptance-record--2026-10-14). This is separate
+from closed Phase 14 and LED work; it selects no Si5351, amplifier, filter or
+new-band implementation.
+
 ## Phase 13 feature backlog
 
 Selected on 2026-10-05 to follow Phase 12 and precede final qualification.
@@ -166,7 +179,7 @@ required to close P13.1 or carried forward from it into Phase 14.
 
 External Si5351 implementation remains conditional and deferred; Phase 14's GPIO
 results inform any future selection. Manual amplifier enable is an unselected
-backlog proposal. No further feature implementation is selected, and Phase 14
+backlog proposal. No further feature implementation in this backlog is selected, and Phase 14
 is closed. The 2026-10-09
 [GPIO timekeeping/calibration research plan](development/gpio-time-calibration-plan.md)
 selects three stages of consideration: NTP filtering and UTC discipline,
@@ -212,14 +225,14 @@ acceptance gate to the active Phase 14 campaign.
 
 Current disposition, 2026-10-14. The manual amplifier proposal above is retained
 verbatim as recorded on 2026-10-10; its reference to an active Phase 14 campaign
-is historical. No feature implementation or new qualification campaign is
-currently selected.
+is historical. The consumer LAN slice above is selected separately; no new
+qualification campaign or implementation of the deferred items below is selected.
 
 | Item | Remaining decision/work | Status |
 | --- | --- | --- |
 | P13.2 — External Si5351 | Decide whether GPIO results justify selecting a future engine; if selected, define hardware/reference settings, implement and qualify it through the existing JobService. | Conditional; deferred; unimplemented |
 | P13.3 — Manual amplifier enable | Preserve the [recorded proposal](#manual-amplifier-enable-proposal): enable/disable the amplifier without RF through a web page, control point, or both; select the interface and control/failure policies before implementation. | Backlog; unimplemented; implementation not selected |
-| GP14 production-default enablement | Decide whether to enable the existing button behavior by default. Existing functional button evidence and P13.1 LED closure remain accepted. | Deferred decision |
+| GP14 production-default enablement | Selected in the consumer LAN slice: enable configured capture by default; preserve custom and explicit disabled pin selections. Existing functional button evidence and P13.1 LED closure remain accepted. | Complete within the consumer LAN slice acceptance |
 | GPIO timekeeping/frequency improvements | The [research review is complete](development/gpio-time-calibration-review-closure.md); future NTP filtering/UTC discipline, NTP-derived Pico calibration and optional GPS UTC + PPS implementation remain proposals. | Research closed; implementation unselected |
 
 The [Phase 14 closeout](development/phase14-closeout-ledger.md) retains exclusions

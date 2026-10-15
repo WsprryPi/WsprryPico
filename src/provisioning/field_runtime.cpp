@@ -58,12 +58,21 @@ bool SoftApCoordinator::poll(std::uint64_t now_ms) {
         elapsed(now_ms, station_changed_ms_, softap_fallback_ms))
         fallback_ = true;
     const bool field_mode = access_.record() && access_.record()->field_mode;
-    const bool retained = token_records_ || reply_active_ || grace(now_ms) || manual_setup(now_ms);
+    const bool retained = (!temporary_access_ && (token_records_ || reply_active_)) ||
+                          grace(now_ms) || manual_setup(now_ms);
     if (fallback_ && station_usable_ &&
-        elapsed(now_ms, station_changed_ms_, softap_station_stable_ms) && !retained &&
-        !field_mode && !recovery_)
+        elapsed(now_ms, station_changed_ms_, softap_station_stable_ms) &&
+        (temporary_access_ || !retained) && !field_mode && !recovery_)
         fallback_ = false;
-    requested_ = blank_profile_ || field_mode || recovery_ || fallback_ || retained;
+    const bool desired = blank_profile_ || field_mode || recovery_ || fallback_ || retained;
+    if (desired)
+        draining_ = false;
+    else if (temporary_access_ && requested_ && reply_active_ && !draining_) {
+        draining_ = true;
+        drain_started_ms_ = now_ms;
+    }
+    requested_ = desired || (draining_ && reply_active_ &&
+                             !elapsed(now_ms, drain_started_ms_, softap_reply_drain_ms));
     if (!requested_)
         ready_ = false;
     return requested_;
@@ -81,7 +90,8 @@ SoftApStatus SoftApCoordinator::status(std::uint64_t now_ms) const {
             token_records_,
             reply_active_,
             manual,
-            manual && manual_button_held_};
+            manual && manual_button_held_,
+            draining_};
 }
 
 SoftApSurface SoftApCoordinator::surface(bool clock_usable) const {

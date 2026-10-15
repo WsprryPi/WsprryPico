@@ -15,6 +15,7 @@ namespace wsprrypico::network {
 // Authenticated radio management may retain an unarmed owner or loaded plan.
 // Commissioning keeps its stricter unowned-only activity gate.
 bool consumer_radio_network_idle(const provisioning::Activity& activity);
+enum class ConsumerInterface { None, AccessPoint, Station };
 struct ConsumerRadioBinding {
     std::array<std::uint8_t, 16> device{}, boot{}, session{}, challenge{}, browser_nonce{};
     std::array<std::uint8_t, 32> browser_key{}, pico_key{};
@@ -53,8 +54,8 @@ class ConsumerRadioCrypto {
     virtual void clear() = 0;
 };
 
-// One bounded, volatile AP-only session. It reuses BrowserApi/JobService and
-// never changes commissioning credentials or the standalone no-repeat cursor.
+// One bounded, volatile interface/origin-bound session. It reuses BrowserApi/
+// JobService and the existing transactional setup authority; it owns no cursor.
 class ConsumerRadioApi {
   public:
     static constexpr std::uint64_t login_ms = 30'000;
@@ -69,6 +70,18 @@ class ConsumerRadioApi {
         close();
     }
     bool available() const;
+    void listeners(bool ap, std::string_view station_ip, std::string_view hostname);
+    bool page_admitted(const HttpRequest& request, ConsumerInterface interface) const;
+    using SetupHandler = HttpResponse (*)(const HttpRequest&, std::uint64_t, void*);
+    using SetupDelivery = void (*)(std::uint64_t, bool, void*);
+    using SetupBusy = bool (*)(void*);
+    void setup_handler(SetupHandler handler, SetupDelivery delivery, void* context,
+                       SetupBusy busy = nullptr) {
+        setup_handler_ = handler;
+        setup_delivery_ = delivery;
+        setup_context_ = context;
+        setup_busy_ = busy;
+    }
     void admission(bool open) {
         admission_open_ = open;
         if (!open)
@@ -76,8 +89,8 @@ class ConsumerRadioApi {
     }
     bool active(std::uint64_t now_ms);
     void poll(std::uint64_t now_ms);
-    HttpResponse handle(const HttpRequest& request, std::uint64_t now_ms,
-                        std::uint64_t transaction);
+    HttpResponse handle(const HttpRequest& request, std::uint64_t now_ms, std::uint64_t transaction,
+                        ConsumerInterface interface = ConsumerInterface::AccessPoint);
     void finish_request(std::uint64_t transaction, bool apply);
     void close();
 
@@ -100,5 +113,12 @@ class ConsumerRadioApi {
     std::optional<std::uint64_t> pending_transaction_;
     bool admission_open_ = false;
     std::optional<std::uint64_t> last_start_ms_;
+    bool ap_available_ = false;
+    std::string station_ip_, hostname_, session_authority_;
+    ConsumerInterface session_interface_ = ConsumerInterface::None;
+    SetupHandler setup_handler_ = nullptr;
+    SetupDelivery setup_delivery_ = nullptr;
+    SetupBusy setup_busy_ = nullptr;
+    void* setup_context_ = nullptr;
 };
 } // namespace wsprrypico::network

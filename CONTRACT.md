@@ -41,25 +41,29 @@ application parity is not claimed.
   WsprryPi supports an explicit Plain LAN connection; one installed fleet
   member/application path has bounded Phase 12 acceptance. Full fleet
   interoperability remains unqualified.
-- Consumer radio settings have a separate AP-local authenticated path at
-  `http://192.168.4.1/radio`, specified by
+- Consumer radio settings have an authenticated path at station
+  `http://<current-IPv4>/`, `http://<configured-local-hostname>/` and available
+  AP `http://192.168.4.1/radio`, specified by
   [Consumer-Radio/1](docs/protocol/Consumer-Radio-v1.md). The saved consumer
   Wi-Fi passphrase authenticates a volatile encrypted session to the shared
-  JSON API. Wi-Fi and station identity remain owned by their setup pages.
-  The HTTP-delivered page retains the open-AP setup threat boundary; this
-  protocol does not authenticate page delivery. Bounded settings persistence
-  and restoration passed on both Picos; final RF smokes and release audits
-  remain separate gates.
+  JSON API. Wi-Fi and station identity use separate authenticated transactional
+  setup adapters. HTTP does not authenticate page delivery on AP or LAN;
+  encrypted payloads retain that substitution risk. The
+  [consumer LAN slice](docs/development/consumer-lan-access.md) tracks current
+  implementation and acceptance separately from historical Phase 14 evidence.
 - The implemented engineering provisioning and field-control path uses
   BLE/Bluefy under the
   [Phase 12 field-access contract](docs/development/phase12-field-access-contract.md).
   The later [open setup revision](docs/development/phase12-safari-open-setup-revision.md)
   selects an open SoftAP portal with Wi-Fi first and optional station settings
   later. Saving settings requires no button or retained phone owner. A blank
-  Pico starts its open AP automatically. The consumer radio revision retains
-  it during idle and unarmed management even with healthy station Wi-Fi;
-  armed, running, failed or uncertain output states withdraw this AP path.
-  Station loss also brings the AP back when the access guard permits. The operator
+  Pico starts its open AP automatically. Saved consumers normally keep AP off.
+  A manual lease lasts while held and ten minutes after debounced release;
+  clients/polling cannot extend it. Station unavailability for 60 seconds
+  requests automatic fallback, with bounded retries and 30-second stable
+  recovery hysteresis. RF guards defer AP activation without aborting a local
+  job; LAN status remains available during loaded/armed/running operation.
+  The operator
   selected a separate active-low GP14 button (physical pin 19): a debounced
   release under 0.4 seconds requests reset; reaching 0.9 seconds held requests
   transmission shutdown; reaching 9 seconds held requests setup AP after
@@ -69,7 +73,8 @@ application parity is not claimed.
   the [integrated closeout](docs/development/phase12-gp14-integrated-acceptance.md).
   Production RF cutoff integration has five accepted strict rows and a scoped
   final long-hold disposition; strict final 50 ms/90 s assertions remain
-  unqualified and GP14 default enablement is deferred. The
+  unqualified. The consumer LAN slice now selects delivered button capture
+  enabled by default, honoring saved custom/disabled assignments. The
   runtime BOOTSEL sampler failed a physical long-hold check and remains
   withdrawn. The earlier
   [P12.7 physical-owner decision](docs/development/phase12-7-decision.md) is

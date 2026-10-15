@@ -108,6 +108,14 @@ static void wtp_txt(struct mdns_service* service, void* binding) {
     (void)mdns_resp_add_service_txtitem(service, version, sizeof(version) - 1);
     (void)mdns_resp_add_service_txtitem(service, selected, (u8_t)strlen(selected));
 }
+err_t wsprry_mdns_add_http_service(struct netif* interface, const char* instance) {
+    s8_t slot;
+    if (!interface || !NETIF_TO_HOST(interface) || !instance || !*instance ||
+        strlen(instance) > MDNS_LABEL_MAXLEN)
+        return ERR_VAL;
+    slot = mdns_resp_add_service(interface, instance, "_http", DNSSD_PROTO_TCP, 80, NULL, NULL);
+    return slot < 0 ? (err_t)slot : ERR_OK;
+}
 err_t wsprry_mdns_add_wtp_service(struct netif* interface, const char* instance, u16_t port,
                                   const char* binding) {
     static char plain[] = "binding=plain";
@@ -143,8 +151,9 @@ static err_t goodbye(struct netif* interface) {
     message.host_replies = REPLY_HOST_A | REPLY_HOST_PTR_V4;
     // The service-instance PTR is the shared browse record. lwIP adds its
     // SRV, TXT and host A as additional records; all must carry zero TTL.
-    if (host->services[0])
-        message.serv_replies[0] = REPLY_SERVICE_NAME_PTR;
+    for (record = 0; record < MDNS_MAX_SERVICES; ++record)
+        if (host->services[record])
+            message.serv_replies[record] = REPLY_SERVICE_NAME_PTR;
     result = mdns_create_outpacket(interface, &message, &packet);
     if (result != ERR_OK || !packet.pbuf)
         goto done;

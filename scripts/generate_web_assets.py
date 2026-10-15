@@ -61,6 +61,7 @@ hash_for = lambda text: base64.b64encode(hashlib.sha256(text.encode()).digest())
 csp = "default-src 'self'; style-src 'sha256-" + hash_for(css) + "'; script-src 'sha256-" + hash_for(js) + "'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 radio_policy = ("default-src 'none'; connect-src 'self'; style-src 'sha256-" + hash_for(css) +
                 "'; script-src 'sha256-" + hash_for(radio_js) + "' 'sha256-" + hash_for(js) +
+                "' 'sha256-" + hash_for(owner_key_js) +
                 "'; img-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 bootstrap_policy = ("default-src 'none'; script-src 'self' " +
                     ' '.join("'sha256-" + hash_for(script) + "'"
@@ -96,7 +97,7 @@ constexpr std::string_view owner_parts[] = {
     owner_html, "<script>", owner_key_js, "</script><script>", owner_js,
     "</script></body>\\n</html>\\n"};
 constexpr std::string_view radio_parts[] = {
-    radio_html, "<script>", radio_js, "</script><script>", js,
+    radio_html, "<script>", owner_key_js, "</script><script>", radio_js, "</script><script>", js,
     "</script></body>\\n</html>\\n"};
 }
 std::string_view consumer_radio_csp() { return radio_policy; }

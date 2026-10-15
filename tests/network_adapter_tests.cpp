@@ -34,6 +34,7 @@ watchdog_hw_t* watchdog_hw = &watchdog;
 static std::uint64_t now_us;
 static unsigned enables, disables, driver_polls, delivered_goodbyes, lost_goodbyes;
 static unsigned station_service_ptr, station_service_goodbye, ap_service_ptr;
+static unsigned station_http_ptr, station_http_goodbye;
 static unsigned station_plain_txt, station_tls_txt;
 static unsigned station_service_port;
 static unsigned connect_calls;
@@ -112,6 +113,12 @@ static err_t output(netif* interface, pbuf* packet, const ip4_addr_t*) {
         const auto length = read16(dns + end + 8);
         assert(static_cast<std::size_t>(end) + 10 + length <= dns_size);
         const bool positive = dns[end + 4] | dns[end + 5] | dns[end + 6] | dns[end + 7];
+        if (read16(dns + end) == 12 && domain_is(name, "_http._tcp.local")) {
+            assert(interface == &cyw43_state.netif[CYW43_ITF_STA]);
+            ++station_http_ptr;
+            if (!positive)
+                ++station_http_goodbye;
+        }
         if (read16(dns + end) == 12 && domain_is(name, "_wtp._tcp.local")) {
             mdns_domain instance{};
             assert(mdns_readname(message, end + 10, &instance) != MDNS_READNAME_ERROR);
@@ -304,6 +311,18 @@ int main(int argc, char** argv) {
     assert(network.set_enabled(true));
     active(network);
     assert(station_service_ptr == 0);
+    // Consumer hostname/HTTP registration needs neither TLS nor accepted UTC.
+    network.listener_status(false, false);
+    network.consumer_listener_status(true);
+    advance(network, 4'000'000);
+    assert(station_http_ptr &&
+           network.status().find("\"mdns_state\":\"active\"") != std::string::npos);
+    network.consumer_listener_status(false);
+    advance(network, 1'100'000);
+    assert(station_http_goodbye);
+    assert(network.status().find("\"advertised_hostname\":\"\"") != std::string::npos);
+    network.listener_status(true, true);
+    active(network);
     network.wtp_listener_status(PicoNetwork::WtpBinding::Plain, 31417);
     assert(network.status().find("\"mdns_state\":\"withdrawing\"") != std::string::npos);
     advance(network, 4'000'000);
@@ -326,8 +345,8 @@ int main(int argc, char** argv) {
     auto* local_packet = pbuf_alloc(PBUF_TRANSPORT, 1, PBUF_RAM);
     ip_addr_t local_destination{};
     IP_ADDR4(&local_destination, 192, 168, 4, 2);
-    assert(local_pcb && local_packet && udp_sendto(local_pcb, local_packet,
-                                                &local_destination, 4321) == ERR_OK);
+    assert(local_pcb && local_packet &&
+           udp_sendto(local_pcb, local_packet, &local_destination, 4321) == ERR_OK);
     pbuf_free(local_packet);
     udp_remove(local_pcb);
     assert(ap_local_packets == 1);
@@ -509,6 +528,7 @@ int main(int argc, char** argv) {
     network.poll();
     assert(network.link_up());
     network.stop_network_only_trial();
-    std::cout << "actual network lifecycle: nonblocking drain, rapid toggles, idle cancellation, "
-                 "link loss, 50 resource-stable cycles, enable failure and network-only retry passed\n";
+    std::cout
+        << "actual network lifecycle: nonblocking drain, rapid toggles, idle cancellation, "
+           "link loss, 50 resource-stable cycles, enable failure and network-only retry passed\n";
 }

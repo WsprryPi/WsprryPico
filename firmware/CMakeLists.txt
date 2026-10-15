@@ -102,7 +102,7 @@ endif()
 option(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
     "Link the RF-inhibited USB BOOTSEL safe-zone window diagnostic" OFF)
 option(WSPRRY_PICO_GP14_RUNTIME_BUTTON
-    "Opt in to the unaccepted GP14 runtime button and PIO capture" OFF)
+    "Enable the configured active-low reset/stop/setup button capture" ON)
 option(WSPRRY_PICO_GP14_FLASH_PROBE
     "Temporary RF-inhibited runtime variant with a guarded scratch flash probe" OFF)
 option(WSPRRY_PICO_GP14_RF_ACCEPTANCE

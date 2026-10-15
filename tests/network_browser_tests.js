@@ -4,9 +4,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
-async function fixture(activeConnections = true, configured = true, localMode = false) {
+async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '') {
     const ids = ['local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
+    for (const id of ['consumer-setup','consumer-network-settings','consumer-station-settings',
+      'consumer-check-save','consumer-network-form','consumer-station-form','consumer-ssid',
+      'consumer-password','consumer-time-server','consumer-callsign','consumer-locator','consumer-return','consumer-save-status','consumer-resume'])
+      elements[id] = {disabled:false,value:'',textContent:''};
     elements.config.elements = Object.fromEntries(['callsign','locator','power_dbm','ssid','password','ntp_ipv4','enabled','schedules','expiry'].map(id => [id,{value:'',checked:false}]));
     class Option { constructor(text,value) { this.text = text; this.value = String(value); this.disabled = false; } }
     class Select {
@@ -18,6 +22,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         addEventListener(type,callback) { this['on'+type] = callback; }
     }
     for (const key of ['rf_gp','button_gp','indicator','indicator_gp','indicator_active_high']) elements.config.elements[key] = new Select();
+    elements['consumer-power'] = new Select();
     elements.config.elements.indicator.replaceChildren(...['onboard_led','external','disabled'].map(x=>new Option(x,x)));
     elements.config.elements.indicator_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
     const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
@@ -61,6 +66,24 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             } else throw new Error('Unexpected request ' + path);
             return {ok:status>=200&&status<300,json:async()=>data,headers:{get:()=> '"original-revision"'}};
         }});
+    context.location={hash:receipt,pathname:'/',search:''};
+    context.history={replaceState:(_,__,url)=>{context.location.hash=url.includes('#')?url.slice(url.indexOf('#')):'';}};
+    if (consumerMode) {
+        f.radio = {
+            authenticated:false,
+            identity:async()=>({device_id:'1'.repeat(32),boot_id:'a'.repeat(32),generation:'3'}),
+            login:async()=>{ f.radio.authenticated=true; },
+            request:async(path,method='GET',body)=>{
+                if (!f.radio.authenticated) throw new Error('Log in again');
+                return context.fetch('/api/v1/'+path,{method,body:body===undefined?undefined:JSON.stringify(body)});
+            },
+            prepareNetwork:async()=>({kind:'network',device:'1'.repeat(32),generation:'4',digest:'a'.repeat(64),submit:{secret:'must-not-survive'}}),
+            submitSetup:async()=>{ f.setupSubmits=(f.setupSubmits||0)+1; f.radio.authenticated=false; throw new Error('reply lost'); },
+            checkSetup:async()=> 'saved',
+            logout:async()=>{ f.radio.authenticated=false; }
+        };
+        context.WsprryPicoConsumerRadio={createClient:()=>f.radio};
+    }
     vm.runInContext(source,context);
     await new Promise(setImmediate);
     f.context = context;
@@ -77,6 +100,38 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     return f;
 }
 (async () => {
+    const interruptedSetup = await fixture(true,true,false,true);
+    interruptedSetup.elements['local-password'].value='test-password';
+    await interruptedSetup.elements['local-login'].onsubmit({preventDefault(){}});
+    interruptedSetup.elements['consumer-ssid'].value='preserved draft';
+    interruptedSetup.elements['consumer-password'].value='test-password';
+    interruptedSetup.elements['consumer-network-form'].oninput();
+    await interruptedSetup.elements['consumer-network-form'].onsubmit({preventDefault(){}});
+    assert.equal(interruptedSetup.setupSubmits,1);
+    assert.equal(interruptedSetup.elements['local-login'].hidden,false);
+    assert.equal(interruptedSetup.elements['consumer-check-save'].disabled,true);
+    assert.equal(interruptedSetup.elements['consumer-password'].value,'');
+    assert.equal(interruptedSetup.elements['consumer-ssid'].value,'preserved draft');
+    const receipt = interruptedSetup.context.location.hash;
+    assert.ok(receipt.startsWith('#save='));
+    assert.doesNotMatch(decodeURIComponent(receipt),/test-password|must-not-survive|submit/);
+    const resumed = await fixture(true,true,false,true,receipt);
+    assert.equal(resumed.setupSubmits,undefined);
+    assert.match(resumed.elements['consumer-save-status'].textContent,/receipt was recovered/);
+    await resumed.elements['local-login'].onsubmit({preventDefault(){}});
+    assert.equal(resumed.elements['consumer-network-settings'].disabled,true);
+    await resumed.elements['consumer-check-save'].onclick();
+    assert.equal(resumed.setupSubmits,undefined);
+    assert.equal(resumed.context.location.hash,'');
+    for (const malformed of ['#save=%','\n#save='+receipt.slice(6),receipt+'x',
+      '#save='+encodeURIComponent(JSON.stringify({kind:'network',device:'1'.repeat(32),generation:'18446744073709551616',digest:'a'.repeat(64)}))]) {
+        assert.equal(vm.runInContext('readSetupReceipt('+JSON.stringify(malformed)+')',resumed.context),null);
+    }
+    await interruptedSetup.elements['local-login'].onsubmit({preventDefault(){}});
+    assert.equal(interruptedSetup.elements['consumer-check-save'].disabled,false);
+    await interruptedSetup.elements['consumer-check-save'].onclick();
+    assert.equal(interruptedSetup.setupSubmits,1);
+    assert.match(interruptedSetup.elements['consumer-save-status'].textContent,/saved and verified/);
     const experimental = await fixture();
     experimental.config.allow_unqualified_frequency = true;
     experimental.config.allow_non_amateur_frequency = true;

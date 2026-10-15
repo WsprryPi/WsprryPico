@@ -1,5 +1,6 @@
 #include "network/pico/bootstrap_server.hpp"
 
+#include "lwip/ip.h"
 #include "network/assets.hpp"
 #include "network/bootstrap_codec.hpp"
 #include "network/bootstrap_http.hpp"
@@ -33,6 +34,68 @@ PicoBootstrapServer::~PicoBootstrapServer() {
     stop();
 }
 
+void PicoBootstrapServer::radio_control(ConsumerRadioApi& radio) {
+    radio_ = &radio;
+    radio.setup_handler(
+        [](const HttpRequest& request, std::uint64_t transaction, void* context) {
+            return static_cast<PicoBootstrapServer*>(context)->consumer_setup(request, transaction);
+        },
+        [](std::uint64_t transaction, bool apply, void* context) {
+            static_cast<PicoBootstrapServer*>(context)->setup_delivered(transaction, apply);
+        },
+        this,
+        [](void* context) { return static_cast<PicoBootstrapServer*>(context)->setup_pending(); });
+}
+
+HttpResponse PicoBootstrapServer::consumer_setup(const HttpRequest& request,
+                                                 std::uint64_t transaction) {
+    // Called only after ConsumerRadioApi authenticates the complete envelope.
+    // This closed route set never forwards recovery/reset or arbitrary HTTP.
+    HttpResponse result = http_error(404, "not_found");
+    if (request.method == "GET" && request.path == "/api/bootstrap/v1/status")
+        result = status();
+    else if (request.method == "GET" && (request.path == "/api/owner/v1/public-status" ||
+                                         request.path == "/api/owner/v1/claim/status"))
+        result = owner_status(request.path == "/api/owner/v1/claim/status");
+    else if (request.method == "POST" && mutation_safe_ &&
+             (request.path == "/api/bootstrap/v1/start" ||
+              request.path == "/api/bootstrap/v1/submit" ||
+              request.path == "/api/bootstrap/v1/ack"))
+        result = mutation(request);
+    else if (request.method == "POST" && mutation_safe_ &&
+             (request.path == "/api/owner/v1/claim/start" ||
+              request.path == "/api/owner/v1/claim/submit"))
+        result = owner_mutation(request);
+    if (result.status == 200) {
+        setup_reply_path_ = request.path;
+        setup_transaction_ = transaction;
+    }
+    return result;
+}
+
+void PicoBootstrapServer::setup_delivered(std::uint64_t transaction, bool apply) {
+    if (transaction != setup_transaction_)
+        return;
+    if (setup_reply_path_ == "/api/bootstrap/v1/submit" && bootstrap_trial_start_pending_) {
+        if (apply) {
+            bootstrap_submit_delivered_ = true;
+            bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
+        } else
+            cancel_slot();
+    } else if (setup_reply_path_ == "/api/owner/v1/claim/submit" && owner_trial_start_pending_) {
+        if (apply)
+            owner_submit_delivered_ = true;
+        else
+            cancel_owner_slot(true);
+    } else if (apply && setup_reply_path_ == "/api/bootstrap/v1/ack")
+        bootstrap_ack_delivered_ = true;
+    else if (apply && setup_reply_path_ == "/api/owner/v1/claim/status" &&
+             owner_status_committed_reply_)
+        owner_result_restart_.delivered(true, time_us_64() / 1000);
+    setup_reply_path_.clear();
+    setup_transaction_ = 0;
+}
+
 bool PicoBootstrapServer::start() {
     if (listener_ || !classifier_ || device_.empty())
         return false;
@@ -55,12 +118,19 @@ bool PicoBootstrapServer::start() {
 
 err_t PicoBootstrapServer::accept(void* context, tcp_pcb* pcb, err_t err) {
     auto& self = *static_cast<PicoBootstrapServer*>(context);
-    if (err != ERR_OK || !self.active_ || self.client_ ||
-        !self.classifier_(pcb, self.classifier_context_)) {
+    const bool ap =
+        self.ap_active_ && self.ap_accepting_ && self.classifier_(pcb, self.classifier_context_);
+    const bool station = self.station_active_ && self.station_classifier_ &&
+                         self.station_classifier_(pcb, self.station_classifier_context_);
+    if (err != ERR_OK || !self.active_ || self.client_ || ap == station) {
         tcp_abort(pcb);
         return ERR_ABRT;
     }
     self.client_ = pcb;
+    // Replies and subsequent TCP admission stay on the actual incoming netif.
+    if (ip_current_input_netif())
+        tcp_bind_netif(pcb, ip_current_input_netif());
+    self.client_interface_ = ap ? ConsumerInterface::AccessPoint : ConsumerInterface::Station;
     if (self.next_radio_transaction_ == UINT64_MAX) {
         self.client_ = nullptr;
         tcp_abort(pcb);
@@ -135,9 +205,10 @@ void PicoBootstrapServer::error(void* context, err_t) {
         self.bootstrap_submit_delivered_ms_ = time_us_64() / 1000;
     }
     if (self.radio_)
-        self.radio_->finish_request(self.radio_transaction_, !self.headers_.empty() &&
-            self.header_offset_ == self.headers_.size() &&
-            self.body_offset_ == self.response_.body_size() && self.pending_bytes_ == 0);
+        self.radio_->finish_request(
+            self.radio_transaction_,
+            !self.headers_.empty() && self.header_offset_ == self.headers_.size() &&
+                self.body_offset_ == self.response_.body_size() && self.pending_bytes_ == 0);
     self.client_ = nullptr;
     self.parser_.reset_secure();
     self.parser_ = {};
@@ -149,14 +220,21 @@ void PicoBootstrapServer::error(void* context, err_t) {
 }
 
 void PicoBootstrapServer::dispatch() {
+    // DHCP/link callbacks can run inside network.poll(), before the main loop
+    // refreshes listener state. Invalidate the old station context before use.
+    if (radio_ && network_)
+        radio_->listeners(ap_active_, station_active_ ? network_->ipv4() : "",
+                          network_->configured_hostname());
     owner_status_committed_reply_ = false;
     if (parser_.failed())
         response_ = http_error(400, "invalid_http");
     else if (radio_ && parser_.request().path.starts_with("/api/consumer/v1/"))
-        response_ = radio_->handle(parser_.request(), time_us_64() / 1000, radio_transaction_);
+        response_ = radio_->handle(parser_.request(), time_us_64() / 1000, radio_transaction_,
+                                   client_interface_);
     else if (radio_ && radio_->available() && parser_.request().method == "GET" &&
-             parser_.request().path == "/radio" &&
-             parser_.request().header("host") == "192.168.4.1") {
+             (parser_.request().path == "/radio" ||
+              (client_interface_ == ConsumerInterface::Station && parser_.request().path == "/")) &&
+             radio_->page_admitted(parser_.request(), client_interface_)) {
         const auto asset = consumer_radio_asset();
         response_ = asset ? HttpResponse{200, "", std::string(asset->type), {}}
                           : http_error(503, "radio_page_unavailable");
@@ -165,11 +243,12 @@ void PicoBootstrapServer::dispatch() {
             response_.static_parts = asset->parts;
             response_.content_security_policy = consumer_radio_csp();
         }
-    }
+    } else if (client_interface_ != ConsumerInterface::AccessPoint)
+        response_ = http_error(403, "forbidden");
     else if (parser_.request().path.starts_with("/api/recovery/v1/"))
         response_ = recovery(parser_.request());
-    else if (!setup_admitted_ && (parser_.request().path.starts_with("/api/bootstrap/v1/") ||
-                                  parser_.request().path.starts_with("/api/owner/v1/")))
+    else if (!ap_setup_admitted_ && (parser_.request().path.starts_with("/api/bootstrap/v1/") ||
+                                     parser_.request().path.starts_with("/api/owner/v1/")))
         response_ = http_error(409, "setup_unavailable");
     else if (parser_.request().path == "/api/bootstrap/v1/status")
         response_ =
@@ -193,17 +272,21 @@ void PicoBootstrapServer::dispatch() {
              parser_.request().path.starts_with("/api/owner/v1/claim/"))
         response_ = owner_mutation(parser_.request());
     else
-        response_ = bootstrap_http_response(parser_.request(), device_, firmware_,
-                                            active_ && setup_admitted_, active_ && setup_admitted_,
-                                            active_ && reset_begin_);
+        response_ = bootstrap_http_response(
+            parser_.request(), device_, firmware_, ap_active_ && ap_setup_admitted_,
+            ap_active_ && ap_setup_admitted_, active_ && reset_begin_);
+    // Dispatch runs inside the network poll. Close competing WTP admission now,
+    // before a later packet in that same poll can claim the idle authority.
+    if (setup_pending() && setup_control_)
+        setup_control_(setup_control_context_);
     headers_ = response_.wire_headers();
 }
 
 void PicoBootstrapServer::close(bool peer_finished) {
     if (radio_)
-        radio_->finish_request(radio_transaction_, !headers_.empty() &&
-            header_offset_ == headers_.size() && body_offset_ == response_.body_size() &&
-            pending_bytes_ == 0);
+        radio_->finish_request(radio_transaction_,
+                               !headers_.empty() && header_offset_ == headers_.size() &&
+                                   body_offset_ == response_.body_size() && pending_bytes_ == 0);
     const bool submit_response = bootstrap_trial_start_pending_ && !bootstrap_submit_delivered_ &&
                                  parser_.ready() &&
                                  parser_.request().path == "/api/bootstrap/v1/submit" &&
@@ -324,13 +407,24 @@ void PicoBootstrapServer::stop() {
     }
 }
 
-void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admitted) {
-    active_ = active;
+void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admitted,
+                               bool station_active, bool ap_accepting) {
+    ap_active_ = active;
+    station_active_ = station_active;
+    ap_accepting_ = ap_accepting;
+    active_ = ap_active_ || station_active_;
+    ap_setup_admitted_ = setup_admitted;
+    if (client_ && ((client_interface_ == ConsumerInterface::AccessPoint && !ap_active_) ||
+                    (client_interface_ == ConsumerInterface::Station &&
+                     (!station_active_ || !station_classifier_ ||
+                      !station_classifier_(client_, station_classifier_context_)))))
+        close();
     if (radio_) {
         radio_->poll(time_us_64() / 1000);
-        if (!active_) radio_->close();
+        if (!active_)
+            radio_->close();
     }
-    setup_admitted_ = setup_admitted;
+    setup_admitted_ = setup_admitted || station_active;
     recovery_slot_.expire(time_us_64() / 1000);
     if (!active_ && !reset_pending_)
         recovery_slot_.cancel();
@@ -381,19 +475,24 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
         if (old_owner_state != provisioning::ConsumerClaimState::None &&
             owner_slot_.state() == provisioning::ConsumerClaimState::None)
             cancel_owner_slot(true);
-        if (owner_trial_start_pending_ && !client_ &&
-            (owner_submit_delivered_ ||
-             (now_ms >= owner_submit_ms_ && now_ms - owner_submit_ms_ >= 10'000))) {
+        if (owner_trial_start_pending_ && !client_ && owner_submit_delivered_) {
             owner_trial_start_pending_ = false;
-            claim_platform_->begin_station_trial();
-            // Set before stopping the station: a failed start must restore it too.
-            owner_trial_switched_network_ = true;
-            network_->stop_network_only_trial();
-            if (network_->start_network_only(owner_trial_.ssid, owner_trial_.password,
-                                             previous_network_.time_server))
+            const bool reuse = owner_trial_.ssid == previous_network_.ssid &&
+                               owner_trial_.password == previous_network_.password &&
+                               claim_platform_->station_ready(owner_trial_.ssid);
+            if (reuse)
                 owner_trial_active_ = true;
-            else
-                end_owner_trial(false, now_ms);
+            else {
+                claim_platform_->begin_station_trial();
+                // Set before stopping the station: a failed start must restore it too.
+                owner_trial_switched_network_ = true;
+                network_->stop_network_only_trial();
+                if (network_->start_network_only(owner_trial_.ssid, owner_trial_.password,
+                                                 previous_network_.time_server))
+                    owner_trial_active_ = true;
+                else
+                    end_owner_trial(false, now_ms);
+            }
         }
         if (owner_trial_active_ && owner_slot_.state() == provisioning::ConsumerClaimState::Trial &&
             claim_platform_ && claim_platform_->station_ready(owner_trial_.ssid)) {
@@ -487,15 +586,20 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
         }
     }
     if (!active_) {
-        // Do not leave a wildcard port-80 listener on the station interface
-        // if the AP stops or the service is otherwise unavailable.
+        // No admitted interface remains; close the wildcard socket too.
         if (bootstrap_trial_start_pending_)
             cancel_slot();
         stop();
         return;
     }
-    if (!listener_ && !start())
-        return;
+    if (!listener_) {
+        const auto now = time_us_64() / 1000;
+        if (now < next_listen_attempt_ms_)
+            return;
+        next_listen_attempt_ms_ = now + 1'000;
+        if (!start())
+            return;
+    }
     if (!client_)
         return;
     if (time_us_64() / 1000 - accepted_ms_ >= 10'000) {
@@ -529,7 +633,8 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
         pending_bytes_ += count;
         (void)tcp_output(client_);
     } else if (!pending_bytes_) {
-        if (radio_) radio_->finish_request(radio_transaction_, true);
+        if (radio_)
+            radio_->finish_request(radio_transaction_, true);
         const bool delivered_owner_status =
             parser_.ready() && parser_.request().method == "GET" &&
             parser_.request().path == "/api/owner/v1/claim/status" && response_.status == 200 &&

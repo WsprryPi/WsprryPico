@@ -72,8 +72,10 @@ assert "static wsprrypico::standalone::Scheduler scheduler(store, service);" in 
 # The AP-local listener also serves recovery for engineering/corrupt profiles.
 # Ordinary station mutations retain their independent consumer-source checks.
 bootstrap_gate = main.index("const bool bootstrap_started")
-bootstrap_call = main.index("bootstrap.start();", bootstrap_gate)
+bootstrap_call = main.index("bootstrap.poll(", bootstrap_gate)
 assert "derived_identity && blank_access_available()" in main[bootstrap_gate:bootstrap_call]
+assert "if (!listener_)" in bootstrap
+assert "next_listen_attempt_ms_ = now + 1'000;" in bootstrap
 assert "network_setup_authority()" in bootstrap
 assert "bootstrap.configure_recovery(" in main
 assert "reset_coordinator.blocks_admission() || recovery_reset_at" in main

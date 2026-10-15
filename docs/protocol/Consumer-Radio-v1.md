@@ -1,6 +1,13 @@
 # Consumer-Radio/1
 
-Status: bounded two-Pico settings validation accepted, 2026-10-14. The earlier
+Current implementation: consumer LAN and AP listeners, with server-side
+interface/authority session binding and additive authenticated commissioning
+routes. See [consumer access](../development/consumer-lan-access.md) for the
+selected lifecycle and current acceptance status. The wire handshake,
+cryptographic transcript, packet header and fixed vectors below are unchanged.
+
+Historical Phase 14 evidence: bounded two-Pico settings validation accepted,
+2026-10-14. The earlier
 encrypted page/read API path passed at `consumer-radio-260445e0582b`.
 The uncommitted `consumer-radio-18997499747b` snapshot also passed authenticated
 settings changes, unarmed ownership/admission, reboot persistence and original
@@ -11,31 +18,38 @@ authenticated page/read API checks and corrected Plain LAN admission during
 independent TLS activity. All four final smoke screens are independently
 accepted: three retain their actual R189 image identity, and B WSPR uses C96.
 Narrow source applicability binds the unchanged RF/runtime implementation.
-Durable retention and final release audits remain open.
+The later [Phase 14 closeout](../development/phase14-closeout-ledger.md)
+completed durable retention and final audits within its recorded scope.
 Engineering mTLS and Plain LAN WTP retain their
 existing contracts. This transport supplies the missing authenticated consumer
 radio page and shared Browser API; it does not retain the withdrawn browser
 owner keys or change the immediate commissioning transaction.
 
-A healthy source-5 consumer profile keeps the existing open setup AP available.
-Open `http://192.168.4.1/radio` on that AP and log in with the Wi-Fi passphrase
-saved in the consumer profile. The station interface never exposes the
-plaintext radio routes. AP association alone grants no private read or mutation.
-Wi-Fi and station identity remain owned by their existing setup pages; the
+A healthy source-5 consumer profile normally keeps its AP off. Open
+`http://<current-station-IPv4>/` or `http://<configured-local-hostname>/` on
+infrastructure Wi-Fi, or `/radio` on either admitted interface. Log in with
+the Wi-Fi passphrase saved in the consumer profile. AP access is temporary
+button-requested or automatic unavailable-network fallback. AP association
+alone grants no private radio read or mutation. The station listener exposes
+only the public radio document/identity and encrypted consumer routes.
+Wi-Fi and station identity remain owned by their transactional setup adapters; the
 radio configuration API presents their effective values and rejects changes
 that the profile would override at restart. Schedules, pins and frequency
 opt-ins use the existing configuration journal and admission engine.
 
-Radio management retains AP access during unarmed ownership and loaded plans.
+Radio management retains LAN access during loaded, armed and running jobs.
+Operation-specific BUSY and ownership checks remain authoritative. The AP radio
+surface permits unarmed ownership and loaded plans while requested by its lease
+or fallback lifecycle.
 Commissioning keeps its stricter unowned-only guard. Unknown/active output,
 armed, running and failed states withdraw this AP path under the retained RF
 connection policy; job execution stays local. A saved source-5 consumer profile
 disables USB WTP while retaining USB Console inspection. Consumer job control
-uses Plain LAN and the authenticated AP-local radio adapter; engineering
+uses Plain LAN and the authenticated consumer radio adapter; engineering
 profiles retain the reference USB WTP endpoint. The ownership distinction passed host and bounded physical
 settings validation on both Picos.
 
-The existing open-AP setup threat boundary remains: HTTP does not authenticate
+The HTTP page-delivery threat boundary remains on AP and LAN: HTTP does not authenticate
 the page before password entry. A substituted malicious page can steal entered
 credentials. This adapter protects traffic between the genuine page and Pico
 against passive observation and rejects peers without the saved passphrase;
@@ -45,12 +59,18 @@ in RAM for the bounded exchange and are never returned by identity/config reads.
 
 ## Handshake
 
-All routes are on the AP-only port-80 listener. Public GET
+All routes use an explicitly interface-classified port-80 listener. Public GET
 `/api/consumer/v1/identity` returns version `1`, device/boot lowercase 32-hex IDs,
 profile generation as a canonical nonzero decimal string, and authentication
-`saved_wifi_passphrase`. POSTs require exact Host `192.168.4.1`, Origin
-`http://192.168.4.1`, `X-WsprryPico-Radio: 1`, no Cookie, and absent or same-origin
+`saved_wifi_passphrase`. Station Host must be its current IPv4 or exact configured
+local hostname; AP Host must be `192.168.4.1`. An explicit `:80` Host is accepted.
+Other ports, malformed authorities and wildcard/suffix matches are rejected.
+POSTs require Origin `http://<admitted-host-without-default-port>`,
+`X-WsprryPico-Radio: 1`, no Cookie, and absent or same-origin
 Fetch Metadata. There is no CORS permission or redirect follow.
+The server records the actual interface and Host at successful start. Finish
+and request must match that context. This is server-side session binding;
+it does not add origin bytes to the unchanged cryptographic transcript.
 
 POST `/api/consumer/v1/start`, JSON, exactly:
 `version`, `device_id`, `boot_id`, `generation`, `public_key`, `nonce`.
@@ -111,6 +131,48 @@ Deferred restart/network-disable actions execute only after the complete reply
 has been acknowledged on the matching transport transaction. Disconnect or
 expiry cancels a still-pending deferred action. Already committed settings or
 accepted WTP operations can remain effective after a lost reply.
+
+DHCP/link/hostname changes close station sessions and cancel pending deferred
+actions. AP withdrawal closes AP sessions without closing a healthy LAN session.
+An AP session cannot move to LAN or between IP/hostname authorities; log in
+again at the intended origin. Session closure never releases or aborts a job.
+
+## Authenticated commissioning routes
+
+The additive logical `/api/v1/consumer/setup/` prefix reuses the same envelope,
+sequence, authentication and response rules. The suffix is an existing setup
+path, for example `/api/v1/consumer/setup/api/bootstrap/v1/start`. Only these
+method/path pairs are forwarded after the complete outer AEAD authenticates:
+
+- GET `/api/bootstrap/v1/status`, `/api/owner/v1/public-status`,
+  `/api/owner/v1/claim/status`.
+- POST `/api/bootstrap/v1/start`, `/api/bootstrap/v1/submit`,
+  `/api/bootstrap/v1/ack`, `/api/owner/v1/claim/start`,
+  `/api/owner/v1/claim/submit`.
+
+Their existing bodies, trials, exact-generation/request-digest reconciliation,
+journals, UTC requirements and safe-commit gates remain authoritative. The
+trusted adapter supplies the legacy inner AP authority and setup request
+headers; that inner authority is not a plaintext LAN admission mechanism.
+Recovery/reset and arbitrary HTTP routes are not forwarded. The corresponding
+public plaintext setup routes remain AP-only.
+While a setup slot or its activation/restart is pending, ordinary radio
+mutations return `409 setup_pending`; reads and logout remain available.
+Competing Plain LAN WTP admission and new scheduled launches pause until
+the explicit setup completes or expires. No accepted job is interrupted:
+starting setup requires idle, unowned authority.
+
+A network or station trial begins only after the matching encrypted submit
+reply is completely acknowledged. A lost reply cancels the pending trial;
+neither an unrelated transaction nor a delayed old acknowledgement may start
+it. A profile commit invalidates old-generation radio sessions. After restart,
+authenticate again and compare the durable generation/request digest; do not
+replay the old submit. A station-only change reuses a healthy saved association.
+The UI may carry a bounded, nonsecret receipt in a continuation URL fragment:
+change kind, device ID, expected generation and request digest only. It carries
+no credentials, keys or mutation payload. On a new origin it authorizes no
+operation; the user authenticates again and performs a read-only result check.
+The restored receipt cannot be submitted as a mutation.
 
 The [fixed vectors](Consumer-Radio-v1-vectors.json) use synthetic credentials
 and compare Noble browser output with the pinned Mbed TLS implementation,

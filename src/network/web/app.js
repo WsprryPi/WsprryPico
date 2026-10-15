@@ -19,6 +19,31 @@ let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let localIdentity = null, localAuthenticated = false;
+function readSetupReceipt(hash) {
+  if (typeof hash !== 'string' || !hash.startsWith('#save=') || hash.length > 512) return null;
+  try {
+    const v = JSON.parse(decodeURIComponent(hash.slice(6)));
+    if (!v || typeof v !== 'object' || Object.keys(v).sort().join(',') !== 'device,digest,generation,kind' ||
+        !['network','station'].includes(v.kind) || typeof v.device !== 'string' || !/^[0-9a-f]{32}$/.test(v.device) ||
+        typeof v.digest !== 'string' || !/^[0-9a-f]{64}$/.test(v.digest) || typeof v.generation !== 'string' ||
+        !/^[1-9][0-9]{0,19}$/.test(v.generation) || BigInt(v.generation) > 0xffffffffffffffffn) return null;
+    return {...v,sent:true};
+  } catch (_) { return null; }
+}
+let consumerAttempt = radio ? readSetupReceipt(globalThis.location?.hash) : null, consumerSetupDirty = false;
+function setupReceiptHash() {
+  if (!consumerAttempt) return '';
+  const {kind,device,generation,digest} = consumerAttempt;
+  return '#save=' + encodeURIComponent(JSON.stringify({kind,device,generation,digest}));
+}
+function updateSetupReceipt() {
+  const hash = setupReceiptHash();
+  try { history.replaceState(null,'',location.pathname + location.search + hash); } catch (_) {}
+  const hostname = snapshot?.network.configured_hostname;
+  const usable = typeof hostname === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.local$/.test(hostname);
+  $('consumer-resume').hidden = !hash || !usable;
+  if (hash && usable) $('consumer-resume').href = 'http://' + hostname + '/' + hash;
+}
 const notice = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
 async function api(path, method = 'GET', body, etag, timeout = 30000) {
   const headers = {};
@@ -79,7 +104,7 @@ async function discoverLocal() {
       localIdentity = await radio.identity();
       $('local-status').textContent = `Pico ${localIdentity.device_id}`;
       notice('Log in to read or change radio settings.');
-    } catch (error) { notice(error.message + '. Reconnect to the Pico Wi-Fi and reload this page.',true); }
+    } catch (error) { notice(error.message + '. Check the Pico address and your Wi-Fi connection, then reload.',true); }
     return true;
   }
   try {
@@ -106,6 +131,10 @@ function controls(connected) {
   $('reload-config').disabled = busy || !online;
   const idle = online && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
   $('settings').disabled = busy || !idle;
+  $('consumer-setup').hidden = !radio;
+  $('consumer-network-settings').disabled = busy || !idle || !localAuthenticated || Boolean(consumerAttempt);
+  $('consumer-station-settings').disabled = $('consumer-network-settings').disabled;
+  $('consumer-check-save').disabled = busy || !localAuthenticated || !consumerAttempt;
   $('restart').disabled = busy || !idle || !capabilities?.features?.restart;
   $('wifi-off').disabled = busy || !idle || !snapshot.network.enabled;
   $('job-settings').disabled = busy || !idle || snapshot.standalone.reboot_required;
@@ -122,6 +151,13 @@ function fill(c) {
   if (radio) {
     $('consumer-identity-help').hidden = false;
     for (const name of ['callsign','locator','power_dbm','ssid','password','ntp_ipv4']) form[name].readOnly = true;
+    if (!consumerSetupDirty) {
+      $('consumer-ssid').value = c?.wifi.ssid ?? '';
+      $('consumer-time-server').value = c?.wifi.ntp_ipv4 ?? 'pool.ntp.org';
+      $('consumer-callsign').value = c?.station.callsign ?? '';
+      $('consumer-locator').value = c?.station.locator ?? '';
+      $('consumer-power').value = c?.station.power_dbm ?? 37;
+    }
   }
   form.password.value = '';
   form.enabled.checked = c?.enabled ?? false;
@@ -148,7 +184,11 @@ async function refresh(loadConfig = false) {
     $('hostname').textContent = n.configured_hostname || 'IP-only deployment';
     const discovery = {unconfigured:'Not configured',waiting_address:'Waiting for Wi-Fi address',probing:'Checking hostname',active:'Advertised',conflict:'Hostname conflict',failed:'Unavailable'};
     $('discovery').textContent = discovery[n.mdns_state] || 'Unavailable';
-    $('discovery-help').textContent = n.mdns_state === 'conflict' ? 'Another device is using this hostname. Resolve the duplicate, then retry with USB Console WIFI OFF and WIFI ON while idle. The device will not rename itself.' : n.mdns_reason === 'device_identity_mismatch' ? 'Credentials belong to a different device. Rebuild with this device’s certificate bundle and recover through USB Console.' : n.mdns_state === 'failed' ? 'Name discovery failed. Check USB Console INFO; retry Wi-Fi while idle after resolving the reported cause.' : n.mdns_state === 'active' ? 'Use this hostname after DHCP address changes. An IP URL needs a matching certificate IP address.' : '';
+    $('discovery-help').textContent = n.mdns_state === 'conflict' ? 'Another device is using this hostname. Resolve the duplicate, then retry with USB Console WIFI OFF and WIFI ON while idle. The device will not rename itself.' : n.mdns_reason === 'device_identity_mismatch' ? 'Credentials belong to a different device. Rebuild with this device’s certificate bundle and recover through USB Console.' : n.mdns_state === 'failed' ? 'Name discovery failed. Use the current IP address and check USB Console INFO.' : n.mdns_state === 'active' ? (radio ? 'Use this hostname or the current IP address on your local network.' : 'Use this hostname after DHCP address changes. An IP URL needs a matching certificate IP address.') : '';
+    if (radio) {
+      $('consumer-return').textContent = `On your normal Wi-Fi, open http://${n.configured_hostname || n.ipv4}/ or http://${n.ipv4}/. The Pico’s setup Wi-Fi is normally off while this connection is healthy.`;
+      updateSetupReceipt();
+    }
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
     $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network or pin settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
     if (loadConfig) { const c = await api('config'); revision = c.revision; fill(c.data.config); }
@@ -183,6 +223,37 @@ $('local-logout').onclick = () => action(async () => {
   $('local-login').hidden = false; $('local-logout').hidden = true;
   snapshot = null; controls(false); notice('Logged out. Radio job state has not changed.');
 });
+$('consumer-power').replaceChildren(...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60]
+  .map(power => new Option(String(power),String(power))));
+for (const id of ['consumer-network-form','consumer-station-form']) $(id).oninput = () => { consumerSetupDirty = true; };
+async function saveConsumer(kind) {
+  if (consumerAttempt) throw new Error('Check the previous saved result first');
+  const status = $('consumer-save-status');
+  status.textContent = 'Preparing your settings…';
+  try {
+    consumerAttempt = kind === 'network' ? await radio.prepareNetwork(localIdentity, {
+      ssid:$('consumer-ssid').value,password:$('consumer-password').value,time_server:$('consumer-time-server').value.trim()
+    }) : await radio.prepareStation(localIdentity, {
+      callsign:$('consumer-callsign').value.trim().toUpperCase(),locator:$('consumer-locator').value.trim().toUpperCase(),powerDbm:Number($('consumer-power').value)
+    });
+    updateSetupReceipt();
+    await radio.submitSetup(consumerAttempt);
+    status.textContent = 'Settings accepted. The Pico may reconnect and restart. Keep this tab open or use the continuation link after joining the saved network. Log in, then select Check saved result.';
+  } catch (error) {
+    status.textContent = consumerAttempt ? 'The save result is unconfirmed. Keep this tab open or use the continuation link. Log in when the Pico returns and select Check saved result before sending another save.' : error.message;
+    throw error;
+  } finally { $('consumer-password').value = ''; }
+}
+$('consumer-network-form').onsubmit = event => { event.preventDefault(); return action(() => saveConsumer('network')); };
+$('consumer-station-form').onsubmit = event => { event.preventDefault(); return action(() => saveConsumer('station')); };
+$('consumer-check-save').onclick = () => action(async () => {
+  const result = await radio.checkSetup(consumerAttempt);
+  $('consumer-save-status').textContent = result === 'saved' ? 'Your settings were saved and verified.' :
+    result === 'failed' ? 'These settings were not saved. You can correct them and try again.' :
+    'The result is still unconfirmed. Wait for the Pico to return, log in and check again. No save has been repeated.';
+  if (result !== 'unconfirmed') { consumerAttempt = null; consumerSetupDirty = false; updateSetupReceipt(); await refresh(true); }
+});
+if (consumerAttempt) $('consumer-save-status').textContent = 'A pending save receipt was recovered. Log in, then select Check saved result. No save has been repeated.';
 $('config').oninput = () => { dirty = true; };
 $('reload-config').onclick = () => action(async () => {
   if (dirty && !confirm('Discard your unsaved changes and reload saved settings?')) return;

@@ -1,5 +1,19 @@
 # Phase 11 network control
 
+The later selected [consumer LAN access slice](consumer-lan-access.md) adds
+ordinary HTTP consumer management on station port 80, at the current IPv4 and
+configured `.local` hostname, independently of engineering TLS, public DNS and
+UTC. It reuses saved-password Consumer-Radio sessions and authenticated wrappers
+for transactional Wi-Fi/station setup. Host/Origin and actual interfaces are
+bounded; old sessions cannot move across DHCP/name/interface changes. HTTP page
+delivery remains unauthenticated, including on LAN. The same page is available
+on a requested AP at `/radio`; the AP root remains Wi-Fi-first commissioning.
+Consumer AP is normally off, with held-button/ten-minute manual access and
+60-second outage/30-second stable recovery fallback. Configured button capture
+is now enabled by default, honoring custom and disabled assignments. Current
+acceptance is tracked in that slice; engineering behavior and historical
+checkpoints below retain their own scopes.
+
 The implementation provides first-class authenticated TLS WTP/TCP, HTTPS browser API v1, embedded
 operator assets, network status/management and local certificate tooling. Host
 TLS/API/browser tests and firmware cross-linking are distinct from physical

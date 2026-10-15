@@ -77,6 +77,9 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     std::string_view station_ssid() const {
         return ssid_;
     }
+    std::string_view configured_hostname() const {
+        return mdns_.hostname();
+    }
     bool configure_hostname(std::string_view hostname) {
         return mdns_.configure_hostname(hostname);
     }
@@ -92,6 +95,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     }
     // Reflect the admitted station WTP listener, independently of HTTPS/SoftAP.
     void wtp_listener_status(WtpBinding binding, unsigned port);
+    void consumer_listener_status(bool ready);
 
   private:
 #ifndef WSPRRY_PICO_STANDALONE_RF
@@ -139,6 +143,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     bool identity_matches_ = true;
     WtpBinding wtp_binding_ = WtpBinding::None;
     unsigned wtp_port_ = 0;
+    bool consumer_http_ = false;
     std::optional<std::uint64_t> service_withdrawal_started_us_;
     std::string softap_hostname_;
     bool mdns_initialized_ = false;

@@ -1,7 +1,8 @@
 import {begin,authenticate,seal,open,clear,unhex} from './radio-crypto.js';
+import {prepareNetwork,prepareStation,submitSetup,checkSetup} from './radio-setup.js';
 
 export class RadioClient {
-  constructor(fetcher = globalThis.fetch, now = () => Date.now()) {
+  constructor(fetcher = globalThis.fetch?.bind(globalThis), now = () => Date.now()) {
     this.fetcher = fetcher; this.now = now; this.state = null; this.busy = false;
   }
   clear() { clear(this.state); this.state = null; }
@@ -64,5 +65,9 @@ export class RadioClient {
     try { if (this.authenticated) await this.request('consumer/logout','POST',{}); }
     finally { this.clear(); }
   }
+  prepareNetwork(identity,settings) { return prepareNetwork(this,identity,settings); }
+  prepareStation(identity,settings) { return prepareStation(this,identity,settings); }
+  submitSetup(attempt) { return submitSetup(this,attempt); }
+  checkSetup(attempt) { return checkSetup(this,attempt); }
 }
 globalThis.WsprryPicoConsumerRadio = Object.freeze({createClient:() => new RadioClient()});
