@@ -1,7 +1,6 @@
 # P15.4 shared-resource controller adoption
 
-Status: implementation and local software acceptance passed; publication and
-lead pushed-head CI acceptance pending. Implementation is led by
+Status: P15.4 complete within the recorded software acceptance. Implementation is led by
 [WsprryPi's P15.4 record](https://github.com/WsprryPi/WsprryPi/blob/devel/docs/development/phase15-4-shared-resources.md).
 
 Pico's existing application, station, hardware and pin resources are sufficient
@@ -71,3 +70,20 @@ profile-owned station and Type 1 restrictions, explicit Load/Validate/Save,
 saved/active/null and restart/fault feedback, carrier login/expiry and uncertain
 write readback. Replace materially inaccurate desktop/mobile light/dark
 screenshots after those workflows settle; do not publish interim operator docs.
+
+## Joint software closure
+
+The lead implementation is Pi `085ef702b43be57b13baf3637651cb36084d985d` plus
+fixture-only portability repair `f51d7b0686769f5e7dc574992dfde7e338f275cf`, paired
+with unchanged clean Pico `ddb00dd7960373cec271f7816c0e1b10117416e9`. Initial
+companion documentation commit `0048ad82a0f1db3b499ebe7a58ee8f6031801878` was
+published separately; this record-only closure does not change the source pin.
+
+[Required Pi CI run 38787918615](https://github.com/WsprryPi/WsprryPi/actions/runs/38787918615)
+passed all nine jobs on the exact repair head after independent source, UI and
+evidence reviews found no actionable findings. Both repositories' authorized
+origin/devel pushes independently matched their local commits through
+`ls-remote`. Final record-only publication retains its own CI/parity boundary.
+P15.4 is accepted within this software scope. Physical, installed-service and
+unrestricted security qualification remain separate. P15.5 concurrent service
+work and all later implementation remain outside this closure.

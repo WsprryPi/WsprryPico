@@ -242,8 +242,9 @@ clients and forms. P15.1/P15.2 are complete: Pico's preservation/update contract
 Pi adoption and paired interoperability evidence are accepted. The operator
 accepted the operator-documentation gate as complete for roadmap closure on
 2026-10-15. P15.3 is now complete within its recorded software acceptance.
-Shared-resource adoption (P15.4) is in progress in WsprryPi, so later service
-and settings work uses explicit access policies and common resource semantics. These are JSON management API
+Shared-resource adoption (P15.4) is complete within its recorded software
+acceptance, so later service and settings work uses explicit access policies
+and common resource semantics. These are JSON management API
 improvements; WTP/1 job-control semantics remain unchanged. The remaining order
 selects sequencing only, not feature implementation.
 
@@ -312,21 +313,20 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   review and repair. Physical, installed-service and unrestricted security
   qualification remain outside this closure; final operator documentation is
   P15.14.
-- ⏳ **P15.4 — Adopt shared application, station and hardware resources.**
-  Complete the supported Pi/Pico resource mapping from the
-  [shared transmitter application contract](transmitter-application-contract.md)
-  and [Pico foundation](development/shared-transmitter-application.md).
-  Extend Pi's adapter/client/UI to consume `/api/v1/application`,
-  `/api/v1/station` and `/api/v1/hardware`, with pin inspection/validation where
-  supported. Use P15.3's management carriers and P15.1/P15.2's update semantics,
-  capability discovery and older-firmware fallback. Preserve the distinction
-  between Pi host configuration and Pico member resources, exact target/schema
-  identity, saved versus active hardware and restart/fault state. Report
-  unavailable platform features explicitly; do not imply full hardware parity
-  or add recurrence transfer. Extend actual Pi-request-to-Pico-handler tests,
-  revision/conflict and persistence checks, and supported-version evidence
-  before exposing the supported resource controls. Status: in progress in
-  WsprryPi; not yet accepted as complete.
+- ✅ **P15.4 — Adopt shared application, station and hardware resources.**
+  Pi now consumes the existing application, station, hardware and pin resources
+  through protected member routes, its runtime coordinator and P15.3 engineering
+  mTLS/consumer station/AP management. Explicit complete station/hardware saves
+  and nonpersistent pin validation preserve target, profile and revision
+  authority, saved versus active/null state, restart inhibition, STOP and cursors.
+  Consumer setup-owned station fields and unavailable adapters remain explicit.
+  Existing Pico schemas and the closed P15.3 discovery contract are unchanged.
+  All five source-pair rows, actual carrier/journal checks, runtime, sanitizers,
+  desktop/mobile light/dark UI and nine pushed-head CI jobs passed after
+  independent review and repair. Status: complete within the
+  [recorded software acceptance](development/phase15-4-shared-resources.md).
+  Physical, installed-service and unrestricted security qualification remain
+  separate; operator documentation is P15.14. No later roadmap work is included.
 - ☐ **P15.5 — Add multi-threaded web service.** Support concurrent web
   requests from the operator's phone and Mac without one client's connection
   blocking or locking out the other. Coordinate with P15.6 so both clients can
@@ -447,8 +447,8 @@ P15.1 and P15.2 were coordinated from WsprryPi: #447 delivered the Pico changes
 and #448 delivered the Pi changes and paired compatibility evidence. With their
 roadmap closure accepted, P15.3 returned to WsprryPico and is complete within
 its recorded software scope, with companion Pi changes committed separately.
-P15.4 shared-resource work is in progress in WsprryPi. All later entries remain
-planned.
+P15.4 shared-resource adoption is complete within its recorded software scope.
+P15.5 concurrent web servicing is next; all later entries remain planned.
 
 ## Remaining deferred and backlog items
 
