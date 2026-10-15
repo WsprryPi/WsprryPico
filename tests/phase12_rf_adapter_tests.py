@@ -92,6 +92,8 @@ int main(){
         reader = '{\n' + main[main.index(read_anchor):read_end] + '\n}'
         program = r'''
 #include "usb/console_reply.hpp"
+#include "network/assets.hpp"
+#include "network/consumer_radio.hpp"
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -99,18 +101,58 @@ int main(){
 #include <string>
 #include <string_view>
 void check(bool v) { if (!v) throw std::runtime_error("adapter assertion"); }
+using wsprrypico::network::ConsumerInterface;
+using wsprrypico::network::WebAsset;
 struct Request { std::string path="/", method="GET"; std::string_view header(std::string_view)const{return "192.168.4.1";} };
-struct Parser { Request value; bool failed()const{return false;} const Request& request()const{return value;} };
-struct Response { unsigned status=200; std::string body; std::string wire_headers()const{return "headers";} };
+struct Parser { Request value; bool invalid=false; bool failed()const{return invalid;} const Request& request()const{return value;} };
+struct HttpResponse {
+ unsigned status; std::string body,type,etag,content_security_policy;
+ std::string_view static_body; std::span<const std::string_view> static_parts;
+ HttpResponse(unsigned code=200,std::string text={},std::string kind="application/json",std::string tag={})
+  :status(code),body(std::move(text)),type(std::move(kind)),etag(std::move(tag)){}
+ std::string wire_headers()const{return "headers";}
+};
+using Response=HttpResponse;
 Response http_error(unsigned n,std::string_view s){return {n,std::string(s)};}
 Response json(std::string s){return {200,std::move(s)};}
 unsigned time_us_64(){return 1;}
 bool owner_public_get_admitted(const Request&,const std::string&){return true;}
 Response bootstrap_http_response(const Request&,const std::string&,const std::string&,bool setup,bool,bool){return {200,setup?"setup":"identity"};}
+bool asset_available=true;
+std::array<std::string_view,2> radio_parts={"radio-","page"};
+std::optional<WebAsset> consumer_radio_asset(){
+ if(!asset_available)return {};
+ return WebAsset{"radio-inline","text/html",radio_parts};
+}
+std::string_view consumer_radio_csp(){return "test-csp";}
+struct Network {
+ std::string address="192.0.2.10",hostname="pico-test.local";
+ const std::string& ipv4()const{return address;}
+ const std::string& configured_hostname()const{return hostname;}
+};
+struct Radio {
+ bool ready=true,page_allowed=true,seen_ap=false;
+ unsigned refreshed=0,handled=0; std::uint64_t transaction=0;
+ ConsumerInterface interface=ConsumerInterface::None;
+ std::string address,hostname,handled_address;
+ void listeners(bool ap,std::string_view ip,std::string_view name){
+  ++refreshed;seen_ap=ap;address=ip;hostname=name;
+ }
+ bool available()const{return ready;}
+ bool page_admitted(const Request&,ConsumerInterface)const{return page_allowed;}
+ Response handle(const Request&,std::uint64_t,std::uint64_t token,ConsumerInterface source){
+  ++handled;transaction=token;interface=source;handled_address=address;return {200,"radio-api"};
+ }
+};
 struct Commit {bool allowed=true;bool cancellation_allowed()const{return allowed;}};
 struct PicoBootstrapServer {
 DEFAULT
  bool setup_admitted_=default_setup_admission,active_=true,mutation_safe_=true;
+ bool ap_active_=false,station_active_=false,ap_setup_admitted_=false;
+ ConsumerInterface client_interface_=ConsumerInterface::None;
+ Radio* radio_=nullptr;Network* network_=nullptr;std::uint64_t radio_transaction_=17;
+ bool pending=false;void (*setup_control_)(void*)=nullptr;void* setup_control_context_=nullptr;
+ bool setup_pending()const{return pending;}
  bool owner_status_committed_reply_=false,owner_reconcile_=false,owner_restart_pending_=false;
  void* reset_begin_=nullptr; std::string device_="device",firmware_="firmware",headers_;
  Parser parser_;Response response_;Commit bootstrap_commit_;unsigned canceled=0,owner_canceled=0,advanced=0;
@@ -133,6 +175,7 @@ int main() {
 #else
  check(server.setup_admitted_);
 #endif
+ server.client_interface_=ConsumerInterface::AccessPoint;server.ap_active_=true;
  server.setup_admitted_=false;server.dispatch();check(server.response_.body=="identity");
  for (auto path:{"/api/bootstrap/v1/status","/api/bootstrap/v1/submit","/api/owner/v1/claim/submit"}) {
   server.parser_.value.path=path;server.dispatch();check(server.response_.status==409);
@@ -141,9 +184,39 @@ int main() {
  server.advance(true);check(server.advanced==0&&server.canceled==1&&server.owner_canceled==1&&!server.mutation_safe_);
  server.bootstrap_commit_.allowed=false;server.owner_reconcile_=true;
  server.advance(true);check(server.advanced==0&&server.canceled==1&&server.owner_canceled==1);
- server.setup_admitted_=true;server.parser_.value.path="/";server.dispatch();check(server.response_.body=="setup");
+ server.setup_admitted_=true;server.ap_setup_admitted_=true;
+ server.parser_.value.path="/";server.dispatch();check(server.response_.body=="setup");
  server.parser_.value.path="/api/bootstrap/v1/status";server.dispatch();check(server.response_.body=="status");
  server.advance(true);check(server.advanced==1&&server.mutation_safe_);
+ // Station availability must not admit AP-only provisioning or recovery.
+ server.ap_setup_admitted_=false;server.station_active_=true;
+ server.parser_.value.path="/api/bootstrap/v1/submit";server.dispatch();check(server.response_.status==409);
+ server.client_interface_=ConsumerInterface::Station;
+ for(auto path:{"/api/bootstrap/v1/status","/api/owner/v1/public-status","/api/recovery/v1/status","/"}){
+  server.parser_.value.path=path;server.dispatch();check(server.response_.status==403);
+ }
+ Radio radio;Network network;server.radio_=&radio;server.network_=&network;
+ server.parser_.value.path="/api/consumer/v1/identity";server.dispatch();
+ check(server.response_.body=="radio-api"&&radio.handled==1&&radio.transaction==17);
+ check(radio.interface==ConsumerInterface::Station&&radio.seen_ap&&radio.address==network.address);
+ check(radio.hostname==network.hostname&&radio.handled_address==network.address);
+ network.address="192.0.2.20";server.dispatch();
+ check(radio.handled_address==network.address);
+ server.station_active_=false;server.dispatch();check(radio.handled_address.empty());
+ server.station_active_=true;server.parser_.invalid=true;server.dispatch();
+ check(server.response_.status==400&&radio.handled==3);server.parser_.invalid=false;
+ server.parser_.value.path="/";server.dispatch();check(server.response_.status==200);
+ check(server.response_.static_body=="radio-inline"&&server.response_.static_parts.size()==2);
+ check(server.response_.content_security_policy=="test-csp");
+ radio.page_allowed=false;server.dispatch();check(server.response_.status==403);
+ radio.page_allowed=true;radio.ready=false;server.dispatch();check(server.response_.status==403);
+ radio.ready=true;asset_available=false;server.dispatch();check(server.response_.status==503);
+ asset_available=true;server.client_interface_=ConsumerInterface::AccessPoint;
+ server.parser_.value.path="/radio";server.dispatch();check(server.response_.status==200);
+ server.parser_.value.path="/";server.dispatch();check(server.response_.body=="identity");
+ server.pending=true;unsigned paused=0;server.setup_control_context_=&paused;
+ server.setup_control_=[](void* context){++*static_cast<unsigned*>(context);};
+ server.dispatch();check(paused==1);
  wsprrypico::usb::ConsoleReply console_reply;std::array<std::uint8_t,64> console_input{};
  const std::string input="FIRST\nSECOND\n";std::copy(input.begin(),input.end(),console_input.begin());
  std::size_t console_input_offset=0,console_input_size=input.size(),length=0;
@@ -170,9 +243,11 @@ int main() {
                         '-o', str(path / 'adapter')]
                 if rf:
                     args.append('-DWSPRRY_PICO_STANDALONE_RF=1')
-                subprocess.run(args, check=True, capture_output=True, timeout=60)
-                result = subprocess.run([str(path / 'adapter')], check=True,
+                built = subprocess.run(args, capture_output=True, text=True, timeout=60)
+                self.assertEqual(built.returncode, 0, built.stderr)
+                result = subprocess.run([str(path / 'adapter')],
                                         capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn('actual adapter branches passed', result.stdout)
 
 

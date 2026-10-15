@@ -161,8 +161,10 @@ members absent from that stand-in, including radio/network/transaction state
 and response helpers. The fixture compiler exits 1 before its assertion runs.
 No affected source path or fixture was changed to conceal it. The full suite
 is therefore not claimed green. This does not invalidate passing WTP,
-configuration, storage, transport, TLS or sanitizer checks, but remains an
-aggregate validation limitation.
+configuration, storage, transport, TLS or sanitizer checks, but remained an
+aggregate validation limitation at that checkpoint. The
+[fixture follow-up below](#rf-adapter-fixture-follow-up--october-15-2026) resolves
+this limitation without changing those historical run results.
 
 ## Adversarial assessment and repairs
 
@@ -210,3 +212,85 @@ Pico-owned implementation is complete. Paired Pi adoption, old/new supported
 version evidence and the canonical integration-pin refresh remain #448 gates.
 Keep #447's joint integration closure open until that linked evidence exists.
 This record grants no firmware, hardware, RF or general release qualification.
+
+
+## RF-adapter fixture follow-up — October 15, 2026
+
+Base: `dfd9c5fd2101fdc501713821d45b071227f8d617`. The unchanged
+`phase12_rf_adapter_tests` reproduced its compilation failure: its minimal
+server double predated the consumer LAN dispatch fields and helpers. The
+repair changes only that test and this record; firmware behavior is unchanged.
+The original indicator, setup-admission, cancellation and console-batching
+assertions remain in place.
+
+The double now supplies consumer radio/network state, separate AP setup
+admission, response asset/CSP fields and the setup callback. It uses the
+production `ConsumerInterface` and `WebAsset` types. Additional behavioral
+checks cover AP-only provisioning/recovery, station/AP radio routing, fresh
+listener address visibility before dispatch, malformed requests, page admission,
+missing assets and setup notification. Compiler and executable failures now
+include their captured diagnostics in the unittest assertion.
+
+Validation used a disposable Debian 13 ARM64 container, restricted to two CPUs
+and 6 GiB, with external networking disconnected during tests. Tools: GCC 14.2.0,
+CMake 3.31.6, Ninja 1.12.1, Node 20.19.2, Python 3.13.5, jsonschema 4.19.2 and
+NumPy 2.2.4. The history-preserving source snapshot retained existing noble
+2.3.0 packages and the same clean dependency pins:
+
+- Mbed TLS: `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`.
+- lwIP: `77dcd25a72509eb83f72b033d219b1d40cd8eb95`.
+
+From the snapshot root, with those dependency paths in `MBEDTLS_SOURCE` and
+`LWIP_SOURCE`, the full configuration/build and normal-user run are reproduced by:
+
+```sh
+cmake -S . -B build/host-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+  -DWSPRRY_PICO_BUILD_FIRMWARE=OFF -DWSPRRY_PICO_BUILD_TESTS=ON \
+  -DWSPRRY_PICO_TEST_MBEDTLS_PATH="$MBEDTLS_SOURCE" \
+  -DWSPRRY_PICO_TEST_LWIP_PATH="$LWIP_SOURCE"
+cmake --build build/host-debug --parallel 2
+pico_test_tmp="$(mktemp -d)"
+TMPDIR="$pico_test_tmp" ctest --test-dir build/host-debug --output-on-failure
+```
+
+The final complete run passed **186/186 CTest entries**, with zero failures,
+zero skips and no exclusions, in 82.57 seconds. The repaired fixture's two
+unittest cases also pass directly with
+`python3 -B tests/phase12_rf_adapter_tests.py`.
+The historical 185/186 result above is superseded by this full-suite acceptance.
+No new physical, installed-service or RF qualification is claimed.
+
+Preliminary container runs are retained as failures: the initial run lacked
+NumPy and the `pi` account used by root-mode fixture helpers (178/186 passed).
+After correcting dependencies and using a normal user, one root-owned temporary
+lock from the first run caused `gp14_ap_proof_tests` to fail (185/186 passed).
+The accepted run used a fresh private temporary directory. No test criteria,
+exclusions or production code were changed to hide either setup problem.
+
+A separate adversarial pass compiled and ran ten deliberately mutated copies of
+the extracted dispatch. All ten were rejected by runtime assertions: removed
+station guard, global instead of AP setup admission, bypassed page admission,
+omitted listener refresh, missing station address, invalid HTTP dispatch,
+wrong consumer interface, radio page exposed at AP root, successful missing-asset
+response and omitted setup callback. The unmodified source passed afterward.
+During assessment, listener checks were strengthened to assert the address seen
+inside the handler after an address change or station withdrawal. A final
+source/claims reassessment found no remaining actionable findings in this scope.
+
+Logs remain outside Git. Their SHA-256 values bind the retained evidence:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `baseline-fixture.log` | `c9ba7e7143c0287039537e50a016ace1dd3b502d7aa7eccde29578ecb770b2a7` |
+| `full-suite-first.log` | `dede45c584b54fbf0c259edd933ee5610ab700ba78d6326d696782fb30e97f46` |
+| `full-suite-normal-first.log` | `985f4b957fc2815b1cc0ff9d063a63f3cc43a3b3902d406119e178bcffc6af56` |
+| `full-suite.log` | `320277c80e87945d6849d925d8e3e86bcbcfa1407283c08b449726a4482bd205` |
+| `full-suite.xml` | `96172a2ea1d5482ae7f8be4a9c04fd278e8a0538c48281e3532c405577b57250` |
+| `adversarial-result.json` | `bb56cdc2a3e65dda85dd798ac75de0ca4cfb28635375ed0cc283add94825419e` |
+
+### Documentation Impact
+
+Updated this existing review with a distinct repair/validation follow-up and
+linked the historical fixture limitation to it. Operator instructions, UI,
+protocols and firmware are unchanged; no operator-documentation edit is needed
+for the test-only repair. Validation did not access wspr5 or either Pico.
