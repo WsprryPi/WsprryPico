@@ -327,14 +327,21 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   [recorded software acceptance](development/phase15-4-shared-resources.md).
   Physical, installed-service and unrestricted security qualification remain
   separate; operator documentation is P15.14. No later roadmap work is included.
-- ☐ **P15.5 — Add multi-threaded web service.** Support concurrent web
+- ✅ **P15.5 — Add multi-threaded web service.** Support concurrent web
   requests from the operator's phone and Mac without one client's connection
   blocking or locking out the other. Coordinate with P15.6 so both clients can
   remain authenticated and usable simultaneously. Define bounded thread/task
   resources and synchronization while preserving local RF timing and shared
   transmitter ownership. Retain serialized configuration commits and revision
   checks from P15.1. Validate overlapping requests and slow or disconnected
-  clients. Status: open; unimplemented.
+  clients. Delivered two bounded cooperative port-80 tasks on core 0 with
+  isolated transaction/delivery state; application commits remain serialized
+  and RF servicing stays on core 1. Status: complete within the
+  [recorded software acceptance](development/phase15-5-concurrent-web-service.md)
+  after adversarial repair, 189/189 host groups, affected sanitizers and both
+  RP2350 cross-links. Physical phone/Mac contention and RF qualification remain
+  separate. Simultaneous authenticated sessions remain P15.6. See the
+  [executed prompt](development/phase15-5-execution-prompt.md).
 - ☐ **P15.6 — Support multiple simultaneous login sessions.** Allow the
   operator to stay logged in and use the same Pico from a phone and Mac at the
   same time without either client being locked out or displacing the other's
@@ -448,7 +455,8 @@ and #448 delivered the Pi changes and paired compatibility evidence. With their
 roadmap closure accepted, P15.3 returned to WsprryPico and is complete within
 its recorded software scope, with companion Pi changes committed separately.
 P15.4 shared-resource adoption is complete within its recorded software scope.
-P15.5 concurrent web servicing is next; all later entries remain planned.
+P15.5 concurrent web servicing is complete within its recorded software scope.
+P15.6 simultaneous authenticated sessions is next; all later entries remain planned.
 
 ## Remaining deferred and backlog items
 

@@ -24,6 +24,11 @@ complete within its recorded software acceptance.
 [P15.4 shared-resource adoption](phase15-4-shared-resources.md) is complete within
 its recorded software acceptance using existing Pico resources; firmware, physical/RF and
 installed-service qualification are not established by this software acceptance.
+[P15.5 concurrent web service](phase15-5-concurrent-web-service.md) adds two bounded
+cooperative port-80 connection tasks on core 0; its
+[execution prompt](phase15-5-execution-prompt.md), validation and adversarial
+repairs are recorded separately. Simultaneous authenticated sessions remain
+P15.6, and target contention/RF qualification remains separate.
 
 The [WIP Si5351 I²C probe](../../tests/hardware/wip-si5351-i2c/README.md)
 preserves the standalone GP4/GP5 connection diagnostic and historical bench
