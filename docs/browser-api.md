@@ -9,7 +9,9 @@ The [shared transmitter application and fleet contract](transmitter-application-
 defines the application/configuration model for Pi and Pico members. The
 [Pico foundation](development/shared-transmitter-application.md) implements bounded
 member, station and hardware resources with independent schema versions; broader
-adapters remain proposals. Existing routes and Config v1 retain their meanings.
+adapters remain proposals outside the
+[P15.4 Pi adoption](development/phase15-4-shared-resources.md) of these existing
+resources. Existing routes and Config v1 retain their meanings.
 
 ## Transport and trust
 

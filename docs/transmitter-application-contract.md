@@ -4,7 +4,9 @@ Status: selected application arrangement with a Pico configuration/API foundatio
 implemented in source. The [foundation guide](development/shared-transmitter-application.md)
 and [review](development/shared-transmitter-application-review.md) define its
 supported scope and evidence. Broader schemas, compatibility adapters and
-migrations remain proposals. Full application parity and physical qualification
+migrations remain proposals outside the selected
+[P15.4 Pi resource adoption](development/phase15-4-shared-resources.md).
+Full application parity and physical qualification
 are not claimed.
 
 Recorded: 2026-09-30. Foundation update: 2026-10-03.
