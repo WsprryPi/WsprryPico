@@ -1,8 +1,6 @@
 # Phase 15.3 supported management carriers
 
-Status: selected design; implementation and acceptance in progress. October 15,
-2026. This record does not close P15.3 until the paired checks and independent
-review below pass. P15.1/P15.2 remain closed; P15.4 and later work is excluded.
+Status: complete within the recorded software acceptance. October 15, 2026. P15.1/P15.2 remain closed; P15.4 and later work is excluded.
 
 ## Refreshed baseline and source gaps
 
@@ -38,8 +36,8 @@ is permitted. USB JSON management is unsupported: no current requirement needs
 a second USB configuration protocol. Console commands retain their separate
 local policies; WTP reachability grants no JSON administration.
 
-A new independently versioned `transmitter-management/1` discovery document
-will describe the actual selected carrier, target, profile/generation, support,
+The independently versioned `transmitter-management/1` discovery document
+describes the actual selected carrier, target, profile/generation, support,
 availability, operation allowlist and budgets. It is separate from closed
 application objects; legacy `authenticated_https` remains unchanged. Public
 consumer identity is only a handshake hint. The encrypted discovery response
@@ -47,8 +45,7 @@ must match the authenticated session before Pi consumes remote capabilities.
 Unsupported/malformed advertised versions refuse; absent discovery preserves
 only the existing explicitly selected engineering compatibility path.
 
-The Pi host adds `/api/v1/member/management` GET/POST/DELETE-like actions using
-GET/POST only: POST carries an explicit `connect` or `disconnect` action;
+The Pi host adds `/api/v1/member/management` GET/POST actions: POST carries an explicit `connect` or `disconnect` action;
 consumer connect includes carrier (`consumer_station` or `consumer_ap`), exact
 host and passphrase. Engineering selection uses an explicit action. This route
 uses the existing protected shared API guard, operation mutex and idle admission.
@@ -117,7 +114,7 @@ reads remain <=16,384 bytes. No new Pico frame pools or firmware budgets.
 
 ## Acceptance and review ledger
 
-Pending: implementation, deterministic Linux host/TLS/lwIP and cross-link checks,
+Initial acceptance plan (results recorded below): deterministic Linux host/TLS/lwIP and cross-link checks,
 actual Pi/OpenSSL-to-Pico/Mbed TLS station/AP integration, negative and lifecycle
 coverage, P15.2 four-pair compatibility, UI tests and desktop/mobile light/dark
 rendering, independent adversarial review/repair/reassessment, exact clean pins,
@@ -125,7 +122,12 @@ CI and independent origin/devel parity. Exact commands/results go here as run.
 
 No physical device, installed service, GPIO or RF operation is authorized or
 claimed. Operator documentation in WsprryPi-Docs is read-only; P15.14 retains
-final user documentation. Exact follow-up will be recorded after implementation.
+final user documentation. Exact P15.14 follow-up is recorded in the companion review: update
+`docs/User_Interface/Setup/Transmitter/index.md#pico-development-controls` for
+independent carrier selection, expected member ID, authority/reachability,
+transient credentials, busy/expiry/readback and saved/active/restart state; review
+`docs/Advanced_Operations/ini_configuration/transmitter_backends.md#pico-wtp`
+for consistency. No durable secret or WTP/INI credential was added.
 
 An active fake endpoint can choose its own X25519 key, obtain the client's
 password-derived finish proof and test password guesses offline against its
@@ -137,7 +139,7 @@ execution but does not authenticate a unique device before emitting that proof.
 ## Independent review round 1 and repairs
 
 The independent read-only reviewer reported five actionable findings, plus the
-known test defect below. All are being repaired and rechecked before closure:
+known test defect below. All were repaired and rechecked before closure:
 
 1. Read authoritative local management state on reload and preserve an existing
    consumer session on an already-selected refusal; disable duplicate Connect.
@@ -156,7 +158,7 @@ Additional author repairs preserve an explicit disconnected selection across
 runtime endpoint replacement, erase expired traffic keys from idle polling,
 and separate host built-in adapter capability from authenticated remote support.
 Impeccable's first visual pass found unreadable dark secondary buttons; scoped
-existing-theme colors repair that contrast. The second render pass is pending.
+existing-theme colors repair that contrast. The second bounded render pass confirmed the affected layout and feedback.
 
 Preliminary validation: seven focused Pico tests passed; the full Linux suite
 passed 187/187 after supplying the required fixture user and Python/retained JS
@@ -214,3 +216,252 @@ sanitizer diagnostics. Final RP2350 target cross-link passed after the admission
 UTC metadata repairs. The exact-source companion pin will reference the reviewed
 Pico dependency commit; joint acceptance is still pending, so the roadmap remains
 pending in this provisional commit.
+
+## Final local software acceptance (2026-10-15)
+
+The final bounded independent reassessment found no remaining actionable
+implementation finding. All six first-round findings were repaired and their
+affected checks rerun. It separately verified the exact-source fixture, source
+guards, current CI invocation and task-only 289-check runtime result. CI is a
+separate acceptance step below.
+
+Exact clean Pico source pairs, with this companion implementation:
+
+| Profile | Pico commit | Result |
+| --- | --- | --- |
+| current | `d6208dbc88005383041c5ec306b738db7ec22796` | Engineering network/config, modern and unchanged old producer, plus genuine consumer fixture passed |
+| P15.2 | `87144d1364f36d04bfe0a714bd1c2f6deb974302` | Original modern/old-producer P15.2 regressions passed |
+| extended | `dfffdd5220db8b7cf1acf5e74950dbd294283c55` | Original new-client/extended-server regression passed |
+| legacy | `95aac22bf7cc31b67fe5773761708d743d8a6473` | Original new-client/legacy-server regression passed |
+
+The original four P15.2 combinations remain exercised; the current profile adds
+new-client/new-discovery and old-client/new-discovery coverage. Clean Pico and
+Mbed TLS source guards remain mandatory. The Pi source used for final runtime
+validation was baseline `6a39398` plus the explicit task file inventory and only
+three task Makefile hunks; concurrent PPM/chrony/scheduling/UI/release work was
+excluded from its compiled sources and will remain outside the task commit.
+
+Reproduction commands inside the identified isolated Linux environment (Pico
+from its root; Pi from `src`; UI from `WsprryPi-UI`):
+
+```sh
+cmake -S . -B build/p153 -DCMAKE_BUILD_TYPE=Debug -DWSPRRY_PICO_BUILD_TESTS=ON \
+  -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/deps/mbedtls -DWSPRRY_PICO_TEST_LWIP_PATH=/deps/lwip
+cmake --build build/p153 --parallel 2
+ctest --test-dir build/p153 --output-on-failure
+python3 scripts/validate_wtp_contract.py
+make wtp-config-test wtp-api-test SUDO= WTP_NETWORK_BUILD_DIR=/tmp/p153-config-final
+WSPRRYPI_DISABLE_HARDWARE_ACCESS=1 make -j2 wtp-network-runtime-test \
+  BACKENDS=simulated ANCILLARY_GPIO=0 SUDO= WTP_NETWORK_BUILD_DIR=/tmp/p153-network
+make wtp-network-interop-test SUDO= WTP_NETWORK_BUILD_DIR=/tmp/p153-current \
+  PICO_SOURCE=/work/pico-current MBEDTLS_SOURCE=/deps/mbedtls
+make wtp-config-interop-test SUDO= WTP_NETWORK_BUILD_DIR=/tmp/p153-current \
+  PICO_SOURCE=/work/pico-current MBEDTLS_SOURCE=/deps/mbedtls
+# For each legacy/extended/p152: configure/build the same CMake fixture with
+# PICO_COMPAT_PROFILE and that exact clean source, then run the same Node driver:
+node ../WsprryPi-UI/tests/wtp_configuration_interop_test.js /tmp/p153-p152 p152 /work/pico-p152
+npm test
+node tests/wtp_network_ui_integration_test.js
+```
+
+Results: full Pico host suite **187/187, no skips**; seven focused Pico checks;
+unchanged WTP validator **23 schema, 7 raw JSON, 1 framing, 8 transition**;
+Pi configuration/API checks; task-only production runtime **289 checks**; all
+four exact-source profiles above; UI unit and browser integration checks passed.
+Initial full-suite failures were missing Python fixtures/fixture user and were
+rerun successfully after environment repair. The earlier RF-adapter stand-in
+failure is fixed by the pre-existing baseline commit, not this task.
+
+Six affected Pico tests and Pi config/API tests passed ASan/UBSan using
+`-fsanitize=address,undefined -fno-omit-frame-pointer`. Retained lwIP is
+`77dcd25a72509eb83f72b033d219b1d40cd8eb95`, Mbed TLS is
+`0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`. The existing RP2350 cross-link
+`cmake --build build/consumer-lan-pico --parallel 2 --target WsprryPico`
+passed with retained SDK `079c6f39023649b154152db30f1d781e884879bc` and Arm GNU
+15.3.1, including post-link topology, pool/heap-hook and stack-guard checks. This was a cross-build; no
+local native macOS C++ application build or physical firmware load occurred.
+
+Impeccable was used before and during UI changes. Two bounded visual batches
+covered desktop/mobile light/dark entry, connected and busy states. The first
+found dark secondary-button contrast; scoped existing-theme colors repaired it.
+The second confirmed the affected layout and feedback, with no horizontal
+overflow. Reload restoration, duplicate Connect, session-busy, draft preservation
+and management selection independent of WTP were exercised. Screenshots are
+generated test artifacts under `src/build/wtp-network/ui`; they use a mocked
+backend and do not establish an installed service or physical routing.
+
+Local evidence logs are retained outside version control in
+`/private/tmp/wsprrypico-p153`: `pico-final-full.log`, `pico-sanitize.log`,
+`wtp-contract.log`, `pico-arm-format.log`, `pi-final-focused.log`,
+`pi-sanitize.log`, `pi-task-only-runtime.log`, `pair-current-network.log`,
+`pair-current-config.log`, `pair-{legacy,extended,p152}-test.log`,
+`ui-final-unit.log` and `ui-final-browser.log`. These temporary files are
+supporting local evidence; the committed commands, pins and assertions are the
+reproducible record.
+
+The actual native consumer/OpenSSL-to-Pico crypto/coordinator integration also
+passed ASan/UBSan without diagnostics, including fixed vectors and all fixture
+negative cases (`consumer-sanitize.log`). The isolated task-only UI `npm test`
+passed after reusing retained `ws` and other JavaScript dependencies; its initial
+missing-module failure was environmental and was rerun.
+
+## Final evidence-review repairs
+
+The final documentation review clarified that no **local** native macOS C++
+application build ran; the unchanged hosted macOS CI profile is separate.
+
+Independent CI evidence review found a pre-existing packet-capture drain race in
+`src/tests/wtp_pi_reply_routing_test.py`. Parent run 38760244313 completed real
+HELLO/STATUS exchanges but retained only an incoming SYN before immediate
+capture shutdown. The repair enables tcpdump immediate mode and observes the
+whole capture until a bounded quiet interval (minimum 0.5 seconds elapsed,
+0.25 seconds quiet, maximum 3 seconds), then retains capture statistics.
+It never stops at the first matching reply. The baseline `wifi0` requirement
+and exact fixed `{'eth0'}` assertion are unchanged; production routing is unchanged.
+
+The independent reassessment found no actionable issue in the repair. Python
+syntax and whitespace checks passed. Three finite actual namespace regressions
+passed in network-disabled disposable Linux with private namespace capabilities:
+
+```sh
+make wtp-pi-routing-probe BACKENDS=simulated ANCILLARY_GPIO=0 SUDO=
+python3 tests/wtp_pi_reply_routing_test.py --probe build/wtp_pi_routing_probe
+```
+
+All three runs reproduced baseline `wifi0` and fixed `eth0` replies; each fixed
+capture had 39 packets captured/received and zero kernel drops. Tools were
+iproute2 6.15.0-1 and tcpdump 4.99.5-2 in the disposable container, with no host
+installation or hardware mounts. Initial read-only container sysctls prevented
+the fixture before packet execution; allowing the fixture's private sysctls
+resolved that environment limitation. Evidence is retained as
+`routing-check-{1,2,3}.json`, `routing-check.log` and `routing-probe-build.log`
+in the local temporary evidence directory. This validates software routing and
+capture behavior only. Required CI is rerun after this harness repair; final
+joint outcome remains in the lead acceptance record.
+
+## Exact affected sanitizer commands
+
+Pico (the retained C Mbed TLS library and system OpenSSL are not a fully
+sanitized dependency build; owned C++ adapters/coordinator paths are instrumented):
+
+```sh
+cmake -S /work/pico -B /work/pico/build/p153-sanitize -DCMAKE_BUILD_TYPE=Debug \
+  -DWSPRRY_PICO_BUILD_TESTS=ON -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/deps/mbedtls \
+  '-DCMAKE_CXX_FLAGS=-fsanitize=address,undefined -fno-omit-frame-pointer' \
+  '-DCMAKE_EXE_LINKER_FLAGS=-fsanitize=address,undefined'
+cmake --build /work/pico/build/p153-sanitize --parallel 2 --target \
+  management_carrier_tests config_update_tests consumer_radio_tests softap_api_tests \
+  application_resource_tests consumer_radio_crypto_tests
+ctest --test-dir /work/pico/build/p153-sanitize --output-on-failure \
+  -R '^(management_carrier_tests|config_updates|consumer_radio_tests|softap_api_tests|application_resources|consumer_radio_crypto_tests)$'
+# Pi, from src:
+make wtp-config-test wtp-api-test SUDO= WTP_NETWORK_BUILD_DIR=/tmp/p153-sanitize \
+  WTP_NETWORK_CXXFLAGS='-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer' \
+  WTP_NETWORK_LDFLAGS='-fsanitize=address,undefined'
+```
+
+The actual native crypto/coordinator fixture used this additional compile/run
+command in the isolated Linux source copy (development sanitizer fixture,
+separate from the mandatory clean-source CMake interoperability guards):
+
+```sh
+#!/bin/sh
+set -eu
+cd /work/pi/src
+make wtp-config-client-build SUDO= > /work/pi-client-build.log 2>&1
+c++ -std=c++20 -pthread -Wall -Wextra -Wpedantic -Werror -UNDEBUG -DWSPRRYPI_CONSUMER_CRYPTO_TEST -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
+  -I. -IWTP-Client/include -I/work/pico/src -I/work/pico/tests -I/deps/mbedtls/include \
+  '-DMBEDTLS_CONFIG_FILE="/work/pico/src/network/pico/mbedtls_config.h"' \
+  tests/network/consumer_interop.cpp wtp_integration/consumer_radio.cpp wtp_integration/configuration.cpp \
+  wtp_integration/browser_api.cpp wtp_integration/network_http.cpp wtp_integration/plain_tcp.cpp wtp_integration/tls.cpp \
+  wtp_integration/application.cpp wtp_integration/status.cpp wtp_integration/scheduler.cpp wtp_integration/backend.cpp \
+  wtp_integration/execution_plan.cpp WSPR-Transmitter/src/execution_plan_compiler.cpp WSPR-Transmitter/src/transmission_controller.cpp \
+  /work/pico/src/network/pico/consumer_radio_crypto.cpp /work/pico/src/network/pico/psa_lifetime.cpp \
+  /work/pico/build/p153-sanitize/libwsprrypico_core.a /work/pico/build/p153-sanitize/mbedtls/libmbedcrypto.a \
+  build/wtp-network/client/libwtp_client.a -lssl -lcrypto -o /work/consumer-sanitize
+/work/consumer-sanitize /work/pico/docs/protocol/Consumer-Radio-v1-vectors.json
+```
+
+All six Pico targets, Pi focused checks and the actual consumer fixture passed
+without sanitizer diagnostics. These are bounded software checks, not a full
+cryptographic library audit.
+
+
+## Joint software closure and publication
+
+The final required [Pi CI run](https://github.com/WsprryPi/WsprryPi/actions/runs/38766594946)
+at `61542aff2e6965b8773053a2429f9b42b863bf98` passed all eight jobs, including
+current engineering network/config interoperability and actual native consumer
+fixture execution, all three historical profiles, UI, strict I2C, semantics/
+simulation, the existing macOS CI profile and all six GCC 13 release profiles.
+The first attempt passed seven jobs and the full actual carrier/routing
+checks, then failed at Chrome debugging-port startup before UI rendering.
+Only that failed job was rerun on a fresh hosted runner. Earlier passes are
+retained; no partial, failed or cancelled result is described as a full pass.
+The original run at
+`a5605c5` had five successful jobs and three cancelled jobs when concurrent
+`c605142` advanced devel; its successor was superseded by the final record-only
+publication. Run 38765432377 at record-only `9b4d78f` was likewise
+superseded by the independent reviewer's local-versus-hosted macOS wording
+correction; that run was then superseded by the reviewed routing capture
+repair. No cancelled result is counted as final CI acceptance.
+
+Accepted pair: Pico implementation dependency
+`d6208dbc88005383041c5ec306b738db7ec22796` with Pi final companion revision
+`61542aff2e6965b8773053a2429f9b42b863bf98`. Pi implementation is
+`a5605c54630d501dc84b51ea7834f59768a250ef`; the final companion revision also
+retains independent Chrony commit `c605142`, acceptance-record updates and
+the independently reviewed CI capture-drain repair described above.
+The [companion record](https://github.com/WsprryPi/WsprryPi/blob/61542aff2e6965b8773053a2429f9b42b863bf98/docs/development/phase15-3-management-carriers.md)
+contains exact historical pins, commands, credential rules and operator-doc follow-up.
+
+Pico's later closure commit changes only this record, the development index and
+P15.3 roadmap status/summary references. It does not change the implementation
+source used by the exact-clean fixture and does not replace the explicit
+reviewed dependency pin. Independent ls-remote verified the pushed companion
+revision. Final Pico parity and its configured Pages CI are checked after this
+record-only publication; local Linux and cross-link evidence remains as above.
+
+All references to avoiding native macOS builds concern the shared local Mac.
+The unchanged required GitHub workflow ran its existing hosted macOS simulated
+profile; local C++ validation used Linux or the supported Arm cross-toolchain.
+
+P15.3 is complete within this deterministic software acceptance. P15.1/P15.2
+closures are preserved. P15.4 remains unimplemented and next: shared application,
+station and hardware resource adoption. No P15.5+ work was started.
+
+### Documentation Impact
+
+Updated: browser API and independently versioned carrier discovery, access
+matrix/security/credentials, Pi adapter/UI compatibility, shared contract and
+USB references, development/review indexes and P15.3 roadmap status.
+Considered unchanged: WTP/1, Config v1 storage/Console policy, profile/setup
+authority, recurrence/STOP/cursors and P15.1/P15.2 closure records.
+Still required in P15.14: the exact operator-manual routes and screenshot
+follow-up listed above; Wsprry_Pi_Docs was inspected read-only and not changed.
+
+The physical gate remains a finite identified Pico 2 W firmware/profile and Pi
+service/client test over actual station/AP interfaces and exact authorities,
+with session/busy/expiry/lost-reply behavior and setup restoration recorded.
+No bench, physical USB, installed service, GPIO or RF operation occurred here.
+Shared-passphrase impersonation, active fake-endpoint offline password guessing,
+one session, temporary AP availability and operator-established AP reachability
+remain explicit protocol/product limits; no unrestricted security qualification
+is claimed.
+
+The final evidence reassessment also confirmed the browser startup log could
+not establish a Chrome failure cause; no OOM/profile/sandbox diagnosis is
+inferred. The unchanged failed-job rerun succeeded on a fresh hosted runner.
+
+Final hosted routing evidence retains three kernel drops in the deliberately
+misrouted baseline capture; that capture still records `wifi0` replies. The fixed
+capture records 39 captured/received packets with zero kernel drops and only
+`eth0` replies. No loss-free baseline-capture or physical-network claim is made.
+
+Final independent reassessment verified the accepted CI head/attempt, all eight
+successful conclusions, pins, retry accounting and unchanged P15.4+ entries; it
+reported no remaining actionable findings and supported this bounded closure.
+
+Target cross-link identity: `pico2_w`, `rp2350-arm-s`; the retained cache carries
+historical version label `0.1.0-rc.3-password-eye-7bff45c`. This source cross-link
+is not a newly labelled release artifact or deployed-image qualification.

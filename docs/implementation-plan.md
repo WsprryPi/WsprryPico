@@ -158,8 +158,9 @@ No Phase 14 workstream or LED task remains open.
     findings from operator use. Pico configuration preservation (P15.1) and
     compatible Pi updates/version-pair verification (P15.2) are complete,
     including the operator-accepted documentation gate. Fourteen items are
-    tracked: two complete and twelve open. Supported management carriers
-    (P15.3) and shared-resource adoption (P15.4) are next. See the
+    tracked: three complete and eleven open. Supported management carriers
+    (P15.3) are complete within recorded software acceptance; shared-resource
+    adoption (P15.4) is next. See the
     [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
 ## Selected consumer LAN access slice
@@ -240,9 +241,9 @@ Execution order revised 2026-10-15 to establish shared behavior before its
 clients and forms. P15.1/P15.2 are complete: Pico's preservation/update contract,
 Pi adoption and paired interoperability evidence are accepted. The operator
 accepted the operator-documentation gate as complete for roadmap closure on
-2026-10-15. Continue with supported management carriers (P15.3) and
-shared-resource adoption (P15.4), so later service and settings work uses explicit
-access policies and common resource semantics. These are JSON management API
+2026-10-15. P15.3 is now complete within its recorded software acceptance.
+Continue with shared-resource adoption (P15.4), so later service and settings
+work uses explicit access policies and common resource semantics. These are JSON management API
 improvements; WTP/1 job-control semantics remain unchanged. The remaining order
 selects sequencing only, not feature implementation.
 
@@ -288,7 +289,7 @@ documenting interim flows.
   The operator-documentation gate is accepted as complete for this roadmap
   by the operator on 2026-10-15. Status: complete. This acceptance does not
   establish firmware, physical/RF or installed-service qualification.
-- [ ] **P15.3 — Define and implement supported management carriers.** Publish
+- [x] **P15.3 — Define and implement supported management carriers.** Publish
   a per-profile/per-carrier matrix separating WTP job control from JSON
   configuration management. Review engineering HTTPS, consumer station/AP
   [Consumer-Radio/1](protocol/Consumer-Radio-v1.md) and USB availability against
@@ -301,7 +302,14 @@ documenting interim flows.
   JobService/configuration authority. Use P15.1/P15.2 compatibility rules and
   verify authorized access, refusal, busy state and uncertain writes across
   the selected profiles/carriers. Keep resource/session budgets bounded and
-  document access-policy and security limits. Status: open; unimplemented.
+  document access-policy and security limits. Status: complete within the
+  [recorded software acceptance](development/phase15-3-management-carriers.md).
+  Station mTLS is preserved; explicit Consumer-Radio/1 station/AP Pi clients and
+  versioned discovery are implemented. USB JSON remains unsupported. Required
+  paired/compatibility, sanitizer, UI and CI checks passed after independent
+  review and repair. Physical, installed-service and unrestricted security
+  qualification remain outside this closure; final operator documentation is
+  P15.14.
 - [ ] **P15.4 — Adopt shared application, station and hardware resources.**
   Complete the supported Pi/Pico resource mapping from the
   [shared transmitter application contract](transmitter-application-contract.md)
@@ -434,9 +442,9 @@ documenting interim flows.
 
 P15.1 and P15.2 were coordinated from WsprryPi: #447 delivered the Pico changes
 and #448 delivered the Pi changes and paired compatibility evidence. With their
-roadmap closure accepted, P15.3/P15.4 return to WsprryPico for management-carrier
-and shared-resource work, with companion Pi changes scoped explicitly. These
-remaining entries are planned; this roadmap update does not implement them.
+roadmap closure accepted, P15.3 returned to WsprryPico and is complete within
+its recorded software scope, with companion Pi changes committed separately.
+P15.4 shared-resource work is next. All later entries remain planned.
 
 ## Remaining deferred and backlog items
 
@@ -695,8 +703,8 @@ belongs to the operator.
    with Pico configuration preservation (P15.1), compatible Pi updates and
    supported-version verification (P15.2) complete, including the
    operator-accepted documentation gate. Supported management carriers (P15.3)
-   and shared-resource adoption (P15.4) are next, before concurrency, sessions
-   and settings changes.
+   are complete within recorded software acceptance; shared-resource adoption
+   (P15.4) is next, before concurrency, sessions and settings changes.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
