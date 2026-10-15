@@ -262,7 +262,9 @@ settings behavior. Prepare the user-documentation structure as needed, then
 finalize P15.14 against that behavior and P15.13's support dispositions to avoid
 documenting interim flows.
 
-- [x] **P15.1 — Preserve Pico configuration across legacy and partial updates.**
+Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not started.
+
+- ✅ **P15.1 — Preserve Pico configuration across legacy and partial updates.**
   Track [WsprryPi #447](https://github.com/WsprryPi/WsprryPi/issues/447):
   Pico-owned preservation of unchanged configuration, explicit resets,
   validation and persistence. Established update semantics, capabilities,
@@ -274,7 +276,7 @@ documenting interim flows.
   [`87144d1`](https://github.com/WsprryPi/WsprryPico/commit/87144d1364f36d04bfe0a714bd1c2f6deb974302).
   Paired Pi adoption and supported-version evidence are accepted under P15.2;
   #447 is closed. Status: complete within the recorded software scope.
-- [x] **P15.2 — Use compatible Pico configuration updates and verify supported
+- ✅ **P15.2 — Use compatible Pico configuration updates and verify supported
   version pairs.** Track
   [WsprryPi #448](https://github.com/WsprryPi/WsprryPi/issues/448): Pi
   client/adapter/UI changes, safe fallback and interoperability coverage.
@@ -289,7 +291,7 @@ documenting interim flows.
   The operator-documentation gate is accepted as complete for this roadmap
   by the operator on 2026-10-15. Status: complete. This acceptance does not
   establish firmware, physical/RF or installed-service qualification.
-- [x] **P15.3 — Define and implement supported management carriers.** Publish
+- ✅ **P15.3 — Define and implement supported management carriers.** Publish
   a per-profile/per-carrier matrix separating WTP job control from JSON
   configuration management. Review engineering HTTPS, consumer station/AP
   [Consumer-Radio/1](protocol/Consumer-Radio-v1.md) and USB availability against
@@ -310,7 +312,7 @@ documenting interim flows.
   review and repair. Physical, installed-service and unrestricted security
   qualification remain outside this closure; final operator documentation is
   P15.14.
-- [ ] **P15.4 — Adopt shared application, station and hardware resources.**
+- ☐ **P15.4 — Adopt shared application, station and hardware resources.**
   Complete the supported Pi/Pico resource mapping from the
   [shared transmitter application contract](transmitter-application-contract.md)
   and [Pico foundation](development/shared-transmitter-application.md).
@@ -324,7 +326,7 @@ documenting interim flows.
   or add recurrence transfer. Extend actual Pi-request-to-Pico-handler tests,
   revision/conflict and persistence checks, and supported-version evidence
   before exposing the supported resource controls. Status: open; unimplemented.
-- [ ] **P15.5 — Add multi-threaded web service.** Support concurrent web
+- ☐ **P15.5 — Add multi-threaded web service.** Support concurrent web
   requests from the operator's phone and Mac without one client's connection
   blocking or locking out the other. Coordinate with P15.6 so both clients can
   remain authenticated and usable simultaneously. Define bounded thread/task
@@ -332,7 +334,7 @@ documenting interim flows.
   transmitter ownership. Retain serialized configuration commits and revision
   checks from P15.1. Validate overlapping requests and slow or disconnected
   clients. Status: open; unimplemented.
-- [ ] **P15.6 — Support multiple simultaneous login sessions.** Allow the
+- ☐ **P15.6 — Support multiple simultaneous login sessions.** Allow the
   operator to stay logged in and use the same Pico from a phone and Mac at the
   same time without either client being locked out or displacing the other's
   session. Keep session authentication, logout and expiry independent, while
@@ -340,7 +342,7 @@ documenting interim flows.
   settings changes. Use the concurrent service from P15.5 and the update rules
   from P15.1. Validate concurrent phone/Mac use and continued access when
   either client logs out, disconnects or expires. Status: open; unimplemented.
-- [ ] **P15.7 — Recover login cleanly after a failed save or lost session.**
+- ☐ **P15.7 — Recover login cleanly after a failed save or lost session.**
   After the callsign-only save was blocked, the operator could no longer log in
   to Pico B and saw "Radio request rejected. Status remains unknown." A live
   check returned HTTP 409 `radio_session_busy`; the firmware retains one session
@@ -353,26 +355,26 @@ documenting interim flows.
   A settings-preserving restart of B restored encrypted login and private
   status access; the verification session was logged out afterward.
   Status: open; unimplemented.
-- [ ] **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Add support for WSPR Type 2
+- ☐ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Add support for WSPR Type 2
   compound-callsign messages and Type 3 hashed-callsign/six-character-locator
   messages. Settle the corresponding station-validation rules before P15.9
   and the consolidated forms in P15.11. Status: open; unimplemented. The current
   standalone encoder [supports Type 1 only](development/standalone.md),
   retaining a six-character locator in settings while transmitting its first
   four characters.
-- [ ] **P15.9 — Save callsign and location independently.** The operator reports
+- ☐ **P15.9 — Save callsign and location independently.** The operator reports
   that saving only a callsign is blocked by a required-fields message. Allow
   either callsign or location to be edited and saved without filling in the
   other field or unrelated settings. Preserve existing values for fields not
   being changed, and keep transmission unavailable until the required station
   identity is valid and complete. Reuse P15.1 update semantics and P15.8
   station-validation rules. Status: open; unimplemented.
-- [ ] **P15.10 — Allow the operator to change the Pico hostname.** Provide a
+- ☐ **P15.10 — Allow the operator to change the Pico hostname.** Provide a
   browser setting to edit and save the hostname, retain it across restarts and
   use it for LAN/mDNS discovery and access. Reuse the established update rules
   and P15.7 recovery behavior for hostname/authority changes before P15.12
   exposes the saved name as the primary identity. Status: open; unimplemented.
-- [ ] **P15.11 — Consolidate Station and Wi-Fi setup.** Remove the duplicated
+- ☐ **P15.11 — Consolidate Station and Wi-Fi setup.** Remove the duplicated
   settings between "Station and Network" and "Wi-Fi and station setup", with
   Station as the primary configuration area and Wi-Fi subordinate to it.
   Consider separate Station and Wi-Fi pages with clear links between them,
@@ -380,7 +382,7 @@ documenting interim flows.
   P15.8-P15.10 settle station validation, independent saves and hostname behavior,
   while preserving the existing profile/configuration authority boundaries.
   The page split remains a design option. Status: open; unimplemented.
-- [ ] **P15.12 — Show the hostname on the main page and in the browser-tab title.**
+- ☐ **P15.12 — Show the hostname on the main page and in the browser-tab title.**
   Replace the prominent `Pico <full device ID>` text with the Pico's hostname.
   Include the hostname first in the HTML page title, for example
   `<hostname> - Station control`, instead of the generic
@@ -391,7 +393,7 @@ documenting interim flows.
   consistently in both the page and tab title. Verify distinct titles with two
   Pico tabs open and correct titles after a hostname change and page reload.
   Status: open; unimplemented.
-- [ ] **P15.13 — Complete untested-band qualification and resolve clock-dependent support.**
+- ☐ **P15.13 — Complete untested-band qualification and resolve clock-dependent support.**
   Revisit the [band/mode chart](development/phase14-band-mode-qualification.md)
   and [machine-readable catalog](development/phase14-band-support.json). Test
   the currently Untested 8 m and 5 m entries across Tone, WSPR, QRSS, FSKCW and
@@ -423,7 +425,7 @@ documenting interim flows.
   so use the Git records as historical context and acquire fresh evidence.
   Record setup/settings restoration and review the resulting claims before
   P15.14 documents them. Status: open; not started.
-- [ ] **P15.14 — Create user documentation for Read the Docs Community.**
+- ☐ **P15.14 — Create user documentation for Read the Docs Community.**
   Create operator-focused documentation suitable for building and hosting on
   the community version of Read the Docs. Reuse suitable styling, format and
   navigation conventions from the WsprryPi documentation repository
