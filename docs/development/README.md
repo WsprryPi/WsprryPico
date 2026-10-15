@@ -19,8 +19,8 @@ operator-accepted documentation gate. The Pico-owned
 [execution prompt](issue447-execution-prompt.md),
 [review record](issue447-review.md) and
 [paired Pi review](https://github.com/WsprryPi/WsprryPi/blob/6a39398bb23d69ba0628e1b82171717040115ec8/docs/development/issue448-review.md)
-retain implementation and supported-version evidence. Management carriers
-(P15.3) and shared-resource adoption (P15.4) are next; firmware, physical/RF and
+retain implementation and supported-version evidence. The [P15.3 carrier implementation/review](phase15-3-management-carriers.md) is
+in progress; shared-resource adoption (P15.4) remains next; firmware, physical/RF and
 installed-service qualification are not established by this software acceptance.
 
 The [WIP Si5351 I²C probe](../../tests/hardware/wip-si5351-i2c/README.md)

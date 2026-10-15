@@ -87,6 +87,7 @@ add_library(wsprrypico_core
     src/network/owner_challenge.cpp
     src/network/owner_claim_http.cpp
     src/network/api.cpp
+    src/network/management.cpp
     src/network/consumer_radio.cpp
     src/network/softap_api.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
@@ -281,6 +282,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(network_tests PRIVATE wsprrypico_core)
     target_compile_options(network_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME network_tests COMMAND network_tests)
+    add_executable(management_carrier_tests tests/management_carrier_tests.cpp)
+    target_link_libraries(management_carrier_tests PRIVATE wsprrypico_core)
+    target_compile_options(management_carrier_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME management_carrier_tests COMMAND management_carrier_tests)
     add_executable(consumer_radio_tests tests/consumer_radio_tests.cpp)
     target_link_libraries(consumer_radio_tests PRIVATE wsprrypico_core)
     target_compile_options(consumer_radio_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)

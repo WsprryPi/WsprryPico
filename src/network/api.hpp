@@ -1,5 +1,6 @@
 #pragma once
 #include "network/http.hpp"
+#include "network/management.hpp"
 #include "provisioning/runtime.hpp"
 #include "standalone/scheduler.hpp"
 
@@ -21,8 +22,12 @@ class BrowserApi {
         : service_(service), store_(store), scheduler_(scheduler), network_(network),
           device_(std::move(device)), firmware_(std::move(firmware)) {}
     HttpResponse handle(const HttpRequest& request, std::string_view principal,
-                        std::string_view authority, std::uint64_t transaction = 0);
+                        std::string_view authority, std::uint64_t transaction = 0,
+                        ManagementCarrier carrier = ManagementCarrier::EngineeringStation);
     std::string revision() const;
+    void management_availability(ManagementAvailability state) {
+        management_ = state;
+    }
     void consumer_config(provisioning::RuntimeProfile& runtime) {
         consumer_runtime_ = &runtime;
     }
@@ -60,6 +65,7 @@ class BrowserApi {
     }
 
   private:
+    ManagementAvailability management_;
     std::optional<standalone::Config> effective_config() const;
     HttpResponse config() const;
     HttpResponse station_config() const;

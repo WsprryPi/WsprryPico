@@ -1796,6 +1796,25 @@ int main() {
                                       consumer_radio.available() && station_ready;
         consumer_radio.listeners(bootstrap_active, consumer_station ? station_ip : "",
                                  network.configured_hostname());
+        browser_api.management_availability({
+            boot_recovery ? wsprrypico::network::ManagementProfile::Recovery
+            : !runtime_profile_loaded || runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned
+                ? wsprrypico::network::ManagementProfile::Blank
+            : consumer_source_selected() ? wsprrypico::network::ManagementProfile::Consumer
+                                         : wsprrypico::network::ManagementProfile::Engineering,
+            runtime_profile_loaded ? runtime_profile.generation() : 0,
+            (service.clock_snapshot().state == wsprrypico::wtp::ClockState::Unsynchronized ||
+             !service.clock_snapshot().utc_now_ns),
+            !consumer_source_selected() && station_ready && server.listening() &&
+                server.engineering_management_admitted() &&
+                service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized &&
+                service.clock_snapshot().utc_now_ns != 0,
+            !consumer_source_selected() && softap.ready() && server.listening() &&
+                server.engineering_management_admitted() &&
+                surface == wsprrypico::provisioning::SoftApSurface::Normal,
+            consumer_station && bootstrap.listening(),
+            bootstrap_active && consumer_radio.available() && bootstrap.listening() &&
+                !softap_coordinator.status(field_now_ms).draining});
         // The open AP accepts encrypted Wi-Fi setup before optional station setup.
         bool setup_admitted = true;
 #ifdef WSPRRY_PICO_STANDALONE_RF

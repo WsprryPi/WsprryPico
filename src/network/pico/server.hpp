@@ -49,6 +49,9 @@ class PicoServer {
     void poll(bool station_link_up, bool softap_link_up, std::string station_authority,
               std::string softap_authority, provisioning::SoftApSurface softap_surface,
               bool allow_http_steps = true);
+    bool engineering_management_admitted() const {
+        return admission_open_ && admission_ == Admission::ClientCertificate && configured();
+    }
     bool listening() const {
         return listener_ != nullptr;
     }

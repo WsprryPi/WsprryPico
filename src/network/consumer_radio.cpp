@@ -285,7 +285,10 @@ HttpResponse ConsumerRadioApi::exchange(const HttpRequest& request, std::uint64_
                 result = http_error(409, "setup_pending");
             else
                 result = api_.handle(inner, "consumer-radio:" + bootstrap_hex(binding_.session),
-                                     authority, transaction);
+                                     authority, transaction,
+                                     session_interface_ == ConsumerInterface::Station
+                                         ? ManagementCarrier::ConsumerStation
+                                         : ManagementCarrier::ConsumerAp);
             pending_transaction_ = transaction;
         }
     }

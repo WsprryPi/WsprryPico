@@ -16,12 +16,14 @@ adapters remain proposals. Existing routes and Config v1 retain their meanings.
 The Pico serves HTTPS and WTP on an explicitly configured TLS port. In the
 engineering profile, station TLS 1.3, client certificate verification and ALPN
 are mandatory: `http/1.1` selects this API; `wtp/1` selects the unchanged WTP
-frame stream. The consumer LAN WTP mode starts after infrastructure SNTP,
-uses TLS 1.3 with ALPN `wtp/1` and no client certificate, and does not expose
-this browser API. The only plaintext exception is AP-interface port 80 on a blank device;
-it is read-only identity/recovery content and has no API-v1, password, time,
-provisioning or job mutation. There is no TLS downgrade, CORS, session ticket or
-early-data path. The engineering station authenticated principal is the SHA-256
+frame stream. The normal consumer image defaults to Plain LAN WTP on station TCP port 31417
+following infrastructure SNTP; optional TLS-WTP uses TLS 1.3/ALPN `wtp/1` without
+client certificates. Neither WTP listener exposes JSON management. Consumer
+station/AP port-80 management uses the separately authenticated and encrypted
+[Consumer-Radio/1](protocol/Consumer-Radio-v1.md) adapter. Raw `/api/v1/` requests
+on consumer HTTP are unavailable. Blank/recovery commissioning keeps its own
+bounded AP-only routes and transactional authority. No TLS downgrade or
+management-carrier fallback is permitted. The engineering station authenticated principal is the SHA-256
 fingerprint of the leaf client certificate. Consumer LAN WTP uses one shared
 local-network principal. Device-specific credential setup and renewal are described in
 [network control](development/network-control.md).
@@ -66,6 +68,7 @@ session cookie that page script cannot read.
 | Method and path | Behavior |
 |---|---|
 | GET `/api/v1/capabilities` | `api_version`, WTP service capabilities under `wtp`, implemented management `features`, body/connection limits, `active_job_connections` |
+| GET `/api/v1/management` | Independently versioned `transmitter-management/1` carrier support/availability and selected authenticated context; see the [carrier matrix](development/phase15-3-management-carriers.md). |
 | GET `/api/v1/status` | `job` service status/terminal records, `standalone` config/clock health, `network` state |
 | GET `/api/v1/jobs` | Same current/retained job inspection snapshot as status |
 | POST `/api/v1/jobs` | Explicit HELLO, CLAIM, RENEW, LOAD, ARM, ABORT or RELEASE through the common service |
@@ -118,7 +121,7 @@ ETags are quoted opaque hashes of boot identity, persisted config and successful
 network-change/restart revision. Send the exact ETag in `If-Match` for any configuration,
 schedule or network PUT, and restart POST. Missing revisions return 428; stale revisions return
 412. Console config changes and reboot invalidate relevant saved revisions.
-A byte-identical config has the same revision; persistence still returns an
+Identical saves consume a journal generation and invalidate the revision; persistence still returns an
 explicit reboot requirement. Station and schedule changes apply to subsequent
 admissions without reboot. A saved SSID, password or time-server difference from
 the boot configuration requires restart; subsequent station-only saves cannot
@@ -356,3 +359,16 @@ The [pin allocation guide](development/pin-allocation.md) defines authenticated
 GET `/api/v1/pins`, nonmutating POST `/api/v1/pins/validate`, and the optional
 `pins` member of Config v1. Operational pin changes require restart and inhibit
 new RF admissions until then. Read saved versus active plans separately.
+
+## Management-carrier discovery
+
+Capabilities add a top-level `management_carriers` reference with exactly
+`schema:"transmitter-management/1"` and `path:"/api/v1/management"`. This is
+outside the closed `application_resources` and application capability objects;
+their legacy `authenticated_https` value is retained for P15.2 compatibility.
+The selected authenticated carrier serves the discovery document. Public
+consumer identity/discovery cannot authorize reads or writes. Unsupported
+versions/types, unavailable selected carriers and identity/profile-generation
+mismatches must refuse without another-carrier retry. The full wire shape,
+operation list, profile matrix and budget interpretation are in the
+[Phase 15.3 contract](development/phase15-3-management-carriers.md).

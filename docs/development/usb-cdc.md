@@ -6,6 +6,11 @@ transport accepts binary bytes; the [strict WTP endpoint](wtp-endpoint.md)
 supplies valid WTP/1 frames, performs JSON dispatch and serializes responses and
 events. No unsolicited diagnostics are emitted on WTP.
 
+P15.3 explicitly leaves USB JSON management unsupported. WTP connectivity and
+Console commands are separate from the authenticated browser/configuration API;
+no new framing, parser or credential authority is added. See the
+[carrier/access matrix](phase15-3-management-carriers.md).
+
 ## Identity and ownership
 
 `src/usb/roles.h` defines the mapping:

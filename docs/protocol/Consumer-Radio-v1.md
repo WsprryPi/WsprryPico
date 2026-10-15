@@ -180,3 +180,10 @@ including a maximum-size paged request. Host/vector checks are not target/RF
 qualification. Both consumer profiles, native current-cursor preservation,
 AP/STA routing and the four smoke screens have bounded independent acceptance.
 Consolidated source, retention and release closeout remain required.
+
+An active fake endpoint can choose its own X25519 key, obtain the client's
+password-derived finish proof and test password guesses offline against its
+known shared secret/transcript. Passive capture alone does not provide that
+shared secret. This existing protocol limitation remains; a strong passphrase
+and trusted endpoint/network matter. Native local code prevents device-page
+execution but does not authenticate a unique device before emitting that proof.

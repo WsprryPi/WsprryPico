@@ -35,13 +35,18 @@ adapter support; `/api/v1/pins/validate` reviews candidates without applying the
 Existing `/api/v1/status` remains the authoritative job, ownership, time and
 output observation. The new application document does not substitute for it.
 
+The [P15.3 carrier contract](phase15-3-management-carriers.md) adds independently
+versioned discovery outside closed application objects and explicit native Pi
+Consumer-Radio station/AP management. Legacy `authenticated_https` metadata is
+retained for strict old-client compatibility; it is not an exhaustive carrier
+inventory. Consumer HTTP exposes only encrypted wrappers, not raw API-v1 access.
+
 Existing engineering station HTTPS uses its certificate principal. Existing
 field HTTPS retains cookie/session admission and classifies these routes, plus
 pin review, as Configure operations: blank and provisioned-preclock access is
-denied, and normal authenticated access retains its existing restrictions. The
-new routes do not open the consumer HTTP portal, add a consumer station listener,
-change default listener enablement, or create JSON management over USB, BLE or
-Plain LAN WTP. A WTP connection alone does not imply a management carrier.
+denied, and normal authenticated access retains its existing restrictions. The foundation adds no raw consumer HTTP API. The existing encrypted consumer
+station/AP adapter shares BrowserApi, independently of WTP; USB, BLE and Plain
+LAN WTP do not become JSON management carriers. A WTP connection alone does not imply a management carrier.
 
 ## Identity and revision
 

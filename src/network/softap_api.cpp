@@ -146,7 +146,7 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
         if (request.path == "/api/v1/config" || request.path == "/api/v1/schedules" ||
             request.path == "/api/v1/network" || request.path == "/api/v1/application" ||
             request.path == "/api/v1/station" || request.path == "/api/v1/hardware" ||
-            request.path == "/api/v1/pins")
+            request.path == "/api/v1/pins" || request.path == "/api/v1/management")
             return SoftApOperation::Configure;
         valid = false;
         return SoftApOperation::Status;
@@ -340,8 +340,8 @@ HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface
         return challenge(request, authorized.authorization.principal, session, transaction);
     if (request.path == "/local/v1/time/submit")
         return submit_time(request, authorized.authorization.principal, session);
-    auto response =
-        browser_.handle(request, authorized.authorization.principal, authority, transaction);
+    auto response = browser_.handle(request, authorized.authorization.principal, authority,
+                                    transaction, ManagementCarrier::EngineeringField);
     if (selected == SoftApOperation::Hello && request.method == "POST" && response.status >= 200 &&
         response.status < 300) {
         const auto bound = admission_.authorize(request, surface, selected, session, activity(),

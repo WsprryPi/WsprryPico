@@ -332,14 +332,17 @@ features are advertised in the JSON API rather than inserted into WTP CAPS.
 
 USB CDC remains the canonical/reference WTP carrier; network WTP/TCP is also
 first-class. An implemented WTP carrier does not imply a configuration carrier.
-The current Pi remote JSON management path uses engineering HTTPS over its
-`network` transport; USB WTP and `network_plain` do not provide that path.
-Consumer management, station HTTP/HTTPS and USB JSON administration must each
-have an explicit supported carrier and access policy before advertising the
-new configuration functions. The foundation uses the existing authenticated
-HTTPS BrowserApi, including the existing normal field cookie/session policy;
-blank and pre-clock field configuration remains denied. It adds no listener,
-consumer HTTP resource, new management binding or authentication downgrade.
+The [P15.3 carrier/access contract](development/phase15-3-management-carriers.md)
+selects engineering mTLS HTTPS plus explicit authenticated consumer station/AP
+Consumer-Radio/1 management independently of job transport. USB JSON management
+is explicitly unsupported, as are JSON over Plain LAN WTP, TLS-WTP and BLE.
+Existing normal engineering field HTTPS keeps its cookie/session Configure
+policy, without a selected Pi field client; blank/preclock field configuration
+remains denied. Consumer HTTP forwards only authenticated encrypted envelopes,
+with profile-owned Wi-Fi/station setup authority preserved. Discovery extends
+capabilities outside old closed application objects; their legacy
+`authenticated_https` metadata remains for compatibility. No authentication
+downgrade or automatic carrier fallback is allowed.
 
 Discovery locates candidates. Device identity, security binding, boot identity,
 current CAPS and status determine selection and admission. Plain LAN identity
@@ -392,8 +395,9 @@ bounded campaign results remain bound to their original configurations.
 - Expanded application/hardware schemas and Pi local/remote projection paths.
   The Pico foundation's resource identifiers, paths and bounded shapes are frozen
   in the linked schemas; unsupported additions require a separately specified version.
-- Consumer and USB management carriers and access policy, including whether
-  supported device profiles expose the new management resource.
+- Supported P15.3 carriers and the explicit USB decision are frozen in the
+  [carrier contract](development/phase15-3-management-carriers.md). Additional
+  carriers or expanded field clients require a separately selected slice.
 - Recurrence-transfer journal, schedule identifiers/revisions and recovery of
   interrupted cross-device changes. Automatic offline fallback is not selected.
 - Implemented/qualified Pico pin assignments and drive settings, configurable

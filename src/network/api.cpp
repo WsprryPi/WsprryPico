@@ -250,7 +250,8 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     return {response.ok ? 200U : 409U, std::move(encoded), "application/json", {}};
 }
 HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal,
-                                std::string_view authority, std::uint64_t transaction) {
+                                std::string_view authority, std::uint64_t transaction,
+                                ManagementCarrier carrier) {
     // The parser already owns the complete HTTP body. Outer JSON whitespace
     // neither enters the internal envelope nor creates decoded fields; account
     // for additional working storage without reserving that padding twice.
@@ -309,6 +310,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 return http_error(503, "resource_exhausted");
             return {200, {}, std::string(asset->type), {}, {}, asset->body};
         }
+        if (r.path == "/api/v1/management")
+            return ok(
+                management_contract(management_, carrier, device_, service_.status().boot_id));
         if (r.path == "/api/v1/capabilities") {
             Request request;
             request.operation = "CAPS";
@@ -334,7 +338,10 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "\"hardware\":\"/api/v1/hardware\",\"management_carrier\":\"authenticated_https\"},"
                 "\"configuration_updates\":" +
                 application::config_update_capabilities() +
-                ",\"active_job_connections\":" + (active_job_connections_ ? "true" : "false") +
+                ",\"management_carriers\":{\"schema\":\"transmitter-management/1\",\"path\":\"/api/"
+                "v1/management\"}"
+                ",\"active_job_connections\":" +
+                (active_job_connections_ ? "true" : "false") +
                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
                 "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}");
         }
