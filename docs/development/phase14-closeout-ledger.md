@@ -1,5 +1,13 @@
 # Phase 14 original closeout ledger — October 14, 2026
 
+Current storage status, 2026-10-15: the operator requested deletion of Phase 14
+raw testing data and generated firmware/build collateral. The identified Mac,
+wspr2/wspr4/wspr5 and external-disk copies are deleted; no project test archive
+or frozen firmware packet was retained. Results and source remain in Git.
+Earlier retention and file-presence claims below are historical. See the
+[disposal record](phase14-evidence-retention.md#october-15-operator-directed-test-data-disposal)
+for scope and the unreachable-host/whole-Mac-backup limits.
+
 ## October 14: Phase 14 completed within the declared scope
 
 **9 of 9 original workstreams are closed (100%).** The operator explicitly

@@ -1,5 +1,21 @@
 # Phase 14 evidence retention and storage
 
+## October 15: operator-directed test-data disposal
+
+The operator withdrew retention of Phase 14 raw testing data and generated
+firmware/build artifacts. The identified Phase 14 collateral was deleted from
+the Mac, wspr2, wspr4, wspr5 and the external `phase14-testing` disk. No replacement
+archive or frozen firmware packet was kept. The recorded results and source in
+Git remain; earlier hashes, archive paths and retention proofs below describe
+historical evidence and do not establish present file availability. They must
+not trigger recreation or retention of those artifacts.
+
+wspr1 had no matching collateral. wspr3 and the configured `wspr`/`wsprmac`
+aliases were unreachable, so their storage was not verified. The external disk
+was returned to its original unmounted state. Whole-Mac Time Machine snapshots
+were left intact and may contain historical file versions. Production settings,
+repository source and unrelated work were outside the deletion scope.
+
 ## October 14: Phase 14 completed within the declared scope
 
 **9 of 9 original workstreams are closed (100%).** The operator explicitly
