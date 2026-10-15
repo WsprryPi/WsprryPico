@@ -157,7 +157,8 @@ No Phase 14 workstream or LED task remains open.
 15. **Open — operator review punchlist:** track requested improvements and
     findings from operator use. Begin with Pico configuration preservation
     (P15.1), then compatible Pi updates and version-pair verification (P15.2).
-    Twelve items are tracked. P15.1's Pico implementation is complete; paired
+    Management carriers (P15.3) and shared-resource adoption (P15.4) follow.
+    Fourteen items are tracked. P15.1's Pico implementation is complete; paired
     Pi adoption/version evidence remains open in P15.2. See the
     [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
@@ -236,24 +237,28 @@ improvements. Record implementation, validation and operator acceptance against
 each item as it is completed. Earlier phase closures retain their recorded scope.
 
 Execution order revised 2026-10-15 to establish shared behavior before its
-clients and forms. The former P15.9/P15.10 become P15.1/P15.2 and lead the
-phase: settle and implement Pico's preservation/update contract before Pi
-adoption, then close their paired interoperability evidence together. These
-are JSON management API improvements; WTP/1 job-control semantics remain
-unchanged. This order selects sequencing only, not feature implementation.
+clients and forms. P15.1/P15.2 lead the phase: settle and implement Pico's
+preservation/update contract before Pi adoption, then close their paired
+interoperability evidence together. Follow with supported management carriers
+(P15.3) and shared-resource adoption (P15.4), so later service and settings work
+uses explicit access policies and common resource semantics. These are JSON
+management API improvements; WTP/1 job-control semantics remain unchanged.
+This order selects sequencing only, not feature implementation.
 
-Design P15.3/P15.4 together, then implement concurrent request servicing before
-independent login sessions and finish recovery against that resulting service.
-Capture the existing failed-save/session-loss reproduction before that
-refactor. Settle WSPR station-validation behavior before independent station
-saves, and complete hostname persistence and session recovery before changing
-the hostname display. Consolidate the settings pages after those behaviors
-are stable, then finish the main-page identity presentation. Later changes
-must extend the P15.2 compatibility coverage for any affected supported pairs.
-Run the P15.11 band/mode and clock follow-up after P15.1-P15.10 so its fresh
-results cover the delivered concurrency, WSPR and settings behavior. Prepare
-the user-documentation structure as needed, then finalize P15.12 against that
-behavior and P15.11's support dispositions to avoid documenting interim flows.
+Design P15.3/P15.4 together, settling management-carrier access before resource
+adoption. Then design P15.5/P15.6 together and implement concurrent request
+servicing before independent login sessions and finish recovery against that
+resulting service. Capture the existing failed-save/session-loss reproduction
+before that refactor. Settle WSPR station-validation behavior before independent
+station saves, and complete hostname persistence and session recovery before
+changing the hostname display. Consolidate the settings pages after those
+behaviors are stable, then finish the main-page identity presentation. Later
+changes must extend the P15.2 compatibility coverage for any affected supported
+pairs. Run the P15.13 band/mode and clock follow-up after P15.1-P15.12 so its
+fresh results cover the delivered carriers, resources, concurrency, WSPR and
+settings behavior. Prepare the user-documentation structure as needed, then
+finalize P15.14 against that behavior and P15.13's support dispositions to avoid
+documenting interim flows.
 
 - [ ] **P15.1 — Preserve Pico configuration across legacy and partial updates.**
   Track [WsprryPi #447](https://github.com/WsprryPi/WsprryPi/issues/447):
@@ -273,23 +278,51 @@ behavior and P15.11's support dispositions to avoid documenting interim flows.
   Pi-generated requests through the adapters and Pico handlers, with
   authoritative saved-state/journal readback across supported old/new pairs.
   Status: backlogged; unimplemented.
-- [ ] **P15.3 — Add multi-threaded web service.** Support concurrent web
+- [ ] **P15.3 — Define and implement supported management carriers.** Publish
+  a per-profile/per-carrier matrix separating WTP job control from JSON
+  configuration management. Review engineering HTTPS, consumer station/AP
+  [Consumer-Radio/1](protocol/Consumer-Radio-v1.md) and USB availability against
+  the [browser API](browser-api.md); select the required Pi-to-Pico management
+  paths and implement their supported adapters. Decide explicitly whether USB
+  JSON management is needed; a working WTP carrier must not imply management
+  support. Advertise actual management capabilities and reject unsupported
+  paths without automatic fallback or an authentication downgrade. Preserve profile
+  authority, device/boot identity, revisions, credential redaction and the one
+  JobService/configuration authority. Use P15.1/P15.2 compatibility rules and
+  verify authorized access, refusal, busy state and uncertain writes across
+  the selected profiles/carriers. Keep resource/session budgets bounded and
+  document access-policy and security limits. Status: open; unimplemented.
+- [ ] **P15.4 — Adopt shared application, station and hardware resources.**
+  Complete the supported Pi/Pico resource mapping from the
+  [shared transmitter application contract](transmitter-application-contract.md)
+  and [Pico foundation](development/shared-transmitter-application.md).
+  Extend Pi's adapter/client/UI to consume `/api/v1/application`,
+  `/api/v1/station` and `/api/v1/hardware`, with pin inspection/validation where
+  supported. Use P15.3's management carriers and P15.1/P15.2's update semantics,
+  capability discovery and older-firmware fallback. Preserve the distinction
+  between Pi host configuration and Pico member resources, exact target/schema
+  identity, saved versus active hardware and restart/fault state. Report
+  unavailable platform features explicitly; do not imply full hardware parity
+  or add recurrence transfer. Extend actual Pi-request-to-Pico-handler tests,
+  revision/conflict and persistence checks, and supported-version evidence
+  before exposing the supported resource controls. Status: open; unimplemented.
+- [ ] **P15.5 — Add multi-threaded web service.** Support concurrent web
   requests from the operator's phone and Mac without one client's connection
-  blocking or locking out the other. Coordinate with P15.4 so both clients can
+  blocking or locking out the other. Coordinate with P15.6 so both clients can
   remain authenticated and usable simultaneously. Define bounded thread/task
   resources and synchronization while preserving local RF timing and shared
   transmitter ownership. Retain serialized configuration commits and revision
   checks from P15.1. Validate overlapping requests and slow or disconnected
   clients. Status: open; unimplemented.
-- [ ] **P15.4 — Support multiple simultaneous login sessions.** Allow the
+- [ ] **P15.6 — Support multiple simultaneous login sessions.** Allow the
   operator to stay logged in and use the same Pico from a phone and Mac at the
   same time without either client being locked out or displacing the other's
   session. Keep session authentication, logout and expiry independent, while
   preserving the shared transmitter ownership rules and detecting conflicting
-  settings changes. Use the concurrent service from P15.3 and the update rules
+  settings changes. Use the concurrent service from P15.5 and the update rules
   from P15.1. Validate concurrent phone/Mac use and continued access when
   either client logs out, disconnects or expires. Status: open; unimplemented.
-- [ ] **P15.5 — Recover login cleanly after a failed save or lost session.**
+- [ ] **P15.7 — Recover login cleanly after a failed save or lost session.**
   After the callsign-only save was blocked, the operator could no longer log in
   to Pico B and saw "Radio request rejected. Status remains unknown." A live
   check returned HTTP 409 `radio_session_busy`; the firmware retains one session
@@ -297,54 +330,54 @@ behavior and P15.11's support dispositions to avoid documenting interim flows.
   Provide clear session-busy feedback and recovery without a device restart or
   waiting for the idle timeout. Preserve saved settings and reconcile any
   uncertain save before offering a retry. The precise failed-save-to-session-loss
-  sequence still needs reproduction; capture it before P15.3/P15.4, then
+  sequence still needs reproduction; capture it before P15.5/P15.6, then
   implement and verify recovery against their resulting multi-session service.
   A settings-preserving restart of B restored encrypted login and private
   status access; the verification session was logged out afterward.
   Status: open; unimplemented.
-- [ ] **P15.6 — Add WSPR Type 2/3 to WsprryPico.** Add support for WSPR Type 2
+- [ ] **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Add support for WSPR Type 2
   compound-callsign messages and Type 3 hashed-callsign/six-character-locator
-  messages. Settle the corresponding station-validation rules before P15.7
-  and the consolidated forms in P15.9. Status: open; unimplemented. The current
+  messages. Settle the corresponding station-validation rules before P15.9
+  and the consolidated forms in P15.11. Status: open; unimplemented. The current
   standalone encoder [supports Type 1 only](development/standalone.md),
   retaining a six-character locator in settings while transmitting its first
   four characters.
-- [ ] **P15.7 — Save callsign and location independently.** The operator reports
+- [ ] **P15.9 — Save callsign and location independently.** The operator reports
   that saving only a callsign is blocked by a required-fields message. Allow
   either callsign or location to be edited and saved without filling in the
   other field or unrelated settings. Preserve existing values for fields not
   being changed, and keep transmission unavailable until the required station
-  identity is valid and complete. Reuse P15.1 update semantics and P15.6
+  identity is valid and complete. Reuse P15.1 update semantics and P15.8
   station-validation rules. Status: open; unimplemented.
-- [ ] **P15.8 — Allow the operator to change the Pico hostname.** Provide a
+- [ ] **P15.10 — Allow the operator to change the Pico hostname.** Provide a
   browser setting to edit and save the hostname, retain it across restarts and
   use it for LAN/mDNS discovery and access. Reuse the established update rules
-  and P15.5 recovery behavior for hostname/authority changes before P15.10
+  and P15.7 recovery behavior for hostname/authority changes before P15.12
   exposes the saved name as the primary identity. Status: open; unimplemented.
-- [ ] **P15.9 — Consolidate Station and Wi-Fi setup.** Remove the duplicated
+- [ ] **P15.11 — Consolidate Station and Wi-Fi setup.** Remove the duplicated
   settings between "Station and Network" and "Wi-Fi and station setup", with
   Station as the primary configuration area and Wi-Fi subordinate to it.
   Consider separate Station and Wi-Fi pages with clear links between them,
   following the captive portal's linked-page approach. Consolidate after
-  P15.6-P15.8 settle station validation, independent saves and hostname behavior,
+  P15.8-P15.10 settle station validation, independent saves and hostname behavior,
   while preserving the existing profile/configuration authority boundaries.
   The page split remains a design option. Status: open; unimplemented.
-- [ ] **P15.10 — Show the hostname on the main page and in the browser-tab title.**
+- [ ] **P15.12 — Show the hostname on the main page and in the browser-tab title.**
   Replace the prominent `Pico <full device ID>` text with the Pico's hostname.
   Include the hostname first in the HTML page title, for example
   `<hostname> - Station control`, instead of the generic
   `WsprryPico - Station control`, so tabs for different Picos are distinguishable.
   Make the full stable device ID available under About or Diagnostics for
-  identification and troubleshooting. Use P15.8's persisted hostname and the
-  resulting P15.9 page layout so a saved hostname change is reflected
+  identification and troubleshooting. Use P15.10's persisted hostname and the
+  resulting P15.11 page layout so a saved hostname change is reflected
   consistently in both the page and tab title. Verify distinct titles with two
   Pico tabs open and correct titles after a hostname change and page reload.
   Status: open; unimplemented.
-- [ ] **P15.11 — Complete untested-band qualification and resolve clock-dependent support.**
+- [ ] **P15.13 — Complete untested-band qualification and resolve clock-dependent support.**
   Revisit the [band/mode chart](development/phase14-band-mode-qualification.md)
   and [machine-readable catalog](development/phase14-band-support.json). Test
   the currently Untested 8 m and 5 m entries across Tone, WSPR, QRSS, FSKCW and
-  DFCW, including the applicable P15.6 WSPR message types. Define finite
+  DFCW, including the applicable P15.8 WSPR message types. Define finite
   conducted tests and acceptance criteria against identified current firmware,
   boards, engine, pins, clock and receiver/RF setup; record failures and
   unavailable configurations as well as passes. Run after the preceding
@@ -371,26 +404,29 @@ behavior and P15.11's support dispositions to avoid documenting interim flows.
   captures and generated firmware were [disposed of](development/phase14-evidence-retention.md#october-15-operator-directed-test-data-disposal),
   so use the Git records as historical context and acquire fresh evidence.
   Record setup/settings restoration and review the resulting claims before
-  P15.12 documents them. Status: open; not started.
-- [ ] **P15.12 — Create user documentation for Read the Docs Community.**
+  P15.14 documents them. Status: open; not started.
+- [ ] **P15.14 — Create user documentation for Read the Docs Community.**
   Create operator-focused documentation suitable for building and hosting on
   the community version of Read the Docs. Reuse suitable styling, format and
   navigation conventions from the WsprryPi documentation repository
   (`WsprryPi-Docs`), retaining applicable licenses and attribution for reused
   material. Cover initial setup, Station/Wi-Fi settings, hostname access,
-  standalone operation and schedules, WsprryPi-controlled operation, supported
-  WSPR/message types, concurrent login and recovery, troubleshooting, updates
+  standalone operation and schedules, WsprryPi-controlled operation, shared
+  resources and supported management access paths, supported WSPR/message types,
+  concurrent login and recovery, troubleshooting, updates
   and the documented RF/setup limits. Keep user instructions separate from
   development/evidence records. Include reproducible documentation build
   configuration and dependency declarations compatible with Read the Docs
   Community; validate the build, links, navigation and desktop/mobile rendering.
-  Finalize instructions and screenshots against the delivered P15.1-P15.10
-  behavior and P15.11's band/mode/clock support results. Status: open;
+  Finalize instructions and screenshots against the delivered P15.1-P15.12
+  behavior and P15.13's band/mode/clock support results. Status: open;
   unimplemented.
 
-The operator will probably coordinate P15.1 and P15.2 from the WsprryPi
-project. That working-project choice remains tentative; #447 owns the Pico
-changes and #448 owns the Pi changes. These entries record the backlog only.
+Coordinate P15.1 and P15.2 from WsprryPi: #447 owns the Pico changes and
+#448 owns the Pi changes. P15.3/P15.4 follow their paired compatibility closure
+and return to WsprryPico for management-carrier and shared-resource work, with
+companion Pi changes scoped explicitly. The new entries remain planned; this
+roadmap update does not implement them.
 
 ## Remaining deferred and backlog items
 
@@ -648,6 +684,8 @@ belongs to the operator.
 5. Phase 15 collects [operator review punchlist items](#phase-15-operator-review-punchlist),
    beginning with Pico configuration preservation (P15.1), then compatible Pi
    updates and supported-version verification (P15.2).
+   Supported management carriers (P15.3) and shared-resource adoption (P15.4)
+   follow before concurrency, sessions and settings changes.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
