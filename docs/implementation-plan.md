@@ -157,7 +157,7 @@ No Phase 14 workstream or LED task remains open.
 15. **Open — operator review punchlist:** track requested improvements and
     findings from operator use. Begin with Pico configuration preservation
     (P15.1), then compatible Pi updates and version-pair verification (P15.2).
-    All ten items remain unimplemented. See the
+    All eleven items remain unimplemented. See the
     [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
 ## Selected consumer LAN access slice
@@ -249,6 +249,8 @@ saves, and complete hostname persistence and session recovery before changing
 the hostname display. Consolidate the settings pages after those behaviors
 are stable, then finish the main-page identity presentation. Later changes
 must extend the P15.2 compatibility coverage for any affected supported pairs.
+Prepare the user-documentation structure as needed, then finalize P15.11
+against the delivered P15.1-P15.10 behavior to avoid documenting interim flows.
 
 - [ ] **P15.1 — Preserve Pico configuration across legacy and partial updates.**
   Track [WsprryPi #447](https://github.com/WsprryPi/WsprryPi/issues/447):
@@ -332,6 +334,20 @@ must extend the P15.2 compatibility coverage for any affected supported pairs.
   consistently in both the page and tab title. Verify distinct titles with two
   Pico tabs open and correct titles after a hostname change and page reload.
   Status: open; unimplemented.
+- [ ] **P15.11 — Create user documentation for Read the Docs Community.**
+  Create operator-focused documentation suitable for building and hosting on
+  the community version of Read the Docs. Reuse suitable styling, format and
+  navigation conventions from the WsprryPi documentation repository
+  (`WsprryPi-Docs`), retaining applicable licenses and attribution for reused
+  material. Cover initial setup, Station/Wi-Fi settings, hostname access,
+  standalone operation and schedules, WsprryPi-controlled operation, supported
+  WSPR/message types, concurrent login and recovery, troubleshooting, updates
+  and the documented RF/setup limits. Keep user instructions separate from
+  development/evidence records. Include reproducible documentation build
+  configuration and dependency declarations compatible with Read the Docs
+  Community; validate the build, links, navigation and desktop/mobile rendering.
+  Finalize instructions and screenshots against the delivered P15.1-P15.10
+  behavior. Status: open; unimplemented.
 
 The operator will probably coordinate P15.1 and P15.2 from the WsprryPi
 project. That working-project choice remains tentative; #447 owns the Pico
