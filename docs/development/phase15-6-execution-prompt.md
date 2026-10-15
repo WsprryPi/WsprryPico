@@ -5,8 +5,9 @@ conversation prepared this source review and prompt; the operator authorized a
 separate executing conversation. The [implementation, review and acceptance
 record](phase15-6-sessions.md) binds actual source pairs, checks, publication
 and exclusions. Physical phone/Mac and target resource/RF acceptance remain open.
-P15.5's published closure is unchanged. The operator's requested subsequent
-post-execution review has not been claimed by this execution.
+P15.5's published closure is unchanged. The executor's assessment and the
+[originating conversation's completed post-execution review](phase15-6-sessions.md#separate-post-execution-review)
+are separate evidence boundaries.
 
 ## Lead repository and reviewed baseline
 

@@ -412,8 +412,79 @@ The exact documentation publication SHA is returned with this handoff because a
 commit cannot embed its own hash. Final verification compares both local HEADs
 against `git ls-remote origin refs/heads/devel` and reports working-tree state.
 
-The operator's requested subsequent post-execution review remains outstanding;
-this executor's repair/reassessment is not an independent review. No connected
+At the executor handoff, the operator's requested subsequent post-execution
+review remained outstanding; the executor's repair/reassessment was not an
+independent review. The later originating-conversation assessment follows. No connected
 board, flash, GPIO/RF, installed binary or service was touched. Physical phone/Mac
 concurrency, target memory high-water/fragmentation and timing/RF acceptance,
 P15.7 recovery and all later roadmap slices remain open.
+
+
+## Separate post-execution review
+
+The originating conversation completed the requested separate adversarial source
+and evidence assessment after the operator returned the execution packet. This
+is additional to the executor's assessments above. Reviewed published heads were
+Pico `b349794119400bc0bbefc6e6fe56c6f85d4d4975` and Pi
+`1090d1af6095757fec039e39e09fc5ad70a5706f`, both clean on `devel` and independently
+matching their remotes. Production implementation pins remain Pico `792b5b2`
+and Pi `748cb42`; the fixture-only Pi repair remains `95b0886`.
+
+The review inspected session/header selection, key and PSA ownership, pending
+quota/rate behavior, per-session expiry/context loss, stale delivery callbacks,
+global board-effect serialization, management/1 versus management/2 negotiation,
+native-client refusal and the changed UI feedback. No actionable production-code
+finding was identified. No production, fixture or compatibility-pin changes were
+required; the previous implementation pair remains the tested dependency.
+
+One documentation finding was repaired: P15.7 still described the earlier
+single-session limit in present tense and requested reproduction before the now
+completed P15.5/P15.6 slices. The roadmap now identifies the original observation
+as historical, records the current three-session behavior and preserves the
+remaining physical reproduction/broader recovery work. Reassessment of the
+changed wording and acceptance claims found no remaining actionable finding.
+P15.7 remains open.
+
+Fresh checks in this separate review:
+
+| Check | Result / boundary |
+| --- | --- |
+| Pico focused CTest selection listed above | 9/9 groups pass, including all 13 genuine HTTP/AEAD session scenarios |
+| Same selection under ASan/UBSan/leak detection | 9/9 groups pass |
+| Additional adversarial probes, normal and sanitized | 88 truncated selectors (lengths 0–43 for finish/request) refuse; an active-session finish packet leaves both active clients usable; a pending login expires at its exact deadline with two healthy sessions preserved; slot reuse/logout reclaim keys and transport state |
+| Pi native/crypto and mixed-client refresh | Real OpenSSL/Mbed TLS station/AP/coordinator checks and two browser contexts beside the native runtime pass |
+| Pi shared-resource and feedback refresh | All nine carrier/state resource cases and the management feedback/draft tests pass; source unchanged |
+| Exact published-head CI | Live `gh run view 38813894089 --repo WsprryPi/WsprryPi --json headSha,status,conclusion,jobs,url` confirms head `1090d1a` and all ten jobs successful; no new CI run was substituted |
+| Source identity | Six retained Pi product/fixture/UI source paths were compared byte-for-byte with the published tree before reusing the focused Linux binaries |
+| Scoped Impeccable review | Changed feedback source and retained Pico mobile-light/Pi desktop-dark capacity renders inspected; detector reports `[]`; no user-interface change required |
+
+The focused normal and sanitizer commands used the nine-group CTest expression
+in the reproduction section, existing `/out/build-host` and `/out/build-sanitize`,
+read-only repository mounts and writable scratch outputs. The bounded extra
+probes imported the committed `Fixture`/genuine browser crypto helpers, used the
+same production HTTP/Mbed TLS drivers and checked healthy clients after rejection
+and expiry; they did not substitute a second session implementation.
+
+Fresh logs are `/private/tmp/wsprrypico-p156/post-review-{normal,sanitize,probes,probes-sanitize}.log`
+and `/private/tmp/wsprrypi-p156/post-review-{consumer,mixed,resources,ui}.log`.
+Live CI metadata and detector output are under `/private/tmp/p156-post-review`.
+Initial review commands made CTest and the resource fixture scratch mounts
+read-only, causing log/JSON-output write refusals; those environment errors were
+corrected before successful reruns. No application assertion or timeout was
+relaxed. The failed resource attempt is retained as
+`post-review-resources-readonly.log`.
+
+The unchanged whole-suite 190/190, six-profile matrix, 358 runtime checks,
+firmware cross-links and full Chrome workflows remain the executor's evidence
+above; they were not all rerun for this documentation-only review closure.
+The separate pass ran the focused refreshes described here and inspected existing
+visual captures rather than claiming another complete browser/render campaign.
+Both Pico and Pi repositories were read-only during those software checks; only
+Pico development/roadmap documentation is changed for this publication.
+
+Documentation impact: updated this appended assessment, the handoff status and
+P15.7's historical/current distinction in the roadmap. Current protocol/API,
+implementation, source pins and the independent operator-documentation repository
+remain unchanged. The exact P15.14 follow-ups above still apply. No hardware,
+flashing, GPIO/RF, installed-service or unrestricted security qualification is
+added. Physical qualification, P15.7 and later slices remain open.

@@ -354,17 +354,22 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   [acceptance and review record](development/phase15-6-sessions.md). Physical
   phone/Mac transport, target heap/stack high-water and RF acceptance remain open.
   The [executed prompt](development/phase15-6-execution-prompt.md) and the
-  operator's later post-execution review are separate evidence boundaries.
+  [completed separate post-execution review](development/phase15-6-sessions.md#separate-post-execution-review)
+  retain distinct evidence boundaries.
 - ☐ **P15.7 — Recover login cleanly after a failed save or lost session.**
   After the callsign-only save was blocked, the operator could no longer log in
   to Pico B and saw "Radio request rejected. Status remains unknown." A live
-  check returned HTTP 409 `radio_session_busy`; the firmware retains one session
-  until logout or expiry, while the browser hides the specific rejection.
+  check against the earlier single-session firmware returned HTTP 409
+  `radio_session_busy`; that firmware retained its session until logout or
+  expiry, while the browser hid the specific rejection. P15.6 now provides
+  three sessions; exhausted capacity and abandoned sessions still need the
+  broader recovery workflow.
   Provide clear session-busy feedback and recovery without a device restart or
   waiting for the idle timeout. Preserve saved settings and reconcile any
-  uncertain save before offering a retry. The precise failed-save-to-session-loss
-  sequence still needs reproduction; capture it before P15.5/P15.6, then
-  implement and verify recovery against their resulting multi-session service.
+  uncertain save before offering a retry. The precise original physical
+  failed-save-to-session-loss sequence still needs reproduction. Use P15.6's
+  genuine software refusal/lost-reply cases and the delivered multi-session
+  service to implement and verify recovery.
   A settings-preserving restart of B restored encrypted login and private
   status access; the verification session was logged out afterward.
   Status: open; unimplemented.
