@@ -155,11 +155,11 @@ No Phase 14 workstream or LED task remains open.
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
 15. **Open — operator review punchlist:** track requested improvements and
-    findings from operator use. Begin with Pico configuration preservation
-    (P15.1), then compatible Pi updates and version-pair verification (P15.2).
-    Management carriers (P15.3) and shared-resource adoption (P15.4) follow.
-    Fourteen items are tracked. P15.1's Pico implementation is complete; paired
-    Pi adoption/version evidence remains open in P15.2. See the
+    findings from operator use. Pico configuration preservation (P15.1) and
+    compatible Pi updates/version-pair verification (P15.2) are complete,
+    including the operator-accepted documentation gate. Fourteen items are
+    tracked: two complete and twelve open. Supported management carriers
+    (P15.3) and shared-resource adoption (P15.4) are next. See the
     [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
 ## Selected consumer LAN access slice
@@ -237,13 +237,14 @@ improvements. Record implementation, validation and operator acceptance against
 each item as it is completed. Earlier phase closures retain their recorded scope.
 
 Execution order revised 2026-10-15 to establish shared behavior before its
-clients and forms. P15.1/P15.2 lead the phase: settle and implement Pico's
-preservation/update contract before Pi adoption, then close their paired
-interoperability evidence together. Follow with supported management carriers
-(P15.3) and shared-resource adoption (P15.4), so later service and settings work
-uses explicit access policies and common resource semantics. These are JSON
-management API improvements; WTP/1 job-control semantics remain unchanged.
-This order selects sequencing only, not feature implementation.
+clients and forms. P15.1/P15.2 are complete: Pico's preservation/update contract,
+Pi adoption and paired interoperability evidence are accepted. The operator
+accepted the operator-documentation gate as complete for roadmap closure on
+2026-10-15. Continue with supported management carriers (P15.3) and
+shared-resource adoption (P15.4), so later service and settings work uses explicit
+access policies and common resource semantics. These are JSON management API
+improvements; WTP/1 job-control semantics remain unchanged. The remaining order
+selects sequencing only, not feature implementation.
 
 Design P15.3/P15.4 together, settling management-carrier access before resource
 adoption. Then design P15.5/P15.6 together and implement concurrent request
@@ -260,24 +261,33 @@ settings behavior. Prepare the user-documentation structure as needed, then
 finalize P15.14 against that behavior and P15.13's support dispositions to avoid
 documenting interim flows.
 
-- [ ] **P15.1 — Preserve Pico configuration across legacy and partial updates.**
+- [x] **P15.1 — Preserve Pico configuration across legacy and partial updates.**
   Track [WsprryPi #447](https://github.com/WsprryPi/WsprryPi/issues/447):
   Pico-owned preservation of unchanged configuration, explicit resets,
-  validation and persistence. Establish the update semantics, capabilities,
-  revision/conflict handling and profile-owned field boundaries that later
-  settings work will reuse. Legacy PUT protection is required independently of
-  new partial-edit support. The [configuration-update contract](development/configuration-updates.md)
-  and [review record](development/issue447-review.md) now deliver the Pico-owned
-  implementation and software evidence. Status: Pico implementation complete;
-  paired Pi adoption/version evidence in P15.2 remains open before joint closure.
-- [ ] **P15.2 — Use compatible Pico configuration updates and verify supported
+  validation and persistence. Established update semantics, capabilities,
+  revision/conflict handling and profile-owned field boundaries for later
+  settings work, with legacy PUT protection independent of new partial-edit
+  support. The [configuration-update contract](development/configuration-updates.md)
+  and [review record](development/issue447-review.md) deliver the Pico-owned
+  implementation, merged at
+  [`87144d1`](https://github.com/WsprryPi/WsprryPico/commit/87144d1364f36d04bfe0a714bd1c2f6deb974302).
+  Paired Pi adoption and supported-version evidence are accepted under P15.2;
+  #447 is closed. Status: complete within the recorded software scope.
+- [x] **P15.2 — Use compatible Pico configuration updates and verify supported
   version pairs.** Track
   [WsprryPi #448](https://github.com/WsprryPi/WsprryPi/issues/448): Pi
   client/adapter/UI changes, safe fallback and interoperability coverage.
-  Depends on the P15.1 / #447 contract and Pico implementation. Verify actual
-  Pi-generated requests through the adapters and Pico handlers, with
-  authoritative saved-state/journal readback across supported old/new pairs.
-  Status: backlogged; unimplemented.
+  Uses the P15.1 / #447 contract and Pico implementation. Pi implementation is
+  merged at
+  [`6a39398`](https://github.com/WsprryPi/WsprryPi/commit/6a39398bb23d69ba0628e1b82171717040115ec8).
+  All four supported source-pair rows passed actual Pi-generated requests
+  through the adapters and Pico handlers with authoritative journal reload;
+  focused regressions, sanitizers and UI checks passed, and final CI passed
+  seven jobs. The [paired review record](https://github.com/WsprryPi/WsprryPi/blob/6a39398bb23d69ba0628e1b82171717040115ec8/docs/development/issue448-review.md)
+  retains exact source pairs, adversarial repairs and validation limits.
+  The operator-documentation gate is accepted as complete for this roadmap
+  by the operator on 2026-10-15. Status: complete. This acceptance does not
+  establish firmware, physical/RF or installed-service qualification.
 - [ ] **P15.3 — Define and implement supported management carriers.** Publish
   a per-profile/per-carrier matrix separating WTP job control from JSON
   configuration management. Review engineering HTTPS, consumer station/AP
@@ -422,11 +432,11 @@ documenting interim flows.
   behavior and P15.13's band/mode/clock support results. Status: open;
   unimplemented.
 
-Coordinate P15.1 and P15.2 from WsprryPi: #447 owns the Pico changes and
-#448 owns the Pi changes. P15.3/P15.4 follow their paired compatibility closure
-and return to WsprryPico for management-carrier and shared-resource work, with
-companion Pi changes scoped explicitly. The new entries remain planned; this
-roadmap update does not implement them.
+P15.1 and P15.2 were coordinated from WsprryPi: #447 delivered the Pico changes
+and #448 delivered the Pi changes and paired compatibility evidence. With their
+roadmap closure accepted, P15.3/P15.4 return to WsprryPico for management-carrier
+and shared-resource work, with companion Pi changes scoped explicitly. These
+remaining entries are planned; this roadmap update does not implement them.
 
 ## Remaining deferred and backlog items
 
@@ -682,10 +692,11 @@ belongs to the operator.
    [closeout ledger](development/phase14-closeout-ledger.md) and
    [remaining deferred/backlog items](#remaining-deferred-and-backlog-items).
 5. Phase 15 collects [operator review punchlist items](#phase-15-operator-review-punchlist),
-   beginning with Pico configuration preservation (P15.1), then compatible Pi
-   updates and supported-version verification (P15.2).
-   Supported management carriers (P15.3) and shared-resource adoption (P15.4)
-   follow before concurrency, sessions and settings changes.
+   with Pico configuration preservation (P15.1), compatible Pi updates and
+   supported-version verification (P15.2) complete, including the
+   operator-accepted documentation gate. Supported management carriers (P15.3)
+   and shared-resource adoption (P15.4) are next, before concurrency, sessions
+   and settings changes.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 

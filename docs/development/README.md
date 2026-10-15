@@ -13,10 +13,15 @@ Phase 14 and P13.1 closures remain intact.
 The [Phase 15 operator review punchlist](../implementation-plan.md#phase-15-operator-review-punchlist)
 tracks operator findings and requested improvements, beginning with Pico
 configuration preservation and compatible Pi updates/version-pair verification
-(P15.1/P15.2). The Pico-owned [configuration-update contract](configuration-updates.md)
-is implemented and software-verified; see its [execution prompt](issue447-execution-prompt.md)
-and [review record](issue447-review.md). Pi adoption and the full supported-version
-matrix remain in P15.2 / WsprryPi #448; joint integration closure is still open.
+(P15.1/P15.2), now complete within their recorded software acceptance and the
+operator-accepted documentation gate. The Pico-owned
+[configuration-update contract](configuration-updates.md),
+[execution prompt](issue447-execution-prompt.md),
+[review record](issue447-review.md) and
+[paired Pi review](https://github.com/WsprryPi/WsprryPi/blob/6a39398bb23d69ba0628e1b82171717040115ec8/docs/development/issue448-review.md)
+retain implementation and supported-version evidence. Management carriers
+(P15.3) and shared-resource adoption (P15.4) are next; firmware, physical/RF and
+installed-service qualification are not established by this software acceptance.
 
 The [WIP Si5351 I²C probe](../../tests/hardware/wip-si5351-i2c/README.md)
 preserves the standalone GP4/GP5 connection diagnostic and historical bench
