@@ -1,5 +1,13 @@
 # Phase 14 PIO/DMA qualification and release plan
 
+Current catalog terminology, 2026-10-15: **4 m is Unqualified** under the
+operator's all-mode reliable-WSPR gate; **native direct 2 m is Unavailable**.
+The failed manually mapped 2 m harmonic pilots remain Unqualified evidence.
+See the [current catalog](phase14-band-mode-qualification.md) and its
+[machine-readable statuses](phase14-band-support.json). Phase 14 is complete
+within the [closeout scope](phase14-closeout-ledger.md). The plan and amendments
+below retain their historical wording and do not reopen qualification.
+
 Status: ACTIVE. Authorized 2026-10-08. This plan is frozen before new RF
 measurements. The operator subsequently clarified, before acquisition, that
 there is specifically no LPF and that LPF development/application is their

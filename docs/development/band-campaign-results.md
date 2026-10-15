@@ -1,5 +1,10 @@
 # Conducted PIO band campaign results
 
+This is the historical September campaign for its recorded image and setup;
+the results and cleanup blocks below remain unchanged. For the later completed
+Phase 14 catalog, use [band, clock and mode results](phase14-band-mode-qualification.md),
+with WsprryPi's Qualified, Unqualified, Unavailable and Untested terms.
+
 The sweep covered the requested 2200 m through 2 m matrix
 across two interrupted runs and separate final band bundles. Statuses apply
 only to the recorded operational criteria.

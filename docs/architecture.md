@@ -237,7 +237,9 @@ policy. Persisted, default-off `allow_unqualified_frequency` and
 `allow_non_amateur_frequency` settings select experimental consent for all job
 sources without adding transport-specific WTP fields. The underlying engine
 keeps physical limits, timing and ownership. Saved flags do not alter band
-qualification or the Phase 14 all-mode 4 m/2 m exclusions; see
+qualification: 4 m remains Unqualified under the Phase 14 all-mode gate and
+native direct 2 m remains Unavailable; see the
+[band/mode catalog](development/phase14-band-mode-qualification.md) and
 [standalone configuration](development/standalone.md).
 
 ## Remaining implementation and qualification choices

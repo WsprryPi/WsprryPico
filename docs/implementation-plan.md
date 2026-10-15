@@ -148,8 +148,9 @@ No Phase 14 workstream or LED task remains open.
     lifecycle/reliability and consumer settings/smoke results retain their exact
     source/image applicability and measurement limits. Code/evidence commit
     `74c73d5` and final closeout commit `e501c0d` were pushed with independent
-    remote parity verification. 4 m/2 m are excluded for all modes; 8 m/5 m were
-    outside the agreed matrix. Filtering, calibrated power/absolute RF timing,
+    remote parity verification. The [band/mode catalog](development/phase14-band-mode-qualification.md)
+    records 4 m as Unqualified under the all-mode gate and native direct 2 m
+    as Unavailable; 8 m/5 m remain Untested. Filtering, calibrated power/absolute RF timing,
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
 

@@ -1,5 +1,51 @@
 {
   "schema": "phase14-band-support-disposition/1",
+  "catalog": {
+    "schema": "band-mode-qualification-catalog/1",
+    "updated_date": "2026-10-15",
+    "terminology_source": "WsprryPi-Docs/docs/About_Wsprry_Pi/index.md: Band qualification",
+    "scope": "Native PIO/DMA GP2 on Pico A and B; historical 132/138/150 MHz engineering results keep their actual source/image identities. The selected Phase 14 artifact is C96/138 MHz; no current installed-image assertion is made.",
+    "status_definitions": {
+      "Qualified": "Met the applicable conducted carrier, decode or human-copy requirements within the recorded board, clock, source/image and setup scope.",
+      "Unqualified": "Did not meet the applicable qualification requirement; includes the operator-required all-mode reliable-WSPR gate at 4m.",
+      "Unavailable": "The native engine cannot construct the requested output; experimental frequency consent does not override engine limits.",
+      "Untested": "Outside the agreed matrix, with no qualification result."
+    },
+    "mode_application": "Each qualification_by_band status applies to all five modes in the top-level modes list; the notes preserve mode-specific acceptance and experimental-route distinctions.",
+    "qualification_by_band": {
+      "2200m": "Qualified",
+      "630m": "Qualified",
+      "160m": "Qualified",
+      "80m": "Qualified",
+      "60m": "Qualified",
+      "40m": "Qualified",
+      "30m": "Qualified",
+      "20m": "Qualified",
+      "17m": "Qualified",
+      "15m": "Qualified",
+      "12m": "Qualified",
+      "10m": "Qualified",
+      "8m": "Untested",
+      "6m": "Qualified",
+      "5m": "Untested",
+      "4m": "Unqualified",
+      "2m": "Unavailable"
+    },
+    "direct_synthesis_clocks_hz": {
+      "4m": [
+        150000000
+      ],
+      "2m": []
+    },
+    "notes": {
+      "6m_WSPR": "Qualified includes separately reviewed Pico A/138 MHz receiver-only +125 Hz retune acceptance; the transmitted waveform and original nominal failed flags remain unchanged.",
+      "4m": "Unqualified at representable 150 MHz under the all-mode reliable-WSPR requirement. Unavailable for direct synthesis at 132/138 MHz. Successful individual Tone, keyed and occasional WSPR observations remain unchanged; the all-mode status does not claim each mode failed individually.",
+      "2m": "Unavailable for native direct output at all three clocks; no native harmonic mapping is implemented. Manually mapped 138 MHz third-harmonic WSPR pilots remain Unqualified evidence, without promoting the other modes to tested failures.",
+      "8m_5m": "Untested; outside the agreed qualification matrix.",
+      "limits": "Unfiltered conducted evidence does not establish calibrated transmitter power or antenna-ready emissions."
+    },
+    "historical_record": "All other top-level fields retain the October 11 operator-amended release-scope record, including its original UNSUPPORTED_RELEASE labels, dates, evidence and then-pending gates. Current catalog status is qualification_by_band; historical fields are not a current completion or availability assertion."
+  },
   "status": "OPERATOR_AMENDED_RELEASE_SCOPE",
   "amended_date": "2026-10-11",
   "source_commit": "e95334aa56d816b31a62255b980b540b849cf6ff",

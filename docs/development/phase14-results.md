@@ -35,8 +35,11 @@ The accepted matrix covers Tone, WSPR, QRSS, FSKCW and DFCW on both boards:
 132/138/150 MHz comparisons and the selected138 candidate. All390 cells and602
 accepted observations are bound to actual source/firmware/boot/job/capture
 identities. Original nominal failures, receiver-only acceptance and keyed
-human-copy amendments remain separate. 4m/2m are excluded for all modes;
-8m/5m were outside the agreed matrix and remain untested.
+human-copy amendments remain separate. The current [band/mode catalog](phase14-band-mode-qualification.md)
+uses WsprryPi terminology: 4 m is Unqualified under the all-mode gate; native
+direct 2 m is Unavailable. Failed manually mapped 2 m harmonic pilots remain
+Unqualified evidence. 8 m/5 m remain Untested. This terminology update changes
+no original observation, flag, receipt or release-scope decision.
 
 The timing, spectra, reference, lifecycle, native/standalone, eight-hour mixed
 and separate two-hour memory gates retain their actual reviewed scopes and

@@ -127,10 +127,12 @@ an experiment must satisfy both members' admission policies.
 
 Default admission retains the thirteen ordinary bands from 2200 m through
 6 m in the Phase 14 matrix. The additional 8 m and 5 m correlation ranges are
-untested and require `allow_unqualified_frequency`; 4 m and 2 m remain
-[unsupported for every release mode](phase14-band-support.json) after failed
-required WSPR decoding. Experimental consent does not change that disposition,
-promote prior failed results, or complete Phase 14 qualification. Correlation
+Untested and require `allow_unqualified_frequency`; 4 m remains Unqualified
+for every release mode under the required reliable-WSPR gate, and native direct
+2 m is Unavailable. See the [qualification catalog](phase14-band-mode-qualification.md)
+and [machine-readable statuses](phase14-band-support.json). Experimental consent
+does not change qualification, promote prior failed results or override engine
+availability. Phase 14 is complete within its declared scope. Correlation
 envelopes match WsprryPi's Band-Lookup catalog and are not jurisdiction-specific
 operating authority.
 
@@ -148,6 +150,7 @@ fundamental around 48.16 MHz is outside this correlation catalog and requires
 both flags. Supplying a normal 144 MHz job still fails the numeric limit;
 neither flag converts it into a harmonic job. This is experimental use and
 does not restore release support for 2 m.
+Its failed WSPR pilots remain Unqualified evidence; native 2 m stays Unavailable.
 
 The document is limited to 1,800 bytes and eight schedules. Station validation
 uses the existing strict uppercase callsign, four- or six-character Maidenhead locator

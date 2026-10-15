@@ -53,9 +53,12 @@ records a five-mode matrix with eight narrowly qualified operational entries,
 RF failures and USB-related blockage. Calibrated timing, spectra and production
 engine/mode/band qualification remain open.
 The current [Phase 14 support disposition](docs/development/phase14-band-support.json)
-excludes 4 m and 2 m for all five modes following failed WSPR reliability with
-complete synthesis and valid fault/resource/capture evidence. Other Phase 14
-release gates remain in progress.
+uses WsprryPi's qualification terms: 4 m is **Unqualified** for all five modes
+under the required reliable-WSPR gate; native direct 2 m is **Unavailable**.
+The failed manually mapped 2 m harmonic pilots remain Unqualified evidence.
+The [band/mode catalog](docs/development/phase14-band-mode-qualification.md)
+records 13 Qualified bands and Untested 8 m/5 m, with clock-specific limits.
+Phase 14 is complete within its declared scope.
 The application source now has persisted, default-off
 `allow_unqualified_frequency` and `allow_non_amateur_frequency` settings matching
 WsprryPi's experimental opt-ins. See

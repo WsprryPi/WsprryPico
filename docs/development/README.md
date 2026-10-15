@@ -99,6 +99,11 @@ selected independently of Phase 13. Phase 14 is closed within its declared
 scope under the [closeout ledger](phase14-closeout-ledger.md); its
 [pre-acquisition plan](phase14-plan.md) and [result record](phase14-results.md)
 retain their historical evidence.
+The current [band/mode catalog](phase14-band-mode-qualification.md) and
+machine-readable `catalog` in [phase14-band-support.json](phase14-band-support.json)
+use WsprryPi's Qualified, Unqualified, Unavailable and Untested terms. The 4 m
+all-mode result is Unqualified; native direct 2 m is Unavailable. Historical
+campaign tables and source-bound receipts retain their original result labels.
 The [GPIO timekeeping/calibration research plan](gpio-time-calibration-plan.md)
 records the selected NTP filtering/UTC discipline, NTP-derived Pico calibration
 and optional GPS/PPS stages, with Si5351 conditional on GPIO results and deferred.

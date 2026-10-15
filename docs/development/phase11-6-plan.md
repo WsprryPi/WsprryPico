@@ -2,6 +2,11 @@
 
 Status: **CLOSED — explicitly reduced acceptance scope.**
 
+This source-bound Phase 11.6 matrix retains its original result labels and
+acceptance limits. The later completed [Phase 14 catalog](phase14-band-mode-qualification.md)
+uses WsprryPi's Qualified, Unqualified, Unavailable and Untested terminology;
+it does not relabel these historical measurements or their acceptance.
+
 The authoritative row ledger is
 [`phase11-6-matrix.json`](phase11-6-matrix.json). The immutable authorization
 input remains [`phase11-6-closure-plan.json`](phase11-6-closure-plan.json), and

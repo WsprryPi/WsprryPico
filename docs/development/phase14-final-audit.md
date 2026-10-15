@@ -35,8 +35,11 @@ The accepted matrix covers Tone, WSPR, QRSS, FSKCW and DFCW on both boards:
 132/138/150 MHz comparisons and the selected138 candidate. All390 cells and602
 accepted observations are bound to actual source/firmware/boot/job/capture
 identities. Original nominal failures, receiver-only acceptance and keyed
-human-copy amendments remain separate. 4m/2m are excluded for all modes;
-8m/5m were outside the agreed matrix and remain untested.
+human-copy amendments remain separate. The current [band/mode catalog](phase14-band-mode-qualification.md)
+uses WsprryPi terminology: 4 m is Unqualified under the all-mode gate; native
+direct 2 m is Unavailable. Failed manually mapped 2 m harmonic pilots remain
+Unqualified evidence. 8 m/5 m remain Untested. This terminology update changes
+no original observation, flag, receipt or release-scope decision.
 
 The timing, spectra, reference, lifecycle, native/standalone, eight-hour mixed
 and separate two-hour memory gates retain their actual reviewed scopes and
@@ -108,7 +111,7 @@ A current INFO equality is not a new full application-flash proof.
 | Assertion | Actual evidence and applicability | Final audit disposition |
 | --- | --- | --- |
 | Supported retained band/mode/clock matrix | Clock reconciliation 612ba1f6... and full audit e20c96c8..., actual external WSPR stdout, reviewed keyed human-copy screens, post-clock Tone 13efa688... | Accepted390 cells,602 observations; retain old source/image identities and narrow applicability. |
-| 4 m and 2 m release support | Operator disposition ab6be5a5... and independent scope 0256bc69... exclude all five modes at all candidate clocks | Accepted exclusion. Preserve successful synthesis and failed decoding; no further RF/decoder work. |
+| 4 m and 2 m release support | Operator disposition ab6be5a5... and independent scope 0256bc69... retain the all-mode reliable-WSPR requirement; native engine limits remain separate | 4 m Unqualified under the all-mode gate; native direct 2 m Unavailable, with failed harmonic pilots retained as Unqualified evidence. Original receipts and release decision unchanged; no further RF/decoder work. |
 | Timing/spectra/reference/compensation | Full spectra/compensation acceptance f04a8701..., original Tone gates and receiver/reference bindings | Original method/uncertainty assertions and final-source applicability verified. No calibrated transmitter power, new frequency/drift limit or LPF claim. |
 | Finite native/standalone/lifecycle workloads | Native19 1d0c21f7..., standalone 3e877d52..., lifecycle 2305f220... including prior clock-loss full proof | Retain actual source/settings/boot/job identities and exact original failures. |
 | Eight-hour mixed and separate two-hour memory | Full 014b4438... / closed77c6b727..., full3c5c5539... / closeda42de550... | Original science accepted separately. Neither receipt is relabelled as consumer-image endurance or general leak freedom. |
