@@ -6,10 +6,11 @@ This file is useful while implementation is active. Remove roadmap sequencing,
 completed-work narration and other progress material before the documentation is
 treated as long-term product documentation.
 
-Current position, 2026-10-14: Phases 1–12 and Phase 14 are closed within their
+Current position, 2026-10-15: Phases 1–12 and Phase 14 are closed within their
 recorded scopes. P13.1 transmit LED work is complete. Remaining conditional,
 deferred and unselected proposals are listed under
 [remaining deferred and backlog items](#remaining-deferred-and-backlog-items).
+Phase 15 tracks [operator review punchlist items](#phase-15-operator-review-punchlist).
 No Phase 14 workstream or LED task remains open.
 
 ## Current roadmap snapshot
@@ -153,6 +154,10 @@ No Phase 14 workstream or LED task remains open.
     as Unavailable; 8 m/5 m remain Untested. Filtering, calibrated power/absolute RF timing,
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
+15. **Open — operator review punchlist:** track requested improvements and
+    findings from operator use. P15.1 adds WSPR Type 2/3 support to WsprryPico;
+    it is recorded and unimplemented. See the
+    [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
 ## Selected consumer LAN access slice
 
@@ -221,6 +226,76 @@ reset, fault, disconnect or timeout when implementation is selected. Exact
 commands, endpoints, pin/polarity and timeout policy remain proposals. The Pico
 amplifier adapter remains unavailable; this backlog adds no implementation or
 acceptance gate to the active Phase 14 campaign.
+
+## Phase 15 operator review punchlist
+
+Created 2026-10-15 to collect operator review findings and requested
+improvements. Record implementation, validation and operator acceptance against
+each item as it is completed. Earlier phase closures retain their recorded scope.
+
+- [ ] **P15.1 — Add wspr type 2/3 to WsprryPico.** Add support for WSPR Type 2
+  compound-callsign messages and Type 3 hashed-callsign/six-character-locator
+  messages. Status: open; unimplemented. The current standalone encoder
+  [supports Type 1 only](development/standalone.md), retaining a six-character
+  locator in settings while transmitting its first four characters.
+- [ ] **P15.2 — Allow the operator to change the Pico hostname.** Provide a
+  browser setting to edit and save the hostname, retain it across restarts and
+  use it for LAN/mDNS discovery and access. Status: open; unimplemented.
+- [ ] **P15.3 — Consolidate Station and Wi-Fi setup.** Remove the duplicated
+  settings between "Station and Network" and "Wi-Fi and station setup", with
+  Station as the primary configuration area and Wi-Fi subordinate to it.
+  Consider separate Station and Wi-Fi pages with clear links between them,
+  following the captive portal's linked-page approach. The page split remains
+  a design option. Status: open; unimplemented.
+- [ ] **P15.4 — Save callsign and location independently.** The operator reports
+  that saving only a callsign is blocked by a required-fields message. Allow
+  either callsign or location to be edited and saved without filling in the
+  other field or unrelated settings. Preserve existing values for fields not
+  being changed, and keep transmission unavailable until the required station
+  identity is valid and complete. Status: open; unimplemented.
+- [ ] **P15.5 — Recover login cleanly after a failed save or lost session.**
+  After the callsign-only save was blocked, the operator could no longer log in
+  to Pico B and saw "Radio request rejected. Status remains unknown." A live
+  check returned HTTP 409 `radio_session_busy`; the firmware retains one session
+  until logout or expiry, while the browser hides the specific rejection.
+  Provide clear session-busy feedback and recovery without a device restart or
+  waiting for the idle timeout. Preserve saved settings and reconcile any
+  uncertain save before offering a retry. The precise failed-save-to-session-loss
+  sequence still needs reproduction. A settings-preserving restart of B restored
+  encrypted login and private status access; the verification session was logged
+  out afterward. Status: open; unimplemented.
+- [ ] **P15.6 — Support multiple simultaneous login sessions.** Allow the
+  operator to stay logged in and use the same Pico from a phone and Mac at the
+  same time without either client being locked out or displacing the other's
+  session. Keep session authentication, logout and expiry independent, while
+  preserving the shared transmitter ownership rules and detecting conflicting
+  settings changes. Validate concurrent phone/Mac use and continued access when
+  either client logs out, disconnects or expires. Status: open; unimplemented.
+- [ ] **P15.7 — Add multi-threaded web service.** Support concurrent web
+  requests from the operator's phone and Mac without one client's connection
+  blocking or locking out the other. Coordinate with P15.6 so both clients can
+  remain authenticated and usable simultaneously. Define bounded thread/task
+  resources and synchronization while preserving local RF timing and shared
+  transmitter ownership. Validate overlapping requests and slow or disconnected
+  clients. Status: open; unimplemented.
+- [ ] **P15.8 — Show the hostname as the main-page device identity.** Replace
+  the prominent `Pico <full device ID>` text with the Pico's hostname. Make the
+  full stable device ID available under About or Diagnostics for identification
+  and troubleshooting. Coordinate with P15.2 so a saved hostname change is
+  reflected consistently. Status: open; unimplemented.
+- [ ] **P15.9 — Preserve Pico configuration across legacy and partial updates.**
+  Track [WsprryPi #447](https://github.com/WsprryPi/WsprryPi/issues/447):
+  Pico-owned preservation of unchanged configuration, explicit resets,
+  validation and persistence. Status: backlogged.
+- [ ] **P15.10 — Use compatible Pico configuration updates and verify supported
+  version pairs.** Track
+  [WsprryPi #448](https://github.com/WsprryPi/WsprryPi/issues/448): Pi
+  client/adapter/UI changes, safe fallback and interoperability coverage.
+  Depends on P15.9 / #447. Status: backlogged.
+
+The operator will probably coordinate P15.9 and P15.10 from the WsprryPi
+project. That working-project choice remains tentative; #447 owns the Pico
+changes and #448 owns the Pi changes. These entries record the backlog only.
 
 ## Remaining deferred and backlog items
 
@@ -475,6 +550,8 @@ belongs to the operator.
    conducted results and reproducible C96/138 MHz artifact. See the
    [closeout ledger](development/phase14-closeout-ledger.md) and
    [remaining deferred/backlog items](#remaining-deferred-and-backlog-items).
+5. Phase 15 collects [operator review punchlist items](#phase-15-operator-review-punchlist),
+   beginning with WSPR Type 2/3 support for WsprryPico.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 

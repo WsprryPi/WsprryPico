@@ -10,6 +10,10 @@ Earlier AP-only, AP-always-retained and default-disabled-button descriptions
 below retain historical evidence scope and are superseded by this slice.
 Phase 14 and P13.1 closures remain intact.
 
+The [Phase 15 operator review punchlist](../implementation-plan.md#phase-15-operator-review-punchlist)
+tracks operator findings and requested improvements, beginning with WSPR Type
+2/3 support for WsprryPico (open; unimplemented).
+
 Phase 11 is closed within its documented software, bounded physical and scoped
 conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
 binds its source pair, assertion-level applicability, host regressions and
