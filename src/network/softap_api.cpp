@@ -145,6 +145,7 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
             return SoftApOperation::Hello;
         if (request.path == "/api/v1/config" || request.path == "/api/v1/schedules" ||
             request.path == "/api/v1/network" || request.path == "/api/v1/application" ||
+            request.path == "/api/v1/application/2" || request.path == "/api/v1/station/2" ||
             request.path == "/api/v1/station" || request.path == "/api/v1/hardware" ||
             request.path == "/api/v1/pins" || request.path == "/api/v1/management")
             return SoftApOperation::Configure;
@@ -181,10 +182,12 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
     }
     if ((request.method == "PUT" &&
          (request.path == "/api/v1/config" || request.path == "/api/v1/schedules" ||
+          request.path == "/api/v1/config/2" || request.path == "/api/v1/station/2" ||
           request.path == "/api/v1/network" || request.path == "/api/v1/station" ||
           request.path == "/api/v1/hardware")) ||
         (request.method == "POST" &&
          (request.path == "/api/v1/restart" || request.path == "/api/v1/pins/validate" ||
+          request.path == "/api/v1/wspr-plan" || request.path == "/api/v1/config/update/2" ||
           request.path == "/api/v1/config/update")))
         return SoftApOperation::Configure;
     valid = false;

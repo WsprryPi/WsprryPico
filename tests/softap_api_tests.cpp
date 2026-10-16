@@ -162,8 +162,8 @@ void policy() {
     config.headers["cookie"] = cookie;
     REQUIRE(f.api.handle(config, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 3, 6)
                 .status == 401);
-    for (const auto path :
-         {"/api/v1/application", "/api/v1/station", "/api/v1/hardware", "/api/v1/pins"}) {
+    for (const auto path : {"/api/v1/application", "/api/v1/station", "/api/v1/application/2",
+                            "/api/v1/station/2", "/api/v1/hardware", "/api/v1/pins"}) {
         auto resource = config;
         resource.path = path;
         REQUIRE(
@@ -209,8 +209,8 @@ void policy() {
     REQUIRE(capabilities.body.find("\"softap\":true") != std::string::npos);
     REQUIRE(capabilities.body.find("\"ble\":true") != std::string::npos);
     REQUIRE(capabilities.body.find("\"application\":true") != std::string::npos);
-    for (const auto path :
-         {"/api/v1/application", "/api/v1/station", "/api/v1/hardware", "/api/v1/pins"}) {
+    for (const auto path : {"/api/v1/application", "/api/v1/station", "/api/v1/application/2",
+                            "/api/v1/station/2", "/api/v1/hardware", "/api/v1/pins"}) {
         auto resource = config;
         resource.path = path;
         REQUIRE(
@@ -235,6 +235,33 @@ void policy() {
     REQUIRE(f.api.handle(station, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
             200);
     REQUIRE(f.store.config()->callsign == "K1ABC");
+
+    auto extended = station;
+    extended.path = "/api/v1/station/2";
+    extended.body =
+        "{\"schema\":\"transmitter-station/2\",\"target\":" +
+        application::target(device, f.service.status().boot_id) +
+        ",\"station\":{\"callsign\":\"AA0NT/09\",\"locator\":\"EM18IG\",\"power_dbm\":20}}";
+    extended.headers["if-match"] = f.browser.revision();
+    REQUIRE(
+        f.api.handle(extended, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
+            .status == 401);
+    REQUIRE(f.api.handle(extended, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+            200);
+    REQUIRE(f.store.config()->callsign == "AA0NT/09");
+    station.headers["if-match"] = f.browser.revision();
+    REQUIRE(f.api.handle(station, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+            200);
+
+    auto preview = request("POST", "/api/v1/wspr-plan",
+                           R"({"callsign":"<AA0NT>","locator":"EM18IG","power_dbm":20})");
+    preview.headers["cookie"] = cookie;
+    const auto generation = f.store.config_sequence();
+    REQUIRE(f.api.handle(preview, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
+                .status == 401);
+    REQUIRE(f.api.handle(preview, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+            200);
+    REQUIRE(f.store.config_sequence() == generation);
 
     auto partial =
         request("POST", "/api/v1/config/update",

@@ -187,3 +187,18 @@ Type 3 hash-context feedback, two-frame plan and observed frame progress,
 ambiguous `/09` versus `/Z` with unchanged saved identity, old-firmware refusal,
 and preserved draft/fresh saved-state review on desktop and mobile. No operator
 pages or screenshots have been published to that independent repository.
+
+## First paired-review repair
+
+The first exact-source Pi run refused `application/2` at the native outbound
+HTTP allowlist, before contacting Pico. Both Pi TLS and consumer route lists now
+admit only the explicit versioned resource pairs, retaining their original
+body, revision, authentication and transport bounds. The engineering-field
+Pico wrapper was also missing those routes; it now classifies them under the
+existing Configure policy. Regression checks exercise authenticated reads,
+Type 2/3 station save, pure preview and preclock/unauthenticated refusal through
+the actual wrapper. Eight affected host groups pass (`route-tests.log`, 2.89s).
+Management/1 and /2 projections remain unchanged; the application descriptor
+is the separately versioned authority, as with existing scoped resources.
+A new implementation identity replaces the initial local `6bcaf42` candidate
+for all current-source pairs and firmware links.
