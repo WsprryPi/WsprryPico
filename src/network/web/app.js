@@ -490,7 +490,10 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
   for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) {
     if (currentConfig?.[name] === true) config[name] = true;
   }
-  await reviewWspr(config.station,'draft-wspr-plan');
+  // Broad legacy identities remain readable/preservable even when they cannot
+  // transmit. Validate a changed identity; an unrelated save keeps its bytes.
+  if (!currentConfig || ['callsign','locator','power_dbm'].some(key => config.station[key] !== currentConfig.station[key]))
+    await reviewWspr(config.station,'draft-wspr-plan');
   const result = await api(applicationVersion === 2 ? 'config/2' : 'config','PUT',config,revision); const confirmed=checkedConfig(result,false); revision = result.revision; fill(confirmed);
   await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Restart device to apply network or pin changes.' : 'Settings saved and applied.');
 }); };

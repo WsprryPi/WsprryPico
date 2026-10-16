@@ -383,6 +383,17 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         const future=await fixture();future.config.expires_utc_s=expires;await future.elements['reload-config'].onclick();assert.ok(future.form.expiry.value.startsWith(expires===2208988800?'2040':'2099'));
         future.form.schedules.value='240 / 0';future.elements.config.oninput();await future.elements['read-saved'].onclick();assert.equal(future.form.schedules.value,'240 / 0');await future.elements['review-saved'].onclick();assert.equal(future.elements['save-config'].disabled,false);
     }
+    const legacyIdentity=await fixture();
+    legacyIdentity.config.station.callsign='AA0NT/P/M';
+    await legacyIdentity.elements['reload-config'].onclick();
+    legacyIdentity.form.schedules.value='240 / 0';legacyIdentity.elements.config.oninput();
+    await legacyIdentity.elements.config.onsubmit({preventDefault(){}});
+    const legacySaves=()=>legacyIdentity.calls.filter(c=>c.path.endsWith('config')&&c.options.method==='PUT');
+    assert.equal(legacySaves().length,1);
+    assert.equal(JSON.parse(legacySaves()[0].options.body).station.callsign,'AA0NT/P/M');
+    legacyIdentity.form.callsign.value='AA0NT/P';legacyIdentity.elements.config.oninput();
+    await legacyIdentity.elements.config.onsubmit({preventDefault(){}});
+    assert.equal(legacySaves().length,1); // An old firmware cannot accept a new format.
     const emptyV2=await fixture(true,false);
     emptyV2.appV2={schema:'transmitter-application/2',target:{scope:'member',device_id:'1'.repeat(32),boot_id:emptyV2.state.job.boot_id},
       station:{station:null},hardware:{saved:null,active:null,pending_restart:false,application_error:null},recurrence:{},
