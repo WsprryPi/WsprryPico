@@ -356,23 +356,29 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   The [executed prompt](development/phase15-6-execution-prompt.md) and the
   [completed separate post-execution review](development/phase15-6-sessions.md#separate-post-execution-review)
   retain distinct evidence boundaries.
-- ⏳ **P15.7 — Recover login cleanly after a failed save or lost session.**
+- ✅ **P15.7 — Recover login cleanly after a failed save or lost session (software scope).**
   After the callsign-only save was blocked, the operator could no longer log in
   to Pico B and saw "Radio request rejected. Status remains unknown." A live
   check against the earlier single-session firmware returned HTTP 409
   `radio_session_busy`; that firmware retained its session until logout or
   expiry, while the browser hid the specific rejection. P15.6 now provides
-  three sessions; exhausted capacity and abandoned sessions still need the
-  broader recovery workflow.
-  Provide clear session-busy feedback and recovery without a device restart or
-  waiting for the idle timeout. Preserve saved settings and reconcile any
-  uncertain save before offering a retry. The precise original physical
-  failed-save-to-session-loss sequence still needs reproduction. Use P15.6's
-  genuine software refusal/lost-reply cases and the delivered multi-session
-  service to implement and verify recovery.
+  three sessions; P15.7 adds fresh password-authenticated retirement at full
+  capacity, without a device restart or ordinary idle expiry. One fixed
+  five-second proof workspace retires only an explicitly selected login; it
+  creates no replacement and never repeats a save. Both Pico and Pi preserve
+  drafts and require fresh saved-state readback and review before a new save.
+  The precise original physical failed-save-to-session-loss sequence still
+  needs reproduction. The implementation builds on P15.6's genuine software
+  refusal/lost-reply cases and the delivered multi-session service.
   A settings-preserving restart of B restored encrypted login and private
   status access; the verification session was logged out afterward.
-  Status: in progress. See the [execution handoff](development/phase15-7-execution-prompt.md).
+  Status: complete within the [recorded software acceptance](development/phase15-7-recovery.md).
+  The [execution handoff](development/phase15-7-execution-prompt.md) preserves the
+  authorized scope. Exact source pairs, genuine crypto/bootstrap tests,
+  independent review repairs, all seven compatibility rows, firmware links,
+  sanitizers and browser evidence are recorded there. Original physical
+  reproduction, actual phone/Mac transport, target heap/stack high-water and RF
+  acceptance remain open.
 - ☐ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Add support for WSPR Type 2
   compound-callsign messages and Type 3 hashed-callsign/six-character-locator
   messages. Settle the corresponding station-validation rules before P15.9
@@ -466,7 +472,9 @@ roadmap closure accepted, P15.3 returned to WsprryPico and is complete within
 its recorded software scope, with companion Pi changes committed separately.
 P15.4 shared-resource adoption is complete within its recorded software scope.
 P15.5 concurrent web servicing is complete within its recorded software scope.
-P15.6 independent sessions is complete within its recorded software scope; physical concurrency and all later entries remain open.
+P15.6 independent sessions and P15.7 login/save recovery are complete within
+their recorded software scopes. Physical concurrency/reproduction, target
+qualification and P15.8–P15.14 remain open.
 
 ## Remaining deferred and backlog items
 

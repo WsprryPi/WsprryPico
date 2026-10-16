@@ -68,8 +68,9 @@ try{
   // Known selector self-recovery with visible dedicated credential entry.
   await send('Page.bringToFront',{},a);await send('Emulation.setFocusEmulationEnabled',{enabled:true},a);
   await evaluate(a,'document.getElementById("login-recovery").open=true;document.getElementById("inspect-logins").focus();true');
-  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,nativeVirtualKeyCode:36,text:'\r',unmodifiedText:'\r'},a);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13},a);
   assert.equal(await evaluate(a,'document.activeElement.id'),'inspect-logins');
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,nativeVirtualKeyCode:36,text:'\r',unmodifiedText:'\r'},a);await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13},a);
+  // The busy state disables the activated button and can move focus to body.
   await until(()=>evaluate(a,'!busy && Boolean(retirementDiscovery)'));
   await evaluate(a,'document.getElementById("retirement-target").value=radio.lostSession.selector;document.getElementById("retirement-target").dispatchEvent(new Event("change"));document.getElementById("retirement-password").value="test-password";document.getElementById("retire-login").click();true');
   await until(()=>evaluate(a,'!busy'));
