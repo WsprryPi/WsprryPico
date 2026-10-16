@@ -10,7 +10,8 @@ P15.9–P15.14 work remain separate. The
 [P15.9 execution record](phase15-9-valid-field-saves.md) and
 [saved progress contract](saved-progress.md) cover independent durable fields,
 explicit application and transmit-readiness distinctions. P15.9 remains in progress, by operator
-direction, pending its WsprryPi portion under release checklist step 15.
+direction, pending its WsprryPi portion under release checklist step 15. Pico supported
+software acceptance is complete within the execution record's stated boundaries.
 The separately prepared Pi execution/sequencing
 handoffs have been withdrawn. Any Pi changes retain release coordination.
 

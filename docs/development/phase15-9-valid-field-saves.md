@@ -1,7 +1,7 @@
 # P15.9 — Independent valid-field saves
 
-Status: Pico implementation and review repairs delivered; final immutable-source
-compatibility validation/publication is being recorded. Overall P15.9 remains
+Status: **Pico supported software acceptance complete, 2026-10-16.**
+Implementation, repairs, exact source-pair checks and publication are recorded. Overall P15.9 remains
 subject to WsprryPi release checklist step 15 and its separate assessment.
 WsprryPi coordinates; WsprryPico owns this implementation. No physical operation,
 Pi feature/devel adoption, release, tag or PR is implied.
@@ -120,10 +120,22 @@ ASan/UBSan use a separate `build-sanitize` with both C/C++ flags
 `-fsanitize=address,undefined -fno-omit-frame-pointer` and linker
 `-fsanitize=address,undefined`. Both production carrier drivers and affected
 executables are built. Run with `ASAN_OPTIONS=detect_leaks=0`
-`UBSAN_OPTIONS=halt_on_error=1`; macOS LeakSanitizer is unsupported. The affected
+`UBSAN_OPTIONS=halt_on_error=1`; macOS LeakSanitizer is unsupported. All **12 affected groups passed** in 12.15 seconds. The affected
 12 groups are progress, closed browser resource, progress sessions, bootstrap
 HTTP, owner AEAD, consumer profile, reset storage, network API, commissioning,
 consumer sessions, recovery and organization routes.
+
+Exact affected sanitizer invocation (after configuring the same retained
+Mbed TLS/lwIP paths as the host build, with the sanitizer flags above):
+
+```sh
+cmake --build build-sanitize --target progress_tests bootstrap_http_tests \
+  owner_claim_crypto_tests consumer_bootstrap_driver consumer_session_driver \
+  consumer_profile_tests reset_storage_tests network_tests --parallel 3
+ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1 \
+ctest --test-dir build-sanitize --output-on-failure \
+  -R '^(progress_tests|saved_progress_browser_tests|progress_sessions|bootstrap_http_tests|owner_claim_crypto_tests|consumer_profile_tests|reset_storage_tests|network_tests|consumer_commissioning|consumer_sessions|consumer_recovery|organization_routes)$'
+```
 
 Firmware uses retained SDK 2.3.1
 `079c6f39023649b154152db30f1d781e884879bc`, Arm GCC 15.3.1, TinyUSB
@@ -142,6 +154,27 @@ cmake -S . -B build-pico -G Ninja -DCMAKE_BUILD_TYPE=Release \
 cmake --build build-pico --target WsprryPico WsprryPico-StandaloneRF --parallel 3
 arm-none-eabi-size build-pico/firmware/WsprryPico.elf build-pico/firmware/WsprryPico-StandaloneRF.elf
 ```
+
+Both immutable product images linked successfully. GNU `size` and map results:
+
+| Image | text / BSS bytes | Flash end | Static heap span |
+| --- | --- | --- | --- |
+| Standard | 2,183,720 / 174,000 | `0x1020ca2c` | 301,424 bytes |
+| StandaloneRF | 2,199,180 / 329,940 | `0x1021068c` | 145,484 bytes |
+
+Both flash ends precede the new `0x103f0000` linker ceiling by more than 1.9 MB.
+Main stack retains its 32 KiB reservation/28 KiB usable guarded contract. New
+static frames include progress readback 3,264 bytes, save 840, and journal progress
+save 688; these are per-function compiler figures, not a complete call-chain or
+physical high-water proof. Linked flash, BTstack, heap-hook, stack-guard and RF
+worker audits passed. Mac host linking retained existing duplicate-core-library
+and section-alignment warnings; no source warning was hidden or promoted to a
+physical result.
+
+UF2 SHA-256 (local build outputs, not a release or flashing instruction):
+
+- Standard: `f54c4d38ea84bb0b71d4524bf53969f245d3af853c0875b12a06efb226512c73`
+- StandaloneRF: `66dfbc9aeaedb666edcdc69dcdc76ad25a0c693b693ebadf64ceabfba6536119`
 
 Linker/static stack/heap instrumentation audits are software bounds only.
 Physical heap/stack high-water, flash interruption, lwIP/TLS transport, GPIO,
@@ -195,11 +228,75 @@ Local evidence: `/private/tmp/p159-final-visual`,
 
 ## Final source-pair and publication results
 
-Pending final immutable product commit, offline Linux pairs, publication and
-remote-hash verification. The Pico-owned compatibility extension attaches an
-incomplete progress draft before unchanged Pi AP/station read/save operations,
-verifies no promotion/mutation, and preserves the existing original native suite.
-It changes no Pi producer, pin or expected historical profile.
+Immutable product commit: **`56821ac827c901b61f3af83887eb8c447520abb5`**.
+Both clean-source guarded Linux pairs passed:
+
+| Unchanged Pi source | Exact Pico source | Result |
+| --- | --- | --- |
+| Release `a84010d6c16ac416d52989053ac1f273390a8ab5` | `56821ac827c901b61f3af83887eb8c447520abb5` | PASS |
+| Accepted P15.8 companion `6d5e73430bfbacdb8cfc29c3fe41089aa8ae5fcb` | `56821ac827c901b61f3af83887eb8c447520abb5` | PASS |
+
+Environment: offline Docker `wsprrypico-p153-env:local`, image
+`sha256:c7f2a891a6fff72e84bd1f2130b934881565f8b9ab489b20f35071f321ad219a`,
+Debian 13.6/aarch64, GCC 14.2.0, CMake 3.31.6, OpenSSL 3.5.6. Pico, clean Pi
+clones, original shared Git objects and retained SDK/Git metadata were mounted
+read-only; only `/out` build products were writable. No network was available.
+The first configure correctly refused an omitted Mbed TLS Git-metadata mount;
+mounting the retained whole SDK read-only repaired the environment without
+weakening exact-identity/clean-source guards.
+
+The Pico-owned compatibility extension attaches an incomplete progress draft
+before unchanged Pi AP/station read/save operations, verifies no promotion or
+draft mutation, and preserves the complete original native suite. It changes
+no Pi producer, pin or expected historical profile. Results include original
+OpenSSL/Mbed TLS AEAD/recovery vectors, Type 2/3 readback, strict coordinator
+admission, management-only behavior, hostname preservation and incomplete-draft
+preservation through both authenticated carriers.
+
+Inside that container (select `pi_root`/`pi_pin` from the table):
+
+```sh
+pico_root=/private/tmp/wsprrypico-p159-integrated
+pico_pin=56821ac827c901b61f3af83887eb8c447520abb5
+cmake -S "$pico_root/tests/hostname_pi_compatibility" -B "/out/$pair" \
+  -DPI_SOURCE="$pi_root" -DEXPECTED_PI="$pi_pin" \
+  -DPICO_SOURCE="$pico_root" -DEXPECTED_PICO="$pico_pin" \
+  -DMBEDTLS_SOURCE=/Users/lbussy/GitHub/pico-sdk/lib/mbedtls
+cmake --build "/out/$pair" --parallel 3
+"/out/$pair/hostname_pi_compatibility" \
+  "$pico_root/docs/protocol/Consumer-Radio-v1-vectors.json"
+```
+
+The exact runner and configure/build/test logs are retained under ignored
+`build/phase15-9-linux/`; all other final logs are `/private/tmp/p159-*`.
+Full host log: `p159-final-host-tests.log`; sanitizer: `p159-acceptance-sanitize.log`;
+genuine browser: `p159-acceptance-browser.log`; firmware:
+`p159-immutable-firmware.log`. Prior failed logs are superseded, not erased.
+
+`git push origin devel` successfully published the product commit without force;
+independent `git ls-remote origin refs/heads/devel` returned the exact product
+hash. The immediate post-push GitHub queries returned zero checks/runs; a later
+exact-head refresh found [Pages run 38983934693](https://github.com/WsprryPi/WsprryPico/actions/runs/38983934693)
+completed successfully at that product hash, with successful build, deploy and
+report-build-status checks. No checked-in software-test workflow exists; the
+only remote workflow is GitHub's dynamic `pages-build-deployment`, not
+firmware/test CI. **Only Pages CI success is claimed.** This evidence-only
+closeout changes no tested product source. Its
+own final push/parity and exact-head checks are reported in the coordinating
+chat, avoiding a self-referential report-commit identity.
+
+Independent reassessment after all source repairs found no remaining actionable
+finding. It reran the 246 progress assertions, 32 closed-resource assertions and
+35 session assertions and inspected confirmation desktop/mobile evidence. The
+originating conversation's separately requested post-execution assessment still
+has not occurred. No background work or cross-chat message was scheduled.
+
+The isolated devel checkout was clean at product publication. The primary Pico
+checkout remains on its own devel base with P15.12 edits; those are preserved,
+not fast-forwarded over. Primary Pi retains its existing modified punchlist at
+`a84010d`; no Pi commit/push, source adoption, compatibility-pin advance,
+release/tag/PR, service operation or hardware activity occurred. Overall Pi
+checklist step 15 remains a separate coordinating acceptance boundary.
 
 ## Documentation Impact
 
