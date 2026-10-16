@@ -1,5 +1,6 @@
 #include "network/pico/bootstrap_server.hpp"
 
+#include "encoding/wspr.hpp"
 #include "lwip/ip.h"
 #include "network/assets.hpp"
 #include "network/bootstrap_codec.hpp"
@@ -62,6 +63,10 @@ HttpResponse PicoBootstrapServer::consumer_setup(const HttpRequest& request,
     HttpResponse result = http_error(404, "not_found");
     if (request.method == "GET" && request.path == "/api/bootstrap/v1/status")
         result = status();
+    else if (request.method == "GET" && request.path == "/api/owner/v1/wspr-support")
+        result = json("{\"schema\":\"wspr-support/"
+                      "1\",\"station_encoding\":\"wspr_type123_auto\",\"max_station_token\":12,"
+                      "\"planning\":\"automatic\"}");
     else if (request.method == "GET" && (request.path == "/api/owner/v1/public-status" ||
                                          request.path == "/api/owner/v1/claim/status"))
         result = owner_status(request.path == "/api/owner/v1/claim/status");
@@ -218,6 +223,12 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
                         : http_error(400, "invalid_request");
     else if (request.path.starts_with("/api/bootstrap/v1/"))
         response_ = mutation(request);
+    else if (request.path == "/api/owner/v1/wspr-support")
+        response_ = owner_public_get_admitted(request, request.path)
+                        ? json("{\"schema\":\"wspr-support/"
+                               "1\",\"station_encoding\":\"wspr_type123_auto\",\"max_station_"
+                               "token\":12,\"planning\":\"automatic\"}")
+                        : http_error(400, "invalid_request");
     else if (request.path == "/api/owner/v1/public-status" ||
              request.path == "/api/owner/v1/claim/status")
         response_ = owner_public_get_admitted(request, request.path)
@@ -906,7 +917,9 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
         fields.pico_public_key = owner_crypto_.public_key();
         fields.source = binding->source;
         fields.generation = binding->generation;
-        if (!decoded || !owner_crypto_.open(fields, nonce, ciphertext, tag, owner_trial_)) {
+        if (!decoded || !owner_crypto_.open(fields, nonce, ciphertext, tag, owner_trial_) ||
+            !encoding::wspr_plan(owner_trial_.callsign, owner_trial_.locator,
+                                 owner_trial_.power_dbm)) {
             end_owner_trial(false, now_ms);
             return json("{\"version\":1,\"state\":\"failed\",\"generation\":\"0\"}");
         }

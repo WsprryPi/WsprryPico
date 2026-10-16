@@ -39,7 +39,7 @@ The separate diagnostic bench images retain their explicit experimental,
 numeric-only scope and do not consume the application configuration.
 
 Standalone and USB WTP share one `JobService`. The scheduler claims a distinct
-local principal, encodes a complete Type 1 WSPR job, then LOADs and ARMs it. It
+local principal, freezes an automatic Type 1/2/3 WSPR plan, then LOADs and ARMs each complete frame. A Type 2/3 pair retains one local ownership lease across its RF-off gap. It
 never steals an external ownership lease, depends on a USB connection, or sends
 per-symbol requests. USB disconnect does not invalidate SNTP time. WTP/1 itself
 is unchanged. Authenticated HTTPS/browser APIs and WTP/TCP now share this service;
@@ -170,10 +170,34 @@ zone or daylight-saving interpretation.
 
 Saved callsigns accept 3–12 uppercase letters/digits and nonempty slash-separated
 prefix/suffix segments, with at least one letter and digit. An extended callsign
-is preserved in storage and readback. The current automatic WSPR encoder
-supports Type 1 only: an unencodable callsign reports `UNSUPPORTED_MODE` before
-claiming the transmitter or reserving a watermark. It does not strip an affix
-or add Type 2/3 transmissions.
+is preserved in storage and readback. The automatic WSPR planner supports Type 1, Type 2 and Type 3. Ordinary calls
+retain Type 1 with the first four locator characters on air. A supported
+compound call uses Type 2 with a four-character locator, or Type 2 then Type 3
+with a six-character locator. Explicit `<CALLSIGN>` requests Type 3 only and
+requires six locator characters; brackets count toward the 12-character stored
+token bound and are excluded from the hash. Supported affixes are one to three
+alphanumeric prefix characters, one alphanumeric suffix character, or two
+numeric suffix characters, attached to an encodable ordinary base call.
+Unsupported legacy slash identities remain readable but report `UNSUPPORTED_MODE`
+before claim/reservation. No identity is stripped, truncated or substituted.
+
+Type 2 carries no locator. `/Q`–`/Z` overlap `/00`–`/09` in its payload: both
+forms are supported, with the alternate full call and ambiguity exposed in the
+versioned plan. A receiver may choose the alternate. Type 3 hashes the requested
+full identity; a hash is not a plaintext announcement and receiver context is
+needed. Encoding success does not establish receiver resolution.
+
+A pair occupies adjacent even-minute windows, each starting at +1 second.
+Each frame has 162 symbols and lasts 110.592 seconds; its RF-off gap is 9.408
+seconds and the whole pair spans 230.592 seconds. Before the first LOAD/ARM,
+the durable watermark reserves through the second window, consuming intersecting
+configured recurrences. Both complete frames must fit expiry. Separate finite
+jobs retain one renewed lease across the gap and receive independent launch
+clock checks. STOP, lost ownership/time quality, changed configuration, missed
+second preparation, engine failure or reboot cancels continuation without retry.
+Reboot and UTC rollback conservatively skip both reserved windows. See the
+[P15.8 execution record](phase15-8-wspr-type23.md) for source-specific software
+acceptance and remaining physical qualification.
 
 A new/erased device has no configuration and cannot schedule. Saving requires
 an idle unowned service and verified flash writes. It returns `reboot_required`

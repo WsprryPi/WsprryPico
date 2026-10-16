@@ -207,7 +207,7 @@ struct Driver {
     standalone::PicoNetwork network;
     provisioning::PicoConsumerClaimPlatform platform{network};
     unsigned restarts = 0;
-    PicoBootstrapServer server{std::string(32, '1'), "p157-host",
+    PicoBootstrapServer server{std::string(32, '1'), "p158-host",
                                +[](const tcp_pcb* p, void*) { return p->interface == 1; }, this};
     void poll_server() {
         server.poll(true, true, true, true, true);
@@ -405,6 +405,15 @@ struct Driver {
             return "{}";
         }
 #endif
+        if (op == "wire") {
+            std::uint64_t index;
+            check(wtp::json::decimal(*v.get("socket"), index) && index < 2);
+            const auto& pcb = sockets[index];
+            return "{\"closed\":" + std::string(pcb.closed ? "true" : "false") + ",\"wire\":" +
+                   wtp::json::quote(bootstrap_hex(std::span(
+                       reinterpret_cast<const std::uint8_t*>(pcb.wire.data()), pcb.wire.size()))) +
+                   "}";
+        }
         if (op == "continue") {
             std::uint64_t index;
             check(wtp::json::decimal(*v.get("socket"), index) && index < 2);

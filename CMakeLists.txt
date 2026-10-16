@@ -92,6 +92,7 @@ add_library(wsprrypico_core
     src/network/softap_api.cpp
     ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
     src/encoding/wspr.cpp
+    src/encoding/wspr_plan.cpp
     src/standalone/dry_run_engine.cpp
     src/standalone/config.cpp
     src/standalone/frequency_policy_engine.cpp
@@ -346,6 +347,16 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_definitions(standalone_tests PRIVATE WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
     target_compile_options(standalone_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME standalone_tests COMMAND standalone_tests)
+    add_executable(wspr_plan_tests tests/wspr_plan_tests.cpp)
+    target_link_libraries(wspr_plan_tests PRIVATE wsprrypico_core)
+    target_compile_options(wspr_plan_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME wspr_plan_tests COMMAND wspr_plan_tests)
+    add_executable(wspr_resource_tests tests/wspr_resource_tests.cpp)
+    target_link_libraries(wspr_resource_tests PRIVATE wsprrypico_core)
+    target_compile_options(wspr_resource_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME wspr_resource_tests COMMAND wspr_resource_tests)
+    add_test(NAME wspr_resource_schema_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/wspr_resource_schema_tests.py $<TARGET_FILE:wspr_resource_tests>)
     add_executable(frequency_policy_tests tests/frequency_policy_tests.cpp)
     target_link_libraries(frequency_policy_tests PRIVATE wsprrypico_core)
     target_compile_options(frequency_policy_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

@@ -14,4 +14,5 @@ Envelope validate_envelope(wtp::json::Value root, std::string_view schema, std::
 std::string target(std::string_view device, std::string_view boot);
 std::string station(const standalone::Config& config);
 std::string capabilities();
+std::string wspr_plan(const standalone::Config& config);
 } // namespace wsprrypico::application

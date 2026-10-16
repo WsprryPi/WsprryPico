@@ -74,3 +74,24 @@ await run('accepted restart keeps a committed network setup blocked until actual
  const response=await f.fetch('192.168.4.1',true,'/api/bootstrap/v1/start',{method:'POST',marker:'Bootstrap',body:JSON.stringify({version:1,device_id:attempt.device,browser_public_key:pending.browserPublicKey,request_nonce:pending.requestNonce})});pending.secretKey.fill(0);
  assert.equal(response.status,409);const after=await f.command({op:'stats'});assert.equal(after.network_slot,0);assert.equal(after.profile_programs,committed.profile_programs);
 });
+
+for (const [callsign,locator,types] of [
+  ['AA0NT/12','EM18',['type2']],['<AA0NT>','EM18IG',['type3']],
+  ['PJ4/AA0NT','EM18IG',['type2','type3']],['<AA0NT/12>','EM18IG',['type3']]
+]) await run(`Type 2/3 actual station commissioning, activation and strict readback: ${callsign}`,async f=>{
+ const a=f.client();await f.login(a);
+ const support=await a.request('consumer/setup/api/owner/v1/wspr-support');
+ assert.equal((await support.json()).station_encoding,'wspr_type123_auto');
+ const before=(await (await a.request('config')).json()).config;
+ const attempt=await a.prepareStation(await a.identity(),{callsign,locator,powerDbm:30});
+ await a.submitSetup(attempt);await f.time(3000);await f.command({op:'activate'});await f.time(4000);await f.login(a);
+ assert.equal(await a.checkSetup(attempt),'saved');await assert.rejects(a.submitSetup(attempt),/already sent/);
+ const saved=(await (await a.request('config')).json()).config;
+ assert.deepEqual(saved.station,{callsign,locator,power_dbm:30});assert.deepEqual(saved.wifi,before.wifi);assert.deepEqual(saved.pins,before.pins);assert.deepEqual(saved.schedules,before.schedules);
+ const app=(await (await a.request('application/2')).json());
+ assert.equal(app.schema,'transmitter-application/2');assert.deepEqual(app.wspr_plan.frame_types,types);
+ assert.equal((await a.request('application')).status,409);
+ const programs=(await f.command({op:'stats'})).profile_programs;
+ const refused=await a.request('station/2','PUT',{schema:'transmitter-station/2',target:app.target,station:{callsign:'K1ABC',locator:'FN42',power_dbm:30}},(await a.request('config')).headers.get('ETag'));
+ assert.equal(refused.status,409);assert.equal((await f.command({op:'stats'})).profile_programs,programs);
+});

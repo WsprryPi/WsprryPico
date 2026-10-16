@@ -14,6 +14,8 @@ constexpr std::uint64_t ns = 1'000'000'000ULL;
 constexpr std::uint64_t frequency =
     std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns;
 constexpr std::uint64_t spacing = 1'464'843'750ULL;
+constexpr std::uint64_t frame_duration = 110'592'000'000ULL;
+constexpr std::uint64_t slot_duration = 120 * ns;
 constexpr auto local_id = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 std::string id(std::uint64_t value) {
     char text[33];
@@ -28,6 +30,14 @@ wtp::PayloadDigest network_digest(const Config& config) {
     const auto text = wtp::json::quote(config.ssid) + "," + wtp::json::quote(config.password) +
                       "," + wtp::json::quote(config.ntp_ipv4);
     return wtp::sha256(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
+}
+bool clock_ready(const wtp::ClockSnapshot& now, const wtp::ServiceConfig& config) {
+    return now.state != wtp::ClockState::Unsynchronized && now.leap == wtp::LeapState::Normal &&
+           now.uncertainty_ns <= config.maximum_arm_uncertainty_ns &&
+           (now.state != wtp::ClockState::Holdover ||
+            (config.maximum_holdover_age_ns &&
+             now.sync_age_ns <= config.maximum_holdover_age_ns)) &&
+           now.utc_now_ns >= time::sntp_min_utc_ns && now.utc_now_ns < time::sntp_max_utc_ns;
 }
 } // namespace
 Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), service_(service) {
@@ -69,16 +79,15 @@ bool Scheduler::reset_permitted() const {
 }
 void Scheduler::poll() {
     service_.poll();
+    if (pair_) {
+        poll_pair();
+        return;
+    }
     if (!store_.healthy() || !store_.config() || !store_.config()->enabled || reboot_required_ ||
         suspended_ || !idle())
         return;
     const auto now = service_.clock_snapshot();
-    if (now.state == wtp::ClockState::Unsynchronized || now.leap != wtp::LeapState::Normal ||
-        now.uncertainty_ns > service_.config().maximum_arm_uncertainty_ns ||
-        (now.state == wtp::ClockState::Holdover &&
-         (!service_.config().maximum_holdover_age_ns ||
-          now.sync_age_ns > service_.config().maximum_holdover_age_ns)) ||
-        now.utc_now_ns < time::sntp_min_utc_ns || now.utc_now_ns >= time::sntp_max_utc_ns)
+    if (!clock_ready(now, service_.config()))
         return;
     std::uint64_t candidate = std::numeric_limits<std::uint64_t>::max();
     for (const auto& schedule : store_.config()->schedules) {
@@ -93,50 +102,141 @@ void Scheduler::poll() {
     if (candidate <= now.utc_now_ns || candidate - now.utc_now_ns > 10 * ns ||
         candidate - now.utc_now_ns < 2 * ns)
         return;
-    const auto expiry = store_.config()->expires_utc_s * ns;
-    if (expiry && (candidate >= expiry || expiry - candidate < 110'592'000'000ULL))
-        return;
     const auto& c = *store_.config();
-    auto symbols = encoding::wspr_type1_from_station(c.callsign, c.locator, c.power_dbm);
-    if (!symbols) {
+    const auto plan = encoding::wspr_plan(c.callsign, c.locator, c.power_dbm);
+    if (!plan) {
         last_error_ = wtp::ErrorCode::UnsupportedMode;
         return;
     }
+    const auto final_slot = candidate + (plan->count - 1) * slot_duration;
+    const auto expiry = c.expires_utc_s * ns;
+    // Include the second frame's entire accepted launch second for a pair.
+    // Keep the previously accepted single-frame admission policy unchanged.
+    const auto required_tail = frame_duration + (plan->count == 2 ? ns - 1 : 0);
+    if (expiry && (final_slot >= expiry || expiry - final_slot < required_tail))
+        return;
+    if (plan->count == 2) {
+        const auto complete_budget = final_slot - now.utc_now_ns + required_tail;
+        if (now.monotonic_now_ns > std::numeric_limits<std::uint64_t>::max() - complete_budget ||
+            final_slot > time::sntp_max_utc_ns - required_tail)
+            return;
+    }
     if (!request("HELLO", wtp::HelloBody{{"WTP/1"}}).ok)
         return;
-    auto response = request("CLAIM", wtp::ClaimBody{local_id, 5000});
+    auto response = request("CLAIM", wtp::ClaimBody{local_id, plan->count == 2 ? 60000U : 5000U});
     if (!response.ok) {
         last_error_ = response.error;
         return;
     }
     // Durable at-most-once reservation BEFORE preparation/arming. A failure
     // after this point skips the occurrence; it never retries an ambiguous job.
-    if (!store_.reserve(candidate)) {
+    if (!store_.reserve(final_slot)) {
         (void)request("RELEASE");
         return;
     }
-    wtp::Job job{id(candidate), "rf-events/1", "wspr", 110'592'000'000ULL, {}, true};
+    last_frame_count_ = plan->count;
+    last_frame_ = 1;
+    if (plan->count == 2)
+        pair_ = Pair{*plan,
+                     final_slot,
+                     store_.config_sequence(),
+                     now.monotonic_now_ns + 30 * ns,
+                     now.utc_now_ns,
+                     now.monotonic_now_ns,
+                     now.uncertainty_ns};
+    if (!prepare_frame(plan->frames[0], candidate))
+        pair_.reset();
+}
+bool Scheduler::prepare_frame(const encoding::WsprFrame& frame, std::uint64_t slot) {
+    wtp::Job job{id(slot), "rf-events/1", "wspr", frame_duration, {}, true};
     if (!job.events.reserve(162)) {
+        last_error_ = wtp::ErrorCode::InternalError;
         (void)request("RELEASE");
-        return;
+        return false;
     }
-    for (unsigned i = 0; i < symbols->size(); ++i) {
+    for (unsigned i = 0; i < frame.symbols.size(); ++i) {
         const auto start = (std::uint64_t{i} * 2'048'000'000ULL + 1) / 3;
         const auto end = (std::uint64_t{i + 1} * 2'048'000'000ULL + 1) / 3;
         if (!job.events.push_back(
-                {start, end - start, true, frequency + (*symbols)[i] * spacing})) {
+                {start, end - start, true, frequency + frame.symbols[i] * spacing})) {
+            last_error_ = wtp::ErrorCode::InternalError;
             (void)request("RELEASE");
-            return;
+            return false;
         }
     }
     last_job_ = job.job_id;
-    response = request("LOAD", std::move(job));
+    auto response = request("LOAD", std::move(job));
     if (response.ok)
-        response = request("ARM", wtp::ArmBody{last_job_, candidate,
-                                               service_.config().maximum_arm_uncertainty_ns});
+        response = request(
+            "ARM", wtp::ArmBody{last_job_, slot, service_.config().maximum_arm_uncertainty_ns});
     last_error_ = response.error;
     if (!response.ok)
         (void)request("RELEASE");
+    return response.ok;
+}
+void Scheduler::cancel_pair(wtp::ErrorCode reason) {
+    pair_.reset();
+    last_error_ = reason;
+    const auto s = service_.status();
+    if (s.owner_id && *s.owner_id == local_id) {
+        if (s.job_id && *s.job_id == last_job_ &&
+            (s.state == wtp::State::Loaded || s.state == wtp::State::Armed ||
+             s.state == wtp::State::Running)) {
+            const auto aborted = request("ABORT", wtp::AbortBody{last_job_});
+            if (!aborted.ok) {
+                last_error_ = aborted.error;
+                return; // Retain failed/output-unknown authority for explicit recovery.
+            }
+        }
+        const auto released = request("RELEASE");
+        if (!released.ok)
+            last_error_ = released.error;
+    }
+}
+void Scheduler::poll_pair() {
+    const auto now = service_.clock_snapshot();
+    const auto s = service_.status();
+    const auto utc_elapsed = now.utc_now_ns - pair_->anchor_utc;
+    const auto monotonic_elapsed = now.monotonic_now_ns - pair_->anchor_monotonic;
+    const auto mapping_error = utc_elapsed > monotonic_elapsed ? utc_elapsed - monotonic_elapsed
+                                                               : monotonic_elapsed - utc_elapsed;
+    if (!store_.healthy() || !store_.config() || !store_.config()->enabled ||
+        store_.config_sequence() != pair_->config_sequence || reboot_required_ || suspended_ ||
+        !clock_ready(now, service_.config()) || now.utc_now_ns < pair_->anchor_utc ||
+        now.monotonic_now_ns < pair_->anchor_monotonic ||
+        (mapping_error > pair_->anchor_uncertainty &&
+         mapping_error - pair_->anchor_uncertainty > now.uncertainty_ns) ||
+        !s.owner_id || *s.owner_id != local_id || !s.job_id || *s.job_id != last_job_ ||
+        (s.state != wtp::State::Armed && s.state != wtp::State::Running &&
+         s.state != wtp::State::Complete)) {
+        cancel_pair(wtp::ErrorCode::InvalidState);
+        return;
+    }
+    if (pair_->frame == 1 && s.state == wtp::State::Complete) {
+        cancel_pair(wtp::ErrorCode::None);
+        return;
+    }
+    if (now.monotonic_now_ns >= pair_->renew_at) {
+        const auto renewed = request("RENEW", wtp::RenewBody{local_id, 60000});
+        if (!renewed.ok) {
+            cancel_pair(renewed.error);
+            return;
+        }
+        pair_->renew_at = now.monotonic_now_ns + 30 * ns;
+    }
+    if (pair_->frame != 0 || s.state != wtp::State::Complete)
+        return;
+    const auto slot = pair_->second_slot;
+    if (slot <= now.utc_now_ns || slot - now.utc_now_ns < 2 * ns) {
+        cancel_pair(wtp::ErrorCode::MissedStart);
+        return;
+    }
+    if (slot - now.utc_now_ns > 10 * ns)
+        return;
+    last_frame_ = 2;
+    pair_->frame = 1;
+    if (!prepare_frame(pair_->plan.frames[1], slot))
+        pair_.reset();
 }
 std::string Scheduler::status() const {
     const auto s = service_.status();
@@ -183,8 +283,10 @@ std::string Scheduler::status() const {
            "\",\"uncertainty_ns\":\"" + std::to_string(clock.uncertainty_ns) + "\",\"state\":\"" +
            wtp::state_name(s.state) + "\",\"last_error\":" +
            (last_error_ == wtp::ErrorCode::None ? "null" : wtp::error_json(last_error_)) +
-           ",\"last_job\":\"" + last_job_ +
-           "\",\"output_active\":" + (s.output_active ? "true" : "false") + "}\n";
+           ",\"last_job\":\"" + last_job_ + "\",\"wspr_frame\":" + std::to_string(last_frame_) +
+           ",\"wspr_frames\":" + std::to_string(last_frame_count_) +
+           ",\"wspr_pair_pending\":" + (pair_ ? "true" : "false") +
+           ",\"output_active\":" + (s.output_active ? "true" : "false") + "}\n";
 }
 std::string Scheduler::command(std::string_view line) {
     if (line == "STATUS")
@@ -199,6 +301,7 @@ std::string Scheduler::command(std::string_view line) {
                ",\"record_size\":" + std::to_string(store_.cursor_record_size()) + "}}\n";
     if (line == "STOP") {
         suspended_ = true;
+        pair_.reset();
         const auto current = service_.status();
         if (current.owner_id) {
             if (*current.owner_id != local_id || !current.job_id || *current.job_id != last_job_)

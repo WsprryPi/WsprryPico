@@ -1,7 +1,7 @@
 import {x25519} from '@noble/curves/ed25519.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {available} from './crypto.js';
-import {claimPlaintext, sealOwnerClaim} from './owner-claim.js';
+import {claimPlaintext, sealOwnerClaim, stationPlanHint} from './owner-claim.js';
 
 const host = 'http://192.168.4.1';
 const p256 = globalThis.WsprryPicoOwnerKey;
@@ -243,9 +243,9 @@ async function submit(event) {
   if (!status?.claim_available || status.source === 'unprovisioned' || saving ||
       submitted || complete || retryVisible) return;
   const proposed = settings();
-  try { claimPlaintext(proposed).fill(0); }
-  catch {
-    notice('Check the callsign, four- or six-character grid and transmit power.', true);
+  try { claimPlaintext(proposed).fill(0); stationPlanHint(proposed.callsign, proposed.locator); }
+  catch (error) {
+    notice(error.message || 'Check the callsign, locator and reported WSPR power.', true);
     return;
   }
   saving = true;
@@ -253,6 +253,16 @@ async function submit(event) {
   $('owner-identify').disabled = true;
   let browserSecret;
   try {
+    if (/[<>/]/.test(proposed.callsign)) {
+      let support;
+      try { support = await request('/api/owner/v1/wspr-support'); } catch {}
+      if (!support || Object.keys(support).sort().join(',') !== 'max_station_token,planning,schema,station_encoding' || support.schema !== 'wspr-support/1' || support.station_encoding !== 'wspr_type123_auto' ||
+          support.max_station_token !== 12 || support.planning !== 'automatic')
+      {
+        notice('This firmware has not confirmed Type 2/3 support. Your station draft is preserved.', true);
+        return;
+      }
+    }
     // The P-256 point binds this one exchange and is never stored as an owner.
     const transaction = p256.keygen();
     const transactionPublic = p256.getPublicKey(transaction.secretKey, false);
@@ -349,6 +359,10 @@ async function boot() {
     update();
   });
   $('owner-form').addEventListener('submit', submit);
+  $('owner-form').addEventListener('input', () => {
+    try { const s = settings(); $('owner-wspr-plan').textContent = 'Draft: ' + stationPlanHint(s.callsign,s.locator) + ' The Pico validates encoding when saved.'; }
+    catch (error) { $('owner-wspr-plan').textContent = error.message; }
+  });
   if (location.origin !== host || !available() || !p256 ||
       typeof AbortController !== 'function') {
     show('owner-browser');

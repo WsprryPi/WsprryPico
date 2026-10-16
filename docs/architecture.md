@@ -237,7 +237,7 @@ Raw WTP clients continue submitting complete encoded jobs. See the
 [extended-job design](development/phase11-5-extended-job-design.md) for memory
 ownership and the distinction between implemented limits and physical acceptance.
 
-Standalone execution uses local Type 1 encoding, versioned persistent station
+Standalone execution uses bounded local Type 1/2/3 planning and encoding, versioned persistent station
 and schedule records, and Wi-Fi SNTP acquisition without WsprryPi. Host
 operation accepts already encoded jobs. Both paths converge before engine
 preparation. [Bounded physical validation](development/standalone-rf-power-validation.md)

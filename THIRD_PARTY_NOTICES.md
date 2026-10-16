@@ -117,3 +117,19 @@ preserve that notice if distributing the build tool.
 The generated radio bundle preserves upstream legal comments. Distribute these
 full retained licenses with the bundled browser assets and firmware materials.
 These notices do not assert a cryptographic or production-security qualification.
+
+
+P15.8 Type 2/3 packing and portable lookup3/hashlittle arithmetic are adapted
+from WsprryPi `a2437d1bf026e91ea95ac7e2a7a0101e3c4f11a1`,
+`src/WSPR-Reference/src/wspr/wspr_ref_encoder.cpp`, retaining the MIT notice
+above. Bob Jenkins' lookup3 arithmetic is identified as public domain in the
+upstream provenance. The adaptation uses explicit byte reads, bounded views,
+unsigned arithmetic and the WSPR seed/reduction; it does not copy upstream
+unchecked string operations, aligned overreads, decoder or JSON dependencies.
+
+Independent numeric oracle vectors in `tests/wspr_oracle_vectors.json` record
+WSJT-X `967c85a6119110788b0df3782cf796485b2cee14`, exact source hashes, inputs,
+payloads, symbols and observed receiver results. GPL WSJT-X implementation was
+built only in temporary validation storage and is not included in firmware or
+this repository. The numeric observations are kept distinct from Pi goldens and
+from receiver/RF acceptance; see the P15.8 execution record.

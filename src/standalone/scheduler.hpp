@@ -1,4 +1,5 @@
 #pragma once
+#include "encoding/wspr.hpp"
 #include "standalone/storage.hpp"
 #include "wtp/job_service.hpp"
 
@@ -28,6 +29,17 @@ class Scheduler {
     std::string status() const;
 
   private:
+    bool prepare_frame(const encoding::WsprFrame& frame, std::uint64_t slot);
+    void cancel_pair(wtp::ErrorCode reason);
+    void poll_pair();
+    struct Pair {
+        encoding::WsprPlan plan;
+        std::uint64_t second_slot, config_sequence, renew_at, anchor_utc, anchor_monotonic,
+            anchor_uncertainty;
+        unsigned frame = 0;
+    };
+    std::optional<Pair> pair_;
+    unsigned last_frame_ = 0, last_frame_count_ = 0;
     wtp::Response request(std::string_view operation, wtp::RequestBody body = {});
     Store& store_;
     wtp::JobService& service_;

@@ -66,10 +66,17 @@ HttpResponse BrowserApi::config() const {
     result.etag = revision();
     return result;
 }
-HttpResponse BrowserApi::station_config() const {
+HttpResponse BrowserApi::station_config(bool extended) const {
     const auto config = effective_config();
+    if (!extended && config) {
+        const auto plan = encoding::wspr_plan(config->callsign, config->locator, config->power_dbm);
+        if (config->callsign.starts_with('<') ||
+            (plan && plan->frames[0].type != encoding::WsprType::Type1))
+            return http_error(409, "unsupported_station_encoding");
+    }
     const bool saved = config.has_value();
-    auto result = ok("{\"schema\":" + json::quote(application::station_schema) +
+    auto result = ok("{\"schema\":" +
+                     json::quote(extended ? "transmitter-station/2" : application::station_schema) +
                      ",\"target\":" + application::target(device_, service_.status().boot_id) +
                      ",\"station\":" + (saved ? application::station(*config) : "null") +
                      ",\"saved_generation\":" +
@@ -102,7 +109,10 @@ HttpResponse BrowserApi::hardware_config() const {
     result.etag = revision();
     return result;
 }
-HttpResponse BrowserApi::application_config() const {
+HttpResponse BrowserApi::application_config(bool extended) const {
+    auto station = station_config(extended);
+    if (station.status != 200)
+        return station;
     const auto status = scheduler_.status();
     const auto value = json::parse(status);
     if (!value)
@@ -113,12 +123,21 @@ HttpResponse BrowserApi::application_config() const {
     recurrence +=
         ",\"expires_utc_s\":" + json::quote(std::string(value->get("expires_utc_s")->raw));
     recurrence += '}';
-    auto result =
-        ok("{\"schema\":" + json::quote(application::application_schema) +
-           ",\"target\":" + application::target(device_, service_.status().boot_id) +
-           ",\"station\":" + station_config().body + ",\"hardware\":" + hardware_config().body +
-           ",\"recurrence\":" + recurrence + ",\"capabilities\":" + application::capabilities() +
-           ",\"reboot_required\":" + (scheduler_.reboot_required() ? "true}" : "false}"));
+    auto caps = application::capabilities();
+    if (extended) {
+        const auto at = caps.find("wspr_type1\"");
+        caps.replace(at, 11, "wspr_type123_auto\"");
+    }
+    auto result = ok(
+        "{\"schema\":" +
+        json::quote(extended ? "transmitter-application/2" : application::application_schema) +
+        ",\"target\":" + application::target(device_, service_.status().boot_id) +
+        ",\"station\":" + station.body + ",\"hardware\":" + hardware_config().body +
+        ",\"recurrence\":" + recurrence + ",\"capabilities\":" + caps +
+        (extended ? ",\"wspr_plan\":" +
+                        (effective_config() ? application::wspr_plan(*effective_config()) : "null")
+                  : "") +
+        ",\"reboot_required\":" + (scheduler_.reboot_required() ? "true}" : "false}"));
     result.etag = revision();
     return result;
 }
@@ -333,7 +352,11 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 ","
                 "\"softap\":true,\"ble\":true,\"restart\":" +
                 (restart_ ? "true" : "false") +
-                "},\"application_resources\":{\"schema\":\"transmitter-application/1\","
+                "},\"application_resources_v2\":{\"schema\":\"transmitter-application/2\","
+                "\"read\":\"/api/v1/application/2\",\"station\":\"/api/v1/station/2\","
+                "\"config\":\"/api/v1/config/2\",\"update\":\"/api/v1/config/update/2\","
+                "\"hardware\":\"/api/v1/hardware\",\"management_carrier\":\"authenticated_https\"},"
+                "\"application_resources\":{\"schema\":\"transmitter-application/1\","
                 "\"read\":\"/api/v1/application\",\"station\":\"/api/v1/station\","
                 "\"hardware\":\"/api/v1/hardware\",\"management_carrier\":\"authenticated_https\"},"
                 "\"configuration_updates\":" +
@@ -357,8 +380,12 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return config();
         if (r.path == "/api/v1/application")
             return application_config();
+        if (r.path == "/api/v1/application/2")
+            return application_config(true);
         if (r.path == "/api/v1/station")
             return station_config();
+        if (r.path == "/api/v1/station/2")
+            return station_config(true);
         if (r.path == "/api/v1/hardware")
             return hardware_config();
         if (r.path == "/api/v1/network") {
@@ -375,6 +402,27 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         }
         return http_error(404, "not_found");
     }
+    // Side-effect-free authoritative WSPR planning, under normal carrier auth.
+    if (r.path == "/api/v1/wspr-plan" && r.method == "POST") {
+        if (r.body_view().size() > application::max_update_bytes)
+            return http_error(413, "resource_body_too_large");
+        const auto value = json::parse(r.body_view());
+        if (!value || !json::fields(*value, {"callsign", "locator", "power_dbm"}) ||
+            value->get("callsign")->type() != '"' || value->get("locator")->type() != '"')
+            return http_error(400, "invalid_station");
+        const auto power_text = std::string(value->get("power_dbm")->raw);
+        if (power_text.empty() || power_text.size() > 2 ||
+            power_text.find_first_not_of("0123456789") != std::string::npos)
+            return http_error(400, "invalid_station");
+        const auto power = value->get("power_dbm")->integer();
+        standalone::Config config;
+        config.callsign = value->get("callsign")->string();
+        config.locator = value->get("locator")->string();
+        config.power_dbm = static_cast<unsigned>(power);
+        if (!encoding::valid_station_details(config.callsign, config.locator, config.power_dbm))
+            return http_error(400, "invalid_station");
+        return ok(application::wspr_plan(config));
+    }
     // Review candidates without changing Store, scheduler, engine or GPIO state.
     if (r.path == "/api/v1/pins/validate" && r.method == "POST") {
         const auto plan = hardware::parse_plan(std::string(r.body_view()));
@@ -385,19 +433,25 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     if (r.method == "POST" && (r.path == "/api/v1/jobs" || r.path.starts_with("/api/v1/jobs/")))
         return job(r, principal);
     const bool restart = r.method == "POST" && r.path == "/api/v1/restart";
-    const bool config_update = r.method == "POST" && r.path == "/api/v1/config/update";
-    const bool station_resource = r.path == "/api/v1/station";
+    const bool extended_config =
+        r.path == "/api/v1/config/2" || r.path == "/api/v1/config/update/2";
+    const bool config_update = r.method == "POST" && (r.path == "/api/v1/config/update" ||
+                                                      r.path == "/api/v1/config/update/2");
+    const bool extended_station = r.path == "/api/v1/station/2";
+    const bool station_resource = r.path == "/api/v1/station" || extended_station;
     const bool hardware_resource = r.path == "/api/v1/hardware";
     const bool scoped_resource = station_resource || hardware_resource;
     if (!restart && !config_update &&
-        (r.method != "PUT" || (r.path != "/api/v1/config" && r.path != "/api/v1/schedules" &&
-                               r.path != "/api/v1/network" && !scoped_resource)))
+        (r.method != "PUT" ||
+         (r.path != "/api/v1/config" && r.path != "/api/v1/config/2" &&
+          r.path != "/api/v1/schedules" && r.path != "/api/v1/network" && !scoped_resource)))
         return http_error(404, "not_found");
     if (scoped_resource && r.body_view().size() > application::max_update_bytes)
         return http_error(413, "resource_body_too_large");
     if (config_update && r.body_view().size() > application::max_config_update_bytes)
         return http_error(413, "resource_body_too_large");
-    if (r.path == "/api/v1/config" && r.body_view().size() > standalone::max_config_bytes)
+    if ((r.path == "/api/v1/config" || r.path == "/api/v1/config/2") &&
+        r.body_view().size() > standalone::max_config_bytes)
         return http_error(400, "invalid_config");
     if (r.header("if-match").empty())
         return http_error(428, "revision_required");
@@ -438,8 +492,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     std::string candidate;
     if (scoped_resource) {
         const auto field = station_resource ? "station" : "pins";
-        const auto schema =
-            station_resource ? application::station_schema : application::hardware_schema;
+        const auto schema = station_resource ? (extended_station ? "transmitter-station/2"
+                                                                 : application::station_schema)
+                                             : application::hardware_schema;
         switch (application::validate_envelope(*root, schema, field, device_,
                                                service_.status().boot_id)) {
         case application::Envelope::Invalid:
@@ -472,7 +527,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             const auto station = current->get("station")->raw;
             candidate.replace(station.offset(), station.size(), std::string(root->get(field)->raw));
         }
-    } else if (r.path == "/api/v1/config" || config_update) {
+    } else if (r.path == "/api/v1/config" || r.path == "/api/v1/config/2" || config_update) {
         if (!store_.healthy())
             return http_error(503, "storage_fault");
         auto supplied = *root;
@@ -527,6 +582,17 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const auto validated = standalone::parse_config(candidate);
     if (!validated)
         return http_error(400, "invalid_config");
+    const auto existing = effective_config();
+    const bool station_changed = !existing || existing->callsign != validated->callsign ||
+                                 existing->locator != validated->locator ||
+                                 existing->power_dbm != validated->power_dbm;
+    if (station_changed &&
+        !encoding::wspr_plan(validated->callsign, validated->locator, validated->power_dbm))
+        return http_error(400, "unsupported_station_encoding");
+    if (station_changed && !extended_config && !extended_station &&
+        !encoding::wspr_type1_from_station(validated->callsign, validated->locator,
+                                           validated->power_dbm))
+        return http_error(400, "unsupported_station_encoding");
     if (consumer_runtime_ && consumer_runtime_->consumer_profile()) {
         const auto effective = consumer_runtime_->overlay(*validated);
         if (!effective || effective->ssid != validated->ssid ||
@@ -537,8 +603,11 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             effective->power_dbm != validated->power_dbm)
             return http_error(409, "consumer_setup_identity_required");
     }
-    if (station_resource && !encoding::wspr_type1_from_station(
-                                validated->callsign, validated->locator, validated->power_dbm))
+    if (station_resource &&
+        (extended_station
+             ? !encoding::wspr_plan(validated->callsign, validated->locator, validated->power_dbm)
+             : !encoding::wspr_type1_from_station(validated->callsign, validated->locator,
+                                                  validated->power_dbm)))
         return http_error(400, "unsupported_station_encoding");
     auto response = scheduler_.command("CONFIG " + candidate);
     auto value = json::parse(response);
@@ -549,7 +618,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return http_error(503, "storage_fault");
     }
     if (station_resource)
-        return station_config();
+        return station_config(extended_station);
     if (hardware_resource)
         return hardware_config();
     auto result = config();

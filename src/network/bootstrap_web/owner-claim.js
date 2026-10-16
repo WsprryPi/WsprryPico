@@ -41,6 +41,27 @@ const sourceAndGeneration = (source, generation) => {
   return {source: Uint8Array.of(source), generation: bytes};
 };
 
+// Syntax assistance only. Firmware planning decides encodability on save.
+export function stationPlanHint(callsign, locator) {
+  if (typeof callsign !== 'string' || callsign.length < 3 || callsign.length > 12 ||
+      !/^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(callsign))
+    throw new Error('Use 3–12 uppercase characters, including any slash or angle brackets.');
+  if (!/^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(locator))
+    throw new Error('Use a locator such as EM18 or EM18IG: fields A–R, digits, then optional A–X.');
+  if (callsign.startsWith('<')) {
+    if (locator.length !== 6) throw new Error('A bracketed callsign needs a six-character locator.');
+    return 'Type 3 · one frame. Carries a callsign hash and six-character locator; receiver hash context is needed.';
+  }
+  if (callsign.includes('/')) {
+    let hint = locator.length === 6
+      ? 'Type 2 then Type 3 · two frames in adjacent even-minute windows. The pair takes 230.592 seconds; receiver hash context may be needed.'
+      : 'Type 2 · one frame. Carries the compound call and power, with no locator.';
+    if (/\/(?:[Q-Z]|0[0-9])$/.test(callsign)) hint += ' The Type 2 suffix has an ambiguous letter/numeric interpretation; receivers may choose either. Your requested call is retained.';
+    return hint;
+  }
+  return 'Type 1 · one frame. Sends the first four locator characters; all six remain saved.';
+}
+
 export function claimTranscript(fields) {
   if (fields.origin !== 'http://192.168.4.1') throw new Error('wrong claim origin');
   const source = sourceAndGeneration(fields.source, fields.generation);
@@ -59,7 +80,7 @@ export function claimPlaintext({ssid, password, callsign, locator, powerDbm}) {
   const secret = ascii(password, savedNetwork ? 0 : 8, 63);
   try {
     if (typeof callsign !== 'string' || callsign.length < 3 || callsign.length > 12 ||
-        /[^A-Z0-9/]/.test(callsign) || !/^[A-Z0-9]+(\/[A-Z0-9]+)*$/.test(callsign) ||
+        !/^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(callsign) ||
         !/[A-Z]/.test(callsign) ||
         !/[0-9]/.test(callsign) ||
         typeof locator !== 'string' || ![4, 6].includes(locator.length) ||

@@ -36,6 +36,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         elements[id+'-toggle'] = {attributes:{},setAttribute(name,value) { this.attributes[name]=value; }};
         elements[id+'-slash'] = {attributes:{hidden:true},toggleAttribute(name,value) { this.attributes[name]=value; }};
     }
+    for (const e of Object.values(elements)) if (!e.addEventListener) e.addEventListener = function(type,callback) { (this.listeners ||= {})[type] = callback; };
     const calls = [];
     let sequence = 0;
     const f = {elements,state,calls,config,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512};
@@ -48,6 +49,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             if (path === '/local/v1/identity') { status = f.localMode ? 200 : 404; data = f.localMode ? {device_id:'1'.repeat(32),surface:'normal'} : {error:{code:'not_found'}}; }
             else if (path === '/local/v1/status') data = {wtp_session:f.mappedSession};
             else if (path.endsWith('pins')) data = {choices:{eligible_gps:[...Array(23).keys(),26,27,28],i2c_pairs:[{controller:0,sda_gp:4,scl_gp:5}]}};
+            else if (path.endsWith('application/2')) { status=404; data={error:{code:'not_found'}}; }
             else if (path.endsWith('application')) data = {target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},hardware:f.appHardware || {saved:config.pins || null,active:null,pending_restart:true,application_error:null}};
             else if (path.endsWith('capabilities')) data = {features:{restart:true},active_job_connections:activeConnections,message_jobs:{max_characters:32},wtp:{maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
             else if (path.endsWith('restart')) {

@@ -2,6 +2,12 @@
 
 WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the WsprryPi family. It targets Raspberry Pi Pico family hardware, with Pico 2 W / RP2350 as the defined hardware target, and also serves as a hardware transmitter backend for WsprryPi.
 
+The [P15.8 execution record](docs/development/phase15-8-wspr-type23.md) tracks
+portable automatic WSPR Type 1/2/3 planning, adjacent-window pairs and explicit
+versioned management support. Ordinary calls retain saved-six/on-air-four
+Type 1 behavior. Receiver ambiguity/context and physical RF acceptance remain
+separate from the recorded software checks.
+
 The selected [consumer LAN access slice](docs/development/consumer-lan-access.md)
 adds ordinary browser access at `http://<current-Pico-IP>/` and the configured
 `.local` hostname. Log in with its saved Wi-Fi password; no CA or client

@@ -52,14 +52,53 @@ let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let localIdentity = null, localAuthenticated = false;
 let writeState = 'readback', savedReadback = null, saveAttempt = null, retirementDiscovery = null;
+function validWsprPlan(p) {
+  if (!p || Object.keys(p).sort().join(',') !== 'alternate_callsign,frame_types,frames,rationale,schema,slot_separation_s,supported,type2_ambiguous' ||
+      p.schema !== 'wspr-plan/1' || typeof p.supported !== 'boolean' || typeof p.type2_ambiguous !== 'boolean' ||
+      !Array.isArray(p.frame_types) || !Number.isInteger(p.frames) || p.frames !== p.frame_types.length ||
+      p.slot_separation_s !== 120 || typeof p.rationale !== 'string' || p.rationale.length < 1 || p.rationale.length > 512) return false;
+  if (p.supported ? !['type1','type2','type3','type2,type3'].includes(p.frame_types.join(',')) : p.frames !== 0) return false;
+  return p.type2_ambiguous ? p.supported && p.frame_types[0] === 'type2' && typeof p.alternate_callsign === 'string' &&
+    p.alternate_callsign.length <= 12 && /^[A-Z0-9]+\/[A-Z0-9]+$/.test(p.alternate_callsign) : p.alternate_callsign === null;
+}
+let applicationVersion = 1;
+async function readApplication() {
+  try {
+    const result = await api('application/2');
+    if (Object.keys(result.data).sort().join(',') !== 'capabilities,hardware,reboot_required,recurrence,schema,station,target,wspr_plan' ||
+        result.data.schema !== 'transmitter-application/2' ||
+        (result.data.wspr_plan !== null && !validWsprPlan(result.data.wspr_plan)) ||
+        result.data.capabilities?.station_encoding !== 'wspr_type123_auto')
+      throw new Error('Unknown WSPR application support. Your draft is preserved.');
+    applicationVersion = 2;
+    return result;
+  } catch (error) {
+    if (error.code !== 'not_found') throw error;
+    applicationVersion = 1;
+    return api('application');
+  }
+}
+async function reviewWspr(station, output) {
+  if (applicationVersion !== 2) {
+    if (/[<>/]/.test(station.callsign))
+      throw new Error('This firmware has not confirmed Type 2/3 support. Your station draft is preserved.');
+    return;
+  }
+  const result = await api('wspr-plan','POST',station);
+  const plan = result.data;
+  if (!validWsprPlan(plan))
+    throw new Error('The Pico did not confirm the WSPR plan. Your draft is preserved.');
+  if ($(output)) $(output).textContent = 'Draft plan: ' + plan.frame_types.join(' → ') + '. ' + plan.rationale;
+  if (!plan.supported) throw new Error(plan.rationale);
+}
 function validSavedConfig(c) {
   if (c === null) return true;
   const object = v => v && typeof v === 'object' && !Array.isArray(v);
   const ascii = (v,min,max) => typeof v === 'string' && v.length >= min && v.length <= max && /^[\x20-\x7e]*$/.test(v);
   const gp = v => v === null || Number.isInteger(v) && (v >= 0 && v <= 22 || v >= 26 && v <= 28);
   if (!object(c) || c.version !== 1 || typeof c.enabled !== 'boolean' ||
-      !object(c.station) || !ascii(c.station.callsign,3,12) || !/^[A-Ra-r]{2}[0-9]{2}([A-Xa-x]{2})?$/.test(c.station.locator) ||
-      !Number.isInteger(c.station.power_dbm) || c.station.power_dbm < 0 || c.station.power_dbm > 60 ||
+      !object(c.station) || !ascii(c.station.callsign,3,12) || !/^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(c.station.callsign) || !/^[A-Ra-r]{2}[0-9]{2}([A-Xa-x]{2})?$/.test(c.station.locator) ||
+      ![0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60].includes(c.station.power_dbm) ||
       !object(c.wifi) || !ascii(c.wifi.ssid,0,32) || c.wifi.password !== null || !ascii(c.wifi.ntp_ipv4,1,253) ||
       !Array.isArray(c.schedules) || c.schedules.length > 8 || !c.schedules.every(s=>object(s) &&
         Number.isInteger(s.period_s) && s.period_s >= 120 && s.period_s <= 86400 && s.period_s % 120 === 0 && 86400 % s.period_s === 0 &&
@@ -89,12 +128,15 @@ function requireReadback() {
 }
 async function readSavedKeepingDraft() {
   requireReadback();
-  const before = await api('application');
+  const before = await readApplication();
   const saved = await api('config');
-  const config = checkedConfig(saved), after = await api('application');
+  const config = checkedConfig(saved), after = await readApplication();
   if (!before.data.target || JSON.stringify(before.data.target) !== JSON.stringify(after.data.target) ||
       before.revision !== saved.revision || after.revision !== saved.revision) throw new Error('Pico context or saved revision changed during readback');
   savedReadback = {target:after.data.target,revision:saved.revision,config};
+  if ($('saved-wspr-plan')) $('saved-wspr-plan').textContent = after.data.wspr_plan
+    ? 'Saved plan: ' + after.data.wspr_plan.frame_types.join(' → ') + '. ' + after.data.wspr_plan.rationale
+    : 'Saved plan: this firmware supports Type 1 only.';
   $('saved-readback').textContent = JSON.stringify({saved_config:config,application:after.data},null,2);
   $('saved-readback').hidden = false; writeState = 'review';
   $('saved-readback-details').hidden = false;
@@ -138,7 +180,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
   if (method !== 'GET') Object.assign(headers, {'Content-Type':'application/json','X-WsprryPico-Request':'1'});
   if (etag) headers['If-Match'] = etag;
   let response;
-  const settingWrite = method !== 'GET' && ['config','config/update','schedules','station','hardware'].includes(path);
+  const settingWrite = method !== 'GET' && ['config','config/2','config/update','config/update/2','schedules','station','station/2','hardware'].includes(path);
   if (settingWrite) {
     if (writeState !== 'ready' || !revision) throw new Error('Read and review saved settings before a new save');
     // Bounded context; credentials are never retained in the attempt record.
@@ -180,7 +222,9 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
       message_duration_overflow:'The timing or repetition is too large to calculate a finite job',
       invalid_message_timing_or_repetition:'Use positive dot, dash and gap lengths and a finite repeat count',
       resource_exhausted:'The Pico has insufficient free memory for this request. Check status before retrying',
-      consumer_setup_identity_required:'Change the saved station identity or Wi-Fi network through the setup pages'
+      consumer_setup_identity_required:'Change the saved station identity or Wi-Fi network through the setup pages',
+      invalid_station:'Check the callsign, locator (A–R fields, two digits, optional A–X subsquare) and exact supported reported WSPR power',
+      unsupported_station_encoding:'The Pico cannot encode this complete station. Check affix lengths, brackets and six-character locator requirements. Your draft is preserved'
     };
     let message = explanation[code] || code || 'Request rejected';
     if (code === 'message_duration_limit_exceeded') message = 'Calculated duration: ' + durationText(BigInt(data.calculated_duration_ns)) + '. Maximum: ' + durationText(BigInt(data.max_job_duration_ns));
@@ -292,6 +336,7 @@ async function refresh(loadConfig = false) {
     const s = snapshot.standalone, n = snapshot.network;
     $('state').textContent = snapshot.job.state;
     $('job-result').textContent = snapshot.job.job_id ? `Job ${snapshot.job.job_id}: ${snapshot.job.state} · observed ${observedAt}` : 'No loaded job · observed ' + observedAt;
+    if (s.last_job === snapshot.job.job_id && Number.isInteger(s.wspr_frame) && s.wspr_frame > 0 && s.wspr_frame <= s.wspr_frames && [1,2].includes(s.wspr_frames)) $('job-result').textContent += ` · standalone WSPR frame ${s.wspr_frame} of ${s.wspr_frames}${s.wspr_pair_pending ? ' · pair in progress' : ''}`;
     $('output').textContent = snapshot.job.output_active === true ? 'Active' : snapshot.job.output_active === false ? 'Inactive' : 'Unknown';
     $('clock').textContent = `${s.clock_state} · ±${(Number(s.uncertainty_ns)/1e6).toFixed(2)} ms`;
     $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id || 'Available';
@@ -373,7 +418,7 @@ $('retire-login').onclick = () => action(async () => {
 $('read-saved').onclick = () => action(readSavedKeepingDraft);
 $('review-saved').onclick = () => action(async () => {
   if (writeState !== 'review' || !savedReadback) return;
-  const target = (await api('application')).data.target;
+  const target = (await readApplication()).data.target;
   if (JSON.stringify(target) !== JSON.stringify(savedReadback.target)) {requireReadback();throw new Error('Pico changed; read saved settings again');}
   revision = savedReadback.revision; currentConfig = savedReadback.config; writeState='ready';
   $('save-reconcile-status').textContent = 'Fresh saved revision selected. Your draft is preserved. Save settings sends one new explicit mutation; concurrent changes can still refuse it.';
@@ -393,6 +438,11 @@ async function saveConsumer(kind) {
   const status = $('consumer-save-status');
   status.textContent = 'Preparing your settings…';
   try {
+    if (kind === 'station') {
+      await readApplication();
+      await reviewWspr({callsign:$('consumer-callsign').value.trim().toUpperCase(),
+        locator:$('consumer-locator').value.trim().toUpperCase(),power_dbm:Number($('consumer-power').value)},'consumer-wspr-plan');
+    }
     consumerAttempt = kind === 'network' ? await radio.prepareNetwork(localIdentity, {
       ssid:$('consumer-ssid').value,password:$('consumer-password').value,time_server:$('consumer-time-server').value.trim()
     }) : await radio.prepareStation(localIdentity, {
@@ -439,7 +489,8 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
   for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) {
     if (currentConfig?.[name] === true) config[name] = true;
   }
-  const result = await api('config','PUT',config,revision); const confirmed=checkedConfig(result,false); revision = result.revision; fill(confirmed);
+  await reviewWspr(config.station,'draft-wspr-plan');
+  const result = await api(applicationVersion === 2 ? 'config/2' : 'config','PUT',config,revision); const confirmed=checkedConfig(result,false); revision = result.revision; fill(confirmed);
   await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Restart device to apply network or pin changes.' : 'Settings saved and applied.');
 }); };
 async function job(operation, body = {}) {
@@ -640,3 +691,15 @@ function fillPins(plan) {
   lockPins();
 }
 for (const key of ['rf_gp','button_gp','indicator','indicator_gp']) $('config').elements[key].addEventListener('change',lockPins);
+
+function wsprDraftFeedback(call,locator,id) {
+  const output = $(id); if (!output) return;
+  if (locator && !/^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(locator)) { output.textContent = 'Use a locator such as EM18 or EM18IG: fields A–R, two digits, then optional A–X subsquare. Your draft has not been saved.'; return; }
+  if (call.startsWith('<') && locator.length !== 6) { output.textContent = 'A bracketed callsign needs a six-character locator. Your draft has not been saved.'; return; }
+  const description = call.startsWith('<') ? 'Type 3 · one hash frame; receiver context is needed.' : call.includes('/') ?
+    locator.length === 6 ? 'Type 2 then Type 3 · two frames in adjacent even-minute windows, 230.592 seconds total. Receiver hash context may be needed.' : 'Type 2 · one frame, without a locator.' :
+    'Type 1 · one frame; first four locator characters on air, all six retained in settings.';
+  output.textContent = 'Draft: ' + description + (/\/(?:[Q-Z]|0[0-9])$/.test(call) ? ' This Type 2 suffix has an ambiguous letter/numeric interpretation; receivers may choose either. Your requested call is retained.' : '') + ' The Pico validates encoding before saving.';
+}
+$('config').addEventListener('input', () => { const f=$('config').elements; wsprDraftFeedback(f.callsign.value.trim().toUpperCase(),f.locator.value.trim().toUpperCase(),'draft-wspr-plan'); });
+$('consumer-station-form').addEventListener('input', () => wsprDraftFeedback($('consumer-callsign').value.trim().toUpperCase(),$('consumer-locator').value.trim().toUpperCase(),'consumer-wspr-plan'));

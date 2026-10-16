@@ -1,5 +1,12 @@
 # Shared transmitter application foundation
 
+This record retains the frozen version-1 foundation and its acceptance.
+[P15.8](phase15-8-wspr-type23.md) adds explicit version-2 application/station
+resources and Type 1/2/3 admission, preserving the version-1 projection and
+recorded Type 1 tests. See [the current browser API](../browser-api.md#versioned-local-wspr-planning-p158)
+for additive discovery, preview and explicit refusal behavior.
+
+
 The Pico member now exposes versioned application, station and hardware JSON
 resources through its existing authenticated HTTPS BrowserApi. They project the
 same standalone configuration journal and use the same scheduler and JobService

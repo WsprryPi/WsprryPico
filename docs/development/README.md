@@ -1,5 +1,12 @@
 # Development baseline
 
+[P15.8 WSPR Type 2/3 execution](phase15-8-wspr-type23.md) records automatic
+single/pair planning, explicit versioned application/station admission, preserved
+legacy Type 1 workflows and the coordinated Pi companion boundary. Acceptance
+is limited to the evidence recorded there; physical RF/transport and later
+P15.9–P15.14 work remain separate.
+
+
 The selected [consumer LAN access slice](consumer-lan-access.md) now implements
 port-80 station IP/hostname access, saved-password authentication, normally-off
 consumer AP, temporary button access, automatic outage fallback/recovery and

@@ -68,9 +68,9 @@ class BrowserApi {
     ManagementAvailability management_;
     std::optional<standalone::Config> effective_config() const;
     HttpResponse config() const;
-    HttpResponse station_config() const;
+    HttpResponse station_config(bool extended = false) const;
     HttpResponse hardware_config() const;
-    HttpResponse application_config() const;
+    HttpResponse application_config(bool extended = false) const;
     HttpResponse job(const HttpRequest& request, std::string_view principal);
     wtp::JobService& service_;
     standalone::Store& store_;

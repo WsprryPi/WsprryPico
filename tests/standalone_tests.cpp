@@ -467,7 +467,7 @@ void scheduler_tests() {
         MemoryFlash f;
         standalone::Store s(f);
         auto config = *standalone::parse_config(example);
-        config.callsign = "AA0NT/P";
+        config.callsign = "AA0NT/ABC";
         config.locator = "EM18AA";
         CHECK(s.load() && s.save(config));
         const auto erases = f.erases;
@@ -862,6 +862,193 @@ void autonomous_test() {
     fake.value.state = wtp::ClockState::Unsynchronized;
     CHECK(dry.poll(ns).state == wtp::EngineState::Missed && !dry.output_active());
 }
+void paired_scheduler_tests() {
+    constexpr std::uint64_t ns = 1'000'000'000ULL, duration = 110'592'000'000ULL;
+    for (unsigned fault = 0; fault < 11; ++fault) {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto config = *standalone::parse_config(example);
+        config.callsign = "PJ4/AA0NT";
+        config.locator = "EM18IG";
+        config.schedules = {{240, 0}, {240, 120}};
+        CHECK(store.load() && store.save(config));
+        Clock clock;
+        clock.advance(236 * ns);
+        const auto first = clock.value.utc_now_ns + 5 * ns, second = first + 120 * ns;
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        scheduler.poll();
+        CHECK(engine.prepared == 1 && store.watermark() == second);
+        CHECK(!scheduler.idle() &&
+              scheduler.status().find("\"wspr_frames\":2") != std::string::npos);
+        CHECK(scheduler.command("CONFIG " + example).find("busy") != std::string::npos);
+        const auto plan = encoding::wspr_plan(config.callsign, config.locator, config.power_dbm);
+        for (unsigned i = 0; i < 162; ++i)
+            CHECK(engine.job.events[i].frequency_nhz ==
+                  std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns +
+                      plan->frames[0].symbols[i] * 1'464'843'750ULL);
+        clock.advance(5 * ns);
+        scheduler.poll();
+        CHECK(engine.began == 1);
+        for (unsigned i = 0; i < 5; ++i) {
+            clock.advance(20 * ns);
+            scheduler.poll();
+        }
+        // All cancellation paths consume both slots and cannot emit an orphan half.
+        if (fault == 1)
+            CHECK(scheduler.command("STOP").find("\"suspended\":true") != std::string::npos);
+        if (fault == 2)
+            clock.value.state = wtp::ClockState::Unsynchronized;
+        if (fault == 3)
+            CHECK(service.local_abort().ok);
+        if (fault == 4) {
+            config.power_dbm = 20;
+            CHECK(store.save(config));
+        }
+        if (fault == 5)
+            engine.reject = true;
+        if (fault == 6)
+            clock.advance(19 * ns); // Missed second preparation window.
+        if (fault == 7)
+            clock.value.uncertainty_ns = service.config().maximum_arm_uncertainty_ns + 1;
+        if (fault == 8)
+            clock.advance(61 * ns); // Lease expired; no silent renewal.
+        if (fault == 10)
+            clock.value.utc_now_ns -= 240 * ns;
+        clock.advance(duration - 100 * ns);
+        scheduler.poll();
+        if (fault == 9) {
+            CHECK(engine.prepared == 2 && engine.began == 1);
+            clock.value.state = wtp::ClockState::Unsynchronized;
+            scheduler.poll();
+        }
+        if (fault == 0) {
+            CHECK(engine.prepared == 2 && engine.began == 1);
+            CHECK(engine.job.events.size() == 162 && engine.job.total_duration_ns == duration);
+            for (unsigned i = 0; i < 162; ++i) {
+                const auto& event = engine.job.events[i];
+                CHECK(event.offset_ns == (std::uint64_t{i} * 2'048'000'000ULL + 1) / 3);
+                CHECK(event.frequency_nhz ==
+                      std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns +
+                          plan->frames[1].symbols[i] * 1'464'843'750ULL);
+            }
+            clock.advance(9'408'000'000ULL);
+            scheduler.poll();
+            CHECK(engine.began == 2);
+            for (unsigned i = 0; i < 5; ++i) {
+                clock.advance(20 * ns);
+                scheduler.poll();
+            }
+            clock.advance(duration - 100 * ns);
+            scheduler.poll();
+            CHECK(scheduler.idle() && !service.status().owner_id);
+        } else {
+            CHECK(engine.began == 1 && engine.prepared <= 2);
+            CHECK(!service.status().owner_id && !service.status().output_active);
+            CHECK(scheduler.status().find("\"wspr_pair_pending\":false") != std::string::npos);
+        }
+        // Reset/UTC rollback, including the second window, never resumes a half.
+        standalone::Store reboot_store(flash);
+        CHECK(reboot_store.load());
+        clock.value.utc_now_ns = second - 5 * ns;
+        clock.value.state = wtp::ClockState::Synchronized;
+        Engine next_engine;
+        wtp::JobService next_service(clock, next_engine, identity);
+        standalone::Scheduler reboot(reboot_store, next_service);
+        reboot.poll();
+        CHECK(next_engine.prepared == 0 && reboot_store.watermark() == second);
+    }
+    // A known complete-pair time-domain overflow refuses before any side effect.
+    for (bool utc_limit : {false, true}) {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto config = *standalone::parse_config(example);
+        config.callsign = "AA0NT/12";
+        config.locator = "EM18IG";
+        CHECK(store.load() && store.save(config));
+        Clock clock;
+        clock.advance(116 * ns);
+        if (utc_limit)
+            clock.value.utc_now_ns = time::sntp_max_utc_ns - 124 * ns;
+        else
+            clock.value.monotonic_now_ns = std::numeric_limits<std::uint64_t>::max() - 115 * ns;
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        scheduler.poll();
+        CHECK(engine.prepared == 0 && store.watermark() == 0 && !service.status().owner_id);
+    }
+    // A pair may cross UTC midnight even when its primary recurrence is daily.
+    {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto config = *standalone::parse_config(example);
+        config.callsign = "AA0NT/12";
+        config.locator = "EM18IG";
+        config.schedules = {{86400, 86280}};
+        CHECK(store.load() && store.save(config));
+        Clock clock;
+        clock.advance(86276 * ns);
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        scheduler.poll();
+        CHECK(engine.prepared == 1 && store.watermark() == time::sntp_min_utc_ns + 86401 * ns);
+        CHECK(scheduler.command("STOP").find("\"suspended\":true") != std::string::npos);
+        CHECK(!service.status().owner_id);
+    }
+    // A failed cutoff remains faulted; cancellation cannot claim cleanup success.
+    {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto config = *standalone::parse_config(example);
+        config.callsign = "AA0NT/12";
+        config.locator = "EM18IG";
+        CHECK(store.load() && store.save(config));
+        Clock clock;
+        clock.advance(116 * ns);
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        scheduler.poll();
+        clock.advance(5 * ns);
+        scheduler.poll();
+        engine.disable_allowed = false;
+        clock.value.state = wtp::ClockState::Unsynchronized;
+        scheduler.poll();
+        CHECK(service.status().state == wtp::State::Failed && !scheduler.idle());
+        CHECK(scheduler.status().find("OUTPUT_STATE_UNKNOWN") != std::string::npos);
+        clock.advance(300 * ns);
+        scheduler.poll();
+        CHECK(engine.prepared == 1 && engine.began == 1 && !scheduler.idle());
+    }
+    // A complete pair must fit expiry before any claim or durable reservation.
+    for (unsigned extra : {0U, 120U, 230U, 231U, 232U}) {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto config = *standalone::parse_config(example);
+        config.callsign = "AA0NT/12";
+        config.locator = "EM18IG";
+        config.expires_utc_s = time::sntp_min_utc_ns / ns + 121 + extra;
+        CHECK(store.load() && store.save(config));
+        Clock clock;
+        clock.advance(116 * ns);
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        scheduler.poll();
+        CHECK(engine.prepared == (extra == 232 ? 1U : 0U));
+        CHECK((store.watermark() != 0) == (extra == 232));
+        if (extra != 232)
+            CHECK(!service.status().owner_id);
+    }
+}
 } // namespace
 int main() {
     unsigned calls = 0;
@@ -889,6 +1076,7 @@ int main() {
     reset_guard_tests();
     configuration_fault_reset_tests();
     scheduler_tests();
+    paired_scheduler_tests();
     sntp_tests();
     sntp_poll_schedule_test();
     autonomous_test();

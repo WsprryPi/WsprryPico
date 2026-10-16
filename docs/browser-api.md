@@ -401,3 +401,43 @@ Commissioning retains its separate sent-once device/generation/request-digest
 receipt across authentication and origin changes. Failed terminal attempts can
 be corrected explicitly; active trials and unresolved/committed restarts remain
 blocked. See the [execution evidence](development/phase15-7-recovery.md).
+
+
+## Versioned local WSPR planning (P15.8)
+
+The additive `capabilities.application_resources_v2` descriptor advertises
+`transmitter-application/2` at `GET /api/v1/application/2`, station version 2 at
+`GET/PUT /api/v1/station/2`, Config v1 content at `PUT /api/v1/config/2`, and the
+unchanged `transmitter-config-update/1` envelope at `POST /api/v1/config/update/2`.
+These explicit admission routes permit Type 1/2/3 station changes. Their existing
+authentication, target, ETag, idle/unowned, body bounds, preservation and journal
+rules apply. Consumer profile identity remains owned by transactional setup.
+The version-2 [closed schema](protocol/transmitter-application-2.schema.json)
+adds the `wspr_type123_auto` capability and an observed `wspr-plan/1` projection.
+
+Frozen version-1 application/station resources retain Type 1 management. A saved
+Type 2/3 plan returns explicit `unsupported_station_encoding` from those legacy
+reads. Legacy config writes cannot introduce a changed Type 2/3 identity; an
+unchanged stored identity can be preserved while unrelated settings change.
+New clients must strictly discover version 2; absent support preserves old
+Type 1 workflows, while unknown advertised versions refuse. WTP/1, management/1
+and /2, Consumer-Radio/1 and Consumer-Recovery/1 are unchanged.
+
+Authenticated `POST /api/v1/wspr-plan` accepts exactly `callsign`, `locator`,
+`power_dbm` within 1,024 bytes. It returns supported/refused planning, ordered
+frame types/count, fixed 120-second slot separation, rationale, Type 2 ambiguity
+and alternate full identity. It never claims, reserves, saves, changes GPIO or
+starts a transmission. Invalid station syntax/types/power return `invalid_station`.
+Supported storage syntax that cannot be encoded returns `supported:false`.
+The setup page discovers the independent, side-effect-free `wspr-support/1`
+record at `GET /api/owner/v1/wspr-support`, under the existing AP-local public
+GET policy or authenticated consumer setup wrapper. Commissioning validates
+actual encoding before any profile trial/commit; wire/storage decoding remains
+broad enough to read legacy identities.
+
+A reported power is message content, not an RF drive setting. Type 1 retains a
+saved six-character locator but sends four. Type 2 omits the locator. Type 3
+carries the exact inner identity hash and six locator characters; receiver
+context/collisions remain limitations. Type 2 `/Q`–`/Z` and `/00`–`/09` expose
+both interpretations without replacing the saved call. A two-frame local plan
+uses separately armed finite jobs; see [standalone behavior](development/standalone.md).

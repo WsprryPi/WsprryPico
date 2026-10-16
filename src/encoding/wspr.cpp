@@ -1,4 +1,4 @@
-// Type 1 packing and sync constants adapted from WsprryPi WSPR-Reference.
+// Packing and sync constants adapted from WsprryPi WSPR-Reference.
 // Copyright (c) 2024 Lee Bussy. MIT; see WsprryPi-LICENSE.md.
 #include "encoding/wspr.hpp"
 
@@ -27,7 +27,11 @@ constexpr std::array powers{0U,  3U,  7U,  10U, 13U, 17U, 20U, 23U, 27U, 30U,
                             33U, 37U, 40U, 43U, 47U, 50U, 53U, 57U, 60U};
 } // namespace
 bool valid_station_details(std::string_view call, std::string_view locator, unsigned dbm) {
-    if (call.size() < 3 || call.size() > 12 || call.front() == '/' || call.back() == '/' ||
+    if (call.size() < 3 || call.size() > max_station_token)
+        return false;
+    if (call.front() == '<' && call.back() == '>')
+        call = call.substr(1, call.size() - 2);
+    if (call.size() < 3 || call.front() == '/' || call.back() == '/' ||
         (locator.size() != 4 && locator.size() != 6) || locator[0] < 'A' || locator[0] > 'R' ||
         locator[1] < 'A' || locator[1] > 'R' || !digit(locator[2]) || !digit(locator[3]) ||
         (locator.size() == 6 &&
@@ -82,6 +86,9 @@ std::optional<Symbols> wspr_type1(std::string_view call, std::string_view grid, 
                                 128 +
                             dbm + 64;
     const std::uint64_t payload = (std::uint64_t{n} << 22) | m;
+    return wspr_channel(payload);
+}
+Symbols wspr_channel(std::uint64_t payload) {
     Symbols coded{}, result = sync;
     std::uint32_t shift = 0;
     for (unsigned i = 0; i < 81; ++i) {
