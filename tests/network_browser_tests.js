@@ -3,9 +3,9 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const source = fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
-async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '') {
-    const ids = ['hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
+const source = fs.readFileSync(__dirname + '/../src/network/web/config-validation.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
+async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false) {
+    const ids = ['station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     for (const id of ['consumer-setup','consumer-network-settings','consumer-station-settings',
       'consumer-check-save','consumer-network-form','consumer-station-form','consumer-ssid',
@@ -41,7 +41,13 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     let sequence = 0;
     const f = {elements,state,calls,config,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512};
     class TestDate extends Date { static now() { return f.now; } }
-    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
+    elements['station-link'].getAttribute=()=>'/station';
+    elements['wifi-host-link'].getAttribute=()=>'/wifi-host';
+    for(const id of ['station-link','wifi-host-link']) elements[id].setAttribute=function(name,value){this[name]=value;};
+    for(const input of Object.values(elements.config.elements)) input.reportValidity=()=>true;
+    for(const [id,names] of [['engineering-station-form',['callsign','locator','power_dbm']],['engineering-network-form',['ssid','password','ntp_ipv4']],['config',['schedules','expiry']]])
+      elements[id].querySelectorAll=()=>names.map(name=>elements.config.elements[name]);
+    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id],querySelectorAll:()=>[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
         fetch:async (path, options) => {
             calls.push({path,options});
             if (f.offline) throw new Error('offline');
@@ -56,12 +62,18 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             else if (path.endsWith('pins')) data = {choices:{eligible_gps:[...Array(23).keys(),26,27,28],i2c_pairs:[{controller:0,sda_gp:4,scl_gp:5}]}};
             else if (path.endsWith('application/2')) { if(f.appV2) data=f.appV2; else {status=404; data={error:{code:'not_found'}};} }
             else if (path.endsWith('application')) data = {target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},hardware:f.appHardware || {saved:config.pins || null,active:null,pending_restart:true,application_error:null}};
-            else if (path.endsWith('capabilities')) data = {features:{restart:true},active_job_connections:activeConnections,message_jobs:{max_characters:32},wtp:{maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
+            else if (path.endsWith('capabilities')) data = {configuration_updates:{schema:'transmitter-config-update/1',path:'/api/v1/config/update',method:'POST',modes:['merge','replace']},features:{restart:true},active_job_connections:activeConnections,message_jobs:{max_characters:32},wtp:{maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
             else if (path.endsWith('restart')) {
                 if (f.restartMode === 'lost') throw new Error('lost restart response');
                 if (f.restartMode === 'success') state.job.boot_id = 'b'.repeat(32);
                 status = 202; data = {restart_requested:true};
             } else if (path.endsWith('status')) data = structuredClone(state);
+            else if (path.endsWith('config/update')) {
+                const patch=JSON.parse(options.body).config;
+                if(patch.station)Object.assign(config.station,patch.station);
+                if(patch.wifi)Object.assign(config.wifi,patch.wifi,{password:null});
+                data={config:structuredClone(config)};
+            }
             else if (path.endsWith('config')) {
                 if (options.method === 'PUT' && f.configSaveMode) {
                     if (f.configSaveMode === 'before') throw new Error('lost before dispatch');
@@ -69,7 +81,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                     if (f.configSaveMode === 'lost') throw new Error('lost after commit');
                 }
                 if (options.method === 'PUT' && f.failConfig) { status = 412; data = {error:{code:'revision_conflict'}}; }
-                else data = {config:configured ? structuredClone(config) : null};
+                else data = {config:configured || options.method === 'PUT' ? structuredClone(config) : null};
             } else if (path.endsWith('jobs')) {
                 const request = JSON.parse(options.body);
                 if (request.operation === 'CLAIM') state.job.owner_id = request.body.owner_id;
@@ -107,8 +119,10 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         };
         context.WsprryPicoConsumerRadio={createClient:()=>f.radio};
     }
+    context.history.pushState=(_,__,url)=>{context.location.pathname=url.split('#')[0];context.location.hash=url.includes('#')?url.slice(url.indexOf('#')):'';};
     vm.runInContext(source,context);
     await new Promise(setImmediate);
+    if(organizationMode)vm.runInContext(fs.readFileSync(__dirname+'/../src/network/web/organization.js','utf8'),context);
     f.context = context;
     f.form = elements.config.elements;
     f.configReads = () => calls.filter(c=>c.path.endsWith('config') && c.options.method==='GET').length;
@@ -123,6 +137,49 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     return f;
 }
 (async () => {
+    const organized=await fixture(true,true,false,false,'',true);
+    const submit={preventDefault(){}};
+    organized.form=organized.elements.config.elements;
+    organized.form.schedules.value='invalid unrelated schedule';
+    organized.form.callsign.value='K1ABC';
+    organized.form.callsign.reportValidity=()=>false;
+    await organized.elements['engineering-station-form'].onsubmit(submit);
+    assert.equal(organized.calls.filter(c=>c.path.endsWith('config/update')).length,0);
+    organized.form.callsign.reportValidity=()=>true;
+    await organized.elements['engineering-station-form'].onsubmit(submit);
+    assert.equal(organized.config.station.callsign,'K1ABC');
+    assert.equal(organized.form.schedules.value,'invalid unrelated schedule');
+    organized.form.password.value='private-test-password';
+    await organized.elements['engineering-network-form'].onsubmit(submit);
+    assert.equal(vm.runInContext('saveAttempt.intended.config.wifi.password',organized.context),null);
+    assert.equal(organized.form.password.value,'');
+    assert.equal(organized.calls.filter(c=>c.path.endsWith('jobs')).length,0);
+    organized.context.location.pathname='/wifi-host';organized.context.location.hash='#hostname-form';
+    const click={button:0,preventDefault(){}};
+    organized.elements['station-link'].listeners.click(click);
+    assert.equal(organized.elements['station-area'].hidden,false);
+    const areaReceipt='#save='+encodeURIComponent(JSON.stringify({kind:'station',device:'1'.repeat(32),generation:'2',digest:'a'.repeat(64)}));
+    organized.context.location.hash=areaReceipt;
+    organized.elements['wifi-host-link'].listeners.click(click);
+    assert.equal(organized.context.location.hash,areaReceipt);
+    assert.equal(organized.elements['wifi-host-area'].hidden,false);
+    organized.form.callsign.value='UNSAVED';organized.elements['engineering-station-form'].listeners.input();
+    await organized.elements['reload-config'].onclick();
+    assert.equal(organized.form.callsign.value,'K1ABC');
+    const initial=await fixture(true,false,false,false,'',true);
+    Object.assign(initial.form.callsign,{value:'K1ABC'});initial.form.locator.value='FN42';initial.form.power_dbm.value='30';
+    initial.form.ssid.value='first-network';initial.form.password.value='first-password';initial.form.ntp_ipv4.value='pool.ntp.org';
+    await initial.elements['initial-config'].onclick();
+    assert.equal(initial.calls.filter(c=>c.path.endsWith('config')&&c.options.method==='PUT').length,1);
+    const initialBody=JSON.parse(initial.calls.find(c=>c.path.endsWith('config')&&c.options.method==='PUT').options.body);
+    assert.equal(initialBody.station.callsign,'K1ABC');assert.equal(initialBody.wifi.ssid,'first-network');
+    const bookmark=await fixture(true,true,false,true,'#hostname-form',true);
+    await bookmark.elements['local-login'].onsubmit({preventDefault(){}});
+    assert.equal(bookmark.context.location.hash,'#hostname-form');
+    const returning='#'+new URLSearchParams({'hostname-return':JSON.stringify({device:'1'.repeat(32),boot:'a'.repeat(32),name:'new.local'})});
+    const pendingReturn=await fixture(true,true,false,true,returning,true);
+    await pendingReturn.elements['local-login'].onsubmit({preventDefault(){}});
+    assert.equal(pendingReturn.context.location.hash,returning);
     const hostname = await fixture();
     hostname.context.location.href='http://secret-user:secret-password@127.0.0.1/old?secret=query';
     vm.runInContext('showContinuation({device:"1".repeat(32),boot:"a".repeat(32),name:"pico-a.local"})',hostname.context);
@@ -417,7 +474,8 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     assert.equal(JSON.parse(legacySaves()[0].options.body).station.callsign,'AA0NT/P/M');
     legacyIdentity.form.callsign.value='AA0NT/P';legacyIdentity.elements.config.oninput();
     await legacyIdentity.elements.config.onsubmit({preventDefault(){}});
-    assert.equal(legacySaves().length,1); // An old firmware cannot accept a new format.
+    assert.equal(legacySaves().length,2); // Schedule save preserves saved identity, ignoring an unrelated station draft.
+    assert.equal(JSON.parse(legacySaves()[1].options.body).station.callsign,'AA0NT/P/M');
     const emptyV2=await fixture(true,false);
     emptyV2.appV2={schema:'transmitter-application/2',target:{scope:'member',device_id:'1'.repeat(32),boot_id:emptyV2.state.job.boot_id},
       station:{station:null},hardware:{saved:null,active:null,pending_restart:false,application_error:null},recurrence:{},

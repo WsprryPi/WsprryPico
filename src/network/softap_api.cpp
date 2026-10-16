@@ -293,6 +293,11 @@ HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface
                         "text/html; charset=utf-8",
                         {}};
             }
+            if (request.path == "/" || request.path == "/index.html") {
+                HttpResponse landing{302, "", "text/plain; charset=utf-8", {}};
+                landing.location = "/wifi-host";
+                return landing;
+            }
             return {200, {}, std::string(asset->type), {}, {}, asset->body, asset->parts};
         }
     }

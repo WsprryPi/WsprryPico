@@ -134,9 +134,12 @@ int main() {
         hidden_form.request(), "device-id", "firmware", false, true);
     assert(owner_alias.status == 200 &&
            owner_alias.static_body.find("owner-form") != std::string_view::npos);
-    assert(
-        wsprrypico::network::bootstrap_http_response(hidden_form.request(), "device-id", "firmware")
-            .status == 404);
+    const auto unavailable_alias = wsprrypico::network::bootstrap_http_response(
+        hidden_form.request(), "device-id", "firmware");
+    assert(unavailable_alias.status == 200);
+    assert(unavailable_alias.body_text().find("<form") == std::string::npos);
+    assert(unavailable_alias.body_text().find("password") == std::string::npos);
+    assert(unavailable_alias.body_text().find("USB Console recovery") != std::string::npos);
 
     HttpParser foreign_post;
     assert(send("POST /local/v1/identity HTTP/1.1\r\nHost: captive.apple.com\r\n"

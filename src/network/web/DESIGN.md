@@ -133,8 +133,13 @@ Primary buttons submit settings or load and arm a complete job. Secondary
 buttons use white surfaces with dark text and a one-pixel border. Enabled hover
 uses `brightness(.93)`; disabled buttons and fieldsets use `.6` opacity.
 Keyboard focus has a three-pixel amber outline with a three-pixel offset.
-The header has one home link and a station-control descriptor; it does not
-establish a tab bar or expanded navigation system.
+The header keeps its home link and station-control descriptor. A two-link task
+navigation below the page heading selects Station/Transmission or Wi-Fi/Host.
+The current area uses a thicker underline and `aria-current="page"`. Both links
+retain the same document, session and drafts; only an explicit click scrolls to
+the chosen area. Shared access, observed transmitter status and save recovery
+remain reachable in either area. Native profile-specific forms provide one
+visible editor for each station/network field.
 
 ### Inputs and disclosures
 

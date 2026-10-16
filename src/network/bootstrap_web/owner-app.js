@@ -409,3 +409,8 @@ async function boot() {
   }
 }
 boot();
+
+// Cross-document commissioning links must not silently discard edited fields.
+globalThis.addEventListener?.('beforeunload', event => {
+  if (formEdited) { event.preventDefault(); event.returnValue = ''; }
+});

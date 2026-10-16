@@ -1,5 +1,20 @@
 # Pico setup pages
 
+P15.11 organizes admitted controls into **Station/Transmission** and
+**Wi-Fi/Host** in one document. Committed consumer AP `/` and `/index.html`
+select Wi-Fi/Host; infrastructure `/` selects Station/Transmission. `/station`
+and `/wifi-host` keep the chosen area through reload. `/radio` and `/owner.html`
+remain station-control bookmarks for a committed consumer. Switching areas
+keeps the current login and drafts. Raw AP setup APIs stay AP-only.
+
+Blank/network-only AP roots retain the Wi-Fi-first pages described below;
+`/station`, `/radio` and `/owner.html` lead to optional station commissioning
+with an explicit Wi-Fi-first refusal where needed. These profiles have no job
+control authority. Cross-document commissioning changes ask before discarding
+edited fields. Unavailable setup/control shows bounded recovery guidance.
+The older Type 1-only descriptions below are superseded by the current
+[P15.8 automatic Type 1/2/3 record](../../../docs/development/phase15-8-wspr-type23.md).
+
 The firmware embeds these local pages and their bundles for the open Pico
 setup AP. `/` and `/index.html` show Wi-Fi setup when it is available;
 `/owner.html` shows the separate, optional station-settings flow. No external

@@ -20,12 +20,11 @@ reconnect flow. The [P15.10 execution record](phase15-10-hostname.md) records
 completed supported software acceptance, exact source pairs, review repairs
 and remaining engineering/physical/operator-document gates.
 
-The [P15.11 page-organization handoff](phase15-11-execution-prompt.md) records
-the current page, dispatch, configuration/profile and recovery boundaries and
-a comprehensive prompt for Station/Transmission and Wi-Fi/Host organization.
-P15.11 is in progress by operator direction; this preparation does not execute
-the implementation prompt. P15.10 remains closed within its supported software
-acceptance.
+The [P15.11 organization record](phase15-11-page-organization.md) tracks the
+single Station/Transmission and Wi-Fi/Host document, connection-specific
+landing, profile-specific save authorities, regressions and review. Acceptance
+is in progress. The [execution handoff](phase15-11-execution-prompt.md) remains
+the original task. P15.10 retains its supported software closure.
 
 The selected [consumer LAN access slice](consumer-lan-access.md) now implements
 port-80 station IP/hostname access, saved-password authentication, normally-off

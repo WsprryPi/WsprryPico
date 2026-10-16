@@ -462,9 +462,10 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   of transmit readiness and hostname behavior, while preserving the existing
   profile/configuration authority boundaries. Verify both connection-specific
   defaults and navigation in both directions. The one-page versus two-page
-  layout remains a design option. Status: in progress by operator direction;
-  the [reviewed execution handoff](development/phase15-11-execution-prompt.md)
-  is prepared. Implementation has not been executed by this preparation.
+  layout is implemented as one shared document with reloadable task-area links.
+  Status: implementation and verification in progress; see the
+  [organization record](development/phase15-11-page-organization.md) and original
+  [execution handoff](development/phase15-11-execution-prompt.md).
 - ☐ **P15.12 — Show the hostname as the main-page identity.**
   Replace the prominent `Pico <full device ID>` text with the Pico's hostname.
   Make the full stable device ID available under About or Diagnostics for
@@ -534,7 +535,7 @@ integration are complete by operator acceptance. P15.9 remains in progress
 pending its WsprryPi portion under step 15. The separate originating P15.8
 review, physical concurrency/reproduction and target qualification remain open.
 P15.10 is complete within its recorded supported software scope. P15.11 is in
-progress with its execution handoff prepared; P15.12–P15.14 remain open.
+progress with implementation and verification underway; P15.12–P15.14 remain open.
 
 ## Remaining deferred and backlog items
 

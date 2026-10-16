@@ -2,6 +2,15 @@
 
 P15.10 adds the independently versioned [hostname resource](development/phase15-10-hostname.md) at `GET/PUT /api/v1/hostname`. It preserves Config, application, capabilities and consumer identity v1 shapes. Consumer renames preserve CA/client trust, consume a profile generation and apply on explicit restart; engineering names remain credential-bound. See that record for exact envelopes, readback and recovery.
 
+P15.11 provides one control document with reloadable `/station` and
+`/wifi-host` areas, retaining `/index.html`, `/radio` and `/owner.html` aliases.
+Fresh admitted infrastructure roots select Station/Transmission; accepted AP
+roots select Wi-Fi/Host. Consumer field editors retain authenticated setup
+transactions. Engineering field saves use advertised config merge with the
+existing target/revision, while an unconfigured engineering deployment retains
+an explicit initial complete-configuration save. API/schema/authentication and
+radio ownership contracts are unchanged. See the [organization record](development/phase15-11-page-organization.md).
+
 Status: implemented by WsprryPico; compatible WsprryPi adapter adoption is
 independently maintained.
 The version is selected by `/api/v1/`, independently of firmware and WTP/1.

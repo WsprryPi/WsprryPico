@@ -51,6 +51,7 @@ let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let localIdentity = null, localAuthenticated = false;
+let engineeringStationDirty = false, engineeringNetworkDirty = false;
 let writeState = 'readback', savedReadback = null, saveAttempt = null, retirementDiscovery = null;
 function validWsprPlan(p) {
   if (!p || Object.keys(p).sort().join(',') !== 'alternate_callsign,frame_types,frames,rationale,schema,slot_separation_s,supported,type2_ambiguous' ||
@@ -93,29 +94,6 @@ async function reviewWspr(station, output) {
     throw new Error('The Pico did not confirm the WSPR plan. Your draft is preserved.');
   if ($(output)) $(output).textContent = 'Draft plan: ' + plan.frame_types.join(' → ') + '. ' + plan.rationale;
   if (!plan.supported) throw new Error(plan.rationale);
-}
-function validSavedConfig(c) {
-  if (c === null) return true;
-  const object = v => v && typeof v === 'object' && !Array.isArray(v);
-  const ascii = (v,min,max) => typeof v === 'string' && v.length >= min && v.length <= max && /^[\x20-\x7e]*$/.test(v);
-  const gp = v => v === null || Number.isInteger(v) && (v >= 0 && v <= 22 || v >= 26 && v <= 28);
-  if (!object(c) || c.version !== 1 || typeof c.enabled !== 'boolean' ||
-      !object(c.station) || !ascii(c.station.callsign,3,12) || !/^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(c.station.callsign) || !/^[A-Ra-r]{2}[0-9]{2}([A-Xa-x]{2})?$/.test(c.station.locator) ||
-      ![0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60].includes(c.station.power_dbm) ||
-      !object(c.wifi) || !ascii(c.wifi.ssid,0,32) || c.wifi.password !== null || !ascii(c.wifi.ntp_ipv4,1,253) ||
-      !Array.isArray(c.schedules) || c.schedules.length > 8 || !c.schedules.every(s=>object(s) &&
-        Number.isInteger(s.period_s) && s.period_s >= 120 && s.period_s <= 86400 && s.period_s % 120 === 0 && 86400 % s.period_s === 0 &&
-        Number.isInteger(s.phase_s) && s.phase_s >= 0 && s.phase_s < s.period_s && s.phase_s % 120 === 0) ||
-      c.expires_utc_s !== undefined && (!Number.isSafeInteger(c.expires_utc_s) || c.expires_utc_s !== 0 && (c.expires_utc_s < 1735689600 || c.expires_utc_s >= 4102444800))) return false;
-  for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) if (c[name] !== undefined && typeof c[name] !== 'boolean') return false;
-  if (c.pins !== undefined) {
-    const p=c.pins;
-    if (!object(p) || !['direct','i2c'].includes(p.engine) || !gp(p.rf_gp) || !gp(p.button_gp) || !gp(p.amplifier_gp) || !gp(p.indicator_gp) ||
-        !(p.i2c_pair === null || Number.isInteger(p.i2c_pair) && p.i2c_pair >= 0 && p.i2c_pair < 12) ||
-        !Array.isArray(p.lpf_gps) || p.lpf_gps.length > 26 || !p.lpf_gps.every(n=>n !== null && gp(n)) ||
-        !['onboard_led','external','disabled'].includes(p.indicator) || typeof p.indicator_active_high !== 'boolean') return false;
-  }
-  return true;
 }
 function checkedConfig(result, allowNull = true) {
   if (!Object.hasOwn(result.data,'config') || !validSavedConfig(result.data.config) || !allowNull && result.data.config === null || !result.revision) {
@@ -171,7 +149,8 @@ function setupReceiptHash() {
 }
 function updateSetupReceipt() {
   const hash = setupReceiptHash();
-  try { history.replaceState(null,'',location.pathname + location.search + hash); } catch (_) {}
+  if (hash || location.hash.startsWith('#save='))
+    try { history.replaceState(null,'',location.pathname + location.search + hash); } catch (_) {}
   const hostname = snapshot?.network.configured_hostname;
   const usable = typeof hostname === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.local$/.test(hostname);
   $('consumer-resume').hidden = !hash || !usable;
@@ -179,7 +158,7 @@ function updateSetupReceipt() {
 }
 const notice = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
 async function api(path, method = 'GET', body, etag, timeout = 30000) {
-  if (returnReceipt && localIdentity) checkReturningDevice(localIdentity.device_id);
+  if ((returnReceipt || consumerAttempt) && localIdentity) checkReturningDevice(localIdentity.device_id);
   const headers = {};
   if (localIdentity) headers['X-WsprryPico-Session'] = session;
   if (method !== 'GET') Object.assign(headers, {'Content-Type':'application/json','X-WsprryPico-Request':'1'});
@@ -190,7 +169,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
     if (writeState !== 'ready' || !revision) throw new Error('Read and review saved settings before a new save');
     // Bounded context; credentials are never retained in the attempt record.
     const intended = JSON.parse(JSON.stringify(body));
-    if (intended.wifi) intended.wifi.password = null;
+    for (const config of [intended,intended.config]) if (config?.wifi) config.wifi.password = null;
     saveAttempt = {target:localIdentity ? {...localIdentity} : snapshot?.job.boot_id,path,revision:etag,intended,sent:true};
   }
   try {
@@ -294,7 +273,14 @@ function controls(connected) {
   $('reload-config').disabled = busy || !online;
   const idle = online && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
   $('settings').disabled = busy || !idle;
+  for (const area of ['station','network']) {
+    $('engineering-' + area + '-form').hidden = Boolean(radio);
+    $('engineering-' + area + '-settings').disabled = Boolean(radio) || busy || !idle || writeState !== 'ready';
+    $('consumer-' + area + '-form').hidden = !radio;
+  }
   $('save-config').disabled = busy || !idle || writeState !== 'ready';
+  $('initial-config').hidden = Boolean(radio) || currentConfig !== null;
+  $('initial-config').disabled = busy || !idle || writeState !== 'ready';
   $('read-saved').disabled = busy || !online || Boolean(localIdentity && !localAuthenticated);
   $('review-saved').disabled = busy || !online || writeState !== 'review';
   $('login-recovery').hidden = !radio;
@@ -324,9 +310,11 @@ function controls(connected) {
 function fill(c) {
   currentConfig = c; dirty = false;
   const form = $('config').elements;
-  for (const name of ['callsign','locator','power_dbm']) form[name].value = c?.station[name] ?? '';
-  form.ssid.value = c?.wifi.ssid ?? '';
-  form.ntp_ipv4.value = c?.wifi.ntp_ipv4 ?? 'pool.ntp.org';
+  if (!engineeringStationDirty) for (const name of ['callsign','locator','power_dbm']) form[name].value = c?.station[name] ?? '';
+  if (!engineeringNetworkDirty) {
+    form.ssid.value = c?.wifi.ssid ?? '';
+    form.ntp_ipv4.value = c?.wifi.ntp_ipv4 ?? 'pool.ntp.org';
+  }
   if (radio) {
     $('consumer-identity-help').hidden = false;
     for (const name of ['callsign','locator','power_dbm','ssid','password','ntp_ipv4']) form[name].readOnly = true;
@@ -338,7 +326,7 @@ function fill(c) {
       $('consumer-power').value = c?.station.power_dbm ?? 37;
     }
   }
-  clearPassword('config-password');
+  if (!engineeringNetworkDirty) clearPassword('config-password');
   form.enabled.checked = c?.enabled ?? false;
   form.schedules.value = (c?.schedules || [{period_s:120,phase_s:0}]).map(s => `${s.period_s} / ${s.phase_s}`).join('\n');
   fillPins(c?.pins);
@@ -499,7 +487,8 @@ $('consumer-check-save').onclick = () => action(async () => {
 if (consumerAttempt) $('consumer-save-status').textContent = 'A pending save receipt was recovered. Log in, then select Check saved result. No save has been repeated.';
 $('config').oninput = () => { dirty = true; };
 $('reload-config').onclick = () => action(async () => {
-  if (dirty && !confirm('Discard your unsaved changes and reload saved settings?')) return;
+  if ((dirty || engineeringStationDirty || engineeringNetworkDirty || consumerSetupDirty) && !confirm('Discard your unsaved changes and reload saved settings?')) return;
+  engineeringStationDirty=false; engineeringNetworkDirty=false; consumerSetupDirty=false;
   await refresh(true);
 });
 $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('config-password',false); return action(async () => {
@@ -508,13 +497,8 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
     if (!/^\s*\d+\s*\/\s*\d+\s*$/.test(line)) throw new Error('Use period / phase for each schedule');
     const [period_s,phase_s] = line.split('/').map(Number); return {period_s,phase_s};
   });
-  const config = {version:1,enabled:f.enabled.checked,station:{callsign:f.callsign.value.trim().toUpperCase(),locator:f.locator.value.trim().toUpperCase(),power_dbm:Number(f.power_dbm.value)},wifi:{ssid:f.ssid.value,password:f.password.value || null,ntp_ipv4:f.ntp_ipv4.value.trim()},schedules,pins:pinChoices ? readPins() : currentConfig?.pins,expires_utc_s:f.expiry.value ? Date.parse(f.expiry.value + 'Z') / 1000 : 0};
-  if (radio) {
-    // These fields are read-only in this editor and can change through setup
-    // while an unrelated editable draft survives. Use fresh saved authority.
-    config.station = {...currentConfig.station};
-    config.wifi = {...currentConfig.wifi,password:null};
-  }
+  if (!currentConfig) throw new Error('Complete station commissioning before saving schedules and pins');
+  const config = {...currentConfig,enabled:f.enabled.checked,station:{...currentConfig.station},wifi:{...currentConfig.wifi,password:null},schedules,pins:pinChoices ? readPins() : currentConfig.pins,expires_utc_s:f.expiry.value ? Date.parse(f.expiry.value + 'Z') / 1000 : 0};
   // Advanced opt-ins are managed through CONFIG/API, outside the ordinary form.
   // A station/network edit must preserve the operator's saved choices.
   for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) {
@@ -763,7 +747,7 @@ function parseReturnReceipt() {
   } catch { $('restart-status').textContent = 'Invalid hostname return context. Open the Pico directly and verify its identity.'; }
 }
 function checkReturningDevice(device) {
-  if (returnReceipt && returnReceipt.device !== device)
+  if (returnReceipt && returnReceipt.device !== device || consumerAttempt && consumerAttempt.device !== device)
     throw new Error('This is a different Pico. Do not enter its password. Return to the original Pico by IP or setup Wi-Fi.');
 }
 async function presentationTitle() {
@@ -910,7 +894,9 @@ $('hostname-review').onclick = () => { if (online && hostnameReviewReady && !bus
 
 globalThis.addEventListener?.('hashchange',()=>{
   cancelReconnect(); returnReceipt=null; parseReturnReceipt();
-  if (returnReceipt && localIdentity) {
+  const receipt = readSetupReceipt(globalThis.location?.hash);
+  if (receipt) { consumerAttempt=receipt; requireReadback(); }
+  if ((returnReceipt || consumerAttempt) && localIdentity) {
     try { checkReturningDevice(localIdentity.device_id); }
     catch (error) { clearPasswords(); controls(false); notice(error.message,true); }
   }

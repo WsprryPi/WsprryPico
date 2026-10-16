@@ -194,9 +194,17 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
         response_ =
             radio_->handle(request, time_us_64() / 1000, radio_transaction_, client_interface_);
     else if (radio_ && radio_->available() && request.method == "GET" &&
-             (request.path == "/radio" ||
-              (client_interface_ == ConsumerInterface::Station && request.path == "/")) &&
+             (request.path == "/radio" || request.path == "/station" ||
+              request.path == "/wifi-host" || request.path == "/owner.html" ||
+              request.path == "/index.html" || request.path == "/") &&
              radio_->page_admitted(request, client_interface_)) {
+        if (client_interface_ == ConsumerInterface::AccessPoint &&
+            (request.path == "/" || request.path == "/index.html")) {
+            HttpResponse landing{302, "", "text/plain; charset=utf-8", {}};
+            landing.location = "/wifi-host";
+            landing.content_security_policy = consumer_radio_csp();
+            return landing;
+        }
         const auto asset = consumer_radio_asset();
         response_ = asset ? HttpResponse{200, "", std::string(asset->type), {}}
                           : http_error(503, "radio_page_unavailable");

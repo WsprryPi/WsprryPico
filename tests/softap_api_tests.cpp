@@ -346,6 +346,22 @@ void expired_challenge_bookkeeping_is_reused() {
 } // namespace
 
 int main() {
+    {
+        Fixture f;
+        for (const auto surface : {provisioning::SoftApSurface::ProvisionedPreClock,
+                                   provisioning::SoftApSurface::Normal}) {
+            const auto root = f.api.handle(request("GET", "/"), surface, hostname, 0, 1);
+            REQUIRE(root.status == 302 && root.location == "/wifi-host");
+            for (const auto path : {"/station", "/wifi-host", "/radio", "/owner.html"}) {
+                const auto page = f.api.handle(request("GET", path), surface, hostname, 0, 2);
+                REQUIRE(page.status == 200 && !page.static_parts.empty());
+                REQUIRE(page.static_body.find("id=\"area-nav\"") != std::string_view::npos);
+            }
+        }
+        const auto blank = f.api.handle(request("GET", "/"),
+                                        provisioning::SoftApSurface::BlankReadOnly, hostname, 0, 3);
+        REQUIRE(blank.status == 200 && blank.body_text().find("<form") == std::string::npos);
+    }
     policy();
     expired_challenge_bookkeeping_is_reused();
 }

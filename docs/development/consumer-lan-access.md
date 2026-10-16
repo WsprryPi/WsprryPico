@@ -21,8 +21,14 @@ network setup page's eye control to show/hide what you type; they start masked.
 The eye never retrieves a saved password. See the
 [password-control review](password-visibility-review.md). Radio settings, schedules,
 pin assignments and job controls use the existing shared application API.
-The separate **Wi-Fi and station setup** section changes the profile-owned
-network or station identity through their existing transactional paths.
+**Station/Transmission** contains station identity, schedules, pins and explicit
+job controls. **Wi-Fi/Host** contains network credentials, time server, hostname,
+restart/reconnect and setup access guidance. Area links keep one login and all
+drafts in the same document; `/station` and `/wifi-host` survive reload. Saved
+state, output observations and recovery remain shared. On an available setup AP,
+a fresh root selects Wi-Fi/Host. LAN root selects Station/Transmission.
+The profile-owned network and station editors use their existing transactional
+paths. Each has one visible editor in its appropriate area.
 These changes preserve schedules, radio configuration and no-repeat cursors.
 Saving can reconnect/restart the Pico. Keep the tab open or use **Continue at
 the Pico’s hostname** after joining the saved network. Log in after it returns,

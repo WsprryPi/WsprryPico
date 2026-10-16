@@ -23,7 +23,9 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
                                 ",\"surface\":\"blank_read_only\",\"authenticated\":false}",
                             "application/json",
                             {}};
-    if (((setup_enabled || owner_page) && request.path == "/index.html") ||
+    if (((setup_enabled || owner_page) &&
+         (request.path == "/index.html" || request.path == "/wifi-host" ||
+          request.path == "/station" || request.path == "/radio")) ||
         (owner_page && request.path == "/owner.html") ||
         (recovery_page &&
          (request.path == "/recovery.html" || request.path == "/recovery-bundle.js")) ||
@@ -31,7 +33,9 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
         request.path == "/bundle.js" ||
         (owner_page &&
          (request.path == "/owner-bundle.js" || request.path == "/owner-key-bundle.js"))) {
-        const auto path = request.path == "/" ? (setup_enabled ? "/index.html" : "/owner.html")
+        const auto path = request.path == "/station" || request.path == "/radio" ? "/owner.html"
+                          : request.path == "/wifi-host"                         ? "/index.html"
+                          : request.path == "/" ? (setup_enabled ? "/index.html" : "/owner.html")
                           : request.path == "/index.html" && !setup_enabled ? "/owner.html"
                                                                             : request.path;
         const auto asset = bootstrap_asset(path);
@@ -43,18 +47,22 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
         response.content_security_policy = bootstrap_csp();
         return response;
     }
-    if (request.path == "/")
-        return HttpResponse{200,
-                            "<!doctype html><meta charset=utf-8><meta name=viewport "
-                            "content=\"width=device-width,initial-scale=1\"><title>WsprryPico "
-                            "recovery</title><h1>WsprryPico recovery</h1><p>Connected to "
-                            "WsprryPico. This page shows device identity only. Wi-Fi setup is "
-                            "not available here.</p><p>"
-                            "Device: <code>" +
-                                std::string(device) + "</code></p><p>Firmware: <code>" +
-                                std::string(firmware) + "</code></p>",
-                            "text/html; charset=utf-8",
-                            {}};
+    if (request.path == "/" || request.path == "/wifi-host" || request.path == "/station" ||
+        request.path == "/radio" || request.path == "/index.html" || request.path == "/owner.html")
+        return HttpResponse{
+            200,
+            "<!doctype html><meta charset=utf-8><meta name=viewport "
+            "content=\"width=device-width,initial-scale=1\"><title>WsprryPico "
+            "recovery</title><h1>WsprryPico recovery</h1><p>Connected to "
+            "WsprryPico. This page shows device identity only. Wi-Fi setup is "
+            "not available here.</p><p>Complete commissioning or use USB Console recovery.</p>"
+            "<p><a href='/wifi-host'>Wi-Fi/Host</a> | "
+            "<a href='/station'>Station/Transmission</a></p><p>"
+            "Device: <code>" +
+                std::string(device) + "</code></p><p>Firmware: <code>" + std::string(firmware) +
+                "</code></p>",
+            "text/html; charset=utf-8",
+            {}};
     return http_error(404, "not_found");
 }
 

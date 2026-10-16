@@ -86,6 +86,7 @@ try {
     }
     await until(()=>cdp.evaluate(`document.title==='wsprrypico-0a60df.local - Station control'`),'IP initial tab title');
     await login();
+    await click('wifi-host-link');
     assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
     await field('hostname-input','K.local');
     await cdp.evaluate(`document.getElementById('hostname-form').dispatchEvent(new Event('submit',{cancelable:true}))`);

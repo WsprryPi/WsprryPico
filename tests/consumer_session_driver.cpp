@@ -244,8 +244,9 @@ struct Driver {
     unsigned restarts = 0;
     PicoBootstrapServer server{device, "p158-host",
                                +[](const tcp_pcb* p, void*) { return p->interface == 1; }, this};
+    bool page_setup = true;
     void poll_server() {
-        server.poll(true, true, true, true, true);
+        server.poll(true, true, page_setup, true, true);
     }
     unsigned connections() const {
         return server.resources().connected ? 1 : 0;
@@ -448,6 +449,28 @@ struct Driver {
                    ",\"network_pending\":" + (f.network.pending ? "true" : "false") +
                    ",\"psa_owners\":" + std::to_string(PsaCryptoOwner::owners()) + "}";
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+        if (op == "page_profile") {
+            const auto mode = field(v, "mode");
+            if (mode != "unavailable") {
+                media = Media{};
+                check(profiles.load());
+            }
+            if (mode == "blank")
+                check(profiles.select(provisioning::ProfileSource::Unprovisioned));
+            else if (mode == "network")
+                check(profiles.select(provisioning::ProfileSource::NetworkOnly,
+                                      provisioning::serialize_network_profile(
+                                          {device, "Home Net", "test-password"})));
+            else
+                check(mode == "unavailable");
+            page_setup = mode != "unavailable";
+            if (mode != "unavailable")
+                check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
+            if (mode == "unavailable")
+                radio.admission(false);
+            poll_server();
+            return "{}";
+        }
         if (op == "bench_network") {
             network.linked = v.get("linked")->raw == "true";
             platform.safe = v.get("safe")->raw == "true";
