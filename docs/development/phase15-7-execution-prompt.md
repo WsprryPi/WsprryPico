@@ -1,13 +1,11 @@
 # P15.7 handoff for login and failed save recovery
 
-Execution evidence is recorded in [P15.7 recovery](phase15-7-recovery.md).
-The prepared baseline below remains historical.
-
-Status: **prepared only; not executed**. P15.7 remains pending. This handoff
-records a source review and instructions for a separate executing conversation.
-It supplies no new implementation, test, target or RF acceptance. The executor
-must implement, validate, review, repair, reassess, commit and push the scoped
-solution on **devel**.
+Status: **executed and complete within the recorded software scope**.
+The [P15.7 acceptance record](phase15-7-recovery.md) contains the implementation,
+source pairs, independent review repairs, validation and publication evidence.
+The source-review baseline and execution instructions below remain historical;
+they are not a new action queue. Original physical reproduction, phone/board
+transport, target heap/stack measurements and RF qualification remain open.
 
 ## Lead repository and current baseline
 

@@ -248,11 +248,11 @@ and common resource semantics. These are JSON management API
 improvements; WTP/1 job-control semantics remain unchanged. The remaining order
 selects sequencing only, not feature implementation.
 
-Design P15.3/P15.4 together, settling management-carrier access before resource
-adoption. Then design P15.5/P15.6 together and implement concurrent request
-servicing before independent login sessions and finish recovery against that
-resulting service. Capture the existing failed-save/session-loss reproduction
-before that refactor. Settle WSPR station-validation behavior before independent
+P15.3/P15.4 established management-carrier access and shared-resource adoption.
+P15.5/P15.6 added concurrent request servicing and independent login sessions;
+P15.7 completed recovery against that service within its software scope. The
+original physical failed-save/session-loss reproduction remains open separately.
+Settle WSPR station-validation behavior before independent
 station saves, and complete hostname persistence and session recovery before
 changing the hostname display. Consolidate the settings pages after those
 behaviors are stable, then finish the main-page identity presentation. Later
@@ -732,9 +732,11 @@ belongs to the operator.
 5. Phase 15 collects [operator review punchlist items](#phase-15-operator-review-punchlist),
    with Pico configuration preservation (P15.1), compatible Pi updates and
    supported-version verification (P15.2) complete, including the
-   operator-accepted documentation gate. Supported management carriers (P15.3)
-   are complete within recorded software acceptance; shared-resource adoption
-   (P15.4) is next, before concurrency, sessions and settings changes.
+   operator-accepted documentation gate. Management carriers (P15.3), shared
+   resources (P15.4), concurrent web servicing (P15.5), independent sessions
+   (P15.6) and login/save recovery (P15.7) are complete within their recorded
+   software scopes. P15.8 WSPR Type 2/3 support is next; P15.8–P15.14 and the
+   separately recorded physical qualification remain open.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
