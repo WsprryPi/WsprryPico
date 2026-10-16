@@ -1,10 +1,13 @@
 # P15.8 handoff for WSPR Type 2 and Type 3 support
 
-Status: **execution is in progress in another conversation**. The originating
-conversation prepared this source review and prompt without executing it.
-After execution completes, the operator will return its evidence packet for
-the originating conversation's requested adversarial review, repairs,
-reassessment, commit and push. This status records work in flight, not acceptance.
+Status: **executed in another conversation; software roadmap closure accepted
+by the operator on 2026-10-16**. The originating conversation prepared this
+source review and prompt without executing it. The
+[execution record](phase15-8-wspr-type23.md) retains implementation identities,
+executor adversarial review/repairs and validation. Pi release integration,
+physical acceptance and the separately requested originating post-execution
+review remain open. The baseline and instructions below are the historical
+handoff, not a request to execute it again.
 
 ## Lead repository and reviewed sources
 

@@ -1,9 +1,19 @@
 # P15.8 WSPR Type 2/3 execution and evidence
 
-Status: final-source software implementation and validation passed, including
-all 12 companion CI jobs. This is a bounded Pico/approved-companion result.
-Pi release integration, the originating conversation's independent review and
-physical acceptance remain open.
+Status: **complete within the documented software scope**, accepted by the
+operator for P15.8 roadmap closure on 2026-10-16. Final-source implementation
+and validation passed, including all 12 companion CI jobs. This is a bounded
+Pico/approved-companion result. Pi release integration, the originating
+conversation's independent post-execution review and physical acceptance remain
+open separately.
+
+The roadmap closeout verified published Pico devel
+`4e96f0e71a93a529c01e8ec202a0f39422322c33`, the clean approved Pi companion at
+`6d5e73430bfbacdb8cfc29c3fe41089aa8ae5fcb`, and the reported CI run's exact head
+and twelve successful jobs. This documentation closeout did not rerun the
+implementation tests or perform the pending independent post-execution review.
+The tested Pico implementation pin remains `804e8a0` below; later report and
+roadmap commits are separate from that tested product source.
 
 ## Final identities and authorization
 

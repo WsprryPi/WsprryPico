@@ -3,9 +3,12 @@
 [P15.8 WSPR Type 2/3 execution](phase15-8-wspr-type23.md) records automatic
 single/pair planning, explicit versioned application/station admission, preserved
 legacy Type 1 workflows and the coordinated Pi companion boundary. Acceptance
-is limited to the evidence recorded there; physical RF/transport and later
-P15.9–P15.14 work remain separate.
-
+is complete within its documented software scope. Pi release integration,
+the separately requested originating review, physical RF/transport and later
+P15.9–P15.14 work remain separate. The
+[P15.9 handoff](phase15-9-execution-prompt.md) records a current source review
+and the unexecuted prompt for saving valid fields independently of transmit
+readiness. Pico leads on devel; any Pi changes require release coordination.
 
 The selected [consumer LAN access slice](consumer-lan-access.md) now implements
 port-80 station IP/hostname access, saved-password authentication, normally-off
