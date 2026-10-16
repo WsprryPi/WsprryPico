@@ -22,16 +22,28 @@ Reviewed on 2026-10-16, with branch heads independently checked by
 | --- | --- | --- |
 | Pico devel | `4e96f0e71a93a529c01e8ec202a0f39422322c33` | Clean before this documentation task; published P15.8 report/probe head |
 | P15.8 Pico implementation / interop pin | `804e8a06585ec5a0e650e69fcd71ada398b6cc9f` | Tested product source; later Pico commits through the reviewed head add documentation/probes |
-| Pi release devel | `d93c75c4f1490df9108856403710e692b9c2d3dd` | Read-only reference; matches origin/devel; unrelated release work listed below |
+| Pi release devel at initial review | `d93c75c4f1490df9108856403710e692b9c2d3dd` | Read-only reference; matched origin/devel; unrelated release work listed below |
 | Approved P15.8 Pi companion | `6d5e73430bfbacdb8cfc29c3fe41089aa8ae5fcb` | Clean isolated checkout at `/private/tmp/wsprrypi-p158/source`; published on `codex/p15-8-wspr-type23`, unmerged |
 | P15.8 Pi native product implementation | `41c1dbd42620da6d5595b3ca0171c15ad6c9ee5f` | Companion product changes; later companion commits add tests/pins/evidence |
 | Pi companion base / frozen release probe | `a2437d1bf026e91ea95ac7e2a7a0101e3c4f11a1` | Historical accepted comparison, not current Pi devel |
 
-Primary Pi has an unrelated modified `release_tools/Release Punchlist.md` and
-untracked `docs/development/item13-integrated-impeccable-evidence/` and
-`docs/development/item13-integrated-impeccable-review.md`. Preserve them. Refresh
-all identities and dirty paths before execution; these are orientation pins,
-not instructions to reset or roll back either repository.
+At initial review, primary Pi had an unrelated modified
+`release_tools/Release Punchlist.md` and untracked
+`docs/development/item13-integrated-impeccable-evidence/` and
+`docs/development/item13-integrated-impeccable-review.md`. Other release work
+committed them during handoff preparation. At the late publication check,
+primary Pi was clean at `e3e5008413c4bdb4e2838c9a17bcd5ad4b37c496`, one commit
+ahead of observed origin/devel `b85ba90c9a4c862ad4e89ff1d86b1217342d066a`.
+The complete difference from reviewed `d93c75c` contains only release checklist
+and review/evidence documentation; the reviewed application code is unchanged.
+Nothing in Pi was edited or pushed by this preparation task.
+
+The new Pi release checklist item 14 explicitly retains separately authorized
+P15.8 integration, affected UI/documentation review and integrated-head CI before
+Beta 1 candidate freeze. It does not authorize P15.9 changes or companion
+integration. Preserve that gate and refresh all identities, release decisions
+and dirty paths before execution. These are orientation pins, not instructions
+to reset or roll back either repository.
 
 The [P15.8 record](phase15-8-wspr-type23.md) retains 196 host tests, 27 checks
 in the sanitizer build, both firmware links and the successful
