@@ -16,3 +16,5 @@ select{font:inherit;display:block;width:100%;max-width:34rem;min-height:44px;pad
   flex: 0 0 1.25rem;
   margin: 0;
 }
+
+.field-result{display:block;font-size:.875rem;font-weight:400;line-height:1.5;margin:.35rem 0 .65rem}.field-result.error{color:#882b19}[aria-invalid="true"]{border-color:#bd6755}

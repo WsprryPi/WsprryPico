@@ -15,7 +15,13 @@ inline constexpr std::size_t standalone_base = boot_workaround_base - standalone
 inline constexpr std::size_t profile_base = standalone_base - profile_size;
 inline constexpr std::size_t btstack_base = profile_base - btstack_size;
 inline constexpr std::size_t access_base = btstack_base - access_size;
-inline constexpr std::size_t linked_flash_size = access_base;
+// Retain the existing diagnostic scratch sector below access unchanged.
+inline constexpr std::size_t diagnostic_base = access_base - erase_sector_size;
+inline constexpr std::size_t progress_size = 2 * erase_sector_size;
+inline constexpr std::size_t progress_base = diagnostic_base - progress_size;
+inline constexpr std::size_t linked_flash_size = progress_base;
+static_assert(progress_base == 0x3f0000);
+static_assert(progress_base + progress_size == diagnostic_base);
 
 static_assert(access_base == 0x3f3000);
 static_assert(btstack_base == 0x3f5000);

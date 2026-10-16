@@ -337,7 +337,11 @@ int main() {
     static wsprrypico::time::UtcDiscipline clock(monotonic_now, nullptr, discipline);
     static wsprrypico::standalone::PicoFlash flash;
     static wsprrypico::standalone::Store store(flash);
-    const bool store_loaded = store.load();
+    static wsprrypico::standalone::PicoFlash progress_flash(true);
+    static wsprrypico::standalone::Progress progress(progress_flash);
+    const bool progress_loaded = progress.load();
+    store.progress(progress);
+    const bool store_loaded = store.load() && progress_loaded;
     static wsprrypico::standalone::PicoProfileMedia profile_media;
     static wsprrypico::provisioning::ProfileStore profile_store(profile_media);
     const bool profile_store_loaded = profile_store.load();
@@ -576,6 +580,7 @@ int main() {
         {&consumer_radio_crypto[0], &consumer_radio_crypto[1], &consumer_radio_crypto[2]},
         identities.device_id(), service.status().boot_id, &consumer_radio_crypto[3]);
     bootstrap.radio_control(consumer_radio);
+    bootstrap.progress_control(browser_api);
     if (consumer_source_selected())
         bootstrap.setup_control(
             +[](void* context) {
@@ -584,6 +589,7 @@ int main() {
             &server);
     bootstrap.station_classifier(station_interface, nullptr);
     browser_api.consumer_config(runtime_profile);
+    browser_api.progress_settings(progress);
     // Source 5 keeps public commissioning separate from encrypted, password-
     // authenticated radio requests. Legacy plaintext field mutations stay closed.
     const auto blank_access_available = []() {

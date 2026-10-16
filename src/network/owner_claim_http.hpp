@@ -56,4 +56,5 @@ std::string owner_saved_network_json(const provisioning::ProfileStore& store,
 std::optional<OwnerIdentifyRequest> parse_owner_identify(const HttpRequest& request);
 std::optional<OwnerClaimStartRequest> parse_owner_claim_start(const HttpRequest& request);
 std::optional<OwnerClaimSubmitRequest> parse_owner_claim_submit(const HttpRequest& request);
+std::optional<OwnerClaimSubmitRequest> parse_progress_submit(const HttpRequest& request);
 } // namespace wsprrypico::network

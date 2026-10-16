@@ -427,8 +427,10 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   checklist step 15, by operator direction. Pico retains firmware, persistence
   and standalone UI ownership. The
   [technical source review](development/phase15-9-execution-prompt.md) and Pi
-  release-coordination boundaries remain applicable; this is not a request to
-  start work.
+  release-coordination boundaries remain applicable. The
+  [Pico execution record](development/phase15-9-valid-field-saves.md) records the
+  separately authorized implementation and its supported acceptance evidence.
+  Overall Pi checklist adoption remains separate.
 - ✅ **P15.10 — Allow hostname changes and use the hostname in the page title.**
   Provide a browser setting to edit and save the hostname, retain it across
   restarts and use it for LAN/mDNS discovery and access. The saved hostname must

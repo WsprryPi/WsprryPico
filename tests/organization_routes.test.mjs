@@ -1,6 +1,7 @@
 // Full production dispatcher/streamed assets. TCP/board/time are boundary doubles.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
 import {Fixture} from './consumer_sessions.test.mjs';
 async function complete(f,host,ap,path,options) {
   const response = await f.fetch(host,ap,path,options), socket=f.socket;
@@ -15,6 +16,13 @@ async function complete(f,host,ap,path,options) {
   assert.equal(response.headers.get('cache-control'),'no-store');
   return {response,html:bytes.toString()};
 }
+// A script may stream multiple C++ literals. Keep the original literal bound
+// at its actual storage layer and verify CSP against the whole executed script.
+const generated=await readFile(process.argv[3],'utf8');let literals=0;
+for(const [,,literal] of generated.matchAll(/= R"(WP[A-Z]+)\(([\s\S]*?)\)\1";/g)) {
+  assert.ok(Buffer.byteLength(literal)<65536,'bounded C++ asset literal');++literals;
+}
+assert.ok(literals>10,'inspect the actual generated asset literals');
 const f=new Fixture(process.argv[2]);
 try {
  await f.time(1000);
@@ -31,7 +39,7 @@ try {
      const csp=response.headers.get('content-security-policy');
      for(const [,script] of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) {
        assert.ok(csp.includes("'sha256-"+createHash('sha256').update(script).digest('base64')+"'"),'each executed script has a CSP hash');
-       assert.ok(Buffer.byteLength(script)<65536,'bounded script literal');
+
      }
      assert.equal((html.match(/<script>/g)||[]).length,5);
      assert.ok(html.indexOf('WsprryPicoOwnerKey')<html.indexOf('const radio ='));

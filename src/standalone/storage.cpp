@@ -1,4 +1,5 @@
 #include "standalone/storage.hpp"
+#include "standalone/progress.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -139,7 +140,7 @@ bool Store::load(bool reset_recovery) {
 }
 bool Store::save(const Config& config) {
     const auto text = serialize_config(config);
-    if (!healthy_ || !parse_config(text))
+    if (!healthy() || !parse_config(text))
         return false;
     if (!config_.append(text)) {
         healthy_ = false;
@@ -149,7 +150,7 @@ bool Store::save(const Config& config) {
     return true;
 }
 bool Store::reserve(std::uint64_t utc_ns) {
-    if (!healthy_ || utc_ns <= watermark_)
+    if (!healthy() || utc_ns <= watermark_)
         return false;
     if (!cursor_.append(std::to_string(utc_ns))) {
         healthy_ = false;
@@ -157,6 +158,12 @@ bool Store::reserve(std::uint64_t utc_ns) {
     }
     watermark_ = utc_ns;
     return true;
+}
+bool Store::healthy() const {
+    return healthy_ && (!progress_ || progress_->healthy());
+}
+bool Store::erase_progress() {
+    return !progress_ || progress_->erase();
 }
 } // namespace wsprrypico::standalone
 

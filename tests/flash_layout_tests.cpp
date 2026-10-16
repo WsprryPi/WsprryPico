@@ -13,7 +13,12 @@
 
 int main() {
     using namespace wsprrypico::standalone::flash_layout;
-    CHECK(linked_flash_size == access_base);
+    CHECK(linked_flash_size == progress_base);
+    CHECK(progress_base == 0x3f0000);
+    CHECK(progress_size == 8192);
+    CHECK(progress_base + progress_size == diagnostic_base);
+    CHECK(diagnostic_base == 0x3f2000);
+    CHECK(diagnostic_base + erase_sector_size == access_base);
     CHECK(access_base == 0x3f3000);
     CHECK(access_base + access_size == btstack_base);
     CHECK(btstack_base == 0x3f5000);

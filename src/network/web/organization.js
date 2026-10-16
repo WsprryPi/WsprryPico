@@ -28,13 +28,15 @@
 
   for (const kind of ['station','network']) {
     const form = $('engineering-' + kind + '-form');
-    form.addEventListener('input',() => {
+    form.addEventListener('input',event => {
+      editedProgress(event);
       if (kind === 'station') engineeringStationDirty = true;
       else engineeringNetworkDirty = true;
       dirty = true; cancelReconnect();
     });
     form.onsubmit = event => {
       event.preventDefault();
+      if (supportsProgress()) return action(() => saveConfigProgress(kind));
       for (const input of form.querySelectorAll('input')) if (!input.reportValidity()) return;
       if (kind === 'network') setPasswordVisible('config-password',false);
       return action(async () => {
@@ -65,6 +67,7 @@
     }); };
   }
   $('initial-config').onclick = () => {
+    if (supportsProgress()) return action(() => applyProgressDomain('all'));
     for (const id of ['engineering-station-form','engineering-network-form','config'])
       for (const input of $(id).querySelectorAll('input,textarea')) if (!input.reportValidity())
         return notice('Complete station, Wi-Fi and schedules in both areas before creating the initial configuration',true);

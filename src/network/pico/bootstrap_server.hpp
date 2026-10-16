@@ -91,6 +91,7 @@ class PicoBootstrapServer {
                 owner_slot_.state() != provisioning::ConsumerClaimState::Terminal);
     }
     void radio_control(ConsumerRadioApi& radio);
+    void progress_control(BrowserApi& api) { progress_api_ = &api; }
     void setup_control(void (*pause)(void*), void* context) {
         setup_control_ = pause;
         setup_control_context_ = context;
@@ -191,6 +192,10 @@ class PicoBootstrapServer {
     std::uint64_t owner_submit_ms_ = 0;
     bool owner_trial_active_ = false, owner_trial_start_pending_ = false;
     bool owner_trial_switched_network_ = false;
+    BrowserApi* progress_api_ = nullptr;
+    bool progress_slot_ = false;
+    bool progress_apply_slot_ = false;
+    std::string progress_expected_revision_;
     bool owner_submit_delivered_ = false, owner_reconcile_ = false;
     OwnerResultRestart owner_result_restart_;
     bool owner_restart_pending_ = false, owner_status_committed_reply_ = false;

@@ -4,6 +4,7 @@
 #include <span>
 
 namespace wsprrypico::standalone {
+class Progress;
 // Four 4 KiB sectors: two configuration banks, two append-only watermark banks.
 class Flash {
   public:
@@ -50,15 +51,15 @@ class Store {
     bool save(const Config& config);
     bool reserve(std::uint64_t utc_ns);
     bool purge_config_history(Flash& flash);
+    void progress(Progress& value) { progress_ = &value; }
+    bool erase_progress();
     const std::optional<Config>& config() const {
         return current_;
     }
     std::uint64_t watermark() const {
         return watermark_;
     }
-    bool healthy() const {
-        return healthy_;
-    }
+    bool healthy() const;
     std::uint64_t config_sequence() const {
         return config_.sequence();
     }
@@ -83,5 +84,6 @@ class Store {
     std::optional<Config> current_;
     std::uint64_t watermark_ = 0;
     bool healthy_ = false;
+    Progress* progress_ = nullptr;
 };
 } // namespace wsprrypico::standalone

@@ -208,3 +208,11 @@ The [pin assignment contract](docs/pin-assignment-contract.md) selects exclusive
 GP ownership and one direct RF GPIO or one fixed I²C pair. The
 [implementation guide](docs/development/pin-allocation.md) records the supported
 boot-applied subset and unavailable amplifier/LPF/Si5351 adapters.
+
+## Saved progress extension
+
+The additive `transmitter-progress/1` resource persists valid independent fields
+without applying configuration or establishing transmit readiness. See the
+[saved progress contract](docs/development/saved-progress.md) for field, storage, authority,
+explicit application and recovery semantics. Existing complete configuration,
+profile and WTP contracts remain atomic and do not consume drafts.

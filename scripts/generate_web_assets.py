@@ -9,6 +9,7 @@ import sys
 root, output = map(pathlib.Path, sys.argv[1:])
 web = root / 'src/network/web'
 html, css, js = [(web / name).read_text() for name in ('index.html', 'style.css', 'app.js')]
+js = (web / 'saved-progress.js').read_text() + '\n' + js
 organization = (web / 'organization.js').read_text()
 validation = (web / 'config-validation.js').read_text()
 bootstrap_web = root / 'src/network/bootstrap_web'
@@ -71,6 +72,7 @@ bootstrap_policy = ("default-src 'none'; script-src 'self' " +
                     "style-src 'self' 'sha256-" + hash_for(bootstrap_css) + "'; "
                     "connect-src 'self'; img-src 'self' data:; "
                     "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+literal_names = {}
 source = '#include "network/assets.hpp"\nnamespace wsprrypico::network {\nnamespace {\n'
 for name, text, marker in [
     ('html', radio_html, 'WPHTML'), ('css', css, 'WPCSS'),
@@ -87,12 +89,30 @@ for name, text, marker in [
     ('owner_key_js', owner_key_js, 'WPOKEY'),
     ('bootstrap_policy', bootstrap_policy, 'WPBCSP'),
 ]:
-    if len(text.encode()) >= 65536:
-        raise ValueError('Oversized C++ asset literal: ' + name)
     if ')' + marker + '"' in text:
         raise ValueError('Raw string delimiter in ' + name)
-    source += f'constexpr char {name}[] = R"{marker}({text}){marker}";\n'
-source += '''
+    # Keep each translation-unit literal below the portable C++ 64 KiB limit.
+    # The transport streams parts contiguously; CSP still hashes the exact script.
+    encoded = text.encode()
+    chunks = []
+    while encoded:
+        end = min(len(encoded), 60000)
+        while end < len(encoded) and encoded[end] & 0xc0 == 0x80:
+            end -= 1
+        chunks.append(encoded[:end].decode())
+        encoded = encoded[end:]
+    literal_names[name] = [name] if len(chunks) == 1 else [f'{name}_{i}' for i in range(len(chunks))]
+    for identifier, chunk in zip(literal_names[name], chunks):
+        if len(chunk.encode()) >= 65536:
+            raise ValueError('Oversized C++ asset literal: ' + identifier)
+        source += f'constexpr char {identifier}[] = R"{marker}({chunk}){marker}";\n'
+    if name != 'radio_js' and (name.endswith('_js') or name == 'js'):
+        source += f'constexpr std::string_view {name}_parts[] = {{' + ', '.join(literal_names[name]) + '};\n'
+documents = '''
+WebAsset script_asset(std::span<const std::string_view> parts) {
+    return parts.size() == 1 ? WebAsset{parts.front(), "text/javascript; charset=utf-8"}
+                             : WebAsset{{}, "text/javascript; charset=utf-8", parts};
+}
 constexpr std::string_view html_parts[] = {
     html, "<script>", validation, "</script><script>", js, "</script><script>", organization, "</script></body>\\n</html>\\n"};
 constexpr std::string_view bootstrap_parts[] = {
@@ -106,6 +126,13 @@ constexpr std::string_view radio_parts[] = {
     radio_html, "<script>", owner_key_js, "</script><script>", radio_js, "</script><script>", validation, "</script><script>", js, "</script><script>", organization,
     "</script></body>\\n</html>\\n"};
 }
+
+'''
+for name, identifiers in literal_names.items():
+    if name.endswith('_js') or name == 'js':
+        documents = documents.replace(', ' + name + ',', ', ' + ', '.join(identifiers) + ',')
+source += documents
+source += '''
 std::string_view consumer_radio_csp() { return radio_policy; }
 std::optional<WebAsset> consumer_radio_asset() {
     return WebAsset{radio_html, "text/html; charset=utf-8", radio_parts};
@@ -116,19 +143,19 @@ std::optional<WebAsset> web_asset(std::string_view path) {
     if (path == "/style.css") return WebAsset{css, "text/css; charset=utf-8"};
     if (path == "/config-validation.js") return WebAsset{validation, "text/javascript; charset=utf-8"};
     if (path == "/organization.js") return WebAsset{organization, "text/javascript; charset=utf-8"};
-    if (path == "/app.js") return WebAsset{js, "text/javascript; charset=utf-8"};
+    if (path == "/app.js") return script_asset(js_parts);
     return {};
 }
 std::string_view bootstrap_csp() { return bootstrap_policy; }
 std::optional<WebAsset> bootstrap_asset(std::string_view path) {
     if (path == "/index.html") return WebAsset{bootstrap_html, "text/html; charset=utf-8", bootstrap_parts};
     if (path == "/style.css") return WebAsset{bootstrap_css, "text/css; charset=utf-8"};
-    if (path == "/bundle.js") return WebAsset{bootstrap_js, "text/javascript; charset=utf-8"};
+    if (path == "/bundle.js") return script_asset(bootstrap_js_parts);
     if (path == "/recovery.html") return WebAsset{recovery_html, "text/html; charset=utf-8", recovery_parts};
-    if (path == "/recovery-bundle.js") return WebAsset{recovery_js, "text/javascript; charset=utf-8"};
+    if (path == "/recovery-bundle.js") return script_asset(recovery_js_parts);
     if (path == "/owner.html") return WebAsset{owner_html, "text/html; charset=utf-8", owner_parts};
-    if (path == "/owner-bundle.js") return WebAsset{owner_js, "text/javascript; charset=utf-8"};
-    if (path == "/owner-key-bundle.js") return WebAsset{owner_key_js, "text/javascript; charset=utf-8"};
+    if (path == "/owner-bundle.js") return script_asset(owner_js_parts);
+    if (path == "/owner-key-bundle.js") return script_asset(owner_key_js_parts);
     return {};
 }
 }

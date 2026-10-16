@@ -31,6 +31,9 @@ struct WsprPlan {
 // with at least one letter and digit. Locators: four or six characters.
 [[nodiscard]] bool valid_station_details(std::string_view call, std::string_view locator,
                                          unsigned dbm);
+[[nodiscard]] bool valid_station_callsign(std::string_view call);
+[[nodiscard]] bool valid_station_locator(std::string_view locator);
+[[nodiscard]] bool valid_station_power(unsigned dbm);
 // Type 1 only: uppercase ordinary callsign, four-character locator, exact dBm.
 // Rejects unsupported messages instead of silently altering station identity.
 [[nodiscard]] std::optional<Symbols> wspr_type1(std::string_view call, std::string_view grid,

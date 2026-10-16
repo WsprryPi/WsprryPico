@@ -279,3 +279,11 @@ the API contract. WTP/1 defines interoperable limits and policies without
 selecting those implementations.
 
 Estimates of reusable code and expected spectral behavior remain hypotheses until verified.
+
+## Saved progress and applied authority
+
+The additive `transmitter-progress/1` resource persists valid independent fields
+without applying configuration or establishing transmit readiness. See the
+[saved progress contract](development/saved-progress.md) for field, storage, authority,
+explicit application and recovery semantics. Existing complete configuration,
+profile and WTP contracts remain atomic and do not consume drafts.

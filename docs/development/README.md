@@ -7,8 +7,9 @@ is complete within its documented software scope. WsprryPi release checklist
 step 14 integration is closed by operator acceptance on 2026-10-16.
 The separately requested originating review, physical RF/transport and later
 P15.9–P15.14 work remain separate. The
-[P15.9 source review](phase15-9-execution-prompt.md) covers saving valid fields
-independently of transmit readiness. P15.9 remains in progress, by operator
+[P15.9 execution record](phase15-9-valid-field-saves.md) and
+[saved progress contract](saved-progress.md) cover independent durable fields,
+explicit application and transmit-readiness distinctions. P15.9 remains in progress, by operator
 direction, pending its WsprryPi portion under release checklist step 15.
 The separately prepared Pi execution/sequencing
 handoffs have been withdrawn. Any Pi changes retain release coordination.

@@ -88,7 +88,7 @@ bool OwnerResultRestart::ready(std::uint64_t now_ms) const {
 }
 
 bool owner_public_get_admitted(const HttpRequest& request, std::string_view route) {
-    return (route == "/api/owner/v1/public-status" || route == "/api/owner/v1/claim/status") &&
+    return (route == "/api/owner/v1/public-status" || route == "/api/owner/v1/claim/status" || route == "/api/owner/v1/wspr-support") &&
            common(request, route, false);
 }
 
@@ -178,8 +178,8 @@ std::optional<OwnerClaimStartRequest> parse_owner_claim_start(const HttpRequest&
     return OwnerClaimStartRequest{*device, *owner, *browser, *nonce, selected, sequence};
 }
 
-std::optional<OwnerClaimSubmitRequest> parse_owner_claim_submit(const HttpRequest& request) {
-    if (!common(request, "/api/owner/v1/claim/submit", true))
+static std::optional<OwnerClaimSubmitRequest> parse_submit(const HttpRequest& request, bool progress) {
+    if (!common(request, progress ? "/api/owner/v1/progress/submit" : "/api/owner/v1/claim/submit", true))
         return {};
     const auto root = wtp::json::parse(request.body_view());
     if (!root ||
@@ -194,8 +194,14 @@ std::optional<OwnerClaimSubmitRequest> parse_owner_claim_submit(const HttpReques
     if (!device || !boot || !slot || !request_id || !nonce || !cipher || !tag ||
         !network::valid_device_id(*device) || !hex16(*boot) || !hex16(*slot) ||
         !hex16(*request_id) || !b64(*nonce, 12, 12) ||
-        !b64(*cipher, 11, OwnerClaimEncodedPlaintext::max_size) || !b64(*tag, 16, 16))
+        !b64(*cipher, progress ? 2 : 11, progress ? 512 : OwnerClaimEncodedPlaintext::max_size) || !b64(*tag, 16, 16))
         return {};
     return OwnerClaimSubmitRequest{*device, *boot, *slot, *request_id, *nonce, *cipher, *tag};
+}
+std::optional<OwnerClaimSubmitRequest> parse_owner_claim_submit(const HttpRequest& request) {
+    return parse_submit(request, false);
+}
+std::optional<OwnerClaimSubmitRequest> parse_progress_submit(const HttpRequest& request) {
+    return parse_submit(request, true);
 }
 } // namespace wsprrypico::network

@@ -4,6 +4,7 @@
 #include "provisioning/hostname.hpp"
 #include "provisioning/runtime.hpp"
 #include "standalone/scheduler.hpp"
+#include "standalone/progress.hpp"
 
 namespace wsprrypico::network {
 class NetworkControl {
@@ -26,6 +27,15 @@ class BrowserApi {
                         std::string_view authority, std::uint64_t transaction = 0,
                         ManagementCarrier carrier = ManagementCarrier::EngineeringStation);
     std::string revision() const;
+    void progress_settings(standalone::Progress& progress) {
+        progress_ = &progress;
+        store_.progress(progress);
+    }
+    HttpResponse progress_readback(bool station_only = false) const;
+    // Called only by the explicitly admitted commissioning adapter. It accepts
+    // station fields exclusively and has no application/Config authority.
+    HttpResponse save_progress(const HttpRequest& request, bool station_only = false);
+    bool progress_station_matches(std::string_view call, std::string_view locator, unsigned power) const;
     void management_availability(ManagementAvailability state) {
         management_ = state;
     }
@@ -91,5 +101,6 @@ class BrowserApi {
     std::uint64_t network_revision_ = 0;
     provisioning::RuntimeProfile* consumer_runtime_ = nullptr;
     provisioning::HostnameSettings* hostname_settings_ = nullptr;
+    standalone::Progress* progress_ = nullptr;
 };
 } // namespace wsprrypico::network

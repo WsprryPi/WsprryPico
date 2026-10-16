@@ -452,3 +452,11 @@ carries the exact inner identity hash and six locator characters; receiver
 context/collisions remain limitations. Type 2 `/Q`–`/Z` and `/00`–`/09` expose
 both interpretations without replacing the saved call. A two-frame local plan
 uses separately armed finite jobs; see [standalone behavior](development/standalone.md).
+
+## Independent saved progress
+
+The additive `transmitter-progress/1` resource persists valid independent fields
+without applying configuration or establishing transmit readiness. See the
+[saved progress contract](development/saved-progress.md) for field, storage, authority,
+explicit application and recovery semantics. Existing complete configuration,
+profile and WTP contracts remain atomic and do not consume drafts.

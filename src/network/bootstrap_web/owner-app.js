@@ -1,8 +1,9 @@
+import '../web/saved-progress.js';
 import {titleFromDevice} from './presentation.js';
 import {x25519} from '@noble/curves/ed25519.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {available} from './crypto.js';
-import {claimPlaintext, sealOwnerClaim, stationPlanHint} from './owner-claim.js';
+import {claimPlaintext, sealOwnerClaim, sealSavedProgress, stationPlanHint} from './owner-claim.js';
 
 const host = 'http://192.168.4.1';
 const p256 = globalThis.WsprryPicoOwnerKey;
@@ -42,6 +43,91 @@ let complete = false, retryVisible = false;
 let formEdited = false, filledGeneration;
 let lastTimeHintMs;
 let resultTimer, resultTimedOut = false;
+const progressUI = globalThis.WsprryPicoSavedProgress;
+let ownerProgress = null, progressState = 'readback', progressBusy = false, progressReadEpoch = 0;
+const progressEdits = new Map(); let progressEditSerial = 0;
+function progressControls() {
+  if (!ownerProgress) return;
+  $('owner-save-progress').hidden = false;
+  $('owner-submit').textContent = 'Apply saved station settings';
+  $('owner-save-progress').disabled = progressBusy || saving || !!submitted || progressState !== 'ready' || !status?.claim_available;
+  $('owner-submit').disabled = $('owner-save-progress').disabled || ownerProgress.data.draft_revision === '0' || !ownerProgress.data.station_complete || !ownerProgress.data.wspr_plan?.supported;
+  $('owner-read-progress').hidden = false;
+  $('owner-read-progress').disabled = progressBusy || saving || !!submitted;
+  $('owner-review-progress').hidden = progressState !== 'review';
+}
+async function readOwnerProgress(fill = false) {
+  const epoch = ++progressReadEpoch;
+  const response = await fetch(host + '/api/owner/v1/progress',{cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(8000)});
+  if (response.status === 404 && !ownerProgress) return false;
+  const data = await response.json(), revision = response.headers.get('ETag');
+  if (!response.ok || !revision || !progressUI.valid(data) || data.target.device_id !== deviceId || data.target.boot_id !== status.boot_id || epoch !== progressReadEpoch)
+    throw new Error('Saved progress could not be verified. Your edits are preserved.');
+  ownerProgress = {data,revision};
+  if (fill && !formEdited && !progressEdits.size) {
+    $('owner-callsign').value = data.station.callsign ?? '';
+    $('owner-locator').value = data.station.locator ?? '';
+    $('owner-power').value = data.station.power_dbm ?? '';
+  }
+  $('owner-progress-status').textContent = progressUI.summary(data);
+  progressState = fill ? 'ready' : 'review'; progressControls(); return true;
+}
+async function saveOwnerProgress() {
+  if (!ownerProgress || progressState !== 'ready' || progressBusy || saving || submitted) return;
+  const fields = {}, edits = new Map(progressEdits);
+  for (const key of edits.keys()) {
+    const text = $('owner-' + (key === 'power_dbm' ? 'power' : key)).value.trim();
+    fields[key] = text === '' ? null : key === 'power_dbm' ? (/^\d+$/.test(text) ? Number(text) : text) : text.toUpperCase();
+  }
+  if (!Object.keys(fields).length) { notice('Edit a station field before saving progress.'); return; }
+  progressBusy = true; progressControls(); let secret, sent = false;
+  try {
+    const transaction = p256.keygen(), ownerPublic = p256.getPublicKey(transaction.secretKey,false);
+    transaction.secretKey.fill(0);
+    const pair = x25519.keygen(); secret = pair.secretKey;
+    const browserNonce = hex(random(16));
+    const started = await request('/api/owner/v1/progress/start',{version:1,device_id:deviceId,
+      owner_public_key:b64u(ownerPublic),browser_public_key:b64u(pair.publicKey),browser_nonce:browserNonce,
+      profile_source:status.profile_source,generation:status.generation,progress_revision:ownerProgress.revision});
+    if (started.version !== 1 || started.device_id !== deviceId || started.boot_id !== status.boot_id ||
+        started.profile_source !== status.profile_source || started.generation !== status.generation ||
+        started.browser_nonce !== browserNonce || started.browser_public_key !== b64u(pair.publicKey) ||
+        started.owner_key_sha256 !== hex(sha256(ownerPublic))) throw new Error('Progress target changed.');
+    const requestId = hex(random(16)), nonce = random(12);
+    const body = {schema:'transmitter-progress/1',target:ownerProgress.data.target,request_id:requestId,fields};
+    const envelope = sealSavedProgress({origin:host,deviceId,bootId:started.boot_id,slotId:started.slot_id,
+      ownerPublicKey:ownerPublic,browserPublicKey:pair.publicKey,picoPublicKey:fromB64u(started.pico_public_key,32),
+      browserNonce,requestId,source:status.profile_source,generation:status.generation},secret,nonce,body);
+    secret = undefined;
+    sent = true; progressState = 'readback';
+    const result = await request('/api/owner/v1/progress/submit',{version:1,device_id:deviceId,boot_id:started.boot_id,
+      slot_id:started.slot_id,request_id:requestId,aead_nonce:b64u(nonce),...envelope});
+    if (!progressUI.confirms(result,body)) throw new Error('Save acknowledgement is malformed.');
+    // A separate read establishes the new common revision, never request attribution.
+    const accepted = result.outcomes;
+    await readOwnerProgress(false);
+    for (const [key,value] of Object.entries(accepted)) {
+      const input = $('owner-' + (key === 'power_dbm' ? 'power' : key));
+      const id = input.id + '-progress-result'; let message = $(id);
+      if (!message) {message=document.createElement('small');message.id=id;message.className='field-result';input.insertAdjacentElement('afterend',message);}
+      if (progressEdits.get(key) !== edits.get(key)) {message.textContent='Earlier value saved; this newer edit remains unsaved.';continue;}
+      input.setAttribute('aria-invalid',String(value === 'invalid'));input.setAttribute('aria-describedby',id);
+      message.textContent = value === 'invalid' ? 'Not saved: ' + progressUI.errors[key] + '.' : value === 'cleared' ? 'Cleared in saved draft.' : 'Saved as draft.';
+      message.classList.toggle('error',value === 'invalid');
+      if (value !== 'invalid') progressEdits.delete(key);
+    }
+    formEdited = progressEdits.size !== 0;
+    progressState = ['draft_revision','config_revision','profile_revision'].every(k=>ownerProgress.data[k]===result[k]) ? 'ready' : 'review';
+    $('owner-progress-status').textContent = progressUI.outcomeText(accepted) + ' ' + progressUI.summary(ownerProgress.data);
+    notice('Saved-field outcomes are shown below. Unsaved edits are preserved.',Object.values(accepted).includes('invalid'));
+  } catch (error) {
+    progressState = 'readback';
+    $('owner-progress-status').textContent = (sent ? 'Save result unconfirmed. ' : 'Progress preparation was not confirmed. ') +
+      'Your edits are preserved. Read and review saved progress before sending another save.';
+    notice(error.message,true);
+  } finally { secret?.fill(0); progressBusy=false; progressControls(); }
+}
+
 
 function showPending() {
   if (resultTimedOut) {
@@ -219,6 +305,7 @@ async function update() {
   } finally {
     if (!saving && !submitted) await hintTime();
     polling = false;
+    progressControls();
     setTimeout(update, 1000);
   }
 }
@@ -243,7 +330,8 @@ async function submit(event) {
   event.preventDefault();
   if (!status?.claim_available || status.source === 'unprovisioned' || saving ||
       submitted || complete || retryVisible) return;
-  const proposed = settings();
+  if (ownerProgress && progressState !== 'ready') return;
+  const proposed = ownerProgress ? {ssid:'',password:'',callsign:ownerProgress.data.station.callsign,locator:ownerProgress.data.station.locator,powerDbm:ownerProgress.data.station.power_dbm} : settings();
   try { claimPlaintext(proposed).fill(0); stationPlanHint(proposed.callsign, proposed.locator); }
   catch (error) {
     notice(error.message || 'Check the callsign, locator and reported WSPR power.', true);
@@ -273,10 +361,11 @@ async function submit(event) {
     const browserNonce = hex(random(16));
     show('owner-checking');
     notice('Saving station settings.');
-    const started = await request('/api/owner/v1/claim/start', {
+    const started = await request(ownerProgress ? '/api/owner/v1/claim/progress/start' : '/api/owner/v1/claim/start', {
       version: 1, device_id: deviceId, owner_public_key: b64u(transactionPublic),
       browser_public_key: b64u(pair.publicKey), browser_nonce: browserNonce,
       profile_source: status.profile_source, generation: status.generation,
+      ...(ownerProgress ? {progress_revision:ownerProgress.revision} : {}),
     });
     if (started.version !== 1 || started.device_id !== deviceId ||
         !/^[0-9a-f]{32}$/.test(started.boot_id) ||
@@ -338,11 +427,30 @@ async function submit(event) {
     browserSecret?.fill(0);
     saving = false;
     $('owner-submit').disabled = Boolean(submitted || complete || retryVisible || !status?.claim_available);
+    progressControls();
     $('owner-identify').disabled = Boolean(submitted || complete || retryVisible || !status?.claim_available);
   }
 }
 
 async function boot() {
+  globalThis.addEventListener?.('beforeunload',event=>{if(progressEdits.size || submitted){event.preventDefault();event.returnValue='';}});
+  $('owner-save-progress').onclick = saveOwnerProgress;
+  $('owner-read-progress').onclick = async () => {
+    if (progressBusy || saving || submitted) return;
+    progressBusy=true;progressControls();
+    try {await readOwnerProgress(false);notice('Review saved progress. Matching values do not identify which earlier request committed.');}
+    catch(error) {progressState='readback';notice(error.message,true);}
+    finally {progressBusy=false;progressControls();}
+  };
+  $('owner-review-progress').onclick = () => {if(progressState==='review'){progressState='ready';progressControls();}};
+  $('owner-form').addEventListener('input', event => {
+    const key = {'owner-callsign':'callsign','owner-locator':'locator','owner-power':'power_dbm'}[event.target.id];
+    if (key) {
+      progressEdits.set(key,++progressEditSerial);
+      const message=$(event.target.id+'-progress-result');
+      if(message){message.textContent='Unsaved edit.';message.classList.toggle('error',false);event.target.setAttribute('aria-invalid','false');}
+    }
+  });
   for (const name of ['owner-callsign', 'owner-locator', 'owner-power']) {
     $(name).addEventListener('input', () => { formEdited = true; });
     $(name).addEventListener('change', () => { formEdited = true; });
@@ -361,7 +469,7 @@ async function boot() {
   });
   $('owner-form').addEventListener('submit', submit);
   $('owner-form').addEventListener('input', () => {
-    try { const s = settings(); $('owner-wspr-plan').textContent = 'Draft: ' + stationPlanHint(s.callsign,s.locator) + ' The Pico validates encoding when saved.'; }
+    try { const s = settings(); $('owner-wspr-plan').textContent = 'Draft: ' + stationPlanHint(s.callsign,s.locator) + ' The Pico validates encoding before applying station settings.'; }
     catch (error) { $('owner-wspr-plan').textContent = error.message; }
   });
   if (location.origin !== host || !available() || !p256 ||
@@ -388,6 +496,7 @@ async function boot() {
     status = publicStatus;
     await titleFromDevice('Station setup', deviceId);
     fillSavedStation(status);
+    if (status.claim_available) await readOwnerProgress(true);
     $('device').textContent = 'Pico ' + deviceId.slice(-6);
     if (status.source === 'unprovisioned') {
       show('owner-wifi-first');
@@ -403,6 +512,7 @@ async function boot() {
       show('owner-service');
       notice('Setup is temporarily unavailable on this Pico.', true);
     }
+    progressControls();
     update();
   } catch {
     notice('Could not verify this Pico. Reconnect to its Wi-Fi and reload.', true);
