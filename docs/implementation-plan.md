@@ -252,10 +252,11 @@ P15.3/P15.4 established management-carrier access and shared-resource adoption.
 P15.5/P15.6 added concurrent request servicing and independent login sessions;
 P15.7 completed recovery against that service within its software scope. The
 original physical failed-save/session-loss reproduction remains open separately.
-P15.8 completed versioned automatic WSPR Type 2/3 software support with its
-approved Pi companion; Pi release integration and physical qualification remain
-open. P15.8 and P15.9 are tracked as in progress pending their WsprryPi portions
-under release checklist steps 14 and 15, respectively. Use the P15.8
+P15.8 completed versioned automatic WSPR Type 2/3 software support. The operator
+confirmed WsprryPi integration and acceptance under release checklist step 14
+and closed P15.8 on 2026-10-16; physical qualification remains separate.
+P15.9 remains in progress pending its WsprryPi portion under release checklist
+step 15. Use the P15.8
 station-planning rules when separating valid-field saves from
 transmit readiness, and complete hostname persistence, hostname-driven page
 titles and session recovery before reorganizing the settings pages. Finish the
@@ -383,25 +384,27 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   sanitizers and browser evidence are recorded there. Original physical
   reproduction, actual phone/Mac transport, target heap/stack high-water and RF
   acceptance remain open.
-- ⏳ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Automatic Type 1/2/3 planning,
+- ✅ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Automatic Type 1/2/3 planning,
   adjacent-window Type 2/3 pairs, versioned resources and browser/commissioning
   support are delivered. Ordinary calls retain saved-six/on-air-four Type 1
   behavior. `/00`–`/09` remain supported with ambiguity warnings; paired Type 3
-  hashes the requested full callsign. Overall status: in progress pending
-  WsprryPi integration and acceptance under its release checklist step 14.
+  hashes the requested full callsign. Overall status: complete within the
+  documented software scope. The operator confirmed WsprryPi integration and
+  acceptance under its release checklist step 14 on 2026-10-16.
   The Pico implementation is complete within the
   [recorded software acceptance](development/phase15-8-wspr-type23.md), accepted
   for scoped software closure by the operator on 2026-10-16. P15.8's published
-  Pico head is `4e96f0e`; its tested implementation pin is `804e8a0`. The approved, unmerged
-  Pi companion is `6d5e734` on `codex/p15-8-wspr-type23`. Recorded validation
+  Pico head is `4e96f0e`; its tested implementation pin is `804e8a0`. The originally
+  accepted Pi companion was `6d5e734` on `codex/p15-8-wspr-type23`, before the
+  subsequently accepted Pi integration. Recorded validation
   passed 196 host tests, 27 sanitizer-build checks, both firmware links and all
-  12 companion CI jobs after executor adversarial review and repairs. Pi release
-  integration, physical qualification and the separately requested originating
+  12 companion CI jobs after executor adversarial review and repairs. Physical
+  qualification and the separately requested originating
   review remain open; the scoped software acceptance does not claim those
   results. The
   [execution handoff](development/phase15-8-execution-prompt.md) retains its
   historical baseline and release-coordination boundary. Related Pi integration
-  remains tracked under WsprryPi release checklist step 14.
+  is closed under WsprryPi release checklist step 14 by operator acceptance.
 - ⏳ **P15.9 — Save valid fields independently of transmit readiness.** The
   operator was updating the callsign in the second setup block, which contained
   QRSS message controls, and was blocked by required fields for message setup.
@@ -445,7 +448,7 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   LAN/restart/RF and P15.14 operator publication remain separate.
   The [P15.10 execution handoff](development/phase15-10-execution-prompt.md)
   retains the source review and original implementation/review prompt.
-- ☐ **P15.11 — Consolidate or split Station/Transmission and Wi-Fi/Host setup.**
+- ⏳ **P15.11 — Consolidate or split Station/Transmission and Wi-Fi/Host setup.**
   Remove duplicated settings between "Station and Network" and "Wi-Fi and
   station setup". Either consolidate them into one page with clear
   Station/Transmission and Wi-Fi/Host sections, or place those areas on separate
@@ -459,7 +462,9 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   of transmit readiness and hostname behavior, while preserving the existing
   profile/configuration authority boundaries. Verify both connection-specific
   defaults and navigation in both directions. The one-page versus two-page
-  layout remains a design option. Status: open; unimplemented.
+  layout remains a design option. Status: in progress by operator direction;
+  the [reviewed execution handoff](development/phase15-11-execution-prompt.md)
+  is prepared. Implementation has not been executed by this preparation.
 - ☐ **P15.12 — Show the hostname as the main-page identity.**
   Replace the prominent `Pico <full device ID>` text with the Pico's hostname.
   Make the full stable device ID available under About or Diagnostics for
@@ -524,11 +529,12 @@ its recorded software scope, with companion Pi changes committed separately.
 P15.4 shared-resource adoption is complete within its recorded software scope.
 P15.5 concurrent web servicing is complete within its recorded software scope.
 P15.6 independent sessions and P15.7 login/save recovery are complete within
-their recorded software scopes. P15.8 Type 2/3 software is complete with an
-approved unmerged Pi companion. Overall P15.8 and P15.9 are in progress pending
-their WsprryPi portions under steps 14 and 15. The separate originating P15.8
-review, physical concurrency/reproduction, target qualification and P15.10–P15.14
-remain open.
+their recorded software scopes. P15.8 Type 2/3 software and its WsprryPi step 14
+integration are complete by operator acceptance. P15.9 remains in progress
+pending its WsprryPi portion under step 15. The separate originating P15.8
+review, physical concurrency/reproduction and target qualification remain open.
+P15.10 is complete within its recorded supported software scope. P15.11 is in
+progress with its execution handoff prepared; P15.12–P15.14 remain open.
 
 ## Remaining deferred and backlog items
 
@@ -789,8 +795,11 @@ belongs to the operator.
    operator-accepted documentation gate. Management carriers (P15.3), shared
    resources (P15.4), concurrent web servicing (P15.5), independent sessions
    (P15.6) and login/save recovery (P15.7) are complete within their recorded
-   software scopes. P15.8 WSPR Type 2/3 support is next; P15.8–P15.14 and the
-   separately recorded physical qualification remain open.
+   software scopes. P15.8 WSPR Type 2/3 support and its WsprryPi step 14
+   integration are closed by operator acceptance. P15.10 hostname editing and
+   titles are complete within their supported software scope. P15.9 and P15.11
+   are in progress; P15.12–P15.14 and the separately recorded physical
+   qualification remain open.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
