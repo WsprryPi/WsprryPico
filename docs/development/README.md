@@ -22,8 +22,8 @@ and remaining engineering/physical/operator-document gates.
 
 The [P15.11 organization record](phase15-11-page-organization.md) tracks the
 single Station/Transmission and Wi-Fi/Host document, connection-specific
-landing, profile-specific save authorities, regressions and review. Acceptance
-is in progress. The [execution handoff](phase15-11-execution-prompt.md) remains
+landing, profile-specific save authorities, regressions and review. Supported
+software acceptance is complete, including exact unchanged-Pi pairs. The [execution handoff](phase15-11-execution-prompt.md) remains
 the original task. P15.10 retains its supported software closure.
 
 The selected [consumer LAN access slice](consumer-lan-access.md) now implements

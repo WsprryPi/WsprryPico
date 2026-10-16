@@ -448,7 +448,7 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   LAN/restart/RF and P15.14 operator publication remain separate.
   The [P15.10 execution handoff](development/phase15-10-execution-prompt.md)
   retains the source review and original implementation/review prompt.
-- ⏳ **P15.11 — Consolidate or split Station/Transmission and Wi-Fi/Host setup.**
+- ✅ **P15.11 — Consolidate or split Station/Transmission and Wi-Fi/Host setup.**
   Remove duplicated settings between "Station and Network" and "Wi-Fi and
   station setup". Either consolidate them into one page with clear
   Station/Transmission and Wi-Fi/Host sections, or place those areas on separate
@@ -463,7 +463,7 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   profile/configuration authority boundaries. Verify both connection-specific
   defaults and navigation in both directions. The one-page versus two-page
   layout is implemented as one shared document with reloadable task-area links.
-  Status: implementation and verification in progress; see the
+  Status: complete within supported software acceptance; see the
   [organization record](development/phase15-11-page-organization.md) and original
   [execution handoff](development/phase15-11-execution-prompt.md).
 - ☐ **P15.12 — Show the hostname as the main-page identity.**
@@ -534,8 +534,7 @@ their recorded software scopes. P15.8 Type 2/3 software and its WsprryPi step 14
 integration are complete by operator acceptance. P15.9 remains in progress
 pending its WsprryPi portion under step 15. The separate originating P15.8
 review, physical concurrency/reproduction and target qualification remain open.
-P15.10 is complete within its recorded supported software scope. P15.11 is in
-progress with implementation and verification underway; P15.12–P15.14 remain open.
+P15.10 and P15.11 are complete within their recorded supported software scopes; P15.12–P15.14 remain open.
 
 ## Remaining deferred and backlog items
 

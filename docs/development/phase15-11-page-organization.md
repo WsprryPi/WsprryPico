@@ -1,6 +1,8 @@
 # P15.11 — Station/Transmission and Wi-Fi/Host
 
-Status: implementation in progress; acceptance is not yet established.
+Status: supported software acceptance complete on 2026-10-16.
+Implementation/tested source: `0569fef9e228dcf1d48d2dbb39e8e4c21d98c64b`.
+The acceptance/publication commit changes documentation only.
 
 ## Source and selected organization
 
@@ -50,9 +52,10 @@ JSON errors; safe foreign-Host captive GETs retain the fixed AP redirect.
 
 ## Acceptance, review and Documentation Impact
 
-Pending: behavioral routing, real served-browser workflow, full host checks,
+Completed: behavioral routing, real served-browser workflow, full host checks,
 affected sanitizers, both firmware links, unchanged-Pi compatibility, bounded
-visual inspection/detector, independent adversarial review and final reassessment.
+visual inspection and independent adversarial review/reassessment. The detector
+was degraded as recorded below.
 No physical network/captive/Wi-Fi/RF acceptance is claimed.
 
 ## Execution evidence and repairs
@@ -173,7 +176,7 @@ network-only Wi-Fi-first/refusal, engineering read-only name and initial save,
 and narrow-screen layouts. Physical product screenshots/publication belong to
 P15.14; the local fixture captures do not qualify those claims.
 
-## Software matrix and final checks before compatibility
+## Software matrix and final checks
 
 | Profile/state | Default and authority | Evidence |
 | --- | --- | --- |
@@ -210,8 +213,8 @@ picotool `6f6458d792b93685a11423b244a585eaa99eafcf`, `pico2_w` / RP2350,
 The main app literal is 63,807 bytes, config validation 2,114 and organization
 6,324; bootstrap/owner bundles are 55,629/59,415. The unchanged radio bundle is
 64,647. Generation now rejects individual literals at 65,536 bytes; no warning
-suppression is used. The engineering document is 93,459 uncompressed bytes;
-consumer delivery includes the existing crypto bundles. Every route test pumps
+suppression is used. The actual engineering document is 93,460 uncompressed bytes;
+consumer delivery is 198,928 bytes including the existing crypto bundles. Every route test pumps
 the complete static parts, checks exact Content-Length, validates all five
 consumer script hashes/order and no external script dependency. No page-sized
 runtime copy, thread, listener or polling task was introduced.
@@ -231,3 +234,79 @@ Final logs remain local: `/private/tmp/p1511-final-full-suite.log`,
 `p1511-final-organization-browser.log`, `p1511-final-organization-save-browser.log`,
 `p1511-hostname-browser.log`, `p1511-final-firmware-build.log`,
 `p1511-final-firmware-{size,sha256}.txt`, and `p1511-impeccable.json`.
+
+
+## Exact compatibility and publication
+
+All three native source pairs passed against clean Pico implementation
+`0569fef9e228dcf1d48d2dbb39e8e4c21d98c64b`:
+
+| Unchanged Pi source | Exact SHA | Result |
+| --- | --- | --- |
+| Preserved release | `a2437d1bf026e91ea95ac7e2a7a0101e3c4f11a1` | PASS |
+| Originally accepted Type 2/3 companion | `6d5e73430bfbacdb8cfc29c3fe41089aa8ae5fcb` | PASS |
+| Integrated devel | `a84010d6c16ac416d52989053ac1f273390a8ab5` | PASS |
+
+The genuine fixed Consumer-Radio/1 and Consumer-Recovery/1 AEAD/HKDF/selector
+vectors, native OpenSSL/Pico Mbed TLS station/AP sessions, coordinator, journal
+and management-only checks passed. Native relogin/read/ordinary-save retained
+the Pico-owned hostname. No native Pi hostname UI capability is newly claimed.
+No API schema, transcript, admission or Pi adapter changed; the client uses
+already-advertised scoped merge support. These are compatibility assertions,
+not physical TLS/LAN, RF or Pi release acceptance.
+
+The identified offline Linux environment is retained image
+`wsprrypico-p153-env:local`, immutable image ID
+`sha256:c7f2a891a6fff72e84bd1f2130b934881565f8b9ab489b20f35071f321ad219a`
+(Debian 13.6/aarch64, GCC 14.2.0, CMake 3.31.6, OpenSSL 3.5.6).
+Mbed TLS is clean at `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`.
+The container ran with `--network none`, read-only source mounts, a separate
+`/out` build mount and container-local exact `safe.directory` entries. No host
+Git configuration was changed. Primary Pi had an unrelated modified release
+punchlist, so the integrated row used a clean local shared clone at the exact
+same commit in `/private/tmp/p1511-pi-current`. The primary checkout and both
+historical Pi sources were preserved. Pico and selected pair source HEAD/clean
+checks were repeated after each run; historical pins were not retargeted.
+
+Reproduction inside that Linux environment, using **clean pinned copies** of
+Pico/Pi (the later documentation HEAD is not the implementation pin):
+
+```sh
+pico_root=/Users/lbussy/GitHub/WsprryPico
+pico_pin=0569fef9e228dcf1d48d2dbb39e8e4c21d98c64b
+# Select pi_root and its exact pi_pin from the table above.
+cmake -S "$pico_root/tests/hostname_pi_compatibility" -B "/out/$pair" \
+  -DPI_SOURCE="$pi_root" -DEXPECTED_PI="$pi_pin" \
+  -DPICO_SOURCE="$pico_root" -DEXPECTED_PICO="$pico_pin" \
+  -DMBEDTLS_SOURCE=/Users/lbussy/GitHub/pico-sdk/lib/mbedtls
+cmake --build "/out/$pair" --parallel 3
+"/out/$pair/hostname_pi_compatibility" \
+  "$pico_root/docs/protocol/Consumer-Radio-v1-vectors.json"
+```
+
+Exact configure/build/test logs and the executed runner remain local/ignored
+under `build/phase15-11-linux/`, named by pair and full Pico source SHA.
+The final no-capture Chrome organization continuation also proves an actual
+station Save with empty message fields, receipt retention across both areas,
+explicit relogin/readback verification and no setup replay from navigation.
+The final hostname workflow passes against the committed source, with zero
+additional screenshots (`/private/tmp/p1511-final-hostname-browser.log`).
+The original 50 captures retain the same visible product behavior. No further
+visual polishing pass was performed. Expanded engineering page-route assertions
+passed native and ASan/UBSan checks after the full product-suite run. No Pico CI
+run is claimed.
+
+Initial compilation also caught and corrected a recovery-link C++ string quote
+before successful checks. The retained failed full/sanitizer logs are not
+reclassified as passes; the final repaired runs above establish acceptance.
+Documentation links and `git diff --check` pass. Independent final reassessment
+also verified validation precedes disabling controls, explicit navigation alone
+scrolls, and confirmed Reload respects engineering draft flags after unrelated
+saves. There are no remaining actionable findings within the reviewed software
+scope. Physical qualification and P15.9/P15.12/P15.13/P15.14 remain separate.
+
+Implementation was committed on `devel` as `0569fef`; the worktree was clean
+through the exact compatibility runs. The final execution reply records the
+subsequent documentation-only acceptance commit, non-force push result,
+independently read remote SHA and final worktree state. No release, tag or PR
+was created, and no other repository was published.
