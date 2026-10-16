@@ -1,8 +1,8 @@
 # P15.10 — Persistent hostname and page titles
 
-Status: implementation and software acceptance in progress on 2026-10-16.
+Status: supported software acceptance complete on 2026-10-16.
 The [execution handoff](phase15-10-execution-prompt.md) defines the scope.
-This record will retain the exact implementation/source pair and final results.
+Implementation, test repairs and independent reassessment are recorded below.
 P15.8/P15.9 Pi release integration, P15.11/P15.12 page organization/identity,
 P15.13 RF work and P15.14 operator publication remain separate.
 
@@ -124,9 +124,11 @@ remain in the current tab; no password or draft is stored for navigation.
 
 Restart reads fresh settings and requires the name/config revisions to agree,
 sends exactly one revision-guarded request, and retains the response-delivery
-callback/final idle/output checks. Reconnect checks use a 90-second observation window and cap the final identity
-request to the remaining time. A bounded countdown already in flight may finish
-at the window boundary. There is a visible two-second countdown, cancellation,
+callback/final idle/output checks. Reconnect checks use a 90-second observation
+window. Consumer identity requests cap their timeout to the remaining window;
+HTTPS hostname checks use a fixed two-second timeout. A countdown already in
+flight can finish at the window boundary, and an issued HTTPS check can finish
+up to its two-second request bound later. There is a visible two-second countdown, cancellation,
 and a manual canonical-name
 continuation link. Time describes the next check, never readiness. A new boot
 alone requests fresh login/readback. Success requires the same full device ID,
@@ -151,14 +153,15 @@ countdowns, refresh and lost replies never replay the original mutation.
 
 ## Validation and evidence
 
-The implementation is ready for an immutable source pin and exact paired Pi
-checks; final acceptance remains pending their results. Native checks cover
-203 executable CTest groups plus one optional schema skip. With the controlled
-fragmented TLS sender described below, every executable group passed twice
-(`ctest --repeat until-fail:2`, 218.41 seconds); no failed group remains. The
-optional Python `jsonschema` dependency is absent, so `config_update_schema`
-is explicitly skipped. The affected sanitizer
-selection passed 25 executable cases with the same optional schema skip.
+Native checks cover 203 executable CTest groups plus one optional schema skip.
+With the controlled fragmented TLS sender described below, every executable
+group passed twice (`ctest --repeat until-fail:2`, 218.41 seconds). The final
+rebuilt suite after the additional reset-boundary fixture repair also passed
+all 203 executable groups (136.27 seconds). Its TLS case separately passed five
+consecutive runs (60.51 seconds, 100 actual reset cycles). The optional Python
+`jsonschema` dependency is absent, so `config_update_schema` is explicitly
+skipped. The affected sanitizer selection passed 25 executable cases with the
+same optional schema skip (11.31 seconds).
 macOS ASan does not support leak detection; the first requested leak run aborted
 before tests, and the ASan/UBSan rerun uses `detect_leaks=0`. No leak-check claim
 is made. Noble tests pass 17/17; WTP contract validation passes 23 schema,
@@ -177,19 +180,157 @@ fallback detector cannot assess computed contrast/selectors; reported advisories
 refer to incumbent colors/type. Visual inspection retained that established
 light design under both browser preferences, with no overflow observed.
 
-Both repaired 138 MHz standard-inhibited and StandaloneRF images cross-linked
+Both 138 MHz standard-inhibited and StandaloneRF images cross-linked
 against SDK 2.3.1 `079c6f39023649b154152db30f1d781e884879bc`, its pinned submodules
-and Arm GNU 15.3.1. Preliminary repaired budgets (before final clean identity
-relink): standard text 2,095,352 / BSS 173,536 bytes; RF text 2,110,684 / BSS
-329,476 bytes. Direct compiler stack frames: hostname save 1,320, readback
+and Arm GNU 15.3.1. Final clean configured source is
+`334ea5a3aedcb14245088a7c8cd48f2e1510428e`, version
+`0.1.0-rc.3-p1510-candidate`, board `pico2_w`, processor RP2350. Subsequent probe
+and documentation commits do not change firmware inputs. ELF `size` budgets:
+
+| Image | text | data | BSS |
+| --- | ---: | ---: | ---: |
+| WsprryPico, standard inhibited | 2,095,344 | 0 | 173,536 |
+| WsprryPico-StandaloneRF | 2,110,668 | 0 | 329,476 |
+
+Direct compiler stack frames: hostname save 1,320, readback
 1,360 and leaf rename 1,416 bytes. These are individual frames, not complete
 call-chain or measured high-water bounds. Flash topology, allocator/BTstack
-wrappers, stack guards, GP14 safety and RAM renderer link checks passed.
-Final clean-image identities/budgets and paired source outcomes follow after
-source-pinned verification. The default scope
-is hardware-free: no flashing, GPIO/RF, installation or service operation occurred.
+wrappers, stack guards, GP14 safety and RAM renderer link checks passed. The
+flash application region remains `0x3f3000`, preserving all journals, the BTstack
+bank and final RP2350-E10 sector. The main stack still reserves 32 KiB with
+28 KiB usable above its guard. The RF renderer remains in RAM (660 bytes), with
+166,176 bytes of worker storage and 13,976 initialized RAM bytes reported by its
+link check. RF scheduling remains on core 1; name management stays on core 0.
+The root document is 84,965 bytes served from static parts. The separate app
+script is 65,139 bytes and the radio bundle 64,647 bytes; these remain below
+Clang's individual 65,536-byte literal ceiling. Streaming/CSP tests cover the
+combined document without a page-sized per-request copy. These bounded source/
+link limits do not measure the rename's target heap peak.
+
+Final SHA-256 (local ignored artifacts, not flashed):
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Standard ELF | `6e23a52c8aabb67c718de747dcee33bb3f5a0e2b396e5f5c59de176d4d2696c5` |
+| Standard UF2 | `65bc41f483f3f50aecce3e1b1e5e71aec321182fdf0bccc834a56101e0bcfc22` |
+| StandaloneRF ELF | `0786e2db912b9b28f956ce5feb6da7d9731faafecfb6c54400bc836668791782` |
+| StandaloneRF UF2 | `ed662ae8b49cfd0d89510a48f4e8738f2ed0b7c093d76a53347a79cf3ae91d3f` |
+
+The default scope is hardware-free: no flashing, GPIO/RF, installation or
+service operation occurred.
 Compile/link budgets are not measured target timing, heap/stack high-water,
 operational LAN resolution or physical restart/transport qualification.
+
+## Exact sources, commands and compatibility
+
+| Source | Immutable identity | Scope |
+| --- | --- | --- |
+| Initial Pico devel | `5c7585c22f7d46e120fc4be4720c84a9e8dbecd6` | Original handoff baseline; its three preparation-document changes were preserved and completed |
+| P15.10 production implementation | `556f19b53688f803d4228cdcdacbd2992489639a` | Persistence, TLS, boot/admission, UI and regressions |
+| TLS test-boundary repair / firmware source | `334ea5a3aedcb14245088a7c8cd48f2e1510428e` | Test-only reset barrier and private probe include; production inputs identical to implementation |
+| Final compatibility harness | `ecbe2c40fc07aea2f0ea4d8bfc32a4e8770dad5e` | Test-only Pi public-header precedence repair; clean exact Pico pin for all three native pairs |
+| Unchanged release Pi | `a2437d1bf026e91ea95ac7e2a7a0101e3c4f11a1` | Preserved clean release checkout; PASS |
+| Accepted P15.8 Pi companion | `6d5e73430bfbacdb8cfc29c3fe41089aa8ae5fcb` | Preserved clean accepted companion; PASS |
+| Current integrated Pi devel | `a84010d6c16ac416d52989053ac1f273390a8ab5` | Concurrent integration `f6b5158` plus acceptance/test documentation; PASS |
+| Mbed TLS | `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20` | Clean retained SDK submodule, actual crypto |
+| lwIP | `77dcd25a72509eb83f72b033d219b1d40cd8eb95` | Clean retained SDK submodule, actual mDNS packet tests |
+
+Pi advanced independently from the handoff's `af4ce31` while execution ran.
+No Pi checkout was changed, reset, branched, committed, pushed or messaged by
+this work. Its P15.8/P15.9 release status is owned by that separate work; no
+historical compatibility pin or expectation was retargeted here.
+
+Each new native probe compiled the exact unchanged Pi product files and its
+original interoperability suite with the production Pico core, journal and real
+OpenSSL/Mbed TLS Consumer-Radio cryptography. Original fixed vectors and
+station/AP/coordinator/management-only cases pass. Additional station/AP cases
+prove that native hostname GET/PUT and resource-adapter PUT refuse with 404
+before any HTTP exchange. A Pico-owned coordinator rename then invalidates the
+old generation; native relogin, existing reads and ordinary configuration saves
+preserve the hostname and watermark with zero WTP I/O. This is compatibility,
+not new native Pi hostname-editing capability. Authenticated hostname PUTs are
+covered separately by the real served-page/session tests. Transport, clock and
+board boundaries remain doubles; this is not a physical routing or TLS-LAN
+connection qualification.
+
+The guarded Pico-owned [probe](../../tests/hostname_pi_compatibility/CMakeLists.txt)
+requires Linux, clean trees and exact 40-character Pi/Pico/Mbed TLS pins. The
+identified environment is Debian 13.6/aarch64, GCC 14.2.0, CMake 3.31.6,
+OpenSSL 3.5.6, retained image `wsprrypico-p153-env:local`, image ID
+`sha256:c7f2a891a6fff72e84bd1f2130b934881565f8b9ab489b20f35071f321ad219a`.
+All sources were mounted read-only at their host absolute paths, with a separate
+`/out` build mount and `--network none`. Exact trusted mount paths supplied
+container-local `safe.directory` values; no user's Git configuration changed.
+
+Inside that environment, run the following for each Pi root/pin in the table
+(release `/private/tmp/wsprrypi-p158/release`, accepted
+`/private/tmp/wsprrypi-p158/source`, current `/Users/lbussy/GitHub/WsprryPi`):
+
+```sh
+pico_root=/Users/lbussy/GitHub/WsprryPico
+pico_pin=ecbe2c40fc07aea2f0ea4d8bfc32a4e8770dad5e
+cmake -S "$pico_root/tests/hostname_pi_compatibility" -B "/out/$pair" \
+  -DPI_SOURCE="$pi_root" -DEXPECTED_PI="$pi_pin" \
+  -DPICO_SOURCE="$pico_root" -DEXPECTED_PICO="$pico_pin" \
+  -DMBEDTLS_SOURCE=/Users/lbussy/GitHub/pico-sdk/lib/mbedtls
+cmake --build "/out/$pair" --parallel 3
+"/out/$pair/hostname_pi_compatibility" \
+  "$pico_root/docs/protocol/Consumer-Radio-v1-vectors.json"
+```
+
+Post-run HEAD and clean-tree checks also passed for each source pair. Native
+Pi C++ was compiled only in the identified Linux environment. No Pico Actions
+workflow exists; CI was not run or claimed for this source. Pi CI/pin changes
+are outside this authorized scope.
+
+Host reproduction, from the Pico root (full Xcode/Apple Clang 21 on macOS):
+
+```sh
+source scripts/xcode_env.sh
+cmake -S . -B build-host -DCMAKE_BUILD_TYPE=Debug \
+  -DWSPRRY_PICO_BUILD_TESTS=ON -DWSPRRY_PICO_BUILD_FIRMWARE=OFF \
+  -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/Users/lbussy/GitHub/pico-sdk/lib/mbedtls
+cmake --build build-host --parallel 3
+ctest --test-dir build-host --output-on-failure
+ctest --test-dir build-host --output-on-failure --repeat until-fail:2
+python3 scripts/validate_wtp_contract.py
+npm --prefix src/network/bootstrap_web test
+npm --prefix src/network/bootstrap_web run build
+node tests/network_browser_tests.js
+node tests/hostname_browser_integration.mjs build-host/consumer_bootstrap_driver \
+  build/phase15-10-browser
+HOSTNAME_BROWSER_NO_CAPTURE=1 node tests/hostname_browser_integration.mjs \
+  build-host/consumer_bootstrap_driver build/phase15-10-browser
+```
+
+The Mbed TLS sibling lwIP path is inferred and its exact pin/clean state is
+checked by CMake. The 204-group enumeration includes `mdns_tests`,
+`mdns_lwip_tests`, `network_adapter_tests` and genuine TLS/crypto/bootstrap cases.
+Loopback access is required. Shell Node was 26.12.0; CTest selected Python
+3.14.8. The affected sanitizer build adds C/C++ and executable link flags
+`-fsanitize=address,undefined -fno-omit-frame-pointer` and runs:
+
+```sh
+ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=halt_on_error=1 \
+ctest --test-dir build/phase15-10-asan --output-on-failure \
+  -R 'hostname|consumer_(profile|storage|tls_generator|radio|sessions|recovery)|network_tests|mdns|network_adapter|wspr_(plan|resource)|config_update|reset_storage|bootstrap_http|softap_api'
+```
+
+Firmware commands used retained SDK 2.3.1, Arm GNU 15.3.1 and cached pinned
+picotool `6f6458d792b93685a11423b244a585eaa99eafcf`; no SDK/tool installation:
+
+```sh
+cmake -S . -B build/consumer-lan-pico \
+  -DWSPRRY_PICO_FIRMWARE_VERSION=0.1.0-rc.3-p1510-candidate
+cmake --build build/consumer-lan-pico \
+  --target WsprryPico WsprryPico-StandaloneRF --parallel 3
+arm-none-eabi-size build/consumer-lan-pico/firmware/WsprryPico.elf \
+  build/consumer-lan-pico/firmware/WsprryPico-StandaloneRF.elf
+```
+
+The cache supplied `PICO_SDK_PATH=build/local-sdk-079c6f3`, Release,
+`PICO_BOARD=pico2_w`, and the already retained picotool paths. The standard
+candidate is RF inhibited; neither candidate was loaded onto a board.
 
 ## Adversarial review and repairs
 
@@ -206,7 +347,11 @@ operational LAN resolution or physical restart/transport qualification.
 Additional implementation checks repaired streamed assets exceeding a single
 64 KiB literal, journal refusal of same-receipt hostname changes, nondeterministic
 maximum-name TLS serialized sizes, and same-document return-receipt changes.
-These failures remain in private build logs; final checks must assess repairs.
+Retained failure logs and this record preserve the failed attempts; the repaired
+checks above passed. The probe's first strict Linux builds also caught a missing
+private client include and public-header precedence collision. Both were fixed
+in the Pico-owned harness using the existing Pi build's include requirements;
+all three exact source pairs subsequently compiled with warnings as errors.
 
 The full native suite twice reset the maximum concurrent TLS upload while its
 unchanged-baseline and current isolated cases each passed three consecutive
@@ -221,12 +366,59 @@ not this client's upload buffering. The repeated full suite passed every
 executable group twice after this change; original failures and isolated
 comparisons remain retained.
 
+A later diagnostic run completed the fragmented upload but reset a fresh
+connection during the twenty immediate raw-RST/reconnect cycles. Its presence
+on the unchanged baseline was not established. Independent review approved a
+single `NETWORK DRAIN` fixture barrier: normal `mock_tcp_poll` followed by normal
+`server.poll`, then an assertion of zero active/pending connections and buffered
+bytes, before exactly one HTTP attempt. It retains all twenty actual loopback
+zero-linger resets, performs no state clearing or HTTP retry, and changes no
+production deadline/code. Coverage is slot reuse **after servicing the reset**,
+not guaranteed immediate reconnect before the adapter observes RST. Five TLS
+runs and the final full suite passed. The controlled 32,934-byte upload measured
+24–25 ms in those five runs. The old failed originals were not reclassified as
+passes.
+
+Independent reviewer `/root/hostname_review` inspected the production changes,
+R1–R7 repairs, same-iteration admission closure, strict probe guards and bounded
+test repairs. Final reassessment found no remaining actionable findings within
+the inspected software scope. This execution did not perform the separately
+requested originating post-execution assessment or message another chat.
+
+Evidence remains local/ignored: `build/phase15-10-linux/*ecbe2c40*-{configure,build,test}.log`,
+`build/phase15-10-browser/*.png`, and `/private/tmp/p1510-*` logs. Principal final
+logs are `p1510-final-acceptance-suite.log`, `p1510-tls-barrier-repeat.log`,
+`p1510-controlled-full-suite.log`, `p1510-asan-repaired.log`,
+`p1510-browser-bootstrap-pinned-final.log`, and `p1510-firmware-334ea5a.log`. The prior
+`p1510-final-suite.log` and `p1510-controlled-tls-verbose.log` retain the two
+distinct TLS failure sites; baseline/current three-repeat isolate logs retain
+their successful comparisons. The baseline source archive required only
+`-Wno-error=overlength-strings` to build its already oversized generated literal;
+no baseline source was edited. Initial sandbox socket denial, incomplete CLT
+linking, unavailable macOS leak detection and degraded Impeccable parsing were
+environment limitations; socket/full-Xcode runs and supported sanitizer checks
+were repeated as reported. Credentials/captures/generated firmware are not in
+Git. An extra final browser refresh first used the session-only driver, which
+correctly refused the root page with 403; the corrected
+`consumer_bootstrap_driver` invocation passed.
+
+The pre-publication repository audit found Pico clean at `ecbe2c4` before this
+record/index/roadmap update. All read-only references were clean: primary Pi
+devel and its concurrent step-14 worktree at `a84010d`, accepted companion
+`6d5e734`, preserved release `a2437d1`, and WsprryPi-Docs devel at
+`ee689f0c7f5bbbb4f961ec81fd1b1cfbf98f9a79`. The final execution reply records the
+documentation commit, push outcome, independently checked remote hash and final
+working-tree state. No release, tag, PR or other-repository publication is part
+of this execution.
+
 ## Documentation Impact and P15.14 packet
 
 Updated: this record, browser API, configuration-update, standalone, identity,
 mDNS, consumer LAN guidance, development index and current roadmap. Historical
-contracts/results retain explicit supersession notes. WTP/1, pin assignment,
-RF qualification and P15.8/P15.9 release status are considered unchanged.
+contracts/results retain explicit supersession notes. README, CONTRACT and
+architecture were reviewed; their application/carrier/timing authority remains
+valid without a schema change. WTP/1, pin assignment, RF qualification and
+P15.8/P15.9 release status are considered unchanged.
 
 Read-only operator-document review covered WsprryPi-Docs
 `docs/User_Interface/Setup/Transmitter/index.md` (Pico settings, saved/restart and

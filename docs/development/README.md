@@ -15,7 +15,9 @@ handoffs have been withdrawn. Any Pi changes retain release coordination.
 The [P15.10 hostname handoff](phase15-10-execution-prompt.md) records current
 identity/profile/mDNS/UI findings and the original prompt for editable
 persistent hostname, hostname-driven tab titles and a safe restart/countdown/
-reconnect flow. The [P15.10 execution record](phase15-10-hostname.md) tracks implementation and software acceptance now in progress.
+reconnect flow. The [P15.10 execution record](phase15-10-hostname.md) records
+completed supported software acceptance, exact source pairs, review repairs
+and remaining engineering/physical/operator-document gates.
 
 The selected [consumer LAN access slice](consumer-lan-access.md) now implements
 port-80 station IP/hostname access, saved-password authentication, normally-off

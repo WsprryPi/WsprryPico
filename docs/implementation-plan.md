@@ -426,7 +426,7 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   [technical source review](development/phase15-9-execution-prompt.md) and Pi
   release-coordination boundaries remain applicable; this is not a request to
   start work.
-- ⏳ **P15.10 — Allow hostname changes and use the hostname in the page title.**
+- ✅ **P15.10 — Allow hostname changes and use the hostname in the page title.**
   Provide a browser setting to edit and save the hostname, retain it across
   restarts and use it for LAN/mDNS discovery and access. The saved hostname must
   also drive the HTML page title shown in the browser tab, with the hostname
@@ -437,8 +437,12 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   changes before P15.12 exposes the saved name as the main-page identity.
   A restart is an accepted application boundary; provide operator instructions
   and bounded countdown/reconnect assistance, confirming the same device, a new
-  boot and the applied name before claiming success. Status: implementation and software acceptance in progress in the
-  [execution record](development/phase15-10-hostname.md).
+  boot and the applied name before claiming success. Status: complete within
+  the [recorded supported software acceptance](development/phase15-10-hostname.md).
+  Consumer station/AP management, preserved CA/client trust, both firmware
+  links, exact unchanged Pi compatibility, browser evidence and independent
+  review repairs passed. Engineering names remain credential-bound; physical
+  LAN/restart/RF and P15.14 operator publication remain separate.
   The [P15.10 execution handoff](development/phase15-10-execution-prompt.md)
   retains the source review and original implementation/review prompt.
 - ☐ **P15.11 — Consolidate or split Station/Transmission and Wi-Fi/Host setup.**
