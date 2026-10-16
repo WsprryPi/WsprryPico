@@ -72,4 +72,8 @@ bool PicoConsumerClaimPlatform::valid_tls(const ConsumerTls& tls, std::string_vi
                                           std::uint64_t utc_now) {
     return validate_consumer_tls(tls, device_id, utc_now);
 }
+bool PicoConsumerClaimPlatform::rename_tls(std::string_view device_id, std::string_view hostname,
+                                           std::uint64_t utc_now, ConsumerTls& tls) {
+    return rename_consumer_tls(device_id, hostname, utc_now, tls);
+}
 } // namespace wsprrypico::provisioning

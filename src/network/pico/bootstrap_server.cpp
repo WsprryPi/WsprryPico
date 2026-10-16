@@ -207,6 +207,12 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
         }
     } else if (client_interface_ != ConsumerInterface::AccessPoint)
         response_ = http_error(403, "forbidden");
+    else if (request.path == "/api/presentation/v1" && request.method == "GET" &&
+             request.header("host") == "192.168.4.1" && network_)
+        response_ = json(
+            "{\"schema\":\"device-presentation/1\",\"device_id\":" + wtp::json::quote(device_) +
+            ",\"boot_id\":" + wtp::json::quote(boot_id_) +
+            ",\"hostname\":" + wtp::json::quote(network_->configured_hostname()) + "}");
     else if (request.path.starts_with("/api/recovery/v1/"))
         response_ = recovery(request);
     else if (!ap_setup_admitted_ && (request.path.starts_with("/api/bootstrap/v1/") ||

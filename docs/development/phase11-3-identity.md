@@ -1,5 +1,7 @@
 # Phase 11.3 shared network identity contract
 
+Current supersession: [P15.10](phase15-10-hostname.md) adds a persistent consumer hostname editor and hostname-first tab titles. The MAC name remains the stable default, and engineering names remain bound to their credentials. Historical runtime-editing restrictions below describe the Phase 11 acceptance baseline.
+
 Status: accepted implementation contract, 2026-09-08. WsprryPico owns this
 application-level contract; normative WTP/1 is unchanged. Initial reviewed inputs:
 Pico `a34a9a4342013d41379242f1e456ca3e3760b8db`, Pi `07a7a8b` (both clean devel,

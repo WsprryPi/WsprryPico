@@ -7,6 +7,7 @@
 #include <vector>
 
 namespace wsprrypico::provisioning {
+inline constexpr std::size_t max_consumer_tls_json_bytes = 2560;
 struct ConsumerClient {
     std::string name;
     std::string csr_der;

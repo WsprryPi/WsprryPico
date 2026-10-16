@@ -1,3 +1,4 @@
+import {titleFromDevice} from './presentation.js';
 import {available, begin, seal} from './crypto.js';
 
 const names = ['credentials', 'checking', 'accepted', 'unconfirmed', 'connected',
@@ -332,6 +333,7 @@ async function boot() {
     }
     if (!hexId(identity.device_id)) throw new Error('invalid identity');
     deviceId = identity.device_id;
+    await titleFromDevice('Wi-Fi setup', deviceId);
     $('device').textContent = 'Pico ' + deviceId.slice(-6);
     show('credentials');
     await fillSavedNetwork();

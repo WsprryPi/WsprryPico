@@ -127,6 +127,43 @@ int main() {
     assert(
         !validator.validate({"00000000000000000000000000000000", host, 443, tls.server_certificate,
                              tls.server_private_key, tls.ca_certificate}));
+    const auto original = tls;
+    for (const auto length : {1, 63}) {
+        const auto name = std::string(length, 'x') + ".local";
+        assert(provisioning::rename_consumer_tls(device, name, now, tls));
+        assert(tls.ca_certificate == original.ca_certificate &&
+               tls.ca_private_key == original.ca_private_key &&
+               tls.server_private_key == original.server_private_key &&
+               tls.ca_not_after_utc == original.ca_not_after_utc);
+        assert(provisioning::validate_consumer_tls(tls, device, now));
+        assert(tls.hostname == name && tls.server_certificate != original.server_certificate);
+        provisioning::ConsumerProfile profile;
+        profile.device_id = device;
+        profile.ssid = "test-network";
+        profile.password = "test-password";
+        profile.time_server = "pool.ntp.org";
+        profile.callsign = "AA0NT";
+        profile.locator = "EM18";
+        profile.power_dbm = 37;
+        profile.request_sha256 = std::string(64, 'a');
+        profile.tls = tls;
+        const auto bytes = provisioning::serialize_consumer_profile(profile);
+        assert(!bytes.empty());
+        auto restored = provisioning::parse_consumer_profile(bytes);
+        assert(restored && *restored == profile);
+        provisioning::scrub(*restored);
+        provisioning::scrub(profile);
+    }
+    const auto renamed = tls;
+    assert(!provisioning::rename_consumer_tls(device, std::string(64, 'x') + ".local", now, tls));
+    assert(!provisioning::rename_consumer_tls("wrong", "x.local", now, tls));
+    assert(!provisioning::rename_consumer_tls(device, "x.local", tls.ca_not_after_utc, tls));
+    assert(tls == renamed);
+    fail_entropy = true;
+    assert(!provisioning::rename_consumer_tls(device, "x.local", now, tls));
+    fail_entropy = false;
+    assert(tls == renamed);
+    tls = original;
     const auto first_ca = tls.ca_certificate;
     assert(provisioning::generate_consumer_tls(device, host, now, tls));
     assert(tls.ca_certificate != first_ca);

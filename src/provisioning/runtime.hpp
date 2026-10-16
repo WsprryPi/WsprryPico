@@ -50,6 +50,12 @@ class RuntimeProfile {
     RuntimeFault fault() const {
         return fault_;
     }
+    bool control_healthy(const ProfileStore& store) const {
+        return store.healthy() && fault_ == RuntimeFault::None && generation_ == store.sequence();
+    }
+    bool consumer_selected(const ProfileStore& store) const {
+        return consumer_selected_ || store.source() == ProfileSource::ConsumerProfile;
+    }
     std::uint64_t generation() const {
         return generation_;
     }
@@ -71,6 +77,9 @@ class RuntimeProfile {
     void clear();
     RuntimeSource source_ = RuntimeSource::Fault;
     RuntimeFault fault_ = RuntimeFault::Storage;
+    // Once selected, a read/reconcile fault cannot reopen engineering authority
+    // in this boot. An authorized reset completes with a new boot.
+    bool consumer_selected_ = false;
     std::uint64_t generation_ = 0;
     Profile profile_{};
     bool has_profile_ = false;

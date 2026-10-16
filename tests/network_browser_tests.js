@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '') {
-    const ids = ['saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
+    const ids = ['hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     for (const id of ['consumer-setup','consumer-network-settings','consumer-station-settings',
       'consumer-check-save','consumer-network-form','consumer-station-form','consumer-ssid',
@@ -27,7 +27,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     elements.config.elements.indicator.replaceChildren(...['onboard_led','external','disabled'].map(x=>new Option(x,x)));
     elements.config.elements.indicator_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
     const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
-    const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1'}};
+    const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1',configured_hostname:'old.local'}};
     elements['config-password'] = elements.config.elements.password;
     elements['local-password-label'].textContent = 'Local-access password';
     for (const id of ['local-password','config-password','consumer-password','retirement-password']) {
@@ -41,13 +41,18 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     let sequence = 0;
     const f = {elements,state,calls,config,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512};
     class TestDate extends Date { static now() { return f.now; } }
-    const context = vm.createContext({Option,document:{getElementById:id=>elements[id]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
+    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
         fetch:async (path, options) => {
             calls.push({path,options});
             if (f.offline) throw new Error('offline');
             let data, status = 200;
             if (path === '/local/v1/identity') { status = f.localMode ? 200 : 404; data = f.localMode ? {device_id:'1'.repeat(32),surface:'normal'} : {error:{code:'not_found'}}; }
             else if (path === '/local/v1/status') data = {wtp_session:f.mappedSession};
+            else if (path.endsWith('hostname')) {
+                if (options.method === 'PUT') { f.savedHostname=JSON.parse(options.body).hostname; f.hostnameGeneration=(f.hostnameGeneration||1)+1; }
+                data = {schema:'transmitter-hostname/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},
+                    saved:f.savedHostname||state.network.configured_hostname,active:state.network.configured_hostname,default:'default.local',writable:true,pending_restart:!!f.savedHostname&&f.savedHostname!==state.network.configured_hostname,reason:'',generation:String(f.hostnameGeneration||1),storage_healthy:true};
+            }
             else if (path.endsWith('pins')) data = {choices:{eligible_gps:[...Array(23).keys(),26,27,28],i2c_pairs:[{controller:0,sda_gp:4,scl_gp:5}]}};
             else if (path.endsWith('application/2')) { if(f.appV2) data=f.appV2; else {status=404; data={error:{code:'not_found'}};} }
             else if (path.endsWith('application')) data = {target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},hardware:f.appHardware || {saved:config.pins || null,active:null,pending_restart:true,application_error:null}};
@@ -84,7 +89,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             return {ok:status>=200&&status<300,json:async()=>{if(path.endsWith('config') && options.method==='PUT'){if(f.configSaveMode==='json')throw new Error('lost body');if(f.configSaveMode==='empty')return {};if(f.configSaveMode==='wrong')return {config:'wrong'};if(f.configSaveMode==='expiry')return {config:{...data.config,expires_utc_s:'bad'}};if(f.configSaveMode==='pins')return {config:{...data.config,pins:{...data.config.pins,indicator:{}}}};if(f.configSaveMode==='null')return {config:null};}return data;},headers:{get:()=> '"original-revision"'}};
         }});
     f.events = {}; context.addEventListener=(name,handler)=>{f.events[name]=handler;};
-    context.location={hash:receipt,pathname:'/',search:''};
+    context.location={href:'http://127.0.0.1/',hash:receipt,pathname:'/',search:''};
     context.history={replaceState:(_,__,url)=>{context.location.hash=url.includes('#')?url.slice(url.indexOf('#')):'';}};
     if (consumerMode) {
         f.radio = {
@@ -118,6 +123,23 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     return f;
 }
 (async () => {
+    const hostname = await fixture();
+    hostname.context.location.href='http://secret-user:secret-password@127.0.0.1/old?secret=query';
+    vm.runInContext('showContinuation({device:"1".repeat(32),boot:"a".repeat(32),name:"pico-a.local"})',hostname.context);
+    const continuation=new URL(hostname.elements['hostname-continue'].href);
+    assert.equal(continuation.username,'');assert.equal(continuation.password,'');assert.equal(continuation.search,'');
+    assert.equal(vm.runInContext('canonicalHostname("K.local")',hostname.context),null);
+    assert.equal(vm.runInContext('canonicalHostname("K.LOCAL.")',hostname.context),'k.local');
+    hostname.savedHostname='pico-a.local';await hostname.elements.refresh.onclick();
+    assert.equal(hostname.elements['hostname-continue'].hidden,false);
+    hostname.savedHostname='old.local';await hostname.elements.refresh.onclick();
+    assert.equal(hostname.elements['hostname-continue'].hidden,true);assert.equal(hostname.elements['hostname-continue'].href,'');
+    const wrongLocalReceipt='#'+new URLSearchParams({'hostname-return':JSON.stringify({device:'2'.repeat(32),boot:'a'.repeat(32),name:'pico-a.local'})});
+    const wrongLocal=await fixture(true,true,true,false,wrongLocalReceipt);
+    wrongLocal.elements['local-password'].value='test-password';
+    await wrongLocal.elements['local-login'].onsubmit({preventDefault(){}});
+    assert.equal(wrongLocal.calls.some(c=>c.path==='/local/v1/login'),false);
+    assert.equal(wrongLocal.elements['local-password'].value,'');
     const visibility = await fixture(true,true,false,true);
     const password = visibility.elements['local-password'];
     password.value = 'Correctable 63-char draft: ' + 'x'.repeat(36);
@@ -341,14 +363,16 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     assert.doesNotMatch(rf.elements.notice.textContent,/certificate/);
     const reboot = await fixture();
     await reboot.elements.restart.onclick();
-    assert.match(reboot.elements.notice.textContent,/Device restarted/);
+    await new Promise(setImmediate);
+    assert.match(reboot.elements['restart-status'].textContent,/Same Pico and new boot confirmed/);
     assert.equal(reboot.calls.filter(c=>c.path.endsWith('restart')).length,1);
     for (const mode of ['lost','unchanged']) {
         const failed = await fixture(); failed.restartMode = mode;
         await failed.elements.restart.onclick();
         assert.equal(failed.calls.filter(c=>c.path.endsWith('restart')).length,1);
         assert.doesNotMatch(failed.elements.notice.textContent,/Device restarted/);
-        assert.match(failed.elements.notice.textContent,mode==='lost'?/lost restart response/:/Restart not confirmed/);
+        await new Promise(setImmediate);
+        assert.match(failed.elements['restart-status'].textContent,/could not be confirmed within 90 seconds/);
     }
     reboot.state.job.owner_id = 'c'.repeat(32); await reboot.elements.refresh.onclick();
     assert.equal(reboot.elements.restart.disabled,true);

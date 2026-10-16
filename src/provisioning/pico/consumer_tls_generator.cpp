@@ -202,4 +202,73 @@ bool generate_consumer_tls(std::string_view device_id, std::string_view hostname
     }
     return true;
 }
+
+bool rename_consumer_tls(std::string_view device_id, std::string_view hostname,
+                         std::uint64_t utc_now, ConsumerTls& tls) {
+    auto canonical = network::canonical_local_hostname(hostname);
+    if (!canonical || *canonical != hostname || utc_now < earliest_utc || utc_now >= latest_utc ||
+        !validate_consumer_tls(tls, device_id, utc_now))
+        return false;
+    if (hostname == tls.hostname)
+        return true;
+    network::PsaCryptoOwner psa;
+    if (psa.acquire() != PSA_SUCCESS)
+        return false;
+    Context context;
+    constexpr unsigned char personalization[] = "WsprryPico hostname leaf v1";
+    if (mbedtls_ctr_drbg_seed(&context.rng, mbedtls_entropy_func, &context.entropy, personalization,
+                              sizeof(personalization) - 1) != 0 ||
+        mbedtls_pk_parse_key(&context.ca_key,
+                             reinterpret_cast<const unsigned char*>(tls.ca_private_key.c_str()),
+                             tls.ca_private_key.size() + 1, nullptr, 0, mbedtls_ctr_drbg_random,
+                             &context.rng) != 0 ||
+        mbedtls_pk_parse_key(&context.server_key,
+                             reinterpret_cast<const unsigned char*>(tls.server_private_key.c_str()),
+                             tls.server_private_key.size() + 1, nullptr, 0, mbedtls_ctr_drbg_random,
+                             &context.rng) != 0)
+        return false;
+    ConsumerTls candidate = tls;
+    struct Clear {
+        ConsumerTls& value;
+        ~Clear() {
+            scrub(value);
+        }
+    } clear{candidate};
+    std::array<char, 15> before{}, after{};
+    std::uint64_t ignored = 0;
+    if (!date(utc_now, 0, before, ignored) ||
+        !date(utc_now, 1, after, candidate.server_not_after_utc))
+        return false;
+    if (candidate.server_not_after_utc > tls.ca_not_after_utc) {
+        if (!date(tls.ca_not_after_utc, 0, after, ignored))
+            return false;
+        candidate.server_not_after_utc = tls.ca_not_after_utc;
+    }
+    const auto subject = "CN=" + *canonical + ",OU=" + std::string(device_id);
+    const auto issuer = "CN=WsprryPico Device CA,OU=" + std::string(device_id);
+    if (!configure_cert(context.server_cert, context.server_key, context.ca_key, subject, issuer,
+                        before, after, context.rng) ||
+        mbedtls_x509write_crt_set_basic_constraints(&context.server_cert, 0, -1) != 0 ||
+        mbedtls_x509write_crt_set_key_usage(&context.server_cert,
+                                            MBEDTLS_X509_KU_DIGITAL_SIGNATURE) != 0)
+        return false;
+    mbedtls_x509_san_list san{};
+    san.node.type = MBEDTLS_X509_SAN_DNS_NAME;
+    san.node.san.unstructured_name.p = reinterpret_cast<unsigned char*>(canonical->data());
+    san.node.san.unstructured_name.len = canonical->size();
+    mbedtls_asn1_sequence eku{};
+    eku.buf.tag = MBEDTLS_ASN1_OID;
+    eku.buf.p = reinterpret_cast<unsigned char*>(const_cast<char*>(MBEDTLS_OID_SERVER_AUTH));
+    eku.buf.len = MBEDTLS_OID_SIZE(MBEDTLS_OID_SERVER_AUTH);
+    if (mbedtls_x509write_crt_set_subject_alternative_name(&context.server_cert, &san) != 0 ||
+        mbedtls_x509write_crt_set_ext_key_usage(&context.server_cert, &eku) != 0 ||
+        !write_cert(context.server_cert, context.rng, candidate.server_certificate))
+        return false;
+    candidate.hostname = *canonical;
+    if (!fits(candidate) || !validate_consumer_tls(candidate, device_id, utc_now))
+        return false;
+    scrub(tls);
+    tls = std::move(candidate);
+    return true;
+}
 } // namespace wsprrypico::provisioning

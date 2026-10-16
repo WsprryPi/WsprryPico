@@ -71,7 +71,7 @@ bootstrap_policy = ("default-src 'none'; script-src 'self' " +
                     "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 source = '#include "network/assets.hpp"\nnamespace wsprrypico::network {\nnamespace {\n'
 for name, text, marker in [
-    ('html', html, 'WPHTML'), ('css', css, 'WPCSS'),
+    ('html', radio_html, 'WPHTML'), ('css', css, 'WPCSS'),
     ('js', js, 'WPJS'), ('csp', csp, 'WPCSP'),
     ('radio_html', radio_html, 'WPRADIO'), ('radio_js', radio_js, 'WPRADIOJS'),
     ('radio_policy', radio_policy, 'WPRADIOCSP'),
@@ -89,6 +89,8 @@ for name, text, marker in [
         raise ValueError('Raw string delimiter in ' + name)
     source += f'constexpr char {name}[] = R"{marker}({text}){marker}";\n'
 source += '''
+constexpr std::string_view html_parts[] = {
+    html, "<script>", js, "</script></body>\\n</html>\\n"};
 constexpr std::string_view bootstrap_parts[] = {
     bootstrap_html, "<script>", bootstrap_js, "</script></body>\\n</html>\\n"};
 constexpr std::string_view recovery_parts[] = {
@@ -106,7 +108,7 @@ std::optional<WebAsset> consumer_radio_asset() {
 }
 std::string_view web_csp() { return csp; }
 std::optional<WebAsset> web_asset(std::string_view path) {
-    if (path == "/") return WebAsset{html, "text/html; charset=utf-8"};
+    if (path == "/") return WebAsset{html, "text/html; charset=utf-8", html_parts};
     if (path == "/style.css") return WebAsset{css, "text/css; charset=utf-8"};
     if (path == "/app.js") return WebAsset{js, "text/javascript; charset=utf-8"};
     return {};

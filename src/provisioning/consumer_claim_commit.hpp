@@ -35,6 +35,9 @@ class ConsumerClaimCommitPlatform {
                               std::uint64_t utc_now, ConsumerTls& out) = 0;
     virtual bool valid_tls(const ConsumerTls& tls, std::string_view device_id,
                            std::uint64_t utc_now) = 0;
+    virtual bool rename_tls(std::string_view, std::string_view, std::uint64_t, ConsumerTls&) {
+        return false;
+    }
 };
 
 enum class ConsumerCommitState { Rejected, Reconcile, Committed };

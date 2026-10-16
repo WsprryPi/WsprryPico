@@ -63,6 +63,7 @@ add_library(wsprrypico_core
     src/provisioning/consumer_profile.cpp
     src/provisioning/consumer_claim.cpp
     src/provisioning/consumer_claim_commit.cpp
+    src/provisioning/hostname.cpp
     src/provisioning/access.cpp
     src/provisioning/ble_session.cpp
     src/provisioning/field_runtime.cpp
@@ -279,6 +280,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(mdns_tests PRIVATE wsprrypico_core)
     target_compile_options(mdns_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME mdns_tests COMMAND mdns_tests)
+    add_executable(hostname_tests tests/hostname_tests.cpp)
+    target_link_libraries(hostname_tests PRIVATE wsprrypico_core)
+    target_compile_options(hostname_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME hostname_tests COMMAND hostname_tests)
     add_executable(network_tests tests/network_tests.cpp)
     target_link_libraries(network_tests PRIVATE wsprrypico_core)
     target_compile_options(network_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

@@ -35,6 +35,8 @@ class PicoConsumerClaimPlatform final : public ConsumerClaimCommitPlatform {
                       ConsumerTls& out) override;
     bool valid_tls(const ConsumerTls& tls, std::string_view device_id,
                    std::uint64_t utc_now) override;
+    bool rename_tls(std::string_view device_id, std::string_view hostname, std::uint64_t utc_now,
+                    ConsumerTls& tls) override;
 
   private:
     const AccessStore& access_;

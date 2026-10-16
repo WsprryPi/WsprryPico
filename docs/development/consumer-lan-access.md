@@ -1,5 +1,7 @@
 # Consumer LAN access and temporary setup Wi-Fi
 
+Current [P15.10 hostname management](phase15-10-hostname.md) adds authenticated saved-name editing on infrastructure and available AP radio pages, hostname-first titles and explicit restart/reconnect guidance. It preserves the fixed recovery SSID/IP and this slice's Host/Origin/session boundaries. Historical acceptance below retains its original source applicability.
+
 Selected feature slice, 2026-10-14. Implementation and acceptance are tracked
 separately from the closed Phase 14 and LED records. See the
 [implementation/acceptance plan](consumer-lan-access-plan.md).

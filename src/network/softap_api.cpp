@@ -293,7 +293,7 @@ HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface
                         "text/html; charset=utf-8",
                         {}};
             }
-            return {200, {}, std::string(asset->type), {}, {}, asset->body};
+            return {200, {}, std::string(asset->type), {}, {}, asset->body, asset->parts};
         }
     }
     if (surface == SoftApSurface::BlankReadOnly)

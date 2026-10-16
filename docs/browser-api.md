@@ -1,5 +1,7 @@
 # Shared browser-facing JSON API v1
 
+P15.10 adds the independently versioned [hostname resource](development/phase15-10-hostname.md) at `GET/PUT /api/v1/hostname`. It preserves Config, application, capabilities and consumer identity v1 shapes. Consumer renames preserve CA/client trust, consume a profile generation and apply on explicit restart; engineering names remain credential-bound. See that record for exact envelopes, readback and recovery.
+
 Status: implemented by WsprryPico; compatible WsprryPi adapter adoption is
 independently maintained.
 The version is selected by `/api/v1/`, independently of firmware and WTP/1.

@@ -1,5 +1,7 @@
 # Configuration preservation and explicit replacement
 
+Hostname is a separate [profile-owned resource](phase15-10-hostname.md), outside Config v1/update. Omission by any existing client preserves it. A consumer hostname write uses its own target/revision-bound request, atomically preserves unrelated settings and trust, and applies at restart.
+
 Configuration uses the existing Config v1 scheduler and verified journal.
 These operations grant no job ownership, clear no STOP/fault, and change no WTP/1
 messages, recurrence authority, provisioning profiles or flash layout.

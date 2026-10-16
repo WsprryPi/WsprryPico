@@ -185,9 +185,11 @@ int main() {
     assert(!canonical.empty());
     const auto tls_start = canonical.find("\"tls\":") + 6;
     const auto tls_end = canonical.find(",\"clients\":", tls_start);
-    assert(tls_end != canonical.npos && tls_end - tls_start < 2304);
-    value.tls.ca_certificate.insert(value.tls.ca_certificate.find("-----END"),
-                                    2304 - (tls_end - tls_start), 'A');
+    assert(tls_end != canonical.npos &&
+           tls_end - tls_start < provisioning::max_consumer_tls_json_bytes);
+    value.tls.ca_certificate.insert(
+        value.tls.ca_certificate.find("-----END"),
+        provisioning::max_consumer_tls_json_bytes - (tls_end - tls_start), 'A');
     canonical = provisioning::serialize_consumer_profile(value);
     assert(!canonical.empty() && canonical.size() <= provisioning::max_profile_bytes);
     assert(provisioning::parse_consumer_profile(canonical) == value);

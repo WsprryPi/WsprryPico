@@ -1,6 +1,7 @@
 #pragma once
 #include "network/http.hpp"
 #include "network/management.hpp"
+#include "provisioning/hostname.hpp"
 #include "provisioning/runtime.hpp"
 #include "standalone/scheduler.hpp"
 
@@ -30,6 +31,9 @@ class BrowserApi {
     }
     void consumer_config(provisioning::RuntimeProfile& runtime) {
         consumer_runtime_ = &runtime;
+    }
+    void hostname_settings(provisioning::HostnameSettings& settings) {
+        hostname_settings_ = &settings;
     }
     void hostname_authority(std::string authority) {
         hostname_authority_ = std::move(authority);
@@ -86,5 +90,6 @@ class BrowserApi {
     void* restart_context_ = nullptr;
     std::uint64_t network_revision_ = 0;
     provisioning::RuntimeProfile* consumer_runtime_ = nullptr;
+    provisioning::HostnameSettings* hostname_settings_ = nullptr;
 };
 } // namespace wsprrypico::network

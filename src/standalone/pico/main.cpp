@@ -379,13 +379,16 @@ int main() {
         {wsprrypico::network::credentials::device_id, wsprrypico::network::credentials::hostname,
          wsprrypico::network::credentials::port, wsprrypico::network::credentials::certificate,
          wsprrypico::network::credentials::key, wsprrypico::network::credentials::ca});
-    const bool runtime_profile_loaded =
+    const bool runtime_profile_loaded_at_boot =
         profile_store_loaded &&
         runtime_profile.load(profile_store, identities.device_id(), build_bundle);
+    const auto runtime_profile_ready = [&]() {
+        return runtime_profile_loaded_at_boot && runtime_profile.control_healthy(profile_store);
+    };
     // Source 5 may join station for time, but owner and TLS authority are not
     // active at structural admission. Deny every legacy control path.
     const auto consumer_source_selected = [&]() {
-        return profile_store.source() == wsprrypico::provisioning::ProfileSource::ConsumerProfile;
+        return runtime_profile.consumer_selected(profile_store);
     };
 #ifdef WSPRRY_PICO_STANDALONE_RF
     const auto config = wsprrypico::standalone::wtp_profile(true);
@@ -400,6 +403,7 @@ int main() {
     static wsprrypico::wtp::Endpoint ble_endpoint(service, identities.device_id(),
                                                   wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::standalone::Scheduler scheduler(store, service);
+    bool runtime_fault_stopped = false;
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE
     static wsprrypico::provisioning::LedScheduleFixture led_schedule;
 #endif
@@ -426,6 +430,9 @@ int main() {
         gp14_fault_handled = true;
     }
 #endif
+    // Keep credentials alive and coherent for this boot while saved profile
+    // metadata/generation can advance after a hostname transaction.
+    static wsprrypico::provisioning::ConsumerTls boot_consumer_tls;
     wsprrypico::provisioning::CredentialMaterial tls_credentials;
     if (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Provisioned)
         tls_credentials = wsprrypico::provisioning::credentials(*runtime_profile.profile());
@@ -437,13 +444,10 @@ int main() {
                            wsprrypico::network::credentials::key,
                            wsprrypico::network::credentials::ca};
     else if (runtime_profile.consumer_profile()) {
-        const auto& tls = runtime_profile.consumer_profile()->tls;
-        tls_credentials = {runtime_profile.consumer_profile()->device_id,
-                           tls.hostname,
-                           tls.port,
-                           tls.server_certificate,
-                           tls.server_private_key,
-                           tls.ca_certificate};
+        boot_consumer_tls = runtime_profile.consumer_profile()->tls;
+        const auto& tls = boot_consumer_tls;
+        tls_credentials = {identities.device_id(), tls.hostname,           tls.port,
+                           tls.server_certificate, tls.server_private_key, tls.ca_certificate};
     }
     const bool network_only_source =
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly;
@@ -454,7 +458,7 @@ int main() {
     const bool tls_lan_wtp = local_wtp && WSPRRY_PICO_CONSUMER_LAN_MODE == 2;
     constexpr unsigned plain_lan_port = 31417;
     bool deployment_matches =
-        runtime_profile_loaded && !access_recovery && !tls_credentials.device_id.empty() &&
+        runtime_profile_ready() && !access_recovery && !tls_credentials.device_id.empty() &&
         !tls_credentials.hostname.empty() && tls_credentials.port != 0 &&
         wsprrypico::network::deployment_identity_matches(
             identities.device_id(), tls_credentials.device_id, tls_credentials.hostname);
@@ -468,14 +472,19 @@ int main() {
                           : std::nullopt;
     const auto local_identity =
         derived_identity.value_or(wsprrypico::provisioning::LocalIdentity{});
+    const std::string deployment_hostname = tls_credentials.hostname.empty()
+                                                ? local_identity.hostname
+                                                : std::string(tls_credentials.hostname);
+    auto access_identity = local_identity;
+    access_identity.hostname = deployment_hostname;
     const bool network_hostname_ready =
         !network_only_source ||
-        (derived_identity && network.configure_hostname(local_identity.hostname));
+        (derived_identity && network.configure_hostname(deployment_hostname));
     static wsprrypico::provisioning::PicoBondStore bond_store;
     static wsprrypico::provisioning::PicoRandomSource random_source;
     static wsprrypico::provisioning::LocalAccessController local_access(
         access_store, bond_store, random_source, identities.device_id(), service.status().boot_id,
-        local_identity
+        access_identity
 #ifdef WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE
         ,
         wsprrypico::provisioning::SoftApSessionLimits{15'000, 60'000}
@@ -527,7 +536,7 @@ int main() {
     else if (store_loaded &&
              runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock)
         runtime_network_config = runtime_profile.overlay(wsprrypico::standalone::Config{});
-    if (boot_recovery || !runtime_profile_loaded ||
+    if (boot_recovery || !runtime_profile_ready() ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock)
@@ -551,7 +560,7 @@ int main() {
                     : wsprrypico::network::PicoServer::Admission::ClientCertificate);
     wsprrypico::network::install_tls_time_source(service);
     const auto softap_authority =
-        local_identity.hostname +
+        deployment_hostname +
         (server.port() == 0 || server.port() == 443 ? "" : ":" + std::to_string(server.port()));
     static wsprrypico::provisioning::SoftApHttpAdmission softap_admission(
         local_access, identities.device_id(), softap_authority);
@@ -599,7 +608,11 @@ int main() {
             ? &transmit_indicator_output
             : nullptr);
     static wsprrypico::provisioning::PicoConsumerClaimPlatform claim_platform(
-        access_store, network, service, time_arbiter, local_identity.hostname);
+        access_store, network, service, time_arbiter, deployment_hostname);
+    static wsprrypico::provisioning::HostnameSettings hostname_settings(
+        profile_store, runtime_profile, claim_platform, identities.device_id(), deployment_hostname,
+        local_identity.hostname);
+    browser_api.hostname_settings(hostname_settings);
     indicator.enabled(boot_pins.indicator != wsprrypico::hardware::PinPlan::Indicator::Disabled);
     const auto poll_indicator = [&]() {
         const auto now_ms = time_us_64() / 1000ULL;
@@ -771,7 +784,7 @@ int main() {
                 const auto activity = service.activity();
                 return !recovery && !reboot_at && !bootstrap.setup_pending() && store.healthy() &&
                        profile_store.healthy() && access_store.healthy() &&
-                       runtime_profile_loaded &&
+                       runtime_profile_ready() &&
                        service.status().state == wsprrypico::wtp::State::Empty && !activity.owned &&
                        !activity.output_active && scheduler.idle() &&
                        (!store.config() || !store.config()->enabled) && !engine.output_active();
@@ -1440,7 +1453,7 @@ int main() {
         }
 #endif
         if ((consumer_source_selected() || bootstrap.owner_claim_pending() ||
-             !runtime_profile_loaded) &&
+             !runtime_profile_ready()) &&
             text != "ABORT" && text != "REBOOT" && text != "BOOTSEL")
             return "{\"ok\":false,\"error\":\"profile_runtime_unavailable\"}\n";
         if (text.starts_with("HEAP PROBE ")) {
@@ -1721,7 +1734,12 @@ int main() {
         // Core 1 owns physical refills/launch. Core 0 reconciles authority and
         // services all transports; packet arrival never times waveform events.
         if (!reset_coordinator.pending() && !bootstrap.setup_pending()) {
-            scheduler.poll();
+            if (runtime_profile_ready())
+                scheduler.poll();
+            else if (!runtime_fault_stopped) {
+                (void)scheduler.command("STOP");
+                runtime_fault_stopped = true;
+            }
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE
             led_schedule.poll();
 #endif
@@ -1734,7 +1752,8 @@ int main() {
         const auto network_state = service.activity().state;
         if (consumer_source_selected() && !boot_recovery && !recovery_reset_at &&
             !reset_coordinator.pending())
-            server.set_admission(!bootstrap.setup_pending() && !reboot_at);
+            server.set_admission(runtime_profile_ready() && !bootstrap.setup_pending() &&
+                                 !reboot_at);
         if (consumer_source_selected() || server.listening() || server.plain_listening() ||
             (network_state != wsprrypico::wtp::State::Armed &&
              network_state != wsprrypico::wtp::State::Running))
@@ -1742,12 +1761,12 @@ int main() {
         if (reset_coordinator.blocks_admission() || recovery_reset_at)
             continue;
         const auto field_now_ms = time_us_64() / 1000ULL;
-        consumer_radio.admission(runtime_profile_loaded && consumer_source_selected() &&
+        consumer_radio.admission(runtime_profile_ready() && consumer_source_selected() &&
                                  blank_access_available() && !boot_recovery &&
                                  !reset_coordinator.pending() && !reboot_at);
         if ((consumer_source_selected() || bootstrap.owner_claim_pending()) && gatt.running())
             gatt.stop();
-        if (runtime_profile_loaded && !consumer_source_selected() &&
+        if (runtime_profile_ready() && !consumer_source_selected() &&
             !bootstrap.owner_claim_pending() && !reset_coordinator.pending() && !gatt.running() &&
             !gatt_start_attempted && derived_identity && local_access.ble_available()) {
             gatt_start_attempted = true;
@@ -1785,13 +1804,13 @@ int main() {
             if (blank_captive)
                 (void)softap.start_blank(local_identity);
             else if (surface != wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
-                     runtime_profile_loaded && access_store.healthy() && access)
+                     runtime_profile_ready() && access_store.healthy() && access)
                 (void)softap.start(local_identity, access->password);
         } else if (ap_transition_safe && !request_softap && softap.running()) {
             (void)network.softap_name(false, {});
             softap.stop();
         }
-        const bool softap_name_ready = network.softap_name(softap.ready(), local_identity.hostname);
+        const bool softap_name_ready = network.softap_name(softap.ready(), deployment_hostname);
         const bool bootstrap_active = bootstrap_started && softap.ready() && blank_captive;
         const bool consumer_station = bootstrap_started && consumer_source_selected() &&
                                       consumer_radio.available() && station_ready;
@@ -1799,12 +1818,13 @@ int main() {
                                  network.configured_hostname());
         browser_api.management_availability(
             {boot_recovery ? wsprrypico::network::ManagementProfile::Recovery
-             : !runtime_profile_loaded || runtime_profile.source() ==
-                                              wsprrypico::provisioning::RuntimeSource::Unprovisioned
+             : !runtime_profile_ready() ||
+                     runtime_profile.source() ==
+                         wsprrypico::provisioning::RuntimeSource::Unprovisioned
                  ? wsprrypico::network::ManagementProfile::Blank
              : consumer_source_selected() ? wsprrypico::network::ManagementProfile::Consumer
                                           : wsprrypico::network::ManagementProfile::Engineering,
-             runtime_profile_loaded ? runtime_profile.generation() : 0,
+             runtime_profile_ready() ? runtime_profile.generation() : 0,
              (service.clock_snapshot().state == wsprrypico::wtp::ClockState::Unsynchronized ||
               !service.clock_snapshot().utc_now_ns),
              !consumer_source_selected() && station_ready && server.listening() &&
@@ -1824,7 +1844,7 @@ int main() {
         // the shared authority already proves idle/inactive output. They never
         // abort an accepted job to obtain this state.
         const bool factory_blank_access =
-            !recovery && runtime_profile_loaded &&
+            !recovery && runtime_profile_ready() &&
             runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned &&
             access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased;
         setup_admitted = wsprrypico::provisioning::idle_for_access(access_activity) &&
@@ -1894,7 +1914,7 @@ int main() {
             network_state != wsprrypico::wtp::State::Running) {
             tls_retry_at_ms = field_now_ms + 30'000;
             if (wsprrypico::provisioning::generate_consumer_tls(
-                    identities.device_id(), local_identity.hostname,
+                    identities.device_id(), deployment_hostname,
                     clock_now.utc_now_ns / 1'000'000'000ULL, network_only_tls)) {
                 tls_credentials = {identities.device_id(),
                                    network_only_tls.hostname,
@@ -1916,9 +1936,9 @@ int main() {
             if (tls_lan_wtp)
                 tls_retry_at_ms = field_now_ms + 30'000;
             if (network_only_source || !tls_lan_wtp ||
-                (runtime_profile.consumer_profile()->tls.hostname == local_identity.hostname &&
+                (boot_consumer_tls.hostname == deployment_hostname &&
                  wsprrypico::provisioning::validate_consumer_tls(
-                     runtime_profile.consumer_profile()->tls, identities.device_id(),
+                     boot_consumer_tls, identities.device_id(),
                      clock_now.utc_now_ns / 1'000'000'000ULL)))
                 (void)server.start();
         }
@@ -1938,6 +1958,10 @@ int main() {
         static wsprrypico::usb::ReplyPriority reply_priority;
         const bool allow_http_steps =
             !reply_priority.defer_http(time_us_64(), wsprrypico::usb::console_output_pending());
+        // A bootstrap task above may have failed a profile commit in this same
+        // iteration. Close TLS/plain admission before servicing any queued job.
+        if (consumer_source_selected() && !runtime_profile_ready())
+            server.set_admission(false);
         server.poll(network.link_up(), softap.ready(),
                     station_ip + (server.port() == 443 ? "" : ":" + std::to_string(server.port())),
                     softap_authority, surface, allow_http_steps);
@@ -2000,7 +2024,7 @@ int main() {
         }
         if (wsprrypico::usb::take_wtp_reset()) {
             offset = size = 0;
-            if (wsprrypico::usb::wtp_connected() && runtime_profile_loaded &&
+            if (wsprrypico::usb::wtp_connected() && runtime_profile_ready() &&
                 !consumer_source_selected() && !bootstrap.owner_claim_pending() &&
                 !reset_coordinator.pending())
                 endpoint.connect("usb-physical");
@@ -2011,7 +2035,7 @@ int main() {
         if ((consumer_source_selected() || bootstrap.owner_claim_pending()) && !endpoint.closed())
             endpoint.disconnect();
         endpoint.poll(now_ms);
-        if (wsprrypico::usb::wtp_connected() && runtime_profile_loaded &&
+        if (wsprrypico::usb::wtp_connected() && runtime_profile_ready() &&
             !consumer_source_selected() && !bootstrap.owner_claim_pending() &&
             !reset_coordinator.pending()) {
             if (!reboot_at && endpoint.can_receive()) {

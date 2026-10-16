@@ -21,7 +21,9 @@
 <details><summary>Other pin roles</summary><p>Amplifier and LPF switching are unavailable until their execution adapters are implemented. Si5351 is unavailable. Its fixed I²C pair choices are:</p><p id="i2c-choices"></p></details>
 </fieldset>
 <button id="save-config" type="submit" class="primary">Save settings</button></fieldset></form>
+<form id="hostname-form"><fieldset id="hostname-settings" disabled><legend>Device hostname</legend><label for="hostname-input">Full local hostname<input id="hostname-input" maxlength="70" required autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="hostname-help hostname-status"></label><small id="hostname-help">Use 1–63 letters, digits or hyphens followed by .local, for example pico-a.local. Start and end with a letter or digit. A restart applies the saved address.</small><p id="hostname-status" role="status" aria-live="polite">Hostname settings have not been read.</p><button id="hostname-save" class="primary" type="submit">Save hostname</button><button id="hostname-default" type="button">Use default hostname</button><button id="hostname-review" type="button" hidden>I reviewed the saved hostname; enable a new save</button></fieldset></form>
 <button id="restart" type="button" disabled>Restart device</button>
+<p id="restart-status" role="status" aria-live="polite"></p><button id="restart-cancel" type="button" hidden>Cancel reconnect checks</button><p><a id="hostname-continue" hidden>Continue at the saved hostname</a></p>
 <button id="wifi-off" type="button" disabled>Disconnect Wi-Fi</button><p class="muted">Disconnecting station Wi-Fi closes that interface. Automatic setup Wi-Fi becomes available after one minute when the transmitter is inactive.</p></section>
 <section id="consumer-setup" aria-labelledby="consumer-setup-heading" hidden>
 <h2 id="consumer-setup-heading">Wi-Fi and station setup</h2>

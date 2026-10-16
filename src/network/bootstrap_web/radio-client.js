@@ -35,8 +35,8 @@ export class RadioClient {
     }
     return response.json();
   }
-  async identity() {
-    const response = await this.fetcher('/api/consumer/v1/identity', {credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(5000)});
+  async identity(timeout = 5000) {
+    const response = await this.fetcher('/api/consumer/v1/identity', {credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(timeout)});
     if (!response.ok) throw new Error('Consumer radio access is unavailable');
     const id = await response.json();
     unhex(id.device_id,16); unhex(id.boot_id,16);

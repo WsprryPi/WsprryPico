@@ -1,5 +1,7 @@
 # Phase 11.3 mDNS responder integration
 
+Current [P15.10](phase15-10-hostname.md) boot selection may supply an explicitly saved consumer hostname instead of the MAC-derived default. It applies at restart to both station and AP naming; conflict latching, no auto-suffix, actual advertisement, listener coupling and bounded cleanup stay unchanged. The packet/adapter tests remain software evidence.
+
 The [shared identity contract](phase11-3-identity.md) selects one certified IPv4
 station hostname. Discovery runs only on core 0 in the existing foreground
 CYW43/lwIP context. The later WTP DNS-SD extension advertises an admitted

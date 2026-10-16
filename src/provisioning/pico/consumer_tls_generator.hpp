@@ -12,4 +12,8 @@ namespace wsprrypico::provisioning {
 // the complete ConsumerProfile journal transaction.
 bool generate_consumer_tls(std::string_view device_id, std::string_view hostname,
                            std::uint64_t utc_now, ConsumerTls& out);
+// Reissue only the server leaf. Preserve the CA, server key and all external trust.
+// On failure the caller retains its complete prior TLS identity.
+bool rename_consumer_tls(std::string_view device_id, std::string_view hostname,
+                         std::uint64_t utc_now, ConsumerTls& tls);
 } // namespace wsprrypico::provisioning

@@ -117,7 +117,7 @@ bool valid(const ConsumerProfile& profile) {
         return false;
     std::string tls_check;
     append_tls(tls_check, profile.tls);
-    const bool tls_fits = tls_check.size() <= 2304;
+    const bool tls_fits = tls_check.size() <= max_consumer_tls_json_bytes;
     clear(tls_check);
     if (!tls_fits)
         return false;

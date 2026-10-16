@@ -1,5 +1,7 @@
 # Standalone configuration and timing
 
+Current [P15.10 hostname selection](phase15-10-hostname.md) uses the saved consumer profile name for a new boot while keeping the running boot coherent. The editor does not require message/job entry, alter station/schedule readiness, clear STOP, or change pins/watermarks. Engineering names require replacement matching credentials.
+
 Status: Step 9 software, the [inhibited Wi-Fi bench slice](standalone-physical-validation.md)
 and [standalone RF/wall-power operation](standalone-rf-power-validation.md) have
 bounded validation on the recorded device. Recurring frames decode without a USB

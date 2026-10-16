@@ -117,6 +117,8 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_link_libraries(consumer_bootstrap_driver PRIVATE wsprrypico_core mbedcrypto)
     target_compile_options(consumer_bootstrap_driver PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME hostname_sessions COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/hostname_sessions.test.mjs $<TARGET_FILE:consumer_session_driver>)
         add_test(NAME consumer_sessions COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/consumer_sessions.test.mjs $<TARGET_FILE:consumer_session_driver>)
         add_test(NAME consumer_recovery COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}

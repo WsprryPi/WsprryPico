@@ -271,6 +271,7 @@ bool valid_consumer_payload(std::string_view payload, ProfileSource prior_source
     } else if (prior_source == ProfileSource::ConsumerProfile) {
         auto prior = parse_consumer_profile(prior_data);
         bool tls_completion = false;
+        bool hostname_change = false;
         if (prior && prior->tls_pending && !parsed->tls_pending && prior->clients.empty() &&
             parsed->clients.empty()) {
             auto expected = *prior;
@@ -279,11 +280,24 @@ bool valid_consumer_payload(std::string_view payload, ProfileSource prior_source
             tls_completion = expected == *parsed;
             scrub(expected);
         }
+        if (prior && prior->tls.hostname != parsed->tls.hostname &&
+            prior->tls_pending == parsed->tls_pending &&
+            prior->tls.ca_certificate == parsed->tls.ca_certificate &&
+            prior->tls.ca_private_key == parsed->tls.ca_private_key &&
+            prior->tls.ca_not_after_utc == parsed->tls.ca_not_after_utc &&
+            prior->tls.server_private_key == parsed->tls.server_private_key) {
+            // A hostname-only transaction preserves the last commissioning
+            // receipt. Crypto validation belongs to the hostname coordinator.
+            auto expected = *prior;
+            expected.tls = parsed->tls;
+            hostname_change = expected == *parsed;
+            scrub(expected);
+        }
         match = prior && prior->device_id == parsed->device_id &&
                 (parsed->owner_epoch >= prior->owner_epoch ||
                  (parsed->owner_epoch == 0 && parsed->owners.empty())) &&
                 (payload == prior_data || parsed->request_sha256 != prior->request_sha256 ||
-                 tls_completion);
+                 tls_completion || hostname_change);
         if (prior)
             scrub(*prior);
     }

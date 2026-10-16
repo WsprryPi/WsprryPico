@@ -51,7 +51,15 @@ def http_on(stream, path='/api/v1/status', method='GET', body=None, headers=None
     wire = (f'{method} {path} HTTP/1.1\r\n' + ''.join(f'{k}: {v}\r\n' for k,v in fields.items()) + '\r\n' + text).encode()
     assert stream.version() == 'TLSv1.3' and stream.selected_alpn_protocol() == 'http/1.1'
     if fragment:
+        # Exercise the parser with the same seven-byte TLS writes, without
+        # coupling the 5x-accelerated absolute request deadline to the host's
+        # sender-side TCP buffering. Production server deadlines are unchanged.
+        stream.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        upload_started = time.monotonic()
         for i in range(0, len(wire), 7): stream.sendall(wire[i:i+7])
+        if padding:
+            print(f'Fragmented HTTP upload: {len(wire)} bytes, '
+                  f'{time.monotonic() - upload_started:.3f}s, client TCP_NODELAY', flush=True)
     else: stream.sendall(wire)
     response = b''
     while chunk := stream.recv(4096): response += chunk

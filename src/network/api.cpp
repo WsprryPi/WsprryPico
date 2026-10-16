@@ -46,6 +46,7 @@ std::string BrowserApi::revision() const {
                       std::to_string(network_revision_) + ":" +
                       std::to_string(store_.config_sequence()) + ":" +
                       (config ? standalone::serialize_config(*config) : "null") +
+                      (hostname_settings_ ? hostname_settings_->revision_context() : "") +
                       (consumer_runtime_ && consumer_runtime_->consumer_profile()
                            ? ":consumer:" + std::to_string(consumer_runtime_->generation())
                            : "");
@@ -327,7 +328,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             // transport/header scratch plus the independent authority reserve.
             if (!memory_admitted(4096))
                 return http_error(503, "resource_exhausted");
-            return {200, {}, std::string(asset->type), {}, {}, asset->body};
+            return {200, {}, std::string(asset->type), {}, {}, asset->body, asset->parts};
         }
         if (r.path == "/api/v1/management")
             return ok(
@@ -393,6 +394,11 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             result.etag = revision();
             return result;
         }
+        if (r.path == "/api/v1/hostname" && hostname_settings_) {
+            auto result = ok(hostname_settings_->readback(service_.status().boot_id));
+            result.etag = revision();
+            return result;
+        }
         if (r.path == "/api/v1/schedules") {
             const auto status = scheduler_.status();
             auto value = json::parse(status);
@@ -441,7 +447,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const bool station_resource = r.path == "/api/v1/station" || extended_station;
     const bool hardware_resource = r.path == "/api/v1/hardware";
     const bool scoped_resource = station_resource || hardware_resource;
-    if (!restart && !config_update &&
+    const bool hostname = r.path == "/api/v1/hostname" && r.method == "PUT";
+    if (!restart && !config_update && !hostname &&
         (r.method != "PUT" ||
          (r.path != "/api/v1/config" && r.path != "/api/v1/config/2" &&
           r.path != "/api/v1/schedules" && r.path != "/api/v1/network" && !scoped_resource)))
@@ -464,6 +471,37 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return http_error(400, "invalid_json");
     if (pending_transaction_)
         return http_error(409, "network_change_pending");
+    if (hostname) {
+        if (!hostname_settings_)
+            return http_error(404, "not_found");
+        if (r.body_view().size() > 512)
+            return http_error(413, "resource_body_too_large");
+        switch (application::validate_envelope(*root, "transmitter-hostname/1", "hostname", device_,
+                                               service_.status().boot_id)) {
+        case application::Envelope::Invalid:
+            return http_error(400, "invalid_resource");
+        case application::Envelope::UnsupportedSchema:
+            return http_error(400, "unsupported_resource_schema");
+        case application::Envelope::TargetMismatch:
+            return http_error(409, "target_mismatch");
+        case application::Envelope::Valid:
+            break;
+        }
+        const auto field = root->get("hostname");
+        if (field->type() != '"' && field->raw != "null")
+            return http_error(400, "invalid_hostname");
+        const auto error = hostname_settings_->save(
+            field->type() == '"' ? std::optional{field->string()} : std::nullopt);
+        if (!error.empty())
+            return http_error(error == "invalid_hostname" ? 400
+                              : error == "storage_fault" || error == "hostname_reconcile_required"
+                                  ? 503
+                                  : 409,
+                              error);
+        auto result = ok(hostname_settings_->readback(service_.status().boot_id));
+        result.etag = revision();
+        return result;
+    }
     if (restart) {
         if (!json::fields(*root, {}))
             return http_error(400, "invalid_restart");

@@ -576,6 +576,13 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
         return http_error(409, "consumer_radio_unavailable");
     if (!page_admitted(request, interface))
         return http_error(403, "forbidden");
+    if (request.path == "/api/consumer/v1/presentation" && request.method == "GET")
+        return {200,
+                "{\"schema\":\"device-presentation/1\",\"device_id\":" + wtp::json::quote(device_) +
+                    ",\"boot_id\":" + wtp::json::quote(boot_) +
+                    ",\"hostname\":" + wtp::json::quote(hostname_) + "}",
+                "application/json",
+                {}};
     if (request.path == "/api/consumer/v1/recovery" && request.method == "GET")
         return recovery_discovery(request, interface);
     if (request.path == "/api/consumer/v1/identity" && request.method == "GET" &&

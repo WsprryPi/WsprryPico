@@ -1,3 +1,4 @@
+import {titleFromDevice} from './presentation.js';
 import {available} from './crypto.js';
 import {recoveryKey, recoverySeal} from './recovery-crypto.js';
 const $ = (s) => document.getElementById(s);
@@ -61,6 +62,7 @@ $('reset-form').addEventListener('submit', async (event) => {
   try {
     if (!available()) throw new Error('Open this page in a browser that supports encrypted setup.');
     identity = await request('/api/recovery/v1/status');
+    await titleFromDevice('Recovery', identity.device_id);
     if (!/^[0-9a-f]{32}$/.test(identity.device_id) || !/^[0-9a-f]{32}$/.test(identity.boot_id) || identity.pending)
       throw new Error('Recovery is unavailable or already in progress.');
     $('device').textContent = `Pico ${identity.device_id}`;

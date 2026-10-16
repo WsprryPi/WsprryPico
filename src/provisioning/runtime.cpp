@@ -34,6 +34,7 @@ void RuntimeProfile::clear() {
 
 bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_device_id,
                           BuildBundleState build_bundle) {
+    consumer_selected_ = consumer_selected_ || store.source() == ProfileSource::ConsumerProfile;
     clear();
     generation_ = store.sequence();
     source_ = RuntimeSource::Fault;

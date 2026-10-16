@@ -190,6 +190,11 @@ void streamed_asset_admission() {
     Fixture f;
     const auto asset = network::web_asset("/");
     REQUIRE(asset && asset->body.size() > 16384);
+    std::string expected;
+    for (const auto part : asset->parts)
+        expected += part;
+    REQUIRE(expected.size() > 65536 && expected.find("hostname-form") != expected.npos);
+    REQUIRE(expected.find("monitorRestart") != expected.npos);
     // The generated asset is immutable static storage. Only bounded transport
     // scratch and the independent authority reserve consume target heap.
     // Static asset requests retain 16 KiB of processing scratch; that is the
@@ -204,7 +209,7 @@ void streamed_asset_admission() {
     };
     {
         const auto response = f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443");
-        REQUIRE(response.status == 200 && response.body_size() == asset->body.size());
+        REQUIRE(response.status == 200 && response.body_size() == expected.size());
         REQUIRE(response.static_body.data() == asset->body.data());
         REQUIRE(response.buffered_body.empty() && response.body.empty());
         std::string delivered;
@@ -214,10 +219,9 @@ void streamed_asset_admission() {
             delivered.append(reinterpret_cast<const char*>(chunk.data()), chunk.size());
             offset += chunk.size();
         }
-        REQUIRE(delivered == asset->body);
-        REQUIRE(response.wire_headers().find(
-                    "Content-Length: " + std::to_string(asset->body.size()) + "\r\n") !=
-                std::string::npos);
+        REQUIRE(delivered == expected);
+        REQUIRE(response.wire_headers().find("Content-Length: " + std::to_string(expected.size()) +
+                                             "\r\n") != std::string::npos);
     }
     REQUIRE(asset_allocation_calls == 0);
     --available_asset_memory;
@@ -227,7 +231,7 @@ void streamed_asset_admission() {
     REQUIRE(direct.status == 200 && direct.static_body == asset->body);
     REQUIRE(asset_allocation_calls == 0);
     wtp::allocate_input = allocator;
-    REQUIRE(f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443").body_text() == asset->body);
+    REQUIRE(f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443").body_text() == expected);
     REQUIRE(f.service.status().state == wtp::State::Empty && !f.service.status().output_active);
     wtp::available_memory = nullptr;
 }

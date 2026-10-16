@@ -1,5 +1,6 @@
 #include "mbedtls/platform.h"
 #include "network/bootstrap_codec.hpp"
+#include "network/identity.hpp"
 #include "network/pico/consumer_radio_crypto.hpp"
 #include "network/pico/http_server.hpp"
 #include "network_support.hpp"
@@ -15,6 +16,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <random>
 #include <source_location>
 #include <stdexcept>
@@ -158,14 +160,47 @@ struct Random : provisioning::RandomSource {
         return !fail;
     }
 };
+struct HostnamePlatform : provisioning::ConsumerClaimCommitPlatform {
+    network_test::Fixture& f;
+    explicit HostnamePlatform(network_test::Fixture& fixture) : f(fixture) {}
+    bool safe_to_commit() override {
+        return f.scheduler.idle();
+    }
+    std::uint64_t monotonic_now_ms() override {
+        return now_ms;
+    }
+    bool station_ready(std::string_view) override {
+        return true;
+    }
+    std::optional<std::uint64_t> trusted_utc_now() override {
+        return {};
+    }
+    std::string_view local_hostname() override {
+        return "wsprrypico-0a60df.local";
+    }
+    bool valid_owner_point(std::string_view) override {
+        return false;
+    }
+    bool generate_tls(std::string_view, std::string_view, std::uint64_t,
+                      provisioning::ConsumerTls&) override {
+        return false;
+    }
+    bool valid_tls(const provisioning::ConsumerTls&, std::string_view, std::uint64_t) override {
+        return false;
+    }
+};
 struct Driver {
+    std::string device;
     network_test::Fixture f;
     Media media;
     provisioning::ProfileStore profiles{media};
     provisioning::RuntimeProfile runtime;
+    HostnamePlatform hostname_platform{f};
+    std::optional<provisioning::HostnameSettings> hostname_settings;
     Random random;
     bool low_memory = false, handler_memory_failure = false;
     std::uint64_t last_transaction = 0;
+    unsigned api_restarts = 0;
     PsaCryptoOwner engineering_owner;
     PicoConsumerRadioCrypto crypto[4];
     ConsumerRadioApi radio{f.api,
@@ -173,8 +208,8 @@ struct Driver {
                            runtime,
                            random,
                            {&crypto[0], &crypto[1], &crypto[2]},
-                           std::string(32, '1'),
-                           std::string(32, '2'),
+                           device,
+                           f.service.status().boot_id,
                            &crypto[3]};
     std::array<tcp_pcb, 2> sockets;
     std::array<std::string, 2> remaining_input;
@@ -203,11 +238,11 @@ struct Driver {
             return true;
         }
     } led;
-    provisioning::IndicatorController indicator{led, std::string(32, '1')};
+    provisioning::IndicatorController indicator{led, device};
     standalone::PicoNetwork network;
     provisioning::PicoConsumerClaimPlatform platform{network};
     unsigned restarts = 0;
-    PicoBootstrapServer server{std::string(32, '1'), "p158-host",
+    PicoBootstrapServer server{device, "p158-host",
                                +[](const tcp_pcb* p, void*) { return p->interface == 1; }, this};
     void poll_server() {
         server.poll(true, true, true, true, true);
@@ -244,9 +279,18 @@ struct Driver {
     static void finish(void* p, std::uint64_t tx, bool delivered) {
         static_cast<Driver*>(p)->radio.finish_request(tx, delivered);
     }
-    Driver() {
+    Driver(unsigned boot = 0, const Media* retained = nullptr,
+           const network_test::Flash* saved = nullptr,
+           std::string selected_device = std::string(32, '1'))
+        : device(std::move(selected_device)), f(boot, device) {
+        if (retained)
+            media = *retained;
+        if (saved) {
+            f.flash = *saved;
+            check(f.store.load());
+        }
         provisioning::ConsumerProfile p;
-        p.device_id = std::string(32, '1');
+        p.device_id = device;
         p.ssid = "test-network";
         p.password = "test-password";
         p.time_server = "192.0.2.1";
@@ -256,22 +300,37 @@ struct Driver {
         p.tls_pending = true;
         p.tls.hostname = "wsprrypico-0a60df.local";
         p.request_sha256 = std::string(64, 'a');
-        check(profiles.load() && profiles.select(provisioning::ProfileSource::ConsumerProfile,
-                                                 provisioning::serialize_consumer_profile(p)));
+        check(profiles.load());
+        if (!retained)
+            check(profiles.select(provisioning::ProfileSource::ConsumerProfile,
+                                  provisioning::serialize_consumer_profile(p)));
         check(runtime.load(profiles, p.device_id, provisioning::BuildBundleState::Absent));
         f.api.consumer_config(runtime);
-        check(f.scheduler.command("CONFIG " + network_test::config).find("true") !=
-              std::string::npos);
-        check(f.store.reserve(1791970000000000000ULL));
+        hostname_settings.emplace(profiles, runtime, hostname_platform, p.device_id,
+                                  runtime.consumer_profile()->tls.hostname,
+                                  "wsprrypico-0a60df.local");
+        f.api.hostname_settings(*hostname_settings);
+        f.api.restart_control(
+            +[](void* p) {
+                ++*static_cast<unsigned*>(p);
+                return true;
+            },
+            &api_restarts);
+        if (!saved)
+            check(f.scheduler.command("CONFIG " + network_test::config).find("true") !=
+                  std::string::npos);
+        if (!saved)
+            check(f.store.reserve(1791970000000000000ULL));
         radio.admission(true);
-        radio.listeners(true, "192.168.1.53", p.tls.hostname);
+        radio.listeners(true, "192.168.1.53", runtime.consumer_profile()->tls.hostname);
         f.api.management_availability(
             {ManagementProfile::Consumer, 1, true, false, false, true, true});
         for (auto& pcb : sockets)
             pcb.closed = true;
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
         check(access.load());
-        server.configure(std::string(32, '2'), access, profiles, random, indicator, network,
+        network.hostname = runtime.consumer_profile()->tls.hostname;
+        server.configure(f.service.status().boot_id, access, profiles, random, indicator, network,
                          runtime, platform, "default-password");
         server.station_classifier(+[](const tcp_pcb* p, void*) { return p->interface == 2; }, this);
         server.radio_control(radio);
@@ -358,8 +417,7 @@ struct Driver {
             profile.request_sha256 = std::string(64, 'b');
             check(profiles.select(provisioning::ProfileSource::ConsumerProfile,
                                   provisioning::serialize_consumer_profile(profile)));
-            check(runtime.load(profiles, std::string(32, '1'),
-                               provisioning::BuildBundleState::Absent));
+            check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
             f.api.management_availability(
                 {ManagementProfile::Consumer, profiles.sequence(), true, false, false, true, true});
             radio.poll(now_ms);
@@ -371,7 +429,8 @@ struct Driver {
             return "{}";
         }
         if (op == "stats")
-            return "{\"transaction\":" + wtp::json::quote(std::to_string(last_transaction)) +
+            return "{\"api_restarts\":" + std::to_string(api_restarts) +
+                   ",\"transaction\":" + wtp::json::quote(std::to_string(last_transaction)) +
                    ",\"connections\":" + std::to_string(connections()) +
                    ",\"pending_bytes\":" + std::to_string(pending_bytes()) +
                    ",\"profile_programs\":" + std::to_string(media.programs) +
@@ -397,8 +456,7 @@ struct Driver {
             return "{}";
         }
         if (op == "activate") {
-            check(runtime.load(profiles, std::string(32, '1'),
-                               provisioning::BuildBundleState::Absent));
+            check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
             f.api.management_availability(
                 {ManagementProfile::Consumer, profiles.sequence(), true, false, false, true, true});
             poll_server();
@@ -491,8 +549,11 @@ struct Driver {
     }
 };
 } // namespace
-int main() {
-    Driver driver;
+int main(int argc, char** argv) {
+    const std::string device = argc == 2 ? argv[1] : std::string(32, '1');
+    check(valid_device_id(device));
+    unsigned boot = 0;
+    auto driver = std::make_unique<Driver>(boot, nullptr, nullptr, device);
     std::cerr << "ConsumerRadioApi=" << sizeof(ConsumerRadioApi)
               << " crypto=" << sizeof(PicoConsumerRadioCrypto) << " HTTP=" << sizeof(PicoHttpServer)
               << '\n';
@@ -500,6 +561,13 @@ int main() {
     while (std::getline(std::cin, line)) {
         const auto root = wsprrypico::wtp::json::parse(line);
         check(bool(root));
-        std::cout << driver.command(*root) << std::endl;
+        if (root->get("op")->string() == "reboot") {
+            const auto media = driver->media;
+            const auto flash = driver->f.flash;
+            driver.reset();
+            driver = std::make_unique<Driver>(++boot, &media, &flash, device);
+            std::cout << "{}" << std::endl;
+        } else
+            std::cout << driver->command(*root) << std::endl;
     }
 }

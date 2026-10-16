@@ -1,3 +1,4 @@
+import {titleFromDevice} from './presentation.js';
 import {x25519} from '@noble/curves/ed25519.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {available} from './crypto.js';
@@ -385,6 +386,7 @@ async function boot() {
     deviceId = publicStatus.device_id;
     if (!validStatus(publicStatus)) throw new Error('invalid Pico state');
     status = publicStatus;
+    await titleFromDevice('Station setup', deviceId);
     fillSavedStation(status);
     $('device').textContent = 'Pico ' + deviceId.slice(-6);
     if (status.source === 'unprovisioned') {
