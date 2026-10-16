@@ -24,7 +24,8 @@ int main() {
         for (unsigned i = 0; i < 162; ++i)
             CHECK(plan->frames[0].symbols[i] == unsigned(v.symbols[i] - '0'));
     }
-    for (const auto call : {"AA0NT/1", "AA0NT/12", "W0/AA0NT", "PJ4/AA0NT", "AA0NT/P", "AA0NT/M"}) {
+    for (const auto call :
+         {"AA0NT/1", "AA0NT/12", "W0/AA0NT", "PJ4/AA0NT", "W1A/AA0NT", "AA0NT/P", "AA0NT/M"}) {
         const auto single = wspr_plan(call, "EM18", 37), pair = wspr_plan(call, "EM18IG", 37);
         const auto hashed = wspr_plan("<" + std::string(call) + ">", "EM18IG", 37);
         CHECK(single && single->count == 1 && single->frames[0].type == WsprType::Type2);

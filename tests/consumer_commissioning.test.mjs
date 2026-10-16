@@ -77,7 +77,7 @@ await run('accepted restart keeps a committed network setup blocked until actual
 
 for (const [callsign,locator,types] of [
   ['AA0NT/12','EM18',['type2']],['<AA0NT>','EM18IG',['type3']],
-  ['PJ4/AA0NT','EM18IG',['type2','type3']],['<AA0NT/12>','EM18IG',['type3']]
+  ['PJ4/AA0NT','EM18IG',['type2','type3']],['W1A/AA0NT','EM18IG',['type2','type3']],['<W1A/AA0NT>','EM18IG',['type3']],['<AA0NT/12>','EM18IG',['type3']]
 ]) await run(`Type 2/3 actual station commissioning, activation and strict readback: ${callsign}`,async f=>{
  const a=f.client();await f.login(a);
  const support=await a.request('consumer/setup/api/owner/v1/wspr-support');

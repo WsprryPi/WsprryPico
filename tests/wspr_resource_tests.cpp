@@ -22,7 +22,8 @@ int main(int argc, char**) {
     };
     REQUIRE(call(request("GET", "/api/v1/capabilities")).body.find("application_resources_v2") !=
             std::string::npos);
-    for (const auto callsign : {"AA0NT", "AA0NT/12", "<AA0NT>", "<AA0NT/12>", "PJ4/AA0NT"}) {
+    for (const auto callsign :
+         {"AA0NT", "AA0NT/12", "<AA0NT>", "<AA0NT/12>", "PJ4/AA0NT", "W1A/AA0NT", "<W1A/AA0NT>"}) {
         const std::string station = "{\"callsign\":" + wtp::json::quote(callsign) +
                                     ",\"locator\":\"EM18IG\",\"power_dbm\":37}";
         const auto before = f.api.revision();

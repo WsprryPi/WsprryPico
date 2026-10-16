@@ -43,7 +43,11 @@ std::optional<WsprFrame> compound(std::string_view call, unsigned dbm) {
     if (slash == std::string_view::npos || call.find('/', slash + 1) != std::string_view::npos)
         return {};
     const auto left = call.substr(0, slash), right = call.substr(slash + 1);
-    if (const auto n = base_call(left)) {
+    // A three-character prefix can itself be a valid base call (W1A).
+    // Choose the suffix branch only when its right-hand grammar also matches.
+    if (const auto n = base_call(left);
+        n && ((right.size() == 1 && (digit(right[0]) || letter(right[0]))) ||
+              (right.size() == 2 && digit(right[0]) && digit(right[1])))) {
         unsigned extension;
         if (right.size() == 1 && (digit(right[0]) || letter(right[0])))
             extension = 60000U + code(right[0]);
