@@ -12,6 +12,8 @@ function pinOwners(plan, except) {
 if (typeof module !== 'undefined') module.exports = {pinOwners};
 
 const $ = id => document.getElementById(id);
+const pageIdentity = WsprryPicoPresentation.create(document);
+const canonicalHostname = WsprryPicoPresentation.canonicalHostname;
 const passwordFields = ['local-password','config-password','consumer-password','retirement-password'];
 function setPasswordVisible(id, visible) {
   const input = $(id), toggle = $(id + '-toggle');
@@ -182,7 +184,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
     markTitleStale();
     snapshot = null; $('state').textContent = 'Unknown · request unconfirmed';
     $('output').textContent = 'Unknown'; $('job-progress').textContent = 'Progress unavailable · request unconfirmed'; controls(false);
-    if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; }
+    if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; $('local-status').textContent = 'Session ended or unconfirmed. Log in again; your draft is preserved.'; }
     throw error;
   }
   let data;
@@ -242,8 +244,9 @@ async function discoverLocal() {
     try {
       localIdentity = await radio.identity();
       checkReturningDevice(localIdentity.device_id);
+      pageIdentity.bind(localIdentity);
       await presentationTitle();
-      $('local-status').textContent = `Pico ${localIdentity.device_id}`;
+      $('local-status').textContent = 'Signed out. Enter the saved Wi-Fi password to log in.';
       notice('Log in to read or change radio settings.');
     } catch (error) { notice(error.message + '. Check the Pico address and your Wi-Fi connection, then reload.',true); }
     return true;
@@ -254,12 +257,14 @@ async function discoverLocal() {
     localIdentity = await response.json();
     checkReturningDevice(localIdentity.device_id);
     $('local-access').hidden = false;
-    $('local-status').textContent = `Device ${localIdentity.device_id} · ${localIdentity.surface}`;
+    pageIdentity.bind(localIdentity);
+    $('local-status').textContent = 'Local access requires authentication.';
     try {
       const state = await local('status');
       if (state.wtp_session) session = state.wtp_session;
     } catch (_) { notice('Enter the local-access password to authorize this SoftAP browser.'); return true; }
     localAuthenticated = true; $('local-login').hidden = true;
+    $('local-status').textContent = 'Local session authenticated.';
     if (localIdentity.surface === 'provisioned_preclock') {
       try { await supplyPhoneTime(); }
       catch (e) { notice('Local session authorized, but phone time was rejected: ' + e.message + '.', true); }
@@ -333,6 +338,7 @@ function fill(c) {
   form.expiry.value = c?.expires_utc_s ? new Date(c.expires_utc_s * 1000).toISOString().slice(0,19) : '';
 }
 async function refresh(loadConfig = false) {
+  const identityRequest = pageIdentity.request();
   // Keep this browser sequential so the other admitted client can progress.
   try {
     if (!capabilities) capabilities = (await api('capabilities')).data;
@@ -350,8 +356,7 @@ async function refresh(loadConfig = false) {
     $('engine').textContent = s.engine;
     $('network').textContent = `${n.link_status === 3 ? 'Connected' : 'Disconnected'} · ${n.ipv4 || 'No address'}`;
     $('hostname').textContent = n.configured_hostname || 'IP-only deployment';
-    if (canonicalHostname(n.configured_hostname)) document.title = n.configured_hostname + ' - Station control';
-    await readHostname();
+    await readHostname(identityRequest);
     const discovery = {unconfigured:'Not configured',waiting_address:'Waiting for Wi-Fi address',probing:'Checking hostname',active:'Advertised',conflict:'Hostname conflict',failed:'Unavailable'};
     $('discovery').textContent = discovery[n.mdns_state] || 'Unavailable';
     $('discovery-help').textContent = n.mdns_state === 'conflict' ? 'Another device is using this hostname. Resolve the duplicate, then retry with USB Console WIFI OFF and WIFI ON while idle. The device will not rename itself.' : n.mdns_reason === 'device_identity_mismatch' ? 'Credentials belong to a different device. Rebuild with this device’s certificate bundle and recover through USB Console.' : n.mdns_state === 'failed' ? 'Name discovery failed. Use the current IP address and check USB Console INFO.' : n.mdns_state === 'active' ? (radio ? 'Use this hostname or the current IP address on your local network.' : 'Use this hostname after DHCP address changes. An IP URL needs a matching certificate IP address.') : '';
@@ -364,7 +369,7 @@ async function refresh(loadConfig = false) {
     if (loadConfig) { const c = await api('config'); const config=checkedConfig(c); revision = c.revision; fill(config); writeState = 'ready'; }
     updateProgress(); messagePreview();
     notice('Connected · Status updated ' + observedAt); controls(true);
-  } catch (e) { markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
+  } catch (e) { markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Session ended. Log in again; your draft is preserved.'; notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
 }
 async function action(fn) {
   if (busy) return;
@@ -387,17 +392,19 @@ $('local-login').onsubmit = event => { event.preventDefault(); return action(asy
     if (radio) {
       localIdentity = await radio.identity();
       checkReturningDevice(localIdentity.device_id);
+      pageIdentity.bind(localIdentity);
       await radio.login(password,localIdentity);
     } else {
       const fresh = await fetch('/local/v1/identity', {cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(5000)});
       if (!fresh.ok) throw new Error('Read the local device identity before signing in.');
       localIdentity = await fresh.json();
       checkReturningDevice(localIdentity.device_id);
+      pageIdentity.bind(localIdentity);
       await local('login','POST',{version:1,device_id:localIdentity.device_id,password});
     }
   } finally { clearPassword('local-password'); }
   localAuthenticated = true; $('local-login').hidden = true;
-  $('local-status').textContent = radio ? `Authenticated for Pico ${localIdentity.device_id}.` : 'Local session authenticated.';
+  $('local-status').textContent = radio ? 'Radio session authenticated.' : 'Local session authenticated.';
   if (radio) $('local-logout').hidden = false;
   if (localIdentity.surface === 'provisioned_preclock') {
     try { await supplyPhoneTime(); }
@@ -446,6 +453,7 @@ $('local-logout').onclick = () => action(async () => {
   clearPasswords();
   await radio.logout(); localAuthenticated = false;
   $('local-login').hidden = false; $('local-logout').hidden = true;
+  $('local-status').textContent = 'Signed out. Log in to read or change settings.';
   snapshot = null; controls(false); notice('Logged out. Radio job state has not changed.');
 });
 $('consumer-power').replaceChildren(...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60]
@@ -724,15 +732,7 @@ $('config').addEventListener('input', () => { const f=$('config').elements; wspr
 $('consumer-station-form').addEventListener('input', () => wsprDraftFeedback($('consumer-callsign').value.trim().toUpperCase(),$('consumer-locator').value.trim().toUpperCase(),'consumer-wspr-plan'));
 
 // P15.10: metadata never derives from the address bar, draft or browser storage.
-function canonicalHostname(value) {
-  if (typeof value !== 'string' || /[^\x00-\x7f]/.test(value)) return null;
-  const name = value.toLowerCase().replace(/\.$/,'');
-  return /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.local$/.test(name) ? name : null;
-}
-function markTitleStale() {
-  if (hostnameState?.active) document.title = hostnameState.active + ' - Station control (last confirmed)';
-  else document.title = 'WsprryPico - Station control (connection unknown)';
-}
+function markTitleStale() { pageIdentity.stale(); }
 function parseReturnReceipt() {
   const hash = globalThis.location?.hash || '';
   if (!hash.startsWith('#hostname-return=')) return;
@@ -750,17 +750,7 @@ function checkReturningDevice(device) {
   if (returnReceipt && returnReceipt.device !== device || consumerAttempt && consumerAttempt.device !== device)
     throw new Error('This is a different Pico. Do not enter its password. Return to the original Pico by IP or setup Wi-Fi.');
 }
-async function presentationTitle() {
-  try {
-    const response = await fetch('/api/consumer/v1/presentation',
-      {cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(2000)});
-    if (!response.ok) return;
-    const data = await response.json();
-    if (data.schema === 'device-presentation/1' && data.device_id === localIdentity?.device_id &&
-        data.boot_id === localIdentity?.boot_id && canonicalHostname(data.hostname) === data.hostname)
-      document.title = data.hostname + ' - Station control';
-  } catch { /* Generic initial title until a device observation succeeds. */ }
-}
+const presentationTitle = () => pageIdentity.readPublic(localIdentity,fetch);
 function showContinuation(expected) {
   const link = $('hostname-continue');
   // A navigation carries bounded nonsecret expectations, never login credentials.
@@ -773,25 +763,46 @@ function showContinuation(expected) {
   link.href = destination.href; link.hidden = false;
   link.textContent = 'Continue at ' + expected.name + ' (sign in again)';
 }
-async function readHostname() {
+async function readHostname(token = pageIdentity.request()) {
+  const context = snapshot;
   let result;
   try { result = await api('hostname'); }
-  catch (error) { if (error.code === 'not_found') return null; throw error; }
+  catch (error) {
+    if (error.code !== 'not_found') throw error;
+    // Legacy engineering status lacks a full ID; obtain the existing member target.
+    let member;
+    try { member=(await readApplication()).data.target; }
+    catch (e) { if(e.code !== 'not_found') throw e; pageIdentity.unavailable(token); return null; }
+    if (!pageIdentity.current(token)) return null;
+    if (member?.boot_id !== context?.job.boot_id || localIdentity && member.device_id !== localIdentity.device_id)
+      throw new Error('Device context changed while reading identity.');
+    checkReturningDevice(member.device_id);
+    const name=context?.network.configured_hostname;
+    if (canonicalHostname(name) === name) {
+      if(!pageIdentity.observe(token,member,name,{authenticated:true})) throw new Error('Device identity changed.');
+    }
+    else pageIdentity.unavailable(token,member);
+    return null;
+  }
+  if (!pageIdentity.current(token)) return null;
   const d = result.data;
   if (d.schema !== 'transmitter-hostname/1' || !/^[0-9a-f]{32}$/.test(d.target?.device_id) ||
-      d.target.boot_id !== snapshot?.job.boot_id ||
+      d.target.boot_id !== context?.job.boot_id ||
+      radio && d.target.boot_id !== localIdentity?.boot_id ||
       localIdentity && d.target.device_id !== localIdentity.device_id ||
       ![d.saved,d.active,d.default].every(n=>canonicalHostname(n) === n) ||
       typeof d.writable !== 'boolean' || typeof d.pending_restart !== 'boolean' ||
       d.pending_restart !== (d.saved !== d.active) || typeof d.reason !== 'string')
     throw new Error('Hostname state could not be verified. Your draft is preserved.');
   checkReturningDevice(d.target.device_id);
+  if (!pageIdentity.observe(token,d.target,d.active,{authenticated:true,pending:d.pending_restart,saved:d.saved}))
+    throw new Error('Device identity changed while reading hostname.');
+
   if (hostnameState && (hostnameState.target.device_id !== d.target.device_id ||
       hostnameState.target.boot_id !== d.target.boot_id || hostnameState.saved !== d.saved)) cancelReconnect();
   hostnameState = d; hostnameState.revision = result.revision;
   if (hostnameUncertain) hostnameReviewReady = true;
   if (!hostnameDraft) $('hostname-input').value = d.saved;
-  document.title = d.active + ' - Station control' + (d.pending_restart ? ' (rename pending)' : '');
   $('hostname-status').textContent = 'Active: ' + d.active + '. Saved: ' + d.saved + '. ' +
     (d.pending_restart ? 'Restart is required to use the new address. This page may disconnect; sign in again when the Pico returns.' :
       d.writable ? 'The saved address is active for this boot.' : d.reason === 'complete_station_setup_first' ?
@@ -866,7 +877,11 @@ $('hostname-form').onsubmit = event => { event.preventDefault(); return action(a
     if (!radio) { await readHostname(); hostnameDraft = false; }
     else { await radio.logout().catch(()=>{}); localAuthenticated = false; $('local-login').hidden=false; $('local-logout').hidden=true; controls(false); }
     showContinuation({device:expected.target.device_id,boot:expected.target.boot_id,name});
-    document.title = expected.active + ' - Station control (rename pending)';
+    if (radio) {
+      pageIdentity.observe(pageIdentity.request(),expected.target,expected.active,{authenticated:true,pending:true,saved:name});
+      markTitleStale();
+      $('local-status').textContent = 'Signed out after saving. Log in to read the saved hostname.';
+    }
   } catch (error) {
     $('hostname-status').textContent = error.serverResponse ? 'The Pico refused the hostname save: ' + error.message + '. Your draft is preserved. Refresh to read and review saved state.' : 'Hostname save result is unconfirmed. Your draft is preserved. Log in and refresh to read saved state before another save.';
     throw error;

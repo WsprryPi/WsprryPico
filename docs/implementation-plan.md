@@ -466,14 +466,20 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   Status: complete within supported software acceptance; see the
   [organization record](development/phase15-11-page-organization.md) and original
   [execution handoff](development/phase15-11-execution-prompt.md).
-- ☐ **P15.12 — Show the hostname as the main-page identity.**
+- ✅ **P15.12 — Show the hostname as the main-page identity.**
   Replace the prominent `Pico <full device ID>` text with the Pico's hostname.
   Make the full stable device ID available under About or Diagnostics for
   identification and troubleshooting. Use P15.10's persisted hostname and
   hostname-driven browser-tab title with the resulting P15.11 page layout.
   Verify the main-page identity stays consistent with the tab title after a
   hostname change, page reload and restart.
-  Status: open; unimplemented.
+  The [reviewed execution handoff](development/phase15-12-execution-prompt.md)
+  records current identity/title sources and the implementation/review prompt.
+  Status: complete within supported software acceptance; see the
+  [identity record](development/phase15-12-main-page-identity.md) for final checks,
+  review repairs, transient host-test failures/skips and qualification limits.
+  The original handoff preparation did not execute the work.
+
 - ☐ **P15.13 — Complete untested-band qualification and resolve clock-dependent support.**
   Revisit the [band/mode chart](development/phase14-band-mode-qualification.md)
   and [machine-readable catalog](development/phase14-band-support.json). Test
@@ -534,7 +540,8 @@ their recorded software scopes. P15.8 Type 2/3 software and its WsprryPi step 14
 integration are complete by operator acceptance. P15.9 remains in progress
 pending its WsprryPi portion under step 15. The separate originating P15.8
 review, physical concurrency/reproduction and target qualification remain open.
-P15.10 and P15.11 are complete within their recorded supported software scopes; P15.12–P15.14 remain open.
+P15.10 and P15.11 are complete within their recorded supported software scopes.
+P15.12 is complete within supported software acceptance; P15.13–P15.14 remain open.
 
 ## Remaining deferred and backlog items
 
@@ -798,7 +805,8 @@ belongs to the operator.
    software scopes. P15.8 WSPR Type 2/3 support and its WsprryPi step 14
    integration are closed by operator acceptance. P15.10 hostname editing/titles
    and P15.11 page organization are complete within their supported software
-   scopes. P15.9 remains in progress; P15.12–P15.14 and the separately recorded
+   scopes. P15.12 is complete within supported software acceptance. P15.9 remains
+   in progress; P15.13–P15.14 and the separately recorded
    physical qualification remain open.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.

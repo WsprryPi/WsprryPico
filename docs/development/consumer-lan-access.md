@@ -21,6 +21,17 @@ network setup page's eye control to show/hide what you type; they start masked.
 The eye never retrieves a saved password. See the
 [password-control review](password-visibility-review.md). Radio settings, schedules,
 pin assignments and job controls use the existing shared application API.
+The shared main heading and browser tab identify the Pico by its reported
+boot-active hostname, including when opened by IP. Before login the name is a
+public observation; sign in separately to authorize access. Open **About this
+Pico / Diagnostics** in either task area to select/copy the **full stable device
+ID**. Use that ID to distinguish two devices with the same name. The boot ID is a
+separate observation. Saved rename-pending names do not replace the active
+heading; connection loss or logout labels it **Last confirmed**. If no name has
+been observed, the page says **Hostname unavailable** and retains current-IP/
+setup-Wi-Fi recovery guidance. Name discovery is reported independently. See
+[P15.12](phase15-12-main-page-identity.md) for software evidence and limits.
+
 **Station/Transmission** contains station identity, schedules, pins and explicit
 job controls. **Wi-Fi/Host** contains network credentials, time server, hostname,
 restart/reconnect and setup access guidance. Area links keep one login and all

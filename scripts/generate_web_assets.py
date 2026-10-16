@@ -10,6 +10,7 @@ root, output = map(pathlib.Path, sys.argv[1:])
 web = root / 'src/network/web'
 html, css, js = [(web / name).read_text() for name in ('index.html', 'style.css', 'app.js')]
 organization = (web / 'organization.js').read_text()
+presentation = (web / 'device-presentation.js').read_text()
 validation = (web / 'config-validation.js').read_text()
 bootstrap_web = root / 'src/network/bootstrap_web'
 radio_js = (bootstrap_web / 'radio-bundle.js').read_text()
@@ -49,21 +50,21 @@ owner_html = script_document(owner_html, [
     '<script src="./owner-key-bundle.js" defer></script>',
     '<script src="./owner-bundle.js" defer></script>'])
 recovery_html = script_document(recovery_html, ['<script src="./recovery-bundle.js" defer></script>'])
-radio_html = radio_html.replace('<script src="/app.js" defer></script>', '').replace('<script src="/organization.js" defer></script>', '').replace('<script src="/config-validation.js" defer></script>', '')
+radio_html = radio_html.replace('<script src="/app.js" defer></script>', '').replace('<script src="/device-presentation.js" defer></script>', '').replace('<script src="/organization.js" defer></script>', '').replace('<script src="/config-validation.js" defer></script>', '')
 radio_html = radio_html.removesuffix('</body></html>\n')
 if '</body>' in radio_html or radio_html == html:
     raise ValueError('Unexpected radio document ending')
-for script in (bootstrap_js, owner_key_js, owner_js, recovery_js, radio_js, js, organization, validation):
+for script in (bootstrap_js, owner_key_js, owner_js, recovery_js, radio_js, js, organization, validation, presentation):
     if '</script' in script.lower():
         raise ValueError('Setup script contains an HTML closing tag')
 html = html.replace('<link rel="stylesheet" href="/style.css">', '<style>' + css + '</style>')
-html = html.replace('<script src="/app.js" defer></script>', '').replace('<script src="/organization.js" defer></script>', '').replace('<script src="/config-validation.js" defer></script>', '')
-html = html.replace('</body>', '<script>' + validation + '</script><script>' + js + '</script><script>' + organization + '</script></body>')
+html = html.replace('<script src="/app.js" defer></script>', '').replace('<script src="/device-presentation.js" defer></script>', '').replace('<script src="/organization.js" defer></script>', '').replace('<script src="/config-validation.js" defer></script>', '')
+html = html.replace('</body>', '<script>' + validation + '</script><script>' + presentation + '</script><script>' + js + '</script><script>' + organization + '</script></body>')
 hash_for = lambda text: base64.b64encode(hashlib.sha256(text.encode()).digest()).decode()
-csp = "default-src 'self'; style-src 'sha256-" + hash_for(css) + "'; script-src 'sha256-" + hash_for(js) + "' 'sha256-" + hash_for(validation) + "' 'sha256-" + hash_for(organization) + "'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+csp = "default-src 'self'; style-src 'sha256-" + hash_for(css) + "'; script-src 'sha256-" + hash_for(js) + "' 'sha256-" + hash_for(validation) + "' 'sha256-" + hash_for(presentation) + "' 'sha256-" + hash_for(organization) + "'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 radio_policy = ("default-src 'none'; connect-src 'self'; style-src 'sha256-" + hash_for(css) +
                 "'; script-src 'sha256-" + hash_for(radio_js) + "' 'sha256-" + hash_for(js) +
-                "' 'sha256-" + hash_for(owner_key_js) + "' 'sha256-" + hash_for(validation) + "' 'sha256-" + hash_for(organization) +
+                "' 'sha256-" + hash_for(owner_key_js) + "' 'sha256-" + hash_for(validation) + "' 'sha256-" + hash_for(presentation) + "' 'sha256-" + hash_for(organization) +
                 "'; img-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 bootstrap_policy = ("default-src 'none'; script-src 'self' " +
                     ' '.join("'sha256-" + hash_for(script) + "'"
@@ -74,7 +75,7 @@ bootstrap_policy = ("default-src 'none'; script-src 'self' " +
 source = '#include "network/assets.hpp"\nnamespace wsprrypico::network {\nnamespace {\n'
 for name, text, marker in [
     ('html', radio_html, 'WPHTML'), ('css', css, 'WPCSS'),
-    ('js', js, 'WPJS'), ('organization', organization, 'WPORG'), ('validation', validation, 'WPVALID'), ('csp', csp, 'WPCSP'),
+    ('js', js, 'WPJS'), ('presentation', presentation, 'WPPRES'), ('organization', organization, 'WPORG'), ('validation', validation, 'WPVALID'), ('csp', csp, 'WPCSP'),
     ('radio_html', radio_html, 'WPRADIO'), ('radio_js', radio_js, 'WPRADIOJS'),
     ('radio_policy', radio_policy, 'WPRADIOCSP'),
     ('bootstrap_html', bootstrap_html, 'WPBHTML'),
@@ -94,7 +95,7 @@ for name, text, marker in [
     source += f'constexpr char {name}[] = R"{marker}({text}){marker}";\n'
 source += '''
 constexpr std::string_view html_parts[] = {
-    html, "<script>", validation, "</script><script>", js, "</script><script>", organization, "</script></body>\\n</html>\\n"};
+    html, "<script>", validation, "</script><script>", presentation, "</script><script>", js, "</script><script>", organization, "</script></body>\\n</html>\\n"};
 constexpr std::string_view bootstrap_parts[] = {
     bootstrap_html, "<script>", bootstrap_js, "</script></body>\\n</html>\\n"};
 constexpr std::string_view recovery_parts[] = {
@@ -103,7 +104,7 @@ constexpr std::string_view owner_parts[] = {
     owner_html, "<script>", owner_key_js, "</script><script>", owner_js,
     "</script></body>\\n</html>\\n"};
 constexpr std::string_view radio_parts[] = {
-    radio_html, "<script>", owner_key_js, "</script><script>", radio_js, "</script><script>", validation, "</script><script>", js, "</script><script>", organization,
+    radio_html, "<script>", owner_key_js, "</script><script>", radio_js, "</script><script>", validation, "</script><script>", presentation, "</script><script>", js, "</script><script>", organization,
     "</script></body>\\n</html>\\n"};
 }
 std::string_view consumer_radio_csp() { return radio_policy; }
@@ -115,6 +116,7 @@ std::optional<WebAsset> web_asset(std::string_view path) {
     if (path == "/" || path == "/index.html" || path == "/radio" || path == "/station" || path == "/wifi-host" || path == "/owner.html") return WebAsset{html, "text/html; charset=utf-8", html_parts};
     if (path == "/style.css") return WebAsset{css, "text/css; charset=utf-8"};
     if (path == "/config-validation.js") return WebAsset{validation, "text/javascript; charset=utf-8"};
+    if (path == "/device-presentation.js") return WebAsset{presentation, "text/javascript; charset=utf-8"};
     if (path == "/organization.js") return WebAsset{organization, "text/javascript; charset=utf-8"};
     if (path == "/app.js") return WebAsset{js, "text/javascript; charset=utf-8"};
     return {};

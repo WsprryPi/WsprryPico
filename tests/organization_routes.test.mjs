@@ -33,7 +33,7 @@ try {
        assert.ok(csp.includes("'sha256-"+createHash('sha256').update(script).digest('base64')+"'"),'each executed script has a CSP hash');
        assert.ok(Buffer.byteLength(script)<65536,'bounded script literal');
      }
-     assert.equal((html.match(/<script>/g)||[]).length,5);
+     assert.equal((html.match(/<script>/g)||[]).length,6);
      assert.ok(html.indexOf('WsprryPicoOwnerKey')<html.indexOf('const radio ='));
      assert.ok(!html.includes('<script src='));
    }

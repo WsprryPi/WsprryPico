@@ -13,7 +13,8 @@ const output=path.resolve(process.argv[3] || 'build/phase15-10-browser');
 await mkdir(output,{recursive:true});
 const profile=await mkdtemp(path.join(os.tmpdir(),'p1510-chrome-'));
 let f=new Fixture(process.argv[2]);await f.time(1000);
-let old=false, dropNext=false, chrome, cdp, cdpB;
+let old=false, dropNext=false, blockPresentation=true, failRadioRequests=false, chrome, cdp, cdpB;
+let captures=0;
 const fB=new Fixture(process.argv[2],['2'.repeat(32)]);await fB.time(1000);
 const bClient=fB.client();await fB.login(bClient);const bResource=await bClient.request('hostname');const bName=await bResource.json();
 await bClient.request('hostname','PUT',{schema:'transmitter-hostname/1',target:bName.target,hostname:'pico-b.local'},bResource.headers.get('etag'));
@@ -24,6 +25,9 @@ const proxy=http.createServer(async(req,res)=>{
         if(!['192.168.1.53','192.168.4.1','wsprrypico-0a60df.local','pico-a.local','pico-b.local', 'x'.repeat(63)+'.local'].includes(u.hostname)){res.writeHead(403);res.end();return;}
         if(old && ['/api/v1/application/2','/api/owner/v1/wspr-support'].includes(u.pathname)){
             res.writeHead(404,{'Content-Type':'application/json'});res.end('{"error":{"code":"not_found"}}');return;
+        }
+        if(blockPresentation && u.pathname==='/api/consumer/v1/presentation' || failRadioRequests && u.pathname==='/api/consumer/v1/request') {
+            res.writeHead(503,{'Content-Type':'application/json'});res.end('{"error":{"code":"unavailable"}}');return;
         }
         const chunks=[];for await(const b of req)chunks.push(b);
         if(u.pathname.endsWith('/start'))await f.time(f.now+1000);
@@ -64,10 +68,10 @@ async function capture(name){
     for(const theme of ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
         await cdp.send('Emulation.setDeviceMetricsOverride',{...view,name:undefined,deviceScaleFactor:1,mobile:view.name==='mobile'});
         await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
-        await cdp.evaluate(`document.getElementById(${JSON.stringify('hostname-form')}).scrollIntoView({block:'start'})`);
+        await cdp.evaluate('scrollTo(0,0)');
         assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,'horizontal overflow');
         const image=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
-        await writeFile(path.join(output,`${name}-${view.name}-${theme}.png`),Buffer.from(image.data,'base64'));
+        ++captures;await writeFile(path.join(output,`${name}-${view.name}-${theme}.png`),Buffer.from(image.data,'base64'));
     }
 }
 try {
@@ -84,8 +88,42 @@ try {
         await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
         await until(()=>cdp.evaluate(`localAuthenticated && !busy && online`),'login and hostname readback');
     }
-    await until(()=>cdp.evaluate(`document.title==='wsprrypico-0a60df.local - Station control'`),'IP initial tab title');
+    await until(()=>cdp.evaluate('!busy && !!localIdentity'),'unknown metadata state');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),'Hostname unavailable');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-id').textContent`),'1'.repeat(32));
+    assert.equal(await cdp.evaluate(`document.querySelectorAll('h1').length`),1);
+    await capture('unknown-name');
+    blockPresentation=false;
+    await cdp.send('Page.reload');
+    await until(()=>cdp.evaluate(`document.title==='wsprrypico-0a60df.local - Station control' && !busy`),'IP initial tab title');
+    async function identity(name,device='1'.repeat(32)) {
+        assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),name);
+        assert.equal(await cdp.evaluate(`document.getElementById('device-id').textContent`),device);
+        assert.match(await cdp.evaluate('document.title'),new RegExp('^'+name.replaceAll('.','\\.')));
+        assert.equal(await cdp.evaluate(`document.getElementById('local-status').textContent.includes(${JSON.stringify(device)})`),false);
+    }
+    await identity('wsprrypico-0a60df.local');
+    const diagnosticsBefore=await f.command({op:'stats'}), diagnosticsRequests=requests.length;
+    await cdp.send('Page.bringToFront');
+    await cdp.evaluate(`document.querySelector('#device-diagnostics summary').focus()`);
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',text:'\r',unmodifiedText:'\r',windowsVirtualKeyCode:13,nativeVirtualKeyCode:36});
+    await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+    await until(()=>cdp.evaluate(`document.getElementById('device-diagnostics').open`),'keyboard disclosure');
+    assert.equal(await cdp.evaluate(`{const s=getSelection(),r=document.createRange();r.selectNodeContents(document.getElementById('device-id'));s.removeAllRanges();s.addRange(r);s.toString()}`),'1'.repeat(32));
+    await capture('signed-out-station-diagnostics');
+    await click('wifi-host-link');await capture('signed-out-wifi-diagnostics');
+    const diagnosticsAfter=await f.command({op:'stats'});
+    for(const key of ['config_sequence','profile_generation','profile_programs','api_restarts'])
+        assert.equal(diagnosticsAfter[key],diagnosticsBefore[key],key+' unchanged by diagnostics/navigation');
+    assert.equal(requests.length,diagnosticsRequests,'Diagnostics/navigation emit no requests, including session/job mutations');
+    await field('local-password','wrong-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await until(()=>cdp.evaluate('!busy'),'rejected login');
+    assert.equal(await cdp.evaluate('localAuthenticated'),false);await identity('wsprrypico-0a60df.local');
+    assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/failed|rejected|password|authentication/);
+    await capture('rejected-login');
     await login();
+    await identity('wsprrypico-0a60df.local');await capture('authenticated-wifi-diagnostics');
+    await click('station-link');await capture('authenticated-station-diagnostics');
     await click('wifi-host-link');
     assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
     await field('hostname-input','K.local');
@@ -112,6 +150,8 @@ try {
     assert.equal(await cdp.evaluate('document.title'),'wsprrypico-0a60df.local - Station control (rename pending)');
     assert.equal(await cdp.evaluate(`document.getElementById('hostname-save').disabled`),true);
     await click('hostname-review');
+    await identity('wsprrypico-0a60df.local');
+    assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Saved for restart: pico-a.local/);
     await capture('saved-rename-pending');
     await click('restart');await until(()=>cdp.evaluate('reconnectRunning && !busy'),'one-shot restart/countdown');
     await capture('restart-countdown');
@@ -125,7 +165,7 @@ try {
     assert.match(await cdp.evaluate(`document.getElementById('restart-status').textContent`),/Same Pico and new boot confirmed/);
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'KEEP DRAFT');
     assert.equal((await f.command({op:'stats'})).config_sequence,before.config_sequence);
-    await capture('verified-new-boot');
+    await identity('pico-a.local');await capture('verified-new-boot');
     // New origin carries only expected nonsecret context and needs a fresh password.
     const boot=await cdp.evaluate('hostnameState.target.boot_id');
     const receipt='#'+new URLSearchParams({'hostname-return':JSON.stringify({device:'1'.repeat(32),boot:'f'.repeat(32),name:'pico-a.local'})});
@@ -153,9 +193,11 @@ try {
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:640,height:450,deviceScaleFactor:1,mobile:false});
     await cdp.evaluate(`document.body.style.zoom='2';document.getElementById('hostname-form').scrollIntoView()`);
     assert.equal(await cdp.evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'200% zoom no overflow');
-    if(process.env.HOSTNAME_BROWSER_NO_CAPTURE!=='1') { const zoom=await cdp.send('Page.captureScreenshot',{format:'png'});
+    if(process.env.HOSTNAME_BROWSER_NO_CAPTURE!=='1') { ++captures;const zoom=await cdp.send('Page.captureScreenshot',{format:'png'});
     await writeFile(path.join(output,'zoom-200-percent.png'),Buffer.from(zoom.data,'base64')); }
     await cdp.evaluate(`document.body.style.zoom=''`);
+    assert.equal(await cdpB.evaluate(`document.getElementById('device-id').textContent`),'2'.repeat(32));
+    assert.equal(await cdpB.evaluate(`document.getElementById('device-name').textContent`),'pico-b.local');
     // A receipt for a different full device refuses login before sending credentials.
     const wrong='#'+new URLSearchParams({'hostname-return':JSON.stringify({device:'2'.repeat(32),boot,name:'pico-a.local'})});
     await cdp.send('Page.navigate',{url:'http://pico-a.local/'+wrong});
@@ -165,9 +207,34 @@ try {
     await until(()=>cdp.evaluate('!busy'),'wrong-device explicit login refused');
     assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,starts);
     assert.equal((await f.command({op:'stats'})).profile_generation,'3');
-    console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,served_assets:true,real_crypto:true,
+    // Maximum name comes from a real persisted profile/new boot, never a DOM injection.
+    await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
+    await until(()=>cdp.evaluate('!busy && !!localIdentity'),'return by IP');await login();
+    await click('wifi-host-link');await click('hostname-review');
+    const longName='x'.repeat(63)+'.local';await field('hostname-input',longName);
+    await cdp.evaluate(`document.getElementById('hostname-form').requestSubmit()`);
+    await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'long name saved');
+    await f.command({op:'reboot'});await f.time(f.now+3000);
+    await cdp.send('Page.navigate',{url:'http://'+longName+'/'});
+    await until(()=>cdp.evaluate(`!busy && document.getElementById('device-name').textContent===${JSON.stringify(longName)}`),'long name applied');
+    await identity(longName);await cdp.evaluate(`document.getElementById('device-diagnostics').open=true`);
+    await capture('maximum-active-hostname');await login();
+    await cdp.send('Emulation.setDeviceMetricsOverride',{width:640,height:450,deviceScaleFactor:1,mobile:false});
+    await cdp.evaluate(`document.body.style.zoom='2';scrollTo(0,0)`);
+    assert.equal(await cdp.evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'long identity at 200% zoom');
+    if(process.env.HOSTNAME_BROWSER_NO_CAPTURE!=='1') {++captures;const zoom=await cdp.send('Page.captureScreenshot',{format:'png'});await writeFile(path.join(output,'long-name-zoom-200.png'),Buffer.from(zoom.data,'base64'));}
+    await cdp.evaluate(`document.body.style.zoom=''`);
+    await f.time(f.now+300001);await click('refresh');
+    await until(()=>cdp.evaluate('!busy && !localAuthenticated && !radio.authenticated'),'session expiry');
+    assert.match(await cdp.evaluate(`document.getElementById('local-status').textContent`),/Session ended/);
+    assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Last confirmed/);
+    await capture('session-expired');await login();
+    failRadioRequests=true;await click('refresh');await until(()=>cdp.evaluate('!busy && !online'),'connection failure');
+    assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Last confirmed/);
+    assert.match(await cdp.evaluate('document.title'),/last confirmed/);await capture('disconnected-last-confirmed');
+    console.log(JSON.stringify({identity_heading:true,full_id_diagnostics:true,keyboard_disclosure:true,no_diagnostics_effects:true,unknown_name:true,long_active_name:true,stale_agreement:true,browser:(await cdp.send('Browser.getVersion')).product,served_assets:true,real_crypto:true,
         initial_title:true,hostname_origin:true,canonical_validation:true,generation_save:true,new_boot_readback:true,
-        lost_reply_no_replay:true,wrong_device_no_login:true,draft_preserved:true,cancel_countdown:true,screenshots:process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1'?0:17,two_device_tabs:true,zoom_200:true}));
+        lost_reply_no_replay:true,wrong_device_no_login:true,draft_preserved:true,cancel_countdown:true,screenshots:captures,two_device_tabs:true,zoom_200:true}));
 } catch(error) {
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,600),scripts:[...document.scripts].map(s=>s.src)})`).catch(e=>e.message):null}));
     throw error;

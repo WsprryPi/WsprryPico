@@ -2,6 +2,13 @@
 
 P15.10 adds the independently versioned [hostname resource](development/phase15-10-hostname.md) at `GET/PUT /api/v1/hostname`. It preserves Config, application, capabilities and consumer identity v1 shapes. Consumer renames preserve CA/client trust, consume a profile generation and apply on explicit restart; engineering names remain credential-bound. See that record for exact envelopes, readback and recovery.
 
+P15.12 changes main-page presentation only: the boot-active hostname is the shared
+heading and tab identity. About this Pico / Diagnostics exposes the full stable
+device ID and separately labelled boot observation. Public, active, rename-pending,
+last-confirmed and unavailable states are explicit. The existing presentation,
+identity and hostname API shapes and all carrier/session authorities are unchanged.
+See the [identity execution record](development/phase15-12-main-page-identity.md).
+
 P15.11 provides one control document with reloadable `/station` and
 `/wifi-host` areas, retaining `/index.html`, `/radio` and `/owner.html` aliases.
 Fresh admitted infrastructure roots select Station/Transmission; accepted AP

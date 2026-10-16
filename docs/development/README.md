@@ -26,6 +26,14 @@ landing, profile-specific save authorities, regressions and review. Supported
 software acceptance is complete, including exact unchanged-Pi pairs. The [execution handoff](phase15-11-execution-prompt.md) remains
 the original task. P15.10 retains its supported software closure.
 
+[P15.12 main-page identity](phase15-12-main-page-identity.md) is complete within
+supported software acceptance. Shared chrome/tab titles use the boot-active
+hostname; native Diagnostics retains the full stable ID and separate boot
+observation. Public/active/pending/last-confirmed/unknown states, final source
+checks, review repairs, transient host-test failures and skips are recorded.
+The [execution handoff](phase15-12-execution-prompt.md) remains the original task.
+P15.9's pending Pi portion and P15.13/P15.14 boundaries remain unchanged.
+
 The selected [consumer LAN access slice](consumer-lan-access.md) now implements
 port-80 station IP/hostname access, saved-password authentication, normally-off
 consumer AP, temporary button access, automatic outage fallback/recovery and

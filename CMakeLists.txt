@@ -42,7 +42,7 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js
-    src/network/web/organization.js src/network/web/config-validation.js
+    src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
     src/network/bootstrap_web/radio-bundle.js
@@ -319,6 +319,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME bootstrap_wire_tests COMMAND bootstrap_wire_tests)
     find_program(WSPRRY_PICO_NODE_EXECUTABLE node)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME device_presentation_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/device_presentation_tests.js)
         add_test(NAME network_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/network_browser_tests.js)
     endif()

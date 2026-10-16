@@ -141,6 +141,23 @@ the chosen area. Shared access, observed transmitter status and save recovery
 remain reachable in either area. Native profile-specific forms provide one
 visible editor for each station/network field.
 
+### Device identity
+
+P15.12 uses the boot-active hostname as the one main heading in shared chrome,
+above both task areas. Product and task labels stay unchanged. The heading and
+tab title share one observation controller. Public names say to sign in;
+authenticated readback labels the active name. A saved rename appears secondarily
+as pending restart, and connection/session loss labels the retained name last
+confirmed. With no usable observation, show hostname unavailable and current-IP/
+setup-Wi-Fi guidance. Discovery/reachability remains separate from the name.
+
+The native About this Pico / Diagnostics disclosure stays outside area hiding.
+Its full stable device ID and separately labelled observed boot ID use selectable
+text. Long names and IDs wrap; no clipboard API, focus change, live region or
+extra request is attached to opening it. Login status describes authentication
+and does not repeat the stable ID. Deliberate retirement/target confirmations
+retain exact IDs. No new brand, palette, typography or commissioning UI is added.
+
 ### Inputs and disclosures
 
 Labels sit above full-width fields. Help stays beside its field and identifies
