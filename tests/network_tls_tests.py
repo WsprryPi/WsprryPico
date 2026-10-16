@@ -427,10 +427,14 @@ try:
         if outcome == 'claim':
             assert browser('RELEASE',{})[0] == 200
     baseline = json.loads(http()[2])["transport"]["tls_allocated_bytes"]
-    # Repeated reset/reconnect cycles must leave the remaining slot usable.
+    # Servicing each real reset must release its slot before one fresh request.
+    # Synchronize the adapter boundary instead of racing its single pending
+    # handshake slot with a new connect before it has observed the RST.
     for _ in range(20):
         raw = socket.create_connection(('127.0.0.1',18443),timeout=3)
         raw.setsockopt(socket.SOL_SOCKET,socket.SO_LINGER,struct.pack('ii',1,0)); raw.close()
+        control('NETWORK DRAIN')
+        assert process.stdout.readline().strip() == 'NETWORK 0 0 0'
         assert http()[0] == 200
     stats = json.loads(http()[2])['transport']
     assert stats['tls_allocated_bytes'] <= baseline + 1024, (baseline, stats)

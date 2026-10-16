@@ -53,6 +53,7 @@ set(client_sources codec.cpp frame_parser.cpp wire.cpp session.cpp detail/json.c
 list(TRANSFORM client_sources PREPEND "${PI_SOURCE}/src/WTP-Client/src/")
 add_library(unchanged_client STATIC ${client_sources})
 target_include_directories(unchanged_client PUBLIC "${PI_SOURCE}/src/WTP-Client/include")
+target_include_directories(unchanged_client PRIVATE "${PI_SOURCE}/src/WTP-Client/src")
 file(READ "${PI_SOURCE}/src/tests/network/consumer_interop.cpp" fixture)
 if(NOT fixture MATCHES "int main\\(int argc, char \\*\\*argv\\)")
     message(FATAL_ERROR "Unsupported original fixture entry point")

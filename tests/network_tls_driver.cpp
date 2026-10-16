@@ -264,7 +264,14 @@ int main(int argc, char** argv) {
             else if (command == "PSA STATUS")
                 std::cout << "PSA " << network::PsaCryptoOwner::owners() << ' '
                           << network::PsaCryptoOwner::peak_owners() << std::endl;
-            else if (command == "NETWORK STATUS") {
+            else if (command == "NETWORK STATUS" || command == "NETWORK DRAIN") {
+                if (command == "NETWORK DRAIN") {
+                    // Test boundary: observe the real loopback reset with the
+                    // normal foreground sequence before asserting slot reuse.
+                    mock_tcp_poll();
+                    server.poll(link && network.enabled,
+                                address + ":" + std::to_string(server.port()), allow_http_steps);
+                }
                 const auto resources = server.resources();
                 std::cout << "NETWORK " << resources.active_connections << ' '
                           << resources.pending_connections << ' '
