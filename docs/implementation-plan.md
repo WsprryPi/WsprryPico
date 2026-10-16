@@ -252,8 +252,8 @@ P15.3/P15.4 established management-carrier access and shared-resource adoption.
 P15.5/P15.6 added concurrent request servicing and independent login sessions;
 P15.7 completed recovery against that service within its software scope. The
 original physical failed-save/session-loss reproduction remains open separately.
-Settle WSPR station-validation behavior before independent
-station saves, and complete hostname persistence and session recovery before
+Settle WSPR station-validation behavior before separating valid-field saves from
+transmit readiness, and complete hostname persistence and session recovery before
 changing the hostname display. Consolidate the settings pages after those
 behaviors are stable, then finish the main-page identity presentation. Later
 changes must extend the P15.2 compatibility coverage for any affected supported
@@ -389,13 +389,25 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   locator in settings while transmitting its first four characters. Current
   implementation and acceptance are tracked in the
   [P15.8 work record](development/phase15-8-wspr-type23.md).
-- ☐ **P15.9 — Save callsign and location independently.** The operator reports
-  that saving only a callsign is blocked by a required-fields message. Allow
-  either callsign or location to be edited and saved without filling in the
-  other field or unrelated settings. Preserve existing values for fields not
-  being changed, and keep transmission unavailable until the required station
-  identity is valid and complete. Reuse P15.1 update semantics and P15.8
-  station-validation rules. Status: open; unimplemented.
+- ☐ **P15.9 — Save valid fields independently of transmit readiness.** The
+  operator was updating the callsign in the second setup block, which contained
+  QRSS message controls, and was blocked by required fields for message setup.
+  Allow valid editable fields to be saved without completing unrelated station
+  or message inputs. Validate submitted fields and their relevant dependencies;
+  preserve unchanged saved values and leave invalid entries unsaved with clear
+  feedback. Explicitly identify what was saved and what still needs attention.
+  Preserve incomplete work as distinct saved draft state where the existing
+  runnable configuration cannot represent it safely; do not invent placeholder
+  values or weaken execution validation to permit saving progress.
+
+  Show saved state separately from readiness for the selected transmission mode,
+  for example, "Callsign saved; not ready to transmit: locator missing." Saving
+  fields must not itself grant transmit authorization or create, queue or arm
+  a message job. Keep explicit enable/start controls and existing runtime guards;
+  enforce completeness and validity before execution in both UI and backend.
+  Reuse P15.1 update semantics, P15.7 readback/review and P15.8 station-planning
+  rules, preserving profile/configuration authority and transaction boundaries.
+  Status: open; unimplemented.
 - ☐ **P15.10 — Allow the operator to change the Pico hostname.** Provide a
   browser setting to edit and save the hostname, retain it across restarts and
   use it for LAN/mDNS discovery and access. Reuse the established update rules
@@ -406,8 +418,9 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   Station as the primary configuration area and Wi-Fi subordinate to it.
   Consider separate Station and Wi-Fi pages with clear links between them,
   following the captive portal's linked-page approach. Consolidate after
-  P15.8-P15.10 settle station validation, independent saves and hostname behavior,
-  while preserving the existing profile/configuration authority boundaries.
+  P15.8-P15.10 settle station validation, saving independently of transmit
+  readiness and hostname behavior, while preserving the existing
+  profile/configuration authority boundaries.
   The page split remains a design option. Status: open; unimplemented.
 - ☐ **P15.12 — Show the hostname on the main page and in the browser-tab title.**
   Replace the prominent `Pico <full device ID>` text with the Pico's hostname.
