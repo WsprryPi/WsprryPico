@@ -1,6 +1,11 @@
 # P15.11 handoff: Station/Transmission and Wi-Fi/Host organization
 
-Preparation status: **prompt prepared; implementation not executed**.
+Execution is complete within its supported software scope; see the
+[acceptance record](phase15-11-page-organization.md). The preparation status,
+reviewed pins and implementation instructions below are historical.
+
+Preparation status: **prompt prepared; implementation not executed** at the
+source review below.
 Prepared on 2026-10-16. The operator has marked P15.11 in progress for handoff
 and execution tracking. That status does not establish delivered behavior.
 P15.10 is closed within its [supported software acceptance](phase15-10-hostname.md).

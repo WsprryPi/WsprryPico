@@ -796,10 +796,10 @@ belongs to the operator.
    resources (P15.4), concurrent web servicing (P15.5), independent sessions
    (P15.6) and login/save recovery (P15.7) are complete within their recorded
    software scopes. P15.8 WSPR Type 2/3 support and its WsprryPi step 14
-   integration are closed by operator acceptance. P15.10 hostname editing and
-   titles are complete within their supported software scope. P15.9 and P15.11
-   are in progress; P15.12–P15.14 and the separately recorded physical
-   qualification remain open.
+   integration are closed by operator acceptance. P15.10 hostname editing/titles
+   and P15.11 page organization are complete within their supported software
+   scopes. P15.9 remains in progress; P15.12–P15.14 and the separately recorded
+   physical qualification remain open.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
