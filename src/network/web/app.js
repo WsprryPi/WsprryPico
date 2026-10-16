@@ -136,6 +136,7 @@ async function readSavedKeepingDraft() {
   savedReadback = {target:after.data.target,revision:saved.revision,config};
   if ($('saved-wspr-plan')) $('saved-wspr-plan').textContent = after.data.wspr_plan
     ? 'Saved plan: ' + after.data.wspr_plan.frame_types.join(' → ') + '. ' + after.data.wspr_plan.rationale
+    : applicationVersion === 2 ? 'Saved plan: no station identity is configured.'
     : 'Saved plan: this firmware supports Type 1 only.';
   $('saved-readback').textContent = JSON.stringify({saved_config:config,application:after.data},null,2);
   $('saved-readback').hidden = false; writeState = 'review';

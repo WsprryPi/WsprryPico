@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '') {
-    const ids = ['saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
+    const ids = ['saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     for (const id of ['consumer-setup','consumer-network-settings','consumer-station-settings',
       'consumer-check-save','consumer-network-form','consumer-station-form','consumer-ssid',
@@ -49,7 +49,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             if (path === '/local/v1/identity') { status = f.localMode ? 200 : 404; data = f.localMode ? {device_id:'1'.repeat(32),surface:'normal'} : {error:{code:'not_found'}}; }
             else if (path === '/local/v1/status') data = {wtp_session:f.mappedSession};
             else if (path.endsWith('pins')) data = {choices:{eligible_gps:[...Array(23).keys(),26,27,28],i2c_pairs:[{controller:0,sda_gp:4,scl_gp:5}]}};
-            else if (path.endsWith('application/2')) { status=404; data={error:{code:'not_found'}}; }
+            else if (path.endsWith('application/2')) { if(f.appV2) data=f.appV2; else {status=404; data={error:{code:'not_found'}};} }
             else if (path.endsWith('application')) data = {target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},hardware:f.appHardware || {saved:config.pins || null,active:null,pending_restart:true,application_error:null}};
             else if (path.endsWith('capabilities')) data = {features:{restart:true},active_job_connections:activeConnections,message_jobs:{max_characters:32},wtp:{maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
             else if (path.endsWith('restart')) {
@@ -383,6 +383,13 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         const future=await fixture();future.config.expires_utc_s=expires;await future.elements['reload-config'].onclick();assert.ok(future.form.expiry.value.startsWith(expires===2208988800?'2040':'2099'));
         future.form.schedules.value='240 / 0';future.elements.config.oninput();await future.elements['read-saved'].onclick();assert.equal(future.form.schedules.value,'240 / 0');await future.elements['review-saved'].onclick();assert.equal(future.elements['save-config'].disabled,false);
     }
+    const emptyV2=await fixture(true,false);
+    emptyV2.appV2={schema:'transmitter-application/2',target:{scope:'member',device_id:'1'.repeat(32),boot_id:emptyV2.state.job.boot_id},
+      station:{station:null},hardware:{saved:null,active:null,pending_restart:false,application_error:null},recurrence:{},
+      capabilities:{station_encoding:'wspr_type123_auto'},reboot_required:false,wspr_plan:null};
+    await emptyV2.elements['read-saved'].onclick();
+    assert.equal(vm.runInContext('writeState',emptyV2.context),'review');
+    assert.equal(emptyV2.elements['saved-wspr-plan'].textContent,'Saved plan: no station identity is configured.');
     const changed=await fixture(true,true,false,true);changed.elements['local-password'].value='test-password';await changed.elements['local-login'].onsubmit({preventDefault(){}});
     changed.form.schedules.value='240 / 0';changed.elements.config.oninput();changed.config.station={callsign:'K1ABC',locator:'FN42',power_dbm:30};changed.config.wifi={ssid:'new-network',password:null,ntp_ipv4:'pool.ntp.org'};
     await changed.elements['read-saved'].onclick();await changed.elements['review-saved'].onclick();await changed.elements.config.onsubmit({preventDefault(){}});
