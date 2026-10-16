@@ -253,9 +253,9 @@ P15.5/P15.6 added concurrent request servicing and independent login sessions;
 P15.7 completed recovery against that service within its software scope. The
 original physical failed-save/session-loss reproduction remains open separately.
 Settle WSPR station-validation behavior before separating valid-field saves from
-transmit readiness, and complete hostname persistence and session recovery before
-changing the hostname display. Consolidate the settings pages after those
-behaviors are stable, then finish the main-page identity presentation. Later
+transmit readiness, and complete hostname persistence, hostname-driven page
+titles and session recovery before reorganizing the settings pages. Finish the
+main-page identity presentation against those stable behaviors. Later
 changes must extend the P15.2 compatibility coverage for any affected supported
 pairs. Run the P15.13 band/mode and clock follow-up after P15.1-P15.12 so its
 fresh results cover the delivered carriers, resources, concurrency, WSPR and
@@ -382,7 +382,7 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
 - ⏳ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Add support for WSPR Type 2
   compound-callsign messages and Type 3 hashed-callsign/six-character-locator
   messages. Settle the corresponding station-validation rules before P15.9
-  and the consolidated forms in P15.11. Status: in progress in another chat.
+  and the revised forms in P15.11. Status: in progress in another chat.
   See the [execution handoff](development/phase15-8-execution-prompt.md), including
   the WsprryPi release-coordination and companion-branch requirements. The
   pre-P15.8 standalone encoder supported Type 1 only, retaining a six-character
@@ -408,30 +408,38 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   Reuse P15.1 update semantics, P15.7 readback/review and P15.8 station-planning
   rules, preserving profile/configuration authority and transaction boundaries.
   Status: open; unimplemented.
-- ☐ **P15.10 — Allow the operator to change the Pico hostname.** Provide a
-  browser setting to edit and save the hostname, retain it across restarts and
-  use it for LAN/mDNS discovery and access. Reuse the established update rules
-  and P15.7 recovery behavior for hostname/authority changes before P15.12
-  exposes the saved name as the primary identity. Status: open; unimplemented.
-- ☐ **P15.11 — Consolidate Station and Wi-Fi setup.** Remove the duplicated
-  settings between "Station and Network" and "Wi-Fi and station setup", with
-  Station as the primary configuration area and Wi-Fi subordinate to it.
-  Consider separate Station and Wi-Fi pages with clear links between them,
-  following the captive portal's linked-page approach. Consolidate after
-  P15.8-P15.10 settle station validation, saving independently of transmit
-  readiness and hostname behavior, while preserving the existing
-  profile/configuration authority boundaries.
-  The page split remains a design option. Status: open; unimplemented.
-- ☐ **P15.12 — Show the hostname on the main page and in the browser-tab title.**
+- ☐ **P15.10 — Allow hostname changes and use the hostname in the page title.**
+  Provide a browser setting to edit and save the hostname, retain it across
+  restarts and use it for LAN/mDNS discovery and access. The saved hostname must
+  also drive the HTML page title shown in the browser tab, with the hostname
+  first, for example `<hostname> - Station control`, instead of the generic
+  `WsprryPico - Station control`. Verify distinct titles with two Pico tabs open
+  and correct titles after a hostname change, page reload and restart. Reuse
+  the established update rules and P15.7 recovery behavior for hostname/authority
+  changes before P15.12 exposes the saved name as the main-page identity.
+  Status: open; unimplemented.
+- ☐ **P15.11 — Consolidate or split Station/Transmission and Wi-Fi/Host setup.**
+  Remove duplicated settings between "Station and Network" and "Wi-Fi and
+  station setup". Either consolidate them into one page with clear
+  Station/Transmission and Wi-Fi/Host sections, or place those areas on separate
+  pages. Wi-Fi/Host setup must be the default landing area for captive-portal
+  access; Station/Transmission must be the default for an infrastructure Wi-Fi
+  connection. Provide clear links in both directions so either area is reachable
+  from the other. In a consolidated layout, entry points and links may target
+  the corresponding sections of the page.
+
+  Reorganize after P15.8-P15.10 settle station validation, saving independently
+  of transmit readiness and hostname behavior, while preserving the existing
+  profile/configuration authority boundaries. Verify both connection-specific
+  defaults and navigation in both directions. The one-page versus two-page
+  layout remains a design option. Status: open; unimplemented.
+- ☐ **P15.12 — Show the hostname as the main-page identity.**
   Replace the prominent `Pico <full device ID>` text with the Pico's hostname.
-  Include the hostname first in the HTML page title, for example
-  `<hostname> - Station control`, instead of the generic
-  `WsprryPico - Station control`, so tabs for different Picos are distinguishable.
   Make the full stable device ID available under About or Diagnostics for
-  identification and troubleshooting. Use P15.10's persisted hostname and the
-  resulting P15.11 page layout so a saved hostname change is reflected
-  consistently in both the page and tab title. Verify distinct titles with two
-  Pico tabs open and correct titles after a hostname change and page reload.
+  identification and troubleshooting. Use P15.10's persisted hostname and
+  hostname-driven browser-tab title with the resulting P15.11 page layout.
+  Verify the main-page identity stays consistent with the tab title after a
+  hostname change, page reload and restart.
   Status: open; unimplemented.
 - ☐ **P15.13 — Complete untested-band qualification and resolve clock-dependent support.**
   Revisit the [band/mode chart](development/phase14-band-mode-qualification.md)
