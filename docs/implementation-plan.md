@@ -379,13 +379,16 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   sanitizers and browser evidence are recorded there. Original physical
   reproduction, actual phone/Mac transport, target heap/stack high-water and RF
   acceptance remain open.
-- ☐ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Add support for WSPR Type 2
+- ⏳ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Add support for WSPR Type 2
   compound-callsign messages and Type 3 hashed-callsign/six-character-locator
   messages. Settle the corresponding station-validation rules before P15.9
-  and the consolidated forms in P15.11. Status: open; unimplemented. The current
-  standalone encoder [supports Type 1 only](development/standalone.md),
-  retaining a six-character locator in settings while transmitting its first
-  four characters.
+  and the consolidated forms in P15.11. Status: in progress in another chat.
+  See the [execution handoff](development/phase15-8-execution-prompt.md), including
+  the WsprryPi release-coordination and companion-branch requirements. The
+  pre-P15.8 standalone encoder supported Type 1 only, retaining a six-character
+  locator in settings while transmitting its first four characters. Current
+  implementation and acceptance are tracked in the
+  [P15.8 work record](development/phase15-8-wspr-type23.md).
 - ☐ **P15.9 — Save callsign and location independently.** The operator reports
   that saving only a callsign is blocked by a required-fields message. Allow
   either callsign or location to be edited and saved without filling in the
