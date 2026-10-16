@@ -254,7 +254,9 @@ P15.7 completed recovery against that service within its software scope. The
 original physical failed-save/session-loss reproduction remains open separately.
 P15.8 completed versioned automatic WSPR Type 2/3 software support with its
 approved Pi companion; Pi release integration and physical qualification remain
-open. Use those station-planning rules when separating valid-field saves from
+open. P15.8 and P15.9 are tracked as in progress pending their WsprryPi portions
+under release checklist steps 14 and 15, respectively. Use the P15.8
+station-planning rules when separating valid-field saves from
 transmit readiness, and complete hostname persistence, hostname-driven page
 titles and session recovery before reorganizing the settings pages. Finish the
 main-page identity presentation against those stable behaviors. Later
@@ -381,22 +383,26 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   sanitizers and browser evidence are recorded there. Original physical
   reproduction, actual phone/Mac transport, target heap/stack high-water and RF
   acceptance remain open.
-- ✅ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Automatic Type 1/2/3 planning,
+- ⏳ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Automatic Type 1/2/3 planning,
   adjacent-window Type 2/3 pairs, versioned resources and browser/commissioning
   support are delivered. Ordinary calls retain saved-six/on-air-four Type 1
   behavior. `/00`–`/09` remain supported with ambiguity warnings; paired Type 3
-  hashes the requested full callsign. Status: complete within the
+  hashes the requested full callsign. Overall status: in progress pending
+  WsprryPi integration and acceptance under its release checklist step 14.
+  The Pico implementation is complete within the
   [recorded software acceptance](development/phase15-8-wspr-type23.md), accepted
-  for roadmap closure by the operator on 2026-10-16. P15.8's published Pico head
-  is `4e96f0e`; its tested implementation pin is `804e8a0`. The approved, unmerged
+  for scoped software closure by the operator on 2026-10-16. P15.8's published
+  Pico head is `4e96f0e`; its tested implementation pin is `804e8a0`. The approved, unmerged
   Pi companion is `6d5e734` on `codex/p15-8-wspr-type23`. Recorded validation
   passed 196 host tests, 27 sanitizer-build checks, both firmware links and all
   12 companion CI jobs after executor adversarial review and repairs. Pi release
   integration, physical qualification and the separately requested originating
-  review remain open; this closure does not claim those results. The
+  review remain open; the scoped software acceptance does not claim those
+  results. The
   [execution handoff](development/phase15-8-execution-prompt.md) retains its
-  historical baseline and release-coordination boundary.
-- ☐ **P15.9 — Save valid fields independently of transmit readiness.** The
+  historical baseline and release-coordination boundary. Related Pi integration
+  remains tracked under WsprryPi release checklist step 14.
+- ⏳ **P15.9 — Save valid fields independently of transmit readiness.** The
   operator was updating the callsign in the second setup block, which contained
   QRSS message controls, and was blocked by required fields for message setup.
   Allow valid editable fields to be saved without completing unrelated station
@@ -414,10 +420,12 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   enforce completeness and validity before execution in both UI and backend.
   Reuse P15.1 update semantics, P15.7 readback/review and P15.8 station-planning
   rules, preserving profile/configuration authority and transaction boundaries.
-  Status: open; unimplemented. The
-  [P15.9 execution handoff](development/phase15-9-execution-prompt.md) records
-  the current source review, Pico lead, Pi release boundary and required
-  implementation/review/validation workflow; it has not been executed.
+  Overall status: in progress pending its WsprryPi portion under release
+  checklist step 15, by operator direction. Pico retains firmware, persistence
+  and standalone UI ownership. The
+  [technical source review](development/phase15-9-execution-prompt.md) and Pi
+  release-coordination boundaries remain applicable; this is not a request to
+  start work.
 - ☐ **P15.10 — Allow hostname changes and use the hostname in the page title.**
   Provide a browser setting to edit and save the hostname, retain it across
   restarts and use it for LAN/mDNS discovery and access. The saved hostname must
@@ -508,8 +516,9 @@ P15.4 shared-resource adoption is complete within its recorded software scope.
 P15.5 concurrent web servicing is complete within its recorded software scope.
 P15.6 independent sessions and P15.7 login/save recovery are complete within
 their recorded software scopes. P15.8 Type 2/3 software is complete with an
-approved unmerged Pi companion. Its release integration and separate originating
-review, physical concurrency/reproduction, target qualification and P15.9–P15.14
+approved unmerged Pi companion. Overall P15.8 and P15.9 are in progress pending
+their WsprryPi portions under steps 14 and 15. The separate originating P15.8
+review, physical concurrency/reproduction, target qualification and P15.10–P15.14
 remain open.
 
 ## Remaining deferred and backlog items

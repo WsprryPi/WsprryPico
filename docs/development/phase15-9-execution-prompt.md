@@ -1,13 +1,16 @@
 # P15.9 handoff: save valid fields independently of transmit readiness
 
-Status: **prepared, not executed**. This document records source orientation
-and an execution prompt. P15.9 remains open and unimplemented. Preparation
-changed documentation only; it did not implement draft persistence, change UI
-or firmware, run the prompt, or rerun P15.8's implementation qualification.
+Overall status: **in progress pending its WsprryPi portion under release
+checklist step 15**, by operator direction. The originating conversation
+prepared this source review and prompt without executing the implementation.
+The separately saved WsprryPi-coordinated execution handoff has been withdrawn
+by operator direction. This technical review remains a reference; changing the
+tracking status does not itself execute implementation or establish acceptance.
 
 ## Lead repository and current evidence
 
-**WsprryPico leads.** Pico owns the browser forms, complete-config validation,
+**WsprryPi coordinates; WsprryPico leads its implementation.** Pico owns the
+browser forms, complete-config validation,
 configuration journal, transactional consumer setup, effective profile overlay,
 standalone scheduler and local execution admission. Pi already produces partial
 edits for existing complete settings; moving this work to Pi would leave the
