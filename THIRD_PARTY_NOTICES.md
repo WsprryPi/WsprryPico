@@ -5,7 +5,7 @@ Third-party material retains its own license and attribution requirements.
 
 The optional Phase 10 host interoperability test compiles unmodified WTP-Client
 sources from [WsprryPi](https://github.com/WsprryPi/WsprryPi) at
-`2819f0b8ccb05f12d7f978a4cee2cac830997bbf`. The external component is MIT,
+`c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf`. The external component is MIT,
 copyright 2026 Lee Bussy; its notice remains in `src/WTP-Client/LICENSE.md`
 and source headers in that checkout. No client source is vendored here, no
 production dependency is added and no client code enters the firmware. Preserve
@@ -50,7 +50,7 @@ Standalone Wi-Fi builds also link the pinned SDK's network dependencies:
   source is unchanged and remains in the external SDK checkout.
 - [cyw43-driver](https://github.com/georgerobotics/cyw43-driver), v1.1.1 at
   `055d64274b014dd7b1c2fc94d26e8a18face7124`, including the SDK-selected
-  `firmware/w43439A0_7_95_49_00_combined.h` Wi-Fi/CLM resource. The external SDK source and
+  `firmware/wb43439A0_7_95_49_00_combined.h` Wi-Fi/Bluetooth/CLM resource. The external SDK source and
   resources remain unchanged. A hash-verified build overlay of `cyw43_ll.c`
   preserves outgoing frames across shared-buffer receive polling; generated
   copies retain the original header and identify the modification. Retained upstream
@@ -133,3 +133,18 @@ payloads, symbols and observed receiver results. GPL WSJT-X implementation was
 built only in temporary validation storage and is not included in firmware or
 this repository. The numeric observations are kept distinct from Pi goldens and
 from receiver/RF acceptance; see the P15.8 execution record.
+
+Firmware distribution bundles include `DEPENDENCY-LICENSES.txt`, assembled from
+this repository's retained notices, the exact SDK checkout and the verified
+Arm toolchain's consolidated `license.txt`. In addition to the components
+above, the linked SDK uses BTstack at
+`eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec` under the SDK's Raspberry Pi
+`src/rp2_common/pico_btstack/LICENSE.RP` supplement and upstream BTstack license.
+The supplement explicitly covers Pico 2 W. Preserve both texts. Linked
+BTstack third-party code includes micro-ecc's BSD-2-Clause notice and the
+public-domain rijndael source attribution. CMSIS retains Apache-2.0; pico_printf
+retains Marco Paland's MIT notice. The consolidated Arm document includes
+the linked GNU C++ runtime's GCC Runtime Library Exception and newlib notices.
+Compiler and host tooling are build inputs rather than firmware components.
+The workflow collects their exact applicable license materials with source
+paths and SHA-256s; it does not distribute the compiler or SDK as firmware.

@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/WsprryPi/WsprryPico/transmitter-standalone-frequency/1",
+  "title": "Standalone WSPR frequency resource version 1",
+  "$defs": {
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope",
+        "device_id",
+        "boot_id"
+      ],
+      "properties": {
+        "scope": {
+          "const": "member"
+        },
+        "device_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        },
+        "boot_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{32}$"
+        }
+      }
+    },
+    "write": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "target",
+        "frequency_hz"
+      ],
+      "properties": {
+        "schema": {
+          "const": "transmitter-standalone-frequency/1"
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        },
+        "frequency_hz": {
+          "type": "integer",
+          "minimum": 100000,
+          "maximum": 74999994
+        }
+      }
+    },
+    "read": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "target",
+        "frequency_hz",
+        "configured",
+        "allowed",
+        "storage_healthy"
+      ],
+      "properties": {
+        "schema": {
+          "const": "transmitter-standalone-frequency/1"
+        },
+        "target": {
+          "$ref": "#/$defs/target"
+        },
+        "frequency_hz": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 100000,
+              "maximum": 74999994
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "configured": {
+          "type": "boolean"
+        },
+        "allowed": {
+          "type": "boolean"
+        },
+        "storage_healthy": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

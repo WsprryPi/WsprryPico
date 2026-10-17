@@ -60,8 +60,8 @@ components:
 ## Overview
 
 This record applies to the admitted operator pages in `src/network/web/` and the Wi-Fi-first, optional station and recovery pages in `src/network/bootstrap_web/`.
-It captures the existing embedded operator interface after the finite-message
-changes. No new brand metaphor, visual identity, or approved composition is
+It records the embedded operator interface's native controls, feedback and
+recovery conventions. No new brand metaphor, visual identity, or approved composition is
 established. WsprryPi has its own design record; its fonts, Bootstrap components,
 and theme rules are not dependencies of this embedded surface.
 
@@ -172,6 +172,28 @@ splitting it into jobs.
 
 The message form has adjacent availability guidance derived from the existing connectivity, ownership, restart and capability gates. It introduces no second authority for job admission.
 
+### Standalone frequency
+
+The standalone WSPR frequency form precedes the schedule-enable checkbox in
+Schedules and radio pins. It uses the existing native fieldset, label, full-width
+text input and buttons. The label names Hz, the input requests a numeric keyboard,
+and adjacent help explains whole-Hz entry without commas or decimals. An unset
+frequency appears as a blank field; no band or frequency is preselected.
+
+Read saved frequency, Save frequency and Discard frequency draft remain separate
+actions. Readback preserves an edited draft; discard restores the last read
+value, including an unset value. Inline polite status describes the saved value,
+validation or recovery action, and invalid edited input carries `aria-invalid`.
+Saving applies to future standalone WSPR jobs without a restart and never enables
+schedules; schedule enablement remains a separate explicit action.
+
+Editing and saving require supported capability, a current idle observation and
+saved-state readback. Connection or boot changes invalidate that readback while
+preserving the draft. A draft retained across a changed Pico or boot identity
+requires fresh readback and the explicit Use entry for this Pico action before
+saving. A refused or unconfirmed save preserves the entry and requires another
+read; the browser does not repeat the save automatically.
+
 ### Finite-message preview
 
 QRSS, FSKCW, and DFCW accept at most 32 characters including spaces. The preview
@@ -243,9 +265,3 @@ font, native controls and bounded local assets remain the design authority.
 The private `.impeccable/design.json` sidecar contains component previews and
 metadata. Its generated tonal ramps are panel illustrations, not additional
 implemented palette tokens.
-
-This record is source documentation, not physical qualification. The finish
-review handoff scored the exact-duration and numerical-event-ceiling fixes
-resolved using local simulated API fixtures and desktop/mobile captures in
-`build/phase11-5-r3-v2-ui-review-fixed/`. That evidence does not qualify physical
-network behavior, target timing, or RF output.

@@ -42,11 +42,23 @@ completions do not establish physical timing. Both variants expose finite
 3600-second capacity, 100 kHz through one Hz below half the selected sample rate.
 See [build commands and target selection](firmware-foundation.md) and the
 [P15.16 acceptance record](phase15-16-results.md).
-Autonomous schedules use the build-selected whole-Hz base frequency
-`WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ`, which defaults to the existing
-3,570,100 Hz profile. `STATUS` reports the selected base in nanohertz so a
-physical packet can bind its RF limit to the exact image. The simulator's
-numeric acceptance does not establish physical waveform representability.
+Autonomous WSPR schedules use an explicitly saved whole-Hz base frequency,
+configured at runtime through the consumer settings page or the independently
+versioned `/api/v1/standalone-frequency` resource. Firmware images select no
+transmit frequency and contain no enabled station schedule. An older record
+without a saved frequency remains readable but cannot claim, prepare or arm
+an autonomous job. Its first explicit frequency save leaves schedules disabled;
+the operator must enable them deliberately. An already configured frequency
+change applies to the next job without a firmware rebuild or restart. Both
+frames of a Type 2/3 pair retain one frequency snapshot.
+
+`STATUS` reports the selected base in nanohertz, or null when unset, together
+with `frequency_required`. Legacy application resource projections use the
+nontransmitting decimal-string sentinel `"0"` when unset. Generic updates
+preserve explicitly saved frequency; older firmware may reject the new optional
+stored field, so downgrade preservation is unqualified. Explicit physical
+Console `CONFIG` may supply `wspr_base_frequency_hz` in whole Hz; omitted legacy
+writes preserve its saved value. No build-time band selection remains.
 This is experimental scope, not supported-band or output-power qualification.
 See [host acceptance prerequisites](phase10-host-acceptance.md) for image selection,
 frequency adjustment, clock budgets and the remaining joint target gates.

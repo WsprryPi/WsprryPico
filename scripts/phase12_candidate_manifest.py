@@ -54,7 +54,7 @@ def artifact(root, a):
     return p
 
 
-def verify_payload(elf, uf2):
+def verify_payload(elf, uf2, application_end=0x103f3000):
     require(len(elf) >= 52 and elf[:7] == b'\x7fELF\x01\x01\x01' and
             struct.unpack_from('<H', elf, 18)[0] == 40, 'ARM little-endian ELF32 required')
     offset = struct.unpack_from('<I', elf, 28)[0]
@@ -80,7 +80,7 @@ def verify_payload(elf, uf2):
         kind, file_offset, _, address, size, _, _, _ = struct.unpack_from('<8I', elf, offset+i*stride)
         if kind != 1 or size == 0:
             continue
-        require(0x10000000 <= address < address+size <= 0x103f3000 and
+        require(0x10000000 <= address < address+size <= application_end and
                 file_offset+size <= len(elf), 'ELF load segment outside application')
         for n in range(size):
             page = (address+n) & ~255

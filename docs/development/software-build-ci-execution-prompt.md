@@ -105,8 +105,8 @@ checks and RP2350 cross-linking; an unrelated platform matrix is not required.
 Keep local reproduction commands aligned with the CI recipe.
 
 Cover pushes to devel and appropriate pull-request checks. Add a bounded manual
-entry point where supported, with validated enumerated build profiles and
-version inputs. Record the actual checked-out SHA. PR head, synthetic merge
+entry point where supported, with a validated consumer profile and a unique
+version generated from the run and attempt. Record the actual checked-out SHA. PR head, synthetic merge
 commit and trusted devel source are different identities; a PR test artifact
 must not be advertised as the accepted devel deployment candidate.
 
@@ -176,40 +176,30 @@ source SHA in the manifest even when firmware embeds a short revision. Check
 untracked credential headers, dependency overrides and generated build inputs;
 Git's tracked dirty flag alone is not a complete input audit.
 
-Select and document a unique version policy before building. Ordinary devel CI
-may use a clearly identified development version with source/run provenance.
-For a candidate intended for decode and later testing-prerelease publication,
-choose its explicit version before qualification, following existing testing
-conventions and checking for conflicting prior identities. Merely reserving a
-candidate version does not create a tag/release. Validate version input syntax
-and length; never reuse an identity for different intended deployment bytes.
-Coordinate with item 7's authorized pre-1.0.0 CI download publication: choose
-compatible embedded-version/manifest/tag conventions before the qualifying run,
-so publication can retain the exact CI bytes without a local identity rewrite.
+Use the unique embedded development version `0.1.0-ci.<run-id>.<attempt>`,
+selected before building. Do not accept version overrides or reuse an identity
+for different deployment bytes. Later installer/prerelease publication uses
+those exact embedded versions and may prefix them with `v` for a unique
+pre-1.0.0 tag. CI itself creates no tag or release. Changing identity after
+qualification requires a new image and reassessment.
 
-Provide these explicitly identified profiles without changing repository defaults:
+Produce one generic, uninhibited consumer deployment image: `WsprryPico`,
+Pico 2 W, normal 138 MHz PIO/DMA application. Do not make deployment builds
+for individual bands. The firmware contains no selected transmit frequency,
+station identity, credentials or enabled schedule. Operators configure these
+at runtime; preserve explicitly saved settings on upgrades. Standalone WSPR
+with no explicitly saved frequency must remain nontransmitting, including old
+records that previously depended on a compile-time base. A first saved
+frequency does not implicitly enable an inherited schedule.
 
-1. Normal default profile: WsprryPico, 138 MHz, accepted default standalone
-   WSPR base, currently 3570100 Hz.
-2. Normal 20 m decode profile: the same WsprryPico target and 138 MHz, with
-   WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ=14097100, available for explicit
-   downstream verification. Item 2's completed operator-selected 80 m result
-   retains its own source/image applicability.
-3. Explicit inhibited diagnostic: WsprryPico-Inhibited, clearly separated from
-   normal deployment and never implicitly selected by a download instruction.
+Build `WsprryPico-Inhibited` as a software/build regression only. Exclude its
+UF2 from the deployment bundle. Build/check the compatibility RF target when
+needed to validate shared wiring; it is not a consumer download asset.
 
-Build/check the compatibility RF target when necessary to validate shared
-wiring; it need not become an extra operator deployment asset. Keep profile
-identifiers, filenames, source/version, actual RF base and engine unambiguous.
-The 20 m profile is a generic normal application with an explicit supported
-frequency build option, not a device-provisioned or bench image.
-
-Any CI image selected for later decode must remain available for exact-byte
-promotion under item 9, with its profile declared. A decode of one profile does
-not qualify a different default-frequency UF2. Reconcile downstream expectations
-before qualification: changing embedded version, source or build inputs later
-requires a new image and reassessment of affected evidence. Do not rebuild or rewrite
-identity after RF testing and call the result the same qualified image.
+Downstream decode and publication must use the exact normal CI-produced bytes.
+Changing embedded version, source or other build inputs after qualification
+requires a new image and reassessment. Item 2's recorded 80 m image and evidence
+retain their exact historical scope and are not relabelled as CI acceptance.
 
 ## Validate actual linked images and UF2 payloads
 
@@ -220,7 +210,7 @@ RP2350 workaround treatment and current journal reservations.
 
 Verify physical engine/worker/renderer presence for normal images and absence
 for inhibited images using actual linked ELF evidence. Verify normal clock,
-standalone RF base, target/variant, version, product, board/processor/family and
+runtime frequency-selection contract, target/variant, version, product, board/processor/family and
 compile definitions. Wrong-role, mixed or incomplete images must fail packaging
 even if their names or sidecar metadata look correct.
 
@@ -255,7 +245,7 @@ do not relabel its historical evidence as a deployment manifest.
 
 Include at least product/version/channel intent; repository and full source F;
 source cleanliness/input digest; build profile, target, board/processor/family,
-uninhibited/inhibited role, engine, clock and standalone RF base; exact SDK/
+uninhibited/inhibited role, engine, clock and runtime frequency-selection contract; exact SDK/
 toolchain/picotool/submodule/overlay inputs; runner/build type/options; workflow
 path/revision, event, run ID/attempt/URL; actual checks/results/skips; payload
 basenames/sizes/SHA-256s; update/storage/rollback constraints; and evidence/

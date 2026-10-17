@@ -56,6 +56,12 @@ select the complete normal 138 MHz PIO/DMA `WsprryPico` application.
 [portable build prerequisites and artifact paths](docs/development/firmware-foundation.md).
 RF capability preserves saved enablement and all job-admission guards.
 
+Consumer images select no transmit frequency. Set and save the standalone WSPR
+frequency at runtime before enabling schedules; a firmware rebuild is not needed
+to change bands. Upgrades preserve explicitly saved settings. Older schedules
+without a saved frequency remain nontransmitting until the operator selects one
+and deliberately enables them. See the [CI image guide](docs/development/software-build-ci.md).
+
 The historical Phase 14 closeout retained the independently rebuilt
 consumer-radio-c96eeeeb4871 / 138 MHz image on both Picos. That board snapshot
 predates this selected feature slice. Both authenticated consumer

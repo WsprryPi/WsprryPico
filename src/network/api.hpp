@@ -106,6 +106,7 @@ class BrowserApi {
     HttpResponse config(bool drive = false, bool amplifier = false) const;
     HttpResponse gpio_drive() const;
     HttpResponse rf_calibration() const;
+    HttpResponse standalone_frequency() const;
     HttpResponse station_config(bool extended = false) const;
     HttpResponse hardware_config(bool drive = false, bool amplifier = false) const;
     HttpResponse application_config(bool extended = false, bool usb_management = false,

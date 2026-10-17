@@ -365,12 +365,13 @@ void autonomous_admission() {
     const auto next = (f.clock.snapshot().utc_now_ns / period + 1) * period + hz;
     f.clock.utc = next - 5 * hz - f.clock.now;
     auto config = *f.store.config();
+    config.wspr_base_frequency_hz = 3'570'100;
     config.enabled = true;
     REQUIRE(
         f.scheduler.command("CONFIG " + standalone::serialize_config(config)).find("\"ok\":true") !=
         std::string::npos);
     f.scheduler.poll();
-    const auto base = std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * hz;
+    const auto base = std::uint64_t{*config.wspr_base_frequency_hz} * hz;
     if (application::frequency_allowed(base, false, false)) {
         REQUIRE(f.service.status().state == wtp::State::Armed && f.raw.schedules == 1);
     } else {

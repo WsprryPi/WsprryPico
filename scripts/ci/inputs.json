@@ -1,0 +1,22 @@
+{
+  "sdk": "079c6f39023649b154152db30f1d781e884879bc",
+  "picotool": "6f6458d792b93685a11423b244a585eaa99eafcf",
+  "companion": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+  "arm_gcc": "15.3.1",
+  "toolchain_url": "https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi.tar.xz",
+  "toolchain_sha256": "563bebb2b97d53382b956d6ee1fe61e2cae26699901417234a37df505ef9b5fa",
+  "python": "3.12.11",
+  "node": "24.8.0",
+  "sdk_submodules": {
+    "lib/tinyusb": "86ad6e56c1700e85f1c5678607a762cfe3aa2f47",
+    "lib/lwip": "77dcd25a72509eb83f72b033d219b1d40cd8eb95",
+    "lib/cyw43-driver": "055d64274b014dd7b1c2fc94d26e8a18face7124",
+    "lib/mbedtls": "0bebf8b8c7f07abe3571ded48a11aa907a1ffb20",
+    "lib/btstack": "eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec"
+  },
+  "linked_resource_sha256": {
+    "wb43439A0_7_95_49_00_combined.h": "6b4b9a717c3c5d669b56a3bc38b58df3901f63e3a7363ccf5d74706460762176",
+    "wifi_nvram_43439.h": "ddc82b00667643f55d7687bba1b5e4028f24717ec8883f05bd7d435f4c9c01ad",
+    "cyw43_btfw_43439.h": "d05a8dca7e232ada470d8ed723edaa1ea78000098870f9b979d490d83ad35b22"
+  }
+}

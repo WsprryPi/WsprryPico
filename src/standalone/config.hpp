@@ -20,6 +20,8 @@ struct Config {
     unsigned gpio_drive_ma = 4; // Nominal direct RF pad current, never WSPR power.
     std::int32_t manual_correction_ppb = 0;
     bool ntp_rf_calibration = false; // Explicit opt-in; numeric estimates remain volatile.
+    // No transmit frequency is selected by a firmware image or legacy record.
+    std::optional<std::uint32_t> wspr_base_frequency_hz;
     bool enabled = false;
     bool allow_unqualified_frequency = false;
     bool allow_non_amateur_frequency = false;
@@ -36,6 +38,9 @@ std::string serialize_config(const Config& config, bool amplifier_view = false);
 bool valid_gpio_drive(unsigned ma);
 bool valid_gpio_drive_token(wtp::json::Value value);
 bool valid_time_server(std::string_view value);
+bool valid_wspr_frequency_token(wtp::json::Value value);
+bool wspr_frequency_allowed(const Config& config, std::uint64_t minimum_nhz,
+                            std::uint64_t maximum_nhz);
 bool valid_wifi_credentials(std::string_view ssid, std::string_view password,
                             std::string_view time_server);
 } // namespace wsprrypico::standalone

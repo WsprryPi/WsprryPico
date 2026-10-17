@@ -12,6 +12,7 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
     add_compile_options(
         "-ffile-prefix-map=${CMAKE_SOURCE_DIR}=wsprrypico-source"
         "-ffile-prefix-map=${CMAKE_BINARY_DIR}=wsprrypico-build"
+        "-ffile-prefix-map=${PICO_SDK_PATH}=pico-sdk"
     )
 else()
     project(WsprryPico LANGUAGES CXX)
@@ -44,7 +45,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js
     src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
     src/network/web/saved-progress.js src/network/web/gpio-drive.js
-    src/network/web/rf-calibration.js src/network/web/amplifier-enable.js
+    src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/standalone-frequency.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
     src/network/bootstrap_web/radio-bundle.js
@@ -143,23 +144,12 @@ endif()
 # Portable experimental RF library; not linked into the inhibited firmware.
 add_library(wsprrypico_rf src/rf/waveform.cpp src/rf/stream_engine.cpp src/rf/pio_dma_sink.cpp src/rf/bench.cpp src/rf/worker.cpp)
 set(WSPRRY_PICO_RF_SAMPLE_RATE_HZ "138000000" CACHE STRING "Experimental bench clock: 132000000, 138000000 or 150000000")
+if(DEFINED WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ)
+    message(FATAL_ERROR "Build-time standalone frequency selection was removed; configure frequency at runtime")
+endif()
 if(NOT WSPRRY_PICO_RF_SAMPLE_RATE_HZ MATCHES "^(132000000|138000000|150000000)$")
     message(FATAL_ERROR "Unsupported experimental RF sample clock")
 endif()
-set(WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ "3570100" CACHE STRING
-    "Autonomous standalone WSPR base frequency in whole Hz")
-if(NOT WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ MATCHES "^[0-9]+$")
-    message(FATAL_ERROR "Standalone WSPR base frequency must be whole Hz")
-endif()
-math(EXPR WSPRRY_PICO_STANDALONE_WSPR_MAX_BASE_HZ
-     "${WSPRRY_PICO_RF_SAMPLE_RATE_HZ} / 2 - 5")
-if(WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ LESS 100000 OR
-   WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ GREATER
-   WSPRRY_PICO_STANDALONE_WSPR_MAX_BASE_HZ)
-    message(FATAL_ERROR "Standalone WSPR base frequency is outside the RF profile")
-endif()
-target_compile_definitions(wsprrypico_core PUBLIC
-    WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ=${WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ})
 target_compile_definitions(wsprrypico_rf PUBLIC WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
 target_link_libraries(wsprrypico_rf PUBLIC wsprrypico_core)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
@@ -196,6 +186,17 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(standalone_frequency_tests tests/standalone_frequency_tests.cpp)
+    target_link_libraries(standalone_frequency_tests PRIVATE wsprrypico_core)
+    target_compile_options(standalone_frequency_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME standalone_frequency COMMAND standalone_frequency_tests)
+    add_test(NAME standalone_frequency_schema COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/standalone_frequency_schema_tests.py $<TARGET_FILE:standalone_frequency_tests>)
+    find_program(WSPRRY_PICO_FREQUENCY_NODE node)
+    if(WSPRRY_PICO_FREQUENCY_NODE)
+        add_test(NAME standalone_frequency_browser COMMAND ${WSPRRY_PICO_FREQUENCY_NODE}
+            ${CMAKE_SOURCE_DIR}/tests/standalone_frequency_browser_tests.js)
+    endif()
     add_test(NAME operator_asset_build_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/operator_asset_build_tests.py)
     add_test(NAME application_image_tests COMMAND ${Python3_EXECUTABLE}

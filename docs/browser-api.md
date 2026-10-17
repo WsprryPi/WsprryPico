@@ -170,9 +170,21 @@ Passwords are returned as JSON null. A null password in PUT preserves the stored
 password; it is rejected when no stored config exists. Supplying a new password
 replaces it after full validation. Successful and failed responses never echo it.
 The existing station, recurrence, overlap, expiry and storage rules remain in
-force. Autonomous WSPR uses a build-selected base frequency, default
-3,570,100 Hz; Config v1 has no per-schedule frequency/mode field. Complete job
-routes support the advertised modes/frequencies, subject to frequency policy
+force. Autonomous WSPR requires an explicitly saved runtime base frequency;
+firmware images select none. Config v1 has no per-schedule frequency/mode
+field. The independently versioned `transmitter-standalone-frequency/1`
+resource at `/api/v1/standalone-frequency` owns the shared standalone WSPR
+frequency. GET reports whole-Hz `frequency_hz` (null when unset), `configured`,
+`allowed`, target identity and storage health with the current ETag. PUT uses
+that schema, the exact member/boot target and an integer `frequency_hz`, with
+If-Match and idle authority. All four WSPR tones must pass the current engine
+limits and saved frequency permissions. A first frequency selection leaves
+schedules disabled until explicitly enabled; later changes apply to future
+jobs. Legacy config/progress routes preserve the selection without exposing
+it in their closed schemas. Legacy application recurrence uses `"0"` for an
+unset frequency; the dedicated resource is authoritative. See the
+[resource schema](protocol/transmitter-standalone-frequency-1.schema.json).
+Complete job routes support the advertised modes/frequencies, subject to frequency policy
 and engine admission. Type 1/2/3 station admission requires the explicit
 versioned routes below; its software acceptance does not close the separate
 captured-RF decode item in the [backlog](development/consolidated-backlog.md).

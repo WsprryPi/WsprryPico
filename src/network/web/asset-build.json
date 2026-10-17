@@ -2,18 +2,19 @@
   "schema": "operator-assets/1",
   "tool": "esbuild/0.28.2",
   "target": "es2020",
-  "recipe_sha256": "8ac5b74bd45c395906ca0731354fe89d3b915c829bbab4b182232b05dafe6565",
+  "recipe_sha256": "61d1ef21029e66a356c098372424dcf0a4eab52d84199e4c22c25321cc78b6eb",
   "groups": {
     "app.min.js": {
       "inputs": {
+        "standalone-frequency.js": "0a97ed62ab365477914b2a43f004f2eab577d1a469fc1f2d8aa366aac4d77a1a",
         "rf-calibration.js": "43a2da35e52eed2925702a383f9f376702b1faecdaffbfd74d2c05cf07b93a7a",
         "amplifier-enable.js": "4a44353c0dbe15d6992e738d62ff7595d3d15e3a891cf2d571290e6163bbd8ac",
         "gpio-drive.js": "012c3c98032384077e86525a6bc3aa19a0dfc7d91ed73deb90205eaf8cd6a70f",
         "saved-progress.js": "eda273462a85879a5060d72d9380c3d7834d50f75c4cdbc9b12c10e7e2232195",
-        "app.js": "8ef402cd3f44392dc3b11ff7c43c04d063a6bd3ffe6e89792c92f2aa75a1e9a5"
+        "app.js": "0fa95869743e4a42428c9ee06ec5a1b546c4e273588ae8155d6d3edb956b4f72"
       },
-      "sha256": "373d6904a585d4f3c591ff9dcffb9d4a864e4372443acf8fd13e29a9e4e48254",
-      "bytes": 93218
+      "sha256": "ee52bac7d23956a639803854af681d196437f6836d7efa50826fdffeefec6959",
+      "bytes": 98398
     },
     "config-validation.min.js": {
       "inputs": {

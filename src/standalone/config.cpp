@@ -1,5 +1,6 @@
 #include "standalone/config.hpp"
 
+#include "application/frequency_policy.hpp"
 #include "encoding/wspr.hpp"
 #include "rf/calibration.hpp"
 #include "wtp/json.hpp"
@@ -47,6 +48,25 @@ bool integer(wtp::json::Value value, std::uint32_t& n) {
 } // namespace
 bool valid_gpio_drive(unsigned ma) {
     return ma == 2 || ma == 4 || ma == 8 || ma == 12;
+}
+bool valid_wspr_frequency_token(wtp::json::Value value) {
+    std::uint32_t frequency = 0;
+    return integer(value, frequency) && std::to_string(frequency) == value.raw &&
+           frequency >= 100'000 && frequency <= 74'999'994;
+}
+bool wspr_frequency_allowed(const Config& config, std::uint64_t minimum_nhz,
+                            std::uint64_t maximum_nhz) {
+    if (!config.wspr_base_frequency_hz)
+        return false;
+    const auto base = std::uint64_t{*config.wspr_base_frequency_hz} * 1'000'000'000ULL;
+    for (unsigned symbol = 0; symbol < 4; ++symbol) {
+        const auto tone = base + symbol * 1'464'843'750ULL;
+        if (tone < minimum_nhz || tone > maximum_nhz ||
+            !application::frequency_allowed(tone, config.allow_unqualified_frequency,
+                                            config.allow_non_amateur_frequency))
+            return false;
+    }
+    return true;
 }
 bool valid_gpio_drive_token(wtp::json::Value value) {
     return value.raw == "2" || value.raw == "4" || value.raw == "8" || value.raw == "12";
@@ -106,7 +126,7 @@ std::optional<Config> parse_config(std::string_view text) {
         !fields(*root, {"version", "enabled", "station", "wifi", "schedules"},
                 {"expires_utc_s", "pins", "allow_unqualified_frequency",
                  "allow_non_amateur_frequency", "gpio_drive_ma", "manual_correction_ppb",
-                 "ntp_rf_calibration"}) ||
+                 "ntp_rf_calibration", "wspr_base_frequency_hz"}) ||
         root->get("version")->raw != "1" ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
@@ -122,6 +142,11 @@ std::optional<Config> parse_config(std::string_view text) {
         if (wifi.get(name)->type() != '"')
             return {};
     Config c;
+    if (const auto frequency = root->get("wspr_base_frequency_hz")) {
+        if (!valid_wspr_frequency_token(*frequency))
+            return {};
+        c.wspr_base_frequency_hz = std::uint32_t(frequency->integer());
+    }
     if (const auto correction = root->get("manual_correction_ppb")) {
         std::int32_t value = 0;
         const auto raw = std::string(correction->raw);
@@ -236,6 +261,8 @@ std::string serialize_config(const Config& c, bool amplifier_view) {
         result += ",\"manual_correction_ppb\":" + std::to_string(c.manual_correction_ppb);
     if (c.ntp_rf_calibration)
         result += ",\"ntp_rf_calibration\":true";
+    if (c.wspr_base_frequency_hz)
+        result += ",\"wspr_base_frequency_hz\":" + std::to_string(*c.wspr_base_frequency_hz);
     return result + "}";
 }
 } // namespace wsprrypico::standalone

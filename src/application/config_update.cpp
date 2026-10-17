@@ -133,6 +133,10 @@ std::optional<std::string> config_candidate(Value supplied,
     }
     if (mode == ConfigWrite::Replace)
         result += ",\"manual_correction_ppb\":0,\"ntp_rf_calibration\":false";
+    // Closed legacy resources cannot name this independently owned setting.
+    // Even their replace operation must preserve its saved selection.
+    if (current && current->wspr_base_frequency_hz)
+        member(result, "wspr_base_frequency_hz", std::to_string(*current->wspr_base_frequency_hz));
     result += '}';
     if (result.size() > standalone::max_config_bytes)
         return {};

@@ -47,11 +47,13 @@ if(NOT CMAKE_C_COMPILER_ID STREQUAL "GNU" OR
 endif()
 
 # New linked networking components must match the SDK's recorded submodules.
-foreach(component lwip cyw43-driver mbedtls)
+foreach(component lwip cyw43-driver mbedtls btstack)
     if(component STREQUAL "lwip")
         set(expected_revision "77dcd25a72509eb83f72b033d219b1d40cd8eb95")
     elseif(component STREQUAL "mbedtls")
         set(expected_revision "0bebf8b8c7f07abe3571ded48a11aa907a1ffb20")
+    elseif(component STREQUAL "btstack")
+        set(expected_revision "eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec")
     else()
         set(expected_revision "055d64274b014dd7b1c2fc94d26e8a18face7124")
     endif()
@@ -66,6 +68,8 @@ foreach(component lwip cyw43-driver mbedtls)
     elseif(component STREQUAL "mbedtls")
         # The SDK permits an environment/cache override. Verify the linked input.
         set(component_path "${PICO_MBEDTLS_PATH}")
+    elseif(component STREQUAL "btstack")
+        set(component_path "${PICO_BTSTACK_PATH}")
     endif()
     execute_process(COMMAND git -C "${component_path}" status --porcelain
         OUTPUT_VARIABLE component_status OUTPUT_STRIP_TRAILING_WHITESPACE

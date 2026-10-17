@@ -146,12 +146,15 @@ void faults_and_secrets() {
 }
 void domains_and_admission() {
     ProgressFixture f;
-    REQUIRE(f.store.save(*standalone::parse_config(config)));
+    auto selected = *standalone::parse_config(config);
+    selected.wspr_base_frequency_hz = 14'097'100;
+    REQUIRE(f.store.save(selected));
     const auto applied = *f.store.config();
     REQUIRE(f.save(R"({"locator":null,"enabled":true,"ntp_ipv4":"pool.ntp.org"})").status == 200);
     REQUIRE(!f.progress.candidate(applied));
     REQUIRE(f.apply("radio").status == 200);
     REQUIRE(f.store.config()->enabled && f.store.config()->locator == applied.locator);
+    REQUIRE(f.store.config()->wspr_base_frequency_hz == selected.wspr_base_frequency_hz);
     REQUIRE(f.apply("network").status == 200);
     REQUIRE(f.store.config()->ntp_ipv4 == "pool.ntp.org");
     REQUIRE(f.apply("station").status == 409);

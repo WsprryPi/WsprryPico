@@ -251,6 +251,7 @@ HttpResponse BrowserApi::config(bool drive, bool amplifier) const {
         redacted.password.clear();
         redacted.manual_correction_ppb = 0;
         redacted.ntp_rf_calibration = false;
+        redacted.wspr_base_frequency_hz.reset();
         if (!drive)
             redacted.gpio_drive_ma = 4;
         body = standalone::serialize_config(redacted, amplifier);
@@ -281,6 +282,24 @@ HttpResponse BrowserApi::station_config(bool extended) const {
                      ",\"saved_generation\":" +
                      (saved ? json::quote(std::to_string(store_.config_sequence())) : "null") +
                      ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
+    result.etag = revision();
+    return result;
+}
+HttpResponse BrowserApi::standalone_frequency() const {
+    const auto config = effective_config();
+    auto result = ok(
+        "{\"schema\":\"transmitter-standalone-frequency/1\",\"target\":" +
+        application::target(device_, service_.status().boot_id) + ",\"frequency_hz\":" +
+        (config && config->wspr_base_frequency_hz ? std::to_string(*config->wspr_base_frequency_hz)
+                                                  : "null") +
+        ",\"configured\":" + (config && config->wspr_base_frequency_hz ? "true" : "false") +
+        ",\"allowed\":" +
+        (config && standalone::wspr_frequency_allowed(*config,
+                                                      service_.config().minimum_frequency_nhz,
+                                                      service_.config().maximum_frequency_nhz)
+             ? "true"
+             : "false") +
+        ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") + "}");
     result.etag = revision();
     return result;
 }
@@ -375,8 +394,14 @@ HttpResponse BrowserApi::application_config(bool extended, bool usb_management, 
     if (!value)
         return http_error(503, "resource_exhausted");
     std::string recurrence = "{\"authority\":\"member\"";
-    for (const auto field : {"enabled", "suspended", "schedules", "schedule_base_frequency_nhz"})
+    for (const auto field : {"enabled", "suspended", "schedules"})
         recurrence += ',' + json::quote(field) + ':' + std::string(value->get(field)->raw);
+    // Legacy application resources require a decimal string. Zero means
+    // unconfigured; the independent frequency resource reports explicit null.
+    recurrence += ",\"schedule_base_frequency_nhz\":" +
+                  (value->get("schedule_base_frequency_nhz")->raw == "null"
+                       ? std::string("\"0\"")
+                       : std::string(value->get("schedule_base_frequency_nhz")->raw));
     recurrence +=
         ",\"expires_utc_s\":" + json::quote(std::string(value->get("expires_utc_s")->raw));
     recurrence += '}';
@@ -651,6 +676,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return ok(
                 "{\"ntp_observations\":{\"schema\":\"transmitter-ntp-observations/1\","
                 "\"path\":\"/api/v1/ntp-observations\"},"
+                "\"standalone_frequency\":{\"schema\":\"transmitter-standalone-frequency/1\","
+                "\"path\":\"/api/v1/standalone-frequency\",\"method\":\"PUT\",\"units\":\"Hz\","
+                "\"activation\":\"next_job\",\"default\":null},"
                 "\"rf_calibration\":{\"schema\":\"transmitter-rf-calibration/1\","
                 "\"path\":\"/api/v1/rf-calibration\",\"method\":\"PUT\","
                 "\"units\":\"ppm\",\"precision\":3,\"minimum\":\"-100.000\","
@@ -722,6 +750,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         }
         if (r.path == "/api/v1/rf-calibration")
             return rf_calibration();
+        if (r.path == "/api/v1/standalone-frequency")
+            return standalone_frequency();
         if (r.path == "/api/v1/gpio-drive")
             return gpio_drive();
         if (r.path == "/api/v1/config/4")
@@ -837,6 +867,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         // preserves these omitted settings through the central config merger.
         compatible.manual_correction_ppb = 0;
         compatible.ntp_rf_calibration = false;
+        compatible.wspr_base_frequency_hz.reset();
         // Legacy apply has no drive authority. Omit the extension on its old
         // config route; ordinary candidate merge preserves the saved value and
         // the response retains its original closed configuration shape.
@@ -902,6 +933,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const bool drive_config =
         amplifier_config || r.path == "/api/v1/config/3" || r.path == "/api/v1/config/update/3";
     const bool calibration_resource = r.path == "/api/v1/rf-calibration";
+    const bool frequency_resource = r.path == "/api/v1/standalone-frequency";
     const bool drive_resource = r.path == "/api/v1/gpio-drive";
     const bool extended_config =
         drive_config || r.path == "/api/v1/config/2" || r.path == "/api/v1/config/update/2";
@@ -919,10 +951,10 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         (r.method != "PUT" ||
          (r.path != "/api/v1/config" && r.path != "/api/v1/config/2" &&
           r.path != "/api/v1/config/3" && r.path != "/api/v1/config/4" && !drive_resource &&
-          !calibration_resource && r.path != "/api/v1/schedules" && r.path != "/api/v1/network" &&
-          !scoped_resource)))
+          !calibration_resource && !frequency_resource && r.path != "/api/v1/schedules" &&
+          r.path != "/api/v1/network" && !scoped_resource)))
         return http_error(404, "not_found");
-    if ((scoped_resource || drive_resource || calibration_resource) &&
+    if ((scoped_resource || drive_resource || calibration_resource || frequency_resource) &&
         r.body_view().size() > application::max_update_bytes)
         return http_error(413, "resource_body_too_large");
     if (config_update && r.body_view().size() > application::max_config_update_bytes)
@@ -1006,7 +1038,26 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return result;
     }
     std::string candidate;
-    if (calibration_resource) {
+    if (frequency_resource) {
+        const auto checked =
+            application::validate_envelope(*root, "transmitter-standalone-frequency/1",
+                                           "frequency_hz", device_, service_.status().boot_id);
+        if (checked != application::Envelope::Valid)
+            return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
+                              "invalid_frequency_resource");
+        if (!standalone::valid_wspr_frequency_token(*root->get("frequency_hz")))
+            return http_error(400, "invalid_wspr_frequency");
+        if (!effective_config())
+            return http_error(409, "not_configured");
+        auto updated = *effective_config();
+        if (!updated.wspr_base_frequency_hz)
+            updated.enabled = false; // A first selection cannot resume an inherited schedule.
+        updated.wspr_base_frequency_hz = std::uint32_t(root->get("frequency_hz")->integer());
+        if (!standalone::wspr_frequency_allowed(updated, service_.config().minimum_frequency_nhz,
+                                                service_.config().maximum_frequency_nhz))
+            return http_error(400, "frequency_not_allowed");
+        candidate = standalone::serialize_config(updated);
+    } else if (calibration_resource) {
         const auto checked =
             application::validate_envelope(*root, "transmitter-rf-calibration/1", "calibration",
                                            device_, service_.status().boot_id);
@@ -1148,6 +1199,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const auto validated = standalone::parse_config(candidate);
     if (!validated)
         return http_error(400, "invalid_config");
+    if (validated->enabled && !validated->wspr_base_frequency_hz)
+        return http_error(400, "standalone_frequency_required");
     const auto existing = effective_config();
     const bool station_changed = !existing || existing->callsign != validated->callsign ||
                                  existing->locator != validated->locator ||
@@ -1205,6 +1258,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     }
     if (calibration_resource)
         return rf_calibration();
+    if (frequency_resource)
+        return standalone_frequency();
     if (drive_resource)
         return gpio_drive();
     if (station_resource)

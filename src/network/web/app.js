@@ -57,6 +57,12 @@ let localIdentity = null, localAuthenticated = false;
 let engineeringStationDirty = false, engineeringNetworkDirty = false;
 let writeState = 'readback', savedReadback = null, saveAttempt = null, retirementDiscovery = null;
 
+if ($('standalone-frequency-form')) $('standalone-frequency-form').onsubmit = event => event.preventDefault();
+const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-frequency') ? WsprryStandaloneFrequency.create({
+  input:$('standalone-frequency'),read:$('standalone-frequency-read'),save:$('standalone-frequency-save'),discard:$('standalone-frequency-discard'),adopt:$('standalone-frequency-adopt'),status:$('standalone-frequency-status'),
+  exchange:async (method,body,match)=>{if (!WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency)) throw new Error('Standalone frequency configuration is unsupported.'); return api('standalone-frequency',method,body,match);},
+  afterSave:()=>requireReadback()
+}) : null;
 if ($('rf-calibration-form')) $('rf-calibration-form').onsubmit = event => event.preventDefault();
 const calibrationEditor = globalThis.WsprryRfCalibration && $('rf-manual-ppm') ? WsprryRfCalibration.create({
   input:$('rf-manual-ppm'),mode:$('rf-calibration-mode'),read:$('rf-calibration-read'),save:$('rf-calibration-save'),discard:$('rf-calibration-discard'),adopt:$('rf-calibration-adopt'),status:$('rf-calibration-status'),
@@ -443,6 +449,9 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
     const explanation = {
       storage_fault:'Settings storage could not be verified. Resolve storage health before another save',
       invalid_gpio_drive:'Choose 2, 4, 8 or 12 mA for GPIO drive strength',
+      standalone_frequency_required:'Choose and save a standalone WSPR frequency before enabling schedules',
+      invalid_wspr_frequency:'Enter a whole transmit frequency in Hz, without commas or decimals',
+      frequency_not_allowed:'The WSPR tones fall outside the engine limits or saved frequency permissions. Choose an allowed frequency',
       revision_conflict:'Saved settings changed. Your edits are preserved. Read current saved settings and review them before a new save',
       precondition_failed:'Saved revision changed. Your edits are preserved. Read and review current saved settings',
       pin_conflict:`GP${data.gp} is already assigned to ${data.owner}; choose a different pin for ${data.role}`,
@@ -521,6 +530,7 @@ async function discoverLocal() {
 function controls(connected) {
   online = connected;
   calibrationEditor?.setAvailability(!!connected && !busy && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  frequencyEditor?.setAvailability(!!connected && !busy && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   driveEditor?.setAvailability(!!connected && !busy && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
   $('reload-config').disabled = busy || !online;
@@ -606,7 +616,7 @@ async function refresh(loadConfig = false) {
     if (!pinChoices) { try { pinChoices = (await api('pins')).data.choices; } catch (_) {} }
     snapshot = (await api('status')).data; expectedPause = false; observedAt = new Date().toLocaleTimeString();
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) capabilities = (await api('capabilities')).data;
-    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); calibrationEditor?.invalidate(); }
+    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); }
     capabilitiesBoot = snapshot.job.boot_id;
     const s = snapshot.standalone, n = snapshot.network;
     $('state').textContent = snapshot.job.state;
@@ -628,6 +638,7 @@ async function refresh(loadConfig = false) {
     }
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
     $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network or pin settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
+    if (s.frequency_required) $('recovery').textContent += ' Standalone transmission is blocked: choose and save a WSPR frequency in Schedules and radio pins, then explicitly enable schedules.';
     if (loadConfig) { const c = await api('config'); const config=checkedConfig(c); revision = c.revision; fill(config); const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; $('save-reconcile-status').textContent = 'Saved settings reloaded into this browser. Review any new edits before saving.'; showProgress(); }
     updateProgress(); messagePreview();
     notice('Connected · Status updated ' + observedAt); controls(true);

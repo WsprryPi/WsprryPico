@@ -310,10 +310,16 @@ struct Engine : wtp::RfEngine {
         return active;
     }
 };
+constexpr std::uint32_t selected_test_frequency_hz = 3'570'100;
+standalone::Config scheduled_config() {
+    auto config = *standalone::parse_config(example);
+    config.wspr_base_frequency_hz = selected_test_frequency_hz;
+    return config;
+}
 void live_config_tests() {
     MemoryFlash flash;
     standalone::Store store(flash);
-    CHECK(store.load() && store.save(*standalone::parse_config(example)));
+    CHECK(store.load() && store.save(scheduled_config()));
     Clock clock;
     Engine engine;
     Identity identities;
@@ -343,7 +349,7 @@ void reset_guard_tests() {
     MemoryFlash flash;
     standalone::Store store(flash);
     CHECK(store.load());
-    auto config = *standalone::parse_config(example);
+    auto config = scheduled_config();
     config.enabled = false;
     CHECK(store.save(config));
     Clock clock;
@@ -368,7 +374,7 @@ void reset_guard_tests() {
 void configuration_fault_reset_tests() {
     MemoryFlash flash;
     standalone::Store store(flash);
-    auto config = *standalone::parse_config(example);
+    auto config = scheduled_config();
     config.enabled = false;
     CHECK(store.load() && store.save(config));
     Clock clock;
@@ -408,7 +414,7 @@ void scheduler_tests() {
     MemoryFlash flash;
     standalone::Store store(flash);
     CHECK(store.load());
-    auto schedule_config = *standalone::parse_config(example);
+    auto schedule_config = scheduled_config();
     schedule_config.locator = "EM18AA";
     schedule_config.schedules = {{240, 0}};
     CHECK(store.save(schedule_config));
@@ -424,10 +430,10 @@ void scheduler_tests() {
     CHECK(engine.prepared == 1 && engine.job.events.size() == 162);
     CHECK(engine.job.total_duration_ns == 110'592'000'000ULL);
     CHECK(engine.job.events[0].frequency_nhz ==
-          std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns + 1'464'843'750ULL);
+          std::uint64_t{selected_test_frequency_hz} * ns + 1'464'843'750ULL);
     CHECK(scheduler.status().find(
               "\"schedule_base_frequency_nhz\":\"" +
-              std::to_string(std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns) +
+              std::to_string(std::uint64_t{selected_test_frequency_hz} * ns) +
               "\"") != std::string::npos);
     CHECK(scheduler.command("CONFIG " + example).find("busy") != std::string::npos);
     for (int i = 0; i < 10; ++i)
@@ -469,7 +475,7 @@ void scheduler_tests() {
     {
         MemoryFlash f;
         standalone::Store s(f);
-        auto config = *standalone::parse_config(example);
+        auto config = scheduled_config();
         config.callsign = "AA0NT/ABC";
         config.locator = "EM18AA";
         CHECK(s.load() && s.save(config));
@@ -487,7 +493,7 @@ void scheduler_tests() {
     for (unsigned fault = 0; fault < 5; ++fault) {
         MemoryFlash f;
         standalone::Store s(f);
-        CHECK(s.load() && s.save(*standalone::parse_config(example)));
+        CHECK(s.load() && s.save(scheduled_config()));
         Clock clk;
         clk.advance(116 * ns);
         if (fault == 0)
@@ -511,7 +517,7 @@ void scheduler_tests() {
     for (bool storage_fault : {false, true}) {
         MemoryFlash f;
         standalone::Store s(f);
-        CHECK(s.load() && s.save(*standalone::parse_config(example)));
+        CHECK(s.load() && s.save(scheduled_config()));
         Clock clk;
         clk.advance(116 * ns);
         Engine e;
@@ -528,7 +534,7 @@ void scheduler_tests() {
     // External ownership cannot be stolen, even by an enabled schedule.
     MemoryFlash f;
     standalone::Store s(f);
-    CHECK(s.load() && s.save(*standalone::parse_config(example)));
+    CHECK(s.load() && s.save(scheduled_config()));
     Clock clk;
     clk.advance(116 * ns);
     Engine e;
@@ -710,7 +716,7 @@ void sntp_poll_schedule_test() {
 
 void campaign_controls_test() {
     constexpr auto ns = 1'000'000'000ULL;
-    auto config = *standalone::parse_config(example);
+    auto config = scheduled_config();
     config.expires_utc_s = time::sntp_min_utc_ns / ns + 231; // Too short for the 121-second slot.
     CHECK(standalone::parse_config(standalone::serialize_config(config)) == config);
     MemoryFlash flash;
@@ -744,7 +750,7 @@ void consumer_led_schedule_test() {
     for (const bool initially_suspended : {false, true}) {
         MemoryFlash flash;
         standalone::Store store(flash);
-        auto config = *standalone::parse_config(example);
+        auto config = scheduled_config();
         config.enabled = false;
         CHECK(store.load() && store.save(config));
         Clock clock;
@@ -773,7 +779,7 @@ void consumer_led_schedule_test() {
     }
     MemoryFlash flash;
     standalone::Store store(flash);
-    auto config = *standalone::parse_config(example);
+    auto config = scheduled_config();
     config.enabled = false;
     CHECK(store.load() && store.save(config));
     Clock clock;
@@ -803,7 +809,7 @@ void autonomous_test() {
     time::Sntp sntp(clock);
     MemoryFlash flash;
     standalone::Store store(flash);
-    CHECK(store.load() && store.save(*standalone::parse_config(example)));
+    CHECK(store.load() && store.save(scheduled_config()));
     standalone::DryRunEngine engine;
     Identity identity;
     const auto capabilities = standalone::wtp_profile(false);
@@ -845,7 +851,7 @@ void autonomous_test() {
                            wtp::LeapState::Normal));
         MemoryFlash memory;
         standalone::Store persisted(memory);
-        CHECK(persisted.load() && persisted.save(*standalone::parse_config(example)));
+        CHECK(persisted.load() && persisted.save(scheduled_config()));
         standalone::DryRunEngine guarded;
         wtp::JobService guarded_service(aged, guarded, identity, capabilities);
         standalone::Scheduler local(persisted, guarded_service);
@@ -870,7 +876,7 @@ void paired_scheduler_tests() {
     for (unsigned fault = 0; fault < 11; ++fault) {
         MemoryFlash flash;
         standalone::Store store(flash);
-        auto config = *standalone::parse_config(example);
+        auto config = scheduled_config();
         config.callsign = "PJ4/AA0NT";
         config.locator = "EM18IG";
         config.schedules = {{240, 0}, {240, 120}};
@@ -890,7 +896,7 @@ void paired_scheduler_tests() {
         const auto plan = encoding::wspr_plan(config.callsign, config.locator, config.power_dbm);
         for (unsigned i = 0; i < 162; ++i)
             CHECK(engine.job.events[i].frequency_nhz ==
-                  std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns +
+                  std::uint64_t{selected_test_frequency_hz} * ns +
                       plan->frames[0].symbols[i] * 1'464'843'750ULL);
         clock.advance(5 * ns);
         scheduler.poll();
@@ -934,7 +940,7 @@ void paired_scheduler_tests() {
                 const auto& event = engine.job.events[i];
                 CHECK(event.offset_ns == (std::uint64_t{i} * 2'048'000'000ULL + 1) / 3);
                 CHECK(event.frequency_nhz ==
-                      std::uint64_t{WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ} * ns +
+                      std::uint64_t{selected_test_frequency_hz} * ns +
                           plan->frames[1].symbols[i] * 1'464'843'750ULL);
             }
             clock.advance(9'408'000'000ULL);
@@ -967,7 +973,7 @@ void paired_scheduler_tests() {
     for (const auto rate : {-100000, 100000}) {
         MemoryFlash flash;
         standalone::Store store(flash);
-        auto config = *standalone::parse_config(example);
+        auto config = scheduled_config();
         config.callsign = "PJ4/AA0NT";
         config.locator = "EM18IG";
         CHECK(store.load() && store.save(config));
@@ -992,7 +998,7 @@ void paired_scheduler_tests() {
     for (bool utc_limit : {false, true}) {
         MemoryFlash flash;
         standalone::Store store(flash);
-        auto config = *standalone::parse_config(example);
+        auto config = scheduled_config();
         config.callsign = "AA0NT/12";
         config.locator = "EM18IG";
         CHECK(store.load() && store.save(config));
@@ -1014,7 +1020,7 @@ void paired_scheduler_tests() {
     {
         MemoryFlash flash;
         standalone::Store store(flash);
-        auto config = *standalone::parse_config(example);
+        auto config = scheduled_config();
         config.callsign = "AA0NT/12";
         config.locator = "EM18IG";
         CHECK(store.load() && store.save(config));
@@ -1033,7 +1039,7 @@ void paired_scheduler_tests() {
     {
         MemoryFlash flash;
         standalone::Store store(flash);
-        auto config = *standalone::parse_config(example);
+        auto config = scheduled_config();
         config.callsign = "AA0NT/12";
         config.locator = "EM18IG";
         config.schedules = {{86400, 86280}};
@@ -1053,7 +1059,7 @@ void paired_scheduler_tests() {
     {
         MemoryFlash flash;
         standalone::Store store(flash);
-        auto config = *standalone::parse_config(example);
+        auto config = scheduled_config();
         config.callsign = "AA0NT/12";
         config.locator = "EM18IG";
         CHECK(store.load() && store.save(config));
@@ -1079,7 +1085,7 @@ void paired_scheduler_tests() {
     for (unsigned extra : {0U, 120U, 230U, 231U, 232U}) {
         MemoryFlash flash;
         standalone::Store store(flash);
-        auto config = *standalone::parse_config(example);
+        auto config = scheduled_config();
         config.callsign = "AA0NT/12";
         config.locator = "EM18IG";
         config.expires_utc_s = time::sntp_min_utc_ns / ns + 121 + extra;
