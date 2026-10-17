@@ -7,12 +7,18 @@ existing numeric job/timing limits. Its record distinguishes software/build
 evidence from outstanding physical USB/AP/RF qualification.
 
 Current [Phase 15 punchlist numbering](../implementation-plan.md#phase-15-operator-review-punchlist)
-places P15.14 USB control (implemented and independently reviewed) after
-P15.13 band/mode/clock qualification. After USB control acceptance, deliver
-P15.15 uninhibited default build, then P15.16 GitHub testing prerelease, before
-P15.17 Installer (under discussion in "Assess WsprryPico installer options") and
-P15.18 user documentation. P15.15/P15.16/P15.18 have not started. P15.1–P15.14
-retain their numbers; historical record titles and filenames are unchanged.
+places P15.14 USB control (complete within its recorded scope) after P15.13
+band/mode/clock qualification. After USB acceptance, deliver
+[P15.15 GPIO drive strength](phase15-15-execution-prompt.md), then
+[P15.16 uninhibited default build](phase15-16-execution-prompt.md), P15.17 GitHub
+testing prerelease, P15.18 Installer and P15.19 user documentation.
+P15.15–P15.19 have not started. Installer planning is recorded in
+"Assess WsprryPico installer options". P15.1–P15.14 retain their numbers;
+historical record titles and executed prompt filenames are unchanged. The
+unexecuted default-build prompt has moved to P15.16. See the
+[complete list and saved/pending prompt index](phase15-prompt-index.md) and
+[P15.15 prompt assessment](phase15-15-prompt-review.md). This preparation
+executes neither feature.
 
 [P15.13 qualification](phase15-13-results.md) is complete within its recorded
 scope: all five modes at 40.001/60.001 MHz on Pico A, fresh current-source
@@ -20,7 +26,7 @@ StandaloneRF at normal 138 MHz, with explicit WSPR receiver-audio and job/admiss
 conditions. The [matrix](phase15-13-result-matrix.json), [frozen plan](phase15-13-plan.md)
 and [clock/build support policy](phase15-13-support-policy.md) retain original
 failures, 12 nominal RF windows plus four diagnostics, restoration and fresh
-self-review. Pico B and alternate clocks were not exercised. P15.18 remains
+self-review. Pico B and alternate clocks were not exercised. P15.19 remains
 separate and has not started. Hardware-free follow-up checks include
 `python3 -B tests/phase15_13_tests.py` and `python3 -B tests/standalone_image_tests.py`.
 
@@ -38,11 +44,11 @@ including WsprryPi release checklist item 15, confirmed by the operator on
 2026-10-17. Product `56821ac`, evidence `29542e4` and subsequent P15.12
 integration `227e73c` are included in published Pico `devel` at `156dfa1`.
 Software validation and independent reassessment passed; Pages checks passed,
-with no firmware/software-test CI pass claimed. P15.13 qualification and P15.18
+with no firmware/software-test CI pass claimed. P15.13 qualification and P15.19
 operator documentation remain separate checklist items.
 The [originating post-execution assessment](phase15-9-post-execution-review.md)
 closes four repaired findings and records fresh independent reassessment.
-Pi adoption, P15.13 qualification and P15.18 documentation remain separate.
+Pi adoption, P15.13 qualification and P15.19 documentation remain separate.
 
 The separately prepared Pi execution/sequencing
 handoffs have been withdrawn. Any Pi changes retain release coordination.
@@ -66,7 +72,7 @@ hostname; native Diagnostics retains the full stable ID and separate boot
 observation. Public/active/pending/last-confirmed/unknown states, final source
 checks, review repairs, transient host-test failures and skips are recorded.
 The [execution handoff](phase15-12-execution-prompt.md) remains the original task.
-P15.9 is complete; P15.13/P15.18 boundaries remain unchanged.
+P15.9 is complete; P15.13/P15.19 boundaries remain unchanged.
 
 The selected [consumer LAN access slice](consumer-lan-access.md) now implements
 port-80 station IP/hostname access, saved-password authentication, normally-off
