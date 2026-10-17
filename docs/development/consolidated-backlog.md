@@ -25,9 +25,10 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    [Result](phase15-19-results.md). VoiceOver testing is closed as not required.
    Installer coverage is deferred.
    [Saved prompt](phase15-19-execution-prompt.md).
-6. ⏳ **Software/build CI and deployment images.** Run checks and produce usable
+6. ✅ **Software/build CI and deployment images.** Run checks and produce usable
    UF2 images with version/source identity, checksums and a manifest before
    release efforts. Use the CI image for decode verification and publication.
+   [Result](software-build-ci-results.md).
    [Saved prompt](software-build-ci-execution-prompt.md).
 7. ▧ **USB installer.** Standalone and WsprryPi access, preserving saved
    settings; default to the latest verified CI image.
