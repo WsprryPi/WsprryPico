@@ -1,6 +1,8 @@
 # P15.12 handoff: hostname as the main-page identity
 
-Execution status: **in progress in WsprryPico**, as reported by the operator.
+Execution status: **complete within supported software acceptance**; see the
+[acceptance record](phase15-12-main-page-identity.md). The operator accepted
+P15.12 closure. P15.14 operator-document publication remains separate.
 Original preparation status: **prepared; not executed** at the source review
 on 2026-10-16. The reviewed baseline below is historical preparation context.
 This artifact is a handoff for another executing conversation. Preparation
@@ -28,9 +30,10 @@ records 204 executable host groups, 33 affected sanitizer checks, production
 browser/crypto flows, three unchanged-Pi pairs and both firmware links, with one
 optional schema skip. These are historical P15.11 results, not P15.12 checks.
 P15.8 including its Pi integration, P15.10 and P15.11 are closed within their
-recorded scopes. P15.9 remains pending its Pi step 15 portion. P15.12 is now in
-progress by operator direction; preparation itself did not execute the
-implementation or establish completion.
+recorded scopes. P15.9 remains pending its Pi step 15 portion. P15.12 was marked
+in progress after preparation and is now closed within the recorded supported
+software acceptance. Preparation itself did not execute the implementation or
+establish completion.
 
 ## Code review and implementation implications
 

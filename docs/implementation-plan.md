@@ -482,7 +482,9 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   Status: complete within supported software acceptance; see the
   [identity record](development/phase15-12-main-page-identity.md) for final checks,
   review repairs, transient host-test failures/skips and qualification limits.
-  The original handoff preparation did not execute the work.
+  The operator accepted this P15.12 closure. Its P15.14 documentation handoff
+  does not close operator-document publication. The original handoff preparation
+  did not execute the work.
 
 - ☐ **P15.13 — Complete untested-band qualification and resolve clock-dependent support.**
   Revisit the [band/mode chart](development/phase14-band-mode-qualification.md)
