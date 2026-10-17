@@ -31,6 +31,9 @@ std::string station(const standalone::Config& c) {
            ",\"locator\":" + wtp::json::quote(c.locator) +
            ",\"power_dbm\":" + std::to_string(c.power_dbm) + "}";
 }
+std::string gpio_drive_capabilities() {
+    return R"({"schema":"transmitter-gpio-drive/1","read":"/api/v1/gpio-drive","write":"/api/v1/gpio-drive","method":"PUT","values":[2,4,8,12],"default":4,"units":"mA","engine":"pio","activation":"restart","config":"/api/v1/config/3","update":"/api/v1/config/update/3","update_schema":"transmitter-config-update/2","hardware":"/api/v1/hardware/2","application":"/api/v1/application/3","progress":"/api/v1/progress/2","progress_schema":"transmitter-progress/2"})";
+}
 std::string capabilities(bool usb_management) {
     return "{\"management_carrier\":" +
            wtp::json::quote(usb_management ? "usb_physical" : "authenticated_https") +

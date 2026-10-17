@@ -8,7 +8,8 @@ retain their evidence and limitations.
 
 ## Current list
 
-Fourteen items are complete; six have not started. P15.14 USB closure was supplied by the
+Fourteen items are complete; P15.15 is in progress and five have not started.
+P15.14 USB closure was supplied by the
 concurrent USB task and is preserved here; this planning task did not execute
 or requalify USB control. Five execution prompts are saved; preparing these
 documents does not execute the tasks.
@@ -29,7 +30,7 @@ documents does not execute the tasks.
 | P15.12 | Show the hostname as the main-page identity | Complete | [Original executed handoff](phase15-12-execution-prompt.md) |
 | P15.13 | Complete untested-band qualification and resolve clock-dependent support | Complete | [Frozen qualification plan](phase15-13-plan.md) |
 | P15.14 | USB control | Complete | [USB execution record](usb-control-results.md); [100 ms UTC follow-up prompt](utc-100ms-execution-prompt.md) and [results](utc-100ms-results.md) |
-| P15.15 | GPIO drive-strength configuration across Pico and WsprryPi | Not started | [Saved drive-strength prompt](phase15-15-execution-prompt.md) |
+| P15.15 | GPIO drive-strength configuration across Pico and WsprryPi | In progress; physical acceptance open | [Prompt](phase15-15-execution-prompt.md), [execution record](phase15-15-results.md) |
 | P15.16 | Make the default firmware build uninhibited | Not started | [Saved default-build prompt](phase15-16-execution-prompt.md) |
 | P15.17 | Publish a GitHub testing prerelease with a firmware asset | Not started | [Saved testing-prerelease prompt](phase15-17-execution-prompt.md) |
 | P15.18 | Installer | Not started | [Saved USB-installer prompt](phase15-18-execution-prompt.md) |

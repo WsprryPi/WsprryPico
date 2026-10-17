@@ -148,7 +148,9 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
             request.path == "/api/v1/application/2" || request.path == "/api/v1/station/2" ||
             request.path == "/api/v1/station" || request.path == "/api/v1/hardware" ||
             request.path == "/api/v1/pins" || request.path == "/api/v1/management" ||
-            request.path == "/api/v1/progress")
+            request.path == "/api/v1/progress" || request.path == "/api/v1/gpio-drive" ||
+            request.path == "/api/v1/config/3" || request.path == "/api/v1/hardware/2" ||
+            request.path == "/api/v1/application/3" || request.path == "/api/v1/progress/2")
             return SoftApOperation::Configure;
         valid = false;
         return SoftApOperation::Status;
@@ -185,12 +187,15 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
          (request.path == "/api/v1/config" || request.path == "/api/v1/schedules" ||
           request.path == "/api/v1/config/2" || request.path == "/api/v1/station/2" ||
           request.path == "/api/v1/network" || request.path == "/api/v1/station" ||
-          request.path == "/api/v1/hardware")) ||
+          request.path == "/api/v1/hardware" || request.path == "/api/v1/gpio-drive" ||
+          request.path == "/api/v1/config/3")) ||
         (request.method == "POST" &&
          (request.path == "/api/v1/restart" || request.path == "/api/v1/pins/validate" ||
           request.path == "/api/v1/wspr-plan" || request.path == "/api/v1/config/update/2" ||
-          request.path == "/api/v1/config/update" ||
-          request.path == "/api/v1/progress/update" || request.path == "/api/v1/progress/apply")))
+          request.path == "/api/v1/config/update" || request.path == "/api/v1/progress/update" ||
+          request.path == "/api/v1/progress/apply" || request.path == "/api/v1/config/update/3" ||
+          request.path == "/api/v1/progress/update/2" ||
+          request.path == "/api/v1/progress/apply/2")))
         return SoftApOperation::Configure;
     valid = false;
     return SoftApOperation::Status;

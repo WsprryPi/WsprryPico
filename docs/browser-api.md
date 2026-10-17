@@ -477,3 +477,5 @@ without applying configuration or establishing transmit readiness. See the
 [saved progress contract](development/saved-progress.md) for field, storage, authority,
 explicit application and recovery semantics. Existing complete configuration,
 profile and WTP contracts remain atomic and do not consume drafts.
+
+P15.15 adds independently negotiated [GPIO drive configuration](development/gpio-drive.md). Legacy resource shapes and unavailable declarations retain their prior meanings.

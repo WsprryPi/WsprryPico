@@ -12,6 +12,7 @@ enum class Envelope { Valid, Invalid, UnsupportedSchema, TargetMismatch };
 Envelope validate_envelope(wtp::json::Value root, std::string_view schema, std::string_view payload,
                            std::string_view device, std::string_view boot);
 std::string target(std::string_view device, std::string_view boot);
+std::string gpio_drive_capabilities();
 std::string station(const standalone::Config& config);
 std::string capabilities(bool usb_management = false);
 std::string wspr_plan(const standalone::Config& config);

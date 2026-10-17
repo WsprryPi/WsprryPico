@@ -6,15 +6,18 @@ using wtp::json::fields;
 using wtp::json::quote;
 using wtp::json::Value;
 
-bool config_fields(Value value, bool partial) {
+bool config_fields(Value value, bool partial, bool drive) {
+    if (!drive && value.get("gpio_drive_ma"))
+        return false;
     if (partial)
         return fields(value, {},
                       {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s",
-                       "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency"}) &&
+                       "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency",
+                       "gpio_drive_ma"}) &&
                !fields(value, {});
-    return fields(
-        value, {"version", "enabled", "station", "wifi", "schedules"},
-        {"expires_utc_s", "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency"});
+    return fields(value, {"version", "enabled", "station", "wifi", "schedules"},
+                  {"expires_utc_s", "pins", "allow_unqualified_frequency",
+                   "allow_non_amateur_frequency", "gpio_drive_ma"});
 }
 
 void member(std::string& result, std::string_view name, std::string_view raw) {
@@ -24,7 +27,8 @@ void member(std::string& result, std::string_view name, std::string_view raw) {
 }
 } // namespace
 
-Envelope validate_config_update(Value root, std::string_view device, std::string_view boot) {
+Envelope validate_config_update(Value root, std::string_view device, std::string_view boot,
+                                bool drive) {
     if (!fields(root, {"schema", "target", "mode", "config"}))
         return Envelope::Invalid;
     const auto schema = *root.get("schema"), target = *root.get("target"), mode = *root.get("mode");
@@ -35,7 +39,7 @@ Envelope validate_config_update(Value root, std::string_view device, std::string
     for (const auto name : {"scope", "device_id", "boot_id"})
         if (target.get(name)->type() != '"')
             return Envelope::Invalid;
-    if (schema.string() != config_update_schema)
+    if (schema.string() != (drive ? "transmitter-config-update/2" : config_update_schema))
         return Envelope::UnsupportedSchema;
     if (target.get("scope")->string() != "member" || target.get("device_id")->string() != device ||
         target.get("boot_id")->string() != boot)
@@ -45,11 +49,11 @@ Envelope validate_config_update(Value root, std::string_view device, std::string
 
 std::optional<std::string> config_candidate(Value supplied,
                                             const std::optional<standalone::Config>& current,
-                                            ConfigWrite mode) {
+                                            ConfigWrite mode, bool drive) {
     const bool partial = mode == ConfigWrite::Merge;
     if (mode == ConfigWrite::Legacy && supplied.raw.size() > standalone::max_config_bytes)
         return {};
-    if (!config_fields(supplied, partial) || (partial && !current))
+    if (!config_fields(supplied, partial, drive) || (partial && !current))
         return {};
     const auto station = supplied.get("station"), wifi = supplied.get("wifi");
     if (partial && station &&
@@ -65,8 +69,9 @@ std::optional<std::string> config_candidate(Value supplied,
         return {};
     const bool preserve = mode != ConfigWrite::Replace && current.has_value();
     std::string result = "{";
-    for (const auto name : {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s",
-                            "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency"}) {
+    for (const auto name :
+         {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s", "pins",
+          "allow_unqualified_frequency", "allow_non_amateur_frequency", "gpio_drive_ma"}) {
         const auto input = supplied.get(name), prior = previous->get(name);
         if (input && ((partial && name == std::string_view("station")) ||
                       name == std::string_view("wifi"))) {

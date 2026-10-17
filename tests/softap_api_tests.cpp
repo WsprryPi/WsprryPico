@@ -162,8 +162,10 @@ void policy() {
     config.headers["cookie"] = cookie;
     REQUIRE(f.api.handle(config, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 3, 6)
                 .status == 401);
-    for (const auto path : {"/api/v1/application", "/api/v1/station", "/api/v1/application/2",
-                            "/api/v1/station/2", "/api/v1/hardware", "/api/v1/pins"}) {
+    for (const auto path :
+         {"/api/v1/application", "/api/v1/station", "/api/v1/application/2", "/api/v1/station/2",
+          "/api/v1/hardware", "/api/v1/pins", "/api/v1/gpio-drive", "/api/v1/config/3",
+          "/api/v1/application/3", "/api/v1/hardware/2"}) {
         auto resource = config;
         resource.path = path;
         REQUIRE(
@@ -209,8 +211,10 @@ void policy() {
     REQUIRE(capabilities.body.find("\"softap\":true") != std::string::npos);
     REQUIRE(capabilities.body.find("\"ble\":true") != std::string::npos);
     REQUIRE(capabilities.body.find("\"application\":true") != std::string::npos);
-    for (const auto path : {"/api/v1/application", "/api/v1/station", "/api/v1/application/2",
-                            "/api/v1/station/2", "/api/v1/hardware", "/api/v1/pins"}) {
+    for (const auto path :
+         {"/api/v1/application", "/api/v1/station", "/api/v1/application/2", "/api/v1/station/2",
+          "/api/v1/hardware", "/api/v1/pins", "/api/v1/gpio-drive", "/api/v1/config/3",
+          "/api/v1/application/3", "/api/v1/hardware/2"}) {
         auto resource = config;
         resource.path = path;
         REQUIRE(

@@ -124,3 +124,5 @@ STOP and operation readiness remain distinct. A missing/malformed/future reply,
 conflict, expiry or interrupted write enters readback/review and disables another
 save until explicit reconciliation. No automatic retry, credential persistence,
 message library or durable raw-job store is introduced.
+
+P15.15 adds independently negotiated [GPIO drive configuration](gpio-drive.md). Legacy resource shapes and unavailable declarations retain their prior meanings.

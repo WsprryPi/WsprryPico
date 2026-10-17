@@ -117,3 +117,5 @@ Never automatically repeat an ambiguous mutation or switch strategies after a
 lost reply. A write may already be committed. Read authoritative saved/active
 state, revision, storage health and status before explicitly reconciling a
 new action. Software evidence does not qualify physical or RF behavior.
+
+P15.15 adds independently negotiated [GPIO drive configuration](gpio-drive.md). Legacy resource shapes and unavailable declarations retain their prior meanings.

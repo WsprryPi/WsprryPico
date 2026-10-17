@@ -44,6 +44,12 @@ bool integer(wtp::json::Value value, std::uint32_t& n) {
     return result.ec == std::errc{} && result.ptr == text.data() + value.raw.size();
 }
 } // namespace
+bool valid_gpio_drive(unsigned ma) {
+    return ma == 2 || ma == 4 || ma == 8 || ma == 12;
+}
+bool valid_gpio_drive_token(wtp::json::Value value) {
+    return value.raw == "2" || value.raw == "4" || value.raw == "8" || value.raw == "12";
+}
 bool valid_time_server(std::string_view text) {
     if (ipv4(text))
         return true;
@@ -98,7 +104,7 @@ std::optional<Config> parse_config(std::string_view text) {
     if (!root ||
         !fields(*root, {"version", "enabled", "station", "wifi", "schedules"},
                 {"expires_utc_s", "pins", "allow_unqualified_frequency",
-                 "allow_non_amateur_frequency"}) ||
+                 "allow_non_amateur_frequency", "gpio_drive_ma"}) ||
         root->get("version")->raw != "1" ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
@@ -114,6 +120,11 @@ std::optional<Config> parse_config(std::string_view text) {
         if (wifi.get(name)->type() != '"')
             return {};
     Config c;
+    if (const auto drive = root->get("gpio_drive_ma")) {
+        if (!valid_gpio_drive_token(*drive))
+            return {};
+        c.gpio_drive_ma = unsigned(drive->integer());
+    }
     for (const auto name : {"allow_unqualified_frequency", "allow_non_amateur_frequency"}) {
         if (const auto flag = root->get(name)) {
             if (flag->raw != "true" && flag->raw != "false")
@@ -202,6 +213,8 @@ std::string serialize_config(const Config& c) {
         result += ",\"allow_unqualified_frequency\":true";
     if (c.allow_non_amateur_frequency)
         result += ",\"allow_non_amateur_frequency\":true";
+    if (c.gpio_drive_ma != 4)
+        result += ",\"gpio_drive_ma\":" + std::to_string(c.gpio_drive_ma);
     return result + "}";
 }
 } // namespace wsprrypico::standalone

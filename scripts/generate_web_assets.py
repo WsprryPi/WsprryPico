@@ -9,7 +9,7 @@ import sys
 root, output = map(pathlib.Path, sys.argv[1:])
 web = root / 'src/network/web'
 html, css, js = [(web / name).read_text() for name in ('index.html', 'style.css', 'app.js')]
-js = (web / 'saved-progress.js').read_text() + '\n' + js
+js = (web / 'gpio-drive.js').read_text() + '\n' + (web / 'saved-progress.js').read_text() + '\n' + js
 organization = (web / 'organization.js').read_text()
 presentation = (web / 'device-presentation.js').read_text()
 validation = (web / 'config-validation.js').read_text()

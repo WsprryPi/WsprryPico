@@ -157,10 +157,10 @@ No Phase 14 workstream or LED task remains open.
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
 15. **Open — operator review punchlist:** twenty items are tracked: fourteen
-    complete, with GPIO drive strength (P15.15), uninhibited default build
-    (P15.16), testing prerelease (P15.17), Installer (P15.18), Impeccable web UI
-    review including provisioning (P15.19), and user documentation (P15.20)
-    not started. The operator confirmed
+    complete, GPIO drive strength (P15.15) in progress, and uninhibited default
+    build (P15.16), testing prerelease (P15.17), Installer (P15.18), Impeccable
+    web UI review including provisioning (P15.19), and user documentation
+    (P15.20) not started. The operator confirmed
     WsprryPi item 15/P15.9 complete on 2026-10-17. See the
     [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
@@ -256,8 +256,9 @@ P15.1–P15.14 are complete within their recorded scopes. The
 [USB execution record](development/usb-control-results.md) records coordinated
 software acceptance, independent reassessment and bounded physical USB/AP
 evidence, including exact restoration. Transmitter RF was not exercised.
-GPIO drive strength, the uninhibited default build and testing prerelease have
-not started and must be accepted in that order before installer implementation.
+GPIO drive strength (P15.15) is in progress. The uninhibited default build and
+testing prerelease have not started; these three items must be accepted in
+that order before installer implementation.
 Installer (P15.18), Impeccable web UI review (P15.19) and user documentation
 (P15.20) have not started. Installer planning is recorded in
 "Assess WsprryPico installer options". The
@@ -562,7 +563,7 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   settings default of 100 ms while preserving explicit limits, including 1 ms
   (Pi `1dd918b`, Pico `1162e4f`). The follow-up's software validation and
   adversarial self-assessments passed; no physical ARM or RF test was performed.
-- ☐ **P15.15 — GPIO drive-strength configuration across Pico and WsprryPi.**
+- ⏳ **P15.15 — GPIO drive-strength configuration across Pico and WsprryPi.**
   After P15.14 USB acceptance, add persisted per-RF-pin drive choices of
   **2, 4, 8 and 12 mA**, default **4 mA**, to the Pico firmware, USB management
   and Console configuration, shared API, all applicable device-served settings
@@ -572,7 +573,10 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   reported WSPR power and measured RF power.
   Saved execution prompt: [P15.15 GPIO drive strength](development/phase15-15-execution-prompt.md),
   with its [prompt assessment](development/phase15-15-prompt-review.md).
-  Status: **Not started**; prompt preparation only, no feature execution.
+  Status: **In progress**, as directed by the operator on 2026-10-17.
+  [Execution record](development/phase15-15-results.md): software implementation
+  and validation recorded separately from outstanding physical pad/restart/RF
+  acceptance. The broad item remains open.
 - ☐ **P15.16 — Make the default firmware build uninhibited.** After P15.14 USB
   control and P15.15 GPIO drive strength are accepted, make the normal firmware
   target, `pico2-w` preset, build helpers and release recipe produce the same
@@ -651,9 +655,9 @@ complete by operator confirmation on 2026-10-17. The separate originating
 P15.8 review, physical concurrency/reproduction and target qualification remain open.
 P15.10 and P15.11 are complete within their recorded supported software scopes.
 P15.12–P15.14 are complete within their recorded scopes.
-GPIO drive strength (P15.15), uninhibited default build (P15.16), testing
-prerelease (P15.17), Installer (P15.18), Impeccable web UI review (P15.19) and
-user documentation (P15.20) have not started.
+GPIO drive strength (P15.15) is in progress. The uninhibited default build
+(P15.16), testing prerelease (P15.17), Installer (P15.18), Impeccable web UI
+review (P15.19) and user documentation (P15.20) have not started.
 
 ## Remaining deferred and backlog items
 
@@ -913,7 +917,8 @@ belongs to the operator.
    drive strength (P15.15), the uninhibited default build (P15.16), then a GitHub
    testing prerelease (P15.17), before Installer (P15.18), Impeccable web UI
    review including provisioning (P15.19), and user documentation (P15.20).
-   All six items have not started. Installer planning is recorded in
+   P15.15 is in progress; P15.16–P15.20 have not started. Installer planning is
+   recorded in
    "Assess WsprryPico installer options". Existing acceptance records and
    qualification limits remain unchanged.
 

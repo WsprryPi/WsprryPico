@@ -123,3 +123,5 @@ stdin/stdout with volatile flash and no network/Pico SDK. It establishes wire
 interoperability, not physical USB, flash endurance, network association,
 restart/re-enumeration or transmitter RF qualification. Consult the joint USB
 execution record for final builds, complete checks and outstanding target gates.
+
+P15.15 adds independently negotiated [GPIO drive configuration](gpio-drive.md). Legacy resource shapes and unavailable declarations retain their prior meanings.

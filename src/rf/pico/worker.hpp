@@ -5,5 +5,6 @@
 namespace wsprrypico::rf {
 // Launch once on core 0, before any engine/JobService call. Never hot-reset core 1.
 WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& pins,
-                           bool storage_healthy, IndicatorGate& indicator);
+                           bool storage_healthy, IndicatorGate& indicator, unsigned drive_ma = 4);
+int gpio_drive_observation();
 } // namespace wsprrypico::rf

@@ -14,3 +14,5 @@ summary{font-weight:600;cursor:pointer;padding:.65rem 0;min-height:44px}details{
 
 #device-name,#device-name-state{overflow-wrap:anywhere}#device-name{margin-bottom:.5rem}#device-name-state{margin-top:0}#device-diagnostics .identity{grid-template-columns:1fr}#device-diagnostics .identity>div:first-child{grid-column:auto}
 .field-result{display:block;font-size:.875rem;font-weight:400;line-height:1.5;margin:.35rem 0 .65rem}.field-result.error{color:#882b19}[aria-invalid="true"]{border-color:#bd6755}
+
+#gpio-drive-form{margin-top:1.5rem}#gpio-drive-status{overflow-wrap:anywhere}#gpio-drive-help{display:block;margin:.5rem 0}

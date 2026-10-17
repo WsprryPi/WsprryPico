@@ -374,6 +374,7 @@ int main() {
            access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased)) ||
         (access_store.record() && access_store.record()->reset.pending());
     const bool boot_recovery = recovery || access_recovery;
+    [[maybe_unused]] const unsigned boot_gpio_drive_ma = store.config() ? store.config()->gpio_drive_ma : 4;
     auto boot_pins = store.config() ? store.config()->pins : wsprrypico::hardware::PinPlan{};
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE
     // Only the selected indicator differs; all pin ownership checks still apply.
@@ -393,7 +394,7 @@ int main() {
     static wsprrypico::rf::IndicatorGate tx_indicator_gate(
         boot_pins.indicator != wsprrypico::hardware::PinPlan::Indicator::Disabled);
     auto& engine = wsprrypico::rf::start_worker(clock, boot_pins, store_loaded && store.healthy(),
-                                                tx_indicator_gate);
+                                                tx_indicator_gate, boot_gpio_drive_ma);
 #else
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
@@ -614,6 +615,9 @@ int main() {
     bootstrap.station_classifier(station_interface, nullptr);
     browser_api.consumer_config(runtime_profile);
     browser_api.progress_settings(progress);
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    browser_api.gpio_drive_observer(wsprrypico::rf::gpio_drive_observation);
+#endif
     // Source 5 keeps public commissioning separate from encrypted, password-
     // authenticated radio requests. Legacy plaintext field mutations stay closed.
     const auto blank_access_available = []() {

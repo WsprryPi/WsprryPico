@@ -44,6 +44,7 @@ Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), se
     if (store_.config()) {
         active_network_ = network_digest(*store_.config());
         active_pins_ = store_.config()->pins;
+        active_gpio_drive_ma_ = store_.config()->gpio_drive_ma;
         boot_configured_ = store_.healthy();
     }
 }
@@ -262,6 +263,9 @@ std::string Scheduler::status() const {
            (store_.config() && store_.config()->allow_unqualified_frequency ? "true" : "false") +
            ",\"allow_non_amateur_frequency\":" +
            (store_.config() && store_.config()->allow_non_amateur_frequency ? "true" : "false") +
+           ",\"gpio_drive_ma\":" +
+           std::to_string(store_.config() ? store_.config()->gpio_drive_ma : 4) +
+           ",\"boot_gpio_drive_ma\":" + std::to_string(active_gpio_drive_ma_) +
            ",\"suspended\":" + (suspended_ ? "true" : "false") + ",\"expires_utc_s\":" +
            std::to_string(store_.config() ? store_.config()->expires_utc_s : 0) +
            ",\"owner_id\":" + (s.owner_id ? wtp::json::quote(*s.owner_id) : "null") +
@@ -330,7 +334,7 @@ std::string Scheduler::command(std::string_view line) {
     // The scheduler reads station/schedules from Store on each new job. Only
     // network and pin settings are boot-initialized. Compare with the active boot, not
     // the previous save: a later station edit cannot conceal a pending change.
-    if (active_pins_ != config->pins) {
+    if (active_pins_ != config->pins || active_gpio_drive_ma_ != config->gpio_drive_ma) {
         pin_restart_required_ = true;
         reboot_required_ = true;
         if (!service_.local_inhibit_output()) {

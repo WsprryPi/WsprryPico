@@ -1,5 +1,6 @@
 #pragma once
 #include "hardware/pins.hpp"
+#include "wtp/json.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -16,6 +17,7 @@ struct Schedule {
 };
 struct Config {
     hardware::PinPlan pins;
+    unsigned gpio_drive_ma = 4; // Nominal direct RF pad current, never WSPR power.
     bool enabled = false;
     bool allow_unqualified_frequency = false;
     bool allow_non_amateur_frequency = false;
@@ -29,6 +31,8 @@ struct Config {
 };
 std::optional<Config> parse_config(std::string_view text);
 std::string serialize_config(const Config& config);
+bool valid_gpio_drive(unsigned ma);
+bool valid_gpio_drive_token(wtp::json::Value value);
 bool valid_time_server(std::string_view value);
 bool valid_wifi_credentials(std::string_view ssid, std::string_view password,
                             std::string_view time_server);

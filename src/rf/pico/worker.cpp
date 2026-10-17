@@ -40,11 +40,18 @@ void run() {
         worker->step();
 }
 } // namespace
+namespace {
+PicoPioDma* drive_hardware = nullptr;
+}
+int gpio_drive_observation() {
+    return drive_hardware ? drive_hardware->drive_observation() : -1;
+}
 WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& pins,
-                           bool storage_healthy, IndicatorGate& indicator) {
+                           bool storage_healthy, IndicatorGate& indicator, unsigned drive_ma) {
     if (!hardware::operational(pins))
         failure();
-    static PicoPioDma hardware(*pins.rf);
+    static PicoPioDma hardware(*pins.rf, drive_ma);
+    drive_hardware = &hardware;
     static PioDmaSink sink(hardware, &indicator);
     static StreamEngine engine(sink);
     static WorkerEngine proxy(engine, clock, now, wait, failure, save_and_disable_interrupts,

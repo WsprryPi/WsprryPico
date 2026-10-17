@@ -43,7 +43,7 @@ endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js
     src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
-    src/network/web/saved-progress.js
+    src/network/web/saved-progress.js src/network/web/gpio-drive.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
     src/network/bootstrap_web/radio-bundle.js
@@ -356,6 +356,14 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_executable(pin_allocation_tests tests/pin_allocation_tests.cpp)
     target_link_libraries(pin_allocation_tests PRIVATE wsprrypico_core)
     add_test(NAME pin_allocation COMMAND pin_allocation_tests)
+    add_executable(gpio_drive_tests tests/gpio_drive_tests.cpp)
+    target_link_libraries(gpio_drive_tests PRIVATE wsprrypico_core)
+    target_compile_options(gpio_drive_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME gpio_drive COMMAND gpio_drive_tests)
+    add_test(NAME gpio_drive_schema COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/gpio_drive_schema_tests.py $<TARGET_FILE:gpio_drive_tests>)
+    if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME gpio_drive_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/gpio_drive_browser_tests.js)
+    endif()
     add_executable(application_resource_tests tests/application_resource_tests.cpp)
     target_link_libraries(application_resource_tests PRIVATE wsprrypico_core)
     target_compile_options(application_resource_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

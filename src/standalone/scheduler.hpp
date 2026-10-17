@@ -13,6 +13,9 @@ class Scheduler {
     const hardware::PinPlan& active_pins() const {
         return active_pins_;
     }
+    unsigned active_gpio_drive_ma() const {
+        return active_gpio_drive_ma_;
+    }
     bool reboot_required() const {
         return reboot_required_;
     }
@@ -58,5 +61,6 @@ class Scheduler {
     bool hardware_application_failed_ = false;
     std::optional<wtp::PayloadDigest> active_network_;
     hardware::PinPlan active_pins_;
+    unsigned active_gpio_drive_ma_ = 4;
 };
 } // namespace wsprrypico::standalone

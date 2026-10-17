@@ -24,12 +24,61 @@ std::uint64_t PicoPioDma::now_ns() const {
     return time_us_64() * 1000;
 }
 
+bool PicoPioDma::apply_drive() {
+    gpio_drive_strength strength;
+    switch (drive_ma_) {
+    case 2:
+        strength = GPIO_DRIVE_STRENGTH_2MA;
+        break;
+    case 4:
+        strength = GPIO_DRIVE_STRENGTH_4MA;
+        break;
+    case 8:
+        strength = GPIO_DRIVE_STRENGTH_8MA;
+        break;
+    case 12:
+        strength = GPIO_DRIVE_STRENGTH_12MA;
+        break;
+    default:
+        drive_observation_.store(-2, std::memory_order_release);
+        return false;
+    }
+    if (drive_observation() == -2)
+        return false;
+    gpio_set_drive_strength(rf_pin, strength);
+    return verify_drive();
+}
+bool PicoPioDma::verify_drive() {
+    unsigned observed = 0;
+    switch (gpio_get_drive_strength(rf_pin)) {
+    case GPIO_DRIVE_STRENGTH_2MA:
+        observed = 2;
+        break;
+    case GPIO_DRIVE_STRENGTH_4MA:
+        observed = 4;
+        break;
+    case GPIO_DRIVE_STRENGTH_8MA:
+        observed = 8;
+        break;
+    case GPIO_DRIVE_STRENGTH_12MA:
+        observed = 12;
+        break;
+    }
+    if (observed != drive_ma_ || drive_observation() == -2) {
+        drive_observation_.store(-2, std::memory_order_release);
+        return false;
+    }
+    drive_observation_.store(int(observed), std::memory_order_release);
+    return true;
+}
 bool PicoPioDma::open(Handler handler, void* context) {
     if (!hardware::eligible(rf_pin) || instance_ || !handler ||
         clock_get_hz(clk_sys) != sample_rate || irq_get_exclusive_handler(DMA_IRQ_3) ||
         irq_has_shared_handler(DMA_IRQ_3) || dma_hw->inte3 != 0) {
         return false;
     }
+    if (!apply_drive())
+        return false;
     core_ = get_core_num();
     if (!pio_claim_free_sm_and_add_program_for_gpio_range(&packed_output_program, &pio_, &sm_,
                                                           &offset_, rf_pin, 1, true)) {
@@ -64,14 +113,22 @@ bool PicoPioDma::open(Handler handler, void* context) {
     sm_config_set_fifo_join(&config, PIO_FIFO_JOIN_TX);
     sm_config_set_clkdiv_int_frac8(&config, 1, 0);
     pio_sm_init(pio_, sm_, offset_, &config);
+    // SDK gpio_set_function clears overrides. Keep PIO direction input and
+    // its output latch low across that change, then restore forced-low before OE.
+    pio_sm_set_consecutive_pindirs(pio_, sm_, rf_pin, 1, false);
+    pio_sm_set_pins_with_mask(pio_, sm_, 0, 1U << rf_pin);
     gpio_set_outover(rf_pin, GPIO_OVERRIDE_LOW);
     pio_gpio_init(pio_, rf_pin);
+    gpio_set_outover(rf_pin, GPIO_OVERRIDE_LOW);
     pio_sm_set_consecutive_pindirs(pio_, sm_, rf_pin, 1, true);
-    pio_sm_set_pins_with_mask(pio_, sm_, 0, 1U << rf_pin);
     irq_set_exclusive_handler(DMA_IRQ_3, dma_irq);
     irq_set_enabled(DMA_IRQ_3, true);
     hardware_alarm_set_callback(static_cast<unsigned>(alarm_), alarm_irq);
     installed_ = true;
+    if (!verify_drive()) {
+        (void)release(now_ns() + 1'000'000);
+        return false;
+    }
     return true;
 }
 
@@ -256,6 +313,8 @@ LaunchResult PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_n
             return LaunchResult::Rejected;
         return LaunchResult::Rescheduled;
     }
+    if (!verify_drive())
+        return LaunchResult::Rejected;
     // Prime the output shift register while disabled. Autopull on the first
     // OUT would otherwise record a startup TXSTALL despite a prefilled FIFO.
     pio_sm_exec(pio_, sm_, pio_encode_pull(false, true));

@@ -32,11 +32,12 @@ class BrowserApi {
         progress_ = &progress;
         store_.progress(progress);
     }
-    HttpResponse progress_readback(bool station_only = false) const;
+    HttpResponse progress_readback(bool station_only = false, bool drive = false) const;
     std::string saved_station_json() const;
     // Called only by the explicitly admitted commissioning adapter. It accepts
     // station fields exclusively and has no application/Config authority.
-    HttpResponse save_progress(const HttpRequest& request, bool station_only = false);
+    HttpResponse save_progress(const HttpRequest& request, bool station_only = false,
+                               bool drive = false);
     bool progress_station_matches(std::string_view call, std::string_view locator,
                                   unsigned power) const;
     void management_availability(ManagementAvailability state) {
@@ -67,6 +68,9 @@ class BrowserApi {
             pending_restart_ = false;
         }
     }
+    void gpio_drive_observer(int (*observer)()) {
+        drive_observer_ = observer;
+    }
     using Restart = bool (*)(void*);
     void restart_control(Restart callback, void* context) {
         restart_ = callback;
@@ -87,10 +91,12 @@ class BrowserApi {
   private:
     ManagementAvailability management_;
     std::optional<standalone::Config> effective_config() const;
-    HttpResponse config() const;
+    HttpResponse config(bool drive = false) const;
+    HttpResponse gpio_drive() const;
     HttpResponse station_config(bool extended = false) const;
-    HttpResponse hardware_config() const;
-    HttpResponse application_config(bool extended = false, bool usb_management = false) const;
+    HttpResponse hardware_config(bool drive = false) const;
+    HttpResponse application_config(bool extended = false, bool usb_management = false,
+                                    bool drive = false) const;
     HttpResponse job(const HttpRequest& request, std::string_view principal);
     wtp::JobService& service_;
     standalone::Store& store_;
@@ -100,6 +106,7 @@ class BrowserApi {
     TransportStatus transport_ = nullptr;
     void* transport_context_ = nullptr;
     bool active_job_connections_ = false;
+    int (*drive_observer_)() = nullptr;
     std::optional<std::uint64_t> pending_transaction_;
     bool pending_restart_ = false;
     Restart restart_ = nullptr;

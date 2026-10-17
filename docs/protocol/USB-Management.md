@@ -142,3 +142,5 @@ Portable endpoint/local-management/time tests, production Pi/Pico wire fixtures
 and normal firmware builds qualify software behavior only. See the
 [execution record](../development/usb-control-results.md) for exact checks,
 resource comparison and outstanding physical USB/AP/RF gates.
+
+P15.15 adds independently negotiated [GPIO drive configuration](../development/gpio-drive.md). Legacy resource shapes and unavailable declarations retain their prior meanings.

@@ -19,7 +19,11 @@ struct PicoDriverMetrics {
 class PicoPioDma final : public PioDmaHardware {
   public:
     const unsigned rf_pin;
-    explicit PicoPioDma(unsigned pin = 2) : rf_pin(pin) {}
+    explicit PicoPioDma(unsigned pin = 2, unsigned drive_ma = 4)
+        : rf_pin(pin), drive_ma_(drive_ma) {}
+    int drive_observation() const {
+        return drive_observation_.load(std::memory_order_acquire);
+    }
     PicoPioDma(const PicoPioDma&) = delete;
     PicoPioDma& operator=(const PicoPioDma&) = delete;
     std::uint32_t lock() override;
@@ -45,6 +49,10 @@ class PicoPioDma final : public PioDmaHardware {
     }
 
   private:
+    const unsigned drive_ma_;
+    std::atomic<int> drive_observation_{-1}; // -1 unobserved, -2 failed; sticky failure.
+    bool apply_drive();
+    bool verify_drive();
     static void dma_irq();
     static void alarm_irq(unsigned alarm);
     static PicoPioDma* instance_;

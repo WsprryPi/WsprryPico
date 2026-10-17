@@ -56,6 +56,12 @@ let localIdentity = null, localAuthenticated = false;
 let engineeringStationDirty = false, engineeringNetworkDirty = false;
 let writeState = 'readback', savedReadback = null, saveAttempt = null, retirementDiscovery = null;
 
+if ($('gpio-drive-form')) $('gpio-drive-form').onsubmit = event => event.preventDefault();
+const driveEditor = globalThis.WsprryGpioDrive && $('gpio-drive-select') ? WsprryGpioDrive.create({
+  select:$('gpio-drive-select'),read:$('gpio-drive-read'),save:$('gpio-drive-save'),discard:$('gpio-drive-discard'),status:$('gpio-drive-status'),saveDraft:$('gpio-drive-save-draft'),applyDraft:$('gpio-drive-apply-draft'),draftStatus:$('gpio-drive-draft-status'),
+  exchange:async (method,body,match,resource = 'gpio-drive')=>{if (!WsprryGpioDrive.supported(capabilities?.gpio_drive)) throw new Error('This firmware does not advertise supported drive configuration.'); return api(resource,method,body,match);},
+  afterSave:()=>{requireReadback();}
+}) : null;
 let savedProgress = null, progressEpoch = 0, progressEditSerial = 0;
 const progressEdits = new Map();
 const progressUI = globalThis.WsprryPicoSavedProgress;
@@ -359,6 +365,8 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
   if (!response.ok || data.ok === false) {
     const code = typeof data.error === 'string' ? data.error : data.error?.code;
     const explanation = {
+      storage_fault:'Settings storage could not be verified. Resolve storage health before another save',
+      invalid_gpio_drive:'Choose 2, 4, 8 or 12 mA for GPIO drive strength',
       revision_conflict:'Saved settings changed. Your edits are preserved. Read current saved settings and review them before a new save',
       precondition_failed:'Saved revision changed. Your edits are preserved. Read and review current saved settings',
       pin_conflict:`GP${data.gp} is already assigned to ${data.owner}; choose a different pin for ${data.role}`,
@@ -435,6 +443,7 @@ async function discoverLocal() {
 }
 function controls(connected) {
   online = connected;
+  driveEditor?.setAvailability(!!connected && !busy && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
   $('reload-config').disabled = busy || !online;
   const idle = online && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
@@ -513,6 +522,7 @@ async function refresh(loadConfig = false) {
     if (!pinChoices) { try { pinChoices = (await api('pins')).data.choices; } catch (_) {} }
     snapshot = (await api('status')).data; expectedPause = false; observedAt = new Date().toLocaleTimeString();
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) capabilities = (await api('capabilities')).data;
+    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) driveEditor?.invalidate();
     capabilitiesBoot = snapshot.job.boot_id;
     const s = snapshot.standalone, n = snapshot.network;
     $('state').textContent = snapshot.job.state;
