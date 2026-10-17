@@ -1,8 +1,8 @@
 # P15.14 production USB control execution record
 
-Date: 2026-10-17. Software implementation and final independent reassessment
-pass. Bounded hardware validation/publication are being finalized after repair
-of a physical RF-image memory finding.
+Date: 2026-10-17. Complete within supported software and bounded USB/AP
+acceptance. Independent adversarial reassessment passes; exact original flash
+is restored. Transmitter RF/absolute timing was not exercised.
 
 ## Source and delivered behavior
 
@@ -91,7 +91,9 @@ remain unchanged. Final regression/physical outcomes are recorded below.
 ## Software validation
 
 - Full Pico host suite: 186 tests, zero failures, one optional
-  `config_update_schema` skip because this host lacks Python `jsonschema`.
+  `config_update_schema` skip because the Mac host lacks Python `jsonschema`.
+  That check subsequently passed against the actual Linux Config handler in
+  the retained offline image, where the package was already installed.
   Xcode environment and unrestricted local sockets were used. The initial
   wrong-toolchain/socket sandbox failures were rerun successfully; an obsolete
   unknown-profile-version test was corrected from newly supported version 2
@@ -138,8 +140,11 @@ fleet target pointer during cancellation. Physical RF-image testing then
 exposed the management reserve failure described above. Its priority/reclaim/
 compaction repair and the Pi's bounded reconnect path received a separate
 independent reassessment and affected checks. No actionable source finding
-remains from that assessment. Pi's production runtime passes 424 checks,
+remains from that assessment. Pi's production runtime passed 424 checks during the reconnect repair,
 including reclaimed management between LOAD and ARM without mutation replay.
+The final known-identity contradiction latch and explicit reconciliation
+reporting pass independent reassessment; final normal and ASan/UBSan runtime
+builds each pass 447 checks.
 
 Four desktop/mobile and light/dark USB settings views were rendered and
 reviewed, including saved-progress state. The final station-editor readiness
@@ -163,9 +168,16 @@ the last network, explicit restart and no-network readback (empty station IPv4,
 no SNTP queries), qualified USB UTC, hostname change, retained station/settings,
 and a complete 65536-byte/512-event/3600-second LOAD. Management reconnects and
 reads while that job remains resident; explicit ABORT and RELEASE complete
-without ARM. Initial AP advertising is independently observed on the idle
-wlan2 interface. Its ten-minute expiry is currently being observed while USB
-read/time traffic continues.
+without ARM. This maximum job uses the finite Python WTP/1 bench producer;
+management/time use the production Pi USB client and protected browser adapters.
+It is not an installed-service or physical ARM qualification. Initial AP advertising is independently observed on the idle
+wlan2 interface. AP withdrawal passed while USB read/time traffic continued. The last active
+observation was at 583288 ms (17034 ms remaining); at 603902 ms it was expired,
+off and at zero remaining. A fresh scan after 615376 ms no longer saw the
+target AP, and the unchanged no-network condition did not reopen it. Exact
+600000-ms boundary behavior has deterministic tests; the roughly 20-second
+physical sampling does not measure absolute RF beacon-stop accuracy. USB
+Wi-Fi recreation and replacement then both passed.
 
 Earlier fixture corrections cover an incorrect inhibited-engine name, missing
 protected hostname read before restart, the documented empty IPv4 string and
@@ -173,8 +185,36 @@ the required ABORT job ID. They are fixture issues, separate from the retained
 real RF-image memory finding. Every stopped device run restored and verified
 the exact original flash before the next load.
 
-Final source manifests, target outcomes, restoration and publication identities
-will be recorded here before completion. Historical Phase 11/14/P15.13 RF
-acceptance retains its exact image/setup applicability; this change does not
-renew conducted RF, absolute launch timing or long-duration Wi-Fi coexistence
-qualification.
+The [sanitized target result](usb-control-target-results.json) records every
+AP observation, 31 accepted/selected controller-time exchanges without a
+station network, and exact restoration. Observed UTC uncertainty was
+56692620–70999115 ns; no existing Pi job threshold or Pico admission bound was
+changed to accept it. A job with a stricter configured threshold still refuses.
+The original firmware `7bff45c0f32f`, full-flash SHA
+`02675b18ea96daca9ee52b95f41bd7f33dea0a5a739fee9fcc68e9e12cc73473` and
+watermark match; final output is inactive and scheduling disabled. Pico ports
+are released, the scan radio remains disconnected, and the installed Pi
+service remains active with its original PID.
+
+Historical Phase 11/14/P15.13 RF acceptance retains its exact image/setup
+applicability. This change does not renew conducted RF, absolute launch timing,
+blank/engineering/reset AP physical matrices, or unrestricted simultaneous
+network/TLS/RF stress qualification. No installed Pi binary was replaced.
+
+## Publication
+
+Pico product `100e749c815f7485d5097c9086852d3b97adca9f` and Pi
+`b2160ca39bed539dfd5d39a0c449dd64d37c53a2` are committed and pushed to `devel`,
+with independently verified remote parity. The Pi dedicated USB CI pin selects
+that exact Pico product; existing network and historical pins are unchanged.
+Both normal Pico targets also rebuild from the clean product commit, label
+`100e749c815f`; their separate hashes are in the source manifest. The eight-byte
+text-size difference is revision-label metadata, not a different tested source.
+
+Pico product [Pages deployment](https://github.com/WsprryPi/WsprryPico/actions/runs/39039281873)
+passed. Pi [USB production-pair CI](https://github.com/WsprryPi/WsprryPi/actions/runs/39039613596/job/117416237007)
+passed. All seven historical compatibility jobs, the macOS simulated profile
+and strict I2C profile also passed in that run. At this record's publication,
+the broader Linux release, non-hardware and network-loopback jobs are still
+running; no full-workflow pass is claimed. This follow-up documentation commit
+does not alter the product source or its exact USB compatibility pin.

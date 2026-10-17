@@ -156,8 +156,8 @@ No Phase 14 workstream or LED task remains open.
     Filtering, calibrated power/absolute RF timing,
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
-15. **Open — operator review punchlist:** eighteen items are tracked: thirteen
-    complete, USB control (P15.14) in progress, uninhibited default build (P15.15)
+15. **Open — operator review punchlist:** eighteen items are tracked: fourteen
+    complete within their recorded scopes, uninhibited default build (P15.15)
     and testing prerelease (P15.16) not started, Installer (P15.17) under discussion,
     and user documentation (P15.18) not started. The operator confirmed
     WsprryPi item 15/P15.9 complete on 2026-10-17. See the
@@ -245,8 +245,10 @@ P15.16 and, before that, P15.14. Historical acceptance records, source identitie
 external checklists and filenames retain their original numbering. Existing
 evidence links are unchanged.
 
-P15.1–P15.13 are complete. USB control is in progress in
-"BLE & USB Control Status"; its execution prompt is generated and about to run.
+P15.1–P15.14 are complete within their recorded scopes. The
+[USB execution record](development/usb-control-results.md) records coordinated
+software acceptance, independent reassessment and bounded physical USB/AP
+evidence, including exact restoration. Transmitter RF was not exercised.
 The uninhibited default build and testing prerelease have not started and must
 be accepted in that order before installer implementation. Installer options
 are under discussion in "Assess WsprryPico installer options". P15.18 user
@@ -305,7 +307,8 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   document access-policy and security limits. Status: complete within the
   [recorded software acceptance](development/phase15-3-management-carriers.md).
   Station mTLS is preserved; explicit Consumer-Radio/1 station/AP Pi clients and
-  versioned discovery are implemented. USB JSON remains unsupported. Required
+  versioned discovery are implemented. USB JSON was unsupported at that
+  closure; P15.14 adds the separately versioned USB adapter. Required
   paired/compatibility, sanitizer, UI and CI checks passed after independent
   review and repair. Physical, installed-service and unrestricted security
   qualification remain outside this closure; final operator documentation is
@@ -533,9 +536,17 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   self-review and restoration are recorded. This does not promote whole
   frequency intervals, refresh historical bands on current firmware or start
   P15.18's documentation site.
-- ⏳ **P15.14 — USB control.** The execution prompt is generated and work is
-  about to run in "BLE & USB Control Status". Status: in progress; implementation
-  and acceptance results will be recorded as that work completes.
+- ✅ **P15.14 — USB control.** Implemented in normal inhibited and StandaloneRF
+  firmware and the Pi runtime/UI. Shared configuration, saved progress,
+  canonical hostname, Wi-Fi create/replace/delete-last/recreate and qualified
+  USB UTC work without Pico networking. Every AP entry has the same finite
+  ten-minute maximum. Existing job/timing limits remain unchanged. The
+  [execution record](development/usb-control-results.md) and
+  [target result](development/usb-control-target-results.json) record 186 Pico
+  checks, Pi/runtime/sanitizer/pair/compatibility checks, independent repairs,
+  maximum-capacity physical LOAD and observed AP withdrawal under USB traffic.
+  Exact original flash is restored. This closure does not renew transmitter
+  RF/timing or unrestricted network/TLS coexistence qualification.
 - ☐ **P15.15 — Make the default firmware build uninhibited.** After P15.14 USB
   control is complete and accepted, make the normal firmware target, `pico2-w`
   preset, build helpers and release recipe produce the same RF-capable normal
@@ -588,7 +599,7 @@ integration are complete by operator acceptance. P15.9 and WsprryPi item 15 are
 complete by operator confirmation on 2026-10-17. The separate originating
 P15.8 review, physical concurrency/reproduction and target qualification remain open.
 P15.10 and P15.11 are complete within their recorded supported software scopes.
-P15.12 and P15.13 are complete. USB control (P15.14) is in progress. The
+P15.12–P15.14 are complete within their recorded scopes. The
 uninhibited default build (P15.15) and testing prerelease (P15.16) have not started
 and precede Installer (P15.17), which is under discussion. P15.18 has not started.
 
@@ -846,8 +857,7 @@ belongs to the operator.
    [closeout ledger](development/phase14-closeout-ledger.md) and
    [remaining deferred/backlog items](#remaining-deferred-and-backlog-items).
 5. Phase 15 collects [operator review punchlist items](#phase-15-operator-review-punchlist).
-   P15.1–P15.13 are complete. USB control (P15.14) is in progress
-   in "BLE & USB Control Status". After it is accepted, deliver the uninhibited
+   P15.1–P15.14 are complete within their recorded scopes. Next deliver the uninhibited
    default build (P15.15), then a GitHub testing prerelease (P15.16), before
    Installer (P15.17), under discussion in "Assess WsprryPico installer options".
    P15.18 user documentation has not started. Existing acceptance records and

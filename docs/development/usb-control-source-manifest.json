@@ -70,5 +70,14 @@
   "tested_images": {
     "WsprryPico.uf2": "e124be56b6819fae65cb124e8498052b9092868fd633df9ebd73828ce209e529",
     "WsprryPico-StandaloneRF.uf2": "32ea68a20b70a5e9a96a710b478757c143fae5218f00659928a3c1a6305f937a"
+  },
+  "product_commit": "100e749c815f7485d5097c9086852d3b97adca9f",
+  "clean_product_build": {
+    "revision_label": "100e749c815f",
+    "images": {
+      "WsprryPico.uf2": "23f1129152fd75787861b49099987315f69ac6cbcd04d3b94713ef997e029aee",
+      "WsprryPico-StandaloneRF.uf2": "bb4cfc95ff8e1f7339f43bc14a57574e236b24f047080b86c88c5008f869f4ba"
+    },
+    "note": "Both normal targets rebuild and pass linked checks from the clean committed product. Physical observations use tested_images, with the explicit pre-commit label."
   }
 }

@@ -1,6 +1,9 @@
 # Production USB control implementation plan
 
-Status: implementation in progress; no new target or RF acceptance claimed.
+Status: implemented, independently reviewed and published within the supported
+software and bounded USB/AP scope. See [execution/results](usb-control-results.md)
+for exact checks, repaired physical memory finding, restoration and source
+identities. No new transmitter RF or absolute timing acceptance is claimed.
 
 The coordinated slice starts at Pico `45f3367c89db00c20f06f119c58a06cc696f5fb5`
 and Pi `da0ef083644d30c800e6f7d421aecf96e764c735`, both initially clean.

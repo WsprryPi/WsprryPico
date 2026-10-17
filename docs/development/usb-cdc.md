@@ -65,9 +65,9 @@ the existing portable parser can allocate and perform frame-sized work.
   bounded frame queue. Accepted bytes retain FIFO order while
   the DTR-active USB connection is healthy; no application-level acknowledgment
   or endpoint compliance is implied. TinyUSB disables FIFO overwrite with DTR.
-- Both terminals must assert DTR. DTR deassertion aborts that port's stream and
+- All three functions must assert DTR. DTR deassertion aborts that port's stream and
   clears queued software RX/TX; Console also clears its ring. Mount/unmount
-  callbacks reset both sessions. Reset notifications survive close/open transitions
+  callbacks reset all three sessions. Reset notifications survive close/open transitions
   between main-loop polls, so the parser resets and the Console banner repeats.
   Disconnected RX is discarded. RTS and nominal baud rate do not select behavior;
   1200 baud does not invoke an application reset-to-bootloader handler.

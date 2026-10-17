@@ -7,7 +7,7 @@ existing numeric job/timing limits. Its record distinguishes software/build
 evidence from outstanding physical USB/AP/RF qualification.
 
 Current [Phase 15 punchlist numbering](../implementation-plan.md#phase-15-operator-review-punchlist)
-places P15.14 USB control (in progress in "BLE & USB Control Status") after
+places P15.14 USB control (implemented and independently reviewed) after
 P15.13 band/mode/clock qualification. After USB control acceptance, deliver
 P15.15 uninhibited default build, then P15.16 GitHub testing prerelease, before
 P15.17 Installer (under discussion in "Assess WsprryPico installer options") and
@@ -500,7 +500,7 @@ Generated .pio.h headers are ignored; maintain the corresponding .pio source.
 Do not store Wi-Fi credentials in maintained headers. Use ignored local config
 or device provisioning; sanitized configuration examples should be trackable.
 
-The [dual USB CDC guide](usb-cdc.md) documents the adapter and optional
+The [USB CDC roles guide](usb-cdc.md) documents the adapter and optional
 descriptor test using the pinned local TinyUSB headers. The
 [strict WTP endpoint guide](wtp-endpoint.md) adds wire tests, sanitizer commands,
 image memory-layout checks and an opt-in read-only USB probe.

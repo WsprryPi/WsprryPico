@@ -14,7 +14,7 @@ for software/build acceptance and remaining physical gates.
 Every production AP activation—including blank-device setup, manual/button,
 fallback and recovery—has a non-sliding ten-minute limit. Holding/releasing a
 button, traffic or a persistent outage cannot renew the same window. After
-expiry USB remains available; a new deliberate request or genuinely new outage
+expiry USB remains available; a new deliberate request or new outage
 after stable station recovery can open another bounded window.
 
 The [P15.8 execution record](docs/development/phase15-8-wspr-type23.md) tracks

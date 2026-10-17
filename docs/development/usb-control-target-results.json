@@ -1,0 +1,280 @@
+{
+  "schema": "usb-control-target-results/1",
+  "date": "2026-10-17",
+  "result": "PASS_BOUNDED_USB_AP_NO_TRANSMITTER_RF",
+  "host": "wspr5",
+  "board": {
+    "model": "Pico 2 W / RP2350",
+    "usb_serial": "CDDBF8767C506C07",
+    "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+    "system_clock_hz": 138000000,
+    "engine": "pio-dma-gp2"
+  },
+  "source": {
+    "pico_product_commit": "100e749c815f7485d5097c9086852d3b97adca9f",
+    "tested_revision_label": "9dee1ff177e6-dirty",
+    "tested_rf_uf2_sha256": "32ea68a20b70a5e9a96a710b478757c143fae5218f00659928a3c1a6305f937a",
+    "pi_product_commit": "b2160ca39bed539dfd5d39a0c449dd64d37c53a2",
+    "native_pi_usb_helper_sha256": "b14250cfdcba12b0acffb829cd089163893ce7087eb204f6b5e4a717d35d8740",
+    "source_manifest": "usb-control-source-manifest.json"
+  },
+  "no_rf": {
+    "scheduler_enabled": false,
+    "loaded_jobs": 1,
+    "arm_requests": 0,
+    "transmitted_jobs": 0,
+    "rf_duration_ns": "0",
+    "abort_and_release": true
+  },
+  "checks": {
+    "remove_last_wifi": true,
+    "name_without_wifi": true,
+    "retained_config": true,
+    "max_load_512_events_65536_bytes_3600s": true,
+    "management_with_max_job": true,
+    "ap_expired_while_usb_active": true,
+    "wifi_recreate_replace_after_expiry": true,
+    "restored_exact_full_flash": true
+  },
+  "no_network_boot": {
+    "saved_wifi": null,
+    "station_ipv4": "",
+    "station_link_status": 1,
+    "sntp_queries": 0,
+    "sntp_accepted": 0
+  },
+  "capacity": {
+    "payload_bytes": 65536,
+    "events": 512,
+    "advertised_job_duration_ns": "3600000000000",
+    "loaded_and_aborted_without_arm": true,
+    "management_read_with_loaded_job": true
+  },
+  "usb_time": {
+    "qualified_host": "read-only adjtimex; host PPS/chrony synchronized normal leap",
+    "observations_without_station_network": 31,
+    "all_accepted_selected_controller": true,
+    "minimum_uncertainty_ns": "56692620",
+    "maximum_uncertainty_ns": "70999115",
+    "production_maximum_unchanged_ns": "500000000",
+    "pi_configured_job_threshold_unchanged": true
+  },
+  "ap": {
+    "limit_ms": 600000,
+    "initial_fresh_scan_contains_target": true,
+    "final_fresh_scan_contains_target": false,
+    "scan_interface": "wlan2; existing idle managed radio; no association/configuration change",
+    "observations": [
+      {
+        "elapsed_ms": 26054,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "574281"
+      },
+      {
+        "elapsed_ms": 46707,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "553629"
+      },
+      {
+        "elapsed_ms": 67351,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "532979"
+      },
+      {
+        "elapsed_ms": 87997,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "512337"
+      },
+      {
+        "elapsed_ms": 108642,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "491692"
+      },
+      {
+        "elapsed_ms": 129277,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "471055"
+      },
+      {
+        "elapsed_ms": 149916,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "450414"
+      },
+      {
+        "elapsed_ms": 170570,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "429768"
+      },
+      {
+        "elapsed_ms": 191210,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "409121"
+      },
+      {
+        "elapsed_ms": 211852,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "388479"
+      },
+      {
+        "elapsed_ms": 232505,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "367831"
+      },
+      {
+        "elapsed_ms": 253146,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "347185"
+      },
+      {
+        "elapsed_ms": 273786,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "326544"
+      },
+      {
+        "elapsed_ms": 294437,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "305902"
+      },
+      {
+        "elapsed_ms": 315072,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "285252"
+      },
+      {
+        "elapsed_ms": 335705,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "264617"
+      },
+      {
+        "elapsed_ms": 356335,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "243996"
+      },
+      {
+        "elapsed_ms": 376964,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "223356"
+      },
+      {
+        "elapsed_ms": 397596,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "202728"
+      },
+      {
+        "elapsed_ms": 418228,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "182098"
+      },
+      {
+        "elapsed_ms": 438864,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "161461"
+      },
+      {
+        "elapsed_ms": 459494,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "140828"
+      },
+      {
+        "elapsed_ms": 480129,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "120202"
+      },
+      {
+        "elapsed_ms": 500764,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "99561"
+      },
+      {
+        "elapsed_ms": 521392,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "78930"
+      },
+      {
+        "elapsed_ms": 542023,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "58302"
+      },
+      {
+        "elapsed_ms": 562658,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "37667"
+      },
+      {
+        "elapsed_ms": 583288,
+        "running": true,
+        "expired": false,
+        "remaining_ms": "17034"
+      },
+      {
+        "elapsed_ms": 603902,
+        "running": false,
+        "expired": true,
+        "remaining_ms": "0"
+      },
+      {
+        "elapsed_ms": 615376,
+        "running": false,
+        "expired": true,
+        "remaining_ms": "0"
+      }
+    ],
+    "note": "Console observations have roughly 20-second spacing; exact 600000-ms boundary is deterministic policy-test evidence, not an absolute RF stopwatch measurement."
+  },
+  "restoration": {
+    "original_firmware_revision": "7bff45c0f32f",
+    "restored_firmware_revision": "7bff45c0f32f",
+    "full_flash_bytes": 4194304,
+    "original_and_restored_sha256": "02675b18ea96daca9ee52b95f41bd7f33dea0a5a739fee9fcc68e9e12cc73473",
+    "watermark_unchanged": true,
+    "output_active": false,
+    "scheduler_enabled": false
+  },
+  "private_evidence": {
+    "directory": "/home/pi/usb-control-20261017",
+    "bench_events_sha256": "31fd963e40b57dde886e75eeea4926b9e1a742d9c9f98d0ee618adb48303c5d5",
+    "runner_sha256": "718c79cfe5c7099dd2d7d071331843b776112bc3516b1f3b76ca43b324f73610",
+    "raw_backups_and_credentials_committed": false
+  },
+  "limits": [
+    "No ARM or transmitter RF/timing qualification",
+    "One consumer-configured Pico B; blank/engineering/reset/recovery AP paths have deterministic tests, not a full repeated physical matrix",
+    "Installed Pi binary/services were not replaced",
+    "General concurrent TLS/network/RF stress remains separately qualified"
+  ],
+  "host_restoration": {
+    "wsprrypi_service": "active",
+    "main_pid": 390491,
+    "active_since": "2026-10-17T07:50:12-05:00",
+    "service_restarted_by_test": false,
+    "wlan2_state": "disconnected",
+    "pico_ports_released": true
+  }
+}
