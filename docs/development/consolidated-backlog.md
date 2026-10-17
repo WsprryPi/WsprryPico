@@ -26,6 +26,7 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
 7. ▧ **Software/build CI and deployment images.** Run checks and produce usable
    UF2 images with version/source identity, checksums and a manifest before
    release efforts. Use the CI image for decode verification and publication.
+   [Saved prompt](software-build-ci-execution-prompt.md).
 8. ▧ **Operator documentation.** Final instructions, screenshots and
    Read the Docs Community publication.
 9. ▧ **Testing prerelease.** Publish the verified CI image, manifest and
