@@ -119,6 +119,15 @@ remain unchanged. Final regression/physical outcomes are recorded below.
   Node UI regressions run on Linux or their supported JavaScript runtime.
   Native macOS Pi C++ compilation was not attempted. See the companion
   WsprryPi USB record for final commands and counts.
+- The complete Linux `wtp-config-interop-test` also passes against unchanged
+  current-network Pico `804e8a06585ec5a0e650e69fcd71ada398b6cc9f` and MbedTLS
+  `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`: engineering TLS, consumer station/AP,
+  protected UI/runtime/resources, journal failure/recovery and both shipped
+  browser crypto contexts, including full-capacity lost-read recovery.
+  The extra local full network-runtime attempt passed Plain TCP but stopped
+  at environment prerequisites (missing OpenSSL CLI, then a bind-mount TLS
+  fixture copy permission error). No local full-target pass is claimed; the
+  separate GitHub network-loopback job passed in its complete Linux environment.
 
 Reproduction uses the repository's [development instructions](README.md).
 The new focused tests are `usb_local_management_tests`, `usb_management_tests`,
@@ -189,7 +198,12 @@ The [sanitized target result](usb-control-target-results.json) records every
 AP observation, 31 accepted/selected controller-time exchanges without a
 station network, and exact restoration. Observed UTC uncertainty was
 56692620–70999115 ns; no existing Pi job threshold or Pico admission bound was
-changed to accept it. A job with a stricter configured threshold still refuses.
+changed to accept it. The unchanged default Pi job threshold is 1000000 ns
+(1 ms), so those observations would refuse default job admission. Accepted USB
+UTC does not establish default ARM readiness or installed-service timing
+qualification; no ARM was attempted. The uncertainty includes qualified host
+error, full measured sample/ACK round trip, wall/monotonic skew and the existing
+100 µs reserve; it is not attributed solely to USB transport latency.
 The original firmware `7bff45c0f32f`, full-flash SHA
 `02675b18ea96daca9ee52b95f41bd7f33dea0a5a739fee9fcc68e9e12cc73473` and
 watermark match; final output is inactive and scheduling disabled. Pico ports
@@ -212,9 +226,15 @@ Both normal Pico targets also rebuild from the clean product commit, label
 text-size difference is revision-label metadata, not a different tested source.
 
 Pico product [Pages deployment](https://github.com/WsprryPi/WsprryPico/actions/runs/39039281873)
-passed. Pi [USB production-pair CI](https://github.com/WsprryPi/WsprryPi/actions/runs/39039613596/job/117416237007)
-passed. All seven historical compatibility jobs, the macOS simulated profile
-and strict I2C profile also passed in that run. At this record's publication,
-the broader Linux release, non-hardware and network-loopback jobs are still
-running; no full-workflow pass is claimed. This follow-up documentation commit
-does not alter the product source or its exact USB compatibility pin.
+and the subsequent [target evidence deployment](https://github.com/WsprryPi/WsprryPico/actions/runs/39040273935)
+passed. Pi's complete [non-hardware CI workflow](https://github.com/WsprryPi/WsprryPi/actions/runs/39039613596)
+passed on product `b2160ca39bed539dfd5d39a0c449dd64d37c53a2`, including the exact
+[USB production pair](https://github.com/WsprryPi/WsprryPi/actions/runs/39039613596/job/117416237007),
+all seven historical compatibility jobs, current network loopback, Linux
+non-hardware validation, macOS simulated, strict I2C and all six GCC13 release
+profiles. The final evidence-only follow-ups do not alter either product's
+source or its exact USB compatibility pin.
+
+Pi follow-up `eafae38` records the full-workflow result, completed configuration
+interoperability and the unchanged default job clock limit in its operator
+guide. It changes documentation only.
