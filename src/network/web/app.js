@@ -55,6 +55,165 @@ let revision = '', currentConfig = null, snapshot = null, capabilities = null, b
 let localIdentity = null, localAuthenticated = false;
 let engineeringStationDirty = false, engineeringNetworkDirty = false;
 let writeState = 'readback', savedReadback = null, saveAttempt = null, retirementDiscovery = null;
+
+let savedProgress = null, progressEpoch = 0, progressEditSerial = 0;
+const progressEdits = new Map();
+const progressUI = globalThis.WsprryPicoSavedProgress;
+function supportsProgress() {
+  const d = capabilities?.saved_progress;
+  if (d === undefined) return false;
+  if (!d || Object.keys(d).sort().join(',') !== 'apply,max_bytes,read,save,schema' ||
+      d.schema !== 'transmitter-progress/1' || d.read !== '/api/v1/progress' ||
+      d.save !== '/api/v1/progress/update' || d.apply !== '/api/v1/progress/apply' || d.max_bytes !== 2048 || !progressUI)
+    throw new Error('Unknown saved-progress support. Your edits are preserved.');
+  return true;
+}
+function progressUnit(control) {
+  const station = {'consumer-callsign':'callsign','consumer-locator':'locator','consumer-power':'power_dbm'};
+  if (station[control.id]) return station[control.id];
+  const name = control.name;
+  if (['rf_gp','button_gp','indicator','indicator_gp','indicator_active_high'].includes(name)) return 'pins';
+  if (['ssid','password'].includes(name)) return 'wifi';
+  return name === 'expiry' ? 'expires_utc_s' : name;
+}
+function editedProgress(event) {
+  if (!event?.target) return;
+  const unit = progressUnit(event.target);
+  if (progressUI?.names.includes(unit)) {
+    progressEdits.set(unit,++progressEditSerial);
+    const message = $('progress-error-' + (event.target.id?.startsWith('consumer-') ? 'station-' : 'settings-') + unit);
+    if (message) {message.textContent='Unsaved edit.';message.classList.toggle('error',false);event.target.setAttribute?.('aria-invalid','false');}
+  }
+}
+function checkedProgress(result, acknowledgement = false) {
+  if (!result.revision || !progressUI?.valid(result.data,acknowledgement) ||
+      result.data.target.boot_id !== snapshot?.job.boot_id ||
+      localIdentity && result.data.target.device_id !== localIdentity.device_id) {
+    requireReadback(); const error = new Error('Saved progress is unconfirmed. Your edits are preserved; read saved settings before another save.');
+    error.unconfirmed = true; throw error;
+  }
+  return result;
+}
+function showProgress() {
+  if (!savedProgress) return;
+  const text = progressUI.summary(savedProgress.data);
+  for (const id of ['progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status']) if ($(id)) $(id).textContent = text;
+  $('save-config').textContent = 'Save valid fields';
+  if ($('save-station-progress')) $('save-station-progress').textContent = 'Save valid station fields';
+  $('apply-progress').hidden = false;
+  $('apply-progress').disabled = writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.apply_domains.radio;
+  for (const domain of ['station','network']) {
+    $('apply-engineering-' + domain + '-progress').hidden = Boolean(radio);
+    $('apply-engineering-' + domain + '-progress').disabled = writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.apply_domains[domain];
+    $('save-engineering-' + domain + '-progress').textContent = 'Save valid ' + domain + ' fields';
+  }
+  $('apply-station-progress').hidden = !radio;
+  $('apply-station-progress').disabled = writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.station_complete || !savedProgress.data.wspr_plan?.supported;
+  $('settings-save-help').textContent = 'Save valid fields as progress, then explicitly apply saved settings. Incomplete drafts do not replace applied settings. Network and pin application can need a restart.';
+  $('initial-config').textContent = 'Apply complete saved progress';
+}
+async function readProgress(fillDraft = false) {
+  if (!supportsProgress()) return null;
+  const epoch = ++progressEpoch;
+  const result = checkedProgress(await api('progress'));
+  if (epoch !== progressEpoch) throw new Error('Saved-progress read was superseded. Your edits are preserved.');
+  savedProgress = result;
+  if (fillDraft && !progressEdits.size && !consumerSetupDirty) {
+    const f = $('config').elements, v = result.data.fields;
+    for (const key of ['callsign','locator','power_dbm']) {
+      f[key].value = result.data.station[key] ?? '';
+      if (radio) $('consumer-' + (key === 'power_dbm' ? 'power' : key)).value = result.data.station[key] ?? '';
+    }
+    if (Object.hasOwn(v,'enabled')) f.enabled.checked = v.enabled === true;
+    if (Object.hasOwn(v,'schedules')) f.schedules.value = Array.isArray(v.schedules) ? v.schedules.map(x=>`${x.period_s} / ${x.phase_s}`).join('\n') : '';
+    if (Object.hasOwn(v,'expires_utc_s')) f.expiry.value = v.expires_utc_s ? new Date(v.expires_utc_s*1000).toISOString().slice(0,19) : '';
+    if (v.pins) fillPins(v.pins);
+    if (!radio && Object.hasOwn(v,'ntp_ipv4')) f.ntp_ipv4.value = v.ntp_ipv4 ?? '';
+    if (!radio && v.wifi) f.ssid.value = v.wifi.ssid;
+    wsprDraftFeedback(f.callsign.value,f.locator.value,'draft-wspr-plan');
+    if (radio) wsprDraftFeedback(f.callsign.value,f.locator.value,'consumer-wspr-plan');
+  }
+  showProgress(); return result;
+}
+function fieldOutcome(unit,value,station) {
+  const f = $('config').elements;
+  const input = station ? $('consumer-' + (unit === 'power_dbm' ? 'power' : unit)) :
+    unit === 'pins' ? f.rf_gp : unit === 'wifi' ? f.ssid : unit === 'expires_utc_s' ? f.expiry : f[unit];
+  if (!input) return;
+  const id = 'progress-error-' + (station ? 'station-' : 'settings-') + unit;
+  let message = $(id);
+  if (!message) { message = document.createElement('small'); message.id = id; message.className = 'field-result'; (unit === 'enabled' ? input.closest('label') : input).insertAdjacentElement('afterend',message); }
+  input.setAttribute('aria-describedby',[...new Set([...(input.getAttribute('aria-describedby') || '').split(' '),id].filter(Boolean))].join(' '));
+  input.setAttribute('aria-invalid',String(value === 'invalid'));
+  message.textContent = value === 'newer' ? 'Earlier value was saved; this newer edit remains unsaved.' : value === 'invalid' ? 'Not saved: ' + progressUI.errors[unit] + '.' : value === 'cleared' ? 'Cleared in saved draft.' : 'Saved as draft.';
+  message.classList.toggle('error',value === 'invalid');
+}
+async function saveProgressFields(fields,station = false,output) {
+  if (!Object.keys(fields).length) throw new Error('Edit a field before saving progress.');
+  if (!savedProgress || writeState !== 'ready' || savedProgress.revision !== revision) throw new Error('Read and review saved settings before saving progress.');
+  const edits = new Map(progressEdits), target = savedProgress.data.target;
+  const body = {schema:'transmitter-progress/1',target,request_id:requestId(),fields};
+  const epoch = ++progressEpoch;
+  const result = checkedProgress(await api('progress/update','POST',body,revision),true);
+  if (epoch !== progressEpoch || !progressUI.confirms(result.data,body)) {
+    requireReadback(); const e = new Error('Save result unconfirmed. Your edits are preserved. Read saved settings before sending another save.');e.unconfirmed=true;throw e;
+  }
+  savedProgress = {data:{...result.data},revision:result.revision};
+  delete savedProgress.data.outcomes; delete savedProgress.data.request_id;
+  revision = result.revision;
+  for (const [key,value] of Object.entries(result.data.outcomes)) {
+    if (progressEdits.get(key) !== edits.get(key)) {
+      fieldOutcome(key,'newer',station);
+    } else {
+      fieldOutcome(key,value,station);
+      if (value !== 'invalid') progressEdits.delete(key);
+    }
+  }
+  engineeringStationDirty = ['callsign','locator','power_dbm'].some(k=>progressEdits.has(k));
+  engineeringNetworkDirty = ['wifi','ntp_ipv4'].some(k=>progressEdits.has(k));
+  consumerSetupDirty = consumerNetworkDirty || (Boolean(radio) && engineeringStationDirty);
+  dirty = progressEdits.size > 0;
+  showProgress();
+  const newer = Object.keys(fields).filter(k=>progressEdits.has(k) && progressEdits.get(k)!==edits.get(k));
+  const text = progressUI.outcomeText(result.data.outcomes) + (newer.length ? ' Newer edits remain unsaved: ' + newer.map(k=>progressUI.labels[k]).join(', ') + '.' : '') + ' ' + progressUI.summary(result.data);
+  $(output || (station ? 'progress-station-status' : 'progress-settings-status')).textContent = text;
+  notice(text,Object.values(result.data.outcomes).includes('invalid'));
+  return result.data.outcomes;
+}
+function progressNumber(text) {
+  const value = Number(text);
+  return text !== '' && Number.isInteger(value) && value >= 0 && value <= 2147483647 ? value : text;
+}
+function stationProgressEdits() {
+  const fields = {};
+  for (const key of ['callsign','locator','power_dbm']) if (progressEdits.has(key)) {
+    const text = $('consumer-' + (key === 'power_dbm' ? 'power' : key)).value.trim();
+    fields[key] = text === '' ? null : key === 'power_dbm' ? progressNumber(text) : text.toUpperCase();
+  }
+  return fields;
+}
+async function saveConfigProgress(domain = 'radio') {
+  const f = $('config').elements, fields = {};
+  for (const key of progressEdits.keys()) {
+    if ((['callsign','locator','power_dbm'].includes(key) ? 'station' : ['wifi','ntp_ipv4'].includes(key) ? 'network' : 'radio') !== domain) continue;
+    if (radio && ['callsign','locator','power_dbm','wifi','ntp_ipv4'].includes(key)) continue;
+    if (key === 'pins') fields.pins = readPins();
+    else if (key === 'wifi') fields.wifi = {ssid:f.ssid.value,password:f.password.value || null};
+    else if (key === 'schedules') fields.schedules = f.schedules.value.trim() === '' ? [] : f.schedules.value.trim().split('\n').map(line=>{
+      if (!/^\s*\d+\s*\/\s*\d+\s*$/.test(line)) return line;
+      const [period_s,phase_s] = line.split('/').map(v=>progressNumber(v.trim()));return {period_s,phase_s};
+    });
+    else if (key === 'expires_utc_s') fields[key] = f.expiry.validity?.badInput ? 'invalid' : f.expiry.value ? progressNumber(String(Date.parse(f.expiry.value+'Z')/1000)) : 0;
+    else if (key === 'enabled') fields.enabled = f.enabled.checked;
+    else if (['callsign','locator','power_dbm','ntp_ipv4'].includes(key)) {
+      const text = f[key].value.trim();
+      fields[key] = key === 'power_dbm' && f[key].validity?.badInput ? 'invalid' : text === '' ? null : key === 'power_dbm' ? progressNumber(text) : key === 'ntp_ipv4' ? text : text.toUpperCase();
+    }
+  }
+  const outcomes = await saveProgressFields(fields,false,domain === 'radio' ? 'progress-settings-status' : 'progress-engineering-' + domain + '-status');
+  if (outcomes.wifi && outcomes.wifi !== 'invalid') clearPassword('config-password');
+}
+
 function validWsprPlan(p) {
   if (!p || Object.keys(p).sort().join(',') !== 'alternate_callsign,frame_types,frames,rationale,schema,slot_separation_s,supported,type2_ambiguous' ||
       p.schema !== 'wspr-plan/1' || typeof p.supported !== 'boolean' || typeof p.type2_ambiguous !== 'boolean' ||
@@ -113,7 +272,9 @@ async function readSavedKeepingDraft() {
   requireReadback();
   const before = await readApplication();
   const saved = await api('config');
+  const progress = await readProgress();
   const config = checkedConfig(saved), after = await readApplication();
+  if (progress && progress.revision !== saved.revision) throw new Error('Saved progress changed during readback');
   if (!before.data.target || JSON.stringify(before.data.target) !== JSON.stringify(after.data.target) ||
       before.revision !== saved.revision || after.revision !== saved.revision) throw new Error('Pico context or saved revision changed during readback');
   savedReadback = {target:after.data.target,revision:saved.revision,config};
@@ -121,7 +282,7 @@ async function readSavedKeepingDraft() {
     ? 'Saved plan: ' + after.data.wspr_plan.frame_types.join(' → ') + '. ' + after.data.wspr_plan.rationale
     : applicationVersion === 2 ? 'Saved plan: no station identity is configured.'
     : 'Saved plan: this firmware supports Type 1 only.';
-  $('saved-readback').textContent = JSON.stringify({saved_config:config,application:after.data},null,2);
+  $('saved-readback').textContent = JSON.stringify({saved_config:config,saved_progress:progress?.data || null,application:after.data},null,2);
   $('saved-readback').hidden = false; writeState = 'review';
   $('saved-readback-details').hidden = false;
   const h = after.data.hardware;
@@ -143,7 +304,7 @@ function readSetupReceipt(hash) {
     return {...v,sent:true};
   } catch (_) { return null; }
 }
-let consumerAttempt = radio ? readSetupReceipt(globalThis.location?.hash) : null, consumerSetupDirty = false;
+let consumerAttempt = radio ? readSetupReceipt(globalThis.location?.hash) : null, consumerSetupDirty = false, consumerNetworkDirty = false;
 function setupReceiptHash() {
   if (!consumerAttempt) return '';
   const {kind,device,generation,digest} = consumerAttempt;
@@ -166,12 +327,12 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
   if (method !== 'GET') Object.assign(headers, {'Content-Type':'application/json','X-WsprryPico-Request':'1'});
   if (etag) headers['If-Match'] = etag;
   let response;
-  const settingWrite = method !== 'GET' && ['config','config/2','config/update','config/update/2','schedules','station','station/2','hardware'].includes(path);
+  const settingWrite = method !== 'GET' && ['config','config/2','config/update','config/update/2','schedules','station','station/2','hardware','progress/update','progress/apply'].includes(path);
   if (settingWrite) {
     if (writeState !== 'ready' || !revision) throw new Error('Read and review saved settings before a new save');
     // Bounded context; credentials are never retained in the attempt record.
     const intended = JSON.parse(JSON.stringify(body));
-    for (const config of [intended,intended.config]) if (config?.wifi) config.wifi.password = null;
+    for (const config of [intended,intended.config,intended.fields]) if (config?.wifi) config.wifi.password = null;
     saveAttempt = {target:localIdentity ? {...localIdentity} : snapshot?.job.boot_id,path,revision:etag,intended,sent:true};
   }
   try {
@@ -310,6 +471,13 @@ function controls(connected) {
   $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
   $('abort').disabled = busy || !online || snapshot?.job.owner_id !== session || !['loaded','armed','running'].includes(snapshot.job.state);
   $('release').disabled = busy || !online || snapshot?.job.owner_id !== session || snapshot.job.output_active !== false || ['armed','running','failed'].includes(snapshot.job.state);
+  if (savedProgress) {
+    $('initial-config').disabled = busy || !idle || writeState !== 'ready' || !savedProgress.data.complete;
+    $('apply-progress').disabled = busy || !idle || writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.apply_domains.radio;
+    for (const domain of ['station','network']) $('apply-engineering-' + domain + '-progress').disabled = busy || !idle || writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.apply_domains[domain];
+    $('apply-station-progress').disabled = busy || !idle || writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.station_complete || !savedProgress.data.wspr_plan?.supported || Boolean(consumerAttempt);
+    $('consumer-station-settings').disabled ||= writeState !== 'ready';
+  }
   for (const id of passwordFields) setPasswordVisible(id,$(id).type === 'text');
 }
 function fill(c) {
@@ -366,7 +534,7 @@ async function refresh(loadConfig = false) {
     }
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
     $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network or pin settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
-    if (loadConfig) { const c = await api('config'); const config=checkedConfig(c); revision = c.revision; fill(config); writeState = 'ready'; }
+    if (loadConfig) { const c = await api('config'); const config=checkedConfig(c); revision = c.revision; fill(config); const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; showProgress(); }
     updateProgress(); messagePreview();
     notice('Connected · Status updated ' + observedAt); controls(true);
   } catch (e) { markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Session ended. Log in again; your draft is preserved.'; notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
@@ -458,8 +626,8 @@ $('local-logout').onclick = () => action(async () => {
 });
 $('consumer-power').replaceChildren(...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60]
   .map(power => new Option(String(power),String(power))));
-for (const id of ['consumer-network-form','consumer-station-form']) $(id).oninput = () => { consumerSetupDirty = true; };
-async function saveConsumer(kind) {
+for (const id of ['consumer-network-form','consumer-station-form']) $(id).oninput = event => { consumerSetupDirty = true; if (id === 'consumer-station-form') editedProgress(event); else consumerNetworkDirty = true; };
+async function saveConsumer(kind, savedStation) {
   setPasswordVisible('consumer-password',false);
   if (consumerAttempt) throw new Error('Check the previous saved result first');
   const status = $('consumer-save-status');
@@ -467,13 +635,13 @@ async function saveConsumer(kind) {
   try {
     if (kind === 'station') {
       await readApplication();
-      await reviewWspr({callsign:$('consumer-callsign').value.trim().toUpperCase(),
+      await reviewWspr(savedStation ? {callsign:savedStation.callsign,locator:savedStation.locator,power_dbm:savedStation.power_dbm} : {callsign:$('consumer-callsign').value.trim().toUpperCase(),
         locator:$('consumer-locator').value.trim().toUpperCase(),power_dbm:Number($('consumer-power').value)},'consumer-wspr-plan');
     }
     consumerAttempt = kind === 'network' ? await radio.prepareNetwork(localIdentity, {
       ssid:$('consumer-ssid').value,password:$('consumer-password').value,time_server:$('consumer-time-server').value.trim()
     }) : await radio.prepareStation(localIdentity, {
-      callsign:$('consumer-callsign').value.trim().toUpperCase(),locator:$('consumer-locator').value.trim().toUpperCase(),powerDbm:Number($('consumer-power').value)
+      ...(savedStation ? {callsign:savedStation.callsign,locator:savedStation.locator,powerDbm:savedStation.power_dbm,progressRevision:savedProgress.revision} : {callsign:$('consumer-callsign').value.trim().toUpperCase(),locator:$('consumer-locator').value.trim().toUpperCase(),powerDbm:Number($('consumer-power').value)})
     });
     updateSetupReceipt();
     await radio.submitSetup(consumerAttempt);
@@ -484,7 +652,7 @@ async function saveConsumer(kind) {
   } finally { clearPassword('consumer-password'); }
 }
 $('consumer-network-form').onsubmit = event => { event.preventDefault(); return action(() => saveConsumer('network')); };
-$('consumer-station-form').onsubmit = event => { event.preventDefault(); return action(() => saveConsumer('station')); };
+$('consumer-station-form').onsubmit = event => { event.preventDefault(); return action(() => supportsProgress() ? saveProgressFields(stationProgressEdits(),true) : saveConsumer('station')); };
 $('consumer-check-save').onclick = () => action(async () => {
   const result = await radio.checkSetup(consumerAttempt);
   $('consumer-save-status').textContent = result === 'saved' ? 'Your settings were saved and verified.' :
@@ -493,13 +661,17 @@ $('consumer-check-save').onclick = () => action(async () => {
   if (result !== 'unconfirmed') { consumerAttempt = null; updateSetupReceipt(); await refresh(); await readSavedKeepingDraft(); }
 });
 if (consumerAttempt) $('consumer-save-status').textContent = 'A pending save receipt was recovered. Log in, then select Check saved result. No save has been repeated.';
-$('config').oninput = () => { dirty = true; };
+$('config').oninput = event => { dirty = true; editedProgress(event); };
 $('reload-config').onclick = () => action(async () => {
-  if ((dirty || engineeringStationDirty || engineeringNetworkDirty || consumerSetupDirty) && !confirm('Discard your unsaved changes and reload saved settings?')) return;
-  engineeringStationDirty=false; engineeringNetworkDirty=false; consumerSetupDirty=false;
+  if ((dirty || engineeringStationDirty || engineeringNetworkDirty || consumerSetupDirty || progressEdits.size) && !confirm('Discard your unsaved changes and reload saved settings?')) return;
+  progressEdits.clear(); dirty=false;
+  engineeringStationDirty=false; engineeringNetworkDirty=false; consumerSetupDirty=false; consumerNetworkDirty=false;
+  for (const result of document.querySelectorAll?.('.field-result') || []) {result.textContent = '';result.classList.toggle('error',false);}
+  for (const input of document.querySelectorAll?.('[aria-invalid]') || []) input.removeAttribute('aria-invalid');
   await refresh(true);
 });
 $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('config-password',false); return action(async () => {
+  if (supportsProgress()) return saveConfigProgress();
   const f = $('config').elements;
   const schedules = f.schedules.value.trim().split('\n').map(line => {
     if (!/^\s*\d+\s*\/\s*\d+\s*$/.test(line)) throw new Error('Use period / phase for each schedule');
@@ -519,6 +691,19 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
   const result = await api(applicationVersion === 2 ? 'config/2' : 'config','PUT',config,revision); const confirmed=checkedConfig(result,false); revision = result.revision; fill(confirmed);
   await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Restart device to apply network or pin changes.' : 'Settings saved and applied.');
 }); };
+async function applyProgressDomain(domain) {
+  if (!savedProgress || writeState !== 'ready') throw new Error('Read and review saved progress before applying.');
+  const result = await api('progress/apply','POST',{schema:'transmitter-progress/1',target:savedProgress.data.target,application:{draft_revision:savedProgress.data.draft_revision,domain}},savedProgress.revision);
+  currentConfig = checkedConfig(result,false); revision = result.revision;
+  await refresh(); await readSavedKeepingDraft();
+  notice(result.data.reboot_required ? 'Saved progress applied. Network or pin changes need an explicit restart.' : 'Saved progress applied. Check the selected operation’s current status before transmitting.');
+}
+$('apply-progress').onclick = () => action(() => applyProgressDomain('radio'));
+for (const domain of ['station','network']) $('apply-engineering-' + domain + '-progress').onclick = () => action(() => applyProgressDomain(domain));
+$('apply-station-progress').onclick = () => action(async () => {
+  if (!savedProgress || writeState !== 'ready') throw new Error('Read and review saved station progress before applying.');
+  await saveConsumer('station',savedProgress.data.station);
+});
 async function job(operation, body = {}) {
   const result = await api('jobs','POST',{session_id:session,request_id:requestId(),operation,body});
   return result.data;
@@ -721,12 +906,12 @@ for (const key of ['rf_gp','button_gp','indicator','indicator_gp']) $('config').
 
 function wsprDraftFeedback(call,locator,id) {
   const output = $(id); if (!output) return;
-  if (locator && !/^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(locator)) { output.textContent = 'Use a locator such as EM18 or EM18IG: fields A–R, two digits, then optional A–X subsquare. Your draft has not been saved.'; return; }
-  if (call.startsWith('<') && locator.length !== 6) { output.textContent = 'A bracketed callsign needs a six-character locator. Your draft has not been saved.'; return; }
+  if (locator && !/^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(locator)) { output.textContent = 'Use a locator such as EM18 or EM18IG: fields A–R, two digits, then optional A–X subsquare. ' + (savedProgress ? 'Valid independent fields can still be saved.' : 'Your draft has not been saved.'); return; }
+  if (call.startsWith('<') && locator.length !== 6) { output.textContent = 'A bracketed callsign needs a six-character locator. ' + (savedProgress ? 'Valid independent fields can still be saved.' : 'Your draft has not been saved.'); return; }
   const description = call.startsWith('<') ? 'Type 3 · one hash frame; receiver context is needed.' : call.includes('/') ?
     locator.length === 6 ? 'Type 2 then Type 3 · two frames in adjacent even-minute windows, 230.592 seconds total. Receiver hash context may be needed.' : 'Type 2 · one frame, without a locator.' :
     'Type 1 · one frame; first four locator characters on air, all six retained in settings.';
-  output.textContent = 'Draft: ' + description + (/\/(?:[Q-Z]|0[0-9])$/.test(call) ? ' This Type 2 suffix has an ambiguous letter/numeric interpretation; receivers may choose either. Your requested call is retained.' : '') + ' The Pico validates encoding before saving.';
+  output.textContent = 'Draft: ' + description + (/\/(?:[Q-Z]|0[0-9])$/.test(call) ? ' This Type 2 suffix has an ambiguous letter/numeric interpretation; receivers may choose either. Your requested call is retained.' : '') + (savedProgress ? ' The Pico validates encoding before applying saved station settings.' : ' The Pico validates encoding before saving.');
 }
 $('config').addEventListener('input', () => { const f=$('config').elements; wsprDraftFeedback(f.callsign.value.trim().toUpperCase(),f.locator.value.trim().toUpperCase(),'draft-wspr-plan'); });
 $('consumer-station-form').addEventListener('input', () => wsprDraftFeedback($('consumer-callsign').value.trim().toUpperCase(),$('consumer-locator').value.trim().toUpperCase(),'consumer-wspr-plan'));

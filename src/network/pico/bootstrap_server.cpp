@@ -77,11 +77,13 @@ HttpResponse PicoBootstrapServer::consumer_setup(const HttpRequest& request,
         result = mutation(request);
     else if (request.method == "POST" && mutation_safe_ &&
              (request.path == "/api/owner/v1/claim/start" ||
-              request.path == "/api/owner/v1/claim/submit"))
+              request.path == "/api/owner/v1/claim/submit" ||
+              request.path == "/api/owner/v1/claim/progress/start"))
         result = owner_mutation(request);
     if (result.status == 200) {
         if (request.method == "POST" && (request.path == "/api/bootstrap/v1/start" ||
-                                         request.path == "/api/owner/v1/claim/start"))
+                                         request.path == "/api/owner/v1/claim/start" ||
+                                         request.path == "/api/owner/v1/claim/progress/start"))
             std::copy(login.begin(), login.end(), setup_login_.begin());
         remember_setup_reply(request, transaction);
     }
@@ -243,6 +245,14 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
                                "1\",\"station_encoding\":\"wspr_type123_auto\",\"max_station_"
                                "token\":12,\"planning\":\"automatic\"}")
                         : http_error(400, "invalid_request");
+    else if (request.path == "/api/owner/v1/progress" && progress_api_) {
+        auto admission = request;
+        admission.path = "/api/owner/v1/public-status";
+        response_ = owner_claimable() && owner_public_get_admitted(admission, admission.path)
+            ? progress_api_->progress_readback(true) : http_error(403, "unavailable");
+    }
+    else if (request.path.starts_with("/api/owner/v1/progress/") && progress_api_)
+        response_ = owner_mutation(request);
     else if (request.path == "/api/owner/v1/public-status" ||
              request.path == "/api/owner/v1/claim/status")
         response_ = owner_public_get_admitted(request, request.path)
@@ -440,7 +450,9 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
             claim_platform_ && claim_platform_->station_ready(owner_trial_.ssid)) {
             const auto* binding = owner_slot_.binding();
             const auto result =
-                binding && profile_ && runtime_
+                binding && profile_ && runtime_ &&
+                    (!progress_apply_slot_ || (progress_api_ && progress_expected_revision_ == progress_api_->revision() &&
+                        progress_api_->progress_station_matches(owner_trial_.callsign, owner_trial_.locator, owner_trial_.power_dbm)))
                     ? provisioning::commit_consumer_claim(
                           *profile_, owner_slot_, *binding,
                           {owner_request_id_, owner_trial_.ssid, owner_trial_.password,
@@ -824,7 +836,36 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
     return json(std::move(body));
 }
 
-HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
+HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& incoming) {
+    const bool progress_start = incoming.path == "/api/owner/v1/progress/start";
+    const bool progress_submit = incoming.path == "/api/owner/v1/progress/submit";
+    const bool progress_apply = incoming.path == "/api/owner/v1/claim/progress/start";
+    auto request = incoming;
+    std::string expected_progress;
+    if (progress_start || progress_apply) {
+        if (!progress_api_ || incoming.body_view().size() > 1024)
+            return http_error(400, "invalid_progress_start");
+        const auto root = wtp::json::parse(incoming.body_view());
+        if (!root || !wtp::json::fields(*root, {"version", "device_id", "owner_public_key",
+                "browser_public_key", "browser_nonce", "profile_source", "generation", "progress_revision"}) ||
+            root->get("progress_revision")->type() != '\"') return http_error(400, "invalid_progress_start");
+        expected_progress = root->get("progress_revision")->string();
+        if (expected_progress != progress_api_->revision()) return http_error(412, "revision_conflict");
+        request.body = "{";
+        for (const auto field : {"version", "device_id", "owner_public_key", "browser_public_key",
+                "browser_nonce", "profile_source", "generation"}) {
+            if (request.body.size() > 1) request.body += ',';
+            request.body += wtp::json::quote(field) + ':' + std::string(root->get(field)->raw);
+        }
+        request.body += '}';
+        request.buffered_body.reset(); request.selected_body.reset();
+        request.path = "/api/owner/v1/claim/start";
+    } else if (progress_submit) {
+        if (!progress_api_ || !progress_slot_ || progress_expected_revision_ != progress_api_->revision())
+            return http_error(412, "revision_conflict");
+        request.path = "/api/owner/v1/claim/submit";
+    } else if (request.path == "/api/owner/v1/claim/submit" && progress_slot_)
+        return http_error(403, "wrong_operation");
     if (reset_pending_ || recovery_slot_.state() != BootstrapSlotState::None)
         return http_error(409, "busy");
     const auto now_ms = time_us_64() / 1000;
@@ -875,8 +916,11 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
             cancel_owner_slot(false);
             return http_error(503, "setup_unavailable");
         }
+        progress_slot_ = progress_start;
+        progress_apply_slot_ = progress_apply;
+        progress_expected_revision_ = expected_progress;
         setup_login_.fill(0); // Plain setup owns no consumer login; wrapper sets it below.
-        if (access_ && access_->state() == provisioning::AccessStoreState::Erased) {
+        if (!progress_start && access_ && access_->state() == provisioning::AccessStoreState::Erased) {
             provisioning::AccessRecord record;
             record.epoch = 1;
             record.password = default_password_;
@@ -897,9 +941,10 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
                     ",\"pico_public_key\":" + wtp::json::quote(pico_public_key) + "}");
     }
     if (request.path == "/api/owner/v1/claim/submit") {
-        const auto parsed = parse_owner_claim_submit(request);
-        if (!parsed)
-            return http_error(400, "invalid_request");
+        if (progress_apply_slot_ && (!progress_api_ || progress_expected_revision_ != progress_api_->revision()))
+            return http_error(412, "revision_conflict");
+        const auto parsed = progress_submit ? parse_progress_submit(incoming) : parse_owner_claim_submit(request);
+        if (!parsed) return http_error(400, "invalid_request");
         const auto* binding = owner_slot_.binding();
         if (!owner_claimable() ||
             owner_slot_.state() != provisioning::ConsumerClaimState::Granted || !binding ||
@@ -926,14 +971,30 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& request) {
                              decode_b64(parsed->aead_nonce, nonce) &&
                              decode_b64(parsed->tag, tag) &&
                              bootstrap_unb64url(parsed->ciphertext, ciphertext, 11,
-                                                OwnerClaimEncodedPlaintext::max_size);
+                                                progress_submit ? 512 : OwnerClaimEncodedPlaintext::max_size);
         owner_request_digest_ = bootstrap_digest(fields.request_id);
         fields.pico_public_key = owner_crypto_.public_key();
         fields.source = binding->source;
         fields.generation = binding->generation;
+        if (progress_submit) {
+            std::string plaintext;
+            if (!decoded || !owner_crypto_.open_progress(fields, nonce, ciphertext, tag, plaintext)) {
+                cancel_owner_slot(false);
+                return http_error(400, "invalid_progress_ciphertext");
+            }
+            HttpRequest save = request;
+            save.method = "POST"; save.path = "/api/v1/progress/update";
+            save.body = std::move(plaintext); save.buffered_body.reset(); save.selected_body.reset();
+            save.headers["if-match"] = progress_expected_revision_;
+            auto result = progress_api_->save_progress(save, true);
+            cancel_owner_slot(false);
+            return result;
+        }
         if (!decoded || !owner_crypto_.open(fields, nonce, ciphertext, tag, owner_trial_) ||
             !encoding::wspr_plan(owner_trial_.callsign, owner_trial_.locator,
-                                 owner_trial_.power_dbm)) {
+                                 owner_trial_.power_dbm) ||
+            (progress_apply_slot_ && !progress_api_->progress_station_matches(owner_trial_.callsign,
+                owner_trial_.locator, owner_trial_.power_dbm))) {
             end_owner_trial(false, now_ms);
             return json("{\"version\":1,\"state\":\"failed\",\"generation\":\"0\"}");
         }
@@ -1008,6 +1069,9 @@ void PicoBootstrapServer::restore_owner_network() {
 }
 
 void PicoBootstrapServer::cancel_owner_slot(bool restore_network) {
+    progress_slot_ = false;
+    progress_apply_slot_ = false;
+    progress_expected_revision_.clear();
     setup_login_.fill(0);
     if (restore_network)
         restore_owner_network();

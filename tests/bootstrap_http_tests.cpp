@@ -53,7 +53,11 @@ int main() {
         page_request.request(), "device-id", "firmware", false, true);
     assert(owner_root.status == 200 &&
            owner_root.static_body.find("owner-form") != std::string_view::npos);
-    assert(owner_root.static_parts.size() == 6);
+    const auto key_asset = *wsprrypico::network::bootstrap_asset("/owner-key-bundle.js");
+    const auto app_asset = *wsprrypico::network::bootstrap_asset("/owner-bundle.js");
+    assert(owner_root.static_parts.size() == 4 + std::max<std::size_t>(1, key_asset.parts.size()) +
+           std::max<std::size_t>(1, app_asset.parts.size()));
+    for (const auto part : owner_root.static_parts) assert(part.size() < 65536);
     assert(owner_root.body_text().find("<script src=") == std::string::npos);
     const auto captive_setup = wsprrypico::network::bootstrap_http_response(
         page_request.request(), "device-id", "firmware", true, true);
@@ -94,7 +98,10 @@ int main() {
     assert(station_page.wire_headers().find(
                "Content-Length: " + std::to_string(station_delivered.size())) != std::string::npos);
     const auto key_script = wsprrypico::network::bootstrap_asset("/owner-key-bundle.js")->body;
-    const auto app_script = wsprrypico::network::bootstrap_asset("/owner-bundle.js")->body;
+    std::string app_script;
+    if (app_asset.parts.empty()) app_script = app_asset.body;
+    else for (const auto part : app_asset.parts) app_script += part;
+    assert(!app_script.empty() && app_script.size() == station_delivered.size() - station_page.static_body.size() - key_script.size() - std::string("<script></script><script></script></body>\n</html>\n").size());
     assert(station_delivered.find(key_script) < station_delivered.find(app_script));
 
     HttpParser owner_script_request;

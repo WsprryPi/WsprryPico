@@ -70,15 +70,31 @@ bool PicoOwnerClaimCrypto::open(const OwnerClaimFields& fields,
                                 std::span<const std::uint8_t, 12> nonce,
                                 std::span<const std::uint8_t> ciphertext,
                                 std::span<const std::uint8_t, 16> tag, OwnerClaimCredentials& out) {
+    return open_impl(fields, nonce, ciphertext, tag, out, nullptr);
+}
+bool PicoOwnerClaimCrypto::open_progress(const OwnerClaimFields& fields,
+                                std::span<const std::uint8_t, 12> nonce,
+                                std::span<const std::uint8_t> ciphertext,
+                                std::span<const std::uint8_t, 16> tag, std::string& out) {
+    OwnerClaimCredentials unused;
+    erase(out);
+    return open_impl(fields, nonce, ciphertext, tag, unused, &out);
+}
+bool PicoOwnerClaimCrypto::open_impl(const OwnerClaimFields& fields,
+                                std::span<const std::uint8_t, 12> nonce,
+                                std::span<const std::uint8_t> ciphertext,
+                                std::span<const std::uint8_t, 16> tag, OwnerClaimCredentials& out,
+                                std::string* progress) {
     out.clear();
     const auto aad = owner_claim_transcript(fields);
-    if (!private_key_ || !aad || fields.pico_public_key != public_key_ || ciphertext.size() < 11 ||
-        ciphertext.size() > OwnerClaimEncodedPlaintext::max_size) {
+    if (!private_key_ || !aad || fields.pico_public_key != public_key_ || ciphertext.size() < 2 ||
+        ciphertext.size() > (progress ? 512 : OwnerClaimEncodedPlaintext::max_size)) {
         clear();
         return false;
     }
     std::array<std::uint8_t, 32> shared{}, salt{}, key{};
-    std::array<std::uint8_t, OwnerClaimEncodedPlaintext::max_size> plain{};
+    std::array<std::uint8_t, 512> plain{};
+    const std::string_view info = progress ? "WsprryPico saved progress AEAD v1" : hkdf_info;
     std::size_t shared_size = 0;
     const auto agreed = psa_raw_key_agreement(
         PSA_ALG_ECDH, private_key_, fields.browser_public_key.data(),
@@ -91,8 +107,8 @@ bool PicoOwnerClaimCrypto::open(const OwnerClaimFields& fields,
                  std::any_of(shared.begin(), shared.end(), [](std::uint8_t b) { return b; }) &&
                  md && mbedtls_sha256(aad->bytes.data(), aad->size, salt.data(), 0) == 0 &&
                  mbedtls_hkdf(md, salt.data(), salt.size(), shared.data(), shared.size(),
-                              reinterpret_cast<const unsigned char*>(hkdf_info),
-                              sizeof(hkdf_info) - 1, key.data(), key.size()) == 0;
+                              reinterpret_cast<const unsigned char*>(info.data()),
+                              info.size(), key.data(), key.size()) == 0;
     if (valid) {
         mbedtls_chachapoly_context context;
         mbedtls_chachapoly_init(&context);
@@ -102,7 +118,9 @@ bool PicoOwnerClaimCrypto::open(const OwnerClaimFields& fields,
                                                 ciphertext.data(), plain.data()) == 0;
         mbedtls_chachapoly_free(&context);
     }
-    if (valid) {
+    if (valid && progress) {
+        progress->assign(reinterpret_cast<const char*>(plain.data()), ciphertext.size());
+    } else if (valid) {
         const auto parsed = decode_owner_claim_plaintext(
             std::span<const std::uint8_t>(plain.data(), ciphertext.size()));
         valid = parsed.has_value();

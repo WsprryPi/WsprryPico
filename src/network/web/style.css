@@ -13,3 +13,4 @@ summary{font-weight:600;cursor:pointer;padding:.65rem 0;min-height:44px}details{
 [hidden]{display:none!important}#area-nav{display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;margin:1rem 0}#area-nav a{display:inline-flex;align-items:center;min-height:44px;color:#225e8a;text-underline-offset:.25em;overflow-wrap:anywhere}#area-nav a[aria-current=page]{font-weight:700;text-decoration-thickness:3px}legend{font-weight:600;margin:1rem 0}#consumer-setup{padding:0;border:0;margin:0}
 
 #device-name,#device-name-state{overflow-wrap:anywhere}#device-name{margin-bottom:.5rem}#device-name-state{margin-top:0}#device-diagnostics .identity{grid-template-columns:1fr}#device-diagnostics .identity>div:first-child{grid-column:auto}
+.field-result{display:block;font-size:.875rem;font-weight:400;line-height:1.5;margin:.35rem 0 .65rem}.field-result.error{color:#882b19}[aria-invalid="true"]{border-color:#bd6755}

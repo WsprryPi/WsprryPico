@@ -100,6 +100,16 @@ export function claimPlaintext({ssid, password, callsign, locator, powerDbm}) {
 // A submit consumes the ephemeral browser secret even if validation or sealing
 // fails. The caller owns and clears ordinary form fields after the attempt.
 export function sealOwnerClaim(fields, browserSecret, nonce, settings) {
+  return sealClaim(fields,browserSecret,nonce,() => claimPlaintext(settings),'WsprryPico owner claim AEAD v1');
+}
+export function sealSavedProgress(fields, browserSecret, nonce, request) {
+  return sealClaim(fields,browserSecret,nonce,() => {
+    const bytes = text(JSON.stringify(request));
+    if (bytes.length > 512) throw new Error('Station progress is too large');
+    return bytes;
+  },'WsprryPico saved progress AEAD v1');
+}
+function sealClaim(fields, browserSecret, nonce, plaintext, info) {
   let shared, key, plain;
   try {
     const aad = claimTranscript(fields);
@@ -108,10 +118,10 @@ export function sealOwnerClaim(fields, browserSecret, nonce, settings) {
     const derivedPublic = x25519.getPublicKey(browserSecret);
     if (derivedPublic.some((byte, i) => byte !== fields.browserPublicKey[i]))
       throw new Error('claim browser key mismatch');
-    plain = claimPlaintext(settings);
+    plain = plaintext();
     shared = x25519.getSharedSecret(browserSecret, fields.picoPublicKey);
     if (shared.every((byte) => byte === 0)) throw new Error('invalid shared secret');
-    key = hkdf(sha256, shared, sha256(aad), text('WsprryPico owner claim AEAD v1'), 32);
+    key = hkdf(sha256, shared, sha256(aad), text(info), 32);
     const sealed = chacha20poly1305(key, nonce, aad).encrypt(plain);
     return {ciphertext: b64u(sealed.slice(0, -16)), tag: b64u(sealed.slice(-16))};
   } finally {

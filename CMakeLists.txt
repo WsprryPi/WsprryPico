@@ -43,6 +43,7 @@ endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js
     src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
+    src/network/web/saved-progress.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
     src/network/bootstrap_web/radio-bundle.js
@@ -99,6 +100,7 @@ add_library(wsprrypico_core
     src/standalone/config.cpp
     src/standalone/frequency_policy_engine.cpp
     src/standalone/storage.cpp
+    src/standalone/progress.cpp
     src/standalone/scheduler.cpp
     src/time/sntp.cpp
     src/time/controller_time.cpp
@@ -282,6 +284,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_options(mdns_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME mdns_tests COMMAND mdns_tests)
     add_executable(hostname_tests tests/hostname_tests.cpp)
+    add_executable(progress_tests tests/progress_tests.cpp)
+    target_link_libraries(progress_tests PRIVATE wsprrypico_core)
+    target_compile_options(progress_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME progress_tests COMMAND progress_tests)
     target_link_libraries(hostname_tests PRIVATE wsprrypico_core)
     target_compile_options(hostname_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME hostname_tests COMMAND hostname_tests)
@@ -321,6 +327,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
         add_test(NAME device_presentation_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/device_presentation_tests.js)
+        add_test(NAME saved_progress_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/saved_progress_tests.js)
         add_test(NAME network_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/network_browser_tests.js)
     endif()

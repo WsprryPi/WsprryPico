@@ -406,8 +406,10 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   historical baseline and release-coordination boundary. Related Pi integration
   is closed under WsprryPi release checklist step 14 by operator acceptance.
 - ⏳ **P15.9 — Save valid fields independently of transmit readiness.** The
-  operator was updating the callsign in the second setup block, which contained
-  QRSS message controls, and was blocked by required fields for message setup.
+  operator wanted to update a callsign without completing unrelated station or
+  message controls. The genuine-page software reproduction found native required
+  locator validation blocking the station form; QRSS controls were separate.
+  This does not diagnose the original physical incident.
   Allow valid editable fields to be saved without completing unrelated station
   or message inputs. Validate submitted fields and their relevant dependencies;
   preserve unchanged saved values and leave invalid entries unsaved with clear
@@ -424,11 +426,13 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   Reuse P15.1 update semantics, P15.7 readback/review and P15.8 station-planning
   rules, preserving profile/configuration authority and transaction boundaries.
   Overall status: in progress pending its WsprryPi portion under release
-  checklist step 15, by operator direction. Pico retains firmware, persistence
-  and standalone UI ownership. The
+  checklist step 15, by operator direction. Pico supported software acceptance
+  is complete; it retains firmware, persistence and standalone UI ownership. The
   [technical source review](development/phase15-9-execution-prompt.md) and Pi
-  release-coordination boundaries remain applicable; this is not a request to
-  start work.
+  release-coordination boundaries remain applicable. The
+  [Pico execution record](development/phase15-9-valid-field-saves.md) records the
+  separately authorized implementation and its supported acceptance evidence.
+  Overall Pi checklist adoption remains separate.
 - ✅ **P15.10 — Allow hostname changes and use the hostname in the page title.**
   Provide a browser setting to edit and save the hostname, retain it across
   restarts and use it for LAN/mDNS discovery and access. The saved hostname must

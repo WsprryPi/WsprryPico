@@ -192,6 +192,12 @@ struct HostnamePlatform : provisioning::ConsumerClaimCommitPlatform {
 struct Driver {
     std::string device;
     network_test::Fixture f;
+    // Independent engineering adapter boundary for genuine served-page tests.
+    network_test::Fixture engineering;
+    network_test::Flash engineering_progress_flash;
+    standalone::Progress engineering_progress{engineering_progress_flash};
+    network_test::Flash progress_flash;
+    standalone::Progress progress{progress_flash};
     Media media;
     provisioning::ProfileStore profiles{media};
     provisioning::RuntimeProfile runtime;
@@ -282,7 +288,8 @@ struct Driver {
     }
     Driver(unsigned boot = 0, const Media* retained = nullptr,
            const network_test::Flash* saved = nullptr,
-           std::string selected_device = std::string(32, '1'))
+           std::string selected_device = std::string(32, '1'),
+           const network_test::Flash* saved_progress = nullptr)
         : device(std::move(selected_device)), f(boot, device) {
         if (retained)
             media = *retained;
@@ -307,10 +314,18 @@ struct Driver {
                                   provisioning::serialize_consumer_profile(p)));
         check(runtime.load(profiles, p.device_id, provisioning::BuildBundleState::Absent));
         f.api.consumer_config(runtime);
-        hostname_settings.emplace(profiles, runtime, hostname_platform, p.device_id,
-                                  runtime.consumer_profile()->tls.hostname,
-                                  "wsprrypico-0a60df.local");
-        f.api.hostname_settings(*hostname_settings);
+        if (saved_progress) progress_flash = *saved_progress;
+        check(progress.load());
+        f.api.progress_settings(progress);
+        check(engineering_progress.load());engineering.api.progress_settings(engineering_progress);
+        check(engineering.store.save(*standalone::parse_config(network_test::config)));
+        const auto* consumer = runtime.consumer_profile();
+        const auto hostname = consumer ? consumer->tls.hostname : std::string("wsprrypico-0a60df.local");
+        if (consumer) {
+            hostname_settings.emplace(profiles, runtime, hostname_platform, p.device_id,
+                                      hostname, "wsprrypico-0a60df.local");
+            f.api.hostname_settings(*hostname_settings);
+        }
         f.api.restart_control(
             +[](void* p) {
                 ++*static_cast<unsigned*>(p);
@@ -323,18 +338,19 @@ struct Driver {
         if (!saved)
             check(f.store.reserve(1791970000000000000ULL));
         radio.admission(true);
-        radio.listeners(true, "192.168.1.53", runtime.consumer_profile()->tls.hostname);
+        radio.listeners(true, "192.168.1.53", hostname);
         f.api.management_availability(
             {ManagementProfile::Consumer, 1, true, false, false, true, true});
         for (auto& pcb : sockets)
             pcb.closed = true;
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
         check(access.load());
-        network.hostname = runtime.consumer_profile()->tls.hostname;
+        network.hostname = hostname;
         server.configure(f.service.status().boot_id, access, profiles, random, indicator, network,
                          runtime, platform, "default-password");
         server.station_classifier(+[](const tcp_pcb* p, void*) { return p->interface == 2; }, this);
         server.radio_control(radio);
+        server.progress_control(f.api);
         server.restart_control(
             +[](void* p) {
                 ++static_cast<Driver*>(p)->restarts;
@@ -368,6 +384,17 @@ struct Driver {
     }
     std::string command(const wtp::json::Value& v) {
         const auto op = field(v, "op");
+        if (op == "engineering_request") {
+            std::vector<std::uint8_t> body;
+            const auto encoded=field(v,"b64");
+            check(encoded.empty() || bootstrap_unb64url(encoded,body,0,max_http_body));
+            HttpRequest request{field(v,"method"),field(v,"path"),std::string(body.begin(),body.end()),
+                {{"host","127.0.0.1:8443"},{"origin","https://127.0.0.1:8443"},
+                 {"x-wsprrypico-request","1"},{"content-type","application/json"},{"if-match",field(v,"match")}}};
+            const auto response=engineering.api.handle(request,"engineering-test","127.0.0.1:8443");
+            const auto wire=response.wire();
+            return "{\"wire\":"+wtp::json::quote(bootstrap_hex(std::span(reinterpret_cast<const std::uint8_t*>(wire.data()),wire.size())))+"}";
+        }
         if (op == "time") {
             std::uint64_t time;
             check(wtp::json::decimal(*v.get("ms"), time));
@@ -587,8 +614,9 @@ int main(int argc, char** argv) {
         if (root->get("op")->string() == "reboot") {
             const auto media = driver->media;
             const auto flash = driver->f.flash;
+            const auto progress_flash = driver->progress_flash;
             driver.reset();
-            driver = std::make_unique<Driver>(++boot, &media, &flash, device);
+            driver = std::make_unique<Driver>(++boot, &media, &flash, device, &progress_flash);
             std::cout << "{}" << std::endl;
         } else
             std::cout << driver->command(*root) << std::endl;

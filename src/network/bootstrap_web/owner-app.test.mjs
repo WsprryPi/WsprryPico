@@ -9,7 +9,7 @@ const hex = (bytes) => Buffer.from(bytes).toString('hex');
 const digest = (value) => hex(sha256(Buffer.from(value, 'hex')));
 const peer = x25519.keygen();
 const elements = new Map();
-for (const name of ['owner-settings', 'owner-wifi-first', 'owner-checking', 'owner-saved',
+for (const name of ['owner-save-progress','owner-progress-status','owner-read-progress','owner-review-progress','owner-settings', 'owner-wifi-first', 'owner-checking', 'owner-saved',
                     'owner-accepted', 'owner-unconfirmed',
                     'owner-retry', 'owner-service', 'owner-browser', 'notice', 'device',
                     'owner-identify', 'owner-retry-button', 'owner-form',
@@ -55,6 +55,7 @@ Date.now = () => now;
 const timeHints = [];
 globalThis.fetch = async (url, options = {}) => {
   const path = new URL(url).pathname;
+  if (path === '/api/owner/v1/progress') return {ok:false,status:404,json:async()=>({error:{code:'not_found'}})};
   if (path === '/api/owner/v1/public-status') {
     if (++identityReads === 1) throw new Error('document acknowledgement still pending');
     return {ok: true, json: async () => status};

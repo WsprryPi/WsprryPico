@@ -126,7 +126,10 @@ try {
     await click('station-link');await field('consumer-callsign','K1ABC');await field('consumer-locator','FN42');
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'');
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate('!busy && !!consumerAttempt'),'station submit with empty message');
+    await until(()=>cdp.evaluate('!busy && savedProgress?.data.station.callsign==="K1ABC"'),'station progress with empty message');
+    assert.equal((await f.command({op:'stats'})).profile_generation,beforeStation,'saving progress does not apply station');
+    await click('apply-station-progress');
+    await until(()=>cdp.evaluate('!busy && !!consumerAttempt'),'explicit apply station progress');
     const stationReceipt=await cdp.evaluate('location.hash');assert.ok(stationReceipt.startsWith('#save='));
     await click('wifi-host-link');assert.equal(await cdp.evaluate('location.hash'),stationReceipt);
     await f.time(f.now+3000);await f.command({op:'activate'});await f.time(f.now+1000);

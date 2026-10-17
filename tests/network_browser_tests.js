@@ -3,9 +3,9 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const source = fs.readFileSync(__dirname + '/../src/network/web/device-presentation.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/config-validation.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
+const source = fs.readFileSync(__dirname + '/../src/network/web/device-presentation.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/saved-progress.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/config-validation.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false) {
-    const ids = ['device-name','device-name-state','device-id','device-boot','device-observation','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
+    const ids = ['device-name','device-name-state','device-id','device-boot','device-observation','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     for (const id of ['consumer-setup','consumer-network-settings','consumer-station-settings',
       'consumer-check-save','consumer-network-form','consumer-station-form','consumer-ssid',
@@ -47,7 +47,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     for(const input of Object.values(elements.config.elements)) input.reportValidity=()=>true;
     for(const [id,names] of [['engineering-station-form',['callsign','locator','power_dbm']],['engineering-network-form',['ssid','password','ntp_ipv4']],['config',['schedules','expiry']]])
       elements[id].querySelectorAll=()=>names.map(name=>elements.config.elements[name]);
-    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id],querySelectorAll:()=>[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
+    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id],querySelectorAll:selector=>['.field-result','[aria-invalid]'].includes(selector)?[]:[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
         fetch:async (path, options) => {
             calls.push({path,options});
             if (f.offline) throw new Error('offline');
@@ -489,5 +489,20 @@ if (require.main === module) (async () => {
     await changed.elements['read-saved'].onclick();await changed.elements['review-saved'].onclick();await changed.elements.config.onsubmit({preventDefault(){}});
     const outgoing=JSON.parse(changed.calls.filter(c=>c.path.endsWith('config')&&c.options.method==='PUT').at(-1).options.body);
     assert.equal(outgoing.station.callsign,'K1ABC');assert.equal(outgoing.wifi.ssid,'new-network');assert.equal(outgoing.schedules[0].period_s,240);
+    const numeric=await fixture();
+    vm.runInContext("saveProgressFields=async fields=>{globalThis.numericFields=fields;return {};}",numeric.context);
+    numeric.form.callsign.value='BB1BB';numeric.form.power_dbm.value='2147483648';
+    vm.runInContext("progressEdits.set('callsign',1);progressEdits.set('power_dbm',2)",numeric.context);
+    await vm.runInContext("saveConfigProgress('station')",numeric.context);
+    assert.equal(numeric.context.numericFields.callsign,'BB1BB');
+    assert.equal(numeric.context.numericFields.power_dbm,'2147483648');
+    assert.equal(vm.runInContext("progressNumber('30.0')",numeric.context),30);
+    assert.equal(vm.runInContext("progressNumber('3e1')",numeric.context),30);
+    numeric.form.schedules.value='2147483648 / 0';numeric.form.enabled.checked=true;numeric.form.expiry.value='2040-01-01T00:00';
+    vm.runInContext("progressEdits.clear();for(const k of ['schedules','enabled','expires_utc_s'])progressEdits.set(k,1)",numeric.context);
+    await vm.runInContext("saveConfigProgress('radio')",numeric.context);
+    assert.equal(numeric.context.numericFields.enabled,true);
+    assert.equal(numeric.context.numericFields.schedules[0].period_s,'2147483648');
+    assert.equal(numeric.context.numericFields.expires_utc_s,'2208988800');
     console.log('Browser edit preservation, conflicts, ownership, failure and RF pause tests passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

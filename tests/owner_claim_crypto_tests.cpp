@@ -72,6 +72,30 @@ int main() {
     assert(crypto.begin_for_test(private_key));
     assert(crypto.public_key() == fields.pico_public_key);
     network::OwnerClaimCredentials out;
+    // Independently sealed by the production Noble saved-progress client.
+    const auto progress_cipher = b64("rvjfSur4fiK_gKJh7SoNcpRhlAk", 20);
+    const auto progress_tag = fixed<16>("m9Dlk0VZySsR_grYTKuS_Q");
+    std::string progress_plain;
+    assert(crypto.open_progress(fields, nonce, progress_cipher, progress_tag, progress_plain));
+    assert(progress_plain == R"({"callsign":"AA0NT"})");
+    assert(!crypto.open_progress(fields, nonce, progress_cipher, progress_tag, progress_plain));
+    assert(progress_plain.empty());
+    for (unsigned mutation = 0; mutation < 3; ++mutation) {
+        assert(crypto.begin_for_test(private_key));
+        auto changed_fields = fields;
+        auto changed_tag = progress_tag;
+        if (mutation == 0) changed_tag[0] ^= 1;
+        if (mutation == 1) changed_fields.boot_id[0] ^= 1;
+        if (mutation == 2) changed_fields.generation += 1;
+        assert(!crypto.open_progress(changed_fields, nonce, progress_cipher, changed_tag, progress_plain));
+        assert(progress_plain.empty());
+    }
+    assert(crypto.begin_for_test(private_key));
+    assert(!crypto.open(fields, nonce, progress_cipher, progress_tag, out));
+    assert(crypto.begin_for_test(private_key));
+    assert(!crypto.open_progress(fields, nonce, ciphertext, tag, progress_plain));
+    assert(progress_plain.empty());
+    assert(crypto.begin_for_test(private_key));
     assert(crypto.open(fields, nonce, ciphertext, tag, out));
     assert(out.ssid == "LabNet" && out.password == "test-only-password" &&
            out.callsign == "K1ABC" && out.locator == "FN20" && out.power_dbm == 30);

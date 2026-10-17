@@ -43,10 +43,16 @@ class PicoOwnerClaimCrypto {
     bool open(const OwnerClaimFields& fields, std::span<const std::uint8_t, 12> nonce,
               std::span<const std::uint8_t> ciphertext, std::span<const std::uint8_t, 16> tag,
               OwnerClaimCredentials& out);
+    bool open_progress(const OwnerClaimFields& fields, std::span<const std::uint8_t, 12> nonce,
+                       std::span<const std::uint8_t> ciphertext,
+                       std::span<const std::uint8_t, 16> tag, std::string& out);
     void clear();
 
   private:
     bool create(std::span<const std::uint8_t> private_key);
+    bool open_impl(const OwnerClaimFields&, std::span<const std::uint8_t, 12>,
+                   std::span<const std::uint8_t>, std::span<const std::uint8_t, 16>,
+                   OwnerClaimCredentials&, std::string*);
     PsaCryptoOwner psa_;
     psa_key_id_t private_key_ = 0;
     std::array<std::uint8_t, 32> public_key_{};

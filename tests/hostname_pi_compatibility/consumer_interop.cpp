@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Unchanged Pi product sources and original interoperability suite, plus rename preservation.
 #include "provisioning/hostname.hpp"
+#include "standalone/progress.hpp"
 #include "unchanged_fixture.hpp"
 struct HostnamePlatform : pico::provisioning::ConsumerClaimCommitPlatform {
     bool safe_to_commit() override {
@@ -34,6 +35,12 @@ int main(int argc, char** argv) {
     assert(unchanged_pair_main(argc, argv) == 0);
     for (const bool ap : {false, true}) {
         Test t;
+        network_test::Flash draft_flash;
+        pico::standalone::Progress progress(draft_flash);
+        assert(progress.load());t.f.api.progress_settings(progress);
+        const auto fields=pico::wtp::json::parse(R"({"callsign":"BB1BB","locator":null})");
+        assert(progress.save(*fields,std::string(64,'a')));
+        const auto saved_draft=progress.fields();
         HostnamePlatform platform;
         const auto active = t.runtime.consumer_profile()->tls.hostname;
         pico::provisioning::HostnameSettings settings(t.profiles, t.runtime, platform, device,
@@ -78,7 +85,10 @@ int main(int argc, char** argv) {
         assert(t.coordinated(*c, "POST", edit.dump(), config.etag).status == 200);
         assert(t.runtime.consumer_profile()->tls.hostname == "pico-a.local");
         assert(t.f.store.watermark() == 1791970000000000000ULL && t.wtp.io == 0);
-        std::cout << carrier << " unchanged Pi relogin/read/save retains Pico-owned hostname"
+        assert(progress.fields()==saved_draft);
+        assert(t.f.store.config()->callsign!="BB1BB");
+        assert(c->request("progress", "GET", {}, {}).status==404); // Unchanged Pi client does not invent new support.
+        std::cout << carrier << " unchanged Pi relogin/read/save retains Pico-owned hostname and incomplete saved progress"
                   << std::endl;
     }
 }

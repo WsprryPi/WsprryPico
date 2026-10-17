@@ -30,8 +30,6 @@
 
 namespace wsprrypico::standalone {
 namespace {
-constexpr auto storage_size = flash_layout::standalone_size;
-constexpr auto flash_base = flash_layout::standalone_base;
 static_assert(PICO_FLASH_SIZE_BYTES == flash_layout::physical_size);
 static_assert(MEM_ALIGNMENT >= alignof(std::uint32_t));
 PicoNetwork* mdns_owner = nullptr;
@@ -90,6 +88,8 @@ FlashResources flash_resources() {
     return flash_counters;
 }
 bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
+    const auto storage_size = progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
+    const auto flash_base = progress_ ? flash_layout::progress_base : flash_layout::standalone_base;
     FlashCall call(flash_counters.read_attempts, flash_counters.read_failures,
                    flash_counters.read_requested_bytes, data.size());
     if (offset > storage_size || data.size() > storage_size - offset)
@@ -99,6 +99,8 @@ bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
     return call.finish(true);
 }
 bool PicoFlash::erase(std::size_t offset) {
+    const auto storage_size = progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
+    const auto flash_base = progress_ ? flash_layout::progress_base : flash_layout::standalone_base;
     FlashCall call(flash_counters.erase_attempts, flash_counters.erase_failures,
                    flash_counters.erase_requested_bytes, FLASH_SECTOR_SIZE,
                    runtime::ActivityKind::StandaloneErase);
@@ -107,9 +109,10 @@ bool PicoFlash::erase(std::size_t offset) {
 #ifdef WSPRRY_PICO_STANDALONE_RF
     // Authority excludes Armed/Running and unknown output before entering here.
     auto erase = [](void* argument) {
-        flash_range_erase(flash_base + *static_cast<std::size_t*>(argument), FLASH_SECTOR_SIZE);
+        flash_range_erase(*static_cast<std::size_t*>(argument), FLASH_SECTOR_SIZE);
     };
-    if (flash_safe_execute(erase, &offset, 100) != PICO_OK)
+    auto physical_offset = flash_base + offset;
+    if (flash_safe_execute(erase, &physical_offset, 100) != PICO_OK)
         return false;
 #else
     const auto irq = save_and_disable_interrupts();
@@ -121,6 +124,8 @@ bool PicoFlash::erase(std::size_t offset) {
         std::all_of(bytes, bytes + FLASH_SECTOR_SIZE, [](auto b) { return b == 255; }));
 }
 bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) {
+    const auto storage_size = progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
+    const auto flash_base = progress_ ? flash_layout::progress_base : flash_layout::standalone_base;
     FlashCall call(flash_counters.program_attempts, flash_counters.program_failures,
                    flash_counters.program_requested_bytes, page.size(),
                    runtime::ActivityKind::StandaloneProgram);
@@ -131,10 +136,10 @@ bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) 
     struct Write {
         std::size_t offset;
         const std::uint8_t* data;
-    } write{offset, page.data()};
+    } write{flash_base + offset, page.data()};
     auto program = [](void* argument) {
         const auto& write = *static_cast<Write*>(argument);
-        flash_range_program(flash_base + write.offset, write.data, FLASH_PAGE_SIZE);
+        flash_range_program(write.offset, write.data, FLASH_PAGE_SIZE);
     };
     if (flash_safe_execute(program, &write, 100) != PICO_OK)
         return false;

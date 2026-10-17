@@ -1,6 +1,8 @@
 # P15.12 — hostname as the main-page identity
 
-Status: supported software acceptance complete on 2026-10-16. Baseline/reviewed source:
+Status: supported software acceptance complete on 2026-10-16. Final publication
+includes the separately published P15.9 work; merged-source results at the end
+supersede the initial validation/resource snapshot. Baseline/reviewed source:
 `f93f19bf5f6b8478d4428c07accf444390e4aa8c` on `devel`, 2026-10-16.
 Initial changes were the prepared handoff plus development-index/roadmap links;
 all are preserved. The first sandboxed remote read failed DNS; a network-enabled read independently
@@ -44,9 +46,9 @@ name remains last-confirmed, with the accepted saved name secondary and pending.
 Engineering saves retain their authenticated readback. Restart monitoring never
 promotes a new name without same-device/new-boot readback. Receipt, wrong-device,
 draft, read/review, area/history and one-shot restart behavior stay intact.
-Discovery conflicts do not rename or erase the configured active name. No API,
+Discovery conflicts do not rename or erase the configured active name. P15.12 identity rendering introduces no API,
 protocol, carrier, session crypto, profile, RF, scheduler or JobService authority
-changed; there is no new polling or transport task.
+change; there is no new polling or transport task.
 
 ## Adversarial review and repairs
 
@@ -111,7 +113,7 @@ TLS check is retained separately; no scheduling deadline is relaxed. The first
 sandboxed full run also failed six loopback-dependent groups with EPERM. These
 failed originals remain in the local logs.
 
-## Software matrix and verification results
+## Initial P15.12 software matrix and verification results
 
 | Case | Exercised result and evidence |
 | --- | --- |
@@ -128,7 +130,7 @@ failed originals remain in the local logs.
 | Long name/a11y | Real persisted 69-character name, both viewports/preferences, native keyboard disclosure, selection, 200% zoom and no horizontal overflow |
 | Side effects/assets | Exact zero requests for Diagnostics/navigation; real config/profile/restart counters unchanged; all served CSP hashes and script order, static Content-Length and flash/RAM budgets checked |
 
-Final host batch: 200 executable groups passed; five loopback groups reported
+Initial P15.12 final host batch: 200 executable groups passed; five loopback groups reported
 `TLS start error -1` before READY; one optional schema check skipped (206
 registered). The five unchanged groups then all passed together in 18.23 s:
 `network_tls_tests`, `network_tls_nagle_tests`, `network_local_wtp_tests`,
@@ -170,7 +172,7 @@ Failed originals include `p1512-initial-suite.log`, `p1512-final-suite.log` and
 `p1512-identity-browser.log`. The source review and evidence distinguish failed
 fixture operations from supported software behavior and physical qualification.
 
-## Asset and firmware budgets
+## Initial P15.12 asset and firmware budgets
 
 Both images cross-link using retained pinned SDK 2.3.1
 `079c6f39023649b154152db30f1d781e884879bc`, Arm GNU 15.3.1 and cached
@@ -286,4 +288,94 @@ P15.11 exact-pair acceptance is historical; no new Pi-pair or Pi-release accepta
 is claimed or required for this UI-only slice. Genuine consumer/engineering host
 paths and frozen WTP artifacts are rerun here.
 
-Publication and exact implementation/tested commit pins are pending.
+Initial implementation/tested source is
+`83fe6b1fb565d6a581e3287d9cabd0cd9e3771ae`. Checks ran against the working-tree
+content later committed under that hash; the recorded source manifest matched
+before committing. Its first non-force push was rejected because concurrent
+P15.9 work advanced devel. The following merged-source acceptance supersedes the
+initial source and resource numbers for final publication.
+
+## Concurrent P15.9 integration and final source
+
+The first non-force push was refused before any P15.12 publication. The remote
+advanced from `f93f19b` to
+`29542e40e131b3e0faa5be5522d220f906de4b0f` during execution. It contains P15.9
+product `56821ac827c901b61f3af83887eb8c447520abb5` and its documentation-only
+acceptance. Both commits were fetched and inspected. A non-rewriting merge keeps
+them and the P15.12 implementation as parents/ancestors. No remote work was reset,
+stashed, dropped or force-pushed.
+
+Three explicit conflict sites (CMake dependencies/test registration, adjacent CSS,
+and VM helper/element inventory) retain both contributions. Automatically merged
+app/HTML/generator/routes were inspected and exercised. One integration regression
+was repaired: the organization browser workflow now saves station progress and
+checks unchanged profile generation, then explicitly applies it before expecting
+a profile/receipt. This preserves P15.9's delivered Save-versus-Apply contract;
+product behavior was not reverted to satisfy the old test.
+
+The new P15.9 generator streams UTF-8-safe literals up to 60,000 bytes and still
+rejects any individual literal at 65,536. Complete-script CSP and exact streamed
+Content-Length remain authoritative. P15.12's helper is independently ordered
+before app initialization. The current app (78,883 bytes) plus saved-progress
+helper (10,643 plus newline) executes as one script streamed through bounded
+literals; the 64,817-byte radio bundle also streams through bounded literals.
+The presentation helper remains 4,363 bytes. Maximum actual generated literal is
+60,000 bytes. Actual served engineering/consumer documents are
+125,625 / 231,263 bytes. Existing owner bundle is now 72,916 bytes and uses the
+same inherited bounded serving mechanism. No limit or warning was suppressed.
+
+| Final merged image | text | Delta from recorded P15.9 | data | BSS, same as P15.9 |
+| --- | ---: | ---: | ---: | ---: |
+| Standard inhibited | 2,191,240 | +7,520 | 0 | 174,000 |
+| StandaloneRF | 2,206,700 | +7,520 | 0 | 329,940 |
+
+Pinned SDK/toolchain/138 MHz/candidate version remain as recorded above. Linked
+flash/journal/allocator/BTstack/stack-guard/GP14/RAM-renderer checks pass against
+the inherited new `0x3f0000` journal boundary. Renderer/initialized RAM/worker
+storage remain 660 / 13,976 / 166,176 bytes. The 464-byte BSS increase relative
+to P15.11 belongs to P15.9, not this presentation change.
+
+| Final merged artifact | SHA-256 |
+| --- | --- |
+| Standard ELF | `db7e909e5e5ceda9788a0061a6edee0f9626066be9d5b9fd04056179fb6cc0a4` |
+| Standard UF2 | `da9ef5bac71dd0d6e309cb8fcd076de7c6f4bfadb601cf2bdc8851fe6b01e661` |
+| StandaloneRF ELF | `e98761012d464184d1f8352934abaef4eb1f6fc330f90a722fd5a6504a39a06c` |
+| StandaloneRF UF2 | `1ca6d7c55e6da090effb5c761664c7e7e1cd0e1c586335fb28e1c5456ba3f8c7` |
+
+Final merged native suite: **208 executable groups passed**, plus one optional
+`config_update_schema` skip (209 registered, 124.61 s). This invocation is fully
+green for executable checks, including all five real loopback network groups.
+Final merged affected ASan/UBSan: **35 executable checks passed**, plus that same
+optional skip (36 selected, 15.64 s), with leak detection disabled as above.
+The selection adds native progress, saved-progress browser and actual progress
+sessions to the original affected adapter/serving/recovery checks. Locked package
+tests and bundle regeneration pass 17/17; regeneration has no difference from
+published P15.9 bundles. WTP/1 still passes 23/7/1/8 cases. Whitespace, C++ format,
+local Markdown targets and exact merged-source manifest checks pass.
+
+The real Chrome identity, organization and P15.9 progress workflows pass
+with genuine generated assets and cryptography. Progress covers independent
+callsign, incomplete/complete drafts, explicit Apply, reload/reboot, late edits,
+future replies and engineering numeric overflow. Its confirmation batch is 29
+PNGs in ignored `build/phase15-12-merged-progress/`; primary identity chrome/CSS
+is unchanged from the earlier visual batch. Final identity/organization checks
+run without another visual-polishing cycle.
+
+A fresh in-thread adversarial reassessment inspected the integrated heading,
+identity sources, script/chunk order, API/auth boundaries, progress/hostname draft
+separation, Save/Apply/Restart and navigation side effects. No additional product
+finding remained after the integration test repair. Relative to published
+`29542e4`, all native API/carrier/session/progress implementation blobs are
+unchanged; the new product delta remains static presentation and existing
+frontend lifecycle observations. Thus this merge adds no new Pi-facing protocol
+or adapter behavior beyond the separately published P15.9 work. Its overall Pi
+step 15 acceptance remains pending; no Pi or operator-document source changed.
+
+Final local merged logs use `/private/tmp/p1512-merge-{build,full-suite,
+asan-build,asan-tests,identity-browser,organization-browser,progress-browser,
+firmware-build}.log` and `p1512-merged-firmware-{size,sha256}.txt`. The separate
+source hash manifest is `build/phase15-12-merged-source-manifest.json`.
+
+Final merged implementation/tested pin and publication are recorded in the
+documentation-only closeout after committing this verified merge. The merge
+contains no code changes after the final manifest and tests.

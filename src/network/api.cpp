@@ -47,12 +47,111 @@ std::string BrowserApi::revision() const {
                       std::to_string(store_.config_sequence()) + ":" +
                       (config ? standalone::serialize_config(*config) : "null") +
                       (hostname_settings_ ? hostname_settings_->revision_context() : "") +
+                      (progress_ ? ":progress:" + std::to_string(progress_->sequence()) +
+                          ":profile:" + std::to_string(consumer_runtime_ ? consumer_runtime_->generation() : 0) : "") +
                       (consumer_runtime_ && consumer_runtime_->consumer_profile()
                            ? ":consumer:" + std::to_string(consumer_runtime_->generation())
                            : "");
     const auto digest =
         sha256(std::span(reinterpret_cast<const std::uint8_t*>(data.data()), data.size()));
     return '"' + hex(digest) + '"';
+}
+HttpResponse BrowserApi::progress_readback(bool station_only) const {
+    if (!progress_) return http_error(404, "not_found");
+    if (!store_.healthy() || !progress_->healthy()) return http_error(503, "storage_fault");
+    const auto applied = station_only && consumer_runtime_ && !consumer_runtime_->consumer_profile()
+        ? std::optional<standalone::Config>{} : effective_config();
+    const auto candidate = progress_->candidate(applied);
+    const auto station = progress_->station_candidate(applied);
+    // Keep the backing scheduler status string alive while reading its views.
+    const auto status_text = scheduler_.status();
+    const auto status = json::parse(status_text);
+    auto result = ok("{\"schema\":\"transmitter-progress/1\",\"target\":" +
+        application::target(device_, service_.status().boot_id) +
+        ",\"draft_revision\":" + json::quote(std::to_string(progress_->sequence())) +
+        ",\"config_revision\":" + json::quote(std::to_string(store_.config_sequence())) +
+        ",\"profile_revision\":" + json::quote(std::to_string(consumer_runtime_ ? consumer_runtime_->generation() : 0)) +
+        ",\"fields\":" + progress_->fields(true, station_only) +
+        ",\"last_receipt\":" + (station_only ? std::string("null") : progress_->receipt()) +
+        ",\"last_outcomes\":" + progress_->outcomes(station_only) +
+        ",\"applied_station\":" + (applied ? application::station(*applied) : "null") +
+        ",\"station\":" + progress_->station_fields(applied) +
+        ",\"station_complete\":" + (station ? "true" : "false") +
+        ",\"complete\":" + (candidate ? "true" : "false") +
+        ",\"apply_domains\":{\"station\":" + (progress_->candidate(applied, "station") ? "true" : "false") +
+        ",\"network\":" + (progress_->candidate(applied, "network") ? "true" : "false") +
+        ",\"radio\":" + (progress_->candidate(applied, "radio") ? "true" : "false") +
+        ",\"all\":" + (candidate ? "true}" : "false}") +
+        ",\"wspr_plan\":" + (station ? application::wspr_plan(*station) : "null") +
+        ",\"schedule_enabled\":" + (station_only ? std::string("null") : std::string(status->get("enabled")->raw)) +
+        ",\"schedule_suspended\":" + (station_only ? std::string("null") : std::string(status->get("suspended")->raw)) +
+        ",\"matches_applied\":" + (candidate && applied && *candidate == *applied ? "true}" : "false}"));
+    result.etag = revision();
+    return result;
+}
+bool BrowserApi::progress_station_matches(std::string_view call, std::string_view locator, unsigned power) const {
+    if (!progress_ || !store_.healthy()) return false;
+    const auto applied = consumer_runtime_ && !consumer_runtime_->consumer_profile()
+        ? std::optional<standalone::Config>{} : effective_config();
+    const auto station = progress_->station_candidate(applied);
+    return station && station->callsign == call && station->locator == locator && station->power_dbm == power;
+}
+HttpResponse BrowserApi::save_progress(const HttpRequest& r, bool station_only) {
+    if (!progress_) return http_error(404, "not_found");
+    if (r.body_view().size() > 2048) return http_error(413, "resource_body_too_large");
+    if (!store_.healthy() || !progress_->healthy()) return http_error(503, "storage_fault");
+    if (r.header("if-match").empty()) return http_error(428, "revision_required");
+    if (r.header("if-match") != revision()) return http_error(412, "revision_conflict");
+    if (!scheduler_.idle() || pending_transaction_) return http_error(409, "busy");
+    const auto root = json::parse(r.body_view());
+    if (!root || !json::fields(*root, {"schema", "target", "request_id", "fields"}) ||
+        root->get("schema")->type() != '"' ||
+        root->get("schema")->string() != "transmitter-progress/1" ||
+        !json::identifier(*root->get("request_id")) ||
+        !json::fields(*root->get("target"), {"scope", "device_id", "boot_id"}))
+        return http_error(400, "invalid_progress");
+    const auto target = *root->get("target");
+    for (const auto field : {"scope", "device_id", "boot_id"})
+        if (target.get(field)->type() != '"') return http_error(400, "invalid_progress");
+    if (target.get("scope")->string() != "member" || target.get("device_id")->string() != device_ ||
+        target.get("boot_id")->string() != service_.status().boot_id)
+        return http_error(409, "target_mismatch");
+    auto fields = *root->get("fields");
+    if (!json::fields(fields, {}, station_only
+        ? std::initializer_list<std::string_view>{"callsign", "locator", "power_dbm"}
+        : std::initializer_list<std::string_view>{"callsign", "locator", "power_dbm", "enabled",
+            "schedules", "expires_utc_s", "pins", "frequency_policy", "wifi", "ntp_ipv4"}) ||
+        json::fields(fields, {})) return http_error(400, "invalid_progress");
+    const auto receipt_text = std::string(r.body_view());
+    const auto digest = sha256(std::span(reinterpret_cast<const std::uint8_t*>(receipt_text.data()), receipt_text.size()));
+    std::string resolved;
+    if (!station_only) {
+        const auto wifi = fields.get("wifi");
+        const auto applied = effective_config();
+        const auto draft_text = progress_->fields(false);
+        const auto draft = json::parse(draft_text);
+        const auto saved_wifi = draft->get("wifi");
+        const auto password = saved_wifi && saved_wifi->raw != "null"
+            ? std::optional{saved_wifi->get("password")->string()}
+            : !saved_wifi && applied ? std::optional{applied->password} : std::nullopt;
+        if (wifi && password && json::fields(*wifi, {"ssid", "password"}) &&
+            wifi->get("password")->raw == "null") {
+            resolved = std::string(fields.raw);
+            const auto secret = wifi->get("password")->raw;
+            resolved.replace(secret.offset() - fields.raw.offset(), secret.size(), json::quote(*password));
+            const auto parsed = json::parse(resolved);
+            if (!parsed) return http_error(400, "invalid_progress");
+            fields = *parsed;
+        }
+    }
+    const auto outcomes = progress_->save(fields, hex(digest));
+    if (!outcomes) return http_error(progress_->healthy() ? 413 : 503,
+                                    progress_->healthy() ? "progress_too_large" : "storage_fault");
+    auto result = progress_readback(station_only);
+    if (result.status != 200) return result;
+    result.body.pop_back();
+    result.body += ",\"outcomes\":" + *outcomes + ",\"request_id\":" + std::string(root->get("request_id")->raw) + '}';
+    return result;
 }
 HttpResponse BrowserApi::config() const {
     std::string body = "null";
@@ -366,6 +465,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "v1/management\"}"
                 ",\"active_job_connections\":" +
                 (active_job_connections_ ? "true" : "false") +
+                (progress_ ? ",\"saved_progress\":{\"schema\":\"transmitter-progress/1\",\"read\":\"/api/v1/progress\",\"save\":\"/api/v1/progress/update\",\"apply\":\"/api/v1/progress/apply\",\"max_bytes\":2048}" : "") +
                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
                 "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}");
         }
@@ -379,6 +479,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                       ",\"active\":" + hardware::serialize_plan(scheduler_.active_pins()) + "}");
         if (r.path == "/api/v1/config")
             return config();
+        if (r.path == "/api/v1/progress")
+            return progress_readback();
         if (r.path == "/api/v1/application")
             return application_config();
         if (r.path == "/api/v1/application/2")
@@ -409,6 +511,33 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return http_error(404, "not_found");
     }
     // Side-effect-free authoritative WSPR planning, under normal carrier auth.
+    if (r.path == "/api/v1/progress/update" && r.method == "POST")
+        return save_progress(r);
+    if (r.path == "/api/v1/progress/apply" && r.method == "POST") {
+        if (!progress_) return http_error(404, "not_found");
+        if (r.body_view().size() > 512) return http_error(413, "resource_body_too_large");
+        if (r.header("if-match").empty()) return http_error(428, "revision_required");
+        if (r.header("if-match") != revision()) return http_error(412, "revision_conflict");
+        const auto root = json::parse(r.body_view());
+        if (!root || application::validate_envelope(*root, "transmitter-progress/1", "application",
+                device_, service_.status().boot_id) != application::Envelope::Valid ||
+            !json::fields(*root->get("application"), {"draft_revision", "domain"}) ||
+            root->get("application")->get("domain")->type() != '"' ||
+            root->get("application")->get("draft_revision")->type() != '"' ||
+            root->get("application")->get("draft_revision")->string() != std::to_string(progress_->sequence()) ||
+            !progress_->sequence()) return http_error(400, "invalid_progress_application");
+        const auto candidate = progress_->candidate(effective_config(), root->get("application")->get("domain")->string());
+        if (!candidate) return http_error(409, "incomplete_progress");
+        // Re-enter complete idle/profile/encoding/restart authority. The scheduler
+        // and legacy CONFIG/PUT never read this draft or implicitly promote it.
+        auto apply = r;
+        apply.method = "PUT";
+        apply.path = "/api/v1/config/2";
+        apply.body = standalone::serialize_config(*candidate);
+        apply.buffered_body.reset();
+        apply.selected_body = {};
+        return handle(apply, principal, authority, transaction, carrier);
+    }
     if (r.path == "/api/v1/wspr-plan" && r.method == "POST") {
         if (r.body_view().size() > application::max_update_bytes)
             return http_error(413, "resource_body_too_large");

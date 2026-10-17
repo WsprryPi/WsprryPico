@@ -3,7 +3,7 @@ import {x25519} from '@noble/curves/ed25519.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {hkdf} from '@noble/hashes/hkdf.js';
 import {chacha20poly1305} from '@noble/ciphers/chacha.js';
-import {claimTranscript, claimPlaintext, sealOwnerClaim} from './owner-claim.js';
+import {claimTranscript, claimPlaintext, sealOwnerClaim, sealSavedProgress} from './owner-claim.js';
 
 const hex = (value) => Buffer.from(value, 'hex');
 const owner = hex('046b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c2964fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5');
@@ -64,6 +64,10 @@ const picoSecret = hex('5dab087e624a8a4b79e17f8b83800ee66f3bb1292618b6fd1c2f8b27
 const exchange = {...fields, browserPublicKey: x25519.getPublicKey(browserSecret),
   picoPublicKey: x25519.getPublicKey(picoSecret)};
 const nonce = sequence(0, 12);
+const progressSecret = hex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a');
+assert.deepEqual(sealSavedProgress(exchange,progressSecret,nonce,{callsign:'AA0NT'}),
+  {ciphertext:'rvjfSur4fiK_gKJh7SoNcpRhlAk',tag:'m9Dlk0VZySsR_grYTKuS_Q'});
+assert.equal(Buffer.from(progressSecret).toString('hex'),'00'.repeat(32));
 const result = sealOwnerClaim(exchange, browserSecret, nonce, settings);
 assert.equal(Buffer.from(browserSecret).toString('hex'), '00'.repeat(32));
 const mismatchSecret = hex('77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a');

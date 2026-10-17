@@ -44,9 +44,9 @@ export async function prepareStation(client, identity, settings) {
   try {
     const pair = x25519.keygen(owned);
     const browserNonce = hex(random(16));
-    const started = await setup(client, '/api/owner/v1/claim/start', {version:1,device_id:identity.device_id,
+    const started = await setup(client, settings.progressRevision ? '/api/owner/v1/claim/progress/start' : '/api/owner/v1/claim/start', {version:1,device_id:identity.device_id,
       owner_public_key:b64(ownerPublic),browser_public_key:b64(pair.publicKey),browser_nonce:browserNonce,
-      profile_source:5,generation:identity.generation});
+      profile_source:5,generation:identity.generation,...(settings.progressRevision ? {progress_revision:settings.progressRevision} : {})});
     if (started.version !== 1 || started.device_id !== identity.device_id || started.boot_id !== identity.boot_id ||
         started.profile_source !== 5 || started.generation !== identity.generation ||
         started.browser_nonce !== browserNonce || started.browser_public_key !== b64(pair.publicKey) ||
