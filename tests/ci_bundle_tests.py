@@ -54,6 +54,7 @@ class BundleTests(unittest.TestCase):
                            sdk=dependency('sdk', 'https://github.com/raspberrypi/pico-sdk.git'),
                            picotool=dependency('picotool', 'https://github.com/raspberrypi/picotool.git'),
                            companion=dependency('companion', 'https://github.com/WsprryPi/WsprryPi.git'),
+                           harness=dependency('harness', 'https://github.com/WsprryPi/WsprryPi-Qualification-Harness.git'),
                            environment={}, overlays={'consumer': overlays}, linked_resources=pins['linked_resource_sha256'], python_lock_sha256='a' * 64, npm_lock_sha256='b' * 64)
         (self.audit / 'registered-tests.json').write_text(json.dumps({'tests':[{'name':'fixture'}]}))
         (self.audit / 'host-tests.xml').write_text('<testsuite><testcase name="fixture"/></testsuite>')

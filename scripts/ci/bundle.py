@@ -303,7 +303,8 @@ def verify(deployment, audit, source, version, inspect=True):
     require(read_json(audit / 'build-inputs.json') == manifest['build_inputs'], 'Build provenance differs')
     for name, repository in (('sdk', 'https://github.com/raspberrypi/pico-sdk.git'),
                              ('picotool', 'https://github.com/raspberrypi/picotool.git'),
-                             ('companion', 'https://github.com/WsprryPi/WsprryPi.git')):
+                             ('companion', 'https://github.com/WsprryPi/WsprryPi.git'),
+                             ('harness', 'https://github.com/WsprryPi/WsprryPi-Qualification-Harness.git')):
         dependency = manifest['build_inputs'][name]
         require(dependency['revision'] == pins[name] and dependency['repository'] == repository,
                 'Wrong dependency source: ' + name)

@@ -42,7 +42,7 @@ evidence-only commit **E** records acceptance without relabelling F's firmware.
 ## Inputs and checks
 
 [`scripts/ci/inputs.json`](../../scripts/ci/inputs.json) pins SDK, all linked
-SDK submodules, picotool, the Arm Linux archive and actual Wi-Fi/Bluetooth
+SDK submodules, picotool, the read-only qualification Harness, the Arm Linux archive and actual Wi-Fi/Bluetooth
 resources. SDK 2.3.1 and Arm compiler 15.3.1 remain unchanged. The official Arm
 archive's SHA-256 is checked before extraction; dependency Git identities and
 clean submodules are checked before use. No dependency cache substitutes for
@@ -57,7 +57,8 @@ are inventoried rather than claimed to be a byte-reproducible container.
 
 [`scripts/ci/run.py`](../../scripts/ci/run.py) is the executable recipe. It
 supplies TinyUSB, BTstack, lwIP, CYW43, Mbed TLS and the exact reviewed companion
-source to optional SDK-backed host tests, and checks that the expected source
+source to optional SDK-backed host tests, supplies the pinned Harness source
+for offline analysis, installs npm dependencies before CTest, and checks that the expected source
 test inventory was registered. Missing Node/Python modules or the compiled
 endpoint fixture fail CI. All registered CTest cases must execute successfully.
 WTP contract validation, npm browser tests, real consumer frequency UI checks

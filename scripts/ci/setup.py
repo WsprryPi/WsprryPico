@@ -57,7 +57,8 @@ def main():
     for name, repository in (
             ('sdk', 'https://github.com/raspberrypi/pico-sdk.git'),
             ('picotool', 'https://github.com/raspberrypi/picotool.git'),
-            ('companion', 'https://github.com/WsprryPi/WsprryPi.git')):
+            ('companion', 'https://github.com/WsprryPi/WsprryPi.git'),
+            ('harness', 'https://github.com/WsprryPi/WsprryPi-Qualification-Harness.git')):
         inputs[name] = checkout(destination / name, repository, pins[name])
     actual_submodules = {line.strip().split()[1]: line.strip().split()[0]
                          for line in inputs['sdk']['submodules']}

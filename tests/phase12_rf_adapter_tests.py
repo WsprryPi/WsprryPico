@@ -221,6 +221,7 @@ int main(){
 #include "usb/console_reply.hpp"
 #include "network/assets.hpp"
 #include "network/consumer_radio.hpp"
+#include "wtp/json.hpp"
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -230,10 +231,11 @@ int main(){
 void check(bool v) { if (!v) throw std::runtime_error("adapter assertion"); }
 using wsprrypico::network::ConsumerInterface;
 using wsprrypico::network::WebAsset;
+namespace wtp = wsprrypico::wtp;
 struct Request { std::string path="/", method="GET"; std::string_view header(std::string_view)const{return "192.168.4.1";} };
 struct Parser { Request value; bool invalid=false; bool failed()const{return invalid;} const Request& request()const{return value;} };
 struct HttpResponse {
- unsigned status; std::string body,type,etag,content_security_policy;
+ unsigned status; std::string body,type,etag,content_security_policy,location;
  std::string_view static_body; std::span<const std::string_view> static_parts;
  HttpResponse(unsigned code=200,std::string text={},std::string kind="application/json",std::string tag={})
   :status(code),body(std::move(text)),type(std::move(kind)),etag(std::move(tag)){}
@@ -272,6 +274,7 @@ struct Radio {
  }
 };
 struct Commit {bool allowed=true;bool cancellation_allowed()const{return allowed;}};
+struct Progress {Response progress_readback(bool){return {200,"progress"};}};
 struct PicoBootstrapServer {
 DEFAULT
  bool setup_admitted_=default_setup_admission,active_=true,mutation_safe_=true;
@@ -281,7 +284,8 @@ DEFAULT
  bool pending=false;void (*setup_control_)(void*)=nullptr;void* setup_control_context_=nullptr;
  bool setup_pending()const{return pending;}
  bool owner_status_committed_reply_=false,owner_reconcile_=false,owner_restart_pending_=false;
- void* reset_begin_=nullptr; std::string device_="device",firmware_="firmware",headers_;
+ void* reset_begin_=nullptr; std::string device_="device",boot_id_="boot",firmware_="firmware",headers_;
+ Progress* progress_api_=nullptr;bool owner_claimable()const{return true;}
  Parser parser_;Response response_;Commit bootstrap_commit_;unsigned canceled=0,owner_canceled=0,advanced=0;
  Response recovery(const Request&){return {200,"recovery"};}
  Response status(){return {200,"status"};}
@@ -343,7 +347,8 @@ int main() {
  radio.ready=true;asset_available=false;server.dispatch();check(server.response_.status==503);
  asset_available=true;server.client_interface_=ConsumerInterface::AccessPoint;
  server.parser_.value.path="/radio";server.dispatch();check(server.response_.status==200);
- server.parser_.value.path="/";server.dispatch();check(server.response_.body=="identity");
+ server.parser_.value.path="/";server.dispatch();
+ check(server.response_.status==302&&server.response_.location=="/wifi-host");
  server.setup_transaction_=31;server.parser_.value.path="/api/bootstrap/v1/status";
  server.dispatch();check(server.response_.status==409&&server.response_.body=="setup_response_pending");
  server.parser_.value.path="/radio";server.dispatch();check(server.response_.status==200);
@@ -375,6 +380,7 @@ int main() {
             for rf in (False, True):
                 args = ['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
                         '-I' + str(ROOT / 'src'), str(path / 'adapter.cpp'),
+                        str(ROOT / 'src/wtp/json.cpp'),
                         '-o', str(path / 'adapter')]
                 if rf:
                     args.append('-DWSPRRY_PICO_STANDALONE_RF=1')

@@ -63,14 +63,20 @@ def expected_tests():
 
 
 def host_checks(deps, audit):
+    harness_source = str(deps / 'harness/src')
+    sys.path.insert(0, harness_source)
+    os.environ['PYTHONPATH'] = harness_source
     import cryptography
     import jsonschema
     import numpy
     import serial
     import ssl
+    from wsprrypi_qualification import carrier, cw_defaults, wtp_control
     # Import before configure: missing modules must never silently shrink coverage.
-    assert all((cryptography, jsonschema, numpy, serial, ssl))
+    assert all((cryptography, jsonschema, numpy, serial, ssl, carrier, cw_defaults, wtp_control))
     log = audit / 'host.log'
+    web = ROOT / 'src/network/bootstrap_web'
+    execute(log, 'npm', 'ci', '--ignore-scripts', '--no-audit', '--no-fund', cwd=web)
     host = ROOT / 'build/host-debug'
     if host.exists():
         raise ValueError('Fresh host directory required')
@@ -110,8 +116,6 @@ def host_checks(deps, audit):
         raise ValueError('Unexpected internally skipped suite: ' + ', '.join(internal_skips))
     execute(log, sys.executable, ROOT / 'scripts/ci/evidence_tests.py', audit / 'evidence-skips.json')
     execute(log, sys.executable, ROOT / 'scripts/validate_wtp_contract.py')
-    web = ROOT / 'src/network/bootstrap_web'
-    execute(log, 'npm', 'ci', '--ignore-scripts', '--no-audit', '--no-fund', cwd=web)
     execute(log, 'npm', 'test', cwd=web)
     execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py')
     chrome = shutil.which('google-chrome')

@@ -276,6 +276,7 @@
         "sdk",
         "picotool",
         "companion",
+        "harness",
         "environment",
         "overlays",
         "python_lock_sha256",
@@ -395,6 +396,34 @@
           "additionalProperties": {
             "type": "string",
             "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "harness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "revision",
+            "submodules"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "pattern": "^https://github.com/"
+            },
+            "revision": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "submodules": {
+              "type": "array",
+              "maxItems": 1000,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200000
+              }
+            }
           }
         }
       }
