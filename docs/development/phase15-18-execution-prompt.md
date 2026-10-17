@@ -1,6 +1,8 @@
 # P15.18 USB installer execution prompt
 
-Prepared 2026-10-17. **Saved for future execution; P15.18 is Not started.**
+Prepared and updated 2026-10-17. **Saved for future execution.** Execute item 7
+of the [Consolidated backlog](consolidated-backlog.md); current status and order
+are recorded only there. The P15.18 filename retains the historical slice ID.
 Preparing this prompt changes documentation only. Do not implement, build,
 flash, install tools, operate devices, stage, commit or push until the operator
 invokes it for execution. The instructions below then define the bounded task.
@@ -15,7 +17,10 @@ Implement USB installation and settings-preserving firmware upgrades for
 - WsprryPi access for the selected locally USB-connected Pico, using the same
   installer implementation and preservation rules.
 
-Use published firmware release assets by default. Support optional local
+Default to the latest verified, compatible normal CI image from the canonical
+WsprryPico devel workflow, including CI testing builds; a stable release is not
+required. A GitHub release may provide public download transport for those
+exact CI bytes. Support explicit version/stable selection and optional local
 compilation through an explicit developer path. Preserve saved settings and
 other durable state during upgrades. OTA is ruled out by operator direction
 (2026-10-17) because its flash-layout tradeoff sacrifices too much flexibility;
@@ -32,11 +37,19 @@ and non-force pushes to their existing accepted branches/upstreams:
   deployment of the shared installer, and related tests/development docs.
   Components such as `WsprryPi-UI` remain parent-repository content.
 
+It also authorizes publishing and removing installer-specific CI download/test
+releases in WsprryPi/WsprryPico when needed for this path, including draft,
+asset-upload, publish and cleanup operations, and creating/pushing unique
+pre-1.0.0 tags at the exact CI source commit. Apply the bounded publication and
+removal rules below; routine actions within this authority need no further
+confirmation. Do not publish a 1.0.0-or-later or stable release, move/delete an
+existing tag, replace published bytes, or remove unrelated releases.
+
 It also authorizes a separate read-only reviewer/subagent for independent
 adversarial review and reassessment. Other family repositories remain outside
-the write scope. Do not create a new protocol repository, publish a release or
-tag, create a PR, modify repository settings, start P15.19's web UI review or
-P15.20's documentation site. Hardware/service operations follow current operator
+the write scope. Do not create a new protocol repository or PR, modify
+repository settings, start the separate web UI review or documentation site.
+Hardware/service operations follow current operator
 setup statements and each repository's `AGENTS.md`; this saved prompt is not evidence of a connected
 test setup. Do not run the WsprryPi system installer merely to test Pico flashing.
 
@@ -53,11 +66,15 @@ Verify accepted completion of this sequence using actual result records:
 1. P15.14 USB control, including USB management/time and exact-pair evidence.
 2. P15.15 persisted GPIO drive strength and its Pico/Pi compatibility behavior.
 3. P15.16 uninhibited normal default and explicitly selected inhibited variant.
-4. P15.17 a published, independently verified GitHub testing prerelease with
-   the normal UF2, versioned manifest, SHA-256 inventory and release notes.
+4. Current item 6 software/build CI acceptance, with actual successful run and
+   artifact identities, normal UF2, canonical versioned manifest and SHA-256
+   inventory from the [CI handoff](software-build-ci-execution-prompt.md).
 
 Saved prompts, checklist intentions and successful builds alone do not establish
-acceptance. Read the final P15.14–P15.17 records and exact supported source pair.
+acceptance. Read the accepted USB/drive/normal-target and CI result records and
+exact supported source pair. Item 9's testing prerelease is not a prerequisite:
+this installer task may publish the CI download assets needed for its own
+acceptance without executing or claiming completion of item 9.
 If a prerequisite is incomplete, report it and stop before implementation;
 do not absorb the missing phase into P15.18.
 
@@ -88,7 +105,9 @@ Inspect at least these existing sources and contracts before choosing files:
 - `src/standalone/pico/flash_layout.hpp`,
   `cmake/standalone_link/memory_flash.incl`,
   `scripts/check_standalone_image.py`, `tests/flash_layout_tests.cpp` and the
-  actual P15.17 manifest schema/validator and release assets.
+  canonical CI manifest schema/validator, verified CI artifacts and any existing
+  corresponding public download assets. Reuse item 6's format; do not create a
+  competing installer/release manifest.
 - `docs/development/usb-cdc.md`, `docs/protocol/USB-Management.md`,
   `docs/development/usb-local-configuration.md`,
   `docs/development/configuration-updates.md`,
@@ -128,9 +147,11 @@ Treat release/API/manifest content as data, not shell code. Avoid shell string
 construction from URLs, paths, tags, device names or manifest fields.
 
 Expose explicit operations for discovery/planning, initial installation,
-preserving upgrade, explicit release/prerelease selection and local-build use.
+preserving upgrade, default latest-CI selection, explicit version/stable
+selection and local-build use.
 Choose final command names during implementation and document exact examples.
-The default release path must not require Git, a compiler or the Pico SDK.
+The default CI download path must not require Git, a compiler, the Pico SDK
+or an operator's GitHub account/token.
 It may require narrowly documented USB/picotool/runtime dependencies.
 
 Handle missing dependencies and USB permissions with clear actionable errors.
@@ -146,22 +167,84 @@ device and requested operation. Provide useful exit codes and machine-readable
 results for Pi integration. Help/discovery/planning must not flash, reset,
 install packages, change services, write device settings or acquire RF ownership.
 
-## 4. Select and validate release firmware
+## 4. Select, publish when necessary and validate CI firmware
 
-Ordinary resolution selects the latest compatible published **stable** release
-from the canonical WsprryPico repository. Use GitHub release metadata and exact
-tag/asset identities; do not scrape HTML or select an arbitrary first `.uf2`.
-Testing prereleases require explicit selection. If no compatible stable release
-exists, report that fact and explain explicit testing selection; never silently
-fall back to a prerelease, an inhibited fixture or a local compile.
+Ordinary resolution selects the newest successful eligible canonical devel CI
+build for the normal Pico 2 W application, with every required job/check passed.
+Define deterministic ordering by source/build identity; rerunning an older
+commit or republishing its assets must not make it newer than a later accepted
+source. Verify trusted workflow/repository/branch, full source SHA, run ID and
+attempt, profile, embedded version and manifest/checksum identity. Exclude PR/
+fork/unreviewed workflows and inhibited/bench/provisioned variants. Resolve once
+per transaction and pin that immutable bundle even if newer CI completes while
+the installer runs. Show the chosen CI source/run/version and any newer failed
+or incomplete run honestly.
 
-Consume the schema actually accepted in P15.17 rather than defining a competing
-manifest. At preparation, planned assets were
+The default includes verified CI prereleases without a separate testing opt-in.
+Explicit version, older compatible image and stable selections remain available,
+with the same validation and downgrade checks. Do not use GitHub's stable
+`releases/latest` endpoint as the latest-CI resolver: its
+[full-release semantics](https://docs.github.com/en/rest/releases/releases#get-the-latest-release)
+exclude prereleases. Do not scrape HTML, select the first UF2 or order candidates
+solely by release publication time. Missing, expired or invalid latest assets
+must produce an actionable refusal, never silent fallback to stable, older
+bytes, an inhibited image or local compilation.
+
+Consume the schema actually accepted in item 6 rather than defining a competing
+manifest. At original preparation, planned assets were
 `WsprryPico-<version>-pico2_w.uf2`, `release-manifest.json` and `SHA256SUMS`.
 Validate product, Pico 2 W/RP2350 board/family, normal uninhibited variant,
 version/tag/source agreement, supported protocol/Pi pair, persistent-storage
 compatibility, asset size and SHA-256. Confirm asset and release metadata agree
-about testing status. Refuse unsupported manifest/storage versions.
+about CI/testing status. Refuse unsupported manifest/storage versions.
+
+Verify that the default installer can fetch its metadata and payload anonymously
+over HTTPS. Ordinary [Actions artifact downloads](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)
+require GitHub sign-in/read access; do not turn that into an end-user token
+requirement. If a verified existing public distribution path suffices, use it.
+Otherwise publishing the exact verified CI bundle as an installer download
+prerelease is authorized here, without waiting for item 9.
+
+If release assets are needed, provide a small maintained promotion/discovery
+path for subsequent eligible CI builds, not only a one-time manual upload.
+Reuse item 6's successful build and exact artifacts. Publication credentials
+belong only in the authorized maintainer/CI context; ordinary installer runs
+must never publish/delete releases or request write credentials. Keep any
+publication workflow narrowly scoped to trusted canonical CI output, with
+only required permissions and no privileged execution of fork/PR payloads.
+
+Before publication, freeze and review the complete CI bundle, checksum inventory,
+required notices and notes. Verify source F is clean, committed and remotely
+available. Choose a collision-free version/tag below 1.0.0 under the existing
+convention, normally a v0.x.y development/testing identity. Embedded version,
+manifest and tag mapping must be consistent with the declared CI version policy.
+If another version is needed, arrange it before a new qualifying CI run; do not
+edit/rebuild downloaded UF2s locally or relabel bytes to invent agreement.
+Create an annotated tag explicitly at F, push only that tag and independently
+verify its remote object and peeled commit. Never tag a moving branch name or
+let a release tool silently select the repository's default branch.
+
+Use a draft with an explicit asset allowlist and notes file, verify its complete
+uploaded assets against the frozen CI hashes, then publish as a prerelease with
+latest=false. Download the published assets afresh without authentication and
+rerun manifest/checksum/UF2 validation. Record the release/asset IDs, URLs, tag,
+source/run/attempt and hashes. Publishing only supplies download transport; it
+does not add RF, installer or whole-product qualification. Make the candidate
+discoverable through the maintained latest-CI resolver only after this audit;
+do not update a default pointer to an incomplete draft or missing release.
+
+Release removal for an installer-created temporary, failed or superseded CI
+download/test release is authorized when necessary. Capture its identity and
+sanitized disposition first, and ensure no maintained default/documented path
+is left pointing at removed assets: retain or verify a replacement distribution
+before retiring a live default. Deletion tests may use an explicitly selected
+temporary candidate without replacing the live default. Keep completed download
+transactions bound to their verified cached bytes; new resolutions must handle
+removal honestly. Preserve historical source/result evidence and unrelated
+releases. Use the [release deletion operation](https://cli.github.com/manual/gh_release_delete)
+without tag cleanup; release deletion is separate from tag deletion. Retain the
+tag and never reuse its identity for different bytes. Record/verify the actual
+post-removal state; partial publication or failed cleanup is not a success.
 
 Download only the selected payload and required metadata/notices. Bound sizes,
 validate safe asset names and reject traversal, ambiguous duplicates, missing
@@ -320,9 +403,10 @@ enable a disabled transmitter, clear STOP or promote frequency qualification.
 ## 9. Integrate WsprryPi access without duplicating authority
 
 Add an operator entry point for the selected Pico using existing runtime/UI
-patterns. Show device identity, installed/selected version, stable versus
-explicit testing selection, preserving-upgrade intent, progress, result and
-recoverable failure. Distinguish downloaded, programmed and verified states.
+patterns. Show device identity, installed/selected CI version and source/run,
+default latest-CI versus explicit version/stable selection, preserving-upgrade
+intent, progress, result and recoverable failure. Distinguish downloaded,
+programmed and verified states.
 Expose local builds as an advanced host workflow, not a browser SDK installation.
 
 The Pi backend invokes the identified shared installer through a bounded
@@ -370,8 +454,14 @@ Exercise production installer orchestration against controlled release/API and
 USB/picotool substitutes, with bounded failures and observable write attempts.
 Cover at least:
 
-- Stable selection, explicit prerelease/version selection, no stable release,
-  offline/cache behavior, HTTP/rate-limit/partial-download errors and bad metadata.
+- Default latest successful eligible CI selection including prereleases, explicit
+  stable/version selection, no stable release, older-source reruns, incomplete/
+  failed/untrusted runs, concurrent newer CI, expired/removed artifacts, anonymous
+  download and offline/cache behavior. Cover HTTP/rate-limit/partial-download
+  errors, invalid metadata and refusal without silent fallback.
+- CI-to-release byte identity, unique pre-1.0.0 tag/source/version mapping,
+  interrupted draft/upload/publication, public-download verification, safe
+  temporary-release removal and default discovery after removal/replacement.
 - Wrong board/variant/family, malformed UF2/manifest/checksum, reserved-region
   overlap, invalid workaround payloads, incompatible storage and downgrade refusal.
 - No device, multiple devices, wrong/replaced device during re-enumeration,
@@ -410,23 +500,25 @@ until its required installation/preservation evidence is established.
 ## 11. Record results and update current instructions
 
 Create a focused P15.18 development record with exact source pairs, installer
-version, release/build identities, supported platform matrix, commands and
-pass/fail/skip outcomes, preservation/recovery evidence, independent findings,
+version, CI run/attempt/artifact and release/tag identities, public download
+verification, release-removal dispositions, supported platform matrix,
+commands and pass/fail/skip outcomes, preservation/recovery evidence, independent findings,
 repairs and reassessments. Keep raw flash, credentials, generated firmware and
 private captures out of source control.
 
-Document exact standalone bootstrap/local CLI commands, stable/testing/local-build
-selection, dependency/USB permissions, settings preservation, backup privacy,
-BOOTSEL/manual recovery, compatible versions, limitations and Pi access.
+Document exact standalone bootstrap/local CLI commands, default latest-CI and
+explicit stable/version/local-build selection, dependency/USB permissions,
+settings preservation, backup privacy, BOOTSEL/manual recovery, compatible
+versions, limitations and Pi access.
 Update affected current Pico/Pi developer/user-facing instructions in the
 authorized repositories. Review external operator-documentation impact without
 editing a separate docs repository or building P15.20's Read the Docs site.
 Pi's required final report must include Documentation Impact.
 
-Update the consolidated work list for the actual acceptance scope. Do not
-mark P15.18 complete from tests alone if required physical preservation or either
-entry point remains unvalidated. Preserve historical evidence and leave
-P15.19/P15.20 Not started. Include all substantive acceptance/checklist/docs
+Update only item 7 in the consolidated work list for the actual acceptance
+scope. Do not mark it complete from tests alone if required physical preservation
+or either entry point remains unvalidated. Preserve historical evidence and
+every other item's current status. Include all substantive acceptance/checklist/docs
 changes in the final independently reviewed diff.
 
 ## 12. Obtain independent adversarial review and close findings
@@ -437,7 +529,9 @@ records, requirements, actual installer/release/Pi identities, test commands,
 results, private-evidence summaries and claimed limitations. The reviewer is
 read-only: no device/service operations, Git mutations or publication.
 
-Require adversarial review of device confusion, release/channel selection,
+Require adversarial review of device confusion, latest-CI ordering/provenance,
+anonymous downloads, CI-to-release byte identity, pre-1.0.0 tags, release-removal
+scope/default continuity, release/channel selection,
 untrusted metadata/command injection, privilege boundaries, shared-core drift,
 bootstrap/deployment reproducibility, image/erase bounds, secret-bearing backups,
 all durable banks, boot-workaround handling, ownership/scheduler races,
@@ -472,16 +566,21 @@ and do not guess a different destination. Non-force push only reviewed intended
 commits, with compatible installer/Pi identities recorded. Independently query
 each remote branch and compare its full hash to the intended commit; a push
 success message alone is not parity verification. Do not force-push, rewrite
-history, publish unreviewed concurrent work or create an incidental release/tag/PR.
+history, publish unreviewed concurrent work or create a PR. Limit release/tag
+operations to the reviewed CI download and removal authority in this prompt.
 
 If Git, permissions or remote state block a push, retain the result and report
 the exact remaining step and each repository's actual commit/push state. A
 completed software commit must not be described as a successful physical upgrade.
 
-Report delivered standalone/Pi behavior, shared-core/deployment identity, release
-and optional-build paths, supported hosts, settings/secret preservation and
+Report delivered standalone/Pi behavior, shared-core/deployment identity,
+default latest-CI resolution, public download/release/tag and optional-build
+paths, any release removal, supported hosts, settings/secret preservation and
 recovery limits, changed files/components, exact checks and physical evidence,
 reviewer findings/repairs/retests/final assessment, Documentation Impact, both
 commit hashes, push results, independently verified remote hashes and remaining
 working-tree/staged state. Do not claim completion while required checks or
 actionable findings remain. Stop at P15.18; leave OTA, P15.19 and P15.20 outside this task.
+Reprint the canonical Finish now section with current statuses, saved links,
+original order and NTP Work grouping, using ✅ finished, ⏳ in flight and
+▧ not started.

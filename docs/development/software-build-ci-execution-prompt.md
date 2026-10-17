@@ -1,15 +1,16 @@
 # Software build CI and deployment images
 
-Execute only item 7 of the [Consolidated backlog](consolidated-backlog.md).
+Execute only item 6 of the [Consolidated backlog](consolidated-backlog.md).
 Implement and run hardware-free software/build CI, produce usable Pico 2 W
 UF2 images with verified version/source identity, SHA-256 checksums and a
-validated manifest, and retrieve the actual CI artifacts for later decode
-verification and publication. Record the result and evidence closeout, perform
-independent adversarial review, repair actionable findings and repeat affected
-checks/review, then commit and push the scoped result.
+validated manifest, and retrieve the actual CI artifacts for decode verification,
+the installer's default latest-CI download and publication. Record the result
+and evidence closeout, perform independent adversarial review, repair
+actionable findings and repeat affected checks/review, then commit and push
+the scoped result.
 
 This saved prompt does not implement CI, run checks/builds or produce firmware
-merely by being prepared or published. Item 7 stays not started until execution
+merely by being prepared or published. Item 6 stays not started until execution
 is requested. Workflow artifacts are the delivery mechanism here; creating a
 GitHub release, tag, installer or documentation-site publication is not.
 
@@ -20,7 +21,7 @@ docs/architecture.md, docs/development/README.md and the consolidated backlog
 before implementation. Print the complete Finish now section, preserving its
 order and NTP Work grouping, using ✅ finished, ⏳ in flight and ▧ not started.
 That document is the sole current/future work list; do not create a parallel
-roadmap or pending-work tracker. Mark only item 7 ⏳ when execution begins.
+roadmap or pending-work tracker. Mark only item 6 ⏳ when execution begins.
 
 Inspect branch, full HEAD, upstream, live remote devel tip, staged/unstaged/
 untracked work and concurrent commits. At preparation, the working tree was
@@ -43,10 +44,11 @@ RF, SDR, GPSDO or installed services; or execute another backlog item. No
 hardware operation is required for this software/build acceptance. Preserve
 user work and historical evidence; do not invoke repository/harness cleanup.
 
-Item 2 depends on a CI image. Do not make item 7 depend on item 2 already being
-complete, which would create a cycle. Build from the latest accepted current
-source without silently claiming unfinished features are accepted. Release
-prerequisites and captured-RF acceptance remain their separate backlog work.
+Item 7's installer depends on these verified CI images. Do not make item 6
+depend on the installer or item 9's publication, which would create a cycle.
+Build from the latest accepted current source without silently claiming
+unfinished features are accepted. Preserve completed decode evidence at its
+actual source/image scope; new CI bytes do not inherit that physical acceptance.
 
 ## Establish the actual build and check contract
 
@@ -54,7 +56,9 @@ Read the [development commands](README.md),
 [firmware foundation](firmware-foundation.md),
 [accepted normal-target selection](phase15-16-results.md),
 [artifact evidence](phase15-16-artifacts.json),
-[short 20 m decode handoff](short-wspr-type23-decode-execution-prompt.md) and
+[short Type 2/3 decode handoff](short-wspr-type23-decode-execution-prompt.md),
+[completed decode result](short-wspr-type23-decode-results.md),
+[USB installer handoff](phase15-18-execution-prompt.md) and
 [testing prerelease handoff](phase15-17-execution-prompt.md).
 The latter handoff is a downstream consumer, not authorization to execute it.
 
@@ -179,13 +183,18 @@ choose its explicit version before qualification, following existing testing
 conventions and checking for conflicting prior identities. Merely reserving a
 candidate version does not create a tag/release. Validate version input syntax
 and length; never reuse an identity for different intended deployment bytes.
+Coordinate with item 7's authorized pre-1.0.0 CI download publication: choose
+compatible embedded-version/manifest/tag conventions before the qualifying run,
+so publication can retain the exact CI bytes without a local identity rewrite.
 
 Provide these explicitly identified profiles without changing repository defaults:
 
 1. Normal default profile: WsprryPico, 138 MHz, accepted default standalone
    WSPR base, currently 3570100 Hz.
 2. Normal 20 m decode profile: the same WsprryPico target and 138 MHz, with
-   WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ=14097100, required by item 2.
+   WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ=14097100, available for explicit
+   downstream verification. Item 2's completed operator-selected 80 m result
+   retains its own source/image applicability.
 3. Explicit inhibited diagnostic: WsprryPico-Inhibited, clearly separated from
    normal deployment and never implicitly selected by a download instruction.
 
@@ -195,11 +204,11 @@ identifiers, filenames, source/version, actual RF base and engine unambiguous.
 The 20 m profile is a generic normal application with an explicit supported
 frequency build option, not a device-provisioned or bench image.
 
-The 20 m image used for item 2 must be available for exact-byte promotion under
-item 9, with its profile declared. A decode of it does not qualify a different
-default-frequency UF2. Reconcile downstream version/profile expectations before
-qualification: changing embedded version, source or build inputs later requires
-a new image and reassessment of affected evidence. Do not rebuild or rewrite
+Any CI image selected for later decode must remain available for exact-byte
+promotion under item 9, with its profile declared. A decode of one profile does
+not qualify a different default-frequency UF2. Reconcile downstream expectations
+before qualification: changing embedded version, source or build inputs later
+requires a new image and reassessment of affected evidence. Do not rebuild or rewrite
 identity after RF testing and call the result the same qualified image.
 
 ## Validate actual linked images and UF2 payloads
@@ -280,18 +289,33 @@ to insert metadata that could not exist before upload. See
 [GitHub artifact guidance](https://docs.github.com/en/actions/tutorials/store-and-share-data).
 Do not let a successful upload substitute for successful validation.
 
+Define a maintained identity/discovery contract for item 7's default latest-CI
+selection: trusted canonical devel workflow, required successful checks, source
+ordering, run/attempt/profile and immutable artifact hashes. An older-source
+rerun or release re-upload must not become a newer source candidate. Keep normal
+deployment unambiguous and support resolving one complete immutable bundle per
+installation. A mutable channel pointer is a locator, never sufficient identity.
+Use the same canonical manifest across CI, the installer and item 9.
+
+Workflow artifacts remain this task's delivery mechanism. Item 7 may publish
+the verified bytes as public installer download prereleases and create unique
+pre-1.0.0 tags if public downloads require it; item 9 is not a prerequisite for
+that limited publication. Do not execute those release/tag operations in this
+CI-only task or require an end-user GitHub token as the installer's default.
+
 After CI passes, download the exact selected run/attempt artifacts to a new
 ignored local directory. Independently verify run source/workflow/profile,
 manifest schema, checksums, file sizes, actual UF2/ELF association and required
 checks. Make content/hash mismatches hard failures; do not rely on a platform
-warning alone. Prove the download contains the usable normal 20 m image and
-that inhibited assets cannot be mistaken for it.
+warning alone. Prove the download contains the usable normal default image and
+each selected profile, and that inhibited assets cannot be mistaken for them.
 
 Document concrete retrieval and verification commands using real run/artifact
-identities once available. Preserve the verified downloads and their hashes
-as the handoff for item 2 and later item 9. Those tasks must load/publish the
-same selected UF2 bytes; if assets expire or a candidate changes, report the
-need for new qualification instead of silently rebuilding or changing version.
+identities once available. Preserve verified downloads and hashes for item 7,
+later item 9 and any separately selected decode verification. Those consumers
+must use the same selected UF2 bytes; if assets expire or a candidate changes,
+report the need for affected reassessment rather than silently rebuilding or
+changing version. Do not reopen or relabel item 2's completed evidence here.
 
 ## Run evidence and adversarial review
 
@@ -314,7 +338,8 @@ Challenge missing/conditionally omitted tests; untrusted trigger/input/cache
 paths; wrong or drifting pins; dirty/untracked inputs; default-branch bootstrap;
 wrong engine/frequency; stale flash limits; unsafe packaging; identity/hash
 cycles; partial-run artifacts; unverified downloads; and version/profile changes
-that would invalidate the later 20 m decode or exact-byte publication.
+that would invalidate downstream decode, installer selection or exact-byte
+publication.
 
 Repair all actionable in-scope findings, rerun affected checks and get a fresh
 independent assessment of the repaired final result. Iterate until no actionable
@@ -330,15 +355,15 @@ CI here does not close item 2's RF decode or item 9's publication.
 
 ## Commit, push and closeout
 
-Set only item 7 ✅ after the required final-source CI passes, all selected image
+Set only item 6 ✅ after the required final-source CI passes, all selected image
 profiles/bundles are verified after download, evidence is durable and independent
 review is clear. Preserve its saved-prompt link, every other status and the NTP
 grouping. A missing/failed required check or unavailable deployment bundle keeps
-item 7 ⏳ with the concrete unresolved acceptance result.
+item 6 ⏳ with the concrete unresolved acceptance result.
 
 Inspect final and staged diffs and run scoped git diff --check plus
 git diff --cached --check. Stage only attributable workflow/build/packaging/
-test/documentation/evidence and item 7 changes, partially staging shared files
+test/documentation/evidence and item 6 changes, partially staging shared files
 when needed. Commit and non-force push to origin/devel; source and final evidence
 commits are authorized without another routine confirmation. Preserve concurrent
 work/commits; do not reset, stash, clean, force push or absorb unrelated changes.
@@ -353,5 +378,5 @@ Independently query remote devel and compare local HEAD/upstream after push.
 Report actual source F and evidence E, what changed, tests/skips and remote
 CI/run/artifact results, review repairs, downloaded paths/hashes, limitations,
 commit/push/parity and working-tree state. Reprint the complete canonical
-punchlist using ✅/⏳/▧. Stop after item 7; no decode, flashing or release is
+punchlist using ✅/⏳/▧. Stop after item 6; no decode, flashing or release is
 performed by this task.

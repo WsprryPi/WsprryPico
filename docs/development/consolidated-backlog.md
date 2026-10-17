@@ -23,12 +23,13 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    - ▧ NTP-derived RF calibration.
 5. ▧ **Impeccable UI review**, including provisioning.
    [Saved prompt](phase15-19-execution-prompt.md).
-6. ▧ **USB installer.** Standalone and WsprryPi access, preserving saved
-   settings. [Saved prompt](phase15-18-execution-prompt.md).
-7. ▧ **Software/build CI and deployment images.** Run checks and produce usable
+6. ▧ **Software/build CI and deployment images.** Run checks and produce usable
    UF2 images with version/source identity, checksums and a manifest before
    release efforts. Use the CI image for decode verification and publication.
    [Saved prompt](software-build-ci-execution-prompt.md).
+7. ▧ **USB installer.** Standalone and WsprryPi access, preserving saved
+   settings; default to the latest verified CI image.
+   [Saved prompt](phase15-18-execution-prompt.md).
 8. ▧ **Operator documentation.** Final instructions, screenshots and
    Read the Docs Community publication.
    [Saved prompt](operator-documentation-execution-prompt.md).

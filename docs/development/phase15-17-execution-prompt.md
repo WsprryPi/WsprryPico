@@ -213,10 +213,12 @@ Include:
   receiver-audio translation/compact-job conditions. Preserve current 6 m/4 m/
   2 m dispositions; do not infer whole-band, LPF, calibrated-power, alternate-
   clock or antenna-ready qualification from those points.
-- Actual checks and known limitations. Installer and final user docs remain
-  future items. Testing is selected explicitly; stable remains the eventual
-  ordinary installer default. If no stable release exists, say so without
-  silently substituting this prerelease.
+- Actual checks, known limitations and current installer/final-docs availability.
+  The installer defaults to the latest verified compatible CI image, including
+  eligible CI prereleases; stable is an explicit selection. Link the actual
+  CI/source/profile identities and describe whether this prerelease is eligible
+  for that default. Item 7 may already have published CI download assets; that
+  limited publication alone does not complete this item 9 acceptance.
 
 Use exact release/tag asset URLs for testing, not `/releases/latest/download`.
 Document checksums before flashing. Publishing alone does not validate an
@@ -302,7 +304,11 @@ authentication/network errors rather than treating every failure as that case.
 Check the release list and full-release API semantics, not just the title or
 position on the releases page, using the
 [official latest-full-release API](https://docs.github.com/en/rest/releases/releases#get-the-latest-release).
-No implicit stable fallback is permitted.
+This GitHub full-release selection is separate from the installer's latest-CI
+default; a missing stable release does not prevent CI installer downloads.
+Verify installer discovery against its CI provenance/eligibility contract and
+keep older-source publication from accidentally becoming the default. No silent
+fallback to stable or another image is permitted.
 
 If publication or the public audit fails, record the exact partial state and
 leave P15.17 incomplete. Do not conceal failure by deleting releases, moving
@@ -318,11 +324,12 @@ policy, limitations and any hardware/restoration state. Keep raw firmware and
 local capture/log data ignored. Record the release manifest and final checksums
 in durable source evidence without a source-hash cycle.
 
-Only after every publication audit passes, mark P15.17 **Complete**, link its
-results and public release, and synchronize the development/prompt indexes.
-Keep P15.18–P15.20 **Not started** and provide the installer with explicit
-testing tag/asset selection, manifest version, checksum policy and stable-default
-behavior. Do not implement the installer.
+Only after every publication audit passes, mark item 9 **Complete** in the
+canonical backlog, link its results and public release, and synchronize affected
+development/prompt indexes. Preserve every other item's current status.
+Keep installer-facing CI/testing tag/asset selection, manifest version,
+checksum policy and latest-CI default behavior aligned. Do not implement the
+installer here.
 
 Have the independent reviewer reassess the final evidence/checklist changes
 and public audit. Repair findings and repeat affected checks. If a repair changes
