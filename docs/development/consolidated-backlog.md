@@ -29,6 +29,7 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    [Saved prompt](software-build-ci-execution-prompt.md).
 8. ▧ **Operator documentation.** Final instructions, screenshots and
    Read the Docs Community publication.
+   [Saved prompt](operator-documentation-execution-prompt.md).
 9. ▧ **Testing prerelease.** Publish the verified CI image, manifest and
    checksums. [Saved prompt](phase15-17-execution-prompt.md).
 
