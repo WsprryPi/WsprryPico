@@ -29,13 +29,15 @@ class PicoPioDma final : public PioDmaHardware {
     std::uint32_t lock() override;
     void unlock(std::uint32_t saved) override;
     bool open(Handler handler, void* context) override;
+    void force_inactive() override;
     bool halt(std::uint64_t deadline_ns) override;
     bool release(std::uint64_t deadline_ns);
     bool dma(const std::uint32_t* data, std::uint32_t words, bool increment, std::uint64_t epoch,
              std::uint64_t sequence) override;
     bool alarm(std::uint64_t start_ns, std::uint64_t epoch) override;
     bool retry_alarm(std::uint64_t when_ns, std::uint64_t epoch) override;
-    LaunchResult launch(std::uint64_t start_ns, std::uint64_t deadline_ns) override;
+    LaunchResult launch(std::uint64_t start_ns, std::uint64_t deadline_ns,
+                        LaunchEnable enable = {}) override;
     std::uint64_t launch_observed_ns() const override {
         return launch_boundary_ns_;
     }
@@ -76,6 +78,7 @@ class PicoPioDma final : public PioDmaHardware {
     bool installed_ = false;
     bool launched_ = false;
     const std::atomic<bool>* output_inhibit_ = nullptr;
+    LaunchEnable active_enable_{};
     RefillMetrics refill_metrics_;
     PicoDriverMetrics metrics_{};
 };

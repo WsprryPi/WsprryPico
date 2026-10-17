@@ -4,6 +4,10 @@ The [Consolidated backlog](consolidated-backlog.md) is the sole current work
 list. This development reference preserves completed work and historical
 evidence with its original acceptance limits.
 
+The [amplifier-enable record](amplifier-enable-results.md) documents optional
+boot-applied pin/polarity, immediate local launch/cleanup, compatible management
+views, deterministic failure regressions, firmware builds and review.
+
 Dated execution prompts, intermediate reviews and frozen source snapshots are
 historical records. Their earlier pending/next-work descriptions do not select
 current work; consult the consolidated document for current dispositions.

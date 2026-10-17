@@ -20,6 +20,7 @@ healthy saved configuration, omitted optional settings are preserved:
 | `expires_utc_s` | Saved expiry | 0, no expiry |
 | `wifi.ntp_ipv4` | Saved time server | `pool.ntp.org` |
 | `gpio_drive_ma` (drive-aware routes only when supplied) | Saved drive when omitted on any ordinary save | 4 mA |
+| Amplifier pin/polarity | Omitted plan preserves both; ordinary omitted polarity preserves its saved value; legacy pin edits preserve both | Disabled pin and active-high polarity |
 
 This intentionally changes the old API reset-by-omission policy. Clients that
 relied on it must send explicit reset values or select replacement below.
@@ -134,6 +135,7 @@ extensions, not a Config storage-version change:
 | PUT `/api/v1/config` | POST `/api/v1/config/update`, `transmitter-config-update/1` | Changed station must encode Type 1; drive field rejected |
 | PUT `/api/v1/config/2` | POST `/api/v1/config/update/2`, `transmitter-config-update/1` | Changed station may encode Type 1/2/3; drive field rejected |
 | PUT `/api/v1/config/3` | POST `/api/v1/config/update/3`, `transmitter-config-update/2` | Type 1/2/3 plus explicit `gpio_drive_ma` |
+| PUT `/api/v1/config/4` | POST `/api/v1/config/update/4`, `transmitter-config-update/3` | Type 1/2/3, drive and amplifier pin/polarity |
 
 GET config, config/2 and config/3 are implemented; only config/3 returns the
 drive member, explicitly including 4. Ordinary legacy saves preserve the saved
@@ -155,3 +157,13 @@ Source: [candidate reconstruction](../../src/application/config_update.cpp),
 [dispatch, target and revision gates](../../src/network/api.cpp), and
 [existing preservation tests](../../tests/config_update_tests.cpp) plus
 [drive compatibility tests](../../tests/gpio_drive_tests.cpp).
+
+The independent `amplifier_enable` capability selects the amplifier-aware
+routes and [closed update/3 schema](../protocol/transmitter-config-update-3.schema.json).
+Config/4 returns an explicit complete pin view, including effective polarity.
+Ordinary writes preserve omitted polarity, including false; explicit replacement
+defaults omission to true. Invalid/conflicting pin or polarity data rejects the
+complete candidate before persistence. Legacy Config views omit the new polarity
+field and confer no amplifier editing authority; ordinary legacy pin plans
+preserve existing amplifier settings. Explicit legacy replacement still defaults
+omitted pins. See [amplifier execution](amplifier-enable-results.md).

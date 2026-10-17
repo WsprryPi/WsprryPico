@@ -100,7 +100,7 @@ int main() {
     c->pins.indicator_gp = 4;
     CHECK(standalone::parse_config(standalone::serialize_config(*c)) == c);
     c->pins.amplifier = 5;
-    CHECK(!standalone::parse_config(standalone::serialize_config(*c)));
+    CHECK(standalone::parse_config(standalone::serialize_config(*c)) == c);
     c->pins.amplifier.reset();
     c->pins.rf = 22;
     CHECK(!standalone::parse_config(standalone::serialize_config(*c)));
@@ -174,7 +174,7 @@ int main() {
     standalone::Journal journal(media, 0, 2048);
     CHECK(journal.load());
     auto unsupported = *initial;
-    unsupported.pins.amplifier = 3;
+    unsupported.pins.lpf = {3};
     CHECK(journal.append(standalone::serialize_config(unsupported)));
     standalone::Store bad_store(media);
     CHECK(!bad_store.load());

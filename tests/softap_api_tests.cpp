@@ -165,6 +165,7 @@ void policy() {
     for (const auto path :
          {"/api/v1/application", "/api/v1/station", "/api/v1/application/2", "/api/v1/station/2",
           "/api/v1/hardware", "/api/v1/pins", "/api/v1/gpio-drive", "/api/v1/config/3",
+          "/api/v1/config/4", "/api/v1/hardware/3", "/api/v1/application/4", "/api/v1/pins/2",
           "/api/v1/application/3", "/api/v1/hardware/2"}) {
         auto resource = config;
         resource.path = path;
@@ -214,6 +215,7 @@ void policy() {
     for (const auto path :
          {"/api/v1/application", "/api/v1/station", "/api/v1/application/2", "/api/v1/station/2",
           "/api/v1/hardware", "/api/v1/pins", "/api/v1/gpio-drive", "/api/v1/config/3",
+          "/api/v1/config/4", "/api/v1/hardware/3", "/api/v1/application/4", "/api/v1/pins/2",
           "/api/v1/application/3", "/api/v1/hardware/2"}) {
         auto resource = config;
         resource.path = path;

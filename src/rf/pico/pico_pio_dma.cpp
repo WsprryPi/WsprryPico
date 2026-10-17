@@ -132,9 +132,21 @@ bool PicoPioDma::open(Handler handler, void* context) {
     return true;
 }
 
+void PicoPioDma::force_inactive() {
+    if (pio_ && get_core_num() == core_) {
+        hardware_alarm_cancel(static_cast<unsigned>(alarm_));
+        gpio_set_outover(rf_pin, GPIO_OVERRIDE_LOW);
+        pio_sm_set_enabled(pio_, sm_, false);
+        launched_ = false;
+    }
+}
+
 bool PicoPioDma::halt(std::uint64_t deadline_ns) {
+    force_inactive();
+    const bool amplifier_inactive =
+        !active_enable_.amplifier || active_enable_.amplifier->deactivate();
     if (!pio_) {
-        return true;
+        return amplifier_inactive;
     }
     if (get_core_num() != core_) {
         return false;
@@ -174,7 +186,7 @@ bool PicoPioDma::halt(std::uint64_t deadline_ns) {
     pio_sm_set_pins_with_mask(pio_, sm_, 0, 1U << rf_pin);
     pio_sm_exec(pio_, sm_, pio_encode_jmp(offset_));
     pio_->fdebug = 1U << (PIO_FDEBUG_TXSTALL_LSB + sm_);
-    return true;
+    return amplifier_inactive;
 }
 
 bool PicoPioDma::release(std::uint64_t deadline_ns) {
@@ -300,7 +312,8 @@ bool PicoPioDma::retry_alarm(std::uint64_t when_ns, std::uint64_t epoch) {
                                       from_us_since_boot(when_ns / 1000));
 }
 
-LaunchResult PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_ns) {
+LaunchResult PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_ns,
+                                LaunchEnable enable) {
     const auto target_us = start_ns / 1000;
     auto observed_us = time_us_64();
     if ((output_inhibit_ && output_inhibit_->load(std::memory_order_acquire)) || !installed_ ||
@@ -326,10 +339,23 @@ LaunchResult PicoPioDma::launch(std::uint64_t start_ns, std::uint64_t deadline_n
     if (observed_us * 1000 >= deadline_ns ||
         (output_inhibit_ && output_inhibit_->load(std::memory_order_acquire)))
         return LaunchResult::Rejected;
+    active_enable_ = enable;
+    if (!enable.activate())
+        return LaunchResult::Rejected;
+    // The enable write is inside this same-core interrupt critical section.
+    // Core-0 safety can still latch during it; never bypass that late cancel.
+    observed_us = time_us_64();
+    if (observed_us * 1000 >= deadline_ns ||
+        (output_inhibit_ && output_inhibit_->load(std::memory_order_acquire)))
+        return LaunchResult::Rejected;
     pio_->fdebug = 1U << (PIO_FDEBUG_TXSTALL_LSB + sm_);
     gpio_set_outover(rf_pin, GPIO_OVERRIDE_NORMAL);
     launch_boundary_ns_ = observed_us * 1000;
     pio_sm_set_enabled(pio_, sm_, true);
+    if (output_inhibit_ && output_inhibit_->load(std::memory_order_acquire)) {
+        force_inactive(); // Covers recovery racing the last enable instructions.
+        return LaunchResult::Rejected;
+    }
     metrics_.launch_ns = now_ns();
     metrics_.launch_epoch = alarm_epoch_;
     metrics_.launch_target_ns = start_ns;

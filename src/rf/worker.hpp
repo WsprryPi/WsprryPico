@@ -77,6 +77,10 @@ class WorkerEngine final : public wtp::RfEngine {
     [[nodiscard]] const std::atomic<bool>& safety_latch() const {
         return safety_inhibited_;
     }
+    // Non-returning platform recovery only. No RPC, reset or admission release.
+    void latch_output_inhibit() {
+        safety_inhibited_.store(true, std::memory_order_release);
+    }
 
   private:
     enum class Op { Inspect, Metrics, Prepare, Schedule, Disable, Correct };

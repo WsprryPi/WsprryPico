@@ -20,11 +20,14 @@ class Progress {
     // Caller validates the envelope, authority and common revision first.
     // Empty optional means no verified commit; never report field success then.
     std::optional<std::string> save(wtp::json::Value fields, std::string_view receipt);
-    std::string fields(bool redacted = true, bool station_only = false, bool drive = true) const;
+    std::string fields(bool redacted = true, bool station_only = false, bool drive = true,
+                       bool amplifier_view = false) const;
     std::string station_fields(const std::optional<Config>& applied) const;
     std::optional<Config> station_candidate(const std::optional<Config>& applied) const;
     std::optional<Config> candidate(const std::optional<Config>& applied,
-                                    std::string_view domain = "all", bool drive = false) const;
+                                    std::string_view domain = "all", bool drive = false,
+                                    bool amplifier = false) const;
+    bool amplifier_view_required() const;
     bool drive_matches(unsigned applied_ma) const {
         return !values_.back() || *values_.back() == std::to_string(applied_ma);
     }

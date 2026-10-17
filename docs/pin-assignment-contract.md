@@ -1,9 +1,12 @@
 # Pico 2 W pin-assignment contract
 
-Status: selected design contract, documentation only, agreed 2026-10-01.
+Status: selected design contract, agreed 2026-10-01; implemented subset below.
 The [pin allocation feature](development/pin-allocation.md) implements boot-applied
 direct RF, active-low switch and indicator selection plus candidate allocation
-validation. Amplifier/LPF adapters and Pico Si5351 support remain unimplemented. Hardware eligibility is not RF qualification.
+validation. Optional immediate amplifier-enable execution and independent polarity
+are implemented in the [amplifier slice](development/amplifier-enable-results.md).
+LPF adapters and Pico Si5351 support remain unimplemented. Hardware eligibility
+is not RF qualification.
 
 ## Target and numbering
 
@@ -146,9 +149,12 @@ levels throughout those conditions. I²C requires compatible pull-ups and voltag
 
 Assignments may change only while the member is idle, unowned, RF-inactive and
 nonfaulted, with configuration revision validation. The member owns the complete
-local RF chain and must confirm RF/amplifier disabled, select and settle the
-filter, prepare the engine, apply amplifier lead timing, execute the finite job,
-stop RF, apply amplifier tail timing and restore declared inactive states.
+local RF chain. The implemented subset initializes the amplifier inactive,
+prepares the engine, asserts enable immediately before physical RF activation,
+executes one finite job including keyed gaps, stops RF and immediately deasserts
+enable. Separate jobs deassert between them, including a Type 2/3 pair.
+Filter selection/settling and amplifier lead/tail timing are future extensions
+selected only through the consolidated backlog.
 Completion, cancellation and faults use the same cleanup authority. Unconfirmed
 cleanup blocks another transmission. Pin assignment does not authorize output.
 

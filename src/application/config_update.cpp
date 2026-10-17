@@ -28,7 +28,7 @@ void member(std::string& result, std::string_view name, std::string_view raw) {
 } // namespace
 
 Envelope validate_config_update(Value root, std::string_view device, std::string_view boot,
-                                bool drive) {
+                                bool drive, bool amplifier) {
     if (!fields(root, {"schema", "target", "mode", "config"}))
         return Envelope::Invalid;
     const auto schema = *root.get("schema"), target = *root.get("target"), mode = *root.get("mode");
@@ -39,7 +39,9 @@ Envelope validate_config_update(Value root, std::string_view device, std::string
     for (const auto name : {"scope", "device_id", "boot_id"})
         if (target.get(name)->type() != '"')
             return Envelope::Invalid;
-    if (schema.string() != (drive ? "transmitter-config-update/2" : config_update_schema))
+    if (schema.string() != (amplifier ? "transmitter-config-update/3"
+                            : drive   ? "transmitter-config-update/2"
+                                      : config_update_schema))
         return Envelope::UnsupportedSchema;
     if (target.get("scope")->string() != "member" || target.get("device_id")->string() != device ||
         target.get("boot_id")->string() != boot)
@@ -49,12 +51,21 @@ Envelope validate_config_update(Value root, std::string_view device, std::string
 
 std::optional<std::string> config_candidate(Value supplied,
                                             const std::optional<standalone::Config>& current,
-                                            ConfigWrite mode, bool drive) {
+                                            ConfigWrite mode, bool drive, bool amplifier) {
     const bool partial = mode == ConfigWrite::Merge;
     if (mode == ConfigWrite::Legacy && supplied.raw.size() > standalone::max_config_bytes)
         return {};
     if (!config_fields(supplied, partial, drive) || (partial && !current))
         return {};
+    // Legacy closed pin plans never gain authority over amplifier settings.
+    // Omitted plans still preserve the complete saved plan below.
+    if (!amplifier) {
+        if (const auto pins = supplied.get("pins")) {
+            const auto p = hardware::parse_plan(std::string(pins->raw));
+            if (!p || pins->get("amplifier_active_high") || hardware::requires_amplifier_view(*p))
+                return {};
+        }
+    }
     const auto station = supplied.get("station"), wifi = supplied.get("wifi");
     if (partial && station &&
         (!fields(*station, {}, {"callsign", "locator", "power_dbm"}) || fields(*station, {})))
@@ -103,9 +114,21 @@ std::optional<std::string> config_candidate(Value supplied,
             }
             object += '}';
             member(result, name, object);
-        } else if (input)
-            member(result, name, std::string(input->raw));
-        else if (preserve && prior)
+        } else if (input) {
+            if (name == std::string_view("pins") && preserve && prior &&
+                (!amplifier || !input->get("amplifier_active_high"))) {
+                // Even a complete ordinary pin replacement preserves omitted
+                // polarity. Explicit replacement uses the documented default.
+                auto plan = hardware::parse_plan(std::string(input->raw));
+                if (!plan)
+                    return {};
+                plan->amplifier_active_high = current->pins.amplifier_active_high;
+                if (!amplifier)
+                    plan->amplifier = current->pins.amplifier;
+                member(result, name, hardware::serialize_plan(*plan));
+            } else
+                member(result, name, std::string(input->raw));
+        } else if (preserve && prior)
             member(result, name, std::string(prior->raw));
     }
     result += '}';

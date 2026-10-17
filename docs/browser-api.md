@@ -113,6 +113,10 @@ session cookie that page script cannot read.
 | POST `/api/v1/config/update/2` | `transmitter-config-update/1`; Type 1/2/3 admission |
 | GET/PUT `/api/v1/config/3` | Config v1 content with effective `gpio_drive_ma`, including default 4; Type 1/2/3 admission |
 | POST `/api/v1/config/update/3` | `transmitter-config-update/2`; drive-aware merge/replacement |
+| GET/PUT `/api/v1/config/4`, POST `/api/v1/config/update/4` | Amplifier-aware Config v1; update uses `transmitter-config-update/3`; preserves Type 1/2/3 and drive support |
+| GET `/api/v1/application/4`, GET/PUT `/api/v1/hardware/3` | `transmitter-application/4`, `transmitter-hardware/3`; explicit amplifier pin/polarity plus drive |
+| GET `/api/v1/pins/2`, POST `/api/v1/pins/validate/2` | Negotiated amplifier choices/active plan and nonmutating validation |
+| GET `/api/v1/progress/3`, POST `/api/v1/progress/update/3`, POST `/api/v1/progress/apply/3` | `transmitter-progress/3`; amplifier-aware independent drafts and explicit application |
 | GET `/api/v1/application`, `/api/v1/application/2`, `/api/v1/application/3` | `transmitter-application/1`, `/2`, `/3`; embedded station/1 + hardware/1, station/2 + hardware/1, station/2 + hardware/2 respectively |
 | GET/PUT `/api/v1/station`, `/api/v1/station/2` | `transmitter-station/1` Type 1, or `/2` Type 1/2/3; scoped complete station replacement |
 | GET/PUT `/api/v1/hardware` | `transmitter-hardware/1`; scoped complete pin-plan replacement |

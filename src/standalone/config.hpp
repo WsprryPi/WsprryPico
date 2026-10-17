@@ -30,7 +30,7 @@ struct Config {
     bool operator==(const Config&) const = default;
 };
 std::optional<Config> parse_config(std::string_view text);
-std::string serialize_config(const Config& config);
+std::string serialize_config(const Config& config, bool amplifier_view = false);
 bool valid_gpio_drive(unsigned ma);
 bool valid_gpio_drive_token(wtp::json::Value value);
 bool valid_time_server(std::string_view value);

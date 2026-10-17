@@ -218,7 +218,10 @@ WsprryPico-x.y.z.uf2. No release number is assigned by this scaffold.
 The [pin assignment contract](docs/pin-assignment-contract.md) selects exclusive
 GP ownership and one direct RF GPIO or one fixed I²C pair. The
 [implementation guide](docs/development/pin-allocation.md) records the supported
-boot-applied subset and unavailable amplifier/LPF/Si5351 adapters.
+boot-applied subset, including optional immediate amplifier enable with independent
+polarity. LPF and Si5351 adapters remain unavailable. The
+[amplifier record](docs/development/amplifier-enable-results.md) separates software
+and build evidence from physical measurements.
 
 ## Saved progress extension
 

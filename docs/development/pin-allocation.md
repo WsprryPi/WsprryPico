@@ -2,11 +2,11 @@
 
 The [selected contract](../pin-assignment-contract.md) defines hardware
 eligibility. This implementation adds pin-plan validation and boot-applied
-assignments for direct PIO RF, active-low switch input and the shared indicator.
-Amplifier/LPF execution adapters remain unavailable; Si5351 is deliberately
-unavailable in this feature. Their candidate allocations can be reviewed but
-cannot be saved as operational configurations. These checks do not qualify RF
-performance on newly selected pins.
+assignments for direct PIO RF, active-low switch input, the shared indicator and
+optional amplifier enable with independent polarity. LPF and Si5351 execution
+remain unavailable. These checks do not qualify RF performance on newly selected
+pins. The [amplifier record](amplifier-enable-results.md) documents its immediate
+launch/cleanup policy and evidence limits.
 
 ## Management API
 
@@ -44,11 +44,26 @@ and one pair ID instead of independent SDA/SCL fields:
 ```
 
 `indicator_active_high` is optional and defaults to true; it applies to external
-indicators. All other plan members are required. `indicator` accepts
+indicators. Amplifier-aware plans additionally accept optional
+`amplifier_active_high`, default true, independently of indicator polarity.
+The other plan members are required. `indicator` accepts
 `onboard_led`, `external` or `disabled`. Direct mode requires one `rf_gp` and
 null `i2c_pair`; I²C mode requires null `rf_gp` and one pair ID. Plans are bounded
 at 2,048 bytes and 26 selectors. Operational Config retains its 1,800-byte limit.
 No independently allocated auxiliary I²C bus is supported.
+
+Discover `capabilities.amplifier_enable` before using configured amplifier pins
+or polarity. It selects `GET /api/v1/pins/2`, nonmutating
+`POST /api/v1/pins/validate/2`, and target/revision-bound
+`GET/PUT /api/v1/hardware/3` (`transmitter-hardware/3`). These views explicitly
+return effective amplifier polarity; choices/2 advertises amplifier support.
+The normal image executes it locally; inhibited firmware advertises
+`inhibited_inactive_only`. Legacy choices keep amplifier unavailable. Legacy
+active hardware/pin views refuse a configured amplifier with
+`amplifier_view_required`; ordinary legacy Config pin edits preserve its GPIO
+and polarity. Unsupported clients cannot change it through legacy pin routes.
+Legacy Config readback retains its closed shape and is not an amplifier polarity
+or activation view. LPF and I²C remain rejected on every operational route.
 
 The current input adapter supports active-low/pull-up operation only. Its pin is
 configurable, but its reset/stop/setup gesture and debounce policy are preserved.

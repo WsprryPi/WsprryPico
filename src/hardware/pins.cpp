@@ -82,9 +82,14 @@ std::optional<PinPlan> parse_plan(std::string_view text) {
     if (!root || !fields(*root,
                          {"engine", "rf_gp", "i2c_pair", "button_gp", "amplifier_gp", "lpf_gps",
                           "indicator", "indicator_gp"},
-                         {"indicator_active_high"}))
+                         {"indicator_active_high", "amplifier_active_high"}))
         return {};
     PinPlan p;
+    if (auto polarity = root->get("amplifier_active_high")) {
+        if (polarity->raw != "true" && polarity->raw != "false")
+            return {};
+        p.amplifier_active_high = polarity->boolean();
+    }
     if (auto polarity = root->get("indicator_active_high")) {
         if (polarity->raw != "true" && polarity->raw != "false")
             return {};
@@ -140,10 +145,9 @@ std::optional<PinPlan> parse_plan(std::string_view text) {
     return p;
 }
 bool operational(const PinPlan& p) {
-    return validate(p).valid() && p.engine == PinPlan::Engine::Direct && !p.amplifier &&
-           p.lpf.empty();
+    return validate(p).valid() && p.engine == PinPlan::Engine::Direct && p.lpf.empty();
 }
-std::string serialize_plan(const PinPlan& p) {
+std::string serialize_plan(const PinPlan& p, bool amplifier_view) {
     const auto pin = [](std::optional<unsigned> gp) { return gp ? std::to_string(*gp) : "null"; };
     std::string out =
         "{\"engine\":" + wtp::json::quote(p.engine == PinPlan::Engine::Direct ? "direct" : "i2c") +
@@ -160,7 +164,11 @@ std::string serialize_plan(const PinPlan& p) {
                             : p.indicator == PinPlan::Indicator::External ? "external"
                                                                           : "disabled") +
            ",\"indicator_gp\":" + pin(p.indicator_gp) +
-           ",\"indicator_active_high\":" + (p.indicator_active_high ? "true}" : "false}");
+           ",\"indicator_active_high\":" + (p.indicator_active_high ? "true" : "false") +
+           (amplifier_view || !p.amplifier_active_high
+                ? std::string(",\"amplifier_active_high\":") +
+                      (p.amplifier_active_high ? "true}" : "false}")
+                : "}");
 }
 std::string describe(const PinPlan& p) {
     using wtp::json::quote;
@@ -188,8 +196,9 @@ std::string describe(const PinPlan& p) {
     return out + "],\"operational_supported\":" + (operational(p) ? "true" : "false") +
            ",\"applied\":false}";
 }
-std::string choices() {
-    std::string out = "{\"version\":1,\"numbering\":\"pico_gp\",\"eligible_gps\":[";
+std::string choices(bool amplifier_view) {
+    std::string out = std::string("{\"version\":") + (amplifier_view ? "2" : "1") +
+                      ",\"numbering\":\"pico_gp\",\"eligible_gps\":[";
     bool comma = false;
     for (unsigned gp = 0; gp <= 28; ++gp) {
         if (!eligible(gp))
@@ -213,6 +222,7 @@ std::string choices() {
            "\"activation_supported\":true,\"adapter_support\":{\"rf\":\"configurable_pio_gpio\","
            "\"button\":\"configurable_active_low_when_enabled\",\"indicator\":\"configurable_"
            "shared_cues_and_tx\","
-           "\"amplifier\":false,\"lpf\":false,\"i2c_rf\":false}}";
+           "\"amplifier\":" +
+           (amplifier_view ? std::string("true") : "false") + ",\"lpf\":false,\"i2c_rf\":false}}";
 }
 } // namespace wsprrypico::hardware

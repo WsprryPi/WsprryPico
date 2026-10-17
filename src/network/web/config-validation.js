@@ -18,7 +18,8 @@ function validSavedConfig(c) {
     if (!object(p) || !['direct','i2c'].includes(p.engine) || !gp(p.rf_gp) || !gp(p.button_gp) || !gp(p.amplifier_gp) || !gp(p.indicator_gp) ||
         !(p.i2c_pair === null || Number.isInteger(p.i2c_pair) && p.i2c_pair >= 0 && p.i2c_pair < 12) ||
         !Array.isArray(p.lpf_gps) || p.lpf_gps.length > 26 || !p.lpf_gps.every(n=>n !== null && gp(n)) ||
-        !['onboard_led','external','disabled'].includes(p.indicator) || typeof p.indicator_active_high !== 'boolean') return false;
+        !['onboard_led','external','disabled'].includes(p.indicator) || typeof p.indicator_active_high !== 'boolean' ||
+        p.amplifier_active_high !== undefined && typeof p.amplifier_active_high !== 'boolean') return false;
   }
   return true;
 }

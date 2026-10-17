@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rf/amplifier_enable.hpp"
 #include "rf/indicator_gate.hpp"
 #include "rf/stream_engine.hpp"
 
@@ -21,6 +22,8 @@ class PioDmaHardware {
     virtual std::uint32_t lock() = 0;
     virtual void unlock(std::uint32_t saved) = 0;
     virtual bool open(Handler handler, void* context) = 0;
+    // Immediate RF clamp, before any fallible DMA cleanup wait.
+    virtual void force_inactive() = 0;
     virtual bool halt(std::uint64_t deadline_ns) = 0;
     virtual bool dma(const std::uint32_t* data, std::uint32_t words, bool increment,
                      std::uint64_t epoch, std::uint64_t sequence) = 0;
@@ -28,7 +31,8 @@ class PioDmaHardware {
     // Exact wakeup, without the prelaunch advance used by alarm().
     virtual bool retry_alarm(std::uint64_t when_ns, std::uint64_t epoch) = 0;
     // Waits only inside the short prelaunch window; deadline is exclusive.
-    virtual LaunchResult launch(std::uint64_t start_ns, std::uint64_t deadline_ns) = 0;
+    virtual LaunchResult launch(std::uint64_t start_ns, std::uint64_t deadline_ns,
+                                LaunchEnable enable = {}) = 0;
     [[nodiscard]] virtual std::uint64_t launch_observed_ns() const = 0;
     [[nodiscard]] virtual std::uint64_t now_ns() const = 0;
     [[nodiscard]] virtual bool stalled() const = 0;
@@ -37,8 +41,9 @@ class PioDmaHardware {
 
 class PioDmaSink final : public BlockSink {
   public:
-    explicit PioDmaSink(PioDmaHardware& hardware, IndicatorGate* indicator = nullptr)
-        : hw_(hardware), indicator_(indicator) {}
+    explicit PioDmaSink(PioDmaHardware& hardware, IndicatorGate* indicator = nullptr,
+                        AmplifierEnable* amplifier = nullptr)
+        : hw_(hardware), indicator_(indicator), amplifier_(amplifier) {}
     PioDmaSink(const PioDmaSink&) = delete;
     PioDmaSink& operator=(const PioDmaSink&) = delete;
     [[nodiscard]] std::string_view diagnostic() const override {
@@ -57,7 +62,7 @@ class PioDmaSink final : public BlockSink {
              LaunchGuard guard = {}) override;
     SinkReport poll(std::uint64_t now_ns) override;
     [[nodiscard]] bool output_active() const override {
-        return hw_.active();
+        return hw_.active() || (amplifier_ && amplifier_->output_active_or_unknown());
     }
 
   private:
@@ -81,6 +86,7 @@ class PioDmaSink final : public BlockSink {
     void fault(const char* reason);
     PioDmaHardware& hw_;
     IndicatorGate* indicator_;
+    AmplifierEnable* amplifier_;
     std::array<Block, 2> queue_{};
     std::size_t head_ = 0, queued_ = 0;
     bool opened_ = false, tail_ = false, tail_submitted_ = false;

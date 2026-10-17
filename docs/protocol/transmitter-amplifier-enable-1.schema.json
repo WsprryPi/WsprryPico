@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wsprry:transmitter-amplifier-enable:1",
+  "title": "Negotiated amplifier enable management descriptor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "pins",
+    "validate",
+    "config",
+    "update",
+    "update_schema",
+    "hardware",
+    "application",
+    "progress",
+    "progress_schema",
+    "default_pin",
+    "default_active_high",
+    "activation",
+    "execution"
+  ],
+  "properties": {
+    "schema": {
+      "const": "transmitter-amplifier-enable/1"
+    },
+    "pins": {
+      "const": "/api/v1/pins/2"
+    },
+    "validate": {
+      "const": "/api/v1/pins/validate/2"
+    },
+    "config": {
+      "const": "/api/v1/config/4"
+    },
+    "update": {
+      "const": "/api/v1/config/update/4"
+    },
+    "update_schema": {
+      "const": "transmitter-config-update/3"
+    },
+    "hardware": {
+      "const": "/api/v1/hardware/3"
+    },
+    "application": {
+      "const": "/api/v1/application/4"
+    },
+    "progress": {
+      "const": "/api/v1/progress/3"
+    },
+    "progress_schema": {
+      "const": "transmitter-progress/3"
+    },
+    "default_pin": {
+      "const": null
+    },
+    "default_active_high": {
+      "const": true
+    },
+    "activation": {
+      "const": "restart"
+    },
+    "execution": {
+      "type": "string",
+      "enum": [
+        "local_job",
+        "inhibited_inactive_only"
+      ]
+    }
+  }
+}

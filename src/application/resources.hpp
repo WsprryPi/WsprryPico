@@ -13,6 +13,7 @@ Envelope validate_envelope(wtp::json::Value root, std::string_view schema, std::
                            std::string_view device, std::string_view boot);
 std::string target(std::string_view device, std::string_view boot);
 std::string gpio_drive_capabilities();
+std::string amplifier_capabilities(bool physical);
 std::string station(const standalone::Config& config);
 std::string capabilities(bool usb_management = false);
 std::string wspr_plan(const standalone::Config& config);

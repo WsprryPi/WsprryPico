@@ -35,6 +35,7 @@ struct PinPlan {
     Indicator indicator = Indicator::Onboard;
     std::optional<unsigned> indicator_gp;
     bool indicator_active_high = true;
+    bool amplifier_active_high = true;
 };
 struct Validation {
     std::string error, role, owner;
@@ -48,8 +49,11 @@ Validation validate(const PinPlan& plan);
 // Closed schema: engine, rf_gp, i2c_pair, button_gp, amplifier_gp,
 // lpf_gps, indicator, indicator_gp. Optional resources are explicit JSON null.
 std::optional<PinPlan> parse_plan(std::string_view text);
-std::string serialize_plan(const PinPlan& plan);
+std::string serialize_plan(const PinPlan& plan, bool amplifier_view = false);
+inline bool requires_amplifier_view(const PinPlan& plan) {
+    return plan.amplifier.has_value() || !plan.amplifier_active_high;
+}
 bool operational(const PinPlan& plan);
 std::string describe(const PinPlan& plan);
-std::string choices();
+std::string choices(bool amplifier_view = false);
 } // namespace wsprrypico::hardware

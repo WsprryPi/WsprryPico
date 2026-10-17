@@ -52,6 +52,7 @@ const radio = globalThis.WsprryPicoConsumerRadio?.createClient();
 let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
+const supportsAmplifier = () => globalThis.WsprryAmplifier?.supported(capabilities?.amplifier_enable) === true;
 let localIdentity = null, localAuthenticated = false;
 let engineeringStationDirty = false, engineeringNetworkDirty = false;
 let writeState = 'readback', savedReadback = null, saveAttempt = null, retirementDiscovery = null;
@@ -61,6 +62,7 @@ const driveEditor = globalThis.WsprryGpioDrive && $('gpio-drive-select') ? Wsprr
   select:$('gpio-drive-select'),read:$('gpio-drive-read'),save:$('gpio-drive-save'),discard:$('gpio-drive-discard'),status:$('gpio-drive-status'),saveDraft:$('gpio-drive-save-draft'),applyDraft:$('gpio-drive-apply-draft'),draftStatus:$('gpio-drive-draft-status'),
   exchange:async (method,body,match,resource = 'gpio-drive')=>{if (!WsprryGpioDrive.supported(capabilities?.gpio_drive)) throw new Error('This firmware does not advertise supported drive configuration.'); return api(resource,method,body,match);},
   afterSave:()=>{requireReadback();}
+  ,progressVersion:()=>supportsAmplifier() ? 3 : 2
 }) : null;
 let savedProgress = null, progressEpoch = 0, progressEditSerial = 0;
 const progressEdits = new Map();
@@ -78,7 +80,7 @@ function progressUnit(control) {
   const station = {'consumer-callsign':'callsign','consumer-locator':'locator','consumer-power':'power_dbm'};
   if (station[control.id]) return station[control.id];
   const name = control.name;
-  if (['rf_gp','button_gp','indicator','indicator_gp','indicator_active_high'].includes(name)) return 'pins';
+  if (['rf_gp','button_gp','amplifier_gp','amplifier_active_high','indicator','indicator_gp','indicator_active_high'].includes(name)) return 'pins';
   if (['ssid','password'].includes(name)) return 'wifi';
   return name === 'expiry' ? 'expires_utc_s' : name;
 }
@@ -237,7 +239,7 @@ async function readApplication() {
   try {
     const result = await api('application/2');
     if (Object.keys(result.data).sort().join(',') !== 'capabilities,hardware,reboot_required,recurrence,schema,station,target,wspr_plan' ||
-        result.data.schema !== 'transmitter-application/2' ||
+        result.data.schema !== (supportsAmplifier() ? 'transmitter-application/4' : 'transmitter-application/2') ||
         (result.data.wspr_plan !== null && !validWsprPlan(result.data.wspr_plan)) ||
         result.data.capabilities?.station_encoding !== 'wspr_type123_auto')
       throw new Error('Unknown WSPR application support. Your draft is preserved.');
@@ -292,7 +294,7 @@ async function readSavedKeepingDraft() {
   $('saved-readback').hidden = false; writeState = 'review';
   $('saved-readback-details').hidden = false;
   const h = after.data.hardware;
-  const pins = p => p === null || !p ? 'Unknown / unavailable' : `RF GP${p.rf_gp}; switch ${p.button_gp === null ? 'disabled' : 'GP' + p.button_gp}; indicator ${p.indicator}`;
+  const pins = p => p === null || !p ? 'Unknown / unavailable' : `RF GP${p.rf_gp}; switch ${p.button_gp === null ? 'disabled' : 'GP' + p.button_gp}; indicator ${p.indicator}; amplifier ${p.amplifier_gp === null ? 'disabled' : 'GP' + p.amplifier_gp + (p.amplifier_active_high === false ? ' active-low' : ' active-high')}`;
   $('saved-active-status').textContent = `Saved pins: ${pins(h?.saved)}. Active pins: ${pins(h?.active)}. ` +
     (h?.pending_restart === true ? 'Saved pins require restart. ' : h?.pending_restart === false ? 'No pin restart is pending. ' : 'Restart requirement is unconfirmed. ') +
     (h?.storage_healthy === false ? 'Storage fault. ' : '') + (h?.application_error ? `Application fault: ${h.application_error}. ` : '') +
@@ -342,8 +344,9 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
     saveAttempt = {target:localIdentity ? {...localIdentity} : snapshot?.job.boot_id,path,revision:etag,intended,sent:true};
   }
   try {
-    response = radio ? await radio.request(path,method,body,etag,timeout) :
-      await fetch('/api/v1/' + path, {method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(timeout), cache:'no-store'});
+    const selected = supportsAmplifier() ? WsprryAmplifier.select(path,body) : {path,body};
+    response = radio ? await radio.request(selected.path,method,selected.body,etag,timeout) :
+      await fetch('/api/v1/' + selected.path, {method, headers, body: selected.body === undefined ? undefined : JSON.stringify(selected.body), signal: AbortSignal.timeout(timeout), cache:'no-store'});
   } catch (error) {
     if (error.local) { if (saveAttempt) saveAttempt.sent=false; throw error; }
     error.unconfirmed = true;
@@ -371,7 +374,8 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
       precondition_failed:'Saved revision changed. Your edits are preserved. Read and review current saved settings',
       pin_conflict:`GP${data.gp} is already assigned to ${data.owner}; choose a different pin for ${data.role}`,
       invalid_gp:'Choose an exposed Pico GPIO from the listed options',
-      unsupported_pin_adapter:'The selected amplifier, LPF or I²C RF adapter is not implemented',
+      unsupported_pin_adapter:'The selected pin adapter requires supported firmware and explicit capability negotiation',
+      amplifier_view_required:'Read amplifier settings with an amplifier-aware client',
       message_length_limit_32:'Use at most 32 characters, including spaces',
       unsupported_message_character:'The message contains a character outside the supported Morse alphabet',
       message_has_no_marks:'Include at least one Morse character',
@@ -869,7 +873,9 @@ function readPins() {
   const f = $('config').elements;
   return {engine:'direct',rf_gp:Number(f.rf_gp.value),i2c_pair:null,
     button_gp:f.button_gp.value === '' ? null : Number(f.button_gp.value),
-    amplifier_gp:null,lpf_gps:[],indicator:f.indicator.value,
+    amplifier_gp:supportsAmplifier() && f.amplifier_gp.value !== '' ? Number(f.amplifier_gp.value) : null,
+    ...(supportsAmplifier() ? {amplifier_active_high:f.amplifier_active_high.value === 'true'} : {}),
+    lpf_gps:[],indicator:f.indicator.value,
     indicator_gp:f.indicator.value === 'external' ? Number(f.indicator_gp.value) : null,
     indicator_active_high:f.indicator_active_high.value === 'true'};
 }
@@ -893,26 +899,31 @@ function lockPins() {
   const f = $('config').elements;
   pinOptions(f.rf_gp,'RF output',false);
   pinOptions(f.button_gp,'Switch',true);
+  pinOptions(f.amplifier_gp,'Amplifier',true);
   pinOptions(f.indicator_gp,'Indicator',false);
   f.indicator_gp.disabled = f.indicator.value !== 'external';
   f.indicator_active_high.disabled = f.indicator.value !== 'external';
+  f.amplifier_gp.disabled = !supportsAmplifier();
+  f.amplifier_active_high.disabled = !supportsAmplifier() || f.amplifier_gp.value === '';
 }
 function fillPins(plan) {
   const f = $('config').elements;
-  const p = plan || {rf_gp:2,button_gp:14,indicator:'onboard_led',indicator_gp:null,indicator_active_high:true};
+  const p = plan || {rf_gp:2,button_gp:14,amplifier_gp:null,indicator:'onboard_led',indicator_gp:null,indicator_active_high:true};
   const gps = pinChoices?.eligible_gps || [2,14];
-  for (const key of ['rf_gp','button_gp','indicator_gp']) {
-    const options = key === 'button_gp' ? [new Option('Disabled','')] : [];
+  for (const key of ['rf_gp','button_gp','amplifier_gp','indicator_gp']) {
+    const optional = key === 'button_gp' || key === 'amplifier_gp';
+    const options = optional ? [new Option('Disabled','')] : [];
     f[key].replaceChildren(...options,...gps.map(gp=>new Option('GP'+gp,String(gp))));
-    f[key].value = p[key] === null ? (key === 'button_gp' ? '' : '0') : String(p[key]);
+    f[key].value = p[key] === null ? (optional ? '' : '0') : String(p[key]);
   }
   f.indicator.value = p.indicator;
   f.indicator_active_high.value = String(p.indicator_active_high ?? true);
+  f.amplifier_active_high.value = String(p.amplifier_active_high ?? true);
   $('pin-settings').disabled = !pinChoices;
   $('i2c-choices').textContent = pinChoices ? pinChoices.i2c_pairs.map(p=>`I²C${p.controller}: GP${p.sda_gp} SDA / GP${p.scl_gp} SCL`).join(' · ') : 'Pin selection is unavailable on this firmware.';
   lockPins();
 }
-for (const key of ['rf_gp','button_gp','indicator','indicator_gp']) $('config').elements[key].addEventListener('change',lockPins);
+for (const key of ['rf_gp','button_gp','amplifier_gp','indicator','indicator_gp']) $('config').elements[key].addEventListener('change',lockPins);
 
 function wsprDraftFeedback(call,locator,id) {
   const output = $(id); if (!output) return;

@@ -19,6 +19,15 @@ It advertises `pio-dma-gp2`. RF capability does not itself enable transmission;
 saved configuration and all ownership, timing, frequency and output guards apply.
 The explicit compatibility target `WsprryPico-StandaloneRF` uses the same wiring.
 
+Optional [amplifier enable](amplifier-enable-results.md) initializes inactive
+from the validated boot plan and asserts only at the final local RF launch.
+It remains enabled across that job's keyed gaps and deasserts when RF stops;
+the two finite frames of a Type 2/3 pair have separate enable intervals.
+Completion, cancellation and faults share local cleanup. No lead/tail delay is
+applied. The inhibited image initializes a configured output inactive and never
+asserts it for a simulated job. Pin/polarity saves require explicit restart and
+retain the existing sticky hardware inhibition, including A/B/A saves.
+
 Explicit `WsprryPico-Inhibited` selects the local lifecycle simulator. It never
 enables RF output, reports `inhibited-standalone-simulator`, and its linked image
 is checked for absence of the physical engine/worker. Simulated starts and

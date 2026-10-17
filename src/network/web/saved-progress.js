@@ -15,7 +15,7 @@
     (partial && x.callsign === null || call(x.callsign)) &&
     (partial && x.locator === null || grid(x.locator)) &&
     (partial && x.power_dbm === null || power(x.power_dbm));
-  const outcomes = x => object(x) && Object.keys(x).length <= names.length && Object.entries(x).every(([k,v]) => names.includes(k) && ['saved','cleared','invalid'].includes(v));
+  const outcomes = (x,amplifier = false) => object(x) && Object.keys(x).length <= names.length + (amplifier ? 1 : 0) && Object.entries(x).every(([k,v]) => (names.includes(k) || amplifier && k==='gpio_drive_ma') && ['saved','cleared','invalid'].includes(v));
   function validPlan(p) {
     if (!keys(p,['alternate_callsign','frame_types','frames','rationale','schema','slot_separation_s','supported','type2_ambiguous']) ||
         p.schema !== 'wspr-plan/1' || typeof p.supported !== 'boolean' || typeof p.type2_ambiguous !== 'boolean' ||
@@ -35,13 +35,16 @@
     return x.replace(/\.$/,'').split('.').every(v=>v.length<=63 && /^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(v));
   }
   const gp = x => Number.isInteger(x) && (x>=0 && x<=22 || x>=26 && x<=28);
-  function pins(x) {
-    if (!keys(x,['engine','rf_gp','i2c_pair','button_gp','amplifier_gp','lpf_gps','indicator','indicator_gp','indicator_active_high']) ||
+  function pins(x,amplifier = false) {
+    const members = ['engine','rf_gp','i2c_pair','button_gp','amplifier_gp','lpf_gps','indicator','indicator_gp','indicator_active_high'];
+    if (amplifier && Object.hasOwn(x,'amplifier_active_high')) members.push('amplifier_active_high');
+    if (!keys(x,members) ||
         x.engine!=='direct' || !gp(x.rf_gp) || x.i2c_pair!==null || !(x.button_gp===null || gp(x.button_gp)) ||
-        x.amplifier_gp!==null || !Array.isArray(x.lpf_gps) || x.lpf_gps.length ||
+        !(x.amplifier_gp===null || amplifier && gp(x.amplifier_gp)) || !Array.isArray(x.lpf_gps) || x.lpf_gps.length ||
+        x.amplifier_active_high!==undefined && typeof x.amplifier_active_high!=='boolean' ||
         !['onboard_led','external','disabled'].includes(x.indicator) || typeof x.indicator_active_high!=='boolean' ||
         (x.indicator==='external' ? !gp(x.indicator_gp) : x.indicator_gp!==null)) return false;
-    const assigned=[x.rf_gp,x.button_gp,x.indicator==='external'?x.indicator_gp:null].filter(v=>v!==null);
+    const assigned=[x.rf_gp,x.button_gp,x.amplifier_gp,x.indicator==='external'?x.indicator_gp:null].filter(v=>v!==null);
     return new Set(assigned).size===assigned.length;
   }
   const gcd = (a,b) => b ? gcd(b,a%b) : a;
@@ -51,7 +54,8 @@
       Number.isInteger(v.phase_s) && v.phase_s>=0 && v.phase_s<v.period_s && v.phase_s%120===0 &&
       x.slice(0,i).every(p=>p.phase_s%gcd(p.period_s,v.period_s)!==v.phase_s%gcd(p.period_s,v.period_s)));
   }
-  function field(k,v) {
+  function field(k,v,amplifier = false) {
+    if (k==='gpio_drive_ma') return amplifier && [2,4,8,12].includes(v);
     if (v===null) return true;
     if (k==='callsign') return call(v);
     if (k==='locator') return grid(v);
@@ -59,7 +63,7 @@
     if (k==='enabled') return typeof v==='boolean';
     if (k==='schedules') return schedules(v);
     if (k==='expires_utc_s') return Number.isInteger(v) && (v===0 || v>=1735689600 && v<=2147483647);
-    if (k==='pins') return pins(v);
+    if (k==='pins') return pins(v,amplifier);
     if (k==='wifi') return keys(v,['ssid','password']) && ascii(v.ssid,0,32) && v.password===null;
     if (k==='ntp_ipv4') return timeServer(v);
     if (k==='frequency_policy') return keys(v,['allow_unqualified_frequency','allow_non_amateur_frequency']) &&
@@ -68,23 +72,25 @@
     return false;
   }
   function valid(x, acknowledgement = false) {
+    const amplifier = x?.schema === 'transmitter-progress/3';
+    const allowed = amplifier ? [...names,'gpio_drive_ma'] : names;
     const required = ['schema','target','draft_revision','config_revision','profile_revision','fields','last_receipt','last_outcomes','applied_station','station','station_complete','complete','apply_domains','wspr_plan','schedule_enabled','schedule_suspended','matches_applied'];
     if (acknowledgement) required.push('outcomes','request_id');
-    if (!keys(x,required) || x.schema !== 'transmitter-progress/1' ||
+    if (!keys(x,required) || !['transmitter-progress/1','transmitter-progress/3'].includes(x.schema) ||
         !keys(x.target,['scope','device_id','boot_id']) || x.target.scope !== 'member' ||
         !ascii(x.target.device_id,32,32) || !/^[0-9a-f]{32}$/.test(x.target.device_id) ||
         !ascii(x.target.boot_id,32,32) || !/^[0-9a-f]{32}$/.test(x.target.boot_id) ||
         !sequence(x.draft_revision) || !sequence(x.config_revision) || !sequence(x.profile_revision) ||
-        !object(x.fields) || Object.entries(x.fields).some(([k,v])=>!names.includes(k)||!field(k,v)) ||
+        !object(x.fields) || Object.entries(x.fields).some(([k,v])=>!allowed.includes(k)||!field(k,v,amplifier)) ||
         JSON.stringify(x.fields).length>1400 ||
         !(x.last_receipt === null || typeof x.last_receipt === 'string' && /^[0-9a-f]{64}$/.test(x.last_receipt)) ||
-        !(x.last_outcomes === null || outcomes(x.last_outcomes)) ||
+        !(x.last_outcomes === null || outcomes(x.last_outcomes,amplifier)) ||
         !(x.applied_station === null || station(x.applied_station,false)) || !station(x.station) ||
         !['complete','station_complete','matches_applied'].every(k => typeof x[k] === 'boolean') ||
-        !keys(x.apply_domains,['station','network','radio','all']) || Object.values(x.apply_domains).some(v=>typeof v!=='boolean') ||
+        !keys(x.apply_domains,amplifier ? ['station','network','radio','drive','all'] : ['station','network','radio','all']) || Object.values(x.apply_domains).some(v=>typeof v!=='boolean') ||
         x.apply_domains.all!==x.complete ||
         !['schedule_enabled','schedule_suspended'].every(k => x[k] === null || typeof x[k] === 'boolean') ||
-        acknowledgement && (!outcomes(x.outcomes) || !ascii(x.request_id,32,32) || !/^[0-9a-f]{32}$/.test(x.request_id))) return false;
+        acknowledgement && (!outcomes(x.outcomes,amplifier) || !ascii(x.request_id,32,32) || !/^[0-9a-f]{32}$/.test(x.request_id))) return false;
     const stationComplete=Object.values(x.station).every(v=>v!==null);
     if (x.station_complete!==stationComplete || x.station_complete !== (x.wspr_plan!==null) ||
         x.wspr_plan!==null && !validPlan(x.wspr_plan) ||

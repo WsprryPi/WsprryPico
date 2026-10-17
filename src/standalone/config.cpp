@@ -188,7 +188,7 @@ std::optional<Config> parse_config(std::string_view text) {
     }
     return c;
 }
-std::string serialize_config(const Config& c) {
+std::string serialize_config(const Config& c, bool amplifier_view) {
     using wtp::json::quote;
     std::string result =
         "{\"version\":1,\"enabled\":" + std::string(c.enabled ? "true" : "false") +
@@ -205,8 +205,8 @@ std::string serialize_config(const Config& c) {
     result += "],\"expires_utc_s\":" + std::to_string(c.expires_utc_s);
     // Keep the legacy canonical payload for default assignments. Nondefault
     // assignments require the new firmware; older images reject that extension.
-    if (c.pins != hardware::PinPlan{})
-        result += ",\"pins\":" + hardware::serialize_plan(c.pins);
+    if (amplifier_view || c.pins != hardware::PinPlan{})
+        result += ",\"pins\":" + hardware::serialize_plan(c.pins, amplifier_view);
     // Default-off records retain their legacy canonical bytes. Opt-ins require
     // firmware that understands these extensions; old firmware rejects them.
     if (c.allow_unqualified_frequency)

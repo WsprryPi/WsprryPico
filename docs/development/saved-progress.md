@@ -10,6 +10,19 @@ which selects `transmitter-progress/2` at GET `/api/v1/progress/2`, POST
 `/api/v1/progress/update/2` and POST `/api/v1/progress/apply/2`. The legacy
 `saved_progress` descriptor and progress/1 objects remain unchanged.
 
+The independent `amplifier_enable` capability selects `transmitter-progress/3`
+at GET `/api/v1/progress/3`, POST `/api/v1/progress/update/3` and POST
+`/api/v1/progress/apply/3`. It retains drive/2 fields/domains and adds amplifier
+pin/polarity to the complete `pins` unit. Readback makes polarity explicit.
+Omitted ordinary draft polarity preserves the prior draft, otherwise the applied
+value, otherwise true. Invalid pins/polarity reject the whole batch before sibling
+saves or revision changes. A draft containing amplifier settings uses the
+`saved-progress/3` journal tag; legacy records remain readable. Legacy progress
+views and non-station updates refuse an amplifier draft before mutation. Old
+radio drafts cannot silently replace an applied amplifier configuration.
+Application re-enters config/4; it still saves without activating GPIO or clearing
+the boot's restart latch. See [amplifier evidence](amplifier-enable-results.md).
+
 ## Fields and persistence
 
 The ten closed progress/1 units are `callsign`, `locator`, `power_dbm`, `enabled`,

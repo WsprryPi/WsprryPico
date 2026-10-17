@@ -293,6 +293,18 @@ Estimates of reusable code and expected spectral behavior remain hypotheses unti
 
 ## Saved progress and applied authority
 
+Optional [amplifier enable](development/amplifier-enable-results.md) belongs to
+the same local RF sink/driver authority below every job producer. A validated
+boot output initializes inactive; final local launch asserts it after admission
+gates and before enabling physical RF. RF clamp and enable deassertion precede
+fallible DMA cleanup waits. Fault recovery retains inhibition and overrides the
+validated pins before watchdog recovery. One enable interval covers a finite
+job, including keyed gaps; separate jobs deassert between them. The inhibited
+image initializes inactive without providing the output to simulated jobs.
+Polarity is independent of the indicator; no lead/tail interval is implemented.
+Explicit amplifier capability negotiation selects pins/2, hardware/3,
+application/4, config/4, config-update/3 and progress/3 views.
+
 The additive `transmitter-progress/1` and independently negotiated `/2` resources persist valid independent fields
 without applying configuration or establishing transmit readiness. See the
 [saved progress contract](development/saved-progress.md) for field, storage, authority,

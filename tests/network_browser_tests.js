@@ -21,11 +21,12 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         replaceChildren(...options) { this.options = options; this.current = options[0]?.value || ''; }
         addEventListener(type,callback) { this['on'+type] = callback; }
     }
-    for (const key of ['rf_gp','button_gp','indicator','indicator_gp','indicator_active_high']) elements.config.elements[key] = new Select();
+    for (const key of ['rf_gp','button_gp','amplifier_gp','amplifier_active_high','indicator','indicator_gp','indicator_active_high']) elements.config.elements[key] = new Select();
     elements['consumer-power'] = new Select();
     elements['retirement-target'] = new Select();
     elements.config.elements.indicator.replaceChildren(...['onboard_led','external','disabled'].map(x=>new Option(x,x)));
     elements.config.elements.indicator_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
+    elements.config.elements.amplifier_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
     const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
     const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1',configured_hostname:'old.local'}};
     elements['config-password'] = elements.config.elements.password;

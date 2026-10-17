@@ -26,6 +26,8 @@ class Hardware final : public rf::PioDmaHardware {
     bool enabled = false, busy = false, repeat = false, txstall = false;
     bool fail_open = false, fail_dma = false, fail_alarm = false, fail_halt = false;
     bool unsafe_halt = false;
+    std::vector<std::string>* trace = nullptr;
+    bool cancel_after_enable = false;
     unsigned opened = 0, launches = 0, alarm_requests = 0, depth = 0;
     const std::uint32_t* data = nullptr;
     std::uint32_t count = 0;
@@ -59,6 +61,8 @@ class Hardware final : public rf::PioDmaHardware {
     }
     bool halt(std::uint64_t) override {
         CHECK(depth > 0);
+        if (trace)
+            trace->push_back("halt_wait");
         if (!unsafe_halt)
             enabled = false;
         if (fail_halt) {
@@ -68,6 +72,12 @@ class Hardware final : public rf::PioDmaHardware {
         pending.reset();
         txstall = false;
         return true;
+    }
+    void force_inactive() override {
+        if (trace)
+            trace->push_back("rf_off");
+        if (!unsafe_halt)
+            enabled = false;
     }
     bool dma(const std::uint32_t* p, std::uint32_t n, bool increment, std::uint64_t e,
              std::uint64_t s) override {
@@ -99,13 +109,20 @@ class Hardware final : public rf::PioDmaHardware {
     std::uint64_t launch_observed_ns() const override {
         return launch_observed_override.value_or(time);
     }
-    rf::LaunchResult launch(std::uint64_t start, std::uint64_t deadline) override {
+    rf::LaunchResult launch(std::uint64_t start, std::uint64_t deadline,
+                            rf::LaunchEnable enable) override {
         CHECK(depth > 0);
         if (time >= deadline)
             return rf::LaunchResult::Rejected;
         if (time < start && start - time > 250000)
             return alarm(start, epoch) ? rf::LaunchResult::Rescheduled : rf::LaunchResult::Rejected;
         time = std::max(time, start);
+        if (!enable.activate())
+            return rf::LaunchResult::Rejected;
+        if (cancel_after_enable)
+            return rf::LaunchResult::Rejected;
+        if (trace)
+            trace->push_back("rf_on");
         enabled = true;
         ++launches;
         last_launch_target = start;
@@ -998,6 +1015,179 @@ void indicator_modes_and_tail() {
         }
     }
 }
+void amplifier_lifecycle() {
+    class Output final : public rf::EnableOutput {
+      public:
+        std::vector<std::string> trace;
+        bool on = false, fail_on = false, fail_off = false, fail_init = false;
+        bool initialize_inactive() override {
+            trace.push_back("init_off");
+            on = false;
+            return !fail_init;
+        }
+        bool write(bool active) override {
+            trace.push_back(active ? "enable_on" : "enable_off");
+            on = active;
+            return !(active ? fail_on : fail_off);
+        }
+    };
+    rf::AmplifierEnable disabled;
+    CHECK(disabled.initialize() && disabled.activate() && disabled.deactivate());
+    CHECK(!disabled.output_active_or_unknown());
+    for (unsigned failure = 0; failure < 9; ++failure) {
+        Output out;
+        rf::AmplifierEnable enable(&out);
+        CHECK(!enable.activate() && out.trace.empty());
+        out.fail_init = failure == 8;
+        CHECK(enable.initialize() == !out.fail_init);
+        Hardware hw;
+        hw.trace = &out.trace;
+        rf::IndicatorGate indicator(false);
+        rf::PioDmaSink sink(hw, &indicator, &enable);
+        std::array<std::uint32_t, 1> words{0x55555555};
+        // This is LOAD/preparation: it must not initialize or assert output.
+        out.trace.clear();
+        hw.fail_open = failure == 7;
+        CHECK(sink.submit(1, 0, words, 32) == !hw.fail_open);
+        CHECK(out.trace.empty());
+        if (hw.fail_open) {
+            CHECK(sink.stop(hw.time));
+            CHECK(!out.on);
+            continue;
+        }
+        const auto start = hw.time + 100'000'000'000ULL;
+        CHECK(sink.arm(1, start, 32));
+        CHECK(out.trace.empty() && !out.on); // Long ARM wait.
+        hw.alarm_event(0);                   // Stale epoch cannot assert.
+        CHECK(out.trace.empty());
+        if (failure == 1) {
+            CHECK(sink.stop(hw.time)); // Prelaunch STOP, zero RF.
+            const auto cleaned = out.trace;
+            hw.alarm_event(1);
+            CHECK(out.trace == cleaned && !out.on && !hw.enabled);
+            continue;
+        }
+        hw.time = failure == 2 ? start + 1 : start;
+        out.fail_on = failure == 3;
+        hw.cancel_after_enable = failure == 4;
+        hw.alarm_event(1);
+        if (failure == 2 || failure == 3 || failure == 4 || failure == 8) {
+            CHECK(hw.launches == 0 && !out.on && !hw.enabled);
+            CHECK(sink.poll(hw.time).state ==
+                  (failure == 8 ? wtp::EngineState::Failed : wtp::EngineState::Missed));
+        } else {
+            CHECK(hw.enabled && out.on);
+            CHECK(out.trace[0] == "enable_on" && out.trace[1] == "rf_on");
+            out.fail_off = failure == 5;
+            hw.fail_halt = failure == 6;
+            if (failure == 0) {
+                hw.complete(); // Data then zero tail: one finite job.
+                CHECK(out.on); // No per-symbol or early tail deassertion.
+                hw.complete();
+                CHECK(!hw.enabled && !out.on);
+                CHECK(sink.poll(hw.time).state == wtp::EngineState::Complete);
+            } else {
+                const auto at = out.trace.size();
+                CHECK(!sink.stop(hw.time));
+                CHECK(out.trace[at] == "rf_off" && out.trace[at + 1] == "enable_off" &&
+                      out.trace[at + 2] == "halt_wait");
+                CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+                CHECK(sink.output_active() == out.fail_off);
+                const auto prior = out.trace;
+                hw.alarm_event(1);
+                CHECK(out.trace == prior); // Failed cleanup cannot reassert.
+                out.fail_off = hw.fail_halt = false;
+            }
+        }
+        out.fail_init = false;
+        CHECK(sink.stop(hw.time));
+        CHECK(sink.stop(hw.time));
+        CHECK(!sink.output_active() && !out.on);
+        const auto stopped = out.trace;
+        hw.alarm_event(1);
+        CHECK(out.trace == stopped);
+        CHECK(sink.submit(2, 0, words, 32));
+        const auto next = ((hw.time + 999) / 1000) * 1000 + 1'000'000;
+        CHECK(sink.arm(2, next, 32));
+        hw.alarm_event(1);
+        CHECK(!out.on);
+        out.fail_init = out.fail_on = false;
+        hw.cancel_after_enable = false;
+        hw.time = next;
+        hw.alarm_event(2);
+        CHECK(out.on && hw.enabled);
+        CHECK(sink.stop(hw.time) && !out.on);
+    }
+    // Production JobService + renderer + sink, covering actual ownership and
+    // terminal paths rather than a second per-producer enable state machine.
+    for (unsigned action = 0; action < 7; ++action) {
+        Output out;
+        rf::AmplifierEnable enable(&out);
+        CHECK(enable.initialize());
+        Hardware hw;
+        hw.time = 2'000'000'000;
+        Clock clock(hw);
+        Identity identity;
+        rf::PioDmaSink sink(hw, nullptr, &enable);
+        rf::StreamEngine engine(sink);
+        wtp::JobService service(clock, engine, identity);
+        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+        CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+        const auto payload = job(2 * rf::block_samples);
+        CHECK(service.handle(request("LOAD", payload, 'c')).ok);
+        CHECK(!out.on && hw.opened == 0); // LOAD only renders/prepares.
+        if (action == 2) {
+            hw.time += 5'000'000'001ULL;
+            service.poll(); // Unarmed lease expiry aborts and releases.
+            CHECK(!out.on && !service.status().owner_id && !hw.enabled);
+            continue;
+        }
+        const auto start = hw.time + (action == 3 ? 6'000'000'000ULL : 100'000'000ULL);
+        CHECK(
+            service.handle(request("ARM", wtp::ArmBody{payload.job_id, start, 1'000'000}, 'd')).ok);
+        CHECK(!out.on);
+        if (action != 0) {
+            hw.time = start;
+            hw.alarm_event(1);
+            CHECK(out.on && hw.enabled);
+            service.poll();
+            CHECK(service.status().state == wtp::State::Running);
+        }
+        if (action == 3) {
+            CHECK(out.on); // Armed/running lease expiry retains the finite job.
+            hw.complete();
+            hw.complete();
+            hw.complete();
+            hw.time = start + ((ns_at(2 * rf::block_samples) + 999) / 1000) * 1000;
+            service.poll();
+            CHECK(service.status().state == wtp::State::Complete && !service.status().owner_id);
+        } else if (action == 4) {
+            hw.handler(hw.context, {rf::DriverEventKind::DmaError, 1, 0});
+            service.poll();
+            CHECK(service.status().state == wtp::State::Failed);
+        } else if (action == 5) {
+            CHECK(service.local_inhibit_output()); // Physical stop/restart safety authority.
+            CHECK(service.output_inhibited());
+        } else {
+            out.fail_off = action == 6;
+            const auto result =
+                service.handle(request("ABORT", wtp::AbortBody{payload.job_id}, 'e'));
+            CHECK(result.ok == !out.fail_off);
+            if (out.fail_off) {
+                CHECK(service.status().state == wtp::State::Failed &&
+                      service.status().output_active);
+                CHECK(service.status().owner_id.has_value());
+                out.fail_off = false;
+                CHECK(engine.disable(hw.time));
+                CHECK(service.status().state == wtp::State::Failed); // No implicit fault release.
+            }
+        }
+        CHECK(!out.on && !hw.enabled);
+        const auto cleaned = out.trace;
+        hw.alarm_event(1);
+        CHECK(out.trace == cleaned && !out.on);
+    }
+}
 } // namespace
 int main() {
     try {
@@ -1020,6 +1210,7 @@ int main() {
         indicator_cancel_before_launch();
         early_alarm_retry_race();
         indicator_modes_and_tail();
+        amplifier_lifecycle();
         std::cout << "PIO/DMA checks passed\n";
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';

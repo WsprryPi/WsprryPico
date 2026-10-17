@@ -379,5 +379,7 @@ and identified sampled-square-wave alias.
 
 Pin allocation: see the [selected contract](docs/pin-assignment-contract.md) and
 [implemented subset and validation](docs/development/pin-allocation.md). Direct RF,
-button and indicator pins are boot-applied settings; amplifier/LPF and Si5351
-adapters remain unavailable.
+button, indicator and optional amplifier-enable pins are boot-applied settings.
+Amplifier enable has independent polarity and covers one finite local RF job;
+see [the implementation and evidence](docs/development/amplifier-enable-results.md).
+LPF and Si5351 adapters remain unavailable.

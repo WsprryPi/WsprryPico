@@ -101,7 +101,8 @@ bool Progress::load() {
         const auto root = wtp::json::parse(journal_.data());
         if (!root || !wtp::json::fields(*root, {"schema", "fields", "receipt", "outcomes"}) ||
             (root->get("schema")->string() != "saved-progress/1" &&
-             root->get("schema")->string() != "saved-progress/2"))
+             root->get("schema")->string() != "saved-progress/2" &&
+             root->get("schema")->string() != "saved-progress/3"))
             return false;
         const auto input = *root->get("fields");
         if (input.raw.size() > max_progress_bytes ||
@@ -110,7 +111,7 @@ bool Progress::load() {
                                 "expires_utc_s", "pins", "frequency_policy", "wifi", "ntp_ipv4",
                                 "gpio_drive_ma"}))
             return false;
-        if (input.get("gpio_drive_ma") && root->get("schema")->string() != "saved-progress/2")
+        if (input.get("gpio_drive_ma") && root->get("schema")->string() == "saved-progress/1")
             return false;
         for (std::size_t i = 0; i < values_.size(); ++i)
             if (const auto value = input.get(progress_fields[i])) {
@@ -118,6 +119,8 @@ bool Progress::load() {
                     return false;
                 values_[i] = std::string(value->raw);
             }
+        if (amplifier_view_required() && root->get("schema")->string() != "saved-progress/3")
+            return false;
         if (root->get("receipt")->type() != '"' || root->get("receipt")->string().size() != 64 ||
             root->get("outcomes")->type() != '{')
             return false;
@@ -160,6 +163,8 @@ std::optional<std::string> Progress::save(Value input, std::string_view receipt)
         return {};
     if (const auto drive = input.get("gpio_drive_ma"); drive && !valid_gpio_drive_token(*drive))
         return {};
+    if (const auto pins = input.get("pins"); pins && !valid_progress_field("pins", *pins))
+        return {};
     auto next = values_;
     std::string outcomes = "{";
     bool accepted = false;
@@ -184,7 +189,11 @@ std::optional<std::string> Progress::save(Value input, std::string_view receipt)
     if (fields.size() > max_progress_bytes)
         return {};
     const auto receipt_json = quote(receipt);
-    const auto text = "{\"schema\":" + quote(next[10] ? "saved-progress/2" : "saved-progress/1") +
+    const auto plan = next[6] && *next[6] != "null" ? hardware::parse_plan(*next[6]) : std::nullopt;
+    const auto text = "{\"schema\":" +
+                      quote(plan && hardware::requires_amplifier_view(*plan) ? "saved-progress/3"
+                            : next[10]                                       ? "saved-progress/2"
+                                                                             : "saved-progress/1") +
                       ",\"fields\":" + fields + ",\"receipt\":" + receipt_json +
                       ",\"outcomes\":" + outcomes + '}';
     if (!journal_.append(text)) {
@@ -196,13 +205,16 @@ std::optional<std::string> Progress::save(Value input, std::string_view receipt)
     outcomes_ = outcomes;
     return outcomes;
 }
-std::string Progress::fields(bool redacted, bool station_only, bool drive) const {
+std::string Progress::fields(bool redacted, bool station_only, bool drive,
+                             bool amplifier_view) const {
     auto values = values_;
     if (!drive)
         values[10].reset();
     if (station_only)
         for (std::size_t i = 3; i < values.size(); ++i)
             values[i].reset();
+    if (amplifier_view && values[6] && *values[6] != "null")
+        values[6] = hardware::serialize_plan(*hardware::parse_plan(*values[6]), true);
     if (redacted && values[8] && *values[8] != "null") {
         const auto wifi = wtp::json::parse(*values[8]);
         values[8] = "{\"ssid\":" + std::string(wifi->get("ssid")->raw) + ",\"password\":null}";
@@ -220,7 +232,8 @@ std::string Progress::outcomes(bool station_only, bool drive) const {
     return result + '}';
 }
 std::optional<Config> Progress::candidate(const std::optional<Config>& applied,
-                                          std::string_view domain, bool drive) const {
+                                          std::string_view domain, bool drive,
+                                          bool amplifier) const {
     if (!healthy())
         return {};
     if (domain != "all" && domain != "station" && domain != "network" && domain != "radio" &&
@@ -273,6 +286,10 @@ std::optional<Config> Progress::candidate(const std::optional<Config>& applied,
             break;
         case 6:
             c.pins = *hardware::parse_plan(std::string(v->raw));
+            if (!amplifier && applied) {
+                c.pins.amplifier = applied->pins.amplifier;
+                c.pins.amplifier_active_high = applied->pins.amplifier_active_high;
+            }
             break;
         case 7:
             c.allow_unqualified_frequency = v->get("allow_unqualified_frequency")->boolean();
@@ -291,6 +308,12 @@ std::optional<Config> Progress::candidate(const std::optional<Config>& applied,
         }
     }
     return parse_config(serialize_config(c));
+}
+bool Progress::amplifier_view_required() const {
+    if (!values_[6] || *values_[6] == "null")
+        return false;
+    const auto plan = hardware::parse_plan(*values_[6]);
+    return plan && hardware::requires_amplifier_view(*plan);
 }
 std::string Progress::station_fields(const std::optional<Config>& applied) const {
     std::string result = "{";

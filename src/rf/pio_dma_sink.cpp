@@ -5,16 +5,20 @@
 namespace wsprrypico::rf {
 
 bool PioDmaSink::halt_output(std::uint64_t deadline_ns) {
+    hw_.force_inactive();
+    const bool amplifier_inactive = !amplifier_ || amplifier_->deactivate();
     const bool stopped = hw_.halt(deadline_ns);
     const bool inactive = !hw_.active();
     if (indicator_ && inactive)
         indicator_->inactive();
-    return stopped && inactive;
+    return stopped && inactive && amplifier_inactive;
 }
 
 bool PioDmaSink::stop(std::uint64_t deadline_ns) {
     Guard lock(hw_);
-    if ((opened_ && !halt_output(deadline_ns)) || hw_.active()) {
+    // Also clean no-open and partially-open paths. Never short-circuit enable
+    // cleanup behind a failed open/halt or an unconfirmed RF state.
+    if (!halt_output(deadline_ns) || output_active()) {
         state_ = wtp::EngineState::Failed;
         return false;
     }
@@ -27,7 +31,7 @@ bool PioDmaSink::stop(std::uint64_t deadline_ns) {
     guard_ = {};
     launch_ns_.reset();
     submitted_ = accepted_ = dma_blocks_ = dma_samples_ = total_ = 0;
-    return !hw_.active();
+    return !output_active();
 }
 
 bool PioDmaSink::submit(std::uint64_t epoch, std::uint64_t sequence,
@@ -162,7 +166,7 @@ void PioDmaSink::event(DriverEvent event) {
                 return;
             }
         }
-        const auto launch = hw_.launch(start_, deadline);
+        const auto launch = hw_.launch(start_, deadline, {amplifier_});
         if (launch == LaunchResult::Rejected) {
             failure_ = "launch_driver_rejected";
             state_ =
@@ -230,24 +234,27 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
     // delayed; requiring the software IRQ first creates a false DEVICE_FAULT
     // window after output is already safely low.
     if (state_ == wtp::EngineState::Running && tail_ && !hw_.active()) {
-        state_ = wtp::EngineState::Complete;
+        if (halt_output(now_ns))
+            state_ = wtp::EngineState::Complete;
+        else
+            fault("tail_cleanup_failed");
     }
     // A failed stop may later become verifiably inactive. Pending activation
     // is the exception: Armed retains its request while waiting for the LED.
     if (indicator_ && state_ != wtp::EngineState::Armed && !hw_.active())
         indicator_->inactive();
     if (state_ == wtp::EngineState::Complete) {
-        return {state_, epoch_, submitted_, total_, now_ns, hw_.active(), launch_ns_};
+        return {state_, epoch_, submitted_, total_, now_ns, output_active(), launch_ns_};
     }
     if (state_ != wtp::EngineState::Running) {
-        return {state_, epoch_, 0, 0, now_ns, hw_.active(), launch_ns_};
+        return {state_, epoch_, 0, 0, now_ns, output_active(), launch_ns_};
     }
     const auto elapsed = now_ns > start_ ? std::min(now_ns - start_, max_duration_ns) : 0;
     // Conservative nominal-clock progress; DMA completion is FIFO delivery, not RF timing.
     const auto samples =
         std::min({elapsed * (sample_rate / 1000000) / 1000, dma_samples_, total_ - 1});
     return {state_,    epoch_, std::min(dma_blocks_, samples / block_samples),
-            samples,   now_ns, hw_.active(),
+            samples,   now_ns, output_active(),
             launch_ns_};
 }
 

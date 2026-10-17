@@ -18,6 +18,7 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #endif
 #include "firmware_identity.hpp"
 #include "hardware/clocks.h"
+#include "hardware/pico/amplifier_output.hpp"
 #include "hardware/structs/watchdog.h"
 #include "hardware/watchdog.h"
 #include "lwip/ip.h"
@@ -389,12 +390,19 @@ int main() {
     boot_pins.indicator = wsprrypico::hardware::PinPlan::Indicator::Onboard;
 #endif
 #endif
-    // Both adapters claim PIO/DMA resources through the SDK allocator.
+    // Only a healthy validated boot plan may touch an auxiliary output. The
+    // inhibited image initializes inactive too, but never gives it to a job.
+    static wsprrypico::hardware::PicoAmplifierOutput amplifier_output(boot_pins);
+    static wsprrypico::rf::AmplifierEnable amplifier_enable(
+        store_loaded && store.healthy() && boot_pins.amplifier ? &amplifier_output : nullptr);
+    const bool amplifier_boot_safe = amplifier_enable.initialize();
+    // Ownership transfers to the RF core before any service/job call.
 #ifdef WSPRRY_PICO_STANDALONE_RF
     static wsprrypico::rf::IndicatorGate tx_indicator_gate(
         boot_pins.indicator != wsprrypico::hardware::PinPlan::Indicator::Disabled);
-    auto& engine = wsprrypico::rf::start_worker(clock, boot_pins, store_loaded && store.healthy(),
-                                                tx_indicator_gate, boot_gpio_drive_ma);
+    auto& engine =
+        wsprrypico::rf::start_worker(clock, boot_pins, store_loaded && store.healthy(),
+                                     tx_indicator_gate, boot_gpio_drive_ma, &amplifier_enable);
 #else
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
@@ -423,6 +431,8 @@ int main() {
     static wsprrypico::standalone::FrequencyPolicyEngine policy_engine(
         engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz);
     static wsprrypico::wtp::JobService service(clock, policy_engine, identities, config);
+    if (!amplifier_boot_safe)
+        (void)service.local_inhibit_output();
     static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),
                                               wsprrypico::firmware::kFirmwareVersion);
     static wsprrypico::wtp::Endpoint ble_endpoint(service, identities.device_id(),

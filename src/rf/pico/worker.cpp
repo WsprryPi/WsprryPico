@@ -1,8 +1,8 @@
 #include "rf/pico/worker.hpp"
 
 #include "hardware/structs/watchdog.h"
-#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
 #include "hardware/gpio.h"
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
 #include "provisioning/button_safety.hpp"
 #endif
 #include "hardware/sync.h"
@@ -19,6 +19,8 @@ namespace {
 alignas(8) std::uint32_t worker_stack[4096];
 WorkerEngine* worker = nullptr;
 std::atomic<unsigned> ready{0};
+std::optional<unsigned> emergency_rf, emergency_amplifier;
+bool emergency_amplifier_high = true;
 std::uint64_t now() {
     return time_us_64() * 1000ULL;
 }
@@ -26,6 +28,21 @@ void wait() {
     tight_loop_contents();
 }
 [[noreturn]] void failure() {
+    // A missing RF-core acknowledgement cannot use another mailbox command.
+    // Latch admission first, then override the immutable validated boot pins.
+    // The amplifier override persists across a late worker SIO write. Retain
+    // fault/ownership and let the watchdog enter inhibited recovery.
+    if (worker)
+        worker->latch_output_inhibit();
+    if (emergency_rf) {
+        gpio_set_outover(*emergency_rf, GPIO_OVERRIDE_LOW);
+        // Final launch changes OUTOVER, never OEOVER. Keep an emergency
+        // clamp effective even if another core resumes between instructions.
+        gpio_set_oeover(*emergency_rf, GPIO_OVERRIDE_LOW);
+    }
+    if (emergency_amplifier)
+        gpio_set_outover(*emergency_amplifier,
+                         emergency_amplifier_high ? GPIO_OVERRIDE_LOW : GPIO_OVERRIDE_HIGH);
     watchdog_hw->scratch[2] = 0x52464331; // RFC1: missing RF-core acknowledgement.
     while (true)
         tight_loop_contents(); // Existing watchdog enters inhibited recovery.
@@ -47,18 +64,25 @@ int gpio_drive_observation() {
     return drive_hardware ? drive_hardware->drive_observation() : -1;
 }
 WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& pins,
-                           bool storage_healthy, IndicatorGate& indicator, unsigned drive_ma) {
+                           bool storage_healthy, IndicatorGate& indicator, unsigned drive_ma,
+                           AmplifierEnable* amplifier) {
     if (!hardware::operational(pins))
         failure();
     static PicoPioDma hardware(*pins.rf, drive_ma);
     drive_hardware = &hardware;
-    static PioDmaSink sink(hardware, &indicator);
+    static PioDmaSink sink(hardware, &indicator, amplifier);
     static StreamEngine engine(sink);
     static WorkerEngine proxy(engine, clock, now, wait, failure, save_and_disable_interrupts,
                               restore_interrupts);
     if (worker)
         failure();
-    static const bool boot_safe = storage_healthy;
+    if (storage_healthy) {
+        emergency_rf = pins.rf;
+        emergency_amplifier = pins.amplifier;
+        emergency_amplifier_high = pins.amplifier_active_high;
+    }
+    static const bool boot_safe =
+        storage_healthy && (!amplifier || !amplifier->output_active_or_unknown());
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
     static const auto button = pins.button;
     if (button) {

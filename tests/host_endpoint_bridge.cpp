@@ -29,6 +29,7 @@ struct AdmissionHardware : rf::PioDmaHardware {
     bool open(Handler, void*) override {
         return true;
     }
+    void force_inactive() override {}
     bool halt(std::uint64_t) override {
         return true;
     }
@@ -44,7 +45,7 @@ struct AdmissionHardware : rf::PioDmaHardware {
     bool retry_alarm(std::uint64_t when, std::uint64_t epoch) override {
         return alarm(when, epoch);
     }
-    rf::LaunchResult launch(std::uint64_t, std::uint64_t) override {
+    rf::LaunchResult launch(std::uint64_t, std::uint64_t, rf::LaunchEnable) override {
         return rf::LaunchResult::Rejected;
     }
     std::uint64_t now_ns() const override {

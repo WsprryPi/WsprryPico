@@ -16,7 +16,7 @@
       [null,'pad_application_failed','output_disable_failed'].includes(v.application_error) &&
       (v.rf_gp === null || Number.isInteger(v.rf_gp) && (v.rf_gp <= 22 || v.rf_gp >= 26) && v.rf_gp >= 0 && v.rf_gp <= 28);
   }
-  function create({select,read,save,discard,status,saveDraft,applyDraft,draftStatus,exchange,afterSave = ()=>{}}) {
+  function create({select,read,save,discard,status,saveDraft,applyDraft,draftStatus,exchange,afterSave = ()=>{},progressVersion = ()=>2}) {
     let progress = null;
     let available = false, busy = false, observed = null, revision = '', draftTarget = '', edited = false, review = false, serial = 0, epoch = 0;
     select.value = '';
@@ -32,7 +32,7 @@
     }
     const summary = v => `Pico ${v.target.device_id} · RF GP${v.rf_gp ?? 'unavailable'}. Saved: ${v.saved === null ? 'not configured' : v.saved + ' mA'}. Boot selection: ${v.boot_active === null ? 'unknown' : v.boot_active + ' mA'}. Verified pad: ${v.pad_readback === null ? 'unavailable' : v.pad_readback + ' mA'}.${v.pending_restart ? ' Pending explicit restart; output remains inhibited.' : ''}${v.application_error ? ' ' + v.application_error + '.' : ''}`;
     function validProgress(v,target) {
-      return v?.schema === 'transmitter-progress/2' && JSON.stringify(v.target) === JSON.stringify(target) &&
+      return v?.schema === 'transmitter-progress/' + progressVersion() && JSON.stringify(v.target) === JSON.stringify(target) &&
         typeof v.draft_revision === 'string' && /^(0|[1-9][0-9]*)$/.test(v.draft_revision) &&
         v.fields && typeof v.fields === 'object' && (!Object.hasOwn(v.fields,'gpio_drive_ma') || values.includes(v.fields.gpio_drive_ma)) &&
         typeof v.apply_domains?.drive === 'boolean';
@@ -47,7 +47,7 @@
         const changed = draftTarget && draftTarget !== identity(r.data);
         let nextProgress = null;
         if (saveDraft) {
-          const draft = await exchange('GET',undefined,undefined,'progress/2');
+          const draft = await exchange('GET',undefined,undefined,'progress/' + progressVersion());
           if (ticket !== epoch) return;
           if (!validProgress(draft.data,r.data.target) || draft.revision !== r.revision) throw new Error('Saved drive progress could not be verified.');
           nextProgress = draft.data;
@@ -83,12 +83,12 @@
       if (!button || button.disabled || busy || !progress) return;
       if (review && !root.confirm('Review saved drive and progress beside your draft. Send one new explicit action using this revision?')) return;
       const target = observed.target, match = revision, value = Number(select.value), sentSerial = serial, ticket = ++epoch;
-      const body = apply ? {schema:'transmitter-progress/2',target,application:{draft_revision:progress.draft_revision,domain:'drive'}} :
-        {schema:'transmitter-progress/2',target,request_id:Array.from(root.crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join(''),fields:{gpio_drive_ma:value}};
+      const body = apply ? {schema:'transmitter-progress/' + progressVersion(),target,application:{draft_revision:progress.draft_revision,domain:'drive'}} :
+        {schema:'transmitter-progress/' + progressVersion(),target,request_id:Array.from(root.crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join(''),fields:{gpio_drive_ma:value}};
       busy = true; revision = ''; review = true; render(); draftStatus.textContent = apply ? 'Applying saved drive progress…' : 'Saving drive progress…';
       let refresh = false;
       try {
-        const result = await exchange('POST',body,match,apply ? 'progress/apply/2' : 'progress/update/2');
+        const result = await exchange('POST',body,match,(apply ? 'progress/apply/' : 'progress/update/') + progressVersion());
         if (ticket !== epoch) return;
         if (!result.revision || result.revision === match) throw new Error('Progress acknowledgement could not be verified.');
         if (!apply && (!validProgress(result.data,target) || result.data.request_id !== body.request_id || result.data.outcomes?.gpio_drive_ma !== 'saved' || result.data.fields.gpio_drive_ma !== value)) throw new Error('Drive progress save could not be verified.');

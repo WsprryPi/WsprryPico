@@ -14,7 +14,7 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    with `wsprd`; record the result and associated
    evidence closeout. [Result](short-wspr-type23-decode-results.md).
    [Saved prompt](short-wspr-type23-decode-execution-prompt.md).
-3. ▧ **Amplifier-enable GPIO during transmissions.** Assert the configured enable
+3. ✅ **Amplifier-enable GPIO during transmissions.** Assert the configured enable
    pin before RF starts and return it inactive after completion, stop, abort
    or fault. [Saved prompt](amplifier-enable-execution-prompt.md).
 4. ▧ **NTP Work** [Saved prompt](ntp-work-execution-prompt.md).
