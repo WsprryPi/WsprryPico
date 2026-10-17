@@ -15,7 +15,7 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
 3. ▧ **Amplifier-enable GPIO during transmissions.** Assert the configured enable
    pin before RF starts and return it inactive after completion, stop, abort
    or fault. [Saved prompt](amplifier-enable-execution-prompt.md).
-4. ▧ **NTP Work**
+4. ▧ **NTP Work** [Saved prompt](ntp-work-execution-prompt.md).
    - ▧ Persistent standalone manual PPM.
    - ▧ NTP filtering and UTC rate discipline.
    - ▧ NTP-derived RF calibration.
