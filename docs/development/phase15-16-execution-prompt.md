@@ -5,10 +5,9 @@ handoff; the new P15.15 is GPIO drive-strength configuration. Original execution
 scope, independent-review requirement and commit/push authorization are retained.
 The additional prerequisite is acceptance of the new P15.15 before execution.
 
-Preparation status: **saved for future execution; P15.16 has not been executed**.
-Preparing this handoff changes documentation only. The implementation,
-independent review, repair, retest, commit and push instructions below apply
-when the operator invokes this prompt for execution.
+Execution invoked 2026-10-17. See the [execution and acceptance record](phase15-16-results.md)
+for the delivered mapping, validation, review and limits. The instructions below
+retain the original authorized scope; preparation alone did not execute them.
 
 ## Objective and execution authorization
 

@@ -16,7 +16,7 @@ class Timeline:
 class Tests(unittest.TestCase):
     def test_finite_image_names_source_hash_binding(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);candidate=dict(role='restore',fault_stage=0,session_deadline_fixture=False,target='WsprryPico',revision='b'*12,lan_mode='plain',gp14=False,uf2={'sha256':hashlib.sha256(b'exercise').hexdigest()})
+            root=Path(directory);candidate=dict(role='restore',fault_stage=0,session_deadline_fixture=False,target='WsprryPico-Inhibited',revision='b'*12,lan_mode='plain',gp14=False,uf2={'sha256':hashlib.sha256(b'exercise').hexdigest()})
             manifest=dict(source_commit='b'*40,candidates=[candidate]);raw=json.dumps(manifest).encode();(root/'manifest.json').write_bytes(raw)
             plan=dict(source_commit='b'*40,image_sha256=candidate['uf2']['sha256'],device_id=dispatch.DEVICE)
             (root/'composition-plan.json').write_text(json.dumps(plan));(root/'exercise.uf2').write_bytes(b'exercise');(root/'restore.uf2').write_bytes(b'original')

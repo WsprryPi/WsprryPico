@@ -67,7 +67,7 @@ def bound_inputs(root,request):
     require(plan['image_sha256']==candidate['uf2']['sha256'] and
             plan['source_commit']==manifest['source_commit'] and plan['device_id']==DEVICE,
             'source/plan/image binding')
-    require(candidate['fault_stage']==0 and candidate['session_deadline_fixture'] is False and candidate['target']=='WsprryPico' and
+    require(candidate['fault_stage']==0 and candidate['session_deadline_fixture'] is False and candidate['target']=='WsprryPico-Inhibited' and
         candidate['revision']==manifest['source_commit'][:12] and candidate['lan_mode']=='plain' and candidate['gp14'] is False,
         'ordinary inhibited image/source binding')
     return manifest,candidate,plan

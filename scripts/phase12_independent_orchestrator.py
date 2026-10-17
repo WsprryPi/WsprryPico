@@ -46,7 +46,7 @@ def exercise_selection(manifest,artifact_root,exercise_manifest=None,exercise_ar
     else:selected=manifest;artifacts=Path(artifact_root);image_name='restore.uf2'
     candidate=next(c for c in selected['candidates'] if c['role']=='restore')
     require(candidate['fault_stage']==0 and candidate['session_deadline_fixture'] is False and
-        candidate['target']=='WsprryPico' and candidate['lan_mode']=='plain' and candidate['gp14'] is False,
+        candidate['target']=='WsprryPico-Inhibited' and candidate['lan_mode']=='plain' and candidate['gp14'] is False,
         'ordinary inhibited exercise candidate required')
     require(candidate['revision']==selected['source_commit'][:12],'exercise candidate source binding')
     return selected,artifacts,candidate,image_name

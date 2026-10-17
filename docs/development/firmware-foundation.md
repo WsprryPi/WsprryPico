@@ -1,9 +1,11 @@
 # Pico 2 W firmware foundation
 
 The firmware foundation builds the portable WTP job service for Pico 2 W and
-RP2350 Arm Secure. It exposes two USB CDC interfaces and uses an RF-inhibited
-local lifecycle simulator. The standard image now initializes Wi-Fi when
-configured, but never initializes an RF output pin or synthesizer. See the
+RP2350 Arm Secure. It exposes three USB CDC interfaces and uses the existing 138 MHz PIO/DMA
+RF application by default. `WsprryPico-Inhibited` explicitly selects the local
+lifecycle simulator without a physical RF engine. Both retain the same USB,
+Wi-Fi, storage and application services. RF capability preserves saved
+enablement, timing, ownership, frequency policy and output-admission controls. See the
 [standalone guide](standalone.md) for current configuration and timing behavior.
 
 ## Pinned build inputs
@@ -32,8 +34,26 @@ cmake --preset pico2-w
 cmake --build --preset pico2-w
 ```
 
-The build produces `build/pico2-w/firmware/WsprryPico.elf`, `.bin`, `.hex`,
-`.dis`, `.map` and `.uf2`. Generated artifacts are ignored. The UF2 metadata
+For an explicit inhibited build in that configured directory:
+
+```sh
+cmake --build build/pico2-w --target WsprryPico-Inhibited
+```
+
+It produces `firmware/WsprryPico-Inhibited.uf2` and the matching ELF/map.
+`WsprryPico-StandaloneRF` remains an explicit compatibility target with its
+existing artifact basename and the same RF application wiring as `WsprryPico`.
+Ordinary firmware `all`, the `pico2-w` preset and `bash scripts/build_pico.sh`
+select `WsprryPico`. The helper also accepts `WsprryPico-Inhibited` or
+`WsprryPico-StandaloneRF` as its first argument and an optional fresh build
+directory as its second. Host builds still default to no SDK dependency.
+Inhibited-only fixture options refuse RF target/all builds; use the explicit
+inhibited target. Retained historical images/manifests keep their old names;
+new Phase 12 candidate builds and live dispatchers require the inhibited name.
+See [P15.16 acceptance](phase15-16-results.md) for exact artifacts and limits.
+
+The normal build produces `build/pico2-w/firmware/WsprryPico.elf`, `.bin`, `.hex`,
+`.dis`, `.elf.map` and `.uf2`. Generated artifacts are ignored. The UF2 metadata
 contains the product, development version, source revision, SDK, board and
 target. The SDK build-date field is disabled so wall-clock time does not enter
 that metadata.
@@ -53,7 +73,7 @@ or proof of device authenticity.
 
 The target clock reports monotonic microsecond hardware time converted to
 nanoseconds. UTC starts `unsynchronized`, so the service rejects `ARM` until
-the configured Wi-Fi SNTP source supplies a usable observation. The portable
+the configured Wi-Fi SNTP source or qualified USB-time source supplies a usable observation. The portable
 discipline ages its uncertainty; no wall-clock state survives reboot.
 
 See the [dual USB CDC guide](usb-cdc.md) for transport bounds, connection
@@ -63,10 +83,11 @@ semantics, descriptor identity, Linux/macOS validation and focused tests.
 
 The development USB identity uses TinyUSB's shared development VID `0xcafe`
 and PID `0x4012`. It is not a production USB allocation. The composite device
-has two CDC interfaces:
+has three CDC interfaces:
 
 1. `WsprryPico Console` carries standalone configuration commands and JSON diagnostics.
 2. `WsprryPico WTP` accepts binary WTP frames only.
+3. `WsprryPico Management` carries separately framed management/time transactions.
 
 On macOS, list ports after connecting the board:
 
@@ -93,15 +114,15 @@ printing a message. Only one process can own a serial device at a time.
 ## Implemented boundary
 
 The firmware instantiates and polls the same portable `JobService` used by host
-tests. `DryRunEngine` models local job lifecycles but always reports output
+tests. The normal target connects the existing RF worker and engine. In the
+explicit inhibited target, `DryRunEngine` models local job lifecycles but always reports output
 inactive and accesses no hardware. The inhibited firmware entry point requires the
 `WSPRRY_PICO_RF_OUTPUT_DISABLED=1` compile definition.
 
 The WTP CDC path now implements strict JSON request decoding, response/event
 encoding, typed dispatch and logical session handling through the
-[WTP endpoint](wtp-endpoint.md). The firmware still has no physical RF engine
-and accepts simulated jobs only when the autonomous clock meets admission
-requirements. Endpoint host tests do not establish target USB conformance.
+[WTP endpoint](wtp-endpoint.md). Both variants enforce the existing timing and ownership admission; only the
+explicit inhibited variant simulates execution without physical RF. Endpoint host tests do not establish target USB conformance.
 
 Building the image is hardware-free. No target execution was recorded unless a
 report explicitly names the board, firmware digest, connection and observed

@@ -226,7 +226,7 @@ def bound_plan(request):
     manifest=strict(manifest_raw);candidates=[c for c in manifest['candidates'] if c['role']=='engineering']
     require(len(candidates)==1 and manifest['source_commit']==plan['source_commit'],'ordinary engineering source')
     candidate=candidates[0]
-    require(candidate['target']=='WsprryPico' and candidate['fault_stage']==0 and candidate['lan_mode']=='tls' and
+    require(candidate['target']=='WsprryPico-Inhibited' and candidate['fault_stage']==0 and candidate['lan_mode']=='tls' and
             candidate['uf2']['sha256']==plan['image_sha256'],'ordinary inhibited image')
     image=private_bytes(Path(plan['image_path']),4*1024*1024);validate_uf2(image)
     raw=private_bytes(Path(plan['config_path']),16384)

@@ -8,10 +8,10 @@ retain their evidence and limitations.
 
 ## Current list
 
-Fifteen items are complete within their recorded scopes; five have not started.
+Sixteen items are complete within their recorded scopes; four have not started.
 P15.14 USB closure was supplied by the
 concurrent USB task and is preserved here; this planning task did not execute
-or requalify USB control. Four unexecuted numbered prompts (P15.16–P15.19)
+or requalify USB control. Three unexecuted numbered prompts (P15.17–P15.19)
 are saved; preparing those documents does not execute the tasks.
 
 | Item | Task | Status | Saved prompt or current handoff |
@@ -31,7 +31,7 @@ are saved; preparing those documents does not execute the tasks.
 | P15.13 | Complete untested-band qualification and resolve clock-dependent support | Complete | [Frozen qualification plan](phase15-13-plan.md) |
 | P15.14 | USB control | Complete | [USB execution record](usb-control-results.md); [100 ms UTC follow-up prompt](utc-100ms-execution-prompt.md) and [results](utc-100ms-results.md) |
 | P15.15 | GPIO drive-strength configuration across Pico and WsprryPi | Complete within recorded scope; nonblocking RF observations retained | [Prompt](phase15-15-execution-prompt.md), [software record](phase15-15-results.md), [hardware prompt](phase15-15-hardware-execution-prompt.md) and [acceptance](phase15-15-hardware-results.md) |
-| P15.16 | Make the default firmware build uninhibited | Not started | [Saved default-build prompt](phase15-16-execution-prompt.md) |
+| P15.16 | Make the default firmware build uninhibited | Complete within recorded software/build scope | [Executed prompt](phase15-16-execution-prompt.md), [results](phase15-16-results.md) |
 | P15.17 | Publish a GitHub testing prerelease with a firmware asset | Not started | [Saved testing-prerelease prompt](phase15-17-execution-prompt.md) |
 | P15.18 | Installer | Not started | [Saved USB-installer prompt](phase15-18-execution-prompt.md) |
 | P15.19 | Impeccable review of the web UI, including provisioning | Not started | [Saved Impeccable UI-review prompt](phase15-19-execution-prompt.md) |

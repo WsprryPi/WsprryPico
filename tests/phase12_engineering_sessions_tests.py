@@ -10,7 +10,7 @@ class Evidence:
     def record(self,kind,**value):self.rows.append((kind,value))
 class Tests(unittest.TestCase):
     def test_actual_session_candidate_plain_compile_default_runtime_tls(self):
-        candidate=dict(role='session_deadline',target='WsprryPico',fault_stage=0,
+        candidate=dict(role='session_deadline',target='WsprryPico-Inhibited',fault_stage=0,
                        lan_mode='plain',uf2={'sha256':'c'*64})
         manifest=dict(candidates=[candidate],source_commit='b'*40)
         evidence=Evidence();evidence.close=lambda:None

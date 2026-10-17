@@ -84,7 +84,7 @@ def run(request):
     raw=private_bytes(root/'preparation-manifest.json',262144)
     require(hashlib.sha256(raw).hexdigest()==request['manifest_sha256'],'manifest transfer')
     manifest=strict(raw);candidate=next(c for c in manifest['candidates'] if c['role']=='engineering')
-    require(candidate['fault_stage']==0 and candidate['target']=='WsprryPico' and candidate['lan_mode']=='tls' and
+    require(candidate['fault_stage']==0 and candidate['target']=='WsprryPico-Inhibited' and candidate['lan_mode']=='tls' and
             manifest['source_commit']==request['source_commit'] and
             hashlib.sha256(image).hexdigest()==candidate['uf2']['sha256']==request['image_sha256'],'ordinary image binding')
     observer=Observer();first=observer()[0]

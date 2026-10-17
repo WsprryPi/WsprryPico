@@ -36,7 +36,7 @@ def run(request):
     require(len(candidates) == 1, 'exact one candidate')
     candidate = candidates[0]
     require(manifest['source_commit'] == request['source_commit'] and
-            candidate['target'] == 'WsprryPico' and candidate['fault_stage'] == stage and
+            candidate['target'] == 'WsprryPico-Inhibited' and candidate['fault_stage'] == stage and
             candidate['lan_mode'] == ('tls' if stage == 0 else 'plain'), 'inhibited engineering candidate')
     image_name = request['image_name']; require(image_name==role+'.uf2', 'exact stage image basename')
     image = private_bytes(root/image_name, 4*1024*1024); validate_uf2(image)

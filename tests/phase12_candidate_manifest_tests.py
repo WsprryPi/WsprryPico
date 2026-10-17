@@ -24,7 +24,7 @@ class ManifestTests(unittest.TestCase):
         for role in sorted(manifest.ROLES):
             stage = int(role[6:]) if role.startswith('fault_') else 0
             c = {'role': role, 'firmware': '0.0.0-devel', 'revision': COMMIT[:12],
-                 'target': 'WsprryPico-StandaloneRF' if role == 'rf_ap' else 'WsprryPico',
+                 'target': 'WsprryPico-StandaloneRF' if role == 'rf_ap' else 'WsprryPico-Inhibited',
                  'gp14': role in ('consumer', 'rf_ap'), 'lan_mode': 'tls' if role == 'engineering' else 'plain',
                  'fault_stage': stage, 'session_deadline_fixture': role == 'session_deadline'}
             payload = b'0.0.0-devel\0' + COMMIT[:12].encode() + b'\0'
@@ -91,6 +91,12 @@ class ManifestTests(unittest.TestCase):
         self.assertEqual(self.run_verify()['candidates'],11)
         self.data['candidates'][0]['role']='rf_ap'
         with self.assertRaises(ValueError):self.run_verify()
+
+    def test_canonical_rf_target_is_refused_for_inhibited_role(self):
+        candidate = next(c for c in self.data['candidates'] if c['role'] == 'restore')
+        candidate['target'] = 'WsprryPico'
+        with self.assertRaises(ValueError):
+            self.run_verify()
 
     def test_dirty_identity_rejected(self):
         self.data['candidates'][0]['revision'] += '-dirty'

@@ -73,7 +73,7 @@ class OrchestrationTests(unittest.TestCase):
                            target=target, gp14=gp14, fault_stage=0, session_deadline_fixture=False,
                            lan_mode='plain', uf2=dict(path=name, bytes=512, sha256=p.digest(self.root/name)))
                       for role, target, gp14, name in [('rf_ap', 'WsprryPico-StandaloneRF', True, 'rf.uf2'),
-                                                       ('restore', 'WsprryPico', False, 'restore.uf2')]]
+                                                       ('restore', 'WsprryPico-Inhibited', False, 'restore.uf2')]]
         self.manifest = dict(schema='phase12-candidates/1', authority='NONE_PREPARATION_ONLY',
                              source_commit=source, sdk_commit='079c6f39023649b154152db30f1d781e884879bc',
                              toolchain='GNU Arm 15.3.1', candidates=candidates)

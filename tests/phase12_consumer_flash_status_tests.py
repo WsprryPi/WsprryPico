@@ -94,7 +94,7 @@ class Tests(unittest.TestCase):
             def invoke(self,*args,**kw):calls.append('observercleanup');return {}
             def collect(self,*args):pass
         def fail(*args,**kw):raise ValueError('preparation failed')
-        candidate=dict(role='restore',target='WsprryPico',fault_stage=0,gp14=False,lan_mode='plain',session_deadline_fixture=False,uf2={'path':'restore.uf2'})
+        candidate=dict(role='restore',target='WsprryPico-Inhibited',fault_stage=0,gp14=False,lan_mode='plain',session_deadline_fixture=False,uf2={'path':'restore.uf2'})
         with tempfile.TemporaryDirectory() as directory,patch.object(parent,'safe_info',lambda *a:None):
             result=parent.execute({'source_commit':'a'*40},directory,{'source_commit':'b'*40,'candidates':[candidate]},directory,Path(directory)/'new',Path(directory)/'inspector',Path(directory)/'native',backend_factory=Backend,remote_factory=Remote,builder=fail)
         self.assertEqual(result['status'],'STOPPED');self.assertIn('final-restoration.bin',calls);self.assertEqual(calls[-1],'cleanup')
@@ -118,7 +118,7 @@ class Tests(unittest.TestCase):
             def invoke(self,*args,**kw):calls.append('observercleanup');return {}
             def collect(self,*args):pass
         def fail(*args,**kw):time.sleep(.2);raise AssertionError('timer did not interrupt blocking builder')
-        candidate=dict(role='restore',target='WsprryPico',fault_stage=0,gp14=False,lan_mode='plain',session_deadline_fixture=False,uf2={'path':'restore.uf2'})
+        candidate=dict(role='restore',target='WsprryPico-Inhibited',fault_stage=0,gp14=False,lan_mode='plain',session_deadline_fixture=False,uf2={'path':'restore.uf2'})
         with tempfile.TemporaryDirectory() as directory,patch.object(parent,'safe_info',lambda *a:None),patch.object(parent,'tranche_deadline',lambda seconds:actual_deadline(.02)):
             result=parent.execute({'source_commit':'a'*40},directory,{'source_commit':'b'*40,'candidates':[candidate]},directory,Path(directory)/'new',Path(directory)/'inspector',Path(directory)/'native',backend_factory=Backend,remote_factory=Remote,builder=fail)
         self.assertEqual(result['error']['type'],'TimeoutError');self.assertEqual(signal.getitimer(signal.ITIMER_REAL),(0.0,0.0));self.assertEqual(result['status'],'STOPPED');self.assertIn('final-restoration.bin',calls);self.assertEqual(calls[-1],'cleanup')

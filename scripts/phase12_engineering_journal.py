@@ -244,7 +244,7 @@ def tranche(context, stage_image, apply_remote, tls_remote, save, *, clock=time.
     ordinary=candidates['engineering']; source=prep['source_commit']
     fixture_roles={n:candidates['fault_'+str(n)] for n in (8,9,10)}
     for candidate in (ordinary,*fixture_roles.values()):
-        require(candidate['target']=='WsprryPico', 'inhibited image')
+        require(candidate['target']=='WsprryPico-Inhibited', 'inhibited image')
     baseline=backend.snapshot('journal-a-before.bin')
     require(baseline['inspection']['profile_source']==1 and baseline['inspection']['bond_count']==1,
             'retained engineering A bond')

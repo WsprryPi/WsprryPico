@@ -171,7 +171,8 @@ firmware build explicitly links that existing source with its upstream license.
 TLS 1.2, TLS client mode, PSK/resumption, session tickets and early data are disabled.
 
 Flashing still requires explicit authorization for the chosen board/image. The
-standard target remains RF-inhibited; `WsprryPico-StandaloneRF` is separately built
+standard `WsprryPico` target is RF-capable; `WsprryPico-Inhibited` is explicitly selected
+for diagnostics, and `WsprryPico-StandaloneRF` remains compatible
 and not qualified for TLS/RF coexistence. Restore the default build configuration
 with `-DWSPRRY_PICO_NETWORK_PORT=0` when producing a non-credential image.
 

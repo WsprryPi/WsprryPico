@@ -40,7 +40,7 @@ def main():
     for role in roles:
         stage = int(role[6:]) if role.startswith('fault_') else 0
         gp14 = role in ('consumer', 'rf_ap')
-        target = 'WsprryPico-StandaloneRF' if role == 'rf_ap' else 'WsprryPico'
+        target = 'WsprryPico-StandaloneRF' if role == 'rf_ap' else 'WsprryPico-Inhibited'
         mode = 'tls' if role == 'engineering' else 'plain'
         # Stage-only recompilation retains the exact source-specific macro, with
         # each role exported before the next configure replaces its build files.

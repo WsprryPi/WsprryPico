@@ -171,7 +171,7 @@ def verify(m, root, inspector=inspect_binary):
         expected_stage = int(role[6:]) if role.startswith('fault_') else 0
         require(c['fault_stage'] == expected_stage and
                 c['session_deadline_fixture'] == (role == 'session_deadline'), 'fixture role')
-        require(c['target'] == ('WsprryPico-StandaloneRF' if role == 'rf_ap' else 'WsprryPico'),
+        require(c['target'] == ('WsprryPico-StandaloneRF' if role == 'rf_ap' else 'WsprryPico-Inhibited'),
                 'target/engine role')
         require(c['gp14'] == (role in {'consumer', 'rf_ap'}) and
                 c['lan_mode'] == ('tls' if role == 'engineering' else 'plain'), 'build options')

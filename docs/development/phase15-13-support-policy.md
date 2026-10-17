@@ -25,8 +25,10 @@ The UI reads those capabilities and submits complete jobs through that authority
 Its frequency entry remains free text; authoritative LOAD admission enforces the
 active limits. It does not implement clock selection or promise that an admitted
 frequency is measured/qualified.
-The usual `pico2-w` build preset selects the inhibited `WsprryPico` target;
-RF use requires the explicit `WsprryPico-StandaloneRF` build target.
+The `pico2-w` preset and ordinary firmware build select the normal RF-capable
+`WsprryPico` application at 138 MHz. Explicit `WsprryPico-Inhibited` selects
+the RF-free simulator; `WsprryPico-StandaloneRF` remains compatible. This target
+selection change does not refresh historical RF qualification.
 
 The default-off experimental `allow_unqualified_frequency` flag is required
 for the 8 m and 5 m correlation envelopes. Keep it explicit even if the exact

@@ -37,7 +37,7 @@ class Tests(unittest.TestCase):
     def test_run_api_rejects_unbound_candidate_before_device_access(self):
         with self.assertRaises(ValueError):
             driver.run_device({}, {'candidates':[]}, '192.168.1.2', BOOT, '/unused')
-        candidate = dict(role='restore', target='WsprryPico', lan_mode='plain',
+        candidate = dict(role='restore', target='WsprryPico-Inhibited', lan_mode='plain',
                          fault_stage=1, uf2={'sha256':'c'*64})
         with self.assertRaises(ValueError):
             driver.run_device(candidate, {'candidates':[candidate], 'source_commit':'b'*40},

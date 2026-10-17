@@ -143,7 +143,7 @@ def campaign(exchange,observe,evidence,password,source,boot,address,
 def run_device(candidate,manifest,address,boot,hostname,ca,password,evidence_path,observe_info,observe_status,observe_ap):
     """Parent-authorized API after exact candidate verify/program/readback proof."""
     require(candidate in manifest['candidates'] and candidate['role']=='session_deadline' and
-            candidate['target']=='WsprryPico' and candidate['fault_stage']==0 and
+            candidate['target']=='WsprryPico-Inhibited' and candidate['fault_stage']==0 and
             candidate['lan_mode'] in ('plain','tls') and
             re.fullmatch('[0-9a-f]{64}',candidate['uf2']['sha256']) is not None,
             'verified engineering session candidate')

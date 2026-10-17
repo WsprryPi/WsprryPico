@@ -79,7 +79,7 @@ def validate_packet(packet, *, verify_files=True, historical=False):
                 manifest['sdk_commit'] == '079c6f39023649b154152db30f1d781e884879bc' and
                 manifest['toolchain'] == 'GNU Arm 15.3.1', 'planned current source/build inputs')
         for role, target, gp14, field in (('rf_ap', 'WsprryPico-StandaloneRF', True, 'uf2'),
-                                         ('restore', 'WsprryPico', False, 'restore_uf2')):
+                                         ('restore', 'WsprryPico-Inhibited', False, 'restore_uf2')):
             candidates = [c for c in manifest['candidates'] if c['role'] == role]
             require(len(candidates) == 1, 'exact planned candidate role')
             c = candidates[0]

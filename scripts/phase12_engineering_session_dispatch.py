@@ -78,7 +78,7 @@ def run(request):
     require(hashlib.sha256(raw).hexdigest()==request['manifest_sha256'],'manifest binding')
     manifest=strict(raw);candidate=next(c for c in manifest['candidates'] if c['role']=='session_deadline')
     require(manifest['source_commit']==request['source_commit'] and candidate['fault_stage']==0 and
-            candidate['target']=='WsprryPico','accelerated candidate binding')
+            candidate['target']=='WsprryPico-Inhibited','accelerated candidate binding')
     image=private_bytes(root/'session_deadline.uf2',4*1024*1024);validate_uf2(image)
     require(hashlib.sha256(image).hexdigest()==candidate['uf2']['sha256']==request['image_sha256'],
             'exact accelerated image hash')

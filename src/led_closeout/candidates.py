@@ -60,7 +60,7 @@ def build(root, build_dir, destination, *, prepare=False, roles=None):
                 '-DWSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE=OFF',
                 '-DWSPRRY_PICO_PHASE12_FAULT_STAGE=0', '-DWSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC=OFF']
         subprocess.run(args, cwd=root, check=True)
-        targets = ['WsprryPico-StandaloneRF' if IMAGES[k][0] else 'WsprryPico' for k in keys]
+        targets = ['WsprryPico-StandaloneRF' if IMAGES[k][0] else 'WsprryPico-Inhibited' for k in keys]
         subprocess.run(['cmake', '--build', str(build_dir), '--target']+targets+['-j4'], check=True)
         for key, target in zip(keys, targets):
             image = dict(engine='pio-dma-gp2' if IMAGES[key][0] else 'inhibited-standalone-simulator',
@@ -74,6 +74,9 @@ def build(root, build_dir, destination, *, prepare=False, roles=None):
                 image[extension+'_sha256'] = sha256(copied)
             # Both the ordinary and fixture images pass the real linked-image checks.
             subprocess.run(['python3', str(root/'scripts/check_standalone_image.py'), str(build_dir/'firmware'/(target+'.elf'))], check=True)
+            subprocess.run(['python3', str(root/'scripts/check_application_image.py'),
+                            str(build_dir/'firmware'/(target+'.elf')), '--expect',
+                            'rf' if IMAGES[key][0] else 'inhibited'], check=True)
             symbols = output(['arm-none-eabi-nm', image['elf']])
             require(('led_acceptance' in symbols) == acceptance, 'fixture symbol isolation')
             manifest['images'][key] = image

@@ -206,7 +206,7 @@ def execute(request):
     raw=private_bytes(root/'preparation-manifest.json',1024*1024);require(hashlib.sha256(raw).hexdigest()==request['manifest_sha256'],'manifest hash')
     manifest=strict(raw);require(manifest['source_commit']==request['source_commit'],'source binding')
     candidate=next(c for c in manifest['candidates'] if c['role']=='engineering')
-    require(candidate['fault_stage']==0 and candidate['target']=='WsprryPico' and candidate['lan_mode']=='tls',
+    require(candidate['fault_stage']==0 and candidate['target']=='WsprryPico-Inhibited' and candidate['lan_mode']=='tls',
             'ordinary engineering candidate required')
     image=private_bytes(root/'engineering.uf2',4*1024*1024);validate_uf2(image)
     require(hashlib.sha256(image).hexdigest()==candidate['uf2']['sha256']==request['image_sha256'],'ordinary image hash')

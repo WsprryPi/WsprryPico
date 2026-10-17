@@ -10,7 +10,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT/'src'), str(ROOT/'scripts')]
 from led_closeout.plan import BOARDS, IMAGES, make_plan, validate_plan
-from led_closeout.candidates import pins
+from led_closeout.candidates import pins, build
 from led_closeout.runner import Evidence, Runner, admit, quiescent, save_json
 from led_closeout.device import Device, Peer, inventory, validate_manifest, validate_setup
 from led_closeout.capture import Captures, storage_reserve
@@ -21,6 +21,57 @@ def manifest():
     return dict(images={name: dict(engine='pio-dma-gp2' if rf else 'inhibited-standalone-simulator',
         acceptance=a, selection=s, gp14=g, pins=pins(s), revision='candidate')
         for name, (rf,a,s,g) in IMAGES.items()})
+
+
+class CandidateBuildTests(unittest.TestCase):
+    def test_inhibited_roles_build_and_check_the_explicit_inhibited_image(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            directory = root/'build/firmware'
+            destination = root/'build/candidates'
+            commands = []
+            acceptance = False
+            def output(argv, **kwargs):
+                if argv[0] == 'git':
+                    if 'status' in argv: return ''
+                    if any('local-sdk-' in x for x in argv):
+                        return '079c6f39023649b154152db30f1d781e884879bc'
+                    if any('picotool-src' in x for x in argv):
+                        return '6f6458d792b93685a11423b244a585eaa99eafcf'
+                    return 'a'*40
+                return 'led_acceptance' if acceptance else ''
+            def run(argv, **kwargs):
+                nonlocal acceptance
+                commands.append(argv)
+                if any(x.startswith('-DWSPRRY_PICO_LED_ACCEPTANCE=') for x in argv):
+                    acceptance = '-DWSPRRY_PICO_LED_ACCEPTANCE=ON' in argv
+                if '--target' in argv:
+                    for target in argv[argv.index('--target')+1:-1]:
+                        for suffix in ('elf', 'uf2'):
+                            path = directory/'firmware'/(target+'.'+suffix)
+                            path.parent.mkdir(parents=True, exist_ok=True)
+                            path.write_bytes(target.encode())
+            with patch('led_closeout.candidates.subprocess.check_output', side_effect=output), \
+                 patch('led_closeout.candidates.subprocess.run', side_effect=run):
+                result = build(root, directory, destination, roles=['restore','onboard','stimulus'])
+            builds = [c[c.index('--target')+1:-1] for c in commands if '--target' in c]
+            self.assertIn(['WsprryPico-Inhibited','WsprryPico-StandaloneRF'], builds)
+            self.assertIn(['WsprryPico-Inhibited'], builds)
+            self.assertNotIn('WsprryPico', [t for targets in builds for t in targets])
+            checks = [c for c in commands if any(x.endswith('/check_application_image.py') for x in c)]
+            self.assertEqual([c[-1] for c in checks], ['inhibited','rf','inhibited'])
+            self.assertEqual(result['images']['restore']['engine'], 'inhibited-standalone-simulator')
+            self.assertEqual(result['images']['stimulus']['engine'], 'inhibited-standalone-simulator')
+            def refuse_engine(argv, **kwargs):
+                if any(x.endswith('/check_application_image.py') for x in argv):
+                    raise RuntimeError('linked role mismatch')
+                return run(argv, **kwargs)
+            refused = root/'build/refused'
+            with patch('led_closeout.candidates.subprocess.check_output', side_effect=output), \
+                 patch('led_closeout.candidates.subprocess.run', side_effect=refuse_engine):
+                with self.assertRaisesRegex(RuntimeError, 'linked role mismatch'):
+                    build(root, directory, refused, roles=['restore'])
+            self.assertFalse((refused/'manifest.json').exists())
 
 
 class Fake:

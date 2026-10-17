@@ -99,7 +99,8 @@ synthesis for experimental implementation, with Si5351 as an alternative.
 No production engine or band range is qualified. The experimental bench defaults
 to GP2 and a build-selected 132, 138 or 150 MHz sample clock (138 MHz default).
 Standalone direct RF uses the validated boot pin plan; newly selected pins are
-not thereby RF-qualified. The standard firmware remains RF-inhibited. The
+not thereby RF-qualified. The standard firmware selects the complete 138 MHz PIO/DMA application;
+`WsprryPico-Inhibited` explicitly selects the RF-free simulator. The
 [portable stream library](development/rf-stream.md) implements planning, waveform
 generation and an abstract-sink adapter separately from the firmware. The
 [PIO/DMA sink and local timer launch](development/pio-dma-driver.md) are
@@ -144,7 +145,7 @@ Browser handlers, standalone scheduler, USB WTP and TCP WTP submit work to one a
 
 The portable frame parser and job service implement the transport-independent
 part of this boundary. The Pico 2 W standard image runs that service with autonomous Wi-Fi SNTP and
-an RF-inhibited local lifecycle simulator; boot time remains unsynchronized
+the existing PIO/DMA RF engine (or the explicit inhibited simulator); boot time remains unsynchronized
 until a usable observation arrives. Its three CDC functions separate console
 diagnostics, WTP framing and local management/time. The [USB adapter contract](development/usb-cdc.md)
 defines bounded servicing and connection semantics; logging must never enter WTP.
@@ -214,7 +215,7 @@ an exact-device USB-local confirmation and expires with the 30-second staging
 session; ordinary retained-bond authority alone cannot apply credentials.
 
 P12.6 makes the BLE path and the independent SoftAP fallback real in the
-standard RF-inhibited image. One CYW43 owner supplies checked station-MAC
+normal and explicit inhibited images. One CYW43 owner supplies checked station-MAC
 identity, BTstack GATT, station service, SoftAP netif and core-0 LED access. The
 production graph constructs the portable access/manager state and a
 network-only `PicoActivationPlatform`; neither layer can abort, release or

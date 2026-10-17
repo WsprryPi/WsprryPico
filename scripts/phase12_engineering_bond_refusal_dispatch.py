@@ -78,7 +78,7 @@ def run(request):
     require(hashlib.sha256(manifest_raw).hexdigest()==request['manifest_sha256'],'manifest hash')
     manifest=strict(manifest_raw);candidate=next(c for c in manifest['candidates'] if c['role']=='engineering')
     require(manifest['source_commit']==request['source_commit'] and candidate['fault_stage']==0 and
-            candidate['target']=='WsprryPico' and candidate['lan_mode']=='tls','ordinary engineering candidate')
+            candidate['target']=='WsprryPico-Inhibited' and candidate['lan_mode']=='tls','ordinary engineering candidate')
     require(hashlib.sha256(private_bytes(root/'engineering.uf2',4*1024*1024)).hexdigest()==candidate['uf2']['sha256'],
             'exact ordinary image')
     evidence=Evidence(root/'single-bond-old-peer-wire.jsonl');client=None;deadline=time.monotonic()+19

@@ -25,34 +25,60 @@ configure_file(
     @ONLY
 )
 
-add_executable(WsprryPico
-    ../src/standalone/pico/main.cpp
-    ../src/standalone/pico/adapters.cpp
-    ../src/standalone/pico/net_trace.cpp
-    pico_adapters.cpp
-    usb_descriptors.c
-    ../src/usb/transport.cpp
-)
-target_include_directories(WsprryPico PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR}
-    ${CMAKE_CURRENT_BINARY_DIR}/generated
-)
-target_compile_definitions(WsprryPico PRIVATE
-    PICO_NO_BI_PROGRAM_BUILD_DATE=1
-    PICO_STACK_SIZE=0x8000
-    WSPRRY_PICO_RF_OUTPUT_DISABLED=1
-    WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ}
-    PICO_PANIC_FUNCTION=wsprrypico_panic
-)
+set(wsprry_rf_images WsprryPico WsprryPico-StandaloneRF)
+set(wsprry_application_images WsprryPico-Inhibited ${wsprry_rf_images})
+
+# One application wiring for USB, networking, storage and resource reservations.
+# Only the explicitly selected inhibited target substitutes the local simulator.
+foreach(image IN LISTS wsprry_application_images)
+    add_executable(${image} EXCLUDE_FROM_ALL
+        ../src/standalone/pico/main.cpp ../src/standalone/pico/adapters.cpp
+        ../src/standalone/pico/net_trace.cpp
+        pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp)
+    target_include_directories(${image} PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated
+        ${CMAKE_SOURCE_DIR}/src/standalone/pico)
+    target_compile_definitions(${image} PRIVATE
+        PICO_NO_BI_PROGRAM_BUILD_DATE=1 PICO_STACK_SIZE=0x8000
+        WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ}
+        PICO_PANIC_FUNCTION=wsprrypico_panic)
+    target_link_libraries(${image} PRIVATE
+        wsprrypico_core pico_stdlib pico_rand pico_time pico_unique_id
+        hardware_flash pico_flash pico_cyw43_arch_lwip_poll tinyusb_device)
+    # 32 KiB primary stack, including the retained 4 KiB MSPLIM guard.
+    target_link_options(${image} PRIVATE
+        "LINKER:--defsym=RAM_LENGTH=0x78000"
+        "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x20078000"
+        "LINKER:--defsym=SCRATCH_Y_LENGTH=0x8000")
+    set_target_properties(${image} PROPERTIES
+        C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
+    pico_enable_stdio_uart(${image} 0)
+    pico_enable_stdio_usb(${image} 0)
+    pico_set_program_name(${image} "${image}")
+    pico_set_program_version(${image} "${WSPRRY_PICO_FIRMWARE_VERSION}")
+    if(image IN_LIST wsprry_rf_images)
+        target_sources(${image} PRIVATE ../src/rf/pico/worker.cpp)
+        target_compile_definitions(${image} PRIVATE
+            WSPRRY_PICO_STANDALONE_RF=1 PICO_CORE1_STACK_SIZE=0)
+        target_link_libraries(${image} PRIVATE wsprrypico_pico_rf pico_multicore)
+        pico_set_program_description(${image} "Standalone PIO/DMA RF ${WSPRRY_PICO_GIT_REVISION}")
+    else()
+        target_compile_definitions(${image} PRIVATE WSPRRY_PICO_RF_OUTPUT_DISABLED=1)
+        pico_set_program_description(${image} "Standalone RF-inhibited ${WSPRRY_PICO_GIT_REVISION}")
+    endif()
+    pico_add_extra_outputs(${image})
+endforeach()
+# Ordinary firmware all builds exactly the canonical normal application.
+set_target_properties(WsprryPico PROPERTIES EXCLUDE_FROM_ALL FALSE)
 
 # Finite fault fixtures affect only the inhibited target. A stage is selected at
 # build time; no arbitrary memory corruption or remotely writable fault switch.
 option(WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE
     "Inhibited indicator fixture: one checked CYW43 LED-write error" OFF)
 if(WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE)
-    target_sources(WsprryPico PRIVATE ../src/provisioning/pico/indicator_fault_fixture.cpp)
-    target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE=1)
-    target_link_options(WsprryPico PRIVATE "LINKER:--wrap=cyw43_gpio_set")
+    target_sources(WsprryPico-Inhibited PRIVATE ../src/provisioning/pico/indicator_fault_fixture.cpp)
+    target_compile_definitions(WsprryPico-Inhibited PRIVATE WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE=1)
+    target_link_options(WsprryPico-Inhibited PRIVATE "LINKER:--wrap=cyw43_gpio_set")
     set_source_files_properties(../src/provisioning/pico/indicator_fault_fixture.cpp PROPERTIES
         COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage")
 endif()
@@ -68,13 +94,13 @@ if(WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE AND
 endif()
 
 if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0")
-    target_sources(WsprryPico PRIVATE ../src/provisioning/pico/phase12_fault_fixture.cpp)
-    target_compile_definitions(WsprryPico PRIVATE
+    target_sources(WsprryPico-Inhibited PRIVATE ../src/provisioning/pico/phase12_fault_fixture.cpp)
+    target_compile_definitions(WsprryPico-Inhibited PRIVATE
         WSPRRY_PICO_PHASE12_FAULT_FIXTURE=1)
     set_source_files_properties(../src/provisioning/pico/phase12_fault_fixture.cpp PROPERTIES
         COMPILE_DEFINITIONS WSPRRY_PICO_PHASE12_FAULT_STAGE=${WSPRRY_PICO_PHASE12_FAULT_STAGE})
     if(WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE)
-        target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE=1)
+        target_compile_definitions(WsprryPico-Inhibited PRIVATE WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE=1)
     endif()
 endif()
 
@@ -91,12 +117,14 @@ elseif(WSPRRY_PICO_CONSUMER_LAN_MODE STREQUAL "plain")
 else()
     set(WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE 2)
 endif()
-target_compile_definitions(WsprryPico PRIVATE
-    WSPRRY_PICO_CONSUMER_LAN_MODE=${WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE})
+foreach(image IN LISTS wsprry_application_images)
+    target_compile_definitions(${image} PRIVATE
+        WSPRRY_PICO_CONSUMER_LAN_MODE=${WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE})
+endforeach()
 option(WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE
     "RF-inhibited engineering session fixture: 15s inactivity/60s absolute" OFF)
 if(WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE)
-    target_compile_definitions(WsprryPico PRIVATE
+    target_compile_definitions(WsprryPico-Inhibited PRIVATE
         WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE=1)
 endif()
 option(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
@@ -114,70 +142,38 @@ if(WSPRRY_PICO_GP14_FLASH_PROBE AND NOT WSPRRY_PICO_GP14_RUNTIME_BUTTON)
     message(FATAL_ERROR "GP14 flash probe requires the opt-in runtime button")
 endif()
 if(WSPRRY_PICO_GP14_FLASH_PROBE)
-    target_sources(WsprryPico PRIVATE ../src/provisioning/pico/gp14_flash_probe.cpp)
-    target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_GP14_FLASH_PROBE=1)
+    target_sources(WsprryPico-Inhibited PRIVATE ../src/provisioning/pico/gp14_flash_probe.cpp)
+    target_compile_definitions(WsprryPico-Inhibited PRIVATE WSPRRY_PICO_GP14_FLASH_PROBE=1)
     set_source_files_properties(../src/provisioning/pico/gp14_flash_probe.cpp PROPERTIES
         COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage")
-    set_property(TARGET WsprryPico APPEND PROPERTY LINK_DEPENDS
+    set_property(TARGET WsprryPico-Inhibited APPEND PROPERTY LINK_DEPENDS
                  ${CMAKE_SOURCE_DIR}/scripts/check_gp14_flash_probe_image.py)
 endif()
 if(WSPRRY_PICO_GP14_RUNTIME_BUTTON AND WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
     message(FATAL_ERROR "GP14 runtime input and the BOOTSEL window diagnostic are separate image modes")
 endif()
 if(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
-    target_compile_definitions(WsprryPico PRIVATE WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC=1
+    target_compile_definitions(WsprryPico-Inhibited PRIVATE WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC=1
         PICO_CORE1_STACK_SIZE=0)
-    target_link_libraries(WsprryPico PRIVATE pico_multicore)
+    target_link_libraries(WsprryPico-Inhibited PRIVATE pico_multicore)
 endif()
 set_source_files_properties(pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp PROPERTIES
     COMPILE_OPTIONS "-Wall;-Wextra;-Werror"
 )
-target_link_libraries(WsprryPico PRIVATE
-    wsprrypico_core
-    pico_stdlib
-    pico_rand
-    pico_time
-    pico_unique_id
-    hardware_flash
-    pico_flash
-    pico_cyw43_arch_lwip_poll
-    tinyusb_device
-)
-
 # The standard RF-inhibited image must have no runtime BOOTSEL sampler or
 # linked core-1 launcher. The explicit diagnostic links only the bounded
 # whole-gesture callback and its core-1 flash reader.
 if(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC)
-    add_custom_command(TARGET WsprryPico POST_BUILD
+    add_custom_command(TARGET WsprryPico-Inhibited POST_BUILD
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py
-                $<TARGET_FILE:WsprryPico> --expect-core1 VERBATIM)
+                $<TARGET_FILE:WsprryPico-Inhibited> --expect-core1 VERBATIM)
 else()
-    add_custom_command(TARGET WsprryPico POST_BUILD
+    add_custom_command(TARGET WsprryPico-Inhibited POST_BUILD
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py
-                $<TARGET_FILE:WsprryPico> VERBATIM)
+                $<TARGET_FILE:WsprryPico-Inhibited> VERBATIM)
 endif()
-set_property(TARGET WsprryPico APPEND PROPERTY LINK_DEPENDS
+set_property(TARGET WsprryPico-Inhibited APPEND PROPERTY LINK_DEPENDS
              ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py)
-
-# Reserve 32 KiB at the top of RP2350 main SRAM for the primary stack.
-# Captive setup enters flash/crypto from an lwIP callback; 16 KiB overflowed
-# during the first physical Wi-Fi setup attempt. The MSPLIM guard still reserves
-# the bottom 4 KiB, leaving 28 KiB usable without overlapping heap or core 1.
-target_link_options(WsprryPico PRIVATE
-    "LINKER:--defsym=RAM_LENGTH=0x78000"
-    "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x20078000"
-    "LINKER:--defsym=SCRATCH_Y_LENGTH=0x8000"
-)
-
-set_target_properties(WsprryPico PROPERTIES
-    C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
-pico_enable_stdio_uart(WsprryPico 0)
-pico_enable_stdio_usb(WsprryPico 0)
-
-pico_set_program_name(WsprryPico "WsprryPico")
-pico_set_program_version(WsprryPico "${WSPRRY_PICO_FIRMWARE_VERSION}")
-pico_set_program_description(WsprryPico "Standalone RF-inhibited ${WSPRRY_PICO_GIT_REVISION}")
-pico_add_extra_outputs(WsprryPico)
 
 # Explicit diagnostic target: no WTP endpoint or UTC claim; boots without a job.
 add_executable(WsprryPico-RFBench EXCLUDE_FROM_ALL
@@ -203,7 +199,7 @@ pico_set_program_version(WsprryPico-RFBench "${WSPRRY_PICO_FIRMWARE_VERSION}")
 pico_set_program_description(WsprryPico-RFBench "GP2 bench ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-RFBench)
 
-# Explicit integration target: real RF remains absent from the default image.
+# Explicit legacy USB-time integration diagnostic, separate from the application.
 add_executable(WsprryPico-RFWTP EXCLUDE_FROM_ALL
     rf_wtp_main.cpp pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp)
 target_include_directories(WsprryPico-RFWTP PRIVATE
@@ -245,49 +241,22 @@ if(WSPRRY_PICO_LED_ACCEPTANCE AND (WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE O
     message(FATAL_ERROR "LED acceptance requires an isolated configuration")
 endif()
 
-# Standalone time and storage integration. WTP and RF bench targets stay separate.
-target_include_directories(WsprryPico PRIVATE ${CMAKE_SOURCE_DIR}/src/standalone/pico)
 set_source_files_properties(../src/standalone/pico/main.cpp ../src/standalone/pico/adapters.cpp
     PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
-add_executable(WsprryPico-StandaloneRF EXCLUDE_FROM_ALL
-    ../src/standalone/pico/main.cpp ../src/standalone/pico/adapters.cpp
-    pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp)
-target_include_directories(WsprryPico-StandaloneRF PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated
-    ${CMAKE_SOURCE_DIR}/src/standalone/pico)
-target_compile_definitions(WsprryPico-StandaloneRF PRIVATE
-    WSPRRY_PICO_STANDALONE_RF=1 PICO_NO_BI_PROGRAM_BUILD_DATE=1 PICO_STACK_SIZE=0x8000
-    WSPRRY_PICO_CONSUMER_LAN_MODE=${WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE}
-    PICO_PANIC_FUNCTION=wsprrypico_panic PICO_CORE1_STACK_SIZE=0)
-target_sources(WsprryPico-StandaloneRF PRIVATE ../src/rf/pico/worker.cpp
-    ../src/standalone/pico/net_trace.cpp)
 if(WSPRRY_PICO_LED_ACCEPTANCE)
-    foreach(image WsprryPico WsprryPico-StandaloneRF)
+    foreach(image IN LISTS wsprry_application_images)
         target_compile_definitions(${image} PRIVATE WSPRRY_PICO_LED_ACCEPTANCE=1
             WSPRRY_PICO_LED_SELECTION=${WSPRRY_PICO_LED_SELECTION})
     endforeach()
 endif()
 if(WSPRRY_PICO_GP14_RF_ACCEPTANCE)
-    target_compile_definitions(WsprryPico-StandaloneRF PRIVATE WSPRRY_PICO_GP14_RF_ACCEPTANCE=1)
+    foreach(image IN LISTS wsprry_rf_images)
+        target_compile_definitions(${image} PRIVATE WSPRRY_PICO_GP14_RF_ACCEPTANCE=1)
+    endforeach()
 endif()
-target_link_libraries(WsprryPico-StandaloneRF PRIVATE
-    wsprrypico_pico_rf pico_rand pico_time pico_unique_id hardware_flash pico_flash pico_multicore
-    pico_cyw43_arch_lwip_poll tinyusb_device)
-set_target_properties(WsprryPico-StandaloneRF PROPERTIES
-    C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
-target_link_options(WsprryPico-StandaloneRF PRIVATE
-    "LINKER:--defsym=RAM_LENGTH=0x78000"
-    "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x20078000"
-    "LINKER:--defsym=SCRATCH_Y_LENGTH=0x8000")
-pico_enable_stdio_uart(WsprryPico-StandaloneRF 0)
-pico_enable_stdio_usb(WsprryPico-StandaloneRF 0)
-pico_set_program_name(WsprryPico-StandaloneRF "WsprryPico-StandaloneRF")
-pico_set_program_version(WsprryPico-StandaloneRF "${WSPRRY_PICO_FIRMWARE_VERSION}")
-pico_set_program_description(WsprryPico-StandaloneRF "Standalone GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
-pico_add_extra_outputs(WsprryPico-StandaloneRF)
 
 if(WSPRRY_PICO_GP14_RUNTIME_BUTTON)
-    foreach(image WsprryPico WsprryPico-StandaloneRF)
+    foreach(image IN LISTS wsprry_application_images)
         target_sources(${image} PRIVATE ../src/provisioning/pico/gp14_capture.cpp)
         target_include_directories(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src)
         target_compile_definitions(${image} PRIVATE WSPRRY_PICO_GP14_RUNTIME_BUTTON=1)
@@ -299,11 +268,13 @@ if(WSPRRY_PICO_GP14_RUNTIME_BUTTON)
     if(WSPRRY_PICO_GP14_RF_ACCEPTANCE)
         list(APPEND gp14_rf_check_args --acceptance)
     endif()
-    add_custom_command(TARGET WsprryPico-StandaloneRF POST_BUILD
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_gp14_rf_image.py
-            $<TARGET_FILE:WsprryPico-StandaloneRF> ${gp14_rf_check_args} VERBATIM)
-    set_property(TARGET WsprryPico-StandaloneRF APPEND PROPERTY LINK_DEPENDS
-        ${CMAKE_SOURCE_DIR}/scripts/check_gp14_rf_image.py)
+    foreach(image IN LISTS wsprry_rf_images)
+        add_custom_command(TARGET ${image} POST_BUILD
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_gp14_rf_image.py
+                $<TARGET_FILE:${image}> ${gp14_rf_check_args} VERBATIM)
+        set_property(TARGET ${image} APPEND PROPERTY LINK_DEPENDS
+            ${CMAKE_SOURCE_DIR}/scripts/check_gp14_rf_image.py)
+    endforeach()
     set_source_files_properties(../src/provisioning/pico/gp14_capture.cpp PROPERTIES
         COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
 endif()
@@ -352,7 +323,7 @@ if(WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC)
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_gp14_button_image.py
                 $<TARGET_FILE:WsprryPico-GP14ButtonDiag> VERBATIM)
 endif()
-foreach(image WsprryPico WsprryPico-StandaloneRF)
+foreach(image IN LISTS wsprry_application_images)
     target_sources(${image} PRIVATE ${CMAKE_SOURCE_DIR}/src/provisioning/pico/bootsel_sampler.cpp
         ${CMAKE_SOURCE_DIR}/src/runtime/pico/heap_metrics.c
         ${CMAKE_SOURCE_DIR}/src/runtime/pico/stack_guard.c)
@@ -373,6 +344,20 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
     foreach(function _malloc_r _calloc_r _realloc_r _free_r mallinfo)
         target_link_options(${image} PRIVATE "LINKER:--wrap=${function}")
     endforeach()
+    if(image IN_LIST wsprry_rf_images)
+        set(application_engine rf)
+    else()
+        set(application_engine inhibited)
+    endif()
+    add_custom_command(TARGET ${image} POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_application_image.py
+                $<TARGET_FILE:${image}> --expect ${application_engine}
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_standalone_image.py
+                $<TARGET_FILE:${image}> VERBATIM)
+    set_property(TARGET ${image} APPEND PROPERTY LINK_DEPENDS
+        ${CMAKE_SOURCE_DIR}/scripts/check_application_image.py
+        ${CMAKE_SOURCE_DIR}/scripts/check_standalone_image.py
+        ${CMAKE_SOURCE_DIR}/scripts/check_endpoint_image.py)
     add_custom_command(TARGET ${image} POST_BUILD
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_btstack_pool_hooks.py
                 $<TARGET_FILE:${image}> VERBATIM)
@@ -383,8 +368,8 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
                 $<TARGET_FILE:${image}> VERBATIM)
     set_property(TARGET ${image} APPEND PROPERTY LINK_DEPENDS
                  ${CMAKE_SOURCE_DIR}/scripts/check_heap_hooks.py)
-    if(image STREQUAL "WsprryPico-StandaloneRF" OR
-       (image STREQUAL "WsprryPico" AND WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC))
+    if(image IN_LIST wsprry_rf_images OR
+       (image STREQUAL "WsprryPico-Inhibited" AND WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC))
         set(stack_guard_arguments --physical)
     else()
         set(stack_guard_arguments)
@@ -403,12 +388,15 @@ if(WSPRRY_PICO_RF_RENDER_IN_RAM)
 else()
     set(rf_renderer_placement flash)
 endif()
-add_custom_command(TARGET WsprryPico-StandaloneRF POST_BUILD
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_rf_renderer.py
-            $<TARGET_FILE:WsprryPico-StandaloneRF> --expect ${rf_renderer_placement}
-    VERBATIM)
-set_property(TARGET WsprryPico-StandaloneRF APPEND PROPERTY LINK_DEPENDS
-             ${CMAKE_SOURCE_DIR}/scripts/check_rf_renderer.py)
+foreach(image IN LISTS wsprry_rf_images)
+    add_custom_command(TARGET ${image} POST_BUILD
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_rf_renderer.py
+                $<TARGET_FILE:${image}> --expect ${rf_renderer_placement}
+        VERBATIM)
+    set_property(TARGET ${image} APPEND PROPERTY LINK_DEPENDS
+                 ${CMAKE_SOURCE_DIR}/scripts/check_rf_renderer.py)
+
+endforeach()
 
 # Reserve the access journal, SDK BTstack bank, all remaining journals and the RP2350-E10 boot
 # sector on every maintained image. PICO_FLASH_SIZE_BYTES retains the physical
@@ -420,7 +408,7 @@ function(wsprry_configure_flash_layout image)
     target_compile_definitions(${image} PRIVATE
         PICO_FLASH_BANK_STORAGE_OFFSET=${WSPRRY_PICO_BTSTACK_FLASH_OFFSET}
         PICO_FLASH_BANK_TOTAL_SIZE=${WSPRRY_PICO_BTSTACK_FLASH_SIZE})
-    if(image STREQUAL "WsprryPico" AND WSPRRY_PICO_GP14_FLASH_PROBE)
+    if(image STREQUAL "WsprryPico-Inhibited" AND WSPRRY_PICO_GP14_FLASH_PROBE)
         pico_add_linker_script_override_path(${image}
             ${CMAKE_SOURCE_DIR}/cmake/gp14_robustness_link FILES memory_flash.incl)
     else()
@@ -428,7 +416,7 @@ function(wsprry_configure_flash_layout image)
             ${CMAKE_SOURCE_DIR}/cmake/standalone_link FILES memory_flash.incl)
     endif()
 endfunction()
-foreach(image WsprryPico WsprryPico-RFBench WsprryPico-RFWTP WsprryPico-StandaloneRF
+foreach(image ${wsprry_application_images} WsprryPico-RFBench WsprryPico-RFWTP
               rf_driver_linkcheck)
     wsprry_configure_flash_layout(${image})
 endforeach()
@@ -491,7 +479,7 @@ if(TARGET pico_btstack_ble AND TARGET pico_btstack_cyw43)
 
     # Both maintained standalone variants use this common main and the single
     # CYW43 owner. Bench/diagnostic images retain their separate dependencies.
-    foreach(image WsprryPico WsprryPico-StandaloneRF)
+    foreach(image IN LISTS wsprry_application_images)
         target_sources(${image} PRIVATE
             ${CMAKE_SOURCE_DIR}/src/network/pico/bootstrap_crypto.cpp
             ${CMAKE_SOURCE_DIR}/src/network/pico/recovery_crypto.cpp
@@ -557,7 +545,7 @@ set_source_files_properties(
     ${PICO_LWIP_PATH}/src/apps/mdns/mdns_domain.c
     ${PICO_LWIP_PATH}/src/apps/mdns/mdns_out.c
     PROPERTIES COMPILE_OPTIONS "-fstack-usage")
-foreach(image WsprryPico WsprryPico-StandaloneRF)
+foreach(image IN LISTS wsprry_application_images)
     target_sources(${image} PRIVATE
         ${CMAKE_SOURCE_DIR}/src/standalone/pico/mdns_lwip.c
         ${PICO_LWIP_PATH}/src/apps/mdns/mdns_domain.c
@@ -567,7 +555,7 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
 endforeach()
 
 # The common bootstrap adapter uses these reset-surviving shutdown breadcrumbs.
-foreach(image WsprryPico WsprryPico-StandaloneRF)
+foreach(image IN LISTS wsprry_application_images)
     target_sources(${image} PRIVATE ../src/standalone/pico/shutdown_trace.cpp)
     foreach(operation cyw43_cb_tcpip_deinit dhcp_stop netif_remove igmp_stop
                       cyw43_wifi_update_multicast_filter cyw43_wifi_leave)
@@ -579,9 +567,9 @@ set_source_files_properties(../src/standalone/pico/shutdown_trace.cpp PROPERTIES
 
 if(WSPRRY_PICO_GP14_FLASH_PROBE)
     # Run after pico_add_extra_outputs has generated the UF2 to inspect.
-    add_custom_command(TARGET WsprryPico POST_BUILD
+    add_custom_command(TARGET WsprryPico-Inhibited POST_BUILD
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_gp14_flash_probe_image.py
-                $<TARGET_FILE:WsprryPico> VERBATIM)
+                $<TARGET_FILE:WsprryPico-Inhibited> VERBATIM)
 endif()
 
 # Standalone unattended capture campaign. No network/RF/settings adapter is linked.
@@ -653,4 +641,21 @@ if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0" AND
     WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC OR WSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG OR
     WSPRRY_PICO_GP14_ROBUSTNESS OR WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE))
     message(FATAL_ERROR "Phase12 fault fixture requires an isolated inhibited configuration")
+endif()
+
+# Do not let a stale caller silently build an RF image in an inhibited-only
+# experiment. Explicit inhibited builds still work; ordinary all/RF requests fail
+# before linking. This also protects a reconfigured directory with old artifacts.
+if(WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE OR
+   NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0" OR
+   WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE OR
+   WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE OR
+   WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC OR WSPRRY_PICO_GP14_FLASH_PROBE)
+    add_custom_target(wsprry_inhibited_fixture_rf_refusal
+        COMMAND ${CMAKE_COMMAND} -E echo
+            "Inhibited-only fixture: explicitly build WsprryPico-Inhibited; RF targets are unavailable"
+        COMMAND ${CMAKE_COMMAND} -E false VERBATIM)
+    foreach(image ${wsprry_rf_images} WsprryPico-RFBench WsprryPico-RFWTP)
+        add_dependencies(${image} wsprry_inhibited_fixture_rf_refusal)
+    endforeach()
 endif()

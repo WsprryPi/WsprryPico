@@ -190,6 +190,8 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_test(NAME application_image_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/application_image_tests.py)
     add_executable(usb_local_management_tests tests/usb_local_management_tests.cpp)
     target_link_libraries(usb_local_management_tests PRIVATE wsprrypico_core)
     target_compile_options(usb_local_management_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)

@@ -40,7 +40,7 @@ def run(request):
     require(re.fullmatch('/home/pi/phase12-recovery-[0-9a-f]{32}',str(root)) and root.is_dir() and not root.is_symlink(),'private root')
     manifest_raw=private_bytes(root/'manifest.json',262144);require(hashlib.sha256(manifest_raw).hexdigest()==request['manifest_sha256'],'manifest binding');manifest=strict(manifest_raw)
     c=next(c for c in manifest['candidates'] if c['role']=='restore');image=private_bytes(root/'consumer_trace.uf2',4194304);validate_uf2(image)
-    require(manifest['source_commit']==request['source_commit'] and c['revision']==request['source_commit'][:12] and c['target']=='WsprryPico' and c['gp14'] is False and c['fault_stage']==0 and c['session_deadline_fixture'] is False and c['lan_mode']=='plain' and hashlib.sha256(image).hexdigest()==c['uf2']['sha256'],'ordinary exact image/source')
+    require(manifest['source_commit']==request['source_commit'] and c['revision']==request['source_commit'][:12] and c['target']=='WsprryPico-Inhibited' and c['gp14'] is False and c['fault_stage']==0 and c['session_deadline_fixture'] is False and c['lan_mode']=='plain' and hashlib.sha256(image).hexdigest()==c['uf2']['sha256'],'ordinary exact image/source')
     case=request.get('busy_state');require(case in (None,'loaded','armed','running'),'named case');label='consumer-busy-'+case if case else 'consumer-flash-status';evidence=Evidence(root/(label+'-wire.jsonl'));con=RawConsole(evidence);end=time.monotonic()+(100 if case else 240);before=identity();routes=management()[1];stream=None;peer=None;created=False
     evidence.record('fixture_radio_roles',roles=roles)
     name='p12-observer-'+root.name.rsplit('-',1)[1];ssid='WsprryPico-'+request['suffix'];require(re.fullmatch('WsprryPico-[0-9a-f]{6}',ssid),'exact AP suffix')

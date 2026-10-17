@@ -104,7 +104,8 @@ application parity is not claimed.
 The hardware-free RF study selects PIO/DMA GPIO synthesis for experimental
 implementation; an optional Si5351 engine remains an alternative. A portable
 generator, PIO/DMA driver and local launch integration are host-tested and
-Arm-cross-linked, but are not selected by the standard Pico firmware. The
+Arm-cross-linked. The standard Pico firmware selects the complete PIO/DMA
+application; `WsprryPico-Inhibited` explicitly selects the simulator. The
 separate [bench image](docs/development/rf-bench.md) has bounded CPU and conducted
 tone evidence from the Pico and the SDR on wspr5. Its relative monotonic timer
 is explicitly unsynchronized; it does not claim WTP timing conformance.
@@ -112,17 +113,21 @@ The [conducted PIO campaign](docs/development/band-campaign-results.md) records
 bounded operational results for an exact experimental image, clock and RF path.
 These do not establish production band coverage, calibrated RF performance or
 general WTP compliance.
-The Pico 2 W firmware provides an RF-inhibited WTP USB endpoint with separate
-Console and WTP CDC interfaces. Its protocol, service, transport and descriptor
+The Pico 2 W application provides separate Console, WTP and management/time
+CDC interfaces in both normal and inhibited variants. Its protocol, service,
+transport and descriptor
 behavior is hardware-free host-tested. [Bounded target USB checks](docs/development/usb-target-validation.md)
 pass for the recorded board, firmware and host; general USB/WTP conformance,
 timing and RF behavior remain unqualified.
 
 The [standalone layer](docs/development/standalone.md) now persists station and
 schedule configuration and acquires UTC through Wi-Fi SNTP, with complete jobs
-submitted through the same service as USB WTP. The standard image simulates
-local job lifecycles with RF inhibited; the explicitly built standalone RF image
-uses the experimental engine. [Inhibited target Wi-Fi validation](docs/development/standalone-physical-validation.md)
+submitted through the same service as USB WTP. The standard `WsprryPico` image
+uses the existing 138 MHz PIO/DMA engine;
+explicit `WsprryPico-Inhibited` simulates local job lifecycles without RF.
+`WsprryPico-StandaloneRF` remains a compatible explicit RF target. RF capability
+preserves saved enablement, timing, ownership, frequency and output admission.
+[Inhibited target Wi-Fi validation](docs/development/standalone-physical-validation.md)
 covers configuration retention, autonomous SNTP and outage/reconnection.
 [Bounded standalone RF and wall-power validation](docs/development/standalone-rf-power-validation.md)
 adds independent decoding of recurring frames without a USB host on the recorded
@@ -153,7 +158,8 @@ confidentiality claim.
 
 Production SoftAP DHCP/mDNS/HTTP/HTTPS, password/cookie admission,
 controller-time and browser/local control are now wired to the same
-`JobService` in the RF-inhibited standard image. SoftAP credential
+`JobService` in both normal and explicit inhibited application variants. SoftAP
+credential
 provisioning, reset administration, gestures and offline-page qualification
 have selected acceptance in the current Phase 12 matrix. The earlier
 provisioned SoftAP checkpoint had

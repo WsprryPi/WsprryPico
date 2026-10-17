@@ -1,6 +1,6 @@
 # USB-Management/1
 
-This versioned local USB adapter is separate from WTP/1. Normal inhibited and
+This versioned local USB adapter is separate from WTP/1. Normal RF-capable, explicit inhibited and compatibility
 StandaloneRF images expose Console CDC instance/control interface 0/0, WTP 1/2
 and management 2/4. Console/WTP endpoint numbers and framing are unchanged.
 Management uses notification/OUT/IN endpoints `85/06/86`. The existing

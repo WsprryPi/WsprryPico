@@ -306,7 +306,7 @@ class TrancheTests(unittest.TestCase):
             for role,payload in [('A',base),('B',base),('C',cp)]:
                 path=root/(role+'.json');path.write_bytes(payload)
                 principals[role]=dict(profile_path=str(path),profile_sha256=hashlib.sha256(payload).hexdigest(),server_sha256=role.lower()*64)
-            candidates=[dict(role='engineering',target='WsprryPico',uf2=dict(sha256='e'*64))]+[dict(role='fault_'+str(n),target='WsprryPico',uf2=dict(sha256='f'*64)) for n in (8,9,10)]
+            candidates=[dict(role='engineering',target='WsprryPico-Inhibited',uf2=dict(sha256='e'*64))]+[dict(role='fault_'+str(n),target='WsprryPico-Inhibited',uf2=dict(sha256='f'*64)) for n in (8,9,10)]
             helper_tree=ast.parse((Path(__file__).resolve().parents[1]/'scripts/phase12_recovery_device.py').read_text())
             helper_main=next(n for n in helper_tree.body if isinstance(n,ast.FunctionDef) and n.name=='main')
             artifact_guard=next(n for n in helper_main.body if isinstance(n,ast.For) and isinstance(n.target,ast.Name) and n.target.id=='name')
@@ -368,7 +368,7 @@ class DispatchTests(unittest.TestCase):
                 def is_symlink(self):return False
                 def __truediv__(self,name):return actual/name
             root=Root();image=b'bounded dispatcher admission fixture'
-            manifest=dict(source_commit='a'*40,candidates=[dict(role='engineering',target='WsprryPico',
+            manifest=dict(source_commit='a'*40,candidates=[dict(role='engineering',target='WsprryPico-Inhibited',
                 fault_stage=0,lan_mode='tls',uf2=dict(sha256=hashlib.sha256(image).hexdigest()))])
             manifest_raw=json.dumps(manifest).encode();payload=bytes(setup.payload)
             files={'preparation-manifest.json':manifest_raw,'engineering.uf2':image,'engineering-profile-B.json':payload}
@@ -519,7 +519,7 @@ class DispatchTests(unittest.TestCase):
                 def __truediv__(self,name):return actual/name
             for stage in (0,8,9,10):
                 role='engineering' if stage==0 else 'fault_'+str(stage);image=b'bounded dummy image'
-                candidate=dict(role=role,target='WsprryPico',fault_stage=stage,lan_mode='tls' if stage==0 else 'plain',uf2=dict(sha256=hashlib.sha256(image).hexdigest()))
+                candidate=dict(role=role,target='WsprryPico-Inhibited',fault_stage=stage,lan_mode='tls' if stage==0 else 'plain',uf2=dict(sha256=hashlib.sha256(image).hexdigest()))
                 manifest=dict(source_commit='a'*40,candidates=[candidate]);manifest_raw=json.dumps(manifest).encode()
                 for name,data in [('preparation-manifest.json',manifest_raw),(role+'.uf2',image)]:
                     path=actual/name;path.write_bytes(data);path.chmod(0o600)
@@ -627,8 +627,8 @@ class StimuliTrancheTests(unittest.TestCase):
             for role,payload in profiles.items():
                 path=root/(role+'.json');path.write_bytes(payload)
                 principals[role]=dict(profile_path=str(path),profile_sha256=hashlib.sha256(payload).hexdigest(),server_sha256=role.lower()*64)
-            candidates=[dict(role='engineering',target='WsprryPico',uf2=dict(sha256='e'*64))]+[
-                dict(role='fault_'+str(stage),target='WsprryPico',uf2=dict(sha256='f'*64)) for stage in (8,9,10)]
+            candidates=[dict(role='engineering',target='WsprryPico-Inhibited',uf2=dict(sha256='e'*64))]+[
+                dict(role='fault_'+str(stage),target='WsprryPico-Inhibited',uf2=dict(sha256='f'*64)) for stage in (8,9,10)]
             calls=[];applies=[];events=[];saved=[]
             class Backend:
                 remote='/home/pi/phase12-recovery-'+('1'*32)

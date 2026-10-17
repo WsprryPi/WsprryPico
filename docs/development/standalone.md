@@ -13,17 +13,20 @@ final functional bench slice.
 
 ## Images and shared service
 
-The standard `WsprryPico` image now includes persistent configuration, autonomous
-Wi-Fi SNTP and an inhibited local lifecycle simulator. It never enables the RF
-output. The simulator permits foreground observation of a scheduled start within
-the configured uncertainty; its completion is a software diagnostic, not evidence
-of physical timing. It advertises `inhibited-standalone-simulator`.
+The standard `WsprryPico` image includes persistent configuration, autonomous
+Wi-Fi SNTP, USB management/time and the existing 138 MHz PIO/DMA GP2 RF engine.
+It advertises `pio-dma-gp2`. RF capability does not itself enable transmission;
+saved configuration and all ownership, timing, frequency and output guards apply.
+The explicit compatibility target `WsprryPico-StandaloneRF` uses the same wiring.
 
-Explicit target `WsprryPico-StandaloneRF` uses the existing experimental (default 138 MHz)
-PIO/DMA GP2 engine. Only that image joins persistent schedules to physical RF.
-It advertises `pio-dma-gp2`; both images now expose finite `wspr`, `tone`, `qrss`,
-`fskcw` and `dfcw` host jobs using the shared experimental profile: 162 events,
-110.592 seconds, and 100 kHz through one Hz below half the selected sample rate.
+Explicit `WsprryPico-Inhibited` selects the local lifecycle simulator. It never
+enables RF output, reports `inhibited-standalone-simulator`, and its linked image
+is checked for absence of the physical engine/worker. Simulated starts and
+completions do not establish physical timing. Both variants expose finite
+`wspr`, `tone`, `qrss`, `fskcw` and `dfcw` jobs with the existing 512-event,
+3600-second capacity, 100 kHz through one Hz below half the selected sample rate.
+See [build commands and target selection](firmware-foundation.md) and the
+[P15.16 acceptance record](phase15-16-results.md).
 Autonomous schedules use the build-selected whole-Hz base frequency
 `WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ`, which defaults to the existing
 3,570,100 Hz profile. `STATUS` reports the selected base in nanohertz so a

@@ -1,5 +1,10 @@
 # Development baseline
 
+The [P15.16 default-build record](phase15-16-results.md) tracks the normal
+RF-capable firmware default and explicit `WsprryPico-Inhibited` diagnostic.
+The target change preserves accepted USB/drive configuration and does not
+refresh physical RF qualification.
+
 [Production USB control](usb-control-results.md) adds ordinary-firmware USB
 management/time, common-hostname presentation, complete saved Wi-Fi lifecycle
 and a hard ten-minute AP lifetime for every entry path. It preserves WTP/1 and
@@ -19,7 +24,8 @@ band/mode/clock qualification. After USB acceptance, deliver
 [P15.18 USB installer](phase15-18-execution-prompt.md),
 [P15.19 Impeccable web UI review including provisioning](phase15-19-execution-prompt.md),
 and P15.20 user documentation.
-P15.15 is complete within its recorded scope; P15.16–P15.20 have not started.
+P15.15 and P15.16 are complete within their recorded scopes.
+P15.17–P15.20 have not started.
 The [GPIO drive software record](phase15-15-results.md) and
 [hardware acceptance](phase15-15-hardware-results.md) distinguish software,
 actual pad/USB/lifecycle observations and bounded conducted results. Numerical
@@ -27,7 +33,7 @@ in-span energy observations remain nonblocking under explicit operator direction
 The P15.19 review precedes final operator instructions and screenshots. Installer planning is recorded in
 "Assess WsprryPico installer options". P15.1–P15.14 retain their numbers;
 historical record titles and executed prompt filenames are unchanged. The
-unexecuted default-build prompt has moved to P15.16. See the
+default-build prompt moved to P15.16 and is now executed. See the
 [complete list and saved/pending prompt index](phase15-prompt-index.md) and
 [P15.15 prompt assessment](phase15-15-prompt-review.md). Saving these prompts
 does not execute the features or publish the prerelease.
@@ -283,10 +289,16 @@ default enablement remains a separate deferred decision.
 
 On macOS, run `bash scripts/check_host.sh` from the repository root for host
 configure, build and CTest. It selects full Xcode for the test subprocesses.
-For an RF-inhibited Pico build, set `PICO_SDK_PATH` to the locally retained
+For a normal RF-capable Pico build, set `PICO_SDK_PATH` to the locally retained
 pinned SDK 2.3.1 checkout and run `bash scripts/build_pico.sh`; the script uses
 the same Xcode host tools for SDK helper builds and the pinned Arm compiler for
 firmware. It requires an already populated local picotool source tree.
+Select the diagnostic application with `bash scripts/build_pico.sh WsprryPico-Inhibited`.
+Both helper selections accept an optional fresh build directory as a second
+argument. Ordinary firmware `all` and `pico2-w` also select the normal application;
+`cmake --build build/pico2-w --target WsprryPico-Inhibited` explicitly builds the
+inhibited variant. See [P15.16 acceptance](phase15-16-results.md) for validation,
+compatibility-target naming, fixture transitions and physical limits.
 
 The phone-assisted continuation now has a host-tested fresh-password profile
 step-up bound to the exact staged digest, apply request and generation. The

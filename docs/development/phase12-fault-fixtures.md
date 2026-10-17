@@ -10,7 +10,11 @@ backup and independently verified restoration.
 
 The firmware CMake cache variable `WSPRRY_PICO_PHASE12_FAULT_STAGE` defaults to
 `0` (absent). Values `1` through `10` select exactly one stage at build time.
-Only `WsprryPico` receives the source and macro; `WsprryPico-StandaloneRF` never
+Since P15.16, build the fixture with `cmake --build <build-dir> --target WsprryPico-Inhibited`.
+RF target/all requests fail in an inhibited-only fixture configuration.
+Historical artifacts retain their original target names.
+
+Only explicit `WsprryPico-Inhibited` receives the source and macro; RF targets never
 receives them. The fixture translation unit refuses compilation unless physical
 RF is disabled. Use the pinned SDK/toolchain and offline dependency import
 recorded in the parent test-preparation packet. Build in a separate directory;

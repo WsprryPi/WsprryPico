@@ -2,7 +2,7 @@
 
 WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the WsprryPi family. It targets Raspberry Pi Pico family hardware, with Pico 2 W / RP2350 as the defined hardware target, and also serves as a hardware transmitter backend for WsprryPi.
 
-The normal inhibited and StandaloneRF firmware now support USB WTP plus a
+The normal RF-capable and explicit inhibited firmware support USB WTP plus a
 separate [USB management/time interface](docs/protocol/USB-Management.md).
 WsprryPi can identify the Pico by its configured `.local` hostname, configure
 it, create/replace/remove its saved Wi-Fi connection and supply qualified UTC
@@ -46,11 +46,11 @@ source/coverage/adversarial acceptance. See the closeout ledger for exact
 source/image identities, Git parity, evidence locations and retained limits.
 See the [current closeout ledger](docs/development/phase14-closeout-ledger.md)
 and [final assertion audit](docs/development/phase14-final-audit.md).
-The development milestones and build-default descriptions below retain their
-historical scopes.
+The development milestones below retain their historical scopes. Current firmware
+build selection is documented in the [P15.16 record](docs/development/phase15-16-results.md).
 
-Status: normative WTP/1 contract, host-tested portable core, and an RF-inhibited
-Pico 2 W WTP USB endpoint. [Bounded target USB validation](docs/development/usb-target-validation.md)
+Status: normative WTP/1 contract, host-tested portable core, and a normal
+RF-capable Pico 2 W application with an explicitly selected inhibited variant. [Bounded target USB validation](docs/development/usb-target-validation.md)
 passes on the recorded board and Mac. The experimental GP2 PIO/DMA driver,
 portable waveform generator and local launch integration are host-tested and
 Arm-cross-linked. A separate [RF bench](docs/development/rf-bench.md) now runs
@@ -63,7 +63,7 @@ independently from wspr5 captures. Optional RF warmup improves measured settling
 The measured close-in sidebands meet the operator's better-than-WsprryPi benchmark.
 An explicit [UTC/RF WTP integration image](docs/development/utc-rf-job-validation.md)
 has completed a future-scheduled job and independent conducted decode. The
-standard firmware retains RF inhibition. [Standalone configuration and timing](docs/development/standalone.md)
+standard firmware now selects the complete 138 MHz PIO/DMA application. [Standalone configuration and timing](docs/development/standalone.md)
 now provide persistent station/schedules, Wi-Fi SNTP and host-tested autonomous
 job submission. [Inhibited Wi-Fi bench validation](docs/development/standalone-physical-validation.md)
 adds device time acquisition, persistence and outage recovery.

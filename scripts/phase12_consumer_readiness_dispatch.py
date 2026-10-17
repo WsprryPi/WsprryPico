@@ -38,7 +38,7 @@ def run(request):
     manifest=strict(manifest_raw);candidate=next(c for c in manifest['candidates'] if c['role']=='restore')
     image=private_bytes(root/'restore.uf2',4194304);validate_uf2(image)
     require(manifest['source_commit']==request['source_commit'] and candidate['revision']==request['source_commit'][:12] and
-            candidate['target']=='WsprryPico' and candidate['fault_stage']==0 and candidate['gp14'] is False and
+            candidate['target']=='WsprryPico-Inhibited' and candidate['fault_stage']==0 and candidate['gp14'] is False and
             candidate['session_deadline_fixture'] is False and candidate['lan_mode']=='plain' and
             hashlib.sha256(image).hexdigest()==candidate['uf2']['sha256'],'ordinary inhibited image binding')
     network=load_network(root,request)

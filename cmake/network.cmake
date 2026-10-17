@@ -39,7 +39,7 @@ endif()
 configure_file(${CMAKE_SOURCE_DIR}/cmake/network_credentials.hpp.in
                ${CMAKE_CURRENT_BINARY_DIR}/generated/network_credentials.hpp @ONLY)
 file(CHMOD ${CMAKE_CURRENT_BINARY_DIR}/generated/network_credentials.hpp PERMISSIONS OWNER_READ OWNER_WRITE)
-foreach(image WsprryPico WsprryPico-StandaloneRF)
+foreach(image IN LISTS wsprry_application_images)
     target_sources(${image} PRIVATE
         ${CMAKE_SOURCE_DIR}/src/network/pico/psa_lifetime.cpp
         ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp
@@ -53,7 +53,7 @@ foreach(image WsprryPico WsprryPico-StandaloneRF)
 endforeach()
 
 # Both images share these adapters; RF setup admission requires verified shutdown.
-foreach(image WsprryPico WsprryPico-StandaloneRF)
+foreach(image IN LISTS wsprry_application_images)
     target_sources(${image} PRIVATE
         ${PICO_MBEDTLS_PATH}/library/x509write.c
         ${CMAKE_SOURCE_DIR}/src/provisioning/pico/consumer_claim_platform.cpp

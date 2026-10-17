@@ -498,7 +498,7 @@ def main():
     manifest = read_json(args.manifest)
     verify(manifest, args.artifact_root)
     candidate = next(c for c in manifest['candidates'] if c['role'] == args.role)
-    require(candidate['target'] == 'WsprryPico' and candidate['lan_mode'] == 'plain' and
+    require(candidate['target'] == 'WsprryPico-Inhibited' and candidate['lan_mode'] == 'plain' and
             candidate['fault_stage'] == 0, 'ordinary inhibited plain candidate')
     require(re.fullmatch(r'[0-9a-f]{32}', args.boot_id) is not None, 'exact boot id')
     ip = ipaddress.IPv4Address(args.address)
@@ -521,7 +521,7 @@ def run_device(candidate, manifest, address, boot_id, evidence_path, observe_inf
     """
     require(candidate in manifest['candidates'], 'candidate manifest binding')
     require(candidate['role'] in ('consumer', 'restore') and
-            candidate['target'] == 'WsprryPico' and candidate['lan_mode'] == 'plain' and
+            candidate['target'] == 'WsprryPico-Inhibited' and candidate['lan_mode'] == 'plain' and
             candidate['fault_stage'] == 0, 'ordinary inhibited plain candidate')
     require(re.fullmatch(r'[0-9a-f]{40}', manifest['source_commit']) is not None,
             'exact source commit')

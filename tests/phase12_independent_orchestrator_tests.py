@@ -24,7 +24,7 @@ class Backend:
 
 class Tests(unittest.TestCase):
     def candidate(self,source):
-        return dict(role='restore',fault_stage=0,session_deadline_fixture=False,target='WsprryPico',
+        return dict(role='restore',fault_stage=0,session_deadline_fixture=False,target='WsprryPico-Inhibited',
             lan_mode='plain',gp14=False,revision=source[:12],uf2=dict(path='ordinary.uf2',sha256='c'*64),map=dict(path='ordinary.map'))
     def test_exercise_full_manifest_validation_and_source_binding(self):
         base=dict(source_commit='a'*40,candidates=[self.candidate('a'*40)])
