@@ -2,7 +2,7 @@
 
 WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the WsprryPi family. It targets Raspberry Pi Pico family hardware, with Pico 2 W / RP2350 as the defined hardware target, and also serves as a hardware transmitter backend for WsprryPi.
 
-The [P15.10 execution record](docs/development/phase15-8-wspr-type23.md) tracks
+The [P15.8 execution record](docs/development/phase15-8-wspr-type23.md) tracks
 portable automatic WSPR Type 1/2/3 planning, adjacent-window pairs and explicit
 versioned management support. Ordinary calls retain saved-six/on-air-four
 Type 1 behavior. Receiver ambiguity/context and physical RF acceptance remain
@@ -64,7 +64,7 @@ under the required reliable-WSPR gate; native direct 2 m is **Unavailable**.
 The failed manually mapped 2 m harmonic pilots remain Unqualified evidence.
 The [band/mode catalog](docs/development/phase14-band-mode-qualification.md)
 retains the 13 historical Qualified bands and the separate
-[P15.15 point-scoped results](docs/development/phase15-13-results.md) for 8 m/5 m
+[P15.13 point-scoped results](docs/development/phase15-13-results.md) for 8 m/5 m
 on Pico A at normal 138 MHz, with explicit receiver and admission conditions.
 Phase 14 is complete within its declared scope.
 The application source now has persisted, default-off

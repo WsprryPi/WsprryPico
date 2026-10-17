@@ -152,14 +152,14 @@ No Phase 14 workstream or LED task remains open.
     remote parity verification. The [band/mode catalog](development/phase14-band-mode-qualification.md)
     records 4 m as Unqualified under the all-mode gate and native direct 2 m
     as Unavailable; 8 m/5 m were outside that historical matrix. Their later
-    [P15.15 point-scoped qualification](development/phase15-13-results.md) is separate.
+    [P15.13 point-scoped qualification](development/phase15-13-results.md) is separate.
     Filtering, calibrated power/absolute RF timing,
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
 15. **Open — operator review punchlist:** sixteen items are tracked: thirteen
-    complete, USB control (P15.4) in progress, Installer (P15.5) under discussion,
+    complete, USB control (P15.14) in progress, Installer (P15.15) under discussion,
     and user documentation (P15.16) not started. The operator confirmed
-    WsprryPi item 15/P15.11 complete on 2026-10-17. See the
+    WsprryPi item 15/P15.9 complete on 2026-10-17. See the
     [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
 ## Selected consumer LAN access slice
@@ -236,13 +236,14 @@ Created 2026-10-15 to collect operator review findings and requested
 improvements. Record implementation, validation and operator acceptance against
 each item as it is completed. Earlier phase closures retain their recorded scope.
 
-Numbering revised 2026-10-17: USB control and Installer were inserted after
-P15.3 as P15.4 and P15.5. Former P15.4–P15.14 are now P15.6–P15.16.
-Historical acceptance records, source identities, external checklists and file
-names retain their original numbering; current punchlist references and index
-labels use the revised numbering. Existing evidence links are unchanged.
+Numbering revised 2026-10-17: USB control (P15.14) and Installer (P15.15)
+follow band/mode/clock qualification (P15.13) and precede user documentation
+(P15.16). P15.1–P15.13 retain their original numbers; user documentation was
+formerly P15.14. Historical acceptance records, source identities, external
+checklists and filenames retain their original numbering. Existing evidence
+links are unchanged.
 
-P15.1–P15.3 and P15.6–P15.15 are complete. USB control is in progress in
+P15.1–P15.13 are complete. USB control is in progress in
 "BLE & USB Control Status"; its execution prompt is generated and about to run.
 Installer options are under discussion in "Assess WsprryPico installer options".
 P15.16 user documentation has not started. These additions preserve the completed
@@ -250,7 +251,7 @@ items and their recorded evidence.
 
 Later changes must extend the P15.2 compatibility coverage for affected supported
 pairs. Finalize P15.16 against the delivered USB control, installer, application
-and settings behavior and P15.15's recorded band/mode/clock support dispositions.
+and settings behavior and P15.13's recorded band/mode/clock support dispositions.
 WTP job control and JSON configuration management retain their separate contracts
 and shared local transmitter authority.
 
@@ -304,13 +305,7 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   review and repair. Physical, installed-service and unrestricted security
   qualification remain outside this closure; final operator documentation is
   P15.16.
-- ⏳ **P15.4 — USB control.** The execution prompt is generated and work is
-  about to run in "BLE & USB Control Status". Status: in progress; implementation
-  and acceptance results will be recorded as that work completes.
-- 💬 **P15.5 — Installer.** Installer options and scope are being discussed in
-  "Assess WsprryPico installer options". Status: under discussion; implementation
-  has not started.
-- ✅ **P15.6 — Adopt shared application, station and hardware resources.**
+- ✅ **P15.4 — Adopt shared application, station and hardware resources.**
   Pi now consumes the existing application, station, hardware and pin resources
   through protected member routes, its runtime coordinator and P15.3 engineering
   mTLS/consumer station/AP management. Explicit complete station/hardware saves
@@ -324,9 +319,9 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   [recorded software acceptance](development/phase15-4-shared-resources.md).
   Physical, installed-service and unrestricted security qualification remain
   separate; operator documentation is P15.16. No later roadmap work is included.
-- ✅ **P15.7 — Add multi-threaded web service.** Support concurrent web
+- ✅ **P15.5 — Add multi-threaded web service.** Support concurrent web
   requests from the operator's phone and Mac without one client's connection
-  blocking or locking out the other. Coordinate with P15.8 so both clients can
+  blocking or locking out the other. Coordinate with P15.6 so both clients can
   remain authenticated and usable simultaneously. Define bounded thread/task
   resources and synchronization while preserving local RF timing and shared
   transmitter ownership. Retain serialized configuration commits and revision
@@ -337,10 +332,10 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   [recorded software acceptance](development/phase15-5-concurrent-web-service.md)
   after adversarial repair, 189/189 host groups, affected sanitizers and both
   RP2350 cross-links. Physical phone/Mac contention and RF qualification remain
-  separate. Simultaneous authenticated sessions remain P15.8. See the
+  separate. Simultaneous authenticated sessions remain P15.6. See the
   [executed prompt](development/phase15-5-execution-prompt.md). Published
   implementation: `9cf5ba2`; acceptance/checklist closure: `62b33d9`.
-- ✅ **P15.8 — Support multiple simultaneous login sessions (software scope).**
+- ✅ **P15.6 — Support multiple simultaneous login sessions (software scope).**
   Three independent consumer sessions support phone, Mac and native Pi, with at
   most one pending login among those three. Logout, expiry, context invalidation,
   keys and delivery completion are isolated; one scheduler, transmitter owner
@@ -353,19 +348,19 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   The [executed prompt](development/phase15-6-execution-prompt.md) and the
   [completed separate post-execution review](development/phase15-6-sessions.md#separate-post-execution-review)
   retain distinct evidence boundaries.
-- ✅ **P15.9 — Recover login cleanly after a failed save or lost session (software scope).**
+- ✅ **P15.7 — Recover login cleanly after a failed save or lost session (software scope).**
   After the callsign-only save was blocked, the operator could no longer log in
   to Pico B and saw "Radio request rejected. Status remains unknown." A live
   check against the earlier single-session firmware returned HTTP 409
   `radio_session_busy`; that firmware retained its session until logout or
-  expiry, while the browser hid the specific rejection. P15.8 now provides
-  three sessions; P15.9 adds fresh password-authenticated retirement at full
+  expiry, while the browser hid the specific rejection. P15.6 now provides
+  three sessions; P15.7 adds fresh password-authenticated retirement at full
   capacity, without a device restart or ordinary idle expiry. One fixed
   five-second proof workspace retires only an explicitly selected login; it
   creates no replacement and never repeats a save. Both Pico and Pi preserve
   drafts and require fresh saved-state readback and review before a new save.
   The precise original physical failed-save-to-session-loss sequence still
-  needs reproduction. The implementation builds on P15.8's genuine software
+  needs reproduction. The implementation builds on P15.6's genuine software
   refusal/lost-reply cases and the delivered multi-session service.
   A settings-preserving restart of B restored encrypted login and private
   status access; the verification session was logged out afterward.
@@ -376,7 +371,7 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   sanitizers and browser evidence are recorded there. Original physical
   reproduction, actual phone/Mac transport, target heap/stack high-water and RF
   acceptance remain open.
-- ✅ **P15.10 — Add WSPR Type 2/3 to WsprryPico.** Automatic Type 1/2/3 planning,
+- ✅ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Automatic Type 1/2/3 planning,
   adjacent-window Type 2/3 pairs, versioned resources and browser/commissioning
   support are delivered. Ordinary calls retain saved-six/on-air-four Type 1
   behavior. `/00`–`/09` remain supported with ambiguity warnings; paired Type 3
@@ -385,7 +380,7 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   acceptance under its release checklist step 14 on 2026-10-16.
   The Pico implementation is complete within the
   [recorded software acceptance](development/phase15-8-wspr-type23.md), accepted
-  for scoped software closure by the operator on 2026-10-16. P15.10's published
+  for scoped software closure by the operator on 2026-10-16. P15.8's published
   Pico head is `4e96f0e`; its tested implementation pin is `804e8a0`. The originally
   accepted Pi companion was `6d5e734` on `codex/p15-8-wspr-type23`, before the
   subsequently accepted Pi integration. Recorded validation
@@ -397,7 +392,7 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   [execution handoff](development/phase15-8-execution-prompt.md) retains its
   historical baseline and release-coordination boundary. Related Pi integration
   is closed under WsprryPi release checklist step 14 by operator acceptance.
-- ✅ **P15.11 — Save valid fields independently of transmit readiness.** The
+- ✅ **P15.9 — Save valid fields independently of transmit readiness.** The
   operator wanted to update a callsign without completing unrelated station or
   message controls. The genuine-page software reproduction found native required
   locator validation blocking the station form; QRSS controls were separate.
@@ -415,30 +410,30 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   fields must not itself grant transmit authorization or create, queue or arm
   a message job. Keep explicit enable/start controls and existing runtime guards;
   enforce completeness and validity before execution in both UI and backend.
-  Reuse P15.1 update semantics, P15.9 readback/review and P15.10 station-planning
+  Reuse P15.1 update semantics, P15.7 readback/review and P15.8 station-planning
   rules, preserving profile/configuration authority and transaction boundaries.
   Status: complete, including WsprryPi item 15, confirmed by the operator on
   2026-10-17.
   WsprryPi coordinates; WsprryPico owns firmware, persistence and standalone UI
-  implementation. Product `56821ac`, evidence `29542e4` and subsequent P15.14
+  implementation. Product `56821ac`, evidence `29542e4` and subsequent P15.12
   integration `227e73c` are included in published Pico `devel` at `156dfa1`.
   Software validation, exact unchanged-Pi compatibility pairs and independent
   reassessment passed. Pages checks passed; no firmware/software-test CI pass
   is claimed. The [Pico execution record](development/phase15-9-valid-field-saves.md)
-  retains the exact sources, results and limits. P15.15 qualification and
+  retains the exact sources, results and limits. P15.13 qualification and
   P15.16 operator documentation remain separate checklist items. The
   [originating post-execution assessment](development/phase15-9-post-execution-review.md)
   closes four repaired findings after fresh independent reassessment; Pi adoption
   remains a separate decision.
-- ✅ **P15.12 — Allow hostname changes and use the hostname in the page title.**
+- ✅ **P15.10 — Allow hostname changes and use the hostname in the page title.**
   Provide a browser setting to edit and save the hostname, retain it across
   restarts and use it for LAN/mDNS discovery and access. The saved hostname must
   also drive the HTML page title shown in the browser tab, with the hostname
   first, for example `<hostname> - Station control`, instead of the generic
   `WsprryPico - Station control`. Verify distinct titles with two Pico tabs open
   and correct titles after a hostname change, page reload and restart. Reuse
-  the established update rules and P15.9 recovery behavior for hostname/authority
-  changes before P15.14 exposes the saved name as the main-page identity.
+  the established update rules and P15.7 recovery behavior for hostname/authority
+  changes before P15.12 exposes the saved name as the main-page identity.
   A restart is an accepted application boundary; provide operator instructions
   and bounded countdown/reconnect assistance, confirming the same device, a new
   boot and the applied name before claiming success. Status: complete within
@@ -447,9 +442,9 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   links, exact unchanged Pi compatibility, browser evidence and independent
   review repairs passed. Engineering names remain credential-bound; physical
   LAN/restart/RF and P15.16 operator publication remain separate.
-  The [P15.12 execution handoff](development/phase15-10-execution-prompt.md)
+  The [P15.10 execution handoff](development/phase15-10-execution-prompt.md)
   retains the source review and original implementation/review prompt.
-- ✅ **P15.13 — Consolidate or split Station/Transmission and Wi-Fi/Host setup.**
+- ✅ **P15.11 — Consolidate or split Station/Transmission and Wi-Fi/Host setup.**
   Remove duplicated settings between "Station and Network" and "Wi-Fi and
   station setup". Either consolidate them into one page with clear
   Station/Transmission and Wi-Fi/Host sections, or place those areas on separate
@@ -459,7 +454,7 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   from the other. In a consolidated layout, entry points and links may target
   the corresponding sections of the page.
 
-  Reorganize after P15.10-P15.12 settle station validation, saving independently
+  Reorganize after P15.8-P15.10 settle station validation, saving independently
   of transmit readiness and hostname behavior, while preserving the existing
   profile/configuration authority boundaries. Verify both connection-specific
   defaults and navigation in both directions. The one-page versus two-page
@@ -467,11 +462,11 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   Status: complete within supported software acceptance; see the
   [organization record](development/phase15-11-page-organization.md) and original
   [execution handoff](development/phase15-11-execution-prompt.md).
-- ✅ **P15.14 — Show the hostname as the main-page identity.**
+- ✅ **P15.12 — Show the hostname as the main-page identity.**
   Replace the prominent `Pico <full device ID>` text with the Pico's hostname.
   Make the full stable device ID available under About or Diagnostics for
-  identification and troubleshooting. Use P15.12's persisted hostname and
-  hostname-driven browser-tab title with the resulting P15.13 page layout.
+  identification and troubleshooting. Use P15.10's persisted hostname and
+  hostname-driven browser-tab title with the resulting P15.11 page layout.
   Verify the main-page identity stays consistent with the tab title after a
   hostname change, page reload and restart.
   The [reviewed execution handoff](development/phase15-12-execution-prompt.md)
@@ -479,11 +474,10 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   Status: complete within supported software acceptance; see the
   [identity record](development/phase15-12-main-page-identity.md) for final checks,
   review repairs, transient host-test failures/skips and qualification limits.
-  The operator accepted this P15.14 closure. Its P15.16 documentation handoff
+  The operator accepted this P15.12 closure. Its P15.16 documentation handoff
   does not close operator-document publication. The original handoff preparation
   did not execute the work.
-
-- ✅ **P15.15 — Complete untested-band qualification and resolve clock-dependent support.**
+- ✅ **P15.13 — Complete untested-band qualification and resolve clock-dependent support.**
   Revisit the [band/mode chart](development/phase14-band-mode-qualification.md)
   and [machine-readable catalog](development/phase14-band-support.json). Test
   the originally Untested 8 m and 5 m entries across Tone, WSPR, QRSS, FSKCW and
@@ -534,6 +528,12 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   self-review and restoration are recorded. This does not promote whole
   frequency intervals, refresh historical bands on current firmware or start
   P15.16's documentation site.
+- ⏳ **P15.14 — USB control.** The execution prompt is generated and work is
+  about to run in "BLE & USB Control Status". Status: in progress; implementation
+  and acceptance results will be recorded as that work completes.
+- 💬 **P15.15 — Installer.** Installer options and scope are being discussed in
+  "Assess WsprryPico installer options". Status: under discussion; implementation
+  has not started.
 - ☐ **P15.16 — Create user documentation for Read the Docs Community.**
   Create operator-focused documentation suitable for building and hosting on
   the community version of Read the Docs. Reuse suitable styling, format and
@@ -547,24 +547,24 @@ Status symbols: ✅ complete; ⏳ in progress; 💬 under discussion; ☐ not st
   development/evidence records. Include reproducible documentation build
   configuration and dependency declarations compatible with Read the Docs
   Community; validate the build, links, navigation and desktop/mobile rendering.
-  Finalize instructions and screenshots against the delivered P15.1-P15.14
-  behavior and P15.15's band/mode/clock support results. Status: open;
+  Finalize instructions and screenshots against the delivered application, USB
+  control and installer behavior and P15.13's band/mode/clock support results. Status: open;
   unimplemented.
 
 P15.1 and P15.2 were coordinated from WsprryPi: #447 delivered the Pico changes
 and #448 delivered the Pi changes and paired compatibility evidence. With their
 roadmap closure accepted, P15.3 returned to WsprryPico and is complete within
 its recorded software scope, with companion Pi changes committed separately.
-P15.6 shared-resource adoption is complete within its recorded software scope.
-P15.7 concurrent web servicing is complete within its recorded software scope.
-P15.8 independent sessions and P15.9 login/save recovery are complete within
-their recorded software scopes. P15.10 Type 2/3 software and its WsprryPi step 14
-integration are complete by operator acceptance. P15.11 and WsprryPi item 15 are
+P15.4 shared-resource adoption is complete within its recorded software scope.
+P15.5 concurrent web servicing is complete within its recorded software scope.
+P15.6 independent sessions and P15.7 login/save recovery are complete within
+their recorded software scopes. P15.8 Type 2/3 software and its WsprryPi step 14
+integration are complete by operator acceptance. P15.9 and WsprryPi item 15 are
 complete by operator confirmation on 2026-10-17. The separate originating
-P15.10 review, physical concurrency/reproduction and target qualification remain open.
-P15.12 and P15.13 are complete within their recorded supported software scopes.
-P15.14 and P15.15 are complete. USB control (P15.4) is in progress; Installer
-(P15.5) is under discussion. P15.16 has not started.
+P15.8 review, physical concurrency/reproduction and target qualification remain open.
+P15.10 and P15.11 are complete within their recorded supported software scopes.
+P15.12 and P15.13 are complete. USB control (P15.14) is in progress; Installer
+(P15.15) is under discussion. P15.16 has not started.
 
 ## Remaining deferred and backlog items
 
@@ -820,8 +820,8 @@ belongs to the operator.
    [closeout ledger](development/phase14-closeout-ledger.md) and
    [remaining deferred/backlog items](#remaining-deferred-and-backlog-items).
 5. Phase 15 collects [operator review punchlist items](#phase-15-operator-review-punchlist).
-   P15.1–P15.3 and P15.6–P15.15 are complete. USB control (P15.4) is in progress
-   in "BLE & USB Control Status". Installer (P15.5) is under discussion in
+   P15.1–P15.13 are complete. USB control (P15.14) is in progress
+   in "BLE & USB Control Status". Installer (P15.15) is under discussion in
    "Assess WsprryPico installer options". P15.16 user documentation has not
    started. Existing acceptance records and qualification limits remain unchanged.
 
