@@ -10,7 +10,7 @@ retain their evidence and limitations.
 
 Fourteen items are complete; five have not started. P15.14 USB closure was supplied by the
 concurrent USB task and is preserved here; this planning task did not execute
-or requalify USB control. Neither saved future prompt has been executed.
+or requalify USB control. None of the four saved future prompts has been executed.
 
 | Item | Task | Status | Saved prompt or current handoff |
 | --- | --- | --- | --- |
@@ -30,8 +30,8 @@ or requalify USB control. Neither saved future prompt has been executed.
 | P15.14 | USB control | Complete | [USB execution record](usb-control-results.md) |
 | P15.15 | GPIO drive-strength configuration across Pico and WsprryPi | Not started | [Saved drive-strength prompt](phase15-15-execution-prompt.md) |
 | P15.16 | Make the default firmware build uninhibited | Not started | [Saved default-build prompt](phase15-16-execution-prompt.md) |
-| P15.17 | Publish a GitHub testing prerelease with a firmware asset | Not started | No standalone execution prompt saved |
-| P15.18 | Installer | Not started | No standalone execution prompt saved |
+| P15.17 | Publish a GitHub testing prerelease with a firmware asset | Not started | [Saved testing-prerelease prompt](phase15-17-execution-prompt.md) |
+| P15.18 | Installer | Not started | [Saved USB-installer prompt](phase15-18-execution-prompt.md) |
 | P15.19 | Create user documentation for Read the Docs Community | Not started | No standalone execution prompt saved |
 
 ## Renumbering and dependency map
@@ -41,8 +41,8 @@ or requalify USB control. Neither saved future prompt has been executed.
 | P15.1–P15.14 | Unchanged | Preserve completed work and historical evidence. |
 | New insertion | P15.15 | GPIO drive strength; saved as `phase15-15-execution-prompt.md`. |
 | P15.15 | P15.16 | Uninhibited default build; saved handoff moved to `phase15-16-execution-prompt.md`. |
-| P15.16 | P15.17 | GitHub testing prerelease; checklist requirements retained, no separate saved prompt found. |
-| P15.17 | P15.18 | Installer; discussion remains in "Assess WsprryPico installer options", no installer execution prompt found. |
+| P15.16 | P15.17 | GitHub testing prerelease; [execution prompt now saved](phase15-17-execution-prompt.md). |
+| P15.17 | P15.18 | Installer; [execution prompt now saved](phase15-18-execution-prompt.md), retaining the decisions from "Assess WsprryPico installer options". |
 | P15.18 | P15.19 | Read the Docs Community user documentation; checklist/handoffs retained, no separate saved prompt found. |
 
 Execution order after accepted USB control is **P15.15 → P15.16 → P15.17 →
@@ -64,8 +64,14 @@ No existing chat was messaged, retitled or otherwise changed by this update.
 The repository and the recent "Assess WsprryPico installer options" / "Pico
 Release Checklist" handoffs were inspected. The only saved, unexecuted Phase 15
 numbered execution prompt before insertion was the default-build handoff.
-The new drive-strength handoff is additional. Discussion and checklist entries
-are not execution authorization or evidence of implementation.
+The new drive-strength handoff is additional. The subsequent
+[P15.17 testing-prerelease prompt](phase15-17-execution-prompt.md) is also saved
+for execution after P15.14–P15.16 acceptance; preparation publishes nothing.
+The [P15.18 USB-installer prompt](phase15-18-execution-prompt.md) is saved for
+execution after P15.14–P15.17 acceptance, including independent review,
+repair/retest/reassessment and scoped commit/push instructions. Preparation
+does not execute it. P15.19 still has no standalone execution prompt saved.
+Discussion and checklist entries are not evidence of implementation.
 
 Original executed prompts, results, frozen plans, source manifests, historical
 P15.14 operator-documentation references, commit identities and external Pi

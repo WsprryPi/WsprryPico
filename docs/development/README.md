@@ -10,15 +10,16 @@ Current [Phase 15 punchlist numbering](../implementation-plan.md#phase-15-operat
 places P15.14 USB control (complete within its recorded scope) after P15.13
 band/mode/clock qualification. After USB acceptance, deliver
 [P15.15 GPIO drive strength](phase15-15-execution-prompt.md), then
-[P15.16 uninhibited default build](phase15-16-execution-prompt.md), P15.17 GitHub
-testing prerelease, P15.18 Installer and P15.19 user documentation.
+[P15.16 uninhibited default build](phase15-16-execution-prompt.md),
+[P15.17 GitHub testing prerelease](phase15-17-execution-prompt.md),
+[P15.18 USB installer](phase15-18-execution-prompt.md) and P15.19 user documentation.
 P15.15–P15.19 have not started. Installer planning is recorded in
 "Assess WsprryPico installer options". P15.1–P15.14 retain their numbers;
 historical record titles and executed prompt filenames are unchanged. The
 unexecuted default-build prompt has moved to P15.16. See the
 [complete list and saved/pending prompt index](phase15-prompt-index.md) and
-[P15.15 prompt assessment](phase15-15-prompt-review.md). This preparation
-executes neither feature.
+[P15.15 prompt assessment](phase15-15-prompt-review.md). Saving these prompts
+does not execute the features or publish the prerelease.
 
 [P15.13 qualification](phase15-13-results.md) is complete within its recorded
 scope: all five modes at 40.001/60.001 MHz on Pico A, fresh current-source

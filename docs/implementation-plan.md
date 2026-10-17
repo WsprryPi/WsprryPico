@@ -584,13 +584,17 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   downloadable asset and digest before P15.18 installer implementation. Testing
   explicitly selects the prerelease; the eventual ordinary installer default
   selects stable releases. Status: **Not started**; no prerelease published by
-  this item yet. No standalone execution prompt is saved.
+  this item yet. Saved execution prompt:
+  [P15.17 GitHub testing prerelease](development/phase15-17-execution-prompt.md),
+  for use after P15.14–P15.16 acceptance.
 - ☐ **P15.18 — Installer.** After P15.14–P15.17 acceptance, implement USB
   installation and preserving upgrades through standalone and WsprryPi access,
   using release assets by default with optional local builds. Preserve saved
   settings; OTA remains deferred. Installer planning is recorded in
   "Assess WsprryPico installer options". Status: **Not started**.
-  No standalone execution prompt is saved.
+  Saved execution prompt:
+  [P15.18 USB installer](development/phase15-18-execution-prompt.md),
+  for use after P15.14–P15.17 acceptance; preparation does not execute it.
 - ☐ **P15.19 — Create user documentation for Read the Docs Community.**
   Create operator-focused documentation suitable for building and hosting on
   the community version of Read the Docs. Reuse suitable styling, format and
