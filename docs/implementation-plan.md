@@ -156,8 +156,8 @@ No Phase 14 workstream or LED task remains open.
     Filtering, calibrated power/absolute RF timing,
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
-15. **Open — operator review punchlist:** twenty items are tracked: fourteen
-    complete, GPIO drive strength (P15.15) in progress, and uninhibited default
+15. **Open — operator review punchlist:** twenty items are tracked: fifteen
+    complete within their recorded scopes, and uninhibited default
     build (P15.16), testing prerelease (P15.17), Installer (P15.18), Impeccable
     web UI review including provisioning (P15.19), and user documentation
     (P15.20) not started. The operator confirmed
@@ -252,12 +252,13 @@ uninhibited-build handoff moves from `phase15-15-execution-prompt.md` to
 The old P15.15 filename now identifies the new drive-strength task; use task
 titles as well as numbers when following a previously saved prompt.
 
-P15.1–P15.14 are complete within their recorded scopes. The
+P15.1–P15.15 are complete within their recorded scopes. The
 [USB execution record](development/usb-control-results.md) records coordinated
 software acceptance, independent reassessment and bounded physical USB/AP
 evidence, including exact restoration. Transmitter RF was not exercised.
-GPIO drive strength (P15.15) is in progress. The uninhibited default build and
-testing prerelease have not started; these three items must be accepted in
+GPIO drive strength (P15.15) has [software and bounded physical acceptance](development/phase15-15-hardware-results.md),
+including explicit nonblocking spectral observations. The uninhibited default
+build and testing prerelease have not started; these follow GPIO acceptance in
 that order before installer implementation.
 Installer (P15.18), Impeccable web UI review (P15.19) and user documentation
 (P15.20) have not started. Installer planning is recorded in
@@ -563,7 +564,7 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   settings default of 100 ms while preserving explicit limits, including 1 ms
   (Pi `1dd918b`, Pico `1162e4f`). The follow-up's software validation and
   adversarial self-assessments passed; no physical ARM or RF test was performed.
-- ⏳ **P15.15 — GPIO drive-strength configuration across Pico and WsprryPi.**
+- ✅ **P15.15 — GPIO drive-strength configuration across Pico and WsprryPi.**
   After P15.14 USB acceptance, add persisted per-RF-pin drive choices of
   **2, 4, 8 and 12 mA**, default **4 mA**, to the Pico firmware, USB management
   and Console configuration, shared API, all applicable device-served settings
@@ -573,10 +574,13 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   reported WSPR power and measured RF power.
   Saved execution prompt: [P15.15 GPIO drive strength](development/phase15-15-execution-prompt.md),
   with its [prompt assessment](development/phase15-15-prompt-review.md).
-  Status: **In progress**, as directed by the operator on 2026-10-17.
-  [Execution record](development/phase15-15-results.md): software implementation
-  and validation recorded separately from outstanding physical pad/restart/RF
-  acceptance. The broad item remains open.
+  Status: **Complete within recorded scope**, 2026-10-17.
+  [Software record](development/phase15-15-results.md) and
+  [hardware acceptance](development/phase15-15-hardware-results.md) cover all
+  four actual pad getter values on both boards, persistence/restart/physical USB
+  re-enumeration, target lifecycle, finite conducted comparison and exact
+  restoration. Numerical in-span energy findings remain nonblocking under
+  explicit operator direction; no calibrated watts or all-band/mode RF claim.
 - ☐ **P15.16 — Make the default firmware build uninhibited.** After P15.14 USB
   control and P15.15 GPIO drive strength are accepted, make the normal firmware
   target, `pico2-w` preset, build helpers and release recipe produce the same
@@ -654,8 +658,10 @@ integration are complete by operator acceptance. P15.9 and WsprryPi item 15 are
 complete by operator confirmation on 2026-10-17. The separate originating
 P15.8 review, physical concurrency/reproduction and target qualification remain open.
 P15.10 and P15.11 are complete within their recorded supported software scopes.
-P15.12–P15.14 are complete within their recorded scopes.
-GPIO drive strength (P15.15) is in progress. The uninhibited default build
+P15.12–P15.15 are complete within their recorded scopes.
+GPIO drive strength retains
+[bounded physical acceptance and RF observations](development/phase15-15-hardware-results.md).
+The uninhibited default build
 (P15.16), testing prerelease (P15.17), Installer (P15.18), Impeccable web UI
 review (P15.19) and user documentation (P15.20) have not started.
 
@@ -913,11 +919,11 @@ belongs to the operator.
    [closeout ledger](development/phase14-closeout-ledger.md) and
    [remaining deferred/backlog items](#remaining-deferred-and-backlog-items).
 5. Phase 15 collects [operator review punchlist items](#phase-15-operator-review-punchlist).
-   P15.1–P15.14 are complete within their recorded scopes. Next deliver GPIO
-   drive strength (P15.15), the uninhibited default build (P15.16), then a GitHub
+   P15.1–P15.15 are complete within their recorded scopes. Next deliver the
+   uninhibited default build (P15.16), then a GitHub
    testing prerelease (P15.17), before Installer (P15.18), Impeccable web UI
    review including provisioning (P15.19), and user documentation (P15.20).
-   P15.15 is in progress; P15.16–P15.20 have not started. Installer planning is
+   P15.16–P15.20 have not started. Installer planning is
    recorded in
    "Assess WsprryPico installer options". Existing acceptance records and
    qualification limits remain unchanged.

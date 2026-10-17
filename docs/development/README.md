@@ -19,10 +19,12 @@ band/mode/clock qualification. After USB acceptance, deliver
 [P15.18 USB installer](phase15-18-execution-prompt.md),
 [P15.19 Impeccable web UI review including provisioning](phase15-19-execution-prompt.md),
 and P15.20 user documentation.
-P15.15 is in progress; P15.16–P15.20 have not started. The [GPIO drive execution
-record](phase15-15-results.md) separates software results from physical
-acceptance. The review precedes final
-operator instructions and screenshots. Installer planning is recorded in
+P15.15 is complete within its recorded scope; P15.16–P15.20 have not started.
+The [GPIO drive software record](phase15-15-results.md) and
+[hardware acceptance](phase15-15-hardware-results.md) distinguish software,
+actual pad/USB/lifecycle observations and bounded conducted results. Numerical
+in-span energy observations remain nonblocking under explicit operator direction.
+The P15.19 review precedes final operator instructions and screenshots. Installer planning is recorded in
 "Assess WsprryPico installer options". P15.1–P15.14 retain their numbers;
 historical record titles and executed prompt filenames are unchanged. The
 unexecuted default-build prompt has moved to P15.16. See the

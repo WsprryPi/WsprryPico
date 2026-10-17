@@ -29,7 +29,12 @@ Add this operator behavior to the Pico and selected-Pico Pi hardware pages:
   application preserves a later drive selection.
 
 Use the final [execution record](phase15-15-results.md) for validated source,
-visual artifacts and physical limitations. Keep implementation/test narration
-out of operator pages. Refresh screenshots from the final served interface;
+visual artifacts, plus the [hardware follow-up](phase15-15-hardware-results.md)
+for actual pad/USB/lifecycle observations and conducted limitations. Register
+readback is an initialization-time SDK verification, not measured current or
+continuous electrical sensing. The two-frequency relative-power results do
+not promise watts, power ratios or all-band/mode qualification. In-span energy
+findings remain recorded as nonblocking under explicit operator direction.
+Keep implementation/test narration out of operator pages. Refresh screenshots from the final served interface;
 visual fixtures are software evidence, not photographs of physical readback.
 The separate documentation repository and publication remain outside P15.15.

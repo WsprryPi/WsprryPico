@@ -1,9 +1,17 @@
 # P15.15 GPIO drive execution record
 
-Status: **hardware-free software acceptance complete**. Broad P15.15
-acceptance remains open pending physical evidence. No hardware setup was
-declared for this execution. No device load, pad observation or RF measurement
-is implied by software results.
+Status: **P15.15 complete within its recorded scope**. The later
+[hardware follow-up](phase15-15-hardware-results.md) closes pad readback,
+persistence, physical restart/USB re-enumeration, target lifecycle and bounded
+conducted comparison on both boards, with explicit nonblocking spectral
+observations and verified restoration. Its
+[executed prompt](phase15-15-hardware-execution-prompt.md) and
+[manifest](phase15-15-hardware-results.json) bind that physical evidence.
+
+The remainder of this record preserves the original **hardware-free software
+execution**. Its physical-pending statements describe that earlier run; the
+follow-up supersedes that pending status. No physical claim is inferred from
+software tests alone.
 
 ## Contract frozen before implementation
 
@@ -301,7 +309,7 @@ ordinals are 0/1/2/3; the product maps mA explicitly. Only the selected immutabl
 RF pin is programmed, before PIO output enable, with a sticky getter mismatch.
 This source/linked evidence does not replace a target pad observation.
 
-## Remaining physical acceptance
+## Physical acceptance pending at software closeout (historical)
 
 No board, image, cable/RF path, USB device, GPIO or receiver was changed by this
 execution. There was no physical restoration attempt or verification.
@@ -314,11 +322,13 @@ execution. There was no physical restoration attempt or verification.
 | Conducted 4 mA comparison with the immediate baseline and bounded loaded-output/spectral checks for the other strengths | Not run; no candidate RF qualification or power ratio claimed. |
 | Original image/settings/STOP/schedules/watermarks/RF chain restoration and inactive-output verification after bench testing | Must be recorded with that future finite campaign. |
 
-P15.15 remains open for physical acceptance. P15.16 and subsequent execution,
-release publication and the separate documentation site remain outside this
-run. The subsequent commit-and-push authorization does not change those gates.
+At this software closeout, P15.15 remained open for physical acceptance. The
+subsequent [hardware execution](phase15-15-hardware-results.md) now closes those
+required physical checks within its stated scope and operator disposition.
+P15.16 and subsequent execution, release publication and the separate
+documentation site remain outside both runs.
 
-## Final reassessment and repository state
+## Software-run reassessment and repository state (historical)
 
 Adversarial self-review was repeated after the repairs above. No actionable
 in-scope software finding remains. This was not independent review. Final
@@ -334,8 +344,9 @@ publication. Pico had 32 modified tracked paths and 13 untracked paths; Pi had
 15 modified tracked paths and 3
 untracked paths. The source manifest inventories product and documentation
 paths. Concurrent planning edits in the three Pico planning/index files were
-preserved, with only P15.15 status/evidence links added here. The broad checklist
-remains in progress. PHP syntax checks and documentation-link/diff checks pass.
+preserved, with only P15.15 status/evidence links added here. At that point the
+broad checklist remained in progress; the hardware follow-up records the later
+scoped closure. PHP syntax checks and documentation-link/diff checks pass.
 
 ## Documentation Impact
 

@@ -18,7 +18,10 @@ complete configuration; boot-active is this boot's validated selection, includin
 4 for a healthy unconfigured boot. It is not a physical observation. Inhibited
 firmware leaves pad readback null. `rf_gp` identifies the boot-active route; the
 saved pin remains in hardware/2.saved. RF firmware reports a verified SDK observation
-only after its adapter has initialized. Errors remain explicit.
+only after its adapter has initialized during ARM, before local scheduled
+launch; LOAD alone does not open it. The value is a cached SDK register
+verification from that initialization, bound to this boot, not continuous
+electrical sensing. Errors remain explicit.
 
 PUT the same route with exactly `{schema,target,gpio_drive_ma}` and current
 If-Match. It uses the existing idle/unowned/inactive/nonfaulted admission and
@@ -74,6 +77,10 @@ function changes. Reopen/rearm uses the immutable boot value; mismatch refuses
 open/launch. See the [SDK GPIO API](https://www.raspberrypi.com/documentation/pico-sdk/hardware.html#gpio_set_drive_strength)
 and the repository-pinned SDK source audit in the execution record.
 
-Software evidence and remaining physical acceptance are tracked in
-[P15.15 results](phase15-15-results.md). Nondefault strengths inherit no RF
-qualification or power ratio from historical 4 mA campaigns.
+The [software record](phase15-15-results.md) and
+[physical acceptance](phase15-15-hardware-results.md) record all four actual
+getter values on both boards, durable restart/USB persistence, target lifecycle
+and the bounded conducted comparison. Spectral observations remain nonblocking
+under explicit operator direction. Nondefault strengths inherit no all-band/mode
+RF qualification or guaranteed power ratio from historical 4 mA campaigns or
+these two-frequency measurements.
