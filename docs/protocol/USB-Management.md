@@ -124,7 +124,11 @@ UTC refresh does not control RF symbols or calibrate an RF oscillator.
 The [USB uncertainty investigation](../development/usb-time-uncertainty.md)
 separates measured transfer uncertainty, host clock quality and job admission
 policy. An accepted USB time update does not establish readiness for a job's
-configured uncertainty limit.
+configured uncertainty limit. WsprryPi's ordinary default for new/missing
+settings is 100000000 ns (100 ms), with explicit saved limits preserved; this
+is controller policy, not a new protocol requirement. Pico retains its 500 ms
+maximum and enforces each job's requested bound at ARM and local launch.
+See the [policy execution record](../development/utc-100ms-results.md).
 
 ## Compatibility and evidence
 

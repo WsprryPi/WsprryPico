@@ -184,12 +184,48 @@ void clocks() {
              .ok);
     CHECK(!old.engine.output_active());
 }
+void ordinary_utc_policy() {
+    constexpr std::uint64_t utc = 1'800'000'000'000'000'000ULL;
+    constexpr std::uint64_t limit = 100'000'000;
+    // The per-job policy is independent of the unchanged 500 ms device ceiling.
+    for (const auto uncertainty : {limit - 1, limit, limit + 1}) {
+        Fixture f;
+        CHECK(f.clock.observe(utc, 0, uncertainty, wtp::LeapState::Normal));
+        CHECK(f.request("LOAD", job()).ok);
+        const auto arm = f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, limit});
+        CHECK(arm.ok == (uncertainty <= limit));
+        if (!arm.ok)
+            CHECK(arm.error == wtp::ErrorCode::ClockUncertain);
+        CHECK(!f.engine.output_active());
+    }
+    // The production drift bound is still charged through the local launch.
+    const auto drift = standalone::clock_profile().oscillator_drift_ppb;
+    for (const auto launch_uncertainty : {limit - 1, limit, limit + 1}) {
+        Fixture f;
+        CHECK(f.clock.observe(utc, 0, launch_uncertainty - drift, wtp::LeapState::Normal));
+        CHECK(f.request("LOAD", job()).ok);
+        CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, limit}).ok);
+        f.now = 1'000'000'000;
+        f.service.poll();
+        CHECK(f.service.status().state == (launch_uncertainty <= limit ? wtp::State::Running
+                                                                      : wtp::State::Missed));
+        CHECK(!f.engine.output_active()); // The inhibited engine never asserts physical RF.
+    }
+    // Explicit tight policies retain their original meaning.
+    Fixture tight;
+    CHECK(tight.clock.observe(utc, 0, 1'000'001, wtp::LeapState::Normal));
+    CHECK(tight.request("LOAD", job()).ok);
+    CHECK(tight.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, 1'000'000}).error ==
+          wtp::ErrorCode::ClockUncertain);
+    CHECK(!tight.engine.output_active());
+}
 } // namespace
 int main() {
     try {
         limits();
         physical_planner();
         clocks();
+        ordinary_utc_policy();
         std::cout << "Firmware profile, planner and clock gates passed at " << rf::sample_rate
                   << " Hz\n";
     } catch (const std::exception& error) {

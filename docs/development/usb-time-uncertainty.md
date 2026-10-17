@@ -1,5 +1,11 @@
 # USB UTC uncertainty investigation
 
+**Subsequent accepted policy:** WsprryPi now defaults new/missing WTP settings
+to 100000000 ns (100 ms). Explicit saved values, including 1 ms, are preserved.
+The [100 ms execution record](utc-100ms-results.md) covers product changes,
+validation and review. The investigation below retains the original 1 ms
+request, measurements and limitations; it does not claim 1 ms qualification.
+
 Date: 2026-10-17. This follow-up corrects WsprryPi's USB measurement accounting
 without changing WTP/1, Pico firmware timing, host clock configuration, saved
 job limits or the Pi's 1000000 ns default. A 1 ms physical ARM qualification
@@ -105,7 +111,7 @@ and the [WSJT-X clock checklist](https://wsjtx.github.io/wsjtx/guide-full.html).
 This is an operational UTC reference, not evidence for electrical edge timing
 or a reason to change relative symbol timing.
 
-**Recommendation, not implemented:** for ordinary WSPR and the current slow
+**Original recommendation, now accepted and implemented in WsprryPi:** for ordinary WSPR and the current slow
 CW applications, use a 100 ms maximum estimated UTC uncertainty, checked at
 ARM and again immediately before launch. This is an engineering policy target
 with a tenfold margin against the published approximately one-second clock
@@ -188,7 +194,7 @@ environments.
 Updated Pico USB protocol text and this investigation/evidence record, and
 Pi's USB guide and development review. No frontend presentation changes are
 made; the existing Node UI runtime regression passes. The separate operator
-documentation repository remains outside the authorized write scope. Adopting
-the proposed 100 ms policy would require an explicit settings/default/UI and
-operator-documentation change with its own acceptance; it is not hidden in
-this repair.
+documentation repository remains outside the authorized write scope. The separately authorized [100 ms execution](utc-100ms-results.md) subsequently
+updates Pi defaults, explicit UI adoption and policy validation. It leaves this
+accounting repair and its original physical evidence unchanged. Operator
+documentation in the separate repository remains a recorded follow-up.
