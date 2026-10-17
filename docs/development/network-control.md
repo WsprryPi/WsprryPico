@@ -1,5 +1,12 @@
 # Phase 11 network control
 
+Current application targets and portable dependency prerequisites are in the
+[build guide](firmware-foundation.md). Normal `WsprryPico` is RF-capable;
+`WsprryPico-Inhibited` explicitly selects the simulator. The historical Phase 11
+and Phase 12 checkpoints in this guide keep their recorded evidence limits;
+the [Phase 12 matrix](phase12-closure-matrix.md) and
+[Phase 14 ledger](phase14-closeout-ledger.md) provide their later scoped closure.
+
 The later selected [consumer LAN access slice](consumer-lan-access.md) adds
 ordinary HTTP consumer management on station port 80, at the current IPv4 and
 configured `.local` hostname, independently of engineering TLS, public DNS and
@@ -29,16 +36,51 @@ arbitration and cross-linked Pico BLE/SoftAP/LED candidates. P12.4/P12.5 provide
 strict command decoding, shared PSA ownership and delivery-safe activation
 coordination. P12.6 enables encrypted GATT, the network-only live activator,
 controller-time/Identify/status and unchanged WTP/1 local control in the
-RF-inhibited production image and builds the deterministic browser page. The
-native Raspberry Pi/Linux client reuses that GATT service. SoftAP, physical
-BLE/Bluefy/Linux interoperability, consumer portal offline acceptance and most physical
-acceptance remain open. A later hardware-free continuation connects the
-production SoftAP DHCP/mDNS, blank HTTP, provisioned HTTPS and browser/local
-control path; it has no target or Safari acceptance.
+production application variants and builds the deterministic browser page. The
+native Raspberry Pi/Linux client reuses that GATT service. Production SoftAP
+DHCP/mDNS, consumer commissioning, engineering field HTTPS and local control
+have the selected acceptance recorded in the Phase 12 matrix. Those bounded
+results do not establish arbitrary peer/fleet, timing or RF interoperability.
+
+## Current management carriers
+
+| Carrier | Authentication and availability | Operation boundary |
+| --- | --- | --- |
+| Engineering station HTTPS | TLS 1.3, client certificate fingerprint principal, certified Host/Origin, configured listener and usable UTC | Shared JSON resources; same target, revisions, validators and idle/safety gates |
+| Engineering field HTTPS | AP-scoped server TLS, password-issued Secure/HttpOnly cookie and session; existing access health/clock policy | Blank/preclock Configure denied; closed field allowlist currently excludes hostname and GET config/2 |
+| Consumer station / AP | Saved Wi-Fi passphrase, volatile Consumer-Radio/1 encrypted session bound to actual interface, Host, device/boot and profile generation | Shared JSON through encrypted wrappers only; station/Wi-Fi edits use authenticated transactional setup. HTTP page delivery remains unauthenticated |
+| USB physical management | Separate UMP1 CDC, internal physical principal; no Pico Wi-Fi/UTC prerequisite for negotiation and ordinary saves | Shared JSON plus explicit USB Wi-Fi/AP/time operations; boot/session/target binding, exact revisions, matching response ACK and finite deadline |
+
+Support does not imply current listener availability or mutation admission.
+All carriers preserve one JobService and local RP2350 timing; UTC acquisition
+and per-job uncertainty admission do not calibrate the RF oscillator. Plain LAN
+WTP, TLS-WTP and BLE WTP carry jobs without acquiring JSON administration.
+Console line commands, WTP binary frames and UMP1 frames have separate roles.
+Physical USB identity is not cryptographic device authentication.
+
+Network views advertise `transmitter-management/2`; USB selects `/3` with the
+additional physical carrier. The historical `/1` discovery and legacy network
+projections remain closed. See [API discovery](../browser-api.md#management-carrier-discovery),
+[USB framing/delivery](../protocol/USB-Management.md) and
+[Consumer-Radio/1](../protocol/Consumer-Radio-v1.md). HTTP effects wait for the
+matching complete-response acknowledgement; UMP1 effects wait for the matching
+resource ACK. Lost delivery cancels undelivered deferred effects, not durable
+saves or accepted jobs. Read authoritative saved/active state and review before
+another explicit mutation; never replay an uncertain write automatically.
+
+Source: [carrier projections](../../src/network/management.cpp),
+[TLS/interface admission](../../src/network/pico/server.cpp),
+[field dispatch](../../src/network/softap_api.cpp),
+[consumer dispatch](../../src/network/consumer_radio.cpp),
+[transactional setup forwarding](../../src/network/pico/bootstrap_server.cpp),
+[USB dispatch](../../src/network/local_usb_api.hpp) and
+[UMP1 endpoint](../../src/usb/management_endpoint.cpp). Their existing carrier,
+field, consumer and USB tests bound software claims; dated records retain the
+actual physical acceptance.
 
 ## Operator setup and certificates
 
-The standard RF-inhibited consumer image now selects `WSPRRY_PICO_CONSUMER_LAN_MODE=plain`
+The standard RF-capable consumer application selects `WSPRRY_PICO_CONSUMER_LAN_MODE=plain`
 at build time. `off` disables consumer station WTP and `tls` retains the
 certificate-based consumer station binding. Plain LAN listens on station TCP
 port 31417 only after station IPv4 and accepted SNTP establish usable UTC.
@@ -47,8 +89,8 @@ and TLS. A client on the local network that can reach the port can control the
 Pico. The listener rejects SoftAP clients and does not auto-downgrade TLS.
 Console `INFO` reports `lan_wtp_mode`, `lan_wtp_port` and `lan_wtp_ready`.
 The Wi-Fi-only network journal does not need to generate a per-boot TLS identity
-in Plain LAN mode. This is a source and host-test change; new-image physical
-Pico-to-WsprryPi interoperability remains to be checked.
+in Plain LAN mode. Bounded one-member WsprryPi application evidence is retained
+in the Phase 12 closeout; full fleet interoperability remains unqualified.
 
 The Phase 11 engineering behavior below remains available. The optional Phase 12
 consumer-profile LAN mode uses the committed device certificate but does not
@@ -149,11 +191,19 @@ interoperability check below exercises the companion sources unchanged.
 Build an inhibited network-enabled image using the generated server bundle:
 
 ```sh
-cmake --preset pico2-w \
+cmake --preset pico2-w -B build/local-engineering-inhibited \
+  -DPICOTOOL_FETCH_FROM_GIT_PATH="$PWD/build/local-engineering-inhibited/_deps" \
+  -DPICOTOOL_GIT_REPOSITORY_URL="$PICOTOOL_FETCH_FROM_GIT_PATH/picotool-src" \
   -DWSPRRY_PICO_NETWORK_PORT=18443 \
   -DWSPRRY_PICO_NETWORK_CREDENTIAL_DIR="$PWD/config/local/network/pico-a/server"
-cmake --build --preset pico2-w
+cmake --build build/local-engineering-inhibited --target WsprryPico-Inhibited
 ```
+
+Choose an unused build directory and supply the pinned local dependencies as
+the build guide describes. Output is
+`build/local-engineering-inhibited/firmware/WsprryPico-Inhibited.uf2`.
+The `pico2-w` build preset selects normal `WsprryPico`, so it is not an
+inhibited build command. This example only builds; it does not operate a board.
 
 The port is an explicit deployment choice, not a WTP-assigned default. Directory
 contents are `server.crt`, `server.key`, `client-ca.crt` and public `deployment.json`.
@@ -192,24 +242,23 @@ the complete profile transaction. Their deterministic coverage and bounded
 live local-control evidence do not by themselves qualify a general end-user
 provisioning path.
 
-The selected generic flow starts unprovisioned and identifies the full device
-through BLE/Bluefy or explicit USB-local tooling. Blank-device SoftAP remains
-read-only identity/build/wire/status. After a complete device-bound
-Wi-Fi/time-server/TLS bundle commits through BLE or USB, authenticated
-controller time may arrive through enrolled BLE, USB-local tooling or
-server-authenticated provisioned SoftAP. A provisioned device uses
-SoftAP/Safari as an independent no-infrastructure field-control and replacement
-path. The CA private key remains off-device and public server trust is enrolled
-explicitly.
+Consumer commissioning uses the device-served AP Wi-Fi-first page and optional
+station step, followed by ordinary LAN Consumer-Radio access. USB management
+can create/replace/delete the saved connection without a Pico network. Blank
+engineering HTTPS remains read-only; that does not remove the separately
+authorized consumer HTTP commissioning transactions. Engineering BLE/profile
+provisioning retains explicit device-bound trust enrollment and an off-device
+CA private key. Qualified controller UTC may arrive through enrolled BLE,
+engineering field HTTPS or the independent USB time exchange.
 
 The BLE portion has deterministic portable/client tests, target cross-linking
 and limited enabled-production evidence. The SoftAP portion now has production
 source, deterministic policy/API tests, an RP2350 cross-build and bounded
 native-Pi Candidate A evidence for the provisioned
-WPA2/DHCP/mDNS/HTTPS/time/local-control path. Complete profile transfer and
-activation, blank generic HTTP, stable-station AP withdrawal, physical
-consumer portal offline operation and the broader physical matrix remain
-open. E1 identity/trust acceptance does not qualify end-user setup.
+WPA2/DHCP/mDNS/HTTPS/time/local-control path. Later selected commissioning,
+activation and device-served offline portal acceptance are in the Phase 12
+matrix; its exclusions remain. E1 identity/trust acceptance alone does not
+qualify end-user setup.
 
 Bluefy does not maintain an offline cache. Its offline reuse is unsupported and
 the earlier requirement is withdrawn; current offline acceptance applies only
@@ -247,8 +296,8 @@ dual-trust interval. Committed corruption fails closed without trust
 resurrection. The replacement also invalidates old-generation SNTP authority
 and late DNS/SNTP callbacks. It requires fresh local-password step-up and, while
 the public default is active, physical or USB confirmation. That runtime path
-is implemented in the RF-inhibited standard image; complete physical
-provisioning/activation acceptance remains open.
+is implemented in both application variants. Selected physical
+provisioning/activation acceptance and exclusions are in the current Phase 12 matrix.
 
 ### Explicit IP, deliberate hostname change and legacy migration
 
@@ -334,21 +383,22 @@ in API status. See the [API contract](../browser-api.md) for schemas and errors.
 
 The production BLE adapter frames the bounded provisioning command stream
 through fixed 64-byte records and releases activation only after its final ATT
-indication is confirmed on core 0. Full BLE field control must still reuse the
-existing WTP/browser semantics and JobService. Normal SoftAP authority uses
+indication is confirmed on core 0. BLE WTP local control reuses the existing
+WTP semantics and JobService. Engineering SoftAP authority uses
 server-authenticated HTTPS plus a random password-authenticated session
-principal scoped to that interface; engineering station HTTPS and raw TLS-WTP
-retain mTLS. The consumer LAN WTP mode described above is a separate admission
+principal scoped to that interface; engineering station HTTPS and engineering
+raw TLS-WTP retain mTLS. The consumer LAN WTP mode is a separate admission
 policy and does not expose HTTP.
 Provisioned pre-clock SoftAP is limited to identity, challenge, password,
-controller time and nonsensitive status. Blank-device SoftAP is read-only.
-Those rules now run through the production image's interface-classified HTTP/
-TLS listeners and the one browser API/`JobService`; they are not physically
-accepted.
+controller time and nonsensitive status. Blank engineering HTTPS is read-only;
+consumer HTTP commissioning has its separate admitted transactions. These
+production interface policies retain their scoped acceptance in the current
+Phase 12 matrix.
 
 The pinned CYW43 driver supplies DHCP on `192.168.4.1/24`. A blank device's
-manual recovery URL is `http://192.168.4.1/`; it contains no credential input.
-A provisioned device uses
+consumer setup URL is `http://192.168.4.1/`; its genuine page encrypts credential
+submission but HTTP does not authenticate page delivery. Provisioned engineering
+field access uses
 `https://<station-MAC-derived-hostname>[<configured-port>]/`, normally resolved
 by AP-interface mDNS, so Safari validates the existing device certificate by
 hostname. `ACCESS SOFTAP <full-device-id>` requests one nonextending 120-second
@@ -359,7 +409,10 @@ The browser offers manual status refresh, station/Wi-Fi/schedule edits, explicit
 reload of saved settings, complete job upload/UTC arm, owner abort/release and
 Wi-Fi disconnect. Unsaved edits retain their original revision until deliberately
 reloaded or successfully saved. Network and config writes reject owned/armed/
-running/faulted states. Saving config requires a restart to apply, as with Console.
+running/faulted states. Station/schedules/flags affect subsequent admissions;
+network boot changes and sticky pin/drive latches require restart. Saving does
+not program a pad or clear STOP. Read saved versus active state before applying
+another mutation, especially after an ambiguous reply.
 The RF state displayed by the page is a timestamped snapshot, not a continuously
 observed signal.
 
@@ -398,8 +451,11 @@ require separately authorized target acceptance.
 Console `INFO` adds RF-worker service-gap/poll/roundtrip, command count, core stack
 canaries, sampled heap peak and TLS allocation peak. API `transport` diagnostics
 include TLS/session limits and progress observations. Network control remains off
-by default; the standard image is still RF-inhibited. The [11.2 record](phase11-2-review.md)
-contains budgets, tests and the unexecuted target procedure.
+by default for engineering mTLS, while consumer station Plain LAN WTP defaults
+on under its separate admission. The standard image is RF-capable; inhibition
+is explicit. The [11.2 record](phase11-2-review.md) retains its original budgets,
+tests and then-unexecuted target procedure, superseded only within the later
+scoped acceptance above.
 
 ## Hardware-free validation
 

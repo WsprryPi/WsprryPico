@@ -1,8 +1,11 @@
 # Experimental Pico PIO/DMA driver
 
 Status: implemented, host-tested and exercised by the separate
-[RF bench](rf-bench.md) on Pico 2 W with reception on wspr5. The standard
-`WsprryPico` firmware still selects `InhibitedRfEngine`. Bounded bench evidence
+[RF bench](rf-bench.md) on Pico 2 W with reception on wspr5. Normal
+`WsprryPico` and compatibility `WsprryPico-StandaloneRF` select this engine;
+`WsprryPico-Inhibited` explicitly selects the RF-free simulator. See the
+[build guide](firmware-foundation.md) and [GPIO-drive contract](gpio-drive.md)
+for boot-selected RF pin/drive and cached ARM-time verification. Bounded bench evidence
 does not complete Step 8 qualification.
 
 ## Wiring and scope
@@ -23,7 +26,7 @@ The operator decides when to transmit and which measurements to perform.
 
 The driver requires the system clock to match the build-selected sample clock
 (132, 138 or 150 MHz; default 138 MHz) and implements the
-[portable stream's](rf-stream.md) four initial 80 m tones, size limits and
+[portable stream's](rf-stream.md) numeric frequency bounds, size limits and
 zero-padded final word. It does not configure UTC, encode WSPR, change the system
 clock, expose new WTP capabilities, or select itself in firmware.
 
@@ -117,10 +120,14 @@ firmware construction remains separate. Original driver and PIO code are MIT;
 the SDK keeps its own licensing and attribution.
 
 The [bench runner and target record](rf-bench.md) provide CPU measurements,
-software bootloader entry and operator-directed tones received on wspr5. Further
-work includes calibrated frequency/spectra, full-frame streaming and production
-clock/WTP integration. Harness capture and offline analysis are reused directly;
-its existing WsprryPi transmitter campaign is not a Pico adapter.
+software bootloader entry and operator-directed tones received on wspr5.
+[Full-frame streaming](rf-frame-validation.md),
+[clock/WTP integration](utc-rf-job-validation.md) and the normal standalone
+application have subsequent accepted records. Their bounded evidence does not
+establish calibrated frequency/spectra or general physical qualification.
+Current work is selected only by the [consolidated backlog](consolidated-backlog.md).
+Harness capture and offline analysis are reused directly; its existing
+WsprryPi transmitter campaign is not a Pico adapter.
 
 ## Host timestamp resolution
 

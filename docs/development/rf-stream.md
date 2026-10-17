@@ -4,8 +4,10 @@ Status: portable Step 8 stream and [PIO/DMA sink](pio-dma-driver.md) implemented
 and host-tested; the SDK driver also cross-links with the pinned Arm toolchain.
 Bounded RP2350 refill and conducted tone measurements are recorded in the
 [bench guide](rf-bench.md); general timing and RF qualification remain open.
-The standard Pico firmware still uses `InhibitedRfEngine` and its existing
-unsynchronized clock.
+Normal `WsprryPico` and compatibility `WsprryPico-StandaloneRF` use the complete
+138 MHz PIO/DMA application; `WsprryPico-Inhibited` explicitly selects the
+`DryRunEngine` simulator. Boot starts unsynchronized until qualified UTC is
+acquired. See [current application/build selection](firmware-foundation.md).
 
 ## Implemented scope
 
@@ -15,7 +17,7 @@ The bench retains its original four-tone 80 m workload.
 `src/rf/pio_dma_sink.*` supplies its peripheral controller, with the Pico SDK
 port under `src/rf/pico/`. Tests also use deterministic fake hardware.
 The C++20 library is a separate CMake target, `wsprrypico_rf`. It is deliberately
-not linked into the inhibited `WsprryPico` image. The explicit `WsprryPico-RFWTP`
+not linked into `WsprryPico-Inhibited`. The explicit diagnostic `WsprryPico-RFWTP`
 image advertises the experimental frequency range and all five campaign modes;
 WTP/1 itself is unchanged.
 
@@ -23,7 +25,8 @@ The planner accepts `tone`, `wspr`, `qrss`, `fskcw` and `dfcw` event jobs,
 with at most four distinct NCO increments, 512 events and
 3,600 seconds, including boundary and tail intervals. The earlier physical
 acceptance used 162 events / 110.592 seconds; the expanded limits are implemented
-and host-tested, with final physical acceptance still open in Phase 11.5 R3.
+and host-tested, with [Phase 11.5 acceptance](phase11-5-acceptance-ledger.md)
+closed only within its recorded 138 MHz/divider-1 scope.
 It validates contiguous nonempty events, bounded arithmetic,
 job identity, frequency presence/absence and the existing profile. It does not
 encode or validate a WSPR message. Four nominal RF frequencies are
@@ -42,7 +45,8 @@ rounded increment from requested nHz and corrected sample rate without 128-bit
 arithmetic. An adjustment-free job must match the reported realized frequency.
 The [band campaign](band-campaign.md) covers the new experimental range.
 The bench supports volatile frequency correction and three explicit build-time
-clock profiles; production calibration and capability integration remain open.
+clock profiles; application images advertise their actual numeric limits.
+RF oscillator calibration remains separate from UTC acquisition.
 
 RF transition endpoints are realized at the nearest sample:
 `sample=round(ns*sample_rate/1e9)`. Each absolute endpoint is rounded once;

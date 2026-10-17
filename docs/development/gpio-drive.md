@@ -46,7 +46,8 @@ another explicit save. No automatic retry or restart is performed.
 - Progress `/2`, update `/2` and apply `/2` use `transmitter-progress/2`.
   `fields.gpio_drive_ma` saves independently of station completeness. Malformed
   supplied drive rejects the whole batch before sibling changes. Explicit
-  `application.domain:"drive"` applies only saved drive over a complete Config.
+  `application.domain:"drive"` applies only the drive domain over a complete
+  applied Config, retaining applied drive when the draft omits it.
   Radio/all application excludes drive, so older drafts cannot overwrite a newer
   selection accidentally. Draft saving never programs hardware or resumes STOP.
 
@@ -84,3 +85,14 @@ and the bounded conducted comparison. Spectral observations remain nonblocking
 under explicit operator direction. Nondefault strengths inherit no all-band/mode
 RF qualification or guaranteed power ratio from historical 4 mA campaigns or
 these two-frequency measurements.
+
+Source: [configuration/defaults](../../src/standalone/config.cpp),
+[restart latches](../../src/standalone/scheduler.cpp),
+[API views](../../src/network/api.cpp),
+[descriptor](../../src/application/resources.cpp),
+[progress domains](../../src/standalone/progress.cpp) and
+[RP2350 mapping/readback](../../src/rf/pico/pico_pio_dma.cpp). Existing
+[drive](../../tests/gpio_drive_tests.cpp),
+[schema](../../tests/gpio_drive_schema_tests.py) and
+[browser checks](../../tests/gpio_drive_browser_tests.js) supplement the
+accepted software and physical records without extending their RF scope.

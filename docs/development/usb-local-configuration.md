@@ -124,4 +124,21 @@ interoperability, not physical USB, flash endurance, network association,
 restart/re-enumeration or transmitter RF qualification. Consult the joint USB
 execution record for final builds, complete checks and outstanding target gates.
 
-P15.15 adds independently negotiated [GPIO drive configuration](gpio-drive.md). Legacy resource shapes and unavailable declarations retain their prior meanings.
+Current USB discovery is `transmitter-management/3`, with five carrier rows and
+selected `usb_physical`. The network /2 projection remains unchanged, including
+its historical USB exclusion. Neither that projection nor USB WTP connectivity
+is the authority for USB JSON support; negotiate UMP1 and read its capabilities.
+
+The independent [GPIO-drive descriptor](gpio-drive.md) selects config/3,
+update/3 with `transmitter-config-update/2`, application/3, hardware/2 and
+progress/2. Legacy resource shapes remain closed. Ordinary omitted drive saves
+preserve it; explicit replacement/reset defaults to 4 mA. Draft saving does
+not apply drive, while explicit progress domain `drive` does so through complete
+Config validation and the sticky restart/output-inhibit latch. No save programs
+the physical pad; nullable pad readback is a cached ARM-initialization register
+verification, distinct from saved and immutable boot selection.
+
+Source: [local settings/profile lifecycle](../../src/provisioning/local_settings.cpp),
+[local dispatch](../../src/network/local_usb_api.hpp),
+[BrowserApi](../../src/network/api.cpp) and
+[existing local-management tests](../../tests/usb_local_management_tests.cpp).

@@ -4,6 +4,14 @@ Date: 2026-10-17. Complete within supported software and bounded USB/AP
 acceptance. Independent adversarial reassessment passes; exact original flash
 is restored. Transmitter RF/absolute timing was not exercised.
 
+Current build-selection notice: this record's `WsprryPico` inhibited label is
+historical. [P15.16](phase15-16-results.md) makes `WsprryPico` the normal 138 MHz
+PIO/DMA application and selects the simulator as `WsprryPico-Inhibited`.
+Original source/image names, hashes, failures and restored-board evidence below
+retain their original meanings. Current USB policy is defined in
+[USB-Management/1](../protocol/USB-Management.md) and
+[local configuration](usb-local-configuration.md); this notice claims no new run.
+
 The subsequent [USB UTC investigation](usb-time-uncertainty.md) corrects the
 host's ACK-inclusive uncertainty accounting and reviews the 1 ms job default.
 Its measured clock-only evidence and policy recommendation supersede no

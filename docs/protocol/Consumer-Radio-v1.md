@@ -43,11 +43,14 @@ surface permits unarmed ownership and loaded plans while requested by its lease
 or fallback lifecycle.
 Commissioning keeps its stricter unowned-only guard. Unknown/active output,
 armed, running and failed states withdraw this AP path under the retained RF
-connection policy; job execution stays local. A saved source-5 consumer profile
-disables USB WTP while retaining USB Console inspection. Consumer job control
-uses Plain LAN and the authenticated consumer radio adapter; engineering
-profiles retain the reference USB WTP endpoint. The ownership distinction passed host and bounded physical
-settings validation on both Picos.
+connection policy; job execution stays local. Current source-5 consumer and
+engineering profiles admit reference USB WTP under local physical authority,
+alongside Console and the separately framed
+[USB management/time adapter](USB-Management.md). The earlier consumer USB-WTP
+exclusion belonged to the historical Phase 14 image, superseded by
+[production USB control](../development/usb-control-results.md). USB management,
+Plain LAN WTP and Consumer-Radio keep distinct authority; all job paths share
+one JobService and RP2350 execution owner.
 
 The HTTP page-delivery threat boundary remains on AP and LAN: HTTP does not authenticate
 the page before password entry. A substituted malicious page can steal entered
@@ -164,10 +167,10 @@ path, for example `/api/v1/consumer/setup/api/bootstrap/v1/start`. Only these
 method/path pairs are forwarded after the complete outer AEAD authenticates:
 
 - GET `/api/bootstrap/v1/status`, `/api/owner/v1/public-status`,
-  `/api/owner/v1/claim/status`.
+  `/api/owner/v1/claim/status`, `/api/owner/v1/wspr-support`.
 - POST `/api/bootstrap/v1/start`, `/api/bootstrap/v1/submit`,
   `/api/bootstrap/v1/ack`, `/api/owner/v1/claim/start`,
-  `/api/owner/v1/claim/submit`.
+  `/api/owner/v1/claim/submit`, `/api/owner/v1/claim/progress/start`.
 
 Their existing bodies, trials, exact-generation/request-digest reconciliation,
 journals, UTC requirements and safe-commit gates remain authoritative. The
@@ -198,7 +201,9 @@ and compare Noble browser output with the pinned Mbed TLS implementation,
 including a maximum-size paged request. Host/vector checks are not target/RF
 qualification. Both consumer profiles, native current-cursor preservation,
 AP/STA routing and the four smoke screens have bounded independent acceptance.
-Consolidated source, retention and release closeout remain required.
+The [Phase 14 closeout](../development/phase14-closeout-ledger.md) retains its
+completed source/retention audits and bounded physical scope. Later software
+extensions do not inherit unrestricted physical or release qualification.
 
 An active fake endpoint can choose its own X25519 key, obtain the client's
 password-derived finish proof and test password guesses offline against its

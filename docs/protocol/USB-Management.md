@@ -10,14 +10,16 @@ Access to the selected physical device is local administrative authority.
 Linux permissions/exclusive opening and physical-parent/serial/role checks are
 host responsibilities. Every transaction binds the exact immutable device,
 boot and connection session. Those identifiers are not cryptographic proof.
-No network request can select this internal principal. USB management grants
-no transmitter ownership: WTP, browsers and standalone retain one JobService.
+No network request can select this internal principal. USB access alone grants
+no transmitter ownership; an explicit job CLAIM must pass the same JobService
+used by WTP, browsers and standalone.
 
 ## Framing and negotiation
 
 Every frame consists of ASCII `UMP1`, a four-byte unsigned big-endian JSON
-payload length, and that many UTF-8 bytes. Requests are at most 32768 bytes;
-responses at most 65536. Zero/oversized length, bad magic/JSON, duplicate keys,
+payload length, and that many UTF-8 bytes. JSON payload requests are at most
+32768 bytes; responses at most 65536, excluding the eight-byte frame prefix.
+Zero/oversized length, bad magic/JSON, duplicate keys,
 unknown members, wrong binding or stale IDs close the logical connection.
 Reconnect requires a new physical transport session; no mutation is retried.
 
@@ -58,7 +60,10 @@ Every response has exactly:
 
 A resource request has exactly `schema,id,operation,session,target,method,path,
 body,if_match`, with operation `request`. Body is a JSON string or an empty
-string for no body. The adapter dispatches typed requests to the shared
+string for no body. Method, path and If-Match strings are bounded to 8, 128 and
+256 bytes respectively. Resource bodies retain their smaller independent
+limits; the outer JSON string encoding must also fit the envelope maximum.
+The adapter dispatches typed requests to the shared
 application handlers under the internal `usb-physical` principal. Mutations
 retain target/revision checks, idle/safety admission, validators and journals.
 See [local configuration](../development/usb-local-configuration.md) for
@@ -143,4 +148,15 @@ and normal firmware builds qualify software behavior only. See the
 [execution record](../development/usb-control-results.md) for exact checks,
 resource comparison and outstanding physical USB/AP/RF gates.
 
-P15.15 adds independently negotiated [GPIO drive configuration](../development/gpio-drive.md). Legacy resource shapes and unavailable declarations retain their prior meanings.
+Current shared resources include the independently negotiated
+[GPIO-drive extension](../development/gpio-drive.md), Type 1/2/3 admission,
+hostname and saved progress. Their descriptors and exact method/path inventory
+are in the [browser API](../browser-api.md#resources). Config remains version 1;
+the URL namespace does not set every resource schema version. An accepted
+progress save creates only a draft, not a complete or applied configuration.
+
+Source: [UMP1 endpoint](../../src/usb/management_endpoint.cpp),
+[local dispatch](../../src/network/local_usb_api.hpp),
+[USB owner integration](../../src/standalone/pico/main.cpp), and existing
+[endpoint](../../tests/usb_management_tests.cpp) and
+[local authority tests](../../tests/usb_local_management_tests.cpp).

@@ -15,12 +15,28 @@ enablement, timing, ownership, frequency policy and output-admission controls. S
 - Arm GNU Toolchain 15.3.Rel1, compiler version 15.3.1.
 - picotool 2.3.0 at
   `6f6458d792b93685a11423b244a585eaa99eafcf`.
-- CMake 3.24 or later and Ninja.
+- CMake project minimum 3.24; the checked-in version-6 presets require CMake
+  3.25 or later. Ninja, Python 3, Git and the host compiler needed by picotool
+  must already be available.
+- Owned C++ uses required C++20 without extensions. Application C sources use
+  required C11 with GNU extensions enabled for SDK assembly integration; this
+  is set on firmware targets, not as a global C standard for every dependency.
 
 CMake rejects a different SDK commit or compiler version. Set `PICO_SDK_PATH`
 to the pinned checkout. A sibling checkout at `../pico-sdk` is also detected.
-The SDK fetches the pinned picotool source into the ignored build directory,
-even when another picotool is installed.
+Required SDK submodules must already be populated and clean at their pinned
+revisions. Linked lwIP, CYW43 and Mbed TLS overrides are checked too. The SDK
+import does not download an SDK. CMake forces its pinned picotool Git source
+even when another picotool is installed; a direct configure can fetch that
+source if no retained local source is supplied.
+
+For an offline local build, set `PICO_SDK_PATH` to the retained SDK and
+`PICOTOOL_FETCH_FROM_GIT_PATH` to a populated directory containing
+`picotool-src` at the pinned commit, then use the helper below. These are local
+inputs, not prescribed developer-specific paths. It uses that local Git source
+with private dependency build outputs under the selected build directory.
+On macOS the helper sources `scripts/xcode_env.sh` and requires full Xcode for
+host helper compilation, as the [development guide](README.md) describes.
 
 SDK 2.3.1 includes upstream RP2350 synchronization and alarm-wait repairs.
 Use a fresh build directory when upgrading from 2.3.0; existing caches retain
@@ -52,6 +68,31 @@ inhibited target. Retained historical images/manifests keep their old names;
 new Phase 12 candidate builds and live dispatchers require the inhibited name.
 See [P15.16 acceptance](phase15-16-results.md) for exact artifacts and limits.
 
+Helper invocation from the repository root, after setting the two local
+dependency variables above:
+
+```sh
+# Each example uses a fresh output directory; choose unused names locally.
+bash scripts/build_pico.sh WsprryPico build/local-normal
+bash scripts/build_pico.sh WsprryPico-Inhibited build/local-inhibited
+bash scripts/build_pico.sh WsprryPico-StandaloneRF build/local-compat-rf
+```
+
+With no arguments the helper selects `WsprryPico` and `build/pico2-w-local`.
+Target-only inhibited and compatibility selections default to
+`build/pico2-w-local-inhibited` and `build/pico2-w-local-standalone-rf`.
+It accepts at most a supported target and build directory, uses Ninja/Release,
+disables host tests, selects `pico2_w` and builds that target with four jobs.
+Its local picotool source defaults to `build/pico2-w/_deps/picotool-src` if the
+environment override is absent; missing SDK/source inputs refuse before build.
+Outputs are under `<build-directory>/firmware/<target>.*`. Preserve retained
+evidence directories rather than reconfiguring them for another variant.
+
+`WsprryPico-RFBench` and legacy USB-time `WsprryPico-RFWTP` are separate explicit
+diagnostic targets, not application variants. Bench/fixture definitions and
+historical image names must be interpreted with their recorded source/role;
+they do not select the normal application or establish release qualification.
+
 The normal build produces `build/pico2-w/firmware/WsprryPico.elf`, `.bin`, `.hex`,
 `.dis`, `.elf.map` and `.uf2`. Generated artifacts are ignored. The UF2 metadata
 contains the product, development version, source revision, SDK, board and
@@ -76,7 +117,7 @@ nanoseconds. UTC starts `unsynchronized`, so the service rejects `ARM` until
 the configured Wi-Fi SNTP source or qualified USB-time source supplies a usable observation. The portable
 discipline ages its uncertainty; no wall-clock state survives reboot.
 
-See the [dual USB CDC guide](usb-cdc.md) for transport bounds, connection
+See the [USB CDC roles guide](usb-cdc.md) for transport bounds, connection
 semantics, descriptor identity, Linux/macOS validation and focused tests.
 
 ## USB interfaces and monitoring
@@ -128,3 +169,11 @@ Building the image is hardware-free. No target execution was recorded unless a
 report explicitly names the board, firmware digest, connection and observed
 output. A build does not establish USB behavior, target timing, electrical
 safety, RF behavior or WTP conformance.
+
+Build authority: [root CMake](../../CMakeLists.txt),
+[presets](../../CMakePresets.json),
+[application wiring](../../firmware/CMakeLists.txt),
+[dependency verification](../../cmake/verify_pico_dependencies.cmake) and
+[local helper](../../scripts/build_pico.sh). Existing
+[image-selection checks](../../tests/application_image_tests.py) exercise
+accepted role failures; the P15.16 record retains actual cross-link evidence.

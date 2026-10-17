@@ -30,7 +30,10 @@ radio ownership contracts are unchanged. See the [organization record](developme
 
 Status: implemented by WsprryPico; compatible WsprryPi adapter adoption is
 independently maintained.
-The version is selected by `/api/v1/`, independently of firmware and WTP/1.
+`/api/v1/` selects the URL namespace, independently of firmware and WTP/1.
+Resource schemas within it are versioned separately: for example,
+`/api/v1/application/3` returns `transmitter-application/3`, while Config
+content still has `version:1` at `/api/v1/config/3`.
 The browser, USB WTP, TCP WTP and standalone scheduler use one JobService.
 
 The [shared transmitter application and fleet contract](transmitter-application-contract.md)
@@ -60,13 +63,13 @@ local-network principal. Device-specific credential setup and renewal are descri
 
 The selected
 [Phase 12 field-access contract](development/phase12-field-access-contract.md)
-has a hardware-free portable admission implementation and production wiring;
-physical acceptance remains open. It adds an interface-scoped SoftAP exception:
+has production wiring and [scoped acceptance](development/phase12-closure-matrix.md).
+It adds an interface-scoped engineering SoftAP exception:
 server-authenticated
 TLS plus a password login issues a random, boot/access-epoch-bound session-cookie
 principal. It reuses these API schemas, Origin/Host/Fetch Metadata rules and
 JobService semantics without requiring a client certificate. It never applies
-to the station browser API or engineering raw TLS-WTP, which retain the
+to the engineering station browser API or engineering raw TLS-WTP, which retain the
 certificate principal above. Before usable device UTC, a provisioned SoftAP permits only local
 identity/login/status/controller-time plus API capabilities, status and WTP
 HELLO. A blank-device bootstrap adds no API-v1 routes. BLE frames existing WTP
@@ -98,19 +101,45 @@ session cookie that page script cannot read.
 | Method and path | Behavior |
 |---|---|
 | GET `/api/v1/capabilities` | `api_version`, WTP service capabilities under `wtp`, implemented management `features`, body/connection limits, `active_job_connections` |
-| GET `/api/v1/management` | Independently versioned `transmitter-management/2` carrier support/availability and selected authenticated context; see the [carrier matrix](development/phase15-3-management-carriers.md). |
+| GET `/api/v1/management` | `transmitter-management/2` on network carriers; `/3` on USB. Support, availability and selected authenticated context; see [current carrier policy](#management-carrier-discovery). |
 | GET `/api/v1/status` | `job` service status/terminal records, `standalone` config/clock health, `network` state |
 | GET `/api/v1/jobs` | Same current/retained job inspection snapshot as status |
-| POST `/api/v1/jobs` | Explicit HELLO, CLAIM, RENEW, LOAD, ARM, ABORT or RELEASE through the common service |
+| POST `/api/v1/jobs` | Explicit HELLO, CLAIM, RENEW, LOAD, LOAD_MESSAGE, ARM, ABORT or RELEASE through the common service |
 | POST `/api/v1/jobs/{id}/abort` | ABORT only; URL ID must match the request body's job ID |
 | GET `/api/v1/config` | `{"config": <redacted config or null>}` and ETag |
 | PUT `/api/v1/config` | Save required Config v1 fields, preserving omitted optional settings from existing configuration; requires If-Match |
 | POST `/api/v1/config/update` | Advertised atomic merge or explicit replacement, with exact member target and If-Match |
+| GET/PUT `/api/v1/config/2` | Config v1 content; explicit Type 1/2/3 admission on writes; legacy redacted read shape |
+| POST `/api/v1/config/update/2` | `transmitter-config-update/1`; Type 1/2/3 admission |
+| GET/PUT `/api/v1/config/3` | Config v1 content with effective `gpio_drive_ma`, including default 4; Type 1/2/3 admission |
+| POST `/api/v1/config/update/3` | `transmitter-config-update/2`; drive-aware merge/replacement |
+| GET `/api/v1/application`, `/api/v1/application/2`, `/api/v1/application/3` | `transmitter-application/1`, `/2`, `/3`; embedded station/1 + hardware/1, station/2 + hardware/1, station/2 + hardware/2 respectively |
+| GET/PUT `/api/v1/station`, `/api/v1/station/2` | `transmitter-station/1` Type 1, or `/2` Type 1/2/3; scoped complete station replacement |
+| GET/PUT `/api/v1/hardware` | `transmitter-hardware/1`; scoped complete pin-plan replacement |
+| GET `/api/v1/hardware/2` | `transmitter-hardware/2`; adds nested drive resource; write pins through hardware/1 or drive through its dedicated route |
+| GET `/api/v1/pins` | Eligible choices and boot-selected active plan |
+| POST `/api/v1/pins/validate` | Nonmutating complete candidate pin-plan review |
+| GET/PUT `/api/v1/gpio-drive` | `transmitter-gpio-drive/1`; separate saved/boot/pad observations and idle-only saved drive update |
+| GET/PUT `/api/v1/hostname` | `transmitter-hostname/1`; profile-owned saved/active/default names; save applies on explicit restart |
+| GET `/api/v1/progress`, `/api/v1/progress/2` | `transmitter-progress/1` or drive-aware `/2`; independent saved draft |
+| POST `/api/v1/progress/update`, `/api/v1/progress/update/2` | Matching progress schema; save valid units with per-field outcomes, without applying them |
+| POST `/api/v1/progress/apply`, `/api/v1/progress/apply/2` | Matching progress schema; explicit saved revision/domain application through complete config authority |
+| POST `/api/v1/wspr-plan` | Side-effect-free `wspr-plan/1` preview; no target or If-Match required |
 | GET `/api/v1/schedules` | `{"schedules":[...]}` and ETag |
 | PUT `/api/v1/schedules` | Replace only schedules using the same config validator/journal; requires If-Match |
 | GET `/api/v1/network` | Initialized/enabled/link/IP, requested enable state, control availability and SNTP counters; ETag |
 | PUT `/api/v1/network` | `{"enabled":true|false}`; idle-only volatile change with If-Match |
 | POST `/api/v1/restart` | Empty object `{}`; idle-only, If-Match; returns 202 before deferred restart |
+
+This is the shared handler inventory, not a promise that every carrier admits
+every route. Optional progress/hostname/restart adapters must be present.
+Engineering field HTTPS classifies configuration reads, pin review and writes
+as Configure and denies them before clock qualification. Its current allowlist
+also excludes hostname and GET config/2; use its admitted config or config/3
+view. Consumer station identity/Wi-Fi remain transactional setup operations.
+USB-only Wi-Fi, AP and time routes are listed in
+[USB-Management/1](protocol/USB-Management.md); public commissioning and
+Consumer-Recovery retain their separate contracts.
 
 Static `/`, `/style.css` and `/app.js` require station mTLS or the provisioned
 SoftAP's server-authenticated TLS transport. SoftAP API calls additionally
@@ -129,8 +158,12 @@ Passwords are returned as JSON null. A null password in PUT preserves the stored
 password; it is rejected when no stored config exists. Supplying a new password
 replaces it after full validation. Successful and failed responses never echo it.
 The existing station, recurrence, overlap, expiry and storage rules remain in
-force, including the fixed standalone WSPR frequency of 3,570,100 Hz. Broader
-mode/band configuration remains outside this phase.
+force. Autonomous WSPR uses a build-selected base frequency, default
+3,570,100 Hz; Config v1 has no per-schedule frequency/mode field. Complete job
+routes support the advertised modes/frequencies, subject to frequency policy
+and engine admission. Type 1/2/3 station admission requires the explicit
+versioned routes below; its software acceptance does not close the separate
+captured-RF decode item in the [backlog](development/consolidated-backlog.md).
 
 Optional top-level `allow_unqualified_frequency` and
 `allow_non_amateur_frequency` booleans are advanced, persisted settings. Both
@@ -147,13 +180,16 @@ the intentional change from reset-by-omission PUT policy, exact merge/replace
 envelopes, target/revision checks and bounds. Console CONFIG and durable decoding
 retain complete replacement and existing defaults. No PATCH is added.
 
-ETags are quoted opaque hashes of boot identity, persisted config and successful
-network-change/restart revision. Send the exact ETag in `If-Match` for any configuration,
+ETags are quoted opaque hashes of device/boot identity, persisted config and
+journal sequence, network-change/restart revision, and attached profile,
+hostname/local-settings and progress revision contexts. Send the exact ETag in `If-Match` for any configuration,
 schedule or network PUT, and restart POST. Missing revisions return 428; stale revisions return
 412. Console config changes and reboot invalidate relevant saved revisions.
 Identical saves consume a journal generation and invalidate the revision; persistence still returns an
 explicit reboot requirement. Station and schedule changes apply to subsequent
-admissions without reboot. A saved SSID, password or time-server difference from
+admissions without reboot unless another restart latch blocks admission. Pins
+and drive latch restart/output inhibition, including A/B/A saves; a return to
+boot values cannot clear that latch. A saved SSID, password or time-server difference from
 the boot configuration requires restart; subsequent station-only saves cannot
 hide that pending difference. STOP remains suspended and the watermark is preserved. Failed storage never reports a successful save.
 Changes require no owner, no armed/running/output state, and no latched fault.
@@ -296,8 +332,7 @@ connection leaves output unknown, and a different boot/job clears old progress.
 Timer throttling or closing the page cannot change the Pico's local job timing.
 These product changes have host/browser validation, and Phase 11.5 is closed
 6/6 within its recorded 138 MHz/divider-1 scope. That scoped closure does not
-establish broader mode/band/clock or release qualification, which remains Phase
-13.
+establish broader mode/band/clock or release qualification.
 
 ## Bounds and errors
 
@@ -336,8 +371,9 @@ revision; 503 storage/network unavailability. Framing errors produce 400 when a
 response is possible; TLS authentication failures produce no application response.
 
 `active_job_connections` is now an explicit application policy. The maintained
-standalone images set it true: the physical image isolates waveform servicing
-on core 1, and the standard image remains RF-inhibited. The browser continues
+application images set it true: normal and compatibility RF images isolate
+waveform servicing on core 1; the explicit inhibited image simulates execution.
+The browser continues
 status refresh and owner-authorized abort after ARM. Configuration, persistent
 schedules and disruptive Wi-Fi changes remain idle-only. A different certificate
 or WTP session cannot adopt or abort the controller's job. The current mTLS UI
@@ -392,10 +428,12 @@ new RF admissions until then. Read saved versus active plans separately.
 
 ## Management-carrier discovery
 
-Capabilities add a top-level `management_carriers` reference with exactly
-`schema:"transmitter-management/2"` and `path:"/api/v1/management"`. This is
+Capabilities add a top-level `management_carriers` reference with
+`path:"/api/v1/management"` and schema `transmitter-management/2` on network
+carriers or `transmitter-management/3` on USB. This is
 outside the closed `application_resources` and application capability objects;
-their legacy `authenticated_https` value is retained for P15.2 compatibility.
+their legacy `authenticated_https` value is retained on network projections
+for P15.2 compatibility. USB-selected views instead identify `usb_physical`.
 The selected authenticated carrier serves the discovery document. Public
 consumer identity/discovery cannot authorize reads or writes. Unsupported
 versions/types, unavailable selected carriers and identity/profile-generation
@@ -407,6 +445,24 @@ Version 2 preserves the closed shape and all version-1 limits except integer
 `consumer_sessions:3`, adding integer `consumer_pending_logins:1` to limits.
 Updated Pi accepts each version's exact limits; old Pi refuses version 2.
 No fallback, downgraded authentication or mutation retry is added.
+
+USB version 3 adds the fifth `usb_physical` carrier row, selects it and removes
+`usb_json` from `unsupported`. Network version 2 deliberately retains its four
+rows and legacy `usb_json` exclusion; it is a projection, not a global statement
+that current firmware lacks USB management. Version 1 remains the historical
+one-session shape. The common `operations` subset is not an exhaustive route
+allowlist: station, hardware, hostname, progress, drive, jobs and USB-specific
+resources retain their independent descriptors/contracts.
+
+The accepted [P15.14 USB projection](development/usb-control-results.md)
+keeps application schema names but substitutes `usb_physical` for the embedded
+`management_carrier` and removes `usb_json_management` from its unavailable
+list. The unchanged application/1, /2 and /3 schema files still encode the
+network `authenticated_https` capability definitions; those definitions do not
+validate USB application readbacks unchanged. USB projection validation follows
+its explicit contract and [local-management tests](../tests/usb_local_management_tests.cpp).
+This accepted carrier extension does not relax network schemas or authorize
+unknown future shapes. No schema artifact is changed by this reconciliation.
 
 
 ## Login retirement and uncertain saves
@@ -478,4 +534,35 @@ without applying configuration or establishing transmit readiness. See the
 explicit application and recovery semantics. Existing complete configuration,
 profile and WTP contracts remain atomic and do not consume drafts.
 
-P15.15 adds independently negotiated [GPIO drive configuration](development/gpio-drive.md). Legacy resource shapes and unavailable declarations retain their prior meanings.
+## GPIO-drive discovery and bounds
+
+The top-level `capabilities.gpio_drive` descriptor negotiates
+`transmitter-gpio-drive/1`, legal values `[2,4,8,12]`, explicit default 4 mA,
+restart activation and all extended routes in the inventory. It selects
+config/3, config-update/2 on update/3, hardware/2, application/3 and progress/2.
+The existing `application_resources`, `application_resources_v2`,
+`configuration_updates` and `saved_progress` descriptors retain their closed
+legacy shapes. The embedded application capabilities retain their old
+unavailable `drive` entry; the independent descriptor governs current drive
+support. Absence of that descriptor means no observed drive support/default.
+See [GPIO drive](development/gpio-drive.md) for saved, boot selection, nullable
+ARM-time cached pad verification, restart latches and downgrade limitations.
+
+Scoped station/hardware/drive writes and WSPR preview are bounded to 1,024
+bytes; hostname to 512; Config input/candidate content to 1,800; config-update and
+progress-update to 2,048; progress-apply to 512. Application resource validation
+uses a 4,096-byte response budget. All byte bounds include whitespace and retain
+the separate transport/memory limits above. Legacy config routes reject an
+explicit drive member while preserving an omitted saved drive. Only deliberate
+replacement resets omitted drive to 4; complete atomic saves and independent
+valid-field progress saves have distinct rejection rules.
+
+Source authority: [BrowserApi dispatch and revisions](../src/network/api.cpp),
+[descriptors](../src/application/resources.cpp),
+[merge/replacement](../src/application/config_update.cpp),
+[carrier projection](../src/network/management.cpp) and
+[field allowlist](../src/network/softap_api.cpp). Existing
+[resource tests](../tests/application_resource_tests.cpp),
+[WSPR tests](../tests/wspr_resource_tests.cpp),
+[drive tests](../tests/gpio_drive_tests.cpp) and the linked acceptance records
+bound these descriptions; no runtime or version change is made here.

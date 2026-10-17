@@ -52,15 +52,16 @@ see [network control](network-control.md). The
 [Phase 12 field-access contract](phase12-field-access-contract.md) selects
 BLE/Bluefy primary and SoftAP/Safari fallback provisioning and local control
 through this same service. BLE and the browser/local-control portion of SoftAP
-are now production-wired and cross-linked. SoftAP credential provisioning,
-reset administration and the remaining physical SoftAP matrix remain open. A
-bounded native-Pi Candidate A run passed the provisioned
-association/DHCP/mDNS/HTTPS/time/status/ownership/reconnect path; it is not
-phone/Safari/Bluefy or full Stage A acceptance.
+are production-wired. The [Phase 12 closure matrix](phase12-closure-matrix.md)
+records selected commissioning/reset/physical acceptance and exclusions; the
+earlier native-Pi checkpoint is not unrestricted phone or fleet acceptance.
 
 ## Configuration
 
-Current one-time configuration uses the **Console** CDC interface, not WTP.
+Engineering Console configuration uses its own CDC interface, separate from
+WTP. Current [USB management](usb-local-configuration.md) also configures shared
+resources without Wi-Fi, while consumer network identity/Wi-Fi changes use
+transactional setup and radio changes use authenticated Consumer-Radio.
 Send a single ASCII line `CONFIG ` followed by the complete JSON document and a
 newline. The administration commands below share this implemented interface.
 Send one command at a time and wait for its JSON response; diagnostics use the
@@ -125,8 +126,17 @@ preserve saved opt-ins. These advanced settings are outside the ordinary form.
 See the [configuration-update contract](configuration-updates.md) for atomic
 merge/replacement, preserved optionals and the explicit compatibility migration.
 
-Changes require the existing idle, unowned configuration boundary and apply to
-the next new job without reboot. They persist in the existing configuration
+The optional `gpio_drive_ma` selects 2, 4, 8 or 12 mA on the direct RF pin,
+with explicit 4 mA default. It is independent of reported WSPR dBm and measured
+RF power. Legacy API saves preserve omission; drive-aware config/3 and update/3
+accept explicit values. Console CONFIG, initial creation and deliberate
+replacement default omission to 4. Saved, immutable boot and nullable cached
+pad verification are separate; saving never programs a pad. See
+[GPIO drive](gpio-drive.md) for restart, progress and downgrade semantics.
+
+Changes to the two frequency-policy flags require the existing idle, unowned
+configuration boundary and apply to the next new job without reboot, unless
+another restart latch blocks admission. They persist in the existing configuration
 journal and do not reset its separate transmission watermark. USB WTP, LAN WTP,
 BLE/local browser jobs, compiled `LOAD_MESSAGE` jobs and autonomous schedules
 all enter the same application policy. Every RF-on event and any realized engine
@@ -213,10 +223,12 @@ Reboot and UTC rollback conservatively skip both reserved windows. See the
 acceptance and remaining physical qualification.
 
 A new/erased device has no configuration and cannot schedule. Saving requires
-an idle unowned service and verified flash writes. It returns `reboot_required`
-only when saved network settings differ from those selected at boot. Station,
-power, enabled and schedule changes apply to subsequent admissions immediately;
-network changes suspend admission until restart. An already suspended STOP stays
+an idle unowned service and verified flash writes. `reboot_required` covers
+boot-network differences, external profile restart requirements and the sticky
+pin/drive hardware latch. Changing pins or drive saves without applying hardware
+and inhibits output until restart, including A/B/A saves; returning to the
+boot value cannot clear that latch. Station, power, enabled and schedule changes
+affect subsequent admissions when no restart/fault gate blocks them. An already suspended STOP stays
 suspended. A network-enabled device can restart through the browser while idle. USB WTP remains usable. An enabled saved configuration in an
 RF-capable image can transmit after saving or reboot as soon as its time and schedule
 conditions pass. Saving `enabled:false` prevents further standalone admissions;
@@ -275,7 +287,9 @@ Capture INFO and image hashes before a campaign. Closing this client leaves no
 per-job commands from it; physical USB absence is stronger evidence that no USB
 host can control the device.
 
-USB Console remains the physical administration/recovery path. Optional
+USB Console retains physical administration/recovery commands, and the separate
+USB management/time interface supplies shared JSON settings and qualified UTC
+without Pico networking. Optional
 [network control](network-control.md) now supplies authenticated HTTPS status and
 management alongside WTP/TCP; it does not expose the physical Console override.
 Wi-Fi also supplies SNTP. With a separate USB
@@ -305,9 +319,10 @@ and clears intent before enrollment or SoftAP starts. Neither operation is the
 full operational erase.
 The core-0-owned onboard LED identifies a device and slow-blinks only while
 SoftAP is actually ready. It is advisory and never proves RF or output safety.
-These behaviors are implemented in the portable access/reset/indicator core
-and cross-linked target candidates, but the production image does not start
-their services.
+These behaviors are production-wired through the access/reset/indicator core.
+The [Phase 12 matrix](phase12-closure-matrix.md) retains the selected physical
+acceptance and excluded assertions. Every actual AP activation now has the
+same non-sliding ten-minute cap; the 120-second join grace does not renew it.
 
 ## Time policy
 
@@ -364,9 +379,11 @@ The device computes uncertainty from a fixed 250 ms phone allowance, the full
 round trip and local margins; it retains the 500 ms uncertainty and 90-second
 ARM-age gates, requests refresh no slower than 60 seconds and starts every reboot
 unsynchronized. Phone time reports `leap=normal` as an explicit limitation.
-The controller/SNTP arbiter is implemented and production SNTP uses it; the
-authenticated controller transport is not production-wired and its physical
-accuracy remains unqualified.
+The controller/SNTP arbiter and authenticated BLE/field HTTPS controller-time
+adapters are production-wired. USB management has its separate qualified
+[time exchange](../protocol/USB-Management.md#utc-exchange), independent of Pico
+Wi-Fi. These observations supply UTC/slot timing, not RF oscillator calibration;
+physical clock-accuracy claims remain bound to their recorded measurements.
 
 ## Scheduling, flash and failures
 
@@ -384,8 +401,9 @@ A two-sector 8 KiB access journal occupies
 `0x3f5000`–`0x3f6fff`, and the profile journal occupies
 `0x3f7000`–`0x3fafff`. The four existing standalone sectors remain
 at `0x3fb000`–`0x3fefff`, and E10 remains at
-`0x3ff000`–`0x3fffff`. Linked application FLASH ends at
-`0x3f3000`; every maintained linker layout and the image checker reject
+`0x3ff000`–`0x3fffff`. Saved progress occupies `0x3f0000`–`0x3f1fff`,
+with diagnostic scratch at `0x3f2000`–`0x3f2fff`. Linked application FLASH ends at
+`0x3f0000`; maintained application linker layouts and image checks reject
 ordinary image content in all reserved regions. Station, schedules and watermark
 addresses are unchanged.
 
@@ -415,7 +433,7 @@ watermark. Torn writes can therefore require operator recovery. The current
 remedy for these standalone-journal faults is separately authorized
 **full-device/BOOTSEL flash recovery**: erase the device flash, reflash and
 reprovision. That manual path clears credentials and no-repeat history; it is
-not the selected Phase 12 **full operational erase**, whose future implementation
+not the implemented Phase 12 **full operational erase**, which
 uses a durable `reset_pending` transaction and leaves E10 under its existing
 recovery contract. Both are distinct from access recovery and provisioning reset,
 which preserve station, schedules and watermark. A normal UF2 update preserves
@@ -430,9 +448,9 @@ brownout behavior need device-specific qualification; no lifetime claim is made.
 Configuration writes are administrative, not performed on each network sample.
 
 The current physical image services RF on core 1; core 0 owns authority and
-transports. When the TLS listener is available, Wi-Fi remains polled through
-Armed/Running for network control. Without a listener, the earlier armed/running
-Wi-Fi deferral remains. The accepted clock observation ages locally and USB WTP
+transports. Consumer profiles and active TLS or Plain LAN listeners keep Wi-Fi
+polled through Armed/Running. The earlier deferral remains only for non-consumer
+operation without either listener. The accepted clock observation ages locally and USB WTP
 remains serviced, including ABORT. BTstack, SoftAP and controller-time adapters
 remain on core 0; the shared IndicatorController owns the boot-selected onboard
 or external LED. The earlier RF/wall-power campaign qualified only its recorded
@@ -440,9 +458,17 @@ image/path. The later [automatic closeout](phase12-orchestratable-closeout-resul
 accepts its declared simulator carrier/resource scopes; broader physical RF
 coexistence remains open in the [current matrix](phase12-closure-matrix.md).
 Target work follows its approved bench policy and intended-test authority.
-Broader mode/band/clock and release qualification remain Phase 14 work.
+Phase 14 is closed within its recorded scope; broader mode/band/clock and
+release qualification is not implied. Current work belongs only to the
+[consolidated backlog](consolidated-backlog.md).
 
 ## Reproduction and evidence
+
+The commands and test counts below retain the original Step 9 reproduction
+record. Use the current [build guide](firmware-foundation.md) and
+[development checks](README.md#current-checks) for fresh build directories,
+explicit inhibited selection, current 32 KiB application stack and reserved
+flash bounds. They do not require rerunning old bench/fixture campaigns.
 
 Hardware-free commands:
 

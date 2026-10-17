@@ -5,15 +5,27 @@ through `capabilities.saved_progress`; absence keeps the legacy complete-save
 workflow. Config v1, config-update/1, station/application v1/v2, Consumer-Radio/1,
 Consumer-Recovery/1 and WTP/1 retain their complete/atomic semantics.
 
+Current drive-aware clients independently discover `capabilities.gpio_drive`,
+which selects `transmitter-progress/2` at GET `/api/v1/progress/2`, POST
+`/api/v1/progress/update/2` and POST `/api/v1/progress/apply/2`. The legacy
+`saved_progress` descriptor and progress/1 objects remain unchanged.
+
 ## Fields and persistence
 
-The ten closed units are `callsign`, `locator`, `power_dbm`, `enabled`,
+The ten closed progress/1 units are `callsign`, `locator`, `power_dbm`, `enabled`,
 `schedules`, `expires_utc_s`, `pins`, `frequency_policy`, `wifi`, `ntp_ipv4`.
 Station components validate independently with the existing station grammar and
 exact supported powers (including zero). Frequency permissions are one two-flag
 unit. Schedules are one complete array, pin allocation one operational plan,
 and Wi-Fi one complete credential pair. Their existing validators remain the
 authority. Hostname has its separate P15.10 operation.
+
+Progress/2 adds `gpio_drive_ma` with integer choices 2, 4, 8 and 12 mA. Unlike
+ordinary invalid progress units, a supplied malformed or null drive rejects
+the entire batch before saving valid siblings. Omission preserves it; the old
+progress routes reject that field. Its saved value is independent of station
+completeness and does not apply hardware. The nominal 4 mA operational default
+does not fabricate a drive draft on an erased progress journal.
 
 Omission preserves a field. `null` records explicit absence and masks the applied
 fallback; it never invents a default. False, zero and an empty schedule array are
@@ -58,7 +70,8 @@ before rollback if retained credential drafts must be removed.
   `network`, `radio`, `all`). Requires nonzero saved revision/current ETag.
 
 Target is the existing full member/device/boot tuple. Existing authenticated
-carrier, Host/Origin/CSRF, idle, pending-transaction, storage and profile gates
+carrier-specific authority (network Host/Origin/CSRF or UMP1 physical binding),
+idle, pending-transaction, storage and profile gates
 apply. Dispatch classifies these as Configure; raw WTP and unauthenticated,
 blank/preclock ordinary management gain no new route.
 
@@ -87,6 +100,19 @@ Drafts remain saved after application and never feed the scheduler, Console,
 old APIs, previews, login/reconnect or boot. Saving cannot claim/load/arm, resume
 STOP, clear faults, advance the consumed-slot cursor or activate network/pins.
 An enabled schedule retains the previous applied values and suspension state.
+
+Progress/2 application uses the same outer envelope with schema
+`transmitter-progress/2` and adds domain `drive`, which requires an existing
+complete applied Config. An absent drive draft retains the applied drive;
+an explicit draft selects that drive through
+config/3 validation and restart latching. Radio/all intentionally preserve the
+current applied drive instead of consuming a possibly older drive draft;
+legacy progress application likewise has no drive authority. Readback adds
+`apply_domains.drive` and drive-aware fields/outcomes. Update bodies remain
+2,048 bytes; apply bodies are limited to 512. New drive-bearing durable records
+use `saved-progress/2`; old `saved-progress/1` records still load. Downgrade to
+firmware that cannot parse the new records is unsupported and must not restore
+an older enabled configuration after a decoding fault.
 
 ## Public commissioning
 
@@ -125,4 +151,9 @@ conflict, expiry or interrupted write enters readback/review and disables anothe
 save until explicit reconciliation. No automatic retry, credential persistence,
 message library or durable raw-job store is introduced.
 
-P15.15 adds independently negotiated [GPIO drive configuration](gpio-drive.md). Legacy resource shapes and unavailable declarations retain their prior meanings.
+Source: [progress validation/storage](../../src/standalone/progress.cpp) and
+[API dispatch/application](../../src/network/api.cpp), with existing
+[progress tests](../../tests/progress_tests.cpp) and
+[drive tests](../../tests/gpio_drive_tests.cpp). See [GPIO drive](gpio-drive.md)
+and its software/physical acceptance records for the distinct saved, immutable
+boot and nullable cached pad states; no draft establishes transmit readiness.

@@ -119,8 +119,14 @@ messages, schedules, ownership, time, status and management. Each member owns
 local execution; each schedule has either controller-owned or member-owned
 recurrence. The [Pico configuration foundation](development/shared-transmitter-application.md)
 adds independently versioned application/station/hardware projections through
-the existing coordinator, journal and authenticated HTTPS policy. Expanded
-adapters and complete application parity remain future implementation work.
+the existing coordinator, journal and shared authenticated management policy.
+Current [API routes](browser-api.md#resources) retain independently versioned
+schemas inside `/api/v1/`: application/3 embeds station/2 and hardware/2;
+config/3 remains Config v1 content; update/3 uses config-update/2; progress/2
+stores an independent drive-aware draft. The separate gpio-drive/1 descriptor
+negotiates those extensions without opening legacy closed shapes. Network
+discovery remains management/2; USB selects management/3 and `usb_physical`.
+Complete fleet/application parity remains outside the accepted foundation.
 
 ## Protocol
 
@@ -163,10 +169,10 @@ contexts on core 0 allow a persistent WTP owner plus an independent HTTPS browse
 An independently owned UTC discipline copy ages on the RF core; idle-only flash
 writes coordinate both cores using SDK lockout. See the
 [11.2 ownership and acceptance record](development/phase11-2-review.md). USB, WTP/TCP, browser jobs and standalone
-schedules retain one ownership and execution authority. Network control defaults
-off. Phase 12 field-access contention/coexistence retains its accepted scope
+schedules retain one ownership and execution authority. Engineering mTLS defaults
+off; consumer Plain LAN WTP has its separate default-on policy. Phase 12 field-access contention/coexistence retains its accepted scope
 and explicit exclusions in the current matrix; broader mode/band/clock and
-production release qualification remain Phase 14 work.
+production release qualification are not implied by Phase 14's scoped closure.
 
 Phase 12 keeps provisioning outside that job-control protocol. A portable
 manager and access controller own bounded profile replacement, local authority
@@ -224,12 +230,12 @@ AP-interface-bound DHCP service on
 `192.168.4.1/24`, AP-interface mDNS, blank captive HTTP with the bounded
 encrypted Wi-Fi-only transaction, device-bound HTTPS,
 password/cookie admission, controller time and the existing browser API backed
-by that same `JobService`. The repository-owned Bluefy artifact uses a
-release-keyed atomic offline cache. A bounded native-Pi Candidate A run has
+by that same `JobService`. Bluefy offline reuse is unsupported; the device-served
+SoftAP portal is the selected offline setup surface. A bounded native-Pi Candidate A run has
 accepted the provisioned SoftAP association/DHCP/mDNS/HTTPS/time/basic-control
-path only. SoftAP credential provisioning, phone/Safari/Bluefy acceptance,
-reset gestures and most physical coexistence/resource evidence remain Phase 12
-gates. See the
+path only. Later selected provisioning, phone/iPad, reset and resource acceptance
+is closed in the [Phase 12 matrix](development/phase12-closure-matrix.md),
+with explicit timing, peer and fleet exclusions. See the
 [Phase 12 plan](development/phase12-plan.md),
 [field contract](development/phase12-field-access-contract.md) and
 [production review](development/phase12-production-acceptance-review.md).
@@ -287,8 +293,15 @@ Estimates of reusable code and expected spectral behavior remain hypotheses unti
 
 ## Saved progress and applied authority
 
-The additive `transmitter-progress/1` resource persists valid independent fields
+The additive `transmitter-progress/1` and independently negotiated `/2` resources persist valid independent fields
 without applying configuration or establishing transmit readiness. See the
 [saved progress contract](development/saved-progress.md) for field, storage, authority,
 explicit application and recovery semantics. Existing complete configuration,
 profile and WTP contracts remain atomic and do not consume drafts.
+
+Nominal direct RF GPIO drive is 2/4/8/12 mA with explicit 4 mA default, separate
+from reported WSPR power. Saved drive, immutable boot selection and nullable
+cached ARM-time SDK pad verification have different meanings. Saves do not
+program the pad; changed pins/drive latch output inhibition until explicit
+restart, including A/B/A saves. These settings establish neither measured RF
+power nor all-band qualification. See [GPIO drive](development/gpio-drive.md).

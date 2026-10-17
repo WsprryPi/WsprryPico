@@ -7,7 +7,7 @@ completed work remains complete; saved execution prompts are retained.
 
 Status: ✅ finished; ⏳ in flight; ▧ not started.
 
-1. ▧ **Current contract reconciliation.** Align current API, carrier, GPIO-drive
+1. ✅ **Current contract reconciliation.** Align current API, carrier, GPIO-drive
    and build descriptions with the accepted implementation.
 2. ▧ **Short WSPR Type 2/3 decode.** Test one Type 2 → Type 3 pair at
    14.097100 MHz (20 m) on one Pico with `wsprd`; record the result and associated

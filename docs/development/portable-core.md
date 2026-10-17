@@ -17,7 +17,7 @@ authenticated principal and the SHA-256 digest of the original payload. The
 service handles negotiation, replay detection, sessions, ownership, immutable
 jobs, arming, terminal retention, reset, and safe cancellation.
 
-The typed request boundary is intentional. The USB endpoint (and any future TCP adapter) owns
+The typed request boundary is intentional. USB and implemented TCP endpoints own
 JSON decoding and response encoding, but it must not own lifecycle, timing,
 replay or output-safety policy.
 
@@ -54,8 +54,9 @@ electrical output or RF performance.
 The [strict USB endpoint](wtp-endpoint.md) now supplies JSON decoding/encoding,
 advisory event serialization, capability serialization and logical connection
 closure through the existing USB adapter. The `close_connection` response flag
-communicates mandatory closure to it. TLS/network integration remains future
-work. Cached responses retain their STATUS and clock snapshots, including the
+communicates mandatory closure to it. Implemented TLS/Plain LAN TCP endpoints
+reuse that boundary; JSON management has separate carrier authority as the
+[browser API](../browser-api.md) describes. Cached responses retain their STATUS and clock snapshots, including the
 original ARM mapping, rather than reconstructing them from current state.
 
 The mock engine demonstrates that an armed job executes without further

@@ -1,6 +1,6 @@
 # USB CDC transport roles
 
-Console = human-readable UTF-8 diagnostics only. WTP = WTP frame stream only.
+Console = bounded line administration and UTF-8/JSON diagnostics. WTP = WTP frame stream only.
 Never send logging, debug output, prompts or unframed JSON through WTP. The
 transport accepts binary bytes; the [strict WTP endpoint](wtp-endpoint.md)
 supplies valid WTP/1 frames, performs JSON dispatch and serializes responses and
@@ -48,12 +48,14 @@ path. The adapter adds no locks, waits, host polling loops or dynamic allocation
 This is not a target timing guarantee: TinyUSB services its own event queue and
 the existing portable parser can allocate and perform frame-sized work.
 
-- Console has a 2048-byte ring. Each write queues its entire diagnostic or returns
+- Console has an 8192-byte output ring. Each write queues its entire diagnostic or returns
   false and drops it if disconnected or full. Callers supply valid UTF-8; the
   adapter does not transcode or validate text. Pressure never drops part of an
   accepted diagnostic, though a disconnect may truncate a stream in flight.
-- Service drains at most 64 Console RX bytes and submits at most 64 Console TX
-  bytes per iteration, retaining a short-write suffix. Console input is discarded.
+- The main loop reads at most 64 Console bytes per iteration through
+  `console_transport_read`; the bounded line parser dispatches standalone and
+  physical administration commands. Service submits at most 64 Console TX
+  bytes per iteration, retaining a short-write suffix.
   The bounded startup text fits in the empty queue on each open. Later logs may
   be dropped under pressure; no delivery guarantee is made for diagnostics.
 - TinyUSB has independent 64-byte RX/TX FIFOs per function. Each WTP read/write
@@ -77,8 +79,9 @@ the existing portable parser can allocate and perform frame-sized work.
   resynchronization. This foundation does not promise seamless frame delivery
   across disconnect, suspend, reset or host failure.
 - A parser closed by invalid input or timeout remains closed until a session reset.
-  It does not take down Console or block the job-service poll. The RF engine stays
-  inhibited. The fatal-error loop continues USB/console servicing.
+  It does not take down Console or block the job-service poll. Closing the
+  transport does not abort already accepted work; RF lifecycle and ownership
+  remain in JobService. The fatal-error loop continues USB/console servicing.
 
 ## Hardware-free checks
 

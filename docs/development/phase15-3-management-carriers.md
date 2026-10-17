@@ -1,8 +1,14 @@
 # Phase 15.3 supported management carriers
 
 Current-policy notice: the historical USB exclusions below are superseded by
-[the production USB slice](usb-control-results.md). This record retains its
-original implementation and evidence scope; network policies remain unchanged.
+[USB-Management/1](../protocol/USB-Management.md) and
+[the production USB slice](usb-control-results.md). Current network discovery
+is management/2 (three sessions/one pending login); USB selects management/3
+with the physical carrier. The original management/1 shape, one-session limits,
+then-future item descriptions and accepted source pairs below remain historical
+evidence. Current carrier policy is in the
+[browser API](../browser-api.md#management-carrier-discovery); current work is
+selected only by the [consolidated backlog](consolidated-backlog.md).
 
 Status: complete within the recorded software acceptance. October 15, 2026. P15.1/P15.2 remain closed; P15.4 and later work is excluded.
 

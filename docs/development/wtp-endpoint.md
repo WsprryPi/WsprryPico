@@ -1,9 +1,12 @@
 # Strict WTP USB endpoint
 
 The Pico 2 W image implements WTP/1 request decoding, job-service dispatch,
-response/event encoding and ordered USB frame transmission. It remains an
-**RF-inhibited, unsynchronized development endpoint**. Host tests and a firmware
-build do not qualify USB on a board, target timing, or RF.
+response/event encoding and ordered USB frame transmission. The normal
+`WsprryPico` application uses the 138 MHz PIO/DMA engine;
+`WsprryPico-Inhibited` explicitly selects its lifecycle simulator. Both start
+unsynchronized, acquire qualified UTC and enforce local ARM/launch admission.
+See [current firmware selection](firmware-foundation.md). Host tests and a
+firmware build do not qualify USB on a board, target timing or RF.
 
 ## Architecture and trust
 
@@ -89,19 +92,23 @@ empty. Events are advisory; STATUS remains authoritative.
 
 ## Capabilities and resource bounds
 
-CAPS identifies `inhibited-no-rf`. Its frequency range describes the unsigned
-numeric inputs accepted by that simulation engine, **not physical RF coverage**.
-All six mode labels are accepted for finite event jobs; no encoder or RF engine
-is thereby implemented. The firmware clock is unsynchronized, so ARM is rejected.
-Do not reuse this endpoint's capability serializer for a new RF engine without
-providing that engine's actual limits.
+CAPS reflects the selected engine/profile. Normal and compatibility RF images
+identify `pio-dma-gp2`; the explicit simulator identifies
+`inhibited-standalone-simulator`. Both advertise five finite modes (`wspr`,
+`tone`, `qrss`, `fskcw`, `dfcw`), at most 512 events and 3,600 seconds, with
+numeric frequencies from 100 kHz through one Hz below half the selected sample
+rate. Application frequency policy and engine representability still apply;
+numeric limits are not physical RF coverage. An unsynchronized clock rejects
+ARM; qualification of UTC does not calibrate RF frequency. The earlier
+`inhibited-no-rf`, six-label, permanently unsynchronized endpoint was the
+pre-standalone foundation, not the current application profile.
 
 Payloads remain limited to 65,536 bytes and valid jobs to 512 events. JSON stores
 views, not a DOM; duplicate-key validation retains key views for active objects,
 and schema extraction bounds arrays before constructing jobs. Heap allocation
 remains in the portable parser, strings, jobs and replay cache; target heap
 high-water and failure behavior still need opt-in hardware characterization.
-The firmware reserves a 16 KiB primary stack in main RP2350 SRAM through the
+The application reserves a 32 KiB primary stack in main RP2350 SRAM through the
 pinned SDK linker symbols, excluding that region from the heap. Long-lived
 service objects use static storage. Compiler `.su` files are generated for
 inspection. These measures are not target stack/timing qualification.
@@ -114,9 +121,15 @@ cmake --build --preset host-debug
 ctest --preset host-debug
 python3 scripts/validate_wtp_contract.py
 cmake --preset pico2-w
-cmake --build --preset pico2-w
-python3 scripts/check_endpoint_image.py build/pico2-w/firmware/WsprryPico.elf
+cmake --build build/pico2-w --target WsprryPico-Inhibited
+python3 scripts/check_endpoint_image.py build/pico2-w/firmware/WsprryPico-Inhibited.elf
 ```
+
+Use the [build guide](firmware-foundation.md) for pinned local inputs and unused
+output directories. Ordinary `all`/build-preset selection is RF-capable; the
+explicit target above is the diagnostic simulator. The current 32 KiB application
+stack supersedes the original endpoint's 16 KiB allocation without rewriting
+that historical build evidence.
 
 The endpoint test runs the real C++ implementation against an independent Python
 schema validator and the existing monitor decoder. It covers all operations,
@@ -148,11 +161,11 @@ python3 scripts/wtp_probe.py /dev/IDENTIFIED_WTP_PORT --run
 The probe asserts DTR and performs only HELLO, CAPS, GET_CLOCK, STATUS and PING,
 with five-second timeouts and schema/identity checks. It neither LOADs nor ARMs a
 job. Do not run a second monitor on the same WTP port. Record board, firmware
-SHA-256/revision, host OS, physical setup, inhibited engine, unsynchronized clock,
+SHA-256/revision, host OS, physical setup, actual engine and clock state,
 no transmitting mode, and actual results. Flashing and RF operations are outside
 this procedure. The implementation record contains only host evidence; subsequent
 [bounded target validation](usb-target-validation.md) records actual USB observations.
 
-Next work is RF feasibility/engine selection and separately authorized hardware
-validation, then standalone encoding/configuration/time, WsprryPi integration,
-network/browser/provisioning adapters and qualified releases.
+Standalone timing, network/browser/provisioning adapters and USB management/time
+now share application services. Their accepted records retain their own evidence
+scope. Current work is selected only in the [consolidated backlog](consolidated-backlog.md).

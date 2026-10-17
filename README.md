@@ -36,6 +36,26 @@ and [slice plan](docs/development/consumer-lan-access-plan.md). Older AP-only,
 AP-retained and default-disabled button descriptions below are historical and
 superseded by this slice. Phase 14 and LED closures remain unchanged.
 
+Current configuration resources retain the `/api/v1/` URL namespace while
+versioning schemas independently. The [API inventory](docs/browser-api.md#resources)
+includes Type 1/2/3 station admission, application/3, hardware/2, config/3,
+progress/2 and the separately negotiated drive resource. Legacy closed views
+and omitted-setting preservation remain supported. A saved draft does not
+establish complete configuration, applied hardware or transmit readiness.
+
+[GPIO drive](docs/development/gpio-drive.md) offers 2/4/8/12 mA with explicit
+4 mA default, independent of reported WSPR dBm. Saved selection, immutable boot
+selection and nullable cached ARM-time pad verification are distinct. Save
+does not program the pad; changed drive requires explicit restart and retains
+output inhibition for the boot, including A/B/A saves.
+
+Ordinary firmware `all`, the `pico2-w` build preset and the default helper
+select the complete normal 138 MHz PIO/DMA `WsprryPico` application.
+`WsprryPico-Inhibited` explicitly selects the diagnostic simulator;
+`WsprryPico-StandaloneRF` remains the compatibility RF target. See
+[portable build prerequisites and artifact paths](docs/development/firmware-foundation.md).
+RF capability preserves saved enablement and all job-admission guards.
+
 The historical Phase 14 closeout retained the independently rebuilt
 consumer-radio-c96eeeeb4871 / 138 MHz image on both Picos. That board snapshot
 predates this selected feature slice. Both authenticated consumer
@@ -134,9 +154,11 @@ client/server authority contract are accepted within the documented Phase 11
 software and bounded physical scopes. The authoritative
 [Phase 11.7 joint review](docs/development/phase11-7-review.md) closes Phase 11
 within that scope, including the 11.4 inhibited matrix/eight-hour soak, 11.5 at
-138 MHz/divider 1 and the explicitly reduced 11.6 conducted matrix. Network
-control still defaults off. Broader mode/band/clock, timing, spectra, filtering,
-reliability and release qualification remain in Phase 14. The
+138 MHz/divider 1 and the explicitly reduced 11.6 conducted matrix. Engineering
+mTLS control still defaults off; consumer Plain LAN WTP has its
+separate default-on policy. Phase 14 later closed its recorded scope; broader
+mode/band/clock, timing, spectra, filtering, reliability and release qualification
+are not inferred. The
 [Phase 13 acceptance record](docs/implementation-plan.md#phase-13-acceptance)
 records P13.1 transmit LED work as complete (`CLOSED_SCOPED`): LED addressability
 and external TX-only operation are verified. Existing button operation is
@@ -144,6 +166,14 @@ recorded in Phase 12. P13.2 external Si5351 implementation is deferred; no
 active Phase 13 feature work remains selected. Phase 14 is closed; current work
 is maintained only in
 [Consolidated backlog](docs/development/consolidated-backlog.md).
+
+## Historical Phase 12 checkpoints
+
+The following chronology preserves original source/image observations and
+then-pending assertions. Earlier AP retention, disabled-button, USB exclusion,
+inhibited-default and unavailable-adapter statements are superseded only by
+the current contracts linked above and their exact acceptance records. They
+do not describe present defaults or select work beyond the consolidated backlog.
 
 [Phase 12 provisioning](docs/development/phase12-plan.md) is `CLOSED_SCOPED`
 by the operator's 2026-10-06 acceptance of the frozen matrix and documented

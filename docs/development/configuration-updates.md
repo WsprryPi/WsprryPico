@@ -19,6 +19,7 @@ healthy saved configuration, omitted optional settings are preserved:
 | `allow_non_amateur_frequency` | Saved value | false |
 | `expires_utc_s` | Saved expiry | 0, no expiry |
 | `wifi.ntp_ipv4` | Saved time server | `pool.ntp.org` |
+| `gpio_drive_ma` (drive-aware routes only when supplied) | Saved drive when omitted on any ordinary save | 4 mA |
 
 This intentionally changes the old API reset-by-omission policy. Clients that
 relied on it must send explicit reset values or select replacement below.
@@ -59,8 +60,10 @@ configuration; initial setup continues through existing PUT/provisioning paths.
 
 The identities are synthetic. An older server without this capability must not
 receive the envelope. WTP CAPS and Pi host projections do not establish support;
-Pi adoption/fallback/version-pair work remains in
-[WsprryPi #448](https://github.com/WsprryPi/WsprryPi/issues/448).
+Pi adoption/fallback/version-pair acceptance is recorded in
+[P15.2](https://github.com/WsprryPi/WsprryPi/blob/6a39398bb23d69ba0628e1b82171717040115ec8/docs/development/issue448-review.md)
+and [P15.4](phase15-4-shared-resources.md); those source pairs do not establish
+compatibility with arbitrary older or future firmware.
 
 | Input | Merge | Replace |
 | --- | --- | --- |
@@ -88,9 +91,12 @@ bound rather than changing the shared WTP codec.
 
 ## Authority, bounds and uncertain outcomes
 
-Engineering HTTPS, authenticated field HTTPS and committed Consumer-Radio
-dispatch use the existing handler. No listener or management carrier is added.
-Authentication, Host/Origin/Fetch Metadata/CSRF and common ETag checks apply.
+Engineering HTTPS, admitted authenticated field HTTPS, committed Consumer-Radio
+and [physical USB management](../protocol/USB-Management.md) dispatch use the
+same handler. This update feature itself adds no listener or carrier.
+Network carriers retain their authentication and Host/Origin/Fetch Metadata/CSRF
+guards. USB uses UMP1 physical session/target binding instead of HTTP headers.
+All retain exact target/revision checks, validators and idle/safety admission.
 Field Configure remains denied to blank/preclock sessions. Profile-owned Wi-Fi
 and station identity use existing setup transactions, not radio configuration.
 
@@ -118,4 +124,34 @@ lost reply. A write may already be committed. Read authoritative saved/active
 state, revision, storage health and status before explicitly reconciling a
 new action. Software evidence does not qualify physical or RF behavior.
 
-P15.15 adds independently negotiated [GPIO drive configuration](gpio-drive.md). Legacy resource shapes and unavailable declarations retain their prior meanings.
+## Explicit admission versions
+
+The URL namespace remains `/api/v1/`; suffixes select resource/admission
+extensions, not a Config storage-version change:
+
+| Complete save | Update route and envelope | Station / drive authority |
+| --- | --- | --- |
+| PUT `/api/v1/config` | POST `/api/v1/config/update`, `transmitter-config-update/1` | Changed station must encode Type 1; drive field rejected |
+| PUT `/api/v1/config/2` | POST `/api/v1/config/update/2`, `transmitter-config-update/1` | Changed station may encode Type 1/2/3; drive field rejected |
+| PUT `/api/v1/config/3` | POST `/api/v1/config/update/3`, `transmitter-config-update/2` | Type 1/2/3 plus explicit `gpio_drive_ma` |
+
+GET config, config/2 and config/3 are implemented; only config/3 returns the
+drive member, explicitly including 4. Ordinary legacy saves preserve the saved
+drive without accepting that new member. Explicit replacement on either update
+schema defaults omitted drive to 4. Discover `configuration_updates` for the
+base envelope, `application_resources_v2` for Type 1/2/3, and `gpio_drive` for
+the extended update/2 envelope/routes. Old descriptors remain closed.
+An unchanged saved Type 2/3 identity can survive unrelated legacy config edits;
+legacy station writes still require Type 1. Consumer profile identity/Wi-Fi
+edits require transactional setup, or the explicit USB local authorities.
+
+Drive changes save without pad programming and latch restart/output inhibition,
+including A/B/A, as [GPIO drive](gpio-drive.md) specifies. Saved progress is
+independent: an accepted draft does not apply Config or establish readiness.
+The complete candidate is atomic; unknown/duplicate/invalid fields do not save
+a subset. This differs from explicitly negotiated valid-field progress saves.
+
+Source: [candidate reconstruction](../../src/application/config_update.cpp),
+[dispatch, target and revision gates](../../src/network/api.cpp), and
+[existing preservation tests](../../tests/config_update_tests.cpp) plus
+[drive compatibility tests](../../tests/gpio_drive_tests.cpp).

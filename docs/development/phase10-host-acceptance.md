@@ -11,21 +11,25 @@ original host services are restored. See the
 [joint target review](phase10-target-review.md) for exact identities, failures,
 repairs, evidence and the limits of this functional acceptance.
 
-## Image selection
+## Current image selection
 
 | Image | Device UTC source | Host jobs | Output |
 |---|---|---|---|
-| `WsprryPico` | Configured Wi-Fi SNTP | Five-mode lifecycle simulation | Inhibited |
-| `WsprryPico-StandaloneRF` | Configured Wi-Fi SNTP | Five-mode experimental PIO/DMA | GP2, explicit build only |
+| `WsprryPico` | Qualified SNTP or controller UTC | Five-mode PIO/DMA application | Boot-selected RF GPIO; normal default |
+| `WsprryPico-Inhibited` | Qualified SNTP or controller UTC | Five-mode lifecycle simulation | Inhibited; explicit diagnostic selection |
+| `WsprryPico-StandaloneRF` | Qualified SNTP or controller UTC | Same RF application | Boot-selected RF GPIO; explicit compatibility target |
 | `WsprryPico-RFWTP` | Diagnostic Console USB observations | Five-mode experimental PIO/DMA | GP2, explicit build only |
 | `WsprryPico-RFBench` | Relative time only | Bench commands; no WTP endpoint | GP2, explicit build only |
 
-Use the SNTP image pair for joint host acceptance. WsprryPi does not provision
-Console time; the USB-time campaign image is not a drop-in independently
-synchronized device.
+Use application variants for current acceptance. The separate RFWTP image uses
+its historical Console time workflow; it is not the production
+[USB management/time adapter](../protocol/USB-Management.md), which can supply
+qualified UTC without Pico Wi-Fi. [P15.16](phase15-16-results.md) binds the build
+selection change without refreshing historical physical evidence.
 
 Five-mode WTP profiles advertise `wspr`, `tone`, `qrss`, `fskcw` and `dfcw`,
-162 events and 110.592 seconds maximum per complete job. Numeric frequency
+512 events and 3,600 seconds maximum per complete job. The original Phase 10
+profile was 162 events/110.592 seconds; its results below retain that scope. Numeric frequency
 bounds are 100 kHz through one Hz below half the selected 132/138/150 MHz sample
 rate; 138 MHz remains the default. These are experimental input limits, not
 qualified bands. Inspect CAPS for the actual running image.
@@ -39,7 +43,7 @@ workflow is not a finite WTP test.
 The inhibited simulator validates the protocol/profile bounds but does not
 model NCO quantization, waveform representability, RF gating or physical launch
 latency. Its `inhibited-standalone-simulator` identity differs from `pio-dma-gp2`.
-Its success cannot qualify the physical engine. The standard image links neither
+Its success cannot qualify the physical engine. The explicit inhibited image links neither
 the physical stream engine nor the Pico RF driver. Its sample-clock setting
 describes a simulated profile; it does not switch the hardware clock for RF.
 
@@ -50,8 +54,11 @@ firmware is not a method of disabling stored scheduling.
 
 ## Clock agreement
 
-WsprryPi's `[WTP] Start Uncertainty ns` defaults to `1000000` (1 ms). A valid
-Pico SNTP observation may exceed it. Neither side raises that budget silently.
+WsprryPi's ordinary new/missing `[WTP] Start Uncertainty ns` setting now defaults
+to `100000000` (100 ms), as the accepted [policy record](utc-100ms-results.md)
+documents. Explicit saved budgets are preserved. Phase 10 used the then-default
+`1000000` (1 ms). A valid Pico observation may exceed either requested budget;
+neither side raises it silently.
 
 For a separately authorized bounded functional-acceptance run, explicitly select
 `500000000` (500 ms), the existing standalone admission/launch ceiling, and
@@ -64,9 +71,10 @@ SNTP requires usable UTC, normal leap state, source age at most 90 seconds and
 uncertainty within device and request limits. Uncertainty grows using the
 existing assumed 50,000 ppb drift bound. The launch guard checks it again: ARM
 can succeed and later become MISSED_START. There is no late-start fallback.
-Without a TLS listener, Wi-Fi polling is deferred while armed/running. The current
-network-enabled standalone image services network control concurrently; see
-[Phase 11.2](phase11-2-review.md) for ownership and pending target gates.
+Consumer profiles and active TLS or Plain LAN listeners keep Wi-Fi polled
+while armed/running. The older deferral remains for non-consumer operation
+without either listener. See [Phase 11.2](phase11-2-review.md) for ownership
+and its historical acceptance boundary.
 A complete WSPR job can outlast the
 acquisition window without retiming its events; the next job needs an admissible
 clock snapshot. Lost SNTP exchanges receive two bounded 2 s retries, then a
@@ -118,7 +126,7 @@ software tests do not close Linux enumeration, permissions or deployment gates.
    preserve unrelated station/network settings, watermark and schedule history.
    Volatile STOP alone does not disable scheduling after reboot. Verify actual
    image, scheduling state, ownership and inactive output before proceeding.
-4. Start with standard inhibited firmware. Verify host clock readiness separately
+4. Start with explicit `WsprryPico-Inhibited` firmware. Verify host clock readiness separately
    from HELLO/STATUS/CAPS/GET_CLOCK. Missing/stale status is unknown. Confirm the
    simulator identity, five modes, exact limits, no foreign owner and explicit
    uncertainty budget. Revealing host development controls is not job authority.
@@ -166,4 +174,5 @@ those historical restorations do not impose a standing reflash requirement.
 
 Installation/service acceptance, host feature-branch merge, operator-manual
 publication and general hardware/RF/reliability qualification remain distinct
-gates. Networking, SoftAP/BLE, output-network design and release are later phases.
+gates. Networking and SoftAP/BLE now have their own scoped acceptance records;
+current work belongs only to the [consolidated backlog](consolidated-backlog.md).

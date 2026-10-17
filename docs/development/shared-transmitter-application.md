@@ -6,6 +6,15 @@ resources and Type 1/2/3 admission, preserving the version-1 projection and
 recorded Type 1 tests. See [the current browser API](../browser-api.md#versioned-local-wspr-planning-p158)
 for additive discovery, preview and explicit refusal behavior.
 
+Current additive views also include GET `/api/v1/application/3`
+(`transmitter-application/3`, station/2 plus hardware/2) and GET
+`/api/v1/hardware/2` (`transmitter-hardware/2`, nested gpio-drive/1). Discover
+these through the independent `gpio_drive` capability; hardware/2 is read-only.
+Pin writes still use PUT hardware/1, drive writes use PUT gpio-drive/1.
+GET/PUT station/2 uses `transmitter-station/2`; GET application/2 embeds it
+with hardware/1. The old `application_resources` descriptor and old schemas
+remain closed; `application_resources_v2` negotiates Type 1/2/3 separately.
+See [GPIO drive](gpio-drive.md) for full routes, bounds and restart semantics.
 
 The Pico member now exposes versioned application, station and hardware JSON
 resources through its existing authenticated HTTPS BrowserApi. They project the
@@ -52,8 +61,15 @@ Existing engineering station HTTPS uses its certificate principal. Existing
 field HTTPS retains cookie/session admission and classifies these routes, plus
 pin review, as Configure operations: blank and provisioned-preclock access is
 denied, and normal authenticated access retains its existing restrictions. The foundation adds no raw consumer HTTP API. The existing encrypted consumer
-station/AP adapter shares BrowserApi, independently of WTP; USB, BLE and Plain
-LAN WTP do not become JSON management carriers. A WTP connection alone does not imply a management carrier.
+station/AP adapter shares BrowserApi, independently of WTP. The separate
+[USB management/time interface](../protocol/USB-Management.md) now adapts it
+under `usb_physical`, without Wi-Fi. USB WTP, BLE WTP and Plain LAN/TLS WTP
+connectivity alone grant no JSON management. Field HTTPS retains its actual
+closed route allowlist; the shared handler inventory is not universal access.
+The frozen application schema files describe the network capability projection.
+Accepted USB application readbacks retain resource names but substitute
+`usb_physical` and remove `usb_json_management`; see the
+[schema-coverage distinction](../browser-api.md#management-carrier-discovery).
 
 ## Identity and revision
 
@@ -63,8 +79,9 @@ Do not translate a member update into controller-local settings or select a
 different node after a connection error.
 
 GET responses return the common opaque, quoted ETag. PUT requires that exact
-value in If-Match, along with the existing authentication, Host/Origin,
-content-type and `X-WsprryPico-Request: 1` policy. All configuration projections
+value in If-Match and the selected carrier's authority. Network adapters retain
+their Host/Origin, content-type and `X-WsprryPico-Request: 1` policy; USB uses
+UMP1 framing and physical session/target binding without those headers. All configuration projections
 share a token derived from device/boot identity, network administration revision,
 durable configuration journal sequence and canonical configuration. Identical
 saves consume the generation; A-to-B-to-A writes cannot revive the A token.
@@ -117,8 +134,10 @@ or peripheral authority is introduced.
 Only direct PIO assignments, supported active-low button assignments and the
 shared onboard/external/disabled indicator can be saved. Amplifier, LPF and
 Si5351/I2C execution remain unavailable. Candidate eligibility does not authorize
-operation. Drive, reference calibration and waveform fields are also unavailable;
-unknown fields are rejected. The coverage map records every Pi inventory row
+operation. Drive remains unavailable within this frozen hardware/1 object;
+the independently negotiated current gpio-drive resource supports 2/4/8/12 mA,
+default 4. Reference calibration and waveform fields remain unavailable;
+unknown fields are rejected. The historical coverage map records every Pi inventory row
 and distinguishes implemented, partial, platform-specific and future adapters.
 
 Hardware GET reports saved pins and generation separately from the active boot
@@ -126,6 +145,8 @@ plan and active revision. Changing pins commits the supported configuration and
 latches JobService output inhibition until restart. `pending_restart` reports
 that latch; restoring old pins or editing station data cannot clear it. The
 application's `reboot_required` also covers pending network boot settings.
+The same sticky hardware latch now covers drive; hardware/2's active digest
+includes the boot drive, while hardware/1 retains its pin-only digest.
 `execution_engine` reports the service's actual engine, including an inhibited
 or simulated engine; selecting a direct pin plan does not authorize RF output.
 
@@ -175,7 +196,8 @@ silently cleared by a later station edit. No new WTP state is introduced.
 
 Default legacy configuration serialization is unchanged. The pin branch's
 explicit Config v1 extension and nondefault-pin downgrade boundary remain in
-force. No additional fields are added to that stored document by these resources.
+force. This foundation did not add stored fields; the accepted drive extension
+later adds `gpio_drive_ma` only when nondefault, in the same Config v1 journal.
 
 ## Foundation implementation boundary
 
@@ -191,3 +213,11 @@ This foundation's software results do not close physical/RF qualification or
 change Phase 11/12 acceptance. Later acceptance records identify delivered
 extensions. Current work is selected only in the
 [Consolidated backlog](consolidated-backlog.md).
+
+Current projections and admission are implemented in
+[BrowserApi](../../src/network/api.cpp) and
+[resource descriptors](../../src/application/resources.cpp), checked by
+[application resource tests](../../tests/application_resource_tests.cpp),
+[WSPR resource tests](../../tests/wspr_resource_tests.cpp) and
+[drive tests](../../tests/gpio_drive_tests.cpp). Historical foundation acceptance
+remains bound to its original version-1 source and tests.

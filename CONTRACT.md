@@ -222,8 +222,18 @@ boot-applied subset and unavailable amplifier/LPF/Si5351 adapters.
 
 ## Saved progress extension
 
-The additive `transmitter-progress/1` resource persists valid independent fields
+The additive `transmitter-progress/1` and independently negotiated `/2` resources persist valid independent fields
 without applying configuration or establishing transmit readiness. See the
 [saved progress contract](docs/development/saved-progress.md) for field, storage, authority,
 explicit application and recovery semantics. Existing complete configuration,
 profile and WTP contracts remain atomic and do not consume drafts.
+
+Resource schemas are independent of the `/api/v1/` namespace: current
+application/3 embeds station/2 and hardware/2; config/3 still stores Config v1.
+The [GPIO-drive descriptor](docs/development/gpio-drive.md) negotiates 2/4/8/12 mA,
+default 4, without changing legacy closed views. Reported WSPR power, saved
+drive, immutable boot selection and cached nullable ARM-time pad verification
+remain distinct. A changed hardware save requires explicit restart and latches
+output inhibition for the boot, including A/B/A; it does not program a pad or
+establish RF power/qualification. Management authentication alone grants no
+transmitter ownership; an explicit CLAIM must pass the shared JobService.

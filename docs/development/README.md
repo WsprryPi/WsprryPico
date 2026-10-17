@@ -11,7 +11,9 @@ current work; consult the consolidated document for current dispositions.
 The [P15.16 default-build record](phase15-16-results.md) tracks the normal
 RF-capable firmware default and explicit `WsprryPico-Inhibited` diagnostic.
 The target change preserves accepted USB/drive configuration and does not
-refresh physical RF qualification.
+refresh physical RF qualification. Current API/carrier versions are indexed in
+the [browser API](../browser-api.md#resources), with independently negotiated
+[GPIO drive](gpio-drive.md) and [saved progress](saved-progress.md).
 
 [Production USB control](usb-control-results.md) adds ordinary-firmware USB
 management/time, common-hostname presentation, complete saved Wi-Fi lifecycle
@@ -309,12 +311,12 @@ recorded in the current closure matrix.
 The supported [Raspberry Pi/Linux BLE client](raspberry-pi-ble-client.md) adds a
 native BlueZ local/bench workflow using the same production GATT contract.
 Network WTP/TCP remains first-class while USB CDC remains canonical/reference.
-The standard RF-inhibited consumer image now defaults to station-only Plain LAN
+The standard RF-capable consumer application defaults to station-only Plain LAN
 WTP after accepted SNTP; engineering mTLS and explicit consumer `tls`/`off`
 choices remain. The [Plain LAN review](phase12-plain-lan-review.md) records
 source and host evidence. The Pi BLE claim has the exact bounded live record
-linked above; this new Plain LAN binding has no physical interoperability
-evidence yet.
+linked above; the later [Phase 12 closeout](phase12-closure-matrix.md) retains
+bounded one-member Plain LAN application evidence, without full fleet qualification.
 
 Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1
 configuration. Its [completion matrix](phase11-5-completion-matrix.md) and
@@ -497,11 +499,18 @@ remain unproven. Phase 11.5 acceptance counts and clock status are unchanged.
 
 ## Build direction
 
-The portable core uses C++20 and CMake 3.24 or later. The firmware build pins
+The portable core uses C++20 without extensions and a CMake project minimum of
+3.24. The checked-in version-6 presets require CMake 3.25 or later. Firmware
+application C sources require C11 with GNU extensions for SDK integration. The firmware build pins
 the Pico SDK, picotool and Arm toolchain and selects `pico2_w` explicitly. The
 SDK 2.3.1 (`079c6f39023649b154152db30f1d781e884879bc`) includes the
 upstream RP2350 synchronization fixes; use a fresh build directory after an
-SDK update. The SDK fetches the pinned picotool build dependency. The
+SDK update. Arm GNU 15.3.1 and picotool 2.3.0 at
+`6f6458d792b93685a11423b244a585eaa99eafcf` remain pinned. The SDK/submodules,
+toolchain, Ninja, Python and host compiler must already be available; the local
+helper requires retained picotool Git source and uses private dependency outputs.
+See [build prerequisites, helper arguments and artifacts](firmware-foundation.md)
+for the portable local workflow. The
 [bounded target USB record](usb-target-validation.md) supplies the separately
 authorized BOOTSEL and read-only validation procedure.
 
@@ -635,6 +644,62 @@ and Chrome failure retained. Its [Orbi report](phase11-4-d3-orbi-research.md)
 compares future fault-testing options.
 
 ## Current checks
+
+### Contract reconciliation validation, 2026-10-17
+
+The maintained API, carrier, GPIO-drive and build descriptions were compared
+with dispatch/resource code, existing schemas/tests and accepted P15.8–P15.16
+records. Resource versions, legacy shapes/defaults, per-carrier authority,
+response delivery and saved/active hardware distinctions remain unchanged.
+The source links in those guides identify the implementation evidence.
+
+Fresh hardware-free validation used `build/contract-reconciliation-20261017/host`:
+
+```sh
+source scripts/xcode_env.sh
+cmake --preset host-debug -B build/contract-reconciliation-20261017/host
+cmake --build build/contract-reconciliation-20261017/host --parallel 4 --target \
+  usb_local_management_tests usb_management_tests usb_management_driver \
+  progress_tests hostname_tests network_tests management_carrier_tests \
+  consumer_radio_tests pin_allocation_tests gpio_drive_tests \
+  application_resource_tests config_update_tests standalone_tests \
+  wspr_plan_tests wspr_resource_tests frequency_policy_tests softap_api_tests \
+  usb_transport_tests endpoint_driver
+ctest --test-dir build/contract-reconciliation-20261017/host --output-on-failure -j 4 \
+  -R '^(application_image_tests|usb_local_management_tests|usb_management_tests|usb_management_vectors|progress_tests|hostname_tests|network_tests|management_carrier_tests|consumer_radio_tests|pin_allocation|gpio_drive|gpio_drive_schema|gpio_drive_browser|application_resources|application_schema|config_updates|config_update_schema|config_update_legacy_pi|standalone_tests|wspr_plan_tests|wspr_resource_tests|wspr_resource_schema_tests|frequency_policy_tests|softap_api_tests|usb_transport_tests|endpoint_tests|saved_progress_browser_tests|network_browser_tests|device_presentation_tests|led_closeout_tests|phase12_candidate_manifest_tests)$'
+python3 scripts/validate_wtp_contract.py
+```
+
+All focused targets built. CTest selected 31 checks: 30 passed; the optional
+`config_update_schema` skipped because the selected Python 3.15 interpreter
+lacks `jsonschema`. That unchanged test then passed directly with the already
+installed check-jsonschema tool's private Python environment:
+
+```sh
+# Recorded local interpreter; select the corresponding existing environment elsewhere.
+/opt/homebrew/Cellar/check-jsonschema/0.38.2/libexec/bin/python \
+  tests/config_update_schema_tests.py \
+  build/contract-reconciliation-20261017/host/config_update_tests
+```
+
+The WTP validator passed 23 schema, seven raw-JSON, one framing and eight
+transition cases. Changed Markdown links/anchors, eight JSON examples, 39 shell
+blocks (`bash -n`) and whitespace checks passed. This is focused software evidence, not a new complete-suite,
+companion-interoperability, firmware cross-link, CI, physical USB, timing or RF
+qualification. No dependency, runtime code, schema, test expectation or build
+behavior changed; no hardware was operated or deployment artifact produced.
+
+Independent read-only adversarial review repaired omitted routes, stale USB
+exclusions/build defaults, overly broad ownership/header requirements, drive
+fallback/restart wording, Config response-limit wording and stale polling/
+integration claims. It confirmed the USB capability substitutions are an
+accepted carrier extension, with separate coverage from unchanged network
+schema artifacts. Six affected USB/carrier/resource/standalone/endpoint checks
+passed after the final repairs. Fresh complete-diff review found no unresolved
+actionable findings. Closure is limited to backlog #1 documentation; all other
+task statuses, historical evidence and physical qualification limits remain.
+
+### Routine checks
 
 The [Phase 11 network guide](network-control.md) documents optional TLS WTP/TCP,
 HTTPS/browser tests, device-specific certificate tooling, build inputs and
