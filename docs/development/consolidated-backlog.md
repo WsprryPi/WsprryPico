@@ -9,9 +9,11 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
 
 1. ✅ **Current contract reconciliation.** Align current API, carrier, GPIO-drive
    and build descriptions with the accepted implementation.
-2. ▧ **Short WSPR Type 2/3 decode.** Test one Type 2 → Type 3 pair at
-   14.097100 MHz (20 m) on one Pico with `wsprd`; record the result and associated
-   evidence closeout. [Saved prompt](short-wspr-type23-decode-execution-prompt.md).
+2. ✅ **Short WSPR Type 2/3 decode.** Test one Type 2 → Type 3 pair at
+   3.570100 MHz (80 m), selected by the operator during execution, on one Pico
+   with `wsprd`; record the result and associated
+   evidence closeout. [Result](short-wspr-type23-decode-results.md).
+   [Saved prompt](short-wspr-type23-decode-execution-prompt.md).
 3. ▧ **Amplifier-enable GPIO during transmissions.** Assert the configured enable
    pin before RF starts and return it inactive after completion, stop, abort
    or fault. [Saved prompt](amplifier-enable-execution-prompt.md).

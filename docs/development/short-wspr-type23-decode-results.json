@@ -1,0 +1,1070 @@
+{
+  "schema": "short-wspr-type23-evidence/1",
+  "date": "2026-10-17",
+  "status": "PASS",
+  "qualification": false,
+  "operator_overrides": {
+    "frequency": "Use whatever frequency we have been using for testing",
+    "image": "Use a fresh current-source local build",
+    "selected_rf_base_hz": 3570100,
+    "band": "80m",
+    "original_prompt_rf_base_hz": 14097100,
+    "ci_image_required_for_this_run": false
+  },
+  "repository": {
+    "entry_branch": "devel",
+    "entry_head": "14698ca1dba32914959530a3b5a0cf41f74caf8f",
+    "entry_worktree": "clean",
+    "latest_product_commit": "da79bd0a25289f3afe22f777c36fb57cfb57ef07",
+    "pre_rf_head": "76b794f7a770e6a1d80f140e30ecb89c1da3e851",
+    "pre_rf_product_diff": [],
+    "evidence_commit": "The commit containing this manifest; distinct from the tested image source."
+  },
+  "firmware": {
+    "source_commit": "14698ca1dba32914959530a3b5a0cf41f74caf8f",
+    "source_archive_sha256": "c17de30d7f7f63545b241b59ade35a2c97940dc152d1c2139283b05566f37e15",
+    "target": "WsprryPico",
+    "board": "pico2_w",
+    "processor": "RP2350",
+    "version": "0.0.0-devel",
+    "revision": "14698ca1dba3-dirty",
+    "engine": "pio-dma-gp2",
+    "system_clock_hz": 138000000,
+    "standalone_rf_base_hz": 3570100,
+    "dependency_commits": {
+      "sdk": "079c6f39023649b154152db30f1d781e884879bc",
+      "mbedtls": "0bebf8b8c7f07abe3571ded48a11aa907a1ffb20",
+      "lwip": "77dcd25a72509eb83f72b033d219b1d40cd8eb95",
+      "tinyusb": "86ad6e56c1700e85f1c5678607a762cfe3aa2f47",
+      "picotool": "6f6458d792b93685a11423b244a585eaa99eafcf"
+    },
+    "uf2": {
+      "sha256": "6cbe319e996b4a935dc7ba311583832e68228177cb2b7434573776ab19284528",
+      "size_bytes": 4524032,
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/pico/firmware/WsprryPico.uf2"
+    },
+    "elf": {
+      "sha256": "a8c75d1e79d95007724e65bd831895aea9ecd77e9d710736e0e923a7750c1845",
+      "size_bytes": 38098028,
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/pico/firmware/WsprryPico.elf"
+    },
+    "toolchain": "Arm GNU 15.3.1",
+    "build_revision_note": "The immutable archive is exact source_commit. CMake git discovery inherited the enclosing checkout documentation-only dirty state; the image retains its actual revision label."
+  },
+  "software_plan": {
+    "schema": "short-wspr-type23-frozen-software-plan/1",
+    "source_commit": "14698ca1dba32914959530a3b5a0cf41f74caf8f",
+    "payload": {
+      "callsign": "PJ4/AA0NT",
+      "locator": "EM18IG",
+      "power_dbm": 20
+    },
+    "frames": [
+      {
+        "type": 2,
+        "payload": 305501007264342,
+        "symbols_ascii": "132002023020133200302101131202202232010302202010112231210201121022213010323230210032312221121212223222023221201110310033010021310200232102110000222312103302031202",
+        "symbols_ascii_sha256": "17279f30c60275439d2ee286625762373400b62af169baa2e548ec24c8b099ac"
+      },
+      {
+        "type": 3,
+        "payload": 655358541668779,
+        "symbols_ascii": "312220221000331022320321311000002230012300022030332211010203103202031230123232232210310021121230223222021221001130110213030023332002230320310022200130323120233000",
+        "symbols_ascii_sha256": "66be67c679ea771adbecbcf407a6d06ea8edc664ee9a42f1f06dcd371d5fe8aa"
+      }
+    ],
+    "rf_base_hz": 3570100,
+    "tone_frequencies_nhz": [
+      3570100000000000,
+      3570101464843750,
+      3570102929687500,
+      3570104394531250
+    ],
+    "nominal_frame_ns": 110592000000,
+    "nominal_start_separation_s": 120,
+    "not_rf_measurement": true,
+    "not_sent_to_device_or_decoder": true,
+    "oracle_provenance": {
+      "repository": "https://github.com/WSJTX/wsjtx",
+      "commit": "967c85a6119110788b0df3782cf796485b2cee14",
+      "files": {
+        "wsprsim_utils.c": "0218978e6d9ec498a4e1950cf56ca91d01e5ce49f71ebee070cbd9ce01a21f1c",
+        "wsprsim_utils.h": "7eee512e662cc1324e855716bf44db9c943e63240f7d567325c9dacf7a1fc261",
+        "wsprd_utils.c": "133526020b0bc84afd0b736108e544ca9566e784e463321b5f644bdf5226ecab",
+        "wsprd_utils.h": "04ff90f5386ccfe2872ca56b0ac2ca2b7c0398b4fdedff3aa9ca45b2d37852ba",
+        "nhash.c": "cb46be03631e31528d2159eb0f54674776bd9f84f6b9a1d54307deb2196dc432",
+        "nhash.h": "067d02ce073cd90c1d6668d80b4d50e658365a84ba6c2eb2f13b98caca859511",
+        "fano.c": "72d3e176e75b7714916aed9fbf36f003b7ea5f511f0dd13e96e9ddbc2e159a15",
+        "fano.h": "1955cd1d71d4cfb69cd5a4cc7dd563d239948fa9e302f1cfe4f40e8b5409ff65"
+      }
+    }
+  },
+  "physical": {
+    "board": "A",
+    "usb_serial": "0BF4B4AEC9FFB344",
+    "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+    "boot_id": "39a3ca9f7aed53401a83172ab568f51d",
+    "rf_gp": 2,
+    "saved_drive_ma": 4,
+    "boot_drive_ma": 4,
+    "armed_pad_readback_ma": 4,
+    "conducted_path": "GP2/GND; existing 20 dB attenuation; combiner; 40 dB attenuation; wspr5 RSP1B 2404058C60. No antenna/amplifier/filter/reference added.",
+    "gpsdo_outputs_enabled": [
+      false,
+      false
+    ],
+    "unselected_board": "B",
+    "receiver_settings": {
+      "format": "CF32",
+      "channel": 0,
+      "sample_rate_hz": 250000,
+      "bandwidth_hz": 200000,
+      "center_frequency_hz": 3545100,
+      "gain_db": 20,
+      "agc": false,
+      "bias_tee": false
+    },
+    "slots_utc_s": [
+      1792267321,
+      1792267441
+    ],
+    "expires_utc_s": 1792267554,
+    "period_s": 600,
+    "phase_s": 120,
+    "armed_workflow_utc_ns": 1792267085800747959,
+    "armed_workflow_monotonic_ns": 113780735053273,
+    "native_plan": {
+      "body": {
+        "alternate_callsign": null,
+        "frame_types": [
+          "type2",
+          "type3"
+        ],
+        "frames": 2,
+        "rationale": "Type 2 announces the compound call; Type 3 carries its hash and six-character locator in the next even-minute window. Receiver hash context may be needed.",
+        "schema": "wspr-plan/1",
+        "slot_separation_s": 120,
+        "supported": true,
+        "type2_ambiguous": false
+      },
+      "bytes": 327,
+      "etag": "",
+      "status": 200
+    },
+    "job_ids": [
+      "eeeeeeeeeeeeeeee18df69a1f2befa00",
+      "eeeeeeeeeeeeeeee18df69bde34daa00"
+    ],
+    "same_test_boot_for_both_jobs": true,
+    "unselected_board_identity": {
+      "usb_serial": "CDDBF8767C506C07",
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "boot_id_before": "f1446806196d2a3caa519f216404603a",
+      "boot_id_after": "f1446806196d2a3caa519f216404603a",
+      "enabled": false,
+      "output_active": false,
+      "owner_id": null
+    },
+    "tools": {
+      "/home/pi/phase11-4-e1/picotool-build/picotool": "4a68cfd7fc36002e80857802c8192c9f24c751357c6cb26ad13ad7f38c227921",
+      "/home/pi/wsprrypi-qualification-runs/complete-test-deployment-284c7e04a3fdd079c46e782b/wspq-capture-soapy": "b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03",
+      "/usr/bin/wsprd": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3"
+    }
+  },
+  "rf_budget": {
+    "maximum_frames": 2,
+    "observed_starts": 2,
+    "completed_frames": 2,
+    "extra_rf_attempts": 0,
+    "warmup_frames": 0,
+    "automatic_retries": 0,
+    "disabled_preparation_rf_starts": 0,
+    "budget_exhausted": true
+  },
+  "decoder": {
+    "package": "wsjtx 2.7.0+repack-1",
+    "executable": "/usr/bin/wsprd",
+    "sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+    "primary_flags": [
+      "-d",
+      "-a",
+      "<fresh shared primary directory>",
+      "-f",
+      "3.568600"
+    ],
+    "hash_seeded": false,
+    "modified": false,
+    "wsprnet_upload": false,
+    "runs_and_conversion": {
+      "schema": "short-wspr-type23-decode/1",
+      "capture_sha256": "6d1e821ce38474bd0eaf2233d31c82694208805f2808e8581e72d22f920d121b",
+      "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+      "base_hz": 3570100,
+      "dial_mhz": 3.5686,
+      "job_associations": [
+        {
+          "job_id": "eeeeeeeeeeeeeeee18df69a1f2befa00",
+          "slot_utc_s": 1792267321,
+          "approximate_rf_utc_s": [
+            1792267321.0319998,
+            1792267431.625
+          ],
+          "observed_running_host_utc_s": [
+            1792267321.6916604,
+            1792267430.4506679
+          ],
+          "tolerance_s": 2,
+          "launch_timing_qualification": false
+        },
+        {
+          "job_id": "eeeeeeeeeeeeeeee18df69bde34daa00",
+          "slot_utc_s": 1792267441,
+          "approximate_rf_utc_s": [
+            1792267441.056,
+            1792267551.648
+          ],
+          "observed_running_host_utc_s": [
+            1792267441.5546384,
+            1792267551.3056731
+          ],
+          "tolerance_s": 2,
+          "launch_timing_qualification": false
+        }
+      ],
+      "completion_assessment": {
+        "native_completion_verified": true,
+        "original_workflow_status": "FAILED",
+        "original_workflow_errors": [
+          "ValueError('receiver ended before complete pair')"
+        ],
+        "controller_termination_corrected": true,
+        "explanation": "Scheduler sees the second Complete, cancel_pair(None) RELEASEs it, and JobService clear_job changes state to Empty.",
+        "terminal_host_utc_ns": 1792267552302841223,
+        "source": "src/standalone/scheduler.cpp poll_pair/cancel_pair; src/wtp/job_service.cpp RELEASE/clear_job",
+        "physical_sha256": "cdd24ab4b85ed20a09eecb82458ad083c4d80c77424270944c31169cbd2d43ee",
+        "capture_sha256": "6d1e821ce38474bd0eaf2233d31c82694208805f2808e8581e72d22f920d121b",
+        "rf_intervals_samples": [
+          [
+            58643500,
+            86291750
+          ],
+          [
+            88649500,
+            116297500
+          ]
+        ],
+        "job_associations": [
+          {
+            "job_id": "eeeeeeeeeeeeeeee18df69a1f2befa00",
+            "slot_utc_s": 1792267321,
+            "approximate_rf_utc_s": [
+              1792267321.0319998,
+              1792267431.625
+            ],
+            "observed_running_host_utc_s": [
+              1792267321.6916604,
+              1792267430.4506679
+            ],
+            "tolerance_s": 2,
+            "launch_timing_qualification": false
+          },
+          {
+            "job_id": "eeeeeeeeeeeeeeee18df69bde34daa00",
+            "slot_utc_s": 1792267441,
+            "approximate_rf_utc_s": [
+              1792267441.056,
+              1792267551.648
+            ],
+            "observed_running_host_utc_s": [
+              1792267441.5546384,
+              1792267551.3056731
+            ],
+            "tolerance_s": 2,
+            "launch_timing_qualification": false
+          }
+        ]
+      },
+      "detector": {
+        "threshold": 0.0002460157606366513,
+        "intervals_samples": [
+          [
+            58643500,
+            86291750
+          ],
+          [
+            88649500,
+            116297500
+          ]
+        ],
+        "method": "1 kHz Hann baseband power; merge gaps up to 20 ms; retain intervals over 30 s"
+      },
+      "conversion": "120 s real IQ windows starting 1 s before detected RF onset; fixed RF-base translation, Hann integrate/decimate to 1 kHz, 241-tap Hann-sinc interpolation to 12 kHz, real 1500 Hz mapping, peak normalization to 28000 and trailing silence only. No frequency/drift fit, time stretch, expected symbols, or offset search.",
+      "windows": [
+        {
+          "frame_type": 2,
+          "job_id": "eeeeeeeeeeeeeeee18df69a1f2befa00",
+          "samples": [
+            58393500,
+            88393500
+          ],
+          "rf_interval_samples": [
+            58643500,
+            86291750
+          ],
+          "conversion": {
+            "input_samples": 30000000,
+            "intermediate_rate_hz": 1000.0,
+            "output_rate_hz": 12000,
+            "frequency_translation_hz": 25000,
+            "audio_mapping_hz": 1500,
+            "decimator_hann_samples": 250,
+            "interpolation_taps": 241,
+            "interpolation_taps_float64_le_sha256": "0e657fe06c616b4c23be7bbecc05bed947dbcab580037e9b0722a9d700f15f3e",
+            "audio_peak_before_normalization": 0.07551327723325851,
+            "normalization_multiplier": 370795.7199832387,
+            "trailing_zero_samples": 0,
+            "time_stretch": 1,
+            "fitted_frequency_correction_hz": 0
+          },
+          "wav": "261017_2002.wav",
+          "wav_sha256": "5da93e0b202f3afaf9c79c2a34668d7411ff851bfe1943e01dcd19c476edd94f"
+        },
+        {
+          "frame_type": 3,
+          "job_id": "eeeeeeeeeeeeeeee18df69bde34daa00",
+          "samples": [
+            88399500,
+            118399500
+          ],
+          "rf_interval_samples": [
+            88649500,
+            116297500
+          ],
+          "conversion": {
+            "input_samples": 30000000,
+            "intermediate_rate_hz": 1000.0,
+            "output_rate_hz": 12000,
+            "frequency_translation_hz": 25000,
+            "audio_mapping_hz": 1500,
+            "decimator_hann_samples": 250,
+            "interpolation_taps": 241,
+            "interpolation_taps_float64_le_sha256": "0e657fe06c616b4c23be7bbecc05bed947dbcab580037e9b0722a9d700f15f3e",
+            "audio_peak_before_normalization": 0.07671862759536147,
+            "normalization_multiplier": 364970.0324109151,
+            "trailing_zero_samples": 0,
+            "time_stretch": 1,
+            "fitted_frequency_correction_hz": 0
+          },
+          "wav": "261017_2004.wav",
+          "wav_sha256": "289687e0b64c1517ab2435d97fd85e2cd287e833742d32005e7d54d7a6a19ee9"
+        }
+      ],
+      "decodes": [
+        {
+          "command": [
+            "/usr/bin/wsprd",
+            "-d",
+            "-a",
+            "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/decode/primary",
+            "-f",
+            "3.568600",
+            "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/decode/261017_2002.wav"
+          ],
+          "cwd": "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/decode/primary",
+          "timeout_s": 90,
+          "before": {
+            "exists": false,
+            "sha256": null,
+            "content": null
+          },
+          "started_utc_ns": 1792267750266452344,
+          "returncode": 0,
+          "stdout": "2002  40 -0.0   3.570110  0  PJ4/AA0NT 20 \n<DecodeFinished>\n",
+          "stderr": "",
+          "ended_utc_ns": 1792267752945719801,
+          "after": {
+            "exists": true,
+            "sha256": "d8c7d3eed8349de62c06126b67eb774f1f8bd4ca584b8e8d9c06d0b12b780ab4",
+            "content": "10051 PJ4/AA0NT \n"
+          },
+          "frame_type": 2,
+          "matches": [
+            "2002  40 -0.0   3.570110  0  PJ4/AA0NT 20 "
+          ]
+        },
+        {
+          "command": [
+            "/usr/bin/wsprd",
+            "-d",
+            "-a",
+            "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/decode/primary",
+            "-f",
+            "3.568600",
+            "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/decode/261017_2004.wav"
+          ],
+          "cwd": "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/decode/primary",
+          "timeout_s": 90,
+          "before": {
+            "exists": true,
+            "sha256": "d8c7d3eed8349de62c06126b67eb774f1f8bd4ca584b8e8d9c06d0b12b780ab4",
+            "content": "10051 PJ4/AA0NT \n"
+          },
+          "started_utc_ns": 1792267752946470504,
+          "returncode": 0,
+          "stdout": "2004  40 -0.0   3.570109  0  <PJ4/AA0NT> EM18IG 20 \n2004 -21 -0.4   3.570179  0  <PJ4/AA0NT> EM18IG 20 \n2004 -21 -0.3   3.570183  0  <PJ4/AA0NT> EM18IG 20 \n<DecodeFinished>\n",
+          "stderr": "",
+          "ended_utc_ns": 1792267756375145884,
+          "after": {
+            "exists": true,
+            "sha256": "d8c7d3eed8349de62c06126b67eb774f1f8bd4ca584b8e8d9c06d0b12b780ab4",
+            "content": "10051 PJ4/AA0NT \n"
+          },
+          "frame_type": 3,
+          "matches": [
+            "2004  40 -0.0   3.570109  0  <PJ4/AA0NT> EM18IG 20 ",
+            "2004 -21 -0.4   3.570179  0  <PJ4/AA0NT> EM18IG 20 ",
+            "2004 -21 -0.3   3.570183  0  <PJ4/AA0NT> EM18IG 20 "
+          ]
+        }
+      ],
+      "controls": {
+        "cold_type3": {
+          "command": [
+            "/usr/bin/wsprd",
+            "-d",
+            "-a",
+            "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/decode/cold",
+            "-f",
+            "3.568600",
+            "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/decode/261017_2004.wav"
+          ],
+          "cwd": "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/decode/cold",
+          "timeout_s": 90,
+          "before": {
+            "exists": false,
+            "sha256": null,
+            "content": null
+          },
+          "started_utc_ns": 1792267756375710346,
+          "returncode": 0,
+          "stdout": "2004  40 -0.0   3.570109  0  <...> EM18IG 20 \n<DecodeFinished>\n",
+          "stderr": "",
+          "ended_utc_ns": 1792267760160172703,
+          "after": {
+            "exists": true,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "content": ""
+          },
+          "resolved_matches": [],
+          "unresolved_matches": [
+            "2004  40 -0.0   3.570109  0  <...> EM18IG 20 "
+          ],
+          "behavior": "unresolved"
+        },
+        "wrong_expectations": [
+          {
+            "call": "PJ4/AA0NTX",
+            "grid": "EM18IG",
+            "power": "20",
+            "accepted": false
+          },
+          {
+            "call": "PJ4/AA0NT",
+            "grid": "AA00AA",
+            "power": "20",
+            "accepted": false
+          },
+          {
+            "call": "PJ4/AA0NT",
+            "grid": "EM18IG",
+            "power": "23",
+            "accepted": false
+          }
+        ]
+      },
+      "passed": true
+    }
+  },
+  "checks": {
+    "host_planner_scheduler": "2/2 passed",
+    "decoder_helper": "6/6 passed in existing NumPy environment",
+    "wtp_contract": {
+      "schema_cases": 23,
+      "raw_json_cases": 7,
+      "framing_cases": 1,
+      "transition_cases": 8
+    },
+    "firmware_link_checks": "engine, core stacks, flash/UF2 journal bounds, GP14, allocator/pool and SRAM renderer passed",
+    "commands": [
+      "ctest --test-dir build/short-wspr-type23-decode-20261017T194248Z/host --output-on-failure -R \"^(wspr_plan_tests|standalone_tests)$\"",
+      "/Users/lbussy/GitHub/WsprryPi-Qualification-Harness/.venv/bin/python -B tests/wspr_type23_decode_tests.py",
+      "python3 scripts/validate_wtp_contract.py",
+      "Python AST parse of decoder helper and tests",
+      "git diff --check",
+      "git diff --cached --check"
+    ]
+  },
+  "review": {
+    "independent": true,
+    "pre_rf": "no actionable findings after repairs",
+    "final": "clear; no actionable findings remain",
+    "actual_evidence": "Independent source/image and IQ/WAV hashes; 541 status observations, native Empty completion, exact restoration and naturally learned context checked. Both WAV PCM streams independently reproduced from captured IQ.",
+    "rf_additional_required": false,
+    "reviewer": "/root/adversarial_review"
+  },
+  "retention": {
+    "local": "build/short-wspr-type23-decode-20261017T194248Z/",
+    "receiver_host": "wspr5",
+    "remote": "/home/pi/short-wspr-type23-decode-20261017T194248Z/",
+    "primary_attempt": "attempt2/",
+    "bulk_and_private_files_tracked": false,
+    "path_base": "repository_root"
+  },
+  "limits": [
+    "Only this board/image/80m/payload/conducted path.",
+    "No general compound-call/hash-collision/band/board/clock acceptance.",
+    "No calibrated power, absolute RF/UTC launch accuracy or release qualification."
+  ],
+  "result": {
+    "type2_decoded": true,
+    "type3_decoded": true,
+    "type3_full_call_resolved_from_natural_type2_context": true,
+    "cold_type3": "unresolved",
+    "restoration_verified": true,
+    "source_unchanged": true
+  },
+  "ci": {
+    "eligible_firmware_artifact": false,
+    "observed_workflows": "Pages only",
+    "entry_head_pages_run_id": 39063352604,
+    "latest_product_pages_run_id": 39056664276,
+    "operator_selected_local_build": true,
+    "software_build_ci_item_implemented": false
+  },
+  "capture": {
+    "timestamps": {
+      "helper_start_utc": "2026-10-17T19:58:05.803Z",
+      "configuration_start_utc": "2026-10-17T19:58:05.803Z",
+      "configuration_complete_utc": "2026-10-17T19:58:06.392Z",
+      "first_read_start_utc": "2026-10-17T19:58:06.392Z",
+      "first_read_complete_utc": "2026-10-17T19:58:06.458Z",
+      "retained_capture_start_utc": "2026-10-17T19:58:06.458Z",
+      "retained_capture_complete_utc": "2026-10-17T20:06:06.460Z",
+      "cleanup_start_utc": "2026-10-17T20:06:15.319Z",
+      "cleanup_complete_utc": "2026-10-17T20:06:16.446Z",
+      "helper_complete_utc": "2026-10-17T20:06:16.446Z"
+    },
+    "elapsed_duration_s": 490.6427682689973,
+    "requested_sample_count": 120000000,
+    "retained_sample_count": 120000000,
+    "wire_format": {
+      "sample_format": "CF32",
+      "component_type": "IEEE754_binary32",
+      "interleave": "real_imaginary",
+      "byte_order": "little_endian",
+      "bytes_per_complex_sample": 8
+    },
+    "first_read": {
+      "attempted": true,
+      "discarded": true,
+      "sample_count": 8064,
+      "included_in_overflow_and_clipping_statistics": false
+    },
+    "timeout_count": 0,
+    "overflow_count": 0,
+    "clipping": {
+      "threshold": 0.9990000128746033,
+      "sample_count": 0
+    },
+    "cleanup": {
+      "outcome": "verified",
+      "attempted_steps": [
+        "deactivate_stream",
+        "close_stream",
+        "release_device"
+      ],
+      "failed_steps": []
+    },
+    "process_exit_code": 0,
+    "size_bytes": 960000000,
+    "sha256": "6d1e821ce38474bd0eaf2233d31c82694208805f2808e8581e72d22f920d121b",
+    "command": [
+      "/home/pi/wsprrypi-qualification-runs/complete-test-deployment-284c7e04a3fdd079c46e782b/wspq-capture-soapy",
+      "--enable-physical-sdr",
+      "sdrplay",
+      "2404058C60",
+      "3545100",
+      "120000000",
+      "20",
+      "250000",
+      "200000",
+      "0",
+      "false",
+      "false",
+      "100000",
+      "524",
+      "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/capture.cf32",
+      "/home/pi/short-wspr-type23-decode-20261017T194248Z/attempt2/capture.json",
+      "short-wspr-type23-one-pair"
+    ],
+    "hardware_timestamps": false,
+    "sample_job_association": "Software UTC/monotonic observations; 2 s attribution tolerance, 250 ms UTC-jump screen. No launch-timing or calibrated sample-clock qualification."
+  },
+  "workflow_failure_assessment": {
+    "original_status": "FAILED",
+    "original_errors": [
+      "ValueError('receiver ended before complete pair')"
+    ],
+    "original_preserved": true,
+    "derived_completion_assessment": {
+      "native_completion_verified": true,
+      "original_workflow_status": "FAILED",
+      "original_workflow_errors": [
+        "ValueError('receiver ended before complete pair')"
+      ],
+      "controller_termination_corrected": true,
+      "explanation": "Scheduler sees the second Complete, cancel_pair(None) RELEASEs it, and JobService clear_job changes state to Empty.",
+      "terminal_host_utc_ns": 1792267552302841223,
+      "source": "src/standalone/scheduler.cpp poll_pair/cancel_pair; src/wtp/job_service.cpp RELEASE/clear_job",
+      "physical_sha256": "cdd24ab4b85ed20a09eecb82458ad083c4d80c77424270944c31169cbd2d43ee",
+      "capture_sha256": "6d1e821ce38474bd0eaf2233d31c82694208805f2808e8581e72d22f920d121b",
+      "rf_intervals_samples": [
+        [
+          58643500,
+          86291750
+        ],
+        [
+          88649500,
+          116297500
+        ]
+      ],
+      "job_associations": [
+        {
+          "job_id": "eeeeeeeeeeeeeeee18df69a1f2befa00",
+          "slot_utc_s": 1792267321,
+          "approximate_rf_utc_s": [
+            1792267321.0319998,
+            1792267431.625
+          ],
+          "observed_running_host_utc_s": [
+            1792267321.6916604,
+            1792267430.4506679
+          ],
+          "tolerance_s": 2,
+          "launch_timing_qualification": false
+        },
+        {
+          "job_id": "eeeeeeeeeeeeeeee18df69bde34daa00",
+          "slot_utc_s": 1792267441,
+          "approximate_rf_utc_s": [
+            1792267441.056,
+            1792267551.648
+          ],
+          "observed_running_host_utc_s": [
+            1792267441.5546384,
+            1792267551.3056731
+          ],
+          "tolerance_s": 2,
+          "launch_timing_qualification": false
+        }
+      ]
+    },
+    "explanation": "The workflow incorrectly required Complete after native scheduler RELEASE. Pre-STOP normal Empty completion, ordered jobs, full IQ intervals and actual independent decodes establish completion. No additional RF or product change was used."
+  },
+  "restoration": {
+    "configuration_readback": true,
+    "original_code_sha256": "d79128ffd81421d78523ddac21ed939a3c6ce21e8594006b669e800e4ee52d55",
+    "restored_code_sha256": "d79128ffd81421d78523ddac21ed939a3c6ce21e8594006b669e800e4ee52d55",
+    "whole_flash_restored": false,
+    "private_profile_equal_except_request_digest": true,
+    "cursor_preserved": true,
+    "verified": true,
+    "service_active": true,
+    "original_revision": "165303458e49",
+    "restored_revision": "165303458e49",
+    "restored_boot_id": "292cf79976fe09de3e0cbf5d7d62aaa2",
+    "executable_restore_range": [
+      "0x10000000",
+      "0x103f0000"
+    ],
+    "original_status": {
+      "station": {
+        "callsign": "AA0NT",
+        "locator": "EM18",
+        "power_dbm": 20
+      },
+      "schedules": [
+        {
+          "period_s": 240,
+          "phase_s": 0
+        },
+        {
+          "period_s": 240,
+          "phase_s": 120
+        }
+      ],
+      "enabled": false,
+      "suspended": true,
+      "expires_utc_s": 0,
+      "watermark_utc_ns": "1791199541540946076"
+    },
+    "restored_status": {
+      "station": {
+        "callsign": "AA0NT",
+        "locator": "EM18",
+        "power_dbm": 20
+      },
+      "schedules": [
+        {
+          "period_s": 240,
+          "phase_s": 0
+        },
+        {
+          "period_s": 240,
+          "phase_s": 120
+        }
+      ],
+      "enabled": false,
+      "suspended": true,
+      "expires_utc_s": 0,
+      "watermark_utc_ns": "1792267441000000000",
+      "state": "empty",
+      "owner_id": null,
+      "output_active": false,
+      "wspr_pair_pending": false
+    },
+    "profile_generation_before": "9",
+    "profile_generation_after": "11",
+    "profile_restoration_receipt": {
+      "digest": "c40a9c892e0226187061ce7afbeea8ed64d1fdfcf3105e3bead6a49afbd69eb7",
+      "generation": "11"
+    },
+    "profile_transaction_saved": true,
+    "receiver_cleanup": {
+      "outcome": "verified",
+      "attempted_steps": [
+        "deactivate_stream",
+        "close_stream",
+        "release_device"
+      ],
+      "failed_steps": []
+    },
+    "gpsdo_outputs_enabled_after": [
+      false,
+      false
+    ],
+    "unselected_board_unchanged": true,
+    "watermark_rollback": false
+  },
+  "retained_failures": [
+    {
+      "stage": "disabled preparation",
+      "rf_starts": 0,
+      "raw_status": "FAILED",
+      "raw_errors": [
+        "restoration: ValueError('transactional profile station restoration')",
+        "InterruptedError('2')",
+        "profile restoration: ValueError('transactional profile station restoration')"
+      ],
+      "recovery": "Independent executable/profile/receipt/live-readback audit verified original disabled STOP state; profile generation 5 to 9, original cursor unchanged."
+    },
+    {
+      "stage": "actual capture controller",
+      "raw_status": "FAILED",
+      "raw_errors": [
+        "ValueError('receiver ended before complete pair')"
+      ],
+      "recovery": "Separate hashed completion assessment; original raw status retained. No repeat RF."
+    },
+    {
+      "stage": "local initial build",
+      "failure": "Compiler shell environment missing; sourced scripts/xcode_env.sh and fresh normal build passed. Both logs retained."
+    },
+    {
+      "stage": "decoder helper test",
+      "failure": "Import path for existing conversion dependency absent; corrected test path, all 6 tests passed. Original failed log retained."
+    },
+    {
+      "stage": "provenance log hash audit",
+      "failure": "decode-tests.log was reused after initial build-provenance recording; its elapsed-time text changed and original log bytes are unavailable.",
+      "recovery": "Preserved build-provenance-initial.json; explicit reconciliation in current build-provenance.json updates only the affected log digest. Source/dependency/image hashes unchanged; separately retained final check logs pass."
+    }
+  ],
+  "retained_file_inventory": [
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/source.tar",
+      "size_bytes": 28323840,
+      "sha256": "c17de30d7f7f63545b241b59ade35a2c97940dc152d1c2139283b05566f37e15"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/build-provenance.json",
+      "size_bytes": 41961,
+      "sha256": "a17e7c0a4a879faa801eccd13533711a7b5c7a2ae69e152f29d34080e04e31c7"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/entry.json",
+      "size_bytes": 308,
+      "sha256": "327b80f2f275c673968a3ba7f3b4c1d1f511b34bf0ceb6ad776e9eee63e2bfe1"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/frozen-software-plan.json",
+      "size_bytes": 2089,
+      "sha256": "5c890e04e79dcfe5971ad8f082a8ec3fc95c2a69a8400e9cc6fb3a066d2dff34"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/configure.log",
+      "size_bytes": 2621,
+      "sha256": "06311de779337f198a161b45eedcad9233a22a7dbcd5a8f8f4e6028bf045b427"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/build.log",
+      "size_bytes": 8477,
+      "sha256": "c9b7d2e1c17b29b8d44ba8b5e5f39b9dc285e784b94bad841fa132dcae04c535"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/build-rerun.log",
+      "size_bytes": 97635,
+      "sha256": "c043243e65cd43aeb88278f86554fdc39131d9dca3d96246f6ccaa16408d6d1d"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/host-tests.log",
+      "size_bytes": 364,
+      "sha256": "ec09b91ffd6cd4a394f41a33e0769466a98496930a78ee3df0814a5f1911ff33"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/host-tests-final.log",
+      "size_bytes": 364,
+      "sha256": "86a65acc8c0030b6aedc647a32ed5c8968ad80a76dc13b634b2c8ecc73914e9e"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/decode-tests.log",
+      "size_bytes": 104,
+      "sha256": "9431c1aa316e435811d865a24cfbb10c032d82e4dd69a70f245ffab3b80737c5"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/decode-tests-final.log",
+      "size_bytes": 104,
+      "sha256": "c5514f775df49805f40a11c63b719aaa3284a30e99a8850ca52b0e2d829ffba3"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/decode-tests-first-conversion.log",
+      "size_bytes": 937,
+      "sha256": "542277621279b08a6d91b99ed37ba1e2672d6b8fc44a48ed8b95d23f90f628b9"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/wtp-contract-final.log",
+      "size_bytes": 96,
+      "sha256": "34188e867e39fa621167ea4d65841d01102c5398e9ae9e30e6c19abe3541bf9c"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/ci/workflows.json",
+      "size_bytes": 798,
+      "sha256": "69cca71e057cbfb8d5f5e8d20484e728d80e41dc91df46e25cc6df959d50be9b"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/ci/all-artifacts.json",
+      "size_bytes": 22297,
+      "sha256": "ee5f0a330ff36c2ece057057329eb4ed5bdfad97f4093d51a4fc6e51d32faa83"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/ci/entry-artifacts.json",
+      "size_bytes": 985,
+      "sha256": "735e5172298041711077481269b4132a72f56a16d5b128f5b85b28483e516fb4"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/ci/entry-head-runs.json",
+      "size_bytes": 13219,
+      "sha256": "f6924a0543bc3ac9a030d1a6eba78283c9264e4de55cd1825c417ea3c5ee809b"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/ci/product-head-runs.json",
+      "size_bytes": 13209,
+      "sha256": "ce0695dc178c80c380375dcfd4872d64d7553f30de215e9dcceaa72bd086fc24"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/decoder-provenance.json",
+      "size_bytes": 1801,
+      "sha256": "7e19d93327a76fee0aaecaca2f4484e981d8363607e5bfd4ffecd5e25dda2229"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/decode_wspr_type23_pair.py",
+      "size_bytes": 15818,
+      "sha256": "15cd46137fe4aaf64a10cd0adee2818bd7f84189f065e8aeb070ee3616956425"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/physical.json",
+      "size_bytes": 90875,
+      "sha256": "39e0e0f49ee7694d9134445f1153127dfc127fac4071367d93c51038474120de"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/zero-rf-recovery-audit.json",
+      "size_bytes": 24871,
+      "sha256": "1c10b53e8a8f9bf01e63e0a7784c5e22b3e2b1407b89e82172bebd14a692982b"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/run/events.jsonl",
+      "size_bytes": 740231,
+      "sha256": "f68f096b3d5294cb5a7f2e8476ced272fdeffdd9b6481413761379cc91d40a42"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/recovery/events.jsonl",
+      "size_bytes": 589142,
+      "sha256": "74cf41c242375ee38bcb008fd07d110a7a105710a3060df46d12cbeb59264ec9"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/physical.json",
+      "size_bytes": 7923438,
+      "sha256": "cdd24ab4b85ed20a09eecb82458ad083c4d80c77424270944c31169cbd2d43ee"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/run/events.jsonl",
+      "size_bytes": 22223916,
+      "sha256": "564ac193d72886f4008bae06b9a941d5f36cbc774fe99da10aca8f2a50cade5d"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/run_pair.py",
+      "size_bytes": 16355,
+      "sha256": "6b5e1cc2e99d82d119e2c1b720c6122772fd731ccc25bca60de25825b23b1a08"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/station.mjs",
+      "size_bytes": 2014,
+      "sha256": "a1b9798df1eafbfc987e9208488fb191cc25ef90c26db1158372065e3d91c92f"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/station-transaction.json",
+      "size_bytes": 3586,
+      "sha256": "507053d03575b82f51e86a75ca6ba35a4bffe53a03d7dc914c99bdf617b7e0c0"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/station-restore.log",
+      "size_bytes": 3222,
+      "sha256": "2fabf9e0cddde2ac42342b7bf0056e3b0070a12be47a8ba0ec19123c09f8bc01"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/workflow.stdout",
+      "size_bytes": 634,
+      "sha256": "169d9e7d1f449586b4279b5b5cfca304448e47f4d5e4337890f0d11338bb0213"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/capture.cf32",
+      "size_bytes": 960000000,
+      "sha256": "6d1e821ce38474bd0eaf2233d31c82694208805f2808e8581e72d22f920d121b"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/capture.json",
+      "size_bytes": 2508,
+      "sha256": "93bbd67f074f56341498d917621df248d2fdbb38741fbf85b46c79b8cfb24c9b"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/gpsdo-before.log",
+      "size_bytes": 441,
+      "sha256": "9522e73fd8fbd2da624aaaf7dc0e63c50dc210af7744d7ab21e32e6f6fe924ae"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/gpsdo-after.log",
+      "size_bytes": 441,
+      "sha256": "9522e73fd8fbd2da624aaaf7dc0e63c50dc210af7744d7ab21e32e6f6fe924ae"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/decode.stdout",
+      "size_bytes": 354,
+      "sha256": "fbcc7d88d8edea0dfcd08e53354ecf4f6e49ac8434001fdfbe1924491238670b"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/decode/decode.json",
+      "size_bytes": 9162,
+      "sha256": "2a314f345fd90b32be09c3a7f8c76510b1124169875b8ea3cf62856b10bea540"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/decode/completion-assessment.json",
+      "size_bytes": 1550,
+      "sha256": "9654f04bdbb8a2089f169d1bde18a8f123b3550552c66df42b921f57da1d32ec"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/decode/decode-type2.json",
+      "size_bytes": 885,
+      "sha256": "d58fd291cc8a65210ba870a181290792f61367748b9c7502c1c2eaf505d81667"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/decode/decode-type3.json",
+      "size_bytes": 1204,
+      "sha256": "4949d25d69dbfcc5d3a6b4deebe12c72484bb1e79368aaa15a38c969fedf16a4"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/decode/261017_2002.wav",
+      "size_bytes": 2880044,
+      "sha256": "5da93e0b202f3afaf9c79c2a34668d7411ff851bfe1943e01dcd19c476edd94f"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/decode/261017_2004.wav",
+      "size_bytes": 2880044,
+      "sha256": "289687e0b64c1517ab2435d97fd85e2cd287e833742d32005e7d54d7a6a19ee9"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/decode/primary/hashtable.txt",
+      "size_bytes": 17,
+      "sha256": "d8c7d3eed8349de62c06126b67eb774f1f8bd4ca584b8e8d9c06d0b12b780ab4"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/decode/cold/hashtable.txt",
+      "size_bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/A-original.bin",
+      "size_bytes": 4194304,
+      "sha256": "9b9b2d74c181beab0519b604837017e04456aae394ea57995e9c9a9a8cbaa517"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/A-original-verify.bin",
+      "size_bytes": 4194304,
+      "sha256": "9b9b2d74c181beab0519b604837017e04456aae394ea57995e9c9a9a8cbaa517"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/A-original-code.bin",
+      "size_bytes": 4128768,
+      "sha256": "d79128ffd81421d78523ddac21ed939a3c6ce21e8594006b669e800e4ee52d55"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/A-restored-code-verify.bin",
+      "size_bytes": 4128768,
+      "sha256": "d79128ffd81421d78523ddac21ed939a3c6ce21e8594006b669e800e4ee52d55"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/remote-evidence/attempt2/A-restored-profile.bin",
+      "size_bytes": 16384,
+      "sha256": "122147ce090f894faa7ab3d6fc020fdcfd22fa784f38444d9a2d92e99debfe86"
+    },
+    {
+      "path": "scripts/decode_wspr_type23_pair.py",
+      "size_bytes": 15818,
+      "sha256": "15cd46137fe4aaf64a10cd0adee2818bd7f84189f065e8aeb070ee3616956425"
+    },
+    {
+      "path": "scripts/measure_rf_bench.py",
+      "size_bytes": 13939,
+      "sha256": "adf3d754199fe7d04df273666ed811ea3084a5acfbfe0948c294c6a63cf19081"
+    },
+    {
+      "path": "scripts/analyze_rf_bench.py",
+      "size_bytes": 5117,
+      "sha256": "11e09985b9dcd1d8bb464d6e0ab43566986b1055886ac082fd4a046e2f41f3a3"
+    },
+    {
+      "path": "tests/wspr_type23_decode_tests.py",
+      "size_bytes": 7288,
+      "sha256": "2e99aebf475b2fff07e621e1b3c3ac4dde02e4defe79997608518790f2472dce"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/build-provenance-initial.json",
+      "size_bytes": 41159,
+      "sha256": "de04452222a6b4638721f7b09ced13d923143695a6ce3e2cf1646b0978356678"
+    },
+    {
+      "path": "build/short-wspr-type23-decode-20261017T194248Z/adversarial-review-final.txt",
+      "size_bytes": 2300,
+      "sha256": "188035952c39d1ac43837974ac614a224a0fe50de9b9f23f803698d6e54d61d4"
+    }
+  ]
+}

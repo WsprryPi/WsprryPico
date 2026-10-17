@@ -1,5 +1,11 @@
 # P15.8 WSPR Type 2/3 execution and evidence
 
+2026-10-17 follow-up: the separately bounded
+[captured Type 2/3 decode](short-wspr-type23-decode-results.md) records one
+normal-image Pico A pair at the operator-selected 3.570100 MHz, independent
+`wsprd` context resolution and verified restoration. Its scope and image
+identity are distinct from the original acceptance record below.
+
 Status: **complete within the documented software scope**, accepted by the
 operator for P15.8 roadmap closure on 2026-10-16. Final-source implementation
 and validation passed, including all 12 companion CI jobs. This is a bounded
