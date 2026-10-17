@@ -6,7 +6,8 @@ supersede the initial validation/resource snapshot. Baseline/reviewed source:
 `f93f19bf5f6b8478d4428c07accf444390e4aa8c` on `devel`, 2026-10-16.
 Initial changes were the prepared handoff plus development-index/roadmap links;
 all are preserved. The first sandboxed remote read failed DNS; a network-enabled read independently
-matched the baseline remote `refs/heads/devel`. Publication is pending. No other repository or device operation is selected.
+matched the baseline remote `refs/heads/devel`. The final merged implementation
+was published with independent remote parity; see the exact closeout below. No other repository or device operation is selected.
 
 ## Source and state selection (recorded before implementation)
 
@@ -376,6 +377,24 @@ asan-build,asan-tests,identity-browser,organization-browser,progress-browser,
 firmware-build}.log` and `p1512-merged-firmware-{size,sha256}.txt`. The separate
 source hash manifest is `build/phase15-12-merged-source-manifest.json`.
 
-Final merged implementation/tested pin and publication are recorded in the
-documentation-only closeout after committing this verified merge. The merge
-contains no code changes after the final manifest and tests.
+## Exact source and publication closeout
+
+| Identity | Exact SHA |
+| --- | --- |
+| Reviewed starting devel | `f93f19bf5f6b8478d4428c07accf444390e4aa8c` |
+| Initial P15.12 implementation/test source | `83fe6b1fb565d6a581e3287d9cabd0cd9e3771ae` |
+| Concurrent P15.9 product | `56821ac827c901b61f3af83887eb8c447520abb5` |
+| Concurrent P15.9 accepted remote head | `29542e40e131b3e0faa5be5522d220f906de4b0f` |
+| Final merged implementation/tested/published source | `227e73c71c0bbda7e1d84565d7d520e0d7a3f1a0` |
+
+The final checks and cross-links ran against the merged working-tree content
+later committed as `227e73c`; its exact implementation/test hashes match
+`build/phase15-12-merged-source-manifest.json`. No code changed after the final
+manifest/tests. The normal push advanced `origin/devel` from `29542e4` to
+`227e73c`; independent `git ls-remote origin refs/heads/devel` returned the full
+merged hash. The worktree was clean at this source publication.
+
+This final closeout changes this evidence document only. Its own final push,
+independent remote parity and actual worktree state are reported in the executing
+chat, avoiding a self-referential report-commit SHA. No release, tag, PR, Pi
+publication, operator-doc publication or hardware operation is claimed.
