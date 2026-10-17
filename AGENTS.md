@@ -11,6 +11,18 @@
 - Fix actionable review findings and rerun affected checks before claiming completion.
 - Report what changed, checks performed, limitations and actual repository state.
 
+## Repository and work-harness cleanup
+
+- For an explicit request to clean up WsprryPico or this project/repository,
+  follow [the reusable cleanup prompt](docs/development/repository-cleanup-prompt.md).
+- Inventory deletion, rewrite, retention and hold decisions before cleanup
+  changes. Cover project artifacts in the checkout, local work areas and
+  identified Raspberry Pi harnesses; preserve user work and shared tools.
+- Documentation describes the current product in direct, impersonal language.
+  Selected future work belongs in the consolidated backlog or an issue.
+  Remove obsolete evidence and development narratives without creating an archive.
+- Reading or maintaining the prompt alone does not invoke cleanup.
+
 ## Pico architecture
 
 - WsprryPico is a standalone application and a WsprryPi hardware backend.
