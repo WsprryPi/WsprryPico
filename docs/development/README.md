@@ -1,58 +1,64 @@
 # Development baseline
 
-[P15.13 qualification](phase15-13-results.md) is complete within its recorded
+Current [Phase 15 punchlist numbering](../implementation-plan.md#phase-15-operator-review-punchlist)
+includes P15.4 USB control (in progress in "BLE & USB Control Status") and P15.5
+Installer (under discussion in "Assess WsprryPico installer options"). Former
+P15.4–P15.14 are now P15.6–P15.16; historical record titles and filenames retain
+their original numbering. P15.16 user documentation has not started.
+
+[P15.15 qualification](phase15-13-results.md) is complete within its recorded
 scope: all five modes at 40.001/60.001 MHz on Pico A, fresh current-source
 StandaloneRF at normal 138 MHz, with explicit WSPR receiver-audio and job/admission
 conditions. The [matrix](phase15-13-result-matrix.json), [frozen plan](phase15-13-plan.md)
 and [clock/build support policy](phase15-13-support-policy.md) retain original
 failures, 12 nominal RF windows plus four diagnostics, restoration and fresh
-self-review. Pico B and alternate clocks were not exercised. P15.14 remains
+self-review. Pico B and alternate clocks were not exercised. P15.16 remains
 separate and has not started. Hardware-free follow-up checks include
 `python3 -B tests/phase15_13_tests.py` and `python3 -B tests/standalone_image_tests.py`.
 
-[P15.8 WSPR Type 2/3 execution](phase15-8-wspr-type23.md) records automatic
+[P15.10 WSPR Type 2/3 execution](phase15-8-wspr-type23.md) records automatic
 single/pair planning, explicit versioned application/station admission, preserved
 legacy Type 1 workflows and the coordinated Pi companion boundary. Acceptance
 is complete within its documented software scope. WsprryPi release checklist
 step 14 integration is closed by operator acceptance on 2026-10-16.
 The separately requested originating review and physical RF/transport
 qualification remain separate. The
-[P15.9 execution record](phase15-9-valid-field-saves.md) and
+[P15.11 execution record](phase15-9-valid-field-saves.md) and
 [saved progress contract](saved-progress.md) cover independent durable fields,
-explicit application and transmit-readiness distinctions. P15.9 is complete,
+explicit application and transmit-readiness distinctions. P15.11 is complete,
 including WsprryPi release checklist item 15, confirmed by the operator on
-2026-10-17. Product `56821ac`, evidence `29542e4` and subsequent P15.12
+2026-10-17. Product `56821ac`, evidence `29542e4` and subsequent P15.14
 integration `227e73c` are included in published Pico `devel` at `156dfa1`.
 Software validation and independent reassessment passed; Pages checks passed,
-with no firmware/software-test CI pass claimed. P15.13 qualification and P15.14
+with no firmware/software-test CI pass claimed. P15.15 qualification and P15.16
 operator documentation remain separate checklist items.
 The [originating post-execution assessment](phase15-9-post-execution-review.md)
 closes four repaired findings and records fresh independent reassessment.
-Pi adoption, P15.13 qualification and P15.14 documentation remain separate.
+Pi adoption, P15.15 qualification and P15.16 documentation remain separate.
 
 The separately prepared Pi execution/sequencing
 handoffs have been withdrawn. Any Pi changes retain release coordination.
 
-The [P15.10 hostname handoff](phase15-10-execution-prompt.md) records current
+The [P15.12 hostname handoff](phase15-10-execution-prompt.md) records current
 identity/profile/mDNS/UI findings and the original prompt for editable
 persistent hostname, hostname-driven tab titles and a safe restart/countdown/
-reconnect flow. The [P15.10 execution record](phase15-10-hostname.md) records
+reconnect flow. The [P15.12 execution record](phase15-10-hostname.md) records
 completed supported software acceptance, exact source pairs, review repairs
 and remaining engineering/physical/operator-document gates.
 
-The [P15.11 organization record](phase15-11-page-organization.md) tracks the
+The [P15.13 organization record](phase15-11-page-organization.md) tracks the
 single Station/Transmission and Wi-Fi/Host document, connection-specific
 landing, profile-specific save authorities, regressions and review. Supported
 software acceptance is complete, including exact unchanged-Pi pairs. The [execution handoff](phase15-11-execution-prompt.md) remains
-the original task. P15.10 retains its supported software closure.
+the original task. P15.12 retains its supported software closure.
 
-[P15.12 main-page identity](phase15-12-main-page-identity.md) is complete within
+[P15.14 main-page identity](phase15-12-main-page-identity.md) is complete within
 supported software acceptance. Shared chrome/tab titles use the boot-active
 hostname; native Diagnostics retains the full stable ID and separate boot
 observation. Public/active/pending/last-confirmed/unknown states, final source
 checks, review repairs, transient host-test failures and skips are recorded.
 The [execution handoff](phase15-12-execution-prompt.md) remains the original task.
-P15.9 is complete; P15.13/P15.14 boundaries remain unchanged.
+P15.11 is complete; P15.15/P15.16 boundaries remain unchanged.
 
 The selected [consumer LAN access slice](consumer-lan-access.md) now implements
 port-80 station IP/hostname access, saved-password authentication, normally-off
@@ -75,18 +81,18 @@ operator-accepted documentation gate. The Pico-owned
 [paired Pi review](https://github.com/WsprryPi/WsprryPi/blob/6a39398bb23d69ba0628e1b82171717040115ec8/docs/development/issue448-review.md)
 retain implementation and supported-version evidence. The [P15.3 carrier implementation/review](phase15-3-management-carriers.md) is
 complete within its recorded software acceptance.
-[P15.4 shared-resource adoption](phase15-4-shared-resources.md) is complete within
+[P15.6 shared-resource adoption](phase15-4-shared-resources.md) is complete within
 its recorded software acceptance using existing Pico resources; firmware, physical/RF and
 installed-service qualification are not established by this software acceptance.
-[P15.5 concurrent web service](phase15-5-concurrent-web-service.md) supplies two
-bounded cooperative port-80 tasks on core 0. [P15.6 independent sessions](phase15-6-sessions.md)
+[P15.7 concurrent web service](phase15-5-concurrent-web-service.md) supplies two
+bounded cooperative port-80 tasks on core 0. [P15.8 independent sessions](phase15-6-sessions.md)
 adds three fixed consumer login slots, one pending-login quota and coordinated
 strict Pi management/1 and management/2 compatibility. Its software acceptance,
 source pair, review repairs, CI and limits are recorded there. The
 [execution prompt](phase15-6-execution-prompt.md) retains the authorized scope
 and source-review baseline. Physical phone/Mac concurrency, target heap/stack
 high-water and RF qualification remain separate.
-[P15.7 login/save recovery](phase15-7-recovery.md) records the additive
+[P15.9 login/save recovery](phase15-7-recovery.md) records the additive
 authenticated retirement contract, draft/readback workflow, companion Pi
 compatibility, review and current acceptance limits. Its
 [execution prompt](phase15-7-execution-prompt.md) preserves the authorized scope.
