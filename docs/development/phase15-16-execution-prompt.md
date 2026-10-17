@@ -24,8 +24,8 @@ verify remote parity, and report the result.
 This execution prompt explicitly authorizes a separate reviewer/subagent for
 the independent adversarial review. It does not authorize edits in other
 WsprryPi-family repositories, GitHub release/tag publication, or starting
-P15.17, P15.18 or P15.19. Hardware authority follows current setup statements
-and `AGENTS.md`; historical bench records are not standing authorization.
+P15.17, P15.18, P15.19 or P15.20. Hardware authority follows current setup
+statements and `AGENTS.md`; historical bench records are not standing authorization.
 
 ## 1. Verify USB/drive-strength acceptance and the working state
 
@@ -282,8 +282,8 @@ cannot be completed, report the gap and do not claim complete acceptance.
 
 After required checks and the independent reassessment are clean, verify that
 the P15.16 acceptance record and checklist reflect the reviewed result and limits.
-Leave P15.17 prerelease publication, P15.18 installer implementation and P15.19
-user documentation separate.
+Leave P15.17 prerelease publication, P15.18 installer implementation, P15.19
+web UI review and P15.20 user documentation separate.
 
 Inspect the final diff and run `git diff --check`. Review the exact files and
 content selected for commit. Commit only attributable P15.16 changes, including

@@ -156,10 +156,11 @@ No Phase 14 workstream or LED task remains open.
     Filtering, calibrated power/absolute RF timing,
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
-15. **Open — operator review punchlist:** nineteen items are tracked: fourteen
+15. **Open — operator review punchlist:** twenty items are tracked: fourteen
     complete, with GPIO drive strength (P15.15), uninhibited default build
-    (P15.16), testing prerelease (P15.17), Installer (P15.18) and user
-    documentation (P15.19) not started. The operator confirmed
+    (P15.16), testing prerelease (P15.17), Installer (P15.18), Impeccable web UI
+    review including provisioning (P15.19), and user documentation (P15.20)
+    not started. The operator confirmed
     WsprryPi item 15/P15.9 complete on 2026-10-17. See the
     [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
@@ -237,12 +238,13 @@ Created 2026-10-15 to collect operator review findings and requested
 improvements. Record implementation, validation and operator acceptance against
 each item as it is completed. Earlier phase closures retain their recorded scope.
 
-Numbering revised 2026-10-17: after USB control (P15.14) is accepted, deliver
-GPIO drive-strength configuration (new P15.15), the uninhibited default build
-(P15.16), then a GitHub testing prerelease (P15.17), before Installer (P15.18)
-and user documentation (P15.19). P15.1–P15.14 retain their numbers. The prior
-P15.15/P15.16/P15.17/P15.18 become P15.16/P15.17/P15.18/P15.19 respectively.
-Installer was earlier P15.15; user documentation was earlier P15.16 and P15.14.
+Numbering revised 2026-10-17: after accepted USB control (P15.14), deliver
+GPIO drive strength (P15.15), the uninhibited default build (P15.16), a GitHub
+testing prerelease (P15.17), Installer (P15.18), then an Impeccable review of
+the web UI including provisioning (P15.19), before user documentation (P15.20).
+This insertion keeps P15.1–P15.18 unchanged and moves the previous P15.19
+documentation task to P15.20. Earlier numbering placed Installer at P15.15
+and P15.17, and user documentation at P15.14, P15.16, P15.18 and P15.19.
 Historical acceptance records, source identities, external checklists and
 executed prompt filenames retain their original numbering. The saved, unexecuted
 uninhibited-build handoff moves from `phase15-15-execution-prompt.md` to
@@ -256,15 +258,16 @@ software acceptance, independent reassessment and bounded physical USB/AP
 evidence, including exact restoration. Transmitter RF was not exercised.
 GPIO drive strength, the uninhibited default build and testing prerelease have
 not started and must be accepted in that order before installer implementation.
-Installer (P15.18) and user documentation (P15.19) have not started. Installer
-planning is recorded in "Assess WsprryPico installer options". The
+Installer (P15.18), Impeccable web UI review (P15.19) and user documentation
+(P15.20) have not started. Installer planning is recorded in
+"Assess WsprryPico installer options". The
 [complete list and saved/pending prompt index](development/phase15-prompt-index.md)
 records current task identities, prompt paths and the renumbering map.
 
 Later changes must extend the P15.2 compatibility coverage for affected supported
-pairs. Finalize P15.19 against the delivered USB control, GPIO drive strength,
-default build, release artifacts, installer, application and settings behavior
-and P15.13's recorded band/mode/clock support dispositions.
+pairs. Finalize P15.20 against the delivered USB control, GPIO drive strength,
+default build, release artifacts, installer, reviewed web UI, application and
+settings behavior and P15.13's recorded band/mode/clock support dispositions.
 WTP job control and JSON configuration management retain their separate contracts
 and shared local transmitter authority.
 
@@ -318,7 +321,7 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   paired/compatibility, sanitizer, UI and CI checks passed after independent
   review and repair. Physical, installed-service and unrestricted security
   qualification remain outside this closure; final operator documentation is
-  P15.19.
+  P15.20.
 - ✅ **P15.4 — Adopt shared application, station and hardware resources.**
   Pi now consumes the existing application, station, hardware and pin resources
   through protected member routes, its runtime coordinator and P15.3 engineering
@@ -332,7 +335,7 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   independent review and repair. Status: complete within the
   [recorded software acceptance](development/phase15-4-shared-resources.md).
   Physical, installed-service and unrestricted security qualification remain
-  separate; operator documentation is P15.19. No later roadmap work is included.
+  separate; operator documentation is P15.20. No later roadmap work is included.
 - ✅ **P15.5 — Add multi-threaded web service.** Support concurrent web
   requests from the operator's phone and Mac without one client's connection
   blocking or locking out the other. Coordinate with P15.6 so both clients can
@@ -435,7 +438,7 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   reassessment passed. Pages checks passed; no firmware/software-test CI pass
   is claimed. The [Pico execution record](development/phase15-9-valid-field-saves.md)
   retains the exact sources, results and limits. P15.13 qualification and
-  P15.19 operator documentation remain separate checklist items. The
+  P15.20 operator documentation remain separate checklist items. The
   [originating post-execution assessment](development/phase15-9-post-execution-review.md)
   closes four repaired findings after fresh independent reassessment; Pi adoption
   remains a separate decision.
@@ -455,7 +458,7 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   Consumer station/AP management, preserved CA/client trust, both firmware
   links, exact unchanged Pi compatibility, browser evidence and independent
   review repairs passed. Engineering names remain credential-bound; physical
-  LAN/restart/RF and P15.19 operator publication remain separate.
+  LAN/restart/RF and P15.20 operator publication remain separate.
   The [P15.10 execution handoff](development/phase15-10-execution-prompt.md)
   retains the source review and original implementation/review prompt.
 - ✅ **P15.11 — Consolidate or split Station/Transmission and Wi-Fi/Host setup.**
@@ -488,7 +491,7 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   Status: complete within supported software acceptance; see the
   [identity record](development/phase15-12-main-page-identity.md) for final checks,
   review repairs, transient host-test failures/skips and qualification limits.
-  The operator accepted this P15.12 closure. Its P15.19 documentation handoff
+  The operator accepted this P15.12 closure. Its P15.20 documentation handoff
   does not close operator-document publication. The original handoff preparation
   did not execute the work.
 - ✅ **P15.13 — Complete untested-band qualification and resolve clock-dependent support.**
@@ -528,7 +531,7 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   captures and generated firmware were [disposed of](development/phase14-evidence-retention.md#october-15-operator-directed-test-data-disposal),
   so use the Git records as historical context and acquire fresh evidence.
   Record setup/settings restoration and review the resulting claims before
-  P15.19 documents them. **Complete, 2026-10-17:**
+  P15.20 documents them. **Complete, 2026-10-17:**
   [results](development/phase15-13-results.md),
   [matrix](development/phase15-13-result-matrix.json) and
   [support policy](development/phase15-13-support-policy.md). All five modes are
@@ -541,7 +544,7 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   were unused. Source/image, decoder/capture audit, affected checks, fresh
   self-review and restoration are recorded. This does not promote whole
   frequency intervals, refresh historical bands on current firmware or start
-  P15.19's documentation site.
+  P15.20's documentation site.
 - ✅ **P15.14 — USB control.** Implemented in normal inhibited and StandaloneRF
   firmware and the Pi runtime/UI. Shared configuration, saved progress,
   canonical hostname, Wi-Fi create/replace/delete-last/recreate and qualified
@@ -595,7 +598,19 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   Saved execution prompt:
   [P15.18 USB installer](development/phase15-18-execution-prompt.md),
   for use after P15.14–P15.17 acceptance; preparation does not execute it.
-- ☐ **P15.19 — Create user documentation for Read the Docs Community.**
+- ☐ **P15.19 — Impeccable review of the web UI, including provisioning.**
+  After P15.18 acceptance, use Impeccable to review all delivered Pico web UI
+  surfaces, including the provisioning/first-run setup page, AP commissioning,
+  login and recovery, Station/Transmission, Wi-Fi/Host, diagnostics and newly
+  delivered controls. Assess task flow, hierarchy, consistency, labels and
+  feedback, keyboard/accessibility, desktop/mobile layouts and failure recovery.
+  Inspect rendered representative states, record prioritized findings, repair
+  actionable in-scope issues and verify affected behavior with bounded visual
+  passes. Preserve the existing design identity, authentication, drafts, device
+  identity and AP/timing/ownership contracts. Complete this review before P15.20
+  finalizes operator instructions and screenshots. Status: **Not started**.
+  No standalone execution prompt is saved.
+- ☐ **P15.20 — Create user documentation for Read the Docs Community.**
   Create operator-focused documentation suitable for building and hosting on
   the community version of Read the Docs. Reuse suitable styling, format and
   navigation conventions from the WsprryPi documentation repository
@@ -609,8 +624,8 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   configuration and dependency declarations compatible with Read the Docs
   Community; validate the build, links, navigation and desktop/mobile rendering.
   Finalize instructions and screenshots against the delivered application, USB
-  control, GPIO drive strength and installer behavior and P15.13's
-  band/mode/clock support results. Status: **Not started**.
+  control, GPIO drive strength, installer behavior, P15.19's reviewed web UI and
+  P15.13's band/mode/clock support results. Status: **Not started**.
   No standalone execution prompt is saved.
 
 P15.1 and P15.2 were coordinated from WsprryPi: #447 delivered the Pico changes
@@ -627,8 +642,8 @@ P15.8 review, physical concurrency/reproduction and target qualification remain 
 P15.10 and P15.11 are complete within their recorded supported software scopes.
 P15.12–P15.14 are complete within their recorded scopes.
 GPIO drive strength (P15.15), uninhibited default build (P15.16), testing
-prerelease (P15.17), Installer (P15.18) and user documentation (P15.19) have
-not started.
+prerelease (P15.17), Installer (P15.18), Impeccable web UI review (P15.19) and
+user documentation (P15.20) have not started.
 
 ## Remaining deferred and backlog items
 
@@ -886,8 +901,9 @@ belongs to the operator.
 5. Phase 15 collects [operator review punchlist items](#phase-15-operator-review-punchlist).
    P15.1–P15.14 are complete within their recorded scopes. Next deliver GPIO
    drive strength (P15.15), the uninhibited default build (P15.16), then a GitHub
-   testing prerelease (P15.17), before Installer (P15.18) and user documentation
-   (P15.19). All five items have not started. Installer planning is recorded in
+   testing prerelease (P15.17), before Installer (P15.18), Impeccable web UI
+   review including provisioning (P15.19), and user documentation (P15.20).
+   All six items have not started. Installer planning is recorded in
    "Assess WsprryPico installer options". Existing acceptance records and
    qualification limits remain unchanged.
 

@@ -11,7 +11,8 @@ containing the normal uninhibited Pico 2 W firmware, a versioned release
 manifest and SHA-256 checksums. Use accepted P15.14 USB control, P15.15 GPIO
 drive strength and P15.16 default-build behavior. Finish by verifying the
 published tag and downloaded assets, recording the result, and updating the
-checklist. Leave P15.18 Installer and P15.19 user documentation Not started.
+checklist. Leave P15.18 Installer, P15.19 web UI review and P15.20 user
+documentation Not started.
 
 When invoked, this prompt authorizes the bounded release preparation, necessary
 Pico-only tooling/documentation changes, attributable commits and non-force
@@ -310,7 +311,7 @@ in durable source evidence without a source-hash cycle.
 
 Only after every publication audit passes, mark P15.17 **Complete**, link its
 results and public release, and synchronize the development/prompt indexes.
-Keep P15.18 and P15.19 **Not started** and provide the installer with explicit
+Keep P15.18–P15.20 **Not started** and provide the installer with explicit
 testing tag/asset selection, manifest version, checksum policy and stable-default
 behavior. Do not implement the installer.
 

@@ -8,7 +8,7 @@ retain their evidence and limitations.
 
 ## Current list
 
-Fourteen items are complete; five have not started. P15.14 USB closure was supplied by the
+Fourteen items are complete; six have not started. P15.14 USB closure was supplied by the
 concurrent USB task and is preserved here; this planning task did not execute
 or requalify USB control. None of the four saved future prompts has been executed.
 
@@ -32,23 +32,28 @@ or requalify USB control. None of the four saved future prompts has been execute
 | P15.16 | Make the default firmware build uninhibited | Not started | [Saved default-build prompt](phase15-16-execution-prompt.md) |
 | P15.17 | Publish a GitHub testing prerelease with a firmware asset | Not started | [Saved testing-prerelease prompt](phase15-17-execution-prompt.md) |
 | P15.18 | Installer | Not started | [Saved USB-installer prompt](phase15-18-execution-prompt.md) |
-| P15.19 | Create user documentation for Read the Docs Community | Not started | No standalone execution prompt saved |
+| P15.19 | Impeccable review of the web UI, including provisioning | Not started | No standalone execution prompt saved |
+| P15.20 | Create user documentation for Read the Docs Community | Not started | No standalone execution prompt saved |
 
 ## Renumbering and dependency map
 
 | Previous current number | New number | Task and prompt action |
 | --- | --- | --- |
-| P15.1–P15.14 | Unchanged | Preserve completed work and historical evidence. |
-| New insertion | P15.15 | GPIO drive strength; saved as `phase15-15-execution-prompt.md`. |
-| P15.15 | P15.16 | Uninhibited default build; saved handoff moved to `phase15-16-execution-prompt.md`. |
-| P15.16 | P15.17 | GitHub testing prerelease; [execution prompt now saved](phase15-17-execution-prompt.md). |
-| P15.17 | P15.18 | Installer; [execution prompt now saved](phase15-18-execution-prompt.md), retaining the decisions from "Assess WsprryPico installer options". |
-| P15.18 | P15.19 | Read the Docs Community user documentation; checklist/handoffs retained, no separate saved prompt found. |
+| P15.1–P15.18 | Unchanged | Preserve task identities, saved prompt paths and historical evidence. |
+| New insertion | P15.19 | Impeccable web UI review, including provisioning; no standalone execution prompt saved. |
+| P15.19 | P15.20 | Read the Docs Community user documentation; no standalone execution prompt saved. |
+
+The earlier GPIO insertion established the current P15.15–P15.18 sequence
+and moved the default-build handoff to `phase15-16-execution-prompt.md`.
+The saved, unexecuted prompts now use P15.20 for operator documentation and
+leave the separate P15.19 UI review for execution after Installer acceptance.
 
 Execution order after accepted USB control is **P15.15 → P15.16 → P15.17 →
-P15.18 → P15.19**. P15.16 must preserve accepted GPIO-drive behavior. The
+P15.18 → P15.19 → P15.20**. P15.16 must preserve accepted GPIO-drive behavior. The
 prerelease, installer and final user documentation must include that setting
-and its compatibility/qualification limits. The default-build prompt retains
+and its compatibility/qualification limits. P15.19 reviews the delivered web UI,
+including provisioning, before P15.20 finalizes instructions and screenshots.
+The default-build prompt retains
 its previously requested independent review, repair/retest/reassessment and
 commit/push instructions for its later invocation. They do not authorize work
 or Git operations while preparing this index or the new P15.15 prompt.
@@ -70,13 +75,14 @@ for execution after P15.14–P15.16 acceptance; preparation publishes nothing.
 The [P15.18 USB-installer prompt](phase15-18-execution-prompt.md) is saved for
 execution after P15.14–P15.17 acceptance, including independent review,
 repair/retest/reassessment and scoped commit/push instructions. Preparation
-does not execute it. P15.19 still has no standalone execution prompt saved.
+does not execute it. P15.19/P15.20 have no standalone execution prompts saved.
 Discussion and checklist entries are not evidence of implementation.
 
 Original executed prompts, results, frozen plans, source manifests, historical
 P15.14 operator-documentation references, commit identities and external Pi
 checklists retain their original numbering. Current references in the
-implementation plan and development index use P15.19 for operator docs. This
-avoids changing the meaning of old evidence merely to match today's order.
+implementation plan, development index and unexecuted prompts use P15.20 for
+operator docs. This avoids changing the meaning of old evidence merely to match
+today's order.
 The new prompt's [adversarial preparation assessment](phase15-15-prompt-review.md)
 records findings, repairs, reassessment and documentation checks.

@@ -46,8 +46,9 @@ Preserve all existing work and evidence; never reset, stash or absorb unrelated
 changes. Read-only inspection of another family repository grants no write scope.
 
 This task does not change the default firmware target (P15.16), publish a
-prerelease (P15.17), implement the installer (P15.18) or build/publish the user
-documentation site (P15.19). It does not authorize staging, committing, pushing,
+prerelease (P15.17), implement the installer (P15.18), perform the final web UI
+review (P15.19) or build/publish the user documentation site (P15.20).
+It does not authorize staging, committing, pushing,
 tagging, creating a PR or publishing. Obtain those instructions separately if
 requested at execution time. Hardware authority comes from current operator
 setup statements and repository instructions, not this saved prompt or old
@@ -346,7 +347,7 @@ acceptance, without claiming the complete pad/RF workflow measured.
 Update the implemented configuration/USB/API/schema/vector/development docs in
 Pico and companion Pi docs; retain historical captures and qualification scope.
 Add operator-facing drive, default, save/restart and compatibility text to the
-P15.19 documentation handoff; the separate documentation repository and site
+P15.20 documentation handoff; the separate documentation repository and site
 remain outside this execution slice. Record a **Documentation Impact** section
 as required by Pi instructions.
 

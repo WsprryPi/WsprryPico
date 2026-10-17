@@ -33,9 +33,9 @@ and non-force pushes to their existing accepted branches/upstreams:
 It also authorizes a separate read-only reviewer/subagent for independent
 adversarial review and reassessment. Other family repositories remain outside
 the write scope. Do not create a new protocol repository, publish a release or
-tag, create a PR, modify repository settings, or start P15.19's documentation
-site. Hardware/service operations follow current operator setup statements and
-each repository's `AGENTS.md`; this saved prompt is not evidence of a connected
+tag, create a PR, modify repository settings, start P15.19's web UI review or
+P15.20's documentation site. Hardware/service operations follow current operator
+setup statements and each repository's `AGENTS.md`; this saved prompt is not evidence of a connected
 test setup. Do not run the WsprryPi system installer merely to test Pico flashing.
 
 ## 1. Verify prerequisites and inspect both repositories
@@ -417,14 +417,14 @@ selection, dependency/USB permissions, settings preservation, backup privacy,
 BOOTSEL/manual recovery, compatible versions, limitations and Pi access.
 Update affected current Pico/Pi developer/user-facing instructions in the
 authorized repositories. Review external operator-documentation impact without
-editing a separate docs repository or building P15.19's Read the Docs site.
+editing a separate docs repository or building P15.20's Read the Docs site.
 Pi's required final report must include Documentation Impact.
 
 Update the checklist and prompt index for the actual acceptance scope. Do not
 mark P15.18 complete from tests alone if required physical preservation or either
-entry point remains unvalidated. Preserve historical evidence and leave P15.19
-Not started. Include all substantive acceptance/checklist/docs changes in the
-final independently reviewed diff.
+entry point remains unvalidated. Preserve historical evidence and leave
+P15.19/P15.20 Not started. Include all substantive acceptance/checklist/docs
+changes in the final independently reviewed diff.
 
 ## 12. Obtain independent adversarial review and close findings
 
@@ -481,4 +481,4 @@ recovery limits, changed files/components, exact checks and physical evidence,
 reviewer findings/repairs/retests/final assessment, Documentation Impact, both
 commit hashes, push results, independently verified remote hashes and remaining
 working-tree/staged state. Do not claim completion while required checks or
-actionable findings remain. Stop at P15.18; leave OTA and P15.19 outside this task.
+actionable findings remain. Stop at P15.18; leave OTA, P15.19 and P15.20 outside this task.
