@@ -20,6 +20,12 @@ def block(address, workaround=False):
 
 
 class ImageTests(unittest.TestCase):
+    def test_saved_progress_reservation_is_enforced_when_selected(self):
+        validate_uf2(block(0x103EFF00), application_end=0x103F0000)
+        for address in (0x103F0000,0x103F1000,0x103F2000):
+            with self.assertRaises(ValueError):
+                validate_uf2(block(address), application_end=0x103F0000)
+
     def test_separate_application_journal_and_boot_regions(self):
         validate_uf2(block(0x103F2F00) + block(0x10FFFF00, True))
         # Reject ordinary writes and relocated boot blocks in the access, BTstack,

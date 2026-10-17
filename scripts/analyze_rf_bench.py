@@ -6,7 +6,6 @@ import json
 from pathlib import Path
 
 import numpy as np
-from wsprrypi_qualification.carrier import CarrierParameters, analyze_carrier
 
 
 def load_capture(iq_path, metadata_path):
@@ -35,6 +34,7 @@ def load_capture(iq_path, metadata_path):
 
 
 def analyze(iq_path, metadata_path, output, tone=0):
+    from wsprrypi_qualification.carrier import CarrierParameters, analyze_carrier
     iq, metadata, digest = load_capture(iq_path, metadata_path)
     settings = metadata['actual_settings']
     rate, center = settings['sample_rate_hz'], settings['center_frequency_hz']

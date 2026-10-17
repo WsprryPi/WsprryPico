@@ -43,13 +43,30 @@ Relative power is the received **fundamental carrier**, at the 138 MHz Pico cloc
 | 15 m | 0.0 | 132, 138, 150 | Qualified | Qualified | Qualified | Qualified | Qualified |
 | 12 m | -0.1 | 132, 138, 150 | Qualified | Qualified | Qualified | Qualified | Qualified |
 | 10 m | -0.4 | 132, 138, 150 | Qualified | Qualified | Qualified | Qualified | Qualified |
-| 8 m | — | None tested | Untested | Untested | Untested | Untested | Untested |
+| 8 m | — | 138 (P15.13 A) | Qualified† | Qualified†‡ | Qualified† | Qualified† | Qualified† |
 | 6 m | +13.7 | 132, 138, 150 | Qualified | Qualified* | Qualified | Qualified | Qualified |
-| 5 m | — | None tested | Untested | Untested | Untested | Untested | Untested |
+| 5 m | — | 138 (P15.13 A) | Qualified† | Qualified†‡ | Qualified† | Qualified† | Qualified† |
 | 4 m | — | None accepted for release | Unqualified | Unqualified | Unqualified | Unqualified | Unqualified |
 | 2 m | — | None available for native direct output | Unavailable | Unavailable | Unavailable | Unavailable | Unavailable |
 
 *The 6 m WSPR asterisk identifies separately reviewed A/138 MHz receiver-only +125 Hz retune acceptance. The transmitted waveform and original nominal failed flags remain unchanged.*
+
+† **P15.13 current-firmware follow-up, 2026-10-17:** only **Pico A / GP2 /
+138 MHz / source `165303458e49`**, at **40.001 MHz (8 m)** and **60.001 MHz
+(5 m)**. UF2 `cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb`.
+These two representative points do not qualify their broad admission envelopes,
+Pico B or other clocks. Experimental opt-in remains required. Relative power
+was not measured against the historical 80 m reference, so the power cells stay blank.
+
+‡ All three accepted WSPR captures per band externally decode `AA0NT EM18 37`
+under fixed **receiver-audio translation +125 Hz (8 m) / +200 Hz (5 m)**.
+Nominal receiver tuning of those same accepted captures passed 1/3 and 0/3 respectively. The accepted 5 m sequence
+uses a verified inactive reboot and waveform-equivalent compact realized-frequency
+WTP jobs. Original failures, incomplete captures, two untransmitted original
+slots and four diagnostic RF windows remain explicit. The current image stays
+at 138 MHz; no clock-specific reflash was needed. See [results](phase15-13-results.md),
+[matrix](phase15-13-result-matrix.json) and [support policy](phase15-13-support-policy.md).
+This does not refresh the historical RF applicability of the other bands.
 
 138 MHz keyed modes have repeated trials; 132/150 MHz have single screens. WSPR means actual external expected-message decoding; keyed modes use the reviewed human-copy criteria.
 
@@ -57,7 +74,9 @@ Relative power is the received **fundamental carrier**, at the 138 MHz Pico cloc
 failed and the operator applied that qualification failure to every release
 mode. Direct 2 m is outside all three clocks' limits; 138 MHz third-harmonic
 pilots failed WSPR decoding, and no native harmonic mapping is implemented.
-8 m and 5 m were outside the agreed qualification matrix and remain Untested.
+8 m and 5 m were outside the original Phase 14 matrix. Their later P15.13
+entries are separately scoped below; original Phase 14 fields and observations
+remain unchanged.
 These unfiltered conducted results establish neither calibrated transmitter
 power nor antenna-ready emissions.
 

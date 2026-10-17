@@ -9,9 +9,10 @@ from phase14.live import save
 from led_closeout.runner import sha256, require
 
 
-def analyze(directory, output_label="analysis"):
+def analyze(directory, output_label="analysis", *, band_frequencies=None):
     directory=Path(directory).resolve()
-    physical=validate_physical(json.loads((directory/'physical.json').read_text()))
+    physical=validate_physical(json.loads((directory/'physical.json').read_text()),
+                               band_frequencies=band_frequencies)
     require(physical['result']=='CONTROL_COMPLETE','physical execution incomplete')
     meta=json.loads((directory/'capture.json').read_text())
     validate_capture(meta,directory/'capture.cf32',physical['receiver_settings'])
@@ -19,7 +20,8 @@ def analyze(directory, output_label="analysis"):
             physical['metadata_sha256']==sha256(directory/'capture.json'),'physical capture binding')
     iq,metadata,capture_sha=load_capture(directory/'capture.cf32',directory/'capture.json')
     settings=metadata['actual_settings'];rate=settings['sample_rate_hz'];center=settings['center_frequency_hz']
-    frequency=BANDS[physical['band']];mode=physical['mode'];job=physical['accepted_job']
+    frequencies=BANDS if band_frequencies is None else band_frequencies
+    frequency=frequencies[physical['band']];mode=physical['mode'];job=physical['accepted_job']
     if physical.get('output_route'):
         from phase14.harmonic import measurement_job
         job=measurement_job(physical)

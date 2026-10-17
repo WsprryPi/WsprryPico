@@ -6,7 +6,6 @@ import subprocess
 import wave
 
 import numpy as np
-from wsprrypi_qualification.carrier import CarrierParameters, analyze_carrier
 from measure_rf_bench import baseband, measure, phase_fit
 from decode_rf_wspr import audio_from_iq
 from campaign.plan import GOLDEN37
@@ -64,6 +63,7 @@ def spectrum(iq, rate, center, frequencies, intervals, *, excluded_frequencies=(
 
 
 def tone(iq, rate, center, frequency, directory):
+    from wsprrypi_qualification.carrier import CarrierParameters, analyze_carrier
     report = measure(iq, rate, center, duration_s=5, base_hz=frequency)
     # Let the temporal detector locate the burst, then independently assess
     # the complete interior with the Harness on/off carrier analyzer.

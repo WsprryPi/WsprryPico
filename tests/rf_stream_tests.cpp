@@ -353,9 +353,9 @@ void planner_test() {
 }
 
 void generalized_planner_test() {
-    for (const auto hz :
-         {137500ULL, 475700ULL, 1838100ULL, 5288700ULL, 7040100ULL, 10140200ULL, 14097100ULL,
-          18106100ULL, 21096100ULL, 24926100ULL, 28126100ULL, 50294500ULL}) {
+    for (const auto hz : {137500ULL, 475700ULL, 1838100ULL, 5288700ULL, 7040100ULL, 10140200ULL,
+                          14097100ULL, 18106100ULL, 21096100ULL, 24926100ULL, 28126100ULL,
+                          40000995ULL, 40001000ULL, 50294500ULL, 60000995ULL, 60001000ULL}) {
         for (const auto ppb : {-100000, 0, 100000}) {
             const auto k = rf::frequency_increment(hz * 1000000000, ppb);
             const auto exact = hz * 4294967296.L / (rf::sample_rate * (1.L + ppb * 1e-9L));

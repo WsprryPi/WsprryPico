@@ -33,13 +33,17 @@ def main():
     subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("check_endpoint_image.py")),
                     str(elf)], check=True)
     map_text = pathlib.Path(str(elf) + ".map").read_text()
-    if not re.search(r"^FLASH\s+0x10000000\s+0x003f3000\s+xr$", map_text, re.MULTILINE):
+    # Current saved-progress images reserve 0x3f0000 onward. The earlier
+    # 0x3f3000 boundary remains accepted for historical image inspection.
+    match = re.search(r"^FLASH\s+0x10000000\s+(0x003f[03]000)\s+xr$", map_text, re.MULTILINE)
+    if not match:
         raise SystemExit("Missing BTstack, profile, standalone and boot-sector flash reservations")
     try:
-        validate_uf2(elf.with_suffix(".uf2").read_bytes())
+        validate_uf2(elf.with_suffix(".uf2").read_bytes(),
+                     application_end=0x10000000+int(match.group(1),16))
     except ValueError as error:
         raise SystemExit(str(error)) from None
-    print("Linked FLASH ends at 0x103f3000; access, BTstack, profile and standalone storage remain below the boot sector")
+    print(f"Linked FLASH ends at {0x10000000+int(match.group(1),16):#x}; reserved journals remain outside the image")
 
 
 if __name__ == '__main__':

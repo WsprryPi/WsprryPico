@@ -81,7 +81,16 @@ def describe(report,job,mode,reference_hz=None,window_hz=None):
     references=report.get('reference_diagnostics',[])
     points=[]
     for index,fit in enumerate(measurements):
-        event=job['events'][fit.get('event_index',fit.get('index',index))]
+        event_index=fit.get('event_index',fit.get('index',index))
+        if mode=='WSPR' and len(job['events'])!=162:
+            # Complete WTP jobs may merge adjacent identical RF states.
+            # Fits still describe all 162 symbols; map their absolute symbol
+            # offsets onto the actual immutable event timeline.
+            symbol=fit.get('index',index)
+            offset=(symbol*8192*1000000000+6000)//12000
+            event_index=next(i for i,event in enumerate(job['events'])
+                if int(event['offset_ns'])<=offset<int(event['offset_ns'])+int(event['duration_ns']))
+        event=job['events'][event_index]
         expected=int(event['frequency_nhz'])/1e9
         interval=fit.get('interval_s')
         value=fit.get('reference_compared_hz',fit['indicated_hz'])
@@ -93,7 +102,7 @@ def describe(report,job,mode,reference_hz=None,window_hz=None):
             interval=[int(event['offset_ns'])/1e9,(int(event['offset_ns'])+int(event['duration_ns']))/1e9]
         if not all(isinstance(v,Real) and not isinstance(v,bool) and math.isfinite(v) for v in (value,expected,*interval)):
             raise ValueError('finite frequency observation required')
-        points.append(dict(event_index=fit.get('event_index',fit.get('index',index)),
+        points.append(dict(event_index=event_index,
             time_s=sum(interval)/2,frequency_hz=value,requested_offset_hz=value-expected,basis=basis))
     if not points:return result
     values=[p['frequency_hz'] for p in points];offsets=[p['requested_offset_hz'] for p in points]

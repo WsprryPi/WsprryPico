@@ -108,13 +108,14 @@ def validate_spectral_window(before, after, boot_id, job_id):
             raise ValueError('spectral capture extends outside its running job')
 
 
-def validate_physical(value):
+def validate_physical(value, *, band_frequencies=None):
     """Reject substituted device, source, boot, workload and lifecycle evidence."""
     import re
     board=value['board']
+    frequencies=BANDS if band_frequencies is None else band_frequencies
     if (value['schema']!='phase14-physical/1' or board not in BOARDS or
         (value['serial'],value['device_id'])!=BOARDS[board] or
-        value['clock_hz'] not in CLOCKS or value['band'] not in BANDS or
+        value['clock_hz'] not in CLOCKS or value['band'] not in frequencies or
         value['mode'] not in MODES or value['divider']!=1 or value['rf_gp']!=2 or
         value['engine']!='pio-dma-gp2' or value['result']!='CONTROL_COMPLETE' or
         not re.fullmatch('[0-9a-f]{12}',value['source_revision']) or
@@ -154,7 +155,7 @@ def validate_physical(value):
     if value.get('reference'):
         r=value['reference']
         if (r['serial']!='0673ED0FA107' or not all(r[k] for k in ('sat_lock','pll_lock','ant_ok','out1')) or
-            r['pps1'] or r['f1']!=BANDS[value['band']]-40000):
+            r['pps1'] or r['f1']!=frequencies[value['band']]-40000):
             raise ValueError('reference identity/settings binding')
     return value
 

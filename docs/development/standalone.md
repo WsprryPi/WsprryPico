@@ -106,7 +106,8 @@ Two optional top-level JSON booleans match WsprryPi's advanced settings:
 | `allow_unqualified_frequency` | `false` | Permit an untested or failed amateur band within the engine's actual limits. |
 | `allow_non_amateur_frequency` | `false` | Together with `allow_unqualified_frequency:true`, permit frequencies outside the recognized amateur-band correlation ranges. |
 
-Set these with a complete `CONFIG` document or authenticated
+Set these with a complete engineering `CONFIG` document where the saved profile
+permits Console configuration, or authenticated
 `PUT /api/v1/config`, for example by adding
 `"allow_unqualified_frequency": true` to the sanitized document above. For a
 non-amateur experiment, also add `"allow_non_amateur_frequency": true`.
@@ -133,8 +134,15 @@ WsprryPi's host opt-ins do not automatically change the Pico's saved settings;
 an experiment must satisfy both members' admission policies.
 
 Default admission retains the thirteen ordinary bands from 2200 m through
-6 m in the Phase 14 matrix. The additional 8 m and 5 m correlation ranges are
-Untested and require `allow_unqualified_frequency`; 4 m remains Unqualified
+6 m in the Phase 14 matrix. The broad 8 m and 5 m correlation envelopes remain
+experimental and require `allow_unqualified_frequency`. The later
+[P15.13 qualification](phase15-13-results.md) covers only Pico A at 40.001 and
+60.001 MHz, normal 138 MHz, with explicit WSPR receiver-audio conditions and
+complete-job/admission conditions. It does not promote either whole envelope.
+The ordinary consumer profile uses its authenticated radio configuration API;
+it deliberately rejects Console configuration. False flags may be absent from
+canonical Config readback; STATUS exposes their effective values.
+4 m remains Unqualified
 for every release mode under the required reliable-WSPR gate, and native direct
 2 m is Unavailable. See the [qualification catalog](phase14-band-mode-qualification.md)
 and [machine-readable statuses](phase14-band-support.json). Experimental consent

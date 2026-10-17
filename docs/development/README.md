@@ -1,5 +1,15 @@
 # Development baseline
 
+[P15.13 qualification](phase15-13-results.md) is complete within its recorded
+scope: all five modes at 40.001/60.001 MHz on Pico A, fresh current-source
+StandaloneRF at normal 138 MHz, with explicit WSPR receiver-audio and job/admission
+conditions. The [matrix](phase15-13-result-matrix.json), [frozen plan](phase15-13-plan.md)
+and [clock/build support policy](phase15-13-support-policy.md) retain original
+failures, 12 nominal RF windows plus four diagnostics, restoration and fresh
+self-review. Pico B and alternate clocks were not exercised. P15.14 remains
+separate and has not started. Hardware-free follow-up checks include
+`python3 -B tests/phase15_13_tests.py` and `python3 -B tests/standalone_image_tests.py`.
+
 [P15.8 WSPR Type 2/3 execution](phase15-8-wspr-type23.md) records automatic
 single/pair planning, explicit versioned application/station admission, preserved
 legacy Type 1 workflows and the coordinated Pi companion boundary. Acceptance

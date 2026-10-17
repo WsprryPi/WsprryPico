@@ -63,7 +63,9 @@ uses WsprryPi's qualification terms: 4 m is **Unqualified** for all five modes
 under the required reliable-WSPR gate; native direct 2 m is **Unavailable**.
 The failed manually mapped 2 m harmonic pilots remain Unqualified evidence.
 The [band/mode catalog](docs/development/phase14-band-mode-qualification.md)
-records 13 Qualified bands and Untested 8 m/5 m, with clock-specific limits.
+retains the 13 historical Qualified bands and the separate
+[P15.13 point-scoped results](docs/development/phase15-13-results.md) for 8 m/5 m
+on Pico A at normal 138 MHz, with explicit receiver and admission conditions.
 Phase 14 is complete within its declared scope.
 The application source now has persisted, default-off
 `allow_unqualified_frequency` and `allow_non_amateur_frequency` settings matching

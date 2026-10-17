@@ -209,8 +209,9 @@ void band_and_engine_limits() {
          {135500ULL, 475700ULL, 1838100ULL, 3570100ULL, 5288700ULL, 7040100ULL, 10140200ULL,
           14097100ULL, 18106100ULL, 21096100ULL, 24926100ULL, 28126100ULL, 50294500ULL})
         REQUIRE(frequency_allowed(ordinary * hz, false, false));
-    for (const auto unqualified : {40000000ULL, 54000001ULL, 69900000ULL, 70500000ULL, 144000000ULL,
-                                   219000000ULL, 420000000ULL}) {
+    for (const auto unqualified :
+         {40000000ULL, 40000995ULL, 40001000ULL, 54000001ULL, 60000995ULL, 60001000ULL, 69900000ULL,
+          70500000ULL, 144000000ULL, 219000000ULL, 420000000ULL}) {
         REQUIRE(frequency_disposition(unqualified * hz) ==
                 FrequencyDisposition::UnqualifiedAmateur);
         REQUIRE(!frequency_allowed(unqualified * hz, false, true));

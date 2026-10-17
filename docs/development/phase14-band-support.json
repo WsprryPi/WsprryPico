@@ -2,16 +2,16 @@
   "schema": "phase14-band-support-disposition/1",
   "catalog": {
     "schema": "band-mode-qualification-catalog/1",
-    "updated_date": "2026-10-15",
+    "updated_date": "2026-10-17",
     "terminology_source": "WsprryPi-Docs/docs/About_Wsprry_Pi/index.md: Band qualification",
-    "scope": "Native PIO/DMA GP2 on Pico A and B; historical 132/138/150 MHz engineering results keep their actual source/image identities. The selected Phase 14 artifact is C96/138 MHz; no current installed-image assertion is made.",
+    "scope": "Native PIO/DMA GP2 on Pico A and B; historical 132/138/150 MHz engineering results keep their actual source/image identities. The selected Phase 14 artifact is C96/138 MHz; no current installed-image assertion is made. P15.13 adds only Pico A / 138 MHz / current source 165303458e49 at 40.001 and 60.001 MHz; this does not qualify broad frequency intervals or Pico B on current firmware.",
     "status_definitions": {
       "Qualified": "Met the applicable conducted carrier, decode or human-copy requirements within the recorded board, clock, source/image and setup scope.",
       "Unqualified": "Did not meet the applicable qualification requirement; includes the operator-required all-mode reliable-WSPR gate at 4m.",
       "Unavailable": "The native engine cannot construct the requested output; experimental frequency consent does not override engine limits.",
       "Untested": "Outside the agreed matrix, with no qualification result."
     },
-    "mode_application": "Each qualification_by_band status applies to all five modes in the top-level modes list; the notes preserve mode-specific acceptance and experimental-route distinctions.",
+    "mode_application": "Each qualification_by_band status applies to all five modes at its recorded points and source/image scope. New 8m/5m entries use only the exact P15.13 point/board/clock and receiver conditions below; no broad-interval promotion follows.",
     "qualification_by_band": {
       "2200m": "Qualified",
       "630m": "Qualified",
@@ -25,9 +25,9 @@
       "15m": "Qualified",
       "12m": "Qualified",
       "10m": "Qualified",
-      "8m": "Untested",
+      "8m": "Qualified",
       "6m": "Qualified",
-      "5m": "Untested",
+      "5m": "Qualified",
       "4m": "Unqualified",
       "2m": "Unavailable"
     },
@@ -41,10 +41,48 @@
       "6m_WSPR": "Qualified includes separately reviewed Pico A/138 MHz receiver-only +125 Hz retune acceptance; the transmitted waveform and original nominal failed flags remain unchanged.",
       "4m": "Unqualified at representable 150 MHz under the all-mode reliable-WSPR requirement. Unavailable for direct synthesis at 132/138 MHz. Successful individual Tone, keyed and occasional WSPR observations remain unchanged; the all-mode status does not claim each mode failed individually.",
       "2m": "Unavailable for native direct output at all three clocks; no native harmonic mapping is implemented. Manually mapped 138 MHz third-harmonic WSPR pilots remain Unqualified evidence, without promoting the other modes to tested failures.",
-      "8m_5m": "Untested; outside the agreed qualification matrix.",
+      "8m_5m": "P15.13 qualified all five modes only at 40.001/60.001 MHz on Pico A, current clean-source 165303458e49, normal 138 MHz. WSPR requires demonstrated fixed receiver-audio translation (+125/+200 Hz respectively); accepted 5m WSPR uses a cold boot and waveform-equivalent compact realized-frequency complete jobs. Broad envelopes retain the experimental opt-in. Nominal failures, invalid/partial attempts and four diagnostic RF windows are preserved in the result matrix. Pico B and alternate clocks were not tested.",
       "limits": "Unfiltered conducted evidence does not establish calibrated transmitter power or antenna-ready emissions."
     },
-    "historical_record": "All other top-level fields retain the October 11 operator-amended release-scope record, including its original UNSUPPORTED_RELEASE labels, dates, evidence and then-pending gates. Current catalog status is qualification_by_band; historical fields are not a current completion or availability assertion."
+    "historical_record": "All other top-level fields retain the October 11 operator-amended release-scope record, including its original UNSUPPORTED_RELEASE labels, dates, evidence and then-pending gates. Current catalog status is qualification_by_band; historical fields are not a current completion or availability assertion.",
+    "p15_13": {
+      "schema": "phase15-13-catalog-scope/1",
+      "date": "2026-10-17",
+      "source_revision": "165303458e49feaac1de54c8344058f56578d533",
+      "uf2_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "board": "A",
+      "serial": "0BF4B4AEC9FFB344",
+      "engine": "pio-dma-gp2",
+      "gpio": 2,
+      "clock_hz": 138000000,
+      "points_hz": {
+        "8m": 40001000,
+        "5m": 60001000
+      },
+      "modes": [
+        "TONE",
+        "WSPR",
+        "QRSS",
+        "FSKCW",
+        "DFCW"
+      ],
+      "receiver_audio_translation_hz": {
+        "8m_WSPR": 125,
+        "5m_WSPR": 200
+      },
+      "five_metre_wspr_condition": "Known inactive reboot, compact complete job with exact realized frequencies and merged equal-frequency events; same sampled waveform and ordinary current firmware.",
+      "admission": "allow_unqualified_frequency=true; allow_non_amateur_frequency=false. Broad correlation envelopes are not promoted.",
+      "matrix": "phase15-13-result-matrix.json",
+      "results": "phase15-13-results.md",
+      "support_policy": "phase15-13-support-policy.md",
+      "nominal_planned": 14,
+      "nominal_rf_windows": 12,
+      "diagnostic_rf_windows": 4,
+      "total_rf_windows": 16,
+      "pico_b_used": false,
+      "alternate_clock_rf": false,
+      "historical_top_level_fields_changed": false
+    }
   },
   "status": "OPERATOR_AMENDED_RELEASE_SCOPE",
   "amended_date": "2026-10-11",

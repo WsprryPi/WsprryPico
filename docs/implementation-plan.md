@@ -151,13 +151,15 @@ No Phase 14 workstream or LED task remains open.
     `74c73d5` and final closeout commit `e501c0d` were pushed with independent
     remote parity verification. The [band/mode catalog](development/phase14-band-mode-qualification.md)
     records 4 m as Unqualified under the all-mode gate and native direct 2 m
-    as Unavailable; 8 m/5 m remain Untested. Filtering, calibrated power/absolute RF timing,
+    as Unavailable; 8 m/5 m were outside that historical matrix. Their later
+    [P15.13 point-scoped qualification](development/phase15-13-results.md) is separate.
+    Filtering, calibrated power/absolute RF timing,
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
 15. **Open — operator review punchlist:** track requested improvements and
     findings from operator use. Fourteen items are tracked: P15.1–P15.12 are
-    complete within their recorded scopes; P15.13 band/mode/clock qualification
-    and P15.14 operator documentation remain open. The operator confirmed
+    complete within their recorded scopes; P15.13 point-scoped band/mode/clock
+    qualification is complete, and P15.14 operator documentation has not started. The operator confirmed
     WsprryPi item 15/P15.9 complete on 2026-10-17. See the
     [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
@@ -490,11 +492,17 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   does not close operator-document publication. The original handoff preparation
   did not execute the work.
 
-- ☐ **P15.13 — Complete untested-band qualification and resolve clock-dependent support.**
+- ✅ **P15.13 — Complete untested-band qualification and resolve clock-dependent support.**
   Revisit the [band/mode chart](development/phase14-band-mode-qualification.md)
   and [machine-readable catalog](development/phase14-band-support.json). Test
-  the currently Untested 8 m and 5 m entries across Tone, WSPR, QRSS, FSKCW and
-  DFCW, including the applicable P15.8 WSPR message types. Define finite
+  the originally Untested 8 m and 5 m entries across Tone, WSPR, QRSS, FSKCW and
+  DFCW. The selected campaign uses Pico A for fourteen nominal transmission
+  windows: one Tone, three Type 1 WSPR frames, one QRSS, one FSKCW and one DFCW
+  per band. Pico B is used only for failure diagnosis; WSPR Type 2/3 testing is
+  excluded. Build fresh uninhibited firmware from current project devel tips
+  and flash A before testing; flash B with the same artifact only if needed.
+  Additional clock acquisitions must address a specific finding rather than
+  form a blanket clock sweep. Define finite
   conducted tests and acceptance criteria against identified current firmware,
   boards, engine, pins, clock and receiver/RF setup; record failures and
   unavailable configurations as well as passes. Run after the preceding
@@ -521,7 +529,20 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   captures and generated firmware were [disposed of](development/phase14-evidence-retention.md#october-15-operator-directed-test-data-disposal),
   so use the Git records as historical context and acquire fresh evidence.
   Record setup/settings restoration and review the resulting claims before
-  P15.14 documents them. Status: open; not started.
+  P15.14 documents them. **Completed within recorded scope, 2026-10-17:**
+  [results](development/phase15-13-results.md),
+  [matrix](development/phase15-13-result-matrix.json) and
+  [support policy](development/phase15-13-support-policy.md). All five modes are
+  Qualified only at 40.001/60.001 MHz on Pico A, fresh source `165303458e49`,
+  GP2/138 MHz. WSPR acceptance includes fixed +125/+200 Hz receiver-audio
+  translation; the accepted 5 m sequence uses a cold boot and waveform-equivalent
+  compact realized-frequency jobs. Actual accounting is 12 nominal RF windows
+  plus four diagnostics (16 total); two original WSPR slots were untransmitted,
+  and original invalid/partial cases remain explicit. B and alternate clocks
+  were unused. Source/image, decoder/capture audit, affected checks, fresh
+  self-review and restoration are recorded. This does not promote whole
+  frequency intervals, refresh historical bands on current firmware or start
+  P15.14's documentation site.
 - ☐ **P15.14 — Create user documentation for Read the Docs Community.**
   Create operator-focused documentation suitable for building and hosting on
   the community version of Read the Docs. Reuse suitable styling, format and
@@ -551,7 +572,8 @@ integration are complete by operator acceptance. P15.9 and WsprryPi item 15 are
 complete by operator confirmation on 2026-10-17. The separate originating
 P15.8 review, physical concurrency/reproduction and target qualification remain open.
 P15.10 and P15.11 are complete within their recorded supported software scopes.
-P15.12 is complete within supported software acceptance; P15.13–P15.14 remain open.
+P15.12 is complete within supported software acceptance. P15.13 is complete within its recorded point/board/image/receiver scope;
+P15.14 has not started.
 
 ## Remaining deferred and backlog items
 
@@ -817,7 +839,8 @@ belongs to the operator.
    and P15.11 page organization are complete within their supported software
    scopes. P15.12 is complete within supported software acceptance. P15.9 and
    WsprryPi item 15 are complete by operator confirmation on 2026-10-17.
-   P15.13–P15.14 and the separately recorded physical qualification remain open.
+   P15.13 is complete within its point/board/image/receiver scope; P15.14 has not started. Separately
+   recorded physical qualification limits remain unchanged.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
