@@ -1,0 +1,40 @@
+{
+  "schema": "operator-assets/1",
+  "tool": "esbuild/0.28.2",
+  "target": "es2020",
+  "recipe_sha256": "8ac5b74bd45c395906ca0731354fe89d3b915c829bbab4b182232b05dafe6565",
+  "groups": {
+    "app.min.js": {
+      "inputs": {
+        "rf-calibration.js": "43a2da35e52eed2925702a383f9f376702b1faecdaffbfd74d2c05cf07b93a7a",
+        "amplifier-enable.js": "4a44353c0dbe15d6992e738d62ff7595d3d15e3a891cf2d571290e6163bbd8ac",
+        "gpio-drive.js": "012c3c98032384077e86525a6bc3aa19a0dfc7d91ed73deb90205eaf8cd6a70f",
+        "saved-progress.js": "eda273462a85879a5060d72d9380c3d7834d50f75c4cdbc9b12c10e7e2232195",
+        "app.js": "8ef402cd3f44392dc3b11ff7c43c04d063a6bd3ffe6e89792c92f2aa75a1e9a5"
+      },
+      "sha256": "373d6904a585d4f3c591ff9dcffb9d4a864e4372443acf8fd13e29a9e4e48254",
+      "bytes": 93218
+    },
+    "config-validation.min.js": {
+      "inputs": {
+        "config-validation.js": "6182c6a011b993688bfbb7db3ab981d0b4159d3d2719c45d8ed763da4c9f3851"
+      },
+      "sha256": "2730bf380aeaca2a23576ecc29749029314f80e89abe2f0ad14b7b6d8ce7d13d",
+      "bytes": 1759
+    },
+    "device-presentation.min.js": {
+      "inputs": {
+        "device-presentation.js": "3180de1122e80c8069690c9497aaf5a6f954133a22a2ec9efda6c84b234f94bb"
+      },
+      "sha256": "7c6ab6a5a3a2fa328ac7195bffb5cf1668873a3e1c6079275a79ae4b39e5f073",
+      "bytes": 2499
+    },
+    "organization.min.js": {
+      "inputs": {
+        "organization.js": "3f233132acb5ef4298e8fb36c53c200ba5efbaa821bfca98f8178855de761a9a"
+      },
+      "sha256": "a55702a4e0dfaccc80d9a520b4b1bfb436a039bb4ac324788b77cbb50a695eb9",
+      "bytes": 5069
+    }
+  }
+}

@@ -9,5 +9,6 @@ export async function titleFromDevice(suffix, expectedDevice) {
         !/^[0-9a-f]{32}$/.test(data.boot_id) || typeof data.hostname !== 'string' ||
         !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.local$/.test(data.hostname)) return;
     document.title = data.hostname + ' - ' + suffix;
+    return data.hostname;
   } catch { /* Preserve the honest generic title when metadata is unavailable. */ }
 }

@@ -48,21 +48,27 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
         return response;
     }
     if (request.path == "/" || request.path == "/wifi-host" || request.path == "/station" ||
-        request.path == "/radio" || request.path == "/index.html" || request.path == "/owner.html")
-        return HttpResponse{
+        request.path == "/radio" || request.path == "/index.html" ||
+        request.path == "/owner.html") {
+        HttpResponse response{
             200,
-            "<!doctype html><meta charset=utf-8><meta name=viewport "
+            "<!doctype html><html lang=\"en\"><meta charset=utf-8><meta name=viewport "
             "content=\"width=device-width,initial-scale=1\"><title>WsprryPico "
-            "recovery</title><h1>WsprryPico recovery</h1><p>Connected to "
-            "WsprryPico. This page shows device identity only. Wi-Fi setup is "
-            "not available here.</p><p>Complete commissioning or use USB Console recovery.</p>"
-            "<p><a href='/wifi-host'>Wi-Fi/Host</a> | "
-            "<a href='/station'>Station/Transmission</a></p><p>"
+            "recovery</title><link rel=stylesheet href='/style.css'><body>"
+            "<header><strong>WsprryPico</strong><span>Recovery</span></header><main>"
+            "<h1>Setup is unavailable</h1><p>This profile provides device identity "
+            "and USB Console recovery.</p><p>Connect this Pico to a computer with "
+            "a USB data cable. Open its Console serial interface and send "
+            "<code>INFO</code> to inspect device identity and provisioning diagnostics. "
+            "Use the identity below when following the recovery instructions.</p><p>"
             "Device: <code>" +
                 std::string(device) + "</code></p><p>Firmware: <code>" + std::string(firmware) +
-                "</code></p>",
+                "</code></p></main></body></html>",
             "text/html; charset=utf-8",
             {}};
+        response.content_security_policy = bootstrap_csp();
+        return response;
+    }
     return http_error(404, "not_found");
 }
 

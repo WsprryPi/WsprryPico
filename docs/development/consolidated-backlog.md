@@ -21,7 +21,9 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    - ✅ Persistent standalone manual PPM.
    - ✅ NTP filtering and UTC rate discipline.
    - ⏳ NTP-derived RF calibration.
-5. ▧ **Impeccable UI review**, including provisioning.
+5. ✅ **Impeccable UI review**, including provisioning; accepted and closed.
+   [Result](phase15-19-results.md). VoiceOver testing is closed as not required.
+   Installer coverage is deferred.
    [Saved prompt](phase15-19-execution-prompt.md).
 6. ▧ **Software/build CI and deployment images.** Run checks and produce usable
    UF2 images with version/source identity, checksums and a manifest before

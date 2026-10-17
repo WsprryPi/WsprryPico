@@ -3,16 +3,38 @@
 import base64
 import gzip
 import hashlib
+import json
 import pathlib
 import sys
 
 root, output = map(pathlib.Path, sys.argv[1:])
 web = root / 'src/network/web'
-html, css, js = [(web / name).read_text() for name in ('index.html', 'style.css', 'app.js')]
-js = (web / 'rf-calibration.js').read_text() + '\n' + (web / 'amplifier-enable.js').read_text() + '\n' + (web / 'gpio-drive.js').read_text() + '\n' + (web / 'saved-progress.js').read_text() + '\n' + js
-organization = (web / 'organization.js').read_text()
-presentation = (web / 'device-presentation.js').read_text()
-validation = (web / 'config-validation.js').read_text()
+# Minified artifacts are maintained by the existing pinned npm build. Verify
+# exact source/output identity here so ordinary CMake remains Python-only.
+groups = {
+    'app.min.js': ['rf-calibration.js', 'amplifier-enable.js', 'gpio-drive.js', 'saved-progress.js', 'app.js'],
+    'config-validation.min.js': ['config-validation.js'],
+    'device-presentation.min.js': ['device-presentation.js'],
+    'organization.min.js': ['organization.js'],
+}
+manifest = json.loads((web / 'asset-build.json').read_text())
+if (manifest.get('schema') != 'operator-assets/1' or
+        manifest.get('tool') != 'esbuild/0.28.2' or manifest.get('target') != 'es2020' or
+        manifest.get('recipe_sha256') != hashlib.sha256((root / 'scripts/build_operator_assets.mjs').read_bytes()).hexdigest() or
+        set(manifest.get('groups', {})) != set(groups)):
+    raise ValueError('Invalid operator asset manifest; run npm --prefix src/network/bootstrap_web run build')
+for output_name, inputs in groups.items():
+    entry = manifest['groups'][output_name]
+    expected = {name: hashlib.sha256((web / name).read_bytes()).hexdigest() for name in inputs}
+    output_bytes = (web / output_name).read_bytes()
+    if (entry.get('inputs') != expected or entry.get('bytes') != len(output_bytes) or
+            entry.get('sha256') != hashlib.sha256(output_bytes).hexdigest()):
+        raise ValueError('Stale operator assets; run npm --prefix src/network/bootstrap_web run build')
+html, css = [(web / name).read_text() for name in ('index.html', 'style.css')]
+js = (web / 'app.min.js').read_text()
+organization = (web / 'organization.min.js').read_text()
+presentation = (web / 'device-presentation.min.js').read_text()
+validation = (web / 'config-validation.min.js').read_text()
 bootstrap_web = root / 'src/network/bootstrap_web'
 radio_js = (bootstrap_web / 'radio-bundle.js').read_text()
 radio_html = html.replace('<link rel="stylesheet" href="/style.css">', '<style>' + css + '</style>')

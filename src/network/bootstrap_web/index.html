@@ -11,7 +11,7 @@
 <body>
   <header><strong>WsprryPico</strong><span>Wi-Fi/Host</span></header>
   <main>
-    <h1 id="page-title">Connect this Pico to Wi-Fi</h1>
+    <h1 id="page-title" tabindex="-1">Connect this Pico to Wi-Fi</h1>
     <p id="setup-intro" class="intro">Enter your network details to connect this Pico. Station settings can wait.</p>
     <p><a href="/owner.html">Station settings</a> — set or update your callsign, grid and power after Wi-Fi setup.</p>
     <p id="device" class="device">Checking Pico identity…</p>
@@ -21,11 +21,12 @@
       <form id="wifi-form" autocomplete="off">
         <label for="ssid">Wi-Fi network name</label>
         <input id="ssid" name="ssid" type="text" minlength="1" maxlength="32"
-               required autocapitalize="none" autocomplete="off" spellcheck="false">
+               required autocapitalize="none" autocomplete="off" spellcheck="false" aria-describedby="ssid-error">
+        <small id="ssid-error" class="field-error"></small>
         <label for="password">Wi-Fi password</label>
         <div class="password-field">
           <input id="password" name="password" type="password" minlength="8" maxlength="63"
-                 required autocomplete="off" spellcheck="false">
+                 required autocomplete="off" spellcheck="false" aria-describedby="password-error">
           <button id="password-toggle" type="button" class="password-toggle"
                   aria-label="Show Wi-Fi password" aria-pressed="false" title="Show Wi-Fi password">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -36,11 +37,13 @@
             </svg>
           </button>
         </div>
+        <small id="password-error" class="field-error"></small>
         <label for="time-server">Time server</label>
         <input id="time-server" name="time-server" type="text" maxlength="253"
                value="pool.ntp.org" required autocapitalize="none" autocomplete="off"
-               spellcheck="false">
-        <p class="quiet">Used when the Pico joins Wi-Fi. You can keep the suggested server.</p>
+               spellcheck="false" aria-describedby="time-server-help time-server-error">
+        <small id="time-server-error" class="field-error"></small>
+        <p id="time-server-help" class="quiet">Used when the Pico joins Wi-Fi. You can keep the suggested server.</p>
         <p class="quiet">This page encrypts your network details before sending them over the Pico setup Wi-Fi.</p>
         <button id="submit" type="submit" class="primary" disabled>Connect to Wi-Fi</button>
       </form>
@@ -52,18 +55,18 @@
     </section>
 
     <section id="accepted" hidden>
-      <p>The Pico is applying your new Wi-Fi settings. Its setup Wi-Fi will close as it joins your network. This window should close automatically; if it stays open, tap X.</p>
+      <p>The Pico accepted your new Wi-Fi settings and is checking the saved result. Its setup Wi-Fi may close during restart or network recovery. Loss of contact does not confirm that the settings were saved.</p>
     </section>
 
     <section id="unconfirmed" hidden>
-      <p>The Pico may have joined your network and closed its setup Wi-Fi. This page cannot confirm the result after losing contact. You can close this window; if setup Wi-Fi returns, reconnect and check.</p>
+      <p>Contact with the Pico was lost. It may have saved the settings and joined your network, or its setup Wi-Fi may have expired. Keep this page open and reconnect to check the saved result before trying another save.</p>
     </section>
 
     <section id="connected" hidden>
-      <p>The Pico saved the new Wi-Fi settings and joined your network. Its setup Wi-Fi will disconnect. If this window stays open, tap X.</p>
+      <p>The Pico saved the new Wi-Fi settings and joined your network. Its setup Wi-Fi will disconnect. Join your normal Wi-Fi network to continue.</p>
       <div class="form-actions">
         <button id="change-connected" type="button">Change Wi-Fi</button>
-        <a href="/owner.html">Set station details after restart</a>
+        <span>Station settings remain optional after restart.</span>
       </div>
     </section>
 
@@ -101,9 +104,14 @@
       <p>This window cannot run encrypted Wi-Fi setup. Stay connected to the Pico Wi-Fi and open
         <a href="http://192.168.4.1/">http://192.168.4.1/</a> in your regular browser.</p>
     </section>
-    <p><a href="/recovery.html">Recovery and reset</a></p>
+    <section id="next-connection" hidden>
+      <h2>Find this Pico after setup</h2>
+      <p>Join your normal Wi-Fi network, then try the configured hostname <a id="setup-hostname" hidden></a> or the Pico’s current IP address from your router. Name discovery and reachability are not confirmed by this page. Open Station/Transmission there for optional station settings.</p>
+      <p>If contact was lost before confirmation, return to this open page on the Pico setup Wi-Fi to check the result. Do not submit the same save again while its result is unknown.</p>
+    </section>
+    <details><summary>Setup Wi-Fi access window</summary><p>Setup Wi-Fi closes no later than ten minutes after it opens. Traffic and a held or released switch do not extend the window; recovery of the saved network can close it sooner. Release the configured switch and make a new nine-second hold to request setup again. The factory switch is GP14 to ground; saved custom or disabled assignments take precedence. USB access remains available.</p></details>
+    <nav class="setup-nav" aria-label="Setup pages"><a href="/recovery.html">Recovery and reset</a><a href="/radio">Station/Transmission controls</a></nav>
   </main>
   <footer id="setup-footer">The Pico setup Wi-Fi is open. Your network details are encrypted by this page before they cross the connection.</footer>
-  <p><a href="/radio">Station/Transmission controls</a></p>
 </body>
 </html>

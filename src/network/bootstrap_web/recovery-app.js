@@ -3,7 +3,7 @@ import {available} from './crypto.js';
 import {recoveryKey, recoverySeal} from './recovery-crypto.js';
 const $ = (s) => document.getElementById(s);
 const host = 'http://192.168.4.1';
-let identity, phrase, submitting = false, uncertain = false;
+let identity, phrase, resetOrigin='provisioning', submitting = false, uncertain = false;
 const notice = (s) => { $('notice').textContent = s; };
 async function request(path, body) {
   const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
@@ -18,6 +18,7 @@ async function request(path, body) {
 }
 function choose(full) {
   if (!identity || submitting || uncertain) return;
+  resetOrigin=full?'full':'provisioning';
   phrase = full ? 'erase' : 'reset provisioning';
   $('operation').textContent = full ? 'Confirm full erase' : 'Confirm provisioning reset';
   $('consequences').textContent = full ? 'This clears network credentials, certificates, engineering access, Bluetooth bonds, station details, schedules and time watermark.' : 'This clears network credentials, certificates, engineering access and Bluetooth bonds. Station details, schedules and time watermark are preserved.';
@@ -36,7 +37,7 @@ for (const id of ['confirm-one', 'confirm-two', 'phrase']) $(id).addEventListene
 $('cancel').addEventListener('click', () => {
   if (submitting || uncertain) return;
   $('phrase').value = ''; phrase = undefined; $('confirm').hidden = true; $('actions').hidden = false;
-  $('provisioning').focus();
+  $(resetOrigin).focus();
 });
 $('reset-form').addEventListener('submit', async (event) => {
   event.preventDefault(); update(); if ($('execute').disabled) return;

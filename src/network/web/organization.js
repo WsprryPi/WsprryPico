@@ -25,6 +25,12 @@
   addEventListener('popstate',renderArea);
   addEventListener('hashchange',renderArea);
   renderArea();
+  for (const [button,target] of [['jump-identity',null],['jump-settings','radio-settings-heading'],['jump-message','job-heading']]) {
+    $(button).onclick = () => {
+      const id=target || (radio ? 'consumer-station-form' : 'engineering-station-form');
+      $(id).focus({preventScroll:true});$(id).scrollIntoView({block:'start'});
+    };
+  }
 
   for (const kind of ['station','network']) {
     const form = $('engineering-' + kind + '-form');
@@ -33,6 +39,7 @@
       if (kind === 'station') engineeringStationDirty = true;
       else engineeringNetworkDirty = true;
       dirty = true; cancelReconnect();
+      showDraftComparison();
     });
     form.onsubmit = event => {
       event.preventDefault();

@@ -90,13 +90,19 @@ function progressUnit(control) {
   if (['ssid','password'].includes(name)) return 'wifi';
   return name === 'expiry' ? 'expires_utc_s' : name;
 }
+function progressInputs(unit,station = false) {
+  const f=$('config').elements;
+  if (station) return [$('consumer-'+(unit==='power_dbm'?'power':unit))].filter(Boolean);
+  const names=unit==='wifi' ? ['ssid','password'] : unit==='pins' ? ['rf_gp','button_gp','amplifier_gp','amplifier_active_high','indicator','indicator_gp','indicator_active_high'] : [unit==='expires_utc_s'?'expiry':unit];
+  return names.map(name=>f[name]).filter(Boolean);
+}
 function editedProgress(event) {
   if (!event?.target) return;
   const unit = progressUnit(event.target);
   if (progressUI?.names.includes(unit)) {
     progressEdits.set(unit,++progressEditSerial);
     const message = $('progress-error-' + (event.target.id?.startsWith('consumer-') ? 'station-' : 'settings-') + unit);
-    if (message) {message.textContent='Unsaved edit.';message.classList.toggle('error',false);event.target.setAttribute?.('aria-invalid','false');}
+    if (message) {message.textContent='Unsaved edit.';message.classList.toggle('error',false);for (const input of progressInputs(unit,event.target.id?.startsWith('consumer-'))) input.setAttribute?.('aria-invalid','false');}
   }
 }
 function checkedProgress(result, acknowledgement = false) {
@@ -157,8 +163,10 @@ function fieldOutcome(unit,value,station,newer = false) {
   const id = 'progress-error-' + (station ? 'station-' : 'settings-') + unit;
   let message = $(id);
   if (!message) { message = document.createElement('small'); message.id = id; message.className = 'field-result'; (unit === 'enabled' ? input.closest('label') : input).insertAdjacentElement('afterend',message); }
-  input.setAttribute('aria-describedby',[...new Set([...(input.getAttribute('aria-describedby') || '').split(' '),id].filter(Boolean))].join(' '));
-  input.setAttribute('aria-invalid',String(!newer && value === 'invalid'));
+  for (const field of progressInputs(unit,station)) {
+    field.setAttribute('aria-describedby',[...new Set([...(field.getAttribute('aria-describedby') || '').split(' '),id].filter(Boolean))].join(' '));
+    field.setAttribute('aria-invalid',String(!newer && value === 'invalid'));
+  }
   message.textContent = progressUI.fieldOutcomeText(unit,value,newer);
   message.classList.toggle('error',value === 'invalid');
 }
@@ -175,6 +183,12 @@ async function saveProgressFields(fields,station = false,output) {
   savedProgress = {data:{...result.data},revision:result.revision};
   delete savedProgress.data.outcomes; delete savedProgress.data.request_id;
   revision = result.revision;
+  if (savedReadback) {
+    savedReadback.progress = savedProgress.data;
+    savedReadback.revision = revision;
+    $('saved-readback').textContent = JSON.stringify({saved_config:savedReadback.config,saved_progress:savedProgress.data,application_at_last_read:savedReadback.application},null,2);
+    showDraftComparison();
+  }
   for (const [key,value] of Object.entries(result.data.outcomes)) {
     if (progressEdits.get(key) !== edits.get(key)) {
       fieldOutcome(key,value,station,true);
@@ -282,6 +296,58 @@ function requireReadback() {
   $('saved-active-status').textContent = 'Saved and active observations need fresh readback.';
   $('save-reconcile-status').textContent = 'Saved-state readback required. Your draft is preserved. A status refresh or login cannot confirm an interrupted save.';
 }
+function showDraftComparison() {
+  const output = $('draft-comparison');
+  if (!savedReadback) return;
+  const f = $('config').elements, c = savedReadback.config, p = savedReadback.progress;
+  const draftPins = pinChoices ? readPins() : undefined;
+  const value = x => x === undefined ? 'Not observed' : x === null ? 'Cleared / unset' : x === '' ? 'Empty' : String(x);
+  const schedules = x => Array.isArray(x) ? x.map(s=>`${s.period_s} / ${s.phase_s}`).join('\n') : x;
+  const expiry = x => x === undefined || x === null ? x : x ? new Date(x*1000).toISOString().slice(0,19) : '';
+  // Sparse omission inherits complete saved settings; explicit null masks them.
+  const progress = (key, saved) => !p ? undefined : Object.hasOwn(p.fields,key) ? p.fields[key] : saved;
+  const member = (object, key) => object === null ? null : object?.[key];
+  const rows = [];
+  let matching = 0;
+  const row = (group,label,draft,progressValue,saved) => {
+    const values = [draft,progressValue,saved].map(value);
+    if (values[0] === values[2] && (!p || values[1] === values[2])) { ++matching; return; }
+    rows.push({group,label,values});
+  };
+  for (const [key,label] of [['callsign','Callsign'],['locator','Grid locator'],['power_dbm','Reported WSPR power (dBm)']])
+    row('Station identity',label,radio ? $('consumer-'+(key === 'power_dbm' ? 'power' : key)).value : f[key].value,p?.station?.[key],c?.station?.[key]);
+  row('Wi-Fi','Wi-Fi network',radio ? $('consumer-ssid').value : f.ssid.value,member(progress('wifi',c?.wifi),'ssid'),c?.wifi?.ssid);
+  row('Wi-Fi','Time server',radio ? $('consumer-time-server').value : f.ntp_ipv4.value,progress('ntp_ipv4',c?.wifi?.ntp_ipv4),c?.wifi?.ntp_ipv4);
+  row('Schedules and pins','Standalone schedule enabled',f.enabled.checked,progress('enabled',c?.enabled),c?.enabled);
+  row('Schedules and pins','Schedules (period / phase, seconds)',f.schedules.value,schedules(progress('schedules',c?.schedules)),schedules(c?.schedules));
+  row('Schedules and pins','Schedule expiry (UTC)',f.expiry.value,expiry(progress('expires_utc_s',c?.expires_utc_s)),expiry(c?.expires_utc_s));
+  for (const [key,label] of [['rf_gp','RF GPIO'],['button_gp','Switch GPIO'],['amplifier_gp','Amplifier GPIO'],['amplifier_active_high','Amplifier active-high'],['indicator','TX indicator'],['indicator_gp','Indicator GPIO'],['indicator_active_high','Indicator active-high']]) {
+    if (key === 'amplifier_active_high' && !supportsAmplifier()) continue;
+    row('Schedules and pins',label,member(draftPins,key),member(progress('pins',c?.pins),key),c?.pins?.[key]);
+  }
+  const node = (tag,text) => { const element=document.createElement(tag);element.textContent=text;return element; };
+  output.replaceChildren();
+  output.append(node('p',rows.length ? `${rows.length} fields differ. ${matching} fields match the complete saved settings${p ? ' and effective saved progress' : ''}.` : `${matching} fields match. No differences in these fields.`));
+  for (const group of ['Station identity','Wi-Fi','Schedules and pins']) {
+    const fields=rows.filter(row=>row.group===group);
+    if (!fields.length) continue;
+    const section=node('div','');section.className='comparison-group';section.append(node('h3',group));
+    for (const {label,values} of fields) {
+      section.append(node('h4',label));
+      const list=node('dl','');list.className='comparison-values';
+      for (const [index,title] of [[0,'Browser draft:'],[1,'Saved progress:'],[2,'Complete saved settings:']]) {
+        if (index===1 && (!p || values[1]===values[2])) continue;
+        const pair=node('div','');pair.append(node('dt',title),node('dd',values[index]));list.append(pair);
+      }
+      section.append(list);
+    }
+    output.append(section);
+  }
+  // Never copy password text into comparison markup, including revealed inputs.
+  if (radio ? $('consumer-password').value : f.password.value)
+    output.append(node('p','A new Wi-Fi password is entered in this browser. Password values are hidden from this comparison.'));
+  output.append(node('p',(p ? 'Omitted progress fields use the complete saved settings; cleared fields remain distinct.' : 'Saved progress was not observed.') + ' Drive and carrier calibration retain their separate readback controls.'));
+}
 async function readSavedKeepingDraft() {
   requireReadback();
   const before = await readApplication();
@@ -291,12 +357,13 @@ async function readSavedKeepingDraft() {
   if (progress && progress.revision !== saved.revision) throw new Error('Saved progress changed during readback');
   if (!before.data.target || JSON.stringify(before.data.target) !== JSON.stringify(after.data.target) ||
       before.revision !== saved.revision || after.revision !== saved.revision) throw new Error('Pico context or saved revision changed during readback');
-  savedReadback = {target:after.data.target,revision:saved.revision,config};
+  savedReadback = {target:after.data.target,revision:saved.revision,config,progress:progress?.data || null,application:after.data};
+  showDraftComparison();
   if ($('saved-wspr-plan')) $('saved-wspr-plan').textContent = after.data.wspr_plan
     ? 'Saved plan: ' + after.data.wspr_plan.frame_types.join(' → ') + '. ' + after.data.wspr_plan.rationale
     : applicationVersion === 2 ? 'Saved plan: no station identity is configured.'
     : 'Saved plan: this firmware supports Type 1 only.';
-  $('saved-readback').textContent = JSON.stringify({saved_config:config,saved_progress:progress?.data || null,application:after.data},null,2);
+  $('saved-readback').textContent = JSON.stringify({saved_config:config,saved_progress:progress?.data || null,application_at_last_read:after.data},null,2);
   $('saved-readback').hidden = false; writeState = 'review';
   $('saved-readback-details').hidden = false;
   const h = after.data.hardware;
@@ -489,6 +556,11 @@ function controls(connected) {
   $('wifi-off').disabled = busy || !idle || !snapshot.network.enabled;
   $('job-settings').disabled = busy || !idle || snapshot.standalone.reboot_required;
   $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
+  $('message-availability').textContent = !online ? (radio && !localAuthenticated ? 'Log in above to prepare a message.' : 'Connection unavailable. Refresh status before preparing a message; RF output is unknown.') :
+    busy ? 'Waiting for the current request to finish.' : !idle ? 'The transmitter is occupied or its job/output state does not permit a new job. Check Transmitter status above.' :
+    snapshot.standalone.reboot_required ? 'Saved changes require a restart. Use Restart device in Wi-Fi/Host before preparing another job.' :
+    !capabilities?.message_jobs ? 'This firmware does not advertise message jobs. A supported job file can still be used below.' :
+    'Prepare a complete message below. Load and arm sends one explicit job; the Pico validates its timing and frequency.';
   $('abort').disabled = busy || !online || snapshot?.job.owner_id !== session || !['loaded','armed','running'].includes(snapshot.job.state);
   $('release').disabled = busy || !online || snapshot?.job.owner_id !== session || snapshot.job.output_active !== false || ['armed','running','failed'].includes(snapshot.job.state);
   if (savedProgress) {
@@ -526,6 +598,7 @@ function fill(c) {
   form.expiry.value = c?.expires_utc_s ? new Date(c.expires_utc_s * 1000).toISOString().slice(0,19) : '';
 }
 async function refresh(loadConfig = false) {
+  if (loadConfig) requireReadback();
   const identityRequest = pageIdentity.request();
   // Keep this browser sequential so the other admitted client can progress.
   try {
@@ -555,7 +628,7 @@ async function refresh(loadConfig = false) {
     }
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
     $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network or pin settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
-    if (loadConfig) { const c = await api('config'); const config=checkedConfig(c); revision = c.revision; fill(config); const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; showProgress(); }
+    if (loadConfig) { const c = await api('config'); const config=checkedConfig(c); revision = c.revision; fill(config); const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; $('save-reconcile-status').textContent = 'Saved settings reloaded into this browser. Review any new edits before saving.'; showProgress(); }
     updateProgress(); messagePreview();
     notice('Connected · Status updated ' + observedAt); controls(true);
   } catch (e) { markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Session ended. Log in again; your draft is preserved.'; notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
@@ -647,7 +720,7 @@ $('local-logout').onclick = () => action(async () => {
 });
 $('consumer-power').replaceChildren(new Option('Choose reported power',''),...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60]
   .map(power => new Option(String(power),String(power))));
-for (const id of ['consumer-network-form','consumer-station-form']) $(id).oninput = event => { consumerSetupDirty = true; if (id === 'consumer-station-form') editedProgress(event); else consumerNetworkDirty = true; };
+for (const id of ['consumer-network-form','consumer-station-form']) $(id).oninput = event => { consumerSetupDirty = true; if (id === 'consumer-station-form') editedProgress(event); else consumerNetworkDirty = true; showDraftComparison(); };
 async function saveConsumer(kind, savedStation) {
   setPasswordVisible('consumer-password',false);
   if (consumerAttempt) throw new Error('Check the previous saved result first');
@@ -682,7 +755,7 @@ $('consumer-check-save').onclick = () => action(async () => {
   if (result !== 'unconfirmed') { consumerAttempt = null; updateSetupReceipt(); await refresh(); await readSavedKeepingDraft(); }
 });
 if (consumerAttempt) $('consumer-save-status').textContent = 'A pending save receipt was recovered. Log in, then select Check saved result. No save has been repeated.';
-$('config').oninput = event => { dirty = true; editedProgress(event); };
+$('config').oninput = event => { dirty = true; editedProgress(event); showDraftComparison(); };
 $('reload-config').onclick = () => action(async () => {
   if ((dirty || engineeringStationDirty || engineeringNetworkDirty || consumerSetupDirty || progressEdits.size) && !confirm('Discard your unsaved changes and reload saved settings?')) return;
   progressEdits.clear(); dirty=false;
@@ -843,7 +916,12 @@ function messagePlan() {
   if (events > (capabilities?.wtp?.max_events || 512)) throw new Error(events + ' events exceed the device limit of ' + (capabilities?.wtp?.max_events || 512) + '. Reduce repetition or use a simpler message');
   return {duration,events,body:{mode,message:text,frequency_nhz:frequency.toString(),space_frequency_nhz:(mode==='qrss'?0n:frequency-shift).toString(),timing:Object.fromEntries(Object.entries(timing).map(([k,v])=>[k,v.toString()])),repeat_count:repeat,repeat_gap_ns:repeatGap.toString(),allow_frequency_adjustment:true}};
 }
+let messageEdited = false;
 function messagePreview() {
+  if (!messageEdited && !$('message-text').value) {
+    $('message-preview').textContent = 'Enter a message and frequency to calculate its duration.';
+    $('message-preview').classList.toggle('error',false); return;
+  }
   try { const p = messagePlan(); $('message-preview').textContent = durationText(p.duration) + ' · ' + p.events + ' / ' + (capabilities?.wtp?.max_events || 512) + ' events · ' + $('message-text').value.length + ' / 32 characters'; $('message-preview').classList.toggle('error',false); }
   catch (e) { $('message-preview').textContent = e.message; $('message-preview').classList.toggle('error',true); }
 }
@@ -856,8 +934,8 @@ function updateProgress() {
   const bounded = elapsed < 0n ? 0n : elapsed > activePlan.durationNs ? activePlan.durationNs : elapsed;
   $('job-progress').textContent = 'Running · estimated ' + durationText(bounded) + ' of ' + durationText(activePlan.durationNs) + ' · ' + (Number(bounded*1000n/activePlan.durationNs)/10).toFixed(1) + '% · status checked ' + observedAt;
 }
-$('message-form').oninput = messagePreview;
-$('message-form').onsubmit = event => { event.preventDefault(); return action(async () => {
+$('message-form').oninput = () => { messageEdited=true; messagePreview(); };
+$('message-form').onsubmit = event => { event.preventDefault(); messageEdited=true; messagePreview(); return action(async () => {
   if (!capabilities?.message_jobs) throw new Error('This firmware does not support message submission');
   const plan = messagePlan(), startMs = Date.parse($('message-start').value + 'Z');
   if (!Number.isFinite(startMs)) throw new Error('Choose a UTC start time');
@@ -1077,7 +1155,7 @@ async function monitorRestart(expected) {
 $('hostname-form').onsubmit = event => { event.preventDefault(); return action(async()=> {
   cancelReconnect();
   const name = canonicalHostname($('hostname-input').value);
-  if (!name) throw new Error('Use a full .local hostname with 1–63 letters, digits or hyphens; start and end with a letter or digit.');
+  if (!name) { $('hostname-input').setAttribute('aria-invalid','true');$('hostname-error').textContent='Use a full .local hostname with 1–63 letters, digits or hyphens; start and end with a letter or digit.';throw new Error($('hostname-error').textContent); }
   if (hostnameUncertain || !hostnameState?.writable) throw new Error('Read the saved hostname before another save.');
   const expected = hostnameState;
   hostnameUncertain = true;
@@ -1104,9 +1182,10 @@ $('hostname-default').onclick = () => {
   cancelReconnect();
   if (hostnameState?.writable && confirm('Use the stable default hostname ' + hostnameState.default + '? Save hostname to confirm.')) {
     $('hostname-input').value=hostnameState.default; hostnameDraft=true;
+    $('hostname-input').setAttribute('aria-invalid','false'); $('hostname-error').textContent='';
   }
 };
-$('hostname-input').addEventListener('input',()=>{hostnameDraft=true;cancelReconnect();});
+$('hostname-input').addEventListener('input',()=>{hostnameDraft=true;$('hostname-input').setAttribute('aria-invalid','false');$('hostname-error').textContent='';cancelReconnect();});
 $('restart-cancel').onclick = () => { cancelReconnect(); $('restart-status').textContent='Reconnect checks canceled. No additional restart was sent. Use the continuation link or refresh after signing in.'; };
 for (const id of ['config','consumer-network-form','consumer-station-form','message-form','job'])
   $(id).addEventListener('input',cancelReconnect);

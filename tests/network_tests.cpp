@@ -195,10 +195,11 @@ void streamed_asset_admission() {
         expected += part;
     REQUIRE(expected.size() > 65536 && expected.find("hostname-form") != expected.npos);
     REQUIRE(expected.find("monitorRestart") != expected.npos);
-    REQUIRE(expected.find("WsprryPicoPresentation=") < expected.find("const pageIdentity ="));
+    REQUIRE(expected.find("WsprryPicoPresentation=") < expected.find("pageIdentity="));
     REQUIRE(expected.find("id=\"device-diagnostics\"") < expected.find("id=\"station-area\""));
     const auto presentation = network::web_asset("/device-presentation.js");
-    REQUIRE(presentation && presentation->body.find("function readPublic") != expected.npos);
+    REQUIRE(presentation &&
+            presentation->body.find("WsprryPicoPresentation=") != expected.npos);
     // The generated asset is immutable static storage. Only bounded transport
     // scratch and the independent authority reserve consume target heap.
     // Static asset requests retain 16 KiB of processing scratch; that is the

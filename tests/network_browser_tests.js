@@ -6,6 +6,7 @@ const vm = require('node:vm');
 const source = fs.readFileSync(__dirname + '/../src/network/web/device-presentation.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/saved-progress.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/config-validation.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false) {
     const ids = ['device-name','device-name-state','device-id','device-boot','device-observation','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
+    ids.push('draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     for (const id of ['consumer-setup','consumer-network-settings','consumer-station-settings',
       'consumer-check-save','consumer-network-form','consumer-station-form','consumer-ssid',
@@ -27,6 +28,12 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     elements.config.elements.indicator.replaceChildren(...['onboard_led','external','disabled'].map(x=>new Option(x,x)));
     elements.config.elements.indicator_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
     elements.config.elements.amplifier_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
+    const makeNode = tag => ({tag,children:[],ownText:'',attributes:{},classList:{toggle(){}},
+      get textContent(){return this.ownText+this.children.map(n=>typeof n==='string'?n:n.textContent).join(' ');},
+      set textContent(value){this.ownText=String(value);this.children=[];},
+      append(...nodes){this.children.push(...nodes);},replaceChildren(...nodes){this.ownText='';this.children=nodes;},
+      setAttribute(key,value){this.attributes[key]=value;},getAttribute(key){return this.attributes[key]||null;}});
+    elements['draft-comparison']=makeNode('div');
     const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
     const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1',configured_hostname:'old.local'}};
     elements['config-password'] = elements.config.elements.password;
@@ -38,6 +45,14 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         elements[id+'-slash'] = {attributes:{hidden:true},toggleAttribute(name,value) { this.attributes[name]=value; }};
     }
     for (const e of Object.values(elements)) if (!e.addEventListener) e.addEventListener = function(type,callback) { (this.listeners ||= {})[type] = callback; };
+    for (const [id,e] of Object.entries(elements)) {
+      if (!e.focus) e.focus=()=>{elements.focused=id;};
+      e.scrollIntoView ||= ()=>{};
+    }
+    for (const e of [...Object.values(elements),...Object.values(elements.config.elements)]) {
+      e.attributes ||= {};e.setAttribute ||= function(k,v){this.attributes[k]=v;};
+      e.getAttribute ||= function(k){return this.attributes[k]||null;};
+    }
     const calls = [];
     let sequence = 0;
     const f = {elements,state,calls,config,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512};
@@ -48,7 +63,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     for(const input of Object.values(elements.config.elements)) input.reportValidity=()=>true;
     for(const [id,names] of [['engineering-station-form',['callsign','locator','power_dbm']],['engineering-network-form',['ssid','password','ntp_ipv4']],['config',['schedules','expiry']]])
       elements[id].querySelectorAll=()=>names.map(name=>elements.config.elements[name]);
-    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id],querySelectorAll:selector=>['.field-result','[aria-invalid]'].includes(selector)?[]:[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
+    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id],createElement:makeNode,querySelectorAll:selector=>['.field-result','[aria-invalid]'].includes(selector)?[]:[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
         fetch:async (path, options) => {
             calls.push({path,options});
             if (f.offline) throw new Error('offline');
@@ -168,6 +183,35 @@ if (require.main === module) (async () => {
     organized.form.callsign.value='UNSAVED';organized.elements['engineering-station-form'].listeners.input();
     await organized.elements['reload-config'].onclick();
     assert.equal(organized.form.callsign.value,'K1ABC');
+    const jumpReceipt=organized.context.location.hash, jumpRequests=organized.calls.length;
+    organized.elements['jump-message'].onclick();assert.equal(organized.elements.focused,'job-heading');
+    assert.equal(organized.context.location.hash,jumpReceipt);assert.equal(organized.calls.length,jumpRequests);
+    assert.match(organized.elements['message-preview'].textContent,/Enter a message/);
+    organized.elements['message-form'].oninput();
+    assert.match(organized.elements['message-preview'].textContent,/message has 0/);
+    const compact=await fixture();
+    compact.context.progressSnapshot={fields:{},station:compact.config.station};
+    vm.runInContext('savedReadback={config:currentConfig,progress:progressSnapshot};showDraftComparison()',compact.context);
+    assert.ok(!compact.elements['draft-comparison'].textContent.includes('Time server'));
+    assert.ok(!compact.elements['draft-comparison'].textContent.includes('Standalone schedule enabled'));
+    vm.runInContext('currentConfig.pins=readPins();savedReadback.config=currentConfig;showDraftComparison()',compact.context);
+    assert.ok(!compact.elements['draft-comparison'].textContent.includes('Switch GPIO'));
+    assert.ok(!compact.elements['draft-comparison'].textContent.includes('Indicator GPIO'));
+    compact.context.progressSnapshot.fields={enabled:null,wifi:null,schedules:[]};
+    vm.runInContext('showDraftComparison()',compact.context);
+    assert.match(compact.elements['draft-comparison'].textContent,/Cleared \/ unset/);
+    assert.match(compact.elements['draft-comparison'].textContent,/Schedules \(period/);
+    compact.state.standalone.reboot_required=true;await compact.elements.refresh.onclick();
+    assert.match(compact.elements['message-availability'].textContent,/require a restart/);
+    compact.state.standalone.reboot_required=false;compact.state.job.output_active=null;
+    await compact.elements.refresh.onclick();assert.match(compact.elements['message-availability'].textContent,/does not permit/);
+    const naming=await fixture();
+    naming.elements['hostname-input'].value='bad name';await naming.elements['hostname-form'].onsubmit(submit);
+    assert.equal(naming.elements['hostname-input'].getAttribute('aria-invalid'),'true');
+    naming.elements['hostname-default'].onclick();
+    assert.equal(naming.elements['hostname-input'].value,'default.local');
+    assert.equal(naming.elements['hostname-input'].getAttribute('aria-invalid'),'false');
+    assert.equal(naming.elements['hostname-error'].textContent,'');
     const initial=await fixture(true,false,false,false,'',true);
     Object.assign(initial.form.callsign,{value:'K1ABC'});initial.form.locator.value='FN42';initial.form.power_dbm.value='30';
     initial.form.ssid.value='first-network';initial.form.password.value='first-password';initial.form.ntp_ipv4.value='pool.ntp.org';
@@ -460,7 +504,17 @@ if (require.main === module) (async () => {
         await uncertain.elements.refresh.onclick();assert.equal(uncertain.elements['save-config'].disabled,true);
         uncertain.configSaveMode=null;await uncertain.elements['read-saved'].onclick();assert.equal(uncertain.elements['save-config'].disabled,true);
         assert.equal(uncertain.form.schedules.value,'240 / 0');assert.match(uncertain.elements['saved-readback'].textContent,/"active": null/);
+        if(mode==='before') assert.match(uncertain.elements['draft-comparison'].textContent,/Schedules[\s\S]*Browser draft:\s+240 \/ 0[\s\S]*Complete saved settings:\s+120 \/ 0/);
+        const comparisonCalls=uncertain.calls.length;uncertain.form.password.value='PRIVATE-DRAFT-PASSWORD';uncertain.elements.config.oninput();
+        assert.equal(uncertain.calls.length,comparisonCalls);assert.ok(!uncertain.elements['draft-comparison'].textContent.includes('PRIVATE-DRAFT-PASSWORD'));
+        assert.match(uncertain.elements['draft-comparison'].textContent,/Password values are hidden/);
         await uncertain.elements['review-saved'].onclick();assert.equal(uncertain.elements['save-config'].disabled,false);
+        await uncertain.elements['reload-config'].onclick();
+        assert.equal(uncertain.elements['saved-readback-details'].hidden,true);
+        assert.equal(vm.runInContext('savedReadback',uncertain.context),null);
+        assert.match(uncertain.elements['save-reconcile-status'].textContent,/Saved settings reloaded/);
+        await uncertain.elements['read-saved'].onclick();
+        if(mode==='before') assert.ok(!uncertain.elements['draft-comparison'].textContent.match(/Browser draft:\s+240 \/ 0/));
     }
     for (const expires of [2208988800,4102444799]) {
         const future=await fixture();future.config.expires_utc_s=expires;await future.elements['reload-config'].onclick();assert.ok(future.form.expiry.value.startsWith(expires===2208988800?'2040':'2099'));

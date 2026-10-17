@@ -10,7 +10,7 @@ colors:
   action-text: "#203a50"
   help-text: "#52616e"
   section-border: "#c8d1d9"
-  field-border: "#8b9ba8"
+  field-border: "#687e90"
   button-border: "#687e90"
   focus-amber: "#b37617"
   notice-surface: "#e7eef4"
@@ -59,7 +59,7 @@ components:
 
 ## Overview
 
-This record applies to `src/network/web/index.html`, `style.css`, and `app.js`.
+This record applies to the admitted operator pages in `src/network/web/` and the Wi-Fi-first, optional station and recovery pages in `src/network/bootstrap_web/`.
 It captures the existing embedded operator interface after the finite-message
 changes. No new brand metaphor, visual identity, or approved composition is
 established. WsprryPi has its own design record; its fonts, Bootstrap components,
@@ -132,12 +132,12 @@ their recognizable control geometry.
 Primary buttons submit settings or load and arm a complete job. Secondary
 buttons use white surfaces with dark text and a one-pixel border. Enabled hover
 uses `brightness(.93)`; disabled buttons and fieldsets use `.6` opacity.
-Keyboard focus has a three-pixel amber outline with a three-pixel offset.
+Keyboard focus has a three-pixel amber outline with a three-pixel offset. Programmatic section targets retain a one-rem scroll margin so the outline stays visible.
 The header keeps its home link and station-control descriptor. A two-link task
 navigation below the page heading selects Station/Transmission or Wi-Fi/Host.
 The current area uses a thicker underline and `aria-current="page"`. Both links
 retain the same document, session and drafts; only an explicit click scrolls to
-the chosen area. Shared access, observed transmitter status and save recovery
+the chosen area. Three local section shortcuts focus station identity, schedules/pins or message composition without changing the URL, receipt, session or form values. Shared access, observed transmitter status and save recovery
 remain reachable in either area. Native profile-specific forms provide one
 visible editor for each station/network field.
 
@@ -160,7 +160,7 @@ retain exact IDs. No new brand, palette, typography or commissioning UI is added
 
 ### Inputs and disclosures
 
-Labels sit above full-width fields. Help stays beside its field and identifies
+Labels sit above full-width fields. Help is separate from the accessible field name and is associated with its control through `aria-describedby`. Grouped validation associates the error with every affected control and clears stale invalid state when a group member changes. Help stays beside its field and identifies
 units, bounds, and consequences. Native `details`/`summary` disclose timing
 settings and job-file loading; summaries have a `44px` minimum height. Focus
 styling applies to inputs, textareas, selects, summaries, buttons, and links.
@@ -170,10 +170,12 @@ Disabled fieldsets reflect connectivity, ownership, and capability availability.
 the entered message for correction rather than truncating it or silently
 splitting it into jobs.
 
+The message form has adjacent availability guidance derived from the existing connectivity, ownership, restart and capability gates. It introduces no second authority for job admission.
+
 ### Finite-message preview
 
 QRSS, FSKCW, and DFCW accept at most 32 characters including spaces. The preview
-shows character count, calculated event count against the device event ceiling,
+uses neutral preparation guidance for an untouched empty form. Edited invalid drafts receive errors. A complete preview shows character count, calculated event count against the device event ceiling,
 and exact duration using integer nanoseconds formatted as minutes and seconds
 with up to nine fractional digits. Supported characters are letters, numbers,
 spaces, and `/ ? . , - + =`; unsupported characters and all-space messages
@@ -201,6 +203,32 @@ Progress is tied to the observed boot and job identity. The running estimate
 includes the status observation time; non-running states show the last confirmed
 state. Failed status reads clear the current snapshot and label progress and
 output unknown. Preserve these distinctions in future presentation changes.
+
+### Provisioning and save recovery
+
+Provisioning retains Wi-Fi first and optional station commissioning afterward.
+A blank-device station refusal hides wording that assumes a saved network.
+Accepted, confirmed and lost-contact Wi-Fi saves remain distinct. Reconnection
+guidance uses only a validated matching-device hostname, preserves uncertainty,
+and offers the router's current IP address as an alternative. Setup navigation
+stays within the page inset. Every setup-Wi-Fi window has the fixed ten-minute
+cap from actual activation; holding, release and traffic never extend it.
+
+Unavailable profiles use the same light recovery shell, selectable identity and
+an explicit USB Console `INFO` starting step. Alias links that merely return to
+the unavailable page are omitted. Recovery does not imply an automatic reset. Cancel returns focus to the selected reset action. Provisioning transitions move focus to the page heading when the initiating form becomes hidden; background observations preserve focus.
+
+Save reconciliation shows field-labelled differences between the browser draft,
+saved progress and complete saved configuration, with matching fields counted. Differences are grouped by station, Wi-Fi and schedules/pins, with values in labelled rows. Omitted sparse overrides inherit the complete saved configuration; explicit clears remain visible.
+The comparison updates on form input without requests, preserves invalid text,
+and never copies a password into the comparison. Raw saved/active JSON is a
+secondary native disclosure. Explicit readback and review still gate a new save;
+matching values do not establish which earlier request saved them.
+
+Active field boundaries use the existing button-border color, meeting 3:1
+against both the white field and light canvas. Identify and the schedule-enable
+label retain at least a 44px target. The intentional light-only theme, system
+font, native controls and bounded local assets remain the design authority.
 
 ## Do's and Don'ts
 

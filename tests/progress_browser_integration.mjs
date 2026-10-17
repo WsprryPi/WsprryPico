@@ -7,15 +7,20 @@ import {mkdtemp, readFile, writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {Fixture} from './consumer_sessions.test.mjs';
+import {scanAccessibility} from './ui_review_accessibility.mjs';
 
 if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; Node 20 needs --experimental-websocket');
 const output=path.resolve(process.argv[3] || 'build/phase15-9-browser');
 await mkdir(output,{recursive:true});
+const axeSource=process.env.UI_REVIEW_AXE_PATH ? await readFile(process.env.UI_REVIEW_AXE_PATH,'utf8') : null;
+const accessibility=[];
 const profile=await mkdtemp(path.join(os.tmpdir(),'p159-chrome-'));
 let f=new Fixture(process.argv[2]);await f.time(1000);
 let old=false, engineering=false, engineeringFault=null, publicFault=null, heldReply=null, releaseReply=null, chrome, cdp; const requests=[];
 const publicProgress = async()=>await (await f.fetch('192.168.4.1',true,'/api/owner/v1/progress',{marker:'Owner'})).json();
-const proxy=http.createServer(async(req,res)=>{
+let proxyQueue=Promise.resolve();
+const proxy=http.createServer((req,res)=>{proxyQueue=proxyQueue.then(()=>serve(req,res));});
+async function serve(req,res){
     try {
         const u=new URL(req.url.startsWith('http:')?req.url:'http://192.168.1.53'+req.url);
         if(!['192.168.1.53','192.168.4.1'].includes(u.hostname)){res.writeHead(403);res.end();return;}
@@ -23,7 +28,7 @@ const proxy=http.createServer(async(req,res)=>{
           const chunks=[];for await(const b of req)chunks.push(b);
           const result=await f.command({op:'engineering_request',path:u.pathname,method:req.method,b64:Buffer.concat(chunks).toString('base64url'),match:req.headers['if-match']||''});
           let wire=Buffer.from(result.wire,'hex');
-          if(u.pathname==='/api/v1/progress/update') {
+          if(/^\/api\/v1\/progress\/update(?:\/[23])?$/.test(u.pathname)) {
             if(engineeringFault==='future') {engineeringFault=null;const split=wire.indexOf('\r\n\r\n');const body=JSON.parse(wire.subarray(split+4));body.schema='transmitter-progress/99';wire=Buffer.concat([wire.subarray(0,split+4),Buffer.from(JSON.stringify(body))]);}
             if(engineeringFault==='hold') {engineeringFault=null;heldReply=true;await new Promise(resolve=>releaseReply=resolve);heldReply=false;}
           }
@@ -58,7 +63,7 @@ const proxy=http.createServer(async(req,res)=>{
         if(u.pathname === "/") await writeFile(path.join(output,"root.html"),bytes);
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
     }catch(error){res.writeHead(500,{'Content-Type':'text/plain'});res.end(error.message);}
-});
+}
 await new Promise(resolve=>proxy.listen(0,'127.0.0.1',resolve));
 const port=proxy.address().port;
 class Cdp {
@@ -71,6 +76,15 @@ async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(D
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)}) || document.querySelector('[name="'+${JSON.stringify(id)}+'"]');e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
 async function capture(name){
+    if (axeSource && ['engineering-mixed','engineering-late-invalid'].includes(name)) {
+      for (const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]) {
+        await cdp.send('Emulation.setDeviceMetricsOverride',{...view,name:undefined,deviceScaleFactor:1,mobile:view.name==='mobile'});
+        accessibility.push({state:name,view:view.name,...await scanAccessibility(cdp,axeSource)});
+        await writeFile(path.join(output,'accessibility.json'),JSON.stringify(accessibility,null,2)+'\n');
+          assert.equal(accessibility.at(-1).violations.length,0,'axe violations: '+name+' '+view.name);
+          assert.equal(accessibility.at(-1).incomplete.length,0,'axe manual review required: '+name+' '+view.name);
+      }
+    }
     if (process.env.PROGRESS_BROWSER_NO_CAPTURE === '1') return;
     for(const theme of ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
         await cdp.send('Emulation.setDeviceMetricsOverride',{...view,name:undefined,deviceScaleFactor:1,mobile:view.name==='mobile'});
@@ -84,18 +98,20 @@ async function capture(name){
 try {
     chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
-            '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','http://192.168.1.53/'],{stdio:'ignore'});
+            '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore'});
     const debugPort=await until(async()=>Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]),'Chrome startup',60000);
     const page=await until(async()=>(await (await fetch(`http://127.0.0.1:${debugPort}/json`)).json()).find(p=>p.type==='page'),'page');
     cdp=new Cdp(page.webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
+    await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate(`typeof radio !== 'undefined' && !!document.getElementById('local-password')`),'shipped radio page');
+    await until(()=>cdp.evaluate(`!busy && !!localIdentity`),'radio discovery complete');
     await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
     await until(()=>cdp.evaluate(`localAuthenticated && !busy`),'actual browser login');
     await click('read-saved');
     await until(()=>cdp.evaluate(`applicationVersion===2 && writeState==='review' && !busy`),'versioned saved-state readback');
     await click('review-saved');
     await until(()=>cdp.evaluate(`writeState==='ready' && !busy && !document.getElementById('consumer-station-settings').disabled`),'review enables editing');
-    assert.equal(await cdp.evaluate(`savedProgress.data.schema`),'transmitter-progress/1');
+    assert.equal(await cdp.evaluate(`savedProgress.data.schema`),'transmitter-progress/3');
     const before = await f.command({op:'stats'});
     await field('consumer-callsign','AA0NT/09');await field('consumer-locator','');await field('message-text','');
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
@@ -103,6 +119,11 @@ try {
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'');
     assert.match(await cdp.evaluate(`document.getElementById('progress-station-status').textContent`),/grid locator.*missing/);
     let stats=await f.command({op:'stats'});assert.equal(stats.profile_programs,before.profile_programs);assert.equal(stats.config_sequence,before.config_sequence);assert.equal(stats.api_restarts,0);
+    assert.equal(await cdp.evaluate(`savedReadback.progress===savedProgress.data && savedReadback.revision===revision`),true,'confirmed save advances open comparison');
+    assert.equal(await cdp.evaluate(`!!JSON.parse(document.getElementById('saved-readback').textContent).application_at_last_read`),true,'last-read application diagnostics preserved');
+    await field('consumer-callsign','BB1BB');
+    assert.match(await cdp.evaluate(`document.getElementById('draft-comparison').textContent`),/AA0NT\/09/,'comparison includes newly confirmed progress');
+    await field('consumer-callsign','AA0NT/09');
     await capture('incomplete-saved');
     await field('consumer-callsign','AA0NT/12');await field('consumer-locator','BAD');await field('consumer-power','0');
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
@@ -200,7 +221,9 @@ try {
     await field('owner-locator','');await click('owner-save-progress');
     await until(()=>cdp.evaluate(`!document.getElementById('owner-save-progress').disabled && document.getElementById('owner-locator-progress-result').textContent==='Cleared in saved draft.'`),'explicit retained-edit clear');
 
+    const publicReloadOrigin=await cdp.evaluate('performance.timeOrigin');
     await f.command({op:'reboot'});await f.time(f.now+1000);await cdp.send('Page.reload');
+    await until(()=>cdp.evaluate(`performance.timeOrigin!==${publicReloadOrigin}`),'new public page after reload');
     await until(()=>cdp.evaluate(`document.getElementById('owner-callsign')?.value==='AA0NT' && !document.getElementById('owner-save-progress').disabled`),'network-only draft reboot/page reload');
     assert.equal(await cdp.evaluate(`document.getElementById('owner-power').value`),'');
     await field('owner-locator','EM18IG');await field('owner-power','0');await click('owner-save-progress');
@@ -220,6 +243,13 @@ try {
     // Genuine engineering page/API with the mTLS authentication boundary doubled.
     engineering=true;await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate(`typeof savedProgress!=='undefined' && savedProgress && !busy && !radio`),'engineering saved progress');
+    await click('wifi-host-link');await field('ssid','é');await field('password','test-password');
+    await cdp.evaluate(`document.getElementById('engineering-network-form').requestSubmit()`);
+    await until(()=>cdp.evaluate(`!busy && document.querySelector('[name=ssid]').getAttribute('aria-invalid')==='true'`),'grouped Wi-Fi validation');
+    assert.equal(await cdp.evaluate(`['ssid','password'].every(n=>document.querySelector('[name='+n+']').getAttribute('aria-invalid')==='true' && document.querySelector('[name='+n+']').getAttribute('aria-describedby').includes('progress-error-settings-wifi'))`),true);
+    await field('password','corrected-password');
+    assert.equal(await cdp.evaluate(`['ssid','password'].every(n=>document.querySelector('[name='+n+']').getAttribute('aria-invalid')==='false')`),true,'editing either Wi-Fi member clears group stale error');
+    await field('ssid','test');await click('station-link');
     await field('callsign','BB1BB');await field('power_dbm','2147483648');
     await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
     await until(()=>cdp.evaluate(`!busy && savedProgress.data.fields.callsign==='BB1BB'`),'engineering partial save with overflow');

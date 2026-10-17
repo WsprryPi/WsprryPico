@@ -7,18 +7,25 @@ import {mkdtemp, readFile, writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {Fixture} from './consumer_sessions.test.mjs';
+import {scanAccessibility} from './ui_review_accessibility.mjs';
 
 if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; Node 20 needs --experimental-websocket');
 const output=path.resolve(process.argv[3] || 'build/phase15-11-browser');
 await mkdir(output,{recursive:true});
+const axeSource=process.env.UI_REVIEW_AXE_PATH ? await readFile(process.env.UI_REVIEW_AXE_PATH,'utf8') : null;
+const accessibility=[];
 const profile=await mkdtemp(path.join(os.tmpdir(),'p1511-chrome-'));
 let f=new Fixture(process.argv[2]);await f.time(1000);
-let dropNext=false, chrome, cdp, cdpB;
+let dropNext=false, dropBootstrap=false, chrome, cdp, cdpB;
 const fB=new Fixture(process.argv[2],['2'.repeat(32)]);await fB.time(1000);
 const bClient=fB.client();await fB.login(bClient);const bResource=await bClient.request('hostname');const bName=await bResource.json();
 await bClient.request('hostname','PUT',{schema:'transmitter-hostname/1',target:bName.target,hostname:'pico-b.local'},bResource.headers.get('etag'));
 await fB.command({op:'reboot'});await fB.time(3000); const requests=[];
-const proxy=http.createServer(async(req,res)=>{
+let proxyQueue=Promise.resolve();
+const proxy=http.createServer((req,res)=>{
+    proxyQueue=proxyQueue.then(()=>serve(req,res));
+});
+async function serve(req,res){
     try {
         const u=new URL(req.url.startsWith('http:')?req.url:'http://192.168.1.53'+req.url);
         if(!['192.168.1.53','192.168.4.1','wsprrypico-0a60df.local','pico-a.local','pico-b.local', 'x'.repeat(63)+'.local'].includes(u.hostname)){res.writeHead(403);res.end();return;}
@@ -27,7 +34,7 @@ const proxy=http.createServer(async(req,res)=>{
         const target=u.hostname==='pico-b.local'?fB:f;
         const response=await target.fetch(u.hostname,u.hostname==='192.168.4.1',u.pathname,
             {method:req.method,body:Buffer.concat(chunks),headers:{'Content-Type':req.headers['content-type']||'application/json'},
-                marker:u.pathname.startsWith('/api/owner/')?'Owner':u.pathname.startsWith('/api/bootstrap/')?'Bootstrap':'Radio'});
+                marker:u.pathname.startsWith('/api/owner/')?'Owner':/^\/api\/(bootstrap|recovery)\//.test(u.pathname)?'Bootstrap':'Radio'});
         const socket=target.socket;
         let bytes=Buffer.from(await response.arrayBuffer());
         const expected=Number(response.headers.get('content-length'));
@@ -42,27 +49,36 @@ const proxy=http.createServer(async(req,res)=>{
         requests.push({path:u.pathname,status:response.status,bytes:bytes.length});
         if(u.pathname === "/") await writeFile(path.join(output,"root.html"),bytes);
         if(dropNext && u.pathname.endsWith('/request')) { dropNext=false;res.destroy();return; }
+        if(dropBootstrap && u.pathname==='/api/bootstrap/v1/submit') { dropBootstrap=false;res.destroy();return; }
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
     }catch(error){res.writeHead(500,{'Content-Type':'text/plain'});res.end(error.message);}
-});
+}
 await new Promise(resolve=>proxy.listen(0,'127.0.0.1',resolve));
 const port=proxy.address().port;
 class Cdp {
     constructor(url){this.ws=new WebSocket(url);this.sequence=0;this.pending=new Map();this.ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.method==='Page.javascriptDialogOpening'){void this.send('Page.handleJavaScriptDialog',{accept:true});return;}if(m.id&&this.pending.has(m.id)){const p=this.pending.get(m.id);this.pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}};}
     async open(){if(this.ws.readyState===1)return;await new Promise((resolve,reject)=>{this.ws.onopen=resolve;this.ws.onerror=reject;});}
-    send(method,params={}){const id=++this.sequence;return new Promise((resolve,reject)=>{this.pending.set(id,{resolve,reject});this.ws.send(JSON.stringify({id,method,params}));});}
+    send(method,params={}){const id=++this.sequence;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('CDP deadline: '+method));},15000);this.pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});this.ws.send(JSON.stringify({id,method,params}));});}
     async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
 }
 async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(Date.now()<end){try{const r=await fn();if(r)return r;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+label+(last?' '+last.message:''));}
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
 async function capture(name,anchor=null){
-    if(process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1')return;
-    for(const theme of ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
+    if(process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1' && !axeSource)return;
+    for(const theme of axeSource ? ['light'] : ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
         await cdp.send('Emulation.setDeviceMetricsOverride',{...view,name:undefined,deviceScaleFactor:1,mobile:view.name==='mobile'});
         await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
         await cdp.evaluate(anchor ? `document.getElementById(${JSON.stringify(anchor)}).scrollIntoView({block:'start'})` : 'scrollTo(0,0)');
         assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,'horizontal overflow');
+        if (axeSource) {
+          const result=await scanAccessibility(cdp,axeSource);
+          accessibility.push({state:name,view:view.name,...result});
+          await writeFile(path.join(output,'accessibility.json'),JSON.stringify(accessibility,null,2)+'\n');
+          assert.equal(accessibility.at(-1).violations.length,0,'axe violations: '+name+' '+view.name);
+          assert.equal(accessibility.at(-1).incomplete.length,0,'axe manual review required: '+name+' '+view.name);
+        }
+        if(process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1')continue;
         const image=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
         await writeFile(path.join(output,`${name}-${view.name}-${theme}.png`),Buffer.from(image.data,'base64'));
     }
@@ -70,15 +86,34 @@ async function capture(name,anchor=null){
 try {
     chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
-         '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','http://192.168.1.53/'],{stdio:'ignore'});
+         '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore'});
     const debugPort=await until(async()=>Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]),'Chrome startup',60000);
     const page=await until(async()=>(await(await fetch(`http://127.0.0.1:${debugPort}/json`)).json()).find(p=>p.type==='page'),'page');
     cdp=new Cdp(page.webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
-    await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity'),'production control document');
+    // Chromium may expose its initial about:blank target before processing the
+    // launch URL. Drive the selected target explicitly on every host.
+    await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
+    await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy'),'production control document');
     assert.equal(await cdp.evaluate(`!document.getElementById('station-area').hidden && document.getElementById('wifi-host-area').hidden`),true);
+    assert.match(await cdp.evaluate(`document.getElementById('message-availability').textContent`),/Log in/);
     await capture('lan-default');
     await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'login');
+    const messageAX=(await cdp.send('Accessibility.getFullAXTree')).nodes.find(n=>n.role?.value==='textbox' && n.name?.value==='Message');
+    assert.ok(messageAX,'message accessible name excludes help prose');
+    assert.match(messageAX.description?.value || '',/32-character limit/);
+    const jumpRequests=requests.length, jumpHash=await cdp.evaluate('location.hash');
+    for(const [button,target] of [['jump-identity','consumer-station-form'],['jump-settings','radio-settings-heading'],['jump-message','job-heading']]) {
+      await cdp.evaluate(`document.getElementById('${button}').focus()`);
+      await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
+      await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+      await until(()=>cdp.evaluate(`document.activeElement.id==='${target}'`),'keyboard section shortcut '+button+' '+await cdp.evaluate(`JSON.stringify({active:document.activeElement.id,hidden:document.getElementById('${target}').hidden,ancestor:!!document.getElementById('${target}').closest('[hidden]')})`));
+    }
+    assert.equal(await cdp.evaluate('location.hash'),jumpHash);assert.equal(requests.length,jumpRequests);
+    assert.match(await cdp.evaluate(`document.getElementById('message-preview').textContent`),/Enter a message/);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-preview').classList.contains('error')`),false);
+    assert.ok(await cdp.evaluate(`document.getElementById('job-heading').getBoundingClientRect().top>=8`),'complete focused outline is visible');
+    await capture('message-shortcut','job-heading');
     const baseline=await f.command({op:'stats'}), starts=requests.filter(r=>r.path.endsWith('/start')).length;
     assert.equal(await cdp.evaluate(`document.getElementById('engineering-station-form').hidden && document.getElementById('engineering-network-form').hidden`),true);
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-station-form').hidden`),false);
@@ -94,6 +129,14 @@ try {
     assert.equal((await f.command({op:'stats'})).config_sequence,baseline.config_sequence);
     await capture('wifi-host-drafts','wifi-host-area');
     await click('station-link');await capture('station-drafts','station-area');await click('wifi-host-link');
+    await click('read-saved');await until(()=>cdp.evaluate('!busy && writeState==="review"'),'draft comparison readback');
+    await cdp.evaluate(`document.querySelector('#saved-readback-details > summary').click()`);
+    assert.match(await cdp.evaluate(`document.getElementById('draft-comparison').textContent`),/PJ4\/AA0NT/);
+    assert.equal(await cdp.evaluate(`document.getElementById('draft-comparison').textContent.includes('draft-password')`),false);
+    assert.equal(await cdp.evaluate(`document.getElementById('draft-comparison').textContent.includes('Time server')`),false,'sparse omitted matching time server is not a difference');
+    await capture('draft-comparison','saved-readback-details');
+    await click('review-saved');
+
     await cdp.evaluate('history.back()');await until(()=>cdp.evaluate('location.pathname==="/station"'),'back');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-callsign').value`),'PJ4/AA0NT');
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'KEEP MESSAGE');
@@ -142,14 +185,86 @@ try {
     assert.equal((await f.command({op:'stats'})).profile_programs,afterStation.profile_programs,'navigation cannot replay setup');
     assert.equal(await cdp.evaluate('currentConfig.station.callsign'),'K1ABC');
     for(const mode of ['blank','network']) {
+      await cdp.send('Page.navigate',{url:'about:blank'});
+      await f.stop();f=new Fixture(process.argv[2]);await f.time(1000);
       await f.command({op:'page_profile',mode});
       await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
       await until(()=>cdp.evaluate(`!!document.getElementById('wifi-form') && !document.getElementById('credentials').hidden`),'Wi-Fi commissioning '+mode);
+      await until(()=>cdp.evaluate(`!document.getElementById('credentials').hidden && document.getElementById('submit').disabled===false`),'usable Wi-Fi commissioning '+mode);
       await capture(mode+'-wifi-first');
       await cdp.send('Page.navigate',{url:'http://192.168.4.1/station'});
       await until(()=>cdp.evaluate(`!!document.getElementById('owner-form') && document.title.includes('Station setup')`),'station commissioning '+mode);
       assert.equal(await cdp.evaluate(`!!document.getElementById('message-form')`),false);
+      await until(()=>cdp.evaluate(mode==='blank'
+        ? `!document.getElementById('owner-wifi-first').hidden`
+        : `!document.getElementById('owner-settings').hidden && (!document.getElementById('owner-save-progress').disabled || !document.getElementById('owner-submit').disabled)`),'ready station commissioning '+mode);
+      await capture(mode+'-station-setup');
+      if(mode==='network') {
+        const generation=(await f.command({op:'stats'})).profile_generation;
+        await field('owner-callsign','K1ABC');await field('owner-locator','FN42');await field('owner-power','30');
+        if(await cdp.evaluate(`!document.getElementById('owner-save-progress').hidden`)) {
+          await click('owner-save-progress');
+          await until(()=>cdp.evaluate(`!document.getElementById('owner-submit').disabled`),'saved station progress ready to apply');
+        }
+        await cdp.evaluate(`document.getElementById('owner-submit').focus();document.getElementById('owner-form').requestSubmit()`);
+        await until(()=>cdp.evaluate(`!document.getElementById('owner-checking').hidden || !document.getElementById('owner-accepted').hidden`),'station transaction submitted');
+        await f.time(f.now+3000);await f.time(f.now+1000);
+        await until(()=>cdp.evaluate(`!document.getElementById('owner-saved').hidden`),'confirmed optional station save');
+        assert.notEqual((await f.command({op:'stats'})).profile_generation,generation);
+        assert.equal(await cdp.evaluate('document.activeElement.id'),'owner-title','station transition moves focus out of hidden form');
+        await capture('optional-station-saved');
+      } else {
+        await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
+        await until(()=>cdp.evaluate(`!document.getElementById('credentials').hidden && !document.getElementById('submit').disabled`),'blank Wi-Fi ready');
+        await field('ssid','é');await field('password','setup-password');
+        await cdp.evaluate(`document.getElementById('wifi-form').requestSubmit()`);
+        await until(()=>cdp.evaluate(`document.getElementById('ssid').getAttribute('aria-invalid')==='true'`),'inline SSID validation');
+        assert.equal(await cdp.evaluate('document.activeElement.id'),'ssid');
+        await field('ssid','Setup Net');
+        assert.equal(await cdp.evaluate(`document.getElementById('ssid').getAttribute('aria-invalid')`),'false');
+        await field('time-server','127.0.0.1');await cdp.evaluate(`document.getElementById('wifi-form').requestSubmit()`);
+        await until(()=>cdp.evaluate(`document.getElementById('time-server').getAttribute('aria-invalid')==='true'`),'inline time-server validation');
+        assert.equal(await cdp.evaluate('document.activeElement.id'),'time-server');
+        await capture('wifi-inline-errors');await field('time-server','pool.ntp.org');
+        await cdp.evaluate(`document.getElementById('submit').focus()`);
+        await cdp.evaluate(`document.getElementById('wifi-form').requestSubmit()`);
+        await until(()=>cdp.evaluate(`!document.getElementById('accepted').hidden`),'Wi-Fi accepted without claiming saved');
+        assert.equal(await cdp.evaluate('document.activeElement.id'),'page-title','Wi-Fi transition moves focus out of hidden form');
+        await capture('wifi-accepted');
+        await f.time(f.now+3000);await f.time(f.now+45000);
+        await until(()=>cdp.evaluate(`!document.getElementById('retry').hidden`),'failed association remains unsaved');
+        assert.equal((await f.command({op:'stats'})).profile_generation,'0');
+        await capture('wifi-association-failed');
+        await click('retry-button');await field('ssid','Setup Net');await field('password','setup-password');
+        const submissions=requests.filter(r=>r.path==='/api/bootstrap/v1/submit').length;
+        dropBootstrap=true;await cdp.evaluate(`document.getElementById('wifi-form').requestSubmit()`);
+        await until(()=>cdp.evaluate(`!document.getElementById('unconfirmed').hidden`),'lost Wi-Fi reply stays unconfirmed');
+        await capture('wifi-unconfirmed');
+        assert.equal(requests.filter(r=>r.path==='/api/bootstrap/v1/submit').length,submissions+1,'no automatic Wi-Fi replay');
+        await f.command({op:'bench_network',linked:true,safe:true});await f.time(f.now+3000);await f.time(f.now+1000);
+        await until(()=>cdp.evaluate(`!document.getElementById('connected').hidden`),'confirmed first Wi-Fi save');
+        await capture('wifi-confirmed-next-connection');
+      }
     }
+    console.log('Recovery boundary: leave provisioning');await cdp.send('Page.navigate',{url:'about:blank'});await f.stop();console.log('Recovery boundary: new fixture');f=new Fixture(process.argv[2]);await f.time(1000);
+    await f.command({op:'page_profile',mode:'recovery'});console.log('Recovery boundary: profile ready');
+    await cdp.send('Page.navigate',{url:'http://192.168.4.1/recovery.html'});
+    await until(()=>cdp.evaluate(`!!document.getElementById('provisioning') && !document.getElementById('provisioning').disabled`),'admitted recovery page');
+    await click('provisioning');
+    assert.equal(await cdp.evaluate(`document.activeElement.id`),'operation');
+    await field('phrase','wrong phrase');assert.equal(await cdp.evaluate(`document.getElementById('execute').disabled`),true);
+    await capture('recovery-confirmation','confirm');
+    await click('cancel');assert.equal(await cdp.evaluate(`document.activeElement.id`),'provisioning');
+    assert.equal((await f.command({op:'stats'})).recovery_requests,0);
+    await click('full');await capture('full-erase-confirmation','confirm');await click('cancel');
+    assert.equal(await cdp.evaluate('document.activeElement.id'),'full','cancel returns to selected reset origin');
+    await click('provisioning');await click('confirm-one');await click('confirm-two');await field('phrase','reset provisioning');
+    assert.equal(await cdp.evaluate(`document.getElementById('execute').disabled`),false);
+    await cdp.evaluate(`document.getElementById('reset-form').requestSubmit()`);
+    await until(()=>cdp.evaluate(`document.getElementById('notice').textContent.includes('Reset accepted')`),'encrypted reset callback admitted');
+    assert.equal((await f.command({op:'stats'})).recovery_requests,1);
+    await cdp.send('Page.reload');await until(()=>cdp.evaluate(`document.getElementById('notice').textContent.includes('already in progress')`),'pending reset reload');
+    assert.equal((await f.command({op:'stats'})).recovery_requests,1,'no destructive replay');
     const noCrypto=await cdp.send('Page.addScriptToEvaluateOnNewDocument',{source:"Object.defineProperty(globalThis,'crypto',{value:undefined})"});
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
     await until(()=>cdp.evaluate(`!!document.getElementById('browser') && !document.getElementById('browser').hidden`),'captive crypto fallback');
@@ -160,9 +275,11 @@ try {
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
     await until(()=>cdp.evaluate(`document.body.innerText.includes('USB Console recovery')`),'unavailable guidance');
     assert.equal(await cdp.evaluate(`document.forms.length`),0);
+    assert.equal(await cdp.evaluate('document.documentElement.lang'),'en');
     await capture('unavailable-recovery');
+    await writeFile(path.join(output,'requests.json'),JSON.stringify(requests,null,2)+'\n');
     console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,production_routes:true,real_crypto:true,
-      defaults:true,reciprocal_navigation:true,drafts:true,back_forward_reload:true,no_session_churn:true,no_navigation_mutations:true,station_save_without_message:true,receipt_reconciliation:true,zoom_200:true}));
+      defaults:true,reciprocal_navigation:true,drafts:true,back_forward_reload:true,no_session_churn:true,no_navigation_mutations:true,station_save_without_message:true,receipt_reconciliation:true,zoom_200:true,section_keyboard_focus:true,accessible_message_name:true,inline_wifi_errors:true,transition_focus:true,recovery_cancel_origin:true}));
 } catch(error) {
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate('({url:location.href,text:document.body?.innerText.slice(0,1000)})').catch(e=>e.message):null}));throw error;
 } finally {cdp?.ws.close();chrome?.kill();proxy.close();await f.stop();await fB.stop();}

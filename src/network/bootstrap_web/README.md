@@ -72,4 +72,8 @@ The locked dependencies are `@noble/curves`, `@noble/hashes`, and
 `@noble/ciphers` 2.3.0, with upstream MIT licenses in [`licenses/`](licenses/).
 The build uses pinned esbuild 0.28.2. Run `npm test` and `npm run build` in
 this directory to validate and regenerate the checked-in bundles before a
-firmware build. Browser and host tests do not replace an iPhone target test.
+firmware build. This command also regenerates the four operator script blocks in
+`../web/*.min.js` and their source/output SHA-256 manifest, `asset-build.json`.
+The operator scripts retain their existing classic-script scopes and ordering.
+The Python asset generator rejects stale sources or altered minified output;
+ordinary firmware builds do not require Node or esbuild. Browser and host tests do not replace an iPhone target test.

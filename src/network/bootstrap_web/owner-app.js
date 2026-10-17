@@ -31,8 +31,11 @@ const random = (size) => {
   crypto.getRandomValues(bytes);
   return bytes;
 };
-const show = (selected) => {
+const show = (selected, moveFocus = false) => {
+  const focused=document.activeElement;
   for (const name of sections) $(name).hidden = name !== selected;
+  if ($('station-intro')) $('station-intro').hidden = selected === 'owner-wifi-first';
+  if (moveFocus || focused?.closest('[hidden]')) $('owner-title').focus();
 };
 const notice = (message, error = false) => {
   $('notice').textContent = message;
@@ -337,6 +340,7 @@ async function submit(event) {
     notice(error.message || 'Check the callsign, locator and reported WSPR power.', true);
     return;
   }
+  const formHadFocus=document.activeElement?.closest('form')===$('owner-form');
   saving = true;
   $('owner-submit').disabled = true;
   $('owner-identify').disabled = true;
@@ -359,7 +363,7 @@ async function submit(event) {
     const pair = x25519.keygen();
     browserSecret = pair.secretKey;
     const browserNonce = hex(random(16));
-    show('owner-checking');
+    show('owner-checking',formHadFocus && (!document.activeElement || document.activeElement===document.body));
     notice('Saving station settings.');
     const started = await request(ownerProgress ? '/api/owner/v1/claim/progress/start' : '/api/owner/v1/claim/start', {
       version: 1, device_id: deviceId, owner_public_key: b64u(transactionPublic),

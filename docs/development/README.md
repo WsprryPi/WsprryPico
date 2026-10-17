@@ -8,6 +8,11 @@ The [Consolidated backlog](consolidated-backlog.md) is the sole current work
 list. This development reference preserves completed work and historical
 evidence with its original acceptance limits.
 
+The [P15.19 UI review record](phase15-19-results.md) documents both accepted
+software passes, preserving original and final screenshots, scores and
+browser/resource evidence. Final scores are 35/40 design and 14/16 technical. Installer presentation and
+physical provisioning are deferred.
+
 The [amplifier-enable record](amplifier-enable-results.md) documents optional
 boot-applied pin/polarity, immediate local launch/cleanup, compatible management
 views, deterministic failure regressions, firmware builds and review.

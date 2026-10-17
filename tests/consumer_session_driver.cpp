@@ -248,6 +248,7 @@ struct Driver {
     standalone::PicoNetwork network;
     provisioning::PicoConsumerClaimPlatform platform{network};
     unsigned restarts = 0;
+    unsigned recovery_requests = 0;
     PicoBootstrapServer server{device, "p158-host",
                                +[](const tcp_pcb* p, void*) { return p->interface == 1; }, this};
     bool page_setup = true;
@@ -314,16 +315,19 @@ struct Driver {
                                   provisioning::serialize_consumer_profile(p)));
         check(runtime.load(profiles, p.device_id, provisioning::BuildBundleState::Absent));
         f.api.consumer_config(runtime);
-        if (saved_progress) progress_flash = *saved_progress;
+        if (saved_progress)
+            progress_flash = *saved_progress;
         check(progress.load());
         f.api.progress_settings(progress);
-        check(engineering_progress.load());engineering.api.progress_settings(engineering_progress);
+        check(engineering_progress.load());
+        engineering.api.progress_settings(engineering_progress);
         check(engineering.store.save(*standalone::parse_config(network_test::config)));
         const auto* consumer = runtime.consumer_profile();
-        const auto hostname = consumer ? consumer->tls.hostname : std::string("wsprrypico-0a60df.local");
+        const auto hostname =
+            consumer ? consumer->tls.hostname : std::string("wsprrypico-0a60df.local");
         if (consumer) {
-            hostname_settings.emplace(profiles, runtime, hostname_platform, p.device_id,
-                                      hostname, "wsprrypico-0a60df.local");
+            hostname_settings.emplace(profiles, runtime, hostname_platform, p.device_id, hostname,
+                                      "wsprrypico-0a60df.local");
             f.api.hostname_settings(*hostname_settings);
         }
         f.api.restart_control(
@@ -386,14 +390,23 @@ struct Driver {
         const auto op = field(v, "op");
         if (op == "engineering_request") {
             std::vector<std::uint8_t> body;
-            const auto encoded=field(v,"b64");
-            check(encoded.empty() || bootstrap_unb64url(encoded,body,0,max_http_body));
-            HttpRequest request{field(v,"method"),field(v,"path"),std::string(body.begin(),body.end()),
-                {{"host","127.0.0.1:8443"},{"origin","https://127.0.0.1:8443"},
-                 {"x-wsprrypico-request","1"},{"content-type","application/json"},{"if-match",field(v,"match")}}};
-            const auto response=engineering.api.handle(request,"engineering-test","127.0.0.1:8443");
-            const auto wire=response.wire();
-            return "{\"wire\":"+wtp::json::quote(bootstrap_hex(std::span(reinterpret_cast<const std::uint8_t*>(wire.data()),wire.size())))+"}";
+            const auto encoded = field(v, "b64");
+            check(encoded.empty() || bootstrap_unb64url(encoded, body, 0, max_http_body));
+            HttpRequest request{field(v, "method"),
+                                field(v, "path"),
+                                std::string(body.begin(), body.end()),
+                                {{"host", "127.0.0.1:8443"},
+                                 {"origin", "https://127.0.0.1:8443"},
+                                 {"x-wsprrypico-request", "1"},
+                                 {"content-type", "application/json"},
+                                 {"if-match", field(v, "match")}}};
+            const auto response =
+                engineering.api.handle(request, "engineering-test", "127.0.0.1:8443");
+            const auto wire = response.wire();
+            return "{\"wire\":" +
+                   wtp::json::quote(bootstrap_hex(std::span(
+                       reinterpret_cast<const std::uint8_t*>(wire.data()), wire.size()))) +
+                   "}";
         }
         if (op == "time") {
             std::uint64_t time;
@@ -409,7 +422,8 @@ struct Driver {
         }
         if (op == "rng") {
             random.fail = v.get("fail")->raw == "true";
-            random.zero = v.get("zero")->raw == "true";
+            if (const auto zero = v.get("zero"))
+                random.zero = zero->raw == "true";
             return "{}";
         }
         if (op == "exhaust") {
@@ -471,6 +485,7 @@ struct Driver {
                    ",\"network_slot\":" + std::to_string(server.resources().network_slot_state) +
                    ",\"owner_slot\":" + std::to_string(server.resources().owner_slot_state) +
                    ",\"restarts\":" + std::to_string(restarts) +
+                   ",\"recovery_requests\":" + std::to_string(recovery_requests) +
 #endif
                    ",\"network_enabled\":" + (f.network.enabled ? "true" : "false") +
                    ",\"network_pending\":" + (f.network.pending ? "true" : "false") +
@@ -482,19 +497,34 @@ struct Driver {
                 media = Media{};
                 check(profiles.load());
             }
-            if (mode == "blank")
-                check(profiles.select(provisioning::ProfileSource::Unprovisioned));
-            else if (mode == "network")
+            // Virgin blank setup requires an erased generation-zero journal.
+            // Selecting an Unprovisioned tombstone creates generation one and
+            // correctly fails the production blank-authority gate instead.
+            if (mode == "blank" || mode == "recovery")
+                network.linked = false;
+            else if (mode == "network") {
+                network.linked = true;
                 check(profiles.select(provisioning::ProfileSource::NetworkOnly,
                                       provisioning::serialize_network_profile(
                                           {device, "Home Net", "test-password"})));
-            else
+            } else
                 check(mode == "unavailable");
             page_setup = mode != "unavailable";
             if (mode != "unavailable")
                 check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
             if (mode == "unavailable")
                 radio.admission(false);
+            if (mode == "recovery") {
+                server.configure_recovery(f.service.status().boot_id, access, random);
+                server.reset_control(
+                    +[](provisioning::ResetLevel, const wtp::PayloadDigest&, void* context) {
+                        // Board reset is the boundary double. Production crypto,
+                        // slot admission and HTTP dispatch remain unchanged.
+                        ++static_cast<Driver*>(context)->recovery_requests;
+                        return provisioning::ResetResult::Complete;
+                    },
+                    this);
+            }
             poll_server();
             return "{}";
         }

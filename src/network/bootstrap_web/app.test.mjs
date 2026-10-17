@@ -7,12 +7,12 @@ const slot = '2031425364758697a8b9cadbecfd0e1f';
 const picoPublic = '3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08';
 const elements = new Map();
 for (const name of ['credentials', 'checking', 'accepted', 'unconfirmed', 'connected', 'saved', 'retry',
-                    'interrupted', 'unknown', 'service', 'browser', 'notice', 'device', 'page-title', 'setup-intro',
+                    'interrupted', 'unknown', 'service', 'browser', 'notice', 'device', 'ssid-error','password-error','time-server-error','page-title', 'setup-intro',
                     'setup-footer', 'wifi-form', 'ssid', 'password', 'time-server',
                     'password-toggle', 'password-slash', 'submit', 'change-connected',
                     'change-saved', 'retry-button', 'interrupted-button', 'unknown-button']) {
   elements.set(name, {hidden: true, textContent: '', value: '', type: 'password', disabled: false,
-    attributes: {}, setAttribute(key, value) { this.attributes[key] = value; },
+    attributes: {}, focus() {}, setAttribute(key, value) { this.attributes[key] = value; },
     toggleAttribute(key,value) { this.attributes[key]=value; },
     events: {}, classList: {toggle() {}}, addEventListener(event, handler) {
       this.events[event] = handler;

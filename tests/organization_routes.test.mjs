@@ -42,7 +42,8 @@ try {
 
      }
      assert.equal((html.match(/<script>/g)||[]).length,6);
-     assert.ok(html.indexOf('WsprryPicoOwnerKey')<html.indexOf('const radio ='));
+     const radioBinding=html.search(/\bradio\s*=\s*globalThis\.WsprryPicoConsumerRadio/);
+     assert.ok(radioBinding>=0 && html.indexOf('WsprryPicoOwnerKey')<radioBinding);
      assert.ok(!html.includes('<script src='));
    }
  }
@@ -63,6 +64,10 @@ try {
    } else {
      assert.match(root.html,/id="wifi-form"/);
      assert.ok(!root.html.includes('id="owner-form"'));
+     const status=await complete(f,'192.168.4.1',true,'/api/bootstrap/v1/status');
+     const observed=JSON.parse(status.html);
+     assert.equal(observed.source,mode==='blank'?'unprovisioned':'network_only');
+     assert.equal(observed.generation,mode==='blank'?0:1);
      for(const route of ['/station','/radio','/owner.html'])
        assert.match((await complete(f,'192.168.4.1',true,route)).html,/id="owner-form"/);
    }

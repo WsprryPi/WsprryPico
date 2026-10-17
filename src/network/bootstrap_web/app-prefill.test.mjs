@@ -9,11 +9,11 @@ async function openPage(readback, editDuringRead = false) {
   const elements = new Map();
   for (const name of ['credentials', 'checking', 'accepted', 'unconfirmed', 'connected',
     'saved', 'retry', 'interrupted', 'unknown', 'service', 'browser', 'notice', 'device',
-    'page-title', 'setup-intro', 'setup-footer', 'wifi-form', 'ssid', 'password',
+    'ssid-error','password-error','time-server-error','page-title', 'setup-intro', 'setup-footer', 'wifi-form', 'ssid', 'password',
     'time-server', 'password-toggle', 'password-slash', 'submit', 'change-connected',
     'change-saved', 'retry-button', 'interrupted-button', 'unknown-button']) {
     elements.set(name, {value: '', hidden: true, type: 'password', events: {},
-      classList: {toggle() {}}, setAttribute() {}, toggleAttribute() {},
+      classList: {toggle() {}}, focus() {}, setAttribute() {}, toggleAttribute() {},
       addEventListener(event, handler) { this.events[event] = handler; }});
   }
   elements.get('time-server').value = 'pool.ntp.org';
@@ -46,7 +46,7 @@ async function openPage(readback, editDuringRead = false) {
     elements.get('ssid').value = 'Typed Net';
     elements.get('time-server').value = 'typed.example.org';
     elements.get('password').value = 'typed-password';
-    elements.get('wifi-form').events.input();
+    elements.get('wifi-form').events.input({target:elements.get('ssid')});
     release();
     await new Promise(setImmediate);
   }

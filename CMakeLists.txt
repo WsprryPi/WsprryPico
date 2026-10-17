@@ -51,6 +51,9 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/bootstrap_web/owner.html src/network/bootstrap_web/owner-bundle.js
     src/network/bootstrap_web/owner-key-bundle.js
     src/network/bootstrap_web/recovery.html src/network/bootstrap_web/recovery-bundle.js
+    src/network/web/app.min.js src/network/web/config-validation.min.js
+    src/network/web/device-presentation.min.js src/network/web/organization.min.js
+    src/network/web/asset-build.json scripts/build_operator_assets.mjs
     scripts/generate_web_assets.py)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_web_assets.py
     ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
@@ -193,6 +196,8 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_test(NAME operator_asset_build_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/operator_asset_build_tests.py)
     add_test(NAME application_image_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/application_image_tests.py)
     add_executable(usb_local_management_tests tests/usb_local_management_tests.cpp)
