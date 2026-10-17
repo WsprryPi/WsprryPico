@@ -3,8 +3,8 @@
 Date: 2026-10-17. Scope: the saved
 [GPIO drive-strength prompt](phase15-15-execution-prompt.md),
 [renamed default-build prompt](phase15-16-execution-prompt.md), current
-[implementation plan](../implementation-plan.md#phase-15-operator-review-punchlist)
-and [complete list/prompt index](phase15-prompt-index.md).
+[acceptance record](../implementation-plan.md#phase-15-acceptance-record)
+and [prompt references](phase15-prompt-index.md).
 
 This is an adversarial **self-review of planning documents**, not independent
 review of an implementation. No drive-setting feature, firmware build, device

@@ -1,19 +1,10 @@
-# Implementation plan
+# Implementation acceptance record
 
-Status: temporary development roadmap and progress record.
+This record preserves completed implementation and its source-bound acceptance.
+The sole current work list is [Consolidated backlog](development/consolidated-backlog.md).
 
-This file is useful while implementation is active. Remove roadmap sequencing,
-completed-work narration and other progress material before the documentation is
-treated as long-term product documentation.
+## Accepted implementation history
 
-Current position, 2026-10-17: Phases 1–12 and Phase 14 are closed within their
-recorded scopes. P13.1 transmit LED work is complete. Remaining conditional,
-deferred and unselected proposals are listed under
-[remaining deferred and backlog items](#remaining-deferred-and-backlog-items).
-Phase 15 tracks [operator review punchlist items](#phase-15-operator-review-punchlist).
-No Phase 14 workstream or LED task remains open.
-
-## Current roadmap snapshot
 
 1. **Complete:** architecture and protocol boundaries.
 2. **Complete:** WTP/1 contract and validation fixtures.
@@ -133,12 +124,9 @@ No Phase 14 workstream or LED task remains open.
     and GP14 production default enablement is deferred. Stage B and Phases 13
     and 14 remain separate; this closeout starts no new feature work.
 
-13. **LED complete; deferred/backlog features:** P13.1 transmit LED work is
-    **CLOSED_SCOPED**, with addressability and external TX-only operation verified.
-    P13.2 external Si5351 implementation is conditional and deferred. P13.3 manual
-    amplifier enable is an unselected backlog proposal. No active feature
-    implementation remains selected in Phase 13; see the
-    [Phase 13 feature backlog](#phase-13-feature-backlog).
+13. **LED complete:** P13.1 transmit LED addressability and external TX-only
+    operation are accepted. The former P13.3 manual bias-enable request was
+    withdrawn on 2026-10-17.
 14. **Closed within declared scope — 9/9 workstreams (100%)**, 2026-10-14.
     The [closeout ledger](development/phase14-closeout-ledger.md) supersedes older
     active/pending descriptions in the [qualification plan](development/phase14-plan.md)
@@ -156,12 +144,9 @@ No Phase 14 workstream or LED task remains open.
     Filtering, calibrated power/absolute RF timing,
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
-15. **Open — operator review punchlist:** twenty items are tracked: sixteen
-    complete within their recorded scopes. Testing prerelease (P15.17),
-    Installer (P15.18), Impeccable web UI review including provisioning
-    (P15.19), and user documentation (P15.20) have not started. The operator confirmed
-    WsprryPi item 15/P15.9 complete on 2026-10-17. See the
-    [Phase 15 punchlist](#phase-15-operator-review-punchlist).
+15. **Accepted implementation:** P15.1–P15.16 are complete within their
+    recorded scopes. Their evidence is retained below. Current work is selected
+    only in [Consolidated backlog](development/consolidated-backlog.md).
 
 ## Selected consumer LAN access slice
 
@@ -176,104 +161,22 @@ the [acceptance record](development/consumer-lan-access.md#acceptance-record--20
 from closed Phase 14 and LED work; it selects no Si5351, amplifier, filter or
 new-band implementation.
 
-## Phase 13 feature backlog
+## Phase 13 acceptance
 
-Selected on 2026-10-05 to follow Phase 12 and precede final qualification.
-P13.1 now has a checked launch handshake and TX-only external routing through
-the shared indicator owner. LED addressability and external TX-only operation
-are verified. The LED work is [complete (CLOSED_SCOPED)](development/phase13-1-step4-review.md),
-with fourteen target GPIO/RF case results and verified restoration. Existing
-button operation is recorded in the [Phase 12 closeout](development/phase12-closure-matrix.md).
-No LED calibration, additional polarity campaign or button/header test is
-required to close P13.1 or carried forward from it into Phase 14.
+P13.1 transmit LED work is complete (`CLOSED_SCOPED`), including the checked
+launch handshake, LED addressability, external TX-only operation, fourteen
+accepted target cases and verified restoration. See the
+[LED requirements and acceptance](development/transmit-led-requirements.md)
+and [final review](development/phase13-1-step4-review.md).
+The manual bias-enable request was withdrawn on 2026-10-17. Existing button
+operation is recorded in the [Phase 12 closeout](development/phase12-closure-matrix.md).
 
-External Si5351 implementation remains conditional and deferred; Phase 14's GPIO
-results inform any future selection. Manual amplifier enable is an unselected
-backlog proposal. No further feature implementation in this backlog is selected, and Phase 14
-is closed. The 2026-10-09
-[GPIO timekeeping/calibration research plan](development/gpio-time-calibration-plan.md)
-selects three stages of consideration: NTP filtering and UTC discipline,
-NTP-derived Pico calibration, then optional GPS UTC + PPS. Its
-[research/documentation review is complete](development/gpio-time-calibration-review-closure.md);
-future implementation remains unselected and adds no Phase 14 completion gate.
+## Phase 15 acceptance record
 
-| Milestone | Selected work | Status |
-| --- | --- | --- |
-| P13.1 — Transmit LED | [Solid TX indication](development/transmit-led-backlog.md) across RF activation and cleanup; selected external LED is TX-only with operational cues onboard, or shared onboard TX takes priority over blinking. | Complete (CLOSED_SCOPED); source/host and 14 selected target case results accepted; no remaining LED work |
-| P13.2 — Si5351 engine | [Conditional external Si5351 transmission](development/si5351-transmission-backlog.md) through the shared job service for standalone and WsprryPi-controlled jobs, with local RP2350 timing, exclusive I²C ownership and engine failure/shutdown handling. | Conditional on GPIO results; deferred; unimplemented |
-| P13.3 — Manual amplifier enable | [Enable the amplifier without transmitting](#manual-amplifier-enable-proposal), through a web page, a control point, or both. | Backlog request recorded 2026-10-10; unimplemented; implementation not selected |
-
-Any future selected feature includes its implementation and applicable
-behavior/target acceptance. The closed Phase 14 record retains the supported
-engine/mode/band/clock matrix, timing/frequency measurements, unfiltered spectra,
-reliability and reproducible release artifact within its declared scope.
-The operator's Phase 14 amendment assigns LPF development/application to the
-operator and treats QRSS-family drift as a diagnostic rather than an immediate
-human-copy failure; see the current plan for the separate retained assessments.
-
-Numbering changed on 2026-10-05: the former Phase 13 qualification/release work
-is now Phase 14. Historical acceptance records and execution prompts retain
-their original numbering; their references to Phase 13 qualification mean
-the current Phase 14.
-
-### Manual amplifier enable proposal
-
-Recorded 2026-10-10: provide an explicit way to turn the amplifier enable on
-and off without starting a transmission or generating RF. The operator-facing
-surface remains open: a web page, a control point, or both.
-
-Future design should use the member's single local control authority and
-exclusive amplifier-pin allocation, keep RF output inactive, and report
-amplifier-enable state separately from RF/TX status. Decide ownership/admission,
-interaction with scheduled or controller jobs, and disable behavior on stop,
-reset, fault, disconnect or timeout when implementation is selected. Exact
-commands, endpoints, pin/polarity and timeout policy remain proposals. The Pico
-amplifier adapter remains unavailable; this backlog adds no implementation or
-acceptance gate to the active Phase 14 campaign.
-
-## Phase 15 operator review punchlist
-
-Created 2026-10-15 to collect operator review findings and requested
-improvements. Record implementation, validation and operator acceptance against
-each item as it is completed. Earlier phase closures retain their recorded scope.
-
-Numbering revised 2026-10-17: after accepted USB control (P15.14), deliver
-GPIO drive strength (P15.15), the uninhibited default build (P15.16), a GitHub
-testing prerelease (P15.17), Installer (P15.18), then an Impeccable review of
-the web UI including provisioning (P15.19), before user documentation (P15.20).
-This insertion keeps P15.1–P15.18 unchanged and moves the previous P15.19
-documentation task to P15.20. Earlier numbering placed Installer at P15.15
-and P15.17, and user documentation at P15.14, P15.16, P15.18 and P15.19.
-Historical acceptance records, source identities, external checklists and
-executed prompt filenames retain their original numbering. The saved, unexecuted
-uninhibited-build handoff moves from `phase15-15-execution-prompt.md` to
-[phase15-16-execution-prompt.md](development/phase15-16-execution-prompt.md).
-The old P15.15 filename now identifies the new drive-strength task; use task
-titles as well as numbers when following a previously saved prompt.
-
-P15.1–P15.16 are complete within their recorded scopes. The
-[USB execution record](development/usb-control-results.md) records coordinated
-software acceptance, independent reassessment and bounded physical USB/AP
-evidence, including exact restoration. Transmitter RF was not exercised.
-GPIO drive strength (P15.15) has [software and bounded physical acceptance](development/phase15-15-hardware-results.md),
-including explicit nonblocking spectral observations. The uninhibited default
-build has [software/build acceptance](development/phase15-16-results.md),
-including independent repair/reassessment, preserved capacities and explicit
-inhibited fixtures. The testing prerelease is next before installer implementation.
-Installer (P15.18), Impeccable web UI review (P15.19) and user documentation
-(P15.20) have not started. Installer planning is recorded in
-"Assess WsprryPico installer options". The
-[complete list and saved/pending prompt index](development/phase15-prompt-index.md)
-records current task identities, prompt paths and the renumbering map.
-
-Later changes must extend the P15.2 compatibility coverage for affected supported
-pairs. Finalize P15.20 against the delivered USB control, GPIO drive strength,
-default build, release artifacts, installer, reviewed web UI, application and
-settings behavior and P15.13's recorded band/mode/clock support dispositions.
-WTP job control and JSON configuration management retain their separate contracts
-and shared local transmitter authority.
-
-Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
+P15.1–P15.16 are complete. Historical item numbers, executed prompts, exact
+source identities, observations and acceptance limits retain their meanings.
+Current work and the remaining saved execution prompts are selected only in
+[Consolidated backlog](development/consolidated-backlog.md).
 
 - ✅ **P15.1 — Preserve Pico configuration across legacy and partial updates.**
   Track [WsprryPi #447](https://github.com/WsprryPi/WsprryPi/issues/447):
@@ -350,8 +253,9 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   and RF servicing stays on core 1. Status: complete within the
   [recorded software acceptance](development/phase15-5-concurrent-web-service.md)
   after adversarial repair, 189/189 host groups, affected sanitizers and both
-  RP2350 cross-links. Physical phone/Mac contention and RF qualification remain
-  separate. Simultaneous authenticated sessions remain P15.6. See the
+  RP2350 cross-links. The operator accepted later ad hoc phone/Mac contention
+  testing on 2026-10-17; no further physical campaign is queued. Simultaneous
+  authenticated sessions are covered by P15.6. See the
   [executed prompt](development/phase15-5-execution-prompt.md). Published
   implementation: `9cf5ba2`; acceptance/checklist closure: `62b33d9`.
 - ✅ **P15.6 — Support multiple simultaneous login sessions (software scope).**
@@ -362,8 +266,10 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   updated Pi also retains frozen management/1 support. Genuine crypto/HTTP,
   mixed native/browser contexts, conflicting settings, quota/expiry/failure,
   historical source pairs, sanitizer, cross-link and scoped UI checks are in the
-  [acceptance and review record](development/phase15-6-sessions.md). Physical
-  phone/Mac transport, target heap/stack high-water and RF acceptance remain open.
+  [acceptance and review record](development/phase15-6-sessions.md). On
+  2026-10-17 the operator reported ad hoc phone/Mac, recovery and resource
+  testing complete and accepted it without another qualification campaign.
+  This records operator acceptance while preserving the original measurements.
   The [executed prompt](development/phase15-6-execution-prompt.md) and the
   [completed separate post-execution review](development/phase15-6-sessions.md#separate-post-execution-review)
   retain distinct evidence boundaries.
@@ -378,8 +284,9 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   five-second proof workspace retires only an explicitly selected login; it
   creates no replacement and never repeats a save. Both Pico and Pi preserve
   drafts and require fresh saved-state readback and review before a new save.
-  The precise original physical failed-save-to-session-loss sequence still
-  needs reproduction. The implementation builds on P15.6's genuine software
+  The precise original physical failed-save-to-session-loss sequence is not
+  claimed reproduced and is no longer a separate release task. The implementation
+  builds on P15.6's genuine software
   refusal/lost-reply cases and the delivered multi-session service.
   A settings-preserving restart of B restored encrypted login and private
   status access; the verification session was logged out afterward.
@@ -387,9 +294,9 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   The [execution handoff](development/phase15-7-execution-prompt.md) preserves the
   authorized scope. Exact source pairs, genuine crypto/bootstrap tests,
   independent review repairs, all seven compatibility rows, firmware links,
-  sanitizers and browser evidence are recorded there. Original physical
-  reproduction, actual phone/Mac transport, target heap/stack high-water and RF
-  acceptance remain open.
+  sanitizers and browser evidence are recorded there. The operator accepted
+  later ad hoc phone/Mac/recovery/resource testing on 2026-10-17; no additional
+  target or consumer-grade qualification campaign is queued.
 - ✅ **P15.8 — Add WSPR Type 2/3 to WsprryPico.** Automatic Type 1/2/3 planning,
   adjacent-window Type 2/3 pairs, versioned resources and browser/commissioning
   support are delivered. Ordinary calls retain saved-six/on-air-four Type 1
@@ -404,10 +311,12 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   accepted Pi companion was `6d5e734` on `codex/p15-8-wspr-type23`, before the
   subsequently accepted Pi integration. Recorded validation
   passed 196 host tests, 27 sanitizer-build checks, both firmware links and all
-  12 companion CI jobs after executor adversarial review and repairs. Physical
-  qualification and the separately requested originating
-  review remain open; the scoped software acceptance does not claim those
-  results. The
+  12 companion CI jobs after executor adversarial review and repairs. Official
+  wsprd-code payload/symbol/hash/receiver compatibility is recorded. The separately
+  requested originating review note is handled with the selected short
+  one-frequency, one-Pico Type 2/3 decode follow-up and its evidence closeout.
+  Earlier software evidence is not relabeled as captured-RF decoding.
+  The
   [execution handoff](development/phase15-8-execution-prompt.md) retains its
   historical baseline and release-coordination boundary. Related Pi integration
   is closed under WsprryPi release checklist step 14 by operator acceptance.
@@ -595,61 +504,6 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   [artifact manifest](development/phase15-16-artifacts.json) track exact variants,
   hashes, resources, checks, the repaired LED-builder finding and clean independent
   reassessment. No physical RF/USB/timing qualification is renewed.
-- ☐ **P15.17 — Publish a GitHub testing prerelease with a firmware asset.** After
-  P15.16 acceptance, build from a clean, identified commit containing accepted
-  USB control, GPIO drive strength and the uninhibited default. Publish a
-  tagged testing prerelease with the UF2, SHA-256 checksum, versioned manifest
-  and release notes identifying source/build inputs, board, engine/clock,
-  interface and persistent-storage
-  compatibility, and validation limits. Independently verify the remote tag,
-  downloadable asset and digest before P15.18 installer implementation. Testing
-  explicitly selects the prerelease; the eventual ordinary installer default
-  selects stable releases. Status: **Not started**; no prerelease published by
-  this item yet. Saved execution prompt:
-  [P15.17 GitHub testing prerelease](development/phase15-17-execution-prompt.md),
-  for use after P15.14–P15.16 acceptance.
-- ☐ **P15.18 — Installer.** After P15.14–P15.17 acceptance, implement USB
-  installation and preserving upgrades through standalone and WsprryPi access,
-  using release assets by default with optional local builds. Preserve saved
-  settings; OTA remains deferred. Installer planning is recorded in
-  "Assess WsprryPico installer options". Status: **Not started**.
-  Saved execution prompt:
-  [P15.18 USB installer](development/phase15-18-execution-prompt.md),
-  for use after P15.14–P15.17 acceptance; preparation does not execute it.
-- ☐ **P15.19 — Impeccable review of the web UI, including provisioning.**
-  After P15.18 acceptance, use Impeccable to review all delivered Pico web UI
-  surfaces, including the provisioning/first-run setup page, AP commissioning,
-  login and recovery, Station/Transmission, Wi-Fi/Host, diagnostics and newly
-  delivered controls. Assess task flow, hierarchy, consistency, labels and
-  feedback, keyboard/accessibility, desktop/mobile layouts and failure recovery.
-  Inspect rendered representative states, record prioritized findings, repair
-  actionable in-scope issues and verify affected behavior with bounded visual
-  passes. Preserve the existing design identity, authentication, drafts, device
-  identity and AP/timing/ownership contracts. Start from the current UI, reuse
-  WsprryPi's operator vocabulary and interaction patterns, and keep Pico fast
-  and lightweight. Complete this review before P15.20
-  finalizes operator instructions and screenshots. Status: **Not started**.
-  Saved execution prompt:
-  [P15.19 Impeccable web UI review](development/phase15-19-execution-prompt.md),
-  for use after P15.18 acceptance; preparation does not execute it.
-- ☐ **P15.20 — Create user documentation for Read the Docs Community.**
-  Create operator-focused documentation suitable for building and hosting on
-  the community version of Read the Docs. Reuse suitable styling, format and
-  navigation conventions from the WsprryPi documentation repository
-  (`WsprryPi-Docs`), retaining applicable licenses and attribution for reused
-  material. Cover initial setup, Station/Wi-Fi settings, hostname access,
-  standalone operation and schedules, WsprryPi-controlled operation, shared
-  resources and supported management access paths, supported WSPR/message types,
-  concurrent login and recovery, troubleshooting, updates
-  and the documented RF/setup limits. Keep user instructions separate from
-  development/evidence records. Include reproducible documentation build
-  configuration and dependency declarations compatible with Read the Docs
-  Community; validate the build, links, navigation and desktop/mobile rendering.
-  Finalize instructions and screenshots against the delivered application, USB
-  control, GPIO drive strength, installer behavior, P15.19's reviewed web UI and
-  P15.13's band/mode/clock support results. Status: **Not started**.
-  No standalone execution prompt is saved.
-
 P15.1 and P15.2 were coordinated from WsprryPi: #447 delivered the Pico changes
 and #448 delivered the Pi changes and paired compatibility evidence. With their
 roadmap closure accepted, P15.3 returned to WsprryPico and is complete within
@@ -659,36 +513,19 @@ P15.5 concurrent web servicing is complete within its recorded software scope.
 P15.6 independent sessions and P15.7 login/save recovery are complete within
 their recorded software scopes. P15.8 Type 2/3 software and its WsprryPi step 14
 integration are complete by operator acceptance. P15.9 and WsprryPi item 15 are
-complete by operator confirmation on 2026-10-17. The separate originating
-P15.8 review, physical concurrency/reproduction and target qualification remain open.
+complete by operator confirmation on 2026-10-17.
+Later ad hoc concurrency/recovery/resource testing
+is accepted; no additional endurance qualification queue is selected.
 P15.10 and P15.11 are complete within their recorded supported software scopes.
 P15.12–P15.16 are complete within their recorded scopes.
 GPIO drive strength retains
 [bounded physical acceptance and RF observations](development/phase15-15-hardware-results.md).
-The uninhibited default build (P15.16) has software/build acceptance. Testing
-prerelease (P15.17), Installer (P15.18), Impeccable web UI review (P15.19) and
-user documentation (P15.20) have not started.
+The uninhibited default build (P15.16) has software/build acceptance.
 
-## Remaining deferred and backlog items
+## Current work
 
-Current disposition, 2026-10-14. The manual amplifier proposal above is retained
-verbatim as recorded on 2026-10-10; its reference to an active Phase 14 campaign
-is historical. The consumer LAN slice above is selected separately; no new
-qualification campaign or implementation of the deferred items below is selected.
-
-| Item | Remaining decision/work | Status |
-| --- | --- | --- |
-| P13.2 — External Si5351 | Decide whether GPIO results justify selecting a future engine; if selected, define hardware/reference settings, implement and qualify it through the existing JobService. | Conditional; deferred; unimplemented |
-| P13.3 — Manual amplifier enable | Preserve the [recorded proposal](#manual-amplifier-enable-proposal): enable/disable the amplifier without RF through a web page, control point, or both; select the interface and control/failure policies before implementation. | Backlog; unimplemented; implementation not selected |
-| GP14 production-default enablement | Selected in the consumer LAN slice: enable configured capture by default; preserve custom and explicit disabled pin selections. Existing functional button evidence and P13.1 LED closure remain accepted. | Complete within the consumer LAN slice acceptance |
-| GPIO timekeeping/frequency improvements | The [research review is complete](development/gpio-time-calibration-review-closure.md); future NTP filtering/UTC discipline, NTP-derived Pico calibration and optional GPS UTC + PPS implementation remain proposals. | Research closed; implementation unselected |
-
-The [Phase 14 closeout](development/phase14-closeout-ledger.md) retains exclusions
-for LPF/antenna-ready emissions, calibrated power/absolute RF timing,
-consumer-image long endurance, general leak freedom, hostile HTTP-page delivery
-and authenticated Plain LAN. Filter development/application belongs to the
-operator. Expanding those claims would require separately selected work; they
-do not reopen the nine closed Phase 14 workstreams or add an LED/button task.
+[Consolidated backlog](development/consolidated-backlog.md) is the sole current
+work list. This acceptance record does not maintain a parallel queue.
 
 <a id="planned-qrss-group-message-and-duration-limits"></a>
 
@@ -906,31 +743,6 @@ This closes Phase 9's bounded functional acceptance. Timing/frequency
 measurements, unfiltered output performance, wider network compatibility and
 endurance remain Phase 14 qualification work. Filter development/application
 belongs to the operator.
-
-## Subsequent slices
-
-1. Phase 11 is closed within its documented software, bounded physical and
-   scoped conducted-RF acceptance; do not broaden that result into release
-   qualification.
-2. Phase 12 is CLOSED_SCOPED under its accepted commissioning/recovery
-   dispositions, with no remaining operator queue.
-3. Phase 13: P13.1 transmit LED work is complete; P13.2 external Si5351 is
-   conditional/deferred and P13.3 manual amplifier enable is an unselected backlog
-   proposal. No active feature implementation remains selected in the
-   [feature backlog](#phase-13-feature-backlog).
-4. Phase 14 is closed within its declared scope: 9/9 workstreams, accepted
-   conducted results and reproducible C96/138 MHz artifact. See the
-   [closeout ledger](development/phase14-closeout-ledger.md) and
-   [remaining deferred/backlog items](#remaining-deferred-and-backlog-items).
-5. Phase 15 collects [operator review punchlist items](#phase-15-operator-review-punchlist).
-   P15.1–P15.16 are complete within their recorded scopes. Next deliver a GitHub
-   testing prerelease (P15.17), before Installer (P15.18), Impeccable web UI
-   review including provisioning (P15.19), and user documentation (P15.20).
-   P15.17–P15.20 have not started. Installer planning is recorded in
-   "Assess WsprryPico installer options". Existing acceptance records and
-   qualification limits remain unchanged.
-
-Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 
 ## Current boundaries
 

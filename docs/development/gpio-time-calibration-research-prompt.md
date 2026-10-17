@@ -116,7 +116,7 @@ clock information to determine what association is actually defensible.
 
 Maintain `docs/development/gpio-time-calibration-plan.md`, create/update
 `docs/development/gpio-time-calibration-research.md`, and retain this complete
-prompt. Link the plan from the roadmap and reconcile the Si5351 backlog to the
+prompt. Link the plan from the roadmap and reconcile the Si5351 work record to the
 operator's conditional deferral without changing historical acceptance records.
 Include exact input inventory/hashes, source line references, checked numerical
 results, missing evidence, prioritized follow-ups and a reproducible local

@@ -3,9 +3,15 @@
 Status: **complete within the documented software scope**, accepted by the
 operator for P15.8 roadmap closure on 2026-10-16. Final-source implementation
 and validation passed, including all 12 companion CI jobs. This is a bounded
-Pico/approved-companion result. Pi release integration, the originating
-conversation's independent post-execution review and physical acceptance remain
-open separately.
+Pico/approved-companion result. Pi release integration is accepted in the current
+acceptance record. The original execution did not establish captured-RF acceptance.
+
+**Evidence disposition, 2026-10-17:** independent official WSJT-X wsprd-code
+payload, all-symbol, hash and receiver-unpacking checks are already recorded
+below and in `tests/wspr_oracle_vectors.json`; this is not a missing decoder-
+compatibility task. Current follow-up selection is recorded only in the
+[Consolidated backlog](consolidated-backlog.md); no captured-RF decode or
+separate review is marked performed by this documentation update.
 
 The roadmap closeout verified published Pico devel
 `4e96f0e71a93a529c01e8ec202a0f39422322c33`, the clean approved Pi companion at

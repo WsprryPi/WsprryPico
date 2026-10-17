@@ -1,10 +1,12 @@
 # GPIO timekeeping and frequency-calibration research plan
 
-Recorded: 2026-10-09. Status: selected order of consideration; research only.
+Research recorded: 2026-10-09. Reference clarified: 2026-10-17.
 
-The operator selected improvements to the existing GPIO/PIO transmitter as the
-current calibration scope. This document selects the order of investigation,
-not firmware implementation, hardware testing, or new release requirements.
+This document preserves the original research sequence and technical evidence
+requirements. It is not a current task list. Current selection and priority
+are recorded only in the [Consolidated backlog](consolidated-backlog.md).
+Manual PPM means an independently measured, operator-entered correction; it is
+not inherently NTP based.
 
 ## Three stages
 
@@ -45,16 +47,16 @@ the host reaches the Pico through NTP; direct UTC-labelled PPS capture on the
 Pico remains the separate, optional Stage 3.
 
 The existing standalone configuration accepts an NTP server hostname or IPv4
-address and defaults to `pool.ntp.org`. Automatic discovery, preference and
-fallback between local and public servers remain unselected proposals. This
-clarification authorizes no host-service, firmware or campaign changes.
+address and defaults to `pool.ntp.org`. A configured local server does not imply
+automatic discovery, preference or fallback. This clarification authorizes no
+host-service, firmware or campaign changes.
 
 ## Si5351 remains conditional and deferred
 
 The operator clarified on 2026-10-09 that Si5351 is a possible future addition
 depending on the GPIO RF testing currently underway. It is not an assumed next
 implementation or a prerequisite for this plan. Preserve the
-[existing backlog](si5351-transmission-backlog.md) as a conditional proposal;
+[engine design reference](si5351-engine-notes.md) as a conditional proposal;
 Si5351 transmission and CLK2 feedback remain outside this investigation. This
 does not select a different Si5351 variant or add an external counter/GPSDO
 requirement.

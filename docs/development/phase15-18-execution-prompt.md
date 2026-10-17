@@ -17,7 +17,9 @@ Implement USB installation and settings-preserving firmware upgrades for
 
 Use published firmware release assets by default. Support optional local
 compilation through an explicit developer path. Preserve saved settings and
-other durable state during upgrades. OTA remains deferred.
+other durable state during upgrades. OTA is ruled out by operator direction
+(2026-10-17) because its flash-layout tradeoff sacrifices too much flexibility;
+do not reserve an OTA partition or implement an OTA path.
 
 When invoked, this prompt authorizes bounded implementation, tests and
 development documentation in these repositories, plus attributable commits
@@ -42,7 +44,8 @@ test setup. Do not run the WsprryPi system installer merely to test Pico flashin
 
 Start in `/Users/lbussy/GitHub/WsprryPico`. Read its `AGENTS.md`, `README.md`,
 `CONTRACT.md`, `docs/architecture.md`, `docs/development/README.md`,
-`docs/implementation-plan.md` and `docs/development/phase15-prompt-index.md`.
+`docs/development/consolidated-backlog.md` and the completed acceptance in
+`docs/implementation-plan.md`.
 Read Pi's root and applicable component instructions before work there.
 
 Verify accepted completion of this sequence using actual result records:
@@ -420,7 +423,7 @@ authorized repositories. Review external operator-documentation impact without
 editing a separate docs repository or building P15.20's Read the Docs site.
 Pi's required final report must include Documentation Impact.
 
-Update the checklist and prompt index for the actual acceptance scope. Do not
+Update the consolidated work list for the actual acceptance scope. Do not
 mark P15.18 complete from tests alone if required physical preservation or either
 entry point remains unvalidated. Preserve historical evidence and leave
 P15.19/P15.20 Not started. Include all substantive acceptance/checklist/docs

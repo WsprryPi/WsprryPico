@@ -259,7 +259,7 @@ native direct 2 m remains Unavailable; see the
 [band/mode catalog](development/phase14-band-mode-qualification.md) and
 [standalone configuration](development/standalone.md).
 
-## Remaining implementation and qualification choices
+## Implementation and qualification boundaries
 
 The implemented autonomous UTC source is configured unicast SNTPv4. Phase 12
 adds the portable controller/SNTP arbiter and routes production SNTP, BLE and
@@ -275,11 +275,11 @@ production default enablement was deferred at that historical closeout and is
 now selected in the consumer LAN slice. Earlier native-Pi and iPhone/Bluefy
 records retain their exact source/image/evidence scope.
 The [pin-assignment contract](pin-assignment-contract.md) selects the eligible
-GPIO set, exclusive role allocations and fixed I²C pairs. Clock calibration and
-production RF engine/pin qualification remain open. WsprryPi has an
-independently implemented browser API adapter; full shared application and
-hardware configuration parity follows the implementation path in the fleet
-contract above. The current Pico browser schemas and bounds are documented in
+GPIO set, exclusive role allocations and fixed I²C pairs. WsprryPi has an
+independently implemented browser API adapter. The fleet contract describes
+application and hardware boundaries; current work selection is recorded only in
+the [Consolidated backlog](development/consolidated-backlog.md).
+The current Pico browser schemas and bounds are documented in
 the API contract. WTP/1 defines interoperable limits and policies without
 selecting those implementations.
 

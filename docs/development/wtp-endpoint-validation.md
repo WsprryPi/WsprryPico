@@ -95,7 +95,7 @@ After repairs, affected checks and adversarial reassessment found no remaining
 actionable issues in this inhibited USB endpoint slice. No independent hardware
 assessment was performed.
 
-## Remaining evidence and work
+## Original evidence boundary
 
 No board flashing, USB device control/capture, GPIO, debugger or RF operation
 was performed. Probe tests mock all device I/O. Target heap/stack high-water,
@@ -103,6 +103,5 @@ USB behavior, timing and RF remain unqualified. The endpoint is explicitly for
 the inhibited engine; capability ranges describe simulated input acceptance,
 not RF coverage. CDC closure is logical and requires a client timeout/reopen.
 
-Next: RF feasibility/engine selection and separately scoped measurement plans;
-then authorized engine work, standalone encoding/configuration/time, WsprryPi
-client integration, network/browser/provisioning adapters and qualified releases.
+Later implementation and acceptance records supersede the original sequencing.
+Current work is selected only in the [Consolidated backlog](consolidated-backlog.md).

@@ -177,7 +177,7 @@ Default legacy configuration serialization is unchanged. The pin branch's
 explicit Config v1 extension and nondefault-pin downgrade boundary remain in
 force. No additional fields are added to that stored document by these resources.
 
-## Remaining implementation gates
+## Foundation implementation boundary
 
 The local scheduler continues member-owned WSPR recurrence at the build-selected
 base frequency. Application expiry and frequency observations use decimal
@@ -187,7 +187,7 @@ dispatch occurrences belonging to an enabled member schedule. This foundation
 does not implement recurrence transfer, automatic offline fallback or expanded
 autonomous modes/frequencies.
 
-Pi native/remote mapping, controller integration, calibration/drive, amplifier
-and filter lifecycle, Pico Si5351, expanded recurrence, target measurements and
-conducted RF remain the contract's separate gates. No Phase 11/12 acceptance or
-physical/RF qualification is closed by this software work.
+This foundation's software results do not close physical/RF qualification or
+change Phase 11/12 acceptance. Later acceptance records identify delivered
+extensions. Current work is selected only in the
+[Consolidated backlog](consolidated-backlog.md).

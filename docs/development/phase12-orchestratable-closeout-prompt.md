@@ -96,8 +96,8 @@ bindings only. Preserve and exclude these preexisting user paths:
 - `docs/development/standalone.md`
 - `docs/protocol/Field-GATT.md`
 - `docs/implementation-plan.md`
-- `docs/development/si5351-transmission-backlog.md`
-- `docs/development/transmit-led-backlog.md`
+- `docs/development/si5351-engine-notes.md`
+- `docs/development/transmit-led-requirements.md`
 
 The subsequent request to show progress in the Phase 12 plan authorizes its
 new dated progress section and the historical-section boundary heading. Preserve

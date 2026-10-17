@@ -30,8 +30,8 @@ Initial review found three API gaps in this exact source:
   reply/cooldown callbacks still dereference the freed helper, and truncated
   questions retain packet chains and timers. Removal cancels all six netif
   timers and every retained question/answer for that interface before freeing.
-- Goodbye packets are an upstream TODO. Controlled disable uses upstream packet
-  generation for the same A/PTR records, sets their TTLs to zero, then sends
+- The upstream responder does not emit Goodbye packets. Controlled disable uses
+  upstream packet generation for the same A/PTR records, sets their TTLs to zero, then sends
   before disconnect. The later Phase 11.4 investigation splits submission from
   teardown: replies/timers and retained questions are quiesced immediately, while
   membership and the station remain until a nonblocking one-second withdrawal

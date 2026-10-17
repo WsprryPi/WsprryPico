@@ -109,7 +109,7 @@ branches, remotes, dirty paths and intervening changes before execution.
 Read the [P15.6 acceptance and separate review](phase15-6-sessions.md), the
 [Consumer-Radio contract](../protocol/Consumer-Radio-v1.md), the
 [browser API](../browser-api.md) and the
-[Phase 15 checklist](../implementation-plan.md#phase-15-operator-review-punchlist)
+[Phase 15 checklist](../implementation-plan.md#phase-15-acceptance-record)
 alongside this review. Historical pass counts are retained evidence for their
 exact sources; they were not rerun to prepare this prompt.
 

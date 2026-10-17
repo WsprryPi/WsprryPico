@@ -1,8 +1,16 @@
 # P15.6 independent consumer sessions
 
 Status: **accepted within the software scope**. Published-head Pi CI passes all
-ten jobs; implementation, review and publication are recorded below. Physical phone/Mac
-transport, target resource high-water and RF qualification remain open.
+ten jobs; implementation, review and publication are recorded below. The original
+software run did not measure physical phone/Mac transport, target resource
+high-water or RF qualification.
+
+**Operator disposition, 2026-10-17:** the operator reports the later ad hoc
+phone/Mac, recovery and resource checks complete and accepts this area without
+another qualification campaign. Original pending/measurement statements below
+retain their historical run scope; they are not an active test queue. This
+update records operator acceptance and preserves the original evidence. See the
+[current work record](consolidated-backlog.md).
 
 The source pair validated by Pi CI is Pico
 `792b5b2f60e381a6bd8e7a7726eeffe24fc08519` and Pi

@@ -26,7 +26,8 @@ work and any current hardware/setup limits. P15.20 remains Not started.
 ## 1. Refresh prerequisites, instructions and the real baseline
 
 Read `AGENTS.md`, `README.md`, `CONTRACT.md`, `docs/architecture.md`,
-`docs/development/README.md`, the current [checklist](../implementation-plan.md#phase-15-operator-review-punchlist)
+`docs/development/README.md`, the current [Consolidated backlog](consolidated-backlog.md),
+the [acceptance record](../implementation-plan.md#phase-15-acceptance-record)
 and actual P15.14–P15.18 acceptance records, including the final firmware/Pi
 pair, GPIO drive setting, uninhibited/inhibited target mapping, testing release
 and delivered installer paths. Saved execution prompts are not acceptance.

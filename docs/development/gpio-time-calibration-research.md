@@ -397,7 +397,7 @@ server/workload cohorts and ordinary transfer I/O. None is repaired by inventing
 samples or upgrading an original failed assessment.
 
 The second assessment passed the numerical and documentation checks, then found
-one remaining scope ambiguity: the Si5351 backlog still assigned its eventual
+one remaining scope ambiguity: the Si5351 work record still assigned its eventual
 qualification to Phase 14 without distinguishing the active PIO campaign.
 That sentence was corrected to retain its historical assignment and require a
 separately selected future Si5351 scope. Closed.

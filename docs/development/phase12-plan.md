@@ -62,8 +62,8 @@ authority does not turn simulator results into RF qualification.
 
 ## Historical plan and checkpoints
 
-The [current roadmap](../implementation-plan.md#phase-13-feature-backlog)
-assigns feature completion to Phase 13 and final qualification/release to
+The [acceptance record](../implementation-plan.md#phase-13-acceptance)
+retains the historical assignment of feature completion to Phase 13 and qualification/release to
 Phase 14. Historical checkpoint references below to Phase 13 qualification
 retain their original numbering and mean the current Phase 14.
 

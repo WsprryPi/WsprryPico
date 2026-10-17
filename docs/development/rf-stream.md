@@ -188,14 +188,12 @@ and real `JobService` integration. An allocation counter covers begin, refill,
 completion and disable with the fake sink. A physical sink must independently
 honor the allocation and timing constraints.
 
-## Remaining Step 8 work
+## Historical Step 8 acceptance boundary
 
-The experimental target runner and initial measurements now exist. Remaining
-work includes calibrated frequency and spectra, full-frame/mode workloads,
-output circuit/filter characterization and UTC/WTP integration. The operator
-decides when to transmit and which measurements to perform. Independent stop
-circuitry remains an optional design choice. These bounded results do not
-complete Step 8 or qualify an engine/mode/band combination.
+The experimental target runner and initial measurements do not qualify an
+engine/mode/band combination. Later campaign records carry their own exact
+source/image and measurement scope. Current work is selected only in the
+[Consolidated backlog](consolidated-backlog.md).
 
 See the [correction and alias record](rf-correction-validation.md) for the
 volatile correction interface, measured effect and remaining settling/alias work.

@@ -103,7 +103,7 @@ because its reply was lost.
    Five earlier strict rows stay accepted. Default enablement is deferred;
    no automatic retry, new RF job or additional physical action follows.
 
-The Phase 13 feature backlog and Phase 14 final qualification remain separate.
+The Phase 13 feature work record and Phase 14 final qualification remain separate.
 The selected closeout does not qualify broad RF performance, reliability or
 full fleet interoperability.
 

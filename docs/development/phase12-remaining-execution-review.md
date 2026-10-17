@@ -611,7 +611,7 @@ session, resource, RF and physical timing closure is not claimed.
 The retained private Linux batch contains all 1,701 paths from its recorded
 committed revision with exactly three reviewed source/test overlays. It excludes
 the unrelated dirty files,
-untracked backlogs, credentials, backups and captures. The established retained
+untracked planning records, credentials, backups and captures. The established retained
 Linux workflow passes **155 selected tests, zero failures, 162 registered and
 the same seven context exclusions**. Original configure/build/CTest logs and
 archive membership were independently verified. No firmware, RF or device

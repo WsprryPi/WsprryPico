@@ -351,28 +351,18 @@ current CAPS and status determine selection and admission. Plain LAN identity
 observations are not authenticated. A connection failure does not establish
 output-off or justify substitution of another node.
 
-## Implementation path
+## Implementation references
 
-These slices are ordered implementation gates. The Pico foundation delivers
-the supported station/pin resource subset of slices 1 and 2 using the pin branch's
-supported slice-3 adapters. This does not close an entire slice or claim any
-later adapter, transfer or physical gate. Pico and Pi changes remain independently
-scoped repository tasks.
+The foundation implements a bounded subset of this contract. The source
+inventory below identifies its reviewed baseline; later acceptance records
+identify subsequent changes. Current and possible future work are selected only
+in the [Consolidated backlog](development/consolidated-backlog.md).
 
-| Slice | Deliverable | Gate before progressing |
-| --- | --- | --- |
-| 1. Schema and compatibility | Freeze application domains, target/scope identity, supported-field semantics, resource versions, recurrence authority and migration/error rules. Supply machine-readable schemas and positive/negative vectors in this repository. | Account for every setting in the inventory; preserve WTP/1 and existing API meanings; define management carriers and storage/body bounds. |
-| 2. Portable application model | Implement bounded parsing, cross-resource validation, configuration generations, persistence/recovery coordination and status/capability reporting behind platform adapters. | Deterministic tests for malformed/unsupported input, stale writes, conflicting resources, save failures, interrupted application and admission races. |
-| 3. Pico hardware integration | Make supported PIO output configuration explicit; implement optional amplifier/filter/indicator/button adapters and one-chain local execution/cleanup. Retain unsupported Si5351 and clock choices as unavailable. | Host fault/lifecycle checks and pinned cross-build; opt-in RF-inhibited target verification before separate RF qualification. |
-| 4. Pi compatibility and controller integration | Map existing INI/CLI settings to the common model, preserve local takeover, project explicit member configuration and add capability-driven fleet management. | Test target identity/revision errors, native/remote scope, existing control behavior, management contention and independent output contexts without hardware. |
-| 5. Autonomous scheduling and transfer | Expand supported member station/mode/frequency/schedule configuration; implement recurrence ownership transfer and durable duplicate prevention. | Test local/remote contention, expiry, missed slots, power-loss recovery, offline takeover and uncertain transfers. Central finite-job operation remains useful before this slice. |
-| 6. Physical and release acceptance | Qualify each selected board/engine/control chain and publish exact supported capabilities and operator documentation. Add Pico Si5351 in a separately bounded engine tranche if selected. | Pass the applicable target timing/control, conducted RF and controller/member acceptance matrices with restoration recorded. |
-
-The implementation must reuse portable validation, encoders and ownership
-concepts where their semantics match. It must not add a third protocol
-repository, independent per-interface schedulers or a Linux web stack to Pico
-firmware. Passing a schema or cross-build gate does not close physical gates.
-This path does not reopen or close the existing Phase 11/12 acceptance records.
+Implementations reuse portable validation, encoders and ownership concepts
+where their semantics match. They must not add a third protocol repository,
+independent per-interface schedulers or a Linux web stack to Pico firmware.
+Schema and cross-build evidence do not establish physical qualification or
+change the existing Phase 11/12 acceptance records.
 
 ## Required acceptance evidence
 
@@ -392,27 +382,24 @@ with cleanup/restoration. Mock/host results and numerical capabilities do not
 qualify target timing, electrical behavior, filtering or RF output. Existing
 bounded campaign results remain bound to their original configurations.
 
-## Open design choices
+## Extension constraints
 
-- Expanded application/hardware schemas and Pi local/remote projection paths.
-  The Pico foundation's resource identifiers, paths and bounded shapes are frozen
-  in the linked schemas; unsupported additions require a separately specified version.
-- Supported P15.3 carriers and the explicit USB decision are frozen in the
-  [carrier contract](development/phase15-3-management-carriers.md). Additional
-  carriers or expanded field clients require a separately selected slice.
-- Recurrence-transfer journal, schedule identifiers/revisions and recovery of
-  interrupted cross-device changes. Automatic offline fallback is not selected.
-- Implemented/qualified Pico pin assignments and drive settings, configurable
-  clock scope and bus electrical settings. The eligible pin set, fixed I²C pairs
-  and exclusive allocation rules are selected in the
-  [pin-assignment contract](pin-assignment-contract.md); Si5351 remains a separate
-  unimplemented Pico engine option.
-- Fixed/manual LPF declaration, supported selector circuitry, settling and
-  amplifier lead/tail values, and physical confirmation methods.
-- Waveform/envelope configuration applicability. Per-job envelope control or
-  selector references cannot be assumed interoperable through WTP/1.
-- Migration of stored Pico configuration and existing Pi INI/CLI representations
-  without losing station, schedules, credentials, watermarks or takeover history.
+The foundation's resource identifiers, paths and bounded shapes are frozen in
+the linked schemas; unsupported additions require a separately specified
+version. Supported management carriers and the explicit USB decision are frozen
+in the [carrier contract](development/phase15-3-management-carriers.md).
+Additional carriers or expanded field clients cannot be assumed supported.
+
+The [pin-assignment contract](pin-assignment-contract.md) defines the eligible
+pins, fixed I²C pairs and exclusive allocation rules. Si5351 is an unimplemented
+Pico engine option. Numerical hardware settings do not establish qualified
+adapters, electrical behavior or physical output confirmation.
+
+Expanded recurrence transfer requires durable schedule identity, revisions,
+recovery and duplicate prevention; automatic offline fallback is not selected.
+Per-job envelope control and selector references cannot be assumed interoperable
+through WTP/1. Configuration migration must preserve station data, schedules,
+credentials, watermarks and takeover history.
 
 ## Current source baseline and references
 

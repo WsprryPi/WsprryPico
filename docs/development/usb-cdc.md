@@ -165,7 +165,7 @@ Future udev aliases may use the imported VID/PID, exact USB serial and interface
 properties to distinguish roles and boards. Such rules are host configuration,
 not a firmware dependency; no aliases are installed by this work.
 
-## macOS and remaining work
+## macOS use and original acceptance boundary
 
 Use `python3 scripts/wtp_monitor.py --list`, `ls /dev/cu.usbmodem*`, and
 `ioreg -p IOUSB -l -w 0` to correlate device serial and interface identity.
@@ -173,6 +173,8 @@ Generated filenames vary. Substitute the identified Console port in `screen`
 and WTP port in the monitor. A normal terminal should assert DTR; a custom client
 must do so explicitly. Exit screen with Control-A, backslash, then `y`.
 
-The strict WTP endpoint now provides JSON decoding, response/event encoding,
-serialized frame-send ownership and logical session handling. Host discovery,
-physical RF engines and target USB/timing/RF qualification remain future work.
+The strict WTP endpoint provides JSON decoding, response/event encoding,
+serialized frame-send ownership and logical session handling. This original
+endpoint record does not establish physical USB/timing/RF qualification.
+Later results retain their exact source/image applicability; current work is
+selected only in the [Consolidated backlog](consolidated-backlog.md).

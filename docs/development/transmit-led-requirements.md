@@ -1,4 +1,4 @@
-# Transmit LED backlog
+# Transmit LED requirements and acceptance
 
 Recorded: 2026-10-03. Updated: 2026-10-08.
 Status: **Complete (CLOSED_SCOPED)**. LED addressability and external TX-only
@@ -10,15 +10,14 @@ remains. Existing button operation is recorded in the
 
 The external GP15 lamp wiring is operator-confirmed. The final functional
 check used GPIO/SDR evidence without another LED, camera, rewiring or operator
-session; see the [completed six-step TODO](phase13-1-closeout-steps.md).
+session; see the [completed six-step acceptance](phase13-1-closeout-steps.md).
 The existing external-high TX-only/AP/Identify case passed with actual GPIO,
 complete SDR evidence and reviewed restoration. Timing/shutdown and software
 polarity evidence is reused; no new GP14 stimulus or polarity campaign was
 needed for closure. No LED calibration, additional polarity campaign or
 button/header test is required or carried forward from P13.1.
-Roadmap assignment: **Phase 13 / P13.1**, selected on 2026-10-05; see the
-[feature backlog](../implementation-plan.md#phase-13-feature-backlog).
-Phase 14 RF qualification and release follows without reopening the LED work.
+Historical assignment: **Phase 13 / P13.1**, selected on 2026-10-05; see the
+[acceptance record](../implementation-plan.md#phase-13-acceptance).
 The operator authorized P13.1 implementation, review, commit and push on
 2026-10-07. Live testing follows the current [project instructions](../../AGENTS.md):
 the user's statement that a named Pico is connected to the SDR authorizes RF

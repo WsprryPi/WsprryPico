@@ -153,7 +153,7 @@ The [P15.7 acceptance record](phase15-7-recovery.md) retains 193/193 host tests,
 12 sanitizer groups, seven compatibility rows, firmware links and scoped browser
 evidence for its exact source pair. Those results were not rerun here and do
 not qualify a future Type 2/3 implementation. The
-[Phase 15 checklist](../implementation-plan.md#phase-15-operator-review-punchlist)
+[Phase 15 checklist](../implementation-plan.md#phase-15-acceptance-record)
 keeps saving independently of transmit readiness, hostname/forms and new RF
 qualification outside P15.8.
 

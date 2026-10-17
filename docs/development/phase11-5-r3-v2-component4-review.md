@@ -7,9 +7,9 @@ previous implementation close the endpoint. Group 2 remains OPEN. This is a
 host reproduction and software correction, not proof of the uninstrumented
 branch taken on C7 or new physical acceptance.
 
-The user-requested backlog cleanup was published first as
+The user-requested work record cleanup was published first as
 `495a647eaddef71e5970cff53ec6e335effecadb`; its
-[review](phase11-5-r3-v2-backlog-review.md) records scope and validation.
+[review](phase11-5-r3-v2-publication-review.md) records scope and validation.
 The [execution prompt](phase11-5-r3-v2-component4-prompt.md) and
 [machine-readable measurements](phase11-5-r3-v2-component4-result.json)
 make this subsequent work reproducible.

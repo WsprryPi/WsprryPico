@@ -2,8 +2,8 @@
 
 Status: **WIP — preserved 2026-10-15 for future Si5351 development.**
 This standalone diagnostic stays outside the normal application build. The
-[external Si5351 transmitter backlog](../../../docs/development/si5351-transmission-backlog.md)
-remains deferred. The source and CMake target are preserved unchanged; this
+[Si5351 engine design reference](../../../docs/development/si5351-engine-notes.md)
+preserves its technical constraints. The source and CMake target are unchanged; this
 archive adds no production RF engine or new qualification. The dated records
 below describe the historical board/firmware state, not the current setup.
 

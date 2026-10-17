@@ -642,4 +642,4 @@ The user subsequently requested progress in the Phase 12 plan. Only its new
 dated progress section and historical-section boundary heading belong to this
 continuation; the plan's preexisting
 changes, the other eight preexisting modified documentation files and the two
-user backlog files remain outside this continuation's commits.
+user work record files remain outside this continuation's commits.

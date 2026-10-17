@@ -7,7 +7,7 @@ assessment after repairs, then commit and push the reviewed work to `origin/deve
 ## Objective and boundaries
 
 Complete the source and deterministic acceptance for the selected
-[transmit LED requirement](transmit-led-backlog.md). Keep one indicator owner.
+[transmit LED requirement](transmit-led-requirements.md). Keep one indicator owner.
 An enabled indicator must be solid throughout physical engine output activity,
 including RF-producing warmup, all supported modes and shutdown. TX overrides
 AP-ready and Identify on a shared onboard selection. An external selected LED
@@ -103,7 +103,7 @@ affected checks and conduct a fresh second assessment; iterate until no
 actionable source finding remains. Document any remaining physical gates as
 open and avoid claiming complete P13.1 target qualification.
 
-Update the backlog, roadmap and development guide with the actual software
+Update the work record, roadmap and development guide with the actual software
 disposition and the physical packet. Commit only this slice, push without
 force and independently verify `HEAD` against remote `devel`. Report the
 prompt/review/packet paths, changes, validation, remaining qualification,

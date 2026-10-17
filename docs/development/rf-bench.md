@@ -223,7 +223,7 @@ standard/bench/linkcheck Arm builds, formatting and Markdown links passed.
 Reassessment after repairs found no remaining actionable issue in this bounded
 bench slice; the qualification limitations above remain explicit.
 
-## Findings resolved and remaining work
+## Findings resolved and historical acceptance boundary
 
 Target iteration exposed an over-budget generator, a double timer-read launch
 race, an interrupt handoff slower than the FIFO reserve, a late final-drain
@@ -236,9 +236,9 @@ Adversarial review also removed a coordinator timeout that could kill the client
 before STOP, tightened capture identity/format validation, and preserved manifests
 through cleanup errors. Host tests cover waveform boundaries, controller failures,
 client timeout/STOP behavior and malformed captures. Hardware-free tests do not
-prove peripheral timing. The next work is adequate-resolution frequency analysis
-with a verified receiver reference, output spectra/filter characterization,
-full-frame and abort/load coverage, and production UTC/WTP integration.
+prove peripheral timing. These original bench results retain their measured
+scope. Later campaign records establish their own acceptance; current work is
+selected only in the [Consolidated backlog](consolidated-backlog.md).
 
 The [frequency correction and alias investigation](rf-correction-validation.md) records the
 `CORRECTION` bench command, corrected measurements, remaining frame settling

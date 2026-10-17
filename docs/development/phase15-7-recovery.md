@@ -1,8 +1,15 @@
 # P15.7 login and save recovery
 
 Status: **complete within the demonstrated software scope, 2026-10-15**.
-Physical reproduction, actual phone/board transport, target heap/stack high-water
-and RF acceptance remain open.
+The original software run did not establish exact physical incident reproduction,
+phone/board transport, target heap/stack high-water or RF acceptance.
+
+**Operator disposition, 2026-10-17:** later ad hoc phone/Mac, recovery and
+resource testing is reported complete and accepted. No further physical or
+consumer-grade qualification campaign is queued. The exact original incident
+is not retroactively claimed reproduced; the earlier pending statements below
+are historical evidence limits. See the
+[current work record](consolidated-backlog.md).
 
 ## Selected design
 

@@ -104,7 +104,7 @@ The automatic continuation began on `devel` at merged baseline
 `ec0f68facb5041e9e1426d20e3c8326567272bb9` supplies the first repaired inhibited
 candidates; reviewed follow-up `c0d2bd53e4bde67af64d9528e3ee89efce51b87a`
 supplied the earlier fifteen-candidate manifest and verified inhibited B image.
-The roadmap and Si5351/indicator backlogs were preserved outside the automatic
+The roadmap and Si5351/indicator planning records were preserved outside the automatic
 closeout commits; this documentation reconciliation now publishes their reviewed
 intent. Earlier checkout and document snapshots remain historical evidence.
 Images come from committed source and retained content-bound manifests.

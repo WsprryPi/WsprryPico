@@ -4,7 +4,7 @@ On 2026-09-14, before the Component 4 LOAD-reply investigation, review started
 at `b769ee7aad9c91d1fafe9de3108e1823516ee3e5` on `devel`. The user authorized
 reviewing, cleaning up, committing and pushing the remaining work.
 
-The backlog comprised 115 files: 15 tracked modifications and 100 untracked
+The work record comprised 115 files: 15 tracked modifications and 100 untracked
 files. It contains earlier R3 browser/native/pressure/recovery tools, their
 host tests, historical execution/result records and validation checkpoints
 021–046, plus `.impeccable/design.json`. These are now published together so

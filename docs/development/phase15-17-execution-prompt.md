@@ -1,6 +1,7 @@
 # P15.17 GitHub testing prerelease execution prompt
 
-Prepared 2026-10-17. **Saved for future execution; P15.17 is Not started.**
+Prepared 2026-10-17. **Saved execution instructions.** Current status and
+priority are recorded only in the [Consolidated backlog](consolidated-backlog.md).
 Saving or reviewing this prompt does not build, tag, commit, push or publish.
 The instructions below apply when the operator invokes it for execution.
 
@@ -11,8 +12,7 @@ containing the normal uninhibited Pico 2 W firmware, a versioned release
 manifest and SHA-256 checksums. Use accepted P15.14 USB control, P15.15 GPIO
 drive strength and P15.16 default-build behavior. Finish by verifying the
 published tag and downloaded assets, recording the result, and updating the
-checklist. Leave P15.18 Installer, P15.19 web UI review and P15.20 user
-documentation Not started.
+canonical work list. Execution of this prompt does not execute later items.
 
 When invoked, this prompt authorizes the bounded release preparation, necessary
 Pico-only tooling/documentation changes, attributable commits and non-force
@@ -33,13 +33,17 @@ merely to publish this software testing prerelease.
 
 Work from `/Users/lbussy/GitHub/WsprryPico`. Read `AGENTS.md`, `README.md`,
 `CONTRACT.md`, `docs/architecture.md`, `docs/development/README.md`, the current
-[checklist](../implementation-plan.md#phase-15-operator-review-punchlist),
+[Consolidated backlog](consolidated-backlog.md), the
+[acceptance record](../implementation-plan.md#phase-15-acceptance-record),
 [USB acceptance](usb-control-results.md), and the actual P15.15/P15.16
-acceptance records linked from that checklist. Their saved prompts alone are
+acceptance records linked there. Their saved prompts alone are
 not acceptance records.
 
-Confirm P15.14, P15.15 and P15.16 are complete and accepted, including the exact
-Pico/Pi source pair, drive-strength persistence/compatibility and normal versus
+Confirm the earlier Finish Now items are accepted, including CI deployment
+images and the short WSPR Type 2/3 decode. Verify their exact source and image
+applicability; if release preparation changes firmware, reconcile that evidence
+before publication. Confirm P15.14, P15.15 and P15.16 are complete, including the
+exact Pico/Pi source pair, drive-strength persistence/compatibility and normal versus
 inhibited target mapping. If any prerequisite is incomplete, report it and
 stop before release preparation or publication. Do not implement the missing
 phase inside P15.17.
@@ -89,14 +93,19 @@ tag, embedded revision and manifest source must continue to identify `F`,
 not `E`. Do not put `F`'s own hash inside tracked source at `F` or create a
 self-referential manifest/hash cycle.
 
-## 3. Build fresh normal and inhibited images
+## 3. Produce and retrieve fresh CI images
 
 Use new task-specific ignored build/output directories and the accepted P15.16
-build recipe. Build the normal `WsprryPico` target as the release candidate and
+build recipe through the accepted software/build CI workflow at exact clean
+commit `F`. Build the normal `WsprryPico` target as the release candidate and
 the explicit inhibited variant as a regression check. Do not publish an
 RFBench, RFWTP, fault-fixture, calibration, provisioned or inhibited image as
 the normal firmware. Retain accepted USB/network/storage behavior, the normal
 138 MHz clock and GPIO drive choices of 2/4/8/12 mA with a 4 mA default.
+Download the successful CI run's normal UF2, source/version manifest and
+checksums. Verify run, commit, target and hashes; publish those exact CI-produced
+bytes. Local builds may provide additional checks but do not replace the
+selected CI deployment image. Missing or failed firmware CI blocks publication.
 
 Recheck pinned SDK, picotool, compiler and linked SDK submodules; record exact
 versions/revisions, CMake/Ninja versions, build type, target, flags and commands.
@@ -145,7 +154,7 @@ Pi C++ compilation on macOS without explicit repaired-toolchain authorization.
 Record pass/fail/skip, command, source, artifact and relevant numeric resource
 results. Repeat checks after repairs where affected. Reconcile CI by exact
 commit/workflow: Pages success is not firmware-test CI. Missing CI is reported
-truthfully and does not replace the required local checks.
+truthfully and blocks publication until the selected firmware CI passes.
 
 No new all-band, alternate-clock, dual-board or WSPR Type 2/3 RF campaign is
 part of this publication task. Preserve historical evidence and its source

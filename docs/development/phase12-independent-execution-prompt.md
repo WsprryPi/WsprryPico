@@ -8,8 +8,8 @@ ancestors. No separate pin/application merge is required. The historical prompt
 below retains its finite case limits and evidence, but its six-document
 preservation list and old source/image bindings are superseded. Preserve the
 current user changes in `docs/implementation-plan.md`,
-`docs/development/si5351-transmission-backlog.md` and
-`docs/development/transmit-led-backlog.md`, with fresh hashes before editing.
+`docs/development/si5351-engine-notes.md` and
+`docs/development/transmit-led-requirements.md`, with fresh hashes before editing.
 Keep all fourteen closure IDs and original failed records.
 
 The continuation authorizes source/harness repairs, retained-tool builds,
