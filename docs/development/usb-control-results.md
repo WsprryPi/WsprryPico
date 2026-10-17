@@ -4,6 +4,11 @@ Date: 2026-10-17. Complete within supported software and bounded USB/AP
 acceptance. Independent adversarial reassessment passes; exact original flash
 is restored. Transmitter RF/absolute timing was not exercised.
 
+The subsequent [USB UTC investigation](usb-time-uncertainty.md) corrects the
+host's ACK-inclusive uncertainty accounting and reviews the 1 ms job default.
+Its measured clock-only evidence and policy recommendation supersede no
+historical RF or original-image result below.
+
 ## Source and delivered behavior
 
 The initially clean sources were Pico

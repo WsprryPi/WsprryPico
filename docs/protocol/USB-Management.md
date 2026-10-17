@@ -100,9 +100,16 @@ GET `/api/usb/v1/time/sample` returns `sample` (one-use string token) and
 submission consumes the sample, including a refused submission. Sample age
 must not exceed two seconds; future/regressed/stale samples refuse.
 
-The host requires a synchronized, normal-leap system clock and conservatively
-charges host error, the full observed roundtrip, realtime/monotonic discrepancy
-and drift. It rejects clock steps/unqualified observations, never clamps error
+The host requires a synchronized, normal-leap system clock. It brackets the
+device capture between the host timestamps immediately before the sample
+request and after its response, before the delivery ACK. UTC at the captured
+device monotonic instant is the midpoint of that interval. A conservative
+error bound includes host error, the rounded-up half-width of the measured
+sample interval, realtime/monotonic discrepancy and processing/drift margin.
+This interval bound covers fully asymmetric delays; it assumes no symmetric
+path. The later delivery ACK remains mandatory, but does not move the capture
+instant. Firmware still ages uncertainty from its actual capture time.
+The host rejects clock steps/unqualified observations and never clamps error
 to make admission pass. Accepted observations enter the existing
 controller/SNTP arbiter under `usb-physical`; uncertainty remains at most
 500000000 ns. Existing clock aging, disagreement, ARM and launch checks remain.
@@ -113,6 +120,11 @@ Successful submit reports actual `accepted`, `selected`, `source`,
 USB input. Invalid observations still refuse before source arbitration.
 Disconnect clears the pending USB sample without invalidating unrelated SNTP.
 UTC refresh does not control RF symbols or calibrate an RF oscillator.
+
+The [USB uncertainty investigation](../development/usb-time-uncertainty.md)
+separates measured transfer uncertainty, host clock quality and job admission
+policy. An accepted USB time update does not establish readiness for a job's
+configured uncertainty limit.
 
 ## Compatibility and evidence
 

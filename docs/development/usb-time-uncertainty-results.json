@@ -1,0 +1,497 @@
+{
+  "schema": "usb-time-uncertainty-results/1",
+  "recorded_utc": "2026-10-17T14:51:47.883322+00:00",
+  "setup": {
+    "host": "wspr5",
+    "board": "Pico B / Pico 2 W / RP2350",
+    "serial": "CDDBF8767C506C07",
+    "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+    "image": "normal RF-inhibited",
+    "station_network_saved": false,
+    "transmitter_arm_attempted": false,
+    "host_clock": "PPS-selected chrony; read-only adjtimex"
+  },
+  "pico_image": {
+    "product_source": "100e749c815f7485d5097c9086852d3b97adca9f",
+    "tested_revision": "9dee1ff177e6-dirty",
+    "uf2_sha256": "e124be56b6819fae65cb124e8498052b9092868fd633df9ebd73828ce209e529"
+  },
+  "pi_base": "eafae380bdcd9438612c42f2a86f046c748acce2",
+  "client_sha256": "9f51d90d15ef278bef973348c2902f461fdd5ee537931ecc16603ae62e30b175",
+  "unchanged_pi_default_uncertainty_ns": "1000000",
+  "baseline": {
+    "submitted_time": {
+      "accepted": true,
+      "observed_ms": "94986508",
+      "result": {
+        "accepted": true,
+        "age_ns": "41896000",
+        "selected": true,
+        "source": "controller",
+        "uncertainty_ns": "40722643"
+      },
+      "selected": true,
+      "selected_source": "controller",
+      "source": "usb-physical",
+      "uncertainty_ns": "40720548"
+    },
+    "raw_component_observations": [
+      {
+        "sample_rtt_ns": 21524721,
+        "ack_rtt_ns": 17388936,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 2513,
+          "esterror_us": 1
+        }
+      },
+      {
+        "sample_rtt_ns": 20773574,
+        "ack_rtt_ns": 17383362,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 2513,
+          "esterror_us": 1
+        }
+      },
+      {
+        "sample_rtt_ns": 21214073,
+        "ack_rtt_ns": 17542231,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 2513,
+          "esterror_us": 1
+        }
+      },
+      {
+        "sample_rtt_ns": 20834963,
+        "ack_rtt_ns": 17637750,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 2513,
+          "esterror_us": 1
+        }
+      },
+      {
+        "sample_rtt_ns": 21187370,
+        "ack_rtt_ns": 17413028,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 2513,
+          "esterror_us": 1
+        }
+      },
+      {
+        "sample_rtt_ns": 20858112,
+        "ack_rtt_ns": 17340880,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 3013,
+          "esterror_us": 1
+        }
+      },
+      {
+        "sample_rtt_ns": 21366147,
+        "ack_rtt_ns": 17433028,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 3013,
+          "esterror_us": 1
+        }
+      },
+      {
+        "sample_rtt_ns": 21070648,
+        "ack_rtt_ns": 17201306,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 3013,
+          "esterror_us": 1
+        }
+      },
+      {
+        "sample_rtt_ns": 21223333,
+        "ack_rtt_ns": 17356639,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 3013,
+          "esterror_us": 1
+        }
+      },
+      {
+        "sample_rtt_ns": 20812112,
+        "ack_rtt_ns": 17301047,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 3013,
+          "esterror_us": 1
+        }
+      }
+    ],
+    "chrony_tracking_csv": "50505300,PPS,1,1792248275.355689737,0.000000247,0.000000123,0.000001301,2.638,0.002,0.068,0.000000001,0.000020446,16.0,Normal",
+    "restored_exact_full_flash": true
+  },
+  "final": {
+    "time_observations": [
+      {
+        "accepted": true,
+        "clock_discrepancy_ns": "37",
+        "host_uncertainty_ns": "7021907",
+        "observed_ms": "95299138",
+        "post_ack_clock_discrepancy_ns": "18",
+        "processing_margin_ns": "100000",
+        "result": {
+          "accepted": true,
+          "age_ns": "41933000",
+          "selected": true,
+          "source": "controller",
+          "uncertainty_ns": "17712893"
+        },
+        "sample_ack_ms": "17",
+        "sample_radius_ns": "10588852",
+        "sample_round_trip_ns": "21177704",
+        "selected": true,
+        "selected_source": "controller",
+        "source": "usb-physical",
+        "uncertainty_ns": "17710796"
+      },
+      {
+        "accepted": true,
+        "clock_discrepancy_ns": "0",
+        "host_uncertainty_ns": "7019963",
+        "observed_ms": "95299221",
+        "post_ack_clock_discrepancy_ns": "0",
+        "processing_margin_ns": "100000",
+        "result": {
+          "accepted": true,
+          "age_ns": "43282000",
+          "selected": true,
+          "source": "controller",
+          "uncertainty_ns": "17687749"
+        },
+        "sample_ack_ms": "18",
+        "sample_radius_ns": "10565621",
+        "sample_round_trip_ns": "21131241",
+        "selected": true,
+        "selected_source": "controller",
+        "source": "usb-physical",
+        "uncertainty_ns": "17685584"
+      },
+      {
+        "accepted": true,
+        "clock_discrepancy_ns": "20",
+        "host_uncertainty_ns": "7019408",
+        "observed_ms": "95299303",
+        "post_ack_clock_discrepancy_ns": "19",
+        "processing_margin_ns": "100000",
+        "result": {
+          "accepted": true,
+          "age_ns": "42563000",
+          "selected": true,
+          "source": "controller",
+          "uncertainty_ns": "17706890"
+        },
+        "sample_ack_ms": "17",
+        "sample_radius_ns": "10585333",
+        "sample_round_trip_ns": "21170666",
+        "selected": true,
+        "selected_source": "controller",
+        "source": "usb-physical",
+        "uncertainty_ns": "17704761"
+      },
+      {
+        "accepted": true,
+        "clock_discrepancy_ns": "1",
+        "host_uncertainty_ns": "7018444",
+        "observed_ms": "95299385",
+        "post_ack_clock_discrepancy_ns": "1",
+        "processing_margin_ns": "100000",
+        "result": {
+          "accepted": true,
+          "age_ns": "42720000",
+          "selected": true,
+          "source": "controller",
+          "uncertainty_ns": "17696452"
+        },
+        "sample_ack_ms": "17",
+        "sample_radius_ns": "10575871",
+        "sample_round_trip_ns": "21151741",
+        "selected": true,
+        "selected_source": "controller",
+        "source": "usb-physical",
+        "uncertainty_ns": "17694316"
+      },
+      {
+        "accepted": true,
+        "clock_discrepancy_ns": "36",
+        "host_uncertainty_ns": "7020093",
+        "observed_ms": "95299467",
+        "post_ack_clock_discrepancy_ns": "18",
+        "processing_margin_ns": "100000",
+        "result": {
+          "accepted": true,
+          "age_ns": "43273000",
+          "selected": true,
+          "source": "controller",
+          "uncertainty_ns": "17695025"
+        },
+        "sample_ack_ms": "18",
+        "sample_radius_ns": "10572732",
+        "sample_round_trip_ns": "21145463",
+        "selected": true,
+        "selected_source": "controller",
+        "source": "usb-physical",
+        "uncertainty_ns": "17692861"
+      },
+      {
+        "accepted": true,
+        "clock_discrepancy_ns": "0",
+        "host_uncertainty_ns": "7019408",
+        "observed_ms": "95299550",
+        "post_ack_clock_discrepancy_ns": "0",
+        "processing_margin_ns": "100000",
+        "result": {
+          "accepted": true,
+          "age_ns": "43396000",
+          "selected": true,
+          "source": "controller",
+          "uncertainty_ns": "18236966"
+        },
+        "sample_ack_ms": "17",
+        "sample_radius_ns": "11115388",
+        "sample_round_trip_ns": "22230775",
+        "selected": true,
+        "selected_source": "controller",
+        "source": "usb-physical",
+        "uncertainty_ns": "18234796"
+      },
+      {
+        "accepted": true,
+        "clock_discrepancy_ns": "37",
+        "host_uncertainty_ns": "7019278",
+        "observed_ms": "95299631",
+        "post_ack_clock_discrepancy_ns": "19",
+        "processing_margin_ns": "100000",
+        "result": {
+          "accepted": true,
+          "age_ns": "42645000",
+          "selected": true,
+          "source": "controller",
+          "uncertainty_ns": "17697143"
+        },
+        "sample_ack_ms": "17",
+        "sample_radius_ns": "10575695",
+        "sample_round_trip_ns": "21151389",
+        "selected": true,
+        "selected_source": "controller",
+        "source": "usb-physical",
+        "uncertainty_ns": "17695010"
+      },
+      {
+        "accepted": true,
+        "clock_discrepancy_ns": "19",
+        "host_uncertainty_ns": "7018833",
+        "observed_ms": "95299713",
+        "post_ack_clock_discrepancy_ns": "1",
+        "processing_margin_ns": "100000",
+        "result": {
+          "accepted": true,
+          "age_ns": "42756000",
+          "selected": true,
+          "source": "controller",
+          "uncertainty_ns": "17698787"
+        },
+        "sample_ack_ms": "17",
+        "sample_radius_ns": "10577797",
+        "sample_round_trip_ns": "21155593",
+        "selected": true,
+        "selected_source": "controller",
+        "source": "usb-physical",
+        "uncertainty_ns": "17696649"
+      },
+      {
+        "accepted": true,
+        "clock_discrepancy_ns": "0",
+        "host_uncertainty_ns": "7019074",
+        "observed_ms": "95299793",
+        "post_ack_clock_discrepancy_ns": "0",
+        "processing_margin_ns": "100000",
+        "result": {
+          "accepted": true,
+          "age_ns": "42540000",
+          "selected": true,
+          "source": "controller",
+          "uncertainty_ns": "17705646"
+        },
+        "sample_ack_ms": "17",
+        "sample_radius_ns": "10584445",
+        "sample_round_trip_ns": "21168889",
+        "selected": true,
+        "selected_source": "controller",
+        "source": "usb-physical",
+        "uncertainty_ns": "17703519"
+      },
+      {
+        "accepted": true,
+        "clock_discrepancy_ns": "1",
+        "host_uncertainty_ns": "7018629",
+        "observed_ms": "95299876",
+        "post_ack_clock_discrepancy_ns": "1",
+        "processing_margin_ns": "100000",
+        "result": {
+          "accepted": true,
+          "age_ns": "42951000",
+          "selected": true,
+          "source": "controller",
+          "uncertainty_ns": "17698954"
+        },
+        "sample_ack_ms": "17",
+        "sample_radius_ns": "10578176",
+        "sample_round_trip_ns": "21156352",
+        "selected": true,
+        "selected_source": "controller",
+        "source": "usb-physical",
+        "uncertainty_ns": "17696806"
+      }
+    ],
+    "raw_component_observations": [
+      {
+        "sample_rtt_ns": 21665406,
+        "ack_rtt_ns": 17292918,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 7016,
+          "esterror_us": 4
+        }
+      },
+      {
+        "sample_rtt_ns": 21275055,
+        "ack_rtt_ns": 17486380,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 7516,
+          "esterror_us": 4
+        }
+      },
+      {
+        "sample_rtt_ns": 21396999,
+        "ack_rtt_ns": 17508954,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 7516,
+          "esterror_us": 4
+        }
+      },
+      {
+        "sample_rtt_ns": 21060093,
+        "ack_rtt_ns": 17470769,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 7516,
+          "esterror_us": 4
+        }
+      },
+      {
+        "sample_rtt_ns": 20821760,
+        "ack_rtt_ns": 17457010,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 7516,
+          "esterror_us": 4
+        }
+      },
+      {
+        "sample_rtt_ns": 21229648,
+        "ack_rtt_ns": 17557213,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 7516,
+          "esterror_us": 4
+        }
+      },
+      {
+        "sample_rtt_ns": 20818112,
+        "ack_rtt_ns": 17284974,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 7516,
+          "esterror_us": 4
+        }
+      },
+      {
+        "sample_rtt_ns": 21192018,
+        "ack_rtt_ns": 17304677,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 7516,
+          "esterror_us": 4
+        }
+      },
+      {
+        "sample_rtt_ns": 20969871,
+        "ack_rtt_ns": 17354325,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 7516,
+          "esterror_us": 4
+        }
+      },
+      {
+        "sample_rtt_ns": 21337333,
+        "ack_rtt_ns": 17179010,
+        "kernel": {
+          "state": 0,
+          "status": 0,
+          "maxerror_us": 7516,
+          "esterror_us": 4
+        }
+      }
+    ],
+    "wtp_clock": {
+      "state": "synchronized",
+      "utc_now_ns": "1792248605934660295",
+      "monotonic_now_ns": "3889700000",
+      "uncertainty_ns": "17750033",
+      "sync_age_ns": "1064524000",
+      "leap": "normal"
+    },
+    "chrony_tracking_csv": "50505300,PPS,1,1792248580.879835978,-0.000000000,-0.000004045,0.000001813,2.622,-0.050,0.136,0.000000001,0.000031750,16.0,Normal"
+  },
+  "restoration": {
+    "restored_exact_full_flash": true,
+    "flash_sha256": "02675b18ea96daca9ee52b95f41bd7f33dea0a5a739fee9fcc68e9e12cc73473",
+    "firmware_revision": "7bff45c0f32f",
+    "enabled": false,
+    "output_active": false,
+    "watermark_utc_ns": "1791705481000000000",
+    "service": [
+      "MainPID=390491",
+      "ActiveState=active"
+    ]
+  },
+  "pi_source_sha256": {
+    "src/wtp_integration/usb_management.cpp": "eae0d7f409c7d0d9d6acc594c4000f1c05ef0cdd0616329c4191235c25b17d65",
+    "src/wtp_integration/usb_management.hpp": "d13b3e0f9af9b023a374db2fc53f5cd74df68e1ca7017ddf844b8041191da21a",
+    "src/tests/wtp_usb_management_test.cpp": "ca91455d42823b2e437fdcb19ddbd2183975dfe629932183199bc7570360318b",
+    "src/tests/wtp_usb_pair_client.cpp": "fdbb5658f3b669835d4007b2c0a62dd376c744324c5ad6a18ff70ab91a65a6a2"
+  },
+  "pi_source_commit": "d43b4e305519fa4e1612c42c293849647d357e5c"
+}
