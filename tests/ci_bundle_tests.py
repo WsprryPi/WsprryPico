@@ -17,6 +17,14 @@ import bundle
 
 
 class BundleTests(unittest.TestCase):
+    def test_workflow_commands_parse_as_strings(self):
+        import yaml
+        workflow = yaml.load((ROOT / '.github/workflows/software-build.yml').read_text(), Loader=yaml.BaseLoader)
+        self.assertIn('push', workflow['on'])
+        for step in workflow['jobs']['verify']['steps']:
+            if 'run' in step:
+                self.assertIsInstance(step['run'], str)
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

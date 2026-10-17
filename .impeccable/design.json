@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-13T16:09:48.829238+00:00",
+  "generatedAt": "2026-10-17T23:31:00.594778+00:00",
   "title": "Design System: WsprryPico Station Control",
   "extensions": {
     "colorMeta": {
@@ -246,6 +246,13 @@
       "css": ".ds-label{display:flex;flex-direction:column;font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;font-size:1rem;line-height:1.5;font-weight:600;gap:.4rem;margin:0 0 1rem;color:#25313d}.ds-input{font:inherit;font-weight:400;width:100%;background:white;border:1px solid #8b9ba8;border-radius:4px;padding:.6rem;color:#25313d;caret-color:#225e8a}.ds-help{font-size:.875rem;font-weight:400;color:#52616e}.ds-input:focus-visible{outline:3px solid #b37617;outline-offset:3px}"
     },
     {
+      "name": "Standalone WSPR frequency",
+      "kind": "custom",
+      "description": "Native whole-Hz editor with separate read, save and discard actions; an unset frequency remains blank.",
+      "html": "<fieldset class=\"ds-frequency\"><legend class=\"ds-frequency-legend\">Standalone WSPR frequency</legend><label class=\"ds-frequency-label\" for=\"ds-frequency-input\">Base frequency (Hz)</label><input class=\"ds-frequency-input\" id=\"ds-frequency-input\" type=\"text\" inputmode=\"numeric\" maxlength=\"8\" disabled aria-describedby=\"ds-frequency-help\"><small class=\"ds-frequency-help\" id=\"ds-frequency-help\">No transmit frequency is preselected. Enter whole Hz; this setting is used by every standalone WSPR schedule, including both frames of a Type 2/3 pair. Save while idle; no restart or firmware rebuild is needed. Frequency permissions and engine limits still apply.</small><p role=\"status\" aria-live=\"polite\">Saved frequency has not been read.</p><button class=\"ds-frequency-button\" type=\"button\">Read saved frequency</button><button class=\"ds-frequency-button ds-frequency-primary\" type=\"button\" disabled>Save frequency</button><button class=\"ds-frequency-button\" type=\"button\" disabled>Discard frequency draft</button></fieldset>",
+      "css": ".ds-frequency{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;font-size:1rem;line-height:1.5;color:#25313d;padding:0;border:0;min-width:0}.ds-frequency-legend{font-weight:600;margin:1rem 0}.ds-frequency-label{display:flex;flex-direction:column;font-weight:600;gap:.4rem;margin:0 0 1rem}.ds-frequency-input{font:inherit;width:100%;background:white;border:1px solid #687e90;border-radius:4px;padding:.6rem;color:#25313d;caret-color:#225e8a}.ds-frequency-help{font-size:.875rem;font-weight:400;color:#52616e}.ds-frequency-button{font:inherit;min-height:44px;border:1px solid #687e90;background:white;color:#203a50;border-radius:4px;padding:.5rem .9rem;cursor:pointer;margin:.25rem .35rem .25rem 0}.ds-frequency-primary{background:#225e8a;border-color:#225e8a;color:white}.ds-frequency-button:hover:enabled{filter:brightness(.93)}.ds-frequency-button:disabled{opacity:.6;cursor:default}.ds-frequency-input:focus-visible,.ds-frequency-button:focus-visible{outline:3px solid #b37617;outline-offset:3px}.ds-frequency-input[aria-invalid=\"true\"]{border-color:#bd6755}@media(max-width:650px){.ds-frequency-button{max-width:100%}}"
+    },
+    {
       "name": "Header identity",
       "kind": "nav",
       "description": "Home link and station-control descriptor.",
@@ -276,7 +283,7 @@
     }
   ],
   "narrative": {
-    "overview": "This record applies to `src/network/web/index.html`, `style.css`, and `app.js`.\nIt captures the existing embedded operator interface after the finite-message\nchanges. No new brand metaphor, visual identity, or approved composition is\nestablished. WsprryPi has its own design record; its fonts, Bootstrap components,\nand theme rules are not dependencies of this embedded surface.\n\nThe interface presents station state and editable forms in a centered light\npage beneath a navy header. Technical values, plain labels, inline help, and\nexplicit recovery messages carry the hierarchy. Timing belongs to the Pico;\nthe browser prepares complete jobs and reports observations.",
+    "overview": "This record applies to the admitted operator pages in `src/network/web/` and the Wi-Fi-first, optional station and recovery pages in `src/network/bootstrap_web/`.\nIt records the embedded operator interface's native controls, feedback and\nrecovery conventions. No new brand metaphor, visual identity, or approved composition is\nestablished. WsprryPi has its own design record; its fonts, Bootstrap components,\nand theme rules are not dependencies of this embedded surface.\n\nThe interface presents station state and editable forms in a centered light\npage beneath a navy header. Technical values, plain labels, inline help, and\nexplicit recovery messages carry the hierarchy. Timing belongs to the Pico;\nthe browser prepares complete jobs and reports observations.",
     "keyCharacteristics": [
       "Flat sections separated by borders and spacing.",
       "Native controls with visible keyboard focus and explicit labels.",
