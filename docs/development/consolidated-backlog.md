@@ -14,7 +14,7 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    evidence closeout. [Saved prompt](short-wspr-type23-decode-execution-prompt.md).
 3. ▧ **Amplifier-enable GPIO during transmissions.** Assert the configured enable
    pin before RF starts and return it inactive after completion, stop, abort
-   or fault.
+   or fault. [Saved prompt](amplifier-enable-execution-prompt.md).
 4. ▧ **NTP Work**
    - ▧ Persistent standalone manual PPM.
    - ▧ NTP filtering and UTC rate discipline.
