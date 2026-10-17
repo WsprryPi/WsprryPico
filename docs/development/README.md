@@ -6,14 +6,19 @@ and a hard ten-minute AP lifetime for every entry path. It preserves WTP/1 and
 existing numeric job/timing limits. Its record distinguishes software/build
 evidence from outstanding physical USB/AP/RF qualification.
 
+The accepted [100 ms UTC follow-up](utc-100ms-execution-prompt.md) and
+[results](utc-100ms-results.md) record the new/missing Pi setting default;
+explicit saved uncertainty limits remain unchanged.
+
 Current [Phase 15 punchlist numbering](../implementation-plan.md#phase-15-operator-review-punchlist)
 places P15.14 USB control (complete within its recorded scope) after P15.13
 band/mode/clock qualification. After USB acceptance, deliver
 [P15.15 GPIO drive strength](phase15-15-execution-prompt.md), then
 [P15.16 uninhibited default build](phase15-16-execution-prompt.md),
 [P15.17 GitHub testing prerelease](phase15-17-execution-prompt.md),
-[P15.18 USB installer](phase15-18-execution-prompt.md), P15.19 Impeccable web UI
-review including provisioning, and P15.20 user documentation.
+[P15.18 USB installer](phase15-18-execution-prompt.md),
+[P15.19 Impeccable web UI review including provisioning](phase15-19-execution-prompt.md),
+and P15.20 user documentation.
 P15.15–P15.20 have not started. The review precedes final operator instructions
 and screenshots. Installer planning is recorded in
 "Assess WsprryPico installer options". P15.1–P15.14 retain their numbers;

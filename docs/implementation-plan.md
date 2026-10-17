@@ -549,13 +549,19 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   firmware and the Pi runtime/UI. Shared configuration, saved progress,
   canonical hostname, Wi-Fi create/replace/delete-last/recreate and qualified
   USB UTC work without Pico networking. Every AP entry has the same finite
-  ten-minute maximum. Existing job/timing limits remain unchanged. The
+  ten-minute maximum. Existing job capacities and other timing guards remain
+  unchanged. The
   [execution record](development/usb-control-results.md) and
   [target result](development/usb-control-target-results.json) record 186 Pico
   checks, Pi/runtime/sanitizer/pair/compatibility checks, independent repairs,
   maximum-capacity physical LOAD and observed AP withdrawal under USB traffic.
   Exact original flash is restored. This closure does not renew transmitter
   RF/timing or unrestricted network/TLS coexistence qualification.
+  The accepted [100 ms UTC follow-up prompt](development/utc-100ms-execution-prompt.md)
+  and [results](development/utc-100ms-results.md) record the new/missing Pi
+  settings default of 100 ms while preserving explicit limits, including 1 ms
+  (Pi `1dd918b`, Pico `1162e4f`). The follow-up's software validation and
+  adversarial self-assessments passed; no physical ARM or RF test was performed.
 - ☐ **P15.15 — GPIO drive-strength configuration across Pico and WsprryPi.**
   After P15.14 USB acceptance, add persisted per-RF-pin drive choices of
   **2, 4, 8 and 12 mA**, default **4 mA**, to the Pico firmware, USB management
@@ -607,9 +613,13 @@ Status symbols: ✅ complete; ⏳ in progress; ☐ not started.
   Inspect rendered representative states, record prioritized findings, repair
   actionable in-scope issues and verify affected behavior with bounded visual
   passes. Preserve the existing design identity, authentication, drafts, device
-  identity and AP/timing/ownership contracts. Complete this review before P15.20
+  identity and AP/timing/ownership contracts. Start from the current UI, reuse
+  WsprryPi's operator vocabulary and interaction patterns, and keep Pico fast
+  and lightweight. Complete this review before P15.20
   finalizes operator instructions and screenshots. Status: **Not started**.
-  No standalone execution prompt is saved.
+  Saved execution prompt:
+  [P15.19 Impeccable web UI review](development/phase15-19-execution-prompt.md),
+  for use after P15.18 acceptance; preparation does not execute it.
 - ☐ **P15.20 — Create user documentation for Read the Docs Community.**
   Create operator-focused documentation suitable for building and hosting on
   the community version of Read the Docs. Reuse suitable styling, format and

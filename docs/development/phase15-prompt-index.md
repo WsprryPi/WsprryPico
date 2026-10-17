@@ -10,7 +10,8 @@ retain their evidence and limitations.
 
 Fourteen items are complete; six have not started. P15.14 USB closure was supplied by the
 concurrent USB task and is preserved here; this planning task did not execute
-or requalify USB control. None of the four saved future prompts has been executed.
+or requalify USB control. Five execution prompts are saved; preparing these
+documents does not execute the tasks.
 
 | Item | Task | Status | Saved prompt or current handoff |
 | --- | --- | --- | --- |
@@ -27,12 +28,12 @@ or requalify USB control. None of the four saved future prompts has been execute
 | P15.11 | Consolidate or split Station/Transmission and Wi-Fi/Host setup | Complete | [Original executed handoff](phase15-11-execution-prompt.md) |
 | P15.12 | Show the hostname as the main-page identity | Complete | [Original executed handoff](phase15-12-execution-prompt.md) |
 | P15.13 | Complete untested-band qualification and resolve clock-dependent support | Complete | [Frozen qualification plan](phase15-13-plan.md) |
-| P15.14 | USB control | Complete | [USB execution record](usb-control-results.md) |
+| P15.14 | USB control | Complete | [USB execution record](usb-control-results.md); [100 ms UTC follow-up prompt](utc-100ms-execution-prompt.md) and [results](utc-100ms-results.md) |
 | P15.15 | GPIO drive-strength configuration across Pico and WsprryPi | Not started | [Saved drive-strength prompt](phase15-15-execution-prompt.md) |
 | P15.16 | Make the default firmware build uninhibited | Not started | [Saved default-build prompt](phase15-16-execution-prompt.md) |
 | P15.17 | Publish a GitHub testing prerelease with a firmware asset | Not started | [Saved testing-prerelease prompt](phase15-17-execution-prompt.md) |
 | P15.18 | Installer | Not started | [Saved USB-installer prompt](phase15-18-execution-prompt.md) |
-| P15.19 | Impeccable review of the web UI, including provisioning | Not started | No standalone execution prompt saved |
+| P15.19 | Impeccable review of the web UI, including provisioning | Not started | [Saved Impeccable UI-review prompt](phase15-19-execution-prompt.md) |
 | P15.20 | Create user documentation for Read the Docs Community | Not started | No standalone execution prompt saved |
 
 ## Renumbering and dependency map
@@ -40,7 +41,7 @@ or requalify USB control. None of the four saved future prompts has been execute
 | Previous current number | New number | Task and prompt action |
 | --- | --- | --- |
 | P15.1–P15.18 | Unchanged | Preserve task identities, saved prompt paths and historical evidence. |
-| New insertion | P15.19 | Impeccable web UI review, including provisioning; no standalone execution prompt saved. |
+| New insertion | P15.19 | Impeccable web UI review, including provisioning; [execution prompt saved](phase15-19-execution-prompt.md). |
 | P15.19 | P15.20 | Read the Docs Community user documentation; no standalone execution prompt saved. |
 
 The earlier GPIO insertion established the current P15.15–P15.18 sequence
@@ -75,7 +76,10 @@ for execution after P15.14–P15.16 acceptance; preparation publishes nothing.
 The [P15.18 USB-installer prompt](phase15-18-execution-prompt.md) is saved for
 execution after P15.14–P15.17 acceptance, including independent review,
 repair/retest/reassessment and scoped commit/push instructions. Preparation
-does not execute it. P15.19/P15.20 have no standalone execution prompts saved.
+does not execute it. The [P15.19 Impeccable review prompt](phase15-19-execution-prompt.md)
+is saved with the existing-interface Improve/Check flow, reusable Pi startup
+context and Pico's lightweight/familiarity requirements. Preparation does not
+run the review. P15.20 has no standalone execution prompt saved.
 Discussion and checklist entries are not evidence of implementation.
 
 Original executed prompts, results, frozen plans, source manifests, historical
