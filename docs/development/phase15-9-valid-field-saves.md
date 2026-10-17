@@ -1,10 +1,20 @@
 # P15.9 — Independent valid-field saves
 
-Status: **Pico supported software acceptance complete, 2026-10-16.**
-Implementation, repairs, exact source-pair checks and publication are recorded. Overall P15.9 remains
-subject to WsprryPi release checklist step 15 and its separate assessment.
-WsprryPi coordinates; WsprryPico owns this implementation. No physical operation,
-Pi feature/devel adoption, release, tag or PR is implied.
+Status: **P15.9 complete**, including WsprryPi release checklist item 15,
+confirmed by the operator on 2026-10-17. Software acceptance was recorded on
+2026-10-16. Product `56821ac`, evidence `29542e4` and subsequent P15.12
+integration `227e73c` are included in published Pico `devel` at `156dfa1`.
+Implementation, repairs and exact source-pair checks are recorded. Software
+validation and independent reassessment passed within that scope. Pages checks passed;
+no firmware/software-test CI pass is claimed. WsprryPi coordinates; WsprryPico
+owns this implementation. P15.13 qualification and P15.14 operator documentation
+remain separate checklist items. The execution details below retain their
+original source applicability and historical coordination boundaries.
+
+The [originating post-execution assessment](phase15-9-post-execution-review.md)
+was subsequently completed on 2026-10-17 against integrated Pico `156dfa1`.
+Four findings were repaired and independently reassessed. Its fresh results
+and source hashes supplement the historical execution evidence below.
 
 ## Scope and source identities
 
@@ -288,15 +298,19 @@ chat, avoiding a self-referential report-commit identity.
 Independent reassessment after all source repairs found no remaining actionable
 finding. It reran the 246 progress assertions, 32 closed-resource assertions and
 35 session assertions and inspected confirmation desktop/mobile evidence. The
-originating conversation's separately requested post-execution assessment still
-has not occurred. No background work or cross-chat message was scheduled.
+originating conversation's separately requested post-execution assessment had
+not occurred at that execution checkpoint. No background work or cross-chat
+message was scheduled.
 
 The isolated devel checkout was clean at product publication. The primary Pico
 checkout remains on its own devel base with P15.12 edits; those are preserved,
 not fast-forwarded over. Primary Pi retains its existing modified punchlist at
 `a84010d`; no Pi commit/push, source adoption, compatibility-pin advance,
-release/tag/PR, service operation or hardware activity occurred. Overall Pi
-checklist step 15 remains a separate coordinating acceptance boundary.
+release/tag/PR, service operation or hardware activity occurred. At that execution
+checkpoint, overall Pi coordinating acceptance remained separate. Subsequent
+integration `227e73c` combined P15.9 with P15.12 and is included in Pico `devel`
+at `156dfa1`. The operator confirmed WsprryPi item 15/P15.9 complete on
+2026-10-17; this supersedes the earlier pending checklist disposition.
 
 ## Documentation Impact
 
@@ -315,4 +329,5 @@ checklist step 15 remains a separate coordinating acceptance boundary.
   Add new Pico standalone captures only when adopted documentation scope permits.
 - Operator docs were inspected read-only at `WsprryPi-Docs`; the differently
   named `Wsprry_Pi_Docs` sibling is absent. No operator-doc build/publication,
-  Pi release integration or originating conversation assessment is claimed.
+  or Pi release integration is claimed by this historical execution record; the
+  subsequent originating assessment is linked above.

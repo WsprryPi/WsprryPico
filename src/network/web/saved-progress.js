@@ -112,8 +112,11 @@
   }
   function summary(x) {
     const missing = ['callsign','locator','power_dbm'].filter(k => x.station[k] === null).map(k => labels[k].toLowerCase());
-    let text = missing.length ? 'WSPR station draft is incomplete: ' + missing.join(', ') + ' missing. ' :
-      x.wspr_plan?.supported ? 'Saved station: ' + x.station.callsign + ', ' + x.station.locator + ', ' + x.station.power_dbm + ' dBm. WSPR draft is encodable. ' : 'WSPR draft cannot be encoded: ' + (x.wspr_plan?.rationale || 'read current station planning') + '. ';
+    let text = 'Saved station draft: callsign ' + (x.station.callsign ?? 'missing') +
+      '; grid locator ' + (x.station.locator ?? 'missing') + '; reported power ' +
+      (x.station.power_dbm === null ? 'missing' : x.station.power_dbm + ' dBm') + '. ';
+    text += missing.length ? 'WSPR station draft is incomplete. ' :
+      x.wspr_plan?.supported ? 'WSPR draft is encodable. ' : 'WSPR draft cannot be encoded: ' + (x.wspr_plan?.rationale || 'read current station planning') + '. ';
     text += 'Saving progress does not apply settings or establish transmit readiness. ';
     if (x.schedule_enabled === true) text += x.schedule_suspended === true
       ? 'The enabled schedule remains suspended and retains the previously applied settings.'
@@ -124,5 +127,12 @@
     return Object.entries(values).map(([k,v]) => v === 'invalid' ? labels[k] + ' was not saved: ' + errors[k] + '.' :
       labels[k] + (v === 'cleared' ? ' cleared in the saved draft.' : ' saved as draft.')).join(' ');
   }
-  globalThis.WsprryPicoSavedProgress = Object.freeze({names,labels,errors,valid,confirms,validPlan,summary,outcomeText});
+  function fieldOutcomeText(unit,value,newer = false) {
+    if (newer) return (value === 'invalid' ? 'Earlier value was not saved: ' + errors[unit] + '.' :
+      value === 'cleared' ? 'Earlier value was cleared in the saved draft.' : 'Earlier value was saved as draft.') +
+      ' This newer edit remains unsaved.';
+    return value === 'invalid' ? 'Not saved: ' + errors[unit] + '.' :
+      value === 'cleared' ? 'Cleared in saved draft.' : 'Saved as draft.';
+  }
+  globalThis.WsprryPicoSavedProgress = Object.freeze({names,labels,errors,valid,confirms,validPlan,summary,outcomeText,fieldOutcomeText});
 })();

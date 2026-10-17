@@ -110,11 +110,11 @@ async function saveOwnerProgress() {
       const input = $('owner-' + (key === 'power_dbm' ? 'power' : key));
       const id = input.id + '-progress-result'; let message = $(id);
       if (!message) {message=document.createElement('small');message.id=id;message.className='field-result';input.insertAdjacentElement('afterend',message);}
-      if (progressEdits.get(key) !== edits.get(key)) {message.textContent='Earlier value saved; this newer edit remains unsaved.';continue;}
-      input.setAttribute('aria-invalid',String(value === 'invalid'));input.setAttribute('aria-describedby',id);
-      message.textContent = value === 'invalid' ? 'Not saved: ' + progressUI.errors[key] + '.' : value === 'cleared' ? 'Cleared in saved draft.' : 'Saved as draft.';
+      const newer = progressEdits.get(key) !== edits.get(key);
+      input.setAttribute('aria-invalid',String(!newer && value === 'invalid'));input.setAttribute('aria-describedby',id);
+      message.textContent = progressUI.fieldOutcomeText(key,value,newer);
       message.classList.toggle('error',value === 'invalid');
-      if (value !== 'invalid') progressEdits.delete(key);
+      if (!newer && value !== 'invalid') progressEdits.delete(key);
     }
     formEdited = progressEdits.size !== 0;
     progressState = ['draft_revision','config_revision','profile_revision'].every(k=>ownerProgress.data[k]===result[k]) ? 'ready' : 'review';

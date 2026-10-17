@@ -16,4 +16,14 @@ const cleared={...ack,fields:{callsign:null},station:{...base.station,callsign:n
 check(ui.confirms(cleared,{...request,fields:{callsign:null}}),true);
 check(ui.confirms({...ack,outcomes:{callsign:'invalid'},last_outcomes:{}},{...request,fields:{callsign:'BAD'}}),true);
 check(ui.valid({...base,fields:{callsign:'AA0NT',power_dbm:0},station:{...base.station,power_dbm:0}}),true);
+for (const outcome of ['saved','cleared','invalid']) {
+  const text=ui.fieldOutcomeText('locator',outcome,true);
+  check(text.includes('newer edit remains unsaved'),true);
+  check(text.includes(outcome==='invalid'?'not saved':outcome==='cleared'?'cleared':'saved as draft'),true);
+  if(outcome==='invalid') check(/Earlier value was saved/.test(text),false);
+}
+check(ui.summary(base).includes('callsign AA0NT'),true);
+check(ui.summary(base).includes('grid locator missing; reported power missing'),true);
+check(ui.summary({...base,station:{...base.station,callsign:'BB1BB'}}).includes('callsign BB1BB'),true);
+check(ui.summary({...base,station:{callsign:'BB1BB',locator:'EM18',power_dbm:0}}).includes('reported power 0 dBm'),true);
 console.log(`saved-progress closed response/ack validation: ${assertions} assertions passed`);

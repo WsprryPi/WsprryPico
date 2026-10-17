@@ -5,13 +5,21 @@ single/pair planning, explicit versioned application/station admission, preserve
 legacy Type 1 workflows and the coordinated Pi companion boundary. Acceptance
 is complete within its documented software scope. WsprryPi release checklist
 step 14 integration is closed by operator acceptance on 2026-10-16.
-The separately requested originating review, physical RF/transport and later
-P15.9–P15.14 work remain separate. The
+The separately requested originating review and physical RF/transport
+qualification remain separate. The
 [P15.9 execution record](phase15-9-valid-field-saves.md) and
 [saved progress contract](saved-progress.md) cover independent durable fields,
-explicit application and transmit-readiness distinctions. P15.9 remains in progress, by operator
-direction, pending its WsprryPi portion under release checklist step 15. Pico supported
-software acceptance is complete within the execution record's stated boundaries.
+explicit application and transmit-readiness distinctions. P15.9 is complete,
+including WsprryPi release checklist item 15, confirmed by the operator on
+2026-10-17. Product `56821ac`, evidence `29542e4` and subsequent P15.12
+integration `227e73c` are included in published Pico `devel` at `156dfa1`.
+Software validation and independent reassessment passed; Pages checks passed,
+with no firmware/software-test CI pass claimed. P15.13 qualification and P15.14
+operator documentation remain separate checklist items.
+The [originating post-execution assessment](phase15-9-post-execution-review.md)
+closes four repaired findings and records fresh independent reassessment.
+Pi adoption, P15.13 qualification and P15.14 documentation remain separate.
+
 The separately prepared Pi execution/sequencing
 handoffs have been withdrawn. Any Pi changes retain release coordination.
 
@@ -34,7 +42,7 @@ hostname; native Diagnostics retains the full stable ID and separate boot
 observation. Public/active/pending/last-confirmed/unknown states, final source
 checks, review repairs, transient host-test failures and skips are recorded.
 The [execution handoff](phase15-12-execution-prompt.md) remains the original task.
-P15.9's pending Pi portion and P15.13/P15.14 boundaries remain unchanged.
+P15.9 is complete; P15.13/P15.14 boundaries remain unchanged.
 
 The selected [consumer LAN access slice](consumer-lan-access.md) now implements
 port-80 station IP/hostname access, saved-password authentication, normally-off

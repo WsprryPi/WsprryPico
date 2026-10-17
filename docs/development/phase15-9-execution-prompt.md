@@ -1,8 +1,21 @@
 # P15.9 handoff: save valid fields independently of transmit readiness
 
-Overall status: **in progress pending its WsprryPi portion under release
-checklist step 15**, by operator direction. The originating conversation
-prepared this source review and prompt without executing the implementation.
+Current checklist status: **complete**, including WsprryPi release checklist
+item 15, confirmed by the operator on 2026-10-17. Product `56821ac`, evidence
+`29542e4` and subsequent P15.12 integration `227e73c` are included in published
+Pico `devel` at `156dfa1`; see the
+[execution record](phase15-9-valid-field-saves.md). Software validation and
+independent reassessment passed; Pages checks passed, with no firmware/software-test
+CI pass claimed. P15.13 qualification and P15.14 operator documentation remain
+separate checklist items. The source review and execution prompt below retain
+their original scope and historical coordination boundaries.
+
+The [originating post-execution assessment](phase15-9-post-execution-review.md)
+closes four repaired findings and records fresh independent reassessment.
+Pi adoption, P15.13 qualification and P15.14 documentation remain separate.
+
+The originating conversation prepared this source review and prompt without
+executing the implementation.
 The separately saved WsprryPi-coordinated execution handoff has been withdrawn
 by operator direction. This technical review remains a reference; changing the
 tracking status does not itself execute implementation or establish acceptance.

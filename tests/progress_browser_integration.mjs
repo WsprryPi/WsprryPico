@@ -13,7 +13,7 @@ const output=path.resolve(process.argv[3] || 'build/phase15-9-browser');
 await mkdir(output,{recursive:true});
 const profile=await mkdtemp(path.join(os.tmpdir(),'p159-chrome-'));
 let f=new Fixture(process.argv[2]);await f.time(1000);
-let old=false, engineering=false, engineeringFault=null, heldReply=null, releaseReply=null, chrome, cdp; const requests=[];
+let old=false, engineering=false, engineeringFault=null, publicFault=null, heldReply=null, releaseReply=null, chrome, cdp; const requests=[];
 const publicProgress = async()=>await (await f.fetch('192.168.4.1',true,'/api/owner/v1/progress',{marker:'Owner'})).json();
 const proxy=http.createServer(async(req,res)=>{
     try {
@@ -51,6 +51,10 @@ const proxy=http.createServer(async(req,res)=>{
         }
         assert.equal(bytes.length,expected,'complete production HTTP response');
         requests.push({path:u.pathname,status:response.status,bytes:bytes.length});
+        if(u.pathname==='/api/owner/v1/progress/submit') {
+          if(publicFault==='drop') {publicFault=null;res.destroy();return;}
+          if(publicFault==='hold') {publicFault=null;heldReply=true;await new Promise(resolve=>releaseReply=resolve);heldReply=false;}
+        }
         if(u.pathname === "/") await writeFile(path.join(output,"root.html"),bytes);
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
     }catch(error){res.writeHead(500,{'Content-Type':'text/plain'});res.end(error.message);}
@@ -122,6 +126,16 @@ try {
     await click('reload-config');await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-locator').value==='EM18IG'`),'explicit reload adopts saved valid locator');
     assert.notEqual(await cdp.evaluate(`document.getElementById('consumer-locator').getAttribute('aria-invalid')`),'true');
     assert.match(await cdp.evaluate(`document.getElementById('consumer-wspr-plan').textContent`),/Type 2 then Type 3/);
+    // Native selection exposes an explicit clear without coercing blank to zero.
+    assert.equal(await cdp.evaluate(`Array.from(document.getElementById('consumer-power').options).some(o=>o.value==='')`),true,'native empty power option');
+    const beforeClear=await f.command({op:'stats'});
+    await field('consumer-power','');await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
+    await until(()=>cdp.evaluate(`!busy && savedProgress.data.fields.power_dbm===null`),'native blank power is a saved tombstone');
+    const afterClear=await f.command({op:'stats'});
+    for(const key of ['profile_programs','config_sequence','api_restarts']) assert.equal(afterClear[key],beforeClear[key],'clear has no applied-profile/config/restart side effect');
+    assert.equal(await cdp.evaluate(`document.getElementById('apply-station-progress').matches(':disabled')`),true);
+    await field('consumer-power','0');await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
+    await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && savedProgress.data.station.power_dbm===0`),'explicit zero restored');
     await capture('complete-unapplied');
     await click('apply-station-progress');
     await until(()=>cdp.evaluate(`document.getElementById('consumer-save-status').textContent.startsWith('Settings accepted.')`),'delivered explicit profile application');
@@ -144,6 +158,48 @@ try {
     assert.equal((await publicProgress()).applied_station,null);
     let publicAfter=await f.command({op:'stats'});assert.equal(publicAfter.profile_generation,publicBefore.profile_generation);assert.equal(publicAfter.profile_programs,publicBefore.profile_programs);assert.equal(publicAfter.trial_starts,publicBefore.trial_starts);assert.equal(publicAfter.config_sequence,publicBefore.config_sequence);
     await capture('public-callsign-only');
+    // A lost production encrypted reply must preserve edits and show actual saved
+    // partial values on explicit readback, without attributing the interrupted write.
+    const submitCount=()=>requests.filter(r=>r.path==='/api/owner/v1/progress/submit').length;
+    const beforeLost=submitCount();publicFault='drop';
+    await field('owner-callsign','CC2CC');await click('owner-save-progress');
+    await until(()=>cdp.evaluate(`document.getElementById('owner-progress-status').textContent.startsWith('Save result unconfirmed.')`),'lost encrypted progress reply');
+    // A second actual public-commissioning browser changes the incomplete
+    // identity after the interrupted write; readback is not attribution. Ordinary
+    // consumer management correctly remains unavailable for this network-only profile.
+    const primary=cdp, secondary=await primary.send('Target.createTarget',{url:'http://192.168.4.1/owner.html'});
+    const secondaryPage=await until(async()=>(await (await fetch(`http://127.0.0.1:${debugPort}/json`)).json()).find(p=>p.id===secondary.targetId),'second commissioning page');
+    cdp=new Cdp(secondaryPage.webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
+    await until(()=>cdp.evaluate(`document.getElementById('owner-callsign')?.value==='CC2CC' && !document.getElementById('owner-save-progress').disabled`),'second public saved-state read');
+    await field('owner-callsign','BB1BB');await click('owner-save-progress');
+    await until(async()=>!(await cdp.evaluate(`document.getElementById('owner-save-progress').disabled`)) && (await publicProgress()).fields.callsign==='BB1BB','second public browser encrypted save');
+    cdp.ws.close();await primary.send('Target.closeTarget',{targetId:secondary.targetId});cdp=primary;
+    await field('owner-callsign','DD3DD');await click('owner-read-progress');
+    await until(()=>cdp.evaluate(`!document.getElementById('owner-review-progress').hidden && !document.getElementById('owner-read-progress').disabled`),'public explicit readback');
+    assert.equal(await cdp.evaluate(`document.getElementById('owner-callsign').value`),'DD3DD');
+    assert.match(await cdp.evaluate(`document.getElementById('owner-progress-status').textContent`),/BB1BB/,'readback displays independently changed incomplete identity');
+    assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/Matching values do not identify/);
+    await capture('public-readback');await click('owner-review-progress');
+    assert.equal(submitCount(),beforeLost+2,'read/review does not replay either browser save');
+    // Mixed invalid outcomes and newer edits remain truthful even for delayed AEAD replies.
+    await field('owner-callsign','AA0NT');await field('owner-locator','BAD');publicFault='hold';await click('owner-save-progress');
+    await until(()=>heldReply,'public mixed committed reply');await field('owner-locator','EM18IG');releaseReply();
+    await until(()=>cdp.evaluate(`!document.getElementById('owner-save-progress').disabled`),'public mixed late reply');
+    const publicMixed=await cdp.evaluate(`document.getElementById('owner-locator-progress-result').textContent`);
+    assert.match(publicMixed,/not saved/i);assert.match(publicMixed,/newer edit remains unsaved/);assert.doesNotMatch(publicMixed,/Earlier value (was )?saved/);
+    assert.equal(await cdp.evaluate(`document.getElementById('owner-locator').value`),'EM18IG');
+    await capture('public-late-invalid');
+    await field('owner-locator','');publicFault='hold';await click('owner-save-progress');
+    await until(()=>heldReply,'public clear committed reply');await field('owner-locator','EM18IG');releaseReply();
+    await until(()=>cdp.evaluate(`!document.getElementById('owner-save-progress').disabled`),'public clear late reply');
+    assert.match(await cdp.evaluate(`document.getElementById('owner-locator-progress-result').textContent`),/cleared/i);
+    assert.match(await cdp.evaluate(`document.getElementById('owner-locator-progress-result').textContent`),/newer edit remains unsaved/);
+    assert.equal((await publicProgress()).fields.locator,null);
+    // Explicitly clear the retained edit before the separate reboot case; do not
+    // bypass the real page's unsaved-edit beforeunload protection.
+    await field('owner-locator','');await click('owner-save-progress');
+    await until(()=>cdp.evaluate(`!document.getElementById('owner-save-progress').disabled && document.getElementById('owner-locator-progress-result').textContent==='Cleared in saved draft.'`),'explicit retained-edit clear');
+
     await f.command({op:'reboot'});await f.time(f.now+1000);await cdp.send('Page.reload');
     await until(()=>cdp.evaluate(`document.getElementById('owner-callsign')?.value==='AA0NT' && !document.getElementById('owner-save-progress').disabled`),'network-only draft reboot/page reload');
     assert.equal(await cdp.evaluate(`document.getElementById('owner-power').value`),'');
@@ -198,11 +254,31 @@ try {
     assert.equal(await cdp.evaluate(`document.querySelector('[name=callsign]').value`),'EE4EE');
     assert.equal(await cdp.evaluate(`progressEdits.has('callsign')`),true);
     assert.match(await cdp.evaluate(`document.getElementById('progress-error-settings-callsign').textContent`),/newer edit remains unsaved/);
+    await field('locator','BAD');engineeringFault='hold';
+    await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
+    await until(()=>heldReply,'engineering rejected earlier locator reply');await field('locator','EM18IG');releaseReply();
+    await until(()=>cdp.evaluate(`!busy`),'engineering rejected late acknowledgement');
+    const engineeringMixed=await cdp.evaluate(`document.getElementById('progress-error-settings-locator').textContent`);
+    assert.match(engineeringMixed,/not saved/i);assert.match(engineeringMixed,/newer edit remains unsaved/);assert.doesNotMatch(engineeringMixed,/Earlier value (was )?saved/);
+    assert.equal(await cdp.evaluate(`document.querySelector('[name=locator]').value`),'EM18IG');
+    assert.equal(await cdp.evaluate(`progressEdits.has('locator')`),true);
+    await capture('engineering-late-invalid');
+    await field('locator','');engineeringFault='hold';
+    await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
+    await until(()=>heldReply,'engineering earlier clear reply');await field('locator','EM18IG');releaseReply();
+    await until(()=>cdp.evaluate(`!busy`),'engineering clear late acknowledgement');
+    assert.match(await cdp.evaluate(`document.getElementById('progress-error-settings-locator').textContent`),/cleared/i);
+    assert.equal(await cdp.evaluate(`savedProgress.data.fields.locator`),null);
+    assert.equal(await cdp.evaluate(`document.getElementById('apply-engineering-station-progress').matches(':disabled')`),true);
+    // Complete the saved station explicitly before checking the enabled Apply
+    // control's keyboard position; clearing correctly disabled that control.
+    await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
+    await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && !document.getElementById('apply-engineering-station-progress').matches(':disabled')`),'explicit engineering completion after clear');
     await cdp.evaluate(`document.getElementById('save-engineering-station-progress').focus()`);
     await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
     await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
     assert.equal(await cdp.evaluate(`document.activeElement.id`),'apply-engineering-station-progress');
-    console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,real_crypto:true,callsign_only:true,blank_qrss:true,mixed_outcomes:true,zero_power:true,explicit_reload:true,keep_draft_readback:true,explicit_application:true,reconstructed_reboot:true,network_only_no_profile_promotion:true,engineering_numeric_overflow:true,keyboard:true,future_reply:true,late_edit:true,screenshots:process.env.PROGRESS_BROWSER_NO_CAPTURE==='1'?0:29}));
+    console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,real_crypto:true,callsign_only:true,blank_qrss:true,mixed_outcomes:true,zero_power:true,explicit_reload:true,keep_draft_readback:true,explicit_application:true,reconstructed_reboot:true,network_only_no_profile_promotion:true,engineering_numeric_overflow:true,keyboard:true,future_reply:true,late_edit:true,late_rejected_and_cleared_outcomes:true,public_lost_reply_readback:true,native_power_clear:true,screenshots:process.env.PROGRESS_BROWSER_NO_CAPTURE==='1'?0:41}));
 } catch(error) {
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,1800)})`).catch(e=>e.message):null}));throw error;
 } finally {cdp?.ws.close();chrome?.kill();proxy.close();await f.stop();}

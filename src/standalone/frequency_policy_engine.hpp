@@ -34,10 +34,12 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     }
     bool schedule(const wtp::Job& job, std::uint64_t start,
                   const wtp::LocalStartConditions& conditions) override {
-        return engine_.schedule(job, start, conditions);
+        // Preparation may precede a latched storage fault. Keep cleanup paths
+        // below available even when a new launch is no longer admitted.
+        return store_.healthy() && engine_.schedule(job, start, conditions);
     }
     bool begin(const wtp::Job& job, std::uint64_t start) override {
-        return engine_.begin(job, start);
+        return store_.healthy() && engine_.begin(job, start);
     }
     wtp::EngineReport poll(std::uint64_t now) override {
         return engine_.poll(now);

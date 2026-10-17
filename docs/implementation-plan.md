@@ -6,7 +6,7 @@ This file is useful while implementation is active. Remove roadmap sequencing,
 completed-work narration and other progress material before the documentation is
 treated as long-term product documentation.
 
-Current position, 2026-10-15: Phases 1–12 and Phase 14 are closed within their
+Current position, 2026-10-17: Phases 1–12 and Phase 14 are closed within their
 recorded scopes. P13.1 transmit LED work is complete. Remaining conditional,
 deferred and unselected proposals are listed under
 [remaining deferred and backlog items](#remaining-deferred-and-backlog-items).
@@ -155,12 +155,10 @@ No Phase 14 workstream or LED task remains open.
     consumer-image long endurance and documented security limits remain outside
     acceptance. These are retained scope limits, not unfinished workstreams.
 15. **Open — operator review punchlist:** track requested improvements and
-    findings from operator use. Pico configuration preservation (P15.1) and
-    compatible Pi updates/version-pair verification (P15.2) are complete,
-    including the operator-accepted documentation gate. Fourteen items are
-    tracked: three complete and eleven open. Supported management carriers
-    (P15.3) are complete within recorded software acceptance; shared-resource
-    adoption (P15.4) is next. See the
+    findings from operator use. Fourteen items are tracked: P15.1–P15.12 are
+    complete within their recorded scopes; P15.13 band/mode/clock qualification
+    and P15.14 operator documentation remain open. The operator confirmed
+    WsprryPi item 15/P15.9 complete on 2026-10-17. See the
     [Phase 15 punchlist](#phase-15-operator-review-punchlist).
 
 ## Selected consumer LAN access slice
@@ -255,8 +253,9 @@ original physical failed-save/session-loss reproduction remains open separately.
 P15.8 completed versioned automatic WSPR Type 2/3 software support. The operator
 confirmed WsprryPi integration and acceptance under release checklist step 14
 and closed P15.8 on 2026-10-16; physical qualification remains separate.
-P15.9 remains in progress pending its WsprryPi portion under release checklist
-step 15. Use the P15.8
+P15.9 is complete, including the WsprryPi item 15 checklist disposition confirmed
+by the operator on 2026-10-17. P15.13 qualification and P15.14 operator
+documentation remain separate. Use the P15.8
 station-planning rules when separating valid-field saves from
 transmit readiness, and complete hostname persistence, hostname-driven page
 titles and session recovery before reorganizing the settings pages. Finish the
@@ -405,7 +404,7 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   [execution handoff](development/phase15-8-execution-prompt.md) retains its
   historical baseline and release-coordination boundary. Related Pi integration
   is closed under WsprryPi release checklist step 14 by operator acceptance.
-- ⏳ **P15.9 — Save valid fields independently of transmit readiness.** The
+- ✅ **P15.9 — Save valid fields independently of transmit readiness.** The
   operator wanted to update a callsign without completing unrelated station or
   message controls. The genuine-page software reproduction found native required
   locator validation blocking the station form; QRSS controls were separate.
@@ -425,14 +424,19 @@ Status symbols: ✅ complete; ⏳ in progress or pending completion; ☐ not sta
   enforce completeness and validity before execution in both UI and backend.
   Reuse P15.1 update semantics, P15.7 readback/review and P15.8 station-planning
   rules, preserving profile/configuration authority and transaction boundaries.
-  Overall status: in progress pending its WsprryPi portion under release
-  checklist step 15, by operator direction. Pico supported software acceptance
-  is complete; it retains firmware, persistence and standalone UI ownership. The
-  [technical source review](development/phase15-9-execution-prompt.md) and Pi
-  release-coordination boundaries remain applicable. The
-  [Pico execution record](development/phase15-9-valid-field-saves.md) records the
-  separately authorized implementation and its supported acceptance evidence.
-  Overall Pi checklist adoption remains separate.
+  Status: complete, including WsprryPi item 15, confirmed by the operator on
+  2026-10-17.
+  WsprryPi coordinates; WsprryPico owns firmware, persistence and standalone UI
+  implementation. Product `56821ac`, evidence `29542e4` and subsequent P15.12
+  integration `227e73c` are included in published Pico `devel` at `156dfa1`.
+  Software validation, exact unchanged-Pi compatibility pairs and independent
+  reassessment passed. Pages checks passed; no firmware/software-test CI pass
+  is claimed. The [Pico execution record](development/phase15-9-valid-field-saves.md)
+  retains the exact sources, results and limits. P15.13 qualification and
+  P15.14 operator documentation remain separate checklist items. The
+  [originating post-execution assessment](development/phase15-9-post-execution-review.md)
+  closes four repaired findings after fresh independent reassessment; Pi adoption
+  remains a separate decision.
 - ✅ **P15.10 — Allow hostname changes and use the hostname in the page title.**
   Provide a browser setting to edit and save the hostname, retain it across
   restarts and use it for LAN/mDNS discovery and access. The saved hostname must
@@ -543,9 +547,9 @@ P15.4 shared-resource adoption is complete within its recorded software scope.
 P15.5 concurrent web servicing is complete within its recorded software scope.
 P15.6 independent sessions and P15.7 login/save recovery are complete within
 their recorded software scopes. P15.8 Type 2/3 software and its WsprryPi step 14
-integration are complete by operator acceptance. P15.9 remains in progress
-pending its WsprryPi portion under step 15. The separate originating P15.8
-review, physical concurrency/reproduction and target qualification remain open.
+integration are complete by operator acceptance. P15.9 and WsprryPi item 15 are
+complete by operator confirmation on 2026-10-17. The separate originating
+P15.8 review, physical concurrency/reproduction and target qualification remain open.
 P15.10 and P15.11 are complete within their recorded supported software scopes.
 P15.12 is complete within supported software acceptance; P15.13–P15.14 remain open.
 
@@ -811,9 +815,9 @@ belongs to the operator.
    software scopes. P15.8 WSPR Type 2/3 support and its WsprryPi step 14
    integration are closed by operator acceptance. P15.10 hostname editing/titles
    and P15.11 page organization are complete within their supported software
-   scopes. P15.12 is complete within supported software acceptance. P15.9 remains
-   in progress; P15.13–P15.14 and the separately recorded
-   physical qualification remain open.
+   scopes. P15.12 is complete within supported software acceptance. P15.9 and
+   WsprryPi item 15 are complete by operator confirmation on 2026-10-17.
+   P15.13–P15.14 and the separately recorded physical qualification remain open.
 
 Sequence may evolve based on RF feasibility. Standalone operation remains a product requirement even though USB control is the first transport.
 

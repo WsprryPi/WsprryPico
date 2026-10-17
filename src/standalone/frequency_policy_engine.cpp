@@ -4,6 +4,10 @@
 
 namespace wsprrypico::standalone {
 wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
+    // Storage faults revoke all new execution, including qualified bands that
+    // need no saved experimental permissions.
+    if (!store_.healthy())
+        return {};
     const auto& config = store_.config();
     const bool unqualified = store_.healthy() && config && config->allow_unqualified_frequency;
     const bool non_amateur = store_.healthy() && config && config->allow_non_amateur_frequency;

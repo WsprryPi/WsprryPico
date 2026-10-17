@@ -2,6 +2,7 @@
 #include "application/resources.hpp"
 #include "network_support.hpp"
 #include "standalone/frequency_policy_engine.hpp"
+#include "standalone/progress.hpp"
 #include "wtp/json.hpp"
 
 using namespace wsprrypico;
@@ -59,6 +60,8 @@ struct SpyEngine : wtp::RfEngine {
 struct Fixture {
     network_test::Flash flash;
     standalone::Store store{flash};
+    network_test::Flash progress_flash;
+    standalone::Progress progress{progress_flash};
     network_test::Clock clock;
     SpyEngine raw;
     network_test::Identity identities;
@@ -85,7 +88,10 @@ struct Fixture {
         : limits(profile(maximum)),
           engine(raw, store, limits.minimum_frequency_nhz, limits.maximum_frequency_nhz),
           service(clock, engine, identities, limits), scheduler(initial_store(), service),
-          api(service, store, scheduler, network, std::string(32, 'b'), "test") {}
+          api(service, store, scheduler, network, std::string(32, 'b'), "test") {
+        REQUIRE(progress.load());
+        api.progress_settings(progress);
+    }
     std::string id() {
         return std::string(28, '0') + std::to_string(++sequence);
     }
@@ -122,6 +128,21 @@ struct Fixture {
                                       {"x-wsprrypico-request", "1"},
                                       {"if-match", api.revision()}}};
         return api.handle(request, "cert", "127.0.0.1:8443");
+    }
+    void fail_progress_write() {
+        const auto applied = *store.config();
+        const auto config_sequence = store.config_sequence();
+        const auto watermark = store.watermark();
+        progress_flash.fail = true;
+        const auto response = call("POST", "/api/v1/progress/update",
+            "{\"schema\":\"transmitter-progress/1\",\"target\":" +
+            application::target(std::string(32, 'b'), service.status().boot_id) +
+            ",\"request_id\":\"" + id() + "\",\"fields\":{\"callsign\":\"BB1BB\"}}");
+        REQUIRE(response.status == 503 && response.body.find("storage_fault") != std::string::npos);
+        progress_flash.fail = false;
+        REQUIRE(!progress.healthy() && !store.healthy());
+        REQUIRE(*store.config() == applied && store.config_sequence() == config_sequence &&
+                store.watermark() == watermark);
     }
     void flags(bool unqualified, bool non_amateur) {
         auto config = *store.config();
@@ -307,6 +328,35 @@ void admission_and_revocation() {
                          "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact + '}');
     REQUIRE(browser.status == 200 && f.service.status().state == wtp::State::Loaded);
 }
+void progress_storage_fault_admission() {
+    // A failed real draft append must revoke ordinary qualified-band execution,
+    // not merely revoke the experimental frequency permissions.
+    for (const auto mode : {"tone", "wspr", "qrss", "fskcw", "dfcw"}) {
+        Fixture f;
+        f.fail_progress_write();
+        f.claim();
+        REQUIRE(f.send("LOAD", f.job(3570100 * hz, mode)).error ==
+                wtp::ErrorCode::FrequencyRejected);
+        REQUIRE(f.raw.preparations == 0 && f.raw.schedules == 0 && f.raw.begins == 0);
+        REQUIRE(f.service.status().state == wtp::State::Empty);
+        REQUIRE(f.send("RELEASE").ok);
+    }
+    // Recheck health at both launch entry points: preparation can precede the
+    // storage failure. Recovery/cleanup must still reach the underlying engine.
+    Fixture f;
+    const auto job = f.job(3570100 * hz);
+    REQUIRE(f.engine.prepare(job).accepted && f.raw.preparations == 1);
+    f.fail_progress_write();
+    const auto now = f.clock.snapshot();
+    REQUIRE(!f.engine.schedule(job, now.monotonic_now_ns + 3 * hz,
+                              {&f.clock, now.utc_now_ns + 3 * hz, 1000, 0}));
+    REQUIRE(!f.engine.begin(job, now.monotonic_now_ns));
+    REQUIRE(f.raw.preparations == 1 && f.raw.schedules == 0 && f.raw.begins == 0);
+    const auto disables = f.raw.disables;
+    REQUIRE(f.engine.disable(now.monotonic_now_ns + hz) && f.raw.disables == disables + 1);
+    REQUIRE(f.engine.poll(now.monotonic_now_ns).state == wtp::EngineState::Idle);
+    REQUIRE(!f.engine.output_active());
+}
 void autonomous_admission() {
     Fixture f;
     const auto period = 120 * hz;
@@ -339,6 +389,7 @@ int main() {
     config_and_storage();
     band_and_engine_limits();
     admission_and_revocation();
+    progress_storage_fault_admission();
     autonomous_admission();
     std::cout << "frequency policy checks passed\n";
 }

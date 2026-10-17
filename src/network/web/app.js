@@ -135,7 +135,7 @@ async function readProgress(fillDraft = false) {
   }
   showProgress(); return result;
 }
-function fieldOutcome(unit,value,station) {
+function fieldOutcome(unit,value,station,newer = false) {
   const f = $('config').elements;
   const input = station ? $('consumer-' + (unit === 'power_dbm' ? 'power' : unit)) :
     unit === 'pins' ? f.rf_gp : unit === 'wifi' ? f.ssid : unit === 'expires_utc_s' ? f.expiry : f[unit];
@@ -144,8 +144,8 @@ function fieldOutcome(unit,value,station) {
   let message = $(id);
   if (!message) { message = document.createElement('small'); message.id = id; message.className = 'field-result'; (unit === 'enabled' ? input.closest('label') : input).insertAdjacentElement('afterend',message); }
   input.setAttribute('aria-describedby',[...new Set([...(input.getAttribute('aria-describedby') || '').split(' '),id].filter(Boolean))].join(' '));
-  input.setAttribute('aria-invalid',String(value === 'invalid'));
-  message.textContent = value === 'newer' ? 'Earlier value was saved; this newer edit remains unsaved.' : value === 'invalid' ? 'Not saved: ' + progressUI.errors[unit] + '.' : value === 'cleared' ? 'Cleared in saved draft.' : 'Saved as draft.';
+  input.setAttribute('aria-invalid',String(!newer && value === 'invalid'));
+  message.textContent = progressUI.fieldOutcomeText(unit,value,newer);
   message.classList.toggle('error',value === 'invalid');
 }
 async function saveProgressFields(fields,station = false,output) {
@@ -163,7 +163,7 @@ async function saveProgressFields(fields,station = false,output) {
   revision = result.revision;
   for (const [key,value] of Object.entries(result.data.outcomes)) {
     if (progressEdits.get(key) !== edits.get(key)) {
-      fieldOutcome(key,'newer',station);
+      fieldOutcome(key,value,station,true);
     } else {
       fieldOutcome(key,value,station);
       if (value !== 'invalid') progressEdits.delete(key);
@@ -624,7 +624,7 @@ $('local-logout').onclick = () => action(async () => {
   $('local-status').textContent = 'Signed out. Log in to read or change settings.';
   snapshot = null; controls(false); notice('Logged out. Radio job state has not changed.');
 });
-$('consumer-power').replaceChildren(...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60]
+$('consumer-power').replaceChildren(new Option('Choose reported power',''),...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60]
   .map(power => new Option(String(power),String(power))));
 for (const id of ['consumer-network-form','consumer-station-form']) $(id).oninput = event => { consumerSetupDirty = true; if (id === 'consumer-station-form') editedProgress(event); else consumerNetworkDirty = true; };
 async function saveConsumer(kind, savedStation) {
