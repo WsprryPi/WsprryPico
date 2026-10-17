@@ -20,7 +20,7 @@ struct SpyEngine : wtp::RfEngine {
         return {accept, adjustments};
     }
     bool set_frequency_correction_ppb(std::int32_t ppb) override {
-        return ppb == 123;
+        return ppb == 0;
     }
     std::string_view diagnostic() const override {
         return "spy";
@@ -134,10 +134,11 @@ struct Fixture {
         const auto config_sequence = store.config_sequence();
         const auto watermark = store.watermark();
         progress_flash.fail = true;
-        const auto response = call("POST", "/api/v1/progress/update",
-            "{\"schema\":\"transmitter-progress/1\",\"target\":" +
-            application::target(std::string(32, 'b'), service.status().boot_id) +
-            ",\"request_id\":\"" + id() + "\",\"fields\":{\"callsign\":\"BB1BB\"}}");
+        const auto response =
+            call("POST", "/api/v1/progress/update",
+                 "{\"schema\":\"transmitter-progress/1\",\"target\":" +
+                     application::target(std::string(32, 'b'), service.status().boot_id) +
+                     ",\"request_id\":\"" + id() + "\",\"fields\":{\"callsign\":\"BB1BB\"}}");
         REQUIRE(response.status == 503 && response.body.find("storage_fault") != std::string::npos);
         progress_flash.fail = false;
         REQUIRE(!progress.healthy() && !store.healthy());
@@ -297,7 +298,7 @@ void admission_and_revocation() {
     REQUIRE(f.engine.schedules_locally() && f.engine.owns_execution_plan());
     REQUIRE(f.engine.start_resolution_ns() == 1000 &&
             f.engine.completion_acknowledgement_ns() == 5000);
-    REQUIRE(f.engine.set_frequency_correction_ppb(123) && f.engine.diagnostic() == "spy");
+    REQUIRE(!f.engine.set_frequency_correction_ppb(123) && f.engine.diagnostic() == "spy");
     REQUIRE(f.engine.begin(f.job(3570100 * hz), 0) && f.raw.begins == 1);
     const auto previous_disables = f.raw.disables;
     REQUIRE(f.engine.disable(100000) && f.raw.disables == previous_disables + 1 &&
@@ -350,7 +351,7 @@ void progress_storage_fault_admission() {
     f.fail_progress_write();
     const auto now = f.clock.snapshot();
     REQUIRE(!f.engine.schedule(job, now.monotonic_now_ns + 3 * hz,
-                              {&f.clock, now.utc_now_ns + 3 * hz, 1000, 0}));
+                               {&f.clock, now.utc_now_ns + 3 * hz, 1000, 0}));
     REQUIRE(!f.engine.begin(job, now.monotonic_now_ns));
     REQUIRE(f.raw.preparations == 1 && f.raw.schedules == 0 && f.raw.begins == 0);
     const auto disables = f.raw.disables;

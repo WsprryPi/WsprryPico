@@ -8,6 +8,7 @@ inline time::DisciplineConfig clock_profile() {
     time::DisciplineConfig config;
     config.synchronized_for_ns = 90'000'000'000ULL;
     config.holdover_for_ns = 180'000'000'000ULL;
+    config.max_rate_observation_age_ns = 90'000'000'000ULL;
     return config;
 }
 

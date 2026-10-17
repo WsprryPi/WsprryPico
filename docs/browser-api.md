@@ -1,5 +1,13 @@
 # Shared browser-facing JSON API v1
 
+The independently advertised `transmitter-rf-calibration/1` resource at
+`/api/v1/rf-calibration` supports exact-target/revision GET/PUT through admitted
+management carriers. It preserves legacy closed config/progress shapes.
+`transmitter-ntp-observations/1` at `/api/v1/ntp-observations` binds source-labelled
+measurements to member/boot/firmware/clock identity. See the
+[NTP work record](development/ntp-work-results.md) for fields, units, authority,
+fallback and evidence limits.
+
 P15.14 also exposes these application services through the separately framed
 [USB management adapter](protocol/USB-Management.md), under internal local
 physical authority. It supports configuration, saved progress, canonical name,

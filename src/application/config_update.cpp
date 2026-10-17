@@ -80,9 +80,9 @@ std::optional<std::string> config_candidate(Value supplied,
         return {};
     const bool preserve = mode != ConfigWrite::Replace && current.has_value();
     std::string result = "{";
-    for (const auto name :
-         {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s", "pins",
-          "allow_unqualified_frequency", "allow_non_amateur_frequency", "gpio_drive_ma"}) {
+    for (const auto name : {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s",
+                            "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency",
+                            "gpio_drive_ma", "manual_correction_ppb", "ntp_rf_calibration"}) {
         const auto input = supplied.get(name), prior = previous->get(name);
         if (input && ((partial && name == std::string_view("station")) ||
                       name == std::string_view("wifi"))) {
@@ -131,6 +131,8 @@ std::optional<std::string> config_candidate(Value supplied,
         } else if (preserve && prior)
             member(result, name, std::string(prior->raw));
     }
+    if (mode == ConfigWrite::Replace)
+        result += ",\"manual_correction_ppb\":0,\"ntp_rf_calibration\":false";
     result += '}';
     if (result.size() > standalone::max_config_bytes)
         return {};

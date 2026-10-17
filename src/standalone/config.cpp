@@ -1,6 +1,7 @@
 #include "standalone/config.hpp"
 
 #include "encoding/wspr.hpp"
+#include "rf/calibration.hpp"
 #include "wtp/json.hpp"
 
 #include <algorithm>
@@ -104,7 +105,8 @@ std::optional<Config> parse_config(std::string_view text) {
     if (!root ||
         !fields(*root, {"version", "enabled", "station", "wifi", "schedules"},
                 {"expires_utc_s", "pins", "allow_unqualified_frequency",
-                 "allow_non_amateur_frequency", "gpio_drive_ma"}) ||
+                 "allow_non_amateur_frequency", "gpio_drive_ma", "manual_correction_ppb",
+                 "ntp_rf_calibration"}) ||
         root->get("version")->raw != "1" ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
@@ -120,6 +122,21 @@ std::optional<Config> parse_config(std::string_view text) {
         if (wifi.get(name)->type() != '"')
             return {};
     Config c;
+    if (const auto correction = root->get("manual_correction_ppb")) {
+        std::int32_t value = 0;
+        const auto raw = std::string(correction->raw);
+        const auto parsed = std::from_chars(raw.data(), raw.data() + raw.size(), value);
+        if (raw.empty() || parsed.ec != std::errc{} || parsed.ptr != raw.data() + raw.size() ||
+            std::to_string(value) != raw || value < -rf::correction_limit_ppb ||
+            value > rf::correction_limit_ppb)
+            return {};
+        c.manual_correction_ppb = value;
+    }
+    if (const auto mode = root->get("ntp_rf_calibration")) {
+        if (mode->raw != "true" && mode->raw != "false")
+            return {};
+        c.ntp_rf_calibration = mode->boolean();
+    }
     if (const auto drive = root->get("gpio_drive_ma")) {
         if (!valid_gpio_drive_token(*drive))
             return {};
@@ -215,6 +232,10 @@ std::string serialize_config(const Config& c, bool amplifier_view) {
         result += ",\"allow_non_amateur_frequency\":true";
     if (c.gpio_drive_ma != 4)
         result += ",\"gpio_drive_ma\":" + std::to_string(c.gpio_drive_ma);
+    if (c.manual_correction_ppb)
+        result += ",\"manual_correction_ppb\":" + std::to_string(c.manual_correction_ppb);
+    if (c.ntp_rf_calibration)
+        result += ",\"ntp_rf_calibration\":true";
     return result + "}";
 }
 } // namespace wsprrypico::standalone

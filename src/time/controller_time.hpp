@@ -73,6 +73,9 @@ class ControllerTimeArbiter final : public ObservationSink {
                  std::uint64_t uncertainty_ns, wtp::LeapState leap,
                  std::optional<std::uint64_t> leap_transition_utc_ns = {},
                  std::string_view principal = {}) override;
+    bool observe_rate(std::uint64_t utc, std::uint64_t raw, std::uint64_t uncertainty,
+                      std::int32_t rate, std::uint32_t rate_uncertainty,
+                      std::uint64_t generation) override;
     void invalidate(ObservationSource source) override;
     ControllerTimeStatus status() const;
 
@@ -84,6 +87,9 @@ class ControllerTimeArbiter final : public ObservationSink {
         std::uint64_t uncertainty_ns = 0;
         std::string principal;
         bool valid = false;
+        std::int32_t rate_ppb = 0;
+        std::uint32_t rate_uncertainty_ppb = 0;
+        std::uint64_t generation = 0;
     };
     struct Pending {
         std::string principal;
@@ -95,6 +101,11 @@ class ControllerTimeArbiter final : public ObservationSink {
         bool response_delivered = false;
     };
 
+    bool observe_model(ObservationSource source, std::uint64_t utc, std::uint64_t raw,
+                       std::uint64_t uncertainty, wtp::LeapState leap,
+                       std::optional<std::uint64_t> transition, std::string_view principal,
+                       std::int32_t rate = 0, std::uint32_t rate_uncertainty = 0,
+                       std::uint64_t generation = 0);
     bool current_valid(std::uint64_t now) const;
     bool interval(const Observation& observation, std::uint64_t now, std::uint64_t& estimate,
                   std::uint64_t& uncertainty) const;

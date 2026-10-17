@@ -6,6 +6,7 @@
 #include "provisioning/runtime.hpp"
 #include "standalone/progress.hpp"
 #include "standalone/scheduler.hpp"
+#include "time/controller_time.hpp"
 
 namespace wsprrypico::network {
 class NetworkControl {
@@ -28,6 +29,13 @@ class BrowserApi {
                         std::string_view authority, std::uint64_t transaction = 0,
                         ManagementCarrier carrier = ManagementCarrier::EngineeringStation);
     std::string revision() const;
+    void time_source(const time::ControllerTimeArbiter& arbiter) {
+        time_arbiter_ = &arbiter;
+    }
+    void clock_identity(std::string source_revision, std::uint64_t nominal_sample_hz) {
+        source_revision_ = std::move(source_revision);
+        nominal_sample_hz_ = nominal_sample_hz;
+    }
     void progress_settings(standalone::Progress& progress) {
         progress_ = &progress;
         store_.progress(progress);
@@ -90,10 +98,14 @@ class BrowserApi {
     }
 
   private:
+    const time::ControllerTimeArbiter* time_arbiter_ = nullptr;
+    std::string source_revision_ = "unreported";
+    std::uint64_t nominal_sample_hz_ = 0;
     ManagementAvailability management_;
     std::optional<standalone::Config> effective_config() const;
     HttpResponse config(bool drive = false, bool amplifier = false) const;
     HttpResponse gpio_drive() const;
+    HttpResponse rf_calibration() const;
     HttpResponse station_config(bool extended = false) const;
     HttpResponse hardware_config(bool drive = false, bool amplifier = false) const;
     HttpResponse application_config(bool extended = false, bool usb_management = false,

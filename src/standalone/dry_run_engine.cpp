@@ -1,5 +1,7 @@
 #include "standalone/dry_run_engine.hpp"
 
+#include "time/mapping.hpp"
+
 #include <limits>
 
 namespace wsprrypico::standalone {
@@ -28,13 +30,15 @@ wtp::EngineReport DryRunEngine::poll(std::uint64_t now) {
             clock.state == wtp::ClockState::Synchronized ||
             (clock.state == wtp::ClockState::Holdover && conditions_.maximum_holdover_age_ns &&
              clock.sync_age_ns <= conditions_.maximum_holdover_age_ns);
-        const auto mapped = clock.utc_now_ns >= elapsed ? clock.utc_now_ns - elapsed : 0;
+        std::uint64_t mapped{}, utc_elapsed{};
+        const bool mapping_valid = time::project(clock, start_, mapped) &&
+                                   time::elapsed_utc(elapsed, clock.rate_ppb, utc_elapsed, true);
         const auto error = mapped > conditions_.start_utc_ns ? mapped - conditions_.start_utc_ns
                                                              : conditions_.start_utc_ns - mapped;
         // Model the shared UTC-second policy; this is not physical launch evidence.
-        state_ = usable && clock.leap == wtp::LeapState::Normal &&
+        state_ = mapping_valid && usable && clock.leap == wtp::LeapState::Normal &&
                          clock.uncertainty_ns <= conditions_.maximum_uncertainty_ns &&
-                         elapsed < wtp::start_window_ns(conditions_.start_utc_ns) &&
+                         utc_elapsed < wtp::start_window_ns(conditions_.start_utc_ns) &&
                          error <= clock.uncertainty_ns
                      ? wtp::EngineState::Running
                      : wtp::EngineState::Missed;

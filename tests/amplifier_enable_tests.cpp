@@ -188,6 +188,10 @@ void atomic_failures_and_progress() {
         const auto before = m.f.flash.bytes;
         REQUIRE(m.save(conflict).status == 400 && m.f.flash.bytes == before);
     }
+    auto calibration = *m.f.store.config();
+    calibration.manual_correction_ppb = -4321;
+    calibration.ntp_rf_calibration = true;
+    REQUIRE(m.f.store.save(calibration));
     auto fields = "{\"pins\":" + hardware::serialize_plan(p, true) + "}";
     auto batch = m.envelope("transmitter-progress/3", "fields", fields);
     batch.insert(batch.size() - 1, ",\"request_id\":\"" + std::string(32, 'c') + "\"");
@@ -207,6 +211,8 @@ void atomic_failures_and_progress() {
                             "{\"draft_revision\":" + quote(std::to_string(m.progress.sequence())) +
                                 ",\"domain\":\"radio\"}");
     REQUIRE(m.call("POST", "/api/v1/progress/apply/3", apply).status == 200);
+    REQUIRE(m.f.store.config()->manual_correction_ppb == -4321);
+    REQUIRE(m.f.store.config()->ntp_rf_calibration);
     REQUIRE(m.f.store.config()->pins == p && m.scheduler.hardware_restart_required());
     // Ordinary progress pin writes preserve omitted polarity, first from the
     // saved draft, then from applied configuration after draft clearing.

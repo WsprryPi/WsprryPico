@@ -1,5 +1,7 @@
 #include "time/controller_time.hpp"
 
+#include "time/mapping.hpp"
+
 #include <algorithm>
 #include <limits>
 
@@ -161,15 +163,15 @@ bool ControllerTimeArbiter::interval(const Observation& observation, std::uint64
     if (!observation.valid || now < observation.monotonic_ns)
         return false;
     const auto age = now - observation.monotonic_ns;
-    if (age > controller_source_lifetime_ns || !add(observation.utc_ns, age, estimate))
+    wtp::ClockSnapshot anchor;
+    anchor.utc_now_ns = observation.utc_ns;
+    anchor.monotonic_now_ns = observation.monotonic_ns;
+    anchor.rate_ppb = observation.rate_ppb;
+    if (age > controller_source_lifetime_ns || !project(anchor, now, estimate))
         return false;
-    const auto seconds = age / 1'000'000'000ULL;
-    const auto remainder = age % 1'000'000'000ULL;
-    if (seconds > std::numeric_limits<std::uint64_t>::max() / controller_drift_ppb)
+    std::uint64_t drift{};
+    if (!growth(age, controller_drift_ppb + observation.rate_uncertainty_ppb, drift))
         return false;
-    auto drift = seconds * controller_drift_ppb;
-    const auto fraction = remainder * controller_drift_ppb;
-    drift += fraction / 1'000'000'000ULL + (fraction % 1'000'000'000ULL != 0);
     return add(observation.uncertainty_ns, drift, uncertainty) &&
            uncertainty <= (observation.source == ObservationSource::Browser
                                ? 2 * (browser_clock_uncertainty_ns + browser_challenge_max_age_ns)
@@ -194,8 +196,14 @@ bool ControllerTimeArbiter::overlaps(const Observation& left, const Observation&
 }
 
 bool ControllerTimeArbiter::accept(const Observation& observation) {
-    if (!clock_.observe(observation.utc_ns, observation.monotonic_ns, observation.uncertainty_ns,
-                        wtp::LeapState::Normal))
+    const bool accepted =
+        observation.source == ObservationSource::Sntp
+            ? clock_.observe_rate(observation.utc_ns, observation.monotonic_ns,
+                                  observation.uncertainty_ns, observation.rate_ppb,
+                                  observation.rate_uncertainty_ppb, observation.generation)
+            : clock_.observe(observation.utc_ns, observation.monotonic_ns,
+                             observation.uncertainty_ns, wtp::LeapState::Normal);
+    if (!accepted)
         return false;
     current_ = observation;
     recovery_ = {};
@@ -211,11 +219,27 @@ void ControllerTimeArbiter::disagreement(const Observation& observation) {
     source_ = ActiveTimeSource::Disagreement;
 }
 
-bool ControllerTimeArbiter::observe(ObservationSource source, std::uint64_t utc_ns,
-                                    std::uint64_t sampled_monotonic_ns,
-                                    std::uint64_t uncertainty_ns, wtp::LeapState leap,
-                                    std::optional<std::uint64_t> leap_transition_utc_ns,
+bool ControllerTimeArbiter::observe_rate(std::uint64_t utc, std::uint64_t raw,
+                                         std::uint64_t uncertainty, std::int32_t rate,
+                                         std::uint32_t rate_uncertainty, std::uint64_t generation) {
+    return observe_model(ObservationSource::Sntp, utc, raw, uncertainty, wtp::LeapState::Normal, {},
+                         {}, rate, rate_uncertainty, generation);
+}
+bool ControllerTimeArbiter::observe(ObservationSource source, std::uint64_t utc, std::uint64_t raw,
+                                    std::uint64_t uncertainty, wtp::LeapState leap,
+                                    std::optional<std::uint64_t> transition,
                                     std::string_view principal) {
+    return observe_model(source, utc, raw, uncertainty, leap, transition, principal);
+}
+bool ControllerTimeArbiter::observe_model(ObservationSource source, std::uint64_t utc_ns,
+                                          std::uint64_t sampled_monotonic_ns,
+                                          std::uint64_t uncertainty_ns, wtp::LeapState leap,
+                                          std::optional<std::uint64_t> leap_transition_utc_ns,
+                                          std::string_view principal, std::int32_t rate,
+                                          std::uint32_t rate_uncertainty,
+                                          std::uint64_t generation) {
+    if (rate < -100'000 || rate > 100'000 || rate_uncertainty > 100'000)
+        return false;
     if (!now_ || leap != wtp::LeapState::Normal || leap_transition_utc_ns ||
         uncertainty_ns > (source == ObservationSource::Browser
                               ? browser_clock_uncertainty_ns + browser_challenge_max_age_ns
@@ -227,7 +251,8 @@ bool ControllerTimeArbiter::observe(ObservationSource source, std::uint64_t utc_
         return false;
     const auto now = now_(context_);
     Observation candidate{
-        source, utc_ns, sampled_monotonic_ns, uncertainty_ns, std::string(principal), true};
+        source, utc_ns, sampled_monotonic_ns, uncertainty_ns, std::string(principal),
+        true,   rate,   rate_uncertainty,     generation};
     std::uint64_t estimate{}, grown{};
     if (!interval(candidate, now, estimate, grown))
         return false;

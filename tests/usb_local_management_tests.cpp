@@ -258,7 +258,13 @@ void legacy_station_migration() {
     REQUIRE(t.runtime.overlay(*t.f.store.config()) == candidate);
     REQUIRE(t.f.api.saved_station_json().find(candidate.callsign) != std::string::npos);
     REQUIRE(t.runtime.consumer_profile()->tls == profile.tls);
+    candidate.manual_correction_ppb = -1234;
+    candidate.ntp_rf_calibration = true;
+    REQUIRE(t.f.store.save(candidate));
+    REQUIRE(t.runtime.overlay(candidate) == candidate);
     REQUIRE(t.wifi("null").status == 200);
+    REQUIRE(t.f.store.config()->manual_correction_ppb == -1234);
+    REQUIRE(t.f.store.config()->ntp_rf_calibration);
     REQUIRE(t.f.store.config()->callsign == candidate.callsign);
     REQUIRE(t.f.store.config()->schedules == candidate.schedules);
     REQUIRE(t.runtime.consumer_profile()->tls == profile.tls);

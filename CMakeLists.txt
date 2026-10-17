@@ -44,7 +44,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js
     src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
     src/network/web/saved-progress.js src/network/web/gpio-drive.js
-    src/network/web/amplifier-enable.js
+    src/network/web/rf-calibration.js src/network/web/amplifier-enable.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
     src/network/bootstrap_web/radio-bundle.js
@@ -104,6 +104,8 @@ add_library(wsprrypico_core
     src/standalone/storage.cpp
     src/standalone/progress.cpp
     src/standalone/scheduler.cpp
+    src/rf/calibration.cpp
+    src/time/ntp_filter.cpp
     src/time/sntp.cpp
     src/time/controller_time.cpp
     src/time/utc_discipline.cpp
@@ -359,6 +361,14 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_executable(pin_allocation_tests tests/pin_allocation_tests.cpp)
     target_link_libraries(pin_allocation_tests PRIVATE wsprrypico_core)
     add_test(NAME pin_allocation COMMAND pin_allocation_tests)
+    add_executable(ntp_work_tests tests/ntp_work_tests.cpp)
+    target_link_libraries(ntp_work_tests PRIVATE wsprrypico_rf)
+    target_compile_options(ntp_work_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME ntp_work COMMAND ntp_work_tests)
+    add_test(NAME ntp_replay COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/ntp_replay_tests.py $<TARGET_FILE:ntp_work_tests>)
+    if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME rf_calibration_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_calibration_browser_tests.js)
+    endif()
     add_executable(gpio_drive_tests tests/gpio_drive_tests.cpp)
     target_link_libraries(gpio_drive_tests PRIVATE wsprrypico_core)
     target_compile_options(gpio_drive_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

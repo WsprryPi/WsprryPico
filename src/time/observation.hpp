@@ -17,6 +17,15 @@ class ObservationSink {
                          wtp::LeapState leap,
                          std::optional<std::uint64_t> leap_transition_utc_ns = {},
                          std::string_view principal = {}) = 0;
+    virtual bool observe_rate(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
+                              std::uint64_t uncertainty_ns, std::int32_t rate_ppb,
+                              std::uint32_t rate_uncertainty_ppb, std::uint64_t generation) {
+        (void)rate_ppb;
+        (void)rate_uncertainty_ppb;
+        (void)generation;
+        return observe(ObservationSource::Sntp, utc_ns, sampled_monotonic_ns, uncertainty_ns,
+                       wtp::LeapState::Normal);
+    }
     virtual void invalidate(ObservationSource source) = 0;
 };
 } // namespace wsprrypico::time

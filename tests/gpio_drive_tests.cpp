@@ -159,6 +159,10 @@ void observations_and_admission() {
 }
 void drafts_and_failures() {
     Member m;
+    auto calibration = *m.f.store.config();
+    calibration.manual_correction_ppb = 1234;
+    calibration.ntp_rf_calibration = true;
+    REQUIRE(m.f.store.save(calibration));
     REQUIRE(m.drive("12").status == 200);
     auto save = [&](std::string fields, bool modern) {
         auto body = m.envelope(modern ? "transmitter-progress/2" : "transmitter-progress/1",
@@ -191,9 +195,14 @@ void drafts_and_failures() {
     };
     const auto legacy_apply = apply(false, "all");
     REQUIRE(legacy_apply.status == 200);
+    REQUIRE(legacy_apply.body.find("manual_correction_ppb") == std::string::npos);
+    REQUIRE(m.f.store.config()->manual_correction_ppb == 1234);
+    REQUIRE(m.f.store.config()->ntp_rf_calibration);
     REQUIRE(legacy_apply.body.find("gpio_drive_ma") == std::string::npos);
     REQUIRE(m.f.store.config()->gpio_drive_ma == 12);
     REQUIRE(apply(true, "drive").status == 200);
+    REQUIRE(m.f.store.config()->manual_correction_ppb == 1234);
+    REQUIRE(m.f.store.config()->ntp_rf_calibration);
     REQUIRE(m.f.store.config()->gpio_drive_ma == 8);
     REQUIRE(parse(m.call("GET", "/api/v1/progress/2").body)->get("matches_applied")->raw == "true");
     m.f.flash.fail = true;

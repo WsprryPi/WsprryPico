@@ -1,6 +1,7 @@
 #include "standalone/scheduler.hpp"
 
 #include "encoding/wspr.hpp"
+#include "time/mapping.hpp"
 #include "time/sntp.hpp"
 #include "wtp/codec.hpp"
 
@@ -113,13 +114,16 @@ void Scheduler::poll() {
     const auto expiry = c.expires_utc_s * ns;
     // Include the second frame's entire accepted launch second for a pair.
     // Keep the previously accepted single-frame admission policy unchanged.
-    const auto required_tail = frame_duration + (plan->count == 2 ? ns - 1 : 0);
+    std::uint64_t utc_frame_duration{};
+    if (!time::duration_utc_bound(frame_duration, now, utc_frame_duration))
+        return;
+    const auto required_tail = utc_frame_duration + (plan->count == 2 ? ns - 1 : 0);
     if (expiry && (final_slot >= expiry || expiry - final_slot < required_tail))
         return;
     if (plan->count == 2) {
-        const auto complete_budget = final_slot - now.utc_now_ns + required_tail;
-        if (now.monotonic_now_ns > std::numeric_limits<std::uint64_t>::max() - complete_budget ||
-            final_slot > time::sntp_max_utc_ns - required_tail)
+        std::uint64_t complete_raw_end{};
+        if (final_slot > time::sntp_max_utc_ns - required_tail ||
+            !time::inverse(now, final_slot + required_tail, complete_raw_end))
             return;
     }
     if (!request("HELLO", wtp::HelloBody{{"WTP/1"}}).ok)
@@ -137,6 +141,7 @@ void Scheduler::poll() {
     }
     last_frame_count_ = plan->count;
     last_frame_ = 1;
+    service_.freeze_pair_calibration(plan->count == 2);
     if (plan->count == 2)
         pair_ = Pair{*plan,
                      final_slot,
@@ -144,7 +149,8 @@ void Scheduler::poll() {
                      now.monotonic_now_ns + 30 * ns,
                      now.utc_now_ns,
                      now.monotonic_now_ns,
-                     now.uncertainty_ns};
+                     now.uncertainty_ns,
+                     now};
     if (!prepare_frame(plan->frames[0], candidate))
         pair_.reset();
 }
@@ -177,6 +183,7 @@ bool Scheduler::prepare_frame(const encoding::WsprFrame& frame, std::uint64_t sl
 }
 void Scheduler::cancel_pair(wtp::ErrorCode reason) {
     pair_.reset();
+    service_.freeze_pair_calibration(false);
     last_error_ = reason;
     const auto s = service_.status();
     if (s.owner_id && *s.owner_id == local_id) {
@@ -197,16 +204,21 @@ void Scheduler::cancel_pair(wtp::ErrorCode reason) {
 void Scheduler::poll_pair() {
     const auto now = service_.clock_snapshot();
     const auto s = service_.status();
-    const auto utc_elapsed = now.utc_now_ns - pair_->anchor_utc;
-    const auto monotonic_elapsed = now.monotonic_now_ns - pair_->anchor_monotonic;
-    const auto mapping_error = utc_elapsed > monotonic_elapsed ? utc_elapsed - monotonic_elapsed
-                                                               : monotonic_elapsed - utc_elapsed;
+    std::uint64_t projected{};
+    const bool mapping_valid = time::project(pair_->mapping, now.monotonic_now_ns, projected);
+    std::uint64_t prior_growth{};
+    const bool growth_valid =
+        now.monotonic_now_ns >= pair_->anchor_monotonic &&
+        time::growth(now.monotonic_now_ns - pair_->anchor_monotonic,
+                     50'000 + pair_->mapping.rate_uncertainty_ppb, prior_growth);
+    const auto mapping_error =
+        projected > now.utc_now_ns ? projected - now.utc_now_ns : now.utc_now_ns - projected;
     if (!store_.healthy() || !store_.config() || !store_.config()->enabled ||
         store_.config_sequence() != pair_->config_sequence || reboot_required_ || suspended_ ||
-        !clock_ready(now, service_.config()) || now.utc_now_ns < pair_->anchor_utc ||
-        now.monotonic_now_ns < pair_->anchor_monotonic ||
-        (mapping_error > pair_->anchor_uncertainty &&
-         mapping_error - pair_->anchor_uncertainty > now.uncertainty_ns) ||
+        !mapping_valid || !growth_valid || !clock_ready(now, service_.config()) ||
+        now.utc_now_ns < pair_->anchor_utc || now.monotonic_now_ns < pair_->anchor_monotonic ||
+        (mapping_error > pair_->anchor_uncertainty + prior_growth &&
+         mapping_error - pair_->anchor_uncertainty - prior_growth > now.uncertainty_ns) ||
         !s.owner_id || *s.owner_id != local_id || !s.job_id || *s.job_id != last_job_ ||
         (s.state != wtp::State::Armed && s.state != wtp::State::Running &&
          s.state != wtp::State::Complete)) {
@@ -329,6 +341,13 @@ std::string Scheduler::command(std::string_view line) {
     auto config = parse_config(line.substr(7));
     if (!config)
         return error("invalid_config");
+    const auto supplied = wtp::json::parse(line.substr(7));
+    if (store_.config() && supplied) {
+        if (!supplied->get("manual_correction_ppb"))
+            config->manual_correction_ppb = store_.config()->manual_correction_ppb;
+        if (!supplied->get("ntp_rf_calibration"))
+            config->ntp_rf_calibration = store_.config()->ntp_rf_calibration;
+    }
     if (!store_.save(*config))
         return error("storage_fault");
     // The scheduler reads station/schedules from Store on each new job. Only

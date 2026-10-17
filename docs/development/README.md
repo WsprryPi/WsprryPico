@@ -1,5 +1,9 @@
 # Development baseline
 
+The [NTP work record](ntp-work-results.md) documents persistent manual carrier
+correction, bounded NTP filtering/rate mapping, and the unresolved independent RF
+gate for automatic calibration.
+
 The [Consolidated backlog](consolidated-backlog.md) is the sole current work
 list. This development reference preserves completed work and historical
 evidence with its original acceptance limits.

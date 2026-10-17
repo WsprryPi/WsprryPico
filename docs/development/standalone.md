@@ -1,5 +1,11 @@
 # Standalone configuration and timing
 
+Persistent carrier calibration uses the independently advertised
+`/api/v1/rf-calibration` resource. Saved manual correction is signed ppb with
+zero/manual default and decimal ppm presentation; saves take effect only at
+future preparation. [NTP work](ntp-work-results.md) defines sign, persistence,
+consent, filtering/rate mapping and the independent RF gate.
+
 Current [P15.10 hostname selection](phase15-10-hostname.md) uses the saved consumer profile name for a new boot while keeping the running boot coherent. The editor does not require message/job entry, alter station/schedule readiness, clear STOP, or change pins/watermarks. Engineering names require replacement matching credentials.
 
 Status: Step 9 software, the [inhibited Wi-Fi bench slice](standalone-physical-validation.md)
@@ -355,8 +361,9 @@ NTP era rollover; a zero NTP timestamp remains the invalid sentinel.
 The estimate uses server transmit time plus half the RTT remaining after server
 processing. Its uncertainty includes the **full** local RTT, half the server's
 root delay, root dispersion, a local/drift margin and up to 999 ns of mapping
-quantization. The UTC-to-monotonic offset is on the RP2350 microsecond timer grid
-so an exact UTC WSPR slot produces a representable hardware alarm. Observations
+quantization. Accepted measurements retain the original raw microsecond grid.
+Qualified software rate mapping uses checked inverse conversion and upward
+microsecond alarm rounding, including rounding uncertainty. Observations
 above 500 ms uncertainty are rejected. This user-selected budget replaces the
 initial 20 ms policy and retains margin against the approximately one-second
 clock guidance in the [WSPR description](https://wsjt.sourceforge.io/WSPR_QST_Nov_2010.pdf).
@@ -368,7 +375,8 @@ two bounded cache entries and DHCP-provided DNS servers. Successful lookup is
 rechecked every 60 seconds through lwIP's TTL-aware cache; failure retries after
 five seconds and retains a previously resolved peer until a new valid result.
 Link changes invalidate pending results without reusing callback storage. A changed
-peer cancels its predecessor's outstanding SNTP exchange. DNS failure never
+peer cancels its predecessor's outstanding SNTP exchange and resets filter/rate
+history. DNS failure never
 synchronizes UTC or relaxes certificate/clock/ARM gates. KoD inhibition remains
 in force until reboot, including across DNS address changes.
 
@@ -381,7 +389,10 @@ still disables that source for the boot. Startup requires neither a USB host nor
 clock is synchronized for at most 90 s and enters holdover through 180 s, but
 this image admits/launches jobs only with source age at most 90 s and uncertainty
 at most 500 ms. An outage can skip slots; no schedule is guaranteed to transmit.
-RF frequency correction is separate and is not inferred from SNTP observations.
+UTC rate fitting uses only accepted raw SNTP observations and preserves full
+source uncertainty. RF carrier selection remains separate: persistent manual
+correction is the default/fallback; NTP RF selection retains an unresolved
+independent measurement gate. See [NTP work](ntp-work-results.md).
 
 Phase 12 selects authenticated controller/phone time when SNTP is unavailable.
 The device computes uncertainty from a fixed 250 ms phone allowance, the full

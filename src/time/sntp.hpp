@@ -1,4 +1,5 @@
 #pragma once
+#include "time/ntp_filter.hpp"
 #include "time/observation.hpp"
 #include "time/utc_discipline.hpp"
 
@@ -44,6 +45,21 @@ class Sntp {
     explicit Sntp(ObservationSink& clock) : clock_(clock) {}
     std::array<std::uint8_t, 48> request(std::uint64_t monotonic_ns, std::uint64_t nonce);
     bool receive(std::span<const std::uint8_t> packet, std::uint64_t monotonic_ns);
+    void reset_peer() {
+        cancel();
+        filter_.reset();
+        selected_.reset();
+        last_sample_.reset();
+        applied_id_ = 0;
+        packet_accepted_ = arbiter_selected_ = false;
+        reason_ = "peer_reset";
+        ++epoch_;
+        clock_.invalidate(ObservationSource::Sntp);
+    }
+    RateEstimate rate(std::uint64_t now) const {
+        return filter_.rate(now);
+    }
+    std::string observations_json() const;
     void cancel() {
         pending_ = false;
     }
@@ -59,6 +75,11 @@ class Sntp {
 
   private:
     ObservationSink& clock_;
+    NtpFilter filter_;
+    std::optional<NtpSample> last_sample_, selected_;
+    std::uint64_t observation_id_ = 0, epoch_ = 1, applied_id_ = 0;
+    bool packet_accepted_ = false, arbiter_selected_ = false;
+    const char* reason_ = "startup";
     std::uint64_t sent_ = 0, nonce_ = 0;
     bool pending_ = false, denied_ = false;
     std::uint64_t last_rtt_ns_ = 0;

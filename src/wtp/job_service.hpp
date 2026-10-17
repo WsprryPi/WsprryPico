@@ -35,6 +35,9 @@ struct ClockSnapshot {
     std::uint64_t sync_age_ns = 0;
     LeapState leap = LeapState::Unknown;
     std::optional<std::uint64_t> leap_transition_utc_ns;
+    std::int32_t rate_ppb = 0; // UTC nanoseconds per raw second minus 1e9.
+    std::uint32_t rate_uncertainty_ppb = 0;
+    std::uint64_t model_generation = 0;
     bool operator==(const ClockSnapshot&) const = default;
 };
 
@@ -375,8 +378,14 @@ class RfEngine {
     static constexpr std::uint64_t maximum_completion_acknowledgement_ns = 100'000;
     virtual ~RfEngine() = default;
     virtual PrepareResult prepare(const Job& job) = 0;
-    virtual bool set_frequency_correction_ppb(std::int32_t) {
-        return false;
+    // Application calibration freezes for an ownership lifetime (including pairs).
+    virtual void calibration_boundary() {}
+    virtual void freeze_pair_calibration(bool) {}
+    virtual std::string calibration_status(std::uint64_t) const {
+        return "null";
+    }
+    virtual bool set_frequency_correction_ppb(std::int32_t value) {
+        return value == 0;
     }
     virtual std::string_view diagnostic() const {
         return {};
@@ -575,6 +584,12 @@ class JobService {
     [[nodiscard]] ServiceStatus status() const;
     [[nodiscard]] std::string_view owner_session_id() const {
         return owner_ ? std::string_view(owner_->session_id) : std::string_view{};
+    }
+    void freeze_pair_calibration(bool freeze) {
+        engine_.freeze_pair_calibration(freeze);
+    }
+    std::string calibration_status() const {
+        return engine_.calibration_status(clock_.snapshot().monotonic_now_ns);
     }
     [[nodiscard]] ClockSnapshot clock_snapshot() const {
         return clock_.snapshot();

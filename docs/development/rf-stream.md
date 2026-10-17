@@ -1,5 +1,10 @@
 # Portable experimental RF stream
 
+Carrier correction is selected centrally before preparation and freezes for
+the active job or standalone Type 2/3 pair. See [NTP work](ntp-work-results.md)
+for durable manual ppm, reciprocal rate handling and the unresolved physical
+gate that keeps NTP RF selection on manual fallback.
+
 Status: portable Step 8 stream and [PIO/DMA sink](pio-dma-driver.md) implemented
 and host-tested; the SDK driver also cross-links with the pinned Arm toolchain.
 Bounded RP2350 refill and conducted tone measurements are recorded in the

@@ -19,7 +19,10 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "firmware_identity.hpp"
 #include "hardware/clocks.h"
 #include "hardware/pico/amplifier_output.hpp"
+#include "hardware/structs/clocks.h"
+#include "hardware/structs/pll.h"
 #include "hardware/structs/watchdog.h"
+#include "hardware/ticks.h"
 #include "hardware/watchdog.h"
 #include "lwip/ip.h"
 #include "network/bootstrap_codec.hpp"
@@ -224,6 +227,25 @@ void reserve_field(Response& result, std::string_view name,
 }
 #endif
 std::size_t heap_peak = 0;
+bool ntp_rf_topology() {
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    // Register/configuration evidence only; never a frequency measurement.
+    return wsprrypico::rf::sample_rate == 138'000'000 && clock_get_hz(clk_ref) == 12'000'000 &&
+           clock_get_hz(clk_sys) == 138'000'000 &&
+           (clocks_hw->clk[clk_ref].ctrl & CLOCKS_CLK_REF_CTRL_SRC_BITS) ==
+               CLOCKS_CLK_REF_CTRL_SRC_VALUE_XOSC_CLKSRC &&
+           clocks_hw->clk[clk_ref].div == (1u << CLOCKS_CLK_REF_DIV_INT_LSB) &&
+           (clocks_hw->clk[clk_sys].ctrl & CLOCKS_CLK_SYS_CTRL_SRC_BITS) ==
+               CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLKSRC_CLK_SYS_AUX &&
+           (clocks_hw->clk[clk_sys].ctrl & CLOCKS_CLK_SYS_CTRL_AUXSRC_BITS) == 0 &&
+           clocks_hw->clk[clk_sys].div == (1u << CLOCKS_CLK_SYS_DIV_INT_LSB) &&
+           (pll_sys_hw->cs & (PLL_CS_BYPASS_BITS | PLL_CS_REFDIV_BITS | PLL_CS_LOCK_BITS)) ==
+               (PLL_CS_LOCK_BITS | 1u) &&
+           ticks_hw->ticks[TICK_TIMER0].cycles == 12 && tick_is_running(TICK_TIMER0);
+#else
+    return false;
+#endif
+}
 std::uint64_t monotonic_now(void*) {
     return time_us_64() * 1000ULL;
 }
@@ -375,7 +397,8 @@ int main() {
            access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased)) ||
         (access_store.record() && access_store.record()->reset.pending());
     const bool boot_recovery = recovery || access_recovery;
-    [[maybe_unused]] const unsigned boot_gpio_drive_ma = store.config() ? store.config()->gpio_drive_ma : 4;
+    [[maybe_unused]] const unsigned boot_gpio_drive_ma =
+        store.config() ? store.config()->gpio_drive_ma : 4;
     auto boot_pins = store.config() ? store.config()->pins : wsprrypico::hardware::PinPlan{};
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE
     // Only the selected indicator differs; all pin ownership checks still apply.
@@ -623,6 +646,14 @@ int main() {
             },
             &server);
     bootstrap.station_classifier(station_interface, nullptr);
+    browser_api.time_source(time_arbiter);
+    browser_api.clock_identity(wsprrypico::firmware::kBuildRevision,
+#ifdef WSPRRY_PICO_STANDALONE_RF
+                               wsprrypico::rf::sample_rate
+#else
+                               0
+#endif
+    );
     browser_api.consumer_config(runtime_profile);
     browser_api.progress_settings(progress);
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -1895,6 +1926,8 @@ int main() {
             (network_state != wsprrypico::wtp::State::Armed &&
              network_state != wsprrypico::wtp::State::Running))
             network.poll();
+        policy_engine.ntp_candidate(network.ntp_rate(monotonic_now(nullptr)), clock,
+                                    ntp_rf_topology());
         if (reset_coordinator.blocks_admission() || recovery_reset_at)
             continue;
         const auto field_now_ms = time_us_64() / 1000ULL;

@@ -1,5 +1,7 @@
 #include "rf/stream_engine.hpp"
 
+#include "time/mapping.hpp"
+
 #include <algorithm>
 #include <limits>
 
@@ -24,11 +26,18 @@ bool StreamEngine::schedule(const wtp::Job& job, std::uint64_t start_ns,
         start_conditions_.start_adjustment_ns >= window || duration > limit - (start_ns + window) ||
         duration > limit - (conditions.start_utc_ns + window))
         return false;
-    launch_deadline_ns_ = start_ns + window;
     const auto now = conditions.clock->snapshot();
+    if (!time::inverse(now, conditions.start_utc_ns + window, launch_deadline_ns_))
+        return false;
+    std::uint64_t rounding_utc{}, future_growth{};
+    if (start_ns < now.monotonic_now_ns ||
+        !time::growth(start_ns - now.monotonic_now_ns, now.rate_uncertainty_ppb, future_growth) ||
+        !time::elapsed_utc(start_conditions_.start_adjustment_ns + (now.rate_ppb != 0),
+                           now.rate_ppb, rounding_utc, true))
+        return false;
     if (now.uncertainty_ns > conditions.maximum_uncertainty_ns ||
-        start_conditions_.start_adjustment_ns >
-            conditions.maximum_uncertainty_ns - now.uncertainty_ns)
+        future_growth > conditions.maximum_uncertainty_ns - now.uncertainty_ns ||
+        rounding_utc > conditions.maximum_uncertainty_ns - now.uncertainty_ns - future_growth)
         return false;
     return begin(job, start_ns + start_conditions_.start_adjustment_ns);
 }
@@ -53,12 +62,9 @@ LaunchTarget StreamEngine::project_clock(void* context) {
         return {};
     }
     auto target = now.monotonic_now_ns;
-    if (now.utc_now_ns < conditions.start_utc_ns) {
-        const auto remaining = conditions.start_utc_ns - now.utc_now_ns;
-        if (target > limit - remaining)
-            return {};
-        target += remaining;
-    }
+    if (now.utc_now_ns < conditions.start_utc_ns &&
+        !time::inverse(now, conditions.start_utc_ns, target))
+        return {};
     // Reproject the immutable UTC request in both directions. If refinement
     // shows that its instant has already passed, target now and take the
     // permitted late launch inside the originally admitted UTC second.
@@ -71,8 +77,14 @@ LaunchTarget StreamEngine::project_clock(void* context) {
     target += rounding;
     const auto pending =
         now.leap == wtp::LeapState::InsertPending || now.leap == wtp::LeapState::DeletePending;
-    if (target >= self.launch_deadline_ns_ ||
-        rounding > conditions.maximum_uncertainty_ns - now.uncertainty_ns ||
+    std::uint64_t rounding_utc{}, future_growth{}, realized_utc{};
+    if (!time::project(now, target, realized_utc) ||
+        realized_utc >= conditions.start_utc_ns + window ||
+        !time::elapsed_utc(rounding + (now.rate_ppb != 0), now.rate_ppb, rounding_utc, true) ||
+        !time::growth(target - now.monotonic_now_ns, now.rate_uncertainty_ppb, future_growth) ||
+        target >= self.launch_deadline_ns_ ||
+        future_growth > conditions.maximum_uncertainty_ns - now.uncertainty_ns ||
+        rounding_utc > conditions.maximum_uncertainty_ns - now.uncertainty_ns - future_growth ||
         now.leap == wtp::LeapState::Unknown || pending != now.leap_transition_utc_ns.has_value()) {
         return {};
     }
@@ -82,8 +94,10 @@ LaunchTarget StreamEngine::project_clock(void* context) {
         const auto high = leap > limit - 1'000'000'000 ? limit : leap + 1'000'000'000;
         const auto latest_start =
             conditions.start_utc_ns + wtp::start_window_ns(conditions.start_utc_ns) - 1;
-        if (!(conditions.start_utc_ns > high ||
-              (latest_start <= limit - duration && latest_start + duration < low)))
+        std::uint64_t utc_duration{};
+        if (!time::duration_utc_bound(duration, now, utc_duration) ||
+            !(conditions.start_utc_ns > high ||
+              (latest_start <= limit - utc_duration && latest_start + utc_duration < low)))
             return {};
     }
     return {true, target};

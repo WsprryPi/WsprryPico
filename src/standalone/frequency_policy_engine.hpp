@@ -1,6 +1,7 @@
 #pragma once
 
 #include "standalone/storage.hpp"
+#include "time/ntp_filter.hpp"
 #include "wtp/job_service.hpp"
 
 namespace wsprrypico::standalone {
@@ -14,9 +15,24 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         : engine_(engine), store_(store), minimum_(minimum_frequency_nhz),
           maximum_(maximum_frequency_nhz) {}
     wtp::PrepareResult prepare(const wtp::Job& job) override;
-    bool set_frequency_correction_ppb(std::int32_t value) override {
-        return engine_.set_frequency_correction_ppb(value);
+    // Sole correction authority; external setters cannot bypass persisted selection.
+    bool set_frequency_correction_ppb(std::int32_t) override {
+        return false;
     }
+    void calibration_boundary() override {
+        frozen_.reset();
+        pair_frozen_ = false;
+    }
+    void freeze_pair_calibration(bool freeze) override {
+        pair_frozen_ = freeze;
+    }
+    void ntp_candidate(time::RateEstimate candidate, const wtp::Clock& clock,
+                       bool topology_supported) {
+        candidate_ = candidate;
+        clock_ = &clock;
+        topology_supported_ = topology_supported;
+    }
+    std::string calibration_status(std::uint64_t now) const override;
     std::string_view diagnostic() const override {
         return engine_.diagnostic();
     }
@@ -52,6 +68,22 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     }
 
   private:
+    struct Selection {
+        std::int32_t ppb = 0;
+        std::uint64_t generation = 0;
+        bool ntp = false;
+    };
+    Selection selection(std::uint64_t now) const;
+    const char* fallback_reason(std::uint64_t now) const;
+    std::optional<Selection> frozen_;
+    bool pair_frozen_ = false;
+    std::optional<std::int32_t> programmed_;
+    time::RateEstimate candidate_;
+    const wtp::Clock* clock_ = nullptr;
+    bool topology_supported_ = false;
+    // Physical applicability is unverified for this source/image. There is no
+    // API toggle that can promote software fitting into independent RF evidence.
+    static constexpr bool independent_rf_verified_ = false;
     wtp::RfEngine& engine_;
     const Store& store_;
     const std::uint64_t minimum_, maximum_;

@@ -1,5 +1,6 @@
 #include "provisioning/field_runtime.hpp"
 #include "rf/pio_dma_sink.hpp"
+#include "time/mapping.hpp"
 #include "time/utc_discipline.hpp"
 
 #include <algorithm>
@@ -300,6 +301,7 @@ class Clock final : public wtp::Clock {
     bool synchronized = true;
     std::uint64_t uncertainty = 0, utc_offset = 0, age = 0;
     bool holdover = false;
+    std::int32_t rate = 0;
     wtp::LeapState leap = wtp::LeapState::Normal;
     std::optional<std::uint64_t> transition;
     explicit Clock(Hardware& h) : hw(h) {}
@@ -307,12 +309,15 @@ class Clock final : public wtp::Clock {
         return {holdover ? wtp::ClockState::Holdover
                          : (synchronized ? wtp::ClockState::Synchronized
                                          : wtp::ClockState::Unsynchronized),
-                hw.time + utc_offset,
+                (hw.time / 1'000'000'000 * std::uint64_t(1'000'000'000LL + rate) +
+                 hw.time % 1'000'000'000 * std::uint64_t(1'000'000'000LL + rate) / 1'000'000'000) +
+                    utc_offset,
                 hw.time,
                 uncertainty,
                 age,
                 leap,
-                transition};
+                transition,
+                rate};
     }
 };
 class Identity final : public wtp::IdentitySource {
@@ -379,6 +384,50 @@ void fractional_start_test() {
         }
         CHECK(engine.disable(hw.time));
     }
+}
+
+void rate_launch_test() {
+    for (const auto rate : {-100000, -20000, 0, 20000, 100000}) {
+        Hardware hw;
+        hw.time = 1'000'000'000;
+        Clock clock(hw);
+        clock.rate = rate;
+        clock.uncertainty = 10000;
+        Identity identity;
+        rf::PioDmaSink sink(hw);
+        rf::StreamEngine engine(sink);
+        wtp::JobService service(clock, engine, identity);
+        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+        CHECK(
+            service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}, 'b')).ok);
+        const auto payload = job(rf::sample_rate);
+        CHECK(service.handle(request("LOAD", payload, 'c')).ok);
+        const auto arm =
+            service.handle(request("ARM", wtp::ArmBody{payload.job_id, 2'000'000'000, 20000}, 'd'));
+        CHECK(arm.ok && arm.start_monotonic_ns);
+        std::uint64_t expected{};
+        CHECK(time::inverse(clock.snapshot(), 2'000'000'000, expected));
+        CHECK(arm.start_monotonic_ns == expected);
+        hw.time = expected - 200000;
+        hw.alarm_event(1);
+        CHECK(hw.launches == 1);
+        CHECK(engine.disable(hw.time));
+    }
+    // Refinement puts upward microsecond rounding exactly outside the original UTC second.
+    Hardware hw;
+    hw.time = 500'000'000;
+    Clock clock(hw);
+    clock.uncertainty = 10000;
+    rf::PioDmaSink sink(hw);
+    rf::StreamEngine engine(sink);
+    const auto payload = job(rf::sample_rate);
+    CHECK(engine.prepare(payload).accepted);
+    CHECK(engine.schedule(payload, 1'000'000'000, {&clock, 1'000'000'000, 20000, 90'000'000'000}));
+    clock.utc_offset = 1000;
+    hw.time = 1'999'998'500;
+    hw.alarm_event(1);
+    CHECK(hw.launches == 0 && !hw.enabled);
+    CHECK(engine.disable(hw.time));
 }
 
 void c4_clock_refinement_replay_test() {
@@ -1194,6 +1243,7 @@ int main() {
         queue_test();
         failures_test();
         fractional_start_test();
+        rate_launch_test();
         c4_clock_refinement_replay_test();
         quantized_end_leap_test();
         local_launch_test();

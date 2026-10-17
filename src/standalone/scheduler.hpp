@@ -45,6 +45,7 @@ class Scheduler {
         encoding::WsprPlan plan;
         std::uint64_t second_slot, config_sequence, renew_at, anchor_utc, anchor_monotonic,
             anchor_uncertainty;
+        wtp::ClockSnapshot mapping;
         unsigned frame = 0;
     };
     std::optional<Pair> pair_;

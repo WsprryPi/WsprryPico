@@ -18,6 +18,8 @@ struct Schedule {
 struct Config {
     hardware::PinPlan pins;
     unsigned gpio_drive_ma = 4; // Nominal direct RF pad current, never WSPR power.
+    std::int32_t manual_correction_ppb = 0;
+    bool ntp_rf_calibration = false; // Explicit opt-in; numeric estimates remain volatile.
     bool enabled = false;
     bool allow_unqualified_frequency = false;
     bool allow_non_amateur_frequency = false;

@@ -7,6 +7,7 @@
 #include "network/assets.hpp"
 #include "network/identity.hpp"
 #include "network/message_job.hpp"
+#include "rf/calibration.hpp"
 #include "wtp/codec.hpp"
 #include "wtp/frame_parser.hpp"
 #include "wtp/memory_budget.hpp"
@@ -248,6 +249,8 @@ HttpResponse BrowserApi::config(bool drive, bool amplifier) const {
             redacted.pins.amplifier_active_high =
                 true; // Closed legacy projection, no polarity authority.
         redacted.password.clear();
+        redacted.manual_correction_ppb = 0;
+        redacted.ntp_rf_calibration = false;
         if (!drive)
             redacted.gpio_drive_ma = 4;
         body = standalone::serialize_config(redacted, amplifier);
@@ -278,6 +281,21 @@ HttpResponse BrowserApi::station_config(bool extended) const {
                      ",\"saved_generation\":" +
                      (saved ? json::quote(std::to_string(store_.config_sequence())) : "null") +
                      ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
+    result.etag = revision();
+    return result;
+}
+HttpResponse BrowserApi::rf_calibration() const {
+    const auto config = effective_config();
+    auto result = ok(
+        "{\"schema\":\"transmitter-rf-calibration/1\",\"target\":" +
+        application::target(device_, service_.status().boot_id) + ",\"saved\":" +
+        (config
+             ? "{\"manual_ppm\":" + json::quote(rf::format_ppm(config->manual_correction_ppb)) +
+                   ",\"mode\":" + json::quote(config->ntp_rf_calibration ? "ntp" : "manual") + "}"
+             : "null") +
+        ",\"selection\":" + service_.calibration_status() +
+        ",\"execution_engine\":" + json::quote(service_.config().capability_engine) +
+        ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") + "}");
     result.etag = revision();
     return result;
 }
@@ -631,7 +649,14 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 encode_response(request, response, service_.config(), device_, firmware_);
             auto value = json::parse(caps);
             return ok(
-                "{\"amplifier_enable\":" +
+                "{\"ntp_observations\":{\"schema\":\"transmitter-ntp-observations/1\","
+                "\"path\":\"/api/v1/ntp-observations\"},"
+                "\"rf_calibration\":{\"schema\":\"transmitter-rf-calibration/1\","
+                "\"path\":\"/api/v1/rf-calibration\",\"method\":\"PUT\","
+                "\"units\":\"ppm\",\"precision\":3,\"minimum\":\"-100.000\","
+                "\"maximum\":\"100.000\",\"default_mode\":\"manual\",\"activation\":\"next_"
+                "preparation\"},"
+                "\"amplifier_enable\":" +
                 application::amplifier_capabilities(service_.config().capability_engine ==
                                                     "pio-dma-gp2") +
                 ",\"gpio_drive\":" + application::gpio_drive_capabilities() +
@@ -677,6 +702,26 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "{\"job\":" + status_json(service_.status()) +
                 ",\"standalone\":" + scheduler_.status() + ",\"network\":" + network_.status() +
                 ",\"transport\":" + (transport_ ? transport_(transport_context_) : "null") + "}");
+        if (r.path == "/api/v1/ntp-observations") {
+            const auto clock = service_.clock_snapshot();
+            const auto active =
+                time_arbiter_ ? time_arbiter_->status() : time::ControllerTimeStatus{};
+            const char* sources[] = {"none", "sntp", "controller", "browser", "disagreement"};
+            return ok(
+                "{\"schema\":\"transmitter-ntp-observations/1\",\"target\":" +
+                application::target(device_, service_.status().boot_id) +
+                ",\"firmware\":" + json::quote(firmware_) +
+                ",\"active_source\":" + json::quote(sources[static_cast<unsigned>(active.source)]) +
+                ",\"source_disagreement\":" + (active.disagreement ? "true" : "false") +
+                ",\"source_revision\":" + json::quote(source_revision_) +
+                ",\"nominal_sample_hz\":" + std::to_string(nominal_sample_hz_) +
+                ",\"image_hash_binding\":\"external_manifest\"" + ",\"clock_generation\":\"" +
+                std::to_string(clock.model_generation) +
+                "\",\"utc_rate_ppb\":" + std::to_string(clock.rate_ppb) + ",\"sync_age_ns\":\"" +
+                std::to_string(clock.sync_age_ns) + "\",\"network\":" + network_.status() + "}");
+        }
+        if (r.path == "/api/v1/rf-calibration")
+            return rf_calibration();
         if (r.path == "/api/v1/gpio-drive")
             return gpio_drive();
         if (r.path == "/api/v1/config/4")
@@ -788,6 +833,10 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                      : drive   ? "/api/v1/config/3"
                                : "/api/v1/config/2";
         auto compatible = *candidate;
+        // Progress has no calibration authority. The recursive legacy save
+        // preserves these omitted settings through the central config merger.
+        compatible.manual_correction_ppb = 0;
+        compatible.ntp_rf_calibration = false;
         // Legacy apply has no drive authority. Omit the extension on its old
         // config route; ordinary candidate merge preserves the saved value and
         // the response retains its original closed configuration shape.
@@ -852,6 +901,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         r.path == "/api/v1/config/4" || r.path == "/api/v1/config/update/4";
     const bool drive_config =
         amplifier_config || r.path == "/api/v1/config/3" || r.path == "/api/v1/config/update/3";
+    const bool calibration_resource = r.path == "/api/v1/rf-calibration";
     const bool drive_resource = r.path == "/api/v1/gpio-drive";
     const bool extended_config =
         drive_config || r.path == "/api/v1/config/2" || r.path == "/api/v1/config/update/2";
@@ -869,9 +919,11 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         (r.method != "PUT" ||
          (r.path != "/api/v1/config" && r.path != "/api/v1/config/2" &&
           r.path != "/api/v1/config/3" && r.path != "/api/v1/config/4" && !drive_resource &&
-          r.path != "/api/v1/schedules" && r.path != "/api/v1/network" && !scoped_resource)))
+          !calibration_resource && r.path != "/api/v1/schedules" && r.path != "/api/v1/network" &&
+          !scoped_resource)))
         return http_error(404, "not_found");
-    if ((scoped_resource || drive_resource) && r.body_view().size() > application::max_update_bytes)
+    if ((scoped_resource || drive_resource || calibration_resource) &&
+        r.body_view().size() > application::max_update_bytes)
         return http_error(413, "resource_body_too_large");
     if (config_update && r.body_view().size() > application::max_config_update_bytes)
         return http_error(413, "resource_body_too_large");
@@ -954,7 +1006,32 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return result;
     }
     std::string candidate;
-    if (drive_resource) {
+    if (calibration_resource) {
+        const auto checked =
+            application::validate_envelope(*root, "transmitter-rf-calibration/1", "calibration",
+                                           device_, service_.status().boot_id);
+        if (checked != application::Envelope::Valid)
+            return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
+                              "invalid_calibration_resource");
+        const auto value = *root->get("calibration");
+        if (!json::fields(value, {"manual_ppm", "mode"}) ||
+            value.get("manual_ppm")->type() != '\"' || value.get("mode")->type() != '\"')
+            return http_error(400, "invalid_calibration");
+        const auto ppb = rf::parse_ppm(value.get("manual_ppm")->string());
+        const auto mode = value.get("mode")->string();
+        if (!ppb || (mode != "manual" && mode != "ntp"))
+            return http_error(400, "invalid_calibration");
+        if (!effective_config())
+            return http_error(409, "not_configured");
+        auto updated = *effective_config();
+        // Explicit fields distinguish a deliberate zero/manual from omission.
+        updated.manual_correction_ppb = 0;
+        updated.ntp_rf_calibration = false;
+        candidate = standalone::serialize_config(updated);
+        candidate.pop_back();
+        candidate += ",\"manual_correction_ppb\":" + std::to_string(*ppb) +
+                     ",\"ntp_rf_calibration\":" + (mode == "ntp" ? "true}" : "false}");
+    } else if (drive_resource) {
         const auto checked = application::validate_envelope(
             *root, "transmitter-gpio-drive/1", "gpio_drive_ma", device_, service_.status().boot_id);
         if (checked != application::Envelope::Valid)
@@ -1126,6 +1203,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return http_error(503, "output_disable_failed");
         return http_error(503, "storage_fault");
     }
+    if (calibration_resource)
+        return rf_calibration();
     if (drive_resource)
         return gpio_drive();
     if (station_resource)

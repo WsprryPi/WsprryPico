@@ -1,5 +1,7 @@
 #include "time/sntp.hpp"
 
+#include "wtp/json.hpp"
+
 namespace wsprrypico::time {
 namespace {
 std::uint64_t read(std::span<const std::uint8_t> bytes) {
@@ -30,6 +32,8 @@ std::array<std::uint8_t, 48> Sntp::request(std::uint64_t now, std::uint64_t nonc
     return packet;
 }
 bool Sntp::receive(std::span<const std::uint8_t> packet, std::uint64_t now) {
+    packet_accepted_ = arbiter_selected_ = false;
+    reason_ = "packet_rejected";
     if (!pending_ || packet.size() != 48 || now < sent_ || now - sent_ > 1'000'000'000ULL ||
         (packet[0] & 7) != 4 || ((packet[0] >> 3) & 7) != 4 ||
         read(packet.subspan(24, 8)) != nonce_)
@@ -39,11 +43,20 @@ bool Sntp::receive(std::span<const std::uint8_t> packet, std::uint64_t now) {
     last_uncertainty_ns_.reset();
     if (packet[1] == 0) { // Conservatively stop this server for the boot on any KoD.
         denied_ = true;
+        filter_.reset();
+        selected_.reset();
+        applied_id_ = 0;
+        reason_ = "kiss_of_death";
         clock_.invalidate(ObservationSource::Sntp);
         return false;
     }
     if ((packet[0] >> 6) != 0 || packet[1] > 15) {
-        clock_.invalidate(ObservationSource::Sntp); // Pending/unknown leap requires a richer source; fail closed.
+        filter_.reset();
+        selected_.reset();
+        applied_id_ = 0;
+        reason_ = "leap_or_stratum";
+        clock_.invalidate(
+            ObservationSource::Sntp); // Pending/unknown leap requires a richer source; fail closed.
         return false;
     }
     const auto precision = static_cast<std::int8_t>(packet[3]);
@@ -75,7 +88,53 @@ bool Sntp::receive(std::span<const std::uint8_t> packet, std::uint64_t now) {
     // The added 999 ns uncertainty covers flooring this offset, so exact UTC
     // slot requests map to representable local alarm times.
     const auto fraction = (estimate % 1000 + 1000 - now % 1000) % 1000;
-    return clock_.observe(ObservationSource::Sntp, estimate - fraction, now, uncertainty,
-                          wtp::LeapState::Normal);
+    NtpSample sample{++observation_id_,
+                     epoch_,
+                     sent_,
+                     now,
+                     estimate - fraction,
+                     uncertainty,
+                     elapsed,
+                     reference,
+                     received,
+                     sent,
+                     std::uint32_t(root_delay),
+                     std::uint32_t(dispersion),
+                     packet[1],
+                     std::uint8_t(packet[0] >> 6),
+                     precision};
+    last_sample_ = sample;
+    packet_accepted_ = filter_.add(sample);
+    if (!packet_accepted_) {
+        reason_ = "duplicate_or_invalid_sample";
+        return false;
+    }
+    selected_ = filter_.selected(now);
+    reason_ = "packet_accepted_filter_retained";
+    if (!selected_ || selected_->id <= applied_id_)
+        return true; // Original anchor age remains unchanged; never refresh an old sample.
+    const auto fitted = filter_.rate(now);
+    arbiter_selected_ =
+        clock_.observe_rate(selected_->utc_ns, selected_->raw_ns, selected_->uncertainty_ns,
+                            fitted.qualified ? fitted.utc_rate_ppb : 0,
+                            fitted.qualified ? fitted.uncertainty_ppb : 0, filter_.generation());
+    reason_ = arbiter_selected_ ? "arbiter_accepted" : "arbiter_rejected";
+    if (arbiter_selected_)
+        applied_id_ = selected_->id;
+    else {
+        filter_.reset(); // Disagreement/controller transitions cannot seed a later fit.
+        selected_.reset();
+        applied_id_ = 0;
+    }
+    return true;
+}
+std::string Sntp::observations_json() const {
+    return "{\"source\":\"sntp\",\"packet_accepted\":" +
+           std::string(packet_accepted_ ? "true" : "false") +
+           ",\"reason\":" + wtp::json::quote(reason_) + ",\"last_accepted_measurement\":" +
+           (last_sample_ ? sample_json(*last_sample_) : "null") +
+           ",\"filter_selected\":" + (selected_ ? sample_json(*selected_) : "null") +
+           ",\"arbiter_accepted_this_packet\":" + (arbiter_selected_ ? "true" : "false") +
+           ",\"anchor_observation_id\":\"" + std::to_string(applied_id_) + "\"}";
 }
 } // namespace wsprrypico::time

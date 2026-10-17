@@ -88,7 +88,8 @@ FlashResources flash_resources() {
     return flash_counters;
 }
 bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
-    const auto storage_size = progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
+    const auto storage_size =
+        progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
     const auto flash_base = progress_ ? flash_layout::progress_base : flash_layout::standalone_base;
     FlashCall call(flash_counters.read_attempts, flash_counters.read_failures,
                    flash_counters.read_requested_bytes, data.size());
@@ -99,7 +100,8 @@ bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
     return call.finish(true);
 }
 bool PicoFlash::erase(std::size_t offset) {
-    const auto storage_size = progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
+    const auto storage_size =
+        progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
     const auto flash_base = progress_ ? flash_layout::progress_base : flash_layout::standalone_base;
     FlashCall call(flash_counters.erase_attempts, flash_counters.erase_failures,
                    flash_counters.erase_requested_bytes, FLASH_SECTOR_SIZE,
@@ -124,7 +126,8 @@ bool PicoFlash::erase(std::size_t offset) {
         std::all_of(bytes, bytes + FLASH_SECTOR_SIZE, [](auto b) { return b == 255; }));
 }
 bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) {
-    const auto storage_size = progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
+    const auto storage_size =
+        progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
     const auto flash_base = progress_ ? flash_layout::progress_base : flash_layout::standalone_base;
     FlashCall call(flash_counters.program_attempts, flash_counters.program_failures,
                    flash_counters.program_requested_bytes, page.size(),
@@ -475,6 +478,7 @@ bool PicoNetwork::start_credentials(std::string_view ssid, std::string_view pass
                                     std::string_view time_server) {
     if (pcb_ || !valid_time_server(time_server) || !initialize_radio())
         return false;
+    sntp_.reset_peer();
     time_server_ = time_server;
     if (!time_server_.empty() && time_server_.back() == '.')
         time_server_.pop_back();
@@ -516,7 +520,7 @@ void PicoNetwork::resolved(const char* name, const ip_addr_t* address, void* con
         ++self.resolution_failures_;
     if (self.lookup_.finish(self.lookup_epoch_, valid, time_us_64()) && valid) {
         if (!ip_addr_cmp(&self.server_, address)) {
-            self.sntp_.cancel(); // Never accept an old peer's outstanding reply.
+            self.sntp_.reset_peer(); // Partition both observations and learning by endpoint.
             self.poll_schedule_.reset();
         }
         self.server_ = *address;
@@ -737,7 +741,9 @@ std::string PicoNetwork::status() const {
                ",\"preserved\":" + std::to_string(preserved) +
                ",\"timeouts\":" + std::to_string(timeouts) + "}";
 #endif
-    return "{\"initialized\":" + std::string(initialized_ ? "true" : "false") +
+    return "{\"ntp_observations\":" + sntp_.observations_json() +
+           ",\"ntp_rate\":" + time::rate_json(sntp_.rate(activity_now_ns())) +
+           ",\"initialized\":" + std::string(initialized_ ? "true" : "false") +
            ",\"enabled\":" + (enabled_ ? "true" : "false") + ",\"link_status\":" +
            std::to_string(initialized_ ? cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA)
                                        : -99) +

@@ -3,6 +3,7 @@
 #include "standalone/heap_probe.hpp"
 #include "standalone/scheduler.hpp"
 #include "standalone/wtp_profile.hpp"
+#include "time/mapping.hpp"
 #include "time/server_lookup.hpp"
 #include "time/sntp.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
@@ -274,7 +275,9 @@ struct Clock : wtp::Clock {
         return value;
     }
     void advance(std::uint64_t ns) {
-        value.utc_now_ns += ns;
+        std::uint64_t elapsed{};
+        CHECK(time::elapsed_utc(ns, value.rate_ppb, elapsed));
+        value.utc_now_ns += elapsed;
         value.monotonic_now_ns += ns;
     }
 };
@@ -960,6 +963,31 @@ void paired_scheduler_tests() {
         reboot.poll();
         CHECK(next_engine.prepared == 0 && reboot_store.watermark() == second);
     }
+    // A healthy non-unit UTC slope is not rollback across a frozen Type 2/3 pair.
+    for (const auto rate : {-100000, 100000}) {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto config = *standalone::parse_config(example);
+        config.callsign = "PJ4/AA0NT";
+        config.locator = "EM18IG";
+        CHECK(store.load() && store.save(config));
+        Clock clock;
+        clock.advance(116 * ns);
+        clock.value.rate_ppb = rate;
+        clock.value.uncertainty_ns = 1000;
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        scheduler.poll();
+        CHECK(engine.prepared == 1);
+        for (unsigned i = 0; i < 238; ++i) {
+            clock.advance(ns / 2);
+            scheduler.poll();
+        }
+        CHECK(engine.prepared == 2 && service.status().owner_id);
+        CHECK(scheduler.command("STOP").find("\"suspended\":true") != std::string::npos);
+    }
     // A known complete-pair time-domain overflow refuses before any side effect.
     for (bool utc_limit : {false, true}) {
         MemoryFlash flash;
@@ -974,6 +1002,26 @@ void paired_scheduler_tests() {
             clock.value.utc_now_ns = time::sntp_max_utc_ns - 124 * ns;
         else
             clock.value.monotonic_now_ns = std::numeric_limits<std::uint64_t>::max() - 115 * ns;
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        scheduler.poll();
+        CHECK(engine.prepared == 0 && store.watermark() == 0 && !service.status().owner_id);
+    }
+    // Negative UTC-per-raw rate can overflow the complete pair even when a
+    // unit-slope sum still fits. Refuse before reservation or first RF job.
+    {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto config = *standalone::parse_config(example);
+        config.callsign = "AA0NT/12";
+        config.locator = "EM18IG";
+        CHECK(store.load() && store.save(config));
+        Clock clock;
+        clock.advance(116 * ns);
+        clock.value.monotonic_now_ns = UINT64_MAX - 235'600'000'000;
+        clock.value.rate_ppb = -100000;
         Engine engine;
         Identity identity;
         wtp::JobService service(clock, engine, identity);

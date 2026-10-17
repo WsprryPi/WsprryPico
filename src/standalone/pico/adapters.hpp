@@ -28,6 +28,7 @@ class PicoFlash final : public Flash {
     bool read(std::size_t offset, std::span<std::uint8_t> data) override;
     bool erase(std::size_t sector_offset) override;
     bool program(std::size_t offset, std::span<const std::uint8_t> page) override;
+
   private:
     bool progress_ = false;
 };
@@ -64,6 +65,9 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     void finish_request(bool idle) override;
     std::string status() const override;
     bool link_up() const;
+    time::RateEstimate ntp_rate(std::uint64_t now) const {
+        return sntp_.rate(now);
+    }
     bool accepted_sntp() const {
         return accepted_ != 0;
     }

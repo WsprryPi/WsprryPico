@@ -1,6 +1,7 @@
 #include "wtp/job_service.hpp"
 
 #include "runtime/activity_trace.hpp"
+#include "time/mapping.hpp"
 #include "wtp/memory_budget.hpp"
 
 #include <algorithm>
@@ -259,6 +260,7 @@ Response JobService::dispatch(Request& request) {
         if (owner_) {
             return reject(ErrorCode::Busy);
         }
+        engine_.calibration_boundary();
         owner_ =
             Owner{body->owner_id, request.session_id, request.principal,
                   saturating_add(now.monotonic_now_ns, static_cast<std::uint64_t>(body->lease_ms) *
@@ -322,6 +324,7 @@ Response JobService::dispatch(Request& request) {
         }
         clear_job();
         owner_.reset();
+        engine_.calibration_boundary();
         return success();
     }
     if (request.operation == "LOAD") {
@@ -553,8 +556,10 @@ Response JobService::local_abort() {
         response = reject(ErrorCode::OutputStateUnknown);
     else
         response = success();
-    if (response.ok)
+    if (response.ok) {
         owner_.reset();
+        engine_.calibration_boundary();
+    }
     return response;
 }
 
@@ -603,18 +608,23 @@ void JobService::poll() {
             const auto exclusion_start =
                 transition > kLeapExclusionNs ? transition - kLeapExclusionNs : 0;
             const auto exclusion_end = saturating_add(transition, kLeapExclusionNs);
-            const auto job_end = arm_->start_utc_ns + start_window_ns(arm_->start_utc_ns) - 1 +
-                                 job_->total_duration_ns;
-            leap_ok = arm_->start_utc_ns > exclusion_end || job_end < exclusion_start;
+            std::uint64_t duration{};
+            const auto latest = arm_->start_utc_ns + start_window_ns(arm_->start_utc_ns) - 1;
+            leap_ok = time::duration_utc_bound(job_->total_duration_ns, now, duration) &&
+                      duration <= std::numeric_limits<std::uint64_t>::max() - latest &&
+                      (arm_->start_utc_ns > exclusion_end || latest + duration < exclusion_start);
         }
         const auto delay = now.monotonic_now_ns - arm_->start_monotonic_ns;
-        const auto mapped = now.utc_now_ns >= delay ? now.utc_now_ns - delay : 0;
+        std::uint64_t mapped{}, utc_delay{};
+        const bool mapping_valid = time::project(now, arm_->start_monotonic_ns, mapped) &&
+                                   time::elapsed_utc(delay, now.rate_ppb, utc_delay, true);
         const auto utc_error =
             mapped > arm_->start_utc_ns ? mapped - arm_->start_utc_ns : arm_->start_utc_ns - mapped;
-        const bool clock_ok = clock_state_ok && now.uncertainty_ns <= arm_->max_uncertainty_ns &&
+        const bool clock_ok = mapping_valid && clock_state_ok &&
+                              now.uncertainty_ns <= arm_->max_uncertainty_ns &&
                               now.uncertainty_ns <= config_.maximum_arm_uncertainty_ns &&
                               utc_error <= now.uncertainty_ns && leap_ok;
-        if (delay >= start_window_ns(arm_->start_utc_ns) || !clock_ok) {
+        if (utc_delay >= start_window_ns(arm_->start_utc_ns) || !clock_ok) {
             if (!engine_.disable(
                     saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
                 engine_.output_active()) {
@@ -699,6 +709,7 @@ void JobService::reset() {
         !engine_.output_active();
     sessions_.clear();
     owner_.reset();
+    engine_.calibration_boundary();
     job_.reset();
     job_digest_ = {};
     adjustments_.clear();
@@ -843,7 +854,9 @@ ErrorCode JobService::validate_arm(const ArmBody& arm, const ClockSnapshot& now,
     const auto resolution = engine_.start_resolution_ns();
     if (resolution == 0)
         return ErrorCode::DeviceFault;
-    const auto nominal_start = now.monotonic_now_ns + ahead;
+    std::uint64_t nominal_start{};
+    if (!time::inverse(now, arm.start_utc_ns, nominal_start))
+        return ErrorCode::InvalidMessage;
     const auto adjustment = (resolution - nominal_start % resolution) % resolution;
     const auto window = start_window_ns(arm.start_utc_ns);
     const auto limit = std::numeric_limits<std::uint64_t>::max();
@@ -852,7 +865,12 @@ ErrorCode JobService::validate_arm(const ArmBody& arm, const ClockSnapshot& now,
         job_->total_duration_ns > limit - (arm.start_utc_ns + window))
         return ErrorCode::InvalidMessage;
     const auto budget = std::min(arm.max_start_uncertainty_ns, config_.maximum_arm_uncertainty_ns);
-    if (adjustment > budget - now.uncertainty_ns)
+    std::uint64_t rounding_utc{}, future_growth{};
+    if (!time::elapsed_utc(adjustment + (now.rate_ppb != 0), now.rate_ppb, rounding_utc, true) ||
+        !time::growth(nominal_start - now.monotonic_now_ns, now.rate_uncertainty_ppb,
+                      future_growth) ||
+        future_growth > budget - now.uncertainty_ns ||
+        rounding_utc > budget - now.uncertainty_ns - future_growth)
         return ErrorCode::ClockUncertain;
     // WTP reports the exact mapping. Round the hardware target upward so timer
     // quantization never requests an early launch. Clock uncertainty remains
@@ -865,7 +883,12 @@ ErrorCode JobService::validate_arm(const ArmBody& arm, const ClockSnapshot& now,
         const auto exclusion_start =
             transition > kLeapExclusionNs ? transition - kLeapExclusionNs : 0;
         const auto exclusion_end = saturating_add(transition, kLeapExclusionNs);
-        const auto job_end = arm.start_utc_ns + window - 1 + job_->total_duration_ns;
+        std::uint64_t duration{};
+        const auto latest = arm.start_utc_ns + window - 1;
+        if (!time::duration_utc_bound(job_->total_duration_ns, now, duration) ||
+            duration > limit - latest)
+            return ErrorCode::InvalidMessage;
+        const auto job_end = latest + duration;
         if (arm.start_utc_ns <= exclusion_end && job_end >= exclusion_start) {
             return ErrorCode::LeapUnsafe;
         }
@@ -886,12 +909,14 @@ void JobService::expire_resources(std::uint64_t monotonic_now_ns) {
             engine_.output_active()) {
             record_terminal(State::Failed, ErrorCode::OutputStateUnknown, monotonic_now_ns);
             owner_.reset();
+            engine_.calibration_boundary();
             return;
         }
         record_terminal(State::Aborted, ErrorCode::None, monotonic_now_ns);
         clear_job();
     }
     owner_.reset();
+    engine_.calibration_boundary();
 }
 
 void JobService::record_terminal(State state, ErrorCode error, std::uint64_t now_ns) {
@@ -919,6 +944,7 @@ void JobService::record_terminal(State state, ErrorCode error, std::uint64_t now
     }
     if (owner_ && owner_->release_after_terminal) {
         owner_.reset();
+        engine_.calibration_boundary();
     }
 }
 
