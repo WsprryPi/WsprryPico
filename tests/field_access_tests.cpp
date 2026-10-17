@@ -1104,91 +1104,92 @@ void runtime_policy() {
     CHECK(ap.request_join_grace(100'000));
     CHECK(!ap.request_join_grace(100'001));
     CHECK(ap.poll(100'001));
-    provisioning::SoftApCoordinator manual_ap(store);
     const auto access_before_manual = media.bytes;
+    constexpr auto lifetime = provisioning::softap_manual_setup_ms;
+    provisioning::SoftApCoordinator manual_ap(store);
     manual_ap.station(true, 0);
     CHECK(!manual_ap.poll(0));
     CHECK(!manual_ap.request_manual_setup(1, false));
-    CHECK(!manual_ap.poll(1));
-    CHECK(manual_ap.request_manual_setup(1, true));
-    CHECK(!manual_ap.request_manual_setup(2, true));
+    CHECK(manual_ap.request_manual_setup(1, true, true));
     CHECK(manual_ap.poll(2));
-    CHECK(manual_ap.status(2).manual_setup);
+    manual_ap.ready(true); // Lifetime begins at actual activation, not request.
     manual_ap.reply_active(true);
-    CHECK(manual_ap.poll(provisioning::softap_manual_setup_ms + 1));
-    CHECK(!manual_ap.status(provisioning::softap_manual_setup_ms + 1).manual_setup);
-    manual_ap.reply_active(false);
-    CHECK(!manual_ap.poll(provisioning::softap_manual_setup_ms + 2));
-    provisioning::SoftApCoordinator held_ap(store);
-    held_ap.station(true, 0);
-    CHECK(held_ap.request_manual_setup(9'000, true, true));
-    CHECK(held_ap.poll(9'000 + provisioning::softap_manual_setup_ms * 3));
-    CHECK(held_ap.status(9'000 + provisioning::softap_manual_setup_ms * 3).manual_setup);
-    CHECK(held_ap.status(9'000 + provisioning::softap_manual_setup_ms * 3).manual_button_held);
-    held_ap.manual_button_released(9'000 + provisioning::softap_manual_setup_ms * 3);
-    CHECK(held_ap.poll(9'000 + provisioning::softap_manual_setup_ms * 4 - 1));
-    CHECK(held_ap.status(9'000 + provisioning::softap_manual_setup_ms * 4 - 1).manual_setup);
-    CHECK(!held_ap.status(9'000 + provisioning::softap_manual_setup_ms * 4 - 1).manual_button_held);
-    CHECK(!held_ap.poll(9'000 + provisioning::softap_manual_setup_ms * 4));
-    CHECK(!held_ap.status(9'000 + provisioning::softap_manual_setup_ms * 4).manual_setup);
-    CHECK(!held_ap.status(9'000 + provisioning::softap_manual_setup_ms * 4).manual_button_held);
-    // Accelerate past 32-bit milliseconds and hundreds of days without
-    // shortening the production lease. A continuous hold must still retain AP.
-    provisioning::SoftApCoordinator ancient_ap(store);
+    manual_ap.token_records(3);
+    CHECK(manual_ap.poll(lifetime + 1));
+    CHECK(!manual_ap.poll(lifetime + 2));
+    CHECK(manual_ap.status(lifetime + 2).expired);
+    CHECK(!manual_ap.status(lifetime + 2).draining);
+    CHECK(!manual_ap.request_manual_setup(lifetime + 3, true, true));
+    manual_ap.manual_button_released(lifetime + 3);
+    CHECK(!manual_ap.poll(lifetime + 4)); // Release cannot renew an expired hold.
+    CHECK(!manual_ap.poll(lifetime * 4)); // Clients never renew/reopen.
+    CHECK(manual_ap.request_manual_setup(lifetime * 4 + 1, true));
+    CHECK(manual_ap.poll(lifetime * 4 + 2));
+    manual_ap.ready(true);
+    CHECK(manual_ap.poll(lifetime * 5 + 1));
+    CHECK(!manual_ap.poll(lifetime * 5 + 2));
+
+    // A request deferred by RF safety does not consume time before AP starts.
+    provisioning::SoftApCoordinator deferred_ap(store);
+    deferred_ap.station(true, 0);
+    CHECK(deferred_ap.request_manual_setup(0, true, true));
     constexpr std::uint64_t far_future = 400ULL * 24 * 60 * 60 * 1000;
-    ancient_ap.station(true, 0);
-    CHECK(ancient_ap.request_manual_setup(9'000, true, true));
-    CHECK(ancient_ap.poll(far_future));
-    ancient_ap.ready(true);
-    CHECK(ancient_ap.status(far_future).ready);
-    CHECK(ancient_ap.status(far_future).manual_button_held);
-    ancient_ap.manual_button_released(far_future);
-    CHECK(ancient_ap.poll(far_future + provisioning::softap_manual_setup_ms - 1));
-    CHECK(!ancient_ap.poll(far_future + provisioning::softap_manual_setup_ms));
-    CHECK(media.bytes == access_before_manual);
-    provisioning::SoftApCoordinator saved_ap(store);
-    saved_ap.no_profile(true); // Network-only and consumer pre-clock use the open page.
-    CHECK(saved_ap.surface(false) == provisioning::SoftApSurface::BlankReadOnly);
-    saved_ap.station(true, 0);
-    CHECK(!saved_ap.poll(0)); // Saved credentials with a healthy station withdraw AP.
-    saved_ap.station(false, 1'000);
-    CHECK(!saved_ap.poll(60'999));
-    CHECK(saved_ap.poll(61'000)); // Field-site station loss brings the portal back.
-    saved_ap.station(true, 61'001);
-    CHECK(saved_ap.poll(91'000));
-    CHECK(!saved_ap.poll(91'001));
+    CHECK(deferred_ap.poll(far_future));
+    deferred_ap.ready(true);
+    CHECK(deferred_ap.poll(far_future + lifetime - 1));
+    deferred_ap.manual_button_released(far_future + lifetime - 1);
+    CHECK(!deferred_ap.poll(far_future + lifetime));
+    CHECK(!deferred_ap.poll(far_future + 2 * lifetime));
+
     provisioning::SoftApCoordinator blank_ap(store);
     blank_ap.no_profile(true);
     blank_ap.blank_profile(true);
     blank_ap.station(false, 0);
-    CHECK(blank_ap.poll(0)); // An erased profile opens AP immediately.
-    blank_ap.station(true, 1'000);
-    CHECK(blank_ap.poll(1'000)); // Setup remains available until activation restart.
-    provisioning::SoftApCoordinator temporary(store);
-    temporary.temporary_access(true);
-    temporary.station(true, 0);
-    temporary.token_records(2);
-    temporary.reply_active(true);
-    CHECK(!temporary.poll(0)); // Clients/polling cannot open an AP.
-    CHECK(temporary.request_manual_setup(1, true, true));
-    CHECK(!temporary.request_manual_setup(2, true, true));
-    CHECK(temporary.poll(1'000'000)); // Held: no repeated action or timer renewal.
-    temporary.manual_button_released(1'000'000);
-    CHECK(temporary.poll(1'599'999));
-    CHECK(temporary.poll(1'600'000)); // One bounded existing-reply drain.
-    CHECK(temporary.status(1'600'000).draining);
-    CHECK(!temporary.poll(1'610'000));
-    CHECK(!temporary.poll(2'000'000)); // Activity cannot restart the drain.
-    temporary.station(false, 2'000'000);
-    CHECK(!temporary.poll(2'059'999));
-    CHECK(temporary.poll(2'060'000));
-    CHECK(temporary.request_manual_setup(2'060'001, true));
-    CHECK(temporary.poll(2'660'001)); // Manual expiry during outage keeps fallback.
-    temporary.station(true, 2'700'000);
-    CHECK(temporary.poll(2'729'999));
-    temporary.reply_active(false);
-    CHECK(!temporary.poll(2'730'000));
-    CHECK(media.bytes == access_before_manual); // No credentials, journals or cursor writes.
+    CHECK(blank_ap.poll(0));
+    blank_ap.ready(true);
+    CHECK(blank_ap.poll(provisioning::softap_fallback_ms));
+    CHECK(blank_ap.poll(lifetime - 1));
+    CHECK(!blank_ap.poll(lifetime));
+    CHECK(!blank_ap.poll(2 * lifetime)); // Persistent blank/outage stays off.
+    CHECK(blank_ap.status(lifetime).expired);
+    CHECK(blank_ap.status(lifetime).remaining_ms == 0);
+    CHECK(blank_ap.request_manual_setup(2 * lifetime + 1, true));
+    CHECK(blank_ap.poll(2 * lifetime + 1));
+    blank_ap.ready(true);
+    CHECK(!blank_ap.poll(3 * lifetime + 1));
+
+    provisioning::SoftApCoordinator fallback_ap(store);
+    fallback_ap.station(false, 0);
+    CHECK(fallback_ap.poll(provisioning::softap_fallback_ms));
+    fallback_ap.ready(true);
+    CHECK(!fallback_ap.poll(provisioning::softap_fallback_ms + lifetime));
+    CHECK(!fallback_ap.poll(3 * lifetime));
+    fallback_ap.station(true, 3 * lifetime);
+    CHECK(!fallback_ap.poll(3 * lifetime + provisioning::softap_station_stable_ms));
+    fallback_ap.station(false, 4 * lifetime);
+    CHECK(!fallback_ap.poll(4 * lifetime + provisioning::softap_fallback_ms - 1));
+    CHECK(fallback_ap.poll(4 * lifetime + provisioning::softap_fallback_ms));
+    fallback_ap.ready(true); // Stable recovery permits a genuinely new outage.
+    CHECK(!fallback_ap.poll(5 * lifetime + provisioning::softap_fallback_ms));
+
+    provisioning::SoftApCoordinator recovery_ap(store);
+    recovery_ap.recovery(true);
+    CHECK(recovery_ap.poll(0));
+    recovery_ap.ready(true);
+    recovery_ap.reply_active(true);
+    CHECK(!recovery_ap.poll(lifetime));
+    CHECK(!recovery_ap.poll(2 * lifetime));
+
+    provisioning::SoftApCoordinator grace_ap(store);
+    grace_ap.station(true, 0);
+    CHECK(grace_ap.request_join_grace(0));
+    CHECK(grace_ap.poll(0));
+    grace_ap.ready(true);
+    grace_ap.token_records(1); // Legacy engineering sessions cannot retain forever.
+    CHECK(grace_ap.poll(lifetime - 1));
+    CHECK(!grace_ap.poll(lifetime));
+    CHECK(!grace_ap.poll(2 * lifetime));
+    CHECK(media.bytes == access_before_manual);
     ap.no_profile(false);
     CHECK(ap.surface(false) == provisioning::SoftApSurface::ProvisionedPreClock);
     CHECK(ap.surface(true) == provisioning::SoftApSurface::Normal);

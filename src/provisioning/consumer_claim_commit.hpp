@@ -29,6 +29,11 @@ class ConsumerClaimCommitPlatform {
     virtual std::uint64_t monotonic_now_ms() = 0;
     virtual bool station_ready(std::string_view ssid) = 0;
     virtual std::optional<std::uint64_t> trusted_utc_now() = 0;
+    // Local physical USB authority may use an independently qualified USB UTC
+    // observation; network commissioning retains its existing SNTP-only policy.
+    virtual std::optional<std::uint64_t> trusted_local_utc_now() {
+        return trusted_utc_now();
+    }
     virtual std::string_view local_hostname() = 0;
     virtual bool valid_owner_point(std::string_view point_b64url) = 0;
     virtual bool generate_tls(std::string_view device_id, std::string_view hostname,

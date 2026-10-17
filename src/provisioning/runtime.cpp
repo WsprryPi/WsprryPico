@@ -134,9 +134,11 @@ std::optional<standalone::Config> RuntimeProfile::overlay(const standalone::Conf
         result.password = consumer_profile_.password;
         result.ntp_ipv4 = consumer_profile_.time_server;
         // Keep standalone schedules and watermark data outside the claim.
-        result.callsign = consumer_profile_.callsign;
-        result.locator = consumer_profile_.locator;
-        result.power_dbm = consumer_profile_.power_dbm;
+        if (!consumer_profile_.usb_managed) {
+            result.callsign = consumer_profile_.callsign;
+            result.locator = consumer_profile_.locator;
+            result.power_dbm = consumer_profile_.power_dbm;
+        }
     }
     return result;
 }

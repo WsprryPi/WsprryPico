@@ -88,7 +88,8 @@ bool OwnerResultRestart::ready(std::uint64_t now_ms) const {
 }
 
 bool owner_public_get_admitted(const HttpRequest& request, std::string_view route) {
-    return (route == "/api/owner/v1/public-status" || route == "/api/owner/v1/claim/status" || route == "/api/owner/v1/wspr-support") &&
+    return (route == "/api/owner/v1/public-status" || route == "/api/owner/v1/claim/status" ||
+            route == "/api/owner/v1/wspr-support") &&
            common(request, route, false);
 }
 
@@ -98,7 +99,8 @@ std::string owner_saved_station_json(const provisioning::ProfileStore& store,
     const auto* saved = runtime.consumer_profile();
     if (!store.healthy() || store.source() != provisioning::ProfileSource::ConsumerProfile ||
         !store.sequence() || runtime.source() != provisioning::RuntimeSource::ConsumerPreClock ||
-        runtime.generation() != store.sequence() || !saved || saved->device_id != device_id)
+        runtime.generation() != store.sequence() || !saved || saved->device_id != device_id ||
+        saved->usb_managed)
         return "null";
     return "{\"callsign\":" + wtp::json::quote(saved->callsign) +
            ",\"locator\":" + wtp::json::quote(saved->locator) +
@@ -128,6 +130,8 @@ std::string owner_saved_network_json(const provisioning::ProfileStore& store,
     } else {
         return "null";
     }
+    if (ssid.empty())
+        return "null";
     return "{\"ssid\":" + wtp::json::quote(ssid) +
            ",\"time_server\":" + wtp::json::quote(time_server) + "}";
 }
@@ -178,8 +182,10 @@ std::optional<OwnerClaimStartRequest> parse_owner_claim_start(const HttpRequest&
     return OwnerClaimStartRequest{*device, *owner, *browser, *nonce, selected, sequence};
 }
 
-static std::optional<OwnerClaimSubmitRequest> parse_submit(const HttpRequest& request, bool progress) {
-    if (!common(request, progress ? "/api/owner/v1/progress/submit" : "/api/owner/v1/claim/submit", true))
+static std::optional<OwnerClaimSubmitRequest> parse_submit(const HttpRequest& request,
+                                                           bool progress) {
+    if (!common(request, progress ? "/api/owner/v1/progress/submit" : "/api/owner/v1/claim/submit",
+                true))
         return {};
     const auto root = wtp::json::parse(request.body_view());
     if (!root ||
@@ -194,7 +200,8 @@ static std::optional<OwnerClaimSubmitRequest> parse_submit(const HttpRequest& re
     if (!device || !boot || !slot || !request_id || !nonce || !cipher || !tag ||
         !network::valid_device_id(*device) || !hex16(*boot) || !hex16(*slot) ||
         !hex16(*request_id) || !b64(*nonce, 12, 12) ||
-        !b64(*cipher, progress ? 2 : 11, progress ? 512 : OwnerClaimEncodedPlaintext::max_size) || !b64(*tag, 16, 16))
+        !b64(*cipher, progress ? 2 : 11, progress ? 512 : OwnerClaimEncodedPlaintext::max_size) ||
+        !b64(*tag, 16, 16))
         return {};
     return OwnerClaimSubmitRequest{*device, *boot, *slot, *request_id, *nonce, *cipher, *tag};
 }

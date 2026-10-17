@@ -80,7 +80,7 @@ std::string profile_quote(std::string_view text) {
 } // namespace
 
 CredentialMaterial credentials(const Profile& profile) {
-    return {profile.device_id,          profile.hostname,       profile.port,
+    return {profile.device_id,          profile.hostname,           profile.port,
             profile.server_certificate, profile.server_private_key, profile.client_ca};
 }
 
@@ -90,7 +90,8 @@ std::optional<Profile> parse_profile(std::string_view text) {
         return {};
     auto root = parse(text);
     if (!root || !fields(*root, {"version", "device_id", "wifi", "tls"}) ||
-        root->get("version")->raw != "1" || !identifier(*root->get("device_id")))
+        (root->get("version")->raw != "1" && root->get("version")->raw != "2") ||
+        !identifier(*root->get("device_id")))
         return {};
     const auto wifi = root->get("wifi");
     const auto tls = root->get("tls");
@@ -114,13 +115,16 @@ std::optional<Profile> parse_profile(std::string_view text) {
         return {};
 
     Profile result;
+    result.usb_managed = root->get("version")->raw == "2";
     result.device_id = root->get("device_id")->string();
     result.ssid = wifi->get("ssid")->string();
     result.password = wifi->get("password")->string();
     result.time_server = wifi->get("time_server")->string();
     auto hostname = network::canonical_local_hostname(tls->get("hostname")->string());
     if (!hostname ||
-        !standalone::valid_wifi_credentials(result.ssid, result.password, result.time_server)) {
+        !(standalone::valid_wifi_credentials(result.ssid, result.password, result.time_server) ||
+          (result.usb_managed && result.ssid.empty() && result.password.empty() &&
+           standalone::valid_time_server(result.time_server)))) {
         scrub(result);
         return {};
     }
@@ -140,7 +144,8 @@ std::optional<Profile> parse_profile(std::string_view text) {
 }
 
 std::string serialize_profile(const Profile& profile) {
-    return "{\"version\":1,\"device_id\":" + profile_quote(profile.device_id) +
+    return std::string("{\"version\":") + (profile.usb_managed ? "2" : "1") +
+           ",\"device_id\":" + profile_quote(profile.device_id) +
            ",\"wifi\":{\"ssid\":" + profile_quote(profile.ssid) +
            ",\"password\":" + profile_quote(profile.password) +
            ",\"time_server\":" + profile_quote(profile.time_server) +

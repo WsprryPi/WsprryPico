@@ -14,6 +14,7 @@ std::size_t size = 0;
 std::array<bool, USB_CDC_COUNT> connected{};
 bool wtp_reset = true;
 bool console_reset = true;
+bool management_reset = true;
 
 void disconnect(std::uint8_t port) {
     connected[port] = false;
@@ -23,6 +24,8 @@ void disconnect(std::uint8_t port) {
         console_reset = true;
         head = 0;
         size = 0;
+    } else if (port == USB_CDC_MANAGEMENT) {
+        management_reset = true;
     } else {
         wtp_reset = true;
     }
@@ -40,9 +43,10 @@ void service() {
             }
         } else if (!connected[port]) {
             connected[port] = true;
-            if (port == USB_CDC_WTP) {
+            if (port == USB_CDC_WTP)
                 wtp_reset = true;
-            }
+            else if (port == USB_CDC_MANAGEMENT)
+                management_reset = true;
         }
     }
     if (connected[USB_CDC_CONSOLE] && size != 0) {
@@ -67,6 +71,24 @@ bool console_output_pending() {
 }
 bool wtp_connected() {
     return connected[USB_CDC_WTP];
+}
+bool management_connected() {
+    return connected[USB_CDC_MANAGEMENT];
+}
+bool take_management_reset() {
+    const auto result = management_reset;
+    management_reset = false;
+    return result;
+}
+std::size_t management_transport_read(std::span<std::uint8_t> bytes) {
+    return management_connected() ? tud_cdc_n_read(USB_CDC_MANAGEMENT, bytes.data(),
+                                                   std::min(bytes.size(), kServiceBytes))
+                                  : 0;
+}
+std::size_t management_transport_write(std::span<const std::uint8_t> bytes) {
+    return management_connected() ? tud_cdc_n_write(USB_CDC_MANAGEMENT, bytes.data(),
+                                                    std::min(bytes.size(), kServiceBytes))
+                                  : 0;
 }
 bool take_console_reset() {
     const bool result = console_reset;

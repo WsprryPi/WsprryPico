@@ -24,15 +24,21 @@ std::string HostnameSettings::revision_context() const {
     return ":hostname:" + std::to_string(store_.sequence()) + (store_.healthy() ? ":ok" : ":fault");
 }
 
-std::string HostnameSettings::readback(std::string_view boot) const {
+std::string HostnameSettings::readback(std::string_view boot, bool local_usb) const {
     auto parsed = store_.healthy() && store_.source() == ProfileSource::ConsumerProfile
                       ? parse_consumer_profile(store_.data())
                       : std::nullopt;
     const bool consumer = parsed && parsed->device_id == device_;
-    const auto saved = consumer ? parsed->tls.hostname : active_;
-    const bool writable = consumer && runtime_.consumer_profile() &&
-                          runtime_.generation() == store_.sequence() && !default_.empty();
+    const bool local_blank = local_usb && runtime_.control_healthy(store_) &&
+                             (runtime_.source() == RuntimeSource::Unprovisioned ||
+                              runtime_.source() == RuntimeSource::NetworkOnly);
+    const auto saved = consumer ? parsed->tls.hostname : active_.empty() ? default_ : active_;
+    const bool writable =
+        !default_.empty() &&
+        ((consumer && runtime_.consumer_profile() && runtime_.generation() == store_.sequence()) ||
+         local_blank);
     const auto reason = !store_.healthy() ? "storage_fault"
+                        : writable        ? ""
                         : consumer        ? (writable ? "" : "profile_unavailable")
                         : store_.source() == ProfileSource::NetworkOnly
                             ? "complete_station_setup_first"
@@ -52,7 +58,7 @@ std::string HostnameSettings::readback(std::string_view boot) const {
     return result;
 }
 
-std::string HostnameSettings::save(const std::optional<std::string>& requested) {
+std::string HostnameSettings::save(const std::optional<std::string>& requested, bool local_usb) {
     const auto name = network::canonical_local_hostname(requested ? *requested : default_);
     if (!name)
         return "invalid_hostname";
@@ -60,7 +66,7 @@ std::string HostnameSettings::save(const std::optional<std::string>& requested) 
         return "storage_fault";
     if (store_.source() != ProfileSource::ConsumerProfile)
         return "hostname_profile_read_only";
-    if (default_.empty() || !platform_.safe_to_commit() ||
+    if (default_.empty() || (!local_usb && !platform_.safe_to_commit()) ||
         runtime_.generation() != store_.sequence())
         return "hostname_unavailable";
     Proposal previous, next;
@@ -82,10 +88,12 @@ std::string HostnameSettings::save(const std::optional<std::string>& requested) 
         next.profile.tls.hostname = *name;
     } else {
         previous.profile.tls = next.profile.tls;
-        const auto now = platform_.trusted_utc_now();
+        const auto now =
+            local_usb ? platform_.trusted_local_utc_now() : platform_.trusted_utc_now();
         if (!now || !platform_.rename_tls(device_, *name, *now, next.profile.tls))
             return "hostname_certificate_unavailable";
-        const auto fresh = platform_.trusted_utc_now();
+        const auto fresh =
+            local_usb ? platform_.trusted_local_utc_now() : platform_.trusted_utc_now();
         if (!fresh || !platform_.valid_tls(next.profile.tls, device_, *fresh))
             return "hostname_certificate_unavailable";
         const auto& old = previous.profile.tls;
@@ -95,9 +103,9 @@ std::string HostnameSettings::save(const std::optional<std::string>& requested) 
             next.profile.tls.server_private_key != old.server_private_key)
             return "hostname_trust_changed";
     }
-    if (next.profile.tls.hostname != *name || !platform_.safe_to_commit() || !store_.healthy() ||
-        store_.source() != ProfileSource::ConsumerProfile || store_.sequence() != generation ||
-        store_.data() != previous.payload)
+    if (next.profile.tls.hostname != *name || (!local_usb && !platform_.safe_to_commit()) ||
+        !store_.healthy() || store_.source() != ProfileSource::ConsumerProfile ||
+        store_.sequence() != generation || store_.data() != previous.payload)
         return "hostname_unavailable";
     next.payload = serialize_consumer_profile(next.profile);
     if (next.payload.empty())

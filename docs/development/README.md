@@ -1,5 +1,11 @@
 # Development baseline
 
+[Production USB control](usb-control-results.md) adds ordinary-firmware USB
+management/time, common-hostname presentation, complete saved Wi-Fi lifecycle
+and a hard ten-minute AP lifetime for every entry path. It preserves WTP/1 and
+existing numeric job/timing limits. Its record distinguishes software/build
+evidence from outstanding physical USB/AP/RF qualification.
+
 Current [Phase 15 punchlist numbering](../implementation-plan.md#phase-15-operator-review-punchlist)
 places P15.14 USB control (in progress in "BLE & USB Control Status") after
 P15.13 band/mode/clock qualification. After USB control acceptance, deliver

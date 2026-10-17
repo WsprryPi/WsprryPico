@@ -39,6 +39,10 @@ struct ConsumerProfile {
     unsigned power_dbm = 0;
     // Version 2 only: settings durable; TLS has not been minted without trusted UTC.
     bool tls_pending = false;
+    // Journal v3 explicitly permits no saved network. Station authority is the
+    // standalone Config journal and the profile omits its station snapshot.
+    // Earlier versions retain their complete commissioning rules.
+    bool usb_managed = false;
     ConsumerTls tls;
     std::vector<ConsumerClient> clients;
     std::string request_sha256;

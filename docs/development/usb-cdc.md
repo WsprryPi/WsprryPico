@@ -1,4 +1,4 @@
-# Dual USB CDC foundation
+# USB CDC transport roles
 
 Console = human-readable UTF-8 diagnostics only. WTP = WTP frame stream only.
 Never send logging, debug output, prompts or unframed JSON through WTP. The
@@ -6,10 +6,11 @@ transport accepts binary bytes; the [strict WTP endpoint](wtp-endpoint.md)
 supplies valid WTP/1 frames, performs JSON dispatch and serializes responses and
 events. No unsolicited diagnostics are emitted on WTP.
 
-P15.3 explicitly leaves USB JSON management unsupported. WTP connectivity and
-Console commands are separate from the authenticated browser/configuration API;
-no new framing, parser or credential authority is added. See the
-[carrier/access matrix](phase15-3-management-carriers.md).
+The earlier P15.3 USB exclusion is superseded by [USB-Management/1](../protocol/USB-Management.md).
+A third management CDC role carries framed shared-API requests and qualified
+UTC observations. Console and WTP roles and byte streams remain unchanged.
+The [local configuration contract](usb-local-configuration.md) defines no-network
+profiles, hostname and saved Wi-Fi lifecycle. Network authentication is unchanged.
 
 ## Identity and ownership
 
@@ -19,11 +20,13 @@ no new framing, parser or credential authority is added. See the
 | --- | --- | --- | --- |
 | WsprryPico Console | 0 | 0 | 1 |
 | WsprryPico WTP | 1 | 2 | 3 |
+| WsprryPico Management | 2 | 4 | 5 |
 
 `firmware/usb_descriptors.c` retains manufacturer `WsprryPi`, product
 `WsprryPico`, the board-derived USB serial, and development identity
 `cafe:4012`. This is not a production VID/PID allocation. Separate endpoint
-addresses are Console `81/02/82` and WTP `83/04/84` (notification/OUT/IN).
+addresses are Console `81/02/82`, WTP `83/04/84` and management `85/06/86`
+(notification/OUT/IN).
 The pinned TinyUSB macro places role strings on the control interfaces;
 association descriptors and data interfaces have no string. Operating systems
 and serial libraries may show only the device product or generated filenames.

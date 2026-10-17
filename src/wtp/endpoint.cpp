@@ -1,6 +1,7 @@
 #include "wtp/endpoint.hpp"
 
 #include "wtp/codec.hpp"
+#include "wtp/json_compact.hpp"
 #include "wtp/memory_budget.hpp"
 
 #include <algorithm>
@@ -32,6 +33,7 @@ void Endpoint::disconnect() {
     parser_.end_of_stream();
     parser_ = FrameParser{}; // Release retained frame storage between transport uses.
     pending_input_ = {};
+    pending_input_digest_.reset();
     output_.clear();
     offset_ = 0;
     queued_bytes_ = 0;
@@ -42,7 +44,8 @@ void Endpoint::disconnect() {
 }
 bool Endpoint::enqueue(std::string text, std::uint64_t now, bool advisory) {
     if (text.empty() || text.size() > kMaximumPayloadBytes || output_.size() >= 8 ||
-        queued_bytes_ + text.size() + kFrameHeaderBytes > 131072 || !memory_admitted(1024)) {
+        queued_bytes_ + text.size() + kFrameHeaderBytes > 131072 ||
+        !authoritative_memory_admitted(1024)) {
         if (!advisory)
             disconnect();
         return false;
@@ -59,7 +62,8 @@ bool Endpoint::enqueue(std::string text, std::uint64_t now, bool advisory) {
 }
 bool Endpoint::enqueue(LoadResponseStream text, std::uint64_t now) {
     if (text.empty() || text.size() > kMaximumPayloadBytes || output_.size() >= 8 ||
-        queued_bytes_ + text.size() + kFrameHeaderBytes > 131072 || !memory_admitted(1024)) {
+        queued_bytes_ + text.size() + kFrameHeaderBytes > 131072 ||
+        !authoritative_memory_admitted(1024)) {
         disconnect();
         return false;
     }
@@ -149,9 +153,10 @@ void Endpoint::poll(std::uint64_t now) {
     if (!pending_input_.empty()) {
         if (now >= pending_input_since_ms_ && now - pending_input_since_ms_ >= 5000) {
             close_after_output();
-        } else if (output_.empty() && memory_admitted(pending_input_workspace_)) {
+        } else if (output_.empty() && authoritative_memory_admitted(pending_input_workspace_)) {
             const auto began = pending_input_since_ms_;
-            payload(std::move(pending_input_), now);
+            const auto original_digest = std::exchange(pending_input_digest_, {});
+            payload(std::move(pending_input_), now, original_digest);
             // A changed budget cannot restart the original admission deadline.
             if (!pending_input_.empty())
                 pending_input_since_ms_ = began;
@@ -163,6 +168,7 @@ void Endpoint::poll(std::uint64_t now) {
 void Endpoint::close_after_output() {
     parser_.end_of_stream();
     pending_input_ = {};
+    pending_input_digest_.reset();
     closing_ = true;
     if (output_.empty())
         closed_ = true;
@@ -185,13 +191,15 @@ std::size_t Endpoint::receive(std::span<const std::uint8_t> input, std::uint64_t
     }
     return count;
 }
-void Endpoint::payload(FrameBuffer bytes, std::uint64_t now) {
+void Endpoint::payload(FrameBuffer bytes, std::uint64_t now,
+                       std::optional<PayloadDigest> original_digest) {
     // A different endpoint may briefly own a maximum reply. Retain this one
     // already buffered frame for at most five seconds and apply backpressure;
     // do not decode, dispatch or consume the unchanged safety reserve yet.
     pending_input_workspace_ = 6144;
-    if (!memory_admitted(pending_input_workspace_)) {
+    if (!authoritative_memory_admitted(pending_input_workspace_)) {
         pending_input_ = std::move(bytes);
+        pending_input_digest_ = original_digest;
         pending_input_since_ms_ = now;
         return;
     }
@@ -204,16 +212,51 @@ void Endpoint::payload(FrameBuffer bytes, std::uint64_t now) {
         close_after_output();
         return;
     }
-    const auto replay_id = service_.active_load_replay_id();
-    const bool replay = is_active_load_replay(*root, replay_id);
+    auto replay_id = service_.active_load_replay_id();
+    bool replay = is_active_load_replay(*root, replay_id);
     pending_input_workspace_ = replay || is_small_read_request(*root) ? 6144 : 32768;
-    if (!memory_admitted(pending_input_workspace_)) {
+    // Preserve the normal fast path. Compact only if optional-adapter reclaim
+    // still cannot satisfy the original workspace and authority reserve.
+    bool workspace_admitted = authoritative_memory_admitted(pending_input_workspace_);
+    if (!workspace_admitted && !original_digest) {
+        // Replay identity is the exact CRC-validated wire payload, including
+        // whitespace and escapes. Retain its digest before changing storage.
+        Sha256 digest;
+        for (std::size_t offset = 0; offset < bytes.size();) {
+            const auto part = bytes.view().at(offset);
+            digest.update(part);
+            offset += part.size();
+            service_.poll();
+        }
+        original_digest = digest.finish();
+        root.reset(); // No view may outlive the in-place transformation.
+        compact_validated_json(
+            bytes, +[](void* context) { static_cast<JobService*>(context)->poll(); }, &service_);
+        if (!authoritative_memory_admitted(6144)) {
+            pending_input_ = std::move(bytes);
+            pending_input_digest_ = original_digest;
+            pending_input_since_ms_ = now;
+            return;
+        }
+        root = json::parse(bytes.view());
+        service_.poll();
+        if (!root) {
+            close_after_output();
+            return;
+        }
+        replay_id = service_.active_load_replay_id();
+        replay = is_active_load_replay(*root, replay_id);
+        pending_input_workspace_ = replay || is_small_read_request(*root) ? 6144 : 32768;
+        workspace_admitted = authoritative_memory_admitted(pending_input_workspace_);
+    }
+    if (!workspace_admitted) {
         pending_input_ = std::move(bytes);
+        pending_input_digest_ = original_digest;
         pending_input_since_ms_ = now;
         return;
     }
-    auto request =
-        decode_request(std::move(*root), principal_, bytes.view(), replay ? replay_id : "");
+    auto request = decode_request(std::move(*root), principal_, bytes.view(),
+                                  replay ? replay_id : "", original_digest);
     // Decoded requests own their fields and digest. Release raw input before
     // preparing a maximum job or serializing its independently bounded reply.
     root.reset();

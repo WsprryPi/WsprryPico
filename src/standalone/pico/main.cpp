@@ -21,7 +21,9 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "hardware/structs/watchdog.h"
 #include "hardware/watchdog.h"
 #include "lwip/ip.h"
+#include "network/bootstrap_codec.hpp"
 #include "network/identity.hpp"
+#include "network/local_usb_api.hpp"
 #include "network/pico/bootstrap_server.hpp"
 #include "network/pico/consumer_radio_crypto.hpp"
 #include "network/pico/server.hpp"
@@ -35,6 +37,7 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "provisioning/ble_session.hpp"
 #include "provisioning/command.hpp"
 #include "provisioning/local_access.hpp"
+#include "provisioning/local_settings.hpp"
 #include "provisioning/manager.hpp"
 #include "provisioning/pico/activation_platform.hpp"
 #include "provisioning/pico/consumer_claim_platform.hpp"
@@ -42,6 +45,8 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "provisioning/pico/consumer_tls_validator.hpp"
 #include "provisioning/pico/credential_validator.hpp"
 #include "provisioning/pico/field_platform.hpp"
+#include "usb/management_endpoint.hpp"
+#include "usb/time_exchange.hpp"
 #ifdef WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE
 #include "provisioning/pico/indicator_fault_fixture.hpp"
 #endif
@@ -348,9 +353,25 @@ int main() {
     static wsprrypico::standalone::PicoAccessMedia access_media;
     static wsprrypico::provisioning::AccessStore access_store(access_media);
     const bool access_store_loaded = access_store.load();
+    static wsprrypico::firmware::PicoIdentitySource identities;
+    bool usb_erased_access_ok =
+        profile_store.healthy() &&
+        (profile_store.source() == wsprrypico::provisioning::ProfileSource::Unprovisioned ||
+         (profile_store.source() == wsprrypico::provisioning::ProfileSource::LegacyBootstrap &&
+          profile_store.sequence() == 0 && profile_store.data().empty()));
+    if (profile_store.healthy() &&
+        profile_store.source() == wsprrypico::provisioning::ProfileSource::ConsumerProfile) {
+        auto saved = wsprrypico::provisioning::parse_consumer_profile(profile_store.data());
+        usb_erased_access_ok =
+            saved && saved->device_id == identities.device_id() && saved->usb_managed;
+        if (saved)
+            wsprrypico::provisioning::scrub(*saved);
+    }
     const bool access_recovery =
         !access_store_loaded ||
-        access_store.state() != wsprrypico::provisioning::AccessStoreState::Healthy ||
+        (access_store.state() != wsprrypico::provisioning::AccessStoreState::Healthy &&
+         !(usb_erased_access_ok &&
+           access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased)) ||
         (access_store.record() && access_store.record()->reset.pending());
     const bool boot_recovery = recovery || access_recovery;
     auto boot_pins = store.config() ? store.config()->pins : wsprrypico::hardware::PinPlan{};
@@ -376,7 +397,6 @@ int main() {
 #else
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
-    static wsprrypico::firmware::PicoIdentitySource identities;
     static wsprrypico::provisioning::RuntimeProfile runtime_profile;
     const auto build_bundle = wsprrypico::provisioning::classify_build_bundle(
         identities.device_id(),
@@ -474,8 +494,11 @@ int main() {
         radio_identity_ok ? wsprrypico::provisioning::derive_local_identity(identities.device_id(),
                                                                             network.station_mac())
                           : std::nullopt;
-    const auto local_identity =
-        derived_identity.value_or(wsprrypico::provisioning::LocalIdentity{});
+    auto local_identity = derived_identity.value_or(wsprrypico::provisioning::LocalIdentity{});
+    // USB remains usable when the radio cannot initialize. Keep this fallback
+    // independent of WLAN credentials; a persisted configured name wins below.
+    if (local_identity.hostname.empty())
+        local_identity.hostname = "wsprrypico-" + identities.device_id().substr(26) + ".local";
     const std::string deployment_hostname = tls_credentials.hostname.empty()
                                                 ? local_identity.hostname
                                                 : std::string(tls_credentials.hostname);
@@ -543,7 +566,8 @@ int main() {
     if (boot_recovery || !runtime_profile_ready() ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
         runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
-        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock)
+        (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock &&
+         (!runtime_profile.consumer_profile() || !runtime_profile.consumer_profile()->usb_managed)))
         (void)scheduler.command("STOP");
     watchdog_hw->scratch[1] = 2;
     if (!boot_recovery && radio_identity_ok && runtime_network_config)
@@ -691,6 +715,81 @@ int main() {
     };
     browser_api.restart_control(schedule_restart, &restart_context);
     bootstrap.restart_control(schedule_restart, &restart_context);
+    static wsprrypico::provisioning::LocalSettings local_settings(
+        profile_store, runtime_profile, store, progress, identities.device_id(),
+        local_identity.hostname);
+    if (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Factory) {
+        const auto config = store.config().value_or(wsprrypico::standalone::Config{});
+        local_settings.factory_profile({identities.device_id(), config.ssid, config.password,
+                                        config.ntp_ipv4, std::string(tls_credentials.hostname),
+                                        tls_credentials.port,
+                                        std::string(tls_credentials.server_certificate),
+                                        std::string(tls_credentials.server_private_key),
+                                        std::string(tls_credentials.client_ca)});
+    }
+    browser_api.local_usb_settings(local_settings);
+    static wsprrypico::network::LocalUsbApi usb_api(browser_api);
+    static wsprrypico::usb::TimeExchange usb_time(time_arbiter, monotonic_now, nullptr);
+    std::uint64_t usb_ap_transaction = 0;
+    const auto local_usb_ready = [&]() {
+        return !recovery && store.healthy() && progress.healthy() && profile_store.healthy() &&
+               runtime_profile_ready() && !reset_coordinator.pending() &&
+               !bootstrap.owner_claim_pending() && !reboot_at &&
+               (access_store.state() == wsprrypico::provisioning::AccessStoreState::Erased ||
+                (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy &&
+                 access_store.record() && !access_store.record()->reset.pending()));
+    };
+    static wsprrypico::usb::ManagementEndpoint usb_management(
+        identities.device_id(), service.status().boot_id, wsprrypico::firmware::kFirmwareVersion,
+        [&](const wsprrypico::network::HttpRequest& request, std::uint64_t transaction) {
+            using namespace wsprrypico;
+            if (!local_usb_ready())
+                return network::http_error(503, "usb_control_unavailable");
+            if (request.path.starts_with("/api/usb/v1/time/"))
+                return usb_time.handle(request, transaction);
+            if (request.path == "/api/usb/v1/ap") {
+                const auto root = wtp::json::parse(request.body_view());
+                if (request.method != "POST" || !root ||
+                    !wtp::json::fields(*root, {"schema", "target"}) ||
+                    root->get("schema")->type() != '\"' ||
+                    root->get("schema")->string() != "transmitter-ap-request/1" ||
+                    !wtp::json::fields(*root->get("target"), {"scope", "device_id", "boot_id"}) ||
+                    root->get("target")->get("scope")->string() != "member" ||
+                    root->get("target")->get("device_id")->string() != identities.device_id() ||
+                    root->get("target")->get("boot_id")->string() != service.status().boot_id)
+                    return network::http_error(400, "invalid_ap_request");
+                if (request.header("if-match") != browser_api.revision())
+                    return network::http_error(412, "revision_conflict");
+                const auto activity = service.activity();
+                if (!scheduler.idle() || activity.owned || activity.output_active ||
+                    activity.state == wtp::State::Failed || !radio_identity_ok)
+                    return network::http_error(409, "ap_unavailable");
+                usb_ap_transaction = transaction;
+                return network::HttpResponse{202, "{\"requested\":true}", "application/json",
+                                             browser_api.revision()};
+            }
+            return usb_api.handle(request, transaction);
+        },
+        [&](std::uint64_t transaction, bool delivered) {
+            usb_api.finish(transaction, delivered);
+            if (usb_ap_transaction == transaction) {
+                usb_ap_transaction = 0;
+                const auto activity = service.activity();
+                if (delivered && local_usb_ready() && scheduler.idle() && !activity.owned &&
+                    !activity.output_active)
+                    (void)softap_coordinator.request_manual_setup(time_us_64() / 1000ULL, true);
+            }
+        });
+    std::array<std::uint8_t, 64> management_input{};
+    std::size_t management_size = 0, management_offset = 0;
+    wsprrypico::wtp::reclaim_optional_memory = [] {
+        // Serialized WTP admission owns priority over optional paged buffers.
+        // Cancels this transaction's undelivered effects; durable settings and
+        // accepted UTC stay authoritative and require normal readback.
+        usb_management.disconnect();
+        usb_time.reset();
+    };
+
     std::uint64_t recovery_reset_at = 0;
     struct RecoveryResetContext {
         wsprrypico::provisioning::ResetCoordinator* coordinator;
@@ -1052,6 +1151,9 @@ int main() {
             number_field(result, "gp14_ap_events", gp14_runtime.setup_events());
             number_field(result, "gp14_ap_request_attempts", gp14_runtime.setup_attempts());
             number_field(result, "gp14_ap_request_accepts", gp14_runtime.setup_accepts());
+            number_field(result, "softap_remaining_ms", gp14_softap.remaining_ms, true);
+            result += ",\"softap_expired\":";
+            result += gp14_softap.expired ? "true" : "false";
             result += ",\"gp14_softap_manual_lease_active\":";
             result += gp14_softap.manual_setup ? "true" : "false";
             result += ",\"gp14_softap_manual_lease_held\":";
@@ -1653,7 +1755,22 @@ int main() {
         }
         return scheduler.command(text);
     };
+    const auto expire_ap_if_due = [&]() {
+        (void)softap_coordinator.poll(time_us_64() / 1000ULL);
+        if (softap_coordinator.expired() && softap.running()) {
+            const auto address = network.ipv4();
+            consumer_radio.listeners(false,
+                                     consumer_source_selected() && network.link_up() ? address : "",
+                                     network.configured_hostname());
+            bootstrap.withdraw_ap();
+            (void)network.softap_name(false, {});
+            softap.stop();
+        }
+    };
     while (true) {
+        // The hard AP deadline is serviced even during reset intent/recovery
+        // and before any early continue can bypass ordinary radio polling.
+        expire_ap_if_due();
         poll_indicator(); // Also service the indicator on reset/recovery paths.
         if (reset_coordinator.blocks_admission() || recovery_reset_at) {
             // Intent closes every output/control admission while the reset
@@ -1673,7 +1790,7 @@ int main() {
                 }
             }
             watchdog_update();
-            bootstrap.poll(true, false);
+            bootstrap.poll(softap.running() && !softap_coordinator.expired(), false);
             tud_task();
             cyw43_arch_poll();
             continue;
@@ -1812,10 +1929,18 @@ int main() {
             else if (surface != wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
                      runtime_profile_ready() && access_store.healthy() && access)
                 (void)softap.start(local_identity, access->password);
-        } else if (ap_transition_safe && !request_softap && softap.running()) {
+        } else if ((ap_transition_safe || softap_coordinator.expired()) && !request_softap &&
+                   softap.running()) {
+            if (softap_coordinator.expired()) {
+                consumer_radio.listeners(
+                    false, station_ready && consumer_source_selected() ? station_ip : "",
+                    network.configured_hostname());
+                bootstrap.withdraw_ap();
+            }
             (void)network.softap_name(false, {});
             softap.stop();
         }
+        softap_coordinator.ready(softap.running());
         const bool softap_name_ready = network.softap_name(softap.ready(), deployment_hostname);
         const bool bootstrap_active = bootstrap_started && softap.ready() && blank_captive;
         const bool consumer_station = bootstrap_started && consumer_source_selected() &&
@@ -2030,20 +2155,16 @@ int main() {
         }
         if (wsprrypico::usb::take_wtp_reset()) {
             offset = size = 0;
-            if (wsprrypico::usb::wtp_connected() && runtime_profile_ready() &&
-                !consumer_source_selected() && !bootstrap.owner_claim_pending() &&
-                !reset_coordinator.pending())
+            if (wsprrypico::usb::wtp_connected() && runtime_profile_ready() && local_usb_ready())
                 endpoint.connect("usb-physical");
             else
                 endpoint.disconnect();
         }
         const auto now_ms = time_us_64() / 1000ULL;
-        if ((consumer_source_selected() || bootstrap.owner_claim_pending()) && !endpoint.closed())
+        if (!local_usb_ready() && !endpoint.closed())
             endpoint.disconnect();
         endpoint.poll(now_ms);
-        if (wsprrypico::usb::wtp_connected() && runtime_profile_ready() &&
-            !consumer_source_selected() && !bootstrap.owner_claim_pending() &&
-            !reset_coordinator.pending()) {
+        if (wsprrypico::usb::wtp_connected() && runtime_profile_ready() && local_usb_ready()) {
             if (!reboot_at && endpoint.can_receive()) {
                 if (offset == size) {
                     size = wsprrypico::usb::wtp_transport_read(input);
@@ -2060,6 +2181,29 @@ int main() {
             }
             endpoint.consume_output(wsprrypico::usb::wtp_transport_write(endpoint.output()),
                                     now_ms);
+        }
+        if (wsprrypico::usb::take_management_reset()) {
+            management_size = management_offset = 0;
+            usb_time.reset();
+            usb_management.disconnect();
+            if (wsprrypico::usb::management_connected()) {
+                std::array<std::uint8_t, 16> token{};
+                if (random_source.fill(token))
+                    usb_management.connect(wsprrypico::network::bootstrap_hex(token));
+            }
+        }
+        usb_management.poll(now_ms);
+        if (wsprrypico::usb::management_connected() && !usb_management.closed()) {
+            if (management_size == management_offset) {
+                management_size = wsprrypico::usb::management_transport_read(management_input);
+                management_offset = 0;
+            }
+            management_offset += usb_management.receive(
+                std::span(management_input)
+                    .subspan(management_offset, management_size - management_offset),
+                now_ms);
+            usb_management.consume_output(
+                wsprrypico::usb::management_transport_write(usb_management.output()));
         }
     }
 }

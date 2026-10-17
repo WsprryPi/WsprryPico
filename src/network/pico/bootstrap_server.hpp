@@ -48,6 +48,10 @@ class PicoBootstrapServer {
     ~PicoBootstrapServer();
     bool start();
     void stop();
+    void withdraw_ap() {
+        ap_active_ = ap_accepting_ = false;
+        http_.withdraw(ConsumerInterface::AccessPoint);
+    }
 #ifdef WSPRRY_PICO_STANDALONE_RF
     static constexpr bool default_setup_admission = false;
 #else
@@ -91,7 +95,9 @@ class PicoBootstrapServer {
                 owner_slot_.state() != provisioning::ConsumerClaimState::Terminal);
     }
     void radio_control(ConsumerRadioApi& radio);
-    void progress_control(BrowserApi& api) { progress_api_ = &api; }
+    void progress_control(BrowserApi& api) {
+        progress_api_ = &api;
+    }
     void setup_control(void (*pause)(void*), void* context) {
         setup_control_ = pause;
         setup_control_context_ = context;

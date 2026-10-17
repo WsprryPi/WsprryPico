@@ -1,5 +1,9 @@
 # Phase 15.3 supported management carriers
 
+Current-policy notice: the historical USB exclusions below are superseded by
+[the production USB slice](usb-control-results.md). This record retains its
+original implementation and evidence scope; network policies remain unchanged.
+
 Status: complete within the recorded software acceptance. October 15, 2026. P15.1/P15.2 remain closed; P15.4 and later work is excluded.
 
 ## Refreshed baseline and source gaps

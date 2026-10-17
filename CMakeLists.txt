@@ -66,6 +66,7 @@ add_library(wsprrypico_core
     src/provisioning/consumer_claim.cpp
     src/provisioning/consumer_claim_commit.cpp
     src/provisioning/hostname.cpp
+    src/provisioning/local_settings.cpp
     src/provisioning/access.cpp
     src/provisioning/ble_session.cpp
     src/provisioning/field_runtime.cpp
@@ -106,6 +107,8 @@ add_library(wsprrypico_core
     src/time/controller_time.cpp
     src/time/utc_discipline.cpp
     src/time/usb_time_source.cpp
+    src/usb/management_endpoint.cpp
+    src/usb/time_exchange.cpp
     src/wtp/json.cpp
     src/wtp/codec.cpp
     src/wtp/endpoint.cpp
@@ -187,6 +190,20 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(usb_local_management_tests tests/usb_local_management_tests.cpp)
+    target_link_libraries(usb_local_management_tests PRIVATE wsprrypico_core)
+    target_compile_options(usb_local_management_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME usb_local_management_tests COMMAND usb_local_management_tests)
+    add_executable(usb_management_tests tests/usb_management_tests.cpp)
+    target_link_libraries(usb_management_tests PRIVATE wsprrypico_core)
+    target_compile_options(usb_management_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME usb_management_tests COMMAND usb_management_tests)
+    add_executable(usb_management_driver tests/usb_management_driver.cpp)
+    target_link_libraries(usb_management_driver PRIVATE wsprrypico_core)
+    target_compile_options(usb_management_driver PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME usb_management_vectors COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/usb_management_vectors.py $<TARGET_FILE:usb_management_driver>
+        ${CMAKE_SOURCE_DIR}/docs/protocol/USB-Management-v1-vectors.json)
     find_package(Threads REQUIRED)
     enable_language(C)
     add_executable(heap_metrics_tests tests/heap_metrics_tests.c src/runtime/pico/heap_metrics.c)
@@ -588,6 +605,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(wsprrypico_core_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     endif()
+    add_executable(endpoint_capacity_tests tests/endpoint_capacity_tests.cpp)
+    target_link_libraries(endpoint_capacity_tests PRIVATE wsprrypico_core)
+    target_compile_options(endpoint_capacity_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME endpoint_capacity_tests COMMAND endpoint_capacity_tests)
     add_executable(endpoint_driver tests/endpoint_driver.cpp)
     add_executable(gatt_write_admission_tests tests/gatt_write_admission_tests.cpp)
     target_link_libraries(gatt_write_admission_tests PRIVATE wsprrypico_core)

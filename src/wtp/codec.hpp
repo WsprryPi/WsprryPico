@@ -6,7 +6,8 @@
 namespace wsprrypico::wtp {
 // Invalid envelope has no safely echoable identity and closes without a response.
 std::optional<Request> decode_request(json::Value root, std::string_view principal,
-                                      InputView payload, std::string_view active_replay_id = {});
+                                      InputView payload, std::string_view active_replay_id = {},
+                                      std::optional<PayloadDigest> original_digest = {});
 // Only a LOAD naming the caller's current active job can omit decoded events.
 bool is_active_load_replay(json::Value root, std::string_view active_replay_id);
 bool is_small_read_request(json::Value root);

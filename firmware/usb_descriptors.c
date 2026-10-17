@@ -39,12 +39,13 @@ enum {
     STRID_SERIAL,
     STRID_CONSOLE,
     STRID_WTP,
+    STRID_MANAGEMENT,
 };
 
 #define USB_VID 0xcafe
 #define USB_PID 0x4012
 #define USB_BCD 0x0100
-#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + (2 * TUD_CDC_DESC_LEN))
+#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + (3 * TUD_CDC_DESC_LEN))
 
 #define EPNUM_CONSOLE_NOTIF 0x81
 #define EPNUM_CONSOLE_OUT 0x02
@@ -52,6 +53,9 @@ enum {
 #define EPNUM_WTP_NOTIF 0x83
 #define EPNUM_WTP_OUT 0x04
 #define EPNUM_WTP_IN 0x84
+#define EPNUM_MANAGEMENT_NOTIF 0x85
+#define EPNUM_MANAGEMENT_OUT 0x06
+#define EPNUM_MANAGEMENT_IN 0x86
 
 static tusb_desc_device_t const device_descriptor = {
     .bLength = sizeof(tusb_desc_device_t),
@@ -75,6 +79,8 @@ static uint8_t const configuration_descriptor[] = {
     TUD_CDC_DESCRIPTOR(USB_ITF_CONSOLE, STRID_CONSOLE, EPNUM_CONSOLE_NOTIF, 8, EPNUM_CONSOLE_OUT,
                        EPNUM_CONSOLE_IN, 64),
     TUD_CDC_DESCRIPTOR(USB_ITF_WTP, STRID_WTP, EPNUM_WTP_NOTIF, 8, EPNUM_WTP_OUT, EPNUM_WTP_IN, 64),
+    TUD_CDC_DESCRIPTOR(USB_ITF_MANAGEMENT, STRID_MANAGEMENT, EPNUM_MANAGEMENT_NOTIF, 8,
+                       EPNUM_MANAGEMENT_OUT, EPNUM_MANAGEMENT_IN, 64),
 };
 
 uint8_t const* tud_descriptor_device_cb(void) {
@@ -92,11 +98,24 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
     static char serial[(PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2) + 1];
     static char const* const strings[] = {
 #ifdef WSPRRY_PICO_RF_BENCH
-        NULL, "WsprryPi", "WsprryPico-RFBench", serial, "RFBench Console", "RFBench Commands",
+        NULL,
+        "WsprryPi",
+        "WsprryPico-RFBench",
+        serial,
+        "RFBench Console",
+        "RFBench Commands",
+        "WsprryPico Management",
 #elif defined(WSPRRY_PICO_RF_WTP)
-        NULL, "WsprryPi", "WsprryPico-RFWTP", serial, "RFWTP Time", "RFWTP WTP",
+        NULL,         "WsprryPi",  "WsprryPico-RFWTP",      serial,
+        "RFWTP Time", "RFWTP WTP", "WsprryPico Management",
 #else
-        NULL, "WsprryPi", "WsprryPico", serial, "WsprryPico Console", "WsprryPico WTP",
+        NULL,
+        "WsprryPi",
+        "WsprryPico",
+        serial,
+        "WsprryPico Console",
+        "WsprryPico WTP",
+        "WsprryPico Management",
 #endif
     };
 

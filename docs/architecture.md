@@ -13,8 +13,10 @@ Use WsprryPico for project, repository and application naming; firmware artifact
 ## Transport and timing
 
 - USB CDC serial is the canonical/reference control transport. The saved
-  consumer profile retains Console inspection and disables USB WTP; job
-  control uses the network and authenticated radio application adapters.
+  consumer and engineering profiles retain Console inspection and USB WTP.
+  A third CDC interface supplies separately versioned USB management/time to
+  shared application services, with physical local authority and no Wi-Fi
+  prerequisite. See [USB-Management/1](protocol/USB-Management.md).
 - Network WTP/TCP is a first-class job-transfer and job-control transport;
   Wi-Fi also supports the embedded web UI. Engineering profiles retain TLS 1.3,
   ALPN `wtp/1` and mutual certificate authentication. The standard consumer
@@ -57,11 +59,13 @@ Use WsprryPico for project, repository and application naming; firmware artifact
 - The [revised open setup contract](development/phase12-safari-open-setup-revision.md)
   selects a captive SoftAP Wi-Fi page followed by optional station settings.
   Saving settings requires no button, code or retained phone owner. With saved
-  credentials, consumer AP is normally off. A button request opens it while held
-  and for ten minutes after release. A 60-second outage requests automatic
-  fallback; 30-second stable infrastructure recovery withdraws fallback after
-  any manual lease. Activity cannot keep the AP up indefinitely; existing
-  replies get a bounded ten-second drain. Armed,
+  credentials, consumer AP is normally off. Every actual AP activation has the
+  same non-sliding ten-minute cap, including blank, manual, fallback, field and
+  recovery. Held/released buttons, replies and clients never renew it; unchanged
+  conditions cannot reopen an expired window. A fresh deliberate request or new
+  outage after stable recovery can reopen it. A 60-second outage requests
+  fallback; 30-second stable recovery rearms a later outage. Any reply drain
+  remains inside the hard cap. Expiry withdraws AP clients only. Armed,
   running, failed and uncertain output states withdraw the AP path. A
   previously selected runtime BOOTSEL hold is withdrawn after a physical
   failure, and station loss brings the AP back. A separate GP14 input is now

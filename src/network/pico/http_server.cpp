@@ -196,6 +196,12 @@ void PicoHttpServer::poll() {
     first_ = (first_ + 1) % capacity;
 }
 
+void PicoHttpServer::withdraw(ConsumerInterface interface) {
+    for (auto& client : clients_)
+        if (client.pcb && client.interface == interface)
+            close(client, delivered(client));
+}
+
 void PicoHttpServer::stop() {
     for (auto& client : clients_)
         if (client.pcb)

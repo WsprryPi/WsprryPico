@@ -25,6 +25,7 @@ class PicoHttpServer {
     PicoHttpServer& operator=(const PicoHttpServer&) = delete;
     bool start();
     void stop();
+    void withdraw(ConsumerInterface interface);
     void poll();
     bool listening() const {
         return listener_ != nullptr;

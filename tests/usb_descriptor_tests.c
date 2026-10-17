@@ -25,7 +25,7 @@ int main(void) {
     assert(tud_descriptor_string_cb(255, 0x0409) == NULL);
     const uint8_t* config = tud_descriptor_configuration_cb(0);
     size_t total = config[2] | (config[3] << 8);
-    assert(total == TUD_CONFIG_DESC_LEN + 2 * TUD_CDC_DESC_LEN);
+    assert(total == TUD_CONFIG_DESC_LEN + 3 * TUD_CDC_DESC_LEN);
     assert(config[4] == USB_ITF_COUNT && CFG_TUD_CDC == USB_CDC_COUNT);
     unsigned interfaces = 0, associations = 0, endpoints = 0;
     unsigned char seen_endpoints[256] = {0};
@@ -39,8 +39,9 @@ int main(void) {
         } else if (d[1] == TUSB_DESC_INTERFACE) {
             assert(d[2] == interfaces++);
             if (d[5] == TUSB_CLASS_CDC) {
-                check_string(d[8],
-                             d[2] == USB_ITF_CONSOLE ? "WsprryPico Console" : "WsprryPico WTP");
+                check_string(d[8], d[2] == USB_ITF_CONSOLE ? "WsprryPico Console"
+                                   : d[2] == USB_ITF_WTP   ? "WsprryPico WTP"
+                                                           : "WsprryPico Management");
             }
         } else if (d[1] == TUSB_DESC_ENDPOINT) {
             assert(!seen_endpoints[d[2]]++);
@@ -48,6 +49,6 @@ int main(void) {
         }
         offset += d[0];
     }
-    assert(interfaces == 4 && associations == 2 && endpoints == 6);
+    assert(interfaces == 6 && associations == 3 && endpoints == 9);
     puts("Actual TinyUSB descriptor expansion passed");
 }

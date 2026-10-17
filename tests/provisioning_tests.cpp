@@ -324,7 +324,7 @@ void profile_validation() {
         changed.replace(offset, from.size(), to);
         CHECK(!provisioning::parse_profile(changed));
     };
-    replace("\"version\":1", "\"version\":2");
+    replace("\"version\":1", "\"version\":3");
     replace("test-password-A", "short");
     replace("pool.ntp.org", "127.0.0.1");
     replace("WsprryPico-010203.LOCAL.", "evil.example");

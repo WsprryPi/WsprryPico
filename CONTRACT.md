@@ -29,8 +29,11 @@ application parity is not claimed.
 ## Timing and interoperability
 
 - USB CDC is the canonical/reference WTP transport. The saved consumer
-  profile intentionally disables USB WTP, retaining Console inspection and
-  network/application adapters for job control. Network WTP/TCP is a
+  profile and engineering profiles admit USB WTP under local physical authority.
+  The separate [USB management/time contract](docs/protocol/USB-Management.md)
+  adapts shared application services without changing WTP/1 or Console framing.
+  It supports no-network configuration, shared hostname and saved Wi-Fi lifecycle.
+  Network WTP/TCP is a
   first-class job-transfer and job-control transport carrying the identical
   WTP/1 stream to the same `JobService`. Engineering profiles retain TLS 1.3,
   ALPN `wtp/1` and mutual certificate authentication. The standard consumer
@@ -58,11 +61,13 @@ application parity is not claimed.
   selects an open SoftAP portal with Wi-Fi first and optional station settings
   later. Saving settings requires no button or retained phone owner. A blank
   Pico starts its open AP automatically. Saved consumers normally keep AP off.
-  A manual lease lasts while held and ten minutes after debounced release;
-  clients/polling cannot extend it. Station unavailability for 60 seconds
-  requests automatic fallback, with bounded retries and 30-second stable
-  recovery hysteresis. RF guards defer AP activation without aborting a local
-  job; LAN status remains available during loaded/armed/running operation.
+  Every AP activation has a hard, non-sliding ten-minute lifetime starting at
+  actual enablement, including blank, manual, fallback, field and recovery paths.
+  Holds, releases, clients, replies and retries cannot extend it. Expiry stays
+  latched until a new deliberate request or a new outage after stable recovery.
+  Station unavailability for 60 seconds requests fallback; 30-second stable
+  recovery rearms a later outage. RF guards defer activation without aborting a
+  local job; AP expiry withdraws only AP clients and preserves station service.
   The operator
   selected a separate active-low GP14 button (physical pin 19): a debounced
   release under 0.4 seconds requests reset; reaching 0.9 seconds held requests

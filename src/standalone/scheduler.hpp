@@ -16,6 +16,12 @@ class Scheduler {
     bool reboot_required() const {
         return reboot_required_;
     }
+    // An independently committed network profile is a boot snapshot. Keep its
+    // restart latch through subsequent Config saves, preserving STOP and pins.
+    void require_network_restart() {
+        external_network_restart_required_ = true;
+        reboot_required_ = true;
+    }
     bool hardware_restart_required() const {
         return pin_restart_required_;
     }
@@ -47,6 +53,7 @@ class Scheduler {
     wtp::ErrorCode last_error_ = wtp::ErrorCode::None;
     std::string last_job_;
     bool reboot_required_ = false, suspended_ = false, pin_restart_required_ = false;
+    bool external_network_restart_required_ = false;
     bool boot_configured_ = false;
     bool hardware_application_failed_ = false;
     std::optional<wtp::PayloadDigest> active_network_;

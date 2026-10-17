@@ -29,6 +29,8 @@ struct SoftApStatus {
     bool manual_setup = false;
     bool manual_button_held = false;
     bool draining = false;
+    bool expired = false;
+    std::uint64_t remaining_ms = 0;
 };
 
 class SoftApCoordinator {
@@ -57,8 +59,9 @@ class SoftApCoordinator {
     void temporary_access(bool value) {
         temporary_access_ = value;
     }
-    void ready(bool value) {
-        ready_ = value && requested_;
+    void ready(bool value);
+    bool expired() const {
+        return expired_;
     }
     bool poll(std::uint64_t now_ms);
     SoftApStatus status(std::uint64_t now_ms) const;
@@ -85,6 +88,8 @@ class SoftApCoordinator {
     bool manual_active_ = false;
     bool manual_button_held_ = false;
     bool temporary_access_ = false, draining_ = false;
+    bool activated_ = false, expired_ = false, fallback_armed_ = true;
+    std::uint64_t activated_ms_ = 0, last_poll_ms_ = 0;
     std::uint64_t drain_started_ms_ = 0;
 };
 

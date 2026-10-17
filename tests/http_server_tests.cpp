@@ -263,6 +263,23 @@ void interface_and_stop() {
     check(listener.closed && !listener.aborted);
     check(h.server.connections() == 0 && !h.server.reply_active() && !h.server.listening());
 }
+void expire_ap_preserves_station() {
+    Harness h;
+    tcp_pcb ap, station;
+    station.interface = 2;
+    h.accept(ap);
+    h.accept(station);
+    h.request(ap, "/large");
+    h.request(station);
+    h.server.poll();
+    const auto ap_transaction = h.handled.front();
+    h.ap = false;
+    h.server.withdraw(ConsumerInterface::AccessPoint);
+    check(ap.aborted && !station.closed && h.server.listening());
+    check(!h.finished.at(ap_transaction));
+    h.complete(station);
+    check(h.finished.size() == 2 && h.finished.at(h.handled.back()));
+}
 void parser_and_pressure() {
     for (auto bad :
          {std::string("GET / HTTP/1.1\n\n"),
@@ -394,6 +411,7 @@ int main() {
     stalled_output();
     failures();
     interface_and_stop();
+    expire_ap_preserves_station();
     parser_and_pressure();
     acknowledgment_and_fragment_boundaries();
     startup_and_reclamation();

@@ -1,0 +1,38 @@
+{
+  "schema": "usb-management-vectors/1",
+  "hello": {
+    "payload": {
+      "schema": "usb-management/1",
+      "id": 1,
+      "operation": "hello"
+    },
+    "header_hex": "554d503100000038",
+    "payload_utf8": "{\"schema\":\"usb-management/1\",\"id\":1,\"operation\":\"hello\"}"
+  },
+  "refusals": [
+    {
+      "description": "unknown protocol",
+      "payload": {
+        "schema": "usb-management/2",
+        "id": 1,
+        "operation": "hello"
+      }
+    },
+    {
+      "description": "zero id",
+      "payload": {
+        "schema": "usb-management/1",
+        "id": 0,
+        "operation": "hello"
+      }
+    },
+    {
+      "description": "negative id",
+      "payload": {
+        "schema": "usb-management/1",
+        "id": -1,
+        "operation": "hello"
+      }
+    }
+  ]
+}

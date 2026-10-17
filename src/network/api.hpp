@@ -2,9 +2,10 @@
 #include "network/http.hpp"
 #include "network/management.hpp"
 #include "provisioning/hostname.hpp"
+#include "provisioning/local_settings.hpp"
 #include "provisioning/runtime.hpp"
-#include "standalone/scheduler.hpp"
 #include "standalone/progress.hpp"
+#include "standalone/scheduler.hpp"
 
 namespace wsprrypico::network {
 class NetworkControl {
@@ -32,10 +33,12 @@ class BrowserApi {
         store_.progress(progress);
     }
     HttpResponse progress_readback(bool station_only = false) const;
+    std::string saved_station_json() const;
     // Called only by the explicitly admitted commissioning adapter. It accepts
     // station fields exclusively and has no application/Config authority.
     HttpResponse save_progress(const HttpRequest& request, bool station_only = false);
-    bool progress_station_matches(std::string_view call, std::string_view locator, unsigned power) const;
+    bool progress_station_matches(std::string_view call, std::string_view locator,
+                                  unsigned power) const;
     void management_availability(ManagementAvailability state) {
         management_ = state;
     }
@@ -44,6 +47,9 @@ class BrowserApi {
     }
     void hostname_settings(provisioning::HostnameSettings& settings) {
         hostname_settings_ = &settings;
+    }
+    void local_usb_settings(provisioning::LocalSettings& settings) {
+        local_settings_ = &settings;
     }
     void hostname_authority(std::string authority) {
         hostname_authority_ = std::move(authority);
@@ -84,7 +90,7 @@ class BrowserApi {
     HttpResponse config() const;
     HttpResponse station_config(bool extended = false) const;
     HttpResponse hardware_config() const;
-    HttpResponse application_config(bool extended = false) const;
+    HttpResponse application_config(bool extended = false, bool usb_management = false) const;
     HttpResponse job(const HttpRequest& request, std::string_view principal);
     wtp::JobService& service_;
     standalone::Store& store_;
@@ -101,6 +107,7 @@ class BrowserApi {
     std::uint64_t network_revision_ = 0;
     provisioning::RuntimeProfile* consumer_runtime_ = nullptr;
     provisioning::HostnameSettings* hostname_settings_ = nullptr;
+    provisioning::LocalSettings* local_settings_ = nullptr;
     standalone::Progress* progress_ = nullptr;
 };
 } // namespace wsprrypico::network

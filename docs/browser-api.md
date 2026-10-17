@@ -1,5 +1,15 @@
 # Shared browser-facing JSON API v1
 
+P15.14 also exposes these application services through the separately framed
+[USB management adapter](protocol/USB-Management.md), under internal local
+physical authority. It supports configuration, saved progress, canonical name,
+saved Wi-Fi lifecycle, restart and qualified controller UTC without a Pico
+network session. USB capability/application views identify `usb_physical` and
+discovery selects `transmitter-management/3`; existing network views retain
+their prior shapes and carrier schemas. USB grants no transmitter ownership
+and uses the same JobService, validators, revisions and journals. See the
+[execution record](development/usb-control-results.md) for exact evidence.
+
 P15.10 adds the independently versioned [hostname resource](development/phase15-10-hostname.md) at `GET/PUT /api/v1/hostname`. It preserves Config, application, capabilities and consumer identity v1 shapes. Consumer renames preserve CA/client trust, consume a profile generation and apply on explicit restart; engineering names remain credential-bound. See that record for exact envelopes, readback and recovery.
 
 P15.12 changes main-page presentation only: the boot-active hostname is the shared

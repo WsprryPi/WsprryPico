@@ -18,6 +18,10 @@ void service();
 bool console_connected();
 bool console_output_pending();
 bool wtp_connected();
+bool management_connected();
+bool take_management_reset();
+std::size_t management_transport_write(std::span<const std::uint8_t> bytes);
+std::size_t management_transport_read(std::span<std::uint8_t> bytes);
 // Consume a session-reset notification, including a close/open between polls.
 bool take_wtp_reset();
 bool take_console_reset();

@@ -338,8 +338,8 @@ std::string Scheduler::command(std::string_view line) {
             return error("output_disable_failed");
         }
     }
-    reboot_required_ =
-        pin_restart_required_ || !active_network_ || *active_network_ != network_digest(*config);
+    reboot_required_ = external_network_restart_required_ || pin_restart_required_ ||
+                       !active_network_ || *active_network_ != network_digest(*config);
     return status();
 }
 } // namespace wsprrypico::standalone

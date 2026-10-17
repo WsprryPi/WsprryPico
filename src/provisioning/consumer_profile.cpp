@@ -96,8 +96,13 @@ bool valid(const ConsumerProfile& profile) {
     const auto hostname = network::canonical_local_hostname(profile.tls.hostname);
     if (!network::valid_device_id(profile.device_id) ||
         (profile.owner_epoch == 0) != profile.owners.empty() || profile.owners.size() > 4 ||
-        !standalone::valid_wifi_credentials(profile.ssid, profile.password, profile.time_server) ||
-        !encoding::valid_station_details(profile.callsign, profile.locator, profile.power_dbm) ||
+        !(standalone::valid_wifi_credentials(profile.ssid, profile.password, profile.time_server) ||
+          (profile.usb_managed && profile.ssid.empty() && profile.password.empty() &&
+           standalone::valid_time_server(profile.time_server))) ||
+        !(profile.usb_managed
+              ? profile.callsign.empty() && profile.locator.empty() && profile.power_dbm == 0
+              : encoding::valid_station_details(profile.callsign, profile.locator,
+                                                profile.power_dbm)) ||
         !lower_hex(profile.request_sha256, 64) || profile.tls.port != 443 || !hostname ||
         *hostname != profile.tls.hostname || profile.clients.size() > 4)
         return false;
@@ -160,8 +165,11 @@ void clear(std::string& value) {
 std::string serialize_consumer_profile(const ConsumerProfile& profile) {
     if (!valid(profile))
         return {};
-    std::string out = profile.tls_pending ? "{\"version\":2,\"tls_pending\":true,\"device_id\":"
-                                          : "{\"version\":1,\"device_id\":";
+    std::string out = profile.usb_managed
+                          ? std::string("{\"version\":3,\"tls_pending\":") +
+                                (profile.tls_pending ? "true" : "false") + ",\"device_id\":"
+                      : profile.tls_pending ? "{\"version\":2,\"tls_pending\":true,\"device_id\":"
+                                            : "{\"version\":1,\"device_id\":";
     out.reserve(max_profile_bytes);
     append_quote(out, profile.device_id);
     out += ",\"owner_epoch\":";
@@ -178,11 +186,15 @@ std::string serialize_consumer_profile(const ConsumerProfile& profile) {
     append_quote(out, profile.password);
     out += ",\"time_server\":";
     append_quote(out, profile.time_server);
-    out += "},\"station\":{\"callsign\":";
-    append_quote(out, profile.callsign);
-    out += ",\"locator\":";
-    append_quote(out, profile.locator);
-    out += ",\"power_dbm\":" + std::to_string(profile.power_dbm) + "},\"tls\":";
+    out += '}';
+    if (!profile.usb_managed) {
+        out += ",\"station\":{\"callsign\":";
+        append_quote(out, profile.callsign);
+        out += ",\"locator\":";
+        append_quote(out, profile.locator);
+        out += ",\"power_dbm\":" + std::to_string(profile.power_dbm) + '}';
+    }
+    out += ",\"tls\":";
     append_tls(out, profile.tls);
     out += ",\"clients\":[";
     for (std::size_t i = 0; i < profile.clients.size(); ++i) {
@@ -220,16 +232,25 @@ std::optional<ConsumerProfile> parse_consumer_profile(std::string_view text) {
     const auto root = parse(text);
     if (!root || !root->get("version"))
         return {};
-    const bool pending = root->get("version")->raw == "2";
-    if (pending ? (!fields(*root, {"version", "tls_pending", "device_id", "owner_epoch", "owners",
-                                   "network", "station", "tls", "clients", "request_sha256"}) ||
-                   root->get("tls_pending")->raw != "true")
-                : (!fields(*root, {"version", "device_id", "owner_epoch", "owners", "network",
-                                   "station", "tls", "clients", "request_sha256"}) ||
-                   root->get("version")->raw != "1"))
+    const bool usb = root->get("version")->raw == "3";
+    const bool pending = usb ? root->get("tls_pending") && root->get("tls_pending")->raw == "true"
+                             : root->get("version")->raw == "2";
+    const bool fields_valid =
+        usb       ? fields(*root, {"version", "tls_pending", "device_id", "owner_epoch", "owners",
+                                   "network", "tls", "clients", "request_sha256"}) &&
+                        (root->get("tls_pending")->raw == "true" ||
+                         root->get("tls_pending")->raw == "false")
+        : pending ? fields(*root, {"version", "tls_pending", "device_id", "owner_epoch", "owners",
+                                   "network", "station", "tls", "clients", "request_sha256"}) &&
+                        root->get("tls_pending")->raw == "true"
+                  : fields(*root, {"version", "device_id", "owner_epoch", "owners", "network",
+                                   "station", "tls", "clients", "request_sha256"}) &&
+                        root->get("version")->raw == "1";
+    if (!fields_valid)
         return {};
     ConsumerProfile out;
     out.tls_pending = pending;
+    out.usb_managed = usb;
     std::uint64_t power = 0;
     const auto owners = root->get("owners"), network_value = root->get("network"),
                station = root->get("station"), tls = root->get("tls"),
@@ -238,15 +259,15 @@ std::optional<ConsumerProfile> parse_consumer_profile(std::string_view text) {
         !decimal_field(*root, "owner_epoch", out.owner_epoch, false) ||
         !text_field(*root, "request_sha256", out.request_sha256) || !owners ||
         owners->type() != '[' || !network_value ||
-        !fields(*network_value, {"ssid", "password", "time_server"}) || !station ||
-        !fields(*station, {"callsign", "locator", "power_dbm"}) || !tls ||
+        !fields(*network_value, {"ssid", "password", "time_server"}) ||
+        (!usb && (!station || !fields(*station, {"callsign", "locator", "power_dbm"}))) || !tls ||
         !fields(*tls, {"hostname", "port", "ca_certificate", "ca_private_key", "server_certificate",
                        "server_private_key", "ca_not_after_utc", "server_not_after_utc"}) ||
         !clients || clients->type() != '[' || !text_field(*network_value, "ssid", out.ssid) ||
         !text_field(*network_value, "password", out.password) ||
         !text_field(*network_value, "time_server", out.time_server) ||
-        !text_field(*station, "callsign", out.callsign) ||
-        !text_field(*station, "locator", out.locator) ||
+        (!usb && (!text_field(*station, "callsign", out.callsign) ||
+                  !text_field(*station, "locator", out.locator))) ||
         !text_field(*tls, "hostname", out.tls.hostname) || tls->get("port")->raw != "443" ||
         !text_field(*tls, "ca_certificate", out.tls.ca_certificate) ||
         !text_field(*tls, "ca_private_key", out.tls.ca_private_key) ||
@@ -257,21 +278,23 @@ std::optional<ConsumerProfile> parse_consumer_profile(std::string_view text) {
         scrub(out);
         return {};
     }
-    const auto power_value = station->get("power_dbm");
-    if (!power_value || power_value->raw.empty() || power_value->raw.size() > 3 ||
-        power_value->type() < '0' || power_value->type() > '9') {
-        scrub(out);
-        return {};
+    if (!usb) {
+        const auto power_value = station->get("power_dbm");
+        if (!power_value || power_value->raw.empty() || power_value->raw.size() > 3 ||
+            power_value->type() < '0' || power_value->type() > '9') {
+            scrub(out);
+            return {};
+        }
+        const auto power_text = static_cast<std::string>(power_value->raw);
+        const auto power_result =
+            std::from_chars(power_text.data(), power_text.data() + power_text.size(), power);
+        if (power_result.ec != std::errc{} ||
+            power_result.ptr != power_text.data() + power_text.size() || power > 255) {
+            scrub(out);
+            return {};
+        }
+        out.power_dbm = static_cast<unsigned>(power);
     }
-    const auto power_text = static_cast<std::string>(power_value->raw);
-    const auto power_result =
-        std::from_chars(power_text.data(), power_text.data() + power_text.size(), power);
-    if (power_result.ec != std::errc{} ||
-        power_result.ptr != power_text.data() + power_text.size() || power > 255) {
-        scrub(out);
-        return {};
-    }
-    out.power_dbm = static_cast<unsigned>(power);
     for (const auto element : owners->elements(4)) {
         if (element.type() != '"') {
             scrub(out);
@@ -329,6 +352,7 @@ void scrub(ConsumerProfile& profile) {
     clear(profile.locator);
     profile.power_dbm = 0;
     profile.tls_pending = false;
+    profile.usb_managed = false;
     scrub(profile.tls);
     for (auto& client : profile.clients) {
         clear(client.name);

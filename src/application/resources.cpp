@@ -31,16 +31,19 @@ std::string station(const standalone::Config& c) {
            ",\"locator\":" + wtp::json::quote(c.locator) +
            ",\"power_dbm\":" + std::to_string(c.power_dbm) + "}";
 }
-std::string capabilities() {
-    return "{\"management_carrier\":\"authenticated_https\","
+std::string capabilities(bool usb_management) {
+    return "{\"management_carrier\":" +
+           wtp::json::quote(usb_management ? "usb_physical" : "authenticated_https") +
+           ","
            "\"application_read\":true,\"station_write\":true,\"hardware_write\":true,"
            "\"max_update_bytes\":1024,\"max_config_bytes\":1800,"
            "\"hardware_activation\":\"restart\",\"station_encoding\":\"wspr_type1\","
            "\"station_power_meaning\":\"reported_wspr_dbm\","
            "\"recurrence_authorities\":[\"member\"],\"autonomous_modes\":[\"wspr\"],"
            "\"unavailable\":[\"recurrence_transfer\",\"si5351\",\"amplifier\",\"lpf\","
-           "\"drive\",\"reference_calibration\",\"waveform_preferences\","
-           "\"usb_json_management\",\"plain_lan_json_management\",\"ble_json_management\"]}";
+           "\"drive\",\"reference_calibration\",\"waveform_preferences\"," +
+           (usb_management ? "" : "\"usb_json_management\",") +
+           "\"plain_lan_json_management\",\"ble_json_management\"]}";
 }
 std::string wspr_plan(const standalone::Config& config) {
     const auto plan = encoding::wspr_plan(config.callsign, config.locator, config.power_dbm);

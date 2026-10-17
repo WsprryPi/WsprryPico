@@ -51,6 +51,20 @@ std::optional<std::uint64_t> PicoConsumerClaimPlatform::trusted_utc_now() {
     return snapshot.utc_now_ns / 1'000'000'000ULL;
 }
 
+std::optional<std::uint64_t> PicoConsumerClaimPlatform::trusted_local_utc_now() {
+    if (const auto sntp = trusted_utc_now())
+        return sntp;
+    const auto snapshot = service_.clock_snapshot();
+    const auto source = arbiter_.status();
+    if (source.source != time::ActiveTimeSource::Controller || source.principal != "usb-physical" ||
+        source.age_ns > 10'000'000'000ULL || snapshot.state != wtp::ClockState::Synchronized ||
+        snapshot.leap != wtp::LeapState::Normal ||
+        snapshot.uncertainty_ns > time::standalone_max_uncertainty_ns ||
+        snapshot.utc_now_ns < time::sntp_min_utc_ns || snapshot.utc_now_ns >= time::sntp_max_utc_ns)
+        return {};
+    return snapshot.utc_now_ns / 1'000'000'000ULL;
+}
+
 bool PicoConsumerClaimPlatform::valid_owner_point(std::string_view point_b64url) {
     std::vector<std::uint8_t> decoded;
     if (!network::bootstrap_unb64url(point_b64url, decoded, 65, 65))

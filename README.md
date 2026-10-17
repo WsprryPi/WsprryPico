@@ -2,6 +2,21 @@
 
 WsprryPico is a first-class standalone WSPR/QRSS transmitter application in the WsprryPi family. It targets Raspberry Pi Pico family hardware, with Pico 2 W / RP2350 as the defined hardware target, and also serves as a hardware transmitter backend for WsprryPi.
 
+The normal inhibited and StandaloneRF firmware now support USB WTP plus a
+separate [USB management/time interface](docs/protocol/USB-Management.md).
+WsprryPi can identify the Pico by its configured `.local` hostname, configure
+it, create/replace/remove its saved Wi-Fi connection and supply qualified UTC
+without Pico Wi-Fi or an AP. Local physical USB authority is independent of
+network passwords. Existing transmitter ownership and timing limits remain.
+See the [implementation and validation record](docs/development/usb-control-results.md)
+for software/build acceptance and remaining physical gates.
+
+Every production AP activation—including blank-device setup, manual/button,
+fallback and recovery—has a non-sliding ten-minute limit. Holding/releasing a
+button, traffic or a persistent outage cannot renew the same window. After
+expiry USB remains available; a new deliberate request or genuinely new outage
+after stable station recovery can open another bounded window.
+
 The [P15.8 execution record](docs/development/phase15-8-wspr-type23.md) tracks
 portable automatic WSPR Type 1/2/3 planning, adjacent-window pairs and explicit
 versioned management support. Ordinary calls retain saved-six/on-air-four
@@ -83,9 +98,10 @@ authentication. The standard consumer image defaults to Plain LAN on station
 port 31417 after infrastructure Wi-Fi and accepted SNTP; no certificates are
 needed for its Wi-Fi-only profile. Build-time `off` and `tls` choices remain.
 Plain LAN admits any client that can reach the port on the local network.
-The saved consumer profile intentionally disables its USB WTP endpoint;
-USB retains Console inspection. Consumer job control uses Plain LAN and the
-authenticated AP-local radio adapter. Engineering profiles retain USB WTP.
+Consumer and engineering profiles support USB WTP under explicit local physical
+authority, plus the independently framed USB management/time interface. Console
+inspection stays separate. Plain LAN and authenticated radio control remain
+available under their existing policies.
 WsprryPi has a matching explicit Plain LAN host connection with bounded
 one-member application evidence; full fleet interoperability remains unqualified.
 The consumer profile supplies a [radio settings page](http://192.168.4.1/radio)

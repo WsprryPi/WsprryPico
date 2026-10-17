@@ -11,10 +11,10 @@ class HostnameSettings {
                      std::string default_name)
         : store_(store), runtime_(runtime), platform_(platform), device_(std::move(device)),
           active_(std::move(active)), default_(std::move(default_name)) {}
-    std::string readback(std::string_view boot) const;
+    std::string readback(std::string_view boot, bool local_usb = false) const;
     std::string revision_context() const;
     // Empty means committed/no-op; errors never contain credentials.
-    std::string save(const std::optional<std::string>& hostname);
+    std::string save(const std::optional<std::string>& hostname, bool local_usb = false);
 
   private:
     ProfileStore& store_;

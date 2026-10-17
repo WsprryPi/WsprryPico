@@ -271,7 +271,8 @@ bool is_active_load_replay(Value root, std::string_view id) {
            job.string() == id;
 }
 std::optional<Request> decode_request(Value root, std::string_view principal, InputView payload,
-                                      std::string_view active_replay_id) {
+                                      std::string_view active_replay_id,
+                                      std::optional<PayloadDigest> original_digest) {
     if (!json::fields(root, {"type", "protocol", "session_id", "request_id", "op", "body"}) ||
         get(root, "type").string() != "request" || !json::identifier(get(root, "session_id")) ||
         !json::identifier(get(root, "request_id")) || get(root, "protocol").type() != '"' ||
@@ -284,13 +285,17 @@ std::optional<Request> decode_request(Value root, std::string_view principal, In
     r.request_id = get(root, "request_id").string();
     r.operation = get(root, "op").string();
     r.principal = principal;
-    Sha256 digest;
-    for (std::size_t offset = 0; offset < payload.size();) {
-        const auto part = payload.at(offset);
-        digest.update(part);
-        offset += part.size();
+    if (original_digest)
+        r.payload_digest = *original_digest;
+    else {
+        Sha256 digest;
+        for (std::size_t offset = 0; offset < payload.size();) {
+            const auto part = payload.at(offset);
+            digest.update(part);
+            offset += part.size();
+        }
+        r.payload_digest = digest.finish();
     }
-    r.payload_digest = digest.finish();
     r.body_valid = body(r, get(root, "body"), active_replay_id);
     return r;
 }

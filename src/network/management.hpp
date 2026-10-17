@@ -4,7 +4,13 @@
 #include <string_view>
 
 namespace wsprrypico::network {
-enum class ManagementCarrier { EngineeringStation, EngineeringField, ConsumerStation, ConsumerAp };
+enum class ManagementCarrier {
+    EngineeringStation,
+    EngineeringField,
+    ConsumerStation,
+    ConsumerAp,
+    UsbPhysical
+};
 enum class ManagementProfile { Unavailable, Blank, Recovery, Engineering, Consumer };
 struct ManagementAvailability {
     ManagementProfile profile = ManagementProfile::Unavailable;

@@ -36,73 +36,104 @@ void append(std::string& output, InputView input) {
 std::optional<standalone::Config> BrowserApi::effective_config() const {
     if (!store_.healthy())
         return {};
-    if (consumer_runtime_ && consumer_runtime_->consumer_profile())
+    if (consumer_runtime_ && consumer_runtime_->consumer_profile()) {
+        // A USB profile can save a name/network before a complete runnable
+        // station exists. Do not manufacture an empty station or generation 0.
+        if (consumer_runtime_->consumer_profile()->usb_managed && !store_.config())
+            return {};
         return consumer_runtime_->overlay(store_.config().value_or(standalone::Config{}));
+    }
     return store_.config();
 }
 std::string BrowserApi::revision() const {
     const auto config = effective_config();
-    const auto data = device_ + ":" + service_.status().boot_id + ":" +
-                      std::to_string(network_revision_) + ":" +
-                      std::to_string(store_.config_sequence()) + ":" +
-                      (config ? standalone::serialize_config(*config) : "null") +
-                      (hostname_settings_ ? hostname_settings_->revision_context() : "") +
-                      (progress_ ? ":progress:" + std::to_string(progress_->sequence()) +
-                          ":profile:" + std::to_string(consumer_runtime_ ? consumer_runtime_->generation() : 0) : "") +
-                      (consumer_runtime_ && consumer_runtime_->consumer_profile()
-                           ? ":consumer:" + std::to_string(consumer_runtime_->generation())
-                           : "");
+    const auto data =
+        device_ + ":" + service_.status().boot_id + ":" + std::to_string(network_revision_) + ":" +
+        std::to_string(store_.config_sequence()) + ":" +
+        (config ? standalone::serialize_config(*config) : "null") +
+        (hostname_settings_ ? hostname_settings_->revision_context() : "") +
+        (local_settings_ ? local_settings_->revision_context() : "") +
+        (progress_ ? ":progress:" + std::to_string(progress_->sequence()) + ":profile:" +
+                         std::to_string(consumer_runtime_ ? consumer_runtime_->generation() : 0)
+                   : "") +
+        (consumer_runtime_ && consumer_runtime_->consumer_profile()
+             ? ":consumer:" + std::to_string(consumer_runtime_->generation())
+             : "");
     const auto digest =
         sha256(std::span(reinterpret_cast<const std::uint8_t*>(data.data()), data.size()));
     return '"' + hex(digest) + '"';
 }
+std::string BrowserApi::saved_station_json() const {
+    const auto saved = effective_config();
+    return saved && encoding::valid_station_details(saved->callsign, saved->locator,
+                                                    saved->power_dbm)
+               ? application::station(*saved)
+               : "null";
+}
 HttpResponse BrowserApi::progress_readback(bool station_only) const {
-    if (!progress_) return http_error(404, "not_found");
-    if (!store_.healthy() || !progress_->healthy()) return http_error(503, "storage_fault");
+    if (!progress_)
+        return http_error(404, "not_found");
+    if (!store_.healthy() || !progress_->healthy())
+        return http_error(503, "storage_fault");
     const auto applied = station_only && consumer_runtime_ && !consumer_runtime_->consumer_profile()
-        ? std::optional<standalone::Config>{} : effective_config();
+                             ? std::optional<standalone::Config>{}
+                             : effective_config();
     const auto candidate = progress_->candidate(applied);
     const auto station = progress_->station_candidate(applied);
     // Keep the backing scheduler status string alive while reading its views.
     const auto status_text = scheduler_.status();
     const auto status = json::parse(status_text);
-    auto result = ok("{\"schema\":\"transmitter-progress/1\",\"target\":" +
-        application::target(device_, service_.status().boot_id) +
-        ",\"draft_revision\":" + json::quote(std::to_string(progress_->sequence())) +
-        ",\"config_revision\":" + json::quote(std::to_string(store_.config_sequence())) +
-        ",\"profile_revision\":" + json::quote(std::to_string(consumer_runtime_ ? consumer_runtime_->generation() : 0)) +
-        ",\"fields\":" + progress_->fields(true, station_only) +
-        ",\"last_receipt\":" + (station_only ? std::string("null") : progress_->receipt()) +
-        ",\"last_outcomes\":" + progress_->outcomes(station_only) +
-        ",\"applied_station\":" + (applied ? application::station(*applied) : "null") +
-        ",\"station\":" + progress_->station_fields(applied) +
-        ",\"station_complete\":" + (station ? "true" : "false") +
-        ",\"complete\":" + (candidate ? "true" : "false") +
-        ",\"apply_domains\":{\"station\":" + (progress_->candidate(applied, "station") ? "true" : "false") +
-        ",\"network\":" + (progress_->candidate(applied, "network") ? "true" : "false") +
-        ",\"radio\":" + (progress_->candidate(applied, "radio") ? "true" : "false") +
-        ",\"all\":" + (candidate ? "true}" : "false}") +
-        ",\"wspr_plan\":" + (station ? application::wspr_plan(*station) : "null") +
-        ",\"schedule_enabled\":" + (station_only ? std::string("null") : std::string(status->get("enabled")->raw)) +
-        ",\"schedule_suspended\":" + (station_only ? std::string("null") : std::string(status->get("suspended")->raw)) +
-        ",\"matches_applied\":" + (candidate && applied && *candidate == *applied ? "true}" : "false}"));
+    auto result =
+        ok("{\"schema\":\"transmitter-progress/1\",\"target\":" +
+           application::target(device_, service_.status().boot_id) +
+           ",\"draft_revision\":" + json::quote(std::to_string(progress_->sequence())) +
+           ",\"config_revision\":" + json::quote(std::to_string(store_.config_sequence())) +
+           ",\"profile_revision\":" +
+           json::quote(std::to_string(consumer_runtime_ ? consumer_runtime_->generation() : 0)) +
+           ",\"fields\":" + progress_->fields(true, station_only) +
+           ",\"last_receipt\":" + (station_only ? std::string("null") : progress_->receipt()) +
+           ",\"last_outcomes\":" + progress_->outcomes(station_only) +
+           ",\"applied_station\":" + (applied ? application::station(*applied) : "null") +
+           ",\"station\":" + progress_->station_fields(applied) +
+           ",\"station_complete\":" + (station ? "true" : "false") +
+           ",\"complete\":" + (candidate ? "true" : "false") + ",\"apply_domains\":{\"station\":" +
+           (progress_->candidate(applied, "station") ? "true" : "false") +
+           ",\"network\":" + (progress_->candidate(applied, "network") ? "true" : "false") +
+           ",\"radio\":" + (progress_->candidate(applied, "radio") ? "true" : "false") +
+           ",\"all\":" + (candidate ? "true}" : "false}") + ",\"wspr_plan\":" +
+           (station ? application::wspr_plan(*station) : "null") + ",\"schedule_enabled\":" +
+           (station_only ? std::string("null") : std::string(status->get("enabled")->raw)) +
+           ",\"schedule_suspended\":" +
+           (station_only ? std::string("null") : std::string(status->get("suspended")->raw)) +
+           ",\"matches_applied\":" +
+           (candidate && applied && *candidate == *applied ? "true}" : "false}"));
     result.etag = revision();
     return result;
 }
-bool BrowserApi::progress_station_matches(std::string_view call, std::string_view locator, unsigned power) const {
-    if (!progress_ || !store_.healthy()) return false;
+bool BrowserApi::progress_station_matches(std::string_view call, std::string_view locator,
+                                          unsigned power) const {
+    if (!progress_ || !store_.healthy())
+        return false;
     const auto applied = consumer_runtime_ && !consumer_runtime_->consumer_profile()
-        ? std::optional<standalone::Config>{} : effective_config();
+                             ? std::optional<standalone::Config>{}
+                             : effective_config();
     const auto station = progress_->station_candidate(applied);
-    return station && station->callsign == call && station->locator == locator && station->power_dbm == power;
+    return station && station->callsign == call && station->locator == locator &&
+           station->power_dbm == power;
 }
 HttpResponse BrowserApi::save_progress(const HttpRequest& r, bool station_only) {
-    if (!progress_) return http_error(404, "not_found");
-    if (r.body_view().size() > 2048) return http_error(413, "resource_body_too_large");
-    if (!store_.healthy() || !progress_->healthy()) return http_error(503, "storage_fault");
-    if (r.header("if-match").empty()) return http_error(428, "revision_required");
-    if (r.header("if-match") != revision()) return http_error(412, "revision_conflict");
-    if (!scheduler_.idle() || pending_transaction_) return http_error(409, "busy");
+    if (!progress_)
+        return http_error(404, "not_found");
+    if (r.body_view().size() > 2048)
+        return http_error(413, "resource_body_too_large");
+    if (!store_.healthy() || !progress_->healthy())
+        return http_error(503, "storage_fault");
+    if (r.header("if-match").empty())
+        return http_error(428, "revision_required");
+    if (r.header("if-match") != revision())
+        return http_error(412, "revision_conflict");
+    if (!scheduler_.idle() || pending_transaction_)
+        return http_error(409, "busy");
     const auto root = json::parse(r.body_view());
     if (!root || !json::fields(*root, {"schema", "target", "request_id", "fields"}) ||
         root->get("schema")->type() != '"' ||
@@ -112,18 +143,25 @@ HttpResponse BrowserApi::save_progress(const HttpRequest& r, bool station_only) 
         return http_error(400, "invalid_progress");
     const auto target = *root->get("target");
     for (const auto field : {"scope", "device_id", "boot_id"})
-        if (target.get(field)->type() != '"') return http_error(400, "invalid_progress");
+        if (target.get(field)->type() != '"')
+            return http_error(400, "invalid_progress");
     if (target.get("scope")->string() != "member" || target.get("device_id")->string() != device_ ||
         target.get("boot_id")->string() != service_.status().boot_id)
         return http_error(409, "target_mismatch");
     auto fields = *root->get("fields");
-    if (!json::fields(fields, {}, station_only
-        ? std::initializer_list<std::string_view>{"callsign", "locator", "power_dbm"}
-        : std::initializer_list<std::string_view>{"callsign", "locator", "power_dbm", "enabled",
-            "schedules", "expires_utc_s", "pins", "frequency_policy", "wifi", "ntp_ipv4"}) ||
-        json::fields(fields, {})) return http_error(400, "invalid_progress");
+    if (!json::fields(
+            fields, {},
+            station_only
+                ? std::initializer_list<std::string_view>{"callsign", "locator", "power_dbm"}
+                : std::initializer_list<std::string_view>{"callsign", "locator", "power_dbm",
+                                                          "enabled", "schedules", "expires_utc_s",
+                                                          "pins", "frequency_policy", "wifi",
+                                                          "ntp_ipv4"}) ||
+        json::fields(fields, {}))
+        return http_error(400, "invalid_progress");
     const auto receipt_text = std::string(r.body_view());
-    const auto digest = sha256(std::span(reinterpret_cast<const std::uint8_t*>(receipt_text.data()), receipt_text.size()));
+    const auto digest = sha256(
+        std::span(reinterpret_cast<const std::uint8_t*>(receipt_text.data()), receipt_text.size()));
     std::string resolved;
     if (!station_only) {
         const auto wifi = fields.get("wifi");
@@ -132,25 +170,31 @@ HttpResponse BrowserApi::save_progress(const HttpRequest& r, bool station_only) 
         const auto draft = json::parse(draft_text);
         const auto saved_wifi = draft->get("wifi");
         const auto password = saved_wifi && saved_wifi->raw != "null"
-            ? std::optional{saved_wifi->get("password")->string()}
-            : !saved_wifi && applied ? std::optional{applied->password} : std::nullopt;
+                                  ? std::optional{saved_wifi->get("password")->string()}
+                              : !saved_wifi && applied ? std::optional{applied->password}
+                                                       : std::nullopt;
         if (wifi && password && json::fields(*wifi, {"ssid", "password"}) &&
             wifi->get("password")->raw == "null") {
             resolved = std::string(fields.raw);
             const auto secret = wifi->get("password")->raw;
-            resolved.replace(secret.offset() - fields.raw.offset(), secret.size(), json::quote(*password));
+            resolved.replace(secret.offset() - fields.raw.offset(), secret.size(),
+                             json::quote(*password));
             const auto parsed = json::parse(resolved);
-            if (!parsed) return http_error(400, "invalid_progress");
+            if (!parsed)
+                return http_error(400, "invalid_progress");
             fields = *parsed;
         }
     }
     const auto outcomes = progress_->save(fields, hex(digest));
-    if (!outcomes) return http_error(progress_->healthy() ? 413 : 503,
-                                    progress_->healthy() ? "progress_too_large" : "storage_fault");
+    if (!outcomes)
+        return http_error(progress_->healthy() ? 413 : 503,
+                          progress_->healthy() ? "progress_too_large" : "storage_fault");
     auto result = progress_readback(station_only);
-    if (result.status != 200) return result;
+    if (result.status != 200)
+        return result;
     result.body.pop_back();
-    result.body += ",\"outcomes\":" + *outcomes + ",\"request_id\":" + std::string(root->get("request_id")->raw) + '}';
+    result.body += ",\"outcomes\":" + *outcomes +
+                   ",\"request_id\":" + std::string(root->get("request_id")->raw) + '}';
     return result;
 }
 HttpResponse BrowserApi::config() const {
@@ -209,7 +253,7 @@ HttpResponse BrowserApi::hardware_config() const {
     result.etag = revision();
     return result;
 }
-HttpResponse BrowserApi::application_config(bool extended) const {
+HttpResponse BrowserApi::application_config(bool extended, bool usb_management) const {
     auto station = station_config(extended);
     if (station.status != 200)
         return station;
@@ -223,7 +267,7 @@ HttpResponse BrowserApi::application_config(bool extended) const {
     recurrence +=
         ",\"expires_utc_s\":" + json::quote(std::string(value->get("expires_utc_s")->raw));
     recurrence += '}';
-    auto caps = application::capabilities();
+    auto caps = application::capabilities(usb_management);
     if (extended) {
         const auto at = caps.find("wspr_type1\"");
         caps.replace(at, 11, "wspr_type123_auto\"");
@@ -396,29 +440,73 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return http_error(413, "body_too_large");
     if (principal.empty())
         return http_error(401, "authentication_required");
-    const auto host = canonical_authority(r.header("host"));
-    const auto current = canonical_authority(authority);
-    const auto named = canonical_authority(hostname_authority_);
-    const auto allowed = [&](const std::optional<std::string>& value) {
-        return value && ((current && *value == *current) || (named && *value == *named));
-    };
-    if (!allowed(host))
-        return http_error(403, "invalid_host");
-    const bool mutation = r.method != "GET";
-    const auto origin = r.header("origin");
-    if (mutation || r.headers.contains("origin")) {
-        const auto origin_authority =
-            origin.starts_with("https://") ? canonical_authority(origin.substr(8)) : std::nullopt;
-        if (!allowed(origin_authority) || *origin_authority != *host)
+    const bool local_usb = carrier == ManagementCarrier::UsbPhysical;
+    if (!local_usb) {
+        const auto host = canonical_authority(r.header("host"));
+        const auto current = canonical_authority(authority);
+        const auto named = canonical_authority(hostname_authority_);
+        const auto allowed = [&](const std::optional<std::string>& value) {
+            return value && ((current && *value == *current) || (named && *value == *named));
+        };
+        if (!allowed(host))
+            return http_error(403, "invalid_host");
+        const bool mutation = r.method != "GET";
+        const auto origin = r.header("origin");
+        if (mutation || r.headers.contains("origin")) {
+            const auto origin_authority = origin.starts_with("https://")
+                                              ? canonical_authority(origin.substr(8))
+                                              : std::nullopt;
+            if (!allowed(origin_authority) || *origin_authority != *host)
+                return http_error(403, "origin_or_content_type");
+        }
+        if (mutation && (r.header("x-wsprrypico-request") != "1" ||
+                         r.header("content-type") != "application/json"))
             return http_error(403, "origin_or_content_type");
+        if (!r.header("sec-fetch-site").empty() && r.header("sec-fetch-site") != "same-origin" &&
+            r.header("sec-fetch-site") != "none")
+            return http_error(403, "cross_site_request");
     }
-    if (mutation &&
-        (r.header("x-wsprrypico-request") != "1" || r.header("content-type") != "application/json"))
-        return http_error(403, "origin_or_content_type");
-    if (!r.header("sec-fetch-site").empty() && r.header("sec-fetch-site") != "same-origin" &&
-        r.header("sec-fetch-site") != "none")
-        return http_error(403, "cross_site_request");
     service_.poll();
+    if (local_usb && local_settings_ && r.path == "/api/usb/v1/wifi") {
+        if (!local_settings_->healthy())
+            return http_error(503, "storage_fault");
+        if (r.method == "GET") {
+            auto result = ok(local_settings_->wifi_readback(service_.status().boot_id));
+            result.etag = revision();
+            return result;
+        }
+        if (r.method != "PUT" && r.method != "DELETE")
+            return http_error(404, "not_found");
+        if (r.body_view().size() > 1024)
+            return http_error(413, "resource_body_too_large");
+        if (r.header("if-match").empty())
+            return http_error(428, "revision_required");
+        if (r.header("if-match") != revision())
+            return http_error(412, "revision_conflict");
+        if (!scheduler_.idle() || pending_transaction_)
+            return http_error(409, "busy");
+        const auto root = json::parse(r.body_view());
+        if (!root)
+            return http_error(400, "invalid_json");
+        const auto envelope = application::validate_envelope(*root, "transmitter-wifi/1", "wifi",
+                                                             device_, service_.status().boot_id);
+        if (envelope != application::Envelope::Valid)
+            return http_error(envelope == application::Envelope::TargetMismatch ? 409 : 400,
+                              envelope == application::Envelope::TargetMismatch
+                                  ? "target_mismatch"
+                                  : "invalid_resource");
+        const auto wifi = *root->get("wifi");
+        if ((r.method == "DELETE") != (wifi.raw == "null"))
+            return http_error(400, "invalid_wifi");
+        const auto error = local_settings_->wifi_save(wifi);
+        if (!error.empty())
+            return http_error(error == "invalid_wifi" || error == "password_required" ? 400 : 503,
+                              error);
+        scheduler_.require_network_restart();
+        auto result = ok(local_settings_->wifi_readback(service_.status().boot_id));
+        result.etag = revision();
+        return result;
+    }
     if (r.method == "GET") {
         if (auto asset = web_asset(r.path)) {
             // Generated assets live in flash for the process lifetime. Stream
@@ -455,17 +543,26 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "},\"application_resources_v2\":{\"schema\":\"transmitter-application/2\","
                 "\"read\":\"/api/v1/application/2\",\"station\":\"/api/v1/station/2\","
                 "\"config\":\"/api/v1/config/2\",\"update\":\"/api/v1/config/update/2\","
-                "\"hardware\":\"/api/v1/hardware\",\"management_carrier\":\"authenticated_https\"},"
+                "\"hardware\":\"/api/v1/hardware\",\"management_carrier\":" +
+                json::quote(local_usb ? "usb_physical" : "authenticated_https") +
+                "},"
                 "\"application_resources\":{\"schema\":\"transmitter-application/1\","
                 "\"read\":\"/api/v1/application\",\"station\":\"/api/v1/station\","
-                "\"hardware\":\"/api/v1/hardware\",\"management_carrier\":\"authenticated_https\"},"
+                "\"hardware\":\"/api/v1/hardware\",\"management_carrier\":" +
+                json::quote(local_usb ? "usb_physical" : "authenticated_https") +
+                "},"
                 "\"configuration_updates\":" +
                 application::config_update_capabilities() +
-                ",\"management_carriers\":{\"schema\":\"transmitter-management/2\",\"path\":\"/api/"
+                ",\"management_carriers\":{\"schema\":" +
+                json::quote(local_usb ? "transmitter-management/3" : "transmitter-management/2") +
+                ",\"path\":\"/api/"
                 "v1/management\"}"
                 ",\"active_job_connections\":" +
                 (active_job_connections_ ? "true" : "false") +
-                (progress_ ? ",\"saved_progress\":{\"schema\":\"transmitter-progress/1\",\"read\":\"/api/v1/progress\",\"save\":\"/api/v1/progress/update\",\"apply\":\"/api/v1/progress/apply\",\"max_bytes\":2048}" : "") +
+                (progress_ ? ",\"saved_progress\":{\"schema\":\"transmitter-progress/"
+                             "1\",\"read\":\"/api/v1/progress\",\"save\":\"/api/v1/progress/"
+                             "update\",\"apply\":\"/api/v1/progress/apply\",\"max_bytes\":2048}"
+                           : "") +
                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
                 "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}");
         }
@@ -477,14 +574,14 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         if (r.path == "/api/v1/pins")
             return ok("{\"choices\":" + hardware::choices() +
                       ",\"active\":" + hardware::serialize_plan(scheduler_.active_pins()) + "}");
-        if (r.path == "/api/v1/config")
+        if (r.path == "/api/v1/config" || r.path == "/api/v1/config/2")
             return config();
         if (r.path == "/api/v1/progress")
             return progress_readback();
         if (r.path == "/api/v1/application")
-            return application_config();
+            return application_config(false, local_usb);
         if (r.path == "/api/v1/application/2")
-            return application_config(true);
+            return application_config(true, local_usb);
         if (r.path == "/api/v1/station")
             return station_config();
         if (r.path == "/api/v1/station/2")
@@ -497,7 +594,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return result;
         }
         if (r.path == "/api/v1/hostname" && hostname_settings_) {
-            auto result = ok(hostname_settings_->readback(service_.status().boot_id));
+            auto result = ok(hostname_settings_->readback(service_.status().boot_id, local_usb));
             result.etag = revision();
             return result;
         }
@@ -514,20 +611,30 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     if (r.path == "/api/v1/progress/update" && r.method == "POST")
         return save_progress(r);
     if (r.path == "/api/v1/progress/apply" && r.method == "POST") {
-        if (!progress_) return http_error(404, "not_found");
-        if (r.body_view().size() > 512) return http_error(413, "resource_body_too_large");
-        if (r.header("if-match").empty()) return http_error(428, "revision_required");
-        if (r.header("if-match") != revision()) return http_error(412, "revision_conflict");
+        if (!progress_)
+            return http_error(404, "not_found");
+        if (r.body_view().size() > 512)
+            return http_error(413, "resource_body_too_large");
+        if (r.header("if-match").empty())
+            return http_error(428, "revision_required");
+        if (r.header("if-match") != revision())
+            return http_error(412, "revision_conflict");
         const auto root = json::parse(r.body_view());
-        if (!root || application::validate_envelope(*root, "transmitter-progress/1", "application",
-                device_, service_.status().boot_id) != application::Envelope::Valid ||
+        if (!root ||
+            application::validate_envelope(*root, "transmitter-progress/1", "application", device_,
+                                           service_.status().boot_id) !=
+                application::Envelope::Valid ||
             !json::fields(*root->get("application"), {"draft_revision", "domain"}) ||
             root->get("application")->get("domain")->type() != '"' ||
             root->get("application")->get("draft_revision")->type() != '"' ||
-            root->get("application")->get("draft_revision")->string() != std::to_string(progress_->sequence()) ||
-            !progress_->sequence()) return http_error(400, "invalid_progress_application");
-        const auto candidate = progress_->candidate(effective_config(), root->get("application")->get("domain")->string());
-        if (!candidate) return http_error(409, "incomplete_progress");
+            root->get("application")->get("draft_revision")->string() !=
+                std::to_string(progress_->sequence()) ||
+            !progress_->sequence())
+            return http_error(400, "invalid_progress_application");
+        const auto candidate = progress_->candidate(
+            effective_config(), root->get("application")->get("domain")->string());
+        if (!candidate)
+            return http_error(409, "incomplete_progress");
         // Re-enter complete idle/profile/encoding/restart authority. The scheduler
         // and legacy CONFIG/PUT never read this draft or implicitly promote it.
         auto apply = r;
@@ -619,15 +726,22 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         const auto field = root->get("hostname");
         if (field->type() != '"' && field->raw != "null")
             return http_error(400, "invalid_hostname");
+        if (field->type() == '"' && !canonical_local_hostname(field->string()))
+            return http_error(400, "invalid_hostname");
+        if (local_usb && local_settings_) {
+            const auto error = local_settings_->ensure_local_profile();
+            if (!error.empty())
+                return http_error(error == "credential_bound_deployment" ? 409 : 503, error);
+        }
         const auto error = hostname_settings_->save(
-            field->type() == '"' ? std::optional{field->string()} : std::nullopt);
+            field->type() == '"' ? std::optional{field->string()} : std::nullopt, local_usb);
         if (!error.empty())
             return http_error(error == "invalid_hostname" ? 400
                               : error == "storage_fault" || error == "hostname_reconcile_required"
                                   ? 503
                                   : 409,
                               error);
-        auto result = ok(hostname_settings_->readback(service_.status().boot_id));
+        auto result = ok(hostname_settings_->readback(service_.status().boot_id, local_usb));
         result.etag = revision();
         return result;
     }
@@ -760,6 +874,26 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         !encoding::wspr_type1_from_station(validated->callsign, validated->locator,
                                            validated->power_dbm))
         return http_error(400, "unsupported_station_encoding");
+    if (local_usb && local_settings_ && consumer_runtime_ && !consumer_runtime_->profile() &&
+        consumer_runtime_->source() != provisioning::RuntimeSource::Factory) {
+        const auto error = local_settings_->ensure_local_profile();
+        if (!error.empty())
+            return http_error(503, error);
+    }
+    if (!local_usb && station_changed && consumer_runtime_ && consumer_runtime_->consumer_profile())
+        return http_error(409, "consumer_setup_identity_required");
+    if (local_usb && local_settings_ && consumer_runtime_ &&
+        consumer_runtime_->consumer_profile()) {
+        // Network credentials use the explicit USB Wi-Fi resource, so station
+        // promotion cannot silently overwrite the profile-owned network.
+        const auto* profile = consumer_runtime_->consumer_profile();
+        if (validated->ssid != profile->ssid || validated->password != profile->password ||
+            validated->ntp_ipv4 != profile->time_server)
+            return http_error(409, "use_usb_wifi_resource");
+        const auto error = local_settings_->station_save(*validated);
+        if (!error.empty())
+            return http_error(503, error);
+    }
     if (consumer_runtime_ && consumer_runtime_->consumer_profile()) {
         const auto effective = consumer_runtime_->overlay(*validated);
         if (!effective || effective->ssid != validated->ssid ||

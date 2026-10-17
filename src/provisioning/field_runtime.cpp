@@ -1,5 +1,7 @@
 #include "provisioning/field_runtime.hpp"
 
+#include <algorithm>
+
 namespace wsprrypico::provisioning {
 namespace {
 bool elapsed(std::uint64_t now, std::uint64_t then, std::uint64_t limit) {
@@ -10,6 +12,10 @@ bool elapsed(std::uint64_t now, std::uint64_t then, std::uint64_t limit) {
 bool SoftApCoordinator::request_join_grace(std::uint64_t now_ms) {
     if (grace(now_ms))
         return false;
+    if (expired_) {
+        expired_ = false;
+        activated_ = false;
+    }
     grace_started_ms_ = now_ms;
     grace_active_ = true;
     return true;
@@ -17,8 +23,12 @@ bool SoftApCoordinator::request_join_grace(std::uint64_t now_ms) {
 
 bool SoftApCoordinator::request_manual_setup(std::uint64_t now_ms, bool shutdown_complete,
                                              bool button_held) {
-    if (!shutdown_complete || manual_setup(now_ms))
+    if (!shutdown_complete || manual_setup(now_ms) || manual_button_held_)
         return false;
+    if (!requested_) {
+        expired_ = false;
+        activated_ = false;
+    }
     manual_started_ms_ = now_ms;
     manual_active_ = true;
     manual_button_held_ = button_held;
@@ -26,10 +36,8 @@ bool SoftApCoordinator::request_manual_setup(std::uint64_t now_ms, bool shutdown
 }
 
 void SoftApCoordinator::manual_button_released(std::uint64_t now_ms) {
-    if (manual_active_ && manual_button_held_) {
-        manual_button_held_ = false;
-        manual_started_ms_ = now_ms;
-    }
+    (void)now_ms;
+    manual_button_held_ = false; // Release never renews an activation deadline.
 }
 
 void SoftApCoordinator::station(bool usable, std::uint64_t now_ms) {
@@ -45,18 +53,43 @@ bool SoftApCoordinator::grace(std::uint64_t now_ms) const {
 }
 
 bool SoftApCoordinator::manual_setup(std::uint64_t now_ms) const {
-    return manual_active_ &&
-           (manual_button_held_ || !elapsed(now_ms, manual_started_ms_, softap_manual_setup_ms));
+    return manual_active_ && !expired_ &&
+           (!activated_ || !elapsed(now_ms, activated_ms_, softap_manual_setup_ms));
+}
+
+void SoftApCoordinator::ready(bool value) {
+    ready_ = value && requested_ && !expired_;
+    if (ready_ && !activated_) {
+        activated_ = true;
+        activated_ms_ = last_poll_ms_;
+    }
 }
 
 bool SoftApCoordinator::poll(std::uint64_t now_ms) {
+    last_poll_ms_ = now_ms;
+    if (activated_ && elapsed(now_ms, activated_ms_, softap_manual_setup_ms)) {
+        expired_ = true;
+        manual_active_ = grace_active_ = draining_ = false;
+        ready_ = requested_ = false;
+    }
+    if (station_seen_ && station_usable_ &&
+        elapsed(now_ms, station_changed_ms_, softap_station_stable_ms))
+        fallback_armed_ = true;
     if (grace_active_ && !grace(now_ms))
         grace_active_ = false;
     if (manual_active_ && !manual_setup(now_ms))
         manual_active_ = false;
-    if (station_seen_ && !station_usable_ &&
-        elapsed(now_ms, station_changed_ms_, softap_fallback_ms))
+    if (station_seen_ && !station_usable_ && fallback_armed_ &&
+        elapsed(now_ms, station_changed_ms_, softap_fallback_ms)) {
+        fallback_armed_ = false;
         fallback_ = true;
+        // A genuinely new outage may open another bounded window. An outage
+        // already covered by the current window never extends that window.
+        if (expired_) {
+            expired_ = false;
+            activated_ = false;
+        }
+    }
     const bool field_mode = access_.record() && access_.record()->field_mode;
     const bool retained = (!temporary_access_ && (token_records_ || reply_active_)) ||
                           grace(now_ms) || manual_setup(now_ms);
@@ -64,14 +97,15 @@ bool SoftApCoordinator::poll(std::uint64_t now_ms) {
         elapsed(now_ms, station_changed_ms_, softap_station_stable_ms) &&
         (temporary_access_ || !retained) && !field_mode && !recovery_)
         fallback_ = false;
-    const bool desired = blank_profile_ || field_mode || recovery_ || fallback_ || retained;
+    const bool desired =
+        !expired_ && (blank_profile_ || field_mode || recovery_ || fallback_ || retained);
     if (desired)
         draining_ = false;
-    else if (temporary_access_ && requested_ && reply_active_ && !draining_) {
+    else if (!expired_ && temporary_access_ && requested_ && reply_active_ && !draining_) {
         draining_ = true;
         drain_started_ms_ = now_ms;
     }
-    requested_ = desired || (draining_ && reply_active_ &&
+    requested_ = desired || (!expired_ && draining_ && reply_active_ &&
                              !elapsed(now_ms, drain_started_ms_, softap_reply_drain_ms));
     if (!requested_)
         ready_ = false;
@@ -91,7 +125,11 @@ SoftApStatus SoftApCoordinator::status(std::uint64_t now_ms) const {
             reply_active_,
             manual,
             manual && manual_button_held_,
-            draining_};
+            draining_,
+            expired_,
+            activated_ && !expired_ && now_ms >= activated_ms_
+                ? softap_manual_setup_ms - std::min(softap_manual_setup_ms, now_ms - activated_ms_)
+                : 0};
 }
 
 SoftApSurface SoftApCoordinator::surface(bool clock_usable) const {

@@ -28,7 +28,7 @@ struct Port {
     std::vector<std::uint8_t> pending;
     std::vector<std::uint8_t> delivered;
 };
-std::array<Port, 2> ports;
+std::array<Port, USB_CDC_COUNT> ports;
 void reset() {
     tud_umount_cb();
     ports = {};

@@ -18,6 +18,8 @@ struct Profile {
     std::string server_certificate;
     std::string server_private_key;
     std::string client_ca;
+    // Journal v2 permits deliberate removal of Wi-Fi without changing TLS trust.
+    bool usb_managed = false;
     bool operator==(const Profile&) const = default;
 };
 

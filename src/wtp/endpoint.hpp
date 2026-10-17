@@ -33,7 +33,8 @@ class Endpoint {
     }
 
   private:
-    void payload(FrameBuffer bytes, std::uint64_t now_ms);
+    void payload(FrameBuffer bytes, std::uint64_t now_ms,
+                 std::optional<PayloadDigest> original_digest = {});
     void frame_events(std::vector<FrameEvent> events, std::uint64_t now_ms);
     bool enqueue(std::string payload, std::uint64_t now_ms, bool advisory);
     bool enqueue(LoadResponseStream payload, std::uint64_t now_ms);
@@ -44,6 +45,7 @@ class Endpoint {
     std::string device_id_, firmware_version_, principal_, session_, boot_;
     FrameParser parser_;
     FrameBuffer pending_input_;
+    std::optional<PayloadDigest> pending_input_digest_;
     std::uint64_t pending_input_since_ms_ = 0;
     std::size_t pending_input_workspace_ = 6144;
     struct OutputFrame {

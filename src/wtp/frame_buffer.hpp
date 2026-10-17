@@ -59,6 +59,24 @@ class FrameBuffer {
             pages_[i].truncate(offset < size_ ? std::min(page_bytes, size_ - offset) : 0);
         }
     }
+    // Shrinking an already validated payload must return unused pages to the
+    // shared heap, rather than retaining the original padded wire allocation.
+    bool truncate_release(std::size_t bytes) {
+        if (bytes > size_)
+            return false;
+        size_ = bytes;
+        capacity_ = 0;
+        for (std::size_t i = 0; i < pages_.size(); ++i) {
+            const auto start = i * page_bytes;
+            if (start >= size_)
+                pages_[i] = InputBuffer{};
+            else {
+                pages_[i].truncate(std::min(page_bytes, size_ - start));
+                capacity_ += pages_[i].capacity();
+            }
+        }
+        return true;
+    }
     InputView view() const {
         return {pages_.data(), size_};
     }
