@@ -77,5 +77,5 @@ try {
 } finally {
   cdp?.ws.close();
   for(const process of [chrome,fixture])if(process && process.exitCode===null){process.kill('SIGTERM');await Promise.race([new Promise(resolve=>process.once('exit',resolve)),new Promise(resolve=>setTimeout(resolve,3000))]);}
-  await rm(profile,{recursive:true,force:true});
+  await rm(profile,{recursive:true,force:true,maxRetries:10,retryDelay:100});
 }
