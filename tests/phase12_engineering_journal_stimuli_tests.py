@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import json
+import math
 from pathlib import Path
 import struct
 import sys
@@ -58,6 +59,35 @@ def bank(sequence,profile):
     struct.pack_into('<QQ',commit,0,0x31544d4d4f435057,sequence);commit[16:48]=checksum
     struct.pack_into('<I',commit,252,zlib.crc32(commit[:252]))
     result[:256]=header;result[-256:]=commit;return bytes(result)
+
+
+class DeadlineTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup)
+        self.root=Path(self.temp.name)
+        self.start=math.nextafter(8192.0,-math.inf);self.now=self.start
+        self.clock=lambda:self.now
+        self.armed=s.arm(self.root,'a'*40,7,90,clock=self.clock)
+    def test_rounded_interval_admits_binding_and_expires_at_original_deadline(self):
+        deadline=self.armed['end_monotonic_s']
+        # Adding 90 crosses a floating-point precision boundary; subtraction
+        # then rounds above 90 even though arm accepted the exact budget.
+        self.assertGreater(deadline-self.start,90)
+        self.assertEqual(s.control(self.root,'old_bind',raw(info()),clock=self.clock)['status'],
+                         'STIMULUS_OLD_BIND')
+        self.now=math.nextafter(deadline,-math.inf)
+        s.state(self.root,clock=self.clock)
+        for now in (math.nextafter(self.start,-math.inf),deadline,math.nextafter(deadline,math.inf)):
+            with self.subTest(now=now):
+                self.now=now
+                with self.assertRaisesRegex(ValueError,'original stimulus deadline'):
+                    s.state(self.root,clock=self.clock)
+    def test_overlong_persisted_interval_is_rejected(self):
+        path=self.root/s.FILES[0];value=s.strict(path.read_bytes())
+        value['end_monotonic_s']=math.nextafter(value['end_monotonic_s'],math.inf)
+        path.write_bytes(raw(value))
+        with self.assertRaisesRegex(ValueError,'original stimulus deadline'):
+            s.state(self.root,clock=self.clock)
 
 
 class Tests(unittest.TestCase):

@@ -128,13 +128,15 @@ def arm(root,source,generation,remaining_s,*,clock=time.monotonic):
 
 def state(root,*,clock=time.monotonic):
     raw=original(Path(root)/FILES[0]);value=strict(raw)
+    # Match arm's addition: subtracting rounded timestamps can make an
+    # accepted 90-second interval appear slightly longer than 90 seconds.
     require(value['schema']=='phase12-journal-stale/1' and value['root']==str(root) and
             type(value['old_datagrams_maximum']) is int and value['old_datagrams_maximum']==1 and
             type(value['rf_jobs']) is int and value['rf_jobs']==0 and
             re.fullmatch('[0-9a-f]{40}',value['source_commit']) and
             type(value['old_generation']) is int and 0<value['old_generation']<2**64-1 and
             type(value['start_monotonic_s']) in (int,float) and type(value['end_monotonic_s']) in (int,float) and
-            0<value['end_monotonic_s']-value['start_monotonic_s']<=90 and
+            value['start_monotonic_s']<value['end_monotonic_s']<=value['start_monotonic_s']+90 and
             value['start_monotonic_s']<=clock()<value['end_monotonic_s'],'original stimulus deadline')
     return value,digest(raw)
 
