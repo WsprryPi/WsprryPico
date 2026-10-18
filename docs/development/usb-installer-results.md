@@ -3,8 +3,9 @@
 Status: **in flight**. Software and physical acceptance remain separate. The
 operator authorized consolidation with μChrony and the documentation cleanup
 on 2026-10-18. The shared Pico `devel` checkout now contains the combined sources;
-the isolated installer tree remains a preserved validation snapshot. Publication,
-Pi deployment pinning and physical preserving-upgrade acceptance remain open.
+the isolated installer tree remains a preserved validation snapshot. Published
+bootstrap verification, live Pi package deployment and physical preserving-upgrade
+acceptance remain open.
 
 ## Source and device identities
 
@@ -13,8 +14,11 @@ The original implementation and validation snapshot is at
 `582b7221b78537813e997b1be0c880dbadab0697`. Integration retains the newer μChrony
 phase-slew clock fields, NTP-learning flash reservation and cleaned documentation.
 WsprryPi changes
-start from devel `fe701cf4c2b05e46cb84927188984084503d1cea`. Its package deployment
-pin will be frozen after a coordinated reviewed Pico commit exists.
+start from devel `fe701cf4c2b05e46cb84927188984084503d1cea`. Pi commit `cc806d9`
+records the companion integration and pins package deployment to Pico revision
+`cc12ca45eb66a95e518b81119e3d6ca546db1547`, with exact installer/schema SHA-256
+values in its `config/pico-usb-installer.json`. Temporary-root package staging
+and removal verify those committed bytes; no live package was installed.
 
 The operator confirmed the new board is **Pico C**, a Pico 2 W:
 
@@ -67,7 +71,7 @@ tests pass. Normal and inhibited Pico firmware cross-builds pass their linked
 engine, reserved-flash, stack, heap and USB checks. WTP artifacts, bootstrap
 Bash/ShellCheck, changed Markdown paths and whitespace checks pass. The Pi
 companion's five deployment tests and firmware UI unit/integration checks pass;
-its source remains unchanged and uncommitted on Pi `devel`. These consolidation
+its integration is committed separately on Pi `devel`. These consolidation
 checks involve no firmware load, device operation, host-clock change or RF test.
 They do not establish a full canonical CI pass or physical upgrade acceptance.
 
@@ -150,8 +154,8 @@ deployment/adapter tests, UI unit, Impeccable detector, Bash syntax and diff
 checks. Target builds and Linux C++ checks are separate implementation-agent
 evidence, not independently rerun by the reviewer.
 
-Open gates: publication through reviewed non-force pushes, immutable Pi deployment pin, published
-bootstrap verification, canonical CI containing the new maintenance firmware,
+Open gates: published bootstrap verification, canonical CI containing the new
+maintenance firmware, reviewed live Pi package deployment,
 physical preserving upgrade and recovery on Pico C, and the real Pi USB entry
 point. Linux/Pi USB programming has not been physically qualified. Neither
 mock tests, cross-builds nor initial installation establish these gates or RF
