@@ -1,14 +1,16 @@
 // Real shipped UI and synthetic RAM-backed consumer API; no board or RF access.
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {mkdtemp,readFile,writeFile,mkdir,rm} from 'node:fs/promises';
+import {mkdtemp,readFile,writeFile,mkdir} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
 
 const driver=process.argv[2], output=path.resolve(process.argv[3] || 'build/standalone-frequency-ui');
 if (!driver) throw Error('Usage: node standalone_frequency_ui_integration.mjs DRIVER [OUTPUT]');
 await mkdir(output,{recursive:true});
 const profile=await mkdtemp(path.join(os.tmpdir(),'wsprrypico-frequency-browser-'));
+const processGroup=process.platform!=='win32';
 let fixture, chrome, cdp;
 class Cdp {
   constructor(url) {
@@ -33,13 +35,13 @@ async function capture(name){
 }
 try {
   let fixtureOutput='';
-  fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'18939',output],{stdio:['ignore','pipe','pipe']});
+  fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'18939',output],{stdio:['ignore','pipe','pipe'],detached:processGroup});
   fixture.stdout.on('data',data=>{fixtureOutput+=data;});
   fixture.stderr.on('data',data=>{fixtureOutput+=data;});
   await until(()=>fixtureOutput.includes('READY;'),'fixture startup');
   chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
-     '--remote-debugging-port=0',`--user-data-dir=${profile}`,'--proxy-server=http://127.0.0.1:18939','--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore'});
+     '--remote-debugging-port=0',`--user-data-dir=${profile}`,'--proxy-server=http://127.0.0.1:18939','--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore',detached:processGroup});
   let debugPort;
   await until(async()=>{try{debugPort=Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]);return !!debugPort;}catch{return false;}},'browser startup',30000);
   const pages=await(await fetch(`http://127.0.0.1:${debugPort}/json`)).json();
@@ -76,6 +78,5 @@ try {
   console.log('Consumer frequency UI: unset, explicit save, disabled schedules, desktop/mobile and accessible label passed');
 } finally {
   cdp?.ws.close();
-  for(const process of [chrome,fixture])if(process && process.exitCode===null){process.kill('SIGTERM');await Promise.race([new Promise(resolve=>process.once('exit',resolve)),new Promise(resolve=>setTimeout(resolve,3000))]);}
-  await rm(profile,{recursive:true,force:true,maxRetries:10,retryDelay:100});
+  await cleanupUiProcesses([chrome,fixture],profile,{processGroup});
 }
