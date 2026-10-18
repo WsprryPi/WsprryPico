@@ -35,7 +35,7 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    settings; default to the latest verified saved main CI image, with explicit
    devel selection.
    [Saved prompt](phase15-18-execution-prompt.md).
-8. ▧ **Repository and work-harness cleanup.** Remove obsolete project artifacts
+8. ⏳ **Repository and work-harness cleanup.** Remove obsolete project artifacts
    and rewrite operator-facing prose around current capabilities. Keep needed
    technical material in engineering documentation; add no documentation
    placeholder or future promise. [Cleanup guidance](repository-cleanup-prompt.md).
