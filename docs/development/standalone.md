@@ -339,58 +339,63 @@ same non-sliding ten-minute cap; the 120-second join grace does not renew it.
 
 ## Time policy
 
-The original portable parser implements a restricted unicast SNTPv4 exchange;
-[the NTPv4 specification](https://www.rfc-editor.org/rfc/rfc5905.html) defines the
-packet format. This implementation is not a full NTP selection/discipline
-algorithm or an authenticated time service. It trusts the configured server and
-network; peer matching and a random origin token are correlation checks, not
-cryptographic authentication. Do not use a leap-smearing source as ordinary UTC.
+The autonomous NTP implementation is [μChrony](../../src/microchrony/README.md),
+an original MIT portable engine with a Pico network/clock adapter. Chrony 4.9
+is an external private test reference; no Chrony code is linked into firmware.
+The [replacement results](microchrony-results.md) distinguish tested behavior,
+differential disagreements and unqualified target behavior. Full Chrony
+behavioral equivalence is not established.
 
-The Pico adapter validates the configured peer address and UDP port 123. The
-parser requires a 48-byte version-4 server reply, matching one-shot origin token,
-stratum 1–15, normal leap indication, valid ordered receive/transmit/reference
-timestamps, reference age at most one day, acceptable precision and root
-metrics, and at most one second local RTT. Pending or unknown leap indications
-invalidate time. A correlated stratum-zero kiss-of-death invalidates time and
-stops queries to that server until reboot. Invalid/stale replies never refresh
-an observation. UTC is explicitly restricted to 2025–2099, including the 2036
-NTP era rollover; a zero NTP timestamp remains the invalid sentinel.
+The Pico adapter checks the configured IPv4 endpoint and UDP port 123. The
+engine correlates 48-byte basic NTPv3/v4 server replies with a one-shot random
+origin token, validates ordered server timestamps and root metrics, unfolds the
+NTP era, and rejects unsynchronized or denied sources. RATE requests back off;
+other stratum-zero responses withdraw the association. These checks do not
+authenticate the server or network. The application restricts imported UTC to
+2025–2099. Pending leap indicators are exposed to the job policy; equivalent
+Chrony leap execution has not been demonstrated.
 
-The estimate uses server transmit time plus half the RTT remaining after server
-processing. Its uncertainty includes the **full** local RTT, half the server's
-root delay, root dispersion, a local/drift margin and up to 999 ns of mapping
-quantization. Accepted measurements retain the original raw microsecond grid.
-Qualified software rate mapping uses checked inverse conversion and upward
-microsecond alarm rounding, including rounding uncertainty. Observations
-above 500 ms uncertainty are rejected. This user-selected budget replaces the
-initial 20 ms policy and retains margin against the approximately one-second
-clock guidance in the [WSPR description](https://wsjt.sourceforge.io/WSPR_QST_Nov_2010.pdf).
-Admission and launch both enforce 500 ms including oscillator aging. The assumed oscillator bound is 50,000 ppb,
-not a measured oscillator calibration; uncertainty grows with age.
+Acquisition uses a bounded initial burst of four good replies in at most eight
+attempts. A regression can establish an initial UTC epoch after three admitted
+observations. Subsequent phase correction is slewed. Weighted regression,
+identified delay asymmetry, residual runs, source agreement, root distance and
+frequency uncertainty govern progressive confidence. There is no 32-sample,
+30-minute, fixed half-window agreement or two-hour convergence requirement.
+Repeated status reads and rejected samples never make an old fit fresh.
 
-Hostname lookup is asynchronous and foreground-only, with one outstanding request,
-two bounded cache entries and DHCP-provided DNS servers. Successful lookup is
-rechecked every 60 seconds through lwIP's TTL-aware cache; failure retries after
-five seconds and retains a previously resolved peer until a new valid result.
-Link changes invalidate pending results without reusing callback storage. A changed
-peer cancels its predecessor's outstanding SNTP exchange and resets filter/rate
-history. DNS failure never
-synchronizes UTC or relaxes certificate/clock/ARM gates. KoD inhibition remains
-in force until reboot, including across DNS address changes.
+Configured pool names ending in `pool.ntp.org` use four distinct IPv4
+associations through the corresponding `0`–`3` aliases. Duplicate endpoints are
+not queried twice. Each source has at most 64 original accepted measurements.
+Agreeing sources can be combined; contradictory minorities are rejected.
+Other names and IPv4 literals use one association. DNS is asynchronous and
+foreground-only. Responding admitted associations retain their endpoint;
+loss, denial, excessive root distance or source rejection permits replacement.
+A changed endpoint or link establishes a new source cohort. DNS never supplies
+UTC or weakens job admission.
 
-Network polling is foreground-only. Connection attempts are separated by 30 s;
-successful observations by 64 s. Lost exchanges receive at most two retries
-spaced by 2 s, followed by a 64 s backoff; a correlated accepted response resets
-the normal interval. This allows clock refresh after a long RF interval without
-relaxing the one-second response-age or clock-admission limits. Any server KoD
-still disables that source for the boot. Startup requires neither a USB host nor a wall-clock seed. The
-clock is synchronized for at most 90 s and enters holdover through 180 s, but
-this image admits/launches jobs only with source age at most 90 s and uncertainty
-at most 500 ms. An outage can skip slots; no schedule is guaranteed to transmit.
-UTC rate fitting uses only accepted raw SNTP observations and preserves full
-source uncertainty. RF carrier selection remains separate: persistent manual
-correction is the default/fallback; NTP RF selection retains an unresolved
-independent measurement gate. See [NTP work](ntp-work-results.md).
+The Pico profile uses the Chrony settings equivalent to `minpoll 6 maxpoll 6`,
+`maxdrift 100` and `maxclockerror 50`: normal polling is every 64 seconds plus
+less than one second of jitter, the oscillator range is ±100 ppm, and holdover
+retains its conservative 50 ppm allowance. The existing job limits remain
+500 ms total uncertainty and 90 seconds since an actual source observation,
+checked at admission and launch. Clock status can enter holdover through
+180 seconds. Packet acceptance, statistical synchronization and permission to
+launch a job are separate. Delay filtering or an outage can skip slots.
+
+The single μChrony model supplies UTC frequency and finite phase slew directly;
+there is no second NTP servo. Immutable clock copies include the end of a slew
+and the subsequent frequency for local alarm conversion. Projection and inverse
+mapping use checked integer arithmetic and charge microsecond quantization.
+Source age remains tied to an original receive timestamp. Frequency confidence
+is statistical and conditional on source/network behavior; it does not establish
+independent absolute UTC or RF accuracy.
+
+Routine status contains compact source, phase, frequency, skew and readiness
+summaries. Complete original records use [bounded USB pages](ntp-usb-diagnostics.md).
+Persistent manual PPM remains independent. NTP RF candidates require a current
+statistical rate bound, freshness and supported topology; automatic carrier
+selection remains inhibited by the independent physical RF gate. The
+[historical NTP results](ntp-work-results.md) retain evidence for earlier images.
 
 The time arbiter accepts authenticated controller/phone time when SNTP is unavailable.
 The device computes uncertainty from a fixed 250 ms phone allowance, the full
@@ -421,9 +426,37 @@ A two-sector 8 KiB access journal occupies
 at `0x3fb000`–`0x3fefff`, and E10 remains at
 `0x3ff000`–`0x3fffff`. Saved progress occupies `0x3f0000`–`0x3f1fff`,
 with diagnostic scratch at `0x3f2000`–`0x3f2fff`. Linked application FLASH ends at
-`0x3f0000`; maintained application linker layouts and image checks reject
+`0x3ee000`; a separate NTP-learning journal occupies `0x3ee000`–`0x3effff`.
+Maintained application linker layouts and image checks reject
 ordinary image content in all reserved regions. Station, schedules and watermark
 addresses are unchanged.
+
+Manual PPM and automatic NTP learning use separate journals. Manual correction
+and selected mode remain unchanged until an explicit configuration change or
+operational reset. The learned cache binds device, algorithm/topology version,
+normal clock ratio, source endpoint, boot, epoch and original reference time.
+UTC frequency/skew and software-qualified RF learning retain separate provenance.
+Writes require idle/unowned state outside provisioning, reset and reboot, a
+minimum five-minute interval and a meaningful 0.1 ppm change, a halving of UTC skew, or first RF value.
+Pending independent UTC/RF learning survives that cooldown in RAM.
+
+The 192-byte cache payload version 2 stores pure UTC frequency and skew,
+separately from temporary phase-slew rate and any RF prior. It reads version 1
+with broad unknown skew; older images do not understand version 2. After restart,
+a saved frequency seeds μChrony with a broad provisional error bound. It restores
+no UTC, sample history or freshness; acquisition still requires real replies.
+A saved RF value is historical, with unknown current age. It can supply an NTP-mode
+startup fallback only after the same topology, adjustment-consent and independent
+physical RF gates permit it. The physical RF gate remains unverified in this
+image. Fresh calibration qualification is still determined from current originals.
+Cache corruption cannot make configuration unhealthy. A torn cache update can
+recover the last verified record; unknown device/version/topology records are
+rejected without erasing them. Full operational reset erases and verifies both
+cache sectors; provisioning-only reset preserves them.
+
+Current firmware updates preserve the final 72 KiB. Historical images with a
+higher application boundary can overwrite the learned cache during downgrade;
+verification of their original layout does not establish cache preservation.
 
 The access journal holds password state, access epoch, authorized stable bond
 identities, field mode and durable reset intent. Source mode/tombstones remain

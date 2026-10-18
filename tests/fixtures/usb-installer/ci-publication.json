@@ -1,0 +1,40 @@
+{
+  "artifacts": [
+    {
+      "archive_sha256": "621b52c674dcb652580917e15fb6d3869a1a05403f857f066b0e9598827cf6c0",
+      "expires_at": "2027-01-16T00:54:45Z",
+      "id": 12120662138,
+      "kind": "deployment",
+      "name": "WsprryPico-firmware-devel-39084514130-1-consumer"
+    },
+    {
+      "archive_sha256": "1788f7aac12e1fbd899789d2c68e35eeb15247b1dd237bf3fa0f05bca3b724be",
+      "expires_at": "2027-01-16T00:54:45Z",
+      "id": 12120851314,
+      "kind": "audit",
+      "name": "WsprryPico-audit-devel-39084514130-1-consumer"
+    }
+  ],
+  "attempt": 1,
+  "branch": "devel",
+  "manifest_sha256": "b22ff0980a384b3443537455c73ec89417a67ccfa106ce1d22fc7a8e46e040e6",
+  "repository": "WsprryPi/WsprryPico",
+  "run_id": 39084514130,
+  "schema": "wsprrypico-ci-publication/1",
+  "source": "582b7221b78537813e997b1be0c880dbadab0697",
+  "tag": "v0.1.0-ci.39084514130.1",
+  "uf2": {
+    "bytes": 4688384,
+    "path": "WsprryPico-0.1.0-ci.39084514130.1-pico2_w.uf2",
+    "sha256": "4e5c5f1de45f12ae5499f2e6ff4e07115f22d69e1e3a476c0f4ba7c01e4513b0"
+  },
+  "url": "https://github.com/WsprryPi/WsprryPico/actions/runs/39084514130",
+  "verification": "accepted-verify-job-and-payload",
+  "verified": true,
+  "verify_job": {
+    "conclusion": "success",
+    "id": 117548175210,
+    "status": "completed"
+  },
+  "version": "0.1.0-ci.39084514130.1"
+}

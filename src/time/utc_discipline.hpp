@@ -29,6 +29,8 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
     bool observe_rate(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
                       std::uint64_t uncertainty_ns, std::int32_t rate_ppb,
                       std::uint32_t rate_uncertainty_ppb, std::uint64_t generation) override;
+    bool observe_ntp_model(const RateObservation& source, const wtp::ClockSnapshot& model,
+                           std::uint32_t max_clock_error_ppb) override;
     void invalidate();
     void invalidate(ObservationSource) override {
         invalidate();
@@ -50,6 +52,10 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
     std::uint64_t generation_ = 0;
     wtp::LeapState leap_ = wtp::LeapState::Unknown;
     std::optional<std::uint64_t> leap_transition_utc_ns_;
+    bool imported_ntp_ = false;
+    std::uint64_t source_ns_ = 0, imported_generation_ = 0, rate_until_ns_ = UINT64_MAX;
+    std::int32_t subsequent_rate_ppb_ = 0;
+    std::uint32_t imported_growth_ppb_ = 1000;
 };
 
 } // namespace wsprrypico::time

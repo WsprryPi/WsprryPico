@@ -60,7 +60,7 @@ wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody bo
 }
 bool Scheduler::idle() const {
     const auto s = service_.activity();
-    return !hardware_application_failed_ && !s.owned && !s.output_active &&
+    return !service_.maintenance() && !hardware_application_failed_ && !s.owned && !s.output_active &&
            s.state != wtp::State::Armed && s.state != wtp::State::Running &&
            s.state != wtp::State::Failed;
 }
@@ -79,6 +79,8 @@ bool Scheduler::reset_permitted() const {
 }
 void Scheduler::poll() {
     service_.poll();
+    if (service_.maintenance())
+        return; // No slot/watermark reservation while USB maintenance is pending.
     if (pair_) {
         poll_pair();
         return;

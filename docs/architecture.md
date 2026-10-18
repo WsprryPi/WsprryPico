@@ -143,21 +143,21 @@ selection fail closed for incomplete/wrong-device bundles or torn updates.
 Saved drafts require explicit application and never establish readiness.
 
 The physical layout is defined in
-[flash_layout.hpp](../src/standalone/pico/flash_layout.hpp). The layout
-reserves saved progress at `0x3f0000`,
+[flash_layout.hpp](../src/standalone/pico/flash_layout.hpp). The current working
+layout reserves NTP retention at `0x3ee000`, saved progress at `0x3f0000`,
 diagnostic scratch at `0x3f2000`, access at `0x3f3000`, BTstack at `0x3f5000`,
 profiles at `0x3f7000`, standalone state at `0x3fb000` and E10 at `0x3ff000`.
 Image/linker checks enforce region separation. Record versions determine
 supported upgrades and rollback; older firmware must not resurrect prior trust
 or enabled settings after failing to parse a new record.
 
-Configured unicast SNTPv4 supplies autonomous UTC. The controller/SNTP arbiter
-preserves cross-source authority and disagreement handling for BLE and SoftAP
-observations. [Standalone time policy](development/standalone.md#time-policy)
-defines packet validation, uncertainty, age, holdover and launch limits.
-UTC synchronization and RF frequency correction remain separate; manual PPM
-is independent of the automatic RF calibration qualification gate. Physical
-phone-time accuracy and general fleet interoperability remain unqualified.
+The autonomous NTP engine is the original MIT [μChrony](../src/microchrony/README.md)
+module. The Pico adapter imports its virtual UTC model without another NTP
+estimator or servo. The controller/NTP arbiter retains cross-source authority
+and disagreement handling for BLE and SoftAP observations. Chrony 4.9 remains
+an external test reference; full behavioral equivalence and physical UTC/RF
+accuracy remain unqualified. [Replacement results](development/microchrony-results.md)
+record the exact validation scope. Physical phone-time accuracy remains unqualified.
 
 ## Qualification and shared application boundaries
 

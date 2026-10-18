@@ -6,14 +6,16 @@
 #define CHECK(condition)                                                                           \
     do {                                                                                           \
         if (!(condition)) {                                                                        \
-            std::cerr << __LINE__ << ": " #condition "\n";                                       \
+            std::cerr << __LINE__ << ": " #condition "\n";                                         \
             std::exit(1);                                                                          \
         }                                                                                          \
     } while (false)
 
 int main() {
     using namespace wsprrypico::standalone::flash_layout;
-    CHECK(linked_flash_size == progress_base);
+    CHECK(linked_flash_size == ntp_base);
+    CHECK(ntp_base == 0x3ee000 && ntp_size == 8192);
+    CHECK(ntp_base + ntp_size == progress_base);
     CHECK(progress_base == 0x3f0000);
     CHECK(progress_size == 8192);
     CHECK(progress_base + progress_size == diagnostic_base);

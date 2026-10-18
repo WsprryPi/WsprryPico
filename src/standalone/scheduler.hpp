@@ -10,6 +10,7 @@ class Scheduler {
     void poll();
     bool idle() const;
     bool reset_permitted() const;
+    bool suspended() const { return suspended_; }
     const hardware::PinPlan& active_pins() const {
         return active_pins_;
     }

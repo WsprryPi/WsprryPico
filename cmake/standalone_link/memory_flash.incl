@@ -1,7 +1,7 @@
-/* Pico 2 W: physical 4 MiB. Reserve 8 KiB saved progress, 4 KiB diagnostic
+/* Pico 2 W: physical 4 MiB. Reserve 8 KiB NTP learning, 8 KiB saved progress, 4 KiB diagnostic
  * scratch, 8 KiB access, 8 KiB BTstack, 16 KiB provisioning, 16 KiB standalone,
  * then the final 4 KiB RP2350-E10 boot-workaround sector. */
 MEMORY
 {
-    FLASH(rx) : ORIGIN = 0x10000000, LENGTH = 0x3f0000
+    FLASH(rx) : ORIGIN = 0x10000000, LENGTH = 0x3ee000
 }

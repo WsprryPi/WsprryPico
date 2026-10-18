@@ -501,11 +501,13 @@
       ],
       "properties": {
         "application_end": {
-          "const": "103f0000"
+          "enum": ["103ee000", "103f0000"]
         },
         "ordinary_update_erases_settings": {
           "const": false
         },
+        "usb_maintenance": { "const": 1 },
+        "postboot_verification": { "const": 1 },
         "whole_flash_erase_required": {
           "const": false
         },

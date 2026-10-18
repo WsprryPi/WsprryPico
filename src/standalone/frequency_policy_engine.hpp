@@ -1,5 +1,6 @@
 #pragma once
 
+#include "standalone/ntp_retention.hpp"
 #include "standalone/storage.hpp"
 #include "time/ntp_filter.hpp"
 #include "wtp/job_service.hpp"
@@ -31,6 +32,9 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         candidate_ = candidate;
         clock_ = &clock;
         topology_supported_ = topology_supported;
+    }
+    void retention(const NtpRetention& value) {
+        retention_ = &value;
     }
     std::string calibration_status(std::uint64_t now) const override;
     std::string_view diagnostic() const override {
@@ -72,6 +76,7 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         std::int32_t ppb = 0;
         std::uint64_t generation = 0;
         bool ntp = false;
+        bool saved = false;
     };
     Selection selection(std::uint64_t now) const;
     const char* fallback_reason(std::uint64_t now) const;
@@ -79,6 +84,7 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     bool pair_frozen_ = false;
     std::optional<std::int32_t> programmed_;
     time::RateEstimate candidate_;
+    const NtpRetention* retention_ = nullptr;
     const wtp::Clock* clock_ = nullptr;
     bool topology_supported_ = false;
     // Physical applicability is unverified for this source/image. There is no

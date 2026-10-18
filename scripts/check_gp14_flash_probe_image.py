@@ -39,9 +39,9 @@ def validate(symbols, disassembly, map_text, uf2):
     for fragment in ('WorkerEngine','PicoPioDma','sample_override','inject_dma_stop','inject_pio_stop'):
         if any(fragment in name for _,_,name in entries):
             raise ValueError('Forbidden RF/synthetic dependency: '+fragment)
-    if not re.search(r'^FLASH\s+0x10000000\s+0x003f2000\s+xr$',map_text,re.M):
+    if not re.search(r'^FLASH\s+0x10000000\s+0x003ee000\s+xr$',map_text,re.M):
         raise ValueError('Missing scratch reservation')
-    validate_uf2(uf2,application_end=0x103f2000)
+    validate_uf2(uf2,application_end=0x103ee000)
 
 
 if __name__ == '__main__':

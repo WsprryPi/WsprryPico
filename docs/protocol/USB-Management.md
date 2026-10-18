@@ -159,3 +159,18 @@ Source: [UMP1 endpoint](../../src/usb/management_endpoint.cpp),
 [USB owner integration](../../src/standalone/pico/main.cpp), and existing
 [endpoint](../../tests/usb_management_tests.cpp) and
 [local authority tests](../../tests/usb_local_management_tests.cpp).
+
+## USB-local firmware maintenance
+
+Supporting normal images expose `GET /api/usb/v1/maintenance` with schema
+`transmitter-usb-maintenance/1` and phase `idle`, `pending` or `verification`.
+`POST /api/usb/v1/maintenance` requests an idle, unowned, revision/watermark-bound
+BOOTSEL transition; `POST /api/usb/v1/maintenance/finish` releases a FLASH_UPDATE
+boot verification hold. Both use a closed body with `schema`, exact member
+`target`, `confirmed: true` and decimal-string `watermark_utc_ns`, plus If-Match.
+They are USB-local operations, not WTP firmware transfer or network endpoints.
+The management delivery ACK is required before either transition applies.
+Preflash admission is bounded to 15 seconds; the postboot hold lasts until
+explicit verified finish or a subsequent physical reboot. See
+[installer semantics](../development/usb-installer.md) for failure and power-loss
+limits. Older images without this resource refuse ordinary preserving upgrades.

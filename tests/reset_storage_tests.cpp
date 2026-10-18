@@ -139,6 +139,35 @@ provisioning::Activity idle(void*) {
 }
 } // namespace
 int main() {
+    // Learned-cache reset is independent of runnable settings. Provisioning
+    // reset preserves it; full reset verifies both sectors, including corrupt data.
+    for (int cut : {-1, 0, 1}) {
+        Flash operational, cache_media;
+        MemoryMedia profiles_media;
+        Bonds bonds;
+        standalone::Store store(operational);
+        assert(store.load());
+        standalone::NtpRetention cache(cache_media, device, 138000000);
+        assert(cache.load());
+        assert(cache.save(-10000, {std::string(32, 'a'), 1, 1, 1, 1800000000000000000ULL}, {}, 0));
+        provisioning::ProfileStore profiles(profiles_media);
+        assert(profiles.load());
+        provisioning::ResetStorageTargets targets(store, operational, profiles_media, bonds, idle,
+                                                  nullptr, nullptr, nullptr, &cache);
+        const auto before = cache_media.data;
+        assert(targets.preserve_operational(profiles));
+        assert(cache_media.data == before && cache.record());
+        std::fill(cache_media.data.begin() + 4096, cache_media.data.begin() + 8192, 0x55);
+        cache_media.erases_until_fail = cut;
+        if (cut >= 0) {
+            assert(!targets.erase_operational());
+            assert(!targets.operational_erased());
+            cache_media.erases_until_fail = -1;
+        }
+        assert(targets.erase_operational() && targets.operational_erased());
+        assert(!cache.record() && cache.erased());
+    }
+
     // Each named target checkpoint must have durable authority that survives
     // destruction/reconstruction of all stores. Cut both destructive levels.
     for (auto level : {provisioning::ResetLevel::Provisioning, provisioning::ResetLevel::Full}) {
@@ -151,10 +180,12 @@ int main() {
             {
                 standalone::Store target_store(target_flash);
                 assert(target_store.load());
-                standalone::Progress progress(draft_flash); assert(progress.load());
+                standalone::Progress progress(draft_flash);
+                assert(progress.load());
                 target_store.progress(progress);
-                const auto draft=wtp::json::parse(R"({"callsign":"D1RAFT","wifi":{"ssid":"draftSSID","password":"draft-secret"}})");
-                assert(progress.save(*draft,std::string(64,'a')));
+                const auto draft = wtp::json::parse(
+                    R"({"callsign":"D1RAFT","wifi":{"ssid":"draftSSID","password":"draft-secret"}})");
+                assert(progress.save(*draft, std::string(64, 'a')));
                 auto config = standalone::Config{};
                 config.callsign = "W1OLD";
                 config.locator = "FN31";
@@ -195,7 +226,8 @@ int main() {
             }
             standalone::Store recovered(target_flash);
             assert(recovered.load());
-            standalone::Progress recovered_progress(draft_flash); assert(recovered_progress.load());
+            standalone::Progress recovered_progress(draft_flash);
+            assert(recovered_progress.load());
             recovered.progress(recovered_progress);
             provisioning::ProfileStore recovered_profiles(target_media);
             assert(recovered_profiles.load());
@@ -207,9 +239,11 @@ int main() {
                                                    identity);
             assert(resumed.resume() == provisioning::ResetResult::Complete);
             assert(!resumed.pending());
-            assert(recovered_progress.fields()=="{}");
-            const std::string draft_bytes(reinterpret_cast<char*>(draft_flash.data.data()),draft_flash.data.size());
-            assert(draft_bytes.find("draft-secret")==draft_bytes.npos && draft_bytes.find("draftSSID")==draft_bytes.npos);
+            assert(recovered_progress.fields() == "{}");
+            const std::string draft_bytes(reinterpret_cast<char*>(draft_flash.data.data()),
+                                          draft_flash.data.size());
+            assert(draft_bytes.find("draft-secret") == draft_bytes.npos &&
+                   draft_bytes.find("draftSSID") == draft_bytes.npos);
             assert(recovered_access.record()->epoch == 2);
             assert(recovered_access.record()->bond_count == 0);
             assert(recovered_profiles.source() == provisioning::ProfileSource::Unprovisioned);
@@ -227,37 +261,60 @@ int main() {
 
     // Durable reset intent resumes after a partial erase in either draft bank.
     for (auto level : {provisioning::ResetLevel::Provisioning, provisioning::ResetLevel::Full})
-      for (int cut_bank : {0,1}) {
-        Flash operational, drafts; MemoryMedia media; AccessMemory access_media; Bonds bonds;
-        const auto identity=*provisioning::derive_local_identity(device,"02:00:00:00:00:01");
-        {
-          standalone::Store store(operational); assert(store.load());
-          standalone::Progress progress(drafts); assert(progress.load());store.progress(progress);
-          const auto draft=wtp::json::parse(R"({"wifi":{"ssid":"draftSSID","password":"draft-secret"}})");
-          assert(progress.save(*draft,std::string(64,'a')));
-          provisioning::ProfileStore profiles(media);assert(profiles.load());
-          assert(profiles.select(provisioning::ProfileSource::ConsumerProfile,provisioning::serialize_consumer_profile(consumer())));
-          provisioning::AccessStore access(access_media);assert(access.load());
-          provisioning::AccessRecord record;record.epoch=1;record.password=identity.default_password;assert(access.initialize(record));
-          provisioning::ResetStorageTargets targets(store,operational,media,bonds,idle,nullptr);
-          provisioning::ResetCoordinator reset(access,profiles,targets,identity);
-          wtp::PayloadDigest digest{};digest[0]=1;
-          assert(reset.begin(level,provisioning::ProfileSource::Unprovisioned,digest)==provisioning::ResetResult::Pending);
-          drafts.erases_until_fail=cut_bank;
-          assert(reset.resume()==provisioning::ResetResult::TargetFault);assert(reset.pending());
+        for (int cut_bank : {0, 1}) {
+            Flash operational, drafts;
+            MemoryMedia media;
+            AccessMemory access_media;
+            Bonds bonds;
+            const auto identity = *provisioning::derive_local_identity(device, "02:00:00:00:00:01");
+            {
+                standalone::Store store(operational);
+                assert(store.load());
+                standalone::Progress progress(drafts);
+                assert(progress.load());
+                store.progress(progress);
+                const auto draft =
+                    wtp::json::parse(R"({"wifi":{"ssid":"draftSSID","password":"draft-secret"}})");
+                assert(progress.save(*draft, std::string(64, 'a')));
+                provisioning::ProfileStore profiles(media);
+                assert(profiles.load());
+                assert(profiles.select(provisioning::ProfileSource::ConsumerProfile,
+                                       provisioning::serialize_consumer_profile(consumer())));
+                provisioning::AccessStore access(access_media);
+                assert(access.load());
+                provisioning::AccessRecord record;
+                record.epoch = 1;
+                record.password = identity.default_password;
+                assert(access.initialize(record));
+                provisioning::ResetStorageTargets targets(store, operational, media, bonds, idle,
+                                                          nullptr);
+                provisioning::ResetCoordinator reset(access, profiles, targets, identity);
+                wtp::PayloadDigest digest{};
+                digest[0] = 1;
+                assert(reset.begin(level, provisioning::ProfileSource::Unprovisioned, digest) ==
+                       provisioning::ResetResult::Pending);
+                drafts.erases_until_fail = cut_bank;
+                assert(reset.resume() == provisioning::ResetResult::TargetFault);
+                assert(reset.pending());
+            }
+            drafts.erases_until_fail = -1;
+            standalone::Store store(operational);
+            assert(store.load());
+            standalone::Progress progress(drafts);
+            (void)progress.load();
+            store.progress(progress);
+            provisioning::ProfileStore profiles(media);
+            assert(profiles.load());
+            provisioning::AccessStore access(access_media);
+            assert(access.load());
+            provisioning::ResetStorageTargets targets(store, operational, media, bonds, idle,
+                                                      nullptr);
+            provisioning::ResetCoordinator resumed(access, profiles, targets, identity);
+            assert(resumed.resume() == provisioning::ResetResult::Complete);
+            assert(progress.fields() == "{}" && progress.healthy());
+            const std::string raw(reinterpret_cast<char*>(drafts.data.data()), drafts.data.size());
+            assert(raw.find("draft-secret") == raw.npos && raw.find("draftSSID") == raw.npos);
         }
-        drafts.erases_until_fail=-1;
-        standalone::Store store(operational);assert(store.load());
-        standalone::Progress progress(drafts);(void)progress.load();store.progress(progress);
-        provisioning::ProfileStore profiles(media);assert(profiles.load());
-        provisioning::AccessStore access(access_media);assert(access.load());
-        provisioning::ResetStorageTargets targets(store,operational,media,bonds,idle,nullptr);
-        provisioning::ResetCoordinator resumed(access,profiles,targets,identity);
-        assert(resumed.resume()==provisioning::ResetResult::Complete);
-        assert(progress.fields()=="{}" && progress.healthy());
-        const std::string raw(reinterpret_cast<char*>(drafts.data.data()),drafts.data.size());
-        assert(raw.find("draft-secret")==raw.npos && raw.find("draftSSID")==raw.npos);
-      }
     Flash flash;
     standalone::Store store(flash);
     assert(store.load());

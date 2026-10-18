@@ -7,7 +7,8 @@
 namespace wsprrypico::provisioning {
 bool ResetStorageTargets::preserve_operational(const ProfileStore& profiles) {
     // Provisioning reset scrubs credential drafts as well as profile trust.
-    if (!store_.erase_progress()) return false;
+    if (!store_.erase_progress())
+        return false;
     if (!store_.healthy() && !store_.load(true))
         return false;
     auto config = store_.config();
@@ -41,13 +42,18 @@ bool ResetStorageTargets::clear_profile(ProfileStore& profiles, ProfileSource ta
     return profiles.load() && profiles.select(target);
 }
 bool ResetStorageTargets::erase_operational() {
-    if (!store_.erase_progress()) return false;
+    if (ntp_ && !ntp_->erase())
+        return false;
+    if (!store_.erase_progress())
+        return false;
     for (std::size_t offset = 0; offset < 16 * 1024; offset += 4096)
         if (!flash_.erase(offset))
             return false;
     return store_.load();
 }
 bool ResetStorageTargets::operational_erased() const {
+    if (ntp_ && !ntp_->erased())
+        return false;
     std::array<std::uint8_t, 256> bytes{};
     for (std::size_t offset = 0; offset < 16 * 1024; offset += bytes.size()) {
         if (!flash_.read(offset, bytes) ||

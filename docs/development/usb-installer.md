@@ -1,0 +1,177 @@
+# USB installer
+
+The shared installer is `scripts/usb_installer.py` (version 0.1.0). It runs with
+Python 3.10 or newer and its standard library on macOS and Linux. Windows and
+WSL USB operation are unsupported. The current implementation is under
+validation; [the result record](usb-installer-results.md) defines its acceptance.
+
+## Image selection and planning
+
+No firmware branch option means **main**, independently of the checkout,
+bootstrap or WsprryPi branch. `--branch devel` selects devel explicitly. Latest
+CI resolution uses the permanent `ci-main` or `ci-devel` bookmark and its exact
+public version release. A verified CI prerelease is eligible. Missing branches,
+assets, incompatible manifests and failed provenance checks cause refusal;
+another branch, older image or compilation is never selected implicitly.
+
+```sh
+python3 scripts/usb_installer.py discover
+python3 scripts/usb_installer.py plan --output /private/tmp/pico-main-bundle
+python3 scripts/usb_installer.py plan --branch devel --output /private/tmp/pico-devel-bundle
+python3 scripts/usb_installer.py plan --branch devel --version 0.1.0-ci.39084514130.1
+python3 scripts/usb_installer.py plan --stable
+```
+
+Output directories must be new. `--bundle DIRECTORY` revalidates a previously
+saved public bundle without another download. It cannot accompany another
+image selector. Stable selection is explicit and never substitutes CI. The
+current public manifest contract describes CI testing images; no compatible
+stable image is available. The initial acceptance snapshot has no main image;
+main therefore refuses until canonical CI publishes one there. `recent_ci`
+reports additional run status separately from the immutable selected image.
+
+The ordinary path uses anonymous HTTPS and needs no Git, compiler, SDK or
+GitHub account. A saved successful verification receipt remains usable after
+Actions retention expiry when the public release and exact hashes remain intact.
+HTTPS/repository ownership is the distribution trust boundary; checksums are
+integrity checks, not signatures.
+
+## USB dependency and device selection
+
+Programming requires a USB-enabled **picotool 2.3.0** built from the project pin
+`6f6458d792b93685a11423b244a585eaa99eafcf` in
+[Raspberry Pi picotool](https://github.com/raspberrypi/picotool/tree/6f6458d792b93685a11423b244a585eaa99eafcf).
+The installer checks its version, requires USB support and records the executable
+SHA-256. It accepts an explicit `--picotool /absolute/path/to/picotool`. It does
+not install packages, acquire an SDK, bundle a local executable or run the whole
+bootstrap as root. Tool acquisition/build is an administrator/developer step;
+retain picotool's upstream license when redistributing it.
+
+Discovery binds USB serial and physical parent. Application CDC roles are
+Console interface 0, WTP interface 2 and management interface 4; macOS places
+serial clients under their paired data interfaces. Tty suffixes are not roles.
+BOOTSEL identifies RP2350, so `--board pico2_w` explicitly confirms the board's
+wireless hardware. Re-enumeration must retain the serial and physical port.
+
+For first installation, disconnect the selected Pico, hold BOOTSEL, reconnect
+its data cable, release BOOTSEL and run discovery. Programming always needs an
+explicit operation, device, board and `--yes`; stdin is never used for prompts,
+including when the bootstrap is piped into Bash.
+
+```sh
+python3 scripts/usb_installer.py install --branch devel \
+  --bundle /private/tmp/pico-devel-bundle \
+  --device 1545B6EFBF78028C --board pico2_w --yes --picotool /path/to/picotool
+```
+
+Initial installation requires erased saved-state banks and an erased or exact
+known RP2350 workaround boot sector. Unknown application bytes cause refusal
+and a private backup. Only an explicit `--replace-unidentified-application`
+initial-install choice can replace them; it still refuses existing saved-state
+or unknown boot-sector data. It is not a reset or migration command.
+
+## Preserving upgrade and recovery
+
+```sh
+python3 scripts/usb_installer.py upgrade --branch devel \
+  --bundle /private/tmp/pico-devel-bundle \
+  --device 1545B6EFBF78028C --board pico2_w --yes --picotool /path/to/picotool
+python3 scripts/usb_installer.py recover --transaction /private/path/transaction.json \
+  --device 1545B6EFBF78028C --board pico2_w --yes --picotool /path/to/picotool
+```
+
+An ordinary upgrade starts in the running application and takes its own fresh
+USB snapshot. It refuses active, owned, uncertain, faulted or configured STOP
+state. It never sends STOP, claims RF ownership or changes saved settings to
+obtain admission. Firmware must provide guarded USB maintenance, and the target
+manifest must declare `usb_maintenance: 1` and `postboot_verification: 1`.
+Older installed firmware without this operation needs a deliberate, separately
+identified manual recovery/migration; no 1200-baud reset or forced takeover is
+assumed. An unconfigured board's automatic suspension remains intact.
+
+The acknowledged preflash hold excludes WTP admission, standalone slot/watermark
+reservation, application writes and provisioning commits. A verified full-flash
+same-board backup precedes programming. UF2 validation checks exact normal
+RP2350 blocks, numbering, flags, contiguous ranges, sector-rounded erase extent
+and the pinned E10 workaround. Picotool skips the validated workaround block;
+all bytes from offset `0x3ee000` through `0x400000` must read back unchanged before
+boot. This preserves the superset of saved progress, diagnostics, access/bonds,
+profiles, standalone configuration/watermarks, NTP learning and boot reservation.
+It does not add an OTA partition.
+
+The verified image launches using picotool's FLASH_UPDATE boot. Supporting
+firmware holds standalone scheduling and mutating admission until fresh USB
+identity/version/source and public saved semantics have been verified and a
+matching finish request is acknowledged. The host records release intent before
+sending it. A lost acknowledgement is ambiguous; same-boot recovery can inspect
+the actual hold rather than blindly replaying a reset or programming operation.
+A later normal power-on can follow the device's existing saved enablement;
+there is no persistent A/B rollback or guarantee of a hold across power loss.
+Installation does not qualify RF or enable a disabled schedule.
+
+Host transactions and full-flash backups contain credentials and bonds. They
+stay outside Git and served roots, under owner-only
+`~/.local/state/wsprrypico-usb` or `/var/lib/wsprrypi/pico-usb`. Symlink ancestors
+are refused. Before a new transaction, prior successful history is pruned to
+two records and unchanged/refused history to eight, dropping either after
+seven days. Pruning runs only on invocation, and the new transaction can add
+one record. Eight unresolved records block new work rather than deleting
+recovery evidence. Device locks serialize installers and the
+optional Pi runtime. Recovery revalidates the exact cached image, backup,
+serial and physical parent. It does not transplant banks, blindly restore
+flash, erase saved state or promise arbitrary downgrades. If backup never
+completed, a record is not authority to program: inspect the unchanged image
+and perform deliberate BOOTSEL recovery.
+
+Results are JSON `wsprrypico-usb-result/1`. Exit 0 means the requested operation
+completed, 2 is refusal/failure before ambiguous programming, and 3 means a
+retained transaction needs recovery. Cancellation within a transaction retains
+its last durable stage. A successful tool process or USB appearance is
+insufficient for upgrade success.
+
+## Explicit developer builds
+
+Existing pinned SDK 2.3.1 (`079c6f39023649b154152db30f1d781e884879bc`), submodules,
+Arm GNU 15.3.1 and picotool sources are prerequisites. Compilation invokes the
+accepted normal `scripts/build_pico.sh` target with a new build directory and
+its linked engine, flash, USB, stack and heap checks. It validates generic
+network-disabled, credential-free defaults and the linked USB update contract.
+
+```sh
+PICO_SDK_PATH=/existing/pico-sdk \
+PICOTOOL_FETCH_FROM_GIT_PATH=/existing/populated-dependencies \
+python3 scripts/usb_installer.py plan --branch devel \
+  --local-build /path/to/WsprryPico --source-revision FULL_SOURCE_SHA \
+  --build-dir /new/private/build --allow-dirty --output /new/local-bundle
+python3 scripts/usb_installer.py upgrade --branch devel --local-bundle /new/local-bundle \
+  --device 1545B6EFBF78028C --board pico2_w --yes --picotool /path/to/picotool
+```
+
+`--allow-dirty` explicitly selects a development build; omit it for a clean
+checkout. Source HEAD, actual dirty identity and input digest are retained, and
+source inputs must remain unchanged during compilation. Local metadata is
+private developer evidence, never a public CI receipt. These bytes enter the
+same image, backup, preservation and postboot transaction. A previous local
+image needs its same-board compact image reference and an exact flash
+match; a version string alone cannot identify it. Source ancestry/downgrade
+checks still apply, so an unavailable or divergent source comparison refuses. Generic local-image references are retained separately
+from expiring secret backups, with a maximum of 32 boards; retire an unused
+reference explicitly before adding another board.
+
+## Bootstrap and Pi access
+
+`bash scripts/install_usb.sh discover` exercises the maintained bootstrap.
+It resolves the installer source revision once and retrieves the core and schema
+at that immutable revision. Firmware selection remains main unless changed
+explicitly. A published curl command will be recorded only after the reviewed
+installer has been committed and pushed; the isolated development version is
+not advertised as a working public bootstrap.
+
+WsprryPi's selected USB Pico controls call the identified deployed core. The
+package-time adapter fetches exact pinned files and verifies their hashes;
+browser requests cannot supply commands, URLs or local paths. Only the selected
+member is held, with a private persistent marker across service restart. The
+marker remains until core verification and Pi USB reconnection both succeed.
+Network-only selections do not offer a USB update. Local compilation remains
+an explicit host command. Deployment pinning and real Pi USB acceptance remain
+open in the result record.

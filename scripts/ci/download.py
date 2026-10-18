@@ -128,7 +128,7 @@ def retrieve(args, for_publication=False):
     if for_publication:
         # The completed read-only verify job ran all linked-image tools. Bind its
         # exact immutable archives and recheck the payload before copying bytes.
-        bundle.inspect_payload(destination / 'audit/consumer', 'consumer')
+        bundle.inspect_payload(destination / 'audit/consumer', 'consumer', int(manifest['update']['application_end'], 16))
     identity = manifest['workflow']
     bundle.require(identity['run_id'] == args.run and identity['attempt'] == args.attempt and
                    identity['event'] == run['event'] and identity['ref'] == 'refs/heads/' + args.branch and

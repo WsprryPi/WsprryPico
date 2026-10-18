@@ -1,0 +1,859 @@
+{
+  "assets": [
+    {
+      "bytes": 1017814,
+      "path": "DEPENDENCY-LICENSES.txt",
+      "sha256": "974f7f92488e9e086df62dcac3a8a868309605b54753b26b397cc1ac38dc7d78"
+    },
+    {
+      "bytes": 1066,
+      "path": "LICENSE.md",
+      "sha256": "b6d8b02e500c8743effdbce62ae6e5ff253802c0fee7d71a09f843094c5d0584"
+    },
+    {
+      "bytes": 9392,
+      "path": "THIRD_PARTY_NOTICES.md",
+      "sha256": "ae5650bc7e25eeb8b3e5be19747803b2ca313afe103c90f5214e3437479d102d"
+    },
+    {
+      "bytes": 4688384,
+      "path": "WsprryPico-0.1.0-ci.39084514130.1-pico2_w.uf2",
+      "sha256": "4e5c5f1de45f12ae5499f2e6ff4e07115f22d69e1e3a476c0f4ba7c01e4513b0"
+    }
+  ],
+  "audit_assets": [
+    {
+      "bytes": 5235,
+      "path": "build-inputs.json",
+      "sha256": "49daf52b0ce951d927a1edbbd521fc28c355ff952afeb2cb268f7119df9a501e"
+    },
+    {
+      "bytes": 65931,
+      "path": "compatibility.log",
+      "sha256": "88f79e0fc3c881934634775349ac674de60efd233ac1e401e9fbaa78ce4a0281"
+    },
+    {
+      "bytes": 35412,
+      "path": "consumer/CMakeCache.txt",
+      "sha256": "70977796b571ba257ec7a3c4ba7ea9bdaab1967d6888f0df709715c11d0cc777"
+    },
+    {
+      "bytes": 39768084,
+      "path": "consumer/WsprryPico.elf",
+      "sha256": "10ecc8338b7904ed6f8c979f813c837a5b3788d31a689bd80500813c0bf4346e"
+    },
+    {
+      "bytes": 3702143,
+      "path": "consumer/WsprryPico.elf.map",
+      "sha256": "40f72e05f5d9e790bd4a8b78aa907bd0136545d0bd62917f513595d1e4dc900f"
+    },
+    {
+      "bytes": 4688384,
+      "path": "consumer/WsprryPico.uf2",
+      "sha256": "4e5c5f1de45f12ae5499f2e6ff4e07115f22d69e1e3a476c0f4ba7c01e4513b0"
+    },
+    {
+      "bytes": 21265514,
+      "path": "consumer/compile_commands.json",
+      "sha256": "fd4fdd4eede3626355d3f6001da24408099333348ebb38c08d6d5122c38bb9e6"
+    },
+    {
+      "bytes": 544,
+      "path": "consumer/firmware_identity.hpp",
+      "sha256": "5e48fbcc35f679a741a9fe163fcbbe3cb68be3728f370083030404d416031d6f"
+    },
+    {
+      "bytes": 92324,
+      "path": "consumer/overlays/cyw43-tx-overlay/cyw43_ll.c",
+      "sha256": "de277737c438b940dbbf441bf4c1c1a3ab51afe7063213fc7bfc7fa10aeeb530"
+    },
+    {
+      "bytes": 239728,
+      "path": "consumer/overlays/mbedtls-alert-overlay/ssl_msg.c",
+      "sha256": "8a185116dff96293cf1e2b0e00007867d5580bc1954b1f8f572bb54f76142817"
+    },
+    {
+      "bytes": 337558,
+      "path": "consumer/overlays/mbedtls-alert-overlay/ssl_tls.c",
+      "sha256": "e75f4dff980476ffc6eccd6bdf4cdfd47ad4e8192841e43859ffb330435dd169"
+    },
+    {
+      "bytes": 61019,
+      "path": "consumer/overlays/mbedtls-alert-overlay/ssl_tls13_generic.c",
+      "sha256": "8e9d754d6572c47a5dfea0a06df8be3f9d5ab671e1d0457917ee30061eb8468b"
+    },
+    {
+      "bytes": 860,
+      "path": "consumer/picotool-info.txt",
+      "sha256": "ca5bf8f76bbd1c0ca35d2d70221f7f633bfb14e678ec81506b50632b5d63a8cf"
+    },
+    {
+      "bytes": 1854,
+      "path": "consumer-ui/requests.jsonl",
+      "sha256": "30b5c16f0630bd1c8159d862d27515b199e619cfe3df66f0b5a80dd9a0e8fb82"
+    },
+    {
+      "bytes": 194,
+      "path": "consumer-ui/result.json",
+      "sha256": "dd124b0a6aab5571c65ea9ccc8ed97d3f64c5bcab1e3d70a1249723d47dbe72b"
+    },
+    {
+      "bytes": 105137,
+      "path": "consumer-ui/saved-desktop.png",
+      "sha256": "543d5a7ad5193ffb51590344204eecd80639628900682a3af0a49ad368fa2981"
+    },
+    {
+      "bytes": 71205,
+      "path": "consumer-ui/saved-mobile.png",
+      "sha256": "a9fbe9ee9ed24d8d68991a10c900e505fc8f3dda82f207543f814943324000f3"
+    },
+    {
+      "bytes": 103916,
+      "path": "consumer-ui/unset-desktop.png",
+      "sha256": "3da17ad22e43c840acea166792d7f77eea882b3edce7188eb51e85335aece4ad"
+    },
+    {
+      "bytes": 68910,
+      "path": "consumer-ui/unset-mobile.png",
+      "sha256": "950103098a4c0faa024373be23fad5ad6561a7d41bcb82e0ea04f5e5e0bfd69b"
+    },
+    {
+      "bytes": 94966,
+      "path": "consumer.log",
+      "sha256": "e97a8a6d590237dc23e9fa66f0d7ea015e7a7fae5eebbf64a475a29806ebcd49"
+    },
+    {
+      "bytes": 10934,
+      "path": "evidence-skips.json",
+      "sha256": "4de8935a3d90ab65d5f5c33c0715bd2c696583232b64856504f8f47351dd8349"
+    },
+    {
+      "bytes": 69458,
+      "path": "host-tests.xml",
+      "sha256": "55d5b1d6fc5d171817c40cbcd25f14b909a15c35b353edd1d9d6d9f98d5e92b1"
+    },
+    {
+      "bytes": 118308,
+      "path": "host.log",
+      "sha256": "c0b779fffdc2e1f6b42304b0847edccc1fbc2540599322ceb774d739ffcb01ed"
+    },
+    {
+      "bytes": 35520,
+      "path": "inhibited-regression/CMakeCache.txt",
+      "sha256": "5474db8aa65073a3696e68648615416690e97ad3c83cedf686a4a41c17ca39c2"
+    },
+    {
+      "bytes": 39121888,
+      "path": "inhibited-regression/WsprryPico-Inhibited.elf",
+      "sha256": "32512b216572c324415a0a9d020f58a63b10587c5fcd8361874e002017c1bf72"
+    },
+    {
+      "bytes": 3774053,
+      "path": "inhibited-regression/WsprryPico-Inhibited.elf.map",
+      "sha256": "ea343e21f264ec39bae9d5a827f287d38c54b5eaadbe0a8c1dfd444488b1681a"
+    },
+    {
+      "bytes": 21411194,
+      "path": "inhibited-regression/compile_commands.json",
+      "sha256": "d4aae92d59ca222554528fe62d0a2356fac1a7dd82d58330b0b36cb3032e9d8c"
+    },
+    {
+      "bytes": 544,
+      "path": "inhibited-regression/firmware_identity.hpp",
+      "sha256": "5e48fbcc35f679a741a9fe163fcbbe3cb68be3728f370083030404d416031d6f"
+    },
+    {
+      "bytes": 92324,
+      "path": "inhibited-regression/overlays/cyw43-tx-overlay/cyw43_ll.c",
+      "sha256": "de277737c438b940dbbf441bf4c1c1a3ab51afe7063213fc7bfc7fa10aeeb530"
+    },
+    {
+      "bytes": 239728,
+      "path": "inhibited-regression/overlays/mbedtls-alert-overlay/ssl_msg.c",
+      "sha256": "8a185116dff96293cf1e2b0e00007867d5580bc1954b1f8f572bb54f76142817"
+    },
+    {
+      "bytes": 337558,
+      "path": "inhibited-regression/overlays/mbedtls-alert-overlay/ssl_tls.c",
+      "sha256": "e75f4dff980476ffc6eccd6bdf4cdfd47ad4e8192841e43859ffb330435dd169"
+    },
+    {
+      "bytes": 61019,
+      "path": "inhibited-regression/overlays/mbedtls-alert-overlay/ssl_tls13_generic.c",
+      "sha256": "8e9d754d6572c47a5dfea0a06df8be3f9d5ab671e1d0457917ee30061eb8468b"
+    },
+    {
+      "bytes": 894,
+      "path": "inhibited-regression/picotool-info.txt",
+      "sha256": "fdcffa5c79b35e655f148104454a925412e7409e13049f207cc149e69f21dbbd"
+    },
+    {
+      "bytes": 88539,
+      "path": "inhibited-regression.log",
+      "sha256": "f1fc5ef8a5efc69e2a843c335c9bb7caa63e2b7f7b6c168d846c7647e7bc5214"
+    },
+    {
+      "bytes": 126311,
+      "path": "registered-tests.json",
+      "sha256": "29d23261b6c9b2da48dc8c6ee86cd65786b62be515391208723a2c695f07e3e4"
+    },
+    {
+      "bytes": 95008,
+      "path": "reproducibility.log",
+      "sha256": "3d39a1261563076ba9fd786f7cb2608bd4e3dc70f5022ccefe6f4efd9137df64"
+    }
+  ],
+  "build_inputs": {
+    "companion": {
+      "repository": "https://github.com/WsprryPi/WsprryPi.git",
+      "revision": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+      "submodules": []
+    },
+    "environment": {
+      "ImageOS": "ubuntu24",
+      "ImageVersion": "20261012.334.1",
+      "RUNNER_ARCH": "X64",
+      "RUNNER_OS": "Linux",
+      "versions": {
+        "chrome": "Google Chrome 155.0.8059.39",
+        "cmake": "cmake version 3.31.6\n\nCMake suite maintained and supported by Kitware (kitware.com/cmake).",
+        "host_cxx": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+        "ninja": "1.11.1.git.kitware.jobserver-1",
+        "node": "v24.8.0",
+        "openssl": "OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)",
+        "pip": "attrs==25.3.0\ncffi==2.0.0\ncmake==3.31.6\ncryptography==46.0.2\njsonschema==4.25.1\njsonschema-specifications==2025.4.1\nninja==1.11.1.4\nnumpy==2.3.3\npycparser==2.23\npyserial==3.5\nPyYAML==6.0.3\nreferencing==0.36.2\nrpds-py==0.27.1\ntyping_extensions==4.15.0",
+        "python": "Python 3.12.11",
+        "system_packages": "g++\t4:13.2.0-7ubuntu1\ngcc\t4:13.2.0-7ubuntu1\nlibssl-dev:amd64\t3.0.13-0ubuntu3.16"
+      }
+    },
+    "harness": {
+      "repository": "https://github.com/WsprryPi/WsprryPi-Qualification-Harness.git",
+      "revision": "62aa6e2ffa904a10b674bb1792a3bd66ba8afea6",
+      "submodules": []
+    },
+    "linked_resources": {
+      "cyw43_btfw_43439.h": "d05a8dca7e232ada470d8ed723edaa1ea78000098870f9b979d490d83ad35b22",
+      "wb43439A0_7_95_49_00_combined.h": "6b4b9a717c3c5d669b56a3bc38b58df3901f63e3a7363ccf5d74706460762176",
+      "wifi_nvram_43439.h": "ddc82b00667643f55d7687bba1b5e4028f24717ec8883f05bd7d435f4c9c01ad"
+    },
+    "npm_lock_sha256": "bdbfa0075c62c01c1450facce1941908e242e91c86d09a538ac6656c2afce39f",
+    "overlays": {
+      "consumer": {
+        "cyw43-tx-overlay/cyw43_ll.c": "de277737c438b940dbbf441bf4c1c1a3ab51afe7063213fc7bfc7fa10aeeb530",
+        "mbedtls-alert-overlay/ssl_msg.c": "8a185116dff96293cf1e2b0e00007867d5580bc1954b1f8f572bb54f76142817",
+        "mbedtls-alert-overlay/ssl_tls.c": "e75f4dff980476ffc6eccd6bdf4cdfd47ad4e8192841e43859ffb330435dd169",
+        "mbedtls-alert-overlay/ssl_tls13_generic.c": "8e9d754d6572c47a5dfea0a06df8be3f9d5ab671e1d0457917ee30061eb8468b"
+      },
+      "inhibited-regression": {
+        "cyw43-tx-overlay/cyw43_ll.c": "de277737c438b940dbbf441bf4c1c1a3ab51afe7063213fc7bfc7fa10aeeb530",
+        "mbedtls-alert-overlay/ssl_msg.c": "8a185116dff96293cf1e2b0e00007867d5580bc1954b1f8f572bb54f76142817",
+        "mbedtls-alert-overlay/ssl_tls.c": "e75f4dff980476ffc6eccd6bdf4cdfd47ad4e8192841e43859ffb330435dd169",
+        "mbedtls-alert-overlay/ssl_tls13_generic.c": "8e9d754d6572c47a5dfea0a06df8be3f9d5ab671e1d0457917ee30061eb8468b"
+      }
+    },
+    "picotool": {
+      "repository": "https://github.com/raspberrypi/picotool.git",
+      "revision": "6f6458d792b93685a11423b244a585eaa99eafcf",
+      "submodules": []
+    },
+    "pins": {
+      "arm_gcc": "15.3.1",
+      "companion": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+      "harness": "62aa6e2ffa904a10b674bb1792a3bd66ba8afea6",
+      "linked_resource_sha256": {
+        "cyw43_btfw_43439.h": "d05a8dca7e232ada470d8ed723edaa1ea78000098870f9b979d490d83ad35b22",
+        "wb43439A0_7_95_49_00_combined.h": "6b4b9a717c3c5d669b56a3bc38b58df3901f63e3a7363ccf5d74706460762176",
+        "wifi_nvram_43439.h": "ddc82b00667643f55d7687bba1b5e4028f24717ec8883f05bd7d435f4c9c01ad"
+      },
+      "node": "24.8.0",
+      "picotool": "6f6458d792b93685a11423b244a585eaa99eafcf",
+      "python": "3.12.11",
+      "sdk": "079c6f39023649b154152db30f1d781e884879bc",
+      "sdk_submodules": {
+        "lib/btstack": "eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec",
+        "lib/cyw43-driver": "055d64274b014dd7b1c2fc94d26e8a18face7124",
+        "lib/lwip": "77dcd25a72509eb83f72b033d219b1d40cd8eb95",
+        "lib/mbedtls": "0bebf8b8c7f07abe3571ded48a11aa907a1ffb20",
+        "lib/tinyusb": "86ad6e56c1700e85f1c5678607a762cfe3aa2f47"
+      },
+      "toolchain_sha256": "563bebb2b97d53382b956d6ee1fe61e2cae26699901417234a37df505ef9b5fa",
+      "toolchain_url": "https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi.tar.xz"
+    },
+    "python_lock_sha256": "6fe21be958fb7e757e35fc64b6bbad6370f2b1e4203f712d67d32b9c65617d88",
+    "sdk": {
+      "repository": "https://github.com/raspberrypi/pico-sdk.git",
+      "revision": "079c6f39023649b154152db30f1d781e884879bc",
+      "submodules": [
+        "eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec lib/btstack (v1.7-rc1-1219-geb0bb8b5e)",
+        " 055d64274b014dd7b1c2fc94d26e8a18face7124 lib/cyw43-driver (v1.1.1)",
+        " 77dcd25a72509eb83f72b033d219b1d40cd8eb95 lib/lwip (STABLE-2_2_1_RELEASE)",
+        " 0bebf8b8c7f07abe3571ded48a11aa907a1ffb20 lib/mbedtls (v3.6.6)",
+        " dff9da04438d712f7647fd995bc90fadd0c0e2ce lib/mbedtls/framework (mbedtls-4.1.0_tf-psa-crypto-1.1.0)",
+        " 86ad6e56c1700e85f1c5678607a762cfe3aa2f47 lib/tinyusb (0.18.0)"
+      ]
+    },
+    "toolchain_archive_sha256": "563bebb2b97d53382b956d6ee1fe61e2cae26699901417234a37df505ef9b5fa"
+  },
+  "channel": "ci-testing",
+  "checks": {
+    "browser_npm": "passed",
+    "compatibility_rf": "passed",
+    "consumer_ui": "passed",
+    "failed": 0,
+    "historical_evidence_skips": [
+      {
+        "reason": "Private A1b evidence not supplied",
+        "test": "phase11_5_r3_a1b_failure_tests.A1bFailureTests.test_raw_failure_and_adversarial_mutations"
+      },
+      {
+        "reason": "Private A1e evidence required",
+        "test": "phase11_5_r3_a1ef_failure_tests.RawAttemptTests.test_a1e_raw_causal_chain_and_partial_event_cleanup"
+      },
+      {
+        "reason": "Private A1f evidence required",
+        "test": "phase11_5_r3_a1ef_failure_tests.RawAttemptTests.test_a1f_integrates_raw_observer_production_and_all_pressure_cases"
+      },
+      {
+        "reason": "Private A1f evidence required",
+        "test": "phase11_5_r3_a1ef_failure_tests.RawAttemptTests.test_nonzero_event_origin_still_rejects_a_real_gap_in_valid_crc_frames"
+      },
+      {
+        "reason": "Private A1g evidence required",
+        "test": "phase11_5_r3_a1g_failure_tests.A1gTests.test_reconstructs_disagreement_and_rejects_changed_raw_evidence"
+      },
+      {
+        "reason": "Private A1h2 evidence required",
+        "test": "phase11_5_r3_a1h2_tests.A1h2Tests.test_pass_requires_raw_pressure_rf_authority_and_restoration"
+      },
+      {
+        "reason": "Private A1h evidence required",
+        "test": "phase11_5_r3_a1h_failure_tests.A1hTests.test_reconstructs_disagreement_and_rejects_changed_raw_evidence"
+      },
+      {
+        "reason": "Private B1 archive not provided",
+        "test": "phase11_5_r3_b1_failure_tests.B1FailureTests.test_classifies_raw_failure_and_preserves_both_actual_completions"
+      },
+      {
+        "reason": "Private B1 archive not provided",
+        "test": "phase11_5_r3_b1_failure_tests.B1FailureTests.test_raw_summary_causality_and_cleanup_mutations_are_rejected"
+      },
+      {
+        "reason": "Private B2 archive not provided",
+        "test": "phase11_5_r3_b2_tests.B2Tests.test_intact_independent_acceptance_and_adversarial_mutations"
+      },
+      {
+        "reason": "Private C0 evidence not provided",
+        "test": "phase11_5_r3_c0_failure_tests.C0Tests.test_preserved_failure_and_adversarial_mutations"
+      },
+      {
+        "reason": "Private capacity cadence packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.CapacityCadenceTests.test_component_acceptance_preserves_failure"
+      },
+      {
+        "reason": "Private capacity cadence packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.CapacityCadenceTests.test_rejects_incomplete_input_false_arm_and_missing_native_bracket"
+      },
+      {
+        "reason": "Private HTTP failure packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.HttpFailureTests.test_failure_and_restoration"
+      },
+      {
+        "reason": "Private HTTP failure packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.HttpFailureTests.test_rejects_false_write_running_state_and_restoration"
+      },
+      {
+        "reason": "Private idle failure packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.IdleFailureTests.test_native_wire_corruption_is_rejected"
+      },
+      {
+        "reason": "Private idle failure packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.IdleFailureTests.test_preserved_idle_failure"
+      },
+      {
+        "reason": "Private completed idle packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.IdleSuccessTests.test_complete_bounded_replay"
+      },
+      {
+        "reason": "Private completed idle packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.IdleSuccessTests.test_rejects_partial_write_missing_native_and_peak_change"
+      },
+      {
+        "reason": "Private native failure packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.NativeFailureTests.test_altered_incomplete_frame_is_rejected"
+      },
+      {
+        "reason": "Private native failure packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.NativeFailureTests.test_failed_native_stream_is_not_capacity_acceptance"
+      },
+      {
+        "reason": "Private pre-ARM packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.PrearmTests.test_failure_without_acceptance"
+      },
+      {
+        "reason": "Private pre-ARM packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.PrearmTests.test_rejects_missing_request_and_false_accounting"
+      },
+      {
+        "reason": "Private reserve failure packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.ReserveFailureTests.test_preserved_failure"
+      },
+      {
+        "reason": "Private reserve failure packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.ReserveFailureTests.test_rejects_altered_reply_peak_and_reservation"
+      },
+      {
+        "reason": "Private completed packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.Tests.test_preserved_failure"
+      },
+      {
+        "reason": "Private completed packet not supplied",
+        "test": "phase11_5_r3_completion_failure_tests.Tests.test_rejects_altered_write_console_and_completion"
+      },
+      {
+        "reason": "Private D0 evidence not supplied",
+        "test": "phase11_5_r3_d0_tests.D0AuditTests.test_raw_success_and_adversarial_mutations"
+      },
+      {
+        "reason": "Private R3 failed evidence not supplied",
+        "test": "phase11_5_r3_failure_tests.FailureTests.test_retained_failure_raw_wire_restoration_and_mutations"
+      },
+      {
+        "reason": "Private A1c evidence not supplied",
+        "test": "phase11_5_r3_retained_failure_tests.RetainedFailureTests.test_raw_reconstruction_rejects_mutations_and_recovers_after_each"
+      },
+      {
+        "reason": "Private A1h2 archive not provided",
+        "test": "phase11_5_r3_transport_tests.TransportTests.test_new_load_envelope_reuses_actual_a1h2_producer_bytes"
+      },
+      {
+        "reason": "Private E0a evidence required",
+        "test": "phase11_5_r3_v2_admission_tests.RawAdmissionAuditTests.test_intact_and_adversarial_evidence"
+      },
+      {
+        "reason": "Private stopped B archives required",
+        "test": "phase11_5_r3_v2_b_stopped_tests.StoppedBTests.test_bf3_connection_failure"
+      },
+      {
+        "reason": "Private stopped B archives required",
+        "test": "phase11_5_r3_v2_b_stopped_tests.StoppedBTests.test_stopped_components_and_failure_mutations"
+      },
+      {
+        "reason": "Private real Chromium evidence required",
+        "test": "phase11_5_r3_v2_browser_audit_tests.BrowserAuditTests.test_intact_and_mutations"
+      },
+      {
+        "reason": "Private B7 evidence required",
+        "test": "phase11_5_r3_v2_browser_b7_tests.B7EvidenceTests.test_intact_original_failure_and_mutations"
+      },
+      {
+        "reason": "Private B8 evidence required",
+        "test": "phase11_5_r3_v2_browser_b8_tests.B8EvidenceTests.test_intact_original_failure_and_mutations"
+      },
+      {
+        "reason": "Prospective local browser packet required",
+        "test": "phase11_5_r3_v2_browser_scope_tests.BrowserScopeTests.test_bounded_actual_producer"
+      },
+      {
+        "reason": "Prospective local continuation packet required",
+        "test": "phase11_5_r3_v2_browser_scope_tests.BrowserScopeTests.test_remaining_cases_require_preserved_results_and_real_quiet"
+      },
+      {
+        "reason": "Private b2 evidence required",
+        "test": "phase11_5_r3_v2_browser_setup_tests.SetupAuditTests.test_b2"
+      },
+      {
+        "reason": "Private b6 evidence required",
+        "test": "phase11_5_r3_v2_browser_setup_tests.SetupAuditTests.test_b6"
+      },
+      {
+        "reason": "Private p0 evidence required",
+        "test": "phase11_5_r3_v2_browser_setup_tests.SetupAuditTests.test_p0"
+      },
+      {
+        "reason": "Private browser B3 evidence unavailable",
+        "test": "phase11_5_r3_v2_browser_stopped_tests.StoppedBrowserTests.test_intact_and_adversarial_mutations"
+      },
+      {
+        "reason": "Private C7 evidence required",
+        "test": "phase11_5_r3_v2_c7_stopped_tests.C7StoppedTests.test_raw_evidence_and_mutations"
+      },
+      {
+        "reason": "Private H0 component evidence required",
+        "test": "phase11_5_r3_v2_hour_components_tests.HourComponentTests.test_strict_failure_and_independent_components"
+      },
+      {
+        "reason": "Private completed H0 evidence required",
+        "test": "phase11_5_r3_v2_hour_tests.PhysicalHourAuditTests.test_intact_and_mutations"
+      },
+      {
+        "reason": "Private H1a completed archive required",
+        "test": "phase11_5_r3_v2_interrupted_hour_tests.InterruptedHourTests.test_actual_and_adversarial_mutations"
+      },
+      {
+        "reason": "Actual native capture required",
+        "test": "phase11_5_r3_v2_native_audit_tests.ActualNativeAuditTests.test_actual_capture_and_mutations"
+      },
+      {
+        "reason": "Identified private template/decoder inputs required",
+        "test": "phase11_5_r3_v2_native_audit_tests.NativeWireTests.test_source_distinct_modes_and_loss"
+      },
+      {
+        "reason": "Identified private template/decoder inputs required",
+        "test": "phase11_5_r3_v2_native_audit_tests.NativeWireTests.test_wrong_load_arm_session_and_false_completion"
+      },
+      {
+        "reason": "Identified native compiler exports required",
+        "test": "phase11_5_r3_v2_native_plan_tests.NativeInitialAuthorityTests.test_exact_production_config_export"
+      },
+      {
+        "reason": "Reviewed inactive INI required",
+        "test": "phase11_5_r3_v2_native_plan_tests.NativePlanTests.test_exact_ini_and_hour_rollover"
+      },
+      {
+        "reason": "Identified native compiler exports required",
+        "test": "phase11_5_r3_v2_native_plan_tests.NativePlanTests.test_native_templates_and_frequency_semantics"
+      },
+      {
+        "reason": "Private B DEPLOY evidence required",
+        "test": "phase11_5_r3_v2_parallel_b_audit_tests.ParallelBAuditTests.test_deployment"
+      },
+      {
+        "reason": "Private B FUNCTIONAL evidence required",
+        "test": "phase11_5_r3_v2_parallel_b_audit_tests.ParallelBAuditTests.test_functional"
+      },
+      {
+        "reason": "Frozen repair packet required",
+        "test": "phase11_5_r3_v2_parallel_b_paged_repair_tests.RepairTests.test_missing_fault_does_not_inspect_or_mutate_hardware"
+      },
+      {
+        "reason": "Frozen repair packet required",
+        "test": "phase11_5_r3_v2_parallel_b_paged_repair_tests.RepairTests.test_scope"
+      },
+      {
+        "reason": "Frozen repair packet required",
+        "test": "phase11_5_r3_v2_parallel_b_repair_tests.RepairTests.test_missing_fault_does_not_inspect_or_mutate_hardware"
+      },
+      {
+        "reason": "Frozen repair packet required",
+        "test": "phase11_5_r3_v2_parallel_b_repair_tests.RepairTests.test_scope"
+      },
+      {
+        "reason": "Private pressure evidence required",
+        "test": "phase11_5_r3_v2_pressure_audit_tests.PressureAuditTests.test_mutations"
+      },
+      {
+        "reason": "Prospective local v2 pressure packet required",
+        "test": "phase11_5_r3_v2_pressure_tests.PressureScopeTests.test_frozen_scope_and_refusals"
+      },
+      {
+        "reason": "Private R0a evidence required",
+        "test": "phase11_5_r3_v2_reconcile_audit_tests.RecoveryAuditTests.test_intact_and_missing_evidence"
+      },
+      {
+        "reason": "Private S0 evidence required",
+        "test": "phase11_5_r3_v2_rf_tests.RawRfAuditTests.test_intact_and_mutations"
+      },
+      {
+        "reason": "Private W0 evidence required",
+        "test": "phase11_5_r3_v2_wifi_recovery_tests.WifiRecoveryAuditTests.test_actual_recovery_and_mutations"
+      },
+      {
+        "reason": "Private recorded admission required",
+        "test": "phase11_5_r3_v2_wifi_recovery_tests.WifiRecoveryTests.test_live_recorded_authority_rejections"
+      }
+    ],
+    "inhibited_regression": "passed",
+    "packaging_failure_tests": "passed",
+    "passed": 232,
+    "registered": 232,
+    "reproducibility": "identical",
+    "skipped": 0,
+    "test_names": [
+      "acl_credit_tests",
+      "activity_trace_tests",
+      "amplifier_enable",
+      "amplifier_enable_browser",
+      "amplifier_enable_schema",
+      "application_image_tests",
+      "application_resources",
+      "application_schema",
+      "bluefy_release_tests",
+      "bootstrap_crypto_tests",
+      "bootstrap_http_tests",
+      "bootstrap_join_tests",
+      "bootstrap_slot_tests",
+      "bootstrap_wire_tests",
+      "btstack_pool_hook_tests",
+      "button_diagnostic_tests",
+      "campaign_adapter_tests",
+      "campaign_analysis_tests",
+      "campaign_evidence_tests",
+      "campaign_plan_tests",
+      "capacity_pending_tests",
+      "captive_dns_tests",
+      "config_update_legacy_pi",
+      "config_update_schema",
+      "config_updates",
+      "consumer_claim_commit_tests",
+      "consumer_claim_tests",
+      "consumer_commissioning",
+      "consumer_profile_tests",
+      "consumer_radio_crypto_tests",
+      "consumer_radio_tests",
+      "consumer_recovery",
+      "consumer_recovery_crypto_tests",
+      "consumer_sessions",
+      "consumer_storage_tests",
+      "consumer_tls_generator_tests",
+      "cyw43_tx_overlay_tests",
+      "d2_shutdown_audit_tests",
+      "device_presentation_tests",
+      "dhcp_server_tests",
+      "endpoint_capacity_tests",
+      "endpoint_tests",
+      "event_storage_tests",
+      "field_access_tests",
+      "firmware_profile_tests",
+      "flash_layout_tests",
+      "frequency_policy_tests",
+      "gatt_delayed_sdk_tests",
+      "gatt_write_admission_tests",
+      "gp14_ap_proof_tests",
+      "gp14_rf_orchestration_tests",
+      "gp14_robustness_tests",
+      "gpio_drive",
+      "gpio_drive_browser",
+      "gpio_drive_schema",
+      "heap_hook_image_tests",
+      "heap_metrics_tests",
+      "host_client_interop_tests",
+      "hostname_sessions",
+      "hostname_tests",
+      "http_response_lifetime_tests",
+      "http_server_tests",
+      "indicator_output_tests",
+      "inhibited_network_acceptance_tests",
+      "inhibited_sync_image_checker_tests",
+      "led_acceptance_tests",
+      "led_closeout_tests",
+      "load_reply_target_tests",
+      "load_reply_tests",
+      "management_carrier_tests",
+      "mdns_lwip_tests",
+      "mdns_tests",
+      "net_trace_tests",
+      "network_11_1_interop",
+      "network_adapter_mac_error",
+      "network_adapter_mac_invalid",
+      "network_adapter_tests",
+      "network_browser_tests",
+      "network_certificate_strict_tests",
+      "network_certificate_tests",
+      "network_local_wtp_tests",
+      "network_plain_admission_tests",
+      "network_plain_wtp_tests",
+      "network_tests",
+      "network_tls_nagle_tests",
+      "network_tls_tests",
+      "network_transport_contract_tests",
+      "ntp_replay",
+      "ntp_work",
+      "operator_asset_build_tests",
+      "organization_routes",
+      "owner_challenge_tests",
+      "owner_claim_crypto_tests",
+      "owner_claim_http_tests",
+      "owner_signature_tests",
+      "owner_wire_tests",
+      "phase11_4_loop_tests",
+      "phase11_4_trace_tests",
+      "phase11_5_browser_jobs_tests",
+      "phase11_5_device_fixture_tests",
+      "phase11_5_device_management_tests",
+      "phase11_5_f1_plan_tests",
+      "phase11_5_fixture_audit_tests",
+      "phase11_5_idle_observer_tests",
+      "phase11_5_inventory_tests",
+      "phase11_5_load_audit_tests",
+      "phase11_5_network_fault_tests",
+      "phase11_5_network_fixture_tests",
+      "phase11_5_package10_tests",
+      "phase11_5_package11_tests",
+      "phase11_5_package4_tests",
+      "phase11_5_package5_tests",
+      "phase11_5_package6_tests",
+      "phase11_5_package7_tests",
+      "phase11_5_package8_tests",
+      "phase11_5_package9_tests",
+      "phase11_5_pilot_tests",
+      "phase11_5_r1_tests",
+      "phase11_5_r2_modes_tests",
+      "phase11_5_r2_oom_recovery_tests",
+      "phase11_5_r3_tests",
+      "phase11_5_register_tests",
+      "phase11_5_rf_observer_tests",
+      "phase11_5_supervisor_tests",
+      "phase11_5_time_local_tests",
+      "phase11_5_trace_reader_tests",
+      "phase11_6_attempt_tests",
+      "phase11_6_audit_tests",
+      "phase11_6_plan_tests",
+      "phase11_7_closure_tests",
+      "phase12_authority_capture_tests",
+      "phase12_beacon_scan_tests",
+      "phase12_candidate_manifest_tests",
+      "phase12_composition_audit_tests",
+      "phase12_composition_capture_tests",
+      "phase12_consumer_busy_claim_tests",
+      "phase12_consumer_composition_tests",
+      "phase12_consumer_dispatch_tests",
+      "phase12_consumer_fallback_tests",
+      "phase12_consumer_flash_status_tests",
+      "phase12_consumer_negative_dispatch_tests",
+      "phase12_consumer_negative_orchestrator_tests",
+      "phase12_consumer_negative_tests",
+      "phase12_consumer_readiness_tests",
+      "phase12_engineering_bond_refusal_tests",
+      "phase12_engineering_composition_tests",
+      "phase12_engineering_cookie_grace_tests",
+      "phase12_engineering_fixture_tests",
+      "phase12_engineering_flash_status_dispatch_tests",
+      "phase12_engineering_flash_status_tests",
+      "phase12_engineering_journal_stimuli_tests",
+      "phase12_engineering_journal_tests",
+      "phase12_engineering_network_dispatch_tests",
+      "phase12_engineering_network_tests",
+      "phase12_engineering_orchestrator_tests",
+      "phase12_engineering_repairs_tests",
+      "phase12_engineering_scope_tests",
+      "phase12_engineering_sessions_tests",
+      "phase12_engineering_setup_tests",
+      "phase12_engineering_stage_dispatch_tests",
+      "phase12_engineering_staging_tests",
+      "phase12_engineering_time_invalidation_tests",
+      "phase12_engineering_time_jobs_tests",
+      "phase12_engineering_time_tests",
+      "phase12_field_mode_fixture_tests",
+      "phase12_final_collection_tests",
+      "phase12_fixture_roles_tests",
+      "phase12_flash_fixture_tests",
+      "phase12_independent_orchestrator_tests",
+      "phase12_physical_cut_fixture_tests",
+      "phase12_populated_fixture_tests",
+      "phase12_populated_tests",
+      "phase12_recovery_orchestration_tests",
+      "phase12_resource_capture_review_tests",
+      "phase12_rf_adapter_tests",
+      "phase12_serial_observer_tests",
+      "phase12_station_trial_tests",
+      "phase12_status_poll_tests",
+      "phase12_target_ap_proof_tests",
+      "phase12_time_jobs_sampling_tests",
+      "phase12_virtual_observer_tests",
+      "phase14_browser_deadline_tests",
+      "phase14_tests",
+      "pin_allocation",
+      "pio_dma_tests",
+      "pool_metrics_tests",
+      "progress_sessions",
+      "progress_tests",
+      "provisioning_contract_tests",
+      "provisioning_tests",
+      "provisioning_web_tests",
+      "raspberry_pi_ble_client_tests",
+      "recovery_crypto_tests",
+      "recovery_web_tests",
+      "refill_metrics_tests",
+      "reset_storage_tests",
+      "rf_bench_analysis_tests",
+      "rf_bench_capture_tests",
+      "rf_bench_client_tests",
+      "rf_bench_measurement_tests",
+      "rf_bench_tests",
+      "rf_calibration_browser",
+      "rf_correction_analysis_tests",
+      "rf_feasibility_tests",
+      "rf_renderer_image_tests",
+      "rf_stream_tests",
+      "rf_worker_failure_tests",
+      "rf_worker_tests",
+      "rf_wtp_client_tests",
+      "saved_progress_browser_tests",
+      "shutdown_image_tests",
+      "shutdown_trace_tests",
+      "softap_api_tests",
+      "stack_bounds_tests",
+      "stack_guard_image_tests",
+      "standalone_console_tests",
+      "standalone_frequency",
+      "standalone_frequency_browser",
+      "standalone_frequency_schema",
+      "standalone_image_tests",
+      "standalone_tests",
+      "usb_descriptor_tests",
+      "usb_local_management_tests",
+      "usb_management_tests",
+      "usb_management_vectors",
+      "usb_transport_tests",
+      "wspr_plan_tests",
+      "wspr_resource_schema_tests",
+      "wspr_resource_tests",
+      "wsprrypico_core_tests",
+      "wtp_monitor_tests",
+      "wtp_probe_tests"
+    ],
+    "wtp_contract": "passed"
+  },
+  "deployment_candidate": true,
+  "firmware": {
+    "board": "pico2_w",
+    "clock_hz": 138000000,
+    "credentials_in_image": false,
+    "engine": "pio-dma",
+    "family_id": "e48bff59",
+    "frequency_selected_by_image": null,
+    "processor": "RP2350",
+    "profile": "consumer",
+    "role": "uninhibited",
+    "schedules_enabled_by_image": false,
+    "station_selected_by_image": false,
+    "target": "WsprryPico"
+  },
+  "firmware_version": "0.1.0-ci.39084514130.1",
+  "intended_tag": "v0.1.0-ci.39084514130.1",
+  "licenses": [
+    "LICENSE.md",
+    "THIRD_PARTY_NOTICES.md",
+    "DEPENDENCY-LICENSES.txt"
+  ],
+  "product": "WsprryPico",
+  "qualification": {
+    "physical_boot_usb_rf_timing": "not assessed by this run",
+    "software_build_only": true
+  },
+  "repository": "https://github.com/WsprryPi/WsprryPico",
+  "schema_version": 1,
+  "source": {
+    "clean": true,
+    "input_digest_sha256": "1e7447743f92bb3aadb8987fb86ddad9f778ece18a92f6023dab2535339c9004",
+    "revision": "582b7221b78537813e997b1be0c880dbadab0697",
+    "tree": "09446a9724c0304ee6d322b4f43b2e20467a1929"
+  },
+  "update": {
+    "application_end": "103f0000",
+    "first_frequency_save_enables_schedule": false,
+    "ordinary_update_erases_settings": false,
+    "rollback": "Older firmware may reject extended saved configuration; downgrade preservation is unqualified.",
+    "unset_frequency_transmits": false,
+    "whole_flash_erase_required": false
+  },
+  "workflow": {
+    "attempt": 1,
+    "event": "push",
+    "path": ".github/workflows/software-build.yml",
+    "ref": "refs/heads/devel",
+    "revision": "582b7221b78537813e997b1be0c880dbadab0697",
+    "run_id": 39084514130,
+    "url": "https://github.com/WsprryPi/WsprryPico/actions/runs/39084514130"
+  }
+}

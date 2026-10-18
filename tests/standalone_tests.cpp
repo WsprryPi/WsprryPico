@@ -91,6 +91,27 @@ void lookup_tests() {
     CHECK(lookup.begin(65'000'008));
     lookup.link(false);
     CHECK(!lookup.ready());
+
+    // A healthy association must survive repeated pool DNS rotation opportunities
+    // for the entire calibration span. Lack of a fresh packet restores refresh.
+    time::ServerLookup retained;
+    retained.link(true);
+    const auto first = retained.begin(0, true);
+    CHECK(first && retained.finish(*first, true, 1, true));
+    for (std::uint64_t seconds = 64; seconds <= 2048; seconds += 64)
+        CHECK(!retained.begin(seconds * 1'000'000, true));
+    const auto lost = retained.begin(2'100'000'000, false);
+    CHECK(lost);
+    // A late response from the current peer while DNS is in flight wins the
+    // race; the returned address must not discard its recovered measurements.
+    CHECK(!retained.finish(*lost, true, 2'100'000'001, true));
+    CHECK(retained.ready() && !retained.pending());
+    const auto expired = retained.begin(2'200'000'000, false);
+    CHECK(expired && retained.finish(*expired, true, 2'200'000'001, false));
+    retained.link(false);
+    retained.link(true);
+    const auto reconnected = retained.begin(2'200'000'002, true);
+    CHECK(reconnected && retained.finish(*reconnected, true, 2'200'000'003, true));
 }
 void config_tests() {
     const auto valid = standalone::parse_config(example);
@@ -579,139 +600,39 @@ std::array<std::uint8_t, 48> reply(std::uint64_t nonce, std::uint64_t unix_secon
     return bytes;
 }
 void sntp_tests() {
+    constexpr auto ns = 1'000'000'000ULL;
     std::uint64_t mono = 0;
     auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
-    time::UtcDiscipline clock(now, &mono);
+    time::UtcDiscipline clock(now, &mono, standalone::clock_profile());
     time::Sntp source(clock);
-    const auto packet = source.request(mono, 123);
-    CHECK(packet[0] == 0x23 && packet[47] == 123);
-    mono = 2'000'000;
-    auto response = reply(123, 1'800'000'000);
-    CHECK(source.receive(response, mono));
-    auto snapshot = clock.snapshot();
-    CHECK(snapshot.utc_now_ns == 1'800'000'000'001'000'000ULL);
-    CHECK(snapshot.uncertainty_ns == 3'050'999 && snapshot.state == wtp::ClockState::Synchronized);
-    CHECK(!source.receive(response, mono)); // One-shot response correlation.
-    mono += 31'000'000'000ULL;
+    for (unsigned i = 0; i < 3; ++i) {
+        mono = i * 2 * ns;
+        const auto packet = source.request(mono, i + 1);
+        CHECK(packet[0] == 0x23);
+        mono += 2'000'000;
+        const auto response = reply(i + 1, 1'800'000'000 + i * 2);
+        CHECK(source.receive(response, mono));
+        CHECK((clock.snapshot().state == wtp::ClockState::Synchronized) == (i >= 2));
+        CHECK(!source.receive(response, mono));
+    }
+    CHECK(clock.snapshot().utc_now_ns / ns == 1'800'000'004);
+    mono += 181 * ns;
     CHECK(clock.snapshot().state == wtp::ClockState::Unsynchronized);
-    // A realistic Internet exchange is accepted; the inclusive 500 ms total
-    // uncertainty boundary still fails closed one nanosecond above it.
-    for (const auto uncertainty : {100'000'000ULL, 500'000'000ULL, 500'000'001ULL}) {
-        time::UtcDiscipline c(now, &mono);
-        time::Sntp sn(c);
-        (void)sn.request(mono, 987);
-        mono += uncertainty - 1'050'999ULL;
-        CHECK(sn.receive(reply(987, 1'800'000'000), mono) == (uncertainty <= 500'000'000ULL));
-        CHECK(sn.last_uncertainty_ns() == uncertainty);
-        CHECK(sn.last_rtt_ns() == uncertainty - 1'050'999ULL);
-    }
-    // Era rollover works without a host-provided era hint.
-    for (auto seconds : {2'085'978'495ULL, 2'085'978'496ULL, 4'102'444'799ULL}) {
-        (void)source.request(mono, 456);
-        mono += 2'000'000;
-        auto wrapped = reply(456, seconds);
-        for (auto offset : {20, 36, 44})
-            put(std::span(wrapped).subspan(offset, 4), 0x80000000);
-        CHECK(source.receive(wrapped, mono));
-        CHECK(clock.snapshot().utc_now_ns / 1'000'000'000ULL == seconds);
-    }
-    for (unsigned fault = 0; fault < 17; ++fault) {
-        time::UtcDiscipline c(now, &mono);
-        time::Sntp sn(c);
-        (void)sn.request(mono, 999);
-        mono += 2'000'000;
-        auto r = reply(999, 1'800'000'000);
-        if (fault == 0)
-            r[0] = 0x23;
-        if (fault == 1)
-            r[0] = 0x1c;
-        if (fault == 2)
-            r[0] |= 0xc0;
-        if (fault == 3)
-            r[0] |= 0x40;
-        if (fault == 4)
-            r[1] = 0;
-        if (fault == 5)
-            r[1] = 16;
-        if (fault == 6)
-            r[31] ^= 1;
-        if (fault == 7)
-            r[4] = 0x80;
-        if (fault == 8)
-            r[8] = 1;
-        if (fault == 9)
-            r = reply(999, 1'000'000'000);
-        if (fault == 10)
-            r = reply(999, 4'102'444'800ULL);
-        if (fault == 11)
-            r[43] += 1; // Server processing exceeds total RTT.
-        if (fault == 12)
-            r[35] += 1; // Receive after transmit.
-        if (fault == 13)
-            std::fill(r.begin() + 16, r.begin() + 24, 0);
-        if (fault == 16)
-            r[3] = 1;
-        if (fault == 14)
-            mono += 2'000'000'000ULL;
-        CHECK(!sn.receive(fault == 15 ? std::span(r).first(47) : std::span(r), mono));
-        CHECK(c.snapshot().state == wtp::ClockState::Unsynchronized);
-        if (fault == 4)
-            CHECK(sn.denied());
-    }
 }
 void sntp_poll_schedule_test() {
-    time::SntpPollSchedule schedule;
-    CHECK(schedule.due(0));
-    schedule.sent(0);
-    CHECK(!schedule.due(1'999'999) && schedule.due(2'000'000));
-    schedule.sent(2'000'000);
-    CHECK(!schedule.due(3'999'999) && schedule.due(4'000'000));
-    schedule.sent(4'000'000);
-    CHECK(!schedule.due(67'999'999) && schedule.due(68'000'000));
-    schedule.sent(68'000'000);
-    schedule.accepted(68'100'000);
-    CHECK(!schedule.due(132'099'999) && schedule.due(132'100'000));
-    // A long RF interval delays network polling. A lost first exchange after
-    // resumption must not force the following WSPR slot to wait another 64 s.
-    schedule.sent(200'000'000);
-    CHECK(schedule.due(202'000'000));
-    schedule.sent(202'000'000);
-    schedule.accepted(202'100'000);
-    CHECK(!schedule.due(203'000'000));
-    // Monotonic reversal and near-overflow cannot manufacture an early retry.
-    CHECK(!schedule.due(1));
-    const auto high = std::numeric_limits<std::uint64_t>::max();
-    schedule.sent(high - 1'000'000);
-    CHECK(!schedule.due(high));
-    schedule.reset();
-    CHECK(schedule.due(high));
-
-    // Exercise correlation and clock recovery with a delayed reply to the
-    // pre-RF request, followed by a lost first post-RF request. Only a valid
-    // reply to the retry can postpone the next poll.
+    // The production profile uses the engine's bounded initial burst and a
+    // 64-second normal poll, consistent with the existing 90-second job age.
     std::uint64_t mono = 0;
     auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
     time::UtcDiscipline clock(now, &mono);
     time::Sntp source(clock);
-    time::SntpPollSchedule resumed;
-    resumed.sent(0);
-    (void)source.request(mono, 1);
-    mono = 200'000'000'000ULL;
-    CHECK(!source.receive(reply(1, 1'800'000'000), mono));
-    CHECK(resumed.due(mono / 1000));
-    resumed.sent(mono / 1000);
-    (void)source.request(mono, 2); // Lost after RF network polling resumes.
-    mono += 2'000'000'000ULL;
-    CHECK(resumed.due(mono / 1000));
-    resumed.sent(mono / 1000);
-    (void)source.request(mono, 3);
-    mono += 100'000'000ULL;
-    CHECK(!source.receive(reply(2, 1'800'000'002), mono));
-    CHECK(clock.snapshot().state == wtp::ClockState::Unsynchronized);
-    CHECK(source.receive(reply(3, 1'800'000'002), mono));
-    resumed.accepted(mono / 1000);
-    CHECK(clock.snapshot().state == wtp::ClockState::Synchronized);
-    CHECK(!resumed.due(204'000'000));
+    for (unsigned i = 0; i < 10; ++i) {
+        CHECK(source.scheduled_request(0, mono, i + 1));
+        const auto next = source.status(0, mono).next_poll_ns;
+        CHECK(!source.scheduled_request(0, next - 1, i + 2));
+        CHECK(next - mono >= (i < 7 ? 2 : 64) * 1'000'000'000ULL);
+        mono = next;
+    }
 }
 
 void campaign_controls_test() {
@@ -817,12 +738,15 @@ void autonomous_test() {
     standalone::Scheduler scheduler(store, service);
     scheduler.poll();
     CHECK(service.status().state == wtp::State::Empty);
-    (void)sntp.request(mono, 51);
-    mono = 2'000'000;
-    auto response = reply(51, time::sntp_min_utc_ns / ns + 116);
-    put(std::span(response).subspan(36, 4), 12345);
-    put(std::span(response).subspan(44, 4), 12345);
-    CHECK(sntp.receive(response, mono));
+    for (unsigned i = 0; i < 3; ++i) {
+        mono = i * ns;
+        (void)sntp.request(mono, 51 + i);
+        mono += 2'000'000;
+        auto response = reply(51 + i, time::sntp_min_utc_ns / ns + 114 + i);
+        put(std::span(response).subspan(36, 4), 12345);
+        put(std::span(response).subspan(44, 4), 12345);
+        CHECK(sntp.receive(response, mono));
+    }
     const auto sample = clock.snapshot();
     const auto start_utc = time::sntp_min_utc_ns + 121 * ns;
     const auto start_mono = sample.monotonic_now_ns + start_utc - sample.utc_now_ns;

@@ -110,7 +110,7 @@ class CampaignTests(unittest.TestCase):
             if name == 'robustness_flash_write':
                 body = '  bl 20000300 <flash_range_erase>\n  .word\t0x003f2000\n'
             code += f'{address:08x} <{name}>:\n{body}'
-        memory = 'FLASH 0x10000000 0x003f2000 xr'
+        memory = 'FLASH 0x10000000 0x003ee000 xr'
         uf2 = bytearray(512)
         struct.pack_into('<5I', uf2, 0, 0x0A324655, 0x9E5D5157, 0, 0x10000000, 256)
         struct.pack_into('<I', uf2, 508, 0x0AB16F30)
@@ -142,7 +142,7 @@ class CampaignTests(unittest.TestCase):
                 '  bl 20000200 <flash_range_erase>\n'
                 '  bl 20000300 <flash_range_program>\n'
                 '  .word\t0x003f2000\n')
-        memory = 'FLASH 0x10000000 0x003f2000 xr'
+        memory = 'FLASH 0x10000000 0x003ee000 xr'
         uf2 = bytearray(512)
         struct.pack_into('<5I',uf2,0,0x0A324655,0x9E5D5157,0,0x10000000,256)
         struct.pack_into('<I',uf2,508,0x0AB16F30)
@@ -157,7 +157,7 @@ class CampaignTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 validate_flash_probe(symbols,bad,memory,bytes(uf2))
         with self.assertRaises(ValueError):
-            validate_flash_probe(symbols,code,memory.replace('3f2000','3f3000'),bytes(uf2))
+            validate_flash_probe(symbols,code,memory.replace('3ee000','3f3000'),bytes(uf2))
         with self.assertRaises(ValueError):
             validate_flash_probe(symbols+'20005000 00000010 T sample_override\n',code,memory,bytes(uf2))
 

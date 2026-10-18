@@ -25,7 +25,7 @@ bool PicoConsumerClaimPlatform::safe_to_commit() {
          !access_.record()->reset.pending() && !access_.record()->field_mode &&
          access_.record()->bond_count == 0 && access_.record()->default_password);
     const auto activity = service_.activity();
-    return access_ok && !activity.owned && !activity.output_active &&
+    return !service_.maintenance() && access_ok && !activity.owned && !activity.output_active &&
            activity.state != wtp::State::Loaded && activity.state != wtp::State::Armed &&
            activity.state != wtp::State::Running && activity.state != wtp::State::Failed;
 }

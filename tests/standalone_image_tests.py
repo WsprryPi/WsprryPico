@@ -20,6 +20,14 @@ def block(address, workaround=False):
 
 
 class ImageTests(unittest.TestCase):
+    def test_ntp_reservation(self):
+        validate_uf2(block(0x103edf00), application_end=0x103ee000)
+        for address in (0x103ee000, 0x103eef00, 0x103eff00):
+            with self.assertRaises(ValueError):
+                validate_uf2(block(address), application_end=0x103ee000)
+        with self.assertRaises(ValueError):
+            validate_uf2(block(0x103edf80), application_end=0x103ee000)
+
     def test_saved_progress_reservation_is_enforced_when_selected(self):
         validate_uf2(block(0x103EFF00), application_end=0x103F0000)
         for address in (0x103F0000,0x103F1000,0x103F2000):

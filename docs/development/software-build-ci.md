@@ -77,12 +77,18 @@ disposition.
 
 Firmware builds retain linked engine, heap, stack/guard, pool, renderer,
 GP14/BOOTSEL, flash and UF2 checks. The deployment verifier checks the current
-application flash boundary `0x103f0000`, the exact pinned RP2350-E10 workaround,
+application flash boundary `0x103ee000`, the exact pinned RP2350-E10 workaround,
 UF2 numbering/family/payload correspondence with the linked ARM ELF, generated
 and embedded identities, actual target/clock/consumer flags and generic inputs.
 Two fresh normal builds must produce identical UF2s for the same declared
 source/version/inputs. This check does not promise reproducibility across every
 runner image or toolchain revision.
+
+The update boundary is checked against the linker reservation in the exact
+frozen source revision. New bundles reserve the final 72 KiB, including the
+separate NTP-learning journal. Verification also accepts historical
+`0x103f0000` bundles when their source revision requires that layout. Their
+integrity does not qualify downgrades to preserve the new cache.
 
 Local checks remain documented in [the development commands](README.md#deterministic-validation).
 Use a fresh build directory after removal of build-time frequency selection;

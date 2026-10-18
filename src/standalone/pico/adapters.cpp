@@ -88,9 +88,12 @@ FlashResources flash_resources() {
     return flash_counters;
 }
 bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
-    const auto storage_size =
-        progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
-    const auto flash_base = progress_ ? flash_layout::progress_base : flash_layout::standalone_base;
+    const auto storage_size = region_ == Region::Ntp        ? flash_layout::ntp_size
+                              : region_ == Region::Progress ? flash_layout::progress_size
+                                                            : flash_layout::standalone_size;
+    const auto flash_base = region_ == Region::Ntp        ? flash_layout::ntp_base
+                            : region_ == Region::Progress ? flash_layout::progress_base
+                                                          : flash_layout::standalone_base;
     FlashCall call(flash_counters.read_attempts, flash_counters.read_failures,
                    flash_counters.read_requested_bytes, data.size());
     if (offset > storage_size || data.size() > storage_size - offset)
@@ -100,9 +103,12 @@ bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
     return call.finish(true);
 }
 bool PicoFlash::erase(std::size_t offset) {
-    const auto storage_size =
-        progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
-    const auto flash_base = progress_ ? flash_layout::progress_base : flash_layout::standalone_base;
+    const auto storage_size = region_ == Region::Ntp        ? flash_layout::ntp_size
+                              : region_ == Region::Progress ? flash_layout::progress_size
+                                                            : flash_layout::standalone_size;
+    const auto flash_base = region_ == Region::Ntp        ? flash_layout::ntp_base
+                            : region_ == Region::Progress ? flash_layout::progress_base
+                                                          : flash_layout::standalone_base;
     FlashCall call(flash_counters.erase_attempts, flash_counters.erase_failures,
                    flash_counters.erase_requested_bytes, FLASH_SECTOR_SIZE,
                    runtime::ActivityKind::StandaloneErase);
@@ -126,9 +132,12 @@ bool PicoFlash::erase(std::size_t offset) {
         std::all_of(bytes, bytes + FLASH_SECTOR_SIZE, [](auto b) { return b == 255; }));
 }
 bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) {
-    const auto storage_size =
-        progress_ ? flash_layout::progress_size : flash_layout::standalone_size;
-    const auto flash_base = progress_ ? flash_layout::progress_base : flash_layout::standalone_base;
+    const auto storage_size = region_ == Region::Ntp        ? flash_layout::ntp_size
+                              : region_ == Region::Progress ? flash_layout::progress_size
+                                                            : flash_layout::standalone_size;
+    const auto flash_base = region_ == Region::Ntp        ? flash_layout::ntp_base
+                            : region_ == Region::Progress ? flash_layout::progress_base
+                                                          : flash_layout::standalone_base;
     FlashCall call(flash_counters.program_attempts, flash_counters.program_failures,
                    flash_counters.program_requested_bytes, page.size(),
                    runtime::ActivityKind::StandaloneProgram);
@@ -281,7 +290,9 @@ bool PicoAccessMedia::program(std::size_t offset, std::span<const std::uint8_t> 
     return call.finish(true);
 }
 PicoNetwork::PicoNetwork(time::ObservationSink& clock, std::string_view configured_hostname)
-    : sntp_(clock), mdns_(*this, configured_hostname) {}
+    : ntp_(clock),
+      peers_{NtpPeer{*this, 0}, NtpPeer{*this, 1}, NtpPeer{*this, 2}, NtpPeer{*this, 3}},
+      mdns_(*this, configured_hostname) {}
 #ifndef WSPRRY_PICO_STANDALONE_RF
 void PicoNetwork::trace_install() {
     (void)trace_.install(&cyw43_state.netif[CYW43_ITF_STA]);
@@ -450,8 +461,11 @@ bool PicoNetwork::start_network_only(std::string_view ssid, std::string_view pas
     return start_credentials(ssid, password, time_server);
 }
 void PicoNetwork::stop_network_only_trial() {
-    sntp_.cancel();
-    lookup_.link(false);
+    for (auto& peer : peers_)
+        ntp_.cancel(peer.index);
+    ntp_.online(false, activity_now_ns());
+    for (auto& peer : peers_)
+        peer.lookup.link(false);
     mdns_.disable(false);
     service_withdrawal_started_us_.reset();
     if (enabled_)
@@ -478,14 +492,29 @@ bool PicoNetwork::start_credentials(std::string_view ssid, std::string_view pass
                                     std::string_view time_server) {
     if (pcb_ || !valid_time_server(time_server) || !initialize_radio())
         return false;
-    sntp_.reset_peer();
+    ntp_.reset_peer();
+    for (auto& peer : peers_)
+        ntp_.remove(peer.index, activity_now_ns());
     time_server_ = time_server;
     if (!time_server_.empty() && time_server_.back() == '.')
         time_server_.pop_back();
     for (auto& c : time_server_)
         if (c >= 'A' && c <= 'Z')
             c += 'a' - 'A'; // lwIP's .local selection is case-sensitive.
-    server_literal_ = ipaddr_aton(time_server_.c_str(), &server_) != 0;
+    pool_enabled_ = time_server_ == "pool.ntp.org" || time_server_.ends_with(".pool.ntp.org");
+    ntp_link_up_ = false;
+    for (auto& peer : peers_) {
+        auto pool_name = time_server_;
+        if (pool_name.size() > 2 && pool_name[0] >= '0' && pool_name[0] <= '3' &&
+            pool_name[1] == '.')
+            pool_name.erase(0, 2);
+        peer.hostname = pool_enabled_ ? std::to_string(peer.index) + "." + pool_name : time_server_;
+        peer.lookup.link(false);
+        peer.sent = false;
+    }
+    server_literal_ = ipaddr_aton(time_server_.c_str(), &peers_[0].address) != 0;
+    if (server_literal_)
+        (void)ntp_.configure(0, ip4_addr_get_u32(ip_2_ip4(&peers_[0].address)), activity_now_ns());
     watchdog_hw->scratch[1] = 11;
     cyw43_arch_enable_sta_mode();
     enabled_ = true;
@@ -513,46 +542,97 @@ bool PicoNetwork::start_credentials(std::string_view ssid, std::string_view pass
     return true;
 }
 void PicoNetwork::resolved(const char* name, const ip_addr_t* address, void* context) {
-    auto& self = *static_cast<PicoNetwork*>(context);
-    const bool valid = address && IP_IS_V4(address) && !ip_addr_isany(address) &&
-                       valid_time_server(ipaddr_ntoa(address)) && name && self.time_server_ == name;
+    auto& peer = *static_cast<NtpPeer*>(context);
+    auto& self = peer.owner;
+    bool valid = address && IP_IS_V4(address) && !ip_addr_isany(address) &&
+                 valid_time_server(ipaddr_ntoa(address)) && name && peer.hostname == name;
+    if (valid && self.pool_enabled_)
+        for (const auto& other : self.peers_)
+            if (other.index != peer.index && other.lookup.ready() &&
+                ip_addr_cmp(address, &other.address))
+                valid = false; // Never query one endpoint through multiple pool aliases.
     if (!valid)
         ++self.resolution_failures_;
-    if (self.lookup_.finish(self.lookup_epoch_, valid, time_us_64()) && valid) {
-        if (!ip_addr_cmp(&self.server_, address)) {
-            self.sntp_.reset_peer(); // Partition both observations and learning by endpoint.
-            self.poll_schedule_.reset();
+    const auto now = time_us_64();
+    const bool retained = now <= UINT64_MAX / 1000 && peer.retained(now * 1000);
+    if (peer.lookup.finish(peer.lookup_epoch, valid, now, retained) && valid) {
+        if (!ip_addr_cmp(&peer.address, address)) {
+            // Keep the previous UTC anchor at its original age while the new
+            // endpoint establishes its own history and passes arbitration.
+            self.ntp_.remove(peer.index, activity_now_ns());
         }
-        self.server_ = *address;
+        peer.address = *address;
+        (void)self.ntp_.configure(peer.index, ip4_addr_get_u32(ip_2_ip4(address)),
+                                  activity_now_ns());
     }
 }
 void PicoNetwork::resolve_server(std::uint64_t now) {
-    const auto epoch = lookup_.begin(now);
-    if (!epoch)
-        return;
-    lookup_epoch_ = *epoch;
-    ip_addr_t address{};
-    const auto result = dns_gethostbyname_addrtype(time_server_.c_str(), &address, resolved, this,
-                                                   LWIP_DNS_ADDRTYPE_IPV4);
-    if (result != ERR_INPROGRESS)
-        resolved(time_server_.c_str(), result == ERR_OK ? &address : nullptr, this);
+    for (auto& peer : peers_) {
+        if (peer.index && !pool_enabled_)
+            break;
+        const bool retained = now <= UINT64_MAX / 1000 && peer.retained(now * 1000);
+        const auto epoch = peer.lookup.begin(now, retained);
+        if (!epoch)
+            continue;
+        peer.lookup_epoch = *epoch;
+        ip_addr_t address{};
+        const auto result = dns_gethostbyname_addrtype(peer.hostname.c_str(), &address, resolved,
+                                                       &peer, LWIP_DNS_ADDRTYPE_IPV4);
+        if (result != ERR_INPROGRESS)
+            resolved(peer.hostname.c_str(), result == ERR_OK ? &address : nullptr, &peer);
+    }
 }
 void PicoNetwork::receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t* address,
                           u16_t port) {
     auto& self = *static_cast<PicoNetwork*>(context);
-    const auto now = time_us_64() * 1000ULL;
-    if (packet && port == 123 && ip_addr_cmp(address, &self.server_) && packet->tot_len == 48) {
-        std::array<std::uint8_t, 48> bytes{};
-        if (pbuf_copy_partial(packet, bytes.data(), bytes.size(), 0) == bytes.size()) {
-            if (self.sntp_.receive(bytes, now)) {
-                ++self.accepted_;
-                self.poll_schedule_.accepted(now / 1000);
-            } else
-                ++self.rejected_;
+    const auto now = activity_now_ns();
+    if (packet && address && port == 123 && packet->tot_len == 48) {
+        for (auto& peer : self.peers_) {
+            if ((peer.index && !self.pool_enabled_) ||
+                (!self.server_literal_ && !peer.lookup.ready()) ||
+                !ip_addr_cmp(address, &peer.address))
+                continue;
+            std::array<std::uint8_t, 48> bytes{};
+            if (pbuf_copy_partial(packet, bytes.data(), bytes.size(), 0) == bytes.size()) {
+                const auto process_start = time_us_64();
+                const bool admitted = self.ntp_.receive(peer.index, bytes, now);
+                peer.max_process_us = std::max(peer.max_process_us, time_us_64() - process_start);
+                if (admitted) {
+                    ++self.accepted_;
+                    ++peer.accepted;
+                    if (self.ntp_.arbiter_accepted())
+                        ++self.discipline_accepted_;
+                } else {
+                    ++self.rejected_;
+                    ++peer.rejected;
+                }
+            }
+            break;
         }
     }
     if (packet)
         pbuf_free(packet);
+}
+bool PicoNetwork::send_ntp(NtpPeer& peer, std::uint64_t now) {
+    if (now > UINT64_MAX / 1000)
+        return false;
+    const auto bytes = ntp_.scheduled_request(peer.index, now * 1000, get_rand_64());
+    if (!bytes)
+        return false;
+    peer.last_sent_us = now;
+    peer.sent = true;
+    ++queries_;
+    ++peer.queries;
+    auto* packet = pbuf_alloc(PBUF_TRANSPORT, bytes->size(), PBUF_RAM);
+    if (!packet) {
+        ntp_.cancel(peer.index);
+        return true;
+    }
+    if (pbuf_take(packet, bytes->data(), bytes->size()) != ERR_OK ||
+        udp_sendto(pcb_, packet, &peer.address, 123) != ERR_OK)
+        ntp_.cancel(peer.index);
+    pbuf_free(packet);
+    return true;
 }
 void PicoNetwork::poll() {
     if (!initialized_)
@@ -585,7 +665,16 @@ void PicoNetwork::poll() {
         }
         return;
     }
-    lookup_.link(link == CYW43_LINK_UP);
+    const bool up = link == CYW43_LINK_UP;
+    if (up != ntp_link_up_) {
+        ntp_link_up_ = up;
+        ntp_.online(up, now * 1000);
+        // A link change establishes new receive/clock cohorts. Restored drift
+        // remains only a prior; stale samples cannot vote in source selection.
+        ntp_.reset_peer(false);
+        for (auto& peer : peers_)
+            peer.lookup.link(up);
+    }
     auto* station = &cyw43_state.netif[CYW43_ITF_STA];
     // The pinned CYW43 driver makes every newly enabled interface the default,
     // including the consumer setup AP. Keep off-subnet DNS/SNTP traffic on the
@@ -603,8 +692,8 @@ void PicoNetwork::poll() {
     mdns_.poll(enabled_ && (listening_ || consumer_http_) && link_up(),
                link_up() ? ip4_addr_get_u32(netif_ip4_addr(station)) : 0, now);
     if (link != CYW43_LINK_UP) {
-        sntp_.cancel();
-        poll_schedule_.reset();
+        for (auto& peer : peers_)
+            ntp_.cancel(peer.index);
         // NOIP still has a working Wi-Fi association. DHCP may temporarily
         // clear the address after a NAK; rejoining here disrupts that exchange.
         if (link == CYW43_LINK_NOIP)
@@ -637,25 +726,15 @@ void PicoNetwork::poll() {
         return;
     }
     reconnect_after_leave_us_.reset();
-    if (!server_literal_) {
+    if (!server_literal_)
         resolve_server(now);
-        if (!lookup_.ready())
-            return;
+    for (auto& peer : peers_) {
+        if (peer.index && !pool_enabled_)
+            break;
+        if (server_literal_ || peer.lookup.ready())
+            (void)send_ntp(peer, now);
     }
-    if (!poll_schedule_.due(now) || sntp_.denied())
-        return;
-    poll_schedule_.sent(now);
-    ++queries_;
-    const auto bytes = sntp_.request(now * 1000ULL, get_rand_64());
-    auto* packet = pbuf_alloc(PBUF_TRANSPORT, bytes.size(), PBUF_RAM);
-    if (!packet) {
-        sntp_.cancel();
-        return;
-    }
-    if (pbuf_take(packet, bytes.data(), bytes.size()) != ERR_OK ||
-        udp_sendto(pcb_, packet, &server_, 123) != ERR_OK)
-        sntp_.cancel();
-    pbuf_free(packet);
+    (void)ntp_.apply(now * 1000);
 }
 bool PicoNetwork::request_enabled(bool enabled) {
     if (!initialized_ || !pcb_)
@@ -689,7 +768,8 @@ bool PicoNetwork::set_enabled(bool enabled) {
     }
     if (enabled_ == enabled)
         return true;
-    sntp_.cancel();
+    for (auto& peer : peers_)
+        ntp_.cancel(peer.index);
     enabled_ = enabled;
     if (enabled) {
         mdns_.retry();
@@ -704,9 +784,11 @@ bool PicoNetwork::set_enabled(bool enabled) {
         }
         next_connect_us_ = 0;
         reconnect_after_leave_us_.reset();
-        poll_schedule_.reset();
+        ntp_.online(true, activity_now_ns());
     } else {
-        lookup_.link(false);
+        ntp_.online(false, activity_now_ns());
+        for (auto& peer : peers_)
+            peer.lookup.link(false);
         // enabled_ was already changed; inspect the actual station before teardown.
         if (mdns_.withdraw(cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP))
             withdrawal_started_us_ = time_us_64();
@@ -726,13 +808,46 @@ bool PicoNetwork::link_up() const {
 std::string PicoNetwork::ipv4() const {
     return link_up() ? ip4addr_ntoa(netif_ip4_addr(&cyw43_state.netif[CYW43_ITF_STA])) : "";
 }
+std::string PicoNetwork::pool_status(std::uint64_t now) const {
+    const auto tracking = ntp_.engine().tracking(now);
+    std::string result =
+        "{\"schema\":\"microchrony-sources/1\",\"enabled\":" +
+        std::string(pool_enabled_ ? "true" : "false") + ",\"selected_slot\":" +
+        (tracking.selected < microchrony::source_capacity ? std::to_string(tracking.selected)
+                                                          : "null") +
+        ",\"combined_sources\":" + std::to_string(tracking.combined_sources) +
+        ",\"utc_updates\":" + std::to_string(discipline_accepted_) + ",\"peers\":[";
+    for (const auto& peer : peers_) {
+        if (peer.index && !pool_enabled_)
+            break;
+        if (peer.index)
+            result += ',';
+        const auto state = ntp_.status(peer.index, now);
+        result += "{\"slot\":" + std::to_string(peer.index) +
+                  ",\"hostname\":" + wtp::json::quote(peer.hostname) + ",\"endpoint\":" +
+                  wtp::json::quote(
+                      server_literal_ || peer.lookup.ready() ? ipaddr_ntoa(&peer.address) : "") +
+                  ",\"queries\":" + std::to_string(peer.queries) +
+                  ",\"accepted\":" + std::to_string(peer.accepted) +
+                  ",\"rejected\":" + std::to_string(peer.rejected) + ",\"selection_score_milli\":" +
+                  std::to_string(std::uint64_t(std::min(1e9, state.selection_score * 1000))) +
+                  ",\"reach\":" + std::to_string(state.reach) +
+                  ",\"max_process_us\":" + std::to_string(peer.max_process_us) +
+                  ",\"poll_seconds\":" + std::to_string(1U << state.poll) +
+                  ",\"selected\":" + (state.selected ? "true" : "false") +
+                  ",\"combined\":" + (state.combined ? "true" : "false") +
+                  ",\"reason\":" + wtp::json::quote(microchrony::name(state.reason)) + "}";
+    }
+    return result + "]}";
+}
 std::string PicoNetwork::status() const {
     const auto* softap = &cyw43_state.netif[CYW43_ITF_AP];
     const auto softap_netif =
         std::string("{\"up\":") + (netif_is_up(softap) ? "true" : "false") +
         ",\"link_up\":" + (netif_is_link_up(softap) ? "true" : "false") +
         ",\"ipv4\":" + wtp::json::quote(ip4addr_ntoa(netif_ip4_addr(softap))) + "}";
-    const auto uncertainty = sntp_.last_uncertainty_ns();
+    const auto& selected = active_peer();
+    const auto uncertainty = ntp_.last_uncertainty_ns();
     std::string tx_guard;
 #ifdef WSPRRY_PICO_CYW43_TX_GUARD
     std::uint32_t waits, preserved, timeouts;
@@ -741,8 +856,10 @@ std::string PicoNetwork::status() const {
                ",\"preserved\":" + std::to_string(preserved) +
                ",\"timeouts\":" + std::to_string(timeouts) + "}";
 #endif
-    return "{\"ntp_observations\":" + sntp_.observations_json() +
-           ",\"ntp_rate\":" + time::rate_json(sntp_.rate(activity_now_ns())) +
+    return "{\"ntp_observations\":" + ntp_.observations_json() +
+           ",\"ntp_rate\":" + time::rate_json(ntp_.rate(activity_now_ns())) +
+           ",\"ntp_learning\":" + ntp_.learning_json(activity_now_ns()) +
+           ",\"ntp_pool\":" + pool_status(activity_now_ns()) +
            ",\"initialized\":" + std::string(initialized_ ? "true" : "false") +
            ",\"enabled\":" + (enabled_ ? "true" : "false") + ",\"link_status\":" +
            std::to_string(initialized_ ? cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA)
@@ -775,18 +892,32 @@ std::string PicoNetwork::status() const {
            ",\"ipv4\":" + packet_stats(lwip_stats.ip) + ",\"tcp\":" + packet_stats(lwip_stats.tcp) +
            ",\"udp\":" + packet_stats(lwip_stats.udp) + "}" + ",\"memory\":" + network_memory() +
            tx_guard + ",\"ntp_server\":" + wtp::json::quote(time_server_) + ",\"ntp_address\":" +
-           wtp::json::quote(server_literal_ || lookup_.ready() ? ipaddr_ntoa(&server_) : "") +
+           wtp::json::quote(
+               server_literal_ || selected.lookup.ready() ? ipaddr_ntoa(&selected.address) : "") +
            ",\"ntp_resolution\":" +
-           wtp::json::quote(server_literal_     ? "literal"
-                            : lookup_.pending() ? "resolving"
-                            : lookup_.ready()   ? "resolved"
-                                                : "unresolved") +
+           wtp::json::quote(server_literal_             ? "literal"
+                            : selected.lookup.pending() ? "resolving"
+                            : selected.lookup.ready()   ? "resolved"
+                                                        : "unresolved") +
            ",\"ntp_resolution_failures\":" + std::to_string(resolution_failures_) +
            ",\"queries\":" + std::to_string(queries_) +
            ",\"accepted\":" + std::to_string(accepted_) +
            ",\"rejected\":" + std::to_string(rejected_) +
-           ",\"last_rtt_ns\":" + std::to_string(sntp_.last_rtt_ns()) +
+           ",\"last_rtt_ns\":" + std::to_string(ntp_.last_rtt_ns()) +
            ",\"last_sample_uncertainty_ns\":" +
            (uncertainty ? std::to_string(*uncertainty) : "null") + "}";
+}
+std::string PicoNetwork::ntp_history_page(std::string_view request,
+                                          time::NtpDiagnosticBinding binding) const {
+    const auto slot = request.size() >= 3 && request[0] == '@' && request[1] >= '0' &&
+                              request[1] <= '3' && request[2] == ' '
+                          ? unsigned(request[1] - '0')
+                          : ntp_.selected_slot();
+    const auto& peer = peers_[slot];
+    const std::string endpoint =
+        server_literal_ || peer.lookup.ready() ? ipaddr_ntoa(&peer.address) : "";
+    binding.slot = peer.index;
+    binding.endpoint = endpoint;
+    return ntp_.history_page(binding, request, activity_now_ns());
 }
 } // namespace wsprrypico::standalone

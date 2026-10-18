@@ -76,6 +76,8 @@ class ControllerTimeArbiter final : public ObservationSink {
     bool observe_rate(std::uint64_t utc, std::uint64_t raw, std::uint64_t uncertainty,
                       std::int32_t rate, std::uint32_t rate_uncertainty,
                       std::uint64_t generation) override;
+    bool observe_ntp_model(const RateObservation& source, const wtp::ClockSnapshot& model,
+                           std::uint32_t max_clock_error_ppb) override;
     void invalidate(ObservationSource source) override;
     ControllerTimeStatus status() const;
 
@@ -122,5 +124,6 @@ class ControllerTimeArbiter final : public ObservationSink {
     Observation current_;
     Observation recovery_;
     ActiveTimeSource source_ = ActiveTimeSource::None;
+    bool imported_ntp_ = false;
 };
 } // namespace wsprrypico::time

@@ -1,0 +1,866 @@
+{
+  "schema": "ntp-overnight-evidence/1",
+  "recorded_utc": "2026-10-18T02:09:21.425851+00:00",
+  "disposition": "STOPPED_EARLY_DIAGNOSTIC_PAGINATION_ERROR_NO_RESTART",
+  "authorization": "User explicitly requested A normalfirmware/pool overnight afterB coldstartworks/stable; B remains time.local",
+  "target": {
+    "schema": "ntp-retained-target/1",
+    "firmware": "0.0.0-ntp-retained-r4",
+    "base_commit": "d18c10ec54dc8aeccb277b47ba39a88c47feb76e",
+    "source_binding_sha256": "c6134990388a088de380e025d8751cb45895805d1f8411611e7152940f07bb10",
+    "application_end": "103ee000",
+    "artifacts": {
+      "WsprryPico.elf": {
+        "bytes": 40436840,
+        "sha256": "99be53156f3245a4fdf77ef5508a4674700cdf26823f0a2cf9dfb032f2c4c6e8"
+      },
+      "WsprryPico.elf.map": {
+        "bytes": 3676618,
+        "sha256": "6b63bb18a71df6d3684de6a746124ef808727783aebe658be76061ceeeb1f7a3"
+      },
+      "WsprryPico.uf2": {
+        "bytes": 4771840,
+        "sha256": "80ce14d21b1db966acfc9c726cf0dc5d16dfb8fa742bcc4ca613f2858e7f2408"
+      }
+    },
+    "image_sha256": "80ce14d21b1db966acfc9c726cf0dc5d16dfb8fa742bcc4ca613f2858e7f2408"
+  },
+  "setup": {
+    "passed": true,
+    "A": {
+      "boot_id": "209968718134f4efc5a0deacc90bb7ba",
+      "firmware": "0.0.0-ntp-retained-r4",
+      "server": "pool.ntp.org",
+      "endpoint": "23.186.168.124",
+      "accepted": 1,
+      "unowned": true,
+      "output_active": false,
+      "manual_unchanged": true
+    },
+    "normal_firmware_only": true,
+    "saved_final_72k_preserved": true,
+    "unrelated_settings_and_manual_unchanged": true
+  },
+  "launch": {
+    "collector_pid": 672875,
+    "guard_pid": 672986,
+    "identity": {
+      "argv": [
+        "python3",
+        "-u",
+        "collect.py"
+      ],
+      "cwd": "/home/pi/ntp-overnight-20261017",
+      "ticks": "13303441"
+    },
+    "plan": {
+      "schema": "ntp-overnight-intent/1",
+      "authorization": "User requested A normal firmware with pool.ntp.org overnight after B coldboot works andstable; B remains time.local",
+      "boards": {
+        "A": "pool.ntp.org",
+        "B": "time.local"
+      },
+      "end_utc": "2026-10-18T12:00:00+00:00",
+      "end_local": "2026-10-18 07:00 America/Chicago",
+      "maximum_seconds": 43200,
+      "maximum_query_delta_per_board": 800,
+      "soft_stop_query_delta_per_board": 780,
+      "maximum_evidence_bytes": 268435456,
+      "rf_starts": 0,
+      "quality_gates": "unchanged",
+      "ownership": "Neither board is claimed",
+      "stop_on_conflict": true,
+      "started_utc": "2026-10-18T01:18:59.481831+00:00",
+      "started_boot_seconds": 133034.416162495,
+      "absolute_hard_deadline_boot_seconds": 171494.93433149502,
+      "absolute_stop_boot_seconds": 171374.93433149502,
+      "collector_sha256": "83ffed2c23f581e44e3b935ee92ecd17f91e23790a66c8067e3958facf45797e",
+      "guard_sha256": "8a147bbe1a533c954c253542ac85d94dbaf00f7460536cbef99f39a359601168",
+      "soft_stop_margin_seconds": 120
+    }
+  },
+  "initial_status": {
+    "schema": "ntp-overnight-status/1",
+    "status": "RUNNING",
+    "boards": {
+      "A": {
+        "boot_id": "209968718134f4efc5a0deacc90bb7ba",
+        "server": "pool.ntp.org",
+        "endpoint": "23.186.168.124",
+        "queries": 3,
+        "query_delta": 2,
+        "accepted": 2,
+        "rejected": 1,
+        "clock_state": "synchronized",
+        "unique_originals": 2,
+        "utc_model": {
+          "qualified": false,
+          "utc_rate_ppb": 0,
+          "uncertainty_ppb": 100000,
+          "generation": "6",
+          "sampled_raw_ns": "69633950000",
+          "span_ns": "64337012000",
+          "samples": 2,
+          "reason": "insufficient_span_or_samples"
+        },
+        "rf_model": {
+          "qualified": false,
+          "utc_rate_ppb": 0,
+          "uncertainty_ppb": 100000,
+          "generation": "6",
+          "sampled_raw_ns": "69633950000",
+          "span_ns": "64337012000",
+          "samples": 2,
+          "reason": "insufficient_span_or_samples"
+        },
+        "servo": {
+          "state": "phase_only",
+          "rate_ppb": 0,
+          "rate_uncertainty_ppb": 100000,
+          "qualified_input": false,
+          "anchor_utc_ns": "1792286367557275000",
+          "anchor_raw_ns": "69633950000",
+          "anchor_uncertainty_ns": "445572128",
+          "phase_lag_ns": "86691000"
+        },
+        "retention": {
+          "healthy": true,
+          "sequence": "0",
+          "saved_utc_rate_ppb": null,
+          "boot_utc_rate_ppb": null,
+          "saved_rf_available": false,
+          "saved_rf": null
+        },
+        "heap_available_bytes": 94872,
+        "allocator_peak_bytes": 43348,
+        "unowned": true,
+        "output_active": false
+      },
+      "B": {
+        "boot_id": "607918f8ee0acde8db20ca5309b33142",
+        "server": "time.local",
+        "endpoint": "192.168.1.54",
+        "queries": 6,
+        "query_delta": 1,
+        "accepted": 6,
+        "rejected": 0,
+        "clock_state": "synchronized",
+        "unique_originals": 6,
+        "utc_model": {
+          "qualified": false,
+          "utc_rate_ppb": 0,
+          "uncertainty_ppb": 100000,
+          "generation": "10",
+          "sampled_raw_ns": "325137076000",
+          "span_ns": "320075098000",
+          "samples": 6,
+          "reason": "insufficient_span_or_samples"
+        },
+        "rf_model": {
+          "qualified": false,
+          "utc_rate_ppb": 0,
+          "uncertainty_ppb": 100000,
+          "generation": "10",
+          "sampled_raw_ns": "325137076000",
+          "span_ns": "320075098000",
+          "samples": 6,
+          "reason": "insufficient_span_or_samples"
+        },
+        "servo": {
+          "state": "provisional_rate_hold",
+          "rate_ppb": -121,
+          "rate_uncertainty_ppb": 100121,
+          "qualified_input": false,
+          "anchor_utc_ns": "1792286334929694000",
+          "anchor_raw_ns": "325137076000",
+          "anchor_uncertainty_ns": "31137887",
+          "phase_lag_ns": "2882000"
+        },
+        "retention": {
+          "healthy": true,
+          "sequence": "1",
+          "saved_utc_rate_ppb": -121,
+          "boot_utc_rate_ppb": -121,
+          "saved_rf_available": false,
+          "saved_rf": null
+        },
+        "heap_available_bytes": 98720,
+        "allocator_peak_bytes": 38060,
+        "unowned": true,
+        "output_active": false
+      }
+    },
+    "rf_starts": 0,
+    "observed_utc_ns": "1792286371269746927",
+    "observed_boot_seconds": 133066.204053667,
+    "evidence_bytes": 110648,
+    "maximum_usb_page_bytes": 2611,
+    "first_qualified": []
+  },
+  "heartbeat": {
+    "id": "review-pico-overnight-ntp-comparison",
+    "status": "PAUSED",
+    "interval_minutes": 15
+  },
+  "quality_gates_unchanged": true,
+  "rf_starts": 0,
+  "private_artifacts": [
+    {
+      "path": "build/ntp-overnight-20261017/target.json",
+      "bytes": 794,
+      "sha256": "557a85e398e0381895635745ade5f57fa02aea23145b89361711711f1dd83b65"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/setup-result.json",
+      "bytes": 5893,
+      "sha256": "616daa9afd7a17dabe089c1737046ea2d06ec4b29cc1dfab351d184a902eca08"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/launch.json",
+      "bytes": 1301,
+      "sha256": "fdfcb51c147289cb9b734fab7a83b65edcc8c97d9eb0e236dd222dcf2661176a"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/status-initial.json",
+      "bytes": 3367,
+      "sha256": "2a6184d98a11ff3710c3bd612eac59bd6fd6bd2ebea3d3c203b5dc904a893ffb"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/intent.json",
+      "bytes": 608,
+      "sha256": "bb6b02bf941c20dae990aa850faa0f382e3ac3e12d96de344f2d916579b2c13c"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/operator-cold-confirmation.json",
+      "bytes": 236,
+      "sha256": "62f3488403e9349e323bdf020e1386f8b4bb97952637a22bd48c6c31afe55069"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/load_a.py",
+      "bytes": 5531,
+      "sha256": "ce795167b9237bba8f13d4c2415e4d9ad895a59ca39b390097ebbd2ffe74e203"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/collect.py",
+      "bytes": 9964,
+      "sha256": "83ffed2c23f581e44e3b935ee92ecd17f91e23790a66c8067e3958facf45797e"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/watchdog.py",
+      "bytes": 2069,
+      "sha256": "8a147bbe1a533c954c253542ac85d94dbaf00f7460536cbef99f39a359601168"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/start.py",
+      "bytes": 2733,
+      "sha256": "6436dee76ded5976aa6032681b68c2042fa6385cc0335f2fffd9fb2ef48bd106"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/evidence/status.json",
+      "bytes": 3888,
+      "sha256": "114b11a46bc5ebdabc3d7a867e63c681be6cac96656394642396287db18913b4"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/evidence/guard-result.json",
+      "bytes": 4545,
+      "sha256": "faaabfe37315ee04a1965643f1594d859635415f6afc5679cadef61d39965e7d"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/evidence/collector.log",
+      "bytes": 3525,
+      "sha256": "5179bac0e217c62420174f8a3a0b8c4bbe5805c2d0ae9e9502c79f331f10d497"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/evidence/failure-current-read.json",
+      "bytes": 22459,
+      "sha256": "b3e330ead8fedfdd557b2b38bfdcae7865874c9ece31e5f5ff2ee13e4197cedf"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/evidence/last-history-A.json",
+      "bytes": 51,
+      "sha256": "c37fbaa84b787c7bf9d904ce1a69d1f312e1bef687693a4ce926d188ad7fd588"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/evidence/final-read-A.json",
+      "bytes": 18434,
+      "sha256": "c71654bc91c878b180a6f1b85533418811635d8c5bdf4852a4dd01aee9df9d91"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/evidence/final-read-B.json",
+      "bytes": 15452,
+      "sha256": "7447d16d7dca8a7b49eb289b53262437975dbfe0547fb7bdc7c989472d10dadd"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/evidence/observations.jsonl",
+      "bytes": 5868937,
+      "sha256": "2129c0b856adf09f960589950ec40ce62dff00564802a74200ff8fc52cbbcb5a"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/evidence-stopped.tar.gz",
+      "bytes": 506957,
+      "sha256": "dfe5f83aa2d6b32d4dfede2f03a6ac899b5f52f250dc1632413de55bf04c1a7e"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/post-stop-verification.tar.gz",
+      "bytes": 13144,
+      "sha256": "7c26f63cad8be1e8fbccc3a0442b5066ec2f92dfab8e2379c44f0eff95f32150"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/A-analysis.json",
+      "bytes": 14131,
+      "sha256": "9ba9ef945dadcad4da41e4e67a859332b8f7593e625cf647d84a04e975cf5e24"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/B-analysis.json",
+      "bytes": 13764,
+      "sha256": "1590c4094929404ed91d448772062e544c87822f9efe7e94c5c2d9555e0bcaad"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/A-oracle.json",
+      "bytes": 1795,
+      "sha256": "c360a3a6bcb257170a579e7ee419e19d031490661c7acca7c1998ee0f7067f71"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/B-oracle.json",
+      "bytes": 1811,
+      "sha256": "6918a487415c4d54814272c5b7940c2c196af80832e3e517447737a441091612"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/exit-original-coverage.json",
+      "bytes": 1569,
+      "sha256": "568c22ce8914a557820eb99bc086dba2beedde9b0f4deb930634b1f776166492"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/comparison.json",
+      "bytes": 1951,
+      "sha256": "2777c5492499a2af3d09129f2f1476ea752b082e5765ad738014fb1c5bb53438"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/analyze_servo.py",
+      "bytes": 9852,
+      "sha256": "59dff10b8e9f4a44cc5a85730838be3839f2fd1f4785939469fff1adcf5b39f0"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/post_stop_verify.py",
+      "bytes": 4022,
+      "sha256": "889d88e3cd87d504defbf7db5fface56f1c6aedca1b5db73dc33870973664467"
+    },
+    {
+      "path": "build/ntp-overnight-20261017/post-stop/post-stop-final-result.json",
+      "bytes": 1250,
+      "sha256": "e26b975b8cb91a83f3412845c654606024ed95d44d133c456872144473798859"
+    }
+  ],
+  "completion": {
+    "requested_overnight_interval_complete": false,
+    "observer_exited": true,
+    "within_hard_deadline": true,
+    "duration_seconds": 2089.549702932,
+    "ended_utc": "2026-10-18T01:53:49.031534+00:00",
+    "paired_rows": 139,
+    "paired_evidence_bytes": 5868937,
+    "restarted": false
+  },
+  "independent_final_review": "Passed:29artifacthashes, exact reproduction of both analyses and oracles, final settings/boot receipts and qualification limits verified; report bookkeeping repaired",
+  "stopped_status": {
+    "schema": "ntp-overnight-status/1",
+    "status": "PAUSED_ERROR_OR_CONFLICT",
+    "boards": {
+      "A": {
+        "boot_id": "209968718134f4efc5a0deacc90bb7ba",
+        "server": "pool.ntp.org",
+        "endpoint": "23.150.41.122",
+        "queries": 40,
+        "query_delta": 39,
+        "accepted": 39,
+        "rejected": 1,
+        "clock_state": "synchronized",
+        "unique_originals": 39,
+        "utc_model": {
+          "qualified": false,
+          "utc_rate_ppb": 0,
+          "uncertainty_ppb": 100000,
+          "generation": "35",
+          "sampled_raw_ns": "2059773639000",
+          "span_ns": "1729723656000",
+          "samples": 28,
+          "reason": "insufficient_span_or_samples"
+        },
+        "rf_model": {
+          "qualified": false,
+          "utc_rate_ppb": 0,
+          "uncertainty_ppb": 100000,
+          "generation": "35",
+          "sampled_raw_ns": "2059773639000",
+          "span_ns": "1729723656000",
+          "samples": 28,
+          "reason": "insufficient_span_or_samples"
+        },
+        "servo": {
+          "state": "provisional_rate",
+          "rate_ppb": -949,
+          "rate_uncertainty_ppb": 100949,
+          "qualified_input": false,
+          "anchor_utc_ns": "1792288357711118000",
+          "anchor_raw_ns": "2059773639000",
+          "anchor_uncertainty_ns": "138869799",
+          "phase_lag_ns": "24238000"
+        },
+        "retention": {
+          "healthy": true,
+          "sequence": "3",
+          "saved_utc_rate_ppb": -1048,
+          "boot_utc_rate_ppb": null,
+          "saved_rf_available": false,
+          "saved_rf": null
+        },
+        "heap_available_bytes": 94544,
+        "allocator_peak_bytes": 48668,
+        "unowned": true,
+        "output_active": false
+      },
+      "B": {
+        "boot_id": "607918f8ee0acde8db20ca5309b33142",
+        "server": "time.local",
+        "endpoint": "192.168.1.54",
+        "queries": 39,
+        "query_delta": 34,
+        "accepted": 38,
+        "rejected": 1,
+        "clock_state": "synchronized",
+        "unique_originals": 38,
+        "utc_model": {
+          "qualified": false,
+          "utc_rate_ppb": 0,
+          "uncertainty_ppb": 100000,
+          "generation": "42",
+          "sampled_raw_ns": "2375787996000",
+          "span_ns": "2370726018000",
+          "samples": 32,
+          "reason": "unstable_or_out_of_range"
+        },
+        "rf_model": {
+          "qualified": false,
+          "utc_rate_ppb": 0,
+          "uncertainty_ppb": 100000,
+          "generation": "42",
+          "sampled_raw_ns": "2375787996000",
+          "span_ns": "1986630426000",
+          "samples": 32,
+          "reason": "unstable_or_out_of_range"
+        },
+        "servo": {
+          "state": "provisional_rate",
+          "rate_ppb": -96,
+          "rate_uncertainty_ppb": 100096,
+          "qualified_input": false,
+          "anchor_utc_ns": "1792288385575794000",
+          "anchor_raw_ns": "2375787996000",
+          "anchor_uncertainty_ns": "10644146",
+          "phase_lag_ns": "2287000"
+        },
+        "retention": {
+          "healthy": true,
+          "sequence": "3",
+          "saved_utc_rate_ppb": -113,
+          "boot_utc_rate_ppb": -121,
+          "saved_rf_available": false,
+          "saved_rf": null
+        },
+        "heap_available_bytes": 98720,
+        "allocator_peak_bytes": 38124,
+        "unowned": true,
+        "output_active": false
+      }
+    },
+    "rf_starts": 0,
+    "observed_utc_ns": "1792288410511833711",
+    "observed_boot_seconds": 135105.446140562,
+    "evidence_bytes": 5868937,
+    "maximum_usb_page_bytes": 2662,
+    "first_qualified": [],
+    "error": "AssertionError()",
+    "final": {
+      "A": {
+        "queries": 42,
+        "query_delta": 41,
+        "boot_id": "209968718134f4efc5a0deacc90bb7ba",
+        "unowned": true,
+        "output_active": false
+      },
+      "B": {
+        "queries": 39,
+        "query_delta": 34,
+        "boot_id": "607918f8ee0acde8db20ca5309b33142",
+        "unowned": true,
+        "output_active": false
+      }
+    },
+    "ended_utc_ns": "1792288429031534100",
+    "observer_exit_does_not_stop_firmware_ntp": true
+  },
+  "guard_result": {
+    "schema": "ntp-overnight-pidfd-guard/1",
+    "pid": 672875,
+    "identity": {
+      "argv": [
+        "python3",
+        "-u",
+        "collect.py"
+      ],
+      "cwd": "/home/pi/ntp-overnight-20261017",
+      "ticks": "13303441"
+    },
+    "started_utc_ns": "1792286342519536682",
+    "observer_exited": true,
+    "ended_utc_ns": "1792288429061483645",
+    "within_hard_deadline": true,
+    "final_status": {
+      "schema": "ntp-overnight-status/1",
+      "status": "PAUSED_ERROR_OR_CONFLICT",
+      "boards": {
+        "A": {
+          "boot_id": "209968718134f4efc5a0deacc90bb7ba",
+          "server": "pool.ntp.org",
+          "endpoint": "23.150.41.122",
+          "queries": 40,
+          "query_delta": 39,
+          "accepted": 39,
+          "rejected": 1,
+          "clock_state": "synchronized",
+          "unique_originals": 39,
+          "utc_model": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "35",
+            "sampled_raw_ns": "2059773639000",
+            "span_ns": "1729723656000",
+            "samples": 28,
+            "reason": "insufficient_span_or_samples"
+          },
+          "rf_model": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "35",
+            "sampled_raw_ns": "2059773639000",
+            "span_ns": "1729723656000",
+            "samples": 28,
+            "reason": "insufficient_span_or_samples"
+          },
+          "servo": {
+            "state": "provisional_rate",
+            "rate_ppb": -949,
+            "rate_uncertainty_ppb": 100949,
+            "qualified_input": false,
+            "anchor_utc_ns": "1792288357711118000",
+            "anchor_raw_ns": "2059773639000",
+            "anchor_uncertainty_ns": "138869799",
+            "phase_lag_ns": "24238000"
+          },
+          "retention": {
+            "healthy": true,
+            "sequence": "3",
+            "saved_utc_rate_ppb": -1048,
+            "boot_utc_rate_ppb": null,
+            "saved_rf_available": false,
+            "saved_rf": null
+          },
+          "heap_available_bytes": 94544,
+          "allocator_peak_bytes": 48668,
+          "unowned": true,
+          "output_active": false
+        },
+        "B": {
+          "boot_id": "607918f8ee0acde8db20ca5309b33142",
+          "server": "time.local",
+          "endpoint": "192.168.1.54",
+          "queries": 39,
+          "query_delta": 34,
+          "accepted": 38,
+          "rejected": 1,
+          "clock_state": "synchronized",
+          "unique_originals": 38,
+          "utc_model": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "42",
+            "sampled_raw_ns": "2375787996000",
+            "span_ns": "2370726018000",
+            "samples": 32,
+            "reason": "unstable_or_out_of_range"
+          },
+          "rf_model": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "42",
+            "sampled_raw_ns": "2375787996000",
+            "span_ns": "1986630426000",
+            "samples": 32,
+            "reason": "unstable_or_out_of_range"
+          },
+          "servo": {
+            "state": "provisional_rate",
+            "rate_ppb": -96,
+            "rate_uncertainty_ppb": 100096,
+            "qualified_input": false,
+            "anchor_utc_ns": "1792288385575794000",
+            "anchor_raw_ns": "2375787996000",
+            "anchor_uncertainty_ns": "10644146",
+            "phase_lag_ns": "2287000"
+          },
+          "retention": {
+            "healthy": true,
+            "sequence": "3",
+            "saved_utc_rate_ppb": -113,
+            "boot_utc_rate_ppb": -121,
+            "saved_rf_available": false,
+            "saved_rf": null
+          },
+          "heap_available_bytes": 98720,
+          "allocator_peak_bytes": 38124,
+          "unowned": true,
+          "output_active": false
+        }
+      },
+      "rf_starts": 0,
+      "observed_utc_ns": "1792288410511833711",
+      "observed_boot_seconds": 135105.446140562,
+      "evidence_bytes": 5868937,
+      "maximum_usb_page_bytes": 2662,
+      "first_qualified": [],
+      "error": "AssertionError()",
+      "final": {
+        "A": {
+          "queries": 42,
+          "query_delta": 41,
+          "boot_id": "209968718134f4efc5a0deacc90bb7ba",
+          "unowned": true,
+          "output_active": false
+        },
+        "B": {
+          "queries": 39,
+          "query_delta": 34,
+          "boot_id": "607918f8ee0acde8db20ca5309b33142",
+          "unowned": true,
+          "output_active": false
+        }
+      },
+      "ended_utc_ns": "1792288429031534100",
+      "observer_exit_does_not_stop_firmware_ntp": true
+    }
+  },
+  "final_verification": {
+    "schema": "ntp-overnight-post-stop-final/1",
+    "passed": true,
+    "started_utc_ns": "1792289171280686396",
+    "boards": {
+      "A": {
+        "boot_id": "209968718134f4efc5a0deacc90bb7ba",
+        "firmware": "0.0.0-ntp-retained-r4",
+        "server": "pool.ntp.org",
+        "endpoint": "23.142.248.8",
+        "queries": 53,
+        "accepted": 52,
+        "rejected": 1,
+        "clock_state": "synchronized",
+        "actual_utc_rate_ppb": -907,
+        "unowned": true,
+        "output_active": false,
+        "saved_settings_unchanged": true,
+        "wifi_generation_unchanged": true,
+        "manual_ppm": "0.000",
+        "mode": "manual",
+        "independent_rf_verified": false
+      },
+      "B": {
+        "boot_id": "607918f8ee0acde8db20ca5309b33142",
+        "firmware": "0.0.0-ntp-retained-r4",
+        "server": "time.local",
+        "endpoint": "192.168.1.54",
+        "queries": 51,
+        "accepted": 50,
+        "rejected": 1,
+        "clock_state": "synchronized",
+        "actual_utc_rate_ppb": 50,
+        "unowned": true,
+        "output_active": false,
+        "saved_settings_unchanged": true,
+        "wifi_generation_unchanged": true,
+        "manual_ppm": "0.000",
+        "mode": "manual",
+        "independent_rf_verified": false
+      }
+    },
+    "ended_utc_ns": "1792289174329448098"
+  },
+  "exit_original_coverage": {
+    "schema": "ntp-exit-original-coverage/1",
+    "scope": "Complete stream plus existing failure/finalINFO only; no post-stop live samples enter analysis",
+    "boards": [
+      {
+        "board": "A",
+        "completed_stream_originals": 39,
+        "exit_supplement_originals": 2,
+        "full_originals": 41,
+        "accepted_at_exit": 41,
+        "queries_at_exit": 42,
+        "cohorts": [
+          {
+            "slot": 0,
+            "endpoint": "23.186.168.124",
+            "epoch": "4",
+            "count": 7,
+            "first_id": 1,
+            "last_id": 7
+          },
+          {
+            "slot": 1,
+            "endpoint": "23.142.248.8",
+            "epoch": "5",
+            "count": 2,
+            "first_id": 1,
+            "last_id": 2
+          },
+          {
+            "slot": 2,
+            "endpoint": "73.185.182.209",
+            "epoch": "4",
+            "count": 2,
+            "first_id": 1,
+            "last_id": 2
+          },
+          {
+            "slot": 3,
+            "endpoint": "23.150.41.122",
+            "epoch": "5",
+            "count": 30,
+            "first_id": 1,
+            "last_id": 30
+          }
+        ],
+        "full_exit_coverage": true
+      },
+      {
+        "board": "B",
+        "completed_stream_originals": 38,
+        "exit_supplement_originals": 0,
+        "full_originals": 38,
+        "accepted_at_exit": 38,
+        "queries_at_exit": 39,
+        "cohorts": [
+          {
+            "slot": 0,
+            "endpoint": "192.168.1.54",
+            "epoch": "4",
+            "count": 38,
+            "first_id": 1,
+            "last_id": 38
+          }
+        ],
+        "full_exit_coverage": true
+      }
+    ]
+  },
+  "comparison": {
+    "schema": "ntp-overnight-short-comparison/1",
+    "boards": {
+      "A": {
+        "clock_bound_holdouts": {
+          "count": 32,
+          "median_abs_residual_ns": {
+            "servo": 7295216.5,
+            "phase_only": 9350000.0,
+            "free_run": 9201500.0
+          }
+        },
+        "phase_variation_ns": {
+          "servo": 55684240,
+          "phase_only": 504390000
+        },
+        "nonzero_rate_effect": {
+          "count": 18,
+          "median_absolute_error_reduction_ns": -53740.0,
+          "improved": 7,
+          "worse": 11
+        },
+        "all_holdouts_covered": true,
+        "resources": {
+          "maxima": {
+            "allocator_peak_bytes": 48668,
+            "allocator_largest_successful_request_bytes": 8833,
+            "core0_stack_used_bytes": 15816,
+            "core1_stack_used_bytes": 584
+          },
+          "minimum_sampled_heap_available_bytes": 93232
+        }
+      },
+      "B": {
+        "clock_bound_holdouts": {
+          "count": 32,
+          "median_abs_residual_ns": {
+            "servo": 4010530.0,
+            "phase_only": 4013000.0,
+            "free_run": 11619500.0
+          }
+        },
+        "phase_variation_ns": {
+          "servo": 39716769,
+          "phase_only": 374625000
+        },
+        "nonzero_rate_effect": {
+          "count": 32,
+          "median_absolute_error_reduction_ns": 7746.0,
+          "improved": 20,
+          "worse": 12
+        },
+        "all_holdouts_covered": true,
+        "resources": {
+          "maxima": {
+            "allocator_peak_bytes": 38124,
+            "allocator_largest_successful_request_bytes": 7777,
+            "core0_stack_used_bytes": 15816,
+            "core1_stack_used_bytes": 584
+          },
+          "minimum_sampled_heap_available_bytes": 98704
+        }
+      }
+    },
+    "scope": "Causal next-NTP consistency, not absoluteUTC/RFtruth; duration insufficient for overnight/twohour conclusion",
+    "phase_movement_scope": "Within continuous source cohorts/segments; excludes source-transition and reset discontinuities"
+  },
+  "model_oracles": {
+    "A": {
+      "snapshots_checked": 34,
+      "qualified_snapshots": {
+        "utc": 0,
+        "rf": 0
+      },
+      "mismatches": []
+    },
+    "B": {
+      "snapshots_checked": 33,
+      "qualified_snapshots": {
+        "utc": 0,
+        "rf": 0
+      },
+      "mismatches": []
+    }
+  },
+  "failure": {
+    "reply": {
+      "ok": false,
+      "error": "ntp_history_cursor"
+    },
+    "location": "collect.py history() page identity/ok assertion, line46",
+    "strongly_supported_cause": "A selected-peer switch shrank history from58to2 records; cursor bounds are checked before stale token, and observer only handled ntp_history_changed",
+    "exact_failed_request_and_partial_pages_preserved": false,
+    "exact_interleaving_is_inference": true,
+    "recorded_ui_conflict": false,
+    "firmware_ntp_stopped": false
+  },
+  "assessment_complete": true
+}

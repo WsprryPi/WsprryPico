@@ -23,7 +23,8 @@ PROFILES = {
     'consumer': {'target': 'WsprryPico', 'engine': 'pio-dma', 'role': 'uninhibited'},
     'inhibited-regression': {'target': 'WsprryPico-Inhibited', 'engine': 'simulator', 'role': 'inhibited'},
 }
-APPLICATION_END = 0x103f0000
+APPLICATION_END = 0x103ee000
+SUPPORTED_APPLICATION_ENDS = {APPLICATION_END, 0x103f0000}
 MAX_FILE = 64 * 1024 * 1024
 SCHEMA = Path(__file__).with_name('release-manifest-1.schema.json')
 CONSUMER_OVERLAYS = {'cyw43-tx-overlay/cyw43_ll.c',
@@ -140,14 +141,25 @@ def binary_identity(report):
     return fields
 
 
-def inspect_payload(directory, identifier):
+def source_application_end(source):
+    require(re.fullmatch('[0-9a-f]{40}', source), 'Full frozen source revision required')
+    text = capture('git', '-C', ROOT, 'show', source + ':cmake/standalone_link/memory_flash.incl')
+    match = re.search(r'FLASH\(rx\)\s*:\s*ORIGIN\s*=\s*0x10000000,\s*LENGTH\s*=\s*(0x[0-9a-fA-F]+)', text)
+    require(match, 'Frozen source flash reservation missing')
+    end = 0x10000000 + int(match[1], 16)
+    require(end in SUPPORTED_APPLICATION_ENDS, 'Unsupported source flash reservation')
+    return end
+
+
+def inspect_payload(directory, identifier, application_end=APPLICATION_END):
+    require(application_end in SUPPORTED_APPLICATION_ENDS, 'Unsupported flash reservation')
     target = PROFILES[identifier]['target']
     elf, uf2 = directory / (target + '.elf'), directory / (target + '.uf2')
     require(elf.stat().st_size <= MAX_FILE and uf2.stat().st_size <= 9 * 1024 * 1024,
             'Oversized image')
     elf_bytes, uf2_bytes = elf.read_bytes(), uf2.read_bytes()
-    validate_uf2(uf2_bytes, application_end=APPLICATION_END)
-    verify_payload(elf_bytes, uf2_bytes, application_end=APPLICATION_END)
+    validate_uf2(uf2_bytes, application_end=application_end)
+    verify_payload(elf_bytes, uf2_bytes, application_end=application_end)
     for offset in range(0, len(uf2_bytes), 512):
         if struct.unpack_from('<I', uf2_bytes, offset + 12)[0] == 0x10ffff00:
             expected_e10 = (struct.pack('<8I', 0x0a324655, 0x9e5d5157, 0xa000,
@@ -157,7 +169,7 @@ def inspect_payload(directory, identifier):
             require(uf2_bytes[offset:offset + 512] == expected_e10, 'Unexpected E10 block metadata')
 
 
-def inspect_profile(directory, identifier, version, source, picotool='picotool'):
+def inspect_profile(directory, identifier, version, source, picotool='picotool', application_end=None):
     profile = PROFILES[identifier]
     target = profile['target']
     require(re.match(r'^picotool v2\.3\.0(?: |$)', capture(picotool, 'version')),
@@ -176,7 +188,9 @@ def inspect_profile(directory, identifier, version, source, picotool='picotool')
     require(actual_identity == expected_binary_identity, 'Linked picotool program identity mismatch')
     require(binary_identity((directory / 'picotool-info.txt').read_text()) == actual_identity,
             'Retained picotool report differs from linked image')
-    inspect_payload(directory, identifier)
+    application_end = source_application_end(source) if application_end is None else application_end
+    require(application_end in SUPPORTED_APPLICATION_ENDS, 'Unsupported flash reservation')
+    inspect_payload(directory, identifier, application_end)
     header = (directory / 'firmware_identity.hpp').read_text()
     expected = {'kProduct': 'WsprryPico', 'kFirmwareVersion': version,
                 'kBuildRevision': source[:12], 'kBoard': 'pico2_w', 'kProcessor': 'RP2350',
@@ -192,7 +206,7 @@ def inspect_profile(directory, identifier, version, source, picotool='picotool')
     symbols = capture('arm-none-eabi-nm', '-C', elf)
     validate_engine(symbols, 'rf' if identifier == 'consumer' else 'inhibited')
     map_text = (directory / (target + '.elf.map')).read_text()
-    require(re.search(r'^FLASH\s+0x10000000\s+0x003f0000\s+xr$', map_text, re.M), 'Wrong current flash reservation')
+    require(re.search(rf'^FLASH\s+0x10000000\s+0x{application_end-0x10000000:08x}\s+xr$', map_text, re.M), 'Wrong current flash reservation')
     commands = read_json(directory / 'compile_commands.json', limit=MAX_FILE)
     selected = [item for item in commands if f'CMakeFiles/{target}.dir/' in item.get('command', '')]
     require(selected, 'Target compile evidence absent')
@@ -258,7 +272,8 @@ def create(deployment, audit, source, version, selected, checks, build_inputs):
         'checks': checks, 'build_inputs': build_inputs,
         'assets': [descriptor(path, deployment) for path in sorted(deployment.iterdir())],
         'audit_assets': [descriptor(path, audit) for path in sorted(audit.rglob('*')) if path.is_file()],
-        'update': {'application_end': '103f0000', 'ordinary_update_erases_settings': False,
+        'update': {'application_end': f'{APPLICATION_END:x}', 'ordinary_update_erases_settings': False,
+                   'usb_maintenance': 1, 'postboot_verification': 1,
                    'whole_flash_erase_required': False,
                    'unset_frequency_transmits': False, 'first_frequency_save_enables_schedule': False,
                    'rollback': 'Older firmware may reject extended saved configuration; downgrade preservation is unqualified.'},
@@ -279,6 +294,8 @@ def verify(deployment, audit, source, version, inspect=True):
     Draft202012Validator(schema).validate(manifest)
     require(re.fullmatch(r'[0-9a-f]{40}', source) and manifest['source']['revision'] == source,
             'Source identity mismatch')
+    application_end = int(manifest['update']['application_end'], 16)
+    require(application_end == source_application_end(source), 'Flash reservation differs from frozen source')
     require(manifest['firmware_version'] == version and manifest['intended_tag'] == 'v' + version,
             'Version identity mismatch')
     require(manifest['source']['tree'] == capture('git', '-C', ROOT, 'rev-parse', source + '^{tree}') and
@@ -347,7 +364,7 @@ def verify(deployment, audit, source, version, inspect=True):
             require(re.fullmatch(r'(cyw43-tx-overlay|mbedtls-alert-overlay)/[A-Za-z0-9_.-]+', path) and
                     sha(audit / profile / 'overlays' / path) == digest, 'Generated overlay digest mismatch')
     if inspect:
-        inspect_profile(audit / 'consumer', 'consumer', version, source)
+        inspect_profile(audit / 'consumer', 'consumer', version, source, application_end=application_end)
     return manifest
 
 

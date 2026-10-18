@@ -3,6 +3,7 @@
 #include "rf/calibration.hpp"
 #include "rf/waveform.hpp"
 #include "standalone/frequency_policy_engine.hpp"
+#include "standalone/ntp_retention.hpp"
 #include "standalone/wtp_profile.hpp"
 #include "time/controller_time.hpp"
 #include "time/mapping.hpp"
@@ -14,8 +15,8 @@
 #include <sstream>
 
 using namespace wsprrypico;
-static_assert(sizeof(time::UtcDiscipline) <= 192);
-static_assert(sizeof(time::NtpFilter) <= 6144);
+static_assert(sizeof(time::UtcDiscipline) <= 320);
+static_assert(sizeof(microchrony::Engine) <= 32768);
 namespace {
 constexpr std::uint64_t ns = 1'000'000'000, epoch = 1'800'000'000 * ns;
 std::uint64_t now(void* p) {
@@ -105,119 +106,242 @@ void manual() {
     REQUIRE(f.api.handle(get, "test", "127.0.0.1:8443").body.find("correction") ==
             std::string::npos);
 }
-time::NtpSample sample(unsigned i, std::int32_t slope = -10000) {
-    time::NtpSample result;
-    result.id = i + 1;
-    result.epoch = 1;
-    result.raw_ns = (i + 1) * 64 * ns;
-    result.send_ns = result.raw_ns - 2'000'000;
-    std::uint64_t elapsed{};
-    REQUIRE(time::elapsed_utc(result.raw_ns, slope, elapsed));
-    result.utc_ns = epoch + elapsed;
-    result.uncertainty_ns = 2'000'000;
-    result.rtt_ns = 1'000'000;
+std::array<std::uint8_t, 48> ntp_reply(const std::array<std::uint8_t, 48>& request,
+                                       std::uint64_t utc) {
+    std::array<std::uint8_t, 48> result{};
+    result[0] = 0x24;
+    result[1] = 2;
+    result[3] = 0xec;
+    std::copy(request.begin() + 40, request.end(), result.begin() + 24);
+    const auto seconds = utc / ns + 2'208'988'800ULL;
+    const auto fraction = ((utc % ns) << 32) / ns;
+    for (unsigned offset : {16, 32, 40})
+        for (unsigned j = 0; j < 4; ++j) {
+            result[offset + j] = std::uint8_t(seconds >> ((3 - j) * 8));
+            result[offset + 4 + j] = std::uint8_t(fraction >> ((3 - j) * 8));
+        }
     return result;
 }
-void callback_latency() {
+void diagnostic_pages() {
     std::uint64_t raw = 0;
     time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
-    time::Sntp sntp(clock);
-    const auto request = sntp.request(raw, 1234);
-    std::array<std::uint8_t, 48> reply{};
-    reply[0] = 0x24;
-    reply[1] = 2;
-    reply[3] = 0xec;
-    std::copy(request.begin() + 40, request.end(), reply.begin() + 24);
-    for (unsigned offset : {16, 32, 40}) {
-        const auto stamp = 1'800'000'000ULL + 2'208'988'800ULL;
-        for (unsigned j = 0; j < 4; ++j)
-            reply[offset + j] = std::uint8_t(stamp >> ((3 - j) * 8));
+    time::NtpClient client(clock);
+    for (unsigned i = 0; i < 80; ++i) {
+        raw = (i + 1) * 64 * ns;
+        const auto request = client.request(raw, i + 1);
+        raw += 2'000'000;
+        REQUIRE(client.receive(ntp_reply(request, epoch + raw - 1'000'000), raw));
     }
-    raw = 52'000'000; // 2 ms network plus 50 ms local receive processing delay.
-    REQUIRE(sntp.receive(reply, raw));
-    const auto snap = clock.snapshot();
-    REQUIRE(snap.utc_now_ns == epoch + 26'000'000);
-    REQUIRE(snap.uncertainty_ns >= 53'000'000);
-    const auto truth = epoch + 51'000'000;
-    REQUIRE(truth - snap.utc_now_ns <= snap.uncertainty_ns);
-    REQUIRE(sntp.observations_json().find("52000000") != std::string::npos);
-    const auto good = reply;
-    for (unsigned fault : {0, 1}) {
-        time::Sntp invalidated(clock);
-        (void)invalidated.request(raw, 1234);
-        raw += 1'000'000;
-        REQUIRE(invalidated.receive(good, raw));
-        (void)invalidated.request(raw, 1234);
-        raw += 1'000'000;
-        reply = good;
-        if (fault == 0)
-            reply[1] = 0;
-        else
-            reply[0] |= 0x40;
-        REQUIRE(!invalidated.receive(reply, raw));
-        REQUIRE(invalidated.observations_json().find("\"filter_selected\":null") !=
-                std::string::npos);
-        REQUIRE(invalidated.observations_json().find("\"anchor_observation_id\":\"0\"") !=
-                std::string::npos);
-        REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
-    }
-    sntp.reset_peer();
-    REQUIRE(sntp.observations_json().find("peer_reset") != std::string::npos);
+    REQUIRE(client.engine().history(0).size() <= 64);
+    REQUIRE(client.learning_json(raw).size() < 1100);
+    const time::NtpDiagnosticBinding binding{"device", "boot", "image", "revision", "server"};
+    unsigned cursor = 0, count = 0;
+    std::string token = "-";
+    do {
+        const auto wire = client.history_page(binding, token + " " + std::to_string(cursor), raw);
+        REQUIRE(wire.size() <= 4096);
+        const auto page = wtp::json::parse(wire);
+        REQUIRE(page && page->get("ok")->boolean());
+        token = std::string(page->get("token")->string());
+        REQUIRE(page->get("records")->elements().size() <= 4);
+        count += page->get("records")->elements().size();
+        const auto next = unsigned(page->get("next_cursor")->integer());
+        REQUIRE(next >= cursor);
+        cursor = next;
+        if (!page->get("more")->boolean())
+            break;
+        REQUIRE(count <= 64);
+    } while (true);
+    REQUIRE(count == client.engine().history(0).size());
+    const auto other = client.history_page(binding, "@1 - 0", raw);
+    REQUIRE(wtp::json::parse(other)->get("count")->integer() == 0);
+    client.reset_peer();
+    REQUIRE(client.history_page(binding, token + " 60", raw).find("ntp_history_changed") !=
+            std::string::npos);
+    REQUIRE(client.history_page(binding, "- 01", raw).find("ntp_history_cursor") !=
+            std::string::npos);
+}
+void model_import() {
+    std::uint64_t raw = 10 * ns;
+    time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
+    time::ControllerTimeArbiter arbiter(clock, now, &raw, "test");
+    wtp::ClockSnapshot model;
+    model.state = wtp::ClockState::Synchronized;
+    model.utc_now_ns = epoch;
+    model.monotonic_now_ns = raw;
+    model.uncertainty_ns = 11'000'000;
+    model.sync_age_ns = ns;
+    model.leap = wtp::LeapState::Normal;
+    model.rate_ppb = 1'000'000;
+    model.rate_uncertainty_ppb = 1000;
+    model.model_generation = 1;
+    model.rate_until_monotonic_ns = raw + 10 * ns;
+    model.subsequent_rate_ppb = -20000;
+    time::RateObservation source{epoch - ns + 10'000'000, raw - ns, 1'000'000, 0, 1000, 1};
+    REQUIRE(arbiter.observe_ntp_model(source, model, 1000));
+    const auto generation = clock.snapshot().model_generation;
+    raw += 5 * ns;
+    REQUIRE(clock.snapshot().sync_age_ns == 6 * ns);
+    REQUIRE(clock.snapshot().utc_now_ns == epoch + 5 * ns + 5'000'000);
+    raw += 10 * ns;
+    const auto snapshot = clock.snapshot();
+    REQUIRE(snapshot.utc_now_ns == epoch + 15 * ns + 10'000'000 - 100000);
+    REQUIRE(snapshot.rate_ppb == -20000 && snapshot.rate_until_monotonic_ns == UINT64_MAX);
+    REQUIRE(snapshot.model_generation == generation && snapshot.sync_age_ns == 16 * ns);
+    REQUIRE(!arbiter.observe_ntp_model(source, model, 1000)); // Old import anchor.
+    clock.invalidate();
+    REQUIRE(clock.observe(epoch, raw, 1000000, wtp::LeapState::Normal));
+    REQUIRE(clock.snapshot().subsequent_rate_ppb == 0);
+    REQUIRE(clock.snapshot().rate_until_monotonic_ns == UINT64_MAX);
+
+    time::UtcDiscipline other_clock(now, &raw, standalone::clock_profile());
+    time::ControllerTimeArbiter other(other_clock, now, &raw, "other");
+    REQUIRE(other.observe(time::ObservationSource::Controller, epoch, raw, 1'000'000,
+                          wtp::LeapState::Normal, {}, "controller"));
+    model.monotonic_now_ns = raw;
+    model.utc_now_ns = epoch; // Slewed control can agree while NTP truth disagrees.
+    model.rate_until_monotonic_ns = UINT64_MAX;
+    model.sync_age_ns = 0;
+    source = {epoch + ns, raw, 1'000'000, 0, 1000, 1};
+    model.uncertainty_ns = ns + 1'000'000;
+    REQUIRE(!other.observe_ntp_model(source, model, 1000));
+    REQUIRE(other.status().disagreement);
+    REQUIRE(!other.observe_ntp_model(source, model, 1000));
+    REQUIRE(!other.observe_ntp_model(source, model, 1000)); // Same evidence cannot recover.
+    raw += ns;
+    source.raw_ns = model.monotonic_now_ns = raw;
+    source.utc_ns += ns;
+    model.utc_now_ns += ns;
+    source.generation = model.model_generation = 2;
+    REQUIRE(other.observe_ntp_model(source, model, 1000));
+    REQUIRE(!other.status().disagreement);
+}
+
+void retention() {
+    using Cache = standalone::NtpRetention;
+    const auto device = std::string(32, 'a');
+    constexpr std::uint64_t topology = (std::uint64_t(138000000) << 32) | 138000000;
+    Cache::Provenance source{std::string(32, 'b'), 0xc0000201, 4, 10, epoch};
+    Cache::RfPrior rf{-10000, 1000, 32, 2000 * ns, source};
+    network_test::Flash flash;
+    Cache cache(flash, device, topology);
+    REQUIRE(cache.load() && !cache.record());
+    REQUIRE(cache.save(-10000, source, rf, ns));
+    REQUIRE(cache.sequence() == 1);
+    REQUIRE(!cache.save(-11000, source, {}, 299 * ns));
+    REQUIRE(cache.save(-11000, source, {}, 301 * ns));
+    REQUIRE(cache.record()->rf == rf);
+    auto bad_rf = rf;
+    bad_rf.uncertainty_ppb = 5001;
+    REQUIRE(!cache.save(-12000, source, bad_rf, 1000 * ns));
+    REQUIRE(cache.healthy());
+    bad_rf = rf;
+    bad_rf.utc_rate_ppb = -100000;
+    REQUIRE(!cache.save(-12000, source, bad_rf, 1000 * ns));
+    // A transient strict RF result survives cooldown and later UTC-only updates.
+    network_test::Flash staged_flash;
+    Cache staged(staged_flash, device, topology);
+    REQUIRE(staged.load() && staged.save(-1000, source, {}, ns));
+    REQUIRE(staged.stage({}, source, rf));
+    REQUIRE(!staged.flush(2 * ns));
+    REQUIRE(staged.stage(-2000, source, {}));
+    REQUIRE(staged.flush(301 * ns) && staged.record()->rf == rf);
+    network_test::Flash rf_only_flash;
+    Cache rf_only(rf_only_flash, device, topology);
+    REQUIRE(rf_only.load() && rf_only.stage({}, source, rf) && rf_only.flush(0));
+    REQUIRE(rf_only.record()->rf == rf);
+    Cache cold(flash, device, topology);
+    REQUIRE(cold.load() && cold.record()->utc_rate_ppb == -11000);
+    REQUIRE(cold.record()->rf == rf);
+    // Migrate an actual version-1 payload, preserving RF provenance and
+    // broadening its unavailable UTC skew instead of inventing confidence.
+    standalone::Journal current_journal(flash, 0, 256);
+    REQUIRE(current_journal.load(true));
+    const auto& current = current_journal.data();
+    auto legacy = current.substr(0, 46);
+    legacy[4] = 1;
+    legacy += char(1);
+    legacy += current.substr(46, 4);
+    legacy += current.substr(54, 60);
+    legacy += current.substr(114, 9);
+    legacy += current.substr(123, 1) + std::string(3, '\0');
+    legacy += current.substr(124);
+    network_test::Flash legacy_flash;
+    standalone::Journal legacy_journal(legacy_flash, 0, 256);
+    REQUIRE(legacy_journal.load(true) && legacy_journal.append(legacy));
+    Cache migrated(legacy_flash, device, topology);
+    REQUIRE(migrated.load() && migrated.record()->utc_rate_ppb == -11000);
+    REQUIRE(migrated.record()->utc_skew_ppb == 2'000'000 && migrated.record()->rf == rf);
+    REQUIRE(migrated.save(-11000, source, {}, 0, 1000)); // Significant skew improvement.
+    Cache migrated_cold(legacy_flash, device, topology);
+    REQUIRE(migrated_cold.load() && migrated_cold.record()->utc_skew_ppb == 1000);
+    REQUIRE(migrated_cold.record()->rf == rf);
+    Cache foreign(flash, std::string(32, 'c'), topology);
+    REQUIRE(!foreign.load() && !foreign.record());
+    REQUIRE(!foreign.save(1000, source, {}, 1000 * ns));
+    Cache incompatible(flash, device, topology + 1);
+    REQUIRE(!incompatible.load());
+    // A saved slope cannot establish UTC or resurrect calibration history.
+    std::uint64_t raw = 0;
+    time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
+    time::Sntp ntp(clock);
+    ntp.seed_rate(cold.record()->utc_rate_ppb);
     REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
-}
-void filtering() {
-    time::NtpFilter filter;
-    REQUIRE(!filter.rate(0).qualified);
-    for (unsigned i = 0; i < 32; ++i)
-        REQUIRE(filter.add(sample(i)));
-    const auto estimate = filter.rate(sample(31).raw_ns);
-    REQUIRE(estimate.qualified && std::abs(estimate.utc_rate_ppb + 10000) <= 1);
-    REQUIRE(estimate.uncertainty_ppb >= 2000 && estimate.uncertainty_ppb <= 5000);
-    REQUIRE(!filter.add(sample(31)));
-    REQUIRE(!filter.rate(estimate.sampled_ns + time::ntp_fresh_ns + 1).qualified);
-    auto changed = sample(32);
-    changed.epoch = 2;
-    REQUIRE(filter.add(changed) && !filter.rate(changed.raw_ns).qualified);
-    REQUIRE(filter.rate(changed.raw_ns).samples == 1);
-    auto restarted = sample(0);
-    restarted.epoch = 3;
-    REQUIRE(filter.add(restarted) && filter.rate(restarted.raw_ns).samples == 1);
-    auto stepped = sample(33);
-    stepped.epoch = 2;
-    stepped.utc_ns += 2 * ns;
-    REQUIRE(filter.add(stepped) && filter.rate(stepped.raw_ns).samples == 1);
-    time::NtpFilter low_delay;
-    auto a = sample(0), b = sample(1);
-    b.raw_ns = a.raw_ns + 2 * ns;
-    b.send_ns = b.raw_ns - 100'000'000;
-    b.utc_ns = a.utc_ns + 2 * ns - 20000;
-    b.rtt_ns = 100'000'000;
-    REQUIRE(low_delay.add(a) && low_delay.add(b));
-    REQUIRE(low_delay.selected(b.raw_ns)->id == a.id);
-    REQUIRE(low_delay.selected(b.raw_ns)->raw_ns == a.raw_ns);
-    REQUIRE(!low_delay.selected(b.raw_ns + time::ntp_fresh_ns + 1));
-    for (const auto slope : {-20000, 0, 20000}) {
-        time::NtpFilter f;
-        for (unsigned i = 0; i < 32; ++i)
-            REQUIRE(f.add(sample(i, slope)));
-        const auto rate = f.rate(sample(31).raw_ns);
-        const auto correction = time::oscillator_correction(rate);
-        REQUIRE(rate.qualified && correction);
-        REQUIRE((slope < 0 && *correction > 0) || (slope == 0 && *correction == 0) ||
-                (slope > 0 && *correction < 0));
+    for (unsigned i = 0; i < 3; ++i) {
+        const auto request = ntp.request(raw, i + 1);
+        raw += 2'000'000;
+        REQUIRE(ntp.receive(ntp_reply(request, epoch + raw - 1'000'000), raw));
+        if (i < 2)
+            REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+        raw += 64 * ns;
     }
-    time::RateEstimate boundary{true, -100000};
-    REQUIRE(!time::oscillator_correction(boundary)); // reciprocal > +100 ppm; never clamp.
-    // A small regression residual cannot discard systematic source uncertainty.
-    time::NtpFilter biased;
-    for (unsigned i = 0; i < 32; ++i) {
-        auto s = sample(i);
-        s.utc_ns += 20'000'000;
-        s.uncertainty_ns = 100'000'000;
-        REQUIRE(biased.add(s));
+    REQUIRE(ntp.control_model().learned && ntp.rate(raw).qualified);
+    ntp.reset_peer();
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(!ntp.rate(raw).qualified);
+    // The manual value and cache are independent media and authorities.
+    network_test::Flash manual_flash;
+    standalone::Store store(manual_flash);
+    REQUIRE(store.load());
+    auto config = *standalone::parse_config(network_test::config);
+    config.manual_correction_ppb = 12345;
+    REQUIRE(store.save(config));
+    standalone::Store manual_cold(manual_flash);
+    REQUIRE(manual_cold.load() && manual_cold.config()->manual_correction_ppb == 12345);
+    struct Torn : network_test::Flash {
+        bool fail = false;
+        bool program(std::size_t offset, std::span<const std::uint8_t> page) override {
+            if (!fail)
+                return Flash::program(offset, page);
+            std::copy_n(page.begin(), 128, bytes.begin() + offset);
+            return false;
+        }
+    };
+    for (unsigned writes : {1U, 16U, 32U}) {
+        Torn media;
+        Cache first(media, device, topology);
+        REQUIRE(first.load());
+        for (unsigned i = 0; i < writes; ++i)
+            REQUIRE(first.save(-10000 + int(i) * 100, source, rf, (1 + i * 300) * ns));
+        const auto retained = first.record()->utc_rate_ppb;
+        media.fail = true;
+        REQUIRE(!first.save(20000, source, {}, (1 + writes * 300) * ns));
+        media.fail = false;
+        Cache recovered(media, device, topology);
+        REQUIRE(recovered.load() && recovered.record()->utc_rate_ppb == retained);
+        REQUIRE(recovered.record()->rf == rf);
     }
-    REQUIRE(!biased.rate(sample(31).raw_ns).qualified);
+    // Unknown cache versions never make operational configuration unhealthy.
+    standalone::Journal journal(flash, 0, 256);
+    REQUIRE(journal.load(true));
+    auto unknown = journal.data();
+    unknown[4] = 3;
+    REQUIRE(journal.append(unknown));
+    Cache future(flash, device, topology);
+    REQUIRE(!future.load() && manual_cold.healthy());
+    REQUIRE(future.erase() && future.erased());
 }
+
 void mapping() {
     std::uint64_t raw = 100 * ns;
     time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
@@ -301,13 +425,24 @@ void freeze() {
     REQUIRE(store.save(c));
     network_test::Clock clock;
     time::RateEstimate r{true, -10000, 1000, 42, clock.now, 2000 * ns, 32, "qualified_software"};
+    // Separate cache media avoids aliasing the real config journal in this test.
+    network_test::Flash learned_flash;
+    standalone::NtpRetention cached(learned_flash, std::string(32, 'a'), 138000000);
+    REQUIRE(cached.load());
+    standalone::NtpRetention::Provenance provenance{std::string(32, 'b'), 1, 1, 1, epoch};
+    REQUIRE(cached.save(-10000, provenance,
+                        standalone::NtpRetention::RfPrior{-10000, 1000, 32, 2000 * ns, provenance},
+                        0));
+    engine.retention(cached);
     engine.ntp_candidate(r, clock, true);
     engine.calibration_boundary();
     REQUIRE(engine.prepare(job).accepted && raw.correction == -10000);
+    REQUIRE(engine.calibration_status(clock.now).find("\"saved_ntp_available\":true") !=
+            std::string::npos);
     REQUIRE(engine.calibration_status(clock.now).find("independent_rf_unverified") !=
             std::string::npos);
-    REQUIRE(engine.calibration_status(clock.now + time::ntp_fresh_ns + 1).find("stale") !=
-            std::string::npos);
+    REQUIRE(engine.calibration_status(clock.now + time::ntp_fresh_ns + 1)
+                .find("independent_rf_unverified") != std::string::npos);
     engine.ntp_candidate(r, clock, false);
     REQUIRE(engine.calibration_status(clock.now).find("unsupported_clock_topology") !=
             std::string::npos);
@@ -317,83 +452,17 @@ void freeze() {
     engine.calibration_boundary();
     REQUIRE(engine.prepare(job).accepted && raw.correction == 0);
 }
-void replay() {
-    std::uint64_t raw = 0;
-    const auto config = standalone::clock_profile();
-    time::UtcDiscipline clocks[] = {{now, &raw, config}, {now, &raw, config}, {now, &raw, config}};
-    time::ControllerTimeArbiter arbiters[] = {{clocks[0], now, &raw, "replay"},
-                                              {clocks[1], now, &raw, "replay"},
-                                              {clocks[2], now, &raw, "replay"}};
-    time::NtpFilter filters[2];
-    std::uint64_t applied[3] = {}, previous_epoch = 0;
-    std::string line;
-    while (std::getline(std::cin, line)) {
-        std::istringstream in(line);
-        time::NtpSample s;
-        std::uint64_t probe{}, truth{};
-        unsigned accepted{};
-        if (!(in >> s.id >> s.epoch >> s.raw_ns >> s.utc_ns >> s.uncertainty_ns >> s.rtt_ns >>
-              probe >> truth >> accepted))
-            std::exit(2);
-        raw = s.raw_ns;
-        s.send_ns = raw - s.rtt_ns;
-        if (previous_epoch && s.epoch != previous_epoch) {
-            for (auto& filter : filters)
-                filter.reset();
-            for (auto& arbiter : arbiters)
-                arbiter.invalidate(time::ObservationSource::Sntp);
-            std::fill(std::begin(applied), std::end(applied), 0);
-        }
-        previous_epoch = s.epoch;
-        if (accepted) {
-            for (unsigned mode = 0; mode < 3; ++mode) {
-                auto chosen = std::optional{s};
-                time::RateEstimate rate;
-                if (mode) {
-                    auto& filter = filters[mode - 1];
-                    if (!filter.add(s))
-                        continue;
-                    chosen = filter.selected(raw);
-                    rate = filter.rate(raw);
-                }
-                if (chosen && chosen->id > applied[mode]) {
-                    if (arbiters[mode].observe_rate(
-                            chosen->utc_ns, chosen->raw_ns, chosen->uncertainty_ns,
-                            mode == 2 && rate.qualified ? rate.utc_rate_ppb : 0,
-                            mode == 2 && rate.qualified ? rate.uncertainty_ppb : 0,
-                            rate.generation))
-                        applied[mode] = chosen->id;
-                    else if (mode) {
-                        filters[mode - 1].reset();
-                        applied[mode] = 0;
-                    }
-                }
-            }
-        }
-        raw = probe;
-        for (unsigned mode = 0; mode < 3; ++mode) {
-            const auto snap = clocks[mode].snapshot();
-            const bool usable = snap.state != wtp::ClockState::Unsynchronized &&
-                                snap.sync_age_ns <= time::ntp_fresh_ns &&
-                                snap.uncertainty_ns <= 500'000'000;
-            const auto error = snap.utc_now_ns >= truth ? std::int64_t(snap.utc_now_ns - truth)
-                                                        : -std::int64_t(truth - snap.utc_now_ns);
-            std::cout << mode << ' ' << s.id << ' ' << error << ' ' << snap.uncertainty_ns << ' '
-                      << snap.sync_age_ns << ' ' << usable << ' ' << snap.rate_ppb << '\n';
-        }
-    }
-}
 } // namespace
 int main(int argc, char** argv) {
-    if (argc == 2 && std::string_view(argv[1]) == "replay") {
-        replay();
-        return 0;
-    }
-    if (argc == 6 && std::string_view(argv[1]) == "map") {
+    if ((argc == 6 || argc == 8) && std::string_view(argv[1]) == "map") {
         wtp::ClockSnapshot anchor;
         anchor.monotonic_now_ns = std::stoull(argv[2]);
         anchor.utc_now_ns = std::stoull(argv[3]);
         anchor.rate_ppb = std::stoi(argv[4]);
+        if (argc == 8) {
+            anchor.rate_until_monotonic_ns = std::stoull(argv[6]);
+            anchor.subsequent_rate_ppb = std::stoi(argv[7]);
+        }
         std::uint64_t raw{}, projected{};
         if (!time::inverse(anchor, std::stoull(argv[5]), raw) ||
             !time::project(anchor, raw, projected))
@@ -403,8 +472,9 @@ int main(int argc, char** argv) {
         return 0;
     }
     manual();
-    callback_latency();
-    filtering();
+    model_import();
+    diagnostic_pages();
+    retention();
     mapping();
     freeze();
     std::cout << "NTP work deterministic checks passed\n";

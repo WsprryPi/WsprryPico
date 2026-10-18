@@ -175,10 +175,17 @@ bool ControllerTimeArbiter::interval(const Observation& observation, std::uint64
     return add(observation.uncertainty_ns, drift, uncertainty) &&
            uncertainty <= (observation.source == ObservationSource::Browser
                                ? 2 * (browser_clock_uncertainty_ns + browser_challenge_max_age_ns)
+                           : observation.source == ObservationSource::Sntp
+                               ? 3'000'000'000ULL
                                : standalone_max_uncertainty_ns);
 }
 
 bool ControllerTimeArbiter::current_valid(std::uint64_t now) const {
+    if (imported_ntp_) {
+        const auto snapshot = clock_.snapshot();
+        return snapshot.state != wtp::ClockState::Unsynchronized &&
+               snapshot.sync_age_ns <= controller_source_lifetime_ns;
+    }
     std::uint64_t estimate{}, uncertainty{};
     return interval(current_, now, estimate, uncertainty);
 }
@@ -206,12 +213,14 @@ bool ControllerTimeArbiter::accept(const Observation& observation) {
     if (!accepted)
         return false;
     current_ = observation;
+    imported_ntp_ = false;
     recovery_ = {};
     source_ = label(observation.source);
     return true;
 }
 
 void ControllerTimeArbiter::disagreement(const Observation& observation) {
+    imported_ntp_ = false;
     clock_.invalidate();
     (void)observation;
     recovery_ = {};
@@ -224,6 +233,54 @@ bool ControllerTimeArbiter::observe_rate(std::uint64_t utc, std::uint64_t raw,
                                          std::uint32_t rate_uncertainty, std::uint64_t generation) {
     return observe_model(ObservationSource::Sntp, utc, raw, uncertainty, wtp::LeapState::Normal, {},
                          {}, rate, rate_uncertainty, generation);
+}
+bool ControllerTimeArbiter::observe_ntp_model(const RateObservation& source,
+                                              const wtp::ClockSnapshot& model,
+                                              std::uint32_t max_clock_error_ppb) {
+    if (!now_ || !consistent_import(source, model) || source.utc_ns < sntp_min_utc_ns ||
+        source.utc_ns >= sntp_max_utc_ns || source.rate_ppb < -100'000 ||
+        source.rate_ppb > 100'000 || source.rate_uncertainty_ppb > utc_max_rate_uncertainty_ppb ||
+        model.utc_now_ns < sntp_min_utc_ns || model.utc_now_ns >= sntp_max_utc_ns ||
+        source.generation != model.model_generation || model.sync_age_ns > model.monotonic_now_ns ||
+        source.raw_ns != model.monotonic_now_ns - model.sync_age_ns)
+        return false;
+    const auto now = now_(context_);
+    const Observation candidate{ObservationSource::Sntp,
+                                source.utc_ns,
+                                source.raw_ns,
+                                source.uncertainty_ns,
+                                {},
+                                true,
+                                source.rate_ppb,
+                                source.rate_uncertainty_ppb,
+                                source.generation};
+    std::uint64_t estimate{}, uncertainty{};
+    if (!interval(candidate, now, estimate, uncertainty))
+        return false;
+    if (source_ == ActiveTimeSource::Disagreement) {
+        if (!recovery_.valid || recovery_.source != ObservationSource::Sntp ||
+            !overlaps(recovery_, candidate, now)) {
+            recovery_ = candidate;
+            return false;
+        }
+        // Reprojecting the same sample is not independent recovery evidence.
+        if (candidate.monotonic_ns <= recovery_.monotonic_ns ||
+            candidate.generation <= recovery_.generation)
+            return false;
+    } else if (current_valid(now) && current_.source == ObservationSource::Controller &&
+               !overlaps(current_, candidate, now)) {
+        disagreement(candidate);
+        return false;
+    }
+    // Successive NTP estimates are arbitrated solely by muChrony. Cross-source
+    // authority compares its unslewed source interval, never its control lag.
+    if (!clock_.observe_ntp_model(source, model, max_clock_error_ppb))
+        return false;
+    current_ = candidate;
+    recovery_ = {};
+    source_ = ActiveTimeSource::Sntp;
+    imported_ntp_ = true;
+    return true;
 }
 bool ControllerTimeArbiter::observe(ObservationSource source, std::uint64_t utc, std::uint64_t raw,
                                     std::uint64_t uncertainty, wtp::LeapState leap,
@@ -238,7 +295,7 @@ bool ControllerTimeArbiter::observe_model(ObservationSource source, std::uint64_
                                           std::string_view principal, std::int32_t rate,
                                           std::uint32_t rate_uncertainty,
                                           std::uint64_t generation) {
-    if (rate < -100'000 || rate > 100'000 || rate_uncertainty > 100'000)
+    if (rate < -100'000 || rate > 100'000 || rate_uncertainty > 200'000)
         return false;
     if (!now_ || leap != wtp::LeapState::Normal || leap_transition_utc_ns ||
         uncertainty_ns > (source == ObservationSource::Browser
@@ -276,6 +333,7 @@ bool ControllerTimeArbiter::observe_model(ObservationSource source, std::uint64_
     if (!current_valid(now)) {
         current_ = {};
         source_ = ActiveTimeSource::None;
+        imported_ntp_ = false;
         return accept(candidate);
     }
     if (current_.source == ObservationSource::Browser && source != ObservationSource::Browser)
@@ -300,6 +358,7 @@ void ControllerTimeArbiter::invalidate(ObservationSource source) {
         current_ = {};
         recovery_ = {};
         source_ = ActiveTimeSource::None;
+        imported_ntp_ = false;
     }
 }
 
@@ -309,6 +368,14 @@ ControllerTimeStatus ControllerTimeArbiter::status() const {
     result.disagreement = source_ == ActiveTimeSource::Disagreement;
     if (!now_ || !current_.valid)
         return result;
+    if (imported_ntp_) {
+        const auto clock = clock_.snapshot();
+        result.age_ns = clock.sync_age_ns;
+        result.uncertainty_ns = clock.uncertainty_ns;
+        if (clock.state == wtp::ClockState::Unsynchronized)
+            result.source = ActiveTimeSource::None;
+        return result;
+    }
     const auto now = now_(context_);
     std::uint64_t estimate{};
     if (!interval(current_, now, estimate, result.uncertainty_ns)) {

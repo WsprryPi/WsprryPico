@@ -160,7 +160,7 @@ Response JobService::handle_owned(Request& request) {
     }
     // Check before replay as well as dispatch. An earlier successful ARM must
     // never be acknowledged as a live permission after a physical stop.
-    if (output_inhibited_ && (request.operation == "CLAIM" || request.operation == "RENEW" ||
+    if ((output_inhibited_ || maintenance()) && (request.operation == "CLAIM" || request.operation == "RENEW" ||
                               request.operation == "LOAD" || request.operation == "ARM"))
         return reject(ErrorCode::Busy);
 
@@ -545,6 +545,15 @@ Response JobService::abort_job(std::string_view job_id) {
     return response;
 }
 
+bool JobService::begin_maintenance() {
+    const auto now = clock_.snapshot().monotonic_now_ns;
+    if (!ready_ || output_inhibited_ || maintenance() || owner_ || state_ != State::Empty ||
+        engine_.output_active() || now > UINT64_MAX - 15'000'000'000ULL)
+        return false;
+    maintenance_deadline_ns_ = now + 15'000'000'000ULL;
+    return true;
+}
+
 Response JobService::local_abort() {
     poll();
     if (state_ == State::Failed || !ready_)
@@ -703,6 +712,8 @@ void JobService::poll() {
 }
 
 void JobService::reset() {
+    end_maintenance();
+    finish_update_verification();
     const auto now = clock_.snapshot();
     const auto stopped =
         engine_.disable(saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) &&

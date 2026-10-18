@@ -37,6 +37,7 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_subdirectory(src/microchrony)
 if(WSPRRY_PICO_BUILD_FIRMWARE)
     include(cmake/cyw43_tx_overlay.cmake)
     wsprry_cyw43_tx_overlay()
@@ -110,7 +111,7 @@ add_library(wsprrypico_core
     src/standalone/scheduler.cpp
     src/rf/calibration.cpp
     src/time/ntp_filter.cpp
-    src/time/sntp.cpp
+    src/time/ntp_client.cpp
     src/time/controller_time.cpp
     src/time/utc_discipline.cpp
     src/time/usb_time_source.cpp
@@ -126,12 +127,15 @@ add_library(wsprrypico_core
 )
 target_include_directories(wsprrypico_core PUBLIC src)
 target_compile_features(wsprrypico_core PUBLIC cxx_std_20)
+target_link_libraries(wsprrypico_core PUBLIC microchrony)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(wsprrypico_core PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
 
 if(WSPRRY_PICO_BUILD_FIRMWARE)
+    target_compile_options(microchrony PRIVATE -fstack-usage -fno-exceptions -fno-rtti
+                           -ffunction-sections -fdata-sections)
     target_compile_options(wsprrypico_core PRIVATE
         -fstack-usage
         -fno-exceptions
@@ -205,6 +209,11 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(usb_local_management_tests PRIVATE wsprrypico_core)
     target_compile_options(usb_local_management_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME usb_local_management_tests COMMAND usb_local_management_tests)
+    add_executable(usb_maintenance_tests tests/usb_maintenance_tests.cpp)
+    target_link_libraries(usb_maintenance_tests PRIVATE wsprrypico_core)
+    target_compile_options(usb_maintenance_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME usb_maintenance_tests COMMAND usb_maintenance_tests)
+    add_test(NAME usb_installer_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/usb_installer_tests.py)
     add_executable(usb_management_tests tests/usb_management_tests.cpp)
     target_link_libraries(usb_management_tests PRIVATE wsprrypico_core)
     target_compile_options(usb_management_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
@@ -362,11 +371,15 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_executable(pin_allocation_tests tests/pin_allocation_tests.cpp)
     target_link_libraries(pin_allocation_tests PRIVATE wsprrypico_core)
     add_test(NAME pin_allocation COMMAND pin_allocation_tests)
+    add_executable(microchrony_tests tests/microchrony_tests.cpp)
+    target_link_libraries(microchrony_tests PRIVATE microchrony)
+    target_compile_options(microchrony_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME microchrony COMMAND microchrony_tests)
     add_executable(ntp_work_tests tests/ntp_work_tests.cpp)
     target_link_libraries(ntp_work_tests PRIVATE wsprrypico_rf)
     target_compile_options(ntp_work_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME ntp_work COMMAND ntp_work_tests)
-    add_test(NAME ntp_replay COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/ntp_replay_tests.py $<TARGET_FILE:ntp_work_tests>)
+    add_test(NAME ntp_replay COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/ntp_replay_tests.py $<TARGET_FILE:ntp_work_tests> $<TARGET_FILE:microchrony_tests>)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
         add_test(NAME rf_calibration_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_calibration_browser_tests.js)
     endif()

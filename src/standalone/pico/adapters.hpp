@@ -24,13 +24,16 @@ struct FlashResources {
 FlashResources flash_resources();
 class PicoFlash final : public Flash {
   public:
-    explicit PicoFlash(bool progress = false) : progress_(progress) {}
+    enum class Region { Standalone, Progress, Ntp };
+    explicit PicoFlash(bool progress = false)
+        : region_(progress ? Region::Progress : Region::Standalone) {}
+    explicit PicoFlash(Region region) : region_(region) {}
     bool read(std::size_t offset, std::span<std::uint8_t> data) override;
     bool erase(std::size_t sector_offset) override;
     bool program(std::size_t offset, std::span<const std::uint8_t> page) override;
 
   private:
-    bool progress_ = false;
+    Region region_ = Region::Standalone;
 };
 class PicoProfileMedia final : public provisioning::Media {
   public:
@@ -64,12 +67,29 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     bool request_enabled(bool enabled) override;
     void finish_request(bool idle) override;
     std::string status() const override;
+    std::string ntp_history_page(std::string_view request,
+                                 time::NtpDiagnosticBinding binding) const;
     bool link_up() const;
     time::RateEstimate ntp_rate(std::uint64_t now) const {
-        return sntp_.rate(now);
+        return ntp_.rate(now);
+    }
+    void ntp_clear_seed() {
+        ntp_.clear_seed();
+    }
+    void ntp_seed(std::int32_t rate, std::uint32_t skew = 2'000'000) {
+        ntp_.seed_rate(rate, skew);
+    }
+    const time::NtpClient::ControlModel& ntp_control() const {
+        return ntp_.control_model();
+    }
+    std::optional<time::NtpSample> ntp_original() const {
+        return ntp_.last_sample();
+    }
+    std::uint32_t ntp_endpoint() const {
+        return ip4_addr_get_u32(ip_2_ip4(&active_peer().address));
     }
     bool accepted_sntp() const {
-        return accepted_ != 0;
+        return discipline_accepted_ != 0;
     }
     std::string ipv4() const;
     bool initialized() const {
@@ -127,15 +147,41 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
                         u16_t port);
     static void resolved(const char* name, const ip_addr_t* address, void* context);
     void resolve_server(std::uint64_t now);
-    time::Sntp sntp_;
+    struct NtpPeer {
+        NtpPeer(PicoNetwork& parent, unsigned slot) : owner(parent), index(slot) {}
+        PicoNetwork& owner;
+        unsigned index;
+        time::ServerLookup lookup;
+        ip_addr_t address{};
+        std::string hostname;
+        std::uint64_t lookup_epoch = 0, last_sent_us = 0, max_process_us = 0;
+        std::uint32_t queries = 0, accepted = 0, rejected = 0;
+        bool sent = false;
+        bool retained(std::uint64_t now) const {
+            const auto state = owner.ntp_.status(index, now);
+            return state.endpoint && !state.replace &&
+                   (state.queries < 8 ||
+                    (state.last_accepted_ns && now >= state.last_accepted_ns &&
+                     now - state.last_accepted_ns <= (8ULL << state.poll) * 1'000'000'000ULL));
+        }
+    };
+    NtpPeer& active_peer() {
+        return peers_[ntp_.selected_slot()];
+    }
+    const NtpPeer& active_peer() const {
+        return peers_[ntp_.selected_slot()];
+    }
+    bool send_ntp(NtpPeer& peer, std::uint64_t now_us);
+    std::string pool_status(std::uint64_t now_ns) const;
+    time::NtpClient ntp_;
+    std::array<NtpPeer, microchrony::source_capacity> peers_;
+    bool pool_enabled_ = false;
+    std::uint32_t discipline_accepted_ = 0;
+    bool ntp_link_up_ = false;
     network::Mdns mdns_;
     std::string station_mac_, stable_hostname_;
-    time::SntpPollSchedule poll_schedule_;
     udp_pcb* pcb_ = nullptr;
-    ip_addr_t server_{};
     std::string time_server_;
-    time::ServerLookup lookup_;
-    std::uint64_t lookup_epoch_ = 0;
     bool server_literal_ = false;
     std::uint32_t resolution_failures_ = 0;
     std::string ssid_, password_;

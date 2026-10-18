@@ -92,7 +92,8 @@ class Peer final : public HostTestEndpoint {
     void synchronize() override {
         // Inject an actual correlated SNTP reply with a 2 ms network round trip.
         // No network, Console time command or direct clock validity override.
-        constexpr std::uint64_t nonce = 123;
+        for (unsigned i = 0; i < 3; ++i) {
+        const std::uint64_t nonce = 123 + i;
         (void)source_.request(mono_, nonce);
         std::array<std::uint8_t, 48> reply{};
         reply[0] = 0x24;
@@ -103,12 +104,18 @@ class Peer final : public HostTestEndpoint {
                 reply[offset + count - 1 - i] = static_cast<std::uint8_t>(value >> (8 * i));
         };
         put(24, 8, nonce);
-        const auto seconds = 1'800'000'000ULL + mono_ / 1'000'000'000;
-        for (auto offset : {16, 32, 40})
+        const auto utc = 1'800'000'000'000'000'000ULL + mono_;
+        const auto seconds = utc / 1'000'000'000;
+        const auto fraction = ((utc % 1'000'000'000) << 32) / 1'000'000'000;
+        for (auto offset : {16, 32, 40}) {
             put(offset, 4, seconds + 2'208'988'800ULL);
+            put(offset + 4, 4, fraction);
+        }
         mono_ += 2'000'000;
         if (!source_.receive(reply, mono_))
             throw std::runtime_error("SNTP fixture rejected");
+        if (i < 2) mono_ += 2'000'000'000ULL;
+        }
     }
     void invalidate_clock() override {
         clock_.invalidate();

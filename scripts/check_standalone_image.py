@@ -33,9 +33,9 @@ def main():
     subprocess.run([sys.executable, str(pathlib.Path(__file__).with_name("check_endpoint_image.py")),
                     str(elf)], check=True)
     map_text = pathlib.Path(str(elf) + ".map").read_text()
-    # Current saved-progress images reserve 0x3f0000 onward. The earlier
-    # 0x3f3000 boundary remains accepted for historical image inspection.
-    match = re.search(r"^FLASH\s+0x10000000\s+(0x003f[03]000)\s+xr$", map_text, re.MULTILINE)
+    # Current NTP-learning images reserve 0x3ee000 onward. Earlier saved-progress
+    # and access-only boundaries remain available for historical inspection.
+    match = re.search(r"^FLASH\s+0x10000000\s+(0x003(?:ee000|f[03]000))\s+xr$", map_text, re.MULTILINE)
     if not match:
         raise SystemExit("Missing BTstack, profile, standalone and boot-sector flash reservations")
     try:

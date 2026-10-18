@@ -560,6 +560,8 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
 HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal,
                                 std::string_view authority, std::uint64_t transaction,
                                 ManagementCarrier carrier) {
+    if (service_.maintenance() && r.method != "GET")
+        return http_error(409, "usb_maintenance_pending");
     // The parser already owns the complete HTTP body. Outer JSON whitespace
     // neither enters the internal envelope nor creates decoded fields; account
     // for additional working storage without reserving that padding twice.

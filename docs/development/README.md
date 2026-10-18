@@ -96,6 +96,8 @@ alone does not check links or fixtures.
 
 - [Portable core](portable-core.md), [WTP endpoint](wtp-endpoint.md) and
   [USB CDC roles](usb-cdc.md).
+- [USB installation and preserving upgrades](usb-installer.md) and
+  [installer acceptance](usb-installer-results.md).
 - [WTP/1](../protocol/WTP.md), [USB management/time](../protocol/USB-Management.md),
   [Field-GATT/1](../protocol/Field-GATT.md), [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md)
   and the [browser API](../browser-api.md).

@@ -38,6 +38,10 @@ struct ClockSnapshot {
     std::int32_t rate_ppb = 0; // UTC nanoseconds per raw second minus 1e9.
     std::uint32_t rate_uncertainty_ppb = 0;
     std::uint64_t model_generation = 0;
+    // A finite phase slew may end before a future launch. Both segments belong
+    // to this immutable clock model; neither changes the hardware timer.
+    std::uint64_t rate_until_monotonic_ns = UINT64_MAX;
+    std::int32_t subsequent_rate_ppb = 0;
     bool operator==(const ClockSnapshot&) const = default;
 };
 
@@ -575,6 +579,21 @@ class JobService {
     [[nodiscard]] bool output_inhibited() const {
         return output_inhibited_;
     }
+    // Local maintenance only, serialized by the same owner as handle()/poll().
+    // It cannot stop work or clear faults and does not alter saved enablement.
+    bool begin_maintenance();
+    void end_maintenance() { maintenance_deadline_ns_ = 0; }
+    void hold_update_verification() { update_verification_ = true; }
+    void finish_update_verification() { update_verification_ = false; }
+    [[nodiscard]] bool verification_safe() const {
+        return ready_ && !output_inhibited_ && !owner_ && state_ == State::Empty &&
+               !engine_.output_active();
+    }
+    [[nodiscard]] bool update_verification() const { return update_verification_; }
+    [[nodiscard]] bool maintenance() const {
+        return update_verification_ || (maintenance_deadline_ns_ &&
+               clock_.snapshot().monotonic_now_ns < maintenance_deadline_ns_);
+    }
     void poll();
     void reset();
     [[nodiscard]] ServiceActivity activity() const;
@@ -675,6 +694,8 @@ class JobService {
     std::uint64_t lru_sequence_ = 0;
     bool ready_ = false;
     bool output_inhibited_ = false;
+    std::uint64_t maintenance_deadline_ns_ = 0;
+    bool update_verification_ = false;
 };
 
 } // namespace wsprrypico::wtp

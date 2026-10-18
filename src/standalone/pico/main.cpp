@@ -21,6 +21,7 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "hardware/pico/amplifier_output.hpp"
 #include "hardware/structs/clocks.h"
 #include "hardware/structs/pll.h"
+#include "hardware/structs/powman.h"
 #include "hardware/structs/watchdog.h"
 #include "hardware/ticks.h"
 #include "hardware/watchdog.h"
@@ -34,6 +35,10 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "network/softap_api.hpp"
 #include "network_credentials.hpp"
 #include "pico/bootrom.h"
+#include "usb/maintenance.hpp"
+
+extern "C" [[gnu::used]] const char wsprrypico_usb_update_contract[] =
+    "WsprryPico USB maintenance 1 postboot verification 1";
 #include "pico/cyw43_arch.h"
 #include "pico/time.h"
 #include "pico_adapters.hpp"
@@ -74,6 +79,7 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "runtime/pico/stack_guard.h"
 #include "standalone/frequency_policy_engine.hpp"
 #include "standalone/heap_probe.hpp"
+#include "standalone/ntp_retention.hpp"
 #include "standalone/pico/adapters.hpp"
 #include "standalone/scheduler.hpp"
 #include "standalone/wtp_profile.hpp"
@@ -266,9 +272,10 @@ bool station_interface(const tcp_pcb* pcb, void*) {
            ip4_addr_cmp(ip_2_ip4(&pcb->local_ip), netif_ip4_addr(station));
 }
 wsprrypico::provisioning::Activity provisioning_activity(void* context) {
-    const auto current = static_cast<wsprrypico::wtp::JobService*>(context)->activity();
+    const auto* service = static_cast<wsprrypico::wtp::JobService*>(context);
+    const auto current = service->activity();
     return {current.owned,
-            true,
+            !service->maintenance(),
             current.output_active,
             current.state == wsprrypico::wtp::State::Armed,
             current.state == wsprrypico::wtp::State::Running,
@@ -311,7 +318,9 @@ std::string access_reply(wsprrypico::provisioning::AccessCode code) {
 }
 } // namespace
 int main() {
+    asm volatile("" : : "r"(wsprrypico_usb_update_contract) : "memory");
     paint_stack();
+    const bool usb_update_boot = rom_get_last_boot_type() == BOOT_TYPE_FLASH_UPDATE;
     wsprrypico::wtp::allocate_input = wsprry_heap_try_input;
     wsprrypico::wtp::available_memory = []() -> std::size_t {
         const auto capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
@@ -377,6 +386,11 @@ int main() {
     static wsprrypico::provisioning::AccessStore access_store(access_media);
     const bool access_store_loaded = access_store.load();
     static wsprrypico::firmware::PicoIdentitySource identities;
+    static wsprrypico::standalone::PicoFlash ntp_flash(
+        wsprrypico::standalone::PicoFlash::Region::Ntp);
+    static wsprrypico::standalone::NtpRetention ntp_retention(
+        ntp_flash, identities.device_id(), (std::uint64_t(138'000'000) << 32) | 138'000'000);
+    const bool ntp_prior_loaded = ntp_rf_topology() && ntp_retention.load();
     bool usb_erased_access_ok =
         profile_store.healthy() &&
         (profile_store.source() == wsprrypico::provisioning::ProfileSource::Unprovisioned ||
@@ -453,7 +467,10 @@ int main() {
 #endif
     static wsprrypico::standalone::FrequencyPolicyEngine policy_engine(
         engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz);
+    policy_engine.retention(ntp_retention);
     static wsprrypico::wtp::JobService service(clock, policy_engine, identities, config);
+    if (usb_update_boot)
+        service.hold_update_verification();
     if (!amplifier_boot_safe)
         (void)service.local_inhibit_output();
     static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),
@@ -523,6 +540,15 @@ int main() {
     static wsprrypico::time::ControllerTimeArbiter time_arbiter(clock, monotonic_now, nullptr,
                                                                 identities.device_id());
     static wsprrypico::standalone::PicoNetwork network(time_arbiter, tls_credentials.hostname);
+    std::uint64_t ntp_cache_observed_raw_ns = 0;
+    const auto ntp_boot_rate = ntp_prior_loaded && ntp_retention.record()
+                                   ? std::optional(ntp_retention.record()->utc_rate_ppb)
+                                   : std::nullopt;
+    if (ntp_boot_rate)
+        network.ntp_seed(*ntp_boot_rate, ntp_retention.record()->utc_skew_ppb);
+    ntp_retention.on_erase(
+        +[](void* p) { static_cast<wsprrypico::standalone::PicoNetwork*>(p)->ntp_clear_seed(); },
+        &network);
     const bool radio_identity_ok = network.initialize_radio();
     const auto derived_identity =
         radio_identity_ok ? wsprrypico::provisioning::derive_local_identity(identities.device_id(),
@@ -556,7 +582,7 @@ int main() {
         +[](void* p) {
             return static_cast<wsprrypico::provisioning::PicoBondStore*>(p)->erase_reset_storage();
         },
-        &bond_store);
+        &bond_store, &ntp_retention);
     static wsprrypico::provisioning::ResetCoordinator reset_coordinator(
         access_store, profile_store, reset_targets, local_identity);
 #ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
@@ -723,7 +749,7 @@ int main() {
     std::array<std::uint8_t, 64> console_input{};
     std::size_t console_input_size = 0, console_input_offset = 0;
     std::uint64_t reboot_at = 0;
-    bool bootloader = false, browser_reboot = false;
+    bool bootloader = false, browser_reboot = false, usb_maintenance_reboot = false;
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
     auto gp14_runtime = wsprrypico::provisioning::ButtonRuntime{
         stop_for_gp14,
@@ -784,12 +810,27 @@ int main() {
                 (access_store.state() == wsprrypico::provisioning::AccessStoreState::Healthy &&
                  access_store.record() && !access_store.record()->reset.pending()));
     };
+    static wsprrypico::usb::Maintenance usb_maintenance(
+        service, identities.device_id(), service.status().boot_id,
+        [&] { return local_usb_ready() && !bootstrap.setup_pending() && !browser_api.mutation_pending(); },
+        [&] { return scheduler.idle() && (!scheduler.suspended() || !store.config()); },
+        [&] { return browser_api.revision(); },
+        [&] { return std::to_string(store.watermark()); },
+        [&] {
+            bootloader = true;
+            usb_maintenance_reboot = true;
+            reboot_at = time_us_64() + 250'000;
+            return true;
+        });
     static wsprrypico::usb::ManagementEndpoint usb_management(
         identities.device_id(), service.status().boot_id, wsprrypico::firmware::kFirmwareVersion,
         [&](const wsprrypico::network::HttpRequest& request, std::uint64_t transaction) {
             using namespace wsprrypico;
             if (!local_usb_ready())
                 return network::http_error(503, "usb_control_unavailable");
+            if (request.path == "/api/usb/v1/maintenance" ||
+                request.path == "/api/usb/v1/maintenance/finish")
+                return usb_maintenance.handle(request, transaction);
             if (request.path.starts_with("/api/usb/v1/time/"))
                 return usb_time.handle(request, transaction);
             if (request.path == "/api/usb/v1/ap") {
@@ -817,6 +858,7 @@ int main() {
         },
         [&](std::uint64_t transaction, bool delivered) {
             usb_api.finish(transaction, delivered);
+            usb_maintenance.finish(transaction, delivered);
             if (usb_ap_transaction == transaction) {
                 usb_ap_transaction = 0;
                 const auto activity = service.activity();
@@ -1005,6 +1047,12 @@ int main() {
             result += ",\"more\":" + std::string(next < trace.records().size() ? "true" : "false") +
                       "}\n";
             return result;
+        }
+        if (text.starts_with("NTP HISTORY ")) {
+            return network.ntp_history_page(text.substr(12),
+                                            {identities.device_id(), service.status().boot_id,
+                                             wsprrypico::firmware::kFirmwareVersion,
+                                             wsprrypico::firmware::kBuildRevision, ""});
         }
         if (text == "INFO") {
             // One allocator snapshot before response formatting. These are arena
@@ -1270,6 +1318,20 @@ int main() {
                              core0_guard.bottom == reinterpret_cast<std::uintptr_t>(&__StackLimit));
             number_field(result, "core0_stack_scan_us", core0_stack_scan_us);
             const auto flash_resources = wsprrypico::standalone::flash_resources();
+            result +=
+                ",\"ntp_retention\":{\"healthy\":" +
+                std::string(ntp_retention.healthy() ? "true" : "false") + ",\"sequence\":\"" +
+                std::to_string(ntp_retention.sequence()) + "\",\"saved_utc_rate_ppb\":" +
+                (ntp_retention.record() ? std::to_string(ntp_retention.record()->utc_rate_ppb)
+                                        : "null") +
+                ",\"boot_utc_rate_ppb\":" +
+                (ntp_boot_rate ? std::to_string(*ntp_boot_rate) : "null") +
+                ",\"saved_rf_available\":" +
+                (ntp_retention.healthy() && ntp_retention.record() && ntp_retention.record()->rf
+                     ? "true"
+                     : "false") +
+                ",\"saved_rf\":" + ntp_retention.rf_json() + "}";
+            number_field(result, "chip_reset_reason", powman_hw->chip_reset, true);
             number_field(result, "flash_read_attempts", flash_resources.read_attempts, true);
             number_field(result, "flash_erase_attempts", flash_resources.erase_attempts, true);
             number_field(result, "flash_program_attempts", flash_resources.program_attempts, true);
@@ -1858,12 +1920,29 @@ int main() {
         if (reboot_at && time_us_64() >= reboot_at) {
             // Network ownership can change while the response/USB ACK drains.
             // A new owner cancels reset rather than losing its accepted job.
-            if (!(browser_reboot ? scheduler.idle() : scheduler.reset_permitted()) ||
+            const auto update_activity = service.activity();
+            const bool update_safe = service.maintenance() && service.verification_safe() && store.healthy() &&
+                progress.healthy() && profile_store.healthy() && (!scheduler.suspended() || !store.config()) &&
+                !bootstrap.setup_pending() && !bootstrap.owner_claim_pending() &&
+                !reset_coordinator.pending() && !browser_api.mutation_pending() &&
+                !update_activity.owned && !update_activity.output_active &&
+                update_activity.state == wsprrypico::wtp::State::Empty
+#ifdef WSPRRY_PICO_STANDALONE_RF
+                && !engine.safety_inhibited()
+#endif
+#ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
+                && !gp14_button.fault()
+#endif
+                ;
+            if (!(usb_maintenance_reboot ? update_safe :
+                  (browser_reboot ? scheduler.idle() : scheduler.reset_permitted())) ||
                 !engine.disable(monotonic_now(nullptr) + 100'000'000ULL) ||
                 engine.output_active()) {
                 reboot_at = 0;
                 bootloader = false;
                 browser_reboot = false;
+                usb_maintenance_reboot = false;
+                service.end_maintenance();
                 continue;
             }
             if (bootloader)
@@ -1928,6 +2007,41 @@ int main() {
             network.poll();
         policy_engine.ntp_candidate(network.ntp_rate(monotonic_now(nullptr)), clock,
                                     ntp_rf_topology());
+        const auto cache_now = monotonic_now(nullptr);
+        if (!boot_recovery && !recovery_reset_at && !reset_coordinator.pending() && !reboot_at &&
+            time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Sntp &&
+            ntp_rf_topology()) {
+            const auto original = network.ntp_original();
+            const auto& control = network.ntp_control();
+            if (original && original->raw_ns != ntp_cache_observed_raw_ns &&
+                cache_now >= original->raw_ns &&
+                cache_now - original->raw_ns <= wsprrypico::time::ntp_fresh_ns) {
+                ntp_cache_observed_raw_ns = original->raw_ns;
+                const auto rate = network.ntp_rate(cache_now);
+                wsprrypico::standalone::NtpRetention::Provenance source{
+                    service.status().boot_id, network.ntp_endpoint(), original->epoch,
+                    rate.generation, original->utc_ns};
+                std::optional<wsprrypico::standalone::NtpRetention::RfPrior> rf;
+                if (rate.qualified && rate.sampled_ns == original->raw_ns &&
+                    wsprrypico::time::oscillator_correction(rate))
+                    rf = {rate.utc_rate_ppb, rate.uncertainty_ppb, rate.samples, rate.span_ns,
+                          source};
+                const auto utc = control.learned && control.raw_ns <= cache_now &&
+                                         control.generation == rate.generation &&
+                                         control.selected_sample_raw_ns == original->raw_ns &&
+                                         control.selected_epoch == original->epoch
+                                     ? std::optional(control.frequency_ppb)
+                                     : std::nullopt;
+                (void)ntp_retention.stage(utc, source, rf, control.rate_uncertainty_ppb);
+            }
+        }
+        if (!boot_recovery && !recovery_reset_at && !reset_coordinator.pending() &&
+            !reset_coordinator.blocks_admission() && !reboot_at && !bootstrap.setup_pending() &&
+            !bootstrap.owner_claim_pending() && scheduler.idle() &&
+            wsprrypico::provisioning::idle_for_access(provisioning_activity(&service)) &&
+            ntp_rf_topology()) {
+            (void)ntp_retention.flush(cache_now);
+        }
         if (reset_coordinator.blocks_admission() || recovery_reset_at)
             continue;
         const auto field_now_ms = time_us_64() / 1000ULL;

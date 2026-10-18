@@ -49,12 +49,35 @@ FrequencyPolicyEngine::Selection FrequencyPolicyEngine::selection(std::uint64_t 
         result.ppb = *time::oscillator_correction(candidate_);
         result.generation = candidate_.generation;
         result.ntp = true;
+    } else if (std::string_view(fallback_reason(now)) == "saved_ntp_prior") {
+        const auto& prior = *retention_->record()->rf;
+        time::RateEstimate rate;
+        rate.qualified = true;
+        rate.utc_rate_ppb = prior.utc_rate_ppb;
+        const auto correction = time::oscillator_correction(rate);
+        if (!correction)
+            return result;
+        result.ppb = *correction;
+        result.generation = retention_->sequence();
+        result.ntp = result.saved = true;
     }
     return result;
 }
 const char* FrequencyPolicyEngine::fallback_reason(std::uint64_t now) const {
     if (!store_.config() || !store_.config()->ntp_rf_calibration)
         return "manual_mode";
+    const bool saved =
+        retention_ && retention_->healthy() && retention_->record() && retention_->record()->rf;
+    const bool fresh = clock_ && candidate_.qualified && now >= candidate_.sampled_ns &&
+                       now - candidate_.sampled_ns <= time::ntp_fresh_ns &&
+                       time::oscillator_correction(candidate_);
+    if (saved && !fresh) {
+        if (!topology_supported_)
+            return "unsupported_clock_topology";
+        if (!independent_rf_verified_)
+            return "independent_rf_unverified";
+        return "saved_ntp_prior";
+    }
     if (!clock_ || !candidate_.qualified)
         return candidate_.reason;
     if (now < candidate_.sampled_ns || now - candidate_.sampled_ns > time::ntp_fresh_ns)
@@ -82,15 +105,26 @@ std::string FrequencyPolicyEngine::calibration_status(std::uint64_t now) const {
     return "{\"candidate\":" + time::rate_json(visible_candidate) +
            ",\"candidate_correction_ppb\":" + (correction ? std::to_string(*correction) : "null") +
            ",\"candidate_uncertainty_ppb\":" + std::to_string(rf_uncertainty) +
+           ",\"saved_ntp_available\":" +
+           (retention_ && retention_->healthy() && retention_->record() && retention_->record()->rf
+                ? "true"
+                : "false") +
+           ",\"saved_ntp\":" + (retention_ ? retention_->rf_json() : "null") +
            ",\"candidate_age_ns\":\"" + std::to_string(age) +
            "\",\"topology_supported\":" + (topology_supported_ ? "true" : "false") +
            ",\"independent_rf_verified\":false,\"next_ppb\":" + std::to_string(next.ppb) +
            ",\"next_generation\":\"" + std::to_string(next.generation) + "\"" +
-           ",\"next_source\":" + wtp::json::quote(next.ntp ? "ntp" : "manual") +
+           ",\"next_source\":" +
+           wtp::json::quote(next.saved ? "ntp_saved"
+                            : next.ntp ? "ntp"
+                                       : "manual") +
            ",\"reason\":" + wtp::json::quote(fallback_reason(now)) +
            ",\"prepared_ppb\":" + (frozen_ ? std::to_string(frozen_->ppb) : "null") +
            ",\"prepared_source\":" +
-           (frozen_ ? wtp::json::quote(frozen_->ntp ? "ntp" : "manual") : "null") +
+           (frozen_ ? wtp::json::quote(frozen_->saved ? "ntp_saved"
+                                       : frozen_->ntp ? "ntp"
+                                                      : "manual")
+                    : "null") +
            ",\"prepared_generation\":" +
            (frozen_ ? wtp::json::quote(std::to_string(frozen_->generation)) : "null") + "}";
 }

@@ -19,7 +19,11 @@ inline constexpr std::size_t access_base = btstack_base - access_size;
 inline constexpr std::size_t diagnostic_base = access_base - erase_sector_size;
 inline constexpr std::size_t progress_size = 2 * erase_sector_size;
 inline constexpr std::size_t progress_base = diagnostic_base - progress_size;
-inline constexpr std::size_t linked_flash_size = progress_base;
+inline constexpr std::size_t ntp_size = 2 * erase_sector_size;
+inline constexpr std::size_t ntp_base = progress_base - ntp_size;
+inline constexpr std::size_t linked_flash_size = ntp_base;
+static_assert(ntp_base == 0x3ee000);
+static_assert(ntp_base + ntp_size == progress_base);
 static_assert(progress_base == 0x3f0000);
 static_assert(progress_base + progress_size == diagnostic_base);
 

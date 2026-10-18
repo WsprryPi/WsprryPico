@@ -21,9 +21,12 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    - ✅ Persistent standalone manual PPM.
    - ✅ NTP filtering and UTC rate discipline.
    - ⏳ **Implement μChrony for NTP-derived RF calculation.** Replace prior
-     estimators with an original MIT implementation; complete Chrony 4.9
-     conformance and target/RF qualification while preserving independent
+     estimators with an original MIT implementation; validate the bounded Chrony 4.9
+     profile and complete independent RF qualification while preserving independent
      manual PPM and launch limits.
+     The bounded software comparison and normal-firmware A/B NTP checks are
+     complete; full daemon equivalence and physical RF acceptance remain
+     unqualified. [Replacement results](microchrony-results.md).
 5. ✅ **Impeccable UI review**, including provisioning; accepted and closed.
    VoiceOver testing is closed as not required.
    Installer coverage is deferred.
@@ -31,9 +34,10 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    UF2 images with version/source identity, checksums and a manifest before
    release efforts. Use the CI image for decode verification and publication.
    [Build and image guide](software-build-ci.md).
-7. ▧ **USB installer.** Standalone and WsprryPi access, preserving saved
+7. ⏳ **USB installer.** Standalone and WsprryPi access, preserving saved
    settings; default to the latest verified saved main CI image, with explicit
    devel selection.
+   [Installer guide](usb-installer.md) and [acceptance record](usb-installer-results.md).
    [Saved prompt](phase15-18-execution-prompt.md).
 8. ⏳ **Repository and work-harness cleanup.** Remove obsolete project artifacts
    and rewrite operator-facing prose around current capabilities. Keep needed

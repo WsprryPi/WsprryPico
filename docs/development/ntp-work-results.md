@@ -6,6 +6,48 @@ images do not establish physical UTC accuracy, carrier calibration or symbol
 timing. The [evidence manifest](ntp-work-evidence.json) binds the final inputs,
 test outputs, image identities and actual live budget.
 
+The [live follow-up manifest](ntp-work-live-evidence.json) records installation
+on both boards, confirmed reception from their configured time servers, and
+the separately approved peer-retention repair on B. B retained one peer for a
+complete 32-observation window, but the rate fit failed qualification. A remains
+unowned. Automatic RF selection remains inhibited pending candidate and
+independent RF acceptance.
+
+The subsequent [pool-quality and extended-history follow-up](ntp-pool-quality-results.md)
+was paused at a UI response-memory conflict. Its candidate image was removed
+from B and the prior normal image restored; the two-hour live test is incomplete.
+The authorized [compact-status and bounded-USB follow-up](ntp-pool-usb-results.md)
+then passed actual encrypted status requests with both histories full. Its pool
+baseline ended when the user requested a `time.local` comparison. The separate `time.local` baseline completed 36 accepted observations without
+strict rate qualification. A retained its original image and boot through the
+B restoration checks, unowned.
+The [UTC-servo and retained-correction follow-up](ntp-retained-results.md) uses
+independent learning storage and an updated CI flash-layout contract. Its target
+restoration checks are recorded separately; software checks do not establish
+live restoration or RF calibration.
+After B passed physical cold-start restoration and three fresh observations,
+the user authorized A's load with the same normal image and `pool.ntp.org` for
+the [overnight comparison](ntp-overnight-results.md). B remains on `time.local`;
+both boards are unowned and all quality gates remain unchanged.
+That observer subsequently stopped after approximately 35 minutes on a
+diagnostic pagination error during A's peer switch. Firmware NTP continued on
+both boards; the requested overnight comparison is incomplete and was not
+restarted. The overnight report records the failure and bounded offline results.
+The later read-only [current-state inspection](ntp-overnight-results.md#current-state-inspection-2026-10-18)
+recovered a historical software-qualified RF candidate saved on B after the
+observer stopped. Its original fitting window has expired; current fits fail
+and physical RF acceptance remains open. The same report records the user's
+new direction for statistical software qualification. Logging remains ended.
+
+The current source replaces the earlier NTP algorithms with original MIT
+[μChrony](../../src/microchrony/README.md). The sections below describe the
+historical implementation and its evidence; they do not qualify the replacement.
+[μChrony results](microchrony-results.md) record the new host/cross-link checks,
+external Chrony 4.9 comparison, remaining behavioral differences and serial-bound
+loads of the normal replacement firmware on B and subsequently authorized A.
+The historical overnight logger remains stopped; the replacement has its own
+finite NTP-only validation.
+
 ## 1. Persistent standalone manual PPM
 
 Configuration stores signed integer `manual_correction_ppb`, default zero,
@@ -35,8 +77,9 @@ does not recognize a nondefault extension rejects the record and fails closed;
 it cannot safely downgrade and silently discard calibration. A deliberate
 supported complete replacement/reset returns zero/manual. Legacy CONFIG,
 legacy PUT and merge omission preserve both settings. Profile/network overlays
-copy the underlying configuration and preserve them. No poll writes flash;
-learned values are volatile. Page interruption tests distinguish an untouched
+copy the underlying configuration and preserve them. Automatic NTP learning
+uses a separate bounded journal and never changes this configuration or manual
+value; its persistence policy is documented in [standalone storage](standalone.md). Page interruption tests distinguish an untouched
 previous record from a torn record, which fails closed.
 
 `FrequencyPolicyEngine` selects before every admitted preparation for all job
@@ -158,6 +201,67 @@ the implementation keeps that physical gate false and selects manual fallback
 even for a software-qualified candidate. There is no API bypass. Therefore this
 part and item 4 remain ⏳. Physical NTP/RF accuracy is not accepted.
 
+### Live follow-up
+
+Both boards received the normal `WsprryPico.uf2`, preserved the reserved 64 KiB
+and saved configuration, joined the saved Bohica network and received time.
+A uses `time.local`; B uses `pool.ntp.org`. The two extra UF2 files in the
+current NTP build were deleted as requested. Other historical images and build
+targets were preserved.
+
+The original B run exposed pool DNS rotation resetting the rate history.
+The separately approved repair retains a peer while admitted SNTP samples are
+at most 90 seconds old, including recovery during a pending lookup. Stale or
+changed network associations retain the existing resolution/retry behavior.
+Three focused host checks passed, including 235 exact oracle cases and 15
+three-way traces. The source-bound normal build passed linked resource checks.
+Only B received this repair build; A retained its initial normal image.
+Concurrent UI edits were excluded from the build snapshot and preserved.
+
+B then accepted 32 consecutive observations from one endpoint, boot, image,
+SNTP epoch and 138 MHz clock configuration, with zero rejections. The complete
+window spanned 1987.871884 seconds. Firmware refused qualification with
+`unstable_or_out_of_range`. The independent exact endpoint check, using
+observations 1 and 31 over 1923.763019 seconds, produced an interval of
+approximately **−211185 to +252261 ppb**, outside the required ±100000 ppb.
+This interval is a bound derived from NTP-declared uncertainties, not a measured
+Pico oscillator error. Individual uncertainty was 177.410–494.326 ms; accepted
+time reception does not establish a sufficiently precise rate estimate.
+
+The first failed complete window ended this attempt under a stop condition
+recorded before completion. Actual campaign use was **42 B exchanges**
+(10 before the repair and 32 afterward), **2544.964 seconds** through verified
+collector exit, and **zero Pico RF jobs/seconds**. The original collector's
+`STOPPED_ERROR`/`KeyboardInterrupt` is retained alongside its intentional
+process-bound SIGINT receipt, exit proof and released-lock check. The two-hour,
+128-exchange and six-job/30-second ceilings were not exhausted. This result
+concerns the observed window; it does not rule out every later pool window.
+
+A four-capture conducted GPSDO/RSP1B check established relative receiver scale
+and 1.532459 ppm repeatability within its recorded method. It did not establish
+the GPSDO's absolute short-term uncertainty or Pico RF agreement. Reference
+operation lasted 53.701 seconds and its original settings were restored exactly.
+The automatic RF physical gate remains false; no threshold, polling interval
+or server-selection policy was relaxed to obtain acceptance.
+
+Final supported readbacks found both boards synchronized to their configured
+servers, inactive and unowned, with schedules disabled and all saved
+configuration, station, schedules and watermarks preserved. A was never claimed.
+B retains the approved normal repair image. Installed services and chrony/gpsd
+configuration were unchanged. The manifest binds raw observation prefixes,
+exact rational endpoint results, build inputs, limits, helper outputs and final
+readbacks; raw network records, backups and captures remain private.
+
+The separate read-only reviewer verified the source/image bindings, repeated
+the exact live endpoint calculation, checked twelve positive/negative oracle
+cases and reconciled final saved-state readbacks. Both boards retain 0.000 ppm
+in manual mode and saved/boot drive of 4 mA, with no prepared correction.
+Review repairs covered oracle gap/reset handling, process-bound stopping,
+counter/model consistency, management boot binding, final state after reads
+and the declared stop-decision timestamp. Final assessment found no remaining
+actionable finding; candidate qualification and independent RF acceptance remain
+unresolved.
+
 ## Validation, evidence and restoration
 
 Final check counts, image hashes, resource measurements and source binding are
@@ -168,7 +272,9 @@ independent RF gate remains open.
 | --- | --- | --- |
 | Persistent standalone manual PPM | Accepted | Deterministic persistence/authority/sign/freeze tests and normal/inhibited linked builds; no new RF measurement |
 | NTP filtering and UTC rate discipline | Accepted in software scope | 235 exact oracle cases, 15 identical three-way traces, scheduling/failure tests and coherent RF-core mapping; physical UTC accuracy unqualified |
-| NTP-derived RF calibration | Software/gating complete; physical acceptance unresolved | Qualified-candidate/fallback/reciprocal/topology tests; automatic RF selection remains inhibited by the independent measurement gate | Reproduce without hardware:
+| NTP-derived RF calibration | Software/gating complete; physical acceptance unresolved | Qualified-candidate/fallback/reciprocal/topology tests; automatic RF selection remains inhibited by the independent measurement gate |
+
+Reproduce without hardware:
 
 ```sh
 source scripts/xcode_env.sh
@@ -197,7 +303,7 @@ uncertain-save behavior. Linked-image checks preserve engine separation, reserve
 flash, renderer placement, stack guards and heap hooks. They do not measure
 target CPU timing, stack high-water use or RF output.
 
-No board/reference/receiver was identified for live work in this execution.
+No board/reference/receiver was identified for the original software execution.
 Actual budget: **0 fresh NTP exchanges; 0 RF starts; 0 seconds RF**. No firmware
 was loaded and no hardware settings, services or reference path were changed.
 Restoration is not applicable; inactive physical output was not independently
@@ -235,5 +341,6 @@ all replay metrics matched the retained files. The final suite has 187 passes,
 zero failures and one unavailable-jsonschema dependency skip among 188 tests;
 235 exact oracle cases, 15 replay traces and the WTP contract validator passed.
 All three final targets and linked resource checks passed. No actionable
-implementation, test, documentation or evidence finding remains. Only the
-independent physical calibration acceptance gate remains unresolved.
+implementation, test, documentation or evidence finding remained at that
+software closeout. The later live follow-up is recorded separately above and
+in its own manifest.

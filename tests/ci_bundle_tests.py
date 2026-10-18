@@ -80,6 +80,11 @@ class BundleTests(unittest.TestCase):
                     GITHUB_RUN_ID='1', GITHUB_RUN_ATTEMPT='1')
         with patch.dict(os.environ, env):
             bundle.create(self.deploy, self.audit, self.source, self.version, ['consumer'], self.checks, self.inputs)
+        # Synthetic payload represents the frozen source, including during an
+        # uncommitted layout migration. The creator still emits the current boundary.
+        self.created_boundary = bundle.read_json(self.deploy / 'release-manifest.json')['update']['application_end']
+        self.mutate_manifest(lambda v: v['update'].update(application_end=f'{bundle.source_application_end(self.source):x}'))
+        self.reseal()
 
     def verify(self, **kwargs):
         # Synthetic fixture has no ELF. Actual image inspection is mandatory in
@@ -104,6 +109,15 @@ class BundleTests(unittest.TestCase):
         (self.deploy / 'SHA256SUMS').write_text(''.join(
             hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n'
             for p in sorted(self.deploy.iterdir()) if p.name != 'SHA256SUMS'))
+
+    def test_layout_is_bound_to_frozen_source(self):
+        self.assertEqual(self.created_boundary, '103ee000')
+        self.verify()
+        wrong = 0x103f0000 if bundle.source_application_end(self.source) == 0x103ee000 else 0x103ee000
+        self.mutate_manifest(lambda v: v['update'].update(application_end=f'{wrong:x}'))
+        self.reseal()
+        with self.assertRaisesRegex(ValueError, 'Flash reservation differs'):
+            self.verify()
 
     def test_valid_inventory_and_distinct_archive_identity(self):
         result = self.verify()
