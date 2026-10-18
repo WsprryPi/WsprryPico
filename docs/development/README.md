@@ -28,8 +28,11 @@ historical records. Their earlier pending/next-work descriptions do not select
 current work; consult the consolidated document for current dispositions.
 
 The reusable [repository and work-harness cleanup prompt](repository-cleanup-prompt.md)
-defines current-state prose, inventory before deletion, and cleanup of
-WsprryPico artifacts on the local machine and identified Raspberry Pi harnesses.
+defines inventory before deletion, cleanup of WsprryPico artifacts on the local
+machine and identified Raspberry Pi harnesses, and plain operator descriptions
+of current capabilities.
+Needed technical detail belongs in engineering references; operator explanations
+must stand on their own without documentation placeholders or future promises.
 It remains maintained guidance for explicit cleanup requests.
 
 The [P15.16 default-build record](phase15-16-results.md) tracks the normal

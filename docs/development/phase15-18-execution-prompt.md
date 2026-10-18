@@ -75,9 +75,9 @@ Verify accepted completion of this sequence using actual result records:
 
 Saved prompts, checklist intentions and successful builds alone do not establish
 acceptance. Read the accepted USB/drive/normal-target and CI result records and
-exact supported source pair. Item 9's testing prerelease is not a prerequisite:
+exact supported source pair. Item 10's testing prerelease is not a prerequisite:
 this installer task may publish the CI download assets needed for its own
-acceptance without executing or claiming completion of item 9.
+acceptance without executing or claiming completion of item 10.
 If a prerequisite is incomplete, report it and stop before implementation;
 do not absorb the missing phase into P15.18.
 
@@ -227,7 +227,7 @@ require GitHub sign-in/read access; do not turn that into an end-user token
 requirement. Use the permanent branch downloads delivered by item 6; ordinary
 installation downloads the saved image and does not trigger a rebuild.
 Additional installer-specific test publication remains authorized below without
-waiting for item 9.
+waiting for item 10.
 
 Reuse item 6's maintained promotion/discovery path for subsequent eligible CI
 builds. Do not duplicate its publisher or replace its current branch indexes

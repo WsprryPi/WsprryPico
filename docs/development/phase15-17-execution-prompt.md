@@ -218,7 +218,7 @@ Include:
   eligible CI prereleases; stable is an explicit selection. Link the actual
   CI/source/profile identities and describe whether this prerelease is eligible
   for that default. Item 7 may already have published CI download assets; that
-  limited publication alone does not complete this item 9 acceptance.
+  limited publication alone does not complete this item 10 acceptance.
 
 Use exact release/tag asset URLs for testing, not `/releases/latest/download`.
 Document checksums before flashing. Publishing alone does not validate an
@@ -324,7 +324,7 @@ policy, limitations and any hardware/restoration state. Keep raw firmware and
 local capture/log data ignored. Record the release manifest and final checksums
 in durable source evidence without a source-hash cycle.
 
-Only after every publication audit passes, mark item 9 **Complete** in the
+Only after every publication audit passes, mark item 10 **Complete** in the
 canonical backlog, link its results and public release, and synchronize affected
 development/prompt indexes. Preserve every other item's current status.
 Keep installer-facing CI/testing tag/asset selection, manifest version,

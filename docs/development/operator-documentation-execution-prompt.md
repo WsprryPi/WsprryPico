@@ -1,6 +1,6 @@
 # Operator documentation and Read the Docs publication
 
-Execute only item 8 of the [Consolidated backlog](consolidated-backlog.md).
+Execute only item 9 of the [Consolidated backlog](consolidated-backlog.md).
 Create the final operator instructions and accurate screenshots, migrate the
 current mixed documentation tree into an engineering source directory, build a
 new operator-facing Sphinx site in /docs using WsprryPi-Docs as the configuration
@@ -10,7 +10,7 @@ actionable findings and repeat affected checks/review, then commit and push the
 scoped result.
 
 This is an execution handoff, not a second backlog. Preparing, saving or
-publishing this prompt does not authorize executing the migration now. Item 8
+publishing this prompt does not authorize executing the migration now. Item 9
 remains not started until execution is requested. The directory rename,
 content migration, screenshots, publishing configuration and RTD publication
 described below belong to that later execution.
@@ -21,7 +21,7 @@ Work in /Users/lbussy/GitHub/WsprryPico. Read AGENTS.md, README.md, CONTRACT.md,
 docs/architecture.md, docs/development/README.md and the consolidated backlog
 before implementation. Print the complete Finish now section in its existing
 order, preserving the NTP Work grouping and using ✅ finished, ⏳ in flight and
-▧ not started. Mark only item 8 ⏳ when execution begins. Preserve concurrent
+▧ not started. Mark only item 9 ⏳ when execution begins. Preserve concurrent
 status changes and completed work; this document is the sole current/future
 work list.
 
@@ -294,7 +294,7 @@ Use existing authenticated tools where available. If account login, email
 verification or an external authorization step actually requires the user,
 complete all independent local work first and identify the precise remaining
 step. Do not buy a plan, change organization ownership or broaden account
-permissions as an incidental workaround. Leave item 8 in flight if publication
+permissions as an incidental workaround. Leave item 9 in flight if publication
 or an essential documentation/screenshot requirement remains unresolved.
 
 ## Evidence closeout and adversarial review
@@ -329,7 +329,7 @@ current/future work list.
 
 ## Commit, push and report
 
-Mark only item 8 ✅ when the operator content and screenshots are accurate,
+Mark only item 9 ✅ when the operator content and screenshots are accurate,
 migration coverage is closed, duplicated current operator text is removed,
 engineering material is retained with working live paths, affected checks pass,
 adversarial findings are resolved and the verified RTD site is publicly served

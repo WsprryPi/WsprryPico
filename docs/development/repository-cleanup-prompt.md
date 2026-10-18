@@ -47,6 +47,53 @@ project-specific Mac and Raspberry Pi work harnesses.
   historical tree, backup bundle or permanent cleanup report to hold it.
   Normal Git history supplies tracked-file history.
 
+### Operator-facing prose and engineering content
+
+Treat the README and other non-engineering material as explanations for an
+operator. Lead with what the current product does, how it is used and any
+limitation that changes an operating decision. Use familiar language and
+present capabilities, not a report of development or acceptance activity.
+
+The required level of product description is illustrated by:
+
+> WsprryPico transmits WSPR, QRSS, FSKCW and DFCW as a standalone device or
+> as part of a WsprryPi fleet.
+
+Verify current support before using any example as product copy. Preserve
+necessary operating instructions and meaningful limitations in plain language;
+removing a development narrative must not imply unqualified hardware, bands
+or configurations are supported.
+
+An operator should not need to interpret a paragraph about normative WTP,
+host tests, cross-linking, PIO/DMA internals, experimental clocks, refill times,
+bench images, receiver hosts, GPSDO comparisons, benchmark victories or the
+sequence of validation campaigns to discover those basic capabilities. This
+applies even when every technical statement is accurate and there are no phase
+numbers. Removing labels or shortening the same status report is insufficient;
+rewrite its message for the reader.
+
+Extract technical information still needed by maintainers into the appropriate
+existing engineering contracts, implementation/build references or support
+records. Keep it concise and current, with applicability and provenance where
+needed. Do not mechanically relocate the whole paragraph, create another
+history document or retain obsolete evidence merely to avoid deleting it.
+Engineering material serves maintainers; it is not the operator manual.
+
+Do not replace the paragraph with an engineering-documentation link or tell an
+operator to consult development records to understand the product. Do not refer
+to the planned operator documentation in product prose or add a documentation
+section, unavailable site link, placeholder, "coming soon" statement or promise
+that documentation will be written later. The operator-facing description must
+stand on its own. Keep necessary maintainer references in
+engineering entry points. The separately selected operator-documentation work
+remains in the canonical backlog; cleanup does not execute it or advertise its
+future result in product prose.
+
+This standard applies throughout non-engineering text, including feature and
+status paragraphs, headings, captions, navigation and security explanations.
+Judge each passage by the operator action or decision it helps, not by whether
+it contains a particular development keyword.
+
 ## Authority and scope
 
 An explicit cleanup invocation authorizes inventory, documentation maintenance
@@ -118,6 +165,10 @@ Do not install tools, download SDKs, start a build or alter a host to inventory 
   that only assert the presence or historical wording of completed records.
   Inspect their assertions and build registration; a phase number alone is
   not a deletion reason.
+- Classify documentation by audience and inspect mixed sections separately.
+  Identify the operator capability or decision each retained passage explains.
+  Record where useful technical content will be consolidated in engineering
+  material before removing its operator-facing development narrative.
 
 ### Local and Raspberry Pi harness discovery
 
@@ -181,6 +232,7 @@ inspected directory group, record:
 | State | Tracked/untracked/ignored/external; pre-existing edits or unique work |
 | Extent | Type, file count and size; distinguish logical size from disk usage |
 | Use | Current callers/references, active use and recovery dependency |
+| Audience | Operator purpose or engineering use; destination for needed technical content |
 | Action | `DELETE`, `REWRITE`, `RETAIN` or `HOLD` |
 | Reason | Concrete obsolescence or current purpose; retention/migration prerequisite |
 | Validation | Checks needed after this action and expected reference repairs |
@@ -238,6 +290,13 @@ Do not make another backup of material classified for deletion.
 
 ### Rewrite retained documentation
 
+- Rewrite README and other operator-facing passages around current capabilities
+  and actual use. Apply the operator standard above to the meaning and structure
+  of the prose, including technically accurate status/validation catalogues.
+  Consolidate needed implementation and measurement detail in engineering
+  material; keep ordinary product descriptions readable without those records.
+  Add no documentation placeholder, engineering-guide substitute or future
+  documentation promise.
 - Consolidate current behavior into appropriate maintained guides and
   contracts. Remove duplicate status paragraphs and completed milestone lists
   from `README.md`, `CONTRACT.md`, architecture and development guides.
@@ -293,6 +352,11 @@ reference and formatting validation, not hardware acceptance.
    Check development phase/step references throughout retained documentation,
    including `README.md` and `SECURITY.md`, against the explicit active-plan
    exceptions; preserve actual procedures and technical terminology.
+   Read operator-facing passages as an operator: can the reader identify the
+   product's capabilities and relevant operating limits without interpreting
+   engineering milestones or following a chain of validation records? Confirm
+   needed technical content has an engineering home, obsolete narrative is
+   removed, and no documentation substitute, stub or promise was introduced.
    Run `git diff --check`; inspect untracked text separately. Confirm no
    credentials, local SDK paths or generated firmware were added to source.
 3. Run affected deterministic tests. The documented portable-core baseline is
@@ -317,7 +381,9 @@ reference and formatting validation, not hardware acceptance.
 6. Fix actionable findings and rerun affected checks. Do not add tests that
    merely assert deletion or restate documentation. A dedicated review pass
    must challenge mistaken deletion, dangling dependencies, lost coverage,
-   broadened qualification claims, scope drift and concealed user changes.
+   broadened qualification claims, unreadable operator prose, retained
+   development narratives, documentation placeholders/promises, scope drift
+   and concealed user changes.
 7. Recheck each reachable host: exact deletion targets are absent, retained
    files and tools exist, and active services/configuration/workloads were
    preserved. Remove disposable outputs created by validation after collecting

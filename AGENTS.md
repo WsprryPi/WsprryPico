@@ -21,6 +21,11 @@
 - Documentation describes the current product in direct, impersonal language.
   Selected future work belongs in the consolidated backlog or an issue.
   Remove obsolete evidence and development narratives without creating an archive.
+- Operator-facing prose, especially README.md, explains current capabilities
+  and use in plain language. Replace engineering status and validation narratives
+  with capability descriptions; retain needed technical detail in engineering
+  documentation. Do not substitute engineering links for operator explanations,
+  add documentation placeholders or promise future documentation.
 - Apply the same inventory, rewrite, reference-repair and validation process to
   development phase and step references, including those in README.md and
   SECURITY.md. Preserve phase/step organization only in explicitly retained,

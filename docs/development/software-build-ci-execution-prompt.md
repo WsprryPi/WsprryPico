@@ -47,7 +47,7 @@ hardware operation is required for this software/build acceptance. Preserve
 user work and historical evidence; do not invoke repository/harness cleanup.
 
 Item 7's installer depends on these verified CI images. Do not make item 6
-depend on the installer or item 9's publication, which would create a cycle.
+depend on the installer or item 10's publication, which would create a cycle.
 Build from the latest accepted current source without silently claiming
 unfinished features are accepted. Preserve completed decode evidence at its
 actual source/image scope; new CI bytes do not inherit that physical acceptance.
@@ -289,14 +289,14 @@ ordering, run/attempt/profile and immutable artifact hashes. An older-source
 rerun or release re-upload must not become a newer source candidate. Keep normal
 deployment unambiguous and support resolving one complete immutable bundle per
 installation. A mutable channel pointer is a locator, never sufficient identity.
-Use the same canonical manifest across CI, the installer and item 9.
+Use the same canonical manifest across CI, the installer and item 10.
 
 Preserve exact successful branch bytes as public CI download prereleases with
 unique pre-1.0.0 tags. Keep the original artifact ZIPs and receipt available
 after Actions expiry. Validate remote asset hashes before publishing a complete
 version and advancing that branch's index. Never move existing version/index
 tags, overwrite published version assets, publish PR previews or roll an index
-back to an older source. A mutable index is a locator only. Item 9 and the
+back to an older source. A mutable index is a locator only. Item 10 and the
 installer are not prerequisites for this download transport; do not require an
 end-user GitHub token to follow its public download links.
 
@@ -309,7 +309,7 @@ each selected profile, and that inhibited assets cannot be mistaken for them.
 
 Document concrete retrieval and verification commands using real run/artifact
 identities once available. Preserve verified downloads and hashes for item 7,
-later item 9 and any separately selected decode verification. Those consumers
+later item 10 and any separately selected decode verification. Those consumers
 must use the same selected UF2 bytes; if assets expire or a candidate changes,
 report the need for affected reassessment rather than silently rebuilding or
 changing version. Do not reopen or relabel item 2's completed evidence here.
@@ -348,7 +348,7 @@ E or demand a self-referential firmware rebuild.
 If an external account/runner/pin prerequisite blocks the workflow, finish
 unaffected preparation, report the exact blocker and retain ⏳. Do not change
 repository settings or another product to evade the boundary. Successful build
-CI here does not close item 2's RF decode or item 9's publication.
+CI here does not close item 2's RF decode or item 10's publication.
 
 ## Commit, push and closeout
 
