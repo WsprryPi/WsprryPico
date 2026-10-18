@@ -11,8 +11,9 @@ the scoped result.
 
 This saved prompt does not implement CI, run checks/builds or produce firmware
 merely by being prepared or published. Item 6 stays not started until execution
-is requested. Workflow artifacts are the delivery mechanism here; creating a
-GitHub release, tag, installer or documentation-site publication is not.
+is requested. The selected delivery contract includes permanent public CI
+downloads for both devel and main. The installer and documentation-site
+publication remain separate work.
 
 ## Entry and execution authority
 
@@ -33,13 +34,14 @@ They are not reset targets or evidence that future CI is absent.
 
 This execution authorizes Pico-only workflow/build/packaging/test/documentation
 changes, necessary scoped commits/non-force pushes to devel, corresponding CI
-runs/retries and workflow artifact uploads/downloads. Clean CI dependency setup
+runs/retries, workflow artifact uploads/downloads and unique pre-1.0 CI download
+prereleases with independent permanent branch indexes. Clean CI dependency setup
 is part of the task. Do not install a toolchain on the user's Mac incidentally.
 Other repositories remain read-only; retrieving an exact existing companion
 source for supported interoperability tests does not authorize modifying it.
 
 Do not change repository defaults, permissions, branch protection or release
-settings; merge to main; publish a release/tag/site; create a PR; operate boards,
+settings; merge to main; publish a stable product release or site; create a PR; operate boards,
 RF, SDR, GPSDO or installed services; or execute another backlog item. No
 hardware operation is required for this software/build acceptance. Preserve
 user work and historical evidence; do not invoke repository/harness cleanup.
@@ -104,11 +106,13 @@ small reusable helpers under scripts/ or cmake/. Use Linux for hardware-free
 checks and RP2350 cross-linking; an unrelated platform matrix is not required.
 Keep local reproduction commands aligned with the CI recipe.
 
-Cover pushes to devel and appropriate pull-request checks. Add a bounded manual
+Cover every push to devel and main, including merges and documentation changes,
+and pull requests targeting either branch. Keep their latest successful downloads
+independently available without an Actions expiry deadline. Add a bounded manual
 entry point where supported, with a validated consumer profile and a unique
 version generated from the run and attempt. Record the actual checked-out SHA. PR head, synthetic merge
-commit and trusted devel source are different identities; a PR test artifact
-must not be advertised as the accepted devel deployment candidate.
+commit and trusted branch source are different identities; a PR test artifact
+must not be advertised as an accepted branch deployment candidate.
 
 The initial devel workflow must have a usable trigger. Do not assume a manual
 dispatch becomes available solely because a new file exists on devel while
@@ -180,7 +184,7 @@ Use the unique embedded development version `0.1.0-ci.<run-id>.<attempt>`,
 selected before building. Do not accept version overrides or reuse an identity
 for different deployment bytes. Later installer/prerelease publication uses
 those exact embedded versions and may prefix them with `v` for a unique
-pre-1.0.0 tag. CI itself creates no tag or release. Changing identity after
+pre-1.0.0 tag. CI publishes exact verified bytes under that unique tag. Changing identity after
 qualification requires a new image and reassessment.
 
 Produce one generic, uninhibited consumer deployment image: `WsprryPico`,
@@ -280,18 +284,21 @@ to insert metadata that could not exist before upload. See
 Do not let a successful upload substitute for successful validation.
 
 Define a maintained identity/discovery contract for item 7's default latest-CI
-selection: trusted canonical devel workflow, required successful checks, source
+selection: trusted canonical branch workflow, required successful checks, source
 ordering, run/attempt/profile and immutable artifact hashes. An older-source
 rerun or release re-upload must not become a newer source candidate. Keep normal
 deployment unambiguous and support resolving one complete immutable bundle per
 installation. A mutable channel pointer is a locator, never sufficient identity.
 Use the same canonical manifest across CI, the installer and item 9.
 
-Workflow artifacts remain this task's delivery mechanism. Item 7 may publish
-the verified bytes as public installer download prereleases and create unique
-pre-1.0.0 tags if public downloads require it; item 9 is not a prerequisite for
-that limited publication. Do not execute those release/tag operations in this
-CI-only task or require an end-user GitHub token as the installer's default.
+Preserve exact successful branch bytes as public CI download prereleases with
+unique pre-1.0.0 tags. Keep the original artifact ZIPs and receipt available
+after Actions expiry. Validate remote asset hashes before publishing a complete
+version and advancing that branch's index. Never move existing version/index
+tags, overwrite published version assets, publish PR previews or roll an index
+back to an older source. A mutable index is a locator only. Item 9 and the
+installer are not prerequisites for this download transport; do not require an
+end-user GitHub token to follow its public download links.
 
 After CI passes, download the exact selected run/attempt artifacts to a new
 ignored local directory. Independently verify run source/workflow/profile,
@@ -368,5 +375,5 @@ Independently query remote devel and compare local HEAD/upstream after push.
 Report actual source F and evidence E, what changed, tests/skips and remote
 CI/run/artifact results, review repairs, downloaded paths/hashes, limitations,
 commit/push/parity and working-tree state. Reprint the complete canonical
-punchlist using ✅/⏳/▧. Stop after item 6; no decode, flashing or release is
-performed by this task.
+punchlist using ✅/⏳/▧. Stop after item 6. Decode, flashing, installer execution
+and stable product releases remain separate work.

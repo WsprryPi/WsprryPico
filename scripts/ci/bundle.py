@@ -36,6 +36,20 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def build_stream(event, ref):
+    if event in ('push', 'workflow_dispatch') and ref in ('refs/heads/devel', 'refs/heads/main'):
+        return ref.removeprefix('refs/heads/')
+    if event == 'pull_request' and isinstance(ref, str) and re.fullmatch(r'refs/pull/[1-9][0-9]*/merge', ref):
+        return 'pull-request'
+    raise ValueError('Unsupported CI event or branch')
+
+
+def artifact_name(kind, stream, run, attempt):
+    require(kind in ('firmware', 'audit') and stream in ('devel', 'main', 'pull-request'),
+            'Unsupported artifact stream')
+    return f'WsprryPico-{kind}-{stream}-{run}-{attempt}-consumer'
+
+
 def sha(path):
     with Path(path).open('rb') as source:
         return hashlib.file_digest(source, 'sha256').hexdigest()
@@ -126,6 +140,23 @@ def binary_identity(report):
     return fields
 
 
+def inspect_payload(directory, identifier):
+    target = PROFILES[identifier]['target']
+    elf, uf2 = directory / (target + '.elf'), directory / (target + '.uf2')
+    require(elf.stat().st_size <= MAX_FILE and uf2.stat().st_size <= 9 * 1024 * 1024,
+            'Oversized image')
+    elf_bytes, uf2_bytes = elf.read_bytes(), uf2.read_bytes()
+    validate_uf2(uf2_bytes, application_end=APPLICATION_END)
+    verify_payload(elf_bytes, uf2_bytes, application_end=APPLICATION_END)
+    for offset in range(0, len(uf2_bytes), 512):
+        if struct.unpack_from('<I', uf2_bytes, offset + 12)[0] == 0x10ffff00:
+            expected_e10 = (struct.pack('<8I', 0x0a324655, 0x9e5d5157, 0xa000,
+                                        0x10ffff00, 256, 0, 2, 0xe48bff57) +
+                            bytes([0xef]) * 256 + struct.pack('<I', 0x9957e304) +
+                            bytes(216) + struct.pack('<I', 0x0ab16f30))
+            require(uf2_bytes[offset:offset + 512] == expected_e10, 'Unexpected E10 block metadata')
+
+
 def inspect_profile(directory, identifier, version, source, picotool='picotool'):
     profile = PROFILES[identifier]
     target = profile['target']
@@ -145,15 +176,7 @@ def inspect_profile(directory, identifier, version, source, picotool='picotool')
     require(actual_identity == expected_binary_identity, 'Linked picotool program identity mismatch')
     require(binary_identity((directory / 'picotool-info.txt').read_text()) == actual_identity,
             'Retained picotool report differs from linked image')
-    validate_uf2(uf2_bytes, application_end=APPLICATION_END)
-    verify_payload(elf_bytes, uf2_bytes, application_end=APPLICATION_END)
-    for offset in range(0, len(uf2_bytes), 512):
-        if struct.unpack_from('<I', uf2_bytes, offset + 12)[0] == 0x10ffff00:
-            expected_e10 = (struct.pack('<8I', 0x0a324655, 0x9e5d5157, 0xa000,
-                                        0x10ffff00, 256, 0, 2, 0xe48bff57) +
-                            bytes([0xef]) * 256 + struct.pack('<I', 0x9957e304) +
-                            bytes(216) + struct.pack('<I', 0x0ab16f30))
-            require(uf2_bytes[offset:offset + 512] == expected_e10, 'Unexpected E10 block metadata')
+    inspect_payload(directory, identifier)
     header = (directory / 'firmware_identity.hpp').read_text()
     expected = {'kProduct': 'WsprryPico', 'kFirmwareVersion': version,
                 'kBuildRevision': source[:12], 'kBoard': 'pico2_w', 'kProcessor': 'RP2350',
@@ -214,6 +237,7 @@ def create(deployment, audit, source, version, selected, checks, build_inputs):
     (audit / 'build-inputs.json').write_text(json.dumps(build_inputs, indent=2) + '\n')
     source_inventory = subprocess.check_output(['git', '-C', str(ROOT), 'ls-tree', '-r', source])
     event, ref = os.environ['GITHUB_EVENT_NAME'], os.environ['GITHUB_REF']
+    stream = build_stream(event, ref)
     workflow = {'path': '.github/workflows/software-build.yml',
                 'revision': os.environ['CI_WORKFLOW_SHA'], 'event': event, 'ref': ref,
                 'run_id': int(os.environ['GITHUB_RUN_ID']), 'attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
@@ -225,7 +249,7 @@ def create(deployment, audit, source, version, selected, checks, build_inputs):
         'source': {'revision': source, 'tree': capture('git', '-C', ROOT, 'rev-parse', source + '^{tree}'),
                    'clean': True, 'input_digest_sha256': hashlib.sha256(source_inventory).hexdigest()},
         'workflow': workflow,
-        'deployment_candidate': event in ('push', 'workflow_dispatch') and ref == 'refs/heads/devel',
+        'deployment_candidate': stream in ('devel', 'main'),
         'firmware': {'profile': 'consumer', 'target': 'WsprryPico', 'board': 'pico2_w',
                      'processor': 'RP2350', 'family_id': 'e48bff59', 'role': 'uninhibited',
                      'engine': 'pio-dma', 'clock_hz': 138000000,
@@ -261,8 +285,9 @@ def verify(deployment, audit, source, version, inspect=True):
             manifest['source']['input_digest_sha256'] == hashlib.sha256(subprocess.check_output(
                 ['git', '-C', str(ROOT), 'ls-tree', '-r', source])).hexdigest(), 'Source tree/input digest mismatch')
     require(manifest['workflow']['revision'] == source, 'Workflow revision differs from artifact source')
-    require(manifest['deployment_candidate'] == (manifest['workflow']['event'] in ('push', 'workflow_dispatch') and
-            manifest['workflow']['ref'] == 'refs/heads/devel'), 'Untrusted deployment channel')
+    stream = build_stream(manifest['workflow']['event'], manifest['workflow']['ref'])
+    require(manifest['deployment_candidate'] == (stream in ('devel', 'main')),
+            'Untrusted deployment channel')
     checks = manifest['checks']
     require(checks['registered'] == checks['passed'] == len(checks['test_names']) and
             len(set(checks['test_names'])) == len(checks['test_names']), 'Incomplete test inventory')

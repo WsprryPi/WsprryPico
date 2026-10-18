@@ -2,7 +2,8 @@
 
 The [software/build CI guide](software-build-ci.md) describes the generic
 uninhibited consumer image, pinned Linux checks, versioned deployment manifest,
-artifact verification and exact-byte installer/release handoff. Standalone WSPR
+artifact verification, permanent separate main/devel downloads and exact-byte
+installer/release handoff. Standalone WSPR
 frequency is selected explicitly at runtime; images select no transmit frequency.
 
 The [NTP work record](ntp-work-results.md) documents persistent manual carrier

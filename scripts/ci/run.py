@@ -36,6 +36,9 @@ def inputs():
     profile = os.environ.get('CI_PROFILE', 'consumer')
     if profile != 'consumer':
         raise ValueError('Unsupported profile')
+    stream = bundle.build_stream(os.environ.get('GITHUB_EVENT_NAME'), os.environ.get('GITHUB_REF'))
+    if os.environ.get('CI_STREAM') != stream:
+        raise ValueError('Artifact stream differs from the actual event/branch')
     run_id, attempt = os.environ.get('GITHUB_RUN_ID', ''), os.environ.get('GITHUB_RUN_ATTEMPT', '')
     if not re.fullmatch(r'[1-9][0-9]{0,19}', run_id) or not re.fullmatch(r'[1-9][0-9]{0,5}', attempt):
         raise ValueError('A real GitHub run/attempt is required')

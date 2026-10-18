@@ -18,23 +18,26 @@ unqualified. Full-board boot, USB, RF and timing acceptance remain separate.
 
 ## Triggers and identity
 
-Pushes to `devel` and pull requests targeting `devel`/`main` run checks. Only
-three evidence/planning files are excluded from push triggering: the CI result
-record, consolidated backlog and saved CI execution prompt. Actual source,
-build inputs, schemas, browser assets, notices and product documentation remain
-covered. The first workflow run bootstraps through the authorized `devel` push;
-manual dispatch is not assumed available while `main` lacks this workflow.
-Repository settings and the default branch are unchanged.
+Every push to `devel` or `main`, including a merge or documentation-only change,
+runs checks and builds firmware. Pull requests targeting either branch build
+preview images when opened, updated or reopened. Merging a PR into `main`
+therefore builds the resulting `main` commit as well. There are no path filters
+or build cancellation groups. Publication is serialized separately per branch,
+with up to 100 waiting jobs retained using GitHub's `queue: max` setting.
+The workflow must be merged into `main` before its first main-branch download
+can exist. Manual dispatch is not assumed available while `main` lacks this
+workflow. Repository settings and the default branch are unchanged.
 
 Manual dispatch, where available, accepts only the enumerated `consumer`
 profile. Embedded versions are generated before building as
 `0.1.0-ci.<run-id>.<attempt>`. There is no version override. Different attempts
-have different identities; future public download tags may use `v` followed by
-this exact version. No tag or release is created by CI. A later release or
-installer publication retains the original version, source and UF2 bytes.
+have different identities. Successful trusted branch builds publish those exact
+bytes under unique `v<version>` prerelease tags. They remain CI testing images;
+`main` does not automatically become a stable product release. Publication does
+not mark a prerelease as GitHub's latest stable release.
 
 The actual checked-out full source SHA is recorded. PR head, synthetic merge
-commit and trusted `devel` are distinct identities. PR artifacts are test
+commit and trusted branch commits are distinct identities. PR artifacts are test
 outputs and cannot be selected as the trusted consumer deployment candidate.
 The source commit containing firmware/workflow inputs is **F**. A later
 evidence-only commit **E** records acceptance without relabelling F's firmware.
@@ -111,19 +114,48 @@ configuration, picotool identity, generated overlays, logs and actual test
 reports. It contains no device keys or private capture packets.
 
 The artifact pair is named
-`WsprryPico-firmware-<run>-<attempt>-consumer` and
-`WsprryPico-audit-<run>-<attempt>-consumer`, retained for 90 days. Failed builds
-may retain separately named diagnostic logs for 14 days. Downloads chosen for
-decode, installer or publication must be retained locally before expiry.
-Expired or changed candidates require explicit reassessment; silently
-rebuilding is not exact-byte promotion.
+`WsprryPico-firmware-<branch>-<run>-<attempt>-consumer` and
+`WsprryPico-audit-<branch>-<run>-<attempt>-consumer`, retained for 90 days.
+PR previews use `pull-request` in place of the branch. The downloader also
+recognizes the original branchless devel artifact names. Failed builds may
+retain separately named diagnostic logs for 14 days.
+
+Successful trusted builds also preserve all six deployment files, the original
+`deployment.zip` and `audit.zip`, and a `ci-publication.json` receipt as public
+GitHub prerelease assets. These downloads have no Actions retention deadline.
+No timer rebuild is needed. The receipt binds original artifact IDs/archive
+hashes, successful verification job, branch/source/run/attempt and manifest
+hash; it does not rewrite the archived manifest after upload.
+
+The permanent download pages are [devel](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-devel)
+and [main](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-main). Each page
+links to that branch's latest successfully verified and published version.
+The first successful publication creates the corresponding page. Failed builds
+leave its previous version available. A main page first becomes available after
+the workflow is merged into main and its build succeeds.
+
+[`scripts/ci/publish.py`](../../scripts/ci/publish.py) downloads the exact artifact
+pair after the read-only verification job passes, checks provenance/checksums
+and UF2/ELF payload association again, and uploads a draft version release.
+It publishes only after all nine remote assets have matching sizes and SHA-256
+digests. Interrupted drafts resume without overwriting assets. Existing version
+tags and published assets cannot be replaced by this helper. This is an enforced
+append-only publishing policy, not a claim that repository-wide GitHub release
+immutability has been enabled.
+
+The `ci-devel` and `ci-main` releases are bookmarks. Their tags are created once
+and never moved. Only the release body changes, atomically pointing at a complete
+version release. Main and devel indexes are independent. Source ancestry prevents
+an old-source rerun from displacing a newer branch version; a diverged history
+requires resolution rather than silently rolling back. The index is a locator,
+not sufficient firmware identity. PR jobs have no write token and never publish.
 
 ## Retrieval and installer discovery contract
 
 [`scripts/ci/download.py`](../../scripts/ci/download.py) retrieves an explicitly
 selected run/attempt. It requires the actual GitHub run to be a completed
-successful canonical `devel` push/manual run with the expected source and
-workflow path/ID. It checks the required job, both immutable artifact IDs,
+successful canonical `devel` or `main` push/manual run with the expected source and
+workflow path/ID. It checks every required job, both immutable artifact IDs,
 expiry and archive digests, safely extracts each archive, then independently
 validates the manifest, all file sizes/hashes, actual test reports, source and
 dependency identity, linked ELF and UF2. `verified-download.json` records the
@@ -135,7 +167,7 @@ identities. Verification re-reads the ELF's program name, description, version,
 board, SDK and build type with picotool and compares the retained report:
 
 ```sh
-python scripts/ci/download.py --run RUN_ID --attempt ATTEMPT \
+python scripts/ci/download.py --branch devel --run RUN_ID --attempt ATTEMPT \
   --source FULL_SOURCE_SHA --version FIRMWARE_VERSION \
   --destination build/verified-ci-UNIQUE_DIRECTORY
 ```
@@ -146,18 +178,31 @@ tools are trusted inputs: build picotool from the pinned source in
 path, executable hash and version in the download receipt; a version string
 alone does not authenticate a locally supplied executable. A mutable
 latest-successful label or manifest `deployment_candidate` flag is only a
-locator/hint. Installer selection must independently require the canonical
+locator/hint. Selection from Actions storage must independently require the canonical
 repository/workflow/source, successful **whole run**, required successful job
 and complete matching artifact pair. A partially uploaded, failed, cancelled,
-expired or PR run is ineligible even if one artifact exists.
+expired or PR run is ineligible for Actions retrieval even if one artifact exists.
 
-Latest means newest accepted source along canonical `devel` ancestry, not the
+For preserved release archives use the same explicit identity and add
+`--published`. This path verifies the public release/tag, preserved verification
+receipt, original archive hashes, canonical manifest and actual linked image
+without requiring expired Actions storage. It cannot infer later physical
+qualification from the preserved software evidence. The public web download
+links need no end-user GitHub token; the developer verification CLI uses `gh`.
+
+Read a branch bookmark without publishing anything:
+
+```sh
+python scripts/ci/publish.py --resolve devel
+python scripts/ci/publish.py --resolve main
+```
+
+Latest means newest accepted source along the selected branch's ancestry, not the
 latest run timestamp. An older-source rerun or release re-upload cannot
 overtake a newer accepted source. Resolve one complete immutable normal bundle
 per installation; retain source/run/attempt, profile, manifest and UF2 hashes.
-The future installer may publish those exact verified bytes as public CI
-download prereleases so its default does not require a user GitHub token.
-That publication and the installer itself are outside this CI task.
+The future installer can consume the same preserved public bytes and manifest.
+The installer itself is separate work.
 
 Useful upstream references are [GitHub workflow events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch),
 [secure workflow use](https://docs.github.com/en/actions/reference/security/secure-use)

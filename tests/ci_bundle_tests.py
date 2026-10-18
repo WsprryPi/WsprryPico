@@ -8,22 +8,39 @@ import struct
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts/ci'))
 import bundle
+import download
+import publish
 
 
 class BundleTests(unittest.TestCase):
     def test_workflow_commands_parse_as_strings(self):
         import yaml
         workflow = yaml.load((ROOT / '.github/workflows/software-build.yml').read_text(), Loader=yaml.BaseLoader)
-        self.assertIn('push', workflow['on'])
-        for step in workflow['jobs']['verify']['steps']:
-            if 'run' in step:
-                self.assertIsInstance(step['run'], str)
+        self.assertEqual(set(workflow['on']['push']['branches']), {'devel', 'main'})
+        self.assertEqual(set(workflow['on']['pull_request']['branches']), {'devel', 'main'})
+        self.assertNotIn('paths-ignore', workflow['on']['push'])
+        self.assertNotIn('paths', workflow['on']['push'])
+        self.assertNotIn('concurrency', workflow)  # Every push must start its build.
+        self.assertEqual(workflow['permissions'], {'contents':'read'})
+        publisher = workflow['jobs']['publish']
+        self.assertEqual(publisher['needs'], 'verify')
+        self.assertIn("github.event_name != 'pull_request'", publisher['if'])
+        self.assertIn("github.repository == 'WsprryPi/WsprryPico'", publisher['if'])
+        self.assertEqual(publisher['permissions'], {'contents':'write','actions':'read'})
+        self.assertEqual(publisher['concurrency']['group'], 'firmware-publication-${{ github.ref }}')
+        self.assertEqual(publisher['concurrency']['queue'], 'max')
+        for job in workflow['jobs'].values():
+            for step in job['steps']:
+                if 'run' in step:
+                    self.assertIsInstance(step['run'], str)
 
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -198,6 +215,277 @@ class BundleTests(unittest.TestCase):
                           'picotool v2.3.0 (fixture)' if args[-1] == 'version' else report):
             with self.assertRaisesRegex(ValueError, 'program identity mismatch'):
                 bundle.inspect_profile(directory, 'consumer', self.version, self.source)
+
+    def download_fixture(self, branch, legacy=False):
+        event = 'pull_request' if branch == 'pull-request' else 'push'
+        ref = 'refs/pull/23/merge' if event == 'pull_request' else 'refs/heads/' + branch
+        self.mutate_manifest(lambda v: v.update(
+            workflow=dict(v['workflow'], event=event, ref=ref),
+            deployment_candidate=branch != 'pull-request'))
+        self.reseal()
+        archives, records = {}, []
+        for identifier, (kind, folder) in enumerate((('firmware', self.deploy), ('audit', self.audit)), 1):
+            archive = self.base / f'{branch}-{kind}.zip'
+            with zipfile.ZipFile(archive, 'w') as output:
+                for path in sorted(folder.rglob('*')):
+                    if path.is_file():
+                        output.write(path, path.relative_to(folder).as_posix())
+            archives[identifier] = archive
+            records.append(dict(id=identifier,
+                name=f'WsprryPico-{kind}-1-1-consumer' if legacy else bundle.artifact_name(kind, branch, 1, 1),
+                digest='sha256:' + bundle.sha(archive), expired=False, expires_at='2030-01-01T00:00:00Z'))
+        run = dict(status='completed', conclusion='success', run_attempt=1,
+                   head_sha=self.source, head_branch=branch, event=event,
+                   path='.github/workflows/software-build.yml', workflow_id=7,
+                   head_repository={'full_name':download.REPOSITORY}, html_url='https://github.com/'+download.REPOSITORY+'/actions/runs/1')
+        responses = {'actions/runs/1/attempts/1':run,
+                     'actions/workflows/software-build.yml':{'id':7,'path':run['path']},
+                     'actions/runs/1/attempts/1/jobs':{'total_count':len(download.required_jobs(self.source)),
+                         'jobs':[{'id':9,'name':name,'status':'completed','conclusion':'success'}
+                                 for name in download.required_jobs(self.source)]},
+                     'actions/runs/1/artifacts?per_page=100':{'total_count':2,'artifacts':records}}
+        args = SimpleNamespace(branch=branch, run=1, attempt=1, source=self.source,
+                               version=self.version, destination=self.base / (branch + '-download'))
+        return args, responses, archives
+
+    def retrieve_fixture(self, args, responses, archives, publication=False):
+        verifier = bundle.verify
+        actual_capture = bundle.capture
+        tool = self.base / 'trusted-fixture-picotool'
+        tool.write_text('synthetic inspection-tool identity')
+        with patch.object(download, 'api', side_effect=responses.__getitem__), \
+             patch.object(download, 'fetch_archive', side_effect=lambda a,p: p.write_bytes(archives[a['id']].read_bytes())), \
+             patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'verify', side_effect=lambda d,a,s,v,**kw:verifier(d,a,s,v,inspect=False)), \
+             patch.object(bundle, 'inspect_payload'), \
+             patch.object(bundle, 'capture', side_effect=lambda *a:
+                          'picotool v2.3.0 (fixture)' if a == ('picotool','version') else actual_capture(*a)), \
+             patch.object(download.shutil, 'which', return_value=str(tool)):
+            return download.retrieve(args, for_publication=publication)
+
+    def test_both_branch_downloads_remain_distinct(self):
+        for branch in ('devel', 'main'):
+            with self.subTest(branch=branch):
+                args, responses, archives = self.download_fixture(branch)
+                receipt = self.retrieve_fixture(args, responses, archives)
+                self.assertEqual(receipt['branch'], branch)
+                self.assertTrue(receipt['verified'])
+                self.assertTrue(all('-' + branch + '-' in a['name'] for a in receipt['artifacts']))
+        self.assertTrue((self.base / 'devel-download/verified-download.json').is_file())
+        self.assertTrue((self.base / 'main-download/verified-download.json').is_file())
+
+    def test_original_devel_artifacts_remain_downloadable(self):
+        args, responses, archives = self.download_fixture('devel', legacy=True)
+        self.assertTrue(self.retrieve_fixture(args, responses, archives)['verified'])
+
+    def test_wrong_branch_preview_and_partial_run_are_rejected(self):
+        for change in ('wrong-branch', 'preview', 'failed', 'incomplete'):
+            with self.subTest(change=change):
+                args, responses, archives = self.download_fixture('main')
+                run = responses['actions/runs/1/attempts/1']
+                if change == 'wrong-branch': run['head_branch'] = 'devel'
+                if change == 'preview': run['event'] = 'pull_request'
+                if change == 'failed': run['conclusion'] = 'failure'
+                if change == 'incomplete': run['status'] = 'in_progress'
+                with self.assertRaisesRegex(ValueError, 'canonical main build'):
+                    self.retrieve_fixture(args, responses, archives)
+                self.assertFalse(args.destination.exists())
+
+    def test_main_manifest_cannot_be_relabelled_as_devel(self):
+        args, responses, archives = self.download_fixture('main')
+        args.branch = 'devel'
+        responses['actions/runs/1/attempts/1']['head_branch'] = 'devel'
+        for kind, record in zip(('firmware','audit'), responses['actions/runs/1/artifacts?per_page=100']['artifacts']):
+            record['name'] = bundle.artifact_name(kind, 'devel', 1, 1)
+        with self.assertRaisesRegex(ValueError, 'different CI run/attempt'):
+            self.retrieve_fixture(args, responses, archives)
+
+    def test_main_never_falls_back_to_devel_or_legacy_artifacts(self):
+        for name in ('WsprryPico-firmware-devel-1-1-consumer','WsprryPico-firmware-1-1-consumer'):
+            with self.assertRaisesRegex(ValueError, 'immutable artifact for main'):
+                download.select_artifact({'artifacts':[{'name':name,'expired':False}]}, 'firmware','main',1,1)
+
+    def test_downloaded_archive_digest_is_enforced(self):
+        args, responses, archives = self.download_fixture('devel')
+        responses['actions/runs/1/artifacts?per_page=100']['artifacts'][0]['digest'] = 'sha256:' + '0'*64
+        with self.assertRaisesRegex(ValueError, 'archive SHA-256 mismatch'):
+            self.retrieve_fixture(args, responses, archives)
+
+    def test_pull_request_bundle_is_preview_only(self):
+        self.download_fixture('pull-request')
+        self.assertFalse(self.verify()['deployment_candidate'])
+
+    def test_untrusted_event_or_ref_cannot_select_a_branch_stream(self):
+        for event, ref in [('push','refs/heads/feature'), ('push','refs/tags/v1'),
+                           ('pull_request','refs/heads/main'), ('pull_request_target','refs/heads/main')]:
+            with self.assertRaises(ValueError):
+                bundle.build_stream(event, ref)
+
+    def publication_fixture(self, branch='devel'):
+        args, responses, archives = self.download_fixture(branch)
+        receipt = self.retrieve_fixture(args, responses, archives)
+        receipt['verification'] = 'accepted-verify-job-and-payload'
+        return args, receipt
+
+    def publication_service(self):
+        releases, tags, mutations = {}, {}, []
+        def api(path, method='GET', data=None, missing=False):
+            if method != 'GET': mutations.append((path, method, copy.deepcopy(data)))
+            if path.startswith('releases/tags/'):
+                value = releases.get(path.removeprefix('releases/tags/'))
+                if value and value['draft']: value = None
+                if value is None and not missing: raise ValueError('Missing fake release')
+                return copy.deepcopy(value)
+            if path == 'graphql':
+                release = releases.get(data['variables']['tag'])
+                return {'data':{'repository':{'release':
+                    {'databaseId':release['id'],'isDraft':release['draft']} if release else None}}}
+            if path.startswith('git/ref/tags/'):
+                source = tags.get(path.removeprefix('git/ref/tags/'))
+                return {'object':{'type':'commit','sha':source}} if source else None
+            if path == 'git/refs':
+                tags[data['ref'].removeprefix('refs/tags/')] = data['sha']
+                return {}
+            if path == 'releases' and method == 'POST':
+                value = dict(data, id=len(releases)+1, assets=[])
+                releases[value['tag_name']] = value
+                return copy.deepcopy(value)
+            if path.startswith('releases/') and method == 'PATCH':
+                value = next(v for v in releases.values() if str(v['id']) == path.split('/')[1])
+                value.update(data)
+                return copy.deepcopy(value)
+            if path.startswith('releases/') and method == 'GET':
+                return copy.deepcopy(next(v for v in releases.values() if str(v['id']) == path.split('/')[1]))
+            raise AssertionError((path, method, data))
+        def upload(command, **kwargs):
+            self.assertEqual(command[:3], ['gh','release','upload'])
+            tag, path = command[3], Path(command[4])
+            releases[tag]['assets'].append(dict(id=len(releases[tag]['assets'])+1, name=path.name,
+                size=path.stat().st_size, digest='sha256:' + bundle.sha(path), state='uploaded'))
+        return releases, tags, mutations, api, upload
+
+    def test_permanent_release_is_complete_before_index_and_retry_is_idempotent(self):
+        args, receipt = self.publication_fixture()
+        releases, tags, mutations, api, upload = self.publication_service()
+        with patch.object(publish, 'api', side_effect=api), patch.object(publish.subprocess, 'run', side_effect=upload):
+            tag = publish.preserve(receipt, args.destination)
+            self.assertEqual(len(releases[tag]['assets']), 9)
+            self.assertFalse(releases[tag]['draft'])
+            self.assertEqual(tags[tag], self.source)
+            before = copy.deepcopy(mutations)
+            publish.preserve(receipt, args.destination)
+            self.assertEqual(mutations, before)  # Published bytes are never replaced.
+            receipt['manifest_sha256'] = bundle.sha(args.destination / 'deployment/release-manifest.json')
+            publish.update_index(receipt)
+            self.assertEqual(publish.resolve('devel')['source'], self.source)
+            self.assertNotIn('ci-main', releases)
+            self.assertEqual(tags['ci-devel'], self.source)
+            self.assertEqual(releases['ci-devel']['assets'], [])
+
+    def test_partial_draft_recovers_but_published_asset_mutation_is_rejected(self):
+        args, receipt = self.publication_fixture()
+        releases, tags, mutations, api, upload = self.publication_service()
+        calls = 0
+        def interrupted(command, **kwargs):
+            nonlocal calls
+            calls += 1
+            if calls == 3: raise RuntimeError('interrupted upload')
+            upload(command)
+        tag = 'v' + self.version
+        with patch.object(publish, 'api', side_effect=api):
+            with patch.object(publish.subprocess, 'run', side_effect=interrupted):
+                with self.assertRaisesRegex(RuntimeError, 'interrupted'):
+                    publish.preserve(receipt, args.destination)
+            self.assertTrue(releases[tag]['draft'])
+            self.assertEqual(len(releases[tag]['assets']), 2)
+            with patch.object(publish.subprocess, 'run', side_effect=upload):
+                publish.preserve(receipt, args.destination)
+                self.assertEqual(len(releases[tag]['assets']), 9)
+                releases[tag]['assets'][0]['digest'] = 'sha256:' + '0'*64
+                with self.assertRaisesRegex(ValueError, 'SHA-256 mismatch'):
+                    publish.preserve(receipt, args.destination)
+
+    def test_existing_wrong_tag_never_moves(self):
+        releases, tags, mutations, api, upload = self.publication_service()
+        tags['v' + self.version] = '0'*40
+        with patch.object(publish, 'api', side_effect=api):
+            with self.assertRaisesRegex(ValueError, 'different source'):
+                publish.ensure_tag('v' + self.version, self.source)
+        self.assertEqual(mutations, [])
+
+    def test_new_version_discovery_does_not_scan_release_history(self):
+        def api(path, method='GET', data=None, missing=False):
+            if path == 'releases/tags/v' + self.version: return None
+            if path == 'graphql': return {'data':{'repository':{'release':None}}}
+            raise AssertionError('Unnecessary release-history query: ' + path)
+        with patch.object(publish,'api',side_effect=api) as calls:
+            self.assertIsNone(publish.find_version_release('v' + self.version))
+            self.assertEqual(calls.call_count, 2)
+
+    def test_index_creation_recovers_after_orphaned_fixed_tag(self):
+        args, receipt = self.publication_fixture()
+        receipt['manifest_sha256'] = bundle.sha(args.destination / 'deployment/release-manifest.json')
+        releases, tags, mutations, api, upload = self.publication_service()
+        tags['ci-devel'] = 'a'*40  # A prior publisher stopped after creating its tag.
+        with patch.object(publish,'api',side_effect=api), patch.object(publish,'ancestor',return_value=True):
+            publish.update_index(receipt)
+        self.assertEqual(tags['ci-devel'], 'a'*40)
+        self.assertEqual(publish.parse_index(releases['ci-devel']['body'],'devel')['source'], self.source)
+
+    def test_index_ancestry_prevents_old_rerun_and_cross_branch_rollback(self):
+        previous = dict(branch='devel', source='a'*40, run_id=10, attempt=1)
+        candidate = dict(branch='devel', source='b'*40, run_id=20, attempt=1)
+        with patch.object(publish, 'ancestor', side_effect=lambda a,b:(a,b)==('a'*40,'b'*40)):
+            self.assertTrue(publish.advance(previous, candidate))
+            older = dict(previous, run_id=100)
+            self.assertFalse(publish.advance(candidate, older))
+        self.assertFalse(publish.advance(previous, dict(previous, run_id=9)))
+        self.assertTrue(publish.advance(previous, dict(previous, attempt=2)))
+        with patch.object(publish, 'ancestor', return_value=False):
+            with self.assertRaisesRegex(ValueError, 'Diverged'):
+                publish.advance(previous, candidate)
+        with self.assertRaisesRegex(ValueError, 'Cross-branch'):
+            publish.advance(previous, dict(candidate, branch='main'))
+
+    def test_publication_collector_requires_current_trusted_job(self):
+        args, responses, archives = self.download_fixture('devel')
+        with self.assertRaisesRegex(ValueError, 'current trusted publisher'):
+            self.retrieve_fixture(args, responses, archives, publication=True)
+        responses['actions/runs/1/attempts/1'].update(status='in_progress', conclusion=None)
+        responses['actions/runs/1/attempts/1/jobs'] = {'total_count':2, 'jobs':[
+            dict(id=9,name='verify',status='completed',conclusion='success'),
+            dict(id=10,name='publish',status='in_progress',conclusion=None)]}
+        env = dict(GITHUB_ACTIONS='true',GITHUB_JOB='publish',GITHUB_RUN_ID='1',GITHUB_RUN_ATTEMPT='1',
+                   GITHUB_SHA=self.source,GITHUB_REF='refs/heads/devel',GITHUB_REPOSITORY=download.REPOSITORY)
+        with patch.dict(os.environ,env), patch.object(download,'required_jobs',return_value={'verify','publish'}):
+            receipt = self.retrieve_fixture(args, responses, archives, publication=True)
+            self.assertEqual(receipt['verification'], 'accepted-verify-job-and-payload')
+            self.assertEqual(receipt['verify_job']['id'], 9)
+
+    def test_preserved_archive_download_outlives_actions_storage(self):
+        args, receipt = self.publication_fixture('main')
+        releases, tags, mutations, api, upload = self.publication_service()
+        with patch.object(publish, 'api', side_effect=api), patch.object(publish.subprocess,'run',side_effect=upload):
+            tag = publish.preserve(receipt, args.destination)
+        original = args.destination
+        args.destination = self.base / 'preserved-main-download'
+        actual_run = subprocess.run
+        def fetch(command, stdout, **kwargs):
+            if command[0] != 'gh': return actual_run(command, stdout=stdout, **kwargs)
+            identifier = int(command[-1].split('/')[-1])
+            filename = next(a['name'] for a in releases[tag]['assets'] if a['id'] == identifier)
+            stdout.write((original / filename).read_bytes())
+        verifier = bundle.verify
+        with patch.object(publish,'api',side_effect=api), \
+             patch.object(download,'api',side_effect=AssertionError('Actions storage expired')), \
+             patch.object(download.subprocess,'run',side_effect=fetch), \
+             patch.object(download,'inspection_tool',return_value={'path':'fixture-tool','sha256':'a'*64,'version':'fixture'}), \
+             patch.object(bundle,'required_tests',return_value={'fixture'}), \
+             patch.object(bundle,'verify',side_effect=lambda d,a,s,v:verifier(d,a,s,v,inspect=False)):
+            downloaded = download.retrieve_published(args)
+        self.assertEqual(downloaded['branch'], 'main')
+        self.assertEqual(downloaded['uf2'], receipt['uf2'])
+        self.assertEqual(bundle.sha(original / 'audit.zip'), bundle.sha(args.destination / 'audit.zip'))
 
 
 if __name__ == '__main__':

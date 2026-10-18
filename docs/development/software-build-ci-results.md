@@ -176,10 +176,44 @@ Item 2's completed 80 m decode retains its historical image and evidence.
 Any later decode, installer or publication acceptance must use the exact
 selected CI UF2 bytes and version, with their manifest and notices.
 
-The workflow exports artifacts for 90 days. The maintained
+The recorded run exported artifacts for 90 days. The maintained
 [build and retrieval guide](software-build-ci.md) defines the canonical manifest,
-archive verification and source-ordered discovery contract. Installer/public
-download publication, tags, releases and Read the Docs remain separate work.
+archive verification and source-ordered discovery contract. That historical run
+created no releases or tags. The permanent branch-download extension below
+supersedes its Actions-only delivery policy.
 
 Concurrent NTP source, tests and documentation are preserved outside these
 scoped commits. No other repository is modified by this task.
+
+## Permanent branch-download contract
+
+Every push to devel/main and every opened, updated or reopened PR targeting
+either branch builds the generic consumer image. PRs remain read-only previews.
+Trusted branch builds preserve exact versioned UF2/manifest/checksums/notices,
+the original deployment/audit ZIPs and a publication receipt as public CI
+prereleases. Independent ci-devel and ci-main bookmark releases retain the latest
+successful published source on each branch without a retention timer. Branch
+tags never move; bookmark bodies advance only after complete asset verification
+and ancestry checks. Stable releases and the installer remain separate work.
+
+The local packaging suite contains 28 tests covering branch separation,
+preview/partial-run rejection, archive integrity, current-job publication
+authority, interrupted draft recovery, conflicting tags/assets, ancestor
+ordering, orphaned bookmark recovery and preserved-main retrieval with Actions
+storage unavailable. The earlier accepted real artifact above also passes the
+refactored independent linked-image verifier with its original SHA-256 intact.
+Independent source review exposed and repaired draft lookup/retry, orphaned
+bookmark recovery and pending-publication queue replacement faults.
+
+Each actual publication writes its own exact source/run/attempt, successful
+verification job ID, original artifact IDs/archive hashes and manifest digest to
+`ci-publication.json`; the permanent version page contains those bytes and the
+complete audit. The branch bookmark locates that version without rewriting this
+historical result record or requiring an evidence-only rebuild cycle. The
+download verifier requires whole-run success for live Actions retrieval; the
+preserved-release verifier checks the frozen successful verification receipt
+and actual archived image independently of expired Actions storage.
+
+The first main download requires this workflow to be merged into main and pass
+there. This task does not merge main, create a PR or relabel a devel build as
+main. Repository defaults, protections and release settings are unchanged.
