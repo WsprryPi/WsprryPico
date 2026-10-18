@@ -84,7 +84,7 @@ Two fresh normal builds must produce identical UF2s for the same declared
 source/version/inputs. This check does not promise reproducibility across every
 runner image or toolchain revision.
 
-Local checks remain documented in [the development commands](README.md#routine-checks).
+Local checks remain documented in [the development commands](README.md#deterministic-validation).
 Use a fresh build directory after removal of build-time frequency selection;
 stale caches containing that removed option refuse explicitly. The normal
 firmware recipe is documented in [firmware foundation](firmware-foundation.md).
@@ -94,9 +94,9 @@ CI's Linux dependency setup is explicit; it never installs a toolchain on macOS.
 
 Schema version 1 is
 [`release-manifest-1.schema.json`](../../scripts/ci/release-manifest-1.schema.json).
-The same canonical `release-manifest.json` serves CI, future installer downloads
-and later testing-prerelease publication. It is independent of WTP and API
-versions. The historical Phase 12 fixture manifest is a different contract.
+The canonical `release-manifest.json` describes the deployment payload for CI
+and preserved testing-prerelease bundles. It is independent of WTP and API
+versions. The inhibited candidate-fixture manifest is a different contract.
 
 The deployment allowlist is exactly:
 
@@ -172,8 +172,8 @@ python scripts/ci/download.py --branch devel --run RUN_ID --attempt ATTEMPT \
   --destination build/verified-ci-UNIQUE_DIRECTORY
 ```
 
-The result record supplies concrete values after acceptance. Local inspection
-tools are trusted inputs: build picotool from the pinned source in
+Use the selected bundle's immutable identities. Local inspection tools are
+trusted inputs: build picotool from the pinned source in
 `inputs.json`. The verifier requires v2.3.0 and records its resolved
 path, executable hash and version in the download receipt; a version string
 alone does not authenticate a locally supplied executable. A mutable
@@ -201,8 +201,6 @@ Latest means newest accepted source along the selected branch's ancestry, not th
 latest run timestamp. An older-source rerun or release re-upload cannot
 overtake a newer accepted source. Resolve one complete immutable normal bundle
 per installation; retain source/run/attempt, profile, manifest and UF2 hashes.
-The future installer can consume the same preserved public bytes and manifest.
-The installer itself is separate work.
 
 Useful upstream references are [GitHub workflow events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch),
 [secure workflow use](https://docs.github.com/en/actions/reference/security/secure-use)

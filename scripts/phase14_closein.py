@@ -35,7 +35,7 @@ def analyze(directory,analysis,output,fft_samples=1048576):
         original_disposition=report['disposition'],release_qualified=False,
         tools={str(p.relative_to(ROOT)):sha256(p) for p in (Path(__file__),ROOT/'src/phase14/closein.py')})
     if physical['band']=='80m' and settings['sample_rate_hz']==250000 and fft_samples==1048576:
-        result['historical_pi_benchmark']=dict(source='docs/development/rf-clock-validation.md',
+        result['historical_pi_benchmark']=dict(source='docs/development/rf-bench.md#conducted-reference-benchmark',
             lower_120_dbc=-21.66,upper_120_dbc=-21.49,
             relative_peak_bin_comparison_passed=result['lower_120']['peak_dbc']<=-21.66 and result['upper_120']['peak_dbc']<=-21.49,
             limitation='Matched 0.238419 Hz Hann bins and +/-5 Hz feature searches against the retained Pi comparison; different RF windows, measurement dates and uncalibrated path/receiver attribution remain.')

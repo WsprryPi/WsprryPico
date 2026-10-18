@@ -1,32 +1,32 @@
 # Security reporting
 
-There are no published production releases. Experimental firmware targets exist.
-A supported-version policy will accompany releases.
+Report a suspected vulnerability privately to the project maintainer. Request
+a private contact channel without posting exploit details publicly. Include
+the affected revision, board and firmware identity, transport, reproduction
+conditions, expected and observed behavior, and any hardware or RF involvement.
+Remove credentials and other private data from reports.
 
-Report a suspected vulnerability privately to the project maintainer. When
-this repository is published and private vulnerability reporting is enabled,
-use its GitHub security reporting channel. No reporting URL is configured yet;
-request a private contact channel without posting exploit details publicly.
+Security-sensitive areas include USB/TCP parsing, bounded job storage,
+ownership, replay handling, Wi-Fi/BLE provisioning, browser mutations, firmware
+integrity and failures that leave output active. Reproduce hardware conditions
+only within an authorized, bounded setup.
 
-Include the affected revision, board/firmware identity, transport, reproduction
-conditions, expected and observed behavior, and whether hardware or RF was
-involved. Remove credentials and other private data from reports.
+The consumer browser uses the saved Wi-Fi password to authenticate encrypted
+application traffic. HTTP does not authenticate the page that supplies that
+encryption; an active page-substitution attacker can steal the password.
+Default consumer Plain LAN WTP permits clients that can reach station TCP port
+31417 after accepted network time. Network reachability is its trust boundary.
+Engineering mutual TLS has separate credentials and is disabled by default.
+See [certificate management](docs/development/network-control.md) for renewal
+and compromise recovery.
 
-Security-sensitive areas include USB/TCP parsing, bounded job storage, ownership,
-replay handling, Wi-Fi/BLE provisioning, browser mutations, firmware integrity,
-and failures that leave an output active. Reproduce hardware conditions only
-within an explicitly authorized, bounded setup.
+Engineering BLE uses Just Works pairing plus an application password. Its
+station-MAC-derived default is observable and convenience-only. Changing it
+reduces casual nearby access but does not protect Just Works against an active
+intermediary. Sensitive trust/reset mutations require a fresh password and,
+while the public default remains active, physical or USB confirmation. USB
+management relies on local physical access independently of network passwords.
+Ordinary flash storage provides no confidentiality guarantee.
 
-Network control defaults off. See [certificate management](docs/development/network-control.md)
-for local CA handling, renewal, compromise recovery and current provisioning
-limits. The selected
-[Phase 12 field-access/security contract](docs/development/phase12-field-access-contract.md)
-now has a hardware-free portable policy/persistence implementation and
-cross-linked target candidates; see the
-[scoped P12.3 closeout](docs/development/phase12-3-review.md). This is not live or
-physical security evidence. Its station-MAC-derived default is observable and
-convenience-only; customization reduces casual nearby access but does not add
-active-MITM protection to Just Works. Sensitive trust/reset mutations require a
-freshly entered local password and, while the default remains active, physical
-or USB confirmation. Never publish passwords, access-sector contents,
-credential-bearing UF2 files or generated build headers.
+Never publish passwords, access-sector contents, private keys,
+credential-bearing firmware or generated private build headers.

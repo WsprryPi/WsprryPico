@@ -21,7 +21,7 @@ saves or revision changes. A draft containing amplifier settings uses the
 views and non-station updates refuse an amplifier draft before mutation. Old
 radio drafts cannot silently replace an applied amplifier configuration.
 Application re-enters config/4; it still saves without activating GPIO or clearing
-the boot's restart latch. See [amplifier evidence](amplifier-enable-results.md).
+the boot's restart latch. See [amplifier evidence](amplifier-enable.md).
 
 ## Fields and persistence
 
@@ -31,7 +31,7 @@ Station components validate independently with the existing station grammar and
 exact supported powers (including zero). Frequency permissions are one two-flag
 unit. Schedules are one complete array, pin allocation one operational plan,
 and Wi-Fi one complete credential pair. Their existing validators remain the
-authority. Hostname has its separate P15.10 operation.
+authority. Hostname has its separate hostname operation.
 
 Progress/2 adds `gpio_drive_ma` with integer choices 2, 4, 8 and 12 mA. Unlike
 ordinary invalid progress units, a supplied malformed or null drive rejects

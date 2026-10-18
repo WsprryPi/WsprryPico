@@ -64,13 +64,6 @@ class FeasibilityTests(unittest.TestCase):
         self.assertEqual(rf.FS * rf.SYMBOL, 102_400_000)
         self.assertEqual(rf.nearest(rf.SYMBOL * 1_000_000) * 162 - deadlines[-1], 54)
 
-    def test_bounded_measurement_budget(self):
-        transition_ns = rf.nearest(16 * rf.SYMBOL * 1_000_000_000)
-        frame_ns = rf.nearest(162 * rf.SYMBOL * 1_000_000_000)
-        expected = 2_000_000_000 + 3 * 2_000_000_000 + 2 * (4 * 5_000_000_000 + transition_ns + frame_ns)
-        self.assertEqual(rf.MEASUREMENT_RF_ON_NS, expected)
-        self.assertIn(str(float(F(expected, 1_000_000_000))),
-                      (ROOT / "docs/development/rf-measurement-plan.md").read_text())
 
     def test_edge_error_bounds(self):
         for base in rf.BASES:

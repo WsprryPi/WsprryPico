@@ -34,10 +34,10 @@ merely to publish this software testing prerelease.
 Work from `/Users/lbussy/GitHub/WsprryPico`. Read `AGENTS.md`, `README.md`,
 `CONTRACT.md`, `docs/architecture.md`, `docs/development/README.md`, the current
 [Consolidated backlog](consolidated-backlog.md), the
-[acceptance record](../implementation-plan.md#phase-15-acceptance-record),
-[USB acceptance](usb-control-results.md), and the actual P15.15/P15.16
-acceptance records linked there. Their saved prompts alone are
-not acceptance records.
+[acceptance record](consolidated-backlog.md),
+[USB management contract](../protocol/USB-Management.md), and current [GPIO drive](gpio-drive.md), [firmware selection](firmware-foundation.md)
+and [CI artifact verification](software-build-ci.md). Use actual image and check
+identities; saved prompts alone establish no acceptance.
 
 Confirm the earlier Finish Now items are accepted, including CI deployment
 images and the short WSPR Type 2/3 decode. Verify their exact source and image

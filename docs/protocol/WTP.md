@@ -300,7 +300,7 @@ event schedule.
 
 Console INFO is not a WTP STATUS response. Its nested scheduler status does not
 include WTP's job/owner identity fields. The implementation diagnostic
-[field and correlation reference](../development/phase11-5-metrics.md#console-info-and-wtp-status-are-different-interfaces)
+[field and correlation reference](../development/usb-cdc.md#console-info-and-wtp-status-are-different-interfaces)
 defines how to join Console launch counters with authoritative WTP job status;
 this distinction does not change the WTP/1 response schema.
 

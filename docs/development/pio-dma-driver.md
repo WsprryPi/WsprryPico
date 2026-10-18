@@ -6,7 +6,7 @@ Status: implemented, host-tested and exercised by the separate
 `WsprryPico-Inhibited` explicitly selects the RF-free simulator. See the
 [build guide](firmware-foundation.md) and [GPIO-drive contract](gpio-drive.md)
 for boot-selected RF pin/drive and cached ARM-time verification. Bounded bench evidence
-does not complete Step 8 qualification.
+does not establish general RF or electrical timing qualification.
 
 ## Wiring and scope
 
@@ -20,8 +20,8 @@ third pins down the left side. Viewed from the **underside**, they are on the
 right. Follow printed GP2/GND labels; the opposite row contains power pins.
 The RF data goes through the chosen output network and attenuation to the SDR
 on `wspr5`; return connects to the cable shield. The
-[output circuit proposal](rf-output-design.md) and
-[measurement plan](rf-measurement-plan.md) describe the pending electrical work.
+[output loading example](rf-output-design.md) describes electrical constraints;
+conducted support is bounded in [band support](band-support.md).
 The operator decides when to transmit and which measurements to perform.
 
 The driver requires the system clock to match the build-selected sample clock
@@ -100,7 +100,7 @@ establish nanosecond-exact launch or general WTP timing conformance. The guard
 can run up to 50 us before output; that interval also needs inclusion in a
 future clock uncertainty budget.
 
-## Validation and next work
+## Deterministic validation
 
 Run the normal host suite as documented in [development](README.md), including
 `pio_dma_tests`. It covers bounded queues, repeated buffer recycling against the
@@ -121,10 +121,9 @@ the SDK keeps its own licensing and attribution.
 
 The [bench runner and target record](rf-bench.md) provide CPU measurements,
 software bootloader entry and operator-directed tones received on wspr5.
-[Full-frame streaming](rf-frame-validation.md),
-[clock/WTP integration](utc-rf-job-validation.md) and the normal standalone
-application have subsequent accepted records. Their bounded evidence does not
-establish calibrated frequency/spectra or general physical qualification.
+The normal application uses the same bounded driver. Building and fake
+peripheral tests do not establish calibrated frequency/spectra or general
+physical qualification.
 Current work is selected only by the [consolidated backlog](consolidated-backlog.md).
 Harness capture and offline analysis are reused directly; its existing
 WsprryPi transmitter campaign is not a Pico adapter.
@@ -144,11 +143,11 @@ An uncertainty increase can therefore refuse a previously accepted ARM.
 This timer-resolution handling is not a calibrated launch-accuracy claim.
 The low-level bench sink still requires explicitly aligned timestamps.
 
-## Phase 11.2 ownership
+## Core ownership
 
 The physical standalone application now creates/uses the complete engine/sink/
 PicoPioDma execution chain on core 1 through a bounded
-[RF worker](phase11-2-review.md). Construction before launch does not access
+RF worker. Construction before launch does not access
 peripherals; first `open`, IRQ registration, DMA and hardware-alarm calls occur
 on core 1. The same-core interrupt mask is retained and is not used as multicore
 synchronization. USB, TLS and application ownership remain on core 0. Flash

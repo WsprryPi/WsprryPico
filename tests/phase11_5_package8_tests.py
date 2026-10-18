@@ -1,8 +1,6 @@
 """No-hardware checks for the frozen Package 8 packet and schedule selection."""
 
 import json
-import hashlib
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -10,17 +8,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import phase11_5_package8 as package8
-from audit_phase11_5_package8 import validate_result
-from audit_phase11_5_package9 import validate_published_result as validate_package9
-from adversarial_phase11_5_package8 import assess
 
 
 ROOT = Path(__file__).resolve().parents[1]
-RESULT_PATH = ROOT / "docs/development/phase11-5-package8-result.json"
-RAW_AUDIT_PATH = ROOT / "docs/development/phase11-5-package8-raw-audit-result.json"
-ADVERSARIAL_PATH = ROOT / "docs/development/phase11-5-package8-adversarial-result.json"
-MATRIX_PATH = ROOT / "docs/development/phase11-5-completion-matrix.json"
-PHASE11_6_BROWSER_REPAIR_REVIEW = "3b8a6535d8a9a186d090d3105f056b9c52b2d268"
 
 
 class Package8Tests(unittest.TestCase):
@@ -138,67 +128,6 @@ class Package8Tests(unittest.TestCase):
             (root / "storage-run.jsonl").write_text('{"kind":"changed"}\n')
             with self.assertRaisesRegex(ValueError, "Exact bounded"):
                 package8.storage_retry_packet(root)
-
-    def test_publication_closes_exactly_r5(self):
-        result = validate_result(json.loads(RESULT_PATH.read_text()))
-        matrix = json.loads(MATRIX_PATH.read_text())
-        rows = [row for row in matrix["assertions"] if row["group"] == "R5"]
-        self.assertEqual(len(rows), 8)
-        self.assertTrue(all(row["classification"] == "accepted/applicable" for row in rows))
-        self.assertTrue(matrix["family_status"]["R5"].startswith("CLOSED"))
-        if (ROOT / "docs/development/phase11-5-package11-retry4-result.json").exists():
-            self.assertTrue(matrix["family_status"]["R6"].startswith("CLOSED"))
-            self.assertIsNotNone(matrix["accepted_configuration"])
-        else:
-            self.assertTrue(matrix["family_status"]["R6"].startswith("OPEN"))
-            self.assertIsNone(matrix["accepted_configuration"])
-        self.assertEqual(result["phase11_5_status"], "OPEN_5_OF_6_FAMILIES")
-
-    def test_raw_audit_publication_binds_offline_evidence(self):
-        value = json.loads(RAW_AUDIT_PATH.read_text())
-        self.assertEqual(value["schema"], "phase11.5-package8-raw-audit-v1")
-        self.assertEqual(value["status"], "PASS")
-        self.assertEqual(value["evidence_files_bound"], 21)
-        self.assertEqual(value["device_or_network_operations"], 0)
-        self.assertTrue(value["reservation_chain_verified"])
-        self.assertTrue(value["host_restoration_verified"])
-        self.assertEqual(value["sanitized_result_sha256"],
-            hashlib.sha256(RESULT_PATH.read_bytes()).hexdigest())
-        self.assertEqual(value["auditor_sha256"], hashlib.sha256(
-            (ROOT / "scripts/audit_phase11_5_package8.py").read_bytes()).hexdigest())
-
-    def test_published_adversarial_assessment_is_reproducible(self):
-        expected = json.loads(ADVERSARIAL_PATH.read_text())
-        actual = assess(json.loads(RESULT_PATH.read_text()))
-        self.assertEqual(actual, expected)
-        self.assertEqual(actual["mutations"], 46)
-
-    def test_only_reviewed_package9_runtime_paths_changed_at_review_cutoff(self):
-        completed = subprocess.run(
-            ["git", "diff", "--name-only",
-             package8.SOURCE + ".." + PHASE11_6_BROWSER_REPAIR_REVIEW, "--",
-             "src", "include", "firmware", "cmake"], cwd=ROOT, check=True,
-            text=True, stdout=subprocess.PIPE)
-        self.assertEqual(set(completed.stdout.splitlines()),
-            {"src/network/api.cpp", "src/network/http.hpp",
-             "src/network/pico/server.cpp", "src/network/pico/server.hpp",
-             "src/phase11_6/__init__.py", "src/phase11_6/analysis.py",
-             "src/phase11_6/audit.py", "src/phase11_6/live.py",
-             "src/phase11_6/plan.py", "src/phase11_6/recovery.py",
-             "src/phase11_6/wspr_group.py", "src/rf/pico/pico_pio_dma.cpp",
-             "src/rf/pico/pico_pio_dma.hpp", "src/rf/pio_dma_sink.cpp",
-             "src/rf/pio_dma_sink.hpp", "src/rf/stream_engine.cpp",
-             "src/rf/stream_engine.hpp",
-             "src/standalone/pico/main.cpp", "src/usb/reply_priority.hpp"})
-        impact = json.loads((ROOT / "docs/development/phase11-6-browser-"
-                             "allocation-repair-source-impact.json").read_text())
-        self.assertEqual(impact["status"], "REQUALIFICATION_REQUIRED")
-        self.assertEqual(impact["firmware_linked_files"], ["src/network/api.cpp"])
-        package9_path = ROOT / "docs/development/phase11-5-package9-result.json"
-        if package9_path.exists():
-            package9 = validate_package9(json.loads(package9_path.read_text()))
-            self.assertEqual(package9["source_impact"]["prior_candidate"],
-                             package8.SOURCE)
 
 
 if __name__ == "__main__":

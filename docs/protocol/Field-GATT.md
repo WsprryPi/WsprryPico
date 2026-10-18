@@ -5,8 +5,8 @@ Bluetooth Low Energy interface implemented in `devel`. The checked-in
 [conformance vectors](Field-GATT-v1-vectors.json) bind its UUIDs, limits,
 profile-apply sequence and provisional-bond expiry policy across firmware,
 Bluefy and the native Raspberry Pi client. An incompatible wire change requires
-a new Field-GATT protocol version. Phase 12 remains active: this source/host
-freeze is not physical interoperability or end-user acceptance.
+a new Field-GATT protocol version. Source/host conformance does not establish physical interoperability or
+end-user acceptance.
 
 This document is written for technically experienced operators, client authors
 and maintainers. It explains how to identify the correct Pico, establish the
@@ -27,8 +27,8 @@ are loaded before they are armed, and all execution timing remains local to the
 RP2350.
 
 Merely connecting, pairing, authorizing, reading status or synchronizing time
-does not authorize RF output. The standard Phase 12 image is RF-inhibited.
-Phase 14 RF and release qualification remains separate.
+does not authorize RF output. The normal firmware is RF-capable; `WsprryPico-Inhibited` is an explicit
+diagnostic selection. RF and release qualification remain separate.
 
 Two application streams share one encrypted BLE connection:
 
@@ -41,7 +41,7 @@ Two application streams share one encrypted BLE connection:
 
 Provisioning is outside WTP/1. The field-access security and recovery policy is
 defined separately by the
-[Phase 12 field-access contract](../development/phase12-field-access-contract.md).
+[engineering field-access contract](../development/field-access.md).
 
 ## 2. Supported clients
 
@@ -67,10 +67,7 @@ application paths implement the frozen source contract. Profile application
 re-prompts for the current local password, performs bound `profile_step_up`,
 waits for required USB-local confirmation and reuses the bound request ID for
 `apply`. It selects an exact Bluetooth address, verifies the full device ID and
-does not set the BlueZ `Trusted` property. Bounded native-Pi profile application
-and later carrier/resource results are recorded in the
-[automatic closeout](../development/phase12-orchestratable-closeout-results.md).
-Broader phone and physical interoperability acceptance remains open.
+does not set the BlueZ `Trusted` property. General phone/physical interoperability is not established by source conformance.
 
 ### Generic GATT tools
 
@@ -761,7 +758,7 @@ no-progress expiry. Do not assume disconnect discarded the staged transaction.
 
 The current GATT vocabulary does not expose password change, arbitrary bond
 removal, enrollment opening, field-mode administration or the three reset
-levels. Those controls remain governed by the Phase 12 field-access contract and
+levels. Those controls remain governed by the engineering field-access contract and
 the accepted USB-local/physical recovery boundary until explicit GATT schemas
 and production surfaces are implemented. A client MUST NOT invent operation
 names for them or treat `invalid_request` as evidence that a reset occurred.
@@ -786,9 +783,5 @@ provisional-bond expiry cleanup. If code, vectors and this contract disagree,
 the change is not conforming. Compatible clarifications must update all affected
 artifacts; incompatible wire behavior requires a new protocol version.
 
-Host tests and cross-links establish source behavior only. The current physical
-acceptance state is maintained in the
-[Phase 12 plan](../development/phase12-plan.md) and
-[production acceptance review](../development/phase12-production-acceptance-review.md).
-Neither this guide nor a successful GATT exchange proves iPhone offline-page
+Host tests and cross-links establish source behavior only. Neither this guide nor a successful GATT exchange proves iPhone offline-page
 support, complete physical interoperability, RF behavior or release readiness.

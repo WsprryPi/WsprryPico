@@ -143,7 +143,7 @@ visible editor for each station/network field.
 
 ### Device identity
 
-P15.12 uses the boot-active hostname as the one main heading in shared chrome,
+The device presentation uses the boot-active hostname as the one main heading in shared chrome,
 above both task areas. Product and task labels stay unchanged. The heading and
 tab title share one observation controller. Public names say to sign in;
 authenticated readback labels the active name. A saved rename appears secondarily

@@ -127,9 +127,8 @@ python3 scripts/check_endpoint_image.py build/pico2-w/firmware/WsprryPico-Inhibi
 
 Use the [build guide](firmware-foundation.md) for pinned local inputs and unused
 output directories. Ordinary `all`/build-preset selection is RF-capable; the
-explicit target above is the diagnostic simulator. The current 32 KiB application
-stack supersedes the original endpoint's 16 KiB allocation without rewriting
-that historical build evidence.
+explicit target above is the diagnostic simulator. The application stack is 32 KiB; current image checks enforce its separation
+from the linked heap and reserved flash.
 
 The endpoint test runs the real C++ implementation against an independent Python
 schema validator and the existing monitor decoder. It covers all operations,
@@ -163,8 +162,8 @@ with five-second timeouts and schema/identity checks. It neither LOADs nor ARMs 
 job. Do not run a second monitor on the same WTP port. Record board, firmware
 SHA-256/revision, host OS, physical setup, actual engine and clock state,
 no transmitting mode, and actual results. Flashing and RF operations are outside
-this procedure. The implementation record contains only host evidence; subsequent
-[bounded target validation](usb-target-validation.md) records actual USB observations.
+this procedure. Host probing is a bounded protocol observation, not general USB conformance,
+physical clock or RF qualification.
 
 Standalone timing, network/browser/provisioning adapters and USB management/time
 now share application services. Their accepted records retain their own evidence

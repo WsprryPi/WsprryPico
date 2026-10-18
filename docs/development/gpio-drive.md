@@ -76,15 +76,12 @@ The RP2350 adapter maps each mA value to named SDK constants, explicitly program
 4 mA too, verifies with the getter, and keeps the PIO output disabled/low during
 function changes. Reopen/rearm uses the immutable boot value; mismatch refuses
 open/launch. See the [SDK GPIO API](https://www.raspberrypi.com/documentation/pico-sdk/hardware.html#gpio_set_drive_strength)
-and the repository-pinned SDK source audit in the execution record.
+and the repository-pinned SDK source.
 
-The [software record](phase15-15-results.md) and
-[physical acceptance](phase15-15-hardware-results.md) record all four actual
-getter values on both boards, durable restart/USB persistence, target lifecycle
-and the bounded conducted comparison. Spectral observations remain nonblocking
-under explicit operator direction. Nondefault strengths inherit no all-band/mode
-RF qualification or guaranteed power ratio from historical 4 mA campaigns or
-these two-frequency measurements.
+All four SDK getter values have bounded observations on the two test boards.
+Nondefault strengths have no all-band/mode qualification or guaranteed RF power
+ratio. Source tests and register readback do not measure output power, spectra
+or electrical timing.
 
 Source: [configuration/defaults](../../src/standalone/config.cpp),
 [restart latches](../../src/standalone/scheduler.cpp),
@@ -94,5 +91,4 @@ Source: [configuration/defaults](../../src/standalone/config.cpp),
 [RP2350 mapping/readback](../../src/rf/pico/pico_pio_dma.cpp). Existing
 [drive](../../tests/gpio_drive_tests.cpp),
 [schema](../../tests/gpio_drive_schema_tests.py) and
-[browser checks](../../tests/gpio_drive_browser_tests.js) supplement the
-accepted software and physical records without extending their RF scope.
+[browser checks](../../tests/gpio_drive_browser_tests.js) exercise software behavior without qualifying RF.

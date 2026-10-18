@@ -106,27 +106,6 @@ class Package9RequestTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             validate_published_result(value)
 
-    def test_published_failure_and_attempt_budget_are_reproducible(self):
-        result_path = ROOT / "docs/development/phase11-5-package9-failure-result.json"
-        adversarial_path = (ROOT /
-            "docs/development/phase11-5-package9-failure-adversarial-result.json")
-        attempts_path = ROOT / "docs/development/phase11-5-package9-attempt-history.json"
-        value = validate_failure_result(json.loads(result_path.read_text()))
-        self.assertEqual(value["failed_gate"]["post_n_deltas_bytes"],
-                         [12432, 12432, 11944])
-        attempts = json.loads(attempts_path.read_text())
-        self.assertEqual(value["cumulative_budget"]["charged_rf_duration_ns"],
-                         attempts["charged_rf_duration_ns"])
-        self.assertEqual(attempts["charged_rf_duration_ns"], 1_164_400_000_000)
-        self.assertEqual(attempts["attempts"][-1]["attempt"],
-                         "phase11-5-package9-v9-20260916")
-        by_name = {item["attempt"]: item for item in attempts["attempts"]}
-        self.assertEqual(by_name["phase11-5-package9-v44-20260917"]
-                         ["charged_rf_duration_ns"], package9.RF_DURATION_NS)
-        expected = assess_failure(value)
-        expected["failure_result_sha256"] = hashlib.sha256(
-            result_path.read_bytes()).hexdigest()
-        self.assertEqual(json.loads(adversarial_path.read_text()), expected)
 
     def test_fixture_transitive_helpers_are_frozen(self):
         self.assertTrue({"scripts/phase11_5_join_diagnostics.py",

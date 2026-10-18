@@ -3,7 +3,7 @@
 Original WsprryPico code and documentation are covered by [MIT](LICENSE.md).
 Third-party material retains its own license and attribution requirements.
 
-The optional Phase 10 host interoperability test compiles unmodified WTP-Client
+The optional host interoperability test compiles unmodified WTP-Client
 sources from [WsprryPi](https://github.com/WsprryPi/WsprryPi) at
 `c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf`. The external component is MIT,
 copyright 2026 Lee Bussy; its notice remains in `src/WTP-Client/LICENSE.md`
@@ -72,7 +72,7 @@ modified.
 No NTP implementation was copied from another project. The portable exchange
 parser is original project code based on the published packet format.
 
-Phase 11 links [Mbed TLS](https://github.com/Mbed-TLS/mbedtls), 3.6.6 at
+The network firmware links [Mbed TLS](https://github.com/Mbed-TLS/mbedtls), 3.6.6 at
 `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`, from the pinned SDK submodule.
 It is dual licensed Apache-2.0 OR GPL-2.0-or-later; this project selects
 Apache-2.0. The unmodified upstream [LICENSE](docs/licenses/mbedtls.txt) is
@@ -85,7 +85,7 @@ notices and the Apache license with distributed firmware/test binaries.
 The HTTP adapter, browser assets and certificate scripts are original MIT
 project contributions; no WsprryPi vendor browser assets are copied.
 
-Phase 11.3 also links the exact pinned lwIP mDNS responder (`mdns.c`,
+The network firmware also links the exact pinned lwIP mDNS responder (`mdns.c`,
 `mdns_domain.c`, `mdns_out.c`). Its retained [BSD notice](docs/licenses/lwip-mdns.txt)
 and [integration record](docs/development/mdns-responder.md) describe the narrow
 project-owned lifecycle wrapper. SDK source is unmodified; no DNS-SD service
@@ -119,7 +119,7 @@ full retained licenses with the bundled browser assets and firmware materials.
 These notices do not assert a cryptographic or production-security qualification.
 
 
-P15.8 Type 2/3 packing and portable lookup3/hashlittle arithmetic are adapted
+WSPR Type 2/3 packing and portable lookup3/hashlittle arithmetic are adapted
 from WsprryPi `a2437d1bf026e91ea95ac7e2a7a0101e3c4f11a1`,
 `src/WSPR-Reference/src/wspr/wspr_ref_encoder.cpp`, retaining the MIT notice
 above. Bob Jenkins' lookup3 arithmetic is identified as public domain in the
@@ -132,7 +132,7 @@ WSJT-X `967c85a6119110788b0df3782cf796485b2cee14`, exact source hashes, inputs,
 payloads, symbols and observed receiver results. GPL WSJT-X implementation was
 built only in temporary validation storage and is not included in firmware or
 this repository. The numeric observations are kept distinct from Pi goldens and
-from receiver/RF acceptance; see the P15.8 execution record.
+from receiver/RF acceptance; see the WSPR planning contract.
 
 Firmware distribution bundles include `DEPENDENCY-LICENSES.txt`, assembled from
 this repository's retained notices, the exact SDK checkout and the verified

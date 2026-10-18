@@ -7,7 +7,7 @@ these commands neither change WTP nor establish UTC timing conformance. The
 standard `WsprryPico` build remains the inhibited WTP endpoint. The operator
 chooses transmissions and measurements.
 
-The subsequent [full-frame validation](rf-frame-validation.md) adds `FRAME`,
+The subsequent [stream completion contract](rf-stream.md#completion-and-local-state-observations) adds `FRAME`,
 intentional abort/rearm, higher-resolution analysis and simultaneous GPSDO
 comparison. The initial results below remain tied to their original images.
 
@@ -87,7 +87,8 @@ Audio preserves captured elapsed time, frequency error and drift. The synthetic
 WAV slot name and trailing silence do not establish UTC alignment. For encoded
 frequency measurements, pass the 162 tone digits using `measure_rf_bench.py
 --symbols DIGITS`; equal adjacent symbols have no physical transition to test.
-See the [encoded validation record](rf-wspr-validation.md) for results.
+The [bounded Type 2/3 decode scope](short-wspr-type23-decode-results.md) is
+independent of this bench tool.
 
 ## Flashing without the button
 
@@ -167,83 +168,28 @@ not trim quiet edges to manufacture a pass. The 4096-point FFT has 61.035 Hz bin
 at this sample rate and cannot resolve 1.465 Hz WSPR spacing. Frequency and power
 are uncalibrated. Reported carrier classifications remain unchanged.
 
-## Recorded results, 2026-09-05 local / 2026-09-06 UTC
+## Validation boundary
 
-Board: Pico 2 W / RP2350, serial above, clk_sys 150 MHz, GP2 PIO/DMA engine.
-Host: Lees-MacBook-Pro, macOS; SDK 2.3.0, Arm GCC 15.3.1. Images reported
-`d35dffce91a3-dirty`; hashes below distinguish the revisions. Build artifacts,
-source hashes, USB transcripts, raw IQ and metadata are retained under the
-ignored `build/rf-target-evidence/` directory, not committed firmware/captures.
+The bench is an opt-in experimental tool. Use installed dependencies and the
+[development checks](README.md#deterministic-validation) for generator, sink,
+controller failure/STOP and offline capture-analysis behavior. Neither a
+cross-link nor a fake peripheral proves IRQ timing or electrical output. The
+[clock policy](clock-support.md) defines build-selected rates; the
+[band support guide](band-support.md) bounds conducted applicability. Bench
+relative time is unsynchronized and does not establish WTP UTC conformance.
 
-| Workload | Result |
-|---|---|
-| Original BENCH 128, image-1 | Worst render 22.092 ms; checksum 4503602371141397 |
-| Optimized BENCH 128, image-9 | Worst render 1.507 ms; total rendering 189.886 ms; same checksum |
-| Image-9 RUN 0 100 1000, capture-6 | Complete; output inactive; STOP confirmed; 30 DMA IRQs |
-| Image-9 RUN 0 1000 1000, capture-7 | Complete; output inactive; STOP confirmed; 288 additional DMA IRQs |
-| Image-9 RUN 3 100 1000, capture-8 | Complete; output inactive; final capture coordinator checks passed |
-| Recorded image-9 workload | Maximum observed DMA callback 37 us; stack canary 9652 / 16384 bytes |
-| Capture-6, 1,525,000 samples | Hash/count/cleanup verified; zero timeout, overflow or clipping samples |
-| Capture-7, 1,750,000 samples | Hash/count/cleanup verified; zero timeout, overflow or clipping samples |
+## Conducted reference benchmark
 
-Original image-1 UF2 SHA-256:
-`a9f13dc919b9ceaab94cc165f285c27ba45c9de80fc4234b2fe6e866523f344e`.
-Tested image-9 UF2 SHA-256:
-`6ac2e13fae05a7c2ad2e4e7c1ef92200d853cc7e4d0d54fa9e5c607046932c10`.
-Capture-6 IQ SHA-256:
-`a7e4d48b1e52621ffdd86ee0d3c51c1810256c05c06acb3069ae5c599516911a`.
-Capture-7 IQ SHA-256:
-`da678011460084fb4c75adf745713fadecdada5d1e3aa7b91f1dfde785c40298`.
+The close-in analysis tool uses a fixed Pi GPIO4 diagnostic reference of
+**-21.66 dBc at the lower 120 Hz feature** and **-21.49 dBc at the upper
+120 Hz feature**. The reduction uses a 1,048,576-sample Hann FFT at 250 ksample/s
+(0.238419 Hz bins), starting two seconds into a capture, with peak searches
+within five Hz of each expected feature relative to that capture's carrier.
+These are peak-bin ratios, not calibrated integrated power or emissions limits.
 
-The final benchmark used no additional DMA IRQs and reported output inactive.
-Its 1.507 ms maximum is below both the 3.495253 ms buffer-consumption time and
-the proposed 1.747626 ms render budget for this workload. It does not bound all
-jobs or competing loads. The bench holds only a tone job, not a full 162-event
-WTP workload. Launch observations were 4 us after requested timer epochs;
-completion observations were 66 us and 63 us after nominal ends. Neither is an
-independent measurement of pin-edge timing.
-
-SDR analysis detected intervals 1.212416–1.327104 s and 1.212416–2.228224 s
-relative to the respective captures, with approximately 65 dB detector contrast.
-Whole detector windows include quiet edges. The Harness noise guard classified
-both crops **inconclusive**, and relative acquisition did not pass. The strongest
-coarse bin was 3,570,141.6015625 Hz; this is not a calibrated carrier frequency.
-No band, spectral mask, tone spacing, absolute timing or WSPR decode is qualified.
-
-The final capture coordinator was additionally exercised with tone 3 for 100 ms
-(capture-8), with successful terminal state, STOP and receiver verification.
-Its IQ SHA-256 is
-`3d865dc5847288938e53bda9700a5945ca382d1c4f5fe665bd8dee0815b4e004`.
-This checks selection of another tone, not the spacing between tones.
-
-Validation: 11/11 Debug tests including actual USB descriptors, 10/10 Release
-and 10/10 address/undefined-behavior sanitizer tests, five optional offline
-analysis tests, WTP contract validation, both firmware memory-layout checks,
-standard/bench/linkcheck Arm builds, formatting and Markdown links passed.
-Reassessment after repairs found no remaining actionable issue in this bounded
-bench slice; the qualification limitations above remain explicit.
-
-## Findings resolved and historical acceptance boundary
-
-Target iteration exposed an over-budget generator, a double timer-read launch
-race, an interrupt handoff slower than the FIFO reserve, a late final-drain
-underrun, and startup autopull TXSTALL. Exact lookup, one launch-time observation,
-two preloaded data channels, the hardware final-stop channel and OSR priming
-resolved those observed failures. Earlier failed tone transcripts remain evidence;
-they are not counted as successful runs.
-
-Adversarial review also removed a coordinator timeout that could kill the client
-before STOP, tightened capture identity/format validation, and preserved manifests
-through cleanup errors. Host tests cover waveform boundaries, controller failures,
-client timeout/STOP behavior and malformed captures. Hardware-free tests do not
-prove peripheral timing. These original bench results retain their measured
-scope. Later campaign records establish their own acceptance; current work is
-selected only in the [Consolidated backlog](consolidated-backlog.md).
-
-The [frequency correction and alias investigation](rf-correction-validation.md) records the
-`CORRECTION` bench command, corrected measurements, remaining frame settling
-and identified sampled-square-wave alias.
-
-The [clock comparison](rf-clock-validation.md) records build-selected sample
-clocks, carrier-translation and Pi GPIO4 controls, remaining sidebands and
-settling, and disk-backed capture storage.
+The reference is Raspberry Pi Zero 2 W Rev 1.0 on wspr2, WsprryPi
+`3.2.0-devel+7b92f69`, GPIO4 drive level 7, manual PPM zero, nominal 3.570100 MHz,
+executable SHA256 `b56fa888935fee346c7c12eb84955e0745cdba6871b6a6b10a810fdc3e6f13f8`.
+Its confirmed conducted combiner path, different RF windows/measurement date
+and uncalibrated receiver/path remain limitations. Passing this numerical
+comparison does not establish an absolute spectral limit or qualify a new image.

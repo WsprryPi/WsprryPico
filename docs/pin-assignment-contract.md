@@ -4,7 +4,7 @@ Status: selected design contract, agreed 2026-10-01; implemented subset below.
 The [pin allocation feature](development/pin-allocation.md) implements boot-applied
 direct RF, active-low switch and indicator selection plus candidate allocation
 validation. Optional immediate amplifier-enable execution and independent polarity
-are implemented in the [amplifier slice](development/amplifier-enable-results.md).
+are implemented in the [amplifier slice](development/amplifier-enable.md).
 LPF adapters and Pico Si5351 support remain unimplemented. Hardware eligibility
 is not RF qualification.
 
@@ -16,8 +16,8 @@ accepted interchangeably with GPIO numbers.
 
 The external assignment set is **GP0–GP22 and GP26–GP28**. Each can serve as a
 PIO waveform output, digital input or digital output, subject to implemented
-engine support and exclusive allocation. GP26–GP28 also support ADC; any future
-ADC use must participate in the same exclusive allocation model.
+engine support and exclusive allocation. GP26–GP28 also support ADC; ADC
+use participates in the same exclusive allocation model.
 
 GP23–GP25 and GP29 are reserved for onboard functions. Power, ground, RUN,
 BOOTSEL, USB and SWD connections are outside the application assignment model.
@@ -153,8 +153,7 @@ local RF chain. The implemented subset initializes the amplifier inactive,
 prepares the engine, asserts enable immediately before physical RF activation,
 executes one finite job including keyed gaps, stops RF and immediately deasserts
 enable. Separate jobs deassert between them, including a Type 2/3 pair.
-Filter selection/settling and amplifier lead/tail timing are future extensions
-selected only through the consolidated backlog.
+Filter selection/settling and amplifier lead/tail timing are unavailable.
 Completion, cancellation and faults use the same cleanup authority. Unconfirmed
 cleanup blocks another transmission. Pin assignment does not authorize output.
 

@@ -133,7 +133,7 @@ configured uncertainty limit. WsprryPi's ordinary default for new/missing
 settings is 100000000 ns (100 ms), with explicit saved limits preserved; this
 is controller policy, not a new protocol requirement. Pico retains its 500 ms
 maximum and enforces each job's requested bound at ARM and local launch.
-See the [policy execution record](../development/utc-100ms-results.md).
+
 
 ## Compatibility and evidence
 
@@ -144,9 +144,8 @@ firmware for rollback. Network authentication/discovery shapes remain unchanged
 on existing carriers; USB advertises its separately versioned management view.
 
 Portable endpoint/local-management/time tests, production Pi/Pico wire fixtures
-and normal firmware builds qualify software behavior only. See the
-[execution record](../development/usb-control-results.md) for exact checks,
-resource comparison and outstanding physical USB/AP/RF gates.
+and normal firmware builds qualify software behavior only. Physical USB enumeration, AP behavior, target UTC accuracy and RF remain
+independent qualification boundaries.
 
 Current shared resources include the independently negotiated
 [GPIO-drive extension](../development/gpio-drive.md), Type 1/2/3 admission,

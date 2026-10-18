@@ -134,6 +134,6 @@ timers, retire it without proof, alter settings or obtain private reads.
 
 The [synthetic vectors](Consumer-Recovery-v1-vectors.json) retain the original
 Radio/1 vector format with a `recovery` scope. They bind Noble, Mbed TLS and
-OpenSSL results. The [execution record](../development/phase15-7-recovery.md)
+OpenSSL results. The [session recovery contract](../development/session-recovery.md)
 separates deterministic software evidence, compiler/link resource bounds and
 unperformed physical qualification.

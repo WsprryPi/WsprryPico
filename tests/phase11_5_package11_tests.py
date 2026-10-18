@@ -551,7 +551,7 @@ class Package11Tests(unittest.TestCase):
                     "wspr4_fixture_restored": True}}))
             retry1_path = root / "retry1.json"
             retry1_value = json.loads((Path(__file__).resolve().parents[1] /
-                "docs/development/phase11-5-package11-retry1-result.json").read_text())
+                "tests/fixtures/harness/phase11-5-package11-retry1-result.json").read_text())
             retry1_path.write_text(json.dumps(retry1_value))
             retry1_adversarial_path = root / "retry1-adversarial.json"
             retry1_adversarial_value = assess_retry1(retry1_value)
@@ -560,18 +560,18 @@ class Package11Tests(unittest.TestCase):
             retry1_adversarial_path.write_text(json.dumps(retry1_adversarial_value))
             credential_retest_path = root / "credential-retest.json"
             credential_retest_value = json.loads((Path(__file__).resolve().parents[1] /
-                "docs/development/phase11-5-package11-credential-retest-result.json").read_text())
+                "tests/fixtures/harness/phase11-5-package11-credential-retest-result.json").read_text())
             credential_retest_path.write_text(json.dumps(credential_retest_value))
             retry2_path = root / "retry2.json"
             retry2_value = json.loads((Path(__file__).resolve().parents[1] /
-                "docs/development/phase11-5-package11-retry2-result.json").read_text())
+                "tests/fixtures/harness/phase11-5-package11-retry2-result.json").read_text())
             retry2_path.write_text(json.dumps(retry2_value))
             retry2_adversarial_path = root / "retry2-adversarial.json"
             retry2_adversarial_value = assess_retry2(retry2_value)
             retry2_adversarial_value["result_sha256"] = hashlib.sha256(
                 retry2_path.read_bytes()).hexdigest()
             retry2_adversarial_path.write_text(json.dumps(retry2_adversarial_value))
-            development = Path(__file__).resolve().parents[1] / "docs/development"
+            development = Path(__file__).resolve().parents[1] / "tests/fixtures/harness"
             retry3_path = development / "phase11-5-package11-retry3-result.json"
             retry3_adversarial_path = development / \
                 "phase11-5-package11-retry3-adversarial.json"
@@ -772,33 +772,6 @@ class Package11Tests(unittest.TestCase):
         closure_assessment = assess_closure(closure_value)
         self.assertTrue(closure_assessment["all_mutations_rejected"])
 
-    def test_retry3_failure_and_reducer_retest_are_reproducible(self):
-        root = Path(__file__).resolve().parents[1] / "docs/development"
-        failure_path = root / "phase11-5-package11-retry3-result.json"
-        failure_adversarial_path = root / "phase11-5-package11-retry3-adversarial.json"
-        failure = validate_retry3(json.loads(failure_path.read_text()))
-        failure_assessment = assess_retry3(failure)
-        failure_assessment["result_sha256"] = hashlib.sha256(
-            failure_path.read_bytes()).hexdigest()
-        failure_assessment["adversarial_script_sha256"] = hashlib.sha256(
-            Path(sys.modules[assess_retry3.__module__].__file__).read_bytes()).hexdigest()
-        self.assertEqual(json.loads(failure_adversarial_path.read_text()),
-                         failure_assessment)
-        self.assertEqual(failure_assessment["mutation_count"], 35)
-
-        retest_path = root / "phase11-5-package11-retry3-usb-reducer-retest-result.json"
-        retest_adversarial_path = (
-            root / "phase11-5-package11-retry3-usb-reducer-retest-adversarial.json")
-        retest = validate_reducer_retest(json.loads(retest_path.read_text()))
-        retest_assessment = assess_reducer_retest(retest)
-        retest_assessment["result_sha256"] = hashlib.sha256(
-            retest_path.read_bytes()).hexdigest()
-        retest_assessment["adversarial_script_sha256"] = hashlib.sha256(
-            Path(sys.modules[assess_reducer_retest.__module__].__file__).read_bytes()
-        ).hexdigest()
-        self.assertEqual(json.loads(retest_adversarial_path.read_text()),
-                         retest_assessment)
-        self.assertEqual(retest_assessment["mutation_count"], 22)
 
     def test_remote_packet_rejects_wrong_host_or_unbounded_runtime(self):
         with tempfile.TemporaryDirectory() as directory:

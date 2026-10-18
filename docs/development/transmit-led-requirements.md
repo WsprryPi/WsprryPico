@@ -1,27 +1,4 @@
-# Transmit LED requirements and acceptance
-
-Recorded: 2026-10-03. Updated: 2026-10-08.
-Status: **Complete (CLOSED_SCOPED)**. LED addressability and external TX-only
-operation are verified. Source/host checks,
-thirteen preceding target cases, reviewed standalone STOP and the
-[external GP15 routing result](phase13-1-step4-review.md) pass. No operator work
-remains. Existing button operation is recorded in the
-[Phase 12 closeout](phase12-closure-matrix.md).
-
-The external GP15 lamp wiring is operator-confirmed. The final functional
-check used GPIO/SDR evidence without another LED, camera, rewiring or operator
-session; see the [completed six-step acceptance](phase13-1-closeout-steps.md).
-The existing external-high TX-only/AP/Identify case passed with actual GPIO,
-complete SDR evidence and reviewed restoration. Timing/shutdown and software
-polarity evidence is reused; no new GP14 stimulus or polarity campaign was
-needed for closure. No LED calibration, additional polarity campaign or
-button/header test is required or carried forward from P13.1.
-Historical assignment: **Phase 13 / P13.1**, selected on 2026-10-05; see the
-[acceptance record](../implementation-plan.md#phase-13-acceptance).
-The operator authorized P13.1 implementation, review, commit and push on
-2026-10-07. Live testing follows the current [project instructions](../../AGENTS.md):
-the user's statement that a named Pico is connected to the SDR authorizes RF
-testing and the routine device-control/restoration steps needed for this task.
+# Transmit indicators
 
 Whenever the transmitter is hot (RF output active), the selected TX LED must
 light solid for the entire active interval. This includes RF-producing warmup,
@@ -33,7 +10,7 @@ assuming that a running job is continuously hot.
 
 When onboard TX is selected, solid TX takes priority over AP-ready and Identify
 blink patterns; after confirmed inactivity the applicable cue may resume.
-The operator clarified on 2026-10-07 that a selected external LED is **TX only**:
+A selected external LED is **TX only**:
 AP-ready and Identify continue on the onboard LED, never on the external pin.
 Without an external selection, the current onboard LED supplies TX indication.
 One controller owns both outputs so operational writes cannot blink or extinguish
@@ -44,22 +21,7 @@ Preserve the [pin-assignment contract](../pin-assignment-contract.md): onboard
 LED by default, configurable external GPIO/polarity, or explicitly disabled.
 The solid indication requirement applies when the TX indicator is enabled.
 
-## Historical foundation
-
-At reviewed `devel` commit `dd419af`, `IndicatorController::desired()` in
-`src/provisioning/field_runtime.cpp` returns solid on while `transmitting_`
-is true, ahead of AP/Identify blink selection. The standalone main loop supplies
-`engine.output_active()` through `indicator.transmitting()` and polls the same
-owner. Boot-applied pin selection already supplies onboard, external or disabled
-indicator output. `tests/field_access_tests.cpp` contains active-output priority
-and disabled-indicator behavior checks. These are current source observations;
-this documentation review does not run or newly qualify those tests.
-
-The earlier note that solid indication and its production wiring were absent
-is superseded. The P13.1 execution found an activation gap in this polling-only
-foundation and an acceptance-only Identify-over-TX exception.
-
-## Implemented source behavior
+## Local launch and physical inactivity
 
 `WsprryPico-StandaloneRF` now requests a unique indicator acknowledgement only
 at a valid local launch attempt. The selected TX output must have a checked
@@ -76,21 +38,10 @@ AP flash cannot acknowledge external TX. Faults remain latched after retry
 recovery. GPIO polarity and requested-level preload are host-tested through
 the actual Pico indicator adapter. The standard simulator never requests TX.
 
-The [execution prompt](phase13-1-transmit-led-prompt.md),
-[adversarial review and validation](phase13-1-transmit-led-review.md),
-[proposed physical packet](phase13-1-transmit-led-physical-packet.md) and
-[complete finite jobs](phase13-1-transmit-led-cases.json) record this slice.
-That original physical packet is historical; the selected functional acceptance
-is now closed by the step-4 record. Legacy single-core RFBench/RFWTP diagnostic
-images are outside this application indicator graph; their historical warmup
-captures are separate from the accepted application LED results. The selected
-external wiring and functional behavior are accepted by the recorded target
-evidence. Phase 14 retains broader RF mode/band/clock and release qualification;
-it has no additional LED calibration or fixture task from this closeout.
 
-The [GPIO execution record](phase13-1-gpio-validation-review.md) records actual
-onboard readback, RF results, retained failed ledgers and restoration. No camera
-or new backup is required for the operator-selected functional scope.
-The [standalone STOP follow-up](phase13-1-standalone-stop-closeout-review.md)
-closes both checker findings with complete target evidence; original partial
-and failed records remain preserved.
+The indicator reports application/engine output state, not independent RF
+measurement. Functional observations establish no LED timing calibration,
+electrical RF cutoff bound, other-band/clock qualification or antenna safety.
+Legacy RFBench/RFWTP diagnostic entry points are outside this application
+indicator graph. The deterministic field-access, pin and indicator tests cover
+priority, disabled selection, separate checked outputs and fault retention.

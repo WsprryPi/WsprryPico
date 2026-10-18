@@ -147,32 +147,7 @@ class Package10Tests(unittest.TestCase):
         self.assertIn("terminal-class-cardinality", names)
         self.assertIn("final-terminal-set", names)
 
-    def test_stopped_attempt_is_preserved_and_bound_to_corrected_packet(self):
-        path = Path(__file__).resolve().parents[1] / "docs/development/phase11-5-package10-attempt1-result.json"
-        value = json.loads(path.read_text())
-        self.assertIs(validate_stopped_attempt(value), value)
-        self.assertEqual(package10.digest(path), package10.PRIOR_ATTEMPT_RESULT_SHA256)
-        altered = copy.deepcopy(value)
-        altered["charged_rf_duration_ns"] = 0
-        with self.assertRaises(ValueError):
-            validate_stopped_attempt(altered)
 
-    def test_blocked_result_and_adversarial_assessment_are_reproducible(self):
-        root = Path(__file__).resolve().parents[1] / "docs/development"
-        result_path = root / "phase11-5-package10-failure-result.json"
-        adversarial_path = root / "phase11-5-package10-failure-adversarial-result.json"
-        value = validate_failure_result(json.loads(result_path.read_text()))
-        self.assertEqual(value["execution"]["corrected_rf_jobs"], 0)
-        self.assertEqual(value["budget"]["charged_rf_duration_ns"], 4_000_000_000)
-        self.assertEqual(value["budget"]["unused_authorized_rf_duration_ns"],
-                         476_000_000_000)
-        expected = assess_failure(value)
-        expected["failure_result_sha256"] = hashlib.sha256(
-            result_path.read_bytes()).hexdigest()
-        self.assertEqual(json.loads(adversarial_path.read_text()), expected)
-        names = [name for name, _ in failure_mutations()]
-        self.assertEqual(len(names), len(set(names)))
-        self.assertEqual(len(names), 24)
 
     def test_package10_fixture_has_bounded_association_runway(self):
         self.assertEqual(network_fixture.CLIENT_ASSOCIATION_SECONDS, 90)

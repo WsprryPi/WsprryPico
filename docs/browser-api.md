@@ -8,33 +8,33 @@ measurements to member/boot/firmware/clock identity. See the
 [NTP work record](development/ntp-work-results.md) for fields, units, authority,
 fallback and evidence limits.
 
-P15.14 also exposes these application services through the separately framed
+The application also exposes these application services through the separately framed
 [USB management adapter](protocol/USB-Management.md), under internal local
 physical authority. It supports configuration, saved progress, canonical name,
 saved Wi-Fi lifecycle, restart and qualified controller UTC without a Pico
 network session. USB capability/application views identify `usb_physical` and
 discovery selects `transmitter-management/3`; existing network views retain
 their prior shapes and carrier schemas. USB grants no transmitter ownership
-and uses the same JobService, validators, revisions and journals. See the
-[execution record](development/usb-control-results.md) for exact evidence.
+and uses the same JobService, validators, revisions and journals. See [USB local configuration](development/usb-local-configuration.md) for
+configuration and delivery semantics.
 
-P15.10 adds the independently versioned [hostname resource](development/phase15-10-hostname.md) at `GET/PUT /api/v1/hostname`. It preserves Config, application, capabilities and consumer identity v1 shapes. Consumer renames preserve CA/client trust, consume a profile generation and apply on explicit restart; engineering names remain credential-bound. See that record for exact envelopes, readback and recovery.
+The independently versioned [hostname resource](development/hostname.md) is at `GET/PUT /api/v1/hostname`. It preserves Config, application, capabilities and consumer identity v1 shapes. Consumer renames preserve CA/client trust, consume a profile generation and apply on explicit restart; engineering names remain credential-bound. See that record for exact envelopes, readback and recovery.
 
-P15.12 changes main-page presentation only: the boot-active hostname is the shared
+Main-page presentation uses the existing identity authority: the boot-active hostname is the shared
 heading and tab identity. About this Pico / Diagnostics exposes the full stable
 device ID and separately labelled boot observation. Public, active, rename-pending,
 last-confirmed and unavailable states are explicit. The existing presentation,
 identity and hostname API shapes and all carrier/session authorities are unchanged.
-See the [identity execution record](development/phase15-12-main-page-identity.md).
+See the [device presentation contract](development/device-presentation.md).
 
-P15.11 provides one control document with reloadable `/station` and
+The browser provides one control document with reloadable `/station` and
 `/wifi-host` areas, retaining `/index.html`, `/radio` and `/owner.html` aliases.
 Fresh admitted infrastructure roots select Station/Transmission; accepted AP
 roots select Wi-Fi/Host. Consumer field editors retain authenticated setup
 transactions. Engineering field saves use advertised config merge with the
 existing target/revision, while an unconfigured engineering deployment retains
 an explicit initial complete-configuration save. API/schema/authentication and
-radio ownership contracts are unchanged. See the [organization record](development/phase15-11-page-organization.md).
+radio ownership contracts are unchanged. See the [organization record](development/browser-pages.md).
 
 Status: implemented by WsprryPico; compatible WsprryPi adapter adoption is
 independently maintained.
@@ -47,10 +47,7 @@ The browser, USB WTP, TCP WTP and standalone scheduler use one JobService.
 The [shared transmitter application and fleet contract](transmitter-application-contract.md)
 defines the application/configuration model for Pi and Pico members. The
 [Pico foundation](development/shared-transmitter-application.md) implements bounded
-member, station and hardware resources with independent schema versions; broader
-adapters remain proposals outside the
-[P15.4 Pi adoption](development/phase15-4-shared-resources.md) of these existing
-resources. Existing routes and Config v1 retain their meanings.
+member, station and hardware resources with independent schema versions; full application parity is not claimed. Existing routes and Config v1 retain their meanings.
 
 ## Transport and trust
 
@@ -70,8 +67,8 @@ local-network principal. Device-specific credential setup and renewal are descri
 [network control](development/network-control.md).
 
 The selected
-[Phase 12 field-access contract](development/phase12-field-access-contract.md)
-has production wiring and [scoped acceptance](development/phase12-closure-matrix.md).
+[Engineering field-access contract](development/field-access.md)
+defines profile-specific local authority.
 It adds an interface-scoped engineering SoftAP exception:
 server-authenticated
 TLS plus a password login issues a random, boot/access-epoch-bound session-cookie
@@ -89,7 +86,7 @@ single terminal root dot canonicalize before validation. Host and any supplied
 HTTPS Origin must each be allowed and must match one another; hostname/IP mixing
 is cross-origin and rejected. Legacy IP-only bundles admit only current IPv4.
 Literal-IP browser access additionally requires a matching IP SAN. See the
-[shared identity contract](development/phase11-3-identity.md).
+[shared identity contract](development/network-identity.md).
 Browser mutations require all of:
 
 - `Origin: https://<authority>`;
@@ -101,7 +98,7 @@ Responses use `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, a
 restrictive CSP with hashes for embedded styles/scripts, and no referrer. API
 keys, passwords and certificates do not belong in URLs. The UI neither stores
 credentials in script-readable Web Storage/IndexedDB nor prints Wi-Fi passwords.
-The selected Phase 12 SoftAP bearer is instead an opaque Secure, HttpOnly
+The engineering SoftAP bearer is instead an opaque Secure, HttpOnly
 session cookie that page script cannot read.
 
 ## Resources
@@ -281,7 +278,7 @@ must HELLO, CLAIM, LOAD and ARM; it may ABORT only its own job. RELEASE is rejec
 while armed/running/failed or output remains active. Complete job timing continues
 locally after a connection closes. Under the current mTLS browser behavior, a
 refreshed page gets a new WTP session and cannot silently take over the previous
-session's job. The selected Phase 12 SoftAP same-token reconnect preserves the
+session's job. The engineering SoftAP same-token reconnect preserves the
 authentication principal only; owner resume must also recover the original WTP
 session and satisfy its replay rules. The password token alone adopts nothing.
 
@@ -354,9 +351,8 @@ estimated elapsed progress from device UTC. Only authoritative job status
 establishes completion: reaching 100% does not override Running, an unavailable
 connection leaves output unknown, and a different boot/job clears old progress.
 Timer throttling or closing the page cannot change the Pico's local job timing.
-These product changes have host/browser validation, and Phase 11.5 is closed
-6/6 within its recorded 138 MHz/divider-1 scope. That scoped closure does not
-establish broader mode/band/clock or release qualification.
+These source behavior contracts establish no physical timing, broader
+mode/band/clock or release qualification.
 
 ## Bounds and errors
 
@@ -411,8 +407,7 @@ A failed read makes state/output/clock/owner/network unknown and disables contro
 unsaved drafts remain. Capacity exhaustion may require retrying a read. No LOAD
 or ARM is automatically retried after an ambiguous outcome. Unsupported adapters
 leave `active_job_connections:false` and retain the existing pause/recovery UI.
-See the [11.2 review](development/phase11-2-review.md) for exact software evidence,
-resource admission and pending target timing/RF acceptance.
+Resource admission and physical timing/RF qualification remain separate.
 
 ## Discovery status
 
@@ -457,14 +452,14 @@ Capabilities add a top-level `management_carriers` reference with
 carriers or `transmitter-management/3` on USB. This is
 outside the closed `application_resources` and application capability objects;
 their legacy `authenticated_https` value is retained on network projections
-for P15.2 compatibility. USB-selected views instead identify `usb_physical`.
+for strict legacy compatibility. USB-selected views instead identify `usb_physical`.
 The selected authenticated carrier serves the discovery document. Public
 consumer identity/discovery cannot authorize reads or writes. Unsupported
 versions/types, unavailable selected carriers and identity/profile-generation
 mismatches must refuse without another-carrier retry. The full wire shape,
 operation list, profile matrix and budget interpretation are in the
-[Phase 15.3 contract](development/phase15-3-management-carriers.md), with the
-explicit [P15.6 version-2 evolution](development/phase15-6-sessions.md).
+[carrier contract](development/management-carriers.md), with the
+explicit [version-2 session contract](development/consumer-sessions.md).
 Version 2 preserves the closed shape and all version-1 limits except integer
 `consumer_sessions:3`, adding integer `consumer_pending_logins:1` to limits.
 Updated Pi accepts each version's exact limits; old Pi refuses version 2.
@@ -473,12 +468,12 @@ No fallback, downgraded authentication or mutation retry is added.
 USB version 3 adds the fifth `usb_physical` carrier row, selects it and removes
 `usb_json` from `unsupported`. Network version 2 deliberately retains its four
 rows and legacy `usb_json` exclusion; it is a projection, not a global statement
-that current firmware lacks USB management. Version 1 remains the historical
+that current firmware lacks USB management. Version 1 remains the legacy
 one-session shape. The common `operations` subset is not an exhaustive route
 allowlist: station, hardware, hostname, progress, drive, jobs and USB-specific
 resources retain their independent descriptors/contracts.
 
-The accepted [P15.14 USB projection](development/usb-control-results.md)
+The accepted [USB projection](development/usb-local-configuration.md)
 keeps application schema names but substitutes `usb_physical` for the embedded
 `management_carrier` and removes `usb_json_management` from its unavailable
 list. The unchanged application/1, /2 and /3 schema files still encode the
@@ -508,10 +503,10 @@ operator save; matching values do not attribute a past uncertain write.
 Commissioning retains its separate sent-once device/generation/request-digest
 receipt across authentication and origin changes. Failed terminal attempts can
 be corrected explicitly; active trials and unresolved/committed restarts remain
-blocked. See the [execution evidence](development/phase15-7-recovery.md).
+blocked. See the [execution evidence](development/session-recovery.md).
 
 
-## Versioned local WSPR planning (P15.8)
+## Versioned local WSPR planning
 
 The additive `capabilities.application_resources_v2` descriptor advertises
 `transmitter-application/2` at `GET /api/v1/application/2`, station version 2 at

@@ -1,6 +1,6 @@
 # TLS 1.3 certificate rejection alerts
 
-The Phase 11.4 F3 investigation reproduced certificate rejections reported by
+Certificate rejections can be reported by
 OpenSSL as bad-record-MAC errors. Mbed TLS 3.6.6 keeps the server outbound
 handshake transform until handshake wrap-up; its certificate rejection can occur
 after Server Finished, when the client already expects application traffic keys.
@@ -37,4 +37,5 @@ The protocol basis is [RFC 8446 appendix A.2](https://www.rfc-editor.org/rfc/rfc
 and [section 4.4.2.4](https://www.rfc-editor.org/rfc/rfc8446#section-4.4.2.4).
 The missing-certificate alert mapping is also described in
 [upstream issue 10720](https://github.com/Mbed-TLS/mbedtls/issues/10720).
-Physical and regression results belong to the F2/F3/F6 execution record.
+The retained certificate tests exercise the parser and pending-alert paths;
+software results do not establish physical network reliability.

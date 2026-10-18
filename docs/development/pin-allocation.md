@@ -5,7 +5,7 @@ eligibility. This implementation adds pin-plan validation and boot-applied
 assignments for direct PIO RF, active-low switch input, the shared indicator and
 optional amplifier enable with independent polarity. LPF and Si5351 execution
 remain unavailable. These checks do not qualify RF performance on newly selected
-pins. The [amplifier record](amplifier-enable-results.md) documents its immediate
+pins. The [amplifier record](amplifier-enable.md) documents its immediate
 launch/cleanup policy and evidence limits.
 
 ## Management API
@@ -92,7 +92,7 @@ a default fallback pin. Recovery remains through the existing recovery paths.
 The indicator's one controller uses the selected external GPIO exclusively for
 TX, with Identify/SoftAP cues remaining on the onboard LED. Without an external
 selection, TX holds the onboard LED solid ahead of those cues. Disabled selection
-suppresses indication. The P13.1 launch handshake checks the selected TX output
+suppresses indication. The local launch handshake checks the selected TX output
 before activation; an onboard AP flash cannot acknowledge an external TX write.
 Field-GATT keeps its existing cue-pattern vocabulary; that pattern describes the
 provisioning cue rather than an independent RF measurement. External active-low
@@ -109,11 +109,5 @@ ctest --test-dir build-host --output-on-failure
 node tests/network_browser_tests.js
 ```
 
-Git-history acceptance checks require the existing repository history. Recovery
-web checks require the project's pinned bootstrap-web dependencies. A source-only
-snapshot without those prerequisites cannot reproduce those checks; run them in
-the repository with existing dependencies instead. Never infer physical pin,
-button timing, RF-chain or Phase 12 acceptance from these host checks.
-
-See the [execution prompt](pin-allocation-execution-prompt.md) and
-[review/results](pin-allocation-review.md) for the exact validation disposition.
+Recovery web checks require the pinned bootstrap-web dependencies. Source
+tests do not establish physical pin behavior, button timing or RF qualification.

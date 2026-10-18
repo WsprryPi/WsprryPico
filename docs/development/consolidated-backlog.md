@@ -14,10 +14,9 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    3.570100 MHz (80 m), selected by the operator during execution, on one Pico
    with `wsprd`; record the result and associated
    evidence closeout. [Result](short-wspr-type23-decode-results.md).
-   [Saved prompt](short-wspr-type23-decode-execution-prompt.md).
 3. ✅ **Amplifier-enable GPIO during transmissions.** Assert the configured enable
    pin before RF starts and return it inactive after completion, stop, abort
-   or fault. [Saved prompt](amplifier-enable-execution-prompt.md).
+   or fault. See [amplifier enable](amplifier-enable.md).
 4. ⏳ **NTP Work** [Saved prompt](ntp-work-execution-prompt.md).
    - ✅ Persistent standalone manual PPM.
    - ✅ NTP filtering and UTC rate discipline.
@@ -26,14 +25,12 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
      conformance and target/RF qualification while preserving independent
      manual PPM and launch limits.
 5. ✅ **Impeccable UI review**, including provisioning; accepted and closed.
-   [Result](phase15-19-results.md). VoiceOver testing is closed as not required.
+   VoiceOver testing is closed as not required.
    Installer coverage is deferred.
-   [Saved prompt](phase15-19-execution-prompt.md).
 6. ✅ **Software/build CI and deployment images.** Run checks and produce usable
    UF2 images with version/source identity, checksums and a manifest before
    release efforts. Use the CI image for decode verification and publication.
-   [Result](software-build-ci-results.md).
-   [Saved prompt](software-build-ci-execution-prompt.md).
+   [Build and image guide](software-build-ci.md).
 7. ▧ **USB installer.** Standalone and WsprryPi access, preserving saved
    settings; default to the latest verified saved main CI image, with explicit
    devel selection.

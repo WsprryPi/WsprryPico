@@ -69,20 +69,20 @@ Read current accepted behavior from the implementation and applicable records,
 including [standalone configuration](standalone.md),
 [consumer LAN access](consumer-lan-access.md),
 [USB local configuration](usb-local-configuration.md),
-[USB control results](usb-control-results.md),
-[hostname behavior](phase15-10-hostname.md),
-[page organization](phase15-11-page-organization.md),
-[main-page identity](phase15-12-main-page-identity.md),
-[support policy](phase15-13-support-policy.md),
+[USB management/time](../protocol/USB-Management.md),
+[hostname behavior](hostname.md),
+[page organization](browser-pages.md),
+[main-page identity](device-presentation.md),
+[support policy](clock-support.md),
 [GPIO drive](gpio-drive.md),
-[normal firmware selection](phase15-16-results.md),
+[normal firmware selection](firmware-foundation.md),
 [firmware foundation](firmware-foundation.md) and the current browser API and
 protocol documents. These paths describe the preparation layout; update live
 links to their engineering locations when the directory moves.
 
-Use the [CI image handoff](software-build-ci-execution-prompt.md),
+Use the [CI image contract](software-build-ci.md),
 [USB installer handoff](phase15-18-execution-prompt.md),
-[UI review handoff](phase15-19-execution-prompt.md) and
+[browser interface contracts](browser-pages.md) and
 [testing prerelease handoff](phase15-17-execution-prompt.md) to understand
 boundaries and consumers, not as proof those tasks have executed. Use their
 actual accepted outputs if available. Document what is available now; do not

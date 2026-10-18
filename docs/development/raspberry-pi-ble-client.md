@@ -1,7 +1,7 @@
 # Raspberry Pi/Linux BLE local-control client
 
 `scripts/wsprrypico_ble.py` is the supported native BlueZ client for the
-existing WsprryPico Phase 12 GATT service. It gives a Raspberry Pi the same
+WsprryPico GATT service. It gives a Raspberry Pi the same
 encrypted, application-authorized local-control path used by the checked-in
 Bluefy page without adding another device protocol or job service.
 The UUIDs, framing, authorization exchanges, provisioning vocabulary and WTP
@@ -9,9 +9,7 @@ mapping are defined by the frozen
 [Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md) and its
 [machine-readable conformance vectors](../protocol/Field-GATT-v1-vectors.json).
 Firmware, Bluefy and this client are source/host conforming to that contract.
-Candidate A has bounded RF-inhibited native-Pi maximum-profile activation
-evidence in the [target activation record](phase12-profile-activation-attempt.md).
-Broader commissioning and Phase 12 acceptance remain open.
+Physical evidence does not establish general peer/fleet interoperability.
 
 This tool is an additional local/bench client. Bluefy remains the selected
 iPhone client, and a Raspberry Pi run is not evidence for Bluefy/iOS offline
@@ -128,8 +126,7 @@ target bonds.
 ## Atomic profile transfer
 
 The native client implements the frozen Field-GATT/1 profile workflow. Its
-source/host conformance is accepted; use on a physical target remains subject
-to the open Phase 12 native-Pi profile-activation acceptance row.
+source/host conformance tests do not qualify every physical peer or profile.
 
 The input is the existing canonical version-1 profile, not a new Linux-specific
 format:
@@ -205,13 +202,5 @@ identity binding, authorization, field controls, WTP negotiation/status, the
 bound step-up/apply transaction, confirmation polling, cancellation, the exact
 7,168-byte transfer and local file controls. The vector-driven provisioning
 contract check keeps firmware, Bluefy, Linux, documentation and the frozen
-limits synchronized. The bounded
-[execution record](phase12-pi-ble-tcp-review.md) adds exact `wspr5`/Candidate A
-RF-inhibited evidence for identity inspection, controller-time submission,
-field status and WTP `HELLO`/`STATUS`; all other deterministic results in that
-record remain source/host evidence. The separate
-[target activation record](phase12-profile-activation-attempt.md) reports a
-later native-Pi maximum-profile apply and reboot. Neither live subset
-qualifies RF, general release behavior or full Bluefy/iOS commissioning. The
-later positive generation-3 mTLS/WTP/HTTPS readback is recorded separately in
-the target activation record.
+limits synchronized. These deterministic checks establish no RF, general release, Bluefy/iOS or
+physical UTC-accuracy qualification.

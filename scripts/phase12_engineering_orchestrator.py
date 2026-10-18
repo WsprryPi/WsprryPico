@@ -40,7 +40,7 @@ COMMON_HELPERS=('capacity_pending.py','phase12_engineering_dispatch.py','phase12
     'check_usb_target.py','standalone_console.py','wsprrypico_ble.py')
 # (repository input, remote destination, existing dispatch receipt key)
 COMMON_REPOSITORY_ASSETS=(
-    ('docs/development/phase12-composition-engineering-plan-template.json',
+    ('tests/fixtures/harness/phase12-composition-engineering-plan-template.json',
      'engineering-composition-template.json','engineering-composition-template.json'),
     ('docs/protocol/wtp-1.schema.json','docs/protocol/wtp-1.schema.json','schema'))
 CREDENTIAL_ASSETS=(('client-ca.crt','ca/server/client-ca.crt'),('owner-client.crt','owner/client.crt'),

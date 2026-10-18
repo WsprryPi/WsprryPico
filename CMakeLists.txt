@@ -250,8 +250,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME refill_metrics_tests COMMAND refill_metrics_tests)
     add_test(NAME phase11_5_inventory_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_inventory_tests.py)
-    add_test(NAME phase11_5_register_tests COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/phase11_5_register_tests.py)
     add_test(NAME phase11_5_pilot_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_pilot_tests.py)
     add_test(NAME phase11_5_supervisor_tests COMMAND ${Python3_EXECUTABLE}
@@ -274,9 +272,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/phase11_6_audit_tests.py)
     add_test(NAME phase11_6_attempt_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_6_attempt_tests.py)
-    add_test(NAME phase11_7_closure_tests COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/phase11_7_closure_tests.py)
-    set_tests_properties(phase11_7_closure_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_test(NAME phase11_5_device_management_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_device_management_tests.py)
     add_test(NAME phase11_5_device_fixture_tests COMMAND ${Python3_EXECUTABLE}
@@ -633,12 +628,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME phase11_5_package5_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/phase11_5_package5_tests.py)
     set_tests_properties(phase11_5_package5_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    add_test(NAME phase11_5_package6_tests COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/phase11_5_package6_tests.py)
-    set_tests_properties(phase11_5_package6_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    add_test(NAME phase11_5_package7_tests COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/phase11_5_package7_tests.py)
-    set_tests_properties(phase11_5_package7_tests PROPERTIES WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
     add_executable(wsprrypico_core_tests tests/core_tests.cpp)
     target_link_libraries(wsprrypico_core_tests PRIVATE wsprrypico_core)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")

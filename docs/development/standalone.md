@@ -6,16 +6,7 @@ zero/manual default and decimal ppm presentation; saves take effect only at
 future preparation. [NTP work](ntp-work-results.md) defines sign, persistence,
 consent, filtering/rate mapping and the independent RF gate.
 
-Current [P15.10 hostname selection](phase15-10-hostname.md) uses the saved consumer profile name for a new boot while keeping the running boot coherent. The editor does not require message/job entry, alter station/schedule readiness, clear STOP, or change pins/watermarks. Engineering names require replacement matching credentials.
-
-Status: Step 9 software, the [inhibited Wi-Fi bench slice](standalone-physical-validation.md)
-and [standalone RF/wall-power operation](standalone-rf-power-validation.md) have
-bounded validation on the recorded device. Recurring frames decode without a USB
-host after a separate-power boot. Forced access-point loss during RF, flash
-brownouts, endurance and calibrated UTC/RF accuracy remain qualification work.
-The original [execution prompt](step9-standalone-execution-prompt.md) defines the
-software; the [RF/power prompt](step9-rf-power-execution-prompt.md) defines the
-final functional bench slice.
+Current [Hostname selection](hostname.md) uses the saved consumer profile name for a new boot while keeping the running boot coherent. The editor does not require message/job entry, alter station/schedule readiness, clear STOP, or change pins/watermarks. Engineering names require replacement matching credentials.
 
 ## Images and shared service
 
@@ -25,7 +16,7 @@ It advertises `pio-dma-gp2`. RF capability does not itself enable transmission;
 saved configuration and all ownership, timing, frequency and output guards apply.
 The explicit compatibility target `WsprryPico-StandaloneRF` uses the same wiring.
 
-Optional [amplifier enable](amplifier-enable-results.md) initializes inactive
+Optional [amplifier enable](amplifier-enable.md) initializes inactive
 from the validated boot plan and asserts only at the final local RF launch.
 It remains enabled across that job's keyed gaps and deasserts when RF stops;
 the two finite frames of a Type 2/3 pair have separate enable intervals.
@@ -40,8 +31,7 @@ is checked for absence of the physical engine/worker. Simulated starts and
 completions do not establish physical timing. Both variants expose finite
 `wspr`, `tone`, `qrss`, `fskcw` and `dfcw` jobs with the existing 512-event,
 3600-second capacity, 100 kHz through one Hz below half the selected sample rate.
-See [build commands and target selection](firmware-foundation.md) and the
-[P15.16 acceptance record](phase15-16-results.md).
+See [build commands and target selection](firmware-foundation.md).
 Autonomous WSPR schedules use an explicitly saved whole-Hz base frequency,
 configured at runtime through the consumer settings page or the independently
 versioned `/api/v1/standalone-frequency` resource. Firmware images select no
@@ -60,8 +50,8 @@ stored field, so downgrade preservation is unqualified. Explicit physical
 Console `CONFIG` may supply `wspr_base_frequency_hz` in whole Hz; omitted legacy
 writes preserve its saved value. No build-time band selection remains.
 This is experimental scope, not supported-band or output-power qualification.
-See [host acceptance prerequisites](phase10-host-acceptance.md) for image selection,
-frequency adjustment, clock budgets and the remaining joint target gates.
+See [clock limits](clock-support.md) and [band support](band-support.md) for
+frequency admission and conducted applicability.
 The separate `WsprryPico-RFBench` and USB-time `WsprryPico-RFWTP` remain available.
 
 The application images also enforce the saved experimental frequency policy
@@ -76,12 +66,10 @@ never steals an external ownership lease, depends on a USB connection, or sends
 per-symbol requests. USB disconnect does not invalidate SNTP time. WTP/1 itself
 is unchanged. Authenticated HTTPS/browser APIs and WTP/TCP now share this service;
 see [network control](network-control.md). The
-[Phase 12 field-access contract](phase12-field-access-contract.md) selects
-BLE/Bluefy primary and SoftAP/Safari fallback provisioning and local control
-through this same service. BLE and the browser/local-control portion of SoftAP
-are production-wired. The [Phase 12 closure matrix](phase12-closure-matrix.md)
-records selected commissioning/reset/physical acceptance and exclusions; the
-earlier native-Pi checkpoint is not unrestricted phone or fleet acceptance.
+[Field access](field-access.md) defines engineering BLE/Bluefy and SoftAP
+local control through this same service. Consumer commissioning follows
+[consumer access](consumer-lan-access.md). General physical/fleet interoperability
+remains unqualified.
 
 ## Configuration
 
@@ -174,9 +162,8 @@ WsprryPi's host opt-ins do not automatically change the Pico's saved settings;
 an experiment must satisfy both members' admission policies.
 
 Default admission retains the thirteen ordinary bands from 2200 m through
-6 m in the Phase 14 matrix. The broad 8 m and 5 m correlation envelopes remain
-experimental and require `allow_unqualified_frequency`. The later
-[P15.13 qualification](phase15-13-results.md) covers only Pico A at 40.001 and
+6 m. The broad 8 m and 5 m correlation envelopes remain
+experimental and require `allow_unqualified_frequency`. [Point-scoped qualification](band-support.md) covers only Pico A at 40.001 and
 60.001 MHz, normal 138 MHz, with explicit WSPR receiver-audio conditions and
 complete-job/admission conditions. It does not promote either whole envelope.
 The ordinary consumer profile uses its authenticated radio configuration API;
@@ -184,10 +171,10 @@ it deliberately rejects Console configuration. False flags may be absent from
 canonical Config readback; STATUS exposes their effective values.
 4 m remains Unqualified
 for every release mode under the required reliable-WSPR gate, and native direct
-2 m is Unavailable. See the [qualification catalog](phase14-band-mode-qualification.md)
+2 m is Unavailable. See the [qualification catalog](band-support.md)
 and [machine-readable statuses](phase14-band-support.json). Experimental consent
 does not change qualification, promote prior failed results or override engine
-availability. Phase 14 is complete within its declared scope. Correlation
+availability. Correlation
 envelopes match WsprryPi's Band-Lookup catalog and are not jurisdiction-specific
 operating authority.
 
@@ -246,7 +233,7 @@ jobs retain one renewed lease across the gap and receive independent launch
 clock checks. STOP, lost ownership/time quality, changed configuration, missed
 second preparation, engine failure or reboot cancels continuation without retry.
 Reboot and UTC rollback conservatively skip both reserved windows. See the
-[P15.8 execution record](phase15-8-wspr-type23.md) for source-specific software
+[WSPR planning contract](wspr-planning.md) for source-specific software
 acceptance and remaining physical qualification.
 
 A new/erased device has no configuration and cannot schedule. Saving requires
@@ -332,7 +319,7 @@ local schedules and skips networking. Intentional Console reboot starts a normal
 boot. Recovery reports the failed stage and retained panic/processor diagnostic
 values; it does not automatically clear credentials, watermarks or faults.
 
-The selected Phase 12 access-recovery operation is separate: it clears local
+The access-recovery operation is separate: it clears local
 password/bond state, increments the access epoch, restores the public default,
 sets persistent field mode, opens one confirmed volatile enrollment window,
 forces SoftAP and preserves the runtime profile, station, schedules and
@@ -347,8 +334,7 @@ full operational erase.
 The core-0-owned onboard LED identifies a device and slow-blinks only while
 SoftAP is actually ready. It is advisory and never proves RF or output safety.
 These behaviors are production-wired through the access/reset/indicator core.
-The [Phase 12 matrix](phase12-closure-matrix.md) retains the selected physical
-acceptance and excluded assertions. Every actual AP activation now has the
+Every actual AP activation has the
 same non-sliding ten-minute cap; the 120-second join grace does not renew it.
 
 ## Time policy
@@ -406,7 +392,7 @@ source uncertainty. RF carrier selection remains separate: persistent manual
 correction is the default/fallback; NTP RF selection retains an unresolved
 independent measurement gate. See [NTP work](ntp-work-results.md).
 
-Phase 12 selects authenticated controller/phone time when SNTP is unavailable.
+The time arbiter accepts authenticated controller/phone time when SNTP is unavailable.
 The device computes uncertainty from a fixed 250 ms phone allowance, the full
 round trip and local margins; it retains the 500 ms uncertainty and 90-second
 ARM-age gates, requests refresh no slower than 60 seconds and starts every reboot
@@ -456,7 +442,7 @@ current bank is full; a complete verified current record exists before that
 rotation. Writes are verified before acknowledgement and happen only outside
 armed/running jobs. Flash accesses use the SDK's safe routines with interrupts
 masked; the physical image additionally coordinates its RF worker through SDK
-multicore lockout. See the [11.2 ownership record](phase11-2-review.md).
+multicore lockout; core 1 retains physical RF/peripheral ownership.
 
 CRC32 detects torn writes and accidental corruption; it is not a security MAC.
 A non-erased invalid record in **either** journal latches a storage fault. The
@@ -465,7 +451,7 @@ watermark. Torn writes can therefore require operator recovery. The current
 remedy for these standalone-journal faults is separately authorized
 **full-device/BOOTSEL flash recovery**: erase the device flash, reflash and
 reprovision. That manual path clears credentials and no-repeat history; it is
-not the implemented Phase 12 **full operational erase**, which
+not the implemented **full operational erase**, which
 uses a durable `reset_pending` transaction and leaves E10 under its existing
 recovery contract. Both are distinct from access recovery and provisioning reset,
 which preserve station, schedules and watermark. A normal UF2 update preserves
@@ -485,80 +471,15 @@ polled through Armed/Running. The earlier deferral remains only for non-consumer
 operation without either listener. The accepted clock observation ages locally and USB WTP
 remains serviced, including ABORT. BTstack, SoftAP and controller-time adapters
 remain on core 0; the shared IndicatorController owns the boot-selected onboard
-or external LED. The earlier RF/wall-power campaign qualified only its recorded
-image/path. The later [automatic closeout](phase12-orchestratable-closeout-results.md)
-accepts its declared simulator carrier/resource scopes; broader physical RF
-coexistence remains open in the [current matrix](phase12-closure-matrix.md).
-Target work follows its approved bench policy and intended-test authority.
-Phase 14 is closed within its recorded scope; broader mode/band/clock and
-release qualification is not implied. Current work belongs only to the
-[consolidated backlog](consolidated-backlog.md).
+or external LED. These source ownership rules do not establish physical RF coexistence,
+mode/band/clock qualification or release reliability. Selected work is maintained
+in the [consolidated backlog](consolidated-backlog.md).
 
-## Reproduction and evidence
+## Validation
 
-The commands and test counts below retain the original Step 9 reproduction
-record. Use the current [build guide](firmware-foundation.md) and
-[development checks](README.md#current-checks) for fresh build directories,
-explicit inhibited selection, current 32 KiB application stack and reserved
-flash bounds. They do not require rerunning old bench/fixture campaigns.
-
-Hardware-free commands:
-
-```sh
-cmake --preset host-debug
-cmake --build --preset host-debug --parallel
-ctest --preset host-debug
-python3 scripts/validate_wtp_contract.py
-cmake -S . -B build/step9-sanitize -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-  -DWSPRRY_PICO_BUILD_TESTS=ON \
-  -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
-cmake --build build/step9-sanitize --parallel
-ctest --test-dir build/step9-sanitize --output-on-failure
-cmake --preset pico2-w
-cmake --build build/pico2-w --target WsprryPico WsprryPico-StandaloneRF \
-  WsprryPico-RFWTP WsprryPico-RFBench rf_driver_linkcheck --parallel
-python3 scripts/check_standalone_image.py build/pico2-w/firmware/WsprryPico.elf
-python3 scripts/check_standalone_image.py build/pico2-w/firmware/WsprryPico-StandaloneRF.elf
-```
-
-The initial software validation passed all 17 configured host tests (including the existing
-optional offline analysis/USB descriptor checks), all 13 sanitizer-build tests,
-and the WTP contract validator. All five named Arm targets cross-linked against
-the pinned SDK/toolchain. Image inspection checks the 16 KiB stack, heap
-separation, reserved flash region and UF2 payload extents. These commands do not
-flash, connect to hardware or operate a transmitter.
-
-New tests cover strict configuration, every byte interruption of configuration
-and watermark writes, bank rotation interruption, CRC corruption, restart
-retention, repeated/backward slots, competing USB ownership, busy edits, failed
-reservation/preparation, time uncertainty/loss, malformed SNTP, replay, leap and
-era boundaries. An end-to-end host test supplies SNTP time to the actual
-discipline and scheduler, verifies a microsecond-aligned launch mapping,
-completes an inhibited job without USB input, then skips further work on time
-loss. A simulated completion is not a conducted RF result.
-
-## Initial software adversarial assessments
-
-The first assessment repaired the SDK linker-override invocation, replaced
-unnecessary SHA-256 storage hashing with CRC32, and made corruption inhibit
-instead of restoring an older enabled configuration. It also caught the
-unrepresentable fractional SNTP-to-alarm mapping; quantization is now explicit
-and included in uncertainty. The standard inhibited image uses a named lifecycle
-simulator so it does not depend on foreground polling at one exact nanosecond.
-Firmware classification, new dependency provenance and timer/holdover limits
-were checked and corrected. Affected host checks and target builds were rerun.
-
-The follow-up assessment checks the completed implementation against the prompt,
-including stored disable state, erase interruption, no-repeat behavior,
-lease expiry through a frame, failed preparation, integer/era bounds, source
-correlation, clock loss, flash/RF exclusion, secret-free status and the actual
-linked memory layout. Target qualification limits remain explicit. Review and
-validation results here apply to software and build evidence only.
-
-After repairs and repeated affected checks, the final assessment found no
-remaining actionable software findings in this slice. Physical qualification
-items above remain open and were not reclassified as software passes.
-
-The later [physical validation record](standalone-physical-validation.md) documents
-the boot-page overlap, corrected journal identity, network alignment, recovery
-controls, expanded checks and the user-selected 500 ms UTC uncertainty budget.
+Use the [development checks](README.md#deterministic-validation) with an unused
+build directory and installed pinned dependencies. Existing standalone, journal,
+clock, frequency-policy and WSPR-plan tests exercise corruption/interruption,
+rotation, repeated/backward slots, competing ownership, failed reservation and
+preparation, time loss/uncertainty and complete local job behavior. Simulation
+and cross-linking establish neither device timing nor conducted RF performance.

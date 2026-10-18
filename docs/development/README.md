@@ -1,760 +1,41 @@
-# Development baseline
+# Development guide
 
-The [software/build CI guide](software-build-ci.md) describes the generic
-uninhibited consumer image, pinned Linux checks, versioned deployment manifest,
-artifact verification, permanent separate main/devel downloads and exact-byte
-installer/release handoff. Standalone WSPR
-frequency is selected explicitly at runtime; images select no transmit frequency.
+The [project contract](../../CONTRACT.md) and [architecture](../architecture.md)
+define the portable application, transport and Pico adapter boundaries. The
+[consolidated backlog](consolidated-backlog.md) is the sole selected work list.
+The reusable [repository and work-harness cleanup instructions](repository-cleanup-prompt.md)
+define inventory, preservation, prose and validation requirements for explicit
+cleanup requests.
 
-The [NTP work record](ntp-work-results.md) documents persistent manual carrier
-correction, bounded NTP filtering/rate mapping, and the unresolved independent RF
-gate for automatic calibration.
+## Build inputs and layout
 
-The [Consolidated backlog](consolidated-backlog.md) is the sole current work
-list. This development reference preserves completed work and historical
-evidence with its original acceptance limits.
+The portable core uses C++20 without extensions and requires CMake 3.24.
+Version-6 presets require CMake 3.25. Firmware C uses C11 with GNU extensions
+for SDK integration. The Pico target is `pico2_w` / RP2350 Arm.
 
-The [P15.19 UI review record](phase15-19-results.md) documents both accepted
-software passes, preserving original and final screenshots, scores and
-browser/resource evidence. Final scores are 35/40 design and 14/16 technical. Installer presentation and
-physical provisioning are deferred.
+The [firmware foundation](firmware-foundation.md) specifies Pico SDK 2.3.1 at
+`079c6f39023649b154152db30f1d781e884879bc`, Arm GNU 15.3.1 and picotool 2.3.0 at
+`6f6458d792b93685a11423b244a585eaa99eafcf`. SDK/submodules, compiler, Ninja,
+Python and picotool source must already be installed. Keep machine-specific
+paths in the environment or ignored `CMakeUserPresets.json`.
 
-The [amplifier-enable record](amplifier-enable-results.md) documents optional
-boot-applied pin/polarity, immediate local launch/cleanup, compatible management
-views, deterministic failure regressions, firmware builds and review.
+Owned implementation is under `src/`, deterministic tests under `tests/`,
+build helpers under `cmake/` and `scripts/`, and protocols/schemas/vectors under
+`docs/protocol/`. Keep firmware, captures, credentials and generated headers
+under ignored build/private directories. Maintain `.pio` source rather than
+generated `.pio.h` headers. Preserve upstream licenses and source provenance.
 
-Dated execution prompts, intermediate reviews and frozen source snapshots are
-historical records. Their earlier pending/next-work descriptions do not select
-current work; consult the consolidated document for current dispositions.
+Normal firmware `all`, the `pico2-w` preset and `scripts/build_pico.sh` select
+the complete RF-capable 138 MHz `WsprryPico` application.
+`WsprryPico-Inhibited` selects the simulator; `WsprryPico-StandaloneRF` is a
+compatible explicit RF target. Generic images select no transmit frequency.
+The [software/build CI guide](software-build-ci.md) defines Linux checks,
+deployment manifests, source/version identity, integrity verification and
+separate main/devel downloads. Installation consumes exact verified bytes.
 
-The reusable [repository and work-harness cleanup prompt](repository-cleanup-prompt.md)
-defines inventory before deletion, cleanup of WsprryPico artifacts on the local
-machine and identified Raspberry Pi harnesses, and plain operator descriptions
-of current capabilities.
-Needed technical detail belongs in engineering references; operator explanations
-must stand on their own without documentation placeholders or future promises.
-It remains maintained guidance for explicit cleanup requests.
+## Deterministic validation
 
-The [P15.16 default-build record](phase15-16-results.md) tracks the normal
-RF-capable firmware default and explicit `WsprryPico-Inhibited` diagnostic.
-The target change preserves accepted USB/drive configuration and does not
-refresh physical RF qualification. Current API/carrier versions are indexed in
-the [browser API](../browser-api.md#resources), with independently negotiated
-[GPIO drive](gpio-drive.md) and [saved progress](saved-progress.md).
-
-[Production USB control](usb-control-results.md) adds ordinary-firmware USB
-management/time, common-hostname presentation, complete saved Wi-Fi lifecycle
-and a hard ten-minute AP lifetime for every entry path. It preserves WTP/1 and
-existing numeric job/timing limits. Its record distinguishes software/build
-evidence from outstanding physical USB/AP/RF qualification.
-
-The accepted [100 ms UTC follow-up](utc-100ms-execution-prompt.md) and
-[results](utc-100ms-results.md) record the new/missing Pi setting default;
-explicit saved uncertainty limits remain unchanged.
-
-The [Phase 15 acceptance record](../implementation-plan.md#phase-15-acceptance-record)
-preserves completed P15.1–P15.16 and their original item identities.
-The [GPIO drive software record](phase15-15-results.md) and
-[hardware acceptance](phase15-15-hardware-results.md) distinguish software,
-actual pad/USB/lifecycle observations and bounded conducted results. Numerical
-in-span energy observations remain nonblocking under explicit operator direction.
-Historical record titles and executed prompt filenames are unchanged; use both
-title and number when following an executed procedure. See the
-[P15.15 prompt assessment](phase15-15-prompt-review.md) for its original review.
-
-[P15.13 qualification](phase15-13-results.md) is complete within its recorded
-scope: all five modes at 40.001/60.001 MHz on Pico A, fresh current-source
-StandaloneRF at normal 138 MHz, with explicit WSPR receiver-audio and job/admission
-conditions. The [matrix](phase15-13-result-matrix.json), [frozen plan](phase15-13-plan.md)
-and [clock/build support policy](phase15-13-support-policy.md) retain original
-failures, 12 nominal RF windows plus four diagnostics, restoration and fresh
-self-review. Pico B and alternate clocks were not exercised. Hardware-free
-checks for this accepted slice include
-`python3 -B tests/phase15_13_tests.py` and `python3 -B tests/standalone_image_tests.py`.
-
-[P15.8 WSPR Type 2/3 execution](phase15-8-wspr-type23.md) records automatic
-single/pair planning, explicit versioned application/station admission, preserved
-legacy Type 1 workflows and the coordinated Pi companion boundary. Acceptance
-is complete within its documented software scope. WsprryPi release checklist
-step 14 integration is closed by operator acceptance on 2026-10-16.
-The original execution did not establish captured-RF acceptance. The
-[P15.9 execution record](phase15-9-valid-field-saves.md) and
-[saved progress contract](saved-progress.md) cover independent durable fields,
-explicit application and transmit-readiness distinctions. P15.9 is complete,
-including WsprryPi release checklist item 15, confirmed by the operator on
-2026-10-17. Product `56821ac`, evidence `29542e4` and subsequent P15.12
-integration `227e73c` are included in published Pico `devel` at `156dfa1`.
-Software validation and independent reassessment passed; Pages checks passed,
-with no firmware/software-test CI pass claimed.
-The [originating post-execution assessment](phase15-9-post-execution-review.md)
-closes four repaired findings and records fresh independent reassessment.
-
-The separately prepared Pi execution/sequencing
-handoffs have been withdrawn. Any Pi changes retain release coordination.
-
-The [P15.10 hostname handoff](phase15-10-execution-prompt.md) records current
-identity/profile/mDNS/UI findings and the original prompt for editable
-persistent hostname, hostname-driven tab titles and a safe restart/countdown/
-reconnect flow. The [P15.10 execution record](phase15-10-hostname.md) records
-completed supported software acceptance, exact source pairs, review repairs
-and remaining engineering/physical/operator-document gates.
-
-The [P15.11 organization record](phase15-11-page-organization.md) tracks the
-single Station/Transmission and Wi-Fi/Host document, connection-specific
-landing, profile-specific save authorities, regressions and review. Supported
-software acceptance is complete, including exact unchanged-Pi pairs. The [execution handoff](phase15-11-execution-prompt.md) remains
-the original task. P15.10 retains its supported software closure.
-
-[P15.12 main-page identity](phase15-12-main-page-identity.md) is complete within
-supported software acceptance. Shared chrome/tab titles use the boot-active
-hostname; native Diagnostics retains the full stable ID and separate boot
-observation. Public/active/pending/last-confirmed/unknown states, final source
-checks, review repairs, transient host-test failures and skips are recorded.
-The [execution handoff](phase15-12-execution-prompt.md) remains the original task.
-
-The selected [consumer LAN access slice](consumer-lan-access.md) now implements
-port-80 station IP/hostname access, saved-password authentication, normally-off
-consumer AP, temporary button access, automatic outage fallback/recovery and
-the delivered configured-button default. Its bounded acceptance and final review
-are complete; see the [results](consumer-lan-access.md#acceptance-record--2026-10-14)
-and [plan](consumer-lan-access-plan.md).
-Earlier AP-only, AP-always-retained and default-disabled-button descriptions
-below retain historical evidence scope and are superseded by this slice.
-Phase 14 and P13.1 closures remain intact.
-
-The [Phase 15 acceptance record](../implementation-plan.md#phase-15-acceptance-record)
-records completed operator findings and improvements, beginning with Pico
-configuration preservation and compatible Pi updates/version-pair verification
-(P15.1/P15.2), now complete within their recorded software acceptance and the
-operator-accepted documentation gate. The Pico-owned
-[configuration-update contract](configuration-updates.md),
-[execution prompt](issue447-execution-prompt.md),
-[review record](issue447-review.md) and
-[paired Pi review](https://github.com/WsprryPi/WsprryPi/blob/6a39398bb23d69ba0628e1b82171717040115ec8/docs/development/issue448-review.md)
-retain implementation and supported-version evidence. The [P15.3 carrier implementation/review](phase15-3-management-carriers.md) is
-complete within its recorded software acceptance.
-[P15.4 shared-resource adoption](phase15-4-shared-resources.md) is complete within
-its recorded software acceptance using existing Pico resources; firmware, physical/RF and
-installed-service qualification are not established by this software acceptance.
-[P15.5 concurrent web service](phase15-5-concurrent-web-service.md) supplies two
-bounded cooperative port-80 tasks on core 0. [P15.6 independent sessions](phase15-6-sessions.md)
-adds three fixed consumer login slots, one pending-login quota and coordinated
-strict Pi management/1 and management/2 compatibility. Its software acceptance,
-source pair, review repairs, CI and limits are recorded there. The
-[execution prompt](phase15-6-execution-prompt.md) retains the authorized scope
-and source-review baseline. The operator accepted later ad hoc phone/Mac,
-recovery and resource testing on 2026-10-17; the original run's measured scope
-is preserved.
-[P15.7 login/save recovery](phase15-7-recovery.md) records the additive
-authenticated retirement contract, draft/readback workflow, companion Pi
-compatibility, review and current acceptance limits. Its
-[execution prompt](phase15-7-execution-prompt.md) preserves the authorized scope.
-
-The [WIP Si5351 I²C probe](../../tests/hardware/wip-si5351-i2c/README.md)
-preserves the standalone GP4/GP5 connection diagnostic and historical bench
-record for future Si5351 work. It remains outside the normal application build;
-P13.2 transmitter integration remains deferred.
-
-Phase 11 is closed within its documented software, bounded physical and scoped
-conducted-RF acceptance. The authoritative [Phase 11.7 joint review](phase11-7-review.md)
-binds its source pair, assertion-level applicability, host regressions and
-retained limitations. Phase 12 is **CLOSED_SCOPED** after the operator accepted
-the final 2026-10-06 dispositions in the [closure matrix](phase12-closure-matrix.md).
-The [closeout](phase12-orchestratable-closeout-results.md) retains automatic and
-selected physical results, final 19-attempt/13-job RF accounting and unchanged
-failed originals. Strict final 50 ms/90 s RF assertions and specified physical
-peer/fleet boundaries remain unqualified; GP14 production default enablement
-is deferred. The [completed operator prompt](phase12-remaining-execution-prompt.md)
-has no remaining action queue. Source and historical evidence below keep their
-recorded scopes; Phase 14 qualification remains separate.
-Its versioned [Field-GATT/1 engineering protocol](../protocol/Field-GATT.md)
-and [conformance vectors](../protocol/Field-GATT-v1-vectors.json),
-[implementation plan](phase12-plan.md),
-[revised captive SoftAP decision](phase12-safari-open-setup-revision.md),
-[GP14 arbitrary-press source diagnostic](phase12-gp14-button-diagnostic.md),
-[GP14 Candidate B flash and physical test record](phase12-gp14-button-flash-0a9d89.md),
-[GP14 runtime integration brief](phase12-gp14-runtime-integration-prompt.md),
-[GP14 SoftAP telemetry brief](phase12-gp14-softap-telemetry-prompt.md),
-[unattended robustness brief](phase12-gp14-robustness-prompt.md),
-[robustness source/build review](phase12-gp14-robustness-review.md),
-[bounded robustness target campaign](phase12-gp14-robustness-target.md),
-[renewed runtime and integrated acceptance](phase12-gp14-integrated-acceptance.md)
-and [runtime source/target review](phase12-gp14-runtime-review.md),
-[arbitrary BOOTSEL feasibility gate](phase12-bootsel-arbitrary-press-feasibility.md),
-[historical BOOTSEL button execution brief](phase12-bootsel-button-execution-prompt.md)
-and [release-time source review](phase12-bootsel-button-review.md),
-[Wi-Fi-only Candidate A target record](phase12-wifi-only-physical-result.md),
-[P12.7/P12.8 continuation and adversarial review](phase12-7-8-continuation-review.md),
-[P12.8 structural-foundation adversarial review](phase12-8-structural-foundation-review.md),
-[P12.8 portable claim-slot review](phase12-8-claim-slot-review.md),
-[P12.8 owner-wire and signature review](phase12-8-owner-wire-review.md),
-[P12.8 claim-wire and AEAD review](phase12-8-claim-wire-review.md),
-[P12.8 TLS material review](phase12-8-tls-review.md),
-[P12.8 claim admission and commit review](phase12-8-claim-admission-commit-review.md),
-[P12.8 consumer activation execution prompt](phase12-8-consumer-activation-execution-prompt.md),
-[P12.8 consumer pre-clock boot review](phase12-8-consumer-preclock-review.md),
-[P12.8 BOOTSEL whole-gesture source review](phase12-8-bootsel-window-review.md),
-[P12.8 live claim preparation and adversarial review](phase12-8-live-claim-preparation.md),
-[P12.8 first Safari claim attempt and recovery candidate](phase12-8-live-claim-first-attempt.md),
-[P12.8 live claim execution prompt](phase12-8-live-claim-execution-prompt.md),
-[P12.8 core-1 BOOTSEL target diagnostic](phase12-8-bootsel-window-target.md),
-[Phase 12 LAN WTP source review](phase12-lan-wtp-review.md),
-operator-selected [field-access/security contract](phase12-field-access-contract.md)
-and [portable review](phase12-review.md), the
-[P12.3 hardware-free integration review](phase12-3-review.md), the
-[P12.4 portable command/activation review](phase12-4-review.md), the
-[P12.5 activation-safety review](phase12-5-review.md), the
-[production/acceptance review](phase12-production-acceptance-review.md), the
-[BLE local-control continuation](phase12-ble-local-control-review.md), the
-[Raspberry Pi BLE and first-class TCP/WTP review](phase12-pi-ble-tcp-review.md),
-the [RF-inhibited SoftAP review](phase12-softap-physical-review.md), plus the
-separate
-[RF-inhibited-first physical plan](phase12-physical-acceptance.md), distinguish
-implemented infrastructure and selected product/security policy from open
-physical/local-control work. Provisioning/local-control GATT and its live
-activator now run in the RF-inhibited production image; candidate
-identity/adoption/advertising and one online retained-bond Bluefy
-application-authorization exchange are partial physical evidence. Authenticated
-BLE controller time, Identify/status and unchanged WTP/1 transport are now
-production-connected. Their clean committed image has verified Candidate A
-load/boot, preserved state and final RF-inhibited restoration. The native
-Raspberry Pi/Linux client also has an exact RF-inhibited Candidate A/wspr5 live
-record for identity inspection, authenticated controller time, field status and
-WTP `HELLO`/`STATUS`. A later hardware-free continuation production-connects
-SoftAP DHCP/mDNS, blank read-only HTTP, provisioned pre-clock/normal HTTPS,
-password/cookie admission, controller time and the existing browser/one-
-`JobService` API. Its clean RF-inhibited Candidate A image now has bounded
-native-Pi evidence for provisioned WPA2/DHCP/mDNS/TLS, password/cookie
-admission, same-connection controller time, local status and
-`HELLO`/`CLAIM`/`RELEASE`. A later bounded iPhone 17 Pro Max/iOS 27.0/
-Bluefy 3.9.3 continuation accepts retained-bond authorization, one authenticated
-phone-time exchange, Identify LED/field status and WTP `HELLO` plus read-only
-`STATUS`. At that phone checkpoint, Bluefy/iOS offline reuse,
-fresh-password/new-pairing behavior, full provisioning/activation, arbitrary
-BLE job control, broader time/LED matrices,
-broader captive HTTP, healthy-station AP withdrawal and station-loss/manual
-reopening, reset controls and most Stage
-A rows remained open. The later automatic closeout above supersedes that
-checkpoint's automatic journal, carrier, recovery and resource gaps. P12.3
-remains CLOSED_SCOPED within its historical boundary.
-The [Phase 13 acceptance record](../implementation-plan.md#phase-13-acceptance)
-records completed P13.1 transmit LED work (`CLOSED_SCOPED`). The consumer LAN/AP
-slice above was selected independently of Phase 13. Phase 14 is closed within its
-declared
-scope under the [closeout ledger](phase14-closeout-ledger.md); its
-[pre-acquisition plan](phase14-plan.md) and [result record](phase14-results.md)
-retain their historical evidence.
-The current [band/mode catalog](phase14-band-mode-qualification.md) and
-machine-readable `catalog` in [phase14-band-support.json](phase14-band-support.json)
-use WsprryPi's Qualified, Unqualified, Unavailable and Untested terms. The 4 m
-all-mode result is Unqualified; native direct 2 m is Unavailable. Historical
-campaign tables and source-bound receipts retain their original result labels.
-The [GPIO timekeeping/calibration research](gpio-time-calibration-plan.md)
-preserves the original design investigation. Its
-[execution prompt](gpio-time-calibration-research-prompt.md) and
-[file-only findings](gpio-time-calibration-research.md) add no campaign jobs or
-release gates.
-The later [review-closure prompt](gpio-time-calibration-review-closure-prompt.md)
-and [executed closure](gpio-time-calibration-review-closure.md) retain the
-[calculation methods](gpio-time-calibration-research-methods.md), sanitized intake
-metadata and evidence gates for separately authorized future investigation.
-The [P13.1 LED execution/review](phase13-1-transmit-led-review.md) implements a
-checked local launch handshake, TX-only external indication and retained
-onboard operational cues. Deterministic checks and both firmware cross-links
-pass within the recorded scope; the full host suite retains two independently
-reproduced baseline failures. The [physical packet](phase13-1-transmit-led-physical-packet.md)
-is prepared with untimed operator gates and remains unexecuted. The fixed
-[six-step closeout](phase13-1-closeout-steps.md) groups the sole normal operator
-session at step 2. Step 1 prepares the [finite unattended runner](phase13-1-runner.md),
-[execution prompt](phase13-1-step1-prompt.md) and
-[adversarial review](phase13-1-step1-review.md). Step 2 adds the
-[operator setup prompt](phase13-1-step2-prompt.md),
-[untimed wiring sheet](phase13-1-step2-operator-setup.md) and
-[preparation/review record](phase13-1-step2-review.md). Connected devices,
-default pin journals and receiver capture have been checked; external LED and
-stop wiring remain pending operator setup. Camera setup is not required.
-The operator subsequently selected [untimed onboard visual checks](phase13-1-step2-manual-onboard.md)
-while awaiting the external LEDs. Both installed-firmware OFF baselines were
-confirmed. B's OFF/ON/OFF visual subset subsequently passed and ordinary
-inhibited firmware/settings restoration was verified; RF edges, external LED
-fixtures and stop wiring remain open. The operator then declined camera setup
-and selected actual hardware GPIO readback. The [GPIO validation prompt](phase13-1-gpio-validation-prompt.md)
-and [execution/review](phase13-1-gpio-validation-review.md) cover 13 available
-cases, autonomous SDR evidence and restoration using existing retained recovery
-data, with no new backups or operator recording setup. The later
-[step-1/5 closeout prompt](phase13-1-standalone-stop-closeout-prompt.md) and
-[execution/review](phase13-1-standalone-stop-closeout-review.md) repair the
-standalone terminal/job-ID checker findings and pass one target repeat with
-complete SDR evidence. All thirteen available GPIO/RF checks now pass. B is
-restored inhibited and A unchanged; external high/low and GP14 fixture tests
-remain open. The earlier failed/partial ledgers are retained.
-
-The operator has now confirmed the external GP15 LED using a minimal RF-free
-sketch, followed by verified inhibited restoration. The updated
-[completed six-step acceptance](phase13-1-closeout-steps.md) and
-[completed operator setup](phase13-1-step2-operator-setup.md) remove additional
-LEDs, rewiring, camera and stimulus-wire requirements for the selected scope.
-The operator subsequently rejected redundant timing/polarity campaigns and
-new stimulus development. The [step-4 execution/review](phase13-1-step4-review.md)
-now closes the remaining external-high TX-only/AP/Identify assertion with actual
-GPIO and complete SDR evidence. B is restored inhibited/settings preserved and
-A unchanged. Existing timing/shutdown and software polarity evidence is reused;
-the LED work is **complete (CLOSED_SCOPED)**. LED addressability and external
-TX-only operation are verified; existing button operation is recorded in the
-[Phase 12 closeout](phase12-closure-matrix.md). No LED calibration, additional
-polarity campaign or button/header test remains in P13.1 or is carried forward
-from it into Phase 14. Earlier preparation and intermediate remaining-work
-lists are historical. No new GP14 stimulus was introduced. GP14 production
-default enablement remains a separate deferred decision.
-
-On macOS, run `bash scripts/check_host.sh` from the repository root for host
-configure, build and CTest. It selects full Xcode for the test subprocesses.
-For a normal RF-capable Pico build, set `PICO_SDK_PATH` to the locally retained
-pinned SDK 2.3.1 checkout and run `bash scripts/build_pico.sh`; the script uses
-the same Xcode host tools for SDK helper builds and the pinned Arm compiler for
-firmware. It requires an already populated local picotool source tree.
-Select the diagnostic application with `bash scripts/build_pico.sh WsprryPico-Inhibited`.
-Both helper selections accept an optional fresh build directory as a second
-argument. Ordinary firmware `all` and `pico2-w` also select the normal application;
-`cmake --build build/pico2-w --target WsprryPico-Inhibited` explicitly builds the
-inhibited variant. See [P15.16 acceptance](phase15-16-results.md) for validation,
-compatibility-target naming, fixture transitions and physical limits.
-
-The phone-assisted continuation now has a host-tested fresh-password profile
-step-up bound to the exact staged digest, apply request and generation. The
-public default additionally requires exact-device USB-local confirmation before
-apply, and the proof dies with the 30-second provisioning session. The
-native-Pi client now implements the same bound step-up and confirmation flow.
-Firmware and both clients agree on the full 7,168-byte boundary, including
-one-byte fragmentation, and target enrollment expiry revokes and closes an open
-provisional session. The source/host contract also has bounded RF-inhibited
-native-Pi maximum-profile and Bluefy/iPhone prepared-file activation evidence
-on Candidate A; see the [activation record](phase12-profile-activation-attempt.md).
-The repaired Bluefy apply reached generation 3 and a normal restart with BLE
-readback. Later positive generation-3 mTLS/WTP and HTTPS readback also passed.
-The final selected commissioning scope and broader unqualified boundaries are
-recorded in the current closure matrix.
-
-The supported [Raspberry Pi/Linux BLE client](raspberry-pi-ble-client.md) adds a
-native BlueZ local/bench workflow using the same production GATT contract.
-Network WTP/TCP remains first-class while USB CDC remains canonical/reference.
-The standard RF-capable consumer application defaults to station-only Plain LAN
-WTP after accepted SNTP; engineering mTLS and explicit consumer `tls`/`off`
-choices remain. The [Plain LAN review](phase12-plain-lan-review.md) records
-source and host evidence. The Pi BLE claim has the exact bounded live record
-linked above; the later [Phase 12 closeout](phase12-closure-matrix.md) retains
-bounded one-member Plain LAN application evidence, without full fleet qualification.
-
-Phase 11.5 is CLOSED at 6/6 families for its recorded 138 MHz/divider-1
-configuration. Its [completion matrix](phase11-5-completion-matrix.md) and
-[September 15 standing authorization](phase11-5-completion-authorization-20260915.md)
-remain historical evidence. Pico A now retains the Phase 11.6 status-admission
-candidate `0e85ff90571c` / UF2
-`9ac5a40fe6d9a44a3a0156621b82801488efecafb9f472ba601dbcbb3e138398` /
-boot `cab95d7eecad05047fcb1d6806cf9e86`; Pico B remains `8921a7008183` /
-boot `6684b4b197d80cfa0ce83b3aaf205cb0`. The
-[Phase 11.6 matrix and closure evidence](phase11-6-plan.md) are CLOSED with
-explicitly reduced scope: 13 passing rows are accepted, 52 supported
-non-passing rows are excluded from acceptance, and the 10 unsupported 4 m/2 m
-rows remain configuration boundaries. The final RF authorization stopped after
-sequence 177 and is consumed; no further RF is authorized. Older candidate
-paragraphs below retain historical evidence identities. The [memory-pressure repair](phase11-5-memory-pressure-review.md)
-passes retained LOAD/replay and P1 individual WTP/HTTP capacity during RF;
-the [Package 2 review](phase11-5-package2-review.md) accepts assertions 2.2a and
-2.2b after paged RF event storage and direct WTP-reservation observability. The
-[Package 3 review](phase11-5-package3-review.md) accepts current-image TLS,
-slot, partial/stalled HTTP, failed-alert and three distinct WTP timeout paths,
-plus the affected browser-resource check. The [Package 4 review](phase11-5-package4-review.md)
-accepts exact maximum USB parser pressure and the repaired
-[unread-output retest](phase11-5-package4-unread-retest2-result.json), including
-same-session pre-DTR silence and fresh DTR recovery. The earlier failed attempts
-remain retained. The [Package 5 review](phase11-5-package5-review.md) accepts all
-four replay/session/terminal/reclamation rows after eight maximum-event
-normalizers, three equivalent bounded-overload cycles and real terminal expiry.
-A's last authoritative state is Complete/inactive in boot
-`f93fe05254d1523e50b16b0ad248a44a`; the host fixture is restored and B is
-Empty/inactive. Capacity/pressure and retention/reclamation execution groups are
-closed. The [Package 6 review](phase11-5-package6-review.md) accepts all fourteen
-R3 groups, twenty-four mandatory rows and seven features after exact source-impact
-and evidence-applicability review. It closes R3 without new physical work. The
-[Package 7 review](phase11-5-package7-review.md) closes all 18 R4 rows using
-current-image authority, interruption and production-owner evidence. The
-[Package 8 review](phase11-5-package8-review.md) closes all eight R5 rows with
-repaired network recovery, journal rotation, autonomous scheduling and full
-restoration evidence. The [Package 9 review](phase11-5-package9-review.md)
-retains a complete 1,800-second mixed workload and all five quiet windows, but
-post-N heap deltas of 12,432, 12,432 and 11,944 bytes and a 7,216-byte final-Q
-delta fail the unchanged 1,024-byte gate. Cumulative Package 9 RF is 1,164.4 of
-1,200 seconds, leaving too little for another complete packet. The
-[Package 10 review](phase11-5-package10-review.md) selects matched replay-history
-normalization without changing firmware or the limit, but the corrected packet
-was blocked before RF by the mandatory independent wireless-client fixture.
-Package 10 used four of 480 authorized RF seconds, all in a stopped frequency-
-sequence attempt; thirteen corrected preflights used no RF and restored cleanly.
-Package 11 qualified the separate two-host fixture and passed its zero-RF
-admission. Its first RF attempt stopped after eight warmups and the matched
-baseline when clock polling reused the transport backoff; the zero-RF
-clock-poll retest passed. [Retry 1](phase11-5-package11-retry1-review.md) then
-passed that repaired path, eight warmups, the matched baseline and baseline
-timing, but root-run WsprryPi rejected `pi`-owned private keys before the first
-production ARM. The credential-owner repair passed a Linux host-only zero-RF
-retest. [Retry 2](phase11-5-package11-retry2-review.md) verified that repair but
-stopped before reservation after its 360-second memory window ended 224 bytes
-below the unchanged gate while prior complete terminal records were still
-inside their one-hour retention. It charged zero RF. [Retry 3](phase11-5-package11-retry3-review.md)
-cleared both preflight gates, completed eight warmups, the matched baseline and
-the first 600-second cycle, then stopped because the host reducer ignored the
-complete USB lifecycle events it had received and considered only five-second
-STATUS snapshots. The repaired event-plus-STATUS reducer passed an exact-source
-zero-RF replay and two adversarial assessments. [Retry 4](phase11-5-package11-retry4-review.md)
-then completed the exact 16-job/356.8-second fresh campaign. Its 56,984-byte
-baseline, 57,080/57,128/56,608-byte post-N windows and 57,032-byte final Q pass
-the unchanged 1,024-byte limit with a 520-byte nonmonotonic post-N span. Heap,
-stack, timing, fault, capture and restoration gates pass; the independent
-[result](phase11-5-package11-retry4-result.json) and 67-mutation
-[adversarial assessment](phase11-5-package11-retry4-adversarial.json) close R6
-and Phase 11.5. Package 11 cumulative accounting is 41 jobs / 495.4 planned
-seconds. All four stopped attempts remain preserved.
-
-## Historical Phase 11.5 execution chronology
-
-The following paragraphs retain contemporaneous states and device identities.
-They do not override the current 6/6 and scoped Phase 11 closure above.
-
-R2: [seven-job closure and review](phase11-5-r2-continuation-review.md).
-R2 is **7/7 jobs**; R1 remains **5/5** through documented affected-check reuse.
-The R1/R2 historical candidate is 2e43110 at physical 138 MHz/divider 1/RAM/listener on.
-At R2 closure devices and host were restored with CONFIG 34/34. R3–R6 remain open and
-full accepted configurations remain empty. Original failed assessments are retained.
-
-The accepted [R3-COMPLETE-20260913-v2](phase11-5-r3-complete-authorization-prompt.md)
-authorized the completed R3 implementation and finite physical campaign.
-Pico `7d183978d08d` and Pi `bba4024` implement the selected 32-character and
-3,600-second limits. E0a independently passed seven idle assertions; S0 passed
-two finite RF jobs, including a 32-character, 384-event QRSS message lasting
-143.250001 seconds. [Immutable validation checkpoints](phase11-5-acceptance-ledger.md#incremental-v2-validation)
-retain scoped passes. Physical hour and saturation evidence is retained and
-Package 5 reclamation and Package 6 closeout are accepted. A retains the tested
-image and dedicated test configuration; see [campaign progress](phase11-5-r3-v2-progress.md)
-for the closed R3 execution state.
-
-Historical pre-v2 status: R3 was OPEN after B2 passed fourteen further transport cases and C0
-confirmed a target allocation panic during idle 65,536-byte admission. A is
-reconciled inactive/unowned in recovery; diagnostic firmware requires new flash
-authority. The exact [D0 diagnostic packet](phase11-5-r3-allocation-d0-execution.md)
-was prepared awaiting approval; accepted v2 superseded that approval boundary.
-See the historical [remaining-work prompt](phase11-5-r3-final-completion-prompt.md)
-and [R3 execution and adversarial review](phase11-5-r3-completion-review.md).
-A1g's observation rule was approved; network admission then failed before RF.
-The [network diagnosis](phase11-5-r3-network-diagnosis.md) distinguishes AP/DUT
-state disagreement, normal terminal expiry and A1h's transient-state harness bug.
-The user approved one additional idle Wi-Fi cycle and two conditional Tones;
-[A1h2](phase11-5-r3-retained-a1h2-execution.md) continued the unused allowance.
-The current review records its independently audited outcome and remaining R3
-work. The retained test configuration remains the baseline.
-The [comprehensive prompt](phase11-5-r3-completion-prompt.md) remains unfinished.
-[Failure triage](phase11-5-failure-triage.md) separates confirmed harness defects,
-observation misses, unresolved prerequisites and administrative approval history.
-
-The defined hardware target is Pico 2 W / RP2350. The repository contains a
-portable WTP/1 core, deterministic host tests and an RF-inhibited firmware
-target with persistent standalone configuration and Wi-Fi SNTP, plus separately
-built experimental RF bench, USB-time RFWTP and standalone RF images.
-
-Current Phase 11.4 acceptance: [B2 and D2 pass the eight-case controlled native
-Linux campaign](phase11-4-three-radio-results.md), using one onboard AP and two
-independent USB Wi-Fi clients. The [eight-hour soak](phase11-4-controlled-soak-run.md)
-passed, closing Phase 11.4 within its bounded inhibited matrix. This result
-supersedes the open B2/D2 status in earlier investigation records below. The
-[execution prompt](phase11-4-three-radio-prompt.md) describes the opt-in fixture;
-`phase11_4_three_radio_campaign_audit.py` checks a complete private series, and
-`phase11_4_three_radio_adversarial.py` checks per-case evidence mutations offline.
-
-The historical [Phase 11.5 plan](phase11-5-plan.md) organizes six acceptance
-families with realistic normal traffic separated from stress and overload. At
-the checkpoint retained in the following paragraphs, the ledger recorded
-**4 of 6 revised families closed** and an empty accepted-configuration list.
-The authoritative current section at the top of this file and the
-[current ledger](phase11-5-acceptance-ledger.md) now close all 6/6 families for
-the recorded 138 MHz/divider-1 configuration.
-The [documentation reorganization review](phase11-5-test-reorganization-review.md)
-maps all 20 legacy cases without changing code, runners or historical results.
-The historical e20ae8b [R1 executor and review](phase11-5-r1-review.md) close **5 of 5 assertions**:
-four frozen layouts, six target intervals, three bounded idle allocation probes,
-matched quiet retention, stack guards and observer costs. This covers the exact
-`e20ae8b` physical 138 MHz/divider-1/RAM/listener-on candidate, with inhibited
-150 MHz regression. Both boards and host were restored, including permanent
-time.local. Earlier DNS failures and a later unlocalized Mac NTP timeout remain
-preserved. No RF jobs ran in that historical R1 campaign; the later R2 closure
-is recorded above. Package 6 and the R3–R6 closeouts were still outstanding at
-that checkpoint; the current section records their later closure.
-
-Historical [Phase 11.5 review](phase11-5-review.md),
-[metric definitions](phase11-5-metrics.md) and the bounded
-[instrumentation pilot](phase11-5-pilot.md)
-track resource/contention acceptance for the selected 138 MHz PIO candidate.
-132/150 MHz physical configurations are untested in 11.5. Selecting another
-clock during 11.6 requires affected 11.5 acceptance before using its results.
-The [remediation execution and adversarial review](phase11-5-remediation-review.md)
-records the SRAM candidate and the remaining physical failure gates.
-The [historical continuation](phase11-5-closure-work.md) records the later allocator,
-stack guard and production-session fixes. [N0 is restored](phase11-5-network-fixture-result.json);
-[N1 diagnostic results](phase11-5-n1-progress.md) preserve the earlier failures.
-N1t closed exact-image A2 for `8fb3894`; A3 failed browser cadence under RF load.
-[That attempt's final restored state](phase11-5-n1t-result.json) records **2 of
-20 historical cases closed on 8fb3894**, with no accepted configuration. This
-does not count current-image or revised-family acceptance.
-The [activity candidate retest](phase11-5-activity-run.md) has four checked images.
-Its authorized N1u run failed inhibited conditioning at the production STATUS
-cadence gate and restored the setup; its full A2/A3 cases remain unrun.
-The [STATUS investigation](phase11-5-status-stall-review.md) records corrected
-request-start auditing, Console integer decoding, bounded internal trace reads
-and evidence of packet delivery loss. The original N1u STATUS stall remains open.
-The [single A2/A3 attempt](phase11-5-single-attempt.md) subsequently passed the
-complete inhibited matrix, then failed 138 MHz conditioning on production STATUS
-cadence. It stopped and restored both device and host; no RF jobs or new full
-acceptance cases followed.
-The focused [STATUS delivery repair](phase11-5-status-delivery-repair.md)
-reproduces outgoing-frame corruption in the pinned CYW43 driver and preserves
-frames across receive polling. Its [execution prompt](phase11-5-status-delivery-prompt.md)
-and [bounded target check](phase11-5-status-delivery-check.md) cover this issue
-only; they do not restart the full acceptance matrix.
-The single 138 MHz RF-idle check passed 300 seconds of nominal traffic and
-360 seconds of USB observation, then restored the setup. No TX credit wait
-occurred, so target exercise of the repaired path and historical-stall causation
-remain unproven. Phase 11.5 acceptance counts and clock status are unchanged.
-
-## Build direction
-
-The portable core uses C++20 without extensions and a CMake project minimum of
-3.24. The checked-in version-6 presets require CMake 3.25 or later. Firmware
-application C sources require C11 with GNU extensions for SDK integration. The firmware build pins
-the Pico SDK, picotool and Arm toolchain and selects `pico2_w` explicitly. The
-SDK 2.3.1 (`079c6f39023649b154152db30f1d781e884879bc`) includes the
-upstream RP2350 synchronization fixes; use a fresh build directory after an
-SDK update. Arm GNU 15.3.1 and picotool 2.3.0 at
-`6f6458d792b93685a11423b244a585eaa99eafcf` remain pinned. The SDK/submodules,
-toolchain, Ninja, Python and host compiler must already be available; the local
-helper requires retained picotool Git source and uses private dependency outputs.
-See [build prerequisites, helper arguments and artifacts](firmware-foundation.md)
-for the portable local workflow. The
-[bounded target USB record](usb-target-validation.md) supplies the separately
-authorized BOOTSEL and read-only validation procedure.
-
-Keep builds out of the source tree, normally under build/. Keep local SDK and
-toolchain paths in environment settings or ignored CMakeUserPresets.json.
-Firmware artifacts belong in build/ or dist/, not beside maintained source.
-
-## Repository layout
-
-- src/: project-owned firmware and portable application code, when introduced.
-- tests/: deterministic host tests and separately opt-in target tests.
-- cmake/ and scripts/: build helpers when needed.
-- docs/: architecture, protocols, development and hardware documentation.
-- .github/: contribution templates and future workflows for actual targets.
-
-Generated .pio.h headers are ignored; maintain the corresponding .pio source.
-Do not store Wi-Fi credentials in maintained headers. Use ignored local config
-or device provisioning; sanitized configuration examples should be trackable.
-
-The [USB CDC roles guide](usb-cdc.md) documents the adapter and optional
-descriptor test using the pinned local TinyUSB headers. The
-[strict WTP endpoint guide](wtp-endpoint.md) adds wire tests, sanitizer commands,
-image memory-layout checks and an opt-in read-only USB probe.
-
-The [portable RF stream guide](rf-stream.md) covers the experimental generator,
-streaming adapter, host benchmark, sanitizers and Arm library cross-build.
-The [PIO/DMA driver guide](pio-dma-driver.md) covers the SDK port, local launch,
-resource ownership, host fault tests and the link-only target.
-The [RF bench guide](rf-bench.md) covers measured target refill, software BOOTSEL,
-and bounded reception using the Harness helper on wspr5.
-The [full-frame record](rf-frame-validation.md) adds synthetic frame, abort/rearm,
-simultaneous GPSDO comparison and optional offline measurement tests.
-The [output/inhibit design](rf-output-design.md) remains a hardware proposal.
-
-### Historical Phase 11.4 investigation chronology
-
-The open statements below describe intermediate investigations. The current
-bounded Phase 11.4 acceptance is the closed matrix and soak summarized above.
-
-The [Phase 11.3 plan and joint checklist](phase11-3-plan.md) records DHCP/mDNS,
-hostname deployment certificates, HTTP authority and companion integration.
-The [shared identity contract](phase11-3-identity.md) is authoritative for both
-applications; [inhibited acceptance](phase11-4-acceptance.md) remains opt-in.
-The [G4–G7 recovery acceptance record](phase11-4-g4-g7-results.md) includes
-single-board physical evidence, retained failures and the offline-only
-`scripts/audit_phase11_4_recovery.py` checker. The checker reads private evidence
-directories and performs no device or network operations.
-The [E1 two-board record](phase11-4-e1-results.md) adds independent physical
-identities/CAs, bidirectional Mac/Linux trust checks and the boot-derived
-MAC-suffix naming default. It retains bootstrap/discovery failures and the
-unimplemented end-user provisioning flow.
-The [B2 association and delivery record](phase11-4-b2-delivery-results.md) retains
-the diagnostic watchdog, observer failures and exact AP association evidence.
-Standard inhibited images expose opt-in USB `NETLINK` for the current BSSID;
-ordinary INFO and polling do not query it. The failed RSSI query was removed.
-The read-only target diagnostic accepts `--iot-profile <current-uuid>` with
-active boot-enabled recovery and `--controller <private-client-directory>`;
-it cannot run a reconnection cycle through that override. B2 remains open.
-The [E2/E3 conflict record](phase11-4-e2-e3-results.md) adds the controlled-host
-alias conflict and same-name recovery observations. Its companion
-`scripts/audit_phase11_4_mdns_conflict.py` also operates only on private files.
-The [shutdown-marker investigation](phase11-4-shutdown-results.md) adds verified
-nested reset breadcrumbs, idle/normal client trials and a read-only host SSID
-comparison. `scripts/check_shutdown_image.py <standard-inhibited.elf>` verifies
-actual linked call interception. `--idle-clients` controls the opt-in loop's
-status traffic; its packet-baseline gate must pass before WIFI OFF. Diagnostic
-`--diagnostic-iot-profile` is read-only, requires externally supervised host
-restoration and cannot be used to qualify a shutdown control case.
-The [packet-boundary investigation](phase11-4-packet-trace-results.md) adds a fixed
-USB trace, locates a failed ARP exchange after successful driver submission, and
-reproduces the station-disable watchdog. Both acceptance items remain open.
-The [repeated B2/D2 harness](phase11-4-loop-plan.md) defines opt-in independent
-USB/packet/native-client observation and bounded stop rules. Its
-[execution/review record](phase11-4-loop-results.md) reproduces both original
-faults, distinguishes a clock-gated TLS reset and retains localization limits.
-`python3 -B tests/phase11_4_loop_tests.py` is hardware-free; the coordinator and
-target runners require explicit `--run` authorization and are never run by CI.
-The [withdrawal investigation](phase11-4-network-withdrawal-results.md) records
-the reviewed lifecycle repair, deterministic/mutation checks, a target watchdog
-failure and diagnostic repetitions; acceptance remains open.
-The [controlled same-SSID comparison](phase11-4-same-ssid-results.md) retains
-a goodbye failure with the host recovery service paused and verifies restoration
-of its active and boot-enabled state.
-The [second B2/D2 series](phase11-4-b2-d2-repeat-results.md) reproduces actual
-ARP/TCP/NSS and goodbye failures and retains the invalidated SSID comparison.
-The [B2/D2 repeat record](phase11-4-b2-d2-results.md) retains passing and
-incomplete packet/peer cases and the goodbye-grace test repair. Its offline
-`scripts/audit_phase11_4_discovery_recovery.py` adds identity-bound HTTPS,
-recovery/stability bounds, decoded USB consistency and strict failure retention.
-The [released-SDK D2 assessment](phase11-4-d2-sdk231-results.md) separates
-shutdown completion from goodbye/cache delivery and recovery. It retains failed
-cases, fixes clock-readiness admission in the observer and adds the offline
-`scripts/audit_phase11_4_d2_shutdown.py` sub-assessment; D2 remains open.
-The [D1–D3 record](phase11-4-d1-d3-results.md) adds orderly goodbye/cache evidence
-and retained reconnection failures. `scripts/audit_phase11_4_mdns_withdrawal.py`
-checks its private packet, USB and native resolver evidence offline; D1/D3
-physical prerequisites and D2 repeatability remain open. The later
-[D1 execution](phase11-4-d1-results.md) records the router HTTP 400 blocker,
-production baseline, removal of the temporary reservation and ordinary DHCP
-cleanup; its [prompt](phase11-4-d1-prompt.md) defines the remaining new-address case.
-The [SDK 2.3.1 D1 assessment](phase11-4-d1-sdk231-results.md) adds automatic
-adapter address-change coverage after a current-code review. Native Chrome
-reproduced the router Apply failure in two form contexts; cleanup was verified
-without cycling either Pico, and the physical new-address gate remains open.
-The [controlled-hotspot D1 record](phase11-4-hotspot-results.md) captures two real
-DHCP changes independent of Orbi and a later production-client success, while
-retaining immediate client failures and the post-cleanup management outage.
-The follow-up records verified Wi-Fi restoration, the saved AP/ARP correction
-and an explicit assessment of the client ARP timing. Its
-[sanitized manifest](phase11-4-hotspot-evidence.json) identifies private evidence.
-`scripts/phase11_4_hotspot.py` is an opt-in, wspr5-specific engineering fixture;
-`scripts/audit_phase11_4_hotspot.py` audits local evidence without device access.
-Run its refusal tests with `python3 tests/phase11_4_hotspot_audit_tests.py`.
-The [working three-radio setup](phase11-4-radio-results.md) adds independent
-radio observation and the DHCP `NOIP` reconnect correction, with a regression
-against the actual adapter. It records the verified management power setting,
-approved inhibited A flash, and passing same-boot DHCP recovery with native
-Linux WTP/HTTPS and the actual production client. That record left native
-browser acceptance for the completion below; broader repeatability remains open
-and radio association coverage is explicitly bounded.
-Run `python3 tests/phase11_4_radio_diagnostic_tests.py` for its hardware-free
-capture/refusal/restoration checks.
-The [native Chromium completion](phase11-4-browser-d1-results.md) closes D1 for
-the user-selected Linux browser scope: same-tab secure status reload after a
-real same-boot DHCP change, alongside reference and actual production passes.
-It records the working onboard-AP/USB-client arrangement, restoration and
-explicit macOS/configuration-form coverage limits.
-[D3 execution](phase11-4-d3-results.md) passes bounded actual link loss, native
-cache removal, inhibited-job continuity and automatic recovery, with timing gaps
-and Chrome failure retained. Its [Orbi report](phase11-4-d3-orbi-research.md)
-compares future fault-testing options.
-
-## Current checks
-
-### Contract reconciliation validation, 2026-10-17
-
-The maintained API, carrier, GPIO-drive and build descriptions were compared
-with dispatch/resource code, existing schemas/tests and accepted P15.8–P15.16
-records. Resource versions, legacy shapes/defaults, per-carrier authority,
-response delivery and saved/active hardware distinctions remain unchanged.
-The source links in those guides identify the implementation evidence.
-
-Fresh hardware-free validation used `build/contract-reconciliation-20261017/host`:
-
-```sh
-source scripts/xcode_env.sh
-cmake --preset host-debug -B build/contract-reconciliation-20261017/host
-cmake --build build/contract-reconciliation-20261017/host --parallel 4 --target \
-  usb_local_management_tests usb_management_tests usb_management_driver \
-  progress_tests hostname_tests network_tests management_carrier_tests \
-  consumer_radio_tests pin_allocation_tests gpio_drive_tests \
-  application_resource_tests config_update_tests standalone_tests \
-  wspr_plan_tests wspr_resource_tests frequency_policy_tests softap_api_tests \
-  usb_transport_tests endpoint_driver
-ctest --test-dir build/contract-reconciliation-20261017/host --output-on-failure -j 4 \
-  -R '^(application_image_tests|usb_local_management_tests|usb_management_tests|usb_management_vectors|progress_tests|hostname_tests|network_tests|management_carrier_tests|consumer_radio_tests|pin_allocation|gpio_drive|gpio_drive_schema|gpio_drive_browser|application_resources|application_schema|config_updates|config_update_schema|config_update_legacy_pi|standalone_tests|wspr_plan_tests|wspr_resource_tests|wspr_resource_schema_tests|frequency_policy_tests|softap_api_tests|usb_transport_tests|endpoint_tests|saved_progress_browser_tests|network_browser_tests|device_presentation_tests|led_closeout_tests|phase12_candidate_manifest_tests)$'
-python3 scripts/validate_wtp_contract.py
-```
-
-All focused targets built. CTest selected 31 checks: 30 passed; the optional
-`config_update_schema` skipped because the selected Python 3.15 interpreter
-lacks `jsonschema`. That unchanged test then passed directly with the already
-installed check-jsonschema tool's private Python environment:
-
-```sh
-# Recorded local interpreter; select the corresponding existing environment elsewhere.
-/opt/homebrew/Cellar/check-jsonschema/0.38.2/libexec/bin/python \
-  tests/config_update_schema_tests.py \
-  build/contract-reconciliation-20261017/host/config_update_tests
-```
-
-The WTP validator passed 23 schema, seven raw-JSON, one framing and eight
-transition cases. Changed Markdown links/anchors, eight JSON examples, 39 shell
-blocks (`bash -n`) and whitespace checks passed. This is focused software evidence, not a new complete-suite,
-companion-interoperability, firmware cross-link, CI, physical USB, timing or RF
-qualification. No dependency, runtime code, schema, test expectation or build
-behavior changed; no hardware was operated or deployment artifact produced.
-
-Independent read-only adversarial review repaired omitted routes, stale USB
-exclusions/build defaults, overly broad ownership/header requirements, drive
-fallback/restart wording, Config response-limit wording and stale polling/
-integration claims. It confirmed the USB capability substitutions are an
-accepted carrier extension, with separate coverage from unchanged network
-schema artifacts. Six affected USB/carrier/resource/standalone/endpoint checks
-passed after the final repairs. Fresh complete-diff review found no unresolved
-actionable findings. Closure is limited to backlog #1 documentation; all other
-task statuses, historical evidence and physical qualification limits remain.
-
-### Routine checks
-
-The [Phase 11 network guide](network-control.md) documents optional TLS WTP/TCP,
-HTTPS/browser tests, device-specific certificate tooling, build inputs and
-recovery. The historical [review record](phase11-review.md) distinguishes its
-hardware-free validation from then-pending physical work; the later
-[Phase 11.7 review](phase11-7-review.md) supplies the current bounded disposition. The
-[11.2 plan](phase11-2-plan.md) and [concurrent-management review](phase11-2-review.md)
-record the two-core RF ownership design, bounded clients, actual TLS/11.1-client
-acceptance, sanitizers, browser checks and historical target-measurement boundary.
-
-The [Phase 10 host acceptance guide](phase10-host-acceptance.md) describes the
-SNTP-enabled five-mode images, optional actual-WsprryPi-client interoperability
-test and the separately authorized joint target acceptance procedure.
-
-Reproduce and check the hardware-free RF study with:
-
-```sh
-python3 scripts/analyze_rf_feasibility.py
-python3 tests/rf_feasibility_tests.py
-```
-
-The first command prints [the maintained calculation report](../rf-calculations.md).
-The second checks report freshness, tone representability, register arithmetic,
-absolute timing and analytical spectral coefficients against a direct DFT.
-These checks neither access hardware nor qualify RF. See the
-[proposed measurement plan](rf-measurement-plan.md) before planning target work.
-
-Build and run the hardware-free core tests with:
+Build and run the hardware-free portable core on a supported host:
 
 ```sh
 cmake -S . -B build-host -DCMAKE_BUILD_TYPE=Debug -DWSPRRY_PICO_BUILD_TESTS=ON
@@ -762,105 +43,85 @@ cmake --build build-host --parallel
 ctest --test-dir build-host --output-on-failure
 ```
 
-Validate the WTP/1 contract with:
+Use an unused build directory when existing outputs have another duty. On a
+Pi, cap parallelism to available resources, normally leaving one core free.
+Do not retry a known broken local macOS compiler without explicit toolchain
+repair or local-build authorization. `scripts/check_host.sh` and
+`scripts/xcode_env.sh` select installed Xcode for an available macOS host setup;
+they do not install or repair it. Linux CI defines the reproducible software
+baseline. A host test or build establishes no device timing or RF performance.
+
+Check the WTP artifacts with the Python standard library:
 
 ```sh
 python3 scripts/validate_wtp_contract.py
 ```
 
-The command uses only the Python standard library. It checks the schema,
-normative vectors, raw JSON rejection cases, framing bytes and checksums,
-semantic job invariants, state transitions, and agreement among the protocol
-artifacts. It is a contract-artifact check, not an implementation conformance
-test.
+This validates schemas, normative vectors, raw-JSON rejection, framing and
+checksums, semantic job invariants and transitions. It is an artifact check,
+not general implementation or physical conformance.
 
-Review Markdown links and formatting for documentation changes. Once files are
-tracked, `git diff --check` checks whitespace in changes; it does not inspect
-untracked files. `clang-format` can check C/C++ files when they are introduced.
-Build the target firmware with:
+The [RF calculation report](../rf-calculations.md) is reproducible without
+hardware:
+
+```sh
+python3 scripts/analyze_rf_feasibility.py
+python3 tests/rf_feasibility_tests.py
+```
+
+The tests check report freshness, tone/register arithmetic, absolute timing
+and analytical spectral coefficients against a direct DFT. Target evidence is
+separate. Existing [network validation](network-control.md#hardware-free-validation)
+covers TLS, browser and production-client fixtures. The consumer browser's
+`src/network/bootstrap_web` package supplies `npm test` and `npm run build`.
+
+For target cross-builds with retained dependencies:
 
 ```sh
 cmake --preset pico2-w
 cmake --build --preset pico2-w
 ```
 
-VS Code recognizes the root through `CMakePresets.json` and the checked-in
-extension recommendations. Select the `pico2-w` configure preset. Configure
-local SDK paths in the environment or ignored `CMakeUserPresets.json`.
+The [firmware guide](firmware-foundation.md) also documents the helper's target
+and output-directory arguments. Cross-linking does not authorize flashing or RF.
+Inspect an opt-in script's implementation before running it, even with `--help`.
+Ordinary checks must not open devices or change services/configuration.
 
-See the [portable-core guide](portable-core.md) and
-[firmware-foundation guide](firmware-foundation.md) for boundaries and
-limitations.
+Review local Markdown links and anchors, removed-path references, build/test
+inputs and generated-site inputs after documentation changes. Run
+`git diff --check` and inspect untracked text separately; whitespace validation
+alone does not check links or fixtures.
 
-See the [implementation plan](../implementation-plan.md),
-[Phase 12 field-access/security contract](phase12-field-access-contract.md),
-[RF-inhibited-first physical plan](phase12-physical-acceptance.md) and
-[WTP/1 contract](../protocol/WTP.md) for the current boundary.
+## Engineering references
 
-The [frequency correction and alias investigation](rf-correction-validation.md) records the
-`CORRECTION` bench command, corrected measurements, remaining frame settling
-and identified sampled-square-wave alias.
+- [Portable core](portable-core.md), [WTP endpoint](wtp-endpoint.md) and
+  [USB CDC roles](usb-cdc.md).
+- [WTP/1](../protocol/WTP.md), [USB management/time](../protocol/USB-Management.md),
+  [Field-GATT/1](../protocol/Field-GATT.md), [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md)
+  and the [browser API](../browser-api.md).
+- [Standalone configuration, journals and scheduling](standalone.md),
+  [configuration updates](configuration-updates.md), [saved progress](saved-progress.md)
+  and [USB local configuration](usb-local-configuration.md).
+- [Shared application resources](shared-transmitter-application.md) and the
+  [member/controller contract](../transmitter-application-contract.md).
+- [Consumer LAN/setup access](consumer-lan-access.md), [management carriers](management-carriers.md),
+  [web servicing](web-service.md), [sessions](consumer-sessions.md),
+  [session/save recovery](session-recovery.md), [hostname](hostname.md),
+  [browser areas](browser-pages.md) and [device presentation](device-presentation.md).
+- [Engineering network control and certificates](network-control.md),
+  [network identity](network-identity.md), [mDNS](mdns-responder.md),
+  [field access/reset policy](field-access.md) and [Linux BLE client](raspberry-pi-ble-client.md).
+- [WSPR planning](wspr-planning.md), [finite keyed jobs](extended-jobs.md),
+  [RF stream](rf-stream.md), [PIO/DMA adapter](pio-dma-driver.md),
+  [RF bench](rf-bench.md), [clock limits](clock-support.md) and [band support](band-support.md).
+- [Pin assignment](../pin-assignment-contract.md), [boot pin implementation](pin-allocation.md),
+  [GPIO drive](gpio-drive.md), [amplifier enable](amplifier-enable.md) and
+  [transmit indicators](transmit-led-requirements.md).
+- [USB time uncertainty](usb-time-uncertainty.md) and
+  [calibration calculation methods](gpio-time-calibration-research-methods.md).
 
-The [clock comparison](rf-clock-validation.md) records build-selected sample
-clocks, carrier-translation and Pi GPIO4 controls, remaining sidebands and
-settling, and disk-backed capture storage.
-
-The [encoded WSPR record](rf-wspr-validation.md) documents portable Type 1
-encoding, independent decoding of received RF, and an optional complete-frame
-RF warmup comparison.
-
-The [UTC and RF job integration record](utc-rf-job-validation.md) documents the
-sampled USB time source, explicit RF WTP image, scheduled local execution,
-complete conducted capture and independent decode.
-
-The [standalone guide](standalone.md) documents one-time Console configuration,
-recurring UTC schedules, CRC32 flash journals, autonomous SNTP policy, new
-hardware-free failure tests and the separately selected standalone RF image.
-
-The [inhibited standalone bench record](standalone-physical-validation.md) adds
-physical Wi-Fi/SNTP acquisition, configuration/watermark retention, outage
-recovery and the repaired journal/boot-sector layout. The later
-[standalone RF and wall-power record](standalone-rf-power-validation.md) adds
-complete recurring frames, independent decoding without a USB host, and retained
-configuration/watermark across power changes.
-
-The [PIO band campaign](band-campaign.md) adds generalized frequency planning,
-five-mode WTP jobs and conducted qualification tooling using the Harness WTP
-controller and independent receiver/analysis capabilities.
-
-The [conducted campaign results](band-campaign-results.md) retain the complete
-75-entry disposition matrix, including failed measurements, interrupted-run
-cleanup blockage and the final verified return to RF inhibition.
-
-The [focused 2200 m investigation](2200m-investigation.md) records the later
-five-mode 138 MHz pass with QRSS3, repeated clock screens, and an unfiltered
-wspr5 GPIO4 tone/QRSS comparison with documented signal-quality criteria.
-
-The [connectivity, memory and remote settings record](connectivity-memory-remote-settings.md)
-tracks sandbox-separated observations, USB network-pool diagnostics, DNS time
-servers and authenticated browser restart acceptance.
-
-### Phase 12 test preparation
-
-The [test-preparation prompt](phase12-test-preparation-prompt.md),
-[review](phase12-test-preparation-review.md),
-[candidate manifest](phase12-test-preparation-candidates.json) and
-[proposed hardware packet](phase12-test-preparation-packet.md) prepare bounded
-follow-up tests without device access. See [composition tools](phase12-composition-preparation.md)
-and [inhibited fault fixtures](phase12-fault-fixtures.md). Neither offline passes
-nor candidate builds close physical Phase 12 gates.
-
-### Phase 12 unattended recovery campaign
-
-The [execution prompt](phase12-recovery-orchestration-prompt.md) and
-[recovery-only candidate manifest](phase12-recovery-candidates.json) define a
-Candidate B campaign with fourteen reset checkpoints and three profile-page
-interruptions. `scripts/phase12_recovery_orchestrator.py` defaults to offline
-verification; `--run` enables the explicitly authorized inhibited campaign.
-`--run --recover-existing` restores a retained backup without resuming destructive
-cases. An exact-three-case `phase12-profile-continuation/1` plan can use
-`--completed-reset-campaign` only with hashed, restored and reassessed fourteen-case
-reset evidence. Raw backups and credentials stay under ignored, private `build/` paths.
-The [campaign review](phase12-recovery-orchestration-review.md) records actual
-execution, restoration and coverage limits. Production button/AP activation,
-arbitrary power cuts and RF acceptance remain separate gates.
+NTP work and its live investigation inputs remain in the
+[NTP work record](ntp-work-results.md).
+Manual RF correction, UTC synchronization and automatic RF calibration have
+separate acceptance boundaries. Chrony is an external test reference, not a
+firmware dependency. Physical UTC/RF accuracy remains unqualified.

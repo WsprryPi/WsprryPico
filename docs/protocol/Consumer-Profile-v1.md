@@ -1,121 +1,90 @@
-# Consumer-Profile/1 journal payload
+# Consumer profile journal payload
 
-**Current-scope notice (2026-09-27):** The
-[immediate Safari setup contract](../development/phase12-safari-open-setup-revision.md)
-stores `owner_epoch` as decimal string `"0"` and `owners` as an empty array.
-These paired values mean that no phone has retained setup authority. The
-nonzero owner form described below is retained for parsing older profiles;
-new open-AP setup transactions write the no-owner form. This notice takes
-precedence over conflicting owner requirements below.
+`ProfileSource::ConsumerProfile = 5` uses the existing two-slot profile journal.
+The canonical UTF-8 JSON payload is at most 7,168 bytes under the committed
+header/digest/sequence rules. A missing, unknown-version, noncanonical or invalid
+source-5 payload is a fault. A corrupt newer committed slot cannot restore an
+older profile or factory trust. The selected sequence is the externally reported
+profile generation; it is not a separate claim counter.
 
-Status: **P12.8 STRUCTURAL PARSER AND INERT JOURNAL SOURCE IMPLEMENTED;
-CONSUMER ACTIVATION NOT IMPLEMENTED OR ACCEPTED** (2026-09-27). This payload
-is the intended atomic authority record for
-[Owner-HTTP/1](Owner-HTTP-v1.md). Existing engineering profile formats and
-[WiFi-Bootstrap/1](WiFi-Bootstrap-v1-proposal.md) retain their meanings.
+Consumer setup uses `owner_epoch:"0"` and `owners:[]`: no phone retains setup
+authority. Nonzero-epoch/public-owner records remain parseable legacy formats,
+not a current owner-session or administration feature. The
+[station setup transaction](Owner-HTTP-v1.md) and
+[network setup transaction](WiFi-Bootstrap-v1-proposal.md) retain their own
+request, trial, commit and reconciliation boundaries.
 
-## Slot and source contract
+## Record versions and fields
 
-`ProfileSource::ConsumerProfile = 5` uses the existing two-slot profile
-journal, with a version-1 UTF-8 JSON payload of at most 7,168 bytes under
-the existing committed slot header/digest/sequence rules. A consumer source
-passes journal selection only when its complete payload parses canonically;
-source 5 with an absent, unknown-version, noncanonical or structurally invalid
-payload is a fault,
-not a legacy profile. A newer corrupt committed slot prevents rollback to an
-older owner or factory authority. Unknown selection values remain faults.
-The journal sequence is the externally reported profile generation; it is
-not a separate claim counter. A direct virgin-blank commit selects generation 1;
-network-only generation 1 upgrades to consumer generation 2. A completed
-unprovisioned reset tombstone at generation N may be claimed at N+1 after
-the access reset intent has completed. Later owner,
-trust or network replacements advance the sequence exactly once each.
-
-The version-1 JSON object has **exactly** these keys in this serialization
-order, with no duplicate keys or trailing data:
-
-| Key | Value and bound |
+| Version | Station and network authority |
 | --- | --- |
-| `version` | Integer `1`. |
-| `device_id` | Exact 32-character lowercase full device ID. |
-| `owner_epoch` | Nonzero unsigned 64-bit decimal string. |
-| `owners` | Array of one to four unique, canonical base64url 65-byte uncompressed on-curve P-256 public points. First owner is the claim key. |
-| `network` | Object with exactly `ssid` (1–32 printable ASCII bytes), `password` (8–63 printable ASCII bytes) and `time_server` (validated hostname, maximum 253 bytes). |
-| `station` | Object with exactly `callsign`, four-character `locator` and integer `power_dbm`; validate through the existing WSPR type-1 encoder rules. |
-| `tls` | Object with exactly `hostname`, `port`, `ca_certificate`, `ca_private_key`, `server_certificate`, `server_private_key`, `ca_not_after_utc`, and `server_not_after_utc`. Hostname is the exact derived local hostname; port is 443; private keys are P-256 and the certificates are P-256/SHA-256 with exact SAN/device identity and purpose. Dates are UTC seconds encoded as decimal strings. The aggregate serialized `tls` object is at most 2,304 bytes. |
-| `clients` | Array of zero to four unique client entries; each entry has exactly `name` (1–32 printable bytes), `csr_der` (canonical base64url of 1–320 DER bytes), `csr_sha256`, `public_key_sha256` (both 64 lowercase hex characters), `serial` (unique nonzero unsigned 64-bit decimal string) and `not_after_utc` (UTC seconds decimal string). The CSR must parse, bind the stored public key and digest, and be client-auth-only. Entries are sorted by public-key digest. |
-| `request_sha256` | Lowercase 64-character SHA-256 hex of the completing claim or replacement request ID's 16 decoded bytes. |
+| 1 | Complete consumer profile with station snapshot and materialized TLS |
+| 2 | Complete station snapshot with explicit `tls_pending:true`; trust material is absent until valid materialization |
+| 3 | USB-managed profile with explicit boolean `tls_pending`; no station snapshot; standalone Config owns station; Wi-Fi may be explicitly absent |
 
-Within objects, keys use the table order and the nested order shown above.
-JSON strings use the project canonical serializer, not arbitrary caller
-whitespace or escapes. Round-trip serialize/parse equality and exact
-re-serialization must pass before committing. The payload budget includes
-JSON escaping; fitting four owner keys and four maximum accepted CSRs with
-the maximum accepted TLS aggregate is a required deterministic test. If the
-budget cannot support all four clients, reduce individual input bounds
-before production rather than silently reducing the promised capacity.
-An initial pessimistic compact-JSON size check using four 87-character owner
-points, four 427-character maximum CSR encodings, 32-character names with
-worst-case JSON escaping, 20-digit counters and expiry values, a 253-byte
-time server, maximally escaped SSID/password and the 2,304-byte TLS cap
-totals **6,457 bytes**. That leaves 711 bytes under the slot payload cap;
-the structural parser's four-owner/four-client boundary test confirms the
-7,168-byte payload and 2,304-byte TLS limits with maximum CSR DER and JSON
-escaping. The P12.8 host generator now confirms that its actual CA/server PEM
-material fits the TLS cap; target resource and activation checks remain open.
+All versions contain exact `device_id`, `owner_epoch`, `owners`, `network`,
+`tls`, `clients` and `request_sha256` fields. Versions 1/2 also contain
+`station`; versions 2/3 contain `tls_pending`. Unknown/duplicate keys, trailing
+data and noncanonical encodings reject. Serializer/parser equality is checked
+before selection. Explicit versioning preserves old records without inferring
+missing credentials or station values.
 
-The device stores only public owner keys; Safari holds the private owner
-keys. The CA and server private keys are in ordinary Pico flash, as accepted
-in P12.7. The client private key stays with the client. The persisted CSR,
-serial and validity interval allow the Pico to regenerate a signed client
-certificate for the exact same approved public key after an HTTP response
-loss. A second approval is required for any changed CSR or public key.
-Signed certificate bytes may differ on regeneration because ECDSA signing is
-randomized; the allowed public key, serial and expiry may not change. The
-station client pins the device CA and exact device ID before trusting it.
+- `device_id` is the full 32-character lowercase hexadecimal ID.
+- `owner_epoch` is a uint64 decimal string. Zero requires an empty `owners`
+  array; nonzero requires one through four distinct canonical 65-byte P-256
+  SEC1 public points. No private owner key is stored.
+- `network` contains `ssid`, `password`, `time_server`: 1–32 and 8–63 printable
+  ASCII bytes for a configured network, plus a validated hostname up to 253
+  bytes. Version 3 permits both SSID/password empty as explicit absence.
+- `station` contains callsign, four/six-character Maidenhead locator and supported
+  integer `power_dbm` under current station validation. It is absent in version 3.
+- `tls` contains canonical hostname, port 443, CA/server certificates and private
+  keys, and uint64 decimal-string validity limits. Its serialized aggregate is
+  at most 2,560 bytes. A materialized profile validates exact device/SAN, issuer,
+  key, purpose and bounded validity. Pending trust requires empty keys/certs,
+  zero validity and no clients; it grants no TLS readiness.
+- `clients` contains at most four unique entries: printable name up to 32 bytes,
+  canonical base64url CSR DER up to 320 bytes, CSR/public-key SHA256, unique
+  nonzero uint64 serial and expiry. Public-key digest orders entries. Identity,
+  digest, key and client purpose must agree; the complete serialized payload
+  must still fit its independent 7,168-byte ceiling.
+- `request_sha256` hashes the completing setup request ID's 16 decoded bytes.
+  It identifies the durable selected result; a volatile attempted request is
+  not proof of commit.
 
-## Cross-store authority and activation
+CA/server private keys reside in ordinary Pico flash without a confidentiality
+claim. Client private keys stay with the clients. Runtime certificate renewal
+preserves the existing CA/server key and cannot silently replace trust. Returned
+status never contains passwords, private keys or complete profiles.
 
-This one payload is authoritative for owner, network, station and TLS data
-in consumer mode. The old access journal remains a reset-intent and legacy
-engineering record; its password, field-mode flag and BLE bonds grant no
-consumer authority. Existing standalone schedules and watermarks remain
-unchanged. Consumer station fields override any stale standalone station
-fields on every boot and API read. A firmware path that cannot make the
-consumer station view authoritative must fail closed rather than activate a
-mixed profile. Successful journal commit is followed by terminal response
-delivery or a bounded timeout, then activation; restart reads all authority
-from the same generation. A link/address/time/credential-validation failure
-before commit leaves the previous complete source selected, or a fault if
-storage is ambiguous. Never report setup complete from a sent write alone.
+## Cross-store authority and interruption
 
-On migration, `LegacyBootstrap`, `RuntimeProfile`, `BuildBundle` and
-`NetworkOnly` retain their existing parser and authority rules. Only a
-healthy virgin blank, completed unprovisioned reset tombstone or the approved
-network-only source may enter the ordinary consumer claim route. Adopting an
-engineering runtime/factory source needs an explicit
-separate physical transaction that revokes its password/BLE sessions and
-trust; there is no automatic migration or factory-bundle fallback.
-Consumer mode denies legacy password, cookie, GATT and factory-bundle
-mutations **before** those adapters check their old credentials. Reset first
-commits durable intent in the access journal, then writes an unprovisioned
-tombstone, erases old key-bearing profile slots and advances the intent
-phases. A power cut after intent boots only recovery service until erasure
-finishes. A completed access recovery instead rewrites the full consumer
-payload with a new owner epoch/key and unchanged operational fields.
+Versions 1/2 supply authoritative profile-owned station fields; standalone
+schedules and watermarks remain separate. Version 3 deliberately moves station
+authority to the existing Config journal. Its migration saves the complete
+effective configuration before selecting version 3; later complete Config
+commits cannot combine half of a new station with half of an old configuration.
+Saved progress is independent and requires explicit application.
 
-## Implementation gates
+Profile selection happens only under idle, unowned, known-inactive/nonfaulted
+admission with the exact target and revision. Deferred restart waits for the
+matching response delivery or bounded timeout. Durable saves survive reply
+loss and require authoritative readback/review before a new write. Source,
+generation and request digest must come from the same selected record.
 
-The source 5 journal reader and writer enforce canonical **structural** form,
-source transitions and same-device upgrade. Runtime loading now selects a
-same-device source 5 record into a restricted pre-clock state. That state may
-join station for UTC and serve a read-only AP recovery page; it has no owner,
-TLS, legacy job, BLE or autonomous schedule authority. Cryptographic boot
-validation and consumer authority remain disconnected. A structurally valid
-record is not an activated profile.
+Engineering password/cookie/BLE credentials are not promoted into consumer
+management authority. Deliberate source transitions preserve their exact
+identity/reset gates. Provisioning reset writes durable intent and a source
+tombstone before exposing the reset authority; interrupted intent resumes in
+recovery-only state. Access recovery, provisioning reset and full operational
+erase have distinct preservation rules in [field access](../development/field-access.md).
+No invalid newer record may resurrect old credentials or enabled settings.
 
-Before enabling source 5 in production, complete exact identity/certificate
-checks, old-source migration, reset-intent recovery, and no trust resurrection.
-The current host test cuts every journal write page; broader access-journal
-and activation cuts remain open. Cross-builds do not qualify flash timing,
-provisioned BOOTSEL, AP/STA concurrency or RF.
+[USB local configuration](../development/usb-local-configuration.md) defines
+explicit network deletion, draft credential non-resurrection, supported profile
+migration and rollback limits. Older firmware that cannot parse these record
+versions fails closed and is not a supported downgrade vehicle.
+
+Source: [consumer_profile.cpp](../../src/provisioning/consumer_profile.cpp),
+[local settings](../../src/provisioning/local_settings.cpp) and
+[profile journal](../../src/provisioning/profile.cpp).

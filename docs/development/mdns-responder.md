@@ -1,8 +1,8 @@
-# Phase 11.3 mDNS responder integration
+# mDNS responder integration
 
-Current [P15.10](phase15-10-hostname.md) boot selection may supply an explicitly saved consumer hostname instead of the MAC-derived default. It applies at restart to both station and AP naming; conflict latching, no auto-suffix, actual advertisement, listener coupling and bounded cleanup stay unchanged. The packet/adapter tests remain software evidence.
+[Hostname management](hostname.md) boot selection may supply an explicitly saved consumer hostname instead of the MAC-derived default. It applies at restart to both station and AP naming; conflict latching, no auto-suffix, actual advertisement, listener coupling and bounded cleanup stay unchanged. The packet/adapter tests remain software evidence.
 
-The [shared identity contract](phase11-3-identity.md) selects one certified IPv4
+The [shared identity contract](network-identity.md) selects one certified IPv4
 station hostname. Discovery runs only on core 0 in the existing foreground
 CYW43/lwIP context. The later WTP DNS-SD extension advertises an admitted
 station WTP listener as described below; there is no discovery client in firmware.
@@ -32,7 +32,7 @@ Initial review found three API gaps in this exact source:
   timers and every retained question/answer for that interface before freeing.
 - The upstream responder does not emit Goodbye packets. Controlled disable uses
   upstream packet generation for the same A/PTR records, sets their TTLs to zero, then sends
-  before disconnect. The later Phase 11.4 investigation splits submission from
+  before disconnect. Submission is separate from
   teardown: replies/timers and retained questions are quiesced immediately, while
   membership and the station remain until a nonblocking one-second withdrawal
   interval finishes. CYW43 bus-write success does not establish radio completion.
@@ -118,54 +118,13 @@ in upstream structures. The original hostname-only measurements below allocated
 no service object; the WTP extension allocates one while the listener is
 advertised. Search is disabled.
 The fixed pools and packet parser bound memory use; hostile traffic can still
-consume core-0 time, which remains a physical contention gate in 11.5.
+consume core-0 time, without establishing physical contention bounds.
 
-The isolated 64-bit host reports a 224-byte host helper and 56-byte retained
-packet descriptor. Its normal peak lwIP heap use is 1,744 bytes; forced startup
-exhaustion is excluded from that highwater (the failure test intentionally fills
-all 32,768 bytes). The measured timeout peak is nine slots including core-stack
-timers; one UDP PCB remains after cleanup. Host sizes are not RP2350 sizes.
-
-The pinned Arm GNU 15.3.1 compiler emits constants of **192 bytes per host** and
-**40 bytes per retained-packet descriptor**. In the linked ARM image, the two-slot
-descriptor pool occupies 83 bytes including alignment allowance; the IGMP group
-pool is 51 bytes, and the timeout pool increases from 83 to 227 bytes. The
-`PicoNetwork` static object grows from 176 to 320 bytes. Total image BSS growth is
-568 bytes in all four variants; remaining growth includes netif client data,
-callback/PCB pointers, flags and diagnostics. UDP and lwIP heap/pbuf pool sizes
-remain unchanged. Fixed pools remain reserved even in network-control-off images.
-
-The software build snapshot after implementation, compared with the preserved
-11.2 baseline ELFs, is:
-
-| Image | Control | Text bytes | BSS bytes | Linker heap span bytes |
-| --- | --- | ---: | ---: | ---: |
-| Inhibited | Off | 955,408 | 82,436 | 413,244 |
-| StandaloneRF | Off | 977,684 | 268,404 | 226,948 |
-| Inhibited | Hostname TLS | 980,280 | 82,480 | 413,184 |
-| StandaloneRF | Hostname TLS | 1,002,532 | 268,448 | 226,896 |
-
-These text sizes include all Phase 11.3 changes and ephemeral credential material,
-not only the responder. The reviewed baseline text/BSS pairs were 924,552/81,868,
-946,556/267,836, 948,232/81,912 and 970,244/267,880 respectively. Credential renewal
-can alter text size. The original 11.2 physical network heap span was 227,464
-bytes, so the fixed growth leaves 13,904 bytes beyond the previously enumerated
-212,992-byte simultaneous maxima/reserve sum. As in 11.2, that is insufficient to
-promise all maxima together once other allocations/fragmentation are considered.
-
-Compiler `.su` records include a 2,104-byte `mdns_handle_probe_tiebreaking` frame,
-1,112-byte response frame and 856-byte sorted-answer frame; call chains add their
-callers. `PicoNetwork::status()` has a 2,128-byte frame. These are individual static
-frames, not a measured stack highwater; the 16-KiB core-0 stack is unchanged.
-The responder never runs on the RF worker stack. Physical stack/allocator and
-contention acceptance remain open in 11.5.
-
-Measurements used `build/phase11-3-firmware-off` and
-`build/phase11-3-firmware-on`, `arm-none-eabi-size`, `arm-none-eabi-nm`, the
-`wsprry_mdns_{host,packet}_bytes` object disassembly and compiler `.su` outputs.
-Whole-image final checks and exact committed inputs are recorded in the joint review.
-The existing TLS allocation cap, application scratch reserve and shared memory
-admission remain unchanged; static-pool growth reduces the linker heap span.
+Whole-image RAM, text, heap and compiler stack frames depend on the exact
+firmware build. Fixed-pool growth reduces available heap; compile-time bounds
+are not measurements of physical stack high-water or fragmentation. The
+responder runs on core 0 and never on the RF worker stack. The TLS allocation
+cap and shared application memory reserve still apply.
 
 ## Reproduce deterministic acceptance
 
@@ -196,4 +155,4 @@ conflict deferral, explicit retry and address-change accounting.
 These are actual pinned-responder parser/packet and simulated netif lifecycle
 results. They use no sockets or operational multicast and prove neither system
 NSS resolution nor physical Pico/CYW43 multicast delivery, RF timing or receiver
-cache behavior. Those acceptance steps remain 11.4–11.6.
+cache behavior.

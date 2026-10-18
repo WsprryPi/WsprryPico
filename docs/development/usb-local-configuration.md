@@ -121,12 +121,11 @@ and network suites cover their unchanged network policies. The production-pair
 `usb_management_driver` runs UMP1, TimeExchange and these real services over
 stdin/stdout with volatile flash and no network/Pico SDK. It establishes wire
 interoperability, not physical USB, flash endurance, network association,
-restart/re-enumeration or transmitter RF qualification. Consult the joint USB
-execution record for final builds, complete checks and outstanding target gates.
+restart/re-enumeration or transmitter RF qualification.
 
 Current USB discovery is `transmitter-management/3`, with five carrier rows and
 selected `usb_physical`. The network /2 projection remains unchanged, including
-its historical USB exclusion. Neither that projection nor USB WTP connectivity
+its legacy closed USB exclusion. Neither that projection nor USB WTP connectivity
 is the authority for USB JSON support; negotiate UMP1 and read its capabilities.
 
 The independent [GPIO-drive descriptor](gpio-drive.md) selects config/3,

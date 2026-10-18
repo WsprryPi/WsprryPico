@@ -61,7 +61,7 @@ test setup. Do not run the WsprryPi system installer merely to test Pico flashin
 Start in `/Users/lbussy/GitHub/WsprryPico`. Read its `AGENTS.md`, `README.md`,
 `CONTRACT.md`, `docs/architecture.md`, `docs/development/README.md`,
 `docs/development/consolidated-backlog.md` and the completed acceptance in
-`docs/implementation-plan.md`.
+`docs/development/consolidated-backlog.md`.
 Read Pi's root and applicable component instructions before work there.
 
 Verify accepted completion of this sequence using actual result records:
@@ -71,7 +71,7 @@ Verify accepted completion of this sequence using actual result records:
 3. P15.16 uninhibited normal default and explicitly selected inhibited variant.
 4. Current item 6 software/build CI acceptance, with actual successful run and
    artifact identities, normal UF2, canonical versioned manifest and SHA-256
-   inventory from the [CI handoff](software-build-ci-execution-prompt.md).
+   inventory from the [CI image contract](software-build-ci.md).
 
 Saved prompts, checklist intentions and successful builds alone do not establish
 acceptance. Read the accepted USB/drive/normal-target and CI result records and

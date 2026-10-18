@@ -5,10 +5,9 @@ the active job or standalone Type 2/3 pair. See [NTP work](ntp-work-results.md)
 for durable manual ppm, reciprocal rate handling and the unresolved physical
 gate that keeps NTP RF selection on manual fallback.
 
-Status: portable Step 8 stream and [PIO/DMA sink](pio-dma-driver.md) implemented
-and host-tested; the SDK driver also cross-links with the pinned Arm toolchain.
-Bounded RP2350 refill and conducted tone measurements are recorded in the
-[bench guide](rf-bench.md); general timing and RF qualification remain open.
+The portable stream uses an abstract sink; the [PIO/DMA sink](pio-dma-driver.md)
+provides its SDK implementation. Source validation does not qualify physical
+IRQ timing, spectral performance or general RF behavior.
 Normal `WsprryPico` and compatibility `WsprryPico-StandaloneRF` use the complete
 138 MHz PIO/DMA application; `WsprryPico-Inhibited` explicitly selects the
 `DryRunEngine` simulator. Boot starts unsynchronized until qualified UTC is
@@ -28,10 +27,8 @@ WTP/1 itself is unchanged.
 
 The planner accepts `tone`, `wspr`, `qrss`, `fskcw` and `dfcw` event jobs,
 with at most four distinct NCO increments, 512 events and
-3,600 seconds, including boundary and tail intervals. The earlier physical
-acceptance used 162 events / 110.592 seconds; the expanded limits are implemented
-and host-tested, with [Phase 11.5 acceptance](phase11-5-acceptance-ledger.md)
-closed only within its recorded 138 MHz/divider-1 scope.
+3,600 seconds, including boundary and tail intervals. Those are independent resource ceilings, not a qualification of every
+combination.
 It validates contiguous nonempty events, bounded arithmetic,
 job identity, frequency presence/absence and the existing profile. It does not
 encode or validate a WSPR message. Four nominal RF frequencies are
@@ -48,7 +45,7 @@ from 100 kHz through one Hz below half the selected sample rate, rejecting any
 corrected increment at or above Nyquist. Binary long division calculates the
 rounded increment from requested nHz and corrected sample rate without 128-bit
 arithmetic. An adjustment-free job must match the reported realized frequency.
-The [band campaign](band-campaign.md) covers the new experimental range.
+See [band support](band-support.md) for conducted applicability.
 The bench supports volatile frequency correction and three explicit build-time
 clock profiles; application images advertise their actual numeric limits.
 RF oscillator calibration remains separate from UTC acquisition.
@@ -197,20 +194,11 @@ and real `JobService` integration. An allocation counter covers begin, refill,
 completion and disable with the fake sink. A physical sink must independently
 honor the allocation and timing constraints.
 
-## Historical Step 8 acceptance boundary
+## Completion and local state observations
 
-The experimental target runner and initial measurements do not qualify an
-engine/mode/band combination. Later campaign records carry their own exact
-source/image and measurement scope. Current work is selected only in the
-[Consolidated backlog](consolidated-backlog.md).
-
-See the [correction and alias record](rf-correction-validation.md) for the
-volatile correction interface, measured effect and remaining settling/alias work.
-
-The [clock comparison](rf-clock-validation.md) adds build-selected 132/138 MHz
-experiments alongside the default 138 MHz profile. NCO increments, timestamp
-conversion, progress checks and sample bounds all use the selected rate. The
-150 MHz figures above remain tied to that profile. The engine permits at most
+NCO increments, timestamp conversion, progress checks and sample bounds use the
+selected sample rate. The 150 MHz figures above apply only to that profile.
+The engine permits at most
 100 microseconds for asynchronous final-data/zero-tail acknowledgement after
 the nominal end, only when all samples are generated/submitted and no more than
 the final block remains unacknowledged. IRQ-driven sink reports snapshot time,
@@ -229,10 +217,10 @@ requires the ordinary engine report and verified shutdown.
 
 ## Concurrent management integration
 
-The standalone physical image now uses the [11.2 RF worker](phase11-2-review.md).
+The standalone physical image uses the RF worker.
 StreamEngine, sink, peripheral and launch guard remain on one owning core (core 1).
 The portable algorithms and 16,384-word buffers are unchanged. Core 0 communicates
 through a single synchronous rendezvous and owns JobService. At 138 MHz, one
-buffer provides 3.799188 ms; a 1.530 ms historical refill leaves about 2.269 ms
-before detection/interrupt/contention costs. Historical results do not qualify
-this two-core image. The earlier 150 MHz budget above remains profile-specific.
+buffer provides 3.799188 ms; the available refill interval is reduced by rendering, detection, interrupt and
+contention costs. A measured refill from another image cannot qualify this
+two-core image. The 150 MHz budget above remains profile-specific.

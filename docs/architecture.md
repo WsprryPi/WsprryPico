@@ -1,319 +1,176 @@
-# Architecture baseline
-
-Status: accepted architecture.
+# Architecture
 
 ## Product and ownership
 
-WsprryPico is a first-class standalone application, in its own repository, within the WsprryPi family. WsprryPi is not required for standalone operation. The same firmware must also support use as a WsprryPi hardware transmitter backend.
+WsprryPico operates standalone and as a WsprryPi hardware backend. Its defined
+hardware target is Pico 2 W / RP2350. Other Pico boards and RP2040 are not
+supported. Platform-independent job, protocol, encoder and policy code is
+separate from SDK, transport, flash, network and RF adapters.
 
-Target the Raspberry Pi Pico family, with Pico 2 W / RP2350 as the defined hardware target. This does not promise support for other Pico boards or RP2040.
+Every producer uses one `JobService`: USB WTP, network WTP, browser handlers
+and standalone schedules share validation, ownership, replay, output state and
+local execution. Complete jobs are prepared and armed locally. RP2350 owns
+symbol timing; per-symbol USB/network delivery is unnecessary. RP1 register
+programming, kernel interfaces and DKMS are outside this application.
 
-Use WsprryPico for project, repository and application naming; firmware artifacts may be named WsprryPico-x.y.z.uf2.
+## Transports and management
 
-## Transport and timing
+Three CDC functions separate Console diagnostics, canonical USB WTP and
+[USB management/time](protocol/USB-Management.md). The
+[USB adapter](development/usb-cdc.md) bounds servicing and connection state;
+logs never enter protocol streams. The strict [WTP endpoint](development/wtp-endpoint.md)
+validates JSON, dispatches requests and orders responses/events.
 
-- USB CDC serial is the canonical/reference control transport. The saved
-  consumer and engineering profiles retain Console inspection and USB WTP.
-  A third CDC interface supplies separately versioned USB management/time to
-  shared application services, with physical local authority and no Wi-Fi
-  prerequisite. See [USB-Management/1](protocol/USB-Management.md).
-- Network WTP/TCP is a first-class job-transfer and job-control transport;
-  Wi-Fi also supports the embedded web UI. Engineering profiles retain TLS 1.3,
-  ALPN `wtp/1` and mutual certificate authentication. The standard consumer
-  image defaults to Plain LAN on station port 31417 after infrastructure Wi-Fi
-  and accepted SNTP. Build-time `off` and `tls` choices remain; TLS is never an
-  automatic fallback. A Wi-Fi-only profile needs no TLS identity in Plain LAN
-  mode.
-- The consumer radio page uses the station/AP
-  [Consumer-Radio/1](protocol/Consumer-Radio-v1.md) adapter to the shared
-  BrowserApi and JobService. A saved Wi-Fi passphrase authenticates volatile
-  encrypted sessions. This authority is separate from engineering mTLS and
-  from the open commissioning pages; profile-owned Wi-Fi and station identity
-  cannot be changed through the radio configuration API. The genuine page's
-  traffic is encrypted, while HTTP page delivery retains the documented
-  substitution threat on both interfaces. Port-80 root access uses the current
-  station IPv4 or configured local hostname, independently of UTC/TLS.
-  Interface/authority admission and session invalidation are explicit; public
-  AP commissioning stays AP-only, and LAN setup uses authenticated wrappers
-  around the same trial/commit paths. See the selected
-  [consumer LAN slice](development/consumer-lan-access.md). The later
-  [P15.5 transport](development/phase15-5-concurrent-web-service.md) provides two
-  cooperative port-80 connection tasks on core 0, each with an absolute
-  ten-second deadline and bounded output steps. Application mutations remain
-  serialized. [P15.6](development/phase15-6-sessions.md) provides three fixed
-  independent consumer sessions with at most one pending login among them;
-  transmitter, configuration and deferred board effects retain one authority.
-  [P15.7](development/phase15-7-recovery.md) adds a fixed five-second retirement
-  proof workspace outside those quotas. Fresh password authentication retires
-  one deliberately selected login; it never becomes an application session.
-  Authentication closure cancels only that login's undelivered effects and
-  unsubmitted setup preparation. Jobs and durable writes survive. Both UIs
-  preserve drafts and require saved-state readback and review before a new save.
-  Historical Phase 14: both Picos have bounded settings/persistence and final four-smoke
-  acceptance under their recorded image identities and narrow source applicability.
-  Final source/coverage/adversarial audits and Git closeout are accepted within
-  their recorded scope; they do not qualify this later slice.
-- BLE/Bluefy remains the implemented engineering provisioning and field-control
-  path. A native Raspberry Pi/Linux BlueZ client is an additional local/bench
-  controller. If consumer BLE work resumes, it will use a dedicated iPhone app.
-- The [revised open setup contract](development/phase12-safari-open-setup-revision.md)
-  selects a captive SoftAP Wi-Fi page followed by optional station settings.
-  Saving settings requires no button, code or retained phone owner. With saved
-  credentials, consumer AP is normally off. Every actual AP activation has the
-  same non-sliding ten-minute cap, including blank, manual, fallback, field and
-  recovery. Held/released buttons, replies and clients never renew it; unchanged
-  conditions cannot reopen an expired window. A fresh deliberate request or new
-  outage after stable recovery can reopen it. A 60-second outage requests
-  fallback; 30-second stable recovery rearms a later outage. Any reply drain
-  remains inside the hard cap. Expiry withdraws AP clients only. Armed,
-  running, failed and uncertain output states withdraw the AP path. A
-  previously selected runtime BOOTSEL hold is withdrawn after a physical
-  failure, and station loss brings the AP back. A separate GP14 input is now
-  selected for a connected-station opening gesture: stop is requested at 0.9
-  seconds held and setup AP at 9 seconds held after confirmed shutdown. A hold
-  beyond 10 seconds must leave AP available. A release under 0.4 seconds
-  requests reset; a release from 0.4 to under 0.9 seconds requests shutdown.
-  The opt-in RF-inhibited runtime has bounded B target acceptance for reset,
-  shutdown requests, AP retention/expiry, DMA renewal, recovery and settings
-  preservation; see the [integrated closeout](development/phase12-gp14-integrated-acceptance.md).
-  Production RF cutoff integration retains five strict accepted rows and a
-  scoped final long-hold disposition. Strict final 50 ms/90 s assertions remain
-  unqualified. This later slice enables configured button capture by default,
-  preserving custom and disabled pin selections.
-  Safari is one possible
-  browser, not a required step. Source implementation and bounded target
-  acceptance exist; final selected commissioning results and explicit
-  interoperability/timing exclusions are recorded in the
-  [current closure matrix](development/phase12-closure-matrix.md). The earlier
-  [Phase 12 field-access contract](development/phase12-field-access-contract.md)
-  continues to describe engineering-profile authority; consumer commissioning
-  follows the revised open setup contract.
-- All RF timing is local on RP2350. USB and network connections load and arm complete jobs; packet arrival never sets symbol boundaries.
+Network WTP/TCP carries the same WTP/1 stream. Engineering TLS uses ALPN
+`wtp/1` and device-specific certificate principals. Consumer Plain LAN WTP uses
+station port 31417 and a shared network principal after station IPv4 and accepted
+network time. Build-time off/TLS choices are explicit; no automatic downgrade
+exists. Engineering mutual TLS defaults off; consumer Plain LAN defaults on.
 
-Preserve WsprryPi encoder and scheduler concepts while adapting platform dependencies. RP1 DKMS, kernel interfaces and RP1 register programming are not ported.
+The browser uses lightweight HTTP handlers and static assets backed by the
+shared [JSON API](browser-api.md). Resource schema versions are independent
+of `/api/v1/`; legacy closed views remain independently negotiated. USB selects
+`transmitter-management/3` and `usb_physical`; network discovery retains /2.
+[Management carriers](development/management-carriers.md),
+[configuration updates](development/configuration-updates.md),
+[saved progress](development/saved-progress.md) and
+[USB local configuration](development/usb-local-configuration.md) define exact
+authority, revision, application and delivery semantics. Management authority
+alone grants no transmitter ownership.
 
-## RF generation
+Consumer port-80 control is available through the current station IP/hostname
+and an available AP. The saved Wi-Fi passphrase authenticates encrypted,
+volatile [Consumer-Radio/1](protocol/Consumer-Radio-v1.md) sessions. HTTP page
+delivery remains unauthenticated. Public commissioning stays AP-only; LAN
+commissioning uses authenticated transactional wrappers. Interface, Host,
+Origin, generation and delivery receipt bindings prevent cross-context effects.
 
-The [RF feasibility study](rf-feasibility.md) selects PIO/DMA packed-bit GPIO
-synthesis for experimental implementation, with Si5351 as an alternative.
-No production engine or band range is qualified. The experimental bench defaults
-to GP2 and a build-selected 132, 138 or 150 MHz sample clock (138 MHz default).
-Standalone direct RF uses the validated boot pin plan; newly selected pins are
-not thereby RF-qualified. The standard firmware selects the complete 138 MHz PIO/DMA application;
-`WsprryPico-Inhibited` explicitly selects the RF-free simulator. The
-[portable stream library](development/rf-stream.md) implements planning, waveform
-generation and an abstract-sink adapter separately from the firmware. The
-[PIO/DMA sink and local timer launch](development/pio-dma-driver.md) are
-implemented and integrated in the separate [RF bench](development/rf-bench.md).
-That runner accepts finite relative-time tones, synthetic frames, portable Type 1
-encoded WSPR messages and CPU benchmarks over a named Commands CDC interface. It provides neither a WTP endpoint nor UTC synchronization.
-Bounded target results exist; calibrated timing and spectral validation remain pending.
+Two cooperative HTTP tasks run on core 0, with absolute ten-second connection
+deadlines, bounded output steps and serialized application mutations. Three
+fixed consumer login slots permit one pending ordinary login. A separate
+five-second recovery workspace can retire one deliberately selected session
+under fresh password authentication. It never becomes an application session.
+Authentication closure cancels that login's undelivered effects and unsubmitted
+setup preparation; accepted jobs and durable writes survive. Both UIs preserve
+drafts and require saved-state readback/review before a new save. See
+[web service](development/web-service.md),
+[sessions](development/consumer-sessions.md) and
+[recovery](development/session-recovery.md).
 
-## Browser UI
+BLE uses independently versioned [Field-GATT/1](protocol/Field-GATT.md), shared
+by firmware, Bluefy and the native Linux BlueZ client. ATT segmentation adds no
+job protocol; GATT WTP enters the same service. Request-bound proofs, staged
+profile digests, bond/access epochs and USB-local confirmation protect their
+specified mutations. Bluefy offline reuse is unsupported. The device-served
+SoftAP portal is the offline consumer setup path.
 
-Reuse as much WsprryPi browser UI and UX as practical through a shared browser-facing JSON API. Pico firmware supplies lightweight HTTP handlers and static assets, not Apache/PHP. The browser API and WTP have distinct responsibilities but share application behavior and capability semantics.
+## Setup and local access
 
-The [shared transmitter application and fleet contract](transmitter-application-contract.md)
-extends that direction to the complete member application: hardware, station,
-messages, schedules, ownership, time, status and management. Each member owns
-local execution; each schedule has either controller-owned or member-owned
-recurrence. The [Pico configuration foundation](development/shared-transmitter-application.md)
-adds independently versioned application/station/hardware projections through
-the existing coordinator, journal and shared authenticated management policy.
-Current [API routes](browser-api.md#resources) retain independently versioned
-schemas inside `/api/v1/`: application/3 embeds station/2 and hardware/2;
-config/3 remains Config v1 content; update/3 uses config-update/2; progress/2
-stores an independent drive-aware draft. The separate gpio-drive/1 descriptor
-negotiates those extensions without opening legacy closed shapes. Network
-discovery remains management/2; USB selects management/3 and `usb_physical`.
-Complete fleet/application parity remains outside the accepted foundation.
+Consumer setup presents Wi-Fi first and optional station details separately.
+A blank Pico starts an open setup AP; saved consumers normally keep it off.
+Every actual activation has a non-sliding ten-minute cap, including manual,
+blank, fallback, field and recovery paths. Requests, button holds/releases,
+clients and retries cannot renew it. An expired window stays latched until a
+new deliberate request or an outage after stable station recovery. A 60-second
+outage requests fallback; 30-second stable recovery rearms a later outage.
+AP expiry withdraws AP clients only and keeps station service available.
+Armed, running, failed and uncertain output states defer/withdraw the AP path;
+automatic recovery cannot abort an accepted job.
 
-## Protocol
+The active-low GP14 factory button requests reset on release under 0.4 seconds,
+shutdown at 0.9 seconds held (or release from 0.4 to under 0.9 seconds), and AP
+at nine seconds after confirmed shutdown. Holding longer repeats no action.
+Saved custom/disabled pin assignments take precedence. Runtime BOOTSEL sampling
+is unavailable. Strict 50 ms/90 s physical cutoff assertions remain unqualified.
+[Consumer access](development/consumer-lan-access.md) and
+[field access](development/field-access.md) specify profile-specific policies.
 
-WTP means WsprryPi Transmitter Protocol. It is device-neutral and versioned independently of firmware. WTP/1 is defined by the normative protocol contract.
+## Local execution and RF
 
-The authoritative specification lives at docs/protocol/WTP.md in WsprryPico. WsprryPico is the reference implementation; implementation accidents do not define the protocol. WTP does not have a separate protocol repository.
+The portable [RF stream](development/rf-stream.md) plans and generates packed
+GPIO samples independently of the SDK. The [PIO/DMA adapter](development/pio-dma-driver.md)
+owns physical peripherals and monotonic launch interrupts. The normal firmware
+selects the 138 MHz application; `WsprryPico-Inhibited` selects its simulator.
+`WsprryPico-StandaloneRF` remains a compatibility RF target. A separate
+[bench image](development/rf-bench.md) provides finite relative-time tones,
+synthetic/encoded frames and CPU measurements; it provides neither WTP nor UTC
+synchronization.
 
-The custom BLE provisioning and local-control wire interface is the versioned
-[Field-GATT/1 protocol](protocol/Field-GATT.md), with checked
-[conformance vectors](protocol/Field-GATT-v1-vectors.json) shared by firmware,
-Bluefy and the native-Pi client. It is an engineering baseline, not a product
-release freeze. Incompatible wire changes should use a new Field-GATT protocol
-version. Field commands remain outside WTP/1. When GATT
-carries WTP, it transports the unchanged WTP/1 byte stream to the same
-`JobService`; ATT segmentation does not define another job-control protocol.
-This source contract does not claim physical interoperability or end-user
-acceptance.
+Core 0 owns application state, USB/network service and storage. Core 1 owns the
+RF engine, sink/peripherals and local launch interrupts. A synchronous
+one-command ownership-transfer mailbox coordinates the two cores. The RF core
+ages an independent UTC discipline copy. Idle-only flash writes use SDK core
+lockout. Two engineering TLS contexts permit a persistent WTP owner and an
+independent HTTPS browser under shared resource limits.
 
-## Internal boundary
+Standalone [WSPR planning](development/wspr-planning.md) freezes complete Type
+1/2/3 plans before admission; Type 2/3 pairs use separate adjacent-slot jobs
+with an independent clock check for each launch. The scheduler reserves durable
+watermarks before transmission and does not catch up or replay after failure.
+The compact QRSS/FSKCW/DFCW compiler bounds messages to 32 characters and expands
+all repeats before ARM, under independent 3,600-second/512-event ceilings.
+Host-produced encoded jobs converge at the same preparation point.
 
-Browser handlers, standalone scheduler, USB WTP and TCP WTP submit work to one application job service. That service owns validation, transmitter ownership and state. A local execution layer controls interchangeable RF engines. Time synchronization estimates UTC relative to a monotonic device clock; RF frequency calibration is tracked separately.
+The frequency policy wraps that single engine admission point for every job
+source. Default-off `allow_unqualified_frequency` and
+`allow_non_amateur_frequency` settings express explicit experimental consent.
+They cannot override engine range, clock, ownership, pin or output-inhibit
+checks, and never change qualification. Native direct 2 m is unavailable;
+4 m is unavailable at 138 MHz and unqualified at 150 MHz. See
+[clock limits](development/clock-support.md) and
+[band support](development/band-support.md).
 
-The portable frame parser and job service implement the transport-independent
-part of this boundary. The Pico 2 W standard image runs that service with autonomous Wi-Fi SNTP and
-the existing PIO/DMA RF engine (or the explicit inhibited simulator); boot time remains unsynchronized
-until a usable observation arrives. Its three CDC functions separate console
-diagnostics, WTP framing and local management/time. The [USB adapter contract](development/usb-cdc.md)
-defines bounded servicing and connection semantics; logging must never enter WTP.
-The [strict WTP endpoint](development/wtp-endpoint.md) performs JSON validation,
-request dispatch and ordered response/event transmission. The [standalone scheduler](development/standalone.md) now shares this service
-with USB WTP and the [HTTPS browser API](browser-api.md). Network WTP/TCP
-dispatches above raw lwIP callbacks. Engineering TLS uses ALPN `wtp/1` and
-device-specific client-certificate principals. The standard consumer Plain LAN
-binding uses a shared local-network principal after station IPv4 and accepted
-SNTP, without an automatic downgrade path. Core 0
-retains application/USB/network/storage ownership. The physical
-standalone image dedicates core 1 to the RF engine/sink/peripheral and local launch
-interrupts, using a one-command synchronous ownership-transfer mailbox. Two TLS
-contexts on core 0 allow a persistent WTP owner plus an independent HTTPS browser.
-An independently owned UTC discipline copy ages on the RF core; idle-only flash
-writes coordinate both cores using SDK lockout. See the
-[11.2 ownership and acceptance record](development/phase11-2-review.md). USB, WTP/TCP, browser jobs and standalone
-schedules retain one ownership and execution authority. Engineering mTLS defaults
-off; consumer Plain LAN WTP has its separate default-on policy. Phase 12 field-access contention/coexistence retains its accepted scope
-and explicit exclusions in the current matrix; broader mode/band/clock and
-production release qualification are not implied by Phase 14's scoped closure.
+Boot-applied pins have exclusive roles under the [pin contract](pin-assignment-contract.md).
+Direct RF GPIO drive is 2/4/8/12 mA with a 4 mA default. Saved drive, immutable
+boot drive and cached nullable ARM-time SDK pad verification are different
+observations. Changes latch restart/output inhibition for the boot, including
+A/B/A saves; a save does not program hardware or prove RF power.
+[Amplifier enable](development/amplifier-enable.md) initializes inactive,
+asserts after local launch admission and before RF, and deasserts before
+fallible DMA cleanup. Fault recovery retains inhibition and clamps validated
+pins before watchdog recovery. One interval covers a complete finite job,
+including keyed gaps. No lead/tail interval, LPF adapter or Si5351 engine is
+implemented.
 
-Phase 12 keeps provisioning outside that job-control protocol. A portable
-manager and access controller own bounded profile replacement, local authority
-and recovery while all RF/job control remains in the one existing JobService.
-The implemented engineering field contract uses BLE/Bluefy and a SoftAP
-fallback. The revised consumer contract selects an open SoftAP portal with
-Wi-Fi first, optional station details later, and no persistent phone owner;
-selected physical acceptance and recovery are closed within the current matrix
-and its explicit dispositions.
+## Storage and time
 
-The scoped P12.3 implementation reserves the access journal at
-`0x3f3000`–`0x3f4fff`, BTstack at
-`0x3f5000`–`0x3f6fff`, profiles at
-`0x3f7000`–`0x3fafff`, standalone state at
-`0x3fb000`–`0x3fefff` and E10 at `0x3ff000`.
-Access and profile journals are independent. Source-mode tombstones and durable
-reset intent prevent fallback to superseded authority; unhealthy, erased or
-reset-pending access state suppresses station and scheduled work until
-authorized recovery.
-An exactly erased profile journal in a generic image selects unprovisioned
-generation zero and the bounded open SoftAP. Its accepted Wi-Fi-only path and
-source-linked consumer-claim candidate have separate physical gates; no blank
-mutation grants owner authority until a complete source-5 commit. A complete, matching
-device-bound compiled bundle may retain factory source behavior; incomplete
-or wrong-device bundles and interrupted first profile selections fail closed.
-The separately approved
-[Wi-Fi-only network bootstrap](development/phase12-wifi-only-bootstrap-proposal.md)
-permits a one-use, physically granted encrypted credential submission
-from that blank AP and commit a device-bound network-only generation 1. It
-adds no owner, station API, scheduler or RF authority. The `fb091f8`
-RF-inhibited image passed selected-iPhone submission and generation-one
-station readback on Candidate A; the final phone page and AP-return rows were
-open in that historical [target record](development/phase12-wifi-only-physical-result.md).
-Later selected consumer acceptance is recorded in the current matrix.
+Versioned CRC-protected journals keep configuration, schedules/watermarks,
+profiles, access authority and independent drafts separate. Source tombstones
+and durable reset intent prevent fallback to superseded authority. Unhealthy,
+erased or reset-pending access state suppresses station/scheduled work until
+its defined recovery. Device-bound profile validation and transactional
+selection fail closed for incomplete/wrong-device bundles or torn updates.
+Saved drafts require explicit application and never establish readiness.
 
-The portable access layer implements exact request-bound proofs, enrollment,
-bond capacity/revocation, SoftAP cookies and expiry, field mode, reset levels,
-controller-time/SNTP arbitration and LED priority. Fixed 64-byte frames bridge
-the existing strict provisioning command adapter to the candidate Pico GATT
-transport. Candidate Pico GATT, WPA2 SoftAP and onboard-LED adapters cross-link
-against the exact clean pinned BTstack source. The Bluefy page implements the
-matching authorization and framing path. Profile application over BLE adds a
-fresh one-use password proof bound to the final staged digest, apply request and
-generation. While the public default remains active, that same proof also needs
-an exact-device USB-local confirmation and expires with the 30-second staging
-session; ordinary retained-bond authority alone cannot apply credentials.
+The physical layout is defined in
+[flash_layout.hpp](../src/standalone/pico/flash_layout.hpp). The layout
+reserves saved progress at `0x3f0000`,
+diagnostic scratch at `0x3f2000`, access at `0x3f3000`, BTstack at `0x3f5000`,
+profiles at `0x3f7000`, standalone state at `0x3fb000` and E10 at `0x3ff000`.
+Image/linker checks enforce region separation. Record versions determine
+supported upgrades and rollback; older firmware must not resurrect prior trust
+or enabled settings after failing to parse a new record.
 
-P12.6 makes the BLE path and the independent SoftAP fallback real in the
-normal and explicit inhibited images. One CYW43 owner supplies checked station-MAC
-identity, BTstack GATT, station service, SoftAP netif and core-0 LED access. The
-production graph constructs the portable access/manager state and a
-network-only `PicoActivationPlatform`; neither layer can abort, release or
-clear JobService/RF ownership. The SoftAP graph supplies a bounded,
-AP-interface-bound DHCP service on
-`192.168.4.1/24`, AP-interface mDNS, blank captive HTTP with the bounded
-encrypted Wi-Fi-only transaction, device-bound HTTPS,
-password/cookie admission, controller time and the existing browser API backed
-by that same `JobService`. Bluefy offline reuse is unsupported; the device-served
-SoftAP portal is the selected offline setup surface. A bounded native-Pi Candidate A run has
-accepted the provisioned SoftAP association/DHCP/mDNS/HTTPS/time/basic-control
-path only. Later selected provisioning, phone/iPad, reset and resource acceptance
-is closed in the [Phase 12 matrix](development/phase12-closure-matrix.md),
-with explicit timing, peer and fleet exclusions. See the
-[Phase 12 plan](development/phase12-plan.md),
-[field contract](development/phase12-field-access-contract.md) and
-[production review](development/phase12-production-acceptance-review.md).
+Configured unicast SNTPv4 supplies autonomous UTC. The controller/SNTP arbiter
+preserves cross-source authority and disagreement handling for BLE and SoftAP
+observations. [Standalone time policy](development/standalone.md#time-policy)
+defines packet validation, uncertainty, age, holdover and launch limits.
+UTC synchronization and RF frequency correction remain separate; manual PPM
+is independent of the automatic RF calibration qualification gate. Physical
+phone-time accuracy and general fleet interoperability remain unqualified.
 
-The browser's compact `LOAD_MESSAGE` path compiles bounded QRSS, FSKCW and DFCW
-messages before entering the same job service. Inputs are limited to 32 characters
-including spaces; duration and expanded events independently fit the advertised
-3,600-second and 512-event ceilings. Repetition is fully expanded before ARM.
-Raw WTP clients continue submitting complete encoded jobs. See the
-[extended-job design](development/phase11-5-extended-job-design.md) for memory
-ownership and the distinction between implemented limits and physical acceptance.
+## Qualification and shared application boundaries
 
-Standalone execution uses bounded local Type 1/2/3 planning and encoding, versioned persistent station
-and schedule records, and Wi-Fi SNTP acquisition without WsprryPi. Host
-operation accepts already encoded jobs. Both paths converge before engine
-preparation. [Bounded physical validation](development/standalone-rf-power-validation.md)
-now demonstrates recurring decoded frames after a separate-power boot without
-a USB host on the recorded setup.
+Host tests, cross-linking, physical device observations and RF measurements are
+separate evidence classes. Conducted support applies only to its exact
+board/source/image/clock/mode/receiver/path. It establishes no calibrated output
+power, antenna-ready emissions, general physical interoperability or release
+reliability. Manual PPM remains independent; NTP time does not qualify automatic
+RF frequency calibration. No production engine/range is broadly qualified.
 
-The application wraps that one engine admission point with a portable frequency
-policy. Persisted, default-off `allow_unqualified_frequency` and
-`allow_non_amateur_frequency` settings select experimental consent for all job
-sources without adding transport-specific WTP fields. The underlying engine
-keeps physical limits, timing and ownership. Saved flags do not alter band
-qualification: 4 m remains Unqualified under the Phase 14 all-mode gate and
-native direct 2 m remains Unavailable; see the
-[band/mode catalog](development/phase14-band-mode-qualification.md) and
-[standalone configuration](development/standalone.md).
-
-## Implementation and qualification boundaries
-
-The implemented autonomous UTC source is configured unicast SNTPv4. Phase 12
-adds the portable controller/SNTP arbiter and routes production SNTP, BLE and
-SoftAP controller observations through it. Physical phone-time accuracy remains
-unqualified.
-
-The selected Phase 12 commissioning, recovery, time-policy, reset, resource
-and indicator assertions are closed within the
-[current matrix](development/phase12-closure-matrix.md). Its explicit physical
-timing/peer/fleet exclusions remain unqualified; neither the closed scope nor
-the one-member application check establishes broad interoperability. GP14
-production default enablement was deferred at that historical closeout and is
-now selected in the consumer LAN slice. Earlier native-Pi and iPhone/Bluefy
-records retain their exact source/image/evidence scope.
-The [pin-assignment contract](pin-assignment-contract.md) selects the eligible
-GPIO set, exclusive role allocations and fixed I²C pairs. WsprryPi has an
-independently implemented browser API adapter. The fleet contract describes
-application and hardware boundaries; current work selection is recorded only in
-the [Consolidated backlog](development/consolidated-backlog.md).
-The current Pico browser schemas and bounds are documented in
-the API contract. WTP/1 defines interoperable limits and policies without
-selecting those implementations.
-
-Estimates of reusable code and expected spectral behavior remain hypotheses until verified.
-
-## Saved progress and applied authority
-
-Optional [amplifier enable](development/amplifier-enable-results.md) belongs to
-the same local RF sink/driver authority below every job producer. A validated
-boot output initializes inactive; final local launch asserts it after admission
-gates and before enabling physical RF. RF clamp and enable deassertion precede
-fallible DMA cleanup waits. Fault recovery retains inhibition and overrides the
-validated pins before watchdog recovery. One enable interval covers a finite
-job, including keyed gaps; separate jobs deassert between them. The inhibited
-image initializes inactive without providing the output to simulated jobs.
-Polarity is independent of the indicator; no lead/tail interval is implemented.
-Explicit amplifier capability negotiation selects pins/2, hardware/3,
-application/4, config/4, config-update/3 and progress/3 views.
-
-The additive `transmitter-progress/1` and independently negotiated `/2` resources persist valid independent fields
-without applying configuration or establishing transmit readiness. See the
-[saved progress contract](development/saved-progress.md) for field, storage, authority,
-explicit application and recovery semantics. Existing complete configuration,
-profile and WTP contracts remain atomic and do not consume drafts.
-
-Nominal direct RF GPIO drive is 2/4/8/12 mA with explicit 4 mA default, separate
-from reported WSPR power. Saved drive, immutable boot selection and nullable
-cached ARM-time SDK pad verification have different meanings. Saves do not
-program the pad; changed pins/drive latch output inhibition until explicit
-restart, including A/B/A saves. These settings establish neither measured RF
-power nor all-band qualification. See [GPIO drive](development/gpio-drive.md).
+The [shared transmitter/fleet contract](transmitter-application-contract.md)
+defines configuration domains and controller-owned versus member-owned
+recurrence. Each member owns its execution, validation, cleanup, timing,
+ownership and persistence. Current Pico resources implement a bounded
+foundation; full application/fleet parity is not claimed. Selected unfinished
+work is maintained in the [consolidated backlog](development/consolidated-backlog.md).

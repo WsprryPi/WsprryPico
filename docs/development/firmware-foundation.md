@@ -64,9 +64,8 @@ select `WsprryPico`. The helper also accepts `WsprryPico-Inhibited` or
 `WsprryPico-StandaloneRF` as its first argument and an optional fresh build
 directory as its second. Host builds still default to no SDK dependency.
 Inhibited-only fixture options refuse RF target/all builds; use the explicit
-inhibited target. Retained historical images/manifests keep their old names;
-new Phase 12 candidate builds and live dispatchers require the inhibited name.
-See [P15.16 acceptance](phase15-16-results.md) for exact artifacts and limits.
+inhibited target. Candidate manifests and inhibited live dispatchers require the explicit
+inhibited target name. Artifact basenames identify the actual selected target.
 
 Helper invocation from the repository root, after setting the two local
 dependency variables above:
@@ -176,4 +175,4 @@ Build authority: [root CMake](../../CMakeLists.txt),
 [dependency verification](../../cmake/verify_pico_dependencies.cmake) and
 [local helper](../../scripts/build_pico.sh). Existing
 [image-selection checks](../../tests/application_image_tests.py) exercise
-accepted role failures; the P15.16 record retains actual cross-link evidence.
+role selection and refusal behavior; their passes do not qualify physical RF.

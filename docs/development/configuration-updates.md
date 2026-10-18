@@ -1,6 +1,6 @@
 # Configuration preservation and explicit replacement
 
-Hostname is a separate [profile-owned resource](phase15-10-hostname.md), outside Config v1/update. Omission by any existing client preserves it. A consumer hostname write uses its own target/revision-bound request, atomically preserves unrelated settings and trust, and applies at restart.
+Hostname is a separate [profile-owned resource](hostname.md), outside Config v1/update. Omission by any existing client preserves it. A consumer hostname write uses its own target/revision-bound request, atomically preserves unrelated settings and trust, and applies at restart.
 
 Configuration uses the existing Config v1 scheduler and verified journal.
 These operations grant no job ownership, clear no STOP/fault, and change no WTP/1
@@ -62,8 +62,7 @@ configuration; initial setup continues through existing PUT/provisioning paths.
 The identities are synthetic. An older server without this capability must not
 receive the envelope. WTP CAPS and Pi host projections do not establish support;
 Pi adoption/fallback/version-pair acceptance is recorded in
-[P15.2](https://github.com/WsprryPi/WsprryPi/blob/6a39398bb23d69ba0628e1b82171717040115ec8/docs/development/issue448-review.md)
-and [P15.4](phase15-4-shared-resources.md); those source pairs do not establish
+the separately maintained WsprryPi adapter; bounded source-pair checks do not establish
 compatibility with arbitrary older or future firmware.
 
 | Input | Merge | Replace |
@@ -166,4 +165,4 @@ defaults omission to true. Invalid/conflicting pin or polarity data rejects the
 complete candidate before persistence. Legacy Config views omit the new polarity
 field and confer no amplifier editing authority; ordinary legacy pin plans
 preserve existing amplifier settings. Explicit legacy replacement still defaults
-omitted pins. See [amplifier execution](amplifier-enable-results.md).
+omitted pins. See [amplifier execution](amplifier-enable.md).

@@ -692,7 +692,7 @@ class RunnerTests(unittest.TestCase):
                 def current(argv):
                     if argv[-1]=='HEAD':return value['runner_commit']
                     if '--verify' in argv:return commit
-                    if 'diff' in argv:return 'src/led_closeout/device.py\ndocs/development/phase13-1-runner.md'
+                    if 'diff' in argv:return 'src/led_closeout/device.py\ndocs/development/transmit-led-requirements.md'
                     return ''
                 with patch('led_closeout.device.tool',side_effect=current):validate_manifest(value,ROOT)
                 def changed_input(argv):

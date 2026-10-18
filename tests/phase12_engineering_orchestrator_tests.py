@@ -402,7 +402,7 @@ class StagingPreflightTests(unittest.TestCase):
             self.assert_refused_before_board(Path(directory),'time-jobs','docs/protocol/wtp-1.schema.json')
 
     def test_missing_inputs_for_every_real_stage_precede_board_actions(self):
-        cases=(('composition','docs/development/phase12-composition-engineering-plan-template.json'),
+        cases=(('composition','tests/fixtures/harness/phase12-composition-engineering-plan-template.json'),
             ('application','credentials/contender/client.key'),
             ('time-jobs','scripts/phase12_engineering_time_jobs.py'),
             ('network','scripts/phase12_engineering_network_dispatch.py'),

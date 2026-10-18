@@ -108,7 +108,7 @@ def execute(manifest,artifact_root,root,inspector,*,exercise_manifest=None,exerc
             info=wait_exercise_ready(backend,baseline,selected['source_commit'])
             ledger.record('exercise_candidate_ready',source_commit=selected['source_commit'],
                 image_name=image_name,image_sha256=candidate['uf2']['sha256'],boot_id=info['status']['boot_id'])
-        p=read_json(Path(__file__).parents[1]/'docs/development/phase12-composition-consumer-plan-template.json')
+        p=read_json(Path(__file__).parents[1]/'tests/fixtures/harness/phase12-composition-consumer-plan-template.json')
         linked=(selected_artifacts/candidate['map']['path']).read_text()
         require('__StackTop = (ORIGIN (SCRATCH_Y) + LENGTH (SCRATCH_Y))' in linked and
                 '0x20080000' in linked and '0x20078000' in linked,'retained linked stack bounds')

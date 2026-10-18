@@ -48,13 +48,10 @@ to implement these three parts.
 
 ## Source and evidence baseline
 
-Read the [existing calibration plan](gpio-time-calibration-plan.md),
-[executed research](gpio-time-calibration-research.md),
-[research methods](gpio-time-calibration-research-methods.md) and
-[review closure](gpio-time-calibration-review-closure.md). They preserve
-research and evidence gates, not another work selection. Do not apply their
-apparent fitted PPM figures as calibration or treat sparse INFO snapshots as
-a complete stream of source-labelled NTP observations.
+Read the [clock-rate calculation methods](gpio-time-calibration-research-methods.md)
+and current NTP implementation/diagnostics. Do not apply fitted PPM figures as
+RF calibration or treat sparse INFO snapshots as a complete stream of
+source-labelled NTP observations. Preserve the independent measurement gates.
 
 Trace these current sources and the corresponding registered tests:
 

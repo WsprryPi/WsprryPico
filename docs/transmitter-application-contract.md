@@ -1,13 +1,9 @@
 # Shared transmitter application and fleet contract
 
-Status: selected application arrangement with a Pico configuration/API foundation
-implemented in source. The [foundation guide](development/shared-transmitter-application.md)
-and [review](development/shared-transmitter-application-review.md) define its
-supported scope and evidence. Broader schemas, compatibility adapters and
-migrations remain proposals outside the selected
-[P15.4 Pi resource adoption](development/phase15-4-shared-resources.md).
-Full application parity and physical qualification
-are not claimed.
+The [Pico foundation](development/shared-transmitter-application.md) implements
+bounded versioned application/station/hardware projections through its existing
+configuration authority. The compatible Pi adapter is independently maintained;
+full application parity and physical/fleet qualification are not claimed.
 
 Recorded: 2026-09-30. Foundation update: 2026-10-03.
 
@@ -155,8 +151,8 @@ used as a substitute for another.
 
 The Pi's `Operation.Transmit` must retain its existing local-reservation and
 takeover meaning. Pico's standalone `enabled` controls autonomous admissions.
-Neither is silently renamed into a universal RF-inhibit switch. The future
-schema must make these distinctions explicit.
+These are distinct from a universal RF-inhibit switch; management schemas must
+preserve their separate meanings.
 
 ## Hardware configuration coverage
 
@@ -181,7 +177,7 @@ does not select exact JSON member names or implement new Pico hardware drivers.
 | `Si5351.Power Level` | Explicit synthesizer drive; current Pi levels 1–4 map to 2/4/6/8 mA. |
 | `Operation.Use Amp`, `Amp Pin`, `Amp Pin Active High` | Optional amplifier control, resource assignment and polarity. |
 | `Band GPIO` per-band `Enabled`, `GPIO`, `Active High` | Band selector mappings for the 19 current Pi bands; shared outputs require consistent polarity. |
-| Frequency-entry `@GPIO[H\|L]` | Preserve Pi compatibility behavior; propose named selector/filter references for future portable overrides. No GPIO suffix is added to WTP/1 jobs. |
+| Frequency-entry `@GPIO[H\|L]` | Preserve Pi compatibility behavior. Portable selector/filter overrides are unavailable. No GPIO suffix is added to WTP/1 jobs. |
 | `Operation.Use LED`, `LED Pin` | Optional transmitter indicator, using an onboard indicator or external output where supported. |
 | `Operation.Use Shutdown`, `Shutdown Button` | Optional local input and supported actions. Pi shutdown and Pico stop/reset/setup gestures retain distinct semantics. |
 | CW `Fade Shape`, `Fade In Ms`, `Fade Out Ms` | Supported waveform preferences, with explicit engine and job-path applicability. WTP/1 has no envelope fields. |
@@ -334,10 +330,11 @@ features are advertised in the JSON API rather than inserted into WTP CAPS.
 
 USB CDC remains the canonical/reference WTP carrier; network WTP/TCP is also
 first-class. An implemented WTP carrier does not imply a configuration carrier.
-The [P15.3 carrier/access contract](development/phase15-3-management-carriers.md)
+The [carrier/access contract](development/management-carriers.md)
 selects engineering mTLS HTTPS plus explicit authenticated consumer station/AP
-Consumer-Radio/1 management independently of job transport. USB JSON management
-is explicitly unsupported, as are JSON over Plain LAN WTP, TLS-WTP and BLE.
+Consumer-Radio/1 management independently of job transport. USB JSON management uses the separately framed UMP1 physical carrier and
+management/3 discovery without Wi-Fi. JSON over Plain LAN WTP, TLS-WTP and
+BLE is unavailable. Legacy network discovery retains its closed USB exclusion.
 Existing normal engineering field HTTPS keeps its cookie/session Configure
 policy, without a selected Pi field client; blank/preclock field configuration
 remains denied. Consumer HTTP forwards only authenticated encrypted envelopes,
@@ -354,15 +351,14 @@ output-off or justify substitution of another node.
 ## Implementation references
 
 The foundation implements a bounded subset of this contract. The source
-inventory below identifies its reviewed baseline; later acceptance records
-identify subsequent changes. Current and possible future work are selected only
+inventory identifies implementation and bounded projections. Current and possible future work are selected only
 in the [Consolidated backlog](development/consolidated-backlog.md).
 
 Implementations reuse portable validation, encoders and ownership concepts
 where their semantics match. They must not add a third protocol repository,
 independent per-interface schedulers or a Linux web stack to Pico firmware.
-Schema and cross-build evidence do not establish physical qualification or
-change the existing Phase 11/12 acceptance records.
+Schema and cross-build evidence do not establish physical timing, RF, general
+interoperability or release qualification.
 
 ## Required acceptance evidence
 
@@ -387,7 +383,7 @@ bounded campaign results remain bound to their original configurations.
 The foundation's resource identifiers, paths and bounded shapes are frozen in
 the linked schemas; unsupported additions require a separately specified
 version. Supported management carriers and the explicit USB decision are frozen
-in the [carrier contract](development/phase15-3-management-carriers.md).
+in the [carrier contract](development/management-carriers.md).
 Additional carriers or expanded field clients cannot be assumed supported.
 
 The [pin-assignment contract](pin-assignment-contract.md) defines the eligible

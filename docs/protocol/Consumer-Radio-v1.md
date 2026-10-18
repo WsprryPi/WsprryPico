@@ -6,20 +6,6 @@ routes. See [consumer access](../development/consumer-lan-access.md) for the
 selected lifecycle and current acceptance status. The wire handshake,
 cryptographic transcript, packet header and fixed vectors below are unchanged.
 
-Historical Phase 14 evidence: bounded two-Pico settings validation accepted,
-2026-10-14. The earlier
-encrypted page/read API path passed at `consumer-radio-260445e0582b`.
-The uncommitted `consumer-radio-18997499747b` snapshot also passed authenticated
-settings changes, unarmed ownership/admission, reboot persistence and original
-configuration restoration. The independent review binds 86 complete responses
-and full native flash equality after restoration, with both current cursors
-preserved. The later consumer-radio-c96eeeeb4871 snapshot passed both Picos'
-authenticated page/read API checks and corrected Plain LAN admission during
-independent TLS activity. All four final smoke screens are independently
-accepted: three retain their actual R189 image identity, and B WSPR uses C96.
-Narrow source applicability binds the unchanged RF/runtime implementation.
-The later [Phase 14 closeout](../development/phase14-closeout-ledger.md)
-completed durable retention and final audits within its recorded scope.
 Engineering mTLS and Plain LAN WTP retain their
 existing contracts. This transport supplies the missing authenticated consumer
 radio page and shared Browser API; it does not retain the withdrawn browser
@@ -46,9 +32,7 @@ armed, running and failed states withdraw this AP path under the retained RF
 connection policy; job execution stays local. Current source-5 consumer and
 engineering profiles admit reference USB WTP under local physical authority,
 alongside Console and the separately framed
-[USB management/time adapter](USB-Management.md). The earlier consumer USB-WTP
-exclusion belonged to the historical Phase 14 image, superseded by
-[production USB control](../development/usb-control-results.md). USB management,
+[USB management/time adapter](USB-Management.md). USB management,
 Plain LAN WTP and Consumer-Radio keep distinct authority; all job paths share
 one JobService and RP2350 execution owner.
 
@@ -90,7 +74,7 @@ These refusals neither evict a client nor authorize a retry of a mutation.
 An abandoned client can occupy a slot until its own idle/absolute expiry.
 Session IDs include a nonreused boot-local serial and random bytes; ID lookup
 alone grants no authority. RNG failure and serial exhaustion fail closed.
-[Management/2](../development/phase15-6-sessions.md) advertises these bounds;
+[Management/2](../development/consumer-sessions.md) advertises these bounds;
 management/1 remains frozen for historical one-session firmware.
 
 Transcript bytes, in order:
@@ -199,11 +183,8 @@ The restored receipt cannot be submitted as a mutation.
 The [fixed vectors](Consumer-Radio-v1-vectors.json) use synthetic credentials
 and compare Noble browser output with the pinned Mbed TLS implementation,
 including a maximum-size paged request. Host/vector checks are not target/RF
-qualification. Both consumer profiles, native current-cursor preservation,
-AP/STA routing and the four smoke screens have bounded independent acceptance.
-The [Phase 14 closeout](../development/phase14-closeout-ledger.md) retains its
-completed source/retention audits and bounded physical scope. Later software
-extensions do not inherit unrestricted physical or release qualification.
+qualification. Physical peer/board behavior and release qualification are independent of
+source/vector conformance.
 
 An active fake endpoint can choose its own X25519 key, obtain the client's
 password-derived finish proof and test password guesses offline against its

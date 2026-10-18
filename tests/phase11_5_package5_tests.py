@@ -139,9 +139,6 @@ class Package5PolicyTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 validate_continuation_wifi(changed)
 
-    def test_complete_publication_matches_frozen_evidence_summary(self):
-        result = Path("docs/development/phase11-5-package5-result.json")
-        validate_publication(json.loads(result.read_text()))
 
 
 if __name__ == "__main__":

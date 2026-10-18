@@ -6,7 +6,7 @@ transport accepts binary bytes; the [strict WTP endpoint](wtp-endpoint.md)
 supplies valid WTP/1 frames, performs JSON dispatch and serializes responses and
 events. No unsolicited diagnostics are emitted on WTP.
 
-The earlier P15.3 USB exclusion is superseded by [USB-Management/1](../protocol/USB-Management.md).
+USB JSON administration is independently defined by [USB-Management/1](../protocol/USB-Management.md).
 A third management CDC role carries framed shared-API requests and qualified
 UTC observations. Console and WTP roles and byte streams remain unchanged.
 The [local configuration contract](usb-local-configuration.md) defines no-network
@@ -164,11 +164,7 @@ inhibited. Pause WTP reads and confirm Console remains usable; after the bounded
 TX timeout reopen WTP and use HELLO/STATUS to establish state. Pressure and
 reconnect are covered in host tests; record actual board observations separately.
 
-Future udev aliases may use the imported VID/PID, exact USB serial and interface
-properties to distinguish roles and boards. Such rules are host configuration,
-not a firmware dependency; no aliases are installed by this work.
-
-## macOS use and original acceptance boundary
+## macOS port identification
 
 Use `python3 scripts/wtp_monitor.py --list`, `ls /dev/cu.usbmodem*`, and
 `ioreg -p IOUSB -l -w 0` to correlate device serial and interface identity.
@@ -181,3 +177,13 @@ serialized frame-send ownership and logical session handling. This original
 endpoint record does not establish physical USB/timing/RF qualification.
 Later results retain their exact source/image applicability; current work is
 selected only in the [Consolidated backlog](consolidated-backlog.md).
+
+## Console INFO and WTP STATUS are different interfaces
+
+Console INFO is implementation diagnostic JSON from the standalone scheduler.
+It is not a WTP STATUS response. Its nested `status.last_job` identifies the
+scheduler's last job and can be empty during an externally owned job. Use WTP
+STATUS `job_id` and `owner_id` with a fresh matching boot for job authority;
+do not infer unowned output from missing Console fields. HTTP status exposes
+service `job` and scheduler `standalone` objects separately. Console resource
+counters require their actual launch epoch and observation time for correlation.

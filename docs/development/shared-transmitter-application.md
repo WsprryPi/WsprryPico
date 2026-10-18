@@ -1,9 +1,9 @@
 # Shared transmitter application foundation
 
-This record retains the frozen version-1 foundation and its acceptance.
-[P15.8](phase15-8-wspr-type23.md) adds explicit version-2 application/station
+The frozen version-1 foundation has independent closed schemas.
+[WSPR planning](wspr-planning.md) uses explicit version-2 application/station
 resources and Type 1/2/3 admission, preserving the version-1 projection and
-recorded Type 1 tests. See [the current browser API](../browser-api.md#versioned-local-wspr-planning-p158)
+recorded Type 1 tests. See [the current browser API](../browser-api.md#versioned-local-wspr-planning)
 for additive discovery, preview and explicit refusal behavior.
 
 Current additive views also include GET `/api/v1/application/3`
@@ -23,9 +23,7 @@ as existing browser, USB, network and autonomous paths. This is a Pico software
 foundation for the [fleet contract](../transmitter-application-contract.md);
 WsprryPi mapping and full application parity remain separate repository work.
 
-See the [execution prompt](shared-transmitter-application-execution-prompt.md),
-[review and validation](shared-transmitter-application-review.md),
-[closed schemas](../protocol/transmitter-application-1.schema.json),
+See the [closed schemas](../protocol/transmitter-application-1.schema.json),
 [request vectors](../protocol/transmitter-application-1-vectors.json) and
 [hardware inventory coverage](../protocol/transmitter-application-1-coverage.json).
 
@@ -51,7 +49,7 @@ adapter support; `/api/v1/pins/validate` reviews candidates without applying the
 Existing `/api/v1/status` remains the authoritative job, ownership, time and
 output observation. The new application document does not substitute for it.
 
-The [P15.3 carrier contract](phase15-3-management-carriers.md) adds independently
+The [carrier contract](management-carriers.md) adds independently
 versioned discovery outside closed application objects and explicit native Pi
 Consumer-Radio station/AP management. Legacy `authenticated_https` metadata is
 retained for strict old-client compatibility; it is not an exhaustive carrier
@@ -201,16 +199,14 @@ later adds `gpio_drive_ma` only when nondefault, in the same Config v1 journal.
 
 ## Foundation implementation boundary
 
-The local scheduler continues member-owned WSPR recurrence at the build-selected
+The local scheduler continues member-owned WSPR recurrence at the explicitly saved runtime
 base frequency. Application expiry and frequency observations use decimal
 strings; schedule period/phase retain the existing integer semantics. The
 controller may independently dispatch complete finite WTP jobs but must not also
-dispatch occurrences belonging to an enabled member schedule. This foundation
-does not implement recurrence transfer, automatic offline fallback or expanded
-autonomous modes/frequencies.
+dispatch occurrences belonging to an enabled member schedule. Recurrence transfer and automatic controller/member fallback are unavailable;
+member-owned recurrence uses the current standalone WSPR planner.
 
-This foundation's software results do not close physical/RF qualification or
-change Phase 11/12 acceptance. Later acceptance records identify delivered
+Software results do not establish physical/RF/fleet qualification. Current contracts identify implemented
 extensions. Current work is selected only in the
 [Consolidated backlog](consolidated-backlog.md).
 
@@ -219,5 +215,5 @@ Current projections and admission are implemented in
 [resource descriptors](../../src/application/resources.cpp), checked by
 [application resource tests](../../tests/application_resource_tests.cpp),
 [WSPR resource tests](../../tests/wspr_resource_tests.cpp) and
-[drive tests](../../tests/gpio_drive_tests.cpp). Historical foundation acceptance
+[drive tests](../../tests/gpio_drive_tests.cpp). Legacy foundation support
 remains bound to its original version-1 source and tests.

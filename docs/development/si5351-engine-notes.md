@@ -2,7 +2,7 @@
 
 Recorded: 2026-10-03. Updated: 2026-10-17.
 
-These constraints preserve the historical P13.2 engine proposal. They do not
+These constraints describe the optional external-engine design. They do not
 select implementation or qualify an engine. Current work selection is recorded
 only in the [Consolidated backlog](consolidated-backlog.md).
 
