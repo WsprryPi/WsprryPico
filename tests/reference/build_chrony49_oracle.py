@@ -16,7 +16,7 @@ import sys
 source = Path(sys.argv[1]).resolve(strict=True)
 output = Path(sys.argv[2]).resolve()
 kind = sys.argv[3] if len(sys.argv) == 4 else 'sourcestats'
-if kind not in ('sourcestats', 'control', 'selection'):
+if kind not in ('sourcestats', 'control', 'selection', 'loop', 'regression', 'combination'):
     raise SystemExit('Unknown reference harness')
 harness = Path(__file__).with_name('chrony49_' + kind + '.c').resolve()
 version = (source / 'version.txt').read_text()
@@ -24,10 +24,12 @@ if version.strip() != '4.9' or not (source / 'COPYING').is_file():
     raise SystemExit('An existing configured and built Chrony 4.9 tree is required')
 objects = sorted(p for p in source.glob('*.o')
                  if p.name not in ('main.o', 'client.o', 'getdate.o', 'pktlength.o'))
+if kind == 'combination':
+    objects = [p for p in objects if p.name != 'reference.o']
 if not objects or not (source / 'sourcestats.o').is_file():
     raise SystemExit('Build the external reference first; no dependency is installed here')
 subprocess.run([os.environ.get('CC', 'cc'), '-O2', '-I' + str(source), str(harness),
-                *(str(p) for p in objects), '-lresolv', '-o', str(output)], check=True)
+                *(str(p) for p in objects), '-lresolv', '-lm', '-o', str(output)], check=True)
 def sha(p):
     return hashlib.sha256(p.read_bytes()).hexdigest()
 Path(str(output) + '.inputs.json').write_text(json.dumps({

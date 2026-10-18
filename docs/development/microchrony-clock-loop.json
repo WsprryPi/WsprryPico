@@ -1,0 +1,1536 @@
+{
+  "schema": "microchrony-clock-loop-evidence/1",
+  "date": "2026-10-18",
+  "branch": "devel",
+  "base_head": "ed24b31e9c40321c65807a6a35ce49ec09d4c984",
+  "scope": "Complete source-statistics/selection/clock-feedback loops; common physical timestamp events; external Chrony packet admission and automatic polling excluded",
+  "full_daemon_equivalence_claimed": false,
+  "no_physical_hardware_operations": true,
+  "committed_pushed_published": false,
+  "source_sha256": {
+    "CMakeLists.txt": "1e395a899394b96fc4408c1803c34df921393cd1143e0f619240e98efa913fcc",
+    "docs/development/figures/microchrony-adaptive-combination-convergence.png": "49a3513bfdcdcaf9e7b8f50eb24f8a65ddc46f6b232e2216b6a6a54a0438a5f2",
+    "docs/development/figures/microchrony-clock-loop-convergence.png": "75480bb619c1fb01a841c0e65417a5baee1d44c7a9ffd21bc0153c5a63c5af12",
+    "docs/development/microchrony-clock-loop.md": "1ed2a088df924e443d0a8314a326854ddfb004462168acb5c746f12cf68c5110",
+    "docs/development/microchrony-results.md": "00a3410bde49cca1ce56fa6cb1f51fc31295abdec50e8bf930d9fbaadd2e2ed4",
+    "src/microchrony/README.md": "dbf80afca0ef578c555796292d5e1dc751abbef7ff23aad7862ee7056ed0f140",
+    "src/microchrony/microchrony.cpp": "26ebcb3de186f06e7b9f60f24b210c7c2ec13288864ea808503d13adfccebbac",
+    "src/microchrony/microchrony.hpp": "4cacc168eb299efa3e367606ff10301cbd1e9cd98a5f4148bcb20da9ca6bf5fa",
+    "tests/microchrony_tests.cpp": "941ab1364f7e70061c00acce3013739226eccd726757983b2b2b1a536a37f7f2",
+    "tests/reference/README.md": "8f685c8271e0124a36d45101cc4630be498e29b07229c9b420c5d4e2b54e4187",
+    "tests/reference/build_chrony49_oracle.py": "608219389d910ee10e4e571db917fb6e150e02396304346faffc998891c1f6b3",
+    "tests/reference/chrony49_combination.c": "def9ea181a97dd5ddfcf7552aab1de1dd6bb194496e9d97eb9bc1fdb71d8bb46",
+    "tests/reference/chrony49_loop.c": "fffefec76d1854cac8d403436f6f4891df60f6079f5452465c6ef83afb0f4a35",
+    "tests/reference/chrony49_regression.c": "d51f5b2b80e0138a11ef4c61dc85d2585cf06043b588078757f7e83800c68e7e",
+    "tests/reference/chrony49_sourcestats.c": "0a2aee5a7927405a842c4265257922225dc0ee2fb8edb43d21f17cef40d5dd3a",
+    "tests/reference/compare_chrony49_adaptation.py": "3df8394df71510b35c1baeb58ce38c5e4a67503dbf5dbc317ad9daa64dd71b0a",
+    "tests/reference/compare_chrony49_frequency.py": "276e180805ef86cc8cda6c0260c0489f3ad727da2975f88cdafa2c1e63d9beb9",
+    "tests/reference/compare_chrony49_loop.py": "a35f682b111463ce9f084c78ee0692da6b466b7a2297d3023b55a79559beb0a2",
+    "tests/reference/microchrony_loop.cpp": "a01481f539773813fc11b20c7d4704b2c348a12aa24b7093e06aa06b88bc0d96",
+    "tests/reference/plot_chrony49_loop.py": "86fb06ef61a323e23aa3a772602114af32af8d3eb62e58b26ce0a5adfa0adcd1",
+    "tests/reference/test_microchrony_loop.py": "6da44e41b5d43be153abf99a8b237065b96c843dbecddbae2c3d2cd8f148ed3c",
+    "tests/reference/validate_chrony49_loop.py": "96bf91e323951a095f47d46e73e063a2330930f691625ec600f22b6c3189c529"
+  },
+  "unchanged_gate_retention_installer_files_sha256": {
+    "src/time/ntp_client.cpp": "a35d76e9d2951a70c1c9491ded0fb774aa09133c711854a653242b25f86f2de1",
+    "src/time/ntp_client.hpp": "0c7376d76b5d07a7abf9e8950244850f746fab58b8bcc3c61fd7052e2aff4e62",
+    "src/time/utc_discipline.cpp": "a0c80cc3804ee8f66e08e4dc96388990c5cab7de33dd4a4124ff949cfa5899c7",
+    "src/time/controller_time.cpp": "40ba66477464afa74c9d6ab1df9dbe584f9d8beabaf0e323ecfef17aba559c27",
+    "src/standalone/frequency_policy_engine.cpp": "87570ecfb39d691be35ef4c0c1ee31b44136f9e8c3cd6165400fd08e22736114",
+    "src/standalone/frequency_policy_engine.hpp": "bbe544590b01684060125b105742736a8a56dfde9ba259a176885d1ff083d86d",
+    "src/standalone/ntp_retention.hpp": "7f5ca25c11d14b1fa1fd8bd430ecb4434741638c72c0b7be69224cc85c5f3f1f",
+    "scripts/usb_installer.py": "4cdc8cd81905fd0843103860991c2740c00358f0dea356dcce5833dd61f05aea"
+  },
+  "reference": {
+    "version": "4.9",
+    "release_archive_sha256": "4924c6f530105bcd5b9e9e33c48a2ae1bfd889222c8480bc41601110efc864d0",
+    "unmodified_release_c_and_h_files": 178,
+    "reference_objects_unchanged": true
+  },
+  "validation": {
+    "host_ctest_passed": 117,
+    "host_ctest_failed": 0,
+    "host_ctest_skipped": 0,
+    "known_truth_ci_loops": 10,
+    "comparative_traces": 25,
+    "duration_per_trace_seconds": 14400,
+    "old_source_statistical_traces_passed": 8,
+    "old_phase_rule_cases_passed": 160,
+    "old_selection_traces_passed": 5,
+    "frequency_rule_cases_passed": 80,
+    "frequency_rule_max_rate_delta_ppm": 0.0002499666634001585,
+    "frequency_rule_max_skew_delta_ppm": 0.00503800937201504,
+    "probe_and_causality_checks": {
+      "schema": "microchrony-chrony49-clock-loop-validation/1",
+      "grid": {
+        "noisy_frequency_step": {
+          "reference_rows": {
+            "max_utc_delta_ns": 3,
+            "max_frequency_delta_ppm": 7.47119999999768e-06
+          },
+          "microchrony_rows": {
+            "max_utc_delta_ns": 0,
+            "max_frequency_delta_ppm": 0.0
+          }
+        },
+        "server_step_50ms": {
+          "reference_rows": {
+            "max_utc_delta_ns": 4,
+            "max_frequency_delta_ppm": 3.4862999989115906e-06
+          },
+          "microchrony_rows": {
+            "max_utc_delta_ns": 0,
+            "max_frequency_delta_ppm": 0.0
+          }
+        },
+        "heldout_ramp": {
+          "reference_rows": {
+            "max_utc_delta_ns": 2,
+            "max_frequency_delta_ppm": 7.0959000009196416e-06
+          },
+          "microchrony_rows": {
+            "max_utc_delta_ns": 0,
+            "max_frequency_delta_ppm": 0.0
+          }
+        },
+        "heldout_pool": {
+          "reference_rows": {
+            "max_utc_delta_ns": 2,
+            "max_frequency_delta_ppm": 4.87200004783972e-07
+          },
+          "microchrony_rows": {
+            "max_utc_delta_ns": 0,
+            "max_frequency_delta_ppm": 0.0
+          }
+        }
+      },
+      "identical_causal_prefix_rows": {
+        "reference_rows": 7317,
+        "microchrony_rows": 7317
+      },
+      "known_bias_checks_passed": true,
+      "complete_event_streams": 25,
+      "pool_ramp_majority_rms_agree_within_1us": true,
+      "pool_ramp_majority_frequency_settling_agrees": true
+    },
+    "adaptive_history_cases": 6,
+    "adaptive_history_points": 1536,
+    "adaptive_history_count_mismatches": 0,
+    "adaptive_history_max_rate_delta_ppb": 0.4158480064001013,
+    "same_estimate_combination_cases": 274,
+    "same_estimate_combination_max_deltas": {
+      "offset_seconds": 1.9080874033572393e-14,
+      "offset_sd_seconds": 1.6139867220488213e-14,
+      "frequency": 1.0842021724855044e-19,
+      "frequency_sd": 1.0164395367051604e-20,
+      "skew": 2.0328790734103208e-20
+    },
+    "sanitizer_tests_passed": 3,
+    "address_and_undefined_sanitizers": true
+  },
+  "firmware": {
+    "target": "WsprryPico",
+    "clock_hz": 138000000,
+    "engine": "pio-dma-gp2",
+    "uf2_sha256": "b351b995d03fd6cad9793816f9bdc58a8bf2ca8f4e9dd6840bfbbd7755033b24",
+    "elf_sha256": "9d31e3934e17c9e8724ddba977cb4bc05eac5cc5304bec0fd679ff9240d97608",
+    "external_chrony_public_symbols": false,
+    "loaded_on_hardware": false,
+    "size_report": [
+      "   text\t   data\t    bss\t    dec\t    hex\tfilename",
+      "2450440\t      0\t 365768\t2816208\t 2af8d0\tbuild/microchrony-loop-20261018/pico/firmware/WsprryPico.elf"
+    ]
+  },
+  "cases": {
+    "fast_20ppm": {
+      "plant": {
+        "ppm": 20
+      },
+      "input_sha256": "90387277f26d35ea50f30d594cd0675ade3e3b9ed7a1b7f5bd829e25a76314e5",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -3.0753177782116836e-07,
+        "last_hour_utc_rms_ms": 1.0856157288338606e-06,
+        "last_hour_utc_max_abs_ms": 2e-06,
+        "last_hour_frequency_max_abs_ppm": 2.1721513476791188e-06,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "slow_20ppm": {
+      "plant": {
+        "ppm": -20
+      },
+      "input_sha256": "4cf3c5005155e8af727805f0a780d0dfd08b8d3669d51fee2a99b3d3d368d306",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -5.662137425588298e-09,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 8.915090887740007e-08,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "zero": {
+      "plant": {
+        "ppm": 0
+      },
+      "input_sha256": "592a7c6ad4c6ee3c0a4bfba4208404cb5acf7f7a53df87ed1e8fbd3264682638",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -6.572520305780927e-08,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 1.1324274851176597e-07,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": 0.0,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.0,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": 0.0,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.0,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": 0.0,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.0,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "wrong_restart_seed": {
+      "plant": {
+        "ppm": 20,
+        "seed_ppm": -60
+      },
+      "input_sha256": "90387277f26d35ea50f30d594cd0675ade3e3b9ed7a1b7f5bd829e25a76314e5",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": 3.3661962106634746e-07,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 5.626610288800293e-07,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "jitter_500us": {
+      "plant": {
+        "ppm": 20,
+        "noise_s": 0.0005
+      },
+      "input_sha256": "053915b2870953bbe158401c2bf38dd23373989840d564fe35fac35db61ebfa0",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.016169,
+        "final_frequency_error_ppm": -0.02546859090291065,
+        "last_hour_utc_rms_ms": 0.0958153893482207,
+        "last_hour_utc_max_abs_ms": 0.169869,
+        "last_hour_frequency_max_abs_ppm": 0.07382004940659215,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 78.0,
+        "frequency_settles_1ppm_s": 520.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.016162,
+        "final_frequency_error_ppm": -0.025400500036631968,
+        "last_hour_utc_rms_ms": 0.09581579156549949,
+        "last_hour_utc_max_abs_ms": 0.169874,
+        "last_hour_frequency_max_abs_ppm": 0.07360147979973419,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 78.0,
+        "frequency_settles_1ppm_s": 520.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.016581,
+        "final_frequency_error_ppm": -0.021400420102679618,
+        "last_hour_utc_rms_ms": 0.0958500374774554,
+        "last_hour_utc_max_abs_ms": 0.169638,
+        "last_hour_frequency_max_abs_ppm": 0.06860137991004933,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 78.0,
+        "frequency_settles_1ppm_s": 520.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.016162,
+        "final_frequency_error_ppm": -0.025400500036631968,
+        "last_hour_utc_rms_ms": 0.09581579156549949,
+        "last_hour_utc_max_abs_ms": 0.169874,
+        "last_hour_frequency_max_abs_ppm": 0.07360147979973419,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 78.0,
+        "frequency_settles_1ppm_s": 520.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "frequency_step": {
+      "plant": {
+        "ppm": -20,
+        "after_ppm": 20,
+        "switch_s": 3600
+      },
+      "input_sha256": "2f8175e6d39d8d1a2c947a0619324eec85b8f10529dc2837b6f67a36f3176375",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": 2.69340105774063e-07,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 2.8199664825478976e-07,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": 440.0,
+        "frequency_settles_1ppm_s": 440.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 1.6e-05,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1.6e-05,
+        "last_hour_utc_max_abs_ms": 1.6e-05,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": 376.0,
+        "frequency_settles_1ppm_s": 376.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -1e-06,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1e-06,
+        "last_hour_utc_max_abs_ms": 1e-06,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": 403.0,
+        "frequency_settles_1ppm_s": 440.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 1.6e-05,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1.6e-05,
+        "last_hour_utc_max_abs_ms": 1.6e-05,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": 376.0,
+        "frequency_settles_1ppm_s": 376.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "noisy_frequency_step": {
+      "plant": {
+        "ppm": -20,
+        "after_ppm": 20,
+        "switch_s": 3600,
+        "noise_s": 0.0005
+      },
+      "input_sha256": "a6144493fe3fba663cb8e0be1d3bc28326c0852d72162aca1a388b7818c2eb65",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.016169,
+        "final_frequency_error_ppm": -0.025468606112966086,
+        "last_hour_utc_rms_ms": 0.0958159589115376,
+        "last_hour_utc_max_abs_ms": 0.169871,
+        "last_hour_frequency_max_abs_ppm": 0.07381992395139036,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": 380.0,
+        "frequency_settles_1ppm_s": 440.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.016162,
+        "final_frequency_error_ppm": -0.025400500036631968,
+        "last_hour_utc_rms_ms": 0.09581579156549949,
+        "last_hour_utc_max_abs_ms": 0.169874,
+        "last_hour_frequency_max_abs_ppm": 0.07360147979973419,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": 380.0,
+        "frequency_settles_1ppm_s": 440.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.016581,
+        "final_frequency_error_ppm": -0.021400420102679618,
+        "last_hour_utc_rms_ms": 0.0958500374774554,
+        "last_hour_utc_max_abs_ms": 0.169638,
+        "last_hour_frequency_max_abs_ppm": 0.06860137991004933,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": 403.0,
+        "frequency_settles_1ppm_s": 440.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.016162,
+        "final_frequency_error_ppm": -0.025400500036631968,
+        "last_hour_utc_rms_ms": 0.09581579156549949,
+        "last_hour_utc_max_abs_ms": 0.169874,
+        "last_hour_frequency_max_abs_ppm": 0.07360147979973419,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": 380.0,
+        "frequency_settles_1ppm_s": 440.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "server_step_50ms": {
+      "plant": {
+        "ppm": 20,
+        "phase_step_s": 0.05,
+        "switch_s": 3600
+      },
+      "input_sha256": "f8a2d48eec64402816169d8ad531d19833acdb6bd7bbc44400ebc9b3d53fadf7",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 49.999999,
+        "final_frequency_error_ppm": 3.084199562408685e-07,
+        "last_hour_utc_rms_ms": 49.999999,
+        "last_hour_utc_max_abs_ms": 49.999999,
+        "last_hour_frequency_max_abs_ppm": 3.084199562408685e-07,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 0.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 49.999999,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 49.999999,
+        "last_hour_utc_max_abs_ms": 49.999999,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 0.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 49.999999,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 49.999999,
+        "last_hour_utc_max_abs_ms": 49.999999,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 504.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 49.999999,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 49.999999,
+        "last_hour_utc_max_abs_ms": 49.999999,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 3600,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 0.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "outage": {
+      "plant": {
+        "ppm": 20,
+        "noise_s": 0.0001,
+        "loss_start_s": 3600,
+        "loss_end_s": 4800
+      },
+      "input_sha256": "042d0e9f6a16755acf6314d75f1380fa7d677c1bf205ce5601b0da88f872aca9",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.003234,
+        "final_frequency_error_ppm": -0.0050936432849368884,
+        "last_hour_utc_rms_ms": 0.019163389913742165,
+        "last_hour_utc_max_abs_ms": 0.033974,
+        "last_hour_frequency_max_abs_ppm": 0.014763936739825567,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 72.0,
+        "synchronized_probe_count": 13691,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.003232,
+        "final_frequency_error_ppm": -0.005400100033803312,
+        "last_hour_utc_rms_ms": 0.01916254978845895,
+        "last_hour_utc_max_abs_ms": 0.033974,
+        "last_hour_frequency_max_abs_ppm": 0.01460029985800304,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 72.0,
+        "synchronized_probe_count": 13691,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.003315,
+        "final_frequency_error_ppm": -0.0044000800780708005,
+        "last_hour_utc_rms_ms": 0.019169405053669132,
+        "last_hour_utc_max_abs_ms": 0.033927,
+        "last_hour_frequency_max_abs_ppm": 0.013600280013292831,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 72.0,
+        "synchronized_probe_count": 13691,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.003232,
+        "final_frequency_error_ppm": -0.005400100033803312,
+        "last_hour_utc_rms_ms": 0.01916254978845895,
+        "last_hour_utc_max_abs_ms": 0.033974,
+        "last_hour_frequency_max_abs_ppm": 0.01460029985800304,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 72.0,
+        "synchronized_probe_count": 13691,
+        "valid_probe_count": 14395
+      }
+    },
+    "majority": {
+      "plant": {
+        "ppm": 20,
+        "sources": 3,
+        "noise_s": 0.0001,
+        "falseticker": true
+      },
+      "input_sha256": "ade8a0705048c693d7023bed844dd9b627ad6157a9c9c32798acc109061e4f60",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.006169,
+        "final_frequency_error_ppm": -0.0035581003698936797,
+        "last_hour_utc_rms_ms": 0.01778040683048293,
+        "last_hour_utc_max_abs_ms": 0.024403,
+        "last_hour_frequency_max_abs_ppm": 0.005754743903629844,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 73.0,
+        "frequency_settles_1ppm_s": 136.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.006169,
+        "final_frequency_error_ppm": -0.0034000601223382887,
+        "last_hour_utc_rms_ms": 0.017779204420428445,
+        "last_hour_utc_max_abs_ms": 0.024402,
+        "last_hour_frequency_max_abs_ppm": 0.005400100033803312,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 73.0,
+        "frequency_settles_1ppm_s": 136.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.023024,
+        "final_frequency_error_ppm": -0.008400160123045453,
+        "last_hour_utc_rms_ms": 0.019625094027265342,
+        "last_hour_utc_max_abs_ms": 0.03283,
+        "last_hour_frequency_max_abs_ppm": 0.012400240056997802,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 73.0,
+        "frequency_settles_1ppm_s": 136.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.023039,
+        "final_frequency_error_ppm": -0.008400160123045453,
+        "last_hour_utc_rms_ms": 0.01962524524591305,
+        "last_hour_utc_max_abs_ms": 0.032943,
+        "last_hour_frequency_max_abs_ppm": 0.013400260123752616,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 73.0,
+        "frequency_settles_1ppm_s": 136.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "heldout_fast_80ppm": {
+      "plant": {
+        "ppm": 80,
+        "noise_s": 0.0005,
+        "noise_seed": 17
+      },
+      "input_sha256": "05fa0968c5492bfeff874fd425207773d7e931cae2390abd7d0d6fd2c424e20c",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.055258,
+        "final_frequency_error_ppm": -0.011557717338739337,
+        "last_hour_utc_rms_ms": 0.0657121606654918,
+        "last_hour_utc_max_abs_ms": 0.108732,
+        "last_hour_frequency_max_abs_ppm": 0.04996817115632268,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 76.0,
+        "frequency_settles_1ppm_s": 456.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.055247,
+        "final_frequency_error_ppm": -0.01140039995739528,
+        "last_hour_utc_rms_ms": 0.06571503878446731,
+        "last_hour_utc_max_abs_ms": 0.108734,
+        "last_hour_frequency_max_abs_ppm": 0.05040351991336678,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 76.0,
+        "frequency_settles_1ppm_s": 456.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.05555,
+        "final_frequency_error_ppm": -0.01440063990276741,
+        "last_hour_utc_rms_ms": 0.06582056226445036,
+        "last_hour_utc_max_abs_ms": 0.108813,
+        "last_hour_frequency_max_abs_ppm": 0.0464031998381742,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 76.0,
+        "frequency_settles_1ppm_s": 456.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.055247,
+        "final_frequency_error_ppm": -0.01140039995739528,
+        "last_hour_utc_rms_ms": 0.06575357459291188,
+        "last_hour_utc_max_abs_ms": 0.108734,
+        "last_hour_frequency_max_abs_ppm": 0.05040351991336678,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 76.0,
+        "frequency_settles_1ppm_s": 456.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "heldout_slow_80ppm": {
+      "plant": {
+        "ppm": -80,
+        "noise_s": 0.0005,
+        "noise_seed": 42
+      },
+      "input_sha256": "b61c4d773f40d8ddf980367595acd23557ec7831bf2a2eea89f36a47acb27dcd",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.090608,
+        "final_frequency_error_ppm": 0.030354981861435704,
+        "last_hour_utc_rms_ms": 0.07301213746038027,
+        "last_hour_utc_max_abs_ms": 0.122527,
+        "last_hour_frequency_max_abs_ppm": 0.066421915523307,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 75.0,
+        "frequency_settles_1ppm_s": 4616.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.090612,
+        "final_frequency_error_ppm": 0.030597040012736443,
+        "last_hour_utc_rms_ms": 0.07300886511715034,
+        "last_hour_utc_max_abs_ms": 0.122515,
+        "last_hour_frequency_max_abs_ppm": 0.06659415996423945,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 75.0,
+        "frequency_settles_1ppm_s": 4616.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.090871,
+        "final_frequency_error_ppm": 0.028597200163460457,
+        "last_hour_utc_rms_ms": 0.0730781558926912,
+        "last_hour_utc_max_abs_ms": 0.122325,
+        "last_hour_frequency_max_abs_ppm": 0.06259448004364287,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 75.0,
+        "frequency_settles_1ppm_s": 328.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.090612,
+        "final_frequency_error_ppm": 0.030597040012736443,
+        "last_hour_utc_rms_ms": 0.07319267747895024,
+        "last_hour_utc_max_abs_ms": 0.122518,
+        "last_hour_frequency_max_abs_ppm": 0.06659415996423945,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 75.0,
+        "frequency_settles_1ppm_s": 4616.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "heldout_ramp": {
+      "plant": {
+        "ppm": -30,
+        "ramp_ppm_per_hour": 18,
+        "noise_s": 0.0001,
+        "noise_seed": 99
+      },
+      "input_sha256": "3ca67d2f541aee190e08e935bd91471f1e4ccaa18c5d7611b49ff6f1ef5409b5",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.105428,
+        "final_frequency_error_ppm": 1.5776245658738475,
+        "last_hour_utc_rms_ms": 0.11519064949305946,
+        "last_hour_utc_max_abs_ms": 0.234994,
+        "last_hour_frequency_max_abs_ppm": 2.0341819366720415,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": null,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.105422,
+        "final_frequency_error_ppm": 1.577302318089835,
+        "last_hour_utc_rms_ms": 0.11518602349525425,
+        "last_hour_utc_max_abs_ms": 0.234983,
+        "last_hour_frequency_max_abs_ppm": 2.034391068939101,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": null,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.205837,
+        "final_frequency_error_ppm": 1.9403175641752313,
+        "last_hour_utc_rms_ms": 0.19673128744898505,
+        "last_hour_utc_max_abs_ms": 0.485393,
+        "last_hour_frequency_max_abs_ppm": 2.592887591301718,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": null,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.105894,
+        "final_frequency_error_ppm": 1.6543055521012207,
+        "last_hour_utc_rms_ms": 0.12293819997002686,
+        "last_hour_utc_max_abs_ms": 0.257842,
+        "last_hour_frequency_max_abs_ppm": 2.1290957261665966,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": null,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "heldout_queue": {
+      "plant": {
+        "ppm": 35,
+        "queue_s": 0.0005,
+        "noise_s": 0.0001,
+        "noise_seed": 2718
+      },
+      "input_sha256": "e48c66f2b147996398ad34b2830371d837996e811934a4f639e89f362c151959",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.01088,
+        "final_frequency_error_ppm": -0.007601357765452121,
+        "last_hour_utc_rms_ms": 0.019655818567273397,
+        "last_hour_utc_max_abs_ms": 0.032746,
+        "last_hour_frequency_max_abs_ppm": 0.012274494198827313,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 75.0,
+        "frequency_settles_1ppm_s": 136.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.005698,
+        "final_frequency_error_ppm": -0.007225209985861625,
+        "last_hour_utc_rms_ms": 0.021042550873624898,
+        "last_hour_utc_max_abs_ms": 0.030994,
+        "last_hour_frequency_max_abs_ppm": 0.009775384945953647,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 74.0,
+        "frequency_settles_1ppm_s": 136.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.00572,
+        "final_frequency_error_ppm": -0.006225174931095978,
+        "last_hour_utc_rms_ms": 0.021035716965812207,
+        "last_hour_utc_max_abs_ms": 0.030918,
+        "last_hour_frequency_max_abs_ppm": 0.008775350002210303,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 74.0,
+        "frequency_settles_1ppm_s": 136.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.005698,
+        "final_frequency_error_ppm": -0.007225209985861625,
+        "last_hour_utc_rms_ms": 0.021042550873624898,
+        "last_hour_utc_max_abs_ms": 0.030994,
+        "last_hour_frequency_max_abs_ppm": 0.009775384945953647,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 74.0,
+        "frequency_settles_1ppm_s": 136.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "heldout_bias": {
+      "plant": {
+        "ppm": 20,
+        "forward_ns": 5000000,
+        "backward_ns": 1000000
+      },
+      "input_sha256": "2085e4e0e6d74e3702d0266e94669745b4cda4d7f9587663e64dcafbd33529d5",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 1.999999,
+        "final_frequency_error_ppm": 2.879918525877656e-07,
+        "last_hour_utc_rms_ms": 1.999999,
+        "last_hour_utc_max_abs_ms": 1.999999,
+        "last_hour_frequency_max_abs_ppm": 2.879918525877656e-07,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 1.999999,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1.999999,
+        "last_hour_utc_max_abs_ms": 1.999999,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 1.999999,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1.999999,
+        "last_hour_utc_max_abs_ms": 1.999999,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 1.999999,
+        "final_frequency_error_ppm": -0.00040000014411845086,
+        "last_hour_utc_rms_ms": 1.999999,
+        "last_hour_utc_max_abs_ms": 1.999999,
+        "last_hour_frequency_max_abs_ppm": 0.00040000014411845086,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 6.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "heldout_pool": {
+      "plant": {
+        "ppm": 35,
+        "sources": 4,
+        "forward_ns": 10000000,
+        "backward_ns": 10000000,
+        "noise_s": 0.005,
+        "noise_seed": 314159
+      },
+      "input_sha256": "70198256ec4318eecdd0fda13a699dfd1ed8c3a4dca6208c3e10c0ac0521adde",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.568289,
+        "final_frequency_error_ppm": -0.2385244523006591,
+        "last_hour_utc_rms_ms": 0.43883868831891265,
+        "last_hour_utc_max_abs_ms": 0.743493,
+        "last_hour_frequency_max_abs_ppm": 0.3143437935504423,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 2016.0,
+        "frequency_settles_1ppm_s": 1544.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.568349,
+        "final_frequency_error_ppm": -0.23823329498018353,
+        "last_hour_utc_rms_ms": 0.4388710764452652,
+        "last_hour_utc_max_abs_ms": 0.743537,
+        "last_hour_frequency_max_abs_ppm": 0.3142359550345475,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 2020.0,
+        "frequency_settles_1ppm_s": 1544.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "baseline_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.51849,
+        "final_frequency_error_ppm": -0.26023406496378243,
+        "last_hour_utc_rms_ms": 0.43060381724964647,
+        "last_hour_utc_max_abs_ms": 0.748512,
+        "last_hour_frequency_max_abs_ppm": 0.3407869699767474,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 1990.0,
+        "frequency_settles_1ppm_s": 1800.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "previous_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.642827,
+        "final_frequency_error_ppm": -0.36623777499578125,
+        "last_hour_utc_rms_ms": 0.4511891330674208,
+        "last_hour_utc_max_abs_ms": 0.774001,
+        "last_hour_frequency_max_abs_ppm": 0.3737881251186792,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 1989.0,
+        "frequency_settles_1ppm_s": 1736.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "verification_heldout_pool_271828": {
+      "plant": {
+        "ppm": 35,
+        "sources": 4,
+        "forward_ns": 10000000,
+        "backward_ns": 10000000,
+        "noise_s": 0.005,
+        "noise_seed": 271828
+      },
+      "input_sha256": "dafeb990ea0840fba61317e6ea6ec4a5c73b5a3e7382e7067387bdf7a745148f",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.522315,
+        "final_frequency_error_ppm": 0.1798051814105861,
+        "last_hour_utc_rms_ms": 0.27171492046262485,
+        "last_hour_utc_max_abs_ms": 0.522315,
+        "last_hour_frequency_max_abs_ppm": 0.1798051814105861,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 784.0,
+        "frequency_settles_1ppm_s": 1224.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.522326,
+        "final_frequency_error_ppm": 0.17978133493024018,
+        "last_hour_utc_rms_ms": 0.2717279841347082,
+        "last_hour_utc_max_abs_ms": 0.522326,
+        "last_hour_frequency_max_abs_ppm": 0.17978133493024018,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 784.0,
+        "frequency_settles_1ppm_s": 1224.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "verification_heldout_ramp_271828": {
+      "plant": {
+        "ppm": -30,
+        "ramp_ppm_per_hour": 18,
+        "noise_s": 0.0001,
+        "noise_seed": 271828
+      },
+      "input_sha256": "3b6174353b9d957bdc1bd6baaddae76aef4c8db72bef8fb12eb7ce5c4d3ba474",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.107543,
+        "final_frequency_error_ppm": 1.2204709163299299,
+        "last_hour_utc_rms_ms": 0.1357387328659403,
+        "last_hour_utc_max_abs_ms": 0.264285,
+        "last_hour_frequency_max_abs_ppm": 1.9827793991122888,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": null,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.107536,
+        "final_frequency_error_ppm": 1.2202873240774181,
+        "last_hour_utc_rms_ms": 0.13573169637727664,
+        "last_hour_utc_max_abs_ms": 0.264282,
+        "last_hour_frequency_max_abs_ppm": 1.9832390585339255,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": null,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "verification_majority_271828": {
+      "plant": {
+        "ppm": 20,
+        "sources": 3,
+        "noise_s": 0.0001,
+        "falseticker": true,
+        "noise_seed": 271828
+      },
+      "input_sha256": "6186422a641454a42307e459c3045d0f65d846c554b9f887355ba6e7ce1e4697",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.010798,
+        "final_frequency_error_ppm": -0.00300796931806957,
+        "last_hour_utc_rms_ms": 0.022047215994371525,
+        "last_hour_utc_max_abs_ms": 0.032843,
+        "last_hour_frequency_max_abs_ppm": 0.006954794740110515,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 72.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.010798,
+        "final_frequency_error_ppm": -0.0034000601223382887,
+        "last_hour_utc_rms_ms": 0.022046538725892552,
+        "last_hour_utc_max_abs_ms": 0.032843,
+        "last_hour_frequency_max_abs_ppm": 0.0066001399900983415,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 72.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "verification_heldout_pool_918273": {
+      "plant": {
+        "ppm": 35,
+        "sources": 4,
+        "forward_ns": 10000000,
+        "backward_ns": 10000000,
+        "noise_s": 0.005,
+        "noise_seed": 918273
+      },
+      "input_sha256": "677b0632344717674b851567858d935c078aabd0d9bc15741e90e1fe96161b88",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.331496,
+        "final_frequency_error_ppm": -0.07044495264896256,
+        "last_hour_utc_rms_ms": 0.3360370322091422,
+        "last_hour_utc_max_abs_ms": 0.489543,
+        "last_hour_frequency_max_abs_ppm": 0.26733300573233976,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 2776.0,
+        "frequency_settles_1ppm_s": 968.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.331491,
+        "final_frequency_error_ppm": -0.07022741499440599,
+        "last_hour_utc_rms_ms": 0.3360570326245423,
+        "last_hour_utc_max_abs_ms": 0.48958,
+        "last_hour_frequency_max_abs_ppm": 0.26723431001407505,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 2776.0,
+        "frequency_settles_1ppm_s": 968.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "verification_heldout_ramp_918273": {
+      "plant": {
+        "ppm": -30,
+        "ramp_ppm_per_hour": 18,
+        "noise_s": 0.0001,
+        "noise_seed": 918273
+      },
+      "input_sha256": "2f2e1d735368a17c60330f91696f6eafe9664e3c8e9503005a8d8baa3b44ff17",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.093925,
+        "final_frequency_error_ppm": 1.2172631445039883,
+        "last_hour_utc_rms_ms": 0.11617809576464024,
+        "last_hour_utc_max_abs_ms": 0.207084,
+        "last_hour_frequency_max_abs_ppm": 1.8110015334027452,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": null,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.093907,
+        "final_frequency_error_ppm": 1.2172871981519506,
+        "last_hour_utc_rms_ms": 0.11617185896871443,
+        "last_hour_utc_max_abs_ms": 0.207068,
+        "last_hour_frequency_max_abs_ppm": 1.8114621631593053,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": null,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "verification_majority_918273": {
+      "plant": {
+        "ppm": 20,
+        "sources": 3,
+        "noise_s": 0.0001,
+        "falseticker": true,
+        "noise_seed": 918273
+      },
+      "input_sha256": "df33761b02e04736121639033ca6c9bc28918516bbf68f855ef0a79091fc07d0",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.024555,
+        "final_frequency_error_ppm": 0.006969943289192315,
+        "last_hour_utc_rms_ms": 0.015805427703078974,
+        "last_hour_utc_max_abs_ms": 0.024555,
+        "last_hour_frequency_max_abs_ppm": 0.008267380335880148,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 136.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.024553,
+        "final_frequency_error_ppm": 0.0066001399900983415,
+        "last_hour_utc_rms_ms": 0.015804499144563142,
+        "last_hour_utc_max_abs_ms": 0.024553,
+        "last_hour_frequency_max_abs_ppm": 0.008600179901563365,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 6.0,
+        "frequency_settles_1ppm_s": 136.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "verification_heldout_pool_161803": {
+      "plant": {
+        "ppm": 35,
+        "sources": 4,
+        "forward_ns": 10000000,
+        "backward_ns": 10000000,
+        "noise_s": 0.005,
+        "noise_seed": 161803
+      },
+      "input_sha256": "430f750a6356b6fd75a055e5542fbef5edd017133ae42802f33df63b0ddbdf64",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.08084,
+        "final_frequency_error_ppm": -0.08588125433028893,
+        "last_hour_utc_rms_ms": 0.16281757118376539,
+        "last_hour_utc_max_abs_ms": 0.298852,
+        "last_hour_frequency_max_abs_ppm": 0.11141339451015142,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 1993.0,
+        "frequency_settles_1ppm_s": 1800.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.080827,
+        "final_frequency_error_ppm": -0.08622797509350022,
+        "last_hour_utc_rms_ms": 0.16282903412920777,
+        "last_hour_utc_max_abs_ms": 0.29888,
+        "last_hour_frequency_max_abs_ppm": 0.11122885001935146,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 1991.0,
+        "frequency_settles_1ppm_s": 1800.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "verification_heldout_ramp_161803": {
+      "plant": {
+        "ppm": -30,
+        "ramp_ppm_per_hour": 18,
+        "noise_s": 0.0001,
+        "noise_seed": 161803
+      },
+      "input_sha256": "0af035c7a3bf134b932c2fcba01d26ea51fa513e234ee3a1352fd66c3d04adf3",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.145335,
+        "final_frequency_error_ppm": 1.9445301824294603,
+        "last_hour_utc_rms_ms": 0.11376079927595531,
+        "last_hour_utc_max_abs_ms": 0.270786,
+        "last_hour_frequency_max_abs_ppm": 1.9445301824294603,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 72.0,
+        "frequency_settles_1ppm_s": null,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.145313,
+        "final_frequency_error_ppm": 1.9443177321498695,
+        "last_hour_utc_rms_ms": 0.11375514441257967,
+        "last_hour_utc_max_abs_ms": 0.270777,
+        "last_hour_frequency_max_abs_ppm": 1.9443177321498695,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 72.0,
+        "frequency_settles_1ppm_s": null,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "verification_majority_161803": {
+      "plant": {
+        "ppm": 20,
+        "sources": 3,
+        "noise_s": 0.0001,
+        "falseticker": true,
+        "noise_seed": 161803
+      },
+      "input_sha256": "0e29f9e98904b010d525bee62514c1632c33f5eb454781750f693c68fd38391b",
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.007957,
+        "final_frequency_error_ppm": -0.002805767507219059,
+        "last_hour_utc_rms_ms": 0.01602427808924909,
+        "last_hour_utc_max_abs_ms": 0.023547,
+        "last_hour_frequency_max_abs_ppm": 0.005958173843190195,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 72.0,
+        "frequency_settles_1ppm_s": 72.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "corrected_microchrony": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.007956,
+        "final_frequency_error_ppm": -0.0024000400555834744,
+        "last_hour_utc_rms_ms": 0.016023387314640754,
+        "last_hour_utc_max_abs_ms": 0.023547,
+        "last_hour_frequency_max_abs_ppm": 0.0064001201005581265,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 72.0,
+        "frequency_settles_1ppm_s": 72.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    }
+  },
+  "private_artifacts_sha256": {
+    "build/microchrony-loop-20261018/adaptive-combination/adaptation.json": "e83bb2a0faf784add3dfbab4d1faded49dfba5d8e81e077cc1b672b2a5eec7e1",
+    "build/microchrony-loop-20261018/adaptive-combination/after.json": "5fb425a1784a8dd04af1e823f94d3f1d804aa270d6d0a576415b0b7698ad6da2",
+    "build/microchrony-loop-20261018/adaptive-combination/after.log": "ca5560129010e5f02d0c8ae6808060429bbb6cf0c132871401f932d94f29bc19",
+    "build/microchrony-loop-20261018/adaptive-combination/balanced.json": "38fdadbea84b837efb6c2f14ae0bb5a2f2c906c4918cf1c6c1de96cc2d01b220",
+    "build/microchrony-loop-20261018/adaptive-combination/before-sha256.json": "14d91fd5e77c4664e23dc93a994d08dc5d3e203734be9f5954524519724348a9",
+    "build/microchrony-loop-20261018/adaptive-combination/before/build/microchrony-loop-20261018/after.json": "da84014a7ffbaa6e18b91f1c50ef57dd48245fa2912b386bb26c75b91f36603f",
+    "build/microchrony-loop-20261018/adaptive-combination/before/build/microchrony-loop-20261018/host/microchrony_loop": "f31b268b9e044985318188a0f61f6d0831a2d67fba990e4d41cab8141cde28ce",
+    "build/microchrony-loop-20261018/adaptive-combination/before/docs/development/microchrony-clock-loop.json": "a8ff70c83270663a7e6f8e186a04022e801d6459a220756d79a55e804a444a0f",
+    "build/microchrony-loop-20261018/adaptive-combination/before/docs/development/microchrony-clock-loop.md": "01d34e121c7bec04ae20f31da63a3db05b917b230ce3551159ea67781bf9b94a",
+    "build/microchrony-loop-20261018/adaptive-combination/before/src/microchrony/microchrony.cpp": "e13adb579135d13d18fb32acb0a77bd3ec606e740ccb59e532a0cc4cc663c9a4",
+    "build/microchrony-loop-20261018/adaptive-combination/before/src/microchrony/microchrony.hpp": "f161b371881424b359d2ca1857aa279caa77180eaa91f5d6e1ca88e554aba4d4",
+    "build/microchrony-loop-20261018/adaptive-combination/before/tests/reference/chrony49_loop.c": "abc433fa52d7d6cb0b79bea1ea68ab45fceda82f5635a01f7bfddd71b3cc297e",
+    "build/microchrony-loop-20261018/adaptive-combination/before/tests/reference/microchrony_loop.cpp": "d00fc132765a043760c4c0290d84d98628d05a12ca022ccbfffdba29e8c2b6da",
+    "build/microchrony-loop-20261018/adaptive-combination/chrony49-combination": "c809178bb5777757cb2fd56bd18ecb841ee46492139070da2ae9bf08c9d758ae",
+    "build/microchrony-loop-20261018/adaptive-combination/chrony49-combination.inputs.json": "533d33d408338dcd0ebf3ecc3faed046eca73b8ddd219f80b4ae0efc5ff3fed2",
+    "build/microchrony-loop-20261018/adaptive-combination/chrony49-loop": "7c45c79845f33fb5635c585c7688354711ab8be9a8c41c4bca124998ab13f755",
+    "build/microchrony-loop-20261018/adaptive-combination/chrony49-loop.inputs.json": "f1b2812ca9d5617bef0e486098aef9b02ffe1819b72d6ac80e98a7b52af90e8c",
+    "build/microchrony-loop-20261018/adaptive-combination/chrony49-regression": "7628476360804dc9c3d82ec31c796bace9f31a630d7233f820a3707e880a092b",
+    "build/microchrony-loop-20261018/adaptive-combination/chrony49-regression.inputs.json": "066328de5e9348c4de923deb32d0587d1558d12b89cb7fd288b7ff09dcc0b384",
+    "build/microchrony-loop-20261018/adaptive-combination/chrony49-stats": "1a7713958e38eee1449ef323e3b57dbf9ca04e5e796ef06fc9f5d60de6c6877a",
+    "build/microchrony-loop-20261018/adaptive-combination/chrony49-stats.inputs.json": "e0b31aa1af7bd5b5fdfb0dba4a774323351e44ef0f1fac5be4b07a0475640247",
+    "build/microchrony-loop-20261018/adaptive-combination/combination-input.txt": "b95508542c845cd659d53762b3189a38bf983279c8d2fc4a9fcaba79fe3e1dda",
+    "build/microchrony-loop-20261018/adaptive-combination/combination-output.txt": "03cd66cc90d5d1a3556384acdc57576ff6853cb60f421f29eda2a5bbfc945e6c",
+    "build/microchrony-loop-20261018/adaptive-combination/combined.json": "38c6511ee3acfda795890310fc7ba55e4e6110a22116868193b65723d1af3050",
+    "build/microchrony-loop-20261018/adaptive-combination/comparison/convergence.png": "49a3513bfdcdcaf9e7b8f50eb24f8a65ddc46f6b232e2216b6a6a54a0438a5f2",
+    "build/microchrony-loop-20261018/adaptive-combination/comparison/heldout_pool.tsv": "351da87b446c1760cdee6268dd52ebe18323335a42bf0b50ab99bc74a8e0e83c",
+    "build/microchrony-loop-20261018/adaptive-combination/comparison/heldout_ramp.tsv": "08ef463a27913e53d661acede210a3a71fb3cee58e4aa831533760510e1bb5d8",
+    "build/microchrony-loop-20261018/adaptive-combination/comparison/jitter_500us.tsv": "3687747ab8cf1edd14407cfccac2e88360e5320952c392f323f6ca54ec0e9108",
+    "build/microchrony-loop-20261018/adaptive-combination/comparison/noisy_frequency_step.tsv": "b1f5615c5280c2cbc01a90c5ec5871821b24a8724c8773b62264d17e236923e7",
+    "build/microchrony-loop-20261018/adaptive-combination/comparison/plot.gp": "4f73dca910b46a4c1416f732b9bc51d3217ffcd549b8f87e26222a8368d3147c",
+    "build/microchrony-loop-20261018/adaptive-combination/ctest.log": "7a47f363271462438211242ecc97f60853547bcfe3365ca9e1495c5445455c5a",
+    "build/microchrony-loop-20261018/adaptive-combination/eligibility.json": "66cacab45b21b3f88fce187df744f220043848ef80d6b01bc2077c5175d006fa",
+    "build/microchrony-loop-20261018/adaptive-combination/firmware-build.log": "64d73bae4e56ef9090c25a39f8b2a429fde3e816fdc0e7f0f2cf78409fdbb466",
+    "build/microchrony-loop-20261018/adaptive-combination/firmware-check.json": "e4c89d7b30de5c8b03c544af091157382f4765535021e12e8ecf7b5176dfe878",
+    "build/microchrony-loop-20261018/adaptive-combination/frequency.json": "f700363bc58b6cfa1bf8743fc01acd54f6711c2484dbe70691a9d8862a271e49",
+    "build/microchrony-loop-20261018/adaptive-combination/history.json": "ca87e238b4179f18c892156f75f61ed3a5664ba7ba02f7bd8dd8054acf603753",
+    "build/microchrony-loop-20261018/adaptive-combination/horizon.json": "27967061ae49b99a58ea832f925ab6cedf76868e3c1869272020eff6886e93c0",
+    "build/microchrony-loop-20261018/adaptive-combination/host-build.log": "3e09b38f052ea587f43f7c78c9dc8ea9bbf39447af3a1577ea51d3885c3e2b46",
+    "build/microchrony-loop-20261018/adaptive-combination/pool-ref.diag": "6d954745f94952cf647e8819e90dde6e9dd9ffbbf117a309457b0fde1bdada0f",
+    "build/microchrony-loop-20261018/adaptive-combination/quarter.json": "5a25752921c0efec68d56f905d7c640b99e1e7ac0d902710a53d22bf142637e5",
+    "build/microchrony-loop-20261018/adaptive-combination/quarter.log": "8300060ad04db65e3e870ac7699aaa16e58f48fcad6383f63465af3b2fdbe7a7",
+    "build/microchrony-loop-20261018/adaptive-combination/ramp-ref.diag": "ecd98fe65c1e6d934116158db48d20bb403d4890de26b3c3f03296fbf492f84b",
+    "build/microchrony-loop-20261018/adaptive-combination/regression-thresholds.json": "32ac896139ed700041ebadd6f79661db57d5a74dc5a508cf49b779b9c1e7b0a2",
+    "build/microchrony-loop-20261018/adaptive-combination/resolved.json": "9b1b232984d06f0e70fefd4923a85b7e0897801d87daf61d4a269175617ec042",
+    "build/microchrony-loop-20261018/adaptive-combination/rules.json": "635fcd7e2922357d3ddd5f06de70f95d8ca37cc5a223adc14c49635ac09972a9",
+    "build/microchrony-loop-20261018/adaptive-combination/rules.log": "2ad765e19ec8220f4fcabd315cb561523d6b51386fc1ea345e15a3cca6d3ff8c",
+    "build/microchrony-loop-20261018/adaptive-combination/sanitizer-build.log": "93f99549cbb8afd30d6dc03922f6753e5b136022a96199dce872442c52e55536",
+    "build/microchrony-loop-20261018/adaptive-combination/sanitizer-configure.log": "9fb633e0c533849fe1a2218609ab4be6c5112d26a3b9cbe5e7ef3472819077e3",
+    "build/microchrony-loop-20261018/adaptive-combination/sanitizer-test.log": "9ed5d9b47d710e791b357e76cc703cae6de3ab0f0b8a7028b5547c99479ebc2a",
+    "build/microchrony-loop-20261018/adaptive-combination/source-audit.json": "7f11a3bd32042c60ce94eafdc95850d84572e3560986ded20f03e83d191f436b",
+    "build/microchrony-loop-20261018/adaptive-combination/stats.json": "5a1e3dae05408bfa4b8ab10fa23ce7855756d638ef5894030e8a813cf547657b",
+    "build/microchrony-loop-20261018/adaptive-combination/stats.log": "04fcd4a6fc96160897d96131490797e2ef5c7d9536fbbdf74aeb086b1c331fc8",
+    "build/microchrony-loop-20261018/adaptive-combination/ties.json": "4403d8275c45d4815e2d36058bd7cc2b3b05fbabc2d9192bb3ba21dccacb0380",
+    "build/microchrony-loop-20261018/adaptive-combination/validation.json": "f36d26d532010d668adc8b7d0c96188718960c095fc535a3b5b98f160297495d",
+    "build/microchrony-loop-20261018/after.json": "da84014a7ffbaa6e18b91f1c50ef57dd48245fa2912b386bb26c75b91f36603f",
+    "build/microchrony-loop-20261018/baseline-src/identity.json": "062d8202f05d88d23253e6be516ca56ffc35336d53344c73de7b40acaf9fed91",
+    "build/microchrony-loop-20261018/baseline-src/microchrony.cpp": "f89c883a82b35c276af40348e74db897bc3f254dbcda4fb1a2037bdfc65d64dc",
+    "build/microchrony-loop-20261018/baseline-src/microchrony.hpp": "cfd0cffc184f1c99e99e6cc9c1394ee73002d37bf0e83216dac75882a8a97c6e",
+    "build/microchrony-loop-20261018/before.json": "473fb1910a60b61cedee913904452b4b5939fc8a62a87fa433610ff2db7c8c16",
+    "build/microchrony-loop-20261018/chrony49-control": "7cc441ec57fe31cc1fd4fbe9189541884ab9586fac1c138f74cafa12fda0b33e",
+    "build/microchrony-loop-20261018/chrony49-control.inputs.json": "2c5cefbdb32567ec4ea7cfbe8a5c026ec505194fb2104daa8806eaf11bf7f4d1",
+    "build/microchrony-loop-20261018/chrony49-loop-final": "e8d619273da0f3cab3bbe9ef434d16cb6db8e6904bb31445d24a5119f8aa4f4b",
+    "build/microchrony-loop-20261018/chrony49-loop-final.inputs.json": "02bfe5b0dee2a6b8048c6d264ab35632e63b82d324a76b01972bd6eef64dbddf",
+    "build/microchrony-loop-20261018/comparison/convergence.png": "75480bb619c1fb01a841c0e65417a5baee1d44c7a9ffd21bc0153c5a63c5af12",
+    "build/microchrony-loop-20261018/comparison/heldout_pool.tsv": "8881974d8b8bfaf2ac3c68f054c9b054ba60d25489576835063ca33b6a264736",
+    "build/microchrony-loop-20261018/comparison/heldout_ramp.tsv": "abb0bacdb07f5a190614eb8a567ff0db802c8737eecd41ec71f8929151481029",
+    "build/microchrony-loop-20261018/comparison/jitter_500us.tsv": "0a38ae2f92ae100454c8bd2c55244ffb22355e0d6697a77e2cd3637952390f5e",
+    "build/microchrony-loop-20261018/comparison/noisy_frequency_step.tsv": "017487f72c04d21e56d1d5c5b2b218a62bac60a641741e4d9d2094e54bcd3b18",
+    "build/microchrony-loop-20261018/comparison/plot.gp": "a0b5446b82ca9050c978c687189d8d6d2ea3ad6e947028b206ed079261182eed",
+    "build/microchrony-loop-20261018/firmware-check.json": "0b4357e5fc88cbe3b766ab51fb25466a1e1a93da1abb7adb78e9b18d9f40b87f",
+    "build/microchrony-loop-20261018/frequency-update.json": "69da48bb7b277d3c540292619fa3b7b2f54f7dae88af53c3601c766e11e58d52",
+    "build/microchrony-loop-20261018/host-all-final.log": "795751b2d162f146e02ed2b81bf4c8576c79580f5fd94fdacf982e9443e461e3",
+    "build/microchrony-loop-20261018/host-build.log": "9ec668a7c8d59f60dd463fa8cd72579ebb16fbb4d51f27da145b6fbefd33218d",
+    "build/microchrony-loop-20261018/host-configure.log": "dad24f7d2b690f3c8a286d63424ea59d2145f9890617210f07b5cc4e56673e1c",
+    "build/microchrony-loop-20261018/host/microchrony_loop": "a99f26178cc2a18b6fb8b3d2db9cf5f3e0d61b040feb338e2d498f4fd8417104",
+    "build/microchrony-loop-20261018/host/microchrony_tests": "1c848893cefa982a737940c74dfd9c922694124e43ef6992c43533b7bc427879",
+    "build/microchrony-loop-20261018/loop-validation.json": "018b5a603abeab2ff79e43bd32380c4c1f1af1b8b6280f4cf8321bc386585bd3",
+    "build/microchrony-loop-20261018/microchrony-before": "b3e29fe9441a27f0f628132cce73e8d0fb5587e651203079c0bc0beb2b8a42d5",
+    "build/microchrony-loop-20261018/pico-build-final.log": "336159c390184cdffd2813af0fd491d0fb3722966ad67784612932d672cb8ba5",
+    "build/microchrony-loop-20261018/pico/firmware/WsprryPico.elf": "9d31e3934e17c9e8724ddba977cb4bc05eac5cc5304bec0fd679ff9240d97608",
+    "build/microchrony-loop-20261018/pico/firmware/WsprryPico.uf2": "b351b995d03fd6cad9793816f9bdc58a8bf2ca8f4e9dd6840bfbbd7755033b24",
+    "build/microchrony-loop-20261018/quarter-second.json": "d96e09ea4838019f3ddfc86f6b09557f2a505e84771fcbf36d44c4107cafaa84",
+    "build/microchrony-loop-20261018/reference-source-audit.json": "df3ec52f13ceb9f510db3d6ebd993c62e852f005007165612c620bc7a295db6b",
+    "build/microchrony-loop-20261018/rules-regression.json": "c37c6b69bcca59d32074c91d1f48be06862bfd41549b092aa73642b899b25c28",
+    "build/microchrony-loop-20261018/stats-regression.json": "753a05e204d5bf0591623f2cbd1c87855d64ad7e07baa5dd265345b0df014738"
+  },
+  "comparison_stage": "Adaptive history and separate source combination",
+  "previous_implementation": {
+    "preservation_manifest": "build/microchrony-loop-20261018/adaptive-combination/before-sha256.json",
+    "source_cpp_sha256": "e13adb579135d13d18fb32acb0a77bd3ec606e740ccb59e532a0cc4cc663c9a4",
+    "source_hpp_sha256": "f161b371881424b359d2ca1857aa279caa77180eaa91f5d6e1ca88e554aba4d4",
+    "loop_binary_sha256": "f31b268b9e044985318188a0f61f6d0831a2d67fba990e4d41cab8141cde28ce",
+    "report_sha256": "da84014a7ffbaa6e18b91f1c50ef57dd48245fa2912b386bb26c75b91f36603f"
+  },
+  "engine_bytes": {
+    "current": 32552,
+    "previous": 30440,
+    "unchanged_limit": 32768,
+    "measurement": 104,
+    "predecessor": 16
+  },
+  "configuration_values_unchanged": true,
+  "conservative_public_and_frequency_update_bounds_preserved": true,
+  "authoritative_current_receipts_directory": "build/microchrony-loop-20261018/adaptive-combination",
+  "artifact_roles": "The adaptive-combination receipts and current firmware are authoritative for this stage. Earlier root reports characterize the original and previous engines; preserved previous sources and loop binary identify that comparison."
+}

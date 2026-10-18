@@ -52,6 +52,10 @@ int main(void) {
         sample.root_dispersion = dispersion;
         SST_AccumulateSample(stats, &sample);
         SST_DoNewRegression(stats);
+        if (getenv("MICROCHRONY_DIAGNOSTICS")) {
+            fprintf(stderr, "STATE %u\n", id + 1);
+            SST_SaveToFile(stats, stderr);
+        }
         RPT_SourcestatsReport report = {0};
         SST_DoSourcestatsReport(stats, &report, &sample.time);
         struct timespec reference;

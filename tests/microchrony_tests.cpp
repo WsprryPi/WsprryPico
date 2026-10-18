@@ -379,6 +379,101 @@ void control_rules() {
     const auto t = saturated.tracking(9 * 64 * second + 1'000'000);
     CHECK(t.synchronized && t.utc_frequency_ppb == 100000 && t.skew_ppb >= 100000);
 }
+void frequency_innovation() {
+    // Overlapping, equal fits do not independently manufacture confidence.
+    FrequencyEstimate repeated{20e-6, 3e-6};
+    for (unsigned i = 0; i < 100; ++i)
+        repeated = combine_frequency(repeated, {20e-6, 3e-6});
+    CHECK(std::abs(repeated.rate - 20e-6) < 1e-15);
+    CHECK(std::abs(repeated.skew - 3e-6) < 1e-15);
+    const auto innovation = combine_frequency({0, 1e-6}, {20e-6, 1e-6});
+    CHECK(innovation.rate > 14.99e-6 && innovation.rate < 15.01e-6);
+    CHECK(innovation.skew > 9e-6); // A real disagreement expands tracking error.
+    const auto untrusted = combine_frequency({0, 1e-6}, {20e-6, 1000e-6});
+    CHECK(std::abs(untrusted.rate) < 1e-9); // No whipsaw from a much noisier fit.
+}
+void source_combination() {
+    // Equal path quality can have unequal frequency precision. A noisier
+    // frequency must not gain authority merely from a precise current offset.
+    std::array<SourceEstimate, 2> s{
+        {{0, 1e-6, 0, 1e-6, 3e-6, .01, 0}, {.002, 1e-9, 20e-6, 10e-6, 30e-6, .01, 64}}};
+    const auto r = combine_sources(s);
+    CHECK(std::abs(r.offset - .001) < 1e-12);
+    CHECK(r.rate < 0.2e-6);
+    CHECK(r.offset_sd > .0014); // Source disagreement and aged error survive.
+    for (const auto& source : s)
+        CHECK(r.frequency_bound >= source.skew + std::abs(source.rate - r.rate));
+    CHECK(r.skew < r.frequency_bound);
+    Config config;
+    config.min_poll = config.max_poll = 6;
+    config.max_clock_error_ppm = 50;
+    Engine engine(config);
+    CHECK(engine.configure(0, 1, 0) && engine.configure(1, 2, 0));
+    for (unsigned i = 1; i <= 20; ++i) {
+        CHECK(measurement(engine, 0, i * 64 * second, 0));
+        CHECK(measurement(engine, 1, i * 64 * second + second / 5, .00003));
+    }
+    CHECK(measurement(engine, 0, 21 * 64 * second, 0));
+    // A healthy peer one poll old is eligible under the same combine limit,
+    // even on a short path with the Pico's conservative holdover allowance.
+    CHECK(engine.tracking(21 * 64 * second + 1'000'000).combined_sources == 2);
+}
+void phase_change_preserves_frequency() {
+    Config config;
+    config.max_drift_ppm = 100;
+    Engine e(config);
+    CHECK(e.configure(0, 1, 0));
+    for (unsigned i = 1; i <= 80; ++i) {
+        CHECK(measurement(e, 0, i * 64 * second, i <= 64 ? 0 : .05));
+        const auto t = e.tracking(i * 64 * second + 1'000'000);
+        CHECK(t.synchronized == (i >= 3));
+        CHECK(std::abs(t.utc_frequency_ppb) < 100); // Phase change, unchanged oscillator.
+    }
+    CHECK(e.history(0).size() == sample_capacity); // Pruning keeps original evidence.
+    CHECK(e.history(0).front().id == 17 && e.history(0).back().id == 80);
+    CHECK(e.status(0, 80 * 64 * second).estimate.samples < sample_capacity);
+    // Reset/reconfiguration after pruning must clear both active and preceding
+    // indices. Reusing a stale start would underflow a new source's window.
+    e.reset(81 * 64 * second);
+    for (unsigned i = 82; i <= 84; ++i)
+        CHECK(measurement(e, 0, i * 64 * second, 0));
+    CHECK(e.tracking(84 * 64 * second + 1'000'000).synchronized);
+    CHECK(e.status(0, 84 * 64 * second).estimate.samples == 3);
+    e.remove(0, 85 * 64 * second);
+    CHECK(e.configure(0, 5, 85 * 64 * second));
+    for (unsigned i = 86; i <= 88; ++i)
+        CHECK(measurement(e, 0, i * 64 * second, 0));
+    CHECK(e.tracking(88 * 64 * second + 1'000'000).synchronized);
+}
+void variable_delay_retention() {
+    Config c;
+    c.max_delay_deviation_ratio = 0; // Exercise statistics after packet admission.
+    Engine e(c);
+    CHECK(e.configure(0, 1, 0));
+    for (unsigned i = 1; i <= 64; ++i) {
+        const double queue = (i * 17 % 11) * .003;
+        CHECK(measurement(e, 0, i * 64 * second, -20e-6 * i * 64 + queue / 2,
+                          std::uint64_t(std::llround((.002 + queue) * 1e9))));
+        if (i >= 13)
+            CHECK(std::abs(e.status(0, i * 64 * second).estimate.rate + 20e-6) < 5e-9);
+    }
+    CHECK(e.history(0).size() == sample_capacity);
+}
+void predecessor_phase_rebase() {
+    Config config;
+    config.max_drift_ppm = 100;
+    Engine e(config);
+    CHECK(e.configure(0, 1, 0));
+    // The deliberately out-of-range oscillator makes the compact phase cross
+    // its signed 32-bit span. Rebase it without wrapping or raising authority.
+    for (unsigned i = 1; i <= 200; ++i)
+        CHECK(measurement(e, 0, i * 64 * second, i * 64 * .001));
+    const auto now = 200 * 64 * second + 1'000'000;
+    CHECK(e.history(0).size() == sample_capacity);
+    CHECK(std::abs(e.status(0, now).estimate.rate - .001) < 1e-9);
+    CHECK(e.tracking(now).utc_frequency_ppb == 100000);
+    CHECK(e.tracking(now).skew_ppb >= 900000);
+}
 void stats_driver() {
     Engine engine;
     Config config;
@@ -417,6 +512,11 @@ int main(int argc, char** argv) {
     }
     selection_hysteresis();
     control_rules();
+    frequency_innovation();
+    source_combination();
+    phase_change_preserves_frequency();
+    variable_delay_retention();
+    predecessor_phase_rebase();
     learning();
     delay_and_loss();
     source_agreement();

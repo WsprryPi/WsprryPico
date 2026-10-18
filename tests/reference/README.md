@@ -44,6 +44,86 @@ The linker helper checks the external version/license and hashes the existing
 upstream objects, original harness and resulting executable. No upstream
 source is linked into `microchrony`, `wsprrypico_core` or `WsprryPico`.
 
+## Complete clock-control loops
+
+`chrony49_loop.c` connects the unmodified external SST, SRC, REF, LCL and
+SYS_Generic modules to an original in-process oscillator. It intercepts clock
+reads and scheduler waits; its only IO is a private wake pipe and stdin/stdout.
+Driver timeouts execute between physical events. The production μChrony engine
+runs through `microchrony_loop.cpp`, registered as the host `microchrony_loop`
+target. Identical raw oscillator ticks, server timestamps, path delays and loss
+events drive both. Their resulting clocks feed subsequent measurements/control;
+known truth scores actual UTC and pure frequency separately from phase slew.
+
+The fixed polling schedule supplies four initial observations and then one
+per source every 64 seconds. The Chrony adapter begins at the NTP sample API;
+UDP parsing, authentication, packet admission and autonomous polling are outside
+this comparison. All supplied replies pass production μChrony packet admission.
+This tests the complete supported source-to-clock control path, rather than
+only SST fits or an isolated phase helper. It does not certify the whole daemon
+or a physical Pico/network clock.
+
+With the existing external build and a configured host build:
+
+```sh
+receipts=build/microchrony-loop-20261018
+python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-loop" loop
+python3 tests/reference/compare_chrony49_loop.py "$receipts/chrony49-loop" \
+  "$receipts/host/microchrony_loop" "$receipts/after.json"
+python3 tests/reference/compare_chrony49_loop.py "$receipts/chrony49-loop" \
+  "$receipts/host/microchrony_loop" "$receipts/quarter-second.json" --tick-s .25 \
+  --cases noisy_frequency_step server_step_50ms heldout_ramp heldout_pool
+python3 tests/reference/validate_chrony49_loop.py "$receipts/chrony49-loop" \
+  "$receipts/host/microchrony_loop" "$receipts/after.json" \
+  "$receipts/quarter-second.json" "$receipts/loop-validation.json"
+python3 tests/reference/compare_chrony49_frequency.py "$receipts/chrony49-control" \
+  "$receipts/host/microchrony_loop" "$receipts/frequency-update.json"
+```
+
+`test_microchrony_loop.py` provides ten known-truth CI cases without an external
+reference, network or hardware. `plot_chrony49_loop.py BEFORE AFTER DIRECTORY`
+uses installed gnuplot to plot raw truth errors from saved reports. The
+[clock-loop record](../../docs/development/microchrony-clock-loop.md) specifies
+the baseline identity, exact checks, results and remaining differences.
+
+The adaptive-history/source-combination follow-up preserves the previous engine
+and its comparison under ignored `build/microchrony-loop-20261018/adaptive-combination/before/`.
+Its full comparison uses `--validation-seeds` for 25 four-hour traces. The CI
+clock-loop test now checks ten known-truth cases, including three further pool
+noise seeds and a majority with a falseticker; existing acceptance limits remain
+and pool RMS checks are added.
+
+`chrony49_combination.c` isolates unmodified SST/SRC objects by replacing only the
+public REF output sink. It records every source estimate and the actual combined
+arguments; it does not run the reference controller or prove daemon equivalence.
+`compare_chrony49_adaptation.py` feeds those exact estimates to the production
+combiner. It separately compares six 256-point histories through SST and Engine,
+checking all active sample-count decisions and frequency differences. Timestamp
+and measurement admission remain outside the scalar SST tests.
+
+```sh
+receipts=build/microchrony-loop-20261018/adaptive-combination
+python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-stats"
+python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-combination" combination
+python3 tests/reference/compare_chrony49_adaptation.py "$receipts/chrony49-stats" \
+  "$receipts/chrony49-combination" build/microchrony-loop-20261018/host/microchrony_tests \
+  build/microchrony-loop-20261018/host/microchrony_loop "$receipts/adaptation.json"
+python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-loop" loop
+python3 tests/reference/compare_chrony49_loop.py "$receipts/chrony49-loop" \
+  build/microchrony-loop-20261018/host/microchrony_loop "$receipts/after.json" --validation-seeds
+python3 tests/reference/plot_chrony49_loop.py \
+  "$receipts/before/build/microchrony-loop-20261018/after.json" \
+  "$receipts/after.json" "$receipts/comparison" --adaptive
+```
+
+The optional `regression` harness calls only the public `RGR_FindBestRegression`
+API. Its input is `n m minimum`, then `n+m` triples of x/y/variance weights;
+output includes the resulting start index, active runs and degrees of freedom.
+It supports independent diagnosis of sign-run thresholds and predecessor counts.
+Setting `MICROCHRONY_DIAGNOSTICS=1` adds bounded per-update source diagnostics on
+stderr for the loop drivers, or the public SST dump for the scalar driver.
+The deterministic fixtures and process timeout bound this diagnostic output.
+
 ## Tested boundaries
 
 The statistics comparison feeds eight identical 64-point timestamp, offset,

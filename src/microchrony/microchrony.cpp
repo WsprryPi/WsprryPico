@@ -56,21 +56,31 @@ double t_coefficient(unsigned freedom) {
 struct Line {
     double x = 0, y = 0, slope = 0, rate_sd = 0, offset_sd = 0, sd = 0;
     double delay_coefficient = 0;
-    unsigned runs = 0, positive = 0, negative = 0;
+    unsigned runs = 0, positive = 0, negative = 0, active_runs = 0;
     unsigned freedom = 1;
 };
 // Centered weighted least squares. x is raw seconds; y is the change of
 // receive-UTC minus raw seconds. No floating-point Unix epoch is fitted.
-Line regress(std::span<const Measurement> samples, double precision, double asymmetry) {
+Line regress(std::span<const Measurement> samples, double precision, double asymmetry,
+             std::span<const Measurement> runs_samples,
+             std::span<const RegressionPoint> predecessors, std::uint64_t predecessor_raw,
+             std::uint64_t predecessor_utc) {
     Line result;
     const auto& origin = samples.front();
     const auto& last = samples.back();
     double min_delay = samples.front().delay;
     for (const auto& s : samples)
         min_delay = std::min(min_delay, s.delay);
-    auto xy = [&](const Measurement& s) {
+    auto xy = [&](const auto& s) {
         const double x = difference(s.raw_ns, origin.raw_ns);
         return std::pair{x, difference(s.utc_ns, origin.utc_ns) - x};
+    };
+    const auto past_xy = [&](const RegressionPoint& s) {
+        const double x = difference(s.raw_ns, origin.raw_ns);
+        const auto base_phase = std::int64_t(predecessor_utc - origin.utc_ns) -
+                                std::int64_t(predecessor_raw - origin.raw_ns);
+        const double y = (base_phase + s.phase_ns) / billion;
+        return std::pair{x, y};
     };
     auto weight = [&](const Measurement& s) {
         const auto distance = std::max(precision, s.root_delay / 2 + s.root_dispersion);
@@ -115,22 +125,62 @@ Line regress(std::span<const Measurement> samples, double precision, double asym
         result.y -= correction * mz;
     }
     double residual_sum = 0, variance_sum = 0;
-    int previous = 0;
     for (const auto& s : samples) {
         const auto [x, y] = xy(s);
         const auto residual = y - result.y - result.slope * (x - result.x) -
                               result.delay_coefficient * (s.delay - min_delay);
         residual_sum += weight(s) * residual * residual;
         variance_sum += residual * residual;
-        const int sign = residual > 1e-12 ? 1 : residual < -1e-12 ? -1 : 0;
+    }
+    const auto freedom = std::max(1U, unsigned(samples.size()) - (joint ? 3 : 2));
+    // A quantization-limited line has no resolved residual signs. Once the
+    // residual variance exceeds timestamp precision, count every sign using
+    // the ordinary runs null model; dropping near-zero members biases it.
+    const double tie = variance_sum > freedom * precision * precision ? 0 : precision;
+    int previous = 0;
+    // Predecessors can test a clock regime only if their path effect is
+    // modelled. With variable delay and no identifiable asymmetry coefficient,
+    // extending the residual test would mistake queue structure for drift and
+    // prevent a short fit from ever gathering enough data to identify it.
+    const bool variable_delay = std::any_of(samples.begin(), samples.end(), [&](const auto& s) {
+        return s.delay - min_delay > precision;
+    });
+    const auto test = [&](double x, double y, double delay, double rounding_error) {
+        const auto residual = y - result.y - result.slope * (x - result.x) -
+                              result.delay_coefficient * (delay - min_delay);
+        const auto threshold = std::max(tie, rounding_error);
+        const int sign = residual > threshold ? 1 : residual < -threshold ? -1 : 0;
         if (sign) {
             result.positive += sign > 0;
             result.negative += sign < 0;
             result.runs += sign != previous;
             previous = sign;
         }
+    };
+    if (!variable_delay || joint)
+        for (const auto& s : predecessors) {
+            const auto [x, y] = past_xy(s);
+            const double rounding =
+                std::abs(result.delay_coefficient) *
+                (std::nextafter(s.delay, std::numeric_limits<float>::infinity()) - s.delay);
+            test(x, y, s.delay, rounding);
+        }
+    const auto tested = variable_delay && !joint ? samples : runs_samples;
+    for (const auto& s : tested) {
+        const auto [x, y] = xy(s);
+        test(x, y, s.delay, 0);
     }
-    const auto freedom = std::max(1U, unsigned(samples.size()) - (joint ? 3 : 2));
+    previous = 0;
+    for (const auto& s : samples) {
+        const auto [x, y] = xy(s);
+        const auto residual = y - result.y - result.slope * (x - result.x) -
+                              result.delay_coefficient * (s.delay - min_delay);
+        const int sign = residual > tie ? 1 : residual < -tie ? -1 : 0;
+        if (sign) {
+            result.active_runs += sign != previous;
+            previous = sign;
+        }
+    }
     result.freedom = freedom;
     const double variance = residual_sum / freedom;
     result.rate_sd = xx > 0 ? std::sqrt(variance * (joint ? zz / determinant : 1 / xx)) : 1;
@@ -201,6 +251,49 @@ double phase_slew(double correction, double corr_rate, double maximum_rate) {
     const auto speed = corr_rate ? std::min(limit, correction * correction / corr_rate) : limit;
     return std::copysign(speed, correction);
 }
+FrequencyEstimate combine_frequency(FrequencyEstimate previous, FrequencyEstimate measured) {
+    // Give the new fit three times the weight of an equally precise previous
+    // estimate. The between-estimate spread expands error on an innovation;
+    // an equal repeated estimate retains its error instead of shrinking it.
+    const auto old_variance = 3 * previous.skew * previous.skew;
+    const auto new_variance = measured.skew * measured.skew;
+    const auto gain = old_variance / std::max(1e-30, old_variance + new_variance);
+    const auto difference = measured.rate - previous.rate;
+    return {previous.rate + gain * difference,
+            (1 - gain) * previous.skew + gain * measured.skew +
+                std::sqrt(gain * (1 - gain)) * std::abs(difference)};
+}
+CombinedEstimate combine_sources(std::span<const SourceEstimate> sources) {
+    CombinedEstimate result;
+    double offset_weights = 0, frequency_weights = 0, offset_variance = 0, skew_weights = 0;
+    for (const auto& s : sources) {
+        const double offset_weight = 1 / std::max(1e-12, s.distance);
+        const double frequency_weight = 1 / std::max(1e-24, s.rate_sd * s.rate_sd);
+        offset_weights += offset_weight;
+        frequency_weights += frequency_weight;
+        result.offset += offset_weight * s.offset;
+        result.rate += frequency_weight * s.rate;
+        // Translate the controller's error estimate to the selected epoch.
+        // A peer sampled later has negative age. Public source/error bounds
+        // are calculated separately and never reduced by this translation.
+        const auto error = std::max(0.0, s.offset_sd + s.age * s.rate_sd);
+        // Keep the dispersion about the chosen reference, including inter-source
+        // disagreement. A weighted center does not erase that disagreement.
+        offset_variance += offset_weight * (error * error + s.offset * s.offset);
+        skew_weights += 1 / std::max(1e-24, s.skew * s.skew);
+    }
+    if (!offset_weights || !frequency_weights)
+        return result;
+    result.offset /= offset_weights;
+    result.offset_sd = std::sqrt(offset_variance / offset_weights);
+    result.rate /= frequency_weights;
+    result.rate_sd = std::sqrt(1 / frequency_weights);
+    result.skew = std::sqrt(1 / skew_weights);
+    for (const auto& s : sources)
+        result.frequency_bound =
+            std::max(result.frequency_bound, s.skew + std::abs(s.rate - result.rate));
+    return result;
+}
 Engine::Engine(Config config) : config_(config) {
     config_valid_ =
         config.min_poll <= config.max_poll && config.max_poll <= 17 && config.poll_target >= 3 &&
@@ -228,6 +321,7 @@ void Engine::seed(std::int32_t frequency_ppb, std::uint32_t skew_ppb) {
         // Restart age/temperature are unknown. Fresh data must re-establish
         // precision; restoring a drift never restores UTC or synchronization.
         skew_ = std::max(0.002, skew_ppb / billion);
+        frequency_skew_ = skew_;
     }
 }
 bool Engine::configure(unsigned slot, std::uint32_t endpoint, std::uint64_t now) {
@@ -262,8 +356,10 @@ void Engine::clear(Source& s) {
     // Samples become inaccessible through count=0. Avoid constructing or
     // copying a complete multi-kilobyte Source on the MCU stack.
     s.status = {};
-    s.count = s.burst_left = s.burst_attempts = s.poll_score = 0;
+    s.count = s.fit_start = s.predecessor_count = s.runs_count = s.burst_left = s.burst_attempts =
+        s.poll_score = 0;
     s.send_ns = s.token = s.sequence = 0;
+    s.predecessor_raw_ns = s.predecessor_utc_ns = 0;
     s.last.reset();
     s.pending = s.denied = s.synchronized = false;
     s.min_delay = s.asymmetry = 0;
@@ -400,7 +496,11 @@ bool Engine::receive(unsigned slot, std::span<const std::uint8_t> packet, std::u
     measurement.server_send_ns = send_utc;
     measurement.delay = delay;
     measurement.root_delay = std::max(0.0, upstream_delay) + delay;
-    measurement.precision = std::max(config_.precision, std::exp2(precision));
+    const auto sample_precision = std::max(config_.precision, std::exp2(precision));
+    measurement.precision = float(sample_precision);
+    if (measurement.precision < sample_precision)
+        measurement.precision =
+            std::nextafter(measurement.precision, std::numeric_limits<float>::infinity());
     measurement.root_dispersion = wire_dispersion / 65536.0 + measurement.precision +
                                   elapsed * config_.max_clock_error_ppm * 1e-6;
     measurement.root_delay_wire = wire_delay;
@@ -430,27 +530,57 @@ bool Engine::receive(unsigned slot, std::span<const std::uint8_t> packet, std::u
             std::abs(expected) > config_.max_delay_deviation_ratio * noise + growth)
             return reject(Rejection::DelayDeviation);
     }
+    // Age the test horizon before admitting a new fit point. A shortened fit
+    // can use predecessors, but cannot later resurrect an obsolete regime as
+    // its window grows. The compact history has a fixed 2*max_samples-1 bound.
+    s.runs_count = std::min(s.runs_count, 2 * (s.count - s.fit_start));
     if (s.count == config_.max_samples) {
+        const auto& old = s.samples.front();
+        if (!s.predecessor_count) {
+            s.predecessor_raw_ns = old.raw_ns;
+            s.predecessor_utc_ns = old.utc_ns;
+        }
+        auto phase = std::int64_t(old.utc_ns - s.predecessor_utc_ns) -
+                     std::int64_t(old.raw_ns - s.predecessor_raw_ns);
+        if (phase < INT32_MIN || phase > INT32_MAX) {
+            // Rebase before a compact phase overflows. The full 64 originals
+            // remain exact; no wrapped retired point can affect a runs test.
+            s.predecessor_count = 0;
+            s.predecessor_raw_ns = old.raw_ns;
+            s.predecessor_utc_ns = old.utc_ns;
+            s.runs_count = std::min(s.runs_count, s.count);
+            phase = 0;
+        }
+        if (s.predecessor_count == sample_capacity) {
+            std::move(s.predecessors.begin() + 1, s.predecessors.end(), s.predecessors.begin());
+            --s.predecessor_count;
+        }
+        s.predecessors[s.predecessor_count++] = {old.raw_ns, std::int32_t(phase), float(old.delay)};
         std::move(s.samples.begin() + 1, s.samples.begin() + s.count, s.samples.begin());
         --s.count;
+        if (s.fit_start)
+            --s.fit_start;
     }
     s.samples[s.count++] = measurement;
+    s.runs_count = std::min(s.runs_count + 1, 2 * config_.max_samples - 1);
     s.synchronized = true;
     s.status.last_accepted_ns = now;
     s.status.replace = false;
-    s.min_delay = measurement.delay;
-    for (unsigned i = 0; i < s.count; ++i)
-        s.min_delay = std::min(s.min_delay, s.samples[i].delay);
     ++s.status.generation;
     fit(s);
+    s.min_delay = measurement.delay;
+    for (unsigned i = s.fit_start; i < s.count; ++i)
+        s.min_delay = std::min(s.min_delay, s.samples[i].delay);
     s.status.reason = s.status.estimate.valid ? Rejection::None : Rejection::InsufficientSamples;
     if (s.burst_left)
         --s.burst_left;
     if (!s.burst_left) {
-        if (s.count > config_.poll_target && ++s.poll_score >= config_.poll_target) {
+        if (s.status.estimate.samples > config_.poll_target &&
+            ++s.poll_score >= config_.poll_target) {
             s.status.poll = std::min(config_.max_poll, s.status.poll + 1);
             s.poll_score = 0;
-        } else if (s.count < config_.poll_target && s.status.poll > config_.min_poll) {
+        } else if (s.status.estimate.samples < config_.poll_target &&
+                   s.status.poll > config_.min_poll) {
             --s.status.poll;
             s.poll_score = 0;
         }
@@ -466,27 +596,41 @@ void Engine::fit(Source& source) {
     e.samples = source.count;
     if (!source.count)
         return;
-    while (source.count >= 3) {
-        const auto points = std::span{source.samples.data(), source.count};
-        const auto line = regress(points, config_.precision, 0);
+    while (source.count - source.fit_start >= 3) {
+        const auto active_count = source.count - source.fit_start;
+        const auto points = std::span{source.samples.data() + source.fit_start, active_count};
+        // Test the fitted line against preceding observations as well. Without
+        // them a short window can pass its own runs test while still crossing
+        // the old and new clock regimes. Originals stay in the bounded ring;
+        // only the active regression start moves.
+        const auto preceding = std::min(source.runs_count - active_count, active_count);
+        const auto runs_start = source.fit_start > preceding ? source.fit_start - preceding : 0;
+        const auto runs_points =
+            std::span{source.samples.data() + runs_start, source.count - runs_start};
+        const auto extra_count =
+            std::min(source.predecessor_count, preceding - (source.fit_start - runs_start));
+        const auto extra = std::span{
+            source.predecessors.data() + source.predecessor_count - extra_count, extra_count};
+        const auto line = regress(points, config_.precision, 0, runs_points, extra,
+                                  source.predecessor_raw_ns, source.predecessor_utc_ns);
         source.asymmetry = line.delay_coefficient;
         const auto signs = line.positive + line.negative;
-        // Wald-Wolfowitz residual runs test. A persistent trend means the old
-        // straight line no longer describes the clock/path. Shorten history.
-        if (source.count > config_.min_samples && line.positive && line.negative && signs >= 4) {
-            const double pairs = 2.0 * line.positive * line.negative;
+        // Residuals of a correct centered line have equiprobable signs. Use
+        // that null model rather than conditioning on the observed imbalance:
+        // a long one-sided drift segment is itself evidence against the line.
+        // Conditioning on its imbalance would make that evidence disappear.
+        if (active_count > config_.min_samples && line.positive && line.negative && signs >= 4) {
+            const double pairs = 0.5 * signs * signs;
             const double expected = 1 + pairs / signs;
             const double variance = pairs * (pairs - signs) / (double(signs) * signs * (signs - 1));
             if (line.runs < expected - 1.645 * std::sqrt(std::max(0.0, variance))) {
-                std::move(source.samples.begin() + 1, source.samples.begin() + source.count,
-                          source.samples.begin());
-                --source.count;
+                ++source.fit_start;
                 continue;
             }
         }
         const auto& first = points.front();
         const auto& last = points.back();
-        e.samples = source.count;
+        e.samples = active_count;
         e.raw_ns = last.raw_ns;
         e.first_raw_ns = first.raw_ns;
         e.rate = line.slope;
@@ -499,7 +643,7 @@ void Engine::fit(Source& source) {
         e.utc_ns = add_time(first.utc_ns, elapsed + line.y + line.slope * (elapsed - line.x));
         e.root_delay = last.root_delay;
         e.root_dispersion = last.root_dispersion + line.offset_sd;
-        e.runs = line.runs;
+        e.runs = line.active_runs;
         e.valid = std::isfinite(e.skew) && std::isfinite(e.rate) && e.utc_ns;
         return;
     }
@@ -520,6 +664,12 @@ double Engine::distance(const Source& s, std::uint64_t raw) const {
         return std::numeric_limits<double>::infinity();
     return e.root_delay / 2 + e.root_dispersion +
            difference(raw, e.raw_ns) * std::max(e.skew, config_.max_clock_error_ppm * 1e-6);
+}
+double Engine::selection_distance(const Source& s, std::uint64_t raw) const {
+    double path = std::numeric_limits<double>::infinity();
+    for (unsigned j = s.fit_start; j < s.count; ++j)
+        path = std::min(path, s.samples[j].root_delay / 2 + s.samples[j].root_dispersion);
+    return path + std::max(0.0, difference(raw, s.status.estimate.raw_ns)) * s.status.estimate.skew;
 }
 void Engine::select(std::uint64_t now, bool score_update) {
     std::array<unsigned, source_capacity> candidates{};
@@ -583,7 +733,7 @@ void Engine::select(std::uint64_t now, bool score_update) {
                 minimum_stratum,
                 sources_[candidates[k]].samples[sources_[candidates[k]].count - 1].stratum);
     double minimum_distance = std::numeric_limits<double>::infinity();
-    std::array<double, source_capacity> selection_distance{};
+    std::array<double, source_capacity> selection_distances{};
     for (unsigned k = 0; k < count; ++k) {
         auto& s = sources_[candidates[k]];
         if (!(best_mask & (1U << k))) {
@@ -595,18 +745,12 @@ void Engine::select(std::uint64_t now, bool score_update) {
         s.status.selectable = true;
         s.status.reason = Rejection::None;
         const auto stratum = s.samples[s.count - 1].stratum;
-        double path_distance = std::numeric_limits<double>::infinity();
-        for (unsigned j = 0; j < s.count; ++j)
-            path_distance =
-                std::min(path_distance, s.samples[j].root_delay / 2 + s.samples[j].root_dispersion);
         // Rank the path by the best retained exchange, as a later queue spike
         // does not erase that measured path quality. Agreement and reported
         // clock error still use the conservative full model interval above.
         const double candidate =
-            path_distance + s.status.estimate.offset_sd +
-            difference(now, s.status.estimate.raw_ns) * s.status.estimate.skew +
-            (stratum - minimum_stratum) * config_.stratum_weight;
-        selection_distance[candidates[k]] = candidate;
+            selection_distance(s, now) + (stratum - minimum_stratum) * config_.stratum_weight;
+        selection_distances[candidates[k]] = candidate;
         if (candidate < minimum_distance) {
             minimum_distance = candidate;
             best = candidates[k];
@@ -626,9 +770,9 @@ void Engine::select(std::uint64_t now, bool score_update) {
             if (!s.status.selectable || index == selected_)
                 continue;
             if (score_update) {
-                const auto ratio = selection_distance[selected_] /
+                const auto ratio = selection_distances[selected_] /
                                    std::max(config_.precision,
-                                            selection_distance[index] + config_.reselect_distance);
+                                            selection_distances[index] + config_.reselect_distance);
                 s.status.selection_score = std::clamp(s.status.selection_score * ratio, 1.0, 1e12);
             }
             if (s.status.selection_score >= highest) {
@@ -649,7 +793,8 @@ void Engine::select(std::uint64_t now, bool score_update) {
             continue;
         const auto& reference = sources_[best];
         if (candidates[k] == best ||
-            (distance(s, now) <= config_.combine_limit * distance(reference, now) &&
+            (selection_distance(s, now) <=
+                 config_.combine_limit * selection_distance(reference, now) &&
              std::abs(s.status.estimate.rate - reference.status.estimate.rate) <=
                  s.status.estimate.skew + reference.status.estimate.skew)) {
             s.status.combined = true;
@@ -682,29 +827,30 @@ void Engine::discipline(unsigned selected, std::span<const unsigned> combined, s
         return;
     auto& source = sources_[selected];
     const auto origin = source_utc(source, now);
-    double weights = 0, offset = 0, frequency = 0, variance = 0;
+    std::array<SourceEstimate, source_capacity> estimates;
+    unsigned index = 0;
     for (auto i : combined) {
         const auto& s = sources_[i];
         const auto& e = s.status.estimate;
-        const double error = std::max(1e-9, e.offset_sd);
-        const double weight = 1 / (error * error);
-        weights += weight;
-        offset += weight * difference(source_utc(s, now), origin);
-        frequency += weight * e.rate;
-        variance += weight * e.skew * e.skew;
+        estimates[index++] = {difference(source_utc(s, now), origin),
+                              e.offset_sd,
+                              e.rate,
+                              e.rate_sd,
+                              e.skew,
+                              selection_distance(s, now),
+                              difference(source.status.estimate.raw_ns, e.raw_ns)};
         used_generation_[i] = s.status.generation;
     }
-    const auto reference = add_time(origin, offset / weights);
-    const auto next_frequency = frequency / weights;
-    double next_skew = std::sqrt(variance / weights);
+    const auto estimate = combine_sources({estimates.data(), index});
+    const auto reference = add_time(origin, estimate.offset);
+    const auto next_frequency = estimate.rate;
+    const auto next_skew = estimate.frequency_bound;
     double reference_distance = 0;
     for (auto i : combined) {
         const auto& s = sources_[i];
         reference_distance =
             std::max(reference_distance,
                      distance(s, now) + std::abs(difference(source_utc(s, now), reference)));
-        next_skew = std::max(next_skew, s.status.estimate.skew +
-                                            std::abs(s.status.estimate.rate - next_frequency));
     }
     if (!clock_valid_) {
         // A microcontroller without an RTC must initialize its UTC epoch once.
@@ -714,19 +860,19 @@ void Engine::discipline(unsigned selected, std::span<const unsigned> combined, s
     } else
         advance(now);
     if (next_skew <= config_.max_update_skew_ppm * 1e-6) {
-        const double old_variance = skew_ * skew_;
-        const double new_variance = std::max(1e-24, next_skew * next_skew);
-        const double gain = old_variance / (old_variance + new_variance);
-        frequency_ = std::clamp(frequency_ + gain * (next_frequency - frequency_),
-                                -config_.max_drift_ppm * 1e-6, config_.max_drift_ppm * 1e-6);
+        const auto combined_frequency =
+            combine_frequency({frequency_, frequency_skew_}, {next_frequency, estimate.skew});
+        frequency_ = std::clamp(combined_frequency.rate, -config_.max_drift_ppm * 1e-6,
+                                config_.max_drift_ppm * 1e-6);
+        frequency_skew_ = std::max(1e-12, combined_frequency.skew);
         // Fits overlap. Blending their centers does not create additional
         // independent measurements or reduce the new fit's own uncertainty.
-        skew_ = next_skew + std::abs(next_frequency - frequency_);
+        skew_ = std::max(frequency_skew_, next_skew + std::abs(next_frequency - frequency_));
     }
     pending_phase_ = difference(reference, clock_utc_ns_);
     const auto interval =
         last_update_ns_ && now > last_update_ns_ ? difference(now, last_update_ns_) : 1.0;
-    const auto typical_error = std::max(config_.precision, std::sqrt(1 / weights));
+    const auto typical_error = std::max(config_.precision, estimate.offset_sd);
     const auto corr_rate = correction_rate(typical_error, last_update_ns_ ? interval : 0,
                                            config_.correction_time_ratio);
     slew_ = phase_slew(pending_phase_, corr_rate, config_.max_slew_ppm * 1e-6);

@@ -63,6 +63,11 @@ not qualify it. Complete histories use [bounded USB pages](ntp-usb-diagnostics.m
 
 ## Software and external reference checks
 
+The current [complete clock-loop comparison](microchrony-clock-loop.md)
+adds known-truth source-to-clock feedback tests and records the subsequent
+frequency-combination and history corrections. The isolated checks below
+describe the earlier deployed image and retain their original scope.
+
 The isolated host suite covered 193 checks: 192 passed initially; the recovery
 web test passed after reusing already installed dependencies with an identical
 lockfile. The original environment failure remains in the receipt. No package or
@@ -270,9 +275,10 @@ for plotting. It is a mathematical fixture, not physical resolution.
 
 ### Boundaries that prevent a full equivalence claim
 
-- The actual closed-loop UTC convergence of both implementations has not been
-  compared. The SST driver does not control a clock; the 160 steering tests
-  validate the phase rule and clipping, not complete frequency-servo feedback.
+- These earlier SST and steering receipts do not compare closed-loop UTC
+  convergence. The subsequent [known-truth clock-loop comparison](microchrony-clock-loop.md)
+  exercises source-to-clock feedback in software; it does not qualify the
+  earlier deployed image or a physical board's UTC or RF accuracy.
 - History selection, sample weighting, learned asymmetry and covariance are
   separate implementations. The drift-change and pool replay reveal real
   differences. They are engineering gaps that can be tested and improved, not

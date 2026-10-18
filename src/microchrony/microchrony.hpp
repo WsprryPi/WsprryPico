@@ -48,12 +48,20 @@ struct Measurement {
     std::uint64_t id = 0, send_raw_ns = 0, receive_raw_ns = 0;
     std::uint64_t raw_ns = 0, utc_ns = 0; // Midpoint of the timestamp exchange.
     std::uint64_t server_reference_ns = 0, server_receive_ns = 0, server_send_ns = 0;
-    double delay = 0, root_delay = 0, root_dispersion = 0, precision = 0;
+    double delay = 0, root_delay = 0, root_dispersion = 0;
+    float precision = 0;
     std::uint32_t root_delay_wire = 0, root_dispersion_wire = 0;
     std::uint8_t stratum = 0;
     Leap leap = Leap::Unsynchronized;
     std::int8_t precision_log = 0;
     Rejection rejection = Rejection::None;
+};
+// Older originals needed only for testing a new fit's residual runs. Retain
+// exact timestamp pairs, without another full wire/diagnostic record.
+struct RegressionPoint {
+    std::uint64_t raw_ns = 0;
+    std::int32_t phase_ns = 0;
+    float delay = 0;
 };
 struct Estimate {
     bool valid = false;
@@ -103,6 +111,23 @@ Readiness readiness(const Tracking& tracking, ReadinessLimits limits = {});
 // It comes from the typical historical offset error and update interval.
 double correction_rate(double offset_sd, double update_interval, double ratio);
 double phase_slew(double correction, double corr_rate, double maximum_rate);
+struct FrequencyEstimate {
+    double rate = 0, skew = 0;
+};
+// Weighted old/new estimate with innovation spread. Units are seconds/second.
+// Repeated, overlapping fits must not shrink error as independent observations.
+FrequencyEstimate combine_frequency(FrequencyEstimate previous, FrequencyEstimate measured);
+struct SourceEstimate {
+    double offset = 0, offset_sd = 0, rate = 0, rate_sd = 0, skew = 0;
+    double distance = 0, age = 0;
+};
+struct CombinedEstimate {
+    double offset = 0, offset_sd = 0, rate = 0, rate_sd = 0, skew = 0, frequency_bound = 0;
+};
+// All offsets refer to one epoch; age is the distance from each fit's epoch.
+// The selected source has offset zero. Controller error and the conservative
+// all-source frequency bound are deliberately separate.
+CombinedEstimate combine_sources(std::span<const SourceEstimate> sources);
 
 // No allocation, sockets, files, wall clock, SDK or operating-system calls.
 // One application thread owns the engine. Raw nanoseconds must be monotonic.
@@ -136,7 +161,10 @@ class Engine {
     struct Source {
         SourceStatus status;
         std::array<Measurement, sample_capacity> samples{};
-        unsigned count = 0, burst_left = 0, burst_attempts = 0, poll_score = 0;
+        std::array<RegressionPoint, sample_capacity> predecessors{};
+        unsigned count = 0, fit_start = 0, burst_left = 0, burst_attempts = 0, poll_score = 0;
+        unsigned predecessor_count = 0, runs_count = 0;
+        std::uint64_t predecessor_raw_ns = 0, predecessor_utc_ns = 0;
         std::uint64_t send_ns = 0, token = 0, sequence = 0;
         std::optional<Measurement> last;
         bool pending = false, denied = false, synchronized = false;
@@ -147,6 +175,7 @@ class Engine {
     void select(std::uint64_t raw_ns, bool score_update = false);
     void discipline(unsigned selected, std::span<const unsigned> combined, std::uint64_t raw_ns);
     double distance(const Source& source, std::uint64_t raw_ns) const;
+    double selection_distance(const Source& source, std::uint64_t raw_ns) const;
     std::uint64_t source_utc(const Source& source, std::uint64_t raw_ns) const;
     void advance(std::uint64_t raw_ns);
     void set_poll(Source& source, std::uint64_t raw_ns, std::uint64_t random_token);
@@ -158,6 +187,7 @@ class Engine {
     std::uint64_t last_source_raw_ns_ = 0;
     std::uint64_t generation_ = 1;
     double frequency_ = 0, skew_ = 0.002, slew_ = 0, pending_phase_ = 0;
+    double frequency_skew_ = 0.002; // Controller state, distinct from the reported coverage bound.
     double root_delay_ = 0, root_dispersion_ = 0;
     unsigned selected_ = source_capacity, combined_count_ = 0;
     Leap leap_ = Leap::Unsynchronized;
