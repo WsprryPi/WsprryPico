@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import subprocess
+import time
 from types import SimpleNamespace
 
 import bundle
@@ -14,6 +15,7 @@ import download
 REPOSITORY = download.REPOSITORY
 BASE = 'https://github.com/' + REPOSITORY
 MARKER = 'wsprrypico-ci-index/1'
+TAG_VISIBILITY_DELAYS = (1, 2, 4, 8, 16)
 
 
 def api(path, method='GET', data=None, missing=False):
@@ -48,7 +50,17 @@ def ensure_tag(tag, source):
     if current is None:
         api('git/refs', 'POST', {'ref': 'refs/tags/' + tag, 'sha': source})
         current = tag_commit(tag)
-    bundle.require(current == source, 'Existing version tag points to different source')
+        # A successful creation can precede visibility through the read API.
+        # Retry only missing reads; never recreate or move an existing tag.
+        for delay in TAG_VISIBILITY_DELAYS:
+            if current is not None:
+                break
+            time.sleep(delay)
+            current = tag_commit(tag)
+        bundle.require(current is not None,
+                       'Created version tag is still not visible after bounded retries: ' + tag)
+    bundle.require(current == source,
+                   f'Existing version tag points to different source: {tag} (expected {source}, found {current})')
 
 
 def release_url(tag):

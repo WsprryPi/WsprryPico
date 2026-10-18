@@ -10,7 +10,7 @@ import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +18,59 @@ sys.path.insert(0, str(ROOT / 'scripts/ci'))
 import bundle
 import download
 import publish
+
+
+class TagPublicationTests(unittest.TestCase):
+    def setUp(self):
+        self.tag = 'v0.1.0-ci.1.1'
+        self.source = 'a'*40
+        self.ref = {'object': {'type': 'commit', 'sha': self.source}}
+
+    def test_existing_correct_tag_needs_no_mutation_or_delay(self):
+        with patch.object(publish, 'api', return_value=self.ref) as api, patch('time.sleep') as sleep:
+            publish.ensure_tag(self.tag, self.source)
+        api.assert_called_once_with('git/ref/tags/' + self.tag, missing=True)
+        sleep.assert_not_called()
+
+    def test_new_tag_can_become_visible_on_last_retry(self):
+        responses = [None, {}, None, None, None, None, None, self.ref]
+        with patch.object(publish, 'api', side_effect=responses) as api, patch('time.sleep') as sleep:
+            publish.ensure_tag(self.tag, self.source)
+        self.assertEqual(sleep.call_args_list, [call(1), call(2), call(4), call(8), call(16)])
+        self.assertEqual([c for c in api.call_args_list if c.args[0] == 'git/refs'],
+                         [call('git/refs', 'POST', {'ref': 'refs/tags/' + self.tag, 'sha': self.source})])
+
+    def test_missing_new_tag_exhausts_retries_without_recreating_it(self):
+        with patch.object(publish, 'api', side_effect=[None, {}, *([None]*6)]) as api, \
+             patch('time.sleep') as sleep:
+            with self.assertRaisesRegex(ValueError, 'still not visible.*' + self.tag):
+                publish.ensure_tag(self.tag, self.source)
+        self.assertEqual(sleep.call_args_list, [call(1), call(2), call(4), call(8), call(16)])
+        self.assertEqual(api.call_count, 8)
+        self.assertEqual([c for c in api.call_args_list if c.args[0] == 'git/refs'],
+                         [call('git/refs', 'POST', {'ref': 'refs/tags/' + self.tag, 'sha': self.source})])
+
+    def test_visible_wrong_source_fails_without_further_retries(self):
+        wrong = {'object': {'type': 'commit', 'sha': 'b'*40}}
+        for responses, delays in [([wrong], []), ([None, {}, None, wrong], [call(1)])]:
+            with self.subTest(responses=responses), \
+                 patch.object(publish, 'api', side_effect=responses) as api, patch('time.sleep') as sleep:
+                with self.assertRaisesRegex(ValueError, 'different source') as error:
+                    publish.ensure_tag(self.tag, self.source)
+                self.assertIn(self.tag, str(error.exception))
+                self.assertIn(self.source, str(error.exception))
+                self.assertIn('b'*40, str(error.exception))
+                self.assertEqual(api.call_count, len(responses))
+                self.assertEqual(sleep.call_args_list, delays)
+
+    def test_api_errors_are_not_retried(self):
+        for responses in ([None, RuntimeError('HTTP 403')], [None, {}, RuntimeError('HTTP 403')]):
+            with self.subTest(responses=responses), \
+                 patch.object(publish, 'api', side_effect=responses) as api, patch('time.sleep') as sleep:
+                with self.assertRaisesRegex(RuntimeError, 'HTTP 403'):
+                    publish.ensure_tag(self.tag, self.source)
+                self.assertEqual(api.call_count, len(responses))
+                sleep.assert_not_called()
 
 
 class BundleTests(unittest.TestCase):
@@ -414,6 +467,31 @@ class BundleTests(unittest.TestCase):
             self.assertNotIn('ci-main', releases)
             self.assertEqual(tags['ci-devel'], self.source)
             self.assertEqual(releases['ci-devel']['assets'], [])
+
+    def test_publication_waits_for_new_tag_visibility_before_creating_release(self):
+        args, receipt = self.publication_fixture()
+        releases, tags, mutations, api, upload = self.publication_service()
+        tag = 'v' + self.version
+        hidden_reads = 2
+        visible = False
+        def delayed_visibility(path, method='GET', data=None, missing=False):
+            nonlocal hidden_reads, visible
+            if path == 'git/ref/tags/' + tag and tag in tags:
+                if hidden_reads:
+                    hidden_reads -= 1
+                    return None
+                visible = True
+            if path == 'releases' and method == 'POST':
+                self.assertTrue(visible, 'Release creation must wait for verified tag identity')
+            return api(path, method, data, missing)
+        with patch.object(publish, 'api', side_effect=delayed_visibility), \
+             patch.object(publish.subprocess, 'run', side_effect=upload), patch('time.sleep') as sleep:
+            publish.preserve(receipt, args.destination)
+        self.assertEqual(sleep.call_args_list, [call(1), call(2)])
+        self.assertEqual(tags[tag], self.source)
+        self.assertFalse(releases[tag]['draft'])
+        self.assertEqual(len(releases[tag]['assets']), 9)
+        self.assertEqual(sum(path == 'git/refs' for path, _, _ in mutations), 1)
 
     def test_partial_draft_recovers_but_published_asset_mutation_is_rejected(self):
         args, receipt = self.publication_fixture()

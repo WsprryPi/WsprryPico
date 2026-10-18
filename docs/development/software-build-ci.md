@@ -148,6 +148,11 @@ tags and published assets cannot be replaced by this helper. This is an enforced
 append-only publishing policy, not a claim that repository-wide GitHub release
 immutability has been enabled.
 
+After successful tag creation, missing tag readbacks receive up to five retries
+with 1, 2, 4, 8 and 16 second delays. Exhaustion reports a visibility timeout;
+a visible tag pointing to another commit or an API error fails immediately.
+The helper creates the tag only once and never moves it during recovery.
+
 The `ci-devel` and `ci-main` releases are bookmarks. Their tags are created once
 and never moved. Only the release body changes, atomically pointing at a complete
 version release. Main and devel indexes are independent. Source ancestry prevents
