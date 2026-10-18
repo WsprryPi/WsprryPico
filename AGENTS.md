@@ -26,6 +26,11 @@
   with capability descriptions; retain needed technical detail in engineering
   documentation. Do not substitute engineering links for operator explanations,
   add documentation placeholders or promise future documentation.
+- Delete completed, superseded and abandoned execution prompts and temporary
+  handoffs after consolidating any needed technical content. Repair their
+  references; do not archive them or retain them solely because a completed
+  checklist item links to them. Keep only handoffs needed for selected unfinished
+  work and genuinely reusable instructions.
 - Apply the same inventory, rewrite, reference-repair and validation process to
   development phase and step references, including those in README.md and
   SECURITY.md. Preserve phase/step organization only in explicitly retained,

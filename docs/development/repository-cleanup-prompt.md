@@ -254,11 +254,24 @@ before acting if files, active jobs, ownership or dependencies change.
 
 ### Delete obsolete artifacts
 
-- Remove completed execution prompts, temporary handoffs, intermediate review
-  reports, superseded plans, phase journals, old result matrices and raw test
-  evidence whose useful current information has been consolidated. An
-  unexecuted prompt linked from active backlog work remains selected material.
-  Retain this reusable cleanup prompt and its discovery links.
+- Delete completed, superseded and abandoned execution prompts and temporary
+  handoffs after consolidating any useful current technical information. They
+  are disposable execution instructions, not permanent engineering records.
+  A link from a completed checklist item, old acceptance record or prompt index
+  is a reference to repair, not a reason to retain an obsolete prompt. Remove
+  its obsolete link or replace it with an appropriate current technical
+  reference; do not create an archive, mirror or another history report.
+- Retain handoffs still needed for selected unfinished work, including an
+  execution currently in flight, and genuinely reusable instructions such as
+  this cleanup guidance and its discovery links. Review their current purpose;
+  an old date alone does not establish obsolescence. Retire the task-specific
+  cleanup handoff when its execution is finished, repairing the checklist link
+  while retaining this reusable guidance.
+- Remove intermediate review reports, superseded plans, phase journals, old
+  result matrices and raw test evidence whose useful current information has
+  been consolidated. Preserve behavioral tests and necessary current fixtures;
+  do not preserve obsolete execution prompts just to satisfy record-presence
+  tests.
 - Remove obsolete capture/analysis results, dated screenshots, stale firmware
   candidates, duplicated releases, old UF2/ELF files, build intermediates,
   abandoned source snapshots, editor backups, temporary scripts and

@@ -1,7 +1,8 @@
 # Consolidated backlog
 
-Updated 2026-10-17. Finish the current work below before release. Previously
-completed work remains complete; saved execution prompts are retained.
+Updated 2026-10-18. Finish the current work below before release. Previously
+completed work remains complete. Retain handoffs needed for selected unfinished
+work; retire obsolete execution prompts under the cleanup guidance.
 
 ## Finish now
 
@@ -38,6 +39,7 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    and rewrite operator-facing prose around current capabilities. Keep needed
    technical material in engineering documentation; add no documentation
    placeholder or future promise. [Cleanup guidance](repository-cleanup-prompt.md).
+   [Saved prompt](repository-cleanup-execution-prompt.md).
 9. ▧ **Operator documentation.** Final instructions, screenshots and
    Read the Docs Community publication.
    [Saved prompt](operator-documentation-execution-prompt.md).
