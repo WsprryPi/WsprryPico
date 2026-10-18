@@ -21,6 +21,12 @@
 - Documentation describes the current product in direct, impersonal language.
   Selected future work belongs in the consolidated backlog or an issue.
   Remove obsolete evidence and development narratives without creating an archive.
+- Apply the same inventory, rewrite, reference-repair and validation process to
+  development phase and step references, including those in README.md and
+  SECURITY.md. Preserve phase/step organization only in explicitly retained,
+  currently used planning documents such as ROADMAP.md, consolidated-backlog.md
+  or an equivalent active plan. Preserve actual operating instructions and
+  technical uses of phase or step.
 - Reading or maintaining the prompt alone does not invoke cleanup.
 
 ## Pico architecture

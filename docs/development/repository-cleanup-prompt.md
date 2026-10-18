@@ -21,6 +21,16 @@ project-specific Mac and Raspberry Pi work harnesses.
 - Keep explanations of current design choices when they help maintainers use
   or change the implementation correctly. State the reason and current
   consequence without recreating the investigation.
+- Clean development phase and step references through the same inventory,
+  rewrite, reference-repair and validation process as other development
+  narratives. This includes headings, prose, status labels, navigation and
+  cross-references in ordinary documentation such as `README.md` and
+  `SECURITY.md`. Preserve phase/step organization only in explicitly retained,
+  currently used planning documents such as `ROADMAP.md`,
+  `consolidated-backlog.md` or an equivalent active plan; identify these
+  exceptions in the inventory. Preserve current behavior, constraints and
+  qualification limits in current-state wording. Actual operating instructions
+  and technical uses of phase or step are not development chronology.
 - Put selected future work only in a maintained, committed backlog document
   or a real issue.
   `docs/development/consolidated-backlog.md` is the current backlog entry point;
@@ -231,6 +241,10 @@ Do not make another backup of material classified for deletion.
 - Consolidate current behavior into appropriate maintained guides and
   contracts. Remove duplicate status paragraphs and completed milestone lists
   from `README.md`, `CONTRACT.md`, architecture and development guides.
+- Remove development phase/step framing outside the explicitly retained active
+  planning documents. Review phase/step-named files and link targets with their
+  dependencies before any rename or deletion; retaining a necessary contract
+  or technical detail does not require retaining its development narrative.
 - Replace historical acceptance stories with concise current support limits
   where those limits remain useful. Retain exact source/board/engine/clock/
   band/mode/setup applicability when a retained physical or RF claim requires
@@ -276,6 +290,9 @@ reference and formatting validation, not hardware acceptance.
    with link or untracked-file validation.
 2. Review the final diff and newly created files for current-state prose,
    normative meaning, preservation of selected backlog work and user edits.
+   Check development phase/step references throughout retained documentation,
+   including `README.md` and `SECURITY.md`, against the explicit active-plan
+   exceptions; preserve actual procedures and technical terminology.
    Run `git diff --check`; inspect untracked text separately. Confirm no
    credentials, local SDK paths or generated firmware were added to source.
 3. Run affected deterministic tests. The documented portable-core baseline is
