@@ -39,11 +39,10 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    devel selection.
    [Installer guide](usb-installer.md) and [acceptance record](usb-installer-results.md).
    [Saved prompt](phase15-18-execution-prompt.md).
-8. ⏳ **Repository and work-harness cleanup.** Remove obsolete project artifacts
+8. ✅ **Repository and work-harness cleanup.** Remove obsolete project artifacts
    and rewrite operator-facing prose around current capabilities. Keep needed
    technical material in engineering documentation; add no documentation
    placeholder or future promise. [Cleanup guidance](repository-cleanup-prompt.md).
-   [Saved prompt](repository-cleanup-execution-prompt.md).
 9. ▧ **Operator documentation.** Final instructions, screenshots and
    Read the Docs Community publication.
    [Saved prompt](operator-documentation-execution-prompt.md).
