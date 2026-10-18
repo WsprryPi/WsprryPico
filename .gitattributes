@@ -22,3 +22,5 @@ CMakeLists.txt text eol=lf
 *.jpeg binary
 *.ico binary
 *.pdf binary
+*.stl binary
+WsprryPico-Case/parametric/generated/*.step binary

@@ -1,0 +1,30 @@
+{
+  "Bottom": {
+    "vertex_key_precision_mm": null,
+    "welded": false,
+    "raw_triangles": 58592,
+    "final_triangles": 58592,
+    "max_weld_vertex_movement_mm": 0.0
+  },
+  "Top": {
+    "vertex_key_precision_mm": null,
+    "welded": false,
+    "raw_triangles": 24172,
+    "final_triangles": 24172,
+    "max_weld_vertex_movement_mm": 0.0
+  },
+  "Wall-Hanger": {
+    "vertex_key_precision_mm": 0.0001,
+    "welded": true,
+    "raw_triangles": 10649,
+    "final_triangles": 10634,
+    "max_weld_vertex_movement_mm": 4.1140851230855927e-05
+  },
+  "Opener": {
+    "vertex_key_precision_mm": null,
+    "welded": false,
+    "raw_triangles": 3944,
+    "final_triangles": 3944,
+    "max_weld_vertex_movement_mm": 0.0
+  }
+}

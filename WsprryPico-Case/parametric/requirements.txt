@@ -1,0 +1,9 @@
+cadquery==2.8.0
+trimesh==4.9.0
+shapely==2.1.2
+rtree==1.4.1
+networkx==3.5
+numpy==2.5.4
+scipy==1.18.1
+matplotlib==3.11.2
+pillow==13.0.0

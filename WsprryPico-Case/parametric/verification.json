@@ -1,0 +1,402 @@
+{
+  "units": "millimetres",
+  "alignment": "STL and STEP coordinates compared without registration or scaling.",
+  "dependencies": {
+    "cadquery": "2.8.0",
+    "cadquery-ocp": "7.9.3.1.1",
+    "trimesh": "4.9.0",
+    "numpy": "2.5.4",
+    "shapely": "2.1.2",
+    "rtree": "1.4.1",
+    "networkx": "3.5"
+  },
+  "python": "3.12.14",
+  "inputs": {
+    "model.py": "9b048d3fe1071800d428f0d23c7922aca72f8a66e6dad4209fdc5ea4edf2c84e",
+    "verify.py": "45e042733e35ca4f2a7f3be312843dfc678b39a9f7eb0428b70794984959b47d",
+    "parameters.json": "a1467dabdec199ae9995cbc76328c009413aa34cc7c1d4ab9ce8b948e36257e1",
+    "profiles.json": "cdf7a74d7b1e044afdb85e759b0a17b280366a84d5c84fd286defa92b55a09d4",
+    "stencil.py": "98742c9d11b5366b0669e2f5af0437826502b5b109fd66a8a5397a7d10e63375",
+    "stencil.json": "cf10212fbe9a73563233803c49b10aa764e607184085b30fc012aed10a359aa7",
+    "../wsprrypico-stencil.png": "7e9e525fee71d7bf3e4323bbe01c645c36ae01641f1d23cd4e22a1be5a2caf05"
+  },
+  "mesh_export": {
+    "Bottom": {
+      "vertex_key_precision_mm": null,
+      "welded": false,
+      "raw_triangles": 58592,
+      "final_triangles": 58592,
+      "max_weld_vertex_movement_mm": 0.0
+    },
+    "Top": {
+      "vertex_key_precision_mm": null,
+      "welded": false,
+      "raw_triangles": 24172,
+      "final_triangles": 24172,
+      "max_weld_vertex_movement_mm": 0.0
+    },
+    "Wall-Hanger": {
+      "vertex_key_precision_mm": 0.0001,
+      "welded": true,
+      "raw_triangles": 10649,
+      "final_triangles": 10634,
+      "max_weld_vertex_movement_mm": 4.1140851230855927e-05
+    },
+    "Opener": {
+      "vertex_key_precision_mm": null,
+      "welded": false,
+      "raw_triangles": 3944,
+      "final_triangles": 3944,
+      "max_weld_vertex_movement_mm": 0.0
+    }
+  },
+  "parts": {
+    "Bottom": {
+      "stl_file": "Bottom.stl",
+      "step_file": "parametric/generated/Bottom.step",
+      "stl_sha256": "917aaf292a766be06e85ed12bbd5d6757ce2d5b4cbd7deb90f69b8882e80eca6",
+      "step_sha256": "2923a3b2fa04872a924ec68f476700d9bac2b67604de8da5e4f6b89a56ba91ec",
+      "mesh_integrity": {
+        "watertight": true,
+        "consistent_winding": true,
+        "connected_components": 1,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "degenerate_faces": 0,
+        "positive_volume": true,
+        "finite_vertices": true,
+        "vertices": 29284,
+        "triangles": 58592
+      },
+      "cad_valid": true,
+      "cad_solids": 1,
+      "stl_extents_mm": [
+        56.70000076293945,
+        27.200000762939453,
+        13.949999809265137
+      ],
+      "step_extents_mm": [
+        56.700000200000005,
+        27.200000200000005,
+        13.950000200000002
+      ],
+      "extent_difference_mm": [
+        5.629394479456096e-07,
+        5.629394479456096e-07,
+        -3.9073486490792675e-07
+      ],
+      "max_coordinate_bounds_difference_mm": 6.629394491142193e-07,
+      "stl_volume_mm3": 4242.592673989959,
+      "step_volume_mm3": 4242.615257463653,
+      "volume_difference_percent": -0.0005323007702395799,
+      "stl_to_step_mesh": {
+        "area_weighted_samples": 10000,
+        "seed": 1977,
+        "mean_mm": 6.2784616580293215e-06,
+        "p99_mm": 0.00019208272788512332,
+        "sample_max_mm": 0.0004444520481966742,
+        "vertex_max_mm": 0.0002787050058203481,
+        "note": "Finite sampling and vertex checks against a finer STEP tessellation; not a certified Hausdorff bound."
+      },
+      "step_mesh_to_stl": {
+        "area_weighted_samples": 10000,
+        "seed": 1977,
+        "mean_mm": 6.335044743486552e-06,
+        "p99_mm": 0.00019361529212795988,
+        "sample_max_mm": 0.000497627670380041,
+        "vertex_max_mm": 0.0036817723824307856,
+        "note": "Finite sampling and vertex checks against a finer STEP tessellation; not a certified Hausdorff bound."
+      },
+      "flat_surfaces": {
+        "description": "Flat, continuous interior surface",
+        "flat_surface_z_mm": 1.2,
+        "probe_regions": 8,
+        "missing_cad_volume_mm3": 0.0,
+        "mesh_surface_height_max_error_mm": 4.768371586472142e-08,
+        "pass": true
+      },
+      "wsprrypico_stencil": null,
+      "opener_outline": null,
+      "header_slot_widths_mm": [
+        2.9399999999999995,
+        2.9399990000000003
+      ],
+      "pass": true
+    },
+    "Top": {
+      "stl_file": "Top.stl",
+      "step_file": "parametric/generated/Top.step",
+      "stl_sha256": "9f7cff2731fcce855b0ecb3e93240475df0d782e60650550211a3fcc8b2c56a4",
+      "step_sha256": "dc912de85129a9cf3337c801d557dffed18f146d48af4676c7c3b32fa1d834b7",
+      "mesh_integrity": {
+        "watertight": true,
+        "consistent_winding": true,
+        "connected_components": 1,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "degenerate_faces": 0,
+        "positive_volume": true,
+        "finite_vertices": true,
+        "vertices": 12062,
+        "triangles": 24172
+      },
+      "cad_valid": true,
+      "cad_solids": 1,
+      "stl_extents_mm": [
+        56.70000076293945,
+        27.200000762939453,
+        5.400000095367432
+      ],
+      "step_extents_mm": [
+        56.700000200000005,
+        27.200000200000005,
+        5.400000200000001
+      ],
+      "extent_difference_mm": [
+        5.629394479456096e-07,
+        5.629394479456096e-07,
+        -1.0463256927550901e-07
+      ],
+      "max_coordinate_bounds_difference_mm": 6.629394491142193e-07,
+      "stl_volume_mm3": 2553.994522281615,
+      "step_volume_mm3": 2554.0174910755964,
+      "volume_difference_percent": -0.0008993201519369443,
+      "stl_to_step_mesh": {
+        "area_weighted_samples": 10000,
+        "seed": 1977,
+        "mean_mm": 7.696204987169763e-06,
+        "p99_mm": 0.0002131386320077449,
+        "sample_max_mm": 0.0005205775878011342,
+        "vertex_max_mm": 0.0006142061479851943,
+        "note": "Finite sampling and vertex checks against a finer STEP tessellation; not a certified Hausdorff bound."
+      },
+      "step_mesh_to_stl": {
+        "area_weighted_samples": 10000,
+        "seed": 1977,
+        "mean_mm": 7.539193364574605e-06,
+        "p99_mm": 0.0002114671377344339,
+        "sample_max_mm": 0.0009037500066531811,
+        "vertex_max_mm": 0.0012670465897437657,
+        "note": "Finite sampling and vertex checks against a finer STEP tessellation; not a certified Hausdorff bound."
+      },
+      "flat_surfaces": null,
+      "wsprrypico_stencil": {
+        "description": "WsprryPico through-stencil",
+        "artwork_sha256": "7e9e525fee71d7bf3e4323bbe01c645c36ae01641f1d23cd4e22a1be5a2caf05",
+        "artwork_matches": true,
+        "opening_regions": 11,
+        "roles": {
+          "berry": 7,
+          "leaf": 2,
+          "stem": 1,
+          "waveform": 1
+        },
+        "height_mm": 20.0,
+        "width_mm": 18.501291989664082,
+        "cut_depth_mm": 1.2,
+        "minimum_gap_between_apertures_mm": 0.6035422926395124,
+        "minimum_requested_gap_mm": 0.6,
+        "opener_raw_outline_clearance_mm": null,
+        "opener_working_tip_clearance_mm": null,
+        "orientation": "Stem toward USB; waveform readable from outside",
+        "obstructed_aperture_cad_volume_mm3": 0.0,
+        "mesh_rays_blocked": 0,
+        "pass": true
+      },
+      "opener_outline": null,
+      "pass": true
+    },
+    "Wall-Hanger": {
+      "stl_file": "Wall-Hanger.stl",
+      "step_file": "parametric/generated/Wall-Hanger.step",
+      "stl_sha256": "7a7c8cc2b8812c28d6d4b1093774a466995d1cec6a062b704fd8f453efee93dd",
+      "step_sha256": "55be25290e994381d5c873ba390a993e7a85fd32f325817656546b4dcdcb8b55",
+      "mesh_integrity": {
+        "watertight": true,
+        "consistent_winding": true,
+        "connected_components": 1,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "degenerate_faces": 0,
+        "positive_volume": true,
+        "finite_vertices": true,
+        "vertices": 5315,
+        "triangles": 10634
+      },
+      "cad_valid": true,
+      "cad_solids": 1,
+      "stl_extents_mm": [
+        58.400001525878906,
+        33.43619918823242,
+        17.950000762939453
+      ],
+      "step_extents_mm": [
+        58.4000001,
+        33.436200000002515,
+        17.95000010000169
+      ],
+      "extent_difference_mm": [
+        1.4258789065024757e-06,
+        -8.117700929233251e-07,
+        6.629377615752219e-07
+      ],
+      "max_coordinate_bounds_difference_mm": 1.5258789076710855e-06,
+      "stl_volume_mm3": 4836.2139772459805,
+      "step_volume_mm3": 4836.201620386048,
+      "volume_difference_percent": 0.00025550754296777,
+      "stl_to_step_mesh": {
+        "area_weighted_samples": 10000,
+        "seed": 1977,
+        "mean_mm": 1.0187103543718271e-05,
+        "p99_mm": 0.00031319838349082297,
+        "sample_max_mm": 0.000901365603388464,
+        "vertex_max_mm": 0.000253435104501229,
+        "note": "Finite sampling and vertex checks against a finer STEP tessellation; not a certified Hausdorff bound."
+      },
+      "step_mesh_to_stl": {
+        "area_weighted_samples": 10000,
+        "seed": 1977,
+        "mean_mm": 9.574241819220308e-06,
+        "p99_mm": 0.00028728953751773646,
+        "sample_max_mm": 0.0009513724808088736,
+        "vertex_max_mm": 0.0010422571457849705,
+        "note": "Finite sampling and vertex checks against a finer STEP tessellation; not a certified Hausdorff bound."
+      },
+      "flat_surfaces": {
+        "description": "Flat, continuous interior surface",
+        "flat_surface_z_mm": 2.6,
+        "probe_regions": 9,
+        "missing_cad_volume_mm3": 0.0,
+        "mesh_surface_height_max_error_mm": 9.536743172944284e-08,
+        "pass": true
+      },
+      "wsprrypico_stencil": null,
+      "opener_outline": null,
+      "pass": true
+    },
+    "Opener": {
+      "stl_file": "Opener.stl",
+      "step_file": "parametric/generated/Opener.step",
+      "stl_sha256": "11360bca6df2e6c2e28aaf9697cdf65dac8cc974ca445d17ef899835bfb89463",
+      "step_sha256": "50a77e6d632383d09a98c39b7ecf6328654d6a662794620cd0bd145302a8aca9",
+      "mesh_integrity": {
+        "watertight": true,
+        "consistent_winding": true,
+        "connected_components": 1,
+        "boundary_edges": 0,
+        "nonmanifold_edges": 0,
+        "degenerate_faces": 0,
+        "positive_volume": true,
+        "finite_vertices": true,
+        "vertices": 1952,
+        "triangles": 3944
+      },
+      "cad_valid": true,
+      "cad_solids": 1,
+      "stl_extents_mm": [
+        18.622581481933594,
+        22.013918459415436,
+        3.0999999046325737
+      ],
+      "step_extents_mm": [
+        18.62258201829842,
+        22.013918335513058,
+        3.1000000000672925
+      ],
+      "extent_difference_mm": [
+        -5.363648263312371e-07,
+        1.239023781351989e-07,
+        -9.54347187942517e-08
+      ],
+      "max_coordinate_bounds_difference_mm": 5.363648263312371e-07,
+      "stl_volume_mm3": 464.1062302018807,
+      "step_volume_mm3": 464.1062424098419,
+      "volume_difference_percent": -2.6304238343044517e-06,
+      "stl_to_step_mesh": {
+        "area_weighted_samples": 10000,
+        "seed": 1977,
+        "mean_mm": 3.7649724702551946e-15,
+        "p99_mm": 6.30978810253709e-14,
+        "sample_max_mm": 2.541800457120789e-12,
+        "vertex_max_mm": 0.0,
+        "note": "Finite sampling and vertex checks against a finer STEP tessellation; not a certified Hausdorff bound."
+      },
+      "step_mesh_to_stl": {
+        "area_weighted_samples": 10000,
+        "seed": 1977,
+        "mean_mm": 3.804336661874234e-15,
+        "p99_mm": 6.30978810253709e-14,
+        "sample_max_mm": 2.541800457120789e-12,
+        "vertex_max_mm": 0.0,
+        "note": "Finite sampling and vertex checks against a finer STEP tessellation; not a certified Hausdorff bound."
+      },
+      "flat_surfaces": null,
+      "wsprrypico_stencil": {
+        "description": "WsprryPico through-stencil",
+        "artwork_sha256": "7e9e525fee71d7bf3e4323bbe01c645c36ae01641f1d23cd4e22a1be5a2caf05",
+        "artwork_matches": true,
+        "opening_regions": 11,
+        "roles": {
+          "berry": 7,
+          "leaf": 2,
+          "stem": 1,
+          "waveform": 1
+        },
+        "height_mm": 15.0,
+        "width_mm": 12.488372093,
+        "cut_depth_mm": 3.1,
+        "minimum_gap_between_apertures_mm": 0.6035832782698437,
+        "minimum_requested_gap_mm": 0.6,
+        "opener_raw_outline_clearance_mm": 1.24874094807288,
+        "opener_working_tip_clearance_mm": 1.7273659683340465,
+        "orientation": "Stem toward grip butt; waveform readable from upper face",
+        "obstructed_aperture_cad_volume_mm3": 0.0,
+        "mesh_rays_blocked": 0,
+        "pass": true
+      },
+      "opener_outline": {
+        "rear_shortening_mm": 0.75,
+        "grip_aligned_width_length_mm": [
+          15.000039776541433,
+          20.918726067673163
+        ],
+        "added_outside_base_blank_mm3": 0.0,
+        "blank_ramp_symmetric_difference_mm3": 0.0,
+        "working_tip_symmetric_difference_mm3": 0.0,
+        "pass": true
+      },
+      "pass": true
+    }
+  },
+  "nominal_assembly": {
+    "outer_extents_mm": [
+      56.7,
+      27.2,
+      15.35
+    ],
+    "pcb_envelope_mm": [
+      51,
+      21,
+      1
+    ],
+    "bottom_overlap_with_pcb_mm3": 0.0,
+    "lid_overlap_with_pcb_mm3": 0.0,
+    "case_halves_overlap_mm3": 0.0,
+    "scope": "Static nominal CAD. Printed fit, snap force, opener strength and actual component tolerances require physical checks."
+  },
+  "parameter_edit_check": {
+    "change": "header_slot_width: 2.94 to 3.14 mm",
+    "measured_widths_mm": [
+      3.14,
+      3.1399989999999995
+    ],
+    "valid_single_cad_solid": true,
+    "watertight_mesh": true
+  },
+  "limits": {
+    "max_coordinate_bounds_difference_mm": 0.01,
+    "max_volume_difference_percent": 0.1,
+    "max_observed_bidirectional_surface_difference_mm": 0.02
+  },
+  "pass": true
+}
