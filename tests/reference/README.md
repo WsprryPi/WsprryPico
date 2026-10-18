@@ -175,10 +175,77 @@ python3 tests/reference/analyze_microchrony_capture.py \
   "$receipts/live" "$receipts/host/microchrony_tests" "$receipts/live-analysis.json"
 ```
 
-INFO-only mapping pairs are labeled unbound numerical consistency. Separate
-management API receipts must establish active NTP authority, application and
-μChrony generations, and the actually applied rate at each new bracketed point.
-A later authority check cannot retroactively bind earlier observations.
+INFO-only mapping pairs are labeled unbound numerical consistency. When
+management API/INFO/API brackets are present, the analyzer independently checks
+active NTP authority, device/boot/image identity, stable application and μChrony
+generations and the actually applied rate. The stored observer verdict does not
+establish authority. Stable bound segments verify numerical application of the
+reported rate. Finite-slew transition pairs are recorded separately because
+INFO does not export the exact endpoint. A later authority check cannot bind
+earlier observations.
+
+Stable capture baselines separately identify missing pre-capture history and
+require exact visibility of every newly accepted original. Whole-boot coverage
+retains its original meaning. With a private, validated first-phase capture:
+
+```sh
+python3 tests/reference/test_capture_analysis.py "$receipts/live" \
+  "$receipts/host/microchrony_tests"
+```
+
+The negative checks use temporary fixture links and leave the originals intact.
+They reject an unsupported authority claim and a missing newly accepted input.
+
+`compare_chrony49_captured_loop.py` replays each captured source through the
+complete supported clock-control paths. Both adapters receive identical raw
+send/receive ticks, server receive/send/reference timestamps, root delay,
+dispersion, precision, stratum and leap fields. A common translation selects
+an arbitrary UTC origin; no independent oscillator or UTC truth is introduced.
+Each scored probe precedes admission of its own NTP reply. The comparison keeps
+the existing 500 ms clock-error and 90-second age limits on common synchronized
+probes. The external reference still enters at the NTP sample API.
+
+```sh
+python3 tests/reference/test_captured_loop.py "$receipts/host/microchrony_loop" \
+  "$receipts/chrony49-loop"
+python3 tests/reference/compare_chrony49_captured_loop.py "$receipts/live" \
+  "$receipts/host/microchrony_loop" "$receipts/chrony49-loop" \
+  "$receipts/live-analysis.json" "$receipts/captured-clock-loop.json"
+```
+
+The captured mode is an optional adapter argument; existing deterministic loop
+inputs and output columns remain unchanged. The additional capture output fields
+carry reported clock error and raw sample age. `captured-phase` suppresses
+frequency updates only for an offline counterfactual; it changes no production
+gate. The comparison scores μChrony's phase-only and full loops against full
+Chrony. A Chrony phase-only control with suppressed frequency updates can retain
+large clock uncertainty and is excluded from this qualified comparison.
+An offset-only baseline holds the last admitted midpoint's UTC offset, using
+the supported 100 ppm drift envelope. It shares the same age/error limits and
+common probe set. The reference RTC initially shares the first sample's UTC
+coordinate origin; μChrony acquires its epoch from a usable fit. This excludes
+RTC/boot acquisition from the accuracy comparison.
+
+The validated input manifest and stable per-slot capture baselines are required.
+Raw baseline receipts independently confirm the initial accepted and captured
+counts. Every new accepted original must be visible, including across source
+cohorts; pre-capture gaps remain explicit. Separate cold source replays omit
+persisted seeds, previous rejected packets and live pool combination, and do
+not establish absolute UTC accuracy or live application-clock authority.
+
+For the finite A/B crossover, the derived engineering record and figure are
+reproducible from the verified private evidence and the two phase analyses:
+
+```sh
+python3 tests/reference/summarize_microchrony_live.py "$receipts/full-evidence" \
+  "$receipts" docs/development/microchrony-live-comparison.json
+python3 tests/reference/plot_microchrony_live.py \
+  docs/development/microchrony-live-comparison.json \
+  docs/development/figures/microchrony-live-convergence.png
+```
+
+The plot uses an already installed gnuplot. Its frequency estimates and
+uncertainty curves are not measurements of residual oscillator error.
 
 
 For the same-input source-estimator comparison on actual saved Pico originals:

@@ -19,7 +19,11 @@ std::uint64_t ntp(std::uint64_t ns) {
 }
 } // namespace
 int main(int argc, char** argv) {
-    if (argc != 2)
+    if (argc != 2 && argc != 3)
+        return 2;
+    const bool phase_only = argc == 3 && std::string(argv[2]) == "captured-phase";
+    const bool captured = argc == 3 && (std::string(argv[2]) == "captured" || phase_only);
+    if (argc == 3 && !captured)
         return 2;
 #ifndef MICROCHRONY_LOOP_BASELINE
     if (std::string(argv[1]) == "combination") {
@@ -56,6 +60,8 @@ int main(int argc, char** argv) {
     c.min_poll = c.max_poll = 6;
     c.max_drift_ppm = 100;
     c.max_clock_error_ppm = 50;
+    if (phase_only)
+        c.max_update_skew_ppm = 1e-12; // Offline counterfactual; production gates are unchanged.
     microchrony::Engine engine(c);
     engine.seed(std::int32_t(std::llround(std::stod(argv[1]) * 1000)));
     for (unsigned i = 0; i < 4; ++i)
@@ -68,6 +74,14 @@ int main(int argc, char** argv) {
     while (std::cin >> truth >> raw >> action >> slot >> server >> stratum) {
         if (slot >= 4)
             return 4;
+        auto server_receive = server, server_reference = server ? server - microchrony::second : 0;
+        std::uint32_t root_delay = 0, root_dispersion = 0;
+        int precision = -20, leap = 0;
+        if (captured && !(std::cin >> server_receive >> server_reference >> root_delay >>
+                          root_dispersion >> precision >> leap))
+            return 10;
+        if (precision < -40 || precision > 0 || leap < 0 || leap > 3)
+            return 10;
         if (action == 1) {
             sent[slot] = engine.request(slot, raw, ++sequence, true);
             if (!sent[slot])
@@ -76,17 +90,20 @@ int main(int argc, char** argv) {
             if (!sent[slot])
                 return 6;
             std::array<std::uint8_t, 48> p{};
-            p[0] = 0x24;
+            p[0] = std::uint8_t(0x24 | (leap << 6));
             p[1] = std::uint8_t(stratum);
-            p[3] = std::uint8_t(-20);
+            p[3] = std::uint8_t(precision);
+            put(p, 4, 4, root_delay);
+            put(p, 8, 4, root_dispersion);
             std::copy(sent[slot]->begin() + 40, sent[slot]->end(), p.begin() + 24);
-            put(p, 16, 8, ntp(server - microchrony::second));
-            put(p, 32, 8, ntp(server));
+            put(p, 16, 8, ntp(server_reference));
+            put(p, 32, 8, ntp(server_receive));
             put(p, 40, 8, ntp(server));
             if (!engine.receive(slot, p, raw)) {
                 std::cerr << "rejected at " << truth << ": "
                           << microchrony::name(engine.status(slot, raw).reason) << '\n';
-                return 7;
+                if (!captured)
+                    return 7;
             }
             sent[slot].reset();
         } else if (action == 3) {
@@ -127,8 +144,11 @@ int main(int argc, char** argv) {
                       << ' ' << t.rate_ppb / 1000.0 << ' ' << t.remaining_correction_ns << ' '
                       << t.skew_ppb / 1000.0 << ' ' << (t.synchronized ? int(t.selected) : -1)
                       << ' '
-                      << (t.selected < 4 ? engine.status(t.selected, raw).estimate.samples : 0)
-                      << '\n';
+                      << (t.selected < 4 ? engine.status(t.selected, raw).estimate.samples : 0);
+            if (captured)
+                std::cout << ' ' << t.uncertainty_ns << ' '
+                          << (raw >= t.source_raw_ns ? raw - t.source_raw_ns : UINT64_MAX);
+            std::cout << '\n';
         }
     }
 }

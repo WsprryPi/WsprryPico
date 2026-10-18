@@ -21,9 +21,13 @@ static long double current_raw_ns;
 static double applied_ppm;
 static int descriptors[2], action, slot, stratum;
 static uint64_t server_ns;
+static uint64_t server_receive_ns, server_reference_ns;
+static uint32_t upstream_delay_wire, upstream_dispersion_wire;
+static int captured, precision, leap_status;
 static SRC_Instance sources[4];
 static struct timespec sent[4];
 static uint64_t sent_raw_ns[4];
+static uint64_t last_received_raw_ns[4];
 static int pending[4];
 static IPAddr addresses[4];
 
@@ -100,6 +104,16 @@ static int next(void) {
         return 0;
     if (raw_ns + .5L < current_raw_ns || slot < 0 || slot >= 4)
         exit(4);
+    server_receive_ns = server_ns;
+    server_reference_ns = server_ns ? server_ns - 1000000000ULL : 0;
+    upstream_delay_wire = upstream_dispersion_wire = leap_status = 0;
+    precision = -20;
+    if (captured && scanf("%" SCNu64 " %" SCNu64 " %" SCNu32 " %" SCNu32 " %d %d",
+                          &server_receive_ns, &server_reference_ns, &upstream_delay_wire,
+                          &upstream_dispersion_wire, &precision, &leap_status) != 6)
+        exit(11);
+    if (precision < -40 || precision > 0 || leap_status < 0 || leap_status > 3)
+        exit(11);
     return 1;
 }
 static void event(int fd, int flags, void* context) {
@@ -124,15 +138,25 @@ static void event(int fd, int flags, void* context) {
         stamp(midpoint, epoch, &sample.time);
         // Same basic NTP 32-bit fraction and nanosecond decoding as the Pico.
         const uint64_t fraction = ((server_ns % 1000000000ULL) << 32) / 1000000000ULL;
-        const long double server_seconds = (long double)(server_ns / 1000000000ULL - epoch) +
-                                           ((fraction * 1000000000ULL) >> 32) / 1e9L;
-        sample.offset = server_seconds - midpoint;
-        sample.peer_delay = sample.root_delay = seconds(&last) - seconds(&first);
+        const long double server_seconds =
+            (long double)((int64_t)(server_ns / 1000000000ULL) - epoch) +
+            ((fraction * 1000000000ULL) >> 32) / 1e9L;
+        const uint64_t receive_fraction =
+            ((server_receive_ns % 1000000000ULL) << 32) / 1000000000ULL;
+        const long double server_receive_seconds =
+            (long double)((int64_t)(server_receive_ns / 1000000000ULL) - epoch) +
+            ((receive_fraction * 1000000000ULL) >> 32) / 1e9L;
+        sample.offset = (server_seconds + server_receive_seconds) / 2 - midpoint;
+        sample.peer_delay = fmax(.000001, seconds(&last) - seconds(&first) -
+                                              (server_seconds - server_receive_seconds));
+        sample.root_delay = sample.peer_delay + fmax(0, (int32_t)upstream_delay_wire / 65536.0);
         sample.peer_dispersion = sample.root_dispersion =
-            .000001 + (raw_ns - sent_raw_ns[slot]) * 50e-15;
-        SRC_UpdateStatus(sources[slot], stratum, LEAP_Normal);
+            fmax(.000001, exp2(precision)) + (raw_ns - sent_raw_ns[slot]) * 50e-15;
+        sample.root_dispersion += upstream_dispersion_wire / 65536.0;
+        SRC_UpdateStatus(sources[slot], stratum, (NTP_Leap)leap_status);
         SRC_UpdateReachability(sources[slot], 1);
         SRC_AccumulateSample(sources[slot], &sample);
+        last_received_raw_ns[slot] = raw_ns;
         SRC_SelectSource(sources[slot]);
         pending[slot] = 0;
     } else if (action == 3) {
@@ -179,10 +203,23 @@ static void event(int fd, int flags, void* context) {
             }
             fputc('\n', stderr);
         }
-        printf("%llu %d %.0Lf %.12g %.12g %.12g %.12g %d %d\n", (unsigned long long)truth_ns,
-               action, system_seconds * 1e9L, -pure / (1 + pure * 1e-6),
+        printf("%llu %d %.0Lf %.12g %.12g %.12g %.12g %d %d", (unsigned long long)truth_ns, action,
+               system_seconds * 1e9L, -pure / (1 + pure * 1e-6),
                -applied_ppm / (1 + applied_ppm * 1e-6), tracking.current_correction * 1e9,
                tracking.skew_ppm, selected, samples);
+        if (captured) {
+            const long double bound =
+                selected >= 0
+                    ? ceill((fabs(tracking.current_correction) + fmax(0, tracking.root_delay) / 2 +
+                             fmax(0, tracking.root_dispersion)) *
+                            1e9L)
+                    : 1e18L; // Unselected; deliberately outside the timing gate.
+            const uint64_t age = selected >= 0 && raw_ns >= last_received_raw_ns[selected]
+                                     ? raw_ns - last_received_raw_ns[selected]
+                                     : UINT64_MAX;
+            printf(" %.0Lf %llu", bound, (unsigned long long)age);
+        }
+        putchar('\n');
     }
     if (!next())
         SCH_QuitProgram();
@@ -193,7 +230,11 @@ static void rule(const char* text) {
     free(line);
 }
 int main(int argc, char** argv) {
-    if (argc != 2)
+    if (argc != 2 && argc != 3)
+        return 2;
+    const int phase_only = argc == 3 && strcmp(argv[2], "captured-phase") == 0;
+    captured = argc == 3 && (strcmp(argv[2], "captured") == 0 || phase_only);
+    if (argc == 3 && !captured)
         return 2;
     LOG_Initialise();
     LOG_SetMinSeverity(LOGS_FATAL);
@@ -201,6 +242,8 @@ int main(int argc, char** argv) {
     rule("clockprecision 0.000001");
     rule("maxdrift 100");
     rule("maxclockerror 50");
+    if (phase_only)
+        rule("maxupdateskew 0.000000000001"); // Offline counterfactual only.
     LCL_Initialise();
     SCH_Initialise();
     SYS_Generic_CompleteFreqDriver(100000, 0, read_frequency, set_frequency, step, 0, 0, NULL, NULL,

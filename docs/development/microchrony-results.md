@@ -8,17 +8,22 @@ and remain unowned, inactive and disabled for autonomous schedules. The finite
 NTP-only comparison is complete. [Backlog item 4](consolidated-backlog.md#finish-now)
 remains open for independent RF acceptance and the documented qualification limits.
 
+The subsequent [normal-image A/B crossover](microchrony-live-comparison.md)
+records the current deployed source, local-versus-pool convergence, verified
+application of the clock rates and identical-input Chrony 4.9 replays. Its
+evidence remains separate from the earlier image described below.
+
 The [evidence manifest](microchrony-evidence.json) binds the exact sources,
 reference executables, normal image and private originals. The original validation
-snapshot remains in
-`/Users/lbussy/.codex/worktrees/microchrony-validation/WsprryPico`, detached from
+used an isolated worktree detached from
 `692e2d821b9aee195c969969cdbc1015338b00e2`. The operator authorized integration
 into the primary `devel` checkout on 2026-10-18, retaining the USB installer and
 documentation cleanup. Historical device evidence still applies only to its
 recorded image and sources. A fresh Linux portable build, 13 focused CTest suites
 and normal/inhibited firmware cross-builds pass for the combined source. The
 [installer record](usb-installer-results.md#validation-so-far) lists the remaining
-consolidation checks and their limits. No combined image was loaded on a board.
+consolidation checks and their limits. Those integration checks did not load a
+combined image; the subsequent crossover record covers the new deployment.
 
 ## Implementation and unchanged authority
 

@@ -27,6 +27,57 @@ def metrics(values):
             'p95_abs_ns':ordered[min(len(ordered)-1,int(.95*len(ordered)))] if ordered else None,
             'mean_signed_ns':statistics.mean(values) if values else None}
 
+def application_bindings(board, expected):
+    """Verify recorded payloads independently of the observer's stored verdict."""
+    points=[]
+    for path in sorted(root.glob(board+'-binding-*.json')):
+        record=json.loads(path.read_text())
+        report['inputs_sha256'][path.name]=digest(path)
+        info_path=root/path.name.replace('-binding-','-observe-')
+        assert record['info']==json.loads(info_path.read_text()),'binding INFO differs'
+        v=record['info']['response'];a,z=record['before']['body'],record['after']['body']
+        assert json.loads(record['info']['raw_line'])==v,'raw INFO differs'
+        la,li,lz=a['network']['ntp_learning'],v['network']['ntp_learning'],z['network']['ntp_learning']
+        valid=(a['active_source']==z['active_source']=='sntp' and
+               a['source_disagreement'] is False and z['source_disagreement'] is False and
+               a['target']==z['target'] and a['target']['scope']=='member' and
+               a['target']['device_id']==v['device_id']==expected['device_id'] and
+               a['target']['boot_id']==v['status']['boot_id']==expected['status']['boot_id'] and
+               a['firmware']==z['firmware']==v['firmware']==expected['firmware'] and
+               a['source_revision']==z['source_revision']==v['revision']==expected['revision'] and
+               a['clock_generation']==z['clock_generation'] and
+               a['nominal_sample_hz']==z['nominal_sample_hz']==v['system_clock_hz']==138000000 and
+               la['rf_candidate']['generation']==li['rf_candidate']['generation']==lz['rf_candidate']['generation'] and
+               a['utc_rate_ppb']==z['utc_rate_ppb']==la['rate_ppb']==li['rate_ppb']==lz['rate_ppb'] and
+               la['utc_frequency_ppb']==li['utc_frequency_ppb']==lz['utc_frequency_ppb'] and
+               v['status']['clock_state']=='synchronized')
+        assert not record['bound'] or valid,'stored authority verdict is unsupported'
+        points.append({'file':path.name,'verified':valid,'info':v,
+                       'clock_generation':a['clock_generation']})
+    pairs=[];transitions=0
+    for a,b in zip(points,points[1:]):
+        if not a['verified'] or not b['verified']:continue
+        va,vb=a['info'],b['info'];la,lb=va['network']['ntp_learning'],vb['network']['ntp_learning']
+        if a['clock_generation']!=b['clock_generation']:continue
+        if la['rf_candidate']['generation']!=lb['rf_candidate']['generation']:continue
+        if la['rate_ppb']!=lb['rate_ppb'] or ((int(la['remaining_correction_ns'])==0)!=(int(lb['remaining_correction_ns'])==0)):
+            transitions+=1
+            continue
+        raw_delta=int(vb['status']['monotonic_now_ns'])-int(va['status']['monotonic_now_ns'])
+        utc_delta=int(vb['status']['utc_now_ns'])-int(va['status']['utc_now_ns'])
+        assert raw_delta>0
+        projected=raw_delta*(10**9+la['rate_ppb'])//10**9
+        pairs.append({'from':a['file'],'to':b['file'],'raw_delta_ns':raw_delta,
+                      'rate_ppb':la['rate_ppb'],'mapping_error_ns':utc_delta-projected})
+    return {'source_and_application_binding':bool(points and any(p['verified'] for p in points)),
+            'bracketed_points':len(points),'verified_points':sum(p['verified'] for p in points),
+            'constant_segment_pairs':len(pairs),'nonzero_rate_pairs':sum(p['rate_ppb']!=0 for p in pairs),
+            'max_abs_mapping_error_ns':max((abs(p['mapping_error_ns']) for p in pairs),default=None),
+            'within_3us':bool(pairs and all(abs(p['mapping_error_ns'])<=3000 for p in pairs)),
+            'finite_slew_transition_pairs':transitions,
+            'transition_limit':'Exact slew endpoint is absent from INFO; transition pairs are not constant-rate accuracy claims.',
+            'pairs':pairs}
+
 report = {'schema':'microchrony-live-causal-analysis/1',
           'engine_sha256':digest(engine), 'analysis_sha256':digest(__file__),
           'independent_utc_or_rf_qualification':False,
@@ -37,7 +88,7 @@ report = {'schema':'microchrony-live-causal-analysis/1',
                     'Server processing is removed from path delay; remote root delay is charged to dispersion.'],
           'inputs_sha256':{}, 'boards':{}}
 for board in ('A','B'):
-    infos=[]; cohorts={}; snapshots={}
+    infos=[]; cohorts={}; snapshots={}; pages=[]
     expected_devices={'A':'fd6127d11d6aca42a9905fa3fb1bf1d5','B':'29f20b7342051ef947aa56cb9d4fab42'}
     for path in sorted(root.glob(board+'-observe-*.json')):
         wrapper=json.loads(path.read_text());v=wrapper['response'];infos.append(v)
@@ -53,9 +104,10 @@ for board in ('A','B'):
         assert v['status']['storage_healthy'] and v['ntp_retention']['healthy']
         assert (v['firmware'],v['revision'],v['status']['boot_id'])==(expected['firmware'],expected['revision'],expected['status']['boot_id'])
     for path in sorted(root.glob(board+'-history-*.json')):
-        v=json.loads(path.read_text())['response']
+        wrapper=json.loads(path.read_text());v=wrapper['response']
         report['inputs_sha256'][path.name]=digest(path)
         if v.get('ok') is not True:continue
+        pages.append(wrapper)
         assert (v['device_id'],v['boot_id'],v['firmware'],v['revision'])==(expected_devices[board],expected['status']['boot_id'],expected['firmware'],expected['revision'])
         header_keys=('schema','device_id','boot_id','firmware','revision','slot','endpoint','clock_epoch','generation','count','frequency_ppb','skew_ppb','runs')
         identity={k:v[k] for k in header_keys}
@@ -129,15 +181,16 @@ for board in ('A','B'):
         if (int(la['remaining_correction_ns'])==0)!=(int(lb['remaining_correction_ns'])==0):continue
         raw_delta=int(sb['monotonic_now_ns'])-int(sa['monotonic_now_ns'])
         utc_delta=int(sb['utc_now_ns'])-int(sa['utc_now_ns'])
-        expected=raw_delta*(10**9+la['rate_ppb'])//10**9
+        expected_elapsed=raw_delta*(10**9+la['rate_ppb'])//10**9
         bindings.append({'raw_delta_ns':raw_delta,'expected_rate_ppb':la['rate_ppb'],
-                         'mapping_error_ns':utc_delta-expected})
+                         'mapping_error_ns':utc_delta-expected_elapsed})
     board_report['unbound_clock_consistency']={'source_and_application_binding':False,
         'constant_segment_pairs':len(bindings),
         'nonzero_rate_pairs':sum(p['expected_rate_ppb']!=0 for p in bindings),
         'max_abs_mapping_error_ns':max((abs(p['mapping_error_ns']) for p in bindings),default=None),
         'within_3us':bool(bindings and all(abs(p['mapping_error_ns'])<=3000 for p in bindings)),
         'pairs':bindings}
+    board_report['verified_application_clock']=application_bindings(board,expected)
     if infos:
         first,last=infos[0],infos[-1]
         n=last['network'];s=last['status']
@@ -163,6 +216,33 @@ for board in ('A','B'):
             slots[str(peer['slot'])]={'unique_originals':count,'accepted_packets':peer['accepted'],'complete':count==peer['accepted']}
         board_report['accepted_original_visibility']={'unique_originals':total_originals,
              'final_accepted_packets':accepted,'complete':all(p['complete'] for p in slots.values()),'slots':slots}
+        baseline_path=root/'capture-baseline.json'
+        if baseline_path.exists():
+            report['inputs_sha256'][baseline_path.name]=digest(baseline_path)
+            baseline=json.loads(baseline_path.read_text())['boards'][board]
+            frontiers=sorted(root.glob(board+'-baseline-frontier-*.json'));assert frontiers
+            frontier=json.loads(frontiers[-1].read_text())
+            report['inputs_sha256'][frontiers[-1].name]=digest(frontiers[-1])
+            fv=frontier['response']
+            assert (fv['device_id'],fv['status']['boot_id'],fv['firmware'],fv['revision'])==(
+                expected['device_id'],expected['status']['boot_id'],expected['firmware'],expected['revision'])
+            initial=set()
+            for page in pages:
+                if page['host_wall_ns']>=frontier['host_wall_start_ns']:continue
+                v=page['response']
+                for sample in v['records']:
+                    initial.add((v['slot'],v['endpoint'],v['clock_epoch'],sample['id']))
+            for slot,value in slots.items():
+                base=baseline[slot];first=next(p for p in fv['network']['ntp_pool']['peers'] if str(p['slot'])==slot)
+                count=sum(key[0]==int(slot) for key in initial)
+                assert count==base['captured_originals'] and first['accepted']==base['accepted_packets']
+                new_captured=value['unique_originals']-count
+                new_accepted=value['accepted_packets']-first['accepted']
+                assert new_captured==new_accepted,'missing newly accepted original'
+                value.update(new_captured=new_captured,new_accepted=new_accepted,
+                             pre_capture_missing=base['unseen_before_capture'],complete_since_baseline=True)
+            board_report['accepted_original_visibility']['complete_since_baseline']=True
+            board_report['accepted_original_visibility']['pre_capture_missing']=sum(v['pre_capture_missing'] for v in slots.values())
     report['boards'][board]=board_report
 Path(output).write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
 print(json.dumps({b:{'info_reads':v['info_reads'],'unbound_clock_consistency':{k:x for k,x in v['unbound_clock_consistency'].items() if k!='pairs'},
