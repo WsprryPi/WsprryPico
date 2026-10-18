@@ -379,6 +379,7 @@ int main() {
             (path / 'adapter.cpp').write_text(program)
             for rf in (False, True):
                 args = ['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
+                        '-I' + str(ROOT / 'src/microchrony'),
                         '-I' + str(ROOT / 'src'), str(path / 'adapter.cpp'),
                         str(ROOT / 'src/wtp/json.cpp'),
                         '-o', str(path / 'adapter')]
