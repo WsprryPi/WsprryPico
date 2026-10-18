@@ -17,14 +17,17 @@ Implement USB installation and settings-preserving firmware upgrades for
 - WsprryPi access for the selected locally USB-connected Pico, using the same
   installer implementation and preservation rules.
 
-Default to the latest verified, compatible normal CI image from the canonical
-WsprryPico devel workflow, including CI testing builds; a stable release is not
-required. A GitHub release may provide public download transport for those
-exact CI bytes. Support explicit version/stable selection and optional local
-compilation through an explicit developer path. Preserve saved settings and
-other durable state during upgrades. OTA is ruled out by operator direction
-(2026-10-17) because its flash-layout tradeoff sacrifices too much flexibility;
-do not reserve an OTA partition or implement an OTA path.
+Use **main** by default when no branch switch is supplied. Offer explicit
+**devel** selection in both access paths. For the selected branch, use its latest
+verified, compatible normal image already built and saved by canonical
+WsprryPico CI, including CI testing builds; a stable release is not required.
+Retrieve the exact saved public files through that branch's permanent
+download index, verify them and install them. Support explicit version/stable
+selection and optional local compilation through an explicit developer path.
+Preserve saved settings and other durable state during upgrades. OTA is ruled
+out by operator direction (2026-10-17) because its flash-layout tradeoff
+sacrifices too much flexibility; do not reserve an OTA partition or implement
+an OTA path.
 
 When invoked, this prompt authorizes bounded implementation, tests and
 development documentation in these repositories, plus attributable commits
@@ -105,9 +108,11 @@ Inspect at least these existing sources and contracts before choosing files:
 - `src/standalone/pico/flash_layout.hpp`,
   `cmake/standalone_link/memory_flash.incl`,
   `scripts/check_standalone_image.py`, `tests/flash_layout_tests.cpp` and the
-  canonical CI manifest schema/validator, verified CI artifacts and any existing
-  corresponding public download assets. Reuse item 6's format; do not create a
-  competing installer/release manifest.
+  canonical CI manifest schema/validator, verified CI artifacts and corresponding
+  public download assets. Read [the CI download contract](software-build-ci.md),
+  `scripts/ci/publish.py` and `scripts/ci/download.py`. Reuse item 6's manifest,
+  branch indexes and publication receipts; do not create a competing format or
+  publication workflow.
 - `docs/development/usb-cdc.md`, `docs/protocol/USB-Management.md`,
   `docs/development/usb-local-configuration.md`,
   `docs/development/configuration-updates.md`,
@@ -147,8 +152,9 @@ Treat release/API/manifest content as data, not shell code. Avoid shell string
 construction from URLs, paths, tags, device names or manifest fields.
 
 Expose explicit operations for discovery/planning, initial installation,
-preserving upgrade, default latest-CI selection, explicit version/stable
-selection and local-build use.
+preserving upgrade, main by default with explicit devel selection, latest saved
+CI image for the selected branch, explicit version/stable selection and
+local-build use.
 Choose final command names during implementation and document exact examples.
 The default CI download path must not require Git, a compiler, the Pico SDK
 or an operator's GitHub account/token.
@@ -163,22 +169,39 @@ unidentified local executable.
 
 Keep confirmation/input usable when stdin is the downloaded script. Define
 noninteractive flags explicitly; unattended execution must require an explicit
-device and requested operation. Provide useful exit codes and machine-readable
-results for Pi integration. Help/discovery/planning must not flash, reset,
-install packages, change services, write device settings or acquire RF ownership.
+device and requested operation. No branch switch means main; devel must be
+explicitly requested. Provide useful exit codes and machine-readable results
+for Pi integration. Help/discovery/planning must not flash, reset, install
+packages, change services, write device settings or acquire RF ownership.
 
 ## 4. Select, publish when necessary and validate CI firmware
 
-Ordinary resolution selects the newest successful eligible canonical devel CI
-build for the normal Pico 2 W application, with every required job/check passed.
+Ordinary resolution uses main when no branch switch is supplied; explicit devel
+selection changes that transaction's branch. Both standalone and WsprryPi
+access default to main. Do not infer the firmware branch from a source checkout,
+bootstrap revision or WsprryPi branch. Select the newest successful eligible
+saved CI build for the normal Pico 2 W application on the selected branch;
+never silently substitute one branch for the other. Resolve `ci-main` or
+`ci-devel` through the maintained structured index contract, then validate the
+linked exact version release and manifest. Index tags are fixed bookmarks,
+not the firmware source identity.
+The first main image requires the workflow to be merged into main and pass
+there. An unavailable branch must produce an actionable refusal before any
+device change, even when the other branch has a usable image.
+
+Reuse the CI publication's verified build evidence and exact saved bytes.
+For live Actions retrieval require whole-run success and all required jobs;
+after Actions expiry validate the preserved successful verification receipt,
+original artifact identities and public-release hashes as specified in item 6.
+Actions retention expiry alone does not invalidate an intact saved public image.
 Define deterministic ordering by source/build identity; rerunning an older
 commit or republishing its assets must not make it newer than a later accepted
 source. Verify trusted workflow/repository/branch, full source SHA, run ID and
 attempt, profile, embedded version and manifest/checksum identity. Exclude PR/
 fork/unreviewed workflows and inhibited/bench/provisioned variants. Resolve once
 per transaction and pin that immutable bundle even if newer CI completes while
-the installer runs. Show the chosen CI source/run/version and any newer failed
-or incomplete run honestly.
+the installer runs. Show the chosen branch, CI source/run/version and any newer
+failed or incomplete run honestly.
 
 The default includes verified CI prereleases without a separate testing opt-in.
 Explicit version, older compatible image and stable selections remain available,
@@ -186,9 +209,9 @@ with the same validation and downgrade checks. Do not use GitHub's stable
 `releases/latest` endpoint as the latest-CI resolver: its
 [full-release semantics](https://docs.github.com/en/rest/releases/releases#get-the-latest-release)
 exclude prereleases. Do not scrape HTML, select the first UF2 or order candidates
-solely by release publication time. Missing, expired or invalid latest assets
-must produce an actionable refusal, never silent fallback to stable, older
-bytes, an inhibited image or local compilation.
+solely by release publication time. Missing or invalid saved public assets must
+produce an actionable refusal, never silent fallback to another branch, stable,
+older bytes, an inhibited image or local compilation.
 
 Consume the schema actually accepted in item 6 rather than defining a competing
 manifest. At original preparation, planned assets were
@@ -201,16 +224,18 @@ about CI/testing status. Refuse unsupported manifest/storage versions.
 Verify that the default installer can fetch its metadata and payload anonymously
 over HTTPS. Ordinary [Actions artifact downloads](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts)
 require GitHub sign-in/read access; do not turn that into an end-user token
-requirement. If a verified existing public distribution path suffices, use it.
-Otherwise publishing the exact verified CI bundle as an installer download
-prerelease is authorized here, without waiting for item 9.
+requirement. Use the permanent branch downloads delivered by item 6; ordinary
+installation downloads the saved image and does not trigger a rebuild.
+Additional installer-specific test publication remains authorized below without
+waiting for item 9.
 
-If release assets are needed, provide a small maintained promotion/discovery
-path for subsequent eligible CI builds, not only a one-time manual upload.
-Reuse item 6's successful build and exact artifacts. Publication credentials
-belong only in the authorized maintainer/CI context; ordinary installer runs
-must never publish/delete releases or request write credentials. Keep any
-publication workflow narrowly scoped to trusted canonical CI output, with
+Reuse item 6's maintained promotion/discovery path for subsequent eligible CI
+builds. Do not duplicate its publisher or replace its current branch indexes
+while testing the installer. Reuse the successful build and exact artifacts.
+Publication credentials belong only in the authorized maintainer/CI context;
+ordinary installer runs must never publish/delete releases or request write
+credentials. Keep any publication workflow narrowly scoped to trusted canonical
+CI output, with
 only required permissions and no privileged execution of fork/PR payloads.
 
 Before publication, freeze and review the complete CI bundle, checksum inventory,
@@ -220,28 +245,33 @@ convention, normally a v0.x.y development/testing identity. Embedded version,
 manifest and tag mapping must be consistent with the declared CI version policy.
 If another version is needed, arrange it before a new qualifying CI run; do not
 edit/rebuild downloaded UF2s locally or relabel bytes to invent agreement.
-Create an annotated tag explicitly at F, push only that tag and independently
-verify its remote object and peeled commit. Never tag a moving branch name or
+Follow the shared CI helper's tag policy for any additional authorized test
+candidate. Verify an existing tag at F without converting or moving it; create
+a new unique tag explicitly at F only when needed and independently verify its
+remote object and resolved commit. Never tag a moving branch name or
 let a release tool silently select the repository's default branch.
 
-Use a draft with an explicit asset allowlist and notes file, verify its complete
-uploaded assets against the frozen CI hashes, then publish as a prerelease with
+For an additional authorized temporary test candidate, use a draft with an
+explicit asset allowlist and notes file. Verify its complete uploaded assets
+against the frozen CI hashes, then publish as a prerelease with
 latest=false. Download the published assets afresh without authentication and
 rerun manifest/checksum/UF2 validation. Record the release/asset IDs, URLs, tag,
 source/run/attempt and hashes. Publishing only supplies download transport; it
-does not add RF, installer or whole-product qualification. Make the candidate
-discoverable through the maintained latest-CI resolver only after this audit;
-do not update a default pointer to an incomplete draft or missing release.
+does not add RF, installer or whole-product qualification. Canonical CI alone
+maintains the permanent ci-main/ci-devel indexes. Installer-specific temporary
+test candidates remain explicitly selected and must not be promoted through
+either permanent bookmark.
 
 Release removal for an installer-created temporary, failed or superseded CI
 download/test release is authorized when necessary. Capture its identity and
 sanitized disposition first, and ensure no maintained default/documented path
 is left pointing at removed assets: retain or verify a replacement distribution
-before retiring a live default. Deletion tests may use an explicitly selected
-temporary candidate without replacing the live default. Keep completed download
-transactions bound to their verified cached bytes; new resolutions must handle
-removal honestly. Preserve historical source/result evidence and unrelated
-releases. Use the [release deletion operation](https://cli.github.com/manual/gh_release_delete)
+before retiring a live default. Preserve both permanent branch bookmark releases
+and their current version assets. Deletion tests may use an explicitly selected
+temporary candidate without replacing either branch's current image. Keep
+completed download transactions bound to their verified cached bytes; new
+resolutions must handle removal honestly. Preserve historical source/result
+evidence and unrelated releases. Use the [release deletion operation](https://cli.github.com/manual/gh_release_delete)
 without tag cleanup; release deletion is separate from tag deletion. Retain the
 tag and never reuse its identity for different bytes. Record/verify the actual
 post-removal state; partial publication or failed cleanup is not a success.
@@ -403,8 +433,9 @@ enable a disabled transmitter, clear STOP or promote frequency qualification.
 ## 9. Integrate WsprryPi access without duplicating authority
 
 Add an operator entry point for the selected Pico using existing runtime/UI
-patterns. Show device identity, installed/selected CI version and source/run,
-default latest-CI versus explicit version/stable selection, preserving-upgrade
+patterns. Default the firmware selection to main, offer explicit devel selection
+and show device identity, installed/selected CI version, branch and source/run,
+latest saved image versus explicit version/stable selection, preserving-upgrade
 intent, progress, result and recoverable failure. Distinguish downloaded,
 programmed and verified states.
 Expose local builds as an advanced host workflow, not a browser SDK installation.
@@ -454,14 +485,19 @@ Exercise production installer orchestration against controlled release/API and
 USB/picotool substitutes, with bounded failures and observable write attempts.
 Cover at least:
 
-- Default latest successful eligible CI selection including prereleases, explicit
+- Main selected without a branch switch and explicit devel selection through
+  both access paths, independent of checkout/bootstrap/Pi branch, with the latest
+  eligible saved image resolved independently per branch, including prereleases. Cover
+  cross-branch metadata swaps, no first main image, unavailable selected branch
+  without substitution, and no installation-triggered rebuild. Cover explicit
   stable/version selection, no stable release, older-source reruns, incomplete/
-  failed/untrusted runs, concurrent newer CI, expired/removed artifacts, anonymous
+  failed/untrusted runs, concurrent newer CI, expired Actions artifacts with
+  intact public downloads, removed public assets, anonymous
   download and offline/cache behavior. Cover HTTP/rate-limit/partial-download
   errors, invalid metadata and refusal without silent fallback.
 - CI-to-release byte identity, unique pre-1.0.0 tag/source/version mapping,
   interrupted draft/upload/publication, public-download verification, safe
-  temporary-release removal and default discovery after removal/replacement.
+  temporary-release removal and continued independent discovery of both branches.
 - Wrong board/variant/family, malformed UF2/manifest/checksum, reserved-region
   overlap, invalid workaround payloads, incompatible storage and downgrade refusal.
 - No device, multiple devices, wrong/replaced device during re-enumeration,
@@ -506,7 +542,8 @@ commands and pass/fail/skip outcomes, preservation/recovery evidence, independen
 repairs and reassessments. Keep raw flash, credentials, generated firmware and
 private captures out of source control.
 
-Document exact standalone bootstrap/local CLI commands, default latest-CI and
+Document exact standalone bootstrap/local CLI commands, main without a branch
+switch and explicit devel selection, latest saved image for the chosen branch,
 explicit stable/version/local-build selection, dependency/USB permissions,
 settings preservation, backup privacy, BOOTSEL/manual recovery, compatible
 versions, limitations and Pi access.
@@ -574,8 +611,8 @@ the exact remaining step and each repository's actual commit/push state. A
 completed software commit must not be described as a successful physical upgrade.
 
 Report delivered standalone/Pi behavior, shared-core/deployment identity,
-default latest-CI resolution, public download/release/tag and optional-build
-paths, any release removal, supported hosts, settings/secret preservation and
+chosen-branch latest saved CI resolution, public download/release/tag and
+optional-build paths, any release removal, supported hosts, settings/secret preservation and
 recovery limits, changed files/components, exact checks and physical evidence,
 reviewer findings/repairs/retests/final assessment, Documentation Impact, both
 commit hashes, push results, independently verified remote hashes and remaining

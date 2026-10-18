@@ -31,7 +31,8 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    [Result](software-build-ci-results.md).
    [Saved prompt](software-build-ci-execution-prompt.md).
 7. ▧ **USB installer.** Standalone and WsprryPi access, preserving saved
-   settings; default to the latest verified CI image.
+   settings; default to the latest verified saved main CI image, with explicit
+   devel selection.
    [Saved prompt](phase15-18-execution-prompt.md).
 8. ▧ **Operator documentation.** Final instructions, screenshots and
    Read the Docs Community publication.
