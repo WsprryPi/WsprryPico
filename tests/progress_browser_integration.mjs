@@ -10,7 +10,7 @@ import {Fixture} from './consumer_sessions.test.mjs';
 import {scanAccessibility} from './ui_review_accessibility.mjs';
 
 if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; Node 20 needs --experimental-websocket');
-const output=path.resolve(process.argv[3] || 'build/phase15-9-browser');
+const output=path.resolve(process.argv[3] || 'build/progress-browser-integration');
 await mkdir(output,{recursive:true});
 const axeSource=process.env.UI_REVIEW_AXE_PATH ? await readFile(process.env.UI_REVIEW_AXE_PATH,'utf8') : null;
 const accessibility=[];

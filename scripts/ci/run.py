@@ -104,7 +104,6 @@ def host_checks(deps, audit):
         raise ValueError('Required tests not registered: ' + ', '.join(sorted(missing)))
     (audit / 'registered-tests.json').write_text(json.dumps(registered, indent=2) + '\n')
     execute(log, 'cmake', '--build', host, '--parallel', '4')
-    os.environ['PHASE115_ENDPOINT_DRIVER'] = str(host / 'endpoint_driver')
     execute(log, 'ctest', '--test-dir', host, '--output-on-failure', '--timeout', '240',
             '--output-junit', audit / 'host-tests.xml')
     suite = ET.parse(audit / 'host-tests.xml').getroot()
@@ -112,12 +111,12 @@ def host_checks(deps, audit):
     if (len(cases) != len(names) or any(case.find('skipped') is not None or
             case.find('failure') is not None or case.find('error') is not None for case in cases)):
         raise ValueError('Incomplete, skipped or failed required CTest suite')
-    # Tests using Python unittest may skip individual private-evidence cases.
+    # CTest does not expose unittest's internal skips as skipped CTest cases.
     internal_skips = [case.attrib['name'] for case in cases
                       if re.search(r'\bskipped=\d+', ''.join(case.itertext()))]
-    if set(internal_skips) - {'phase11_5_r3_tests'}:
-        raise ValueError('Unexpected internally skipped suite: ' + ', '.join(internal_skips))
-    execute(log, sys.executable, ROOT / 'scripts/ci/evidence_tests.py', audit / 'evidence-skips.json')
+    if internal_skips:
+        raise ValueError('Internally skipped required suite: ' + ', '.join(internal_skips))
+    (audit / 'evidence-skips.json').write_text('[]\n')
     execute(log, sys.executable, ROOT / 'scripts/validate_wtp_contract.py')
     execute(log, 'npm', 'test', cwd=web)
     execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py')

@@ -123,8 +123,9 @@ Inspect at least these existing sources and contracts before choosing files:
 
 Inspect historical bench tools for useful mechanisms, but do not turn a
 fixture/provisioning/full-erase script into a production updater by renaming it.
-For example, `scripts/phase12_flash_preservation.py` checks a specific historical
-transaction; it is not a general firmware-update preservation proof.
+A checker restricted to one flash transaction does not establish general
+firmware-update preservation. Validate the installer against the current
+on-flash layouts and supported upgrade paths.
 
 Record a short implementation decision covering the core language/dependencies,
 CLI and structured result contract, supported host/architecture matrix,

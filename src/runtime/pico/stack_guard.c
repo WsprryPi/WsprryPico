@@ -8,7 +8,7 @@
 #include "runtime/stack_bounds.h"
 
 #if !defined(__ARM_ARCH_8M_MAIN__) || PICO_RP2040 || defined(__riscv)
-#error "The Phase 11.5 MSP reserve is specific to RP2350 Arm Cortex-M33"
+#error "The MSP reserve is specific to RP2350 Arm Cortex-M33"
 #endif
 
 static uintptr_t stack_bottom[2];

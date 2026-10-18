@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only identity check for optional Phase 10 actual-client tests."""
+"""Read-only identity check for optional actual-client interoperability tests."""
 
 from pathlib import Path
 import subprocess

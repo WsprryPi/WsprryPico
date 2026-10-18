@@ -74,34 +74,35 @@ set_target_properties(WsprryPico PROPERTIES EXCLUDE_FROM_ALL FALSE)
 
 # Finite fault fixtures affect only the inhibited target. A stage is selected at
 # build time; no arbitrary memory corruption or remotely writable fault switch.
-option(WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE
+include(${CMAKE_CURRENT_LIST_DIR}/../cmake/legacy_firmware_fixture_options.cmake)
+option(WSPRRY_PICO_INDICATOR_FAULT_FIXTURE
     "Inhibited indicator fixture: one checked CYW43 LED-write error" OFF)
-if(WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE)
+if(WSPRRY_PICO_INDICATOR_FAULT_FIXTURE)
     target_sources(WsprryPico-Inhibited PRIVATE ../src/provisioning/pico/indicator_fault_fixture.cpp)
-    target_compile_definitions(WsprryPico-Inhibited PRIVATE WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE=1)
+    target_compile_definitions(WsprryPico-Inhibited PRIVATE WSPRRY_PICO_INDICATOR_FAULT_FIXTURE=1)
     target_link_options(WsprryPico-Inhibited PRIVATE "LINKER:--wrap=cyw43_gpio_set")
     set_source_files_properties(../src/provisioning/pico/indicator_fault_fixture.cpp PROPERTIES
         COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fstack-usage")
 endif()
-set(WSPRRY_PICO_PHASE12_FAULT_STAGE "0" CACHE STRING "Phase12 inhibited fault stage 0..10")
-if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE MATCHES "^([0-9]|10)$")
-    message(FATAL_ERROR "Phase12 fault stage must be 0..10")
+set(WSPRRY_PICO_JOURNAL_FAULT_STAGE "0" CACHE STRING "Inhibited journal fault stage 0..10")
+if(NOT WSPRRY_PICO_JOURNAL_FAULT_STAGE MATCHES "^([0-9]|10)$")
+    message(FATAL_ERROR "Journal fault stage must be 0..10")
 endif()
-option(WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE
+option(WSPRRY_PICO_JOURNAL_POWER_CUT_FIXTURE
     "Pause a completed inhibited stage 1 or 9 for one physical power cut" OFF)
-if(WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE AND
-   NOT WSPRRY_PICO_PHASE12_FAULT_STAGE MATCHES "^(1|9)$")
+if(WSPRRY_PICO_JOURNAL_POWER_CUT_FIXTURE AND
+   NOT WSPRRY_PICO_JOURNAL_FAULT_STAGE MATCHES "^(1|9)$")
     message(FATAL_ERROR "Physical cut fixture requires completed checkpoint 1 or 9")
 endif()
 
-if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0")
-    target_sources(WsprryPico-Inhibited PRIVATE ../src/provisioning/pico/phase12_fault_fixture.cpp)
+if(NOT WSPRRY_PICO_JOURNAL_FAULT_STAGE STREQUAL "0")
+    target_sources(WsprryPico-Inhibited PRIVATE ../src/provisioning/pico/journal_fault_fixture.cpp)
     target_compile_definitions(WsprryPico-Inhibited PRIVATE
-        WSPRRY_PICO_PHASE12_FAULT_FIXTURE=1)
-    set_source_files_properties(../src/provisioning/pico/phase12_fault_fixture.cpp PROPERTIES
-        COMPILE_DEFINITIONS WSPRRY_PICO_PHASE12_FAULT_STAGE=${WSPRRY_PICO_PHASE12_FAULT_STAGE})
-    if(WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE)
-        target_compile_definitions(WsprryPico-Inhibited PRIVATE WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE=1)
+        WSPRRY_PICO_JOURNAL_FAULT_FIXTURE=1)
+    set_source_files_properties(../src/provisioning/pico/journal_fault_fixture.cpp PROPERTIES
+        COMPILE_DEFINITIONS WSPRRY_PICO_JOURNAL_FAULT_STAGE=${WSPRRY_PICO_JOURNAL_FAULT_STAGE})
+    if(WSPRRY_PICO_JOURNAL_POWER_CUT_FIXTURE)
+        target_compile_definitions(WsprryPico-Inhibited PRIVATE WSPRRY_PICO_JOURNAL_POWER_CUT_FIXTURE=1)
     endif()
 endif()
 
@@ -122,11 +123,11 @@ foreach(image IN LISTS wsprry_application_images)
     target_compile_definitions(${image} PRIVATE
         WSPRRY_PICO_CONSUMER_LAN_MODE=${WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE})
 endforeach()
-option(WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE
+option(WSPRRY_PICO_SESSION_DEADLINE_FIXTURE
     "RF-inhibited engineering session fixture: 15s inactivity/60s absolute" OFF)
-if(WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE)
+if(WSPRRY_PICO_SESSION_DEADLINE_FIXTURE)
     target_compile_definitions(WsprryPico-Inhibited PRIVATE
-        WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE=1)
+        WSPRRY_PICO_SESSION_DEADLINE_FIXTURE=1)
 endif()
 option(WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
     "Link the RF-inhibited USB BOOTSEL safe-zone window diagnostic" OFF)
@@ -233,10 +234,10 @@ endif()
 if(NOT WSPRRY_PICO_LED_ACCEPTANCE AND NOT WSPRRY_PICO_LED_SELECTION STREQUAL "0")
     message(FATAL_ERROR "LED test selection requires the acceptance image")
 endif()
-if(WSPRRY_PICO_LED_ACCEPTANCE AND (WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE OR
-   NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0" OR WSPRRY_PICO_GP14_RF_ACCEPTANCE OR
+if(WSPRRY_PICO_LED_ACCEPTANCE AND (WSPRRY_PICO_INDICATOR_FAULT_FIXTURE OR
+   NOT WSPRRY_PICO_JOURNAL_FAULT_STAGE STREQUAL "0" OR WSPRRY_PICO_GP14_RF_ACCEPTANCE OR
    WSPRRY_PICO_GP14_FLASH_PROBE OR WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC OR
-   WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE OR WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE OR
+   WSPRRY_PICO_SESSION_DEADLINE_FIXTURE OR WSPRRY_PICO_JOURNAL_POWER_CUT_FIXTURE OR
    WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC OR WSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG OR
    WSPRRY_PICO_GP14_ROBUSTNESS))
     message(FATAL_ERROR "LED acceptance requires an isolated configuration")
@@ -628,29 +629,29 @@ if(WSPRRY_PICO_GP14_ROBUSTNESS)
 endif()
 
 # Fault cases are isolated from other deliberate reset/flash experiments.
-if(WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE AND
-   (NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0" OR
+if(WSPRRY_PICO_INDICATOR_FAULT_FIXTURE AND
+   (NOT WSPRRY_PICO_JOURNAL_FAULT_STAGE STREQUAL "0" OR
     WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC OR WSPRRY_PICO_GP14_RUNTIME_BUTTON OR
     WSPRRY_PICO_GP14_FLASH_PROBE OR WSPRRY_PICO_GP14_RF_ACCEPTANCE OR
     WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC OR WSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG OR
-    WSPRRY_PICO_GP14_ROBUSTNESS OR WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE))
+    WSPRRY_PICO_GP14_ROBUSTNESS OR WSPRRY_PICO_SESSION_DEADLINE_FIXTURE))
     message(FATAL_ERROR "Indicator fault fixture requires an isolated inhibited configuration")
 endif()
-if(NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0" AND
+if(NOT WSPRRY_PICO_JOURNAL_FAULT_STAGE STREQUAL "0" AND
    (WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC OR WSPRRY_PICO_GP14_RUNTIME_BUTTON OR
     WSPRRY_PICO_GP14_FLASH_PROBE OR WSPRRY_PICO_GP14_RF_ACCEPTANCE OR
     WSPRRY_PICO_GP14_BUTTON_DIAGNOSTIC OR WSPRRY_PICO_GP14_DIAG_INJECT_WATCHDOG OR
-    WSPRRY_PICO_GP14_ROBUSTNESS OR WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE))
-    message(FATAL_ERROR "Phase12 fault fixture requires an isolated inhibited configuration")
+    WSPRRY_PICO_GP14_ROBUSTNESS OR WSPRRY_PICO_SESSION_DEADLINE_FIXTURE))
+    message(FATAL_ERROR "Journal fault fixture requires an isolated inhibited configuration")
 endif()
 
 # Do not let a stale caller silently build an RF image in an inhibited-only
 # experiment. Explicit inhibited builds still work; ordinary all/RF requests fail
 # before linking. This also protects a reconfigured directory with old artifacts.
-if(WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE OR
-   NOT WSPRRY_PICO_PHASE12_FAULT_STAGE STREQUAL "0" OR
-   WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE OR
-   WSPRRY_PICO_PHASE12_PHYSICAL_CUT_FIXTURE OR
+if(WSPRRY_PICO_INDICATOR_FAULT_FIXTURE OR
+   NOT WSPRRY_PICO_JOURNAL_FAULT_STAGE STREQUAL "0" OR
+   WSPRRY_PICO_SESSION_DEADLINE_FIXTURE OR
+   WSPRRY_PICO_JOURNAL_POWER_CUT_FIXTURE OR
    WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC OR WSPRRY_PICO_GP14_FLASH_PROBE)
     add_custom_target(wsprry_inhibited_fixture_rf_refusal
         COMMAND ${CMAKE_COMMAND} -E echo

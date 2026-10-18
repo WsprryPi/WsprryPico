@@ -214,6 +214,25 @@ class BundleTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             bundle.required_tests('HEAD')
 
+    def test_explicit_inventory_without_a_legacy_registration_loop(self):
+        snapshot = {
+            'CMakeLists.txt': 'add_test(NAME retained_behavior_tests COMMAND driver)\n',
+            'cmake/network_host_tests.cmake': 'add_test(NAME network_regression_tests COMMAND driver)\n',
+            'cmake/host_client_interop.cmake': '',
+            'cmake/network_client_interop.cmake': '',
+        }
+
+        def frozen_capture(*args):
+            if 'ls-tree' in args:
+                return 'cmake/network_host_tests.cmake'
+            revision, path = args[-1].split(':', 1)
+            self.assertEqual(revision, self.source)
+            return snapshot[path]
+
+        with patch.object(bundle, 'capture', side_effect=frozen_capture):
+            self.assertEqual(bundle.required_tests(self.source),
+                             {'retained_behavior_tests', 'network_regression_tests'})
+
     def test_renamed_compatibility_program_is_rejected_before_payload_acceptance(self):
         directory = self.audit / 'consumer'
         (directory / 'WsprryPico.elf').write_bytes(b'synthetic ELF fixture')

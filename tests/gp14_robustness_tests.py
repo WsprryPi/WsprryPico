@@ -9,7 +9,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
-import gp14_robustness_campaign as campaign
+import gp14_diagnostics as campaign
 from check_standalone_image import validate_uf2
 from check_gp14_robustness_image import validate as validate_image
 from check_gp14_flash_probe_image import validate as validate_flash_probe
@@ -84,10 +84,10 @@ class CampaignTests(unittest.TestCase):
             campaign.continuity(self.row, after | {'boot_id': 2, 'settings_before': 999})
 
     def test_inert_cli(self):
-        result = subprocess.run([sys.executable, str(ROOT / 'scripts/gp14_robustness_campaign.py')],
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/gp14_diagnostics.py')],
                                 capture_output=True, text=True, check=True)
         self.assertIn('"device_io": false', result.stdout)
-        result = subprocess.run([sys.executable, str(ROOT / 'scripts/gp14_robustness_campaign.py'),
+        result = subprocess.run([sys.executable, str(ROOT / 'scripts/gp14_diagnostics.py'),
                                  '--run'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 2)
 

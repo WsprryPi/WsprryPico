@@ -67,13 +67,12 @@ endpoint fixture fail CI. All registered CTest cases must execute successfully.
 WTP contract validation, npm browser tests, real consumer frequency UI checks
 and packaging failure tests are additional required gates.
 
-Private historical hardware/capture packets are unavailable on a fresh runner.
-Only the exact reviewed historical-evidence reasons in
-[`allowed-evidence-skips.json`](../../scripts/ci/allowed-evidence-skips.json)
-may skip individual historical assertions. Their test IDs and reasons are
-recorded separately; they are not counted as executed hardware acceptance.
-A missing required compiler, module, fixture or behavior test cannot use that
-disposition.
+Current CI rejects skipped CTest cases and internally skipped Python assertions.
+The verifier retains the exact
+[`legacy test skip reasons`](../../scripts/ci/legacy-test-skip-reasons.json)
+only to verify already-published images whose frozen source registered private
+historical evidence tests. Current builds record an empty legacy skip inventory.
+Hardware acceptance remains separate from these software checks.
 
 Firmware builds retain linked engine, heap, stack/guard, pool, renderer,
 GP14/BOOTSEL, flash and UF2 checks. The deployment verifier checks the current

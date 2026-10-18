@@ -241,5 +241,35 @@ def main():
                 os.close(fd)
 
 
+def _require_cleanup(condition, message):
+    if not condition:
+        raise RuntimeError(message)
+
+def cleanup_owned(peer, boot, job_id, owner):
+    status = peer.request('STATUS', {})
+    _require_cleanup(status['boot_id'] == boot, 'cleanup boot mismatch')
+    if status['owner_id'] is None:
+        _require_cleanup(status['output_active'] is False, 'unowned output during cleanup')
+        return
+    _require_cleanup(status['owner_id'] == owner, 'cleanup foreign owner')
+    if status['job_id'] == job_id:
+        if status['state'] in ('loaded', 'armed', 'running'):
+            peer.request('ABORT', dict(job_id=job_id))
+            status = peer.request('STATUS', {})
+        _require_cleanup(status['boot_id'] == boot and status['output_active'] is False and
+                status['state'] in ('aborted', 'complete', 'missed'), 'cleanup terminal unconfirmed')
+        if status['owner_id'] is None:
+            return
+        _require_cleanup(status['owner_id'] == owner, 'cleanup owner changed')
+    else:
+        _require_cleanup(status['job_id'] is None and status['state'] == 'empty' and
+                status['output_active'] is False, 'cleanup foreign job')
+    peer.request('RELEASE', {})
+    status = peer.request('STATUS', {})
+    _require_cleanup(status['boot_id'] == boot and status['owner_id'] is None and
+            status['job_id'] is None and status['state'] == 'empty' and
+            status['output_active'] is False, 'cleanup unconfirmed')
+
+
 if __name__ == "__main__":
     main()

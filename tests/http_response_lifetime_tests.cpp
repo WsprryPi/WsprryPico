@@ -10,7 +10,7 @@
 #include <new>
 #include <source_location>
 
-// Requested C++ allocation ledger from the retained Phase 14 lifetime fixture.
+// C++ allocation ledger for bounded HTTP response lifetime regression.
 // It measures reclamation independently of string size/capacity observations.
 namespace ledger {
 struct alignas(std::max_align_t) Header {

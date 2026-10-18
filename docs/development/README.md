@@ -92,6 +92,36 @@ inputs and generated-site inputs after documentation changes. Run
 `git diff --check` and inspect untracked text separately; whitespace validation
 alone does not check links or fixtures.
 
+## Host tools and analysis
+
+`scripts/usb_inventory.py` provides a read-only, explicitly selected USB Console
+and WTP inventory. `scripts/console_trace.py` reads bounded diagnostic pages;
+`scripts/network_trace.py` validates trace framing and identity offline, and
+`scripts/radio_capture.py` decodes radiotap/802.11 PCAP records offline.
+`scripts/gp14_diagnostics.py` drives the explicit button diagnostic image.
+Inspect an opt-in entry point before running it; normal software checks do not
+open devices.
+
+`src/rf_analysis/` contains offline sample-job construction, keyed-signal,
+reference-carrier, relative-drive, aborted-waveform and RF-presence analysis.
+Its deterministic regressions use synthetic samples. Enable them with the existing
+`WSPRRY_PICO_HARNESS_PYTHON` CMake option pointing to an installed Python with
+NumPy and the qualification harness modules. They establish no physical RF
+qualification.
+
+The `provisioning_flash_fixture` host target and
+`scripts/populate_flash_fixture.py` build private offline provisioning fixtures
+through the production journal loaders. The builder requires an explicit device
+ID; it does not flash a board. `scripts/firmware_payload.py` verifies that UF2
+application bytes match ELF load segments. The USB installer and CI retain
+their current image integrity checks.
+
+Inhibited diagnostics use `WSPRRY_PICO_JOURNAL_FAULT_STAGE`,
+`WSPRRY_PICO_JOURNAL_POWER_CUT_FIXTURE`, `WSPRRY_PICO_INDICATOR_FAULT_FIXTURE`
+and `WSPRRY_PICO_SESSION_DEADLINE_FIXTURE`. Active obsolete names cause a
+configuration error with the replacement option; remove the old cache selection
+before using the replacement. Disabled defaults in an existing cache are allowed.
+
 ## Engineering references
 
 - [Portable core](portable-core.md), [WTP endpoint](wtp-endpoint.md) and

@@ -4,7 +4,7 @@ import sys
 import unittest
 from pathlib import Path
 import numpy as np
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+sys.path[:0] = [str(Path(__file__).resolve().parents[1] / part) for part in ('src', 'scripts')]
 from decode_rf_wspr import audio_from_iq, decode_window
 from measure_rf_bench import BASE, SPACING, SYMBOL, measure, phase_fit
 
@@ -46,7 +46,7 @@ class Tests(unittest.TestCase):
 
     def test_reference_acquisition_handles_receiver_tuning_offset_and_rejects_noise(self):
         import numpy as np
-        from phase14_reference import reference_observation
+        from rf_analysis.reference import reference_observation
         from measure_rf_bench import local_contrast
         rate=250000;center=144490500;frequency=center-20000
         t=np.arange(7*rate)/rate

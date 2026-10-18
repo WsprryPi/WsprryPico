@@ -1,5 +1,5 @@
-#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
-#include "provisioning/pico/phase12_fault_fixture.hpp"
+#ifdef WSPRRY_PICO_JOURNAL_FAULT_FIXTURE
+#include "provisioning/pico/journal_fault_fixture.hpp"
 #endif
 #include "standalone/pico/adapters.hpp"
 
@@ -224,8 +224,8 @@ bool PicoProfileMedia::program(std::size_t offset, std::span<const std::uint8_t>
     flash_range_program(flash_layout::profile_base + offset, page.data(), page.size());
     restore_interrupts(irq);
 #endif
-#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
-    provisioning::phase12_profile_programmed(offset);
+#ifdef WSPRRY_PICO_JOURNAL_FAULT_FIXTURE
+    provisioning::journal_profile_programmed(offset);
 #endif
     return call.finish(true);
 }

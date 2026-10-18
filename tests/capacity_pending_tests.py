@@ -20,26 +20,6 @@ class Tests(unittest.TestCase):
   self.assertEqual(len(calls),1)
   with self.assertRaises(ValueError):run(connect,observe,lambda d:None,lambda d:None,lambda *a:None,14,clock=lambda:0)
   self.assertEqual(len(calls),1)
-class CallerTests(unittest.TestCase):
- def test_actual_private_pressure_branch_wires_single_pending_observer(self):
-  import ast
-  tree=ast.parse((Path(__file__).resolve().parents[1]/'scripts/phase12_engineering_composition.py').read_text());pressure=next(n for n in ast.walk(tree) if isinstance(n,ast.FunctionDef) and n.name=='pressure')
-  nodes=next(n for n in ast.walk(pressure) if isinstance(n,ast.Try)).body
-  calls=[]
-  class Peer:
-   def request(self,*a):return {}
-  class Held:
-   def sendall(self,*a):calls.append('held_header')
-  class Evidence:
-   def record(self,*a):pass
-  env=dict(held=Held(),args=type('Args',(),dict(hostname='example.local',port=443))(),owner=Peer(),check_status=lambda *a,**kw:None,plan={'boot_id':'b'},time=type('Clock',(),{'monotonic':staticmethod(lambda:0)}),wave_end=240,e=Evidence(),counter=lambda x,*a:int(x),guard=lambda x,p:x,observe_info=lambda:dict(status={'boot_id':'b'},revision='source',network_active_connections=2,network_pending_connections=1,tls_allocated_bytes=1,network_pending_tcp_bytes=1),other=object(),context=lambda x:None,require=lambda ok,msg:None)
-  def connect(*a,**kw):calls.append(('connector',kw));return None
-  def pending(connector,observe,*a):observe();connector(15);calls.append('pending')
-  env.update(connect=connect,pending_capacity=pending)
-  env['https_authority']=https_authority
-  exec(compile(ast.fix_missing_locations(ast.Module(body=nodes,type_ignores=[])),'private','exec'),env)
-  self.assertEqual(sum(isinstance(x,tuple) and x[0]=='connector' for x in calls),1)
-  self.assertIn(('connector',{'observer_deadline':15}),calls)
 class DelayedCleanupTests(unittest.TestCase):
  def test_peer_refuses_before_next_firmware_cleanup_observation(self):
   import threading

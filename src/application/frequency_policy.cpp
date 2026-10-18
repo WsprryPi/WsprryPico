@@ -11,9 +11,9 @@ struct Band {
 // Correlation envelopes adapted from WsprryPi's Band-Lookup catalog (MIT,
 // Copyright 2024 Lee Bussy; see LICENSE.md). Allocated in at least one
 // jurisdiction; these ranges do not establish an operator's local authority.
-// 8m/5m are untested. 4m/2m are excluded for every mode by the Phase 14
-// operator disposition after failed required WSPR decoding. Higher bands are
-// untested and outside the current engine's direct-synthesis limits.
+// Experimental ranges require explicit consent; measured points do not qualify
+// the complete ranges. 4m/2m lack reliable required WSPR support. Higher bands
+// are unqualified and outside the current engine's direct-synthesis limits.
 constexpr std::array<Band, 19> bands{{
     {130000, 190000, true},        {472000, 479000, true},        {1800000, 2000000, true},
     {3500000, 4000000, true},      {5250000, 5450000, true},      {7000000, 7300000, true},

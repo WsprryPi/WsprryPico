@@ -5,7 +5,7 @@ const fs = require('node:fs'), http = require('node:http'), path = require('node
 const {spawn} = require('node:child_process');
 const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '../src/network/web');
-const output = path.resolve(process.argv[2] || 'build/phase11-3-ui');
+const output = path.resolve(process.argv[2] || 'build/network-tls-ui');
 const state = {job:{state:'empty',output_active:false,owner_id:null,job_id:null},
   standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000000',clock_state:'synchronized',engine:'pio-dma-gp2'},
   network:{enabled:true,link_status:3,ipv4:'192.0.2.10',configured_hostname:'wsprrypico-'+'a'.repeat(32)+'.local',mdns_state:'active',mdns_reason:''}};

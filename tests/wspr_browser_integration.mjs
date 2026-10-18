@@ -9,7 +9,7 @@ import os from 'node:os';
 import {Fixture} from './consumer_sessions.test.mjs';
 
 if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; Node 20 needs --experimental-websocket');
-const output=path.resolve(process.argv[3] || 'build/phase15-8-browser');
+const output=path.resolve(process.argv[3] || 'build/wspr-browser-integration');
 await mkdir(output,{recursive:true});
 const profile=await mkdtemp(path.join(os.tmpdir(),'p158-chrome-'));
 let f=new Fixture(process.argv[2]);await f.time(1000);

@@ -240,7 +240,7 @@ void mock_tcp_poll() {
         }
         if (n < 0) {
             if (errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
-                // MIT sibling Phase 11.1 lesson: lwIP frees PCB before err callback.
+                // lwIP frees the PCB before invoking its error callback.
                 const auto callback = pcb->error;
                 auto* context = pcb->arg;
                 tcp_abort(pcb);

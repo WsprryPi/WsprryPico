@@ -71,7 +71,7 @@ class Peer final : public HostTestEndpoint {
     rf::PioDmaSink sink_{hardware_};
     rf::StreamEngine physical_engine_{sink_};
     wtp::JobService service_;
-    wtp::Endpoint endpoint_{service_, std::string(32, '4'), "phase10-software-test"};
+    wtp::Endpoint endpoint_{service_, std::string(32, '4'), "host-interop-test"};
 
   public:
     explicit Peer(bool physical)

@@ -56,7 +56,7 @@ extern "C" [[gnu::used]] const char wsprrypico_usb_update_contract[] =
 #include "provisioning/pico/field_platform.hpp"
 #include "usb/management_endpoint.hpp"
 #include "usb/time_exchange.hpp"
-#ifdef WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE
+#ifdef WSPRRY_PICO_INDICATOR_FAULT_FIXTURE
 #include "provisioning/pico/indicator_fault_fixture.hpp"
 #endif
 #include "runtime/activity_trace.hpp"
@@ -69,8 +69,8 @@ extern "C" [[gnu::used]] const char wsprrypico_usb_update_contract[] =
 #endif
 #include "provisioning/pico/gatt_transport.hpp"
 #include "provisioning/reset_storage.hpp"
-#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
-#include "provisioning/pico/phase12_fault_fixture.hpp"
+#ifdef WSPRRY_PICO_JOURNAL_FAULT_FIXTURE
+#include "provisioning/pico/journal_fault_fixture.hpp"
 #endif
 #include "provisioning/runtime.hpp"
 #include "runtime/pico/btstack_acl_metrics.hpp"
@@ -331,8 +331,8 @@ int main() {
     };
     // SDK uses scratch 4..7 for reboot bookkeeping. Preserve a small diagnostic
     // in 0..3, and enter an unowned, network-free recovery boot after a stall.
-#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
-    wsprrypico::provisioning::phase12_fault_capture_boot();
+#ifdef WSPRRY_PICO_JOURNAL_FAULT_FIXTURE
+    wsprrypico::provisioning::journal_fault_capture_boot();
 #endif
     const bool recovery = watchdog_enable_caused_reboot();
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
@@ -357,8 +357,8 @@ int main() {
     watchdog_hw->scratch[3] = 0;
     watchdog_hw->scratch[1] = 1;
     watchdog_enable(8000, true);
-#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
-    wsprrypico::provisioning::phase12_fault_restore_marker();
+#ifdef WSPRRY_PICO_JOURNAL_FAULT_FIXTURE
+    wsprrypico::provisioning::journal_fault_restore_marker();
 #endif
 
 #ifdef WSPRRY_PICO_BOOTSEL_WINDOW_DIAGNOSTIC
@@ -572,7 +572,7 @@ int main() {
     static wsprrypico::provisioning::LocalAccessController local_access(
         access_store, bond_store, random_source, identities.device_id(), service.status().boot_id,
         access_identity
-#ifdef WSPRRY_PICO_PHASE12_SESSION_DEADLINE_FIXTURE
+#ifdef WSPRRY_PICO_SESSION_DEADLINE_FIXTURE
         ,
         wsprrypico::provisioning::SoftApSessionLimits{15'000, 60'000}
 #endif
@@ -585,8 +585,8 @@ int main() {
         &bond_store, &ntp_retention);
     static wsprrypico::provisioning::ResetCoordinator reset_coordinator(
         access_store, profile_store, reset_targets, local_identity);
-#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
-    reset_coordinator.checkpoint_observer(wsprrypico::provisioning::phase12_reset_checkpoint);
+#ifdef WSPRRY_PICO_JOURNAL_FAULT_FIXTURE
+    reset_coordinator.checkpoint_observer(wsprrypico::provisioning::journal_reset_checkpoint);
 #endif
     // No network/control runtime has started yet. A persisted intent is the
     // authority to finish the same operation; completion requires a fresh boot.
@@ -611,7 +611,7 @@ int main() {
                                      wsprrypico::provisioning::RuntimeSource::Unprovisioned);
     softap_coordinator.temporary_access(consumer_source_selected());
     softap_coordinator.recovery(boot_recovery);
-#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
+#ifdef WSPRRY_PICO_JOURNAL_FAULT_FIXTURE
     // Test-only, RF-inhibited access window. Consumer USB field commands remain
     // unavailable; the unattended recovery observer uses the ordinary AP API.
     (void)softap_coordinator.request_join_grace(time_us_64() / 1000ULL);
@@ -1139,12 +1139,12 @@ int main() {
                 break;
             }
             number_field(result, "access_generation", access_store.sequence(), true);
-#ifdef WSPRRY_PICO_PHASE12_FAULT_FIXTURE
+#ifdef WSPRRY_PICO_JOURNAL_FAULT_FIXTURE
             number_field(result, "phase12_fault_stage",
-                         wsprrypico::provisioning::phase12_fault_stage(), true);
+                         wsprrypico::provisioning::journal_fault_stage(), true);
             result += ",\"phase12_boot_ap_window_ms\":120000";
             result += ",\"phase12_fault_consumed\":";
-            result += wsprrypico::provisioning::phase12_fault_consumed() ? "true" : "false";
+            result += wsprrypico::provisioning::journal_fault_consumed() ? "true" : "false";
 #endif
             result += ",\"access_default_password\":";
             result +=
@@ -1199,7 +1199,7 @@ int main() {
 #else
             result += ",\"tx_indicator_requested\":false,\"tx_indicator_ready\":false";
 #endif
-#ifdef WSPRRY_PICO_PHASE12_INDICATOR_FAULT_FIXTURE
+#ifdef WSPRRY_PICO_INDICATOR_FAULT_FIXTURE
             result += ",\"indicator_fault_fixture\":true";
             number_field(result, "indicator_fixture_calls",
                          wsprrypico::provisioning::indicator_fault_fixture_calls());
