@@ -21,7 +21,10 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
 4. ⏳ **NTP Work** [Saved prompt](ntp-work-execution-prompt.md).
    - ✅ Persistent standalone manual PPM.
    - ✅ NTP filtering and UTC rate discipline.
-   - ⏳ NTP-derived RF calibration.
+   - ⏳ **Implement μChrony for NTP-derived RF calculation.** Replace prior
+     estimators with an original MIT implementation; complete Chrony 4.9
+     conformance and target/RF qualification while preserving independent
+     manual PPM and launch limits.
 5. ✅ **Impeccable UI review**, including provisioning; accepted and closed.
    [Result](phase15-19-results.md). VoiceOver testing is closed as not required.
    Installer coverage is deferred.
