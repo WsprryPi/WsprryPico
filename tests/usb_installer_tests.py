@@ -2,9 +2,12 @@
 import contextlib
 import copy
 from email.message import Message
+import fcntl
 import io
 import json
 import os
+import pty
+import select
 import shlex
 import shutil
 from pathlib import Path
@@ -12,6 +15,8 @@ import struct
 import subprocess
 import sys
 import tempfile
+import termios
+import time
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -917,6 +922,180 @@ class EraseTests(unittest.TestCase):
         self.assertTrue(installer.recover_transaction(self.args)['erase_verified'])
 
 
+class InteractiveSelectionTests(unittest.TestCase):
+    OTHER = '2545B6EFBF78028C'
+
+    class Terminal(io.StringIO):
+        def isatty(self):
+            return True
+
+    def invoke(self, arguments=None, answer='2\n', fresh=None, human=True, tty=True, open_error=None, boards=None):
+        boards = [dict(serial=self.OTHER, mode='bootsel', parent='1-1.4', ports={}),
+                  dict(serial=SERIAL, mode='application', parent='1-1.3', ports={})] if boards is None else boards
+        terminal = self.Terminal(answer) if isinstance(answer, str) else answer
+        messages = self.Terminal() if tty else io.StringIO()
+        net = Network('main')
+        def transaction(args, *_):
+            return dict(stage='complete', serial=args.device, preserved=True, recovery_required=False)
+        with patch.object(installer, 'open', return_value=terminal, side_effect=open_error, create=True) as opened, \
+             patch.object(installer, 'discover', side_effect=[boards, boards if fresh is None else fresh]) as discovery, \
+             patch.object(installer, 'Https', return_value=net) as network, \
+             patch.object(installer, 'transaction', side_effect=transaction) as programming, \
+             patch.object(installer, 'Picotool', side_effect=AssertionError('Real USB tool opened')), \
+             patch.object(installer, 'public_snapshot', side_effect=AssertionError('Unselected USB device opened')), \
+             contextlib.redirect_stdout(io.StringIO()) as output, contextlib.redirect_stderr(messages):
+            code = installer.main(['upgrade', '--board', 'pico2_w', '--yes'] if arguments is None else arguments, human=human)
+        return SimpleNamespace(code=code, result=json.loads(output.getvalue()), messages=messages.getvalue(),
+                               opened=opened, discovery=discovery, network=network, programming=programming)
+
+    def refused(self, result):
+        self.assertEqual(result.code, 2)
+        self.assertFalse(result.result['ok'])
+        self.assertFalse(result.result['recovery_required'])
+        result.network.assert_not_called()
+        result.programming.assert_not_called()
+
+    def test_menu_orders_serials_and_passes_only_chosen_device_to_preserving_transaction(self):
+        result = self.invoke()
+        self.assertEqual(result.code, 0)
+        self.assertTrue(result.result['preserved'])
+        self.assertEqual(result.result['serial'], self.OTHER)
+        self.assertIn('1. USB ' + SERIAL, result.messages)
+        self.assertIn('2. USB ' + self.OTHER, result.messages)
+        self.assertIn('Running firmware; USB port 1-1.3', result.messages)
+        self.assertIn('BOOTSEL; USB port 1-1.4', result.messages)
+        self.assertIn('Selected Pico ' + self.OTHER, result.messages)
+        self.assertEqual(result.discovery.call_count, 2)
+        result.opened.assert_called_once_with('/dev/tty', encoding='utf-8')
+        args = result.programming.call_args.args[0]
+        self.assertEqual((args.operation, args.board, args.yes, args.device), ('upgrade', 'pico2_w', True, self.OTHER))
+        self.assertEqual(args.selected_parent, '1-1.4')
+        self.assertEqual(args.selected_mode, 'bootsel')
+
+    def test_invalid_choices_repeat_without_default_selection(self):
+        result = self.invoke(answer='0\n99\n-1\nabc\n' + '9' * 5000 + '\n1\n')
+        self.assertEqual(result.result['serial'], SERIAL)
+        self.assertEqual(result.messages.count('Enter one of the listed numbers'), 5)
+        result.programming.assert_called_once()
+
+    def test_install_menu_selects_bootsel_board_and_preserves_existing_guidance(self):
+        result = self.invoke(['install', '--board', 'pico2_w', '--yes'])
+        self.assertEqual(result.code, 0)
+        self.assertEqual(result.result['serial'], self.OTHER)
+        self.assertIn('Select the Pico to install:', result.messages)
+        self.assertIn('Initial installation requires BOOTSEL', result.messages)
+
+    def test_cancel_empty_eof_and_interrupt_never_start_firmware_work(self):
+        class Interrupted(self.Terminal):
+            def readline(self, *_):
+                raise KeyboardInterrupt
+        for answer in ('\n', 'q\n', 'Q\n', '', Interrupted()):
+            with self.subTest(answer=repr(answer)):
+                result = self.invoke(answer=answer)
+                self.refused(result)
+                self.assertIn('selection cancelled; no firmware was written', result.result['error'])
+
+    def test_missing_terminal_or_boards_refuse_with_actionable_reason(self):
+        for kwargs, reason in ((dict(tty=False), '--device SERIAL'),
+                               (dict(open_error=OSError('no controlling terminal')), '--device SERIAL'),
+                               (dict(boards=[]), 'No supported USB Pico')):
+            with self.subTest(kwargs=kwargs):
+                result = self.invoke(**kwargs)
+                self.refused(result)
+                self.assertIn(reason, result.result['error'])
+
+    def test_changed_or_disconnected_choice_never_falls_back_to_another_board(self):
+        for fresh in ([dict(serial=SERIAL, mode='application', parent='1-1.3', ports={})],
+                      [dict(serial=self.OTHER, mode='bootsel', parent='other-port', ports={})],
+                      [dict(serial=self.OTHER, mode='application', parent='1-1.4', ports={})]):
+            with self.subTest(fresh=fresh):
+                self.refused(self.invoke(fresh=fresh))
+
+    def test_device_change_during_image_resolution_refuses_under_lock_before_transaction(self):
+        files, manifest, _ = fixture('main', modern=True)
+        image = installer.verify_bundle(files, 'main')[1]
+        for operation, mode in (('install', 'bootsel'), ('upgrade', 'application')):
+            board = dict(serial=SERIAL, mode=mode, parent='1-1.3', ports={})
+            other_mode = dict(board, mode='application' if mode == 'bootsel' else 'bootsel')
+            for menu_board, changed in ((board, []), (board, [dict(board, parent='1-1.7')]),
+                                        (board, [other_mode]), (other_mode, [board])):
+                with self.subTest(operation=operation, menu_board=menu_board, changed=changed):
+                    state = {'resolved': False, 'locked': False}
+                    def resolve(*_):
+                        state['resolved'] = True
+                        return files, manifest, image
+                    @contextlib.contextmanager
+                    def lock(serial):
+                        self.assertEqual(serial, SERIAL)
+                        state['locked'] = True
+                        try:
+                            yield
+                        finally:
+                            state['locked'] = False
+                    def discover():
+                        if state['resolved']:
+                            self.assertTrue(state['locked'])
+                            return changed
+                        return [menu_board]
+                    with patch.object(installer, 'open', return_value=self.Terminal('1\n'), create=True), \
+                         patch.object(installer, 'discover', side_effect=discover), \
+                         patch.object(installer, 'resolve', side_effect=resolve), \
+                         patch.object(installer, 'recent_ci', return_value={}), \
+                         patch.object(installer, 'device_lock', side_effect=lock), \
+                         patch.object(installer, 'Picotool'), \
+                         patch.object(installer, 'private_directory', side_effect=AssertionError('Transaction created')) as private, \
+                         patch.object(installer, 'public_snapshot', side_effect=AssertionError('USB opened')) as snapshot, \
+                         contextlib.redirect_stderr(self.Terminal()), \
+                         contextlib.redirect_stdout(io.StringIO()) as output:
+                        code = installer.main([operation, '--board', 'pico2_w', '--yes'], human=True)
+                    result = json.loads(output.getvalue())
+                    self.assertEqual(code, 2)
+                    self.assertFalse(result['ok'])
+                    self.assertFalse(result['recovery_required'])
+                    private.assert_not_called()
+                    snapshot.assert_not_called()
+
+    def test_single_board_still_requires_deliberate_selection(self):
+        board = dict(serial=SERIAL, mode='application', parent='1-1.3', ports={})
+        self.refused(self.invoke(boards=[board], answer='\n'))
+        self.assertEqual(self.invoke(boards=[board], answer='1\n').result['serial'], SERIAL)
+
+    def test_imported_and_json_only_entry_points_never_open_terminal(self):
+        for kwargs in (dict(human=False), dict(arguments=['upgrade', '--board', 'pico2_w', '--yes', '--json-only'])):
+            with self.subTest(kwargs=kwargs):
+                result = self.invoke(**kwargs)
+                self.refused(result)
+                result.opened.assert_not_called()
+                result.discovery.assert_not_called()
+                self.assertEqual(result.messages, '')
+
+    def test_explicit_device_bypasses_menu_in_all_entry_points(self):
+        for human, extra in ((True, []), (False, []), (True, ['--json-only'])):
+            with self.subTest(human=human, extra=extra):
+                result = self.invoke(['upgrade', '--device', SERIAL, '--board', 'pico2_w', '--yes', *extra], human=human)
+                self.assertEqual(result.code, 0)
+                self.assertEqual(result.result['serial'], SERIAL)
+                result.opened.assert_not_called()
+                result.discovery.assert_not_called()
+                self.assertEqual(result.messages, '')
+
+    def test_board_and_operation_confirmation_are_required_before_menu(self):
+        for arguments in (['upgrade', '--board', 'pico2_w'], ['upgrade', '--yes']):
+            with self.subTest(arguments=arguments):
+                result = self.invoke(arguments)
+                self.refused(result)
+                result.opened.assert_not_called()
+
+    def test_read_only_and_explicit_recovery_or_erase_commands_never_offer_menu(self):
+        for operation in ('discover', 'plan', 'snapshot', 'recover', 'erase'):
+            with self.subTest(operation=operation):
+                result = self.invoke([operation])
+                result.opened.assert_not_called()
+                self.assertNotIn('Choose 1-', result.messages)
+                result.programming.assert_not_called()
+                self.assertEqual(result.code, 0 if operation in ('discover', 'plan') else 2)
+
+
 class StandaloneGuidanceTests(unittest.TestCase):
     def waiting(self):
         return dict(operation='upgrade', stage='awaiting_bootsel', manual_bootsel_required=True,
@@ -1085,6 +1264,91 @@ class StandaloneGuidanceTests(unittest.TestCase):
                            CURL_LOG=str(root / 'curl.log'), CURL_SOURCE=str(source), TMPDIR=str(temporary),
                            WSPRRY_PICO_USB_INSTALLER_REVISION='')
         return environment, revision, record, temporary
+
+    @unittest.skipIf(os.geteuid() == 0, 'Bootstrap requires an ordinary user')
+    def test_piped_bootstrap_selects_via_controlling_terminal_with_clean_json(self):
+        # Feed Bash's script through stdin while the operator answers /dev/tty.
+        # Public downloads and programming are substituted; no USB is opened.
+        for columns, answer in ((100, b'bad\n2\n'), (40, b'\n')):
+            with self.subTest(columns=columns), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary).resolve()
+                environment, _, _, downloads = self.bootstrap_fixture(root)
+                core = root / 'source/usb_installer.py'
+                devices = [dict(serial=SERIAL, mode='application', parent='1-1.3', ports={}),
+                           dict(serial=InteractiveSelectionTests.OTHER, mode='bootsel', parent='1-1.4', ports={})]
+                core.write_text(core.read_text().replace('    sys.exit(main(human=True))',
+                    f'    discover = lambda: {devices!r}\n'
+                    "    transaction = lambda args, *a: dict(stage='complete', serial=args.device, preserved=True, recovery_required=False)\n"
+                    '    sys.exit(main(human=True))'))
+                master, slave = pty.openpty()
+                fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('4H', 24, columns, 0, 0))
+                def claim_terminal():
+                    os.setsid()
+                    fcntl.ioctl(2, termios.TIOCSCTTY, 0)
+                process = None
+                try:
+                    process = subprocess.Popen(['bash', '-s', '--', 'upgrade', '--board', 'pico2_w', '--yes'],
+                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=slave,
+                        cwd=root, env=environment, preexec_fn=claim_terminal)
+                    os.close(slave)
+                    slave = None
+                    process.stdin.write((ROOT / 'scripts/install_usb.sh').read_bytes())
+                    process.stdin.close()
+                    process.stdin = None
+                    transcript = bytearray()
+                    deadline = time.monotonic() + 10
+                    while b'press Enter to cancel: ' not in transcript:
+                        self.assertLess(time.monotonic(), deadline, transcript.decode(errors='replace'))
+                        if select.select([master], [], [], 0.1)[0]:
+                            transcript.extend(os.read(master, 4096))
+                    os.write(master, answer)
+                    output = bytearray()
+                    streams = {master: transcript, process.stdout.fileno(): output}
+                    deadline = time.monotonic() + 10
+                    # Drain both streams before wait(): macOS can hold a session
+                    # leader in exit until its controlling PTY has been drained.
+                    while streams:
+                        self.assertLess(time.monotonic(), deadline, transcript.decode(errors='replace'))
+                        for descriptor in select.select(list(streams), [], [], 0.1)[0]:
+                            try:
+                                data = os.read(descriptor, 4096)
+                            except OSError as error:
+                                if descriptor != master or error.errno != installer.errno.EIO:
+                                    raise
+                                data = b''
+                            if data:
+                                streams[descriptor].extend(data)
+                            else:
+                                del streams[descriptor]
+                    os.close(master)
+                    master = None
+                    process.wait(timeout=5)
+                    process.stdout.close()
+                    text = transcript.decode()
+                    result = json.loads(output)
+                    self.assertEqual(len(output.splitlines()), 1)
+                    self.assertIn('1. USB ' + SERIAL, text)
+                    self.assertIn('2. USB ' + InteractiveSelectionTests.OTHER, text)
+                    self.assertIn('Running firmware; USB port 1-1.3', text)
+                    self.assertIn('BOOTSEL; USB port 1-1.4', text)
+                    self.assertEqual(list(downloads.iterdir()), [])
+                    if columns == 100:
+                        self.assertEqual(process.returncode, 0, text)
+                        self.assertEqual(result['serial'], InteractiveSelectionTests.OTHER)
+                        self.assertTrue(result['preserved'])
+                        self.assertIn('Enter one of the listed numbers', text)
+                    else:
+                        self.assertEqual(process.returncode, 2, text)
+                        self.assertFalse(result['recovery_required'])
+                        self.assertIn('selection cancelled', result['error'])
+                finally:
+                    if master is not None:
+                        os.close(master)
+                    if process is not None and process.poll() is None:
+                        process.kill()
+                        process.communicate(timeout=5)
+                    if slave is not None:
+                        os.close(slave)
 
     @unittest.skipIf(os.geteuid() == 0, 'Bootstrap requires an ordinary user')
     def test_piped_bootstrap_continuation_survives_cleanup_and_pins_revision(self):

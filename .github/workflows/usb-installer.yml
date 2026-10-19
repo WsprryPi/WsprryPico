@@ -4,6 +4,7 @@ on:
   push:
     branches: [devel, main]
     paths:
+      - scripts/install_usb.sh
       - scripts/usb_installer.py
       - scripts/ci/release-manifest-1.schema.json
       - scripts/ci/installer_release.py
@@ -15,6 +16,7 @@ on:
   pull_request:
     branches: [devel, main]
     paths:
+      - scripts/install_usb.sh
       - scripts/usb_installer.py
       - scripts/ci/release-manifest-1.schema.json
       - scripts/ci/installer_release.py

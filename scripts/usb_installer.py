@@ -35,7 +35,7 @@ import urllib.parse
 import urllib.request
 import uuid
 
-INSTALLER_VERSION = '0.1.2'
+INSTALLER_VERSION = '0.1.3'
 REPOSITORY = 'WsprryPi/WsprryPico'
 API = 'https://api.github.com/repos/' + REPOSITORY + '/'
 DOWNLOAD = 'https://github.com/' + REPOSITORY + '/releases/download/'
@@ -1110,7 +1110,10 @@ def transaction(args, files, manifest, image, client=None):
                 'Selected image lacks guarded upgrade/postboot verification; choose a compatible newer CI image')
     tool = Picotool(args.picotool)
     with device_lock(serial):
-        board = selected(serial, 'bootsel' if args.operation == 'install' else 'application')
+        operation_mode = 'bootsel' if args.operation == 'install' else 'application'
+        require(getattr(args, 'selected_mode', operation_mode) == operation_mode,
+                'Selected Pico mode does not support this operation; install requires BOOTSEL and upgrade requires running firmware')
+        board = selected(serial, operation_mode, getattr(args, 'selected_parent', None))
         require(args.board == 'pico2_w', 'Explicit --board pico2_w confirmation is required for BOOTSEL hardware')
         root = private_directory(args.state_dir)
         prune_transactions(root)
@@ -1512,6 +1515,42 @@ def terminal_message(message):
         pass
 
 
+def select_interactive_device(operation):
+    """Read a deliberate selection from the terminal, never piped stdin."""
+    unavailable = 'Interactive Pico selection needs a terminal; use discover and --device SERIAL for unattended use'
+    require(sys.stderr.isatty(), unavailable)
+    try:
+        terminal = open('/dev/tty', encoding='utf-8')
+    except OSError as error:
+        raise Refusal(unavailable) from error
+    with terminal:
+        require(terminal.isatty(), unavailable)
+        devices = sorted(discover(), key=lambda device: device['serial'])
+        require(devices, 'No supported USB Pico found; connect a Pico with a USB data cable and run discover')
+        print('Select the Pico to ' + operation + ':', file=sys.stderr, flush=True)
+        for number, device in enumerate(devices, 1):
+            mode = 'Running firmware' if device['mode'] == 'application' else 'BOOTSEL'
+            print(f"  {number}. USB {device['serial']}\n     {mode}; USB port {device['parent']}",
+                  file=sys.stderr, flush=True)
+        while True:
+            # Prompt errors must refuse before any transaction or flash write.
+            print(f'Choose 1-{len(devices)}, or press Enter to cancel: ', end='', file=sys.stderr, flush=True)
+            try:
+                answer = terminal.readline().strip()
+            except KeyboardInterrupt as error:
+                raise Refusal('Pico selection cancelled; no firmware was written') from error
+            if not answer or answer.lower() == 'q':
+                raise Refusal('Pico selection cancelled; no firmware was written')
+            if (re.fullmatch(r'[1-9][0-9]*', answer) and len(answer) <= len(str(len(devices))) and
+                    int(answer) <= len(devices)):
+                device = devices[int(answer) - 1]
+                # A disconnected/moved board never becomes another menu entry.
+                selected(device['serial'], device['mode'], device['parent'])
+                print('Selected Pico ' + device['serial'] + '.', file=sys.stderr, flush=True)
+                return device
+            print('Enter one of the listed numbers, or press Enter to cancel.', file=sys.stderr, flush=True)
+
+
 def bootsel_callout(args, result):
     if result.get('operation') == 'erase':
         if result.get('stage') == 'complete' and result.get('erase_verified') is True:
@@ -1578,7 +1617,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     parser.add_argument('--bundle', type=Path, help='Previously verified public bundle directory (offline planning/install)')
     parser.add_argument('--state-dir', type=Path, default=Path.home() / '.local/state/wsprrypico-usb')
     parser.add_argument('--transaction', type=Path, help='Exact private transaction.json for explicit same-board recovery')
-    parser.add_argument('--json-only', action='store_true', help='Suppress BOOTSEL guidance; stdout always contains JSON results')
+    parser.add_argument('--json-only', action='store_true', help='Disable terminal selection and BOOTSEL guidance; stdout always contains JSON results')
     args = parser.parse_args(argv)
     os.umask(0o077)
     try:
@@ -1586,6 +1625,13 @@ def main(argv=None, schema_bytes=None, *, human=False):
                 '--bundle cannot be combined with another image selector')
         require(not args.replace_unidentified_application or args.operation == 'install',
                 'Replacing unidentified application bytes is an explicit initial-install operation only')
+        if args.operation in ('install', 'upgrade'):
+            require(args.yes, 'Programming requires an explicit operation and --yes')
+            require(args.board == 'pico2_w', 'Explicit --board pico2_w confirmation is required for BOOTSEL hardware')
+            if not args.device:
+                require(human and not args.json_only, 'Programming requires explicit --device SERIAL for unattended use')
+                device = select_interactive_device(args.operation)
+                args.device, args.selected_parent, args.selected_mode = device['serial'], device['parent'], device['mode']
         if args.operation == 'discover':
             result = {'devices': discover()}
         elif args.operation == 'erase':

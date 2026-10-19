@@ -1,9 +1,9 @@
 # USB installer
 
-The shared installer is `scripts/usb_installer.py` (version 0.1.2). It runs with
+The shared installer is `scripts/usb_installer.py` (version 0.1.3). It runs with
 Python 3.10 or newer and its standard library on macOS and Linux. Windows and
-WSL USB operation are unsupported. The current implementation is under
-validation; [the result record](usb-installer-results.md) defines its acceptance.
+WSL USB operation are unsupported. The [acceptance record](usb-installer-results.md)
+distinguishes software checks, published downloads and recorded board tests.
 
 ## Full flash erase
 
@@ -191,8 +191,29 @@ wireless hardware. Re-enumeration must retain the serial and physical port.
 
 For first installation, disconnect the selected Pico, hold BOOTSEL, reconnect
 its data cable, release BOOTSEL and run discovery. Programming always needs an
-explicit operation, device, board and `--yes`; stdin is never used for prompts,
-including when the bootstrap is piped into Bash.
+explicit operation, selected device, board and `--yes`.
+
+For an interactive `install` or `upgrade`, omit `--device` to choose from a
+numbered list of connected Picos. Each entry shows the USB serial, running
+firmware or BOOTSEL mode, and USB port. Enter a listed number to select that
+Pico, or press Enter or type `q` to cancel before any firmware work. A single
+connected Pico also requires selection. The installer rechecks the selected
+serial, mode and port when selected and again under its device lock after image
+resolution, before creating a transaction. A disconnected, moved or changed board
+causes refusal. Only the selected Pico is programmed, with the same backup,
+saved-state preservation and recovery checks as an explicit USB serial.
+
+```sh
+bash scripts/install_usb.sh upgrade --branch devel --board pico2_w --yes
+```
+
+The menu reads `/dev/tty`, so it also works when the bootstrap is piped into
+Bash. Prompts go to stderr; stdout remains one JSON result. It requires a
+controlling terminal with stderr attached to a terminal. Unattended commands,
+`--json-only`, and WsprryPi's imported installer entry point require
+`--device SERIAL` and never prompt. Explicit `--device` bypasses the menu.
+`discover` and `plan` remain noninteractive; `snapshot`, destructive `erase`
+and `recover` continue to require an explicit serial.
 
 ```sh
 python3 scripts/usb_installer.py install --branch devel \
@@ -385,8 +406,10 @@ bash -s -- discover
 For an existing WsprryPico application, replace `discover` with
 `upgrade --branch devel --device SERIAL --board pico2_w --yes`, using the
 discovered USB serial. The command selects the latest verified devel firmware
-and preserves saved settings. Python, picotool and USB permissions must already
-be available. The bootstrap runs as the ordinary user, not through `sudo`.
+and preserves saved settings. In an interactive terminal, omit `--device SERIAL`
+to choose the Pico from the numbered menu. Python, picotool and USB permissions
+must already be available. The bootstrap runs as the ordinary user, not through
+`sudo`.
 
 WsprryPi's selected USB Pico controls call the identified deployed core. The
 adapter verifies an independently published compatible installer and its hashes;

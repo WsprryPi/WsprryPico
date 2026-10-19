@@ -1,162 +1,144 @@
-# USB installer implementation and acceptance
+# USB installer acceptance
 
-Status: **in flight**. Software and physical acceptance remain separate. The
-operator authorized consolidation with μChrony and the documentation cleanup
-on 2026-10-18. The shared Pico `devel` checkout now contains the combined sources;
-the isolated installer tree remains a preserved validation snapshot. Published
-bootstrap verification, live Pi package deployment and physical preserving-upgrade
-acceptance remain open.
+Status: **in flight: final main-image and installer 0.1.3 publication checks
+remain**. Shared-core behavior, companion integration and the recorded Pico C
+installation, preserving migration, recovery and erase paths have passed their
+stated checks. The final publication work does not load firmware, operate a
+Pico, change a host service or perform RF tests.
 
-## Source and device identities
+## Delivered behavior
 
-The original implementation and validation snapshot is at
-`/Users/lbussy/.codex/worktrees/pico-usb-installer/WsprryPico`, based on Pico devel
-`582b7221b78537813e997b1be0c880dbadab0697`. Integration retains the newer μChrony
-phase-slew clock fields, NTP-learning flash reservation and cleaned documentation.
-WsprryPi changes
-start from devel `fe701cf4c2b05e46cb84927188984084503d1cea`. Pi commit `cc806d9`
-records the companion integration and pins package deployment to Pico revision
-`cc12ca45eb66a95e518b81119e3d6ca546db1547`, with exact installer/schema SHA-256
-values in its `config/pico-usb-installer.json`. Temporary-root package staging
-and removal verify those committed bytes; no live package was installed.
+The standalone bootstrap and local CLI use the same Python installer as
+WsprryPi's selected-USB-Pico controls. Firmware selection defaults to main;
+devel, a specific CI version and developer builds require explicit selection.
+A missing or incompatible image refuses without branch substitution or a build.
+The canonical manifest, exact public assets, hashes, source tag and successful
+CI provenance are checked before a programming transaction.
 
-The operator confirmed the new board is **Pico C**, a Pico 2 W:
+Installer 0.1.3 adds deliberate numbered device selection for interactive
+install/upgrade commands. Piped bootstrap input stays separate from `/dev/tty`;
+stdout remains one JSON result. Explicit serials bypass the menu. Imported Pi
+execution and unattended/JSON-only commands still require a serial and never
+prompt. The selected serial, mode and physical port are rechecked under the
+device lock after image resolution, before creating a transaction.
 
-- USB/chip serial: `1545B6EFBF78028C`; RP2350 A2 QFN60.
-- WTP device ID: `c2a3a2a314c948b50a8562a1aeb69669`.
-- Mac physical parent/location: `34603008` (`0x02100000`).
-- No RF path was identified for this installer test. No transmit job was sent.
+Upgrades retain every byte from flash offset `0x3ee000` through `0x400000`
+before reboot and compare public saved semantics afterward. Guarded maintenance,
+verified same-board backups, FLASH_UPDATE boot admission and acknowledged finish
+prevent an installer from silently taking ownership or releasing an uncertain
+update. Verified older CI images have a disabled/unconfigured-schedule BOOTSEL
+migration path. Recovery reuses the retained image and identity. Pi also retains
+the exact installer; bootstrap recovery downloads its pinned original revision.
+Full erase is a separate explicit operation covering all 4 MiB, with complete
+blank comparison and no new credential backup. The [installer guide](usb-installer.md)
+defines commands, privacy, retention and recovery limits.
 
-## Physical initial installation and read-only recovery
+WsprryPi's policy is installer contract 1 on the devel installer channel;
+firmware selection remains independently main by default. Compatible installers
+are resolved from published receipts rather than a Pi source pin. Checked images
+and transactions retain their exact verified installer for offline recovery.
+The companion source at `8bfa1672a41098dba68c0ef60f23d042977d63a3` includes this
+integration and the recorded live web erase. No companion implementation change
+is needed for installer 0.1.3.
 
-The initial backup found unidentified program fragments, erased WsprryPico
-saved-state banks, and only the exact RP2350 E10 workaround in the final sector.
-The first ordinary install correctly refused before writing. The operator then
-explicitly authorized replacing the unidentified application bytes.
+## Recorded physical acceptance
 
-Anonymous devel bookmark resolution selected normal CI version
-`0.1.0-ci.39084514130.1`, run `39084514130`, attempt 1, source
-`582b7221b78537813e997b1be0c880dbadab0697`, published tag
-`v0.1.0-ci.39084514130.1`. Whole-run verify/publish success, retained receipt,
-release/tag/source, metadata and exact public downloads were checked.
+These are existing board-specific observations, not new tests of every later
+source or image. Raw flash backups and credentials remain private, outside Git
+and served roots.
 
-- UF2: `WsprryPico-0.1.0-ci.39084514130.1-pico2_w.uf2`, 4,688,384 bytes.
-- UF2 SHA-256: `4e5c5f1de45f12ae5499f2e6ff4e07115f22d69e1e3a476c0f4ba7c01e4513b0`.
-- Manifest SHA-256: `b22ff0980a384b3443537455c73ec89417a67ccfa106ce1d22fc7a8e46e040e6`.
+| Path | Identity and result |
+| --- | --- |
+| macOS initial CLI installation and verification recovery | Pico C, Pico 2 W / RP2350 A2 QFN60, USB serial `1545B6EFBF78028C`, device ID `c2a3a2a314c948b50a8562a1aeb69669`, USB location `34603008`. CI image `0.1.0-ci.39084514130.1`, source `582b7221b78537813e997b1be0c880dbadab0697`. Application programming, independent picotool verification, full readback, reserved-byte equality and postboot unconfigured state passed. Read-only recovery verified the programmed image without another write. |
+| Linux/Pi preserving BOOTSEL migration and reconnection recovery | The [companion acceptance](https://github.com/WsprryPi/WsprryPi/blob/7b01762/docs/pico-usb-installer.md#validation-and-documentation-impact) records Pico C on wspr4 upgraded to `0.1.0-ci.39145255987.1`, source `f6ed8a208e2919a00b7ced044349fd45336f8760`. The full backup, reserved bytes, public saved state and exact new boot passed; the host maintenance hold cleared. Connection-only recovery retained that boot without reflashing. |
+| Linux CLI/core full erase and repeated recovery | The [physical erase check](usb-installer.md#physical-erase-check) records Pico C on wspr4 USB parent `1-1.3`, picotool 2.3.0, original image `0.1.0-ci.39155533863.1` / source prefix `0a7c05d1c41b`. All 4,194,304 bytes populated with `0x5a` were erased and independently read back blank. A nonblank final byte failed verification; repeated erase recovery passed. Original full flash and saved semantics were restored and verified. |
+| Deployed Pi web erase and restoration | The [2026-10-19 record](https://github.com/WsprryPi/WsprryPi/blob/8bfa1672a41098dba68c0ef60f23d042977d63a3/docs/development/pico-usb-erase-web-test-20261019.md) binds wspr4, Pico C, application/UI `8b7b7fee5dc334f753ec06b1b635108893967670`, published installer 0.1.1 / source `90bb95ebd054fa9084185e5ef9ed79528609c014`, and release `usb-installer-v1-devel-39249064224.1`. Production web preparation and continuation passed. Independent full-flash blank comparison and byte-identical restoration passed; the service returned ready, idle, unowned and output inactive. |
 
-USB-enabled picotool 2.3.0 was built from existing pinned local sources, without
-an SDK/tool installation. Executable SHA-256:
-`6ddca221ea6975470a340d4e0ebcb2e4079189b0088a24c1d2c98e2543e5ab26`.
-Application programming, independent tool verification, full readback and
-reserved-byte equality succeeded. Initial postboot discovery failed because
-macOS attaches CDC clients under data interfaces; a transient empty ioreg plist
-also needed handling. Both discovery defects were repaired. Explicit recovery
-then verified the already-programmed running application without another write.
-It reported the exact installed firmware/source and unconfigured saved state.
-
-Backup and reserved-state hashes remain private. Raw backups and transactions
-remain under the operator's owner-only state directory, outside Git and web
-roots. The last device check verified the above CI image and unconfigured
-settings on Pico C. This task has not loaded the new maintenance firmware or
-created or removed any release/tag.
-The absent main bookmark and absent compatible stable image produce refusal;
-explicit devel was used for this physical test.
+No RF jobs were part of these installer observations. The full erase test's
+private restoration image was a separate test fixture; erase itself created
+no backup. The recorded web BOOTSEL handoff used the guarded USB fixture rather
+than a physical unplug/hold/replug sequence.
 
 ## Validation so far
 
-The combined `devel` source passes a fresh Linux portable build on wspr5 and
-13 focused CTest suites covering μChrony, NTP replay, USB maintenance, installer,
-standalone scheduling, reset and flash layout. All 32 installer and 29 packaging
-tests pass. Normal and inhibited Pico firmware cross-builds pass their linked
-engine, reserved-flash, stack, heap and USB checks. WTP artifacts, bootstrap
-Bash/ShellCheck, changed Markdown paths and whitespace checks pass. The Pi
-companion's five deployment tests and firmware UI unit/integration checks pass;
-its integration is committed separately on Pi `devel`. These consolidation
-checks involve no firmware load, device operation, host-clock change or RF test.
-They do not establish a full canonical CI pass or physical upgrade acceptance.
+The final-source focused checks on 2026-10-19 pass:
 
-- Python installer behavior: 32 tests pass, including two branch fixtures,
-  invalid provenance/assets/UF2, offline selection, explicit confirmation,
-  failed backups, byte mismatch, guarded upgrade, semantic mismatch refusal,
-  same-boot recovery, conflicting selectors and local-build failure without
-  fallback, bounded unchanged-refusal history, failed atomic-write retry and
-  repeated application/BOOTSEL recovery. Controlled fixtures are software
-  evidence, not physical upgrades.
-- Clean isolated host build succeeds. The focused CTest selection passes 5/5:
-  `usb_local_management_tests`, `usb_maintenance_tests`, `usb_installer_tests`,
-  `standalone_tests` and `wsprrypico_core_tests`.
-- Broad isolated host run: 194 registered; environmental failures included
-  unavailable jsonschema/Noble dependencies, sandbox loopback/write restrictions
-  and the Mac's existing system compiler/linker mismatch. This is not a claim
-  that the complete host suite passed. Dependency-complete Linux CI is pending.
-- Normal and explicit inhibited firmware cross-builds and linked
-  engine/storage/USB/stack/heap checks pass with the pinned existing SDK and
-  compiler. The explicit developer path
-  completed a fresh dirty normal build and returned a labelled local bundle:
-  UF2 SHA-256 `bdfb45ccd3cbb686542eff69cc1b7226215e5a78cfdb5670a473e4d956bf6e92`.
-  It was not installed and is not relabelled as CI firmware.
-- Pi UI unit behavior and five private deployment/adapter tests pass. Actual
-  source-owned UI renders at 1440×1100 and 390×844 in light/dark for checked,
-  pending, refusal, failure, reconnect and success states, with no horizontal
-  overflow. Impeccable's detector reports no findings; screenshots were inspected.
-- Pi Linux installer C++ tests and the complete configuration/runtime client
-  compile pass in an authorized wspr4 `/tmp` snapshot (Debian 13.7 aarch64,
-  g++ 14.2). OpenSSL 3.5.7 development headers were extracted from the Debian
-  package, using existing runtime libraries. Build metadata is disabled only
-  for this exported non-Git test tree. No system package, service, checkout or
-  transmitter hardware was changed. JavaScript tests run on the Mac because
-  this Linux host has no Node runtime; no Linux aggregate/whole-suite pass is
-  claimed.
-- Linux browser API, USB-management and installer C++ test binaries pass;
-  `web_server_control_routes.cpp` also passes a separate g++ syntax check with
-  the repository component include paths. WTP contract validation passes
-  23 schema, seven raw JSON, one framing and eight transition cases. Bootstrap
-  and Pi lifecycle Bash syntax/ShellCheck and both diff checks pass.
+- 85 installer behavioral tests, including initial installation, guarded and
+  legacy preserving paths, recovery, privacy/retention, rate limits, full erase,
+  picotool compatibility, interactive selection and piped-terminal execution.
+- Six independently published installer bundle/contract tests.
+- WTP artifact validation: 23 schema, seven raw-JSON, one framing and eight
+  transition cases.
+- Pi deployment: nine tests; compatible distribution and retained recovery:
+  19 tests. Firmware UI unit, polling, maintenance-safety and rendered browser
+  integration checks pass. Desktop/mobile light/dark render checks report no
+  overflow and pass button/recovery gating.
+- Bootstrap Bash syntax, ShellCheck and both repositories' whitespace checks.
 
-The current validation commands include:
+Commands from the Pico root:
 
 ```sh
-python3 tests/usb_installer_tests.py
-python3 scripts/validate_wtp_contract.py
-cmake --build <isolated-host-build> --target usb_maintenance_tests -j4
-ctest --test-dir <isolated-host-build> --output-on-failure \
-  -R '^(usb_local_management_tests|usb_maintenance_tests|usb_installer_tests|standalone_tests|wsprrypico_core_tests)$'
-cmake --build <isolated-firmware-build> --target WsprryPico WsprryPico-Inhibited -j4
+python3 -B tests/usb_installer_tests.py
+python3 -B tests/installer_release_tests.py
+python3 -B scripts/validate_wtp_contract.py
+bash -n scripts/install_usb.sh
+shellcheck scripts/install_usb.sh
+git diff --check
 ```
 
-The host and firmware outputs are `build/usb-installer/clean-host` and
-`build/usb-installer/firmware-local-validated` in the shared Pico checkout;
-both compile the isolated source. Pi checks use
-`python3 scripts/tests/pico_usb_deploy_test.py`,
-`node WsprryPi-UI/tests/wtp_firmware_test.js` and
-`node WsprryPi-UI/tests/wtp_firmware_ui_integration_test.js`. The authorized
-Linux export uses `make pico-usb-installer-cpp-test wtp-config-client-build`
-from its `src` directory with `BUILD_METADATA_ENABLED=0`, its extracted
-OpenSSL include/pkg-config paths and `WTP_NETWORK_CXXFLAGS='-O0 -g0'`.
+Commands from the Pi root:
 
-## Independent review and remaining acceptance
+```sh
+python3 -B scripts/tests/pico_usb_deploy_test.py
+python3 -B scripts/tests/pico_usb_bundle_test.py
+node WsprryPi-UI/tests/wtp_firmware_test.js
+node WsprryPi-UI/tests/wtp_firmware_polling_test.js
+node WsprryPi-UI/tests/pico_firmware_safety_test.js
+node WsprryPi-UI/tests/wtp_firmware_ui_integration_test.js
+php -l WsprryPi-UI/data/views/wtp-controls.php
+git diff --check
+```
 
-The read-only reviewer identified and prompted repairs for the snapshot/reset
-race, private destination/durability and retention, failure-record masking,
-semantic watermark/suspension comparison, archive/receipt binding, pending setup
-operations, postboot standalone scheduling, ambiguous finish ACK messages,
-local-image identity and silently conflicting selectors. The new FLASH_UPDATE
-boot hold is established before scheduler construction. Disconnect, timeout or
-cancel does not release it; matching postboot verification and acknowledged
-finish do. A release-requested record handles uncertain acknowledgement.
-Later review also repaired process-group cleanup, verified-source/schema
-execution, physical-inhibit reset admission, selected-member UI invalidation,
-private browser-result filtering, compact local identity retention, Linux
-runtime compilation, and repeated recovery/unchanged-refusal retention.
-Final read-only reassessment reports no remaining actionable source/doc
-findings. The reviewer independently reran the 32 installer tests, five Pi
-deployment/adapter tests, UI unit, Impeccable detector, Bash syntax and diff
-checks. Target builds and Linux C++ checks are separate implementation-agent
-evidence, not independently rerun by the reviewer.
+The local default Python lacks PyYAML and jsonschema, so its attempted
+`tests/ci_bundle_tests.py` run did not pass. Canonical Linux CI supplies the
+hash-pinned dependencies and runs the complete registered suite plus normal,
+inhibited and compatibility firmware builds. Earlier Linux C++ and linked
+firmware acceptance remains bound to its recorded source; no local macOS C++
+compilation was attempted for this closeout.
 
-Open gates: published bootstrap verification, canonical CI containing the new
-maintenance firmware, reviewed live Pi package deployment,
-physical preserving upgrade and recovery on Pico C, and the real Pi USB entry
-point. Linux/Pi USB programming has not been physically qualified. Neither
-mock tests, cross-builds nor initial installation establish these gates or RF
-qualification. Backlog item 7 remains in flight until required evidence exists.
+## Independent review
+
+The independent read-only reviewer found that the initial menu patch discarded
+the physical-port binding after selection. Image resolution could then admit
+the same serial on another port. The repair retains the selected parent and
+checks it under the device lock before transaction creation. New real-transaction
+regressions cover movement, disappearance and mode change during resolution for
+both install and upgrade, including a change from an unsuitable menu mode into
+the operation's required mode. The original selected mode is retained as well
+as the port. The reviewer independently reran all 85 installer and six
+publication tests and confirmed that the port-binding finding is closed.
+
+The reviewer also identified a lightweight-workflow coverage gap: bootstrap-only
+changes were absent from its path filters. Both filters now include
+`scripts/install_usb.sh`. The unfiltered canonical firmware workflow already
+covered the installer through CTest. Review of the complete reconciled diff and
+publication evidence is a separate final gate.
+
+## Publication gate and limits
+
+The 2026-10-19 read-only audit verified that the public bootstrap's installer
+0.1.2 anonymously planned devel image `0.1.0-ci.39273840545.1` from source
+`650ead37e161d67b27035b7cec0faf983d940119`. The default main plan correctly
+refused its missing `ci-main` bookmark. Main then lacked the canonical workflow
+and was 671 commits behind devel. The operator explicitly authorized merging
+into main for this work. Final acceptance requires genuine successful main CI,
+public installer 0.1.3, anonymous main/devel bootstrap planning and a final
+independent reassessment before closing backlog item 7.
+
+Acceptance covers the implemented installer contract, verified downloads and
+the recorded physical paths. It does not qualify physical interruption or
+power-cut recovery, every board/host combination, arbitrary downgrades, a
+physical two-board menu/programming campaign, automatic A/B rollback or RF
+quality. Current manifests admit CI testing images; no compatible stable image
+is claimed. Windows and WSL USB operation remain unsupported. The current work
+adds no new physical qualification and performs no live package deployment.
