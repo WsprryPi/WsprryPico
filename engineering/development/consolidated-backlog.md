@@ -40,9 +40,10 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    and rewrite operator-facing prose around current capabilities. Keep needed
    technical material in engineering documentation; add no documentation
    placeholder or future promise. [Cleanup guidance](repository-cleanup-prompt.md).
-9. ⏳ **Operator documentation.** Final instructions, screenshots and
+9. ✅ **Operator documentation.** Final instructions, screenshots and
    Read the Docs Community publication.
-   [Saved prompt](operator-documentation-execution-prompt.md).
+   [Operator manual](https://wsprrypico.readthedocs.io/en/devel/) and
+   [result and evidence](operator-documentation-results.md).
 10. ▧ **Testing prerelease.** Publish the verified CI image, manifest and
     checksums. [Saved prompt](phase15-17-execution-prompt.md).
 

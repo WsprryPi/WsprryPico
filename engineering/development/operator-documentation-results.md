@@ -12,8 +12,11 @@ The [155-row migration map](operator-documentation-migration.csv) records every
 original tracked documentation file, its original SHA-256, disposition, retained
 engineering destination and operator destination for meaningful mixed sections.
 There were no docs symlinks, untracked files, ignored captures or environments.
-The directory contained 4,715,740 bytes. All 147 engineering source/evidence files are retained; the seven generated
-`docs/bluefy` outputs and the empty obsolete `.nojekyll` Pages marker are retired. Original protocols,
+The directory contained 4,715,740 bytes. There are 146 original files retained
+under engineering; the seven generated `docs/bluefy` outputs, the empty obsolete
+`.nojekyll` Pages marker and this completed task's execution prompt are retired.
+The prompt's required evidence is consolidated here and its backlog link repaired.
+Original protocols,
 evidence JSON, figures and upstream license files remain byte-identical (66 files).
 
 Current how-to content is consolidated into 13 Sphinx/MyST operator pages.
@@ -99,9 +102,15 @@ registered tests, with zero failures, skips or historical-evidence exclusions.
 WTP, browser npm, packaging failures, consumer UI, inhibited regression and
 compatibility build checks passed; reproducibility was identical. The normal
 consumer firmware bundle and linked-image audit artifacts uploaded successfully.
+The workflow's download-index publication job also completed successfully.
 These are software/build results, not physical RF qualification. The ignored
 `build/operator-documentation/fresh-linux-verify.log` has SHA-256
 `0b253ac26b3c35fb8a7a6e32ca626b879517db358c04624499973a090c8f1e84`.
+The later full [run 39324562626](https://github.com/WsprryPi/WsprryPico/actions/runs/39324562626)
+also completed successfully at `c02e5d875dfdf2aa23e2220a95dd6ea7563adb4c`,
+including the independent installer update. Subsequent changes affect only
+documentation CSS and engineering closeout; their affected checks are the
+strict Sphinx build, link validation and live rendered review.
 Packaging checks pass all 36 tests when
 run as `docs/.venv/bin/python tests/ci_bundle_tests.py`; the initial system-Python
 attempt lacked YAML/jsonschema dependencies and is not a packaging failure.
@@ -126,8 +135,8 @@ and returns focus. At a measured 390 CSS pixels, content width equals viewport
 width. Search for BOOTSEL returns four operator pages and no engineering records.
 Desktop typography, labels, previous/next controls and image treatment were
 visually inspected. Both images link to their full-size versions for narrow
-screens. Source/HTML link checking covers 94 maintained Markdown sources,
-15 HTML pages and 1,174 local targets with zero errors. The current narrow screenshot is
+screens. Final source/HTML link checking covers 93 maintained Markdown sources,
+15 HTML pages and 1,158 local targets with zero errors. The current narrow screenshot is
 `build/operator-documentation/manual-mobile-viewport.jpg` (390×844), captured
 with an explicit CUA viewport clip. Earlier automatic/full-surface captures had
 host-pane scaling/cropping artifacts and were discarded. The current capture and
@@ -168,7 +177,6 @@ resolve in the browser. Live BOOTSEL search returns four operator pages. The mai
 CI indexes and raw bootstrap download returned HTTP 200. CLI requests to RTD's
 public CDN received its bot filter; the authenticated internal browser verified
 the actual HTTPS pages instead of treating those responses as missing pages.
-The final live review remains required before item 9 completion.
 The deployed RTD version selector initially inherited 30%-opacity white text;
 the final CSS explicitly gives its selector and option list readable palette
 colors. The dynamically inserted native selector also receives the accessible
@@ -181,6 +189,21 @@ for normal, focus, hover and active states, including the native option list.
 The push-only integration also automatically built the independently committed
 installer update `e5dc075a9383fae6d8225b2e31af34e4654b5da6` successfully in
 [devel build 35253314](https://app.readthedocs.org/projects/wsprrypico/builds/35253314/).
+
+The final operator content and contrast correction are commit
+`48505934aeb0c04e6d42b406341c64c163e47582`, successfully served by automatic
+[devel build 35254247](https://app.readthedocs.org/projects/wsprrypico/builds/35254247/).
+The public browser confirmed selector text rgb(236,241,246), option text
+rgb(36,55,70) on white, and accessible name “Documentation version”. The
+390-pixel viewport and document width match. The deployed menu opens with
+aria-expanded=true; Escape closes it, changes the state to false and returns
+focus to the menu button. Final desktop and narrow captures are saved as
+`build/operator-documentation/published-manual.jpg` and
+`build/operator-documentation/manual-mobile-viewport.jpg`. Both were visually
+reviewed at their native 1280×720 and 390×844 sizes. RTD Community advertising
+and version controls are present as expected. The closeout-only follow-up
+changes engineering evidence/backlog and retires the completed prompt; the
+operator content remains the reviewed 4850593 content.
 
 ## External references
 
@@ -212,5 +235,8 @@ source/deployment finding remained at that review. The reviewer independently
 confirmed source/remote and CI identity, but its browser and independent RTD web
 fetch were unavailable. Live navigation/search/assets/keyboard observations
 therefore rely on the primary browser evidence, with source and stored images
-reviewed independently. The added live version-selector contrast fix receives
-a final source/live check before completion.
+reviewed independently. The reviewer also checked the corrected selector
+specificity and fresh Linux log without finding an actionable issue. Final
+computed-style and mobile behavior checks above close its remaining live gate.
+Item 9 is complete; item 10 remains not started. No sibling repository was
+modified and no hardware operation or physical RF acceptance occurred.
