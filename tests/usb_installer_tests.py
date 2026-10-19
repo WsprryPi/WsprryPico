@@ -633,6 +633,168 @@ class InstallerTests(unittest.TestCase):
             self.assertNotIn('before.bin', json.dumps(record))
 
 
+class EraseTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.board = dict(serial=SERIAL, mode='bootsel', parent='same-port', ports={})
+        self.flash = bytearray(b'\x5a' * installer.FLASH_SIZE)
+        self.calls = []
+        self.fault = None
+        test = self
+
+        class Tool:
+            identity = {'version': 'fixture', 'sha256': 'a' * 64}
+            def __init__(self, _): pass
+            def read_flash(self, *_): raise AssertionError('Erase must not copy old credentials')
+            def run(self, serial, *args, **_):
+                test.assertEqual(serial, SERIAL)
+                test.calls.append(args)
+                if args[0] == 'info':
+                    return (' type: ' + ('RP2040' if test.fault == 'chip' else 'RP2350') +
+                            '\n chipid: 0x' + ('0' * 16 if test.fault == 'identity' else serial.lower()) +
+                            ('\n' if test.fault == 'unknown_size' else
+                             '\n flash size: ' + ('2048K' if test.fault == 'size' else '4096K') + '\n'))
+                if args[0] == 'erase':
+                    test.assertEqual(args, ('erase', '-r', '0x10000000', '0x10400000'))
+                    record = next(value for p in test.root.glob('*/transaction.json')
+                                  if (value := installer.decode(p.read_bytes())).get('operation') == 'erase'
+                                  and value.get('stage') == 'erasing')
+                    test.assertEqual(record['stage'], 'erasing')
+                    test.assertTrue(record['recovery_required'])
+                    test.flash[:] = b'\xff' * installer.FLASH_SIZE
+                    if test.fault == 'partial': test.flash[-1] = 0  # Includes the E10 sector.
+                    if test.fault == 'disconnect': raise installer.Refusal('USB disconnected during erase')
+                    if test.fault == 'port': test.board['parent'] = 'changed-port'
+                    return ''
+                if args[0] == 'verify':
+                    test.assertEqual(args[2:], ('-t', 'bin', '-o', '0x10000000'))
+                    expected = args[1].read_bytes()
+                    test.assertEqual(expected, b'\xff' * installer.FLASH_SIZE)
+                    if test.fault == 'verify' or expected != test.flash:
+                        raise installer.Refusal('Full flash comparison failed')
+                    return ''
+                raise AssertionError(args)
+
+        self.context = contextlib.ExitStack()
+        self.context.enter_context(patch.object(installer, 'Picotool', Tool))
+        self.context.enter_context(patch.object(installer, 'discover', side_effect=lambda: [self.board]))
+        self.context.enter_context(patch.object(installer, 'device_lock', lambda _: contextlib.nullcontext()))
+        self.context.enter_context(patch.object(installer, 'private_directory', return_value=self.root))
+        self.context.enter_context(patch.object(installer, 'Https', side_effect=AssertionError('Erase must work offline')))
+        self.args = SimpleNamespace(device=SERIAL, yes=True, board='pico2_w', state_dir=self.root, picotool='fixture')
+
+    def tearDown(self):
+        self.context.close()
+        self.temp.cleanup()
+
+    def cli(self, arguments):
+        with contextlib.redirect_stdout(io.StringIO()) as out:
+            code = installer.main(arguments)
+        return code, json.loads(out.getvalue())
+
+    def test_cli_erases_and_verifies_all_flash_without_network_or_backup(self):
+        code, result = self.cli(['erase', '--device', SERIAL, '--board', 'pico2_w', '--yes'])
+        self.assertEqual(code, 0)
+        self.assertTrue(result['erase_verified'])
+        self.assertEqual(result['erased_bytes'], installer.FLASH_SIZE)
+        self.assertEqual(result['stage'], 'complete')
+        self.assertFalse(result['recovery_required'])
+        self.assertEqual(self.flash, b'\xff' * installer.FLASH_SIZE)
+        self.assertEqual([c[0] for c in self.calls], ['info', 'erase', 'verify'])
+        self.assertEqual({p.name for p in Path(result['transaction']).parent.iterdir()}, {'transaction.json', 'blank.bin'})
+
+    def test_confirmation_and_image_selectors_refuse_before_usb(self):
+        for extra in ([], ['--device', SERIAL], ['--device', SERIAL, '--yes'],
+                      ['--device', SERIAL, '--board', 'pico2_w'],
+                      ['--device', SERIAL, '--board', 'pico2_w', '--yes', '--version', 'anything'],
+                      ['--device', SERIAL, '--board', 'pico2_w', '--yes', '--bundle', '/unused']):
+            with self.subTest(extra=extra):
+                code, result = self.cli(['erase', *extra])
+                self.assertEqual(code, 2)
+                self.assertFalse(result['recovery_required'])
+                self.assertFalse(self.calls)
+
+    def test_erase_retains_old_host_backups_beyond_normal_retention_limits(self):
+        backups=[]
+        for index in range(4):
+            directory=self.root/(SERIAL+'-old-'+str(index));directory.mkdir()
+            (directory/'transaction.json').write_bytes(encoded(dict(schema='wsprrypico-usb-transaction/1',
+                serial=SERIAL,stage='complete',recovery_required=False)))
+            backup=directory/'before.bin';backup.write_bytes(b'private fixture backup');backups.append(backup)
+            os.utime(directory,(1,1))
+        code,result=self.cli(['erase','--device',SERIAL,'--board','pico2_w','--yes'])
+        self.assertEqual(code,0);self.assertTrue(result['erase_verified'])
+        self.assertTrue(all(p.read_bytes()==b'private fixture backup' for p in backups))
+
+    def test_wrong_chip_and_identity_never_erase(self):
+        for self.fault in ('chip', 'identity'):
+            with self.subTest(fault=self.fault), self.assertRaises(installer.TransactionFailure):
+                installer.erase_transaction(self.args)
+        self.assertTrue(all(c[0] == 'info' for c in self.calls))
+        self.assertEqual(self.flash[0], 0x5a)
+
+    def test_uniform_blank_and_content_size_guesses_do_not_block_confirmed_board_erase(self):
+        for initial in (0x5a, 0xff):
+            self.flash[:]=bytes([initial])*installer.FLASH_SIZE
+            self.fault='unknown_size'
+            result=installer.erase_transaction(self.args)
+            self.assertTrue(result['erase_verified'])
+            self.assertEqual(self.flash,b'\xff'*installer.FLASH_SIZE)
+        self.fault='size'  # A content-derived 2048K guess is not geometry.
+        self.assertTrue(installer.erase_transaction(self.args)['erase_verified'])
+
+    def test_missing_durable_intent_never_authorizes_erase(self):
+        real_save = installer.save_json
+        def fail_intent(path, record):
+            if record['stage'] == 'erasing': raise OSError('Intent could not be saved')
+            return real_save(path, record)
+        with patch.object(installer, 'save_json', side_effect=fail_intent), self.assertRaises(installer.TransactionFailure):
+            installer.erase_transaction(self.args)
+        self.assertEqual([c[0] for c in self.calls], ['info'])
+        self.assertEqual(self.flash[0], 0x5a)
+
+    def test_partial_erase_last_byte_and_disconnection_never_report_success(self):
+        for self.fault in ('partial', 'disconnect', 'verify', 'port'):
+            self.board['parent'] = 'same-port'
+            with self.subTest(fault=self.fault):
+                code, result = self.cli(['erase', '--device', SERIAL, '--board', 'pico2_w', '--yes'])
+                self.assertEqual(code, 3)
+                self.assertFalse(result['erase_verified'])
+                self.assertTrue(result['recovery_required'])
+                self.assertEqual(result['stage'], 'failed')
+
+    def test_failed_erase_recovers_on_same_board_and_port_without_image_or_backup(self):
+        self.fault = 'partial'
+        with self.assertRaises(installer.TransactionFailure) as caught:
+            installer.erase_transaction(self.args)
+        self.args.transaction = Path(caught.exception.result['transaction'])
+        self.fault = None
+        self.board['parent'] = 'other-port'
+        with self.assertRaises(installer.TransactionFailure): installer.recover_transaction(self.args)
+        self.board['parent'] = 'same-port'
+        result = installer.recover_transaction(self.args)
+        self.assertTrue(result['erase_verified'])
+        self.assertFalse(result['recovery_required'])
+
+    def test_running_application_only_prepares_manual_handoff_and_requires_disabled_schedule(self):
+        self.board['mode'] = 'application'
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)}, 'config': {'config': {'enabled': False}}}
+        with patch.object(installer, 'public_snapshot', return_value=snapshot), \
+             patch.object(installer, 'admit_snapshot') as admission:
+            result = installer.erase_transaction(self.args)
+            admission.assert_called_once_with(snapshot)
+            self.assertTrue(result['manual_bootsel_required'])
+            self.assertEqual(result['stage'], 'awaiting_bootsel')
+            self.assertFalse(self.calls)
+            self.assertFalse(list(self.root.glob('*/blank.bin')))
+            snapshot['config']['config']['enabled'] = True
+            with self.assertRaises(installer.Refusal): installer.erase_transaction(self.args)
+        self.board['mode'] = 'bootsel'
+        self.args.transaction = Path(result['transaction'])
+        self.assertTrue(installer.recover_transaction(self.args)['erase_verified'])
+
+
 class StandaloneGuidanceTests(unittest.TestCase):
     def waiting(self):
         return dict(operation='upgrade', stage='awaiting_bootsel', manual_bootsel_required=True,

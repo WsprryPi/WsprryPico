@@ -43,6 +43,12 @@ reconnect to the same USB port and continue the prepared update. Its saved
 standalone schedule must be disabled or unconfigured first. Keep USB connected
 during programming and verification.
 
+The USB installer also provides an explicit full erase. It removes firmware,
+Wi-Fi credentials and all persistent data from the entire 4 MiB flash, then
+checks every byte is blank. Erase creates no backup and leaves the Pico in
+BOOTSEL; firmware must be installed again before use. Existing host backups
+are retained. This is separate from the web recovery page's settings reset.
+
 The factory button connects **GP14 (physical pin 19) to GND**:
 
 - Release in under 0.4 seconds to request a reset.

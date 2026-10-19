@@ -1,9 +1,100 @@
 # USB installer
 
-The shared installer is `scripts/usb_installer.py` (version 0.1.0). It runs with
+The shared installer is `scripts/usb_installer.py` (version 0.1.1). It runs with
 Python 3.10 or newer and its standard library on macOS and Linux. Windows and
 WSL USB operation are unsupported. The current implementation is under
 validation; [the result record](usb-installer-results.md) defines its acceptance.
+
+## Full flash erase
+
+`erase` explicitly removes firmware and all saved data from all 4 MiB of the
+Pico 2 W external flash. It includes profiles, credentials, certificates,
+Bluetooth bonds, standalone settings, schedules, watermarks, NTP learning,
+saved drafts, diagnostic scratch and the E10 sector. No flash region is
+preserved. Immutable ROM, chip identity and OTP are outside the flash operation.
+
+Select the physical USB serial and confirm both the board and destructive
+operation:
+
+```sh
+python3 scripts/usb_installer.py discover
+python3 scripts/usb_installer.py erase --device 1545B6EFBF78028C --board pico2_w --yes
+```
+
+If firmware is running, the installer first requires an idle, unowned Pico
+with its saved standalone schedule disabled or unconfigured. It prepares an
+erase transaction and prints same-port BOOTSEL reconnect instructions and an
+exact `recover` continuation command. Preparation changes no flash. Reconnect
+that Pico while holding BOOTSEL, then run the printed command. A Pico already
+in BOOTSEL can be erased directly. Neither path forces a running device to
+reset or stops a job.
+
+The command uses the pinned picotool's
+[range erase and binary verification](https://github.com/raspberrypi/picotool/blob/6f6458d792b93685a11423b244a585eaa99eafcf/main.cpp)
+over `0x10000000` through exclusive `0x10400000`. The explicitly confirmed
+Pico 2 W target defines the [4 MiB capacity](https://github.com/raspberrypi/pico-sdk/blob/079c6f39023649b154152db30f1d781e884879bc/src/boards/include/boards/pico2_w.h).
+Picotool's flash-size estimate
+depends on existing contents and is absent for uniform or blank flash; it is
+not used as a geometry check. The installer checks the RP2350 chip ID,
+USB serial and physical port, durably records erase intent,
+erases the range and compares every byte with `0xff`. Success requires a
+complete successful comparison and returns `erase_verified: true` and
+`erased_bytes: 4194304`. It leaves the Pico in BOOTSEL and does not install
+firmware or reconnect a runtime application.
+
+Erase does not resolve or download a firmware image and does not create a
+backup of credentials or old flash. Only a blank comparison file and transaction
+metadata are retained. Existing host backups, snapshots and other devices are
+untouched. On interruption, permission failure or a failed comparison, the
+result remains unresolved; never assume the data is gone. The printed
+same-board `recover` command repeats erase and full verification without a
+firmware bundle or backup. It never restores the old data.
+
+WsprryPi's **Pico firmware over USB** panel offers **Erase firmware and all
+data…** without an image check. It requires confirmation for the selected USB
+Pico, pauses that member, and shows the BOOTSEL instructions. **Erase after
+BOOTSEL** requires another explicit confirmation. An interrupted erase offers
+**Retry full erase**; success reports verified blank flash without attempting
+an application reconnection. The Pi retains the exact installer for recovery.
+It can refresh the compatible installer independently of firmware downloads;
+an already cached erase-capable installer remains usable offline.
+
+The deterministic erase tests cover identity/port checks, uniform and blank
+flash, explicit confirmation, preparation, full-range comparison, a nonblank
+last byte, disconnects, recovery and retention of existing host backups.
+
+Run the hardware-free installer and publication checks from the repository root:
+
+```sh
+python3 tests/usb_installer_tests.py
+python3 tests/installer_release_tests.py
+```
+
+### Physical erase check
+
+The 2026-10-19 CLI/core check covers Pico C, a Pico 2 W / RP2350 on wspr4,
+USB serial `1545B6EFBF78028C`, device ID
+`c2a3a2a314c948b50a8562a1aeb69669`, USB parent `1-1.3`, and USB-enabled
+picotool 2.3.0. Its original firmware is `0.1.0-ci.39155533863.1`, source
+`0a7c05d1c41b`, with no configured standalone schedule. The tested installer
+SHA-256 is `f568a1abb1452c250ee3ffc9361005e1d9d72c8c2fd8b5a65e25f02b5a9a15f0`.
+
+Application-side erase preparation performs no flash write. The test fixture
+uses the existing guarded USB maintenance transition to enter BOOTSEL and
+keeps a separate private restoration backup. All 4,194,304 flash bytes are
+populated with verified `0x5a` before the prepared erase is continued. Erase
+and an independent full-flash readback confirm every byte is `0xff`, with
+SHA-256 `cd3517473707d59c3d915b52a3e16213cadce80d9ffb2b4371958fb7acb51a08`.
+The erase transaction contains only its blank comparison file and metadata.
+The Pico remains in BOOTSEL. A deliberate nonblank byte at `0x103fffff` makes
+full-range verification fail; a repeated erase recovery clears it and passes.
+
+Restoration is verified byte-for-byte across the original 4 MiB, followed by
+matching firmware/source and saved semantics after boot. The wspr4 service
+returns active and ready, with the Pico unowned and output inactive. No RF jobs
+or RF-clock measurements occur. This qualifies the recorded board and USB
+CLI/core path; physical power-cut/disconnect cases and the live Pi web route
+remain separate from the deterministic failure and browser checks.
 
 ## Image selection and planning
 
@@ -180,7 +271,7 @@ backup and checks the old application bytes against the identified CI image
 before authorizing programming. It applies the same reserved-storage and
 postboot semantic checks as a guarded upgrade. A wrong board, changed image,
 incompatible reserved storage or failed backup refuses without programming.
-No 1200-baud reset, forced takeover, mass erase or settings transplant is used.
+Ordinary updates use no 1200-baud reset, forced takeover, mass erase or settings transplant.
 
 The pending transaction survives host and browser restarts. Keep the Pico idle
 and do not edit its settings during the reconnect. Starting `recover` before

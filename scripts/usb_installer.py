@@ -2,7 +2,8 @@
 """WsprryPico's shared USB installer. Python 3.10+, no third-party modules.
 
 Network inputs are data. Programming uses only validated private transaction
-copies and an explicitly selected USB serial. No mass erase or force-reset.
+copies and an explicitly selected USB serial. Full-flash erase is a separate,
+explicitly confirmed operation; install and upgrade preserve saved state.
 """
 from __future__ import annotations
 
@@ -34,7 +35,7 @@ import urllib.parse
 import urllib.request
 import uuid
 
-INSTALLER_VERSION = '0.1.0'
+INSTALLER_VERSION = '0.1.1'
 REPOSITORY = 'WsprryPi/WsprryPico'
 API = 'https://api.github.com/repos/' + REPOSITORY + '/'
 DOWNLOAD = 'https://github.com/' + REPOSITORY + '/releases/download/'
@@ -957,7 +958,7 @@ def save_json(path, value):
     save_bytes(path, (json.dumps(value, indent=2, sort_keys=True) + '\n').encode())
 
 
-def prune_transactions(root):
+def prune_transactions(root, *, retain_history=False):
     """Bound completed/unchanged history for seven days; never erase recovery."""
     complete, unchanged, unresolved = [], [], []
     for directory in root.iterdir():
@@ -982,6 +983,8 @@ def prune_transactions(root):
     # Cap retained uncertain operations by refusing new ones, never discarding
     # the only old-image/settings recovery material to make room.
     require(len(unresolved) < 8, 'Eight unresolved transactions retained; reconcile recovery before another update')
+    if retain_history:
+        return
     for history, limit in ((complete, 2), (unchanged, 8)):
         for index, directory in enumerate(sorted(history, key=lambda p: p.stat().st_mtime, reverse=True)):
             if index >= limit or time.time() - directory.stat().st_mtime > 7 * 86400:
@@ -995,6 +998,81 @@ def classify_flash(data):
     return {'application_erased': data[:PERSISTENT_START] == b'\xff' * PERSISTENT_START,
             'saved_state_erased': data[PERSISTENT_START:0x3FF000] == b'\xff' * (0x3FF000-PERSISTENT_START),
             'boot_sector_known': known_boot}
+
+
+def finish_erase(args, record, path):
+    """Erase and compare every flash byte. Never save the device's old contents."""
+    record['erase_verified'] = False
+    record.pop('erased_bytes', None)
+    try:
+        selected(args.device, 'bootsel', record['parent'])
+        tool = Picotool(args.picotool)
+        info = tool.run(args.device, 'info', '-a')
+        require(re.search(r'^\s+type:\s+RP2350$', info, re.M) and
+                re.search(r'^\s+chipid:\s+0x' + args.device.lower() + '$', info, re.M),
+                'Erase BOOTSEL chip identity mismatch')
+        # Pico 2 W's confirmed board geometry defines FLASH_SIZE. picotool's
+        # reported size is a content-wrap heuristic and is absent for uniform
+        # or erased flash; it is neither geometry evidence nor an erase guard.
+        blank = path.parent / 'blank.bin'
+        save_bytes(blank, b'\xff' * FLASH_SIZE)
+        record.update(stage='erasing', recovery_required=True, manual_bootsel_required=False, erase_verified=False,
+                      picotool=tool.identity)
+        save_json(path, record)  # Durable intent precedes the first destructive command.
+        selected(args.device, 'bootsel', record['parent'])
+        tool.run(args.device, 'erase', '-r', '0x10000000', '0x10400000', timeout=120)
+        record['stage'] = 'verifying_erase'
+        save_json(path, record)
+        selected(args.device, 'bootsel', record['parent'])
+        # picotool's binary verifier reads and compares the entire 4 MiB range,
+        # including diagnostic, access and E10 sectors; no exceptions or masks.
+        tool.run(args.device, 'verify', blank, '-t', 'bin', '-o', '0x10000000', timeout=120)
+        selected(args.device, 'bootsel', record['parent'])
+        record.update(stage='complete', recovery_required=False, erase_verified=True,
+                      erased_bytes=FLASH_SIZE, blank_sha256=sha(blank.read_bytes()))
+        save_json(path, record)
+        return dict(record, transaction=str(path))
+    except BaseException as error:
+        record.update(failure_stage=record['stage'], stage='failed', recovery_required=True,
+                      failure_reason=str(error), erase_verified=False)
+        try:
+            save_json(path, record)
+        except OSError:
+            record['record_write_failed'] = True
+        raise TransactionFailure(str(error), record, path, error) from error
+
+
+def erase_transaction(args):
+    require(args.device and args.yes and args.board == 'pico2_w',
+            'Erasing firmware and all saved data requires --device SERIAL --board pico2_w --yes')
+    with device_lock(args.device):
+        board = selected(args.device)
+        # A running image may only prepare a manual BOOTSEL handoff. Do not
+        # reset it, stop a job, or read/copy credential-bearing flash.
+        if board['mode'] == 'application':
+            snapshot = public_snapshot(board)
+            admit_snapshot(snapshot)
+            require(snapshot['target']['device_id'] == device_id(args.device), 'Erase target identity mismatch')
+            require(snapshot['config'].get('config') is None or
+                    snapshot['config']['config'].get('enabled') is False,
+                    'Disable the saved standalone schedule before preparing erase')
+        root = private_directory(args.state_dir)
+        prune_transactions(root, retain_history=True)
+        directory = Path(tempfile.mkdtemp(prefix=args.device + '-', dir=root))
+        root_fd = os.open(root, os.O_RDONLY)
+        try:
+            os.fsync(root_fd)
+        finally:
+            os.close(root_fd)
+        record = {'schema': 'wsprrypico-usb-transaction/1', 'installer_version': INSTALLER_VERSION,
+                  'serial': args.device, 'parent': board['parent'], 'operation': 'erase',
+                  'stage': 'awaiting_bootsel', 'recovery_required': True,
+                  'manual_bootsel_required': board['mode'] == 'application', 'erase_verified': False}
+        path = directory / 'transaction.json'
+        save_json(path, record)
+        if board['mode'] == 'application':
+            return dict(record, transaction=str(path))
+        return finish_erase(args, record, path)
 
 
 def transaction(args, files, manifest, image, client=None):
@@ -1244,6 +1322,13 @@ def recover_transaction(args):
             path.stat().st_uid == os.getuid() and path.stat().st_mode & 0o077 == 0,
             'Unsafe recovery transaction record')
     record = decode(path.read_bytes())
+    if record.get('operation') == 'erase':
+        require(record.get('schema') == 'wsprrypico-usb-transaction/1' and
+                record.get('serial') == args.device and record.get('installer_version') == INSTALLER_VERSION and
+                isinstance(record.get('parent'), str) and bool(record['parent']),
+                'Incompatible or wrong-board erase record')
+        with device_lock(args.device):
+            return finish_erase(args, record, path)
     require(record['schema'] == 'wsprrypico-usb-transaction/1' and record['serial'] == args.device and
             record['installer_version'] == INSTALLER_VERSION and
             (re.fullmatch(VERSION, record['version']) or record['version'] == '0.0.0-devel') and
@@ -1398,6 +1483,18 @@ def terminal_message(message):
 
 
 def bootsel_callout(args, result):
+    if result.get('operation') == 'erase':
+        if result.get('stage') == 'complete' and result.get('erase_verified') is True:
+            terminal_message('Erase verified: all 4 MiB of flash is blank, including firmware and saved data.\n'
+                             'The Pico remains in BOOTSEL. Install firmware before using it again.')
+        elif result.get('recovery_required'):
+            terminal_message(('Erase is prepared; no flash has been erased yet.\n'
+                              if result.get('stage') == 'awaiting_bootsel' else
+                              'Erase is unconfirmed. Do not assume credentials or firmware have been removed.\n')
+                             + reconnect_instructions(result['serial']) +
+                             'Continue the same-board erase and verification with:\n\n  '
+                             + continuation_command(args, result) + '\n\nKeep USB connected until verification finishes.')
+        return
     pending = (result.get('manual_bootsel_required') is True and
                result.get('recovery_required') is True and
                result.get('operation') == 'upgrade' and
@@ -1431,7 +1528,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     global SCHEMA_BYTES
     SCHEMA_BYTES = schema_bytes
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation', choices=('discover', 'plan', 'snapshot', 'install', 'upgrade', 'recover'))
+    parser.add_argument('operation', choices=('discover', 'plan', 'snapshot', 'install', 'upgrade', 'recover', 'erase'))
     parser.add_argument('--branch', choices=('main', 'devel'), default='main')
     choice = parser.add_mutually_exclusive_group()
     choice.add_argument('--version', help='Explicit compatible CI version (never silently falls back)')
@@ -1443,7 +1540,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     parser.add_argument('--allow-dirty', action='store_true', help='Explicitly accept a labelled dirty developer build')
     parser.add_argument('--device', help='Physical USB serial; required for unattended operations')
     parser.add_argument('--board', choices=('pico2_w',), help='Confirm the actual BOOTSEL board is Pico 2 W')
-    parser.add_argument('--yes', action='store_true', help='Explicit noninteractive install/upgrade request')
+    parser.add_argument('--yes', action='store_true', help='Confirm the explicit install, upgrade, recovery or destructive erase operation')
     parser.add_argument('--replace-unidentified-application', action='store_true',
                         help='Initial installation only: explicitly replace unknown application bytes, requiring erased saved state')
     parser.add_argument('--picotool', default='picotool')
@@ -1461,6 +1558,11 @@ def main(argv=None, schema_bytes=None, *, human=False):
                 'Replacing unidentified application bytes is an explicit initial-install operation only')
         if args.operation == 'discover':
             result = {'devices': discover()}
+        elif args.operation == 'erase':
+            require(not (args.version or args.stable or args.local_build or args.local_bundle or args.bundle or
+                         args.output or args.transaction or args.build_dir or args.source_revision or args.allow_dirty or
+                         args.branch != 'main'), 'Erase does not accept firmware image selectors, output or transaction options')
+            result = erase_transaction(args)
         elif args.operation == 'recover':
             result = recover_transaction(args)
         elif args.operation == 'snapshot':
