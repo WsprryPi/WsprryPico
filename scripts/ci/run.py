@@ -44,7 +44,12 @@ def inputs():
         raise ValueError('A real GitHub run/attempt is required')
     if os.environ.get('CI_VERSION'):
         raise ValueError('Firmware identity is generated uniquely per run/attempt; overrides are unsupported')
-    version = f'0.1.0-ci.{run_id}.{attempt}'
+    version = os.environ.get('CI_TESTING_VERSION', '') or f'0.1.0-ci.{run_id}.{attempt}'
+    if os.environ.get('CI_TESTING_VERSION'):
+        bundle.require(bundle.is_testing_version(version) and
+                       os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch' and
+                       os.environ.get('GITHUB_REF') == 'refs/heads/devel',
+                       'Testing versions require a manual devel dispatch and 0.1.0-testing.N')
     if not re.fullmatch(r'0\.[0-9]{1,4}\.[0-9]{1,4}-(?:testing\.[1-9][0-9]{0,5}|ci\.[1-9][0-9]{0,19}\.[1-9][0-9]{0,5})', version):
         raise ValueError('Use an explicit pre-1.0 testing version, or the generated CI version')
     source = capture('git', 'rev-parse', 'HEAD')

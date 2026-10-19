@@ -37,6 +37,49 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def is_testing_version(version):
+    return isinstance(version, str) and re.fullmatch(r'0\.1\.0-testing\.[1-9][0-9]{0,5}', version) is not None
+
+
+def testing_metadata(source):
+    """Release-only metadata; ordinary CI bundles retain their installer contract."""
+    base = 'https://github.com/WsprryPi/WsprryPico/blob/' + source + '/'
+    return {
+        'prerelease': True, 'installer_default_eligible': False,
+        'gpio_drive_ma': {'choices': [2, 4, 8, 12], 'default': 4},
+        'protocols': ['WTP/1', 'USB-Management/1', 'Consumer-Radio/1', 'Field-GATT/1'],
+        'api': ['transmitter-application/3', 'transmitter-hardware/2',
+                'transmitter-progress/2', 'transmitter-gpio-drive/1'],
+        'storage': {'configuration': 1, 'saved_progress_read': [1, 2, 3],
+                    'layout': '72 KiB reserved; application ends at 0x103ee000; E10 is SDK workaround only',
+                    'policy': 'Preserving update; no whole-flash erase. Downgrade preservation unqualified.'},
+        'companion': {'software_tested_revision': read_json(ROOT / 'scripts/ci/inputs.json')['companion'],
+                      'historical_drive_acceptance_pico': 'd6de1f3cf14dc49266c4401c3bca91b8ce9da688',
+                      'historical_drive_acceptance_pi': 'fe701cf4c2b05e46cb84927188984084503d1cea',
+                      'physical_release_pair_tested': False},
+        'recipe': ['Confirm remote devel equals source.revision; dispatch that frozen source with: '
+                   'gh workflow run software-build.yml --repo WsprryPi/WsprryPico --ref devel '
+                   '-f profile=consumer -f testing_version=<firmware_version>',
+                   'The following commands run inside that GitHub workflow, which supplies GITHUB_* '
+                   'run/source/event context, CI_WORKFLOW_SHA, CI_EVENT_SHA, CI_STREAM=devel, '
+                   'CI_PROFILE=consumer and CI_TESTING_VERSION=<firmware_version>. '
+                   'DEPENDENCIES and OUTPUT denote fresh private task directories; '
+                   'consumer.log retains the resolved CMake configure/build commands.',
+                   'python -m pip install --require-hashes --only-binary=:all: -r scripts/ci/requirements.txt',
+                   'python scripts/ci/setup.py "$DEPENDENCIES"',
+                   'python scripts/ci/run.py build --dependencies "$DEPENDENCIES" --output "$OUTPUT"',
+                   'Ninja; Release; WSPRRY_PICO_BUILD_FIRMWARE=ON; WSPRRY_PICO_BUILD_TESTS=OFF; '
+                   'PICO_BOARD=pico2_w; WSPRRY_PICO_FIRMWARE_VERSION=<firmware_version>; '
+                   'PICOTOOL_NO_LIBUSB=1; PICOTOOL_GIT_REPOSITORY_URL=<verified dependencies>/picotool; '
+                   'PICO_SDK_PATH=<verified dependencies>/sdk; four build jobs'],
+        'references': [base + path for path in (
+            'engineering/development/gpio-drive.md', 'engineering/protocol/USB-Management.md',
+            'src/standalone/pico/flash_layout.hpp', 'src/standalone/progress.cpp',
+            'engineering/development/short-wspr-type23-decode-results.md',
+            'engineering/development/band-support.md', 'LICENSE.md', 'THIRD_PARTY_NOTICES.md')],
+    }
+
+
 def build_stream(event, ref):
     if event in ('push', 'workflow_dispatch') and ref in ('refs/heads/devel', 'refs/heads/main'):
         return ref.removeprefix('refs/heads/')
@@ -263,7 +306,7 @@ def create(deployment, audit, source, version, selected, checks, build_inputs):
         'source': {'revision': source, 'tree': capture('git', '-C', ROOT, 'rev-parse', source + '^{tree}'),
                    'clean': True, 'input_digest_sha256': hashlib.sha256(source_inventory).hexdigest()},
         'workflow': workflow,
-        'deployment_candidate': stream in ('devel', 'main'),
+        'deployment_candidate': stream in ('devel', 'main') and not is_testing_version(version),
         'firmware': {'profile': 'consumer', 'target': 'WsprryPico', 'board': 'pico2_w',
                      'processor': 'RP2350', 'family_id': 'e48bff59', 'role': 'uninhibited',
                      'engine': 'pio-dma', 'clock_hz': 138000000,
@@ -280,6 +323,10 @@ def create(deployment, audit, source, version, selected, checks, build_inputs):
         'qualification': {'software_build_only': True, 'physical_boot_usb_rf_timing': 'not assessed by this run'},
         'licenses': ['LICENSE.md', 'THIRD_PARTY_NOTICES.md', 'DEPENDENCY-LICENSES.txt'],
     }
+    if is_testing_version(version):
+        require(event == 'workflow_dispatch' and ref == 'refs/heads/devel',
+                'Testing candidate must come from a manual devel dispatch')
+        manifest['testing_release'] = testing_metadata(source)
     path = deployment / 'release-manifest.json'
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n')
     (deployment / 'SHA256SUMS').write_text(''.join(f'{sha(p)}  {p.name}\n' for p in sorted(deployment.iterdir())))
@@ -303,8 +350,14 @@ def verify(deployment, audit, source, version, inspect=True):
                 ['git', '-C', str(ROOT), 'ls-tree', '-r', source])).hexdigest(), 'Source tree/input digest mismatch')
     require(manifest['workflow']['revision'] == source, 'Workflow revision differs from artifact source')
     stream = build_stream(manifest['workflow']['event'], manifest['workflow']['ref'])
-    require(manifest['deployment_candidate'] == (stream in ('devel', 'main')),
+    testing = is_testing_version(version)
+    require(manifest['deployment_candidate'] == (stream in ('devel', 'main') and not testing),
             'Untrusted deployment channel')
+    if testing:
+        require(manifest['workflow']['event'] == 'workflow_dispatch' and stream == 'devel' and
+                manifest['testing_release'] == testing_metadata(source), 'Testing release metadata mismatch')
+    else:
+        require('testing_release' not in manifest, 'Unexpected testing release metadata')
     checks = manifest['checks']
     require(checks['registered'] == checks['passed'] == len(checks['test_names']) and
             len(set(checks['test_names'])) == len(checks['test_names']), 'Incomplete test inventory')

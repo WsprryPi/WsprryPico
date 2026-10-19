@@ -12,6 +12,10 @@ on:
         type: choice
         options: [consumer]
         default: consumer
+      testing_version:
+        description: Reviewed testing candidate (0.1.0-testing.N); leaves publication manual
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -22,6 +26,7 @@ jobs:
     timeout-minutes: 60
     env:
       CI_PROFILE: ${{ inputs.profile || 'consumer' }}
+      CI_TESTING_VERSION: ${{ inputs.testing_version || '' }}
       CI_STREAM: ${{ github.event_name == 'pull_request' && 'pull-request' || github.ref_name }}
       CI_WORKFLOW_SHA: ${{ github.workflow_sha }}
       CI_EVENT_SHA: ${{ github.sha }}
@@ -73,7 +78,7 @@ jobs:
 
   publish:
     needs: verify
-    if: github.repository == 'WsprryPi/WsprryPico' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/devel' || github.ref == 'refs/heads/main')
+    if: github.repository == 'WsprryPi/WsprryPico' && github.event_name != 'pull_request' && !inputs.testing_version && (github.ref == 'refs/heads/devel' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

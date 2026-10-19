@@ -85,6 +85,10 @@ def retrieve(args, for_publication=False):
                        'Publication collection is restricted to its current trusted publisher job')
     run = api(f'actions/runs/{args.run}/attempts/{args.attempt}')
     complete = run['status'] == 'completed' and run['conclusion'] == 'success'
+    testing = bundle.is_testing_version(args.version)
+    bundle.require(not testing or (not for_publication and complete and args.branch == 'devel' and
+                                  run['event'] == 'workflow_dispatch'),
+                   'Testing retrieval requires a complete manual devel run; publication stays manual')
     publishing = for_publication and run['status'] == 'in_progress' and run['conclusion'] is None
     bundle.require((complete or publishing) and
                    run['run_attempt'] == args.attempt and run['head_sha'] == args.source and
@@ -105,7 +109,9 @@ def retrieve(args, for_publication=False):
     if 'publish' in expected_jobs:
         publisher = by_name['publish']
         bundle.require((for_publication and publisher['status'] == 'in_progress' and
-                        publisher['conclusion'] is None) or publisher['conclusion'] == 'success',
+                        publisher['conclusion'] is None) or
+                       (publisher['status'] == 'completed' and
+                        publisher['conclusion'] == ('skipped' if testing else 'success')),
                        'Required publication job did not pass')
     bundle.require(not for_publication or 'publish' in expected_jobs, 'Publisher absent from frozen source')
     inventory = api(f'actions/runs/{args.run}/artifacts?per_page=100')
@@ -133,7 +139,8 @@ def retrieve(args, for_publication=False):
     bundle.require(identity['run_id'] == args.run and identity['attempt'] == args.attempt and
                    identity['event'] == run['event'] and identity['ref'] == 'refs/heads/' + args.branch and
                    identity['url'] == f'https://github.com/{REPOSITORY}/actions/runs/{args.run}' and
-                   identity['path'] == run['path'] and args.version == f'0.1.0-ci.{args.run}.{args.attempt}',
+                   identity['path'] == run['path'] and
+                   (testing or args.version == f'0.1.0-ci.{args.run}.{args.attempt}'),
                    'Manifest belongs to a different CI run/attempt')
     receipt = {'branch': args.branch, 'run_id': args.run, 'attempt': args.attempt, 'source': args.source,
                'version': args.version, 'url': run['html_url'], 'artifacts': receipts,

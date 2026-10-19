@@ -501,13 +501,20 @@
       ],
       "properties": {
         "application_end": {
-          "enum": ["103ee000", "103f0000"]
+          "enum": [
+            "103ee000",
+            "103f0000"
+          ]
         },
         "ordinary_update_erases_settings": {
           "const": false
         },
-        "usb_maintenance": { "const": 1 },
-        "postboot_verification": { "const": 1 },
+        "usb_maintenance": {
+          "const": 1
+        },
+        "postboot_verification": {
+          "const": 1
+        },
         "whole_flash_erase_required": {
           "const": false
         },
@@ -546,6 +553,137 @@
         "THIRD_PARTY_NOTICES.md",
         "DEPENDENCY-LICENSES.txt"
       ]
+    },
+    "testing_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prerelease",
+        "installer_default_eligible",
+        "gpio_drive_ma",
+        "protocols",
+        "api",
+        "storage",
+        "companion",
+        "recipe",
+        "references"
+      ],
+      "properties": {
+        "prerelease": {
+          "const": true
+        },
+        "installer_default_eligible": {
+          "const": false
+        },
+        "gpio_drive_ma": {
+          "const": {
+            "choices": [
+              2,
+              4,
+              8,
+              12
+            ],
+            "default": 4
+          }
+        },
+        "protocols": {
+          "const": [
+            "WTP/1",
+            "USB-Management/1",
+            "Consumer-Radio/1",
+            "Field-GATT/1"
+          ]
+        },
+        "api": {
+          "const": [
+            "transmitter-application/3",
+            "transmitter-hardware/2",
+            "transmitter-progress/2",
+            "transmitter-gpio-drive/1"
+          ]
+        },
+        "storage": {
+          "const": {
+            "configuration": 1,
+            "saved_progress_read": [
+              1,
+              2,
+              3
+            ],
+            "layout": "72 KiB reserved; application ends at 0x103ee000; E10 is SDK workaround only",
+            "policy": "Preserving update; no whole-flash erase. Downgrade preservation unqualified."
+          }
+        },
+        "companion": {
+          "const": {
+            "software_tested_revision": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+            "historical_drive_acceptance_pico": "d6de1f3cf14dc49266c4401c3bca91b8ce9da688",
+            "historical_drive_acceptance_pi": "fe701cf4c2b05e46cb84927188984084503d1cea",
+            "physical_release_pair_tested": false
+          }
+        },
+        "recipe": {
+          "const": [
+            "Confirm remote devel equals source.revision; dispatch that frozen source with: gh workflow run software-build.yml --repo WsprryPi/WsprryPico --ref devel -f profile=consumer -f testing_version=<firmware_version>",
+            "The following commands run inside that GitHub workflow, which supplies GITHUB_* run/source/event context, CI_WORKFLOW_SHA, CI_EVENT_SHA, CI_STREAM=devel, CI_PROFILE=consumer and CI_TESTING_VERSION=<firmware_version>. DEPENDENCIES and OUTPUT denote fresh private task directories; consumer.log retains the resolved CMake configure/build commands.",
+            "python -m pip install --require-hashes --only-binary=:all: -r scripts/ci/requirements.txt",
+            "python scripts/ci/setup.py \"$DEPENDENCIES\"",
+            "python scripts/ci/run.py build --dependencies \"$DEPENDENCIES\" --output \"$OUTPUT\"",
+            "Ninja; Release; WSPRRY_PICO_BUILD_FIRMWARE=ON; WSPRRY_PICO_BUILD_TESTS=OFF; PICO_BOARD=pico2_w; WSPRRY_PICO_FIRMWARE_VERSION=<firmware_version>; PICOTOOL_NO_LIBUSB=1; PICOTOOL_GIT_REPOSITORY_URL=<verified dependencies>/picotool; PICO_SDK_PATH=<verified dependencies>/sdk; four build jobs"
+          ]
+        },
+        "references": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^https://github.com/WsprryPi/WsprryPico/blob/[0-9a-f]{40}/[A-Za-z0-9_./-]+$"
+          }
+        }
+      }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "firmware_version": {
+            "pattern": "-testing\\."
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "testing_release"
+        ],
+        "properties": {
+          "firmware_version": {
+            "pattern": "^0\\.1\\.0-testing\\.[1-9][0-9]{0,5}$"
+          },
+          "deployment_candidate": {
+            "const": false
+          },
+          "workflow": {
+            "properties": {
+              "event": {
+                "const": "workflow_dispatch"
+              },
+              "ref": {
+                "const": "refs/heads/devel"
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "testing_release"
+          ]
+        }
+      }
+    }
+  ]
 }

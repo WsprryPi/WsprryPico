@@ -28,12 +28,30 @@ Both branches contain the canonical workflow and have verified permanent
 downloads. Repository settings and the default branch are unchanged.
 
 Manual dispatch, where available, accepts only the enumerated `consumer`
-profile. Embedded versions are generated before building as
-`0.1.0-ci.<run-id>.<attempt>`. There is no version override. Different attempts
+profile. Ordinary embedded versions are generated before building as
+`0.1.0-ci.<run-id>.<attempt>`. Different attempts
 have different identities. Successful trusted branch builds publish those exact
 bytes under unique `v<version>` prerelease tags. They remain CI testing images;
 `main` does not automatically become a stable product release. Publication does
 not mark a prerelease as GitHub's latest stable release.
+
+An explicit manual `devel` dispatch may select `testing_version` with the strict
+form `0.1.0-testing.N` (positive N, at most six digits). That dispatch runs the
+same complete checks and fresh builds, but skips the automatic publication job.
+Publication requires independent review, a new annotated tag at the checked
+source, a complete verified draft and a public download audit. The version
+must be unused; an interrupted candidate never permits moving a tag or
+replacing published assets. Pushes, pull requests and main cannot select this
+override. Ordinary generated CI identities remain unchanged.
+
+Testing candidates include the `testing_release` extension of manifest schema 1:
+nominal drive, protocol/API/storage compatibility, exact software-tested Pi
+revision, historical drive-acceptance pair, reproducible recipe and pinned
+references. They explicitly set `deployment_candidate:false` and installer
+default eligibility false. Existing installer CI receipt/version checks refuse
+this manual testing series. Normal main/devel CI images remain eligible through
+their independently verified branch bookmarks; publication of a testing version
+does not update either bookmark or create a stable release.
 
 The actual checked-out full source SHA is recorded. PR head, synthetic merge
 commit and trusted branch commits are distinct identities. PR artifacts are test
