@@ -184,6 +184,10 @@ reserved-flash, RAM/stack and linked-adapter checks using retained dependencies.
 The resulting image remains private and was not loaded on A or B. The closed
 hardware run and paused monitor remain unchanged.
 
+The subsequent [hardware rerun](microchrony-control-fixes-results.md) loaded
+these fixes on both boards. It retains a repeated GPIO fault and short adverse
+timing observations; physical improvement remains unproven.
+
 Adversarial review independently recomputes pooled phase/frequency scores and
 known-truth sums of squared error, checks manifest/source/binary bindings and
 retains all unqualified records and adverse scores. Boundary checks reject a

@@ -1,0 +1,605 @@
+{
+  "schema": "microchrony-control-fixes-results/1",
+  "campaign_completed": false,
+  "terminal_state": "stopped_measurement_fault",
+  "start_ct": "2026-10-19T09:45:59-05:00",
+  "stopped_ct": "2026-10-19T09:48:19-05:00",
+  "original_hard_finish_ct": "2026-10-19T10:45:59-05:00",
+  "all_quality_gates_unchanged": true,
+  "normal_firmware_loaded_on_both": true,
+  "manual_ppm_separate_and_preserved": true,
+  "firmware": {
+    "application_end": "103ee000",
+    "board": "pico2_w",
+    "schema": "wsprrypico-local-build/1",
+    "source": {
+      "dirty": true,
+      "identity": "faaff81f55d0-dirty",
+      "inputs_sha256": "d09aa668e50489fd38a8603efb419dbe45ff505b1500319307da03738c50aa4d",
+      "revision": "faaff81f55d0f203381f885ac8ddab8e99dccdc9"
+    },
+    "uf2": {
+      "bytes": 4912640,
+      "path": "WsprryPico-0.0.0-devel-pico2_w.uf2",
+      "sha256": "ccd101bca3d39d72fec7541a5f0a366f466def2dd0feac9aeb43a92e0879e9ef"
+    },
+    "usb_update_contract": 1,
+    "variant": "normal",
+    "version": "0.0.0-devel",
+    "firmware_inputs": {
+      "unchanged_from_revision": true,
+      "checked_committed_files": 886,
+      "concurrent_unlinked_changes_sha256": {
+        "docs/development/usb-installer.md": "d7a00c15375a8d1b0331bc9789ffb0db4d7c6234d572d34b6964b06378243788",
+        "scripts/usb_installer.py": "bdde88a8275e59b1316b0345e8ee9553076c4c51b804050d5e547717732e7104",
+        "tests/usb_installer_tests.py": "06223a58ac1e9c1e150e8d7d2264463be27f8f6646e5fc587e50f73454c59e04"
+      },
+      "scope": "All owned linked firmware inputs match the specified commit; unrelated installer/docs/test edits preserved."
+    }
+  },
+  "private_evidence": {
+    "files_verified": 223,
+    "bytes_verified": 69331739,
+    "manifest_sha256": "d05c79c8f48653f7833c8bf306b4694f7b193cdae10f94309ef754747fe8e29f",
+    "all_retained_files_verified": true,
+    "actual_observer_and_guard_exit_verified": true
+  },
+  "fault": {
+    "kind": "uncommanded_gpio_edges",
+    "events": 27,
+    "line_counts": {
+      "22": 14,
+      "23": 13
+    },
+    "edge_types": {
+      "FALLING_EDGE": 27
+    },
+    "first_ct": "2026-10-19T09:48:17.566168-05:00",
+    "last_ct": "2026-10-19T09:48:19.682855-05:00",
+    "coincident_pairs_within_100us": 12,
+    "unpaired_line_counts": {
+      "22": 2,
+      "23": 1
+    },
+    "paired_separation_ns_range": [
+      1148,
+      3648
+    ],
+    "global_and_per_line_sequences_contiguous": true,
+    "normal_main_events_before_fault": 16,
+    "normal_wiring_events": 12,
+    "sampled_input_registers_unchanged": true,
+    "audit_rows": 44,
+    "power_flags": [
+      327680
+    ],
+    "current_low_four_power_flag_bits_set": false,
+    "power_read_age_at_fault_record_s": 10.000417283969,
+    "electrical_or_kernel_root_cause_proven": false
+  },
+  "visibility": {
+    "schema": "offline-conformance-evidence-verification/1",
+    "complete_campaign": false,
+    "history_pages": 22,
+    "coverage": {
+      "A": {
+        "originals": 23,
+        "per_slot": {
+          "0": 7,
+          "1": 4,
+          "2": 6,
+          "3": 6
+        },
+        "pre_capture_deficit": 20,
+        "newly_accepted_frontier_differences": null,
+        "post_baseline_frontier_verified": false,
+        "accepted_wire_original_matches": 21,
+        "accepted_wire_outside_pulse_collection": 22,
+        "accepted_wire_missing_inside_verified_pulse_window": null
+      },
+      "B": {
+        "originals": 20,
+        "per_slot": {
+          "0": 5,
+          "1": 6,
+          "2": 5,
+          "3": 4
+        },
+        "pre_capture_deficit": 16,
+        "newly_accepted_frontier_differences": null,
+        "post_baseline_frontier_verified": false,
+        "accepted_wire_original_matches": 20,
+        "accepted_wire_outside_pulse_collection": 16,
+        "accepted_wire_missing_inside_verified_pulse_window": null
+      }
+    },
+    "bindings": {
+      "total": 6,
+      "independently_bound": 6,
+      "saved_bound_but_not_independently_bound": 0
+    },
+    "packets": {
+      "A": {
+        "pages": 15,
+        "retained_wire": 43,
+        "accepted": 43,
+        "rejected": 0,
+        "first_gap": 3,
+        "new_wire_since_capture_baseline": 11
+      },
+      "B": {
+        "pages": 14,
+        "retained_wire": 36,
+        "accepted": 36,
+        "rejected": 0,
+        "first_gap": 0,
+        "new_wire_since_capture_baseline": 20
+      }
+    },
+    "pulses": {
+      "A": {
+        "count": 4,
+        "qualified": 4
+      },
+      "B": {
+        "count": 4,
+        "qualified": 4
+      }
+    }
+  },
+  "boards": {
+    "A": {
+      "boot": "57b48b74d337947fcf5a435c03e1999e",
+      "pulses": 4,
+      "clock_qualified": 4,
+      "source": "pool.ntp.org",
+      "manual_ppm": "0.000",
+      "mode": "manual",
+      "pulse_ct_range": [
+        "2026-10-19T09:47:40.294815-05:00",
+        "2026-10-19T09:48:10.345646-05:00"
+      ],
+      "indicated_phase_first_last_ms": [
+        5.458934,
+        8.131843
+      ],
+      "indicated_phase_rms_ms": 6.954848088205989,
+      "pure_frequency_ppb": [
+        80408,
+        80408,
+        80408,
+        80408
+      ],
+      "total_rate_ppb": [
+        99098,
+        99098,
+        99098,
+        17147
+      ],
+      "frequency_uncertainty_ppb": [
+        566659,
+        566659,
+        566659,
+        566659
+      ],
+      "holdouts_by_allowance_ms_plus_rootdistance": {
+        "1": {
+          "adjacent": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 2,
+              "unresolved": 0
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 2
+            }
+          },
+          "all_overlapping": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 3,
+              "unresolved": 0
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 3
+            }
+          },
+          "rejections": {
+            "holdout binding changed": 3
+          }
+        },
+        "5": {
+          "adjacent": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 2,
+              "unresolved": 0
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 2
+            }
+          },
+          "all_overlapping": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 3,
+              "unresolved": 0
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 3
+            }
+          },
+          "rejections": {
+            "holdout binding changed": 3
+          }
+        }
+      }
+    },
+    "B": {
+      "boot": "fc5e54a9c3dce3414a592ec3f7bcce1a",
+      "pulses": 4,
+      "clock_qualified": 4,
+      "source": "pool.ntp.org",
+      "manual_ppm": "0.000",
+      "mode": "manual",
+      "pulse_ct_range": [
+        "2026-10-19T09:47:40.996885-05:00",
+        "2026-10-19T09:48:10.967751-05:00"
+      ],
+      "indicated_phase_first_last_ms": [
+        4.712469,
+        3.442094
+      ],
+      "indicated_phase_rms_ms": 4.107503273152409,
+      "pure_frequency_ppb": [
+        -121,
+        -121,
+        -121,
+        -121
+      ],
+      "total_rate_ppb": [
+        -42171,
+        -42171,
+        -42171,
+        -42171
+      ],
+      "frequency_uncertainty_ppb": [
+        2000000,
+        2000000,
+        2000000,
+        2000000
+      ],
+      "holdouts_by_allowance_ms_plus_rootdistance": {
+        "1": {
+          "adjacent": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 3
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 3
+            }
+          },
+          "all_overlapping": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 6
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 6
+            }
+          },
+          "rejections": {}
+        },
+        "5": {
+          "adjacent": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 3
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 3
+            }
+          },
+          "all_overlapping": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 6
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 6
+            }
+          },
+          "rejections": {}
+        }
+      }
+    }
+  },
+  "rf": {
+    "rows": [
+      {
+        "board": "A",
+        "label": "start",
+        "capture_start_utc": "2026-10-19T14:46:24.266Z",
+        "capture_sha256": "9699f69ad93836cafc56fbe3ceed7cccc3bedfcb9387c45a9eaf33605bcc4b3c",
+        "metadata_sha256": "ff0230e2859453784dfd2f2cc06edc6382bb9617657d3b0e21ed92ef61ec3ebe",
+        "nco_nominal_hz": 3570100.004319102,
+        "physical_rf_error_hz": [
+          4.927920500992468,
+          5.242572133774804
+        ],
+        "physical_raw_error_ppm": [
+          1.3791214232194904,
+          1.4672566666024964
+        ],
+        "api_triplet_bound": [
+          true,
+          true
+        ],
+        "api_model_stable": true,
+        "pure_frequency_ppb_before_after": [
+          -1030,
+          -1030
+        ],
+        "total_rate_ppb_before_after": [
+          -49499,
+          -49499
+        ],
+        "skew_ppb_before_after": [
+          2000000,
+          2000000
+        ],
+        "candidate_qualified_before_after": [
+          false,
+          false
+        ],
+        "pure_corrected_rate_error_ppm": [
+          0.3491200027244244,
+          0.4372551553281298
+        ],
+        "pure_rate_absolute_improvement_ppm": [
+          1.0300014204950658,
+          1.0300015112743666
+        ],
+        "pure_rate_verdict": "improved",
+        "fits": {
+          "3560000": {
+            "indicated_hz": 3560004.2150382185,
+            "phase_residual_rms_rad": 0.05572376234068356,
+            "amplitude_min_ratio": 0.8112866253799723,
+            "contrast_db": 54.1355971369697,
+            "half_window_difference_hz": 0.002879114355891943
+          },
+          "3570100": {
+            "indicated_hz": 3570109.310771306,
+            "phase_residual_rms_rad": 0.008805598141805728,
+            "amplitude_min_ratio": 0.9984006274284402,
+            "contrast_db": 96.6751620490196,
+            "half_window_difference_hz": 0.013459005858749151
+          },
+          "3640000": {
+            "indicated_hz": 3640004.2980618607,
+            "phase_residual_rms_rad": 0.056883943685489706,
+            "amplitude_min_ratio": 0.818047233225193,
+            "contrast_db": 52.72860592434518,
+            "half_window_difference_hz": 0.00335426302626729
+          }
+        },
+        "mapped_rate_ppb_interval": [
+          -51204.2628203742,
+          -48732.77605425902
+        ]
+      },
+      {
+        "board": "B",
+        "label": "start",
+        "capture_start_utc": "2026-10-19T14:47:07.062Z",
+        "capture_sha256": "ea2d213c94f138595e913d1ea922a121d3902de2a6e30093f6ef7843d65678ef",
+        "metadata_sha256": "a463358edc400cb7174de04b353b7ca4fa568037109f974c14cba379405c0b50",
+        "nco_nominal_hz": 3570100.004319102,
+        "physical_rf_error_hz": [
+          -0.4754870158412983,
+          -0.1608586174641755
+        ],
+        "physical_raw_error_ppm": [
+          -0.1343957080364218,
+          -0.04626697270786357
+        ],
+        "api_triplet_bound": [
+          true,
+          true
+        ],
+        "api_model_stable": true,
+        "pure_frequency_ppb_before_after": [
+          -121,
+          -121
+        ],
+        "total_rate_ppb_before_after": [
+          -121,
+          -121
+        ],
+        "skew_ppb_before_after": [
+          2000000,
+          2000000
+        ],
+        "candidate_qualified_before_after": [
+          false,
+          false
+        ],
+        "pure_corrected_rate_error_ppm": [
+          -0.25539569177454113,
+          -0.16726696710955988
+        ],
+        "pure_rate_absolute_improvement_ppm": [
+          -0.1209999944016963,
+          -0.12099998373811932
+        ],
+        "pure_rate_verdict": "worsened",
+        "fits": {
+          "3560000": {
+            "indicated_hz": 3560004.233546569,
+            "phase_residual_rms_rad": 0.0567372319640539,
+            "amplitude_min_ratio": 0.7684618710837251,
+            "contrast_db": 53.98824442525328,
+            "half_window_difference_hz": 0.0020032362081110477
+          },
+          "3570100": {
+            "indicated_hz": 3570103.9258422237,
+            "phase_residual_rms_rad": 0.01150217634503787,
+            "amplitude_min_ratio": 0.9987662122245113,
+            "contrast_db": 94.97116511841328,
+            "half_window_difference_hz": 0.017568109557032585
+          },
+          "3640000": {
+            "indicated_hz": 3640004.3164696842,
+            "phase_residual_rms_rad": 0.05750673407593646,
+            "amplitude_min_ratio": 0.7888731235290763,
+            "contrast_db": 52.71124198813232,
+            "half_window_difference_hz": 0.005109760910272598
+          }
+        },
+        "mapped_rate_ppb_interval": [
+          -1241.569741455517,
+          1241.569741455517
+        ]
+      }
+    ],
+    "all_initial_fit_and_cleanup_checks_passed": true,
+    "final_checkpoints_attempted": false,
+    "rf_correction_applied": false,
+    "allowances_certified": false,
+    "gpsdo_engineering_allowance_ppb": 10,
+    "frequency_fit_allowance_hz": 0.05
+  },
+  "restoration": {
+    "checked_ct": "2026-10-19T09:50:02.824499-05:00",
+    "all_workers_and_guards_exited": true,
+    "canonical_locks_acquired": true,
+    "gpio_restored": true,
+    "gpsdo_restored_10mhz_outputs_pps_off": true,
+    "host_gps_pps_selected": true,
+    "both_boards_inactive_unowned": true,
+    "actual_board_state": {
+      "A": {
+        "state": "empty",
+        "owner_id": null,
+        "output_active": false,
+        "enabled": false,
+        "clock_state": "synchronized",
+        "sync_age_ns": "48894458000",
+        "uncertainty_ns": "202307088",
+        "boot": "57b48b74d337947fcf5a435c03e1999e",
+        "revision": "faaff81f55d0-dirty",
+        "saved_settings_unchanged": true,
+        "fresh_under_90s": true,
+        "manual": {
+          "manual_ppm": "0.000",
+          "mode": "manual"
+        }
+      },
+      "B": {
+        "state": "empty",
+        "owner_id": null,
+        "output_active": false,
+        "enabled": false,
+        "clock_state": "synchronized",
+        "sync_age_ns": "32066653000",
+        "uncertainty_ns": "122301312",
+        "boot": "fc5e54a9c3dce3414a592ec3f7bcce1a",
+        "revision": "faaff81f55d0-dirty",
+        "saved_settings_unchanged": true,
+        "fresh_under_90s": true,
+        "manual": {
+          "manual_ppm": "0.000",
+          "mode": "manual"
+        }
+      }
+    }
+  },
+  "limits": [
+    "Four pulses per board across approximately thirty seconds; no convergence or overall improvement result.",
+    "Uncalibrated host GPIO delay; engineering allowance1ms plus root distance and5ms sensitivity are not certified.",
+    "Matched-phase open-loop forecasts stop before new model inputs; overlapping forecasts are not independent trials or full alternative feedback trajectories.",
+    "Missing boot originals and absent post-RF acceptance frontier prevent complete captured-input reconstruction.",
+    "Initial RF-derived corrected UTC-frequency intervals are common-oscillator inference; no RF correction was programmed.",
+    "Earlier hardware run used different Internet samples, warm boot state and retained priors; before/after scores do not isolate code causation."
+  ],
+  "validation": {
+    "measurement_arithmetic_tests_passed": 17,
+    "pulse_probe_tests_passed": 7,
+    "logger_recovery_tests_passed": 10,
+    "packet_tests": {
+      "total": 6,
+      "passed": 5,
+      "platform_skipped": 1
+    },
+    "normal_firmware_cross_link_passed": true,
+    "independent_rational_audit": {
+      "holdout_treatments_recomputed": 36,
+      "rf": [
+        {
+          "board": "A",
+          "epoch": "start",
+          "pure_rate_verdict": "improved"
+        },
+        {
+          "board": "B",
+          "epoch": "start",
+          "pure_rate_verdict": "worsened"
+        }
+      ],
+      "campaign_complete": false,
+      "measurement_fault_retained": true,
+      "method": "Separate self-review with independent rational arithmetic; no new independent agent review"
+    }
+  },
+  "review": {
+    "method": "Adversarial self-review and independent rational/decimal calculations; no new independent agent review",
+    "final_assessment_complete": true,
+    "open_actionable_analysis_findings": 0,
+    "open_measurement_fault": true,
+    "finding_repaired": "Use distinct pairs for coincident GPIO-event diagnostics; never reuse an event or suppress the fault."
+  },
+  "provenance_sha256": {
+    "build/microchrony-control-fixes-20261019/verify_evidence.py": "8f4436152ff95ec3d2064f7eaf5a569cef2398347dc5531c4b5cead63cbbcd0b",
+    "build/microchrony-control-fixes-20261019/analyze_pulses.py": "70a6ebaa7686b0001b94dce570722bc368ac74ccde299985c4c40029eb86c8f2",
+    "build/microchrony-control-fixes-20261019/analyze_rf.py": "b659ad444eed62efa5ef23ee5332623bfeb163b25c57419095db107429e0f154",
+    "build/microchrony-control-fixes-20261019/audit_terminal.py": "336bed6e4e999f51486ac5e225407b0448d748b578327befe55f2da9b6ef29fe",
+    "build/microchrony-control-fixes-20261019/publish_partial.py": "71c8ff428c6d2ffc11c75175db9ebd5eecbb99f2faf4c3d4212dbfd0ab088cb0",
+    "build/microchrony-control-fixes-20261019/verify_restoration.py": "57976a1f8f4fd98bed571ac06a72878b0ff34db7475b7e36d24161624a519b22",
+    "build/microchrony-control-fixes-20261019/review_partial.py": "90c5aa3cb2444fad23480dc7ac463c36f347018fe4b61418ad5d5d2642db2600",
+    "build/microchrony-control-fixes-20261019/retrieval-verification.json": "524901577423202c1bc26a02d64ec2e76122cfc195fb6ffc45326045f4949135",
+    "build/microchrony-control-fixes-20261019/terminal-independent-verification.json": "777cc51b9e1be0038d0c23c2e6da9b5dc1bbe9bf4e9885f6da86d230c0005527",
+    "build/microchrony-control-fixes-20261019/terminal-arithmetic-audit.json": "decad0ff9a5911e172a3e295dd5066d4ccfae2429f7f646482e6bac995aff6e5",
+    "build/microchrony-control-fixes-20261019/pulse-results-1ms.json": "a826cc9b98f03667198b522031780d0a6c1bd53322f140d4eccbf065f15a7332",
+    "build/microchrony-control-fixes-20261019/pulse-results-5ms.json": "3557ea6b879b417837b7cbf3506d638dc0a661af1f0e8b62a0db32fd15ef7472",
+    "build/microchrony-control-fixes-20261019/epoch-results.json": "8f913590d76b6b3fc0a9ff2d2d08fc99eea533a5998ff3a3971ea473f796ac3a",
+    "build/microchrony-control-fixes-20261019/measurement-tests.log": "78bb3f7701df09ec916a2fd3add296463ed1d9d595652ae0cf4ce40fd2132af4",
+    "build/microchrony-control-fixes-20261019/probe-tests.log": "21c7e48d0b1ec908feef784bbce1fa55f2c9a7acf76382fa7578754a78bd1ed8",
+    "build/microchrony-control-fixes-20261019/packet-tests.log": "dffef002a9615a2dd35ec4987cab4399c042dfacd75f645bdddc652fab0a4b7c",
+    "build/microchrony-control-fixes-20261019/firmware-build.log": "ca527511ba08b67f8dae4e0ed47b1cfdb51de3371c4de8b049c754bb009f5fb4",
+    "build/microchrony-control-fixes-20261019/post-restoration-verification.json": "68094498b035639cc3522b71bcf26404a728b150c1119938f683a860bdaf7272",
+    "src/rf_analysis/clock_measurement.py": "1cbff5962547399b262b305f99391dc7bb7dc5fa7cc69729f76bffa082d5d935",
+    "scripts/clock_pulse_probe.py": "22802e4db24fd6ab2a32aab1d8e2f0fc3214709a036120f354917136db17a07c"
+  }
+}
