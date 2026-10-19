@@ -350,12 +350,13 @@ def verify(deployment, audit, source, version, inspect=True):
                 ['git', '-C', str(ROOT), 'ls-tree', '-r', source])).hexdigest(), 'Source tree/input digest mismatch')
     require(manifest['workflow']['revision'] == source, 'Workflow revision differs from artifact source')
     stream = build_stream(manifest['workflow']['event'], manifest['workflow']['ref'])
+    require('-testing.' not in version or is_testing_version(version), 'Unsupported testing version series')
     testing = is_testing_version(version)
     require(manifest['deployment_candidate'] == (stream in ('devel', 'main') and not testing),
             'Untrusted deployment channel')
     if testing:
         require(manifest['workflow']['event'] == 'workflow_dispatch' and stream == 'devel' and
-                manifest['testing_release'] == testing_metadata(source), 'Testing release metadata mismatch')
+                manifest.get('testing_release') == testing_metadata(source), 'Testing release metadata mismatch')
     else:
         require('testing_release' not in manifest, 'Unexpected testing release metadata')
     checks = manifest['checks']

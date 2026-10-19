@@ -205,6 +205,12 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(result['firmware']['frequency_selected_by_image'], None)
         self.assertNotIn('archive_digest', result)
 
+    def test_ordinary_bundle_keeps_installer_schema_interpreter_compatibility(self):
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        import usb_installer
+        usb_installer.schema_check(bundle.read_json(self.deploy / 'release-manifest.json'),
+                                   bundle.read_json(bundle.SCHEMA))
+
     def test_tampered_payload_and_checksum_file_fail(self):
         uf2 = next(self.deploy.glob('*.uf2'))
         uf2.write_bytes(b'altered' + uf2.read_bytes()[7:])

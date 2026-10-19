@@ -644,46 +644,5 @@
         }
       }
     }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "firmware_version": {
-            "pattern": "-testing\\."
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "testing_release"
-        ],
-        "properties": {
-          "firmware_version": {
-            "pattern": "^0\\.1\\.0-testing\\.[1-9][0-9]{0,5}$"
-          },
-          "deployment_candidate": {
-            "const": false
-          },
-          "workflow": {
-            "properties": {
-              "event": {
-                "const": "workflow_dispatch"
-              },
-              "ref": {
-                "const": "refs/heads/devel"
-              }
-            }
-          }
-        }
-      },
-      "else": {
-        "not": {
-          "required": [
-            "testing_release"
-          ]
-        }
-      }
-    }
-  ]
+  }
 }
