@@ -16,7 +16,7 @@ import sys
 source = Path(sys.argv[1]).resolve(strict=True)
 output = Path(sys.argv[2]).resolve()
 kind = sys.argv[3] if len(sys.argv) == 4 else 'sourcestats'
-if kind not in ('sourcestats', 'control', 'selection', 'loop', 'regression', 'combination'):
+if kind not in ('sourcestats', 'control', 'selection', 'loop', 'regression', 'combination', 'packet'):
     raise SystemExit('Unknown reference harness')
 harness = Path(__file__).with_name('chrony49_' + kind + '.c').resolve()
 version = (source / 'version.txt').read_text()
@@ -26,6 +26,8 @@ objects = sorted(p for p in source.glob('*.o')
                  if p.name not in ('main.o', 'client.o', 'getdate.o', 'pktlength.o'))
 if kind == 'combination':
     objects = [p for p in objects if p.name != 'reference.o']
+if kind == 'packet':
+    objects = [p for p in objects if p.name not in ('reference.o', 'ntp_io.o', 'sched.o')]
 if not objects or not (source / 'sourcestats.o').is_file():
     raise SystemExit('Build the external reference first; no dependency is installed here')
 subprocess.run([os.environ.get('CC', 'cc'), '-O2', '-I' + str(source), str(harness),

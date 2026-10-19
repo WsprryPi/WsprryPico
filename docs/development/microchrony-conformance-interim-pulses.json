@@ -1,0 +1,180 @@
+{
+  "schema": "microchrony-interim-pulse-results/1",
+  "interim_only": true,
+  "campaign_complete": false,
+  "capture_start_ct": "2026-10-19T06:44:52-05:00",
+  "snapshot_ct": "2026-10-19T07:00:31-05:00",
+  "pulse_prefix_sha256": "0398e99bd9ff999dd349949c6a6903d0e2b638543f8fa962f187a4e09e80bc2c",
+  "snapshot_manifest_sha256": "780beef4c8684b707563f22da1cfae47fd3bb83f163ef69de861b3d51ea21a28",
+  "absolute_timestamp_path_delay_calibrated": false,
+  "reference_allowance_certified": false,
+  "full_alternative_feedback_trajectory": false,
+  "hardware_endpoints_opened_for_analysis": false,
+  "logger_interrupted": false,
+  "gates_changed": false,
+  "gpio_audit": {
+    "rows": 957,
+    "uncommanded_events": 0,
+    "active_power_fault_samples": 0
+  },
+  "bindings": {
+    "total": 32,
+    "independently_bound": 31
+  },
+  "boards": {
+    "A": {
+      "pulses": 94,
+      "clock_qualified": 94,
+      "clock_unqualified": 0,
+      "indicated_utc_error_ms": {
+        "rms": 2.6256709039920496,
+        "range": [
+          -2.814881,
+          -2.475699
+        ],
+        "first": -2.498672,
+        "last": -2.814881
+      },
+      "first_pure_rate_ppb": -1937,
+      "last_pure_rate_ppb": -1957,
+      "conditional_holdouts": {
+        "1ms_plus_root_distance": {
+          "all_horizons_overlapping": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 255,
+              "unresolved": 0
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 1,
+              "worsened": 14,
+              "unresolved": 240
+            }
+          },
+          "adjacent_approximately_10s": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 79,
+              "unresolved": 0
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 79
+            }
+          },
+          "rejections": {
+            "holdout binding changed": 288
+          }
+        },
+        "5ms_plus_root_distance": {
+          "all_horizons_overlapping": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 255
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 255
+            }
+          },
+          "adjacent_approximately_10s": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 79
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 79
+            }
+          },
+          "rejections": {
+            "holdout binding changed": 288
+          }
+        }
+      }
+    },
+    "B": {
+      "pulses": 94,
+      "clock_qualified": 90,
+      "clock_unqualified": 4,
+      "indicated_utc_error_ms": {
+        "rms": 2.0331287118069694,
+        "range": [
+          -2.213458,
+          -1.845056
+        ],
+        "first": -2.152311,
+        "last": -1.873869
+      },
+      "first_pure_rate_ppb": 49,
+      "last_pure_rate_ppb": 28,
+      "conditional_holdouts": {
+        "1ms_plus_root_distance": {
+          "all_horizons_overlapping": {
+            "without_learned_frequency": {
+              "improved": 94,
+              "worsened": 0,
+              "unresolved": 155
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 74,
+              "worsened": 0,
+              "unresolved": 175
+            }
+          },
+          "adjacent_approximately_10s": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 76
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 76
+            }
+          },
+          "rejections": {
+            "holdout binding changed": 252,
+            "unqualified clock record": 42
+          }
+        },
+        "5ms_plus_root_distance": {
+          "all_horizons_overlapping": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 249
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 249
+            }
+          },
+          "adjacent_approximately_10s": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 76
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 0,
+              "unresolved": 76
+            }
+          },
+          "rejections": {
+            "holdout binding changed": 252,
+            "unqualified clock record": 42
+          }
+        }
+      }
+    }
+  }
+}

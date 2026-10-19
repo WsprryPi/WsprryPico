@@ -12,6 +12,12 @@ rate did not demonstrate a clear overall benefit on these NTP-only proxies.
 Unmodified Chrony 4.9 had somewhat better medians, with small RMS differences.
 These results establish neither independent absolute UTC nor RF accuracy.
 
+[Independent clock measurements](microchrony-independent-measurement.md) assess
+physical oscillator error against a simultaneous GPSDO reference and separate
+the learned frequency component from intentional phase slew.
+The [Internet-source pulse/RF rerun](microchrony-pulse-rate-rerun.md) adds
+independent GPIO timestamps and physical RF checkpoints on both boards.
+
 ## Hardware, firmware and restoration
 
 | Board | USB serial | Stable device ID |

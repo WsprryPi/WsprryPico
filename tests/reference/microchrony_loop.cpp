@@ -2,10 +2,22 @@
 // Original deterministic physical-event adapter; all clock control is Engine.
 #include "microchrony.hpp"
 
+#include <charconv>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 #include <string>
+
+namespace microchrony {
+struct ClockLoopTestAccess {
+    static void rtc(Engine& engine) {
+        engine.clock_valid_ = true;
+        engine.clock_raw_ns_ = 0;
+        engine.clock_utc_ns_ = 1'800'000'000ULL * second;
+    }
+};
+} // namespace microchrony
 
 namespace {
 void put(std::array<std::uint8_t, 48>& packet, unsigned start, unsigned count,
@@ -17,13 +29,95 @@ std::uint64_t ntp(std::uint64_t ns) {
     return (((ns / microchrony::second) + 2'208'988'800ULL) << 32) |
            ((ns % microchrony::second) << 32) / microchrony::second;
 }
+int packet_driver() {
+    microchrony::Config config;
+    config.min_poll = config.max_poll = 6;
+    config.max_clock_error_ppm = 50;
+    config.max_drift_ppm = 100;
+    config.max_update_skew_ppm = 1e-12; // Isolate admission with the same fixed raw clock.
+    microchrony::Engine engine(config);
+    if (!engine.configure(0, 1, 0))
+        return 21;
+    std::string line;
+    std::uint64_t previous_send = UINT64_MAX;
+    while (std::getline(std::cin, line)) {
+        std::istringstream input(line);
+        unsigned id;
+        std::uint64_t send, receive, token;
+        std::string nonce, hex;
+        if (!(input >> id >> send >> receive >> nonce >> hex) || nonce.size() != 16 ||
+            (hex != "-" && hex.size() % 2) || hex.size() > 2048 || receive < send)
+            return 22;
+        auto parsed = std::from_chars(nonce.data(), nonce.data() + nonce.size(), token, 16);
+        if (parsed.ec != std::errc{} || parsed.ptr != nonce.data() + nonce.size() || !token)
+            return 23;
+        std::array<std::uint8_t, 1024> packet{};
+        for (unsigned i = 0; hex != "-" && i < hex.size() / 2; ++i) {
+            unsigned value;
+            const char* begin = hex.data() + 2 * i;
+            auto p = std::from_chars(begin, begin + 2, value, 16);
+            if (p.ec != std::errc{} || p.ptr != begin + 2)
+                return 24;
+            packet[i] = std::uint8_t(value);
+        }
+        if (send != previous_send) {
+            if (!engine.request(0, send, token, true))
+                return 25;
+            previous_send = send;
+        }
+        const bool accepted =
+            hex != "-" && engine.receive(0, {packet.data(), hex.size() / 2}, receive);
+        const auto status = engine.status(0, receive);
+        std::cout << id << ' ' << accepted << ' ' << microchrony::name(status.reason) << ' '
+                  << status.estimate.samples << ' ' << status.rejected << '\n';
+    }
+    return 0;
+}
+int raw_stats_driver() {
+    microchrony::Config config;
+    config.max_delay_deviation_ratio = 0; // SST entry boundary, not a packet-admission test.
+    config.max_update_skew_ppm = 1e-12;
+    config.max_clock_error_ppm = 50;
+    microchrony::Engine engine(config);
+    if (!engine.configure(0, 1, 0))
+        return 30;
+    std::uint64_t send, receive, utc, id = 0;
+    std::cout.precision(15);
+    while (std::cin >> send >> receive >> utc) {
+        const auto request = engine.request(0, send, ++id, true);
+        if (!request)
+            return 31;
+        std::array<std::uint8_t, 48> packet{};
+        packet[0] = 0x24;
+        packet[1] = 1;
+        packet[3] = std::uint8_t(-20);
+        std::copy(request->begin() + 40, request->end(), packet.begin() + 24);
+        put(packet, 16, 8, ntp(utc - microchrony::second));
+        put(packet, 32, 8, ntp(utc));
+        put(packet, 40, 8, ntp(utc));
+        if (!engine.receive(0, packet, receive))
+            return 32;
+        const auto e = engine.status(0, receive).estimate;
+        std::cout << id << ' ' << e.samples << ' ' << e.runs << ' ' << -e.rate << ' ' << e.rate_sd
+                  << ' ' << e.skew << ' ' << e.offset_sd << ' ' << e.jitter << ' ' << e.asymmetry
+                  << '\n';
+    }
+    return 0;
+}
 } // namespace
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string(argv[1]) == "packet")
+        return packet_driver();
+    if (argc == 2 && std::string(argv[1]) == "raw")
+        return raw_stats_driver();
     if (argc != 2 && argc != 3)
         return 2;
-    const bool phase_only = argc == 3 && std::string(argv[2]) == "captured-phase";
-    const bool captured = argc == 3 && (std::string(argv[2]) == "captured" || phase_only);
-    if (argc == 3 && !captured)
+    const bool captured_phase = argc == 3 && std::string(argv[2]) == "captured-phase";
+    const bool phase_only = captured_phase || (argc == 3 && std::string(argv[2]) == "phase");
+    const bool rtc = argc == 3 && std::string(argv[2]) == "captured-rtc";
+    const bool captured =
+        argc == 3 && (std::string(argv[2]) == "captured" || captured_phase || rtc);
+    if (argc == 3 && !captured && !phase_only)
         return 2;
 #ifndef MICROCHRONY_LOOP_BASELINE
     if (std::string(argv[1]) == "combination") {
@@ -60,6 +154,8 @@ int main(int argc, char** argv) {
     c.min_poll = c.max_poll = 6;
     c.max_drift_ppm = 100;
     c.max_clock_error_ppm = 50;
+    if (captured)
+        c.max_delay_deviation_ratio = 0; // Both captured adapters enter after packet admission.
     if (phase_only)
         c.max_update_skew_ppm = 1e-12; // Offline counterfactual; production gates are unchanged.
     microchrony::Engine engine(c);
@@ -67,6 +163,8 @@ int main(int argc, char** argv) {
     for (unsigned i = 0; i < 4; ++i)
         if (!engine.configure(i, i + 1, 0))
             return 3;
+    if (rtc)
+        microchrony::ClockLoopTestAccess::rtc(engine);
     std::array<std::optional<std::array<std::uint8_t, 48>>, 4> sent;
     std::uint64_t truth, raw, server, sequence = 0;
     unsigned action, slot, stratum;
@@ -133,7 +231,7 @@ int main(int argc, char** argv) {
                               << (s.selected   ? '*'
                                   : s.combined ? '+'
                                                : '-')
-                              << ' ' << s.selection_score;
+                              << ' ' << s.selection_score << ' ' << e.asymmetry;
                 }
                 std::cerr << '\n';
             }

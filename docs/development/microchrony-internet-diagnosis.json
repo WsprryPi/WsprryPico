@@ -1,0 +1,546 @@
+{
+  "schema": "microchrony-internet-diagnosis/1",
+  "baseline_head": "0a7c05d1c41b7fd261db50a6fa267c4004e0c6e8",
+  "baseline_source_sha256": {
+    "src/microchrony/microchrony.cpp": "26ebcb3de186f06e7b9f60f24b210c7c2ec13288864ea808503d13adfccebbac",
+    "src/microchrony/microchrony.hpp": "4cacc168eb299efa3e367606ff10301cbd1e9cd98a5f4148bcb20da9ca6bf5fa",
+    "src/time/ntp_client.cpp": "a35d76e9d2951a70c1c9491ded0fb774aa09133c711854a653242b25f86f2de1",
+    "tests/reference/chrony49_loop.c": "851a24bfae7777a62009649d53c025e121d35d33ac0923e8e45c03c3fe7a3b4b",
+    "tests/reference/microchrony_loop.cpp": "0212b1e8fe0fbbddfe675a14469cadc16b7762e5f624659f75098a481a7d72af",
+    "tests/microchrony_tests.cpp": "941ab1364f7e70061c00acce3013739226eccd726757983b2b2b1a536a37f7f2",
+    "tests/ntp_work_tests.cpp": "78813292e0c116efc0e18657d4854e3c024224baffad7b39a10adfc70b77e096"
+  },
+  "current_source_sha256": {
+    "src/microchrony/microchrony.cpp": "6370f7c1125f0c0aa3621aeb511c7ff2572adebc63163239833f32ac5254033a",
+    "src/microchrony/microchrony.hpp": "f0a020cf454c0feea1d85a1081aa60f2f0464d45d94fe75234852c5d02bf24cc",
+    "tests/microchrony_tests.cpp": "161a018327619eda7c9abec43a6d5cd29b8bade3be6ee42d4b482f6b989287ca",
+    "tests/ntp_work_tests.cpp": "382956f4302b93c14f22b399cbda62272d4bdf2e23c364680fd2dcf5d0c061f5",
+    "tests/reference/compare_chrony49_loop.py": "345de8e9cca82b562df514b8fd312b2fe3a1ed22d2bc681d62674378db58564d",
+    "tests/reference/test_microchrony_loop.py": "0d2e3a91a2fcdf91e5f9bd6a4715673f3dc3ca42ab42daac5e5d5f77f6d5fa28",
+    "tests/reference/diagnose_chrony49_capture.py": "27416cabec71b7feed09a59be8e202fde1e1ea6b5e002bf4e25f3685b2254628",
+    "tests/reference/microchrony_loop.cpp": "2fd04f68b4f5c24eb43ef091741caada3c525cb44645128eb0b072a9dbb89ad5",
+    "tests/reference/chrony49_loop.c": "0c57b69d12be4a81770c823cdd6617508f6652e1a59298ea4bb934845778dd7c"
+  },
+  "private_receipts_sha256": {
+    "before-queue-loop.json": "6112195177ef8cb85526aa0108d9ec6d4169a4d6c6fe3225a17eabac3374e10c",
+    "after-loop.json": "dd0ad547cdfa9ab9f09755c932cd5e5734e68b5eeec3b32e7467ccd61bda058e",
+    "after-stats.json": "b680d3a9dc80960cc9c5f30cacc673592a756227e0ba1cfc6378e69f824957e1",
+    "after-adaptation.json": "7b68842353f320e05ae56ae89a82af11b5f98798220694fd091b0adb89a45644",
+    "after-frequency.json": "5a4795fe6232a19c74cb0da84c7a3ba5224c5739e38284371bb2b18d0b4dad7c",
+    "loop-validation.json": "19afded60d25fd85e8e14cbe75a2537470bb82a17c36d4033086f9bff4154330",
+    "pooled-replay.json": "ccadebc05cf00bf25639d6c70cf16eca48b6fbf942adeeefcfbaa53c7c3a5ca6",
+    "chrony49-loop.inputs.json": "b1947eabe1587a8b363abe8ee6c50bfde7123a9d48b63667aec272d3a16a994d",
+    "excluded-low-jitter.json": "99f4099b561a52a162d6044754634561387a29ff7def1e4cdac7ab44a5c9bcda"
+  },
+  "known_truth_cases": {
+    "internet_weak_queue": {
+      "plant": {
+        "sources": 4,
+        "forward_ns": 10000000,
+        "backward_ns": 10000000,
+        "noise_s": 0.005,
+        "queue_s": 0.02,
+        "ppm": 0.8,
+        "queue_forward_fraction": 0.7,
+        "noise_seed": 1701
+      },
+      "input_sha256": "1e0993a4ab0ce6b6ee873e1aa72ba983ff8b799b2c0c075c864a54357701d4e4",
+      "before": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": -0.941275,
+        "final_frequency_error_ppm": 0.07999942397418636,
+        "last_hour_utc_rms_ms": 1.1848512604386363,
+        "last_hour_utc_max_abs_ms": 1.602306,
+        "last_hour_frequency_max_abs_ppm": 0.4360009887571792,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 14312.0,
+        "frequency_settles_1ppm_s": 1288.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "after": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.887913,
+        "final_frequency_error_ppm": 0.12099945689847402,
+        "last_hour_utc_rms_ms": 0.7684012591631848,
+        "last_hour_utc_max_abs_ms": 1.323289,
+        "last_hour_frequency_max_abs_ppm": 0.4650010119178205,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 11806.0,
+        "frequency_settles_1ppm_s": 1288.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.900963,
+        "final_frequency_error_ppm": 0.12101969115718703,
+        "last_hour_utc_rms_ms": 0.7658454135873071,
+        "last_hour_utc_max_abs_ms": 1.337164,
+        "last_hour_frequency_max_abs_ppm": 0.4654879874887996,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 11799.0,
+        "frequency_settles_1ppm_s": 1288.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "internet_forward_queue": {
+      "plant": {
+        "sources": 4,
+        "forward_ns": 10000000,
+        "backward_ns": 10000000,
+        "noise_s": 0.005,
+        "queue_s": 0.02,
+        "ppm": 0.8,
+        "queue_forward_fraction": 1,
+        "noise_seed": 2802
+      },
+      "input_sha256": "930209c5123bbddf7aa29bffdf2dee102da27394d39b995211d2ea6ca33f537f",
+      "before": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 1.300921,
+        "final_frequency_error_ppm": 0.43099970481463856,
+        "last_hour_utc_rms_ms": 0.5186976693436111,
+        "last_hour_utc_max_abs_ms": 1.300921,
+        "last_hour_frequency_max_abs_ppm": 0.43999971199859544,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 1096.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "after": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 1.14831,
+        "final_frequency_error_ppm": 0.43199970556351275,
+        "last_hour_utc_rms_ms": 0.442854417553106,
+        "last_hour_utc_max_abs_ms": 1.14831,
+        "last_hour_frequency_max_abs_ppm": 0.45399972314896786,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 1096.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 1.153507,
+        "final_frequency_error_ppm": 0.4320150310821447,
+        "last_hour_utc_rms_ms": 0.44714227454398103,
+        "last_hour_utc_max_abs_ms": 1.153507,
+        "last_hour_frequency_max_abs_ppm": 0.454432987018194,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": null,
+        "frequency_settles_1ppm_s": 1096.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    },
+    "internet_reverse_queue": {
+      "plant": {
+        "sources": 4,
+        "forward_ns": 10000000,
+        "backward_ns": 10000000,
+        "noise_s": 0.005,
+        "queue_s": 0.02,
+        "ppm": -0.65,
+        "queue_forward_fraction": 0,
+        "noise_seed": 3903
+      },
+      "input_sha256": "50f6347c02e1d5dccf239ac098022c17a02e4e0728547675fe62cb7c9c07d62c",
+      "before": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.254876,
+        "final_frequency_error_ppm": 0.23199942655871553,
+        "last_hour_utc_rms_ms": 0.42503350529481587,
+        "last_hour_utc_max_abs_ms": 0.823697,
+        "last_hour_frequency_max_abs_ppm": 0.2640002509934902,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 1050.0,
+        "frequency_settles_1ppm_s": 1224.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "after": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.40668,
+        "final_frequency_error_ppm": 0.2369994231976591,
+        "last_hour_utc_rms_ms": 0.3404243641151604,
+        "last_hour_utc_max_abs_ms": 0.657947,
+        "last_hour_frequency_max_abs_ppm": 0.25200025866034537,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 1325.0,
+        "frequency_settles_1ppm_s": 1224.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      },
+      "chrony49": {
+        "first_sync_s": 6.0,
+        "final_utc_error_ms": 0.416748,
+        "final_frequency_error_ppm": 0.23704915341760113,
+        "last_hour_utc_rms_ms": 0.3426047085019043,
+        "last_hour_utc_max_abs_ms": 0.662291,
+        "last_hour_frequency_max_abs_ppm": 0.2526143979553197,
+        "settling_start_s": 0,
+        "utc_settles_1ms_s": 1322.0,
+        "frequency_settles_1ppm_s": 1224.0,
+        "synchronized_probe_count": 14395,
+        "valid_probe_count": 14395
+      }
+    }
+  },
+  "captured_pool_replay": {
+    "A": {
+      "originals": 452,
+      "visibility": {
+        "0": {
+          "new_captured": 49,
+          "missing_before_capture": 16
+        },
+        "1": {
+          "new_captured": 48,
+          "missing_before_capture": 13
+        },
+        "2": {
+          "new_captured": 49,
+          "missing_before_capture": 10
+        },
+        "3": {
+          "new_captured": 50,
+          "missing_before_capture": 12
+        }
+      },
+      "input_sha256": "9b594e76170730f078dbd53587a786d66789c8956560409c00001f6106ebaf1a",
+      "pulse_count": 320,
+      "common_qualified_pulses": 320,
+      "metrics": {
+        "before": {
+          "first_frequency_ppm": -0.156,
+          "final_frequency_ppm": -0.265,
+          "frequency_range_ppm": [
+            -1.177,
+            -0.102
+          ],
+          "stale_pulse_indices": [],
+          "unqualified_pulse_indices": [],
+          "rms_frequency_delta_from_chrony_ppm": 0.19418044413613805,
+          "common_pulse_indicated_utc_rms_ms": 0.5997243353876768,
+          "common_pulse_indicated_utc_range_ms": [
+            -1.004393,
+            1.124297
+          ]
+        },
+        "after": {
+          "first_frequency_ppm": -0.062,
+          "final_frequency_ppm": -0.437,
+          "frequency_range_ppm": [
+            -1.028,
+            -0.062
+          ],
+          "stale_pulse_indices": [],
+          "unqualified_pulse_indices": [],
+          "rms_frequency_delta_from_chrony_ppm": 0.1266488965276006,
+          "common_pulse_indicated_utc_rms_ms": 2.2584191880362696,
+          "common_pulse_indicated_utc_range_ms": [
+            -3.426261,
+            -1.46209
+          ]
+        },
+        "chrony49": {
+          "first_frequency_ppm": -0.127601191057,
+          "final_frequency_ppm": -0.782239320528,
+          "frequency_range_ppm": [
+            -1.08857336607,
+            -0.127601191057
+          ],
+          "stale_pulse_indices": [],
+          "unqualified_pulse_indices": [],
+          "rms_frequency_delta_from_chrony_ppm": 0.0,
+          "common_pulse_indicated_utc_rms_ms": 2.2937563720943723,
+          "common_pulse_indicated_utc_range_ms": [
+            -3.219511,
+            -1.601786
+          ]
+        }
+      }
+    },
+    "B": {
+      "originals": 446,
+      "visibility": {
+        "0": {
+          "new_captured": 49,
+          "missing_before_capture": 16
+        },
+        "1": {
+          "new_captured": 47,
+          "missing_before_capture": 17
+        },
+        "2": {
+          "new_captured": 48,
+          "missing_before_capture": 15
+        },
+        "3": {
+          "new_captured": 46,
+          "missing_before_capture": 19
+        }
+      },
+      "input_sha256": "b3263bb1adfafe219249476151fcd4b501253faefb7992986d7e684f50ce2780",
+      "pulse_count": 320,
+      "common_qualified_pulses": 308,
+      "metrics": {
+        "before": {
+          "first_frequency_ppm": 0.006,
+          "final_frequency_ppm": 0.463,
+          "frequency_range_ppm": [
+            0.006,
+            1.204
+          ],
+          "stale_pulse_indices": [
+            25,
+            26,
+            27,
+            28,
+            45,
+            46,
+            47,
+            48,
+            193,
+            194,
+            195,
+            196
+          ],
+          "unqualified_pulse_indices": [
+            25,
+            26,
+            27,
+            28,
+            45,
+            46,
+            47,
+            48,
+            193,
+            194,
+            195,
+            196
+          ],
+          "rms_frequency_delta_from_chrony_ppm": 0.2576209898662831,
+          "common_pulse_indicated_utc_rms_ms": 1.3673093625452457,
+          "common_pulse_indicated_utc_range_ms": [
+            -2.932688,
+            -0.485161
+          ]
+        },
+        "after": {
+          "first_frequency_ppm": 0.561,
+          "final_frequency_ppm": 0.665,
+          "frequency_range_ppm": [
+            0.343,
+            1.616
+          ],
+          "stale_pulse_indices": [
+            25,
+            26,
+            27,
+            28,
+            45,
+            46,
+            47,
+            48,
+            193,
+            194,
+            195,
+            196
+          ],
+          "unqualified_pulse_indices": [
+            25,
+            26,
+            27,
+            28,
+            45,
+            46,
+            47,
+            48,
+            193,
+            194,
+            195,
+            196
+          ],
+          "rms_frequency_delta_from_chrony_ppm": 0.023304757404381548,
+          "common_pulse_indicated_utc_rms_ms": 5.881197788035275,
+          "common_pulse_indicated_utc_range_ms": [
+            -7.754026,
+            -3.699397
+          ]
+        },
+        "chrony49": {
+          "first_frequency_ppm": 0.558871366116,
+          "final_frequency_ppm": 0.726765719956,
+          "frequency_range_ppm": [
+            0.265822829834,
+            1.65050337185
+          ],
+          "stale_pulse_indices": [
+            25,
+            26,
+            27,
+            28,
+            45,
+            46,
+            47,
+            48,
+            193,
+            194,
+            195,
+            196
+          ],
+          "unqualified_pulse_indices": [
+            25,
+            26,
+            27,
+            28,
+            45,
+            46,
+            47,
+            48,
+            193,
+            194,
+            195,
+            196
+          ],
+          "rms_frequency_delta_from_chrony_ppm": 0.0,
+          "common_pulse_indicated_utc_rms_ms": 5.780665229532759,
+          "common_pulse_indicated_utc_range_ms": [
+            -7.827075,
+            -3.530801
+          ]
+        }
+      }
+    }
+  },
+  "A_final_update_stages": {
+    "before": {
+      "time_coordinate_ns": 7301187305000,
+      "sources": [
+        {
+          "slot": 0,
+          "samples": 39,
+          "raw_rate_ppm": -0.978086872465324,
+          "rate_sd_ppm": 1.6704244859085,
+          "delay_coefficient": null
+        },
+        {
+          "slot": 1,
+          "samples": 64,
+          "raw_rate_ppm": 0.28298223370928,
+          "rate_sd_ppm": 1.25514077600995,
+          "delay_coefficient": null
+        },
+        {
+          "slot": 2,
+          "samples": 48,
+          "raw_rate_ppm": -0.959164993081501,
+          "rate_sd_ppm": 1.49083598674947,
+          "delay_coefficient": null
+        },
+        {
+          "slot": 3,
+          "samples": 64,
+          "raw_rate_ppm": 0.599321551705554,
+          "rate_sd_ppm": 1.63152691532333,
+          "delay_coefficient": null
+        }
+      ],
+      "combined_raw_rate_ppm": -0.20745209963685746,
+      "scope": "Diagnostic inverse-variance reconstruction at final selected-source update; reference SD remains in its cooked coordinate, so this is approximate."
+    },
+    "after": {
+      "time_coordinate_ns": 7301187305000,
+      "sources": [
+        {
+          "slot": 0,
+          "samples": 31,
+          "raw_rate_ppm": -3.05137075164464,
+          "rate_sd_ppm": 3.0027749838771,
+          "delay_coefficient": 0.0
+        },
+        {
+          "slot": 1,
+          "samples": 64,
+          "raw_rate_ppm": 0.230883772539154,
+          "rate_sd_ppm": 1.05253706990238,
+          "delay_coefficient": 0.0
+        },
+        {
+          "slot": 2,
+          "samples": 48,
+          "raw_rate_ppm": -1.64295003337177,
+          "rate_sd_ppm": 1.54401069723153,
+          "delay_coefficient": 0.0
+        },
+        {
+          "slot": 3,
+          "samples": 64,
+          "raw_rate_ppm": 0.187349800919696,
+          "rate_sd_ppm": 1.44646697856931,
+          "delay_coefficient": 0.0
+        }
+      ],
+      "combined_raw_rate_ppm": -0.3818062205670285,
+      "scope": "Diagnostic inverse-variance reconstruction at final selected-source update; reference SD remains in its cooked coordinate, so this is approximate."
+    },
+    "chrony49": {
+      "time_coordinate_ns": 7301187305000,
+      "sources": [
+        {
+          "slot": 0,
+          "samples": 31,
+          "raw_rate_ppm": -3.05137505696162,
+          "rate_sd_ppm": 2.94554551149718,
+          "delay_coefficient": 0.0
+        },
+        {
+          "slot": 1,
+          "samples": 64,
+          "raw_rate_ppm": 0.230862059691361,
+          "rate_sd_ppm": 1.04143413177115,
+          "delay_coefficient": 0.0
+        },
+        {
+          "slot": 2,
+          "samples": 52,
+          "raw_rate_ppm": -2.37797491686731,
+          "rate_sd_ppm": 1.23452548691738,
+          "delay_coefficient": 0.108178569942324
+        },
+        {
+          "slot": 3,
+          "samples": 64,
+          "raw_rate_ppm": 0.18733558992956,
+          "rate_sd_ppm": 1.41129201699226,
+          "delay_coefficient": 0.0
+        }
+      ],
+      "combined_raw_rate_ppm": -0.731080120438533,
+      "scope": "Diagnostic inverse-variance reconstruction at final selected-source update; reference SD remains in its cooked coordinate, so this is approximate."
+    }
+  },
+  "quality_gates_changed": false,
+  "manual_ppm_changed": false,
+  "hardware_accessed": false,
+  "firmware_loaded": false,
+  "staged_committed_pushed": false,
+  "scope": "Offline estimator and selected-source freshness diagnosis; original MIT firmware; external unmodified GPL Chrony reference remains private.",
+  "limitations": [
+    "Cold zero-frequency initialization; incomplete pre-capture boot history.",
+    "Admitted originals only; rejected packets and autonomous polling excluded.",
+    "Stable endpoint/epoch per slot required; no association reconstruction.",
+    "Pulse UTC path delay and reference allowance are not calibrated.",
+    "Replay output is not evidence of firmware application on a board.",
+    "No RF correction or independent absolute UTC qualification.",
+    "Frequency agreement with Chrony improves, but captured-pulse indicated UTC RMS worsens.",
+    "Initial RTC acquisition differs; neither replay recreates the live boot state.",
+    "Reference packet admission is not simulated; a common admitted stream does not prove identical UDP admission.",
+    "A retains a final frequency difference; full Chrony equivalence and better live UTC/RF performance are unproven."
+  ]
+}

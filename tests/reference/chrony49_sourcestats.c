@@ -6,6 +6,8 @@
 #include "logging.h"
 #include "sourcestats.h"
 #include "sysincl.h"
+
+#include <inttypes.h>
 static double read_frequency(void) {
     return 0;
 }
@@ -26,7 +28,10 @@ static void correction(struct timespec* raw, double* value, double* error) {
     if (error)
         *error = 0;
 }
-int main(void) {
+int main(int argc, char** argv) {
+    const int raw = argc == 2 && strcmp(argv[1], "raw") == 0;
+    if (argc != 1 && !raw)
+        return 2;
     LOG_Initialise();
     LOG_SetMinSeverity(LOGS_FATAL);
     CNF_Initialise(0, 0);
@@ -42,13 +47,32 @@ int main(void) {
     fprintf(stderr, "min_samples=%d\n", SST_GetMinSamples(stats));
     double when, offset, delay, dispersion;
     unsigned id = 0;
-    while (scanf("%lf %lf %lf %lf", &when, &offset, &delay, &dispersion) == 4) {
+    for (;;) {
+        uint64_t send, receive, utc;
+        if (raw) {
+            if (scanf("%" SCNu64 " %" SCNu64 " %" SCNu64, &send, &receive, &utc) != 3)
+                break;
+            const uint64_t midpoint = send + (receive - send) / 2;
+            const uint64_t fraction = ((utc % 1000000000ULL) << 32) / 1000000000ULL;
+            utc = utc / 1000000000ULL * 1000000000ULL + ((fraction * 1000000000ULL) >> 32);
+            when = 1800000000 + midpoint / 1e9;
+            offset = ((int64_t)(utc - 1800000000000000000ULL) - (int64_t)midpoint) / 1e9;
+            delay = (receive - send) / 1e9;
+            dispersion = .000001 + delay * 50e-6;
+        } else if (scanf("%lf %lf %lf %lf", &when, &offset, &delay, &dispersion) != 4) {
+            break;
+        }
         NTP_Sample sample = {0};
         sample.time.tv_sec = (time_t)when;
         sample.time.tv_nsec = (long)((when - sample.time.tv_sec) * 1e9);
+        if (raw) {
+            const uint64_t midpoint = send + (receive - send) / 2;
+            sample.time.tv_sec = 1800000000 + midpoint / 1000000000;
+            sample.time.tv_nsec = midpoint % 1000000000;
+        }
         sample.offset = offset;
         sample.peer_delay = sample.root_delay = delay;
-        sample.peer_dispersion = 1e-6;
+        sample.peer_dispersion = raw ? dispersion : 1e-6;
         sample.root_dispersion = dispersion;
         SST_AccumulateSample(stats, &sample);
         SST_DoNewRegression(stats);

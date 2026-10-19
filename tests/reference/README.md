@@ -123,6 +123,125 @@ It supports independent diagnosis of sign-run thresholds and predecessor counts.
 Setting `MICROCHRONY_DIAGNOSTICS=1` adds bounded per-update source diagnostics on
 stderr for the loop drivers, or the public SST dump for the scalar driver.
 The deterministic fixtures and process timeout bound this diagnostic output.
+Each loop source diagnostic now includes its learned delay coefficient. The
+reference coefficient uses local-minus-server phase; the engine's sign is the
+opposite. The stdout protocol is unchanged.
+
+`compare_chrony49_loop.py` also supplies three four-source variable-delay cases:
+weak, forward and reverse queue asymmetry with known sub-ppm oscillator error.
+The original ten CI cases and their limits remain; three further UTC/rate
+acceptance cases exercise the new path-weighting and asymmetry behavior.
+The [Internet diagnosis](../../docs/development/microchrony-internet-diagnosis.md)
+records comparison results and the captured-pulse tradeoff.
+
+For a privately retained completed pulse campaign, the pooled diagnostic checks
+manifest hashes, stable board/boot/image/source identity and newly captured
+original counts against that campaign's baseline. It keeps pre-capture deficits
+explicit. Both controllers start with zero frequency correction and receive the
+same retained original packets; this cannot reconstruct missing live history or
+the Unix clock's different RTC acquisition. Physical pulse probes retain the
+uncalibrated reference/path limitation. Full rows and diagnostics stay private.
+
+```sh
+python3 tests/reference/diagnose_chrony49_capture.py \
+  build/microchrony-pulse-rate-rerun-20261018/terminal-evidence \
+  "$receipts/microchrony-before" "$receipts/host/microchrony_loop" \
+  "$receipts/chrony49-loop" "$receipts/pooled-replay.json"
+```
+
+## Packet admission and fixed-coordinate histories
+
+The `packet` oracle runs the unmodified Chrony NCR request/reply parser,
+correlation, validity and delay admission before observations reach SST.
+Original deterministic IO, entropy, request-callback and clock-output adapters
+replace external surfaces. It never opens sockets or adjusts the host clock.
+Request times are supplied externally; autonomous polling and receive-timeout
+policy remain outside this comparison. An omitted reply tests loss between
+supplied requests, not the daemon's complete timeout policy.
+
+```sh
+python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-packet" packet
+python3 tests/reference/compare_chrony49_packets.py "$receipts/chrony49-packet" \
+  "$receipts/host/microchrony_loop" "$receipts/packets.json"
+```
+
+The reference first emits its actual request nonce and final offered wire reply;
+the engine then receives those same bytes and raw send/receive events. Both
+clock outputs are frozen for this admission comparison. Repeated oracle runs
+must produce identical wire transcripts. Fixtures cover correlation, duplicates,
+stale transmit timestamps, loss, malformed lengths/modes, era rollover,
+unsynchronized sources, processing delays, queue directions and innovations
+larger than a queue can explain. Expected stricter Pico-profile differences
+are asserted separately from unexpected mismatches. Source usability after
+admission is a separate stage; an NCR good-packet count is not synchronization.
+
+The `raw` adapters normalize retained admitted measurements to server midpoint
+UTC and peer RTT with common precision/dispersion, fixing the clock coordinate
+and holding output frequency. This isolates adaptive history and the learned
+queue coefficient from coupled controller/cooked-clock trajectories. It does
+not replay the original wire admission or reconstruct missing boot inputs.
+The cohort report must first pass manifest, identity and baseline checks.
+
+```sh
+python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-stats"
+python3 tests/reference/compare_chrony49_histories.py \
+  build/microchrony-pulse-rate-rerun-20261018/terminal-evidence \
+  "$receipts/pooled-replay.json" "$receipts/chrony49-stats" \
+  "$receipts/host/microchrony_loop" "$receipts/histories.json"
+python3 tests/reference/compare_chrony49_ablations.py \
+  0a7c05d1c41b7fd261db50a6fa267c4004e0c6e8 "$receipts/ablations"
+python3 tests/reference/compare_chrony49_rate_benefit.py \
+  "$receipts/chrony49-loop" "$receipts/host/microchrony_loop" "$receipts/rate-benefit.json"
+```
+
+Ablations transform only owned MIT code and retain generated source/compiler
+and binary receipts privately. The weighting-only variant retains the baseline
+asymmetry rules; the asymmetry-only variant retains root-distance weights.
+The asymmetry factor includes its covariance and predecessor-horizon rules.
+`phase` supplies ordinary six-column known-truth inputs with frequency updates
+suppressed by a tighter offline maxupdateskew. Phase damping remains active.
+The simulated alternative is scored against known truth; it is different from
+a physical open-loop forecast over a short unchanged application model.
+
+`captured` and `captured-phase` now explicitly disable the engine's additional
+delay classifier in the test adapter because Chrony's corresponding adapter
+enters after that classifier. Production admission remains exercised by the
+separate `packet` comparison. `captured-rtc` gives both test clocks the same
+synthetic initial RTC prior at the translated first-sample origin. That is a
+controlled conditional prior, not a recovered live RTC or boot history.
+
+## Offered packet diagnostics
+
+`NTP PACKETS <cursor>` is a read-only USB Console command. Start with cursor
+`0`, verify device/boot/firmware/revision, then use the returned decimal-string
+`next_cursor`. Drain while `more` is true. Each response holds at most four
+records and stays within 4,096 bytes; the separate ring retains 32 records.
+Integer IDs, epochs, request/receive times, tokens and opaque endpoint identities
+are decimal strings. `slot`, datagram `length` and booleans are ordinary JSON
+values. The endpoint is the engine's opaque configured identity; a live INFO/
+history source-cohort receipt supplies the corresponding network address.
+
+Records retain immutable sequence/slot/endpoint/epoch, the most recently emitted
+request timestamp/token for that cohort, receive raw time, accepted verdict,
+reason, original datagram length and its first 48 bytes as lowercase hex.
+The successful reason is `accepted`. Request metadata is cleared on cohort
+reset; its presence alone does not establish a still-pending correlated request.
+`truncated` explicitly marks longer datagrams, which cannot pass basic-packet
+admission. Unknown address/port drops before association matching are excluded.
+No authentication secrets or Wi-Fi credentials are logged.
+
+`oldest_id`, `last_id` and `overwritten` describe the ring. `lost_before`
+reports records between the requested cursor and its surviving first record.
+Record an initial deficit as pre-capture missing evidence; a later gap forbids
+a complete-visibility claim. Do not compare retained ring length with whole-boot
+packet counts. Peer/reset changes preserve already logged identities and start
+new source epochs; a cold boot changes the surrounding boot identity.
+
+`src/rf_analysis/ntp_packets.py` validates pages transactionally without IO.
+The caller saves the original response before validation and enforces finite
+time/disk budgets. Its regression consumes pages emitted by the actual C++
+`NtpClient` producer, including rejection and overflow. The library does not
+invent raw bytes lost before collection or beyond the recorded prefix.
 
 ## Tested boundaries
 
@@ -223,8 +342,9 @@ large clock uncertainty and is excluded from this qualified comparison.
 An offset-only baseline holds the last admitted midpoint's UTC offset, using
 the supported 100 ppm drift envelope. It shares the same age/error limits and
 common probe set. The reference RTC initially shares the first sample's UTC
-coordinate origin; μChrony acquires its epoch from a usable fit. This excludes
-RTC/boot acquisition from the accuracy comparison.
+coordinate origin; μChrony acquires its epoch from a usable fit. That difference
+remains in the conditional replay trajectory. A common coordinate translation
+does not remove acquisition effects or reconstruct missing boot history.
 
 The validated input manifest and stable per-slot capture baselines are required.
 Raw baseline receipts independently confirm the initial accepted and captured

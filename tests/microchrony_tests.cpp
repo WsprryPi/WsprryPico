@@ -102,6 +102,61 @@ void delay_and_loss() {
     engine.online(true, 16 * 64 * second);
     CHECK(engine.request(0, 16 * 64 * second, 2));
 }
+void packet_admission_rules() {
+    Config config;
+    config.max_clock_error_ppm = 50;
+    config.max_update_skew_ppm = 1e-12; // Fixed clock isolates the admission classifier.
+    for (unsigned scenario = 0; scenario < 4; ++scenario) {
+        Engine engine(config);
+        CHECK(engine.configure(0, 1, 0));
+        const unsigned count = scenario == 0 ? 3 : 24;
+        for (unsigned i = 1; i <= count; ++i)
+            CHECK(measurement(engine, 0, i * 64 * second, 0));
+        const auto before = engine.tracking(count * 64 * second + 1'000'000);
+        const auto t = (count + 1) * 64 * second;
+        const bool accepted = measurement(engine, 0, t,
+                                          scenario == 1   ? .003
+                                          : scenario == 3 ? .200
+                                                          : .100,
+                                          scenario == 1   ? 8'000'000
+                                          : scenario == 3 ? 22'000'000
+                                                          : 202'000'000);
+        CHECK(accepted == (scenario != 2));
+        if (!accepted) {
+            CHECK(engine.status(0, t).reason == Rejection::DelayDeviation);
+            CHECK(engine.tracking(t).source_raw_ns == before.source_raw_ns);
+            CHECK(engine.tracking(t).generation == before.generation);
+        }
+    }
+    Engine engine(config);
+    CHECK(engine.configure(0, 1, 0));
+    for (unsigned i = 1; i <= 24; ++i)
+        CHECK(measurement(engine, 0, i * 64 * second, 0));
+    const auto before = engine.tracking(24 * 64 * second + 1'000'000);
+    const auto previous = *engine.last_measurement(0);
+    const auto request = engine.request(0, 25 * 64 * second, 9001, true);
+    CHECK(request);
+    CHECK(
+        !engine.receive(0, reply(*request, previous.server_send_ns), 25 * 64 * second + 2'000'000));
+    CHECK(engine.status(0, 25 * 64 * second).reason == Rejection::Correlation);
+    CHECK(engine.tracking(25 * 64 * second).generation == before.generation);
+    CHECK(engine.tracking(25 * 64 * second).source_raw_ns == before.source_raw_ns);
+    CHECK(engine.last_measurement(0)->id == previous.id);
+    CHECK(engine.last_measurement(0)->rejection == previous.rejection);
+}
+void runs_rounding_boundary() {
+    Config config;
+    config.min_samples = 53;
+    config.max_delay_deviation_ratio = 0; // Isolate adaptive statistics.
+    Engine engine(config);
+    CHECK(engine.configure(0, 1, 0));
+    for (unsigned i = 1; i <= 54; ++i)
+        CHECK(
+            measurement(engine, 0, i * 64 * second, .001 * std::sin(i * 2 * std::acos(-1.0) / 5)));
+    const auto fit = engine.status(0, 54 * 64 * second).estimate;
+    CHECK(fit.runs == 22);
+    CHECK(fit.samples == 54);
+}
 void source_agreement() {
     Engine engine;
     for (unsigned slot = 0; slot < 3; ++slot)
@@ -236,6 +291,65 @@ void correlated_delay() {
     // treating its fitted delay coefficient as known understates that bound.
     CHECK(estimate.skew > 0.15e-6);
     CHECK(std::abs(estimate.rate + .000020) <= estimate.skew);
+}
+void path_noise_weights() {
+    Config config;
+    config.max_delay_deviation_ratio = 0; // Isolate fits after packet admission.
+    Engine near(config), remote(config);
+    CHECK(near.configure(0, 1, 0) && remote.configure(0, 1, 0));
+    for (unsigned i = 1; i <= 80; ++i) {
+        const auto midpoint = i * 64 * second;
+        const auto delay = 20'000'000 + (i * 17 % 11) * 2'000'000;
+        const double offset = -0.8e-6 * i * 64 + (int(i * 7 % 13) - 6) * .0002;
+        const auto send = midpoint - delay / 2;
+        for (auto* engine : {&near, &remote}) {
+            const auto request = engine->request(0, send, i, true);
+            CHECK(request);
+            const auto utc = std::uint64_t(std::int64_t(epoch + midpoint) +
+                                           std::int64_t(std::llround(offset * 1e9)));
+            auto packet = reply(*request, utc, engine == &remote ? .07 + (i % 3) * .001 : 0);
+            if (engine == &remote) {
+                const auto wire = std::uint32_t((.04 + (i % 5) * .005) * 65536);
+                for (unsigned byte = 0; byte < 4; ++byte)
+                    packet[4 + byte] = std::uint8_t(wire >> ((3 - byte) * 8));
+            }
+            CHECK(engine->receive(0, packet, midpoint + delay / 2));
+        }
+        if (i < 3)
+            continue;
+        const auto a = near.status(0, midpoint + delay / 2).estimate;
+        const auto b = remote.status(0, midpoint + delay / 2).estimate;
+        CHECK(a.samples == b.samples);
+        CHECK(std::abs(a.rate - b.rate) < 5e-11);
+        CHECK(std::abs(a.rate_sd - b.rate_sd) < 5e-11);
+        CHECK(b.root_delay / 2 + b.root_dispersion > a.root_delay / 2 + a.root_dispersion);
+    }
+}
+void weak_path_correlation() {
+    Config config;
+    config.max_delay_deviation_ratio = 0;
+    Engine engine(config);
+    CHECK(engine.configure(0, 1, 0));
+    for (unsigned i = 1; i <= 80; ++i) {
+        const double queue = (i * 17 % 11) * .002;
+        CHECK(measurement(engine, 0, i * 64 * second, -0.8e-6 * i * 64 + .2 * queue,
+                          std::uint64_t(std::llround((.02 + queue) * 1e9))));
+        const auto fit = engine.status(0, i * 64 * second).estimate;
+        CHECK(fit.asymmetry == 0); // Weak correlation is not evidence of one-way jitter.
+        if (i >= 13)
+            CHECK(std::abs(fit.rate + .8e-6) <= fit.skew);
+    }
+    engine.reset(81 * 64 * second);
+    for (unsigned i = 82; i <= 100; ++i) {
+        const double queue = (i * 17 % 11) * .003;
+        CHECK(measurement(engine, 0, i * 64 * second, -.5 * queue,
+                          std::uint64_t(std::llround((.002 + queue) * 1e9))));
+    }
+    CHECK(engine.status(0, 100 * 64 * second).estimate.asymmetry < -.49);
+    engine.reset(101 * 64 * second);
+    for (unsigned i = 102; i <= 108; ++i)
+        CHECK(measurement(engine, 0, i * 64 * second, 0));
+    CHECK(engine.status(0, 108 * 64 * second).estimate.asymmetry == 0);
 }
 void replay_driver() {
     Config full_config;
@@ -494,6 +608,11 @@ void stats_driver() {
 }
 } // namespace
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string_view(argv[1]) == "path-noise") {
+        path_noise_weights();
+        weak_path_correlation();
+        return 0;
+    }
     if (argc == 2 && std::string_view(argv[1]) == "slew") {
         slew_driver();
         return 0;
@@ -510,6 +629,8 @@ int main(int argc, char** argv) {
         stats_driver();
         return 0;
     }
+    path_noise_weights();
+    weak_path_correlation();
     selection_hysteresis();
     control_rules();
     frequency_innovation();
@@ -519,6 +640,8 @@ int main(int argc, char** argv) {
     predecessor_phase_rebase();
     learning();
     delay_and_loss();
+    packet_admission_rules();
+    runs_rounding_boundary();
     source_agreement();
     packets_and_polling();
     restoration();

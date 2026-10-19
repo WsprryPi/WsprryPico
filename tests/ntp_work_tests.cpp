@@ -122,7 +122,7 @@ std::array<std::uint8_t, 48> ntp_reply(const std::array<std::uint8_t, 48>& reque
         }
     return result;
 }
-void diagnostic_pages() {
+void diagnostic_pages(bool emit_packets = false) {
     std::uint64_t raw = 0;
     time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
     time::NtpClient client(clock);
@@ -153,6 +153,39 @@ void diagnostic_pages() {
         REQUIRE(count <= 64);
     } while (true);
     REQUIRE(count == client.engine().history(0).size());
+    const auto audit_wire = client.packet_page(binding, "0", raw);
+    const auto audit = wtp::json::parse(audit_wire);
+    REQUIRE(audit && audit->get("ok")->boolean());
+    REQUIRE(audit->get("lost_before")->string() == "48");
+    REQUIRE(audit->get("oldest_id")->string() == "49");
+    REQUIRE(audit->get("overwritten")->string() == "48");
+    const auto first = audit->get("records")->elements().front();
+    REQUIRE(first.get("id")->string() == "49");
+    REQUIRE(first.get("accepted")->boolean());
+    REQUIRE(first.get("prefix_hex")->string().size() == 96);
+    REQUIRE(client.configure(0, 123, raw));
+    const auto same_wire = client.packet_page(binding, "48", raw);
+    const auto same = wtp::json::parse(same_wire);
+    REQUIRE(same->get("records")->elements().front().get("endpoint")->string() == "1");
+    REQUIRE(same->get("records")->elements().front().get("clock_epoch")->string() == "1");
+    std::array<std::uint8_t, 49> malformed{};
+    malformed[0] = 0xe4;
+    REQUIRE(!client.receive(0, malformed, ++raw, true, 300));
+    const auto rejected_wire = client.packet_page(binding, "80", raw);
+    const auto rejected = wtp::json::parse(rejected_wire);
+    const auto bad = rejected->get("records")->elements().front();
+    REQUIRE(!bad.get("accepted")->boolean() && bad.get("truncated")->boolean());
+    REQUIRE(bad.get("prefix_hex")->string().starts_with("e4"));
+    REQUIRE(bad.get("length")->integer() == 300);
+    REQUIRE(bad.get("endpoint")->string() == "123");
+    REQUIRE(bad.get("clock_epoch")->string() == "2");
+    REQUIRE(bad.get("request_raw_ns")->string() == "0");
+    REQUIRE(bad.get("request_token")->string() == "0");
+    REQUIRE(bad.get("reason")->string() == "correlation");
+    REQUIRE(client.packet_page(binding, "80", raw).size() < 4096);
+    for (const auto cursor_text : {"01", "-1", "82", "18446744073709551615", " 0"})
+        REQUIRE(client.packet_page(binding, cursor_text, raw).find("ntp_packet_cursor") !=
+                std::string::npos);
     const auto other = client.history_page(binding, "@1 - 0", raw);
     REQUIRE(wtp::json::parse(other)->get("count")->integer() == 0);
     client.reset_peer();
@@ -160,6 +193,67 @@ void diagnostic_pages() {
             std::string::npos);
     REQUIRE(client.history_page(binding, "- 01", raw).find("ntp_history_cursor") !=
             std::string::npos);
+    if (emit_packets) {
+        std::string packet_cursor = "0";
+        for (unsigned i = 0; i < 8; ++i) {
+            const auto wire = client.packet_page(binding, packet_cursor, raw);
+            std::cout << wire;
+            const auto page = wtp::json::parse(wire);
+            REQUIRE(page && page->get("ok")->boolean());
+            packet_cursor = page->get("next_cursor")->string();
+            if (!page->get("more")->boolean())
+                return;
+        }
+        REQUIRE(false);
+    }
+}
+void selected_source_freshness() {
+    std::uint64_t raw = 0;
+    time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
+    time::NtpClient client(clock);
+    REQUIRE(client.configure(1, 2, 0));
+    for (unsigned i = 1; i <= 12; ++i) {
+        raw = i * 66 * ns;
+        const auto request = client.request(raw, i);
+        raw += 2'000'000;
+        REQUIRE(client.receive(ntp_reply(request, epoch + raw - 1'000'000), raw));
+        raw += ns;
+        const auto other = client.scheduled_request(1, raw, i + 100);
+        REQUIRE(other);
+        raw += 4'000'000;
+        REQUIRE(client.receive(1, ntp_reply(*other, epoch + raw - 2'000'000), raw));
+    }
+    REQUIRE(client.selected_slot(raw) == 0);
+    REQUIRE(client.engine().status(1, raw).combined);
+    const auto before = client.engine().tracking(raw);
+    const auto source = before.source_raw_ns;
+    raw = source + 66 * ns;
+    const auto request = client.request(raw, 1000);
+    const auto server = epoch + raw + 1'000'000;
+    raw += 200'000'000;
+    REQUIRE(!client.receive(ntp_reply(request, server), raw)); // One-way queue fails admission.
+    REQUIRE(client.engine().last_measurement(0)->rejection ==
+            microchrony::Rejection::DelayDeviation);
+    raw = source + 67 * ns;
+    const auto other = client.scheduled_request(1, raw, 1001);
+    REQUIRE(other);
+    raw += 4'000'000;
+    REQUIRE(client.receive(1, ntp_reply(*other, epoch + raw - 2'000'000), raw));
+    REQUIRE(client.engine().tracking(raw).generation == before.generation);
+    REQUIRE(client.engine().tracking(raw).source_raw_ns == source);
+    raw = source + time::ntp_fresh_ns;
+    REQUIRE(client.apply(raw));
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Synchronized);
+    ++raw;
+    REQUIRE(client.apply(raw));
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Holdover);
+    REQUIRE(!client.peer_fresh(raw) && !client.rate(raw).qualified);
+    raw = source + 132 * ns;
+    const auto recovered = client.request(raw, 1002);
+    raw += 2'000'000;
+    REQUIRE(client.receive(ntp_reply(recovered, epoch + raw - 1'000'000), raw));
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Synchronized);
+    REQUIRE(client.engine().tracking(raw).generation > before.generation);
 }
 void model_import() {
     std::uint64_t raw = 10 * ns;
@@ -454,6 +548,10 @@ void freeze() {
 }
 } // namespace
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string_view(argv[1]) == "packet-evidence") {
+        diagnostic_pages(true);
+        return 0;
+    }
     if ((argc == 6 || argc == 8) && std::string_view(argv[1]) == "map") {
         wtp::ClockSnapshot anchor;
         anchor.monotonic_now_ns = std::stoull(argv[2]);
@@ -474,6 +572,7 @@ int main(int argc, char** argv) {
     manual();
     model_import();
     diagnostic_pages();
+    selected_source_freshness();
     retention();
     mapping();
     freeze();

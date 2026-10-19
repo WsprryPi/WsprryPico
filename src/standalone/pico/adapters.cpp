@@ -586,16 +586,18 @@ void PicoNetwork::receive(void* context, udp_pcb*, pbuf* packet, const ip_addr_t
                           u16_t port) {
     auto& self = *static_cast<PicoNetwork*>(context);
     const auto now = activity_now_ns();
-    if (packet && address && port == 123 && packet->tot_len == 48) {
+    if (packet && address && port == 123) {
         for (auto& peer : self.peers_) {
             if ((peer.index && !self.pool_enabled_) ||
                 (!self.server_literal_ && !peer.lookup.ready()) ||
                 !ip_addr_cmp(address, &peer.address))
                 continue;
-            std::array<std::uint8_t, 48> bytes{};
-            if (pbuf_copy_partial(packet, bytes.data(), bytes.size(), 0) == bytes.size()) {
+            std::array<std::uint8_t, 49> bytes{};
+            const auto length = std::min<std::size_t>(bytes.size(), packet->tot_len);
+            if (pbuf_copy_partial(packet, bytes.data(), length, 0) == length) {
                 const auto process_start = time_us_64();
-                const bool admitted = self.ntp_.receive(peer.index, bytes, now);
+                const bool admitted = self.ntp_.receive(peer.index, {bytes.data(), length}, now,
+                                                        true, packet->tot_len);
                 peer.max_process_us = std::max(peer.max_process_us, time_us_64() - process_start);
                 if (admitted) {
                     ++self.accepted_;
@@ -919,5 +921,9 @@ std::string PicoNetwork::ntp_history_page(std::string_view request,
     binding.slot = peer.index;
     binding.endpoint = endpoint;
     return ntp_.history_page(binding, request, activity_now_ns());
+}
+std::string PicoNetwork::ntp_packet_page(std::string_view cursor,
+                                         time::NtpDiagnosticBinding binding) const {
+    return ntp_.packet_page(binding, cursor, activity_now_ns());
 }
 } // namespace wsprrypico::standalone

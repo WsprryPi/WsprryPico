@@ -14,12 +14,24 @@ behavioral equivalence has not been demonstrated. This is an original bounded
 implementation, not a port or complete replacement for the Unix daemon.
 
 The [clock-loop comparison](../../docs/development/microchrony-clock-loop.md)
-also exercises complete source-to-clock feedback on 25 identical four-hour
+also exercises complete source-to-clock feedback on 28 identical four-hour
 physical-event traces with independently known oscillator and UTC error. It
 includes changing drift, phase changes, restart seeds, holdover and four sources;
 six additional 256-point histories and 274 same-estimate combinations check
 adaptation and source combination separately. The record quantifies retained
 quantization and variable-delay limits.
+
+The [Internet-source follow-up](../../docs/development/microchrony-internet-diagnosis.md)
+adds variable-delay tests and pooled replays of retained A/B inputs. It records
+both closer frequency agreement and worse indicated UTC offsets in the captured
+pulse replay; matching a reference controller does not establish absolute accuracy.
+
+The [packet and independent-clock comparison](../../docs/development/microchrony-conformance-results.md)
+also exercises Chrony's actual packet admission before its statistics API. It
+separates packet filtering, fixed raw-coordinate regression and coupled clock
+trajectories, and compares learned-rate control with phase damping alone against
+known error. The selected tests establish bounded behavior, not complete daemon
+equivalence.
 
 ## Integration
 
@@ -57,9 +69,13 @@ RF-clock calibration.
 
 The engine correlates NTPv3/v4 basic server replies, unfolds the NTP era, handles
 RATE backoff and source denial, rejects unusable sources, filters excessive
-network delay, fits weighted clock frequency, estimates delay asymmetry when
-identifiable, checks residual runs, and combines agreeing sources. Regression
-covariance includes a fitted asymmetry coefficient. Combined uncertainty covers
+network delay, fits weighted clock frequency, checks residual runs, and combines
+agreeing sources. Frequency-fit weights use local peer-delay variation rather
+than upstream root distance. A separate partial regression learns delay
+asymmetry only after ten strong same-sign observations; weak correlation alone
+cannot immediately alter the point estimate. Regression covariance includes
+the delay coefficient, and public bounds cover the identifiable alternative
+when its correction is withheld. Combined uncertainty covers
 the actual combined center without assuming source independence. Phase and
 frequency corrections are separate. Loss and rejection never rejuvenate a
 retained fit. Source loss can leave a projected UTC while synchronization is
@@ -67,11 +83,24 @@ withdrawn. Source changes use accumulated quality scores and reselect distance;
 repeated status reads do not vote or steer the clock. Only a new selected-source
 fit or a changed reference updates clock discipline.
 
+Delay-deviation classification uses the preceding fit and becomes available
+with six retained observations; three observations can still establish the
+initial UTC fit. Half the extra round-trip delay is compared with ten times
+the normalized weighted residual deviation plus elapsed frequency/stability
+uncertainty. An innovation too large to be explained by that queue reaches
+the estimator and its existing uncertainty gates. Public joint covariance and
+identifiable path-bias coverage remain separate from the conditional statistics
+used by this classifier. A repeated server transmit timestamp is not a new
+observation, even with a new request nonce.
+
 Original timestamp/wire observations remain in the bounded 64-record history
 when the active regression shortens. A compact predecessor horizon extends the
-balanced-sign residual-runs test when its path effect is modelled. The horizon
+balanced-sign residual-runs test with the same learned path term. The horizon
 ages before each new observation and never exceeds 127 tested points. Only
 quantization-limited fits treat residuals below timestamp precision as ties.
+The runs critical count is calculated from the two-decimal 1.65 lower-tail
+normal quantile. This preserves the reference's discrete rounding, including
+the 54-observation boundary, without including an upstream table.
 Phase combines by inverse source distance; frequency combines by inverse
 frequency variance. Disagreement and estimate age enter phase-controller error.
 Controller statistical error remains separate from conservative public bounds.
@@ -85,7 +114,10 @@ The portable defaults follow the documented Chrony defaults for the implemented
 options. WsprryPico selects the explicit profile equivalent to `minpoll 6
 maxpoll 6`, `maxdrift 100` and `maxclockerror 50`. This retains its existing
 90-second job-age contract, ±100 ppm oscillator range and conservative 50 ppm
-holdover allowance. Other engine settings retain their defaults, including
+holdover allowance. A rejected selected-source response can still cross that
+90-second limit before the next normal poll; an unrelated combined-peer reply
+does not refresh the evidence used for the last clock update. Other engine
+settings retain their defaults, including
 `iburst`, maximum delay/distance 3 seconds, delay-deviation ratio 10,
 `polltarget 8`, `minsamples 6`, `maxsamples 64`, `maxupdateskew 1000`,
 `maxslewrate 83333.333`, and `corrtimeratio 3`. These are configuration choices,
@@ -118,6 +150,16 @@ a privately built, unmodified Chrony 4.9 tree. Its GPL reference executable is
 never linked into firmware or included in an MIT deliverable. Differential
 output records disagreement as well as agreement; passing a selected numerical
 check is not a certificate for the whole Chrony daemon.
+
+The WsprryPico transport adapter additionally exposes `NTP PACKETS <cursor>`
+over USB Console. This is outside the portable engine and compact UI status.
+Its 32-record ring retains accepted and rejected known-association deliveries,
+original request/receive timing, source identity/epoch, request token, actual
+datagram length and the first 48 offered bytes. Overwrite and truncation are
+explicit. Unknown-address/port datagrams discarded by transport are outside
+this log's scope. The [reference guide](../../tests/reference/README.md#offered-packet-diagnostics)
+defines collection and visibility; this diagnostic never supplies time or
+changes a clock/RF gate.
 
 The governing references are the official [Chrony 4.9 configuration
 manual](https://chrony-project.org/doc/4.9/chrony.conf.html), [chronyc

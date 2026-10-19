@@ -32,7 +32,7 @@ class NtpClient {
         return receive(0, packet, now, discipline);
     }
     bool receive(unsigned slot, std::span<const std::uint8_t> packet, std::uint64_t now,
-                 bool discipline = true);
+                 bool discipline = true, std::size_t wire_length = 0);
     bool apply(std::uint64_t now);
     bool arbiter_accepted() const {
         return arbiter_selected_;
@@ -52,6 +52,8 @@ class NtpClient {
     std::string observations_json() const;
     std::string history_page(NtpDiagnosticBinding binding, std::string_view request,
                              std::uint64_t now) const;
+    std::string packet_page(NtpDiagnosticBinding binding, std::string_view cursor,
+                            std::uint64_t now) const;
     unsigned selected_slot(std::uint64_t now) const;
     unsigned selected_slot() const {
         return selected_slot(last_now_);
@@ -71,5 +73,17 @@ class NtpClient {
     ControlModel control_;
     std::uint64_t last_now_ = 0, applied_generation_ = 0;
     bool packet_accepted_ = false, arbiter_selected_ = false;
+    struct PacketRecord {
+        std::uint64_t id = 0, epoch = 0, send_ns = 0, receive_ns = 0, token = 0;
+        std::uint32_t endpoint = 0, length = 0;
+        std::array<std::uint8_t, 48> prefix{};
+        unsigned slot = 0;
+        microchrony::Rejection rejection = microchrony::Rejection::None;
+        bool accepted = false;
+    };
+    // Independent of the 32 KiB estimator; immutable offered-packet evidence.
+    std::array<PacketRecord, 32> packets_{};
+    std::array<std::uint64_t, 4> request_ns_{}, request_tokens_{};
+    std::uint64_t packet_sequence_ = 0;
 };
 } // namespace wsprrypico::time

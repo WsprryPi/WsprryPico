@@ -37,19 +37,25 @@ bool NtpClient::configure(unsigned slot, std::uint32_t endpoint, std::uint64_t n
     const bool changed = core_.status(slot, now).endpoint != endpoint;
     if (!core_.configure(slot, endpoint, now))
         return false;
-    if (changed)
+    if (changed) {
         ++epochs_[slot];
+        request_ns_[slot] = request_tokens_[slot] = 0;
+    }
     return true;
 }
 void NtpClient::remove(unsigned slot, std::uint64_t now) {
     core_.remove(slot, now);
-    if (slot < epochs_.size())
+    if (slot < epochs_.size()) {
         ++epochs_[slot];
+        request_ns_[slot] = request_tokens_[slot] = 0;
+    }
 }
 void NtpClient::reset_peer(bool invalidate_clock) {
     core_.reset(last_now_);
     for (auto& epoch : epochs_)
         ++epoch;
+    request_ns_.fill(0);
+    request_tokens_.fill(0);
     packet_accepted_ = arbiter_selected_ = false;
     applied_generation_ = 0;
     control_ = {};
@@ -69,18 +75,48 @@ void NtpClient::clear_seed() {
 std::optional<std::array<std::uint8_t, 48>>
 NtpClient::scheduled_request(unsigned slot, std::uint64_t now, std::uint64_t token) {
     last_now_ = now;
-    return core_.request(slot, now, token);
+    auto result = core_.request(slot, now, token);
+    if (result) {
+        request_ns_[slot] = now;
+        request_tokens_[slot] = token ? token : 1;
+    }
+    return result;
 }
 std::array<std::uint8_t, 48> NtpClient::request(std::uint64_t now, std::uint64_t token) {
     last_now_ = now;
-    return core_.request(0, now, token, true).value_or(std::array<std::uint8_t, 48>{});
+    auto result = core_.request(0, now, token, true);
+    if (result) {
+        request_ns_[0] = now;
+        request_tokens_[0] = token ? token : 1;
+    }
+    return result.value_or(std::array<std::uint8_t, 48>{});
 }
 bool NtpClient::receive(unsigned slot, std::span<const std::uint8_t> packet, std::uint64_t now,
-                        bool discipline) {
+                        bool discipline, std::size_t wire_length) {
     last_now_ = now;
     arbiter_selected_ = false;
+    if (slot >= epochs_.size() || packet_sequence_ == UINT64_MAX)
+        return false;
+    auto& offered = packets_[packet_sequence_++ % packets_.size()];
+    offered = {};
+    offered.id = packet_sequence_;
+    offered.epoch = epochs_[slot];
+    offered.slot = slot;
+    offered.endpoint = core_.status(slot, now).endpoint;
+    offered.send_ns = request_ns_[slot];
+    offered.token = request_tokens_[slot];
+    offered.receive_ns = now;
+    const auto length = wire_length ? wire_length : packet.size();
+    offered.length = std::uint32_t(std::min<std::size_t>(length, UINT32_MAX));
+    std::copy_n(packet.begin(), std::min({packet.size(), offered.prefix.size(), length}),
+                offered.prefix.begin());
     const auto before_generation = core_.tracking(now).generation;
-    packet_accepted_ = core_.receive(slot, packet, now);
+    // A bounded transport prefix can describe an oversized datagram but can
+    // never turn it into a valid 48-byte packet at the admission boundary.
+    packet_accepted_ = core_.receive(slot, length == packet.size() ? packet : packet.first(0), now);
+    offered.accepted = packet_accepted_;
+    offered.rejection =
+        packet_accepted_ ? microchrony::Rejection::None : core_.status(slot, now).reason;
     if (discipline) {
         const bool applied = apply(now);
         arbiter_selected_ =
@@ -334,6 +370,56 @@ std::string NtpClient::history_page(NtpDiagnosticBinding binding, std::string_vi
     }
     result += "],\"next_cursor\":" + std::to_string(next) +
               ",\"more\":" + (next < samples.size() ? "true" : "false") + "}\n";
+    return result;
+}
+std::string NtpClient::packet_page(NtpDiagnosticBinding binding, std::string_view text,
+                                   std::uint64_t now) const {
+    const auto error = [](const char* code) {
+        return "{\"ok\":false,\"error\":" + wtp::json::quote(code) + "}\n";
+    };
+    std::uint64_t cursor = 0;
+    const auto parsed = std::from_chars(text.data(), text.data() + text.size(), cursor);
+    if (text.empty() || (text.size() > 1 && text.front() == '0') || parsed.ec != std::errc{} ||
+        parsed.ptr != text.data() + text.size() || cursor == UINT64_MAX ||
+        cursor > packet_sequence_)
+        return error("ntp_packet_cursor");
+    auto result = "{\"ok\":true,\"schema\":\"microchrony-packet-page/1\",\"device_id\":" +
+                  wtp::json::quote(binding.device) +
+                  ",\"boot_id\":" + wtp::json::quote(binding.boot) +
+                  ",\"firmware\":" + wtp::json::quote(binding.firmware) +
+                  ",\"revision\":" + wtp::json::quote(binding.revision);
+    if (result.size() > 1500)
+        return error("ntp_packet_identity_bound");
+    const auto count = std::min<std::uint64_t>(packet_sequence_, packets_.size());
+    const auto oldest = packet_sequence_ - count + 1;
+    const auto first = std::max(cursor + 1, oldest);
+    result += ",\"observed_raw_ns\":\"" + std::to_string(now) + "\",\"last_id\":\"" +
+              std::to_string(packet_sequence_) + "\",\"oldest_id\":\"" + std::to_string(oldest) +
+              "\",\"overwritten\":\"" + std::to_string(packet_sequence_ - count) +
+              "\",\"lost_before\":\"" + std::to_string(first - cursor - 1) + "\",\"records\":[";
+    auto next = cursor;
+    for (auto id = first; id <= packet_sequence_ && id - first < 4; ++id) {
+        const auto& r = packets_[(id - 1) % packets_.size()];
+        std::string hex;
+        constexpr char digits[] = "0123456789abcdef";
+        for (unsigned i = 0; i < std::min<std::size_t>(r.length, r.prefix.size()); ++i) {
+            hex += digits[r.prefix[i] >> 4];
+            hex += digits[r.prefix[i] & 15];
+        }
+        result += (id == first ? "" : ",") + std::string("{\"id\":\"") + std::to_string(id) +
+                  "\",\"slot\":" + std::to_string(r.slot) + ",\"endpoint\":\"" +
+                  std::to_string(r.endpoint) + "\",\"clock_epoch\":\"" + std::to_string(r.epoch) +
+                  "\",\"request_raw_ns\":\"" + std::to_string(r.send_ns) +
+                  "\",\"receive_raw_ns\":\"" + std::to_string(r.receive_ns) +
+                  "\",\"request_token\":\"" + std::to_string(r.token) +
+                  "\",\"length\":" + std::to_string(r.length) + ",\"prefix_hex\":\"" + hex +
+                  "\",\"truncated\":" + (r.length > r.prefix.size() ? "true" : "false") +
+                  ",\"accepted\":" + (r.accepted ? "true" : "false") +
+                  ",\"reason\":" + wtp::json::quote(microchrony::name(r.rejection)) + '}';
+        next = id;
+    }
+    result += "],\"next_cursor\":\"" + std::to_string(next) +
+              "\",\"more\":" + (next < packet_sequence_ ? "true" : "false") + "}\n";
     return result;
 }
 } // namespace wsprrypico::time

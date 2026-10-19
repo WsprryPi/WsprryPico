@@ -187,7 +187,7 @@ static void event(int fd, int flags, void* context) {
                 SST_DoSourcestatsReport(stats, &report, &now);
                 SRC_GetSelectReport(i, &selection);
                 if (!SST_Samples(stats)) {
-                    fprintf(stderr, " 0 0 0 0 0 0 0 %c %.15g", selection.state_char,
+                    fprintf(stderr, " 0 0 0 0 0 0 0 %c %.15g 0", selection.state_char,
                             selection.score);
                     continue;
                 }
@@ -196,10 +196,10 @@ static void event(int fd, int flags, void* context) {
                 const long double age = seconds(&now) - seconds(&ref);
                 const long double predicted = average + frequency * age;
                 const double raw_rate = (1 - frequency) / (1 + pure * 1e-6) - 1;
-                fprintf(stderr, " %lu %lu %.15g %.15g %.15g %.15g %.15g %c %.15g", report.n_samples,
-                        report.n_runs, raw_rate * 1e6, frequency_sd * 1e6, skew * 1e6, sd,
-                        (double)(seconds(&now) - predicted - truth_ns / 1e9L), selection.state_char,
-                        selection.score);
+                fprintf(stderr, " %lu %lu %.15g %.15g %.15g %.15g %.15g %c %.15g %.15g",
+                        report.n_samples, report.n_runs, raw_rate * 1e6, frequency_sd * 1e6,
+                        skew * 1e6, sd, (double)(seconds(&now) - predicted - truth_ns / 1e9L),
+                        selection.state_char, selection.score, SST_GetJitterAsymmetry(stats));
             }
             fputc('\n', stderr);
         }
@@ -232,9 +232,11 @@ static void rule(const char* text) {
 int main(int argc, char** argv) {
     if (argc != 2 && argc != 3)
         return 2;
-    const int phase_only = argc == 3 && strcmp(argv[2], "captured-phase") == 0;
-    captured = argc == 3 && (strcmp(argv[2], "captured") == 0 || phase_only);
-    if (argc == 3 && !captured)
+    const int captured_phase = argc == 3 && strcmp(argv[2], "captured-phase") == 0;
+    const int phase_only = captured_phase || (argc == 3 && strcmp(argv[2], "phase") == 0);
+    captured = argc == 3 && (strcmp(argv[2], "captured") == 0 || captured_phase ||
+                             strcmp(argv[2], "captured-rtc") == 0);
+    if (argc == 3 && !captured && !phase_only)
         return 2;
     LOG_Initialise();
     LOG_SetMinSeverity(LOGS_FATAL);

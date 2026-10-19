@@ -69,6 +69,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     std::string status() const override;
     std::string ntp_history_page(std::string_view request,
                                  time::NtpDiagnosticBinding binding) const;
+    std::string ntp_packet_page(std::string_view cursor, time::NtpDiagnosticBinding binding) const;
     bool link_up() const;
     time::RateEstimate ntp_rate(std::uint64_t now) const {
         return ntp_.rate(now);

@@ -68,6 +68,9 @@ struct Estimate {
     double rate = 0; // UTC seconds per raw second minus one.
     double skew = 0.002, rate_sd = 0.002, offset_sd = 4, jitter = 4;
     double asymmetry = 0, root_delay = 0, root_dispersion = 0;
+    // Packet classification uses conditional residual statistics; public
+    // covariance/bounds above still include uncertainty in the path model.
+    double admission_jitter = 4, admission_skew = 0.002;
     std::uint64_t raw_ns = 0, utc_ns = 0, first_raw_ns = 0;
     unsigned samples = 0, runs = 0;
 };
@@ -158,12 +161,15 @@ class Engine {
     }
 
   private:
+    // Original host reference adapter only; no firmware entry point or RTC authority.
+    friend struct ClockLoopTestAccess;
     struct Source {
         SourceStatus status;
         std::array<Measurement, sample_capacity> samples{};
         std::array<RegressionPoint, sample_capacity> predecessors{};
         unsigned count = 0, fit_start = 0, burst_left = 0, burst_attempts = 0, poll_score = 0;
         unsigned predecessor_count = 0, runs_count = 0;
+        int asymmetry_evidence = 0;
         std::uint64_t predecessor_raw_ns = 0, predecessor_utc_ns = 0;
         std::uint64_t send_ns = 0, token = 0, sequence = 0;
         std::optional<Measurement> last;

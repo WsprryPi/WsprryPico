@@ -1,0 +1,5369 @@
+{
+  "schema": "pico-pulse-rate-report/1",
+  "partial_run": true,
+  "start_ct": "2026-10-18T17:17:00-05:00",
+  "logger_stop_ct": "2026-10-18T17:48:00-05:00",
+  "original_hard_finish_ct": "2026-10-18T18:17:00-05:00",
+  "final_rf_captured": false,
+  "firmware_sha256": "6a742656d26eb32e372bdced2d1130c7447e5b33c2e93523c65c8efe3fc273f0",
+  "source": "pool.ntp.org",
+  "source_sha256_by_segment": {
+    "pulse-history": "35d6268993f8dc8849308fb7df28322680f4c5dd5b5ff42aebdbb4e01301bf6b",
+    "resume/pulse-history": "deca20e6a47f4c59cd28c28c639a3fd06fe2bbf612e508beaa0d79ea87cf434b"
+  },
+  "observation_gaps": [
+    {
+      "before_segment": "pulse-history",
+      "after_segment": "resume/pulse-history",
+      "last_edge_utc_ns": 1792362396908147951,
+      "first_edge_utc_ns": 1792362430238122981,
+      "gap_ns": 33329975030
+    }
+  ],
+  "terminal_archive_sha256": "e45a265d2d94eecd9077b37c8bbb0f0d348f46d00b0a67d732aeebf85e85c285",
+  "all1156_archived_files_match_remote_sha256": true,
+  "audit": {
+    "history_pages_verified": 778,
+    "immutable_originals": 408,
+    "pulse_counts": {
+      "A": {
+        "pulse-history": 49,
+        "resume/pulse-history": 125
+      },
+      "B": {
+        "pulse-history": 49,
+        "resume/pulse-history": 125
+      }
+    },
+    "bindings": {
+      "B": {
+        "bound": 30,
+        "unbound": 0
+      },
+      "A": {
+        "bound": 29,
+        "unbound": 1
+      }
+    },
+    "last_original_frontiers": {
+      "A": {
+        "info_file": "resume/pulse-history/A-observe-120.json",
+        "host_utc_ns": 1792363634495135010,
+        "raw_ns": 3051409809000,
+        "slots": {
+          "0": {
+            "accepted_at_last_info": 53,
+            "originals_through_frontier": 49,
+            "deficit": 4,
+            "pre_capture_deficit": 4,
+            "all_new_through_frontier_visible": true
+          },
+          "1": {
+            "accepted_at_last_info": 50,
+            "originals_through_frontier": 50,
+            "deficit": 0,
+            "pre_capture_deficit": 0,
+            "all_new_through_frontier_visible": true
+          },
+          "2": {
+            "accepted_at_last_info": 48,
+            "originals_through_frontier": 48,
+            "deficit": 0,
+            "pre_capture_deficit": 0,
+            "all_new_through_frontier_visible": true
+          },
+          "3": {
+            "accepted_at_last_info": 50,
+            "originals_through_frontier": 50,
+            "deficit": 0,
+            "pre_capture_deficit": 0,
+            "all_new_through_frontier_visible": true
+          }
+        }
+      },
+      "B": {
+        "info_file": "resume/pulse-history/B-observe-120.json",
+        "host_utc_ns": 1792363631893920533,
+        "raw_ns": 3260302103000,
+        "slots": {
+          "0": {
+            "accepted_at_last_info": 54,
+            "originals_through_frontier": 54,
+            "deficit": 0,
+            "pre_capture_deficit": 0,
+            "all_new_through_frontier_visible": true
+          },
+          "1": {
+            "accepted_at_last_info": 55,
+            "originals_through_frontier": 51,
+            "deficit": 4,
+            "pre_capture_deficit": 4,
+            "all_new_through_frontier_visible": true
+          },
+          "2": {
+            "accepted_at_last_info": 53,
+            "originals_through_frontier": 53,
+            "deficit": 0,
+            "pre_capture_deficit": 0,
+            "all_new_through_frontier_visible": true
+          },
+          "3": {
+            "accepted_at_last_info": 57,
+            "originals_through_frontier": 53,
+            "deficit": 4,
+            "pre_capture_deficit": 4,
+            "all_new_through_frontier_visible": true
+          }
+        }
+      }
+    },
+    "pulse_source_original_matches": {
+      "A": {
+        "matched": 174,
+        "total": 174
+      },
+      "B": {
+        "matched": 174,
+        "total": 174
+      }
+    },
+    "rf_independent_corner_checks": {
+      "A": {
+        "all_32_calibration_corners_contained": true,
+        "corner_interval_ppm": [
+          0.8175051869298166,
+          0.8935259841535479
+        ]
+      },
+      "B": {
+        "all_32_calibration_corners_contained": true,
+        "corner_interval_ppm": [
+          -0.792614853432667,
+          -0.7165940892381427
+        ]
+      }
+    },
+    "missing_failed_info_reply": true,
+    "last_pulse_sync_age_seconds": {
+      "A": 87.101661,
+      "B": 41.36483
+    },
+    "last_info_to_last_pulse_gap_seconds": {
+      "A": 35.755757582,
+      "B": 38.959368053
+    },
+    "full_original_visibility_through_abort_claimed": false
+  },
+  "initial_rf": {
+    "schema": "independent-clock-rates/1",
+    "reference": "LBE-1421 0673ED0FA107; 89th/91st harmonics of 40 kHz in same coherent window",
+    "receiver": "RSP1B 2404058C60",
+    "fit_allowance_hz": 0.05,
+    "gpsdo_allowance_ppb": 10,
+    "absolute_uncertainty_certified": false,
+    "raw_to_utc_topology_verified_by_firmware": true,
+    "rf_application_authorized_by_measurement": false,
+    "absolute_utc_phase_qualified": false,
+    "causal_phase_only_counterfactual_qualified": false,
+    "rows": [
+      {
+        "label": "start",
+        "board": "A",
+        "capture_sha256": "50508a43ad0add3b99e723a17d3139ae59743b011549538ba5d29509f4d08a6d",
+        "metadata_sha256": "5a9b3ce9b4ea910c2add92740f9f855874da675558759f750c1ab851a81b09a2",
+        "capture_start_utc": "2026-10-18T22:17:16.697Z",
+        "boot": "957cac880f81a5fa8eee535e0fbb4bbe",
+        "source": "pool.ntp.org",
+        "complete_tone_interval_s": [
+          3.864,
+          5.864
+        ],
+        "fit_interval_s": [
+          4.164,
+          5.564
+        ],
+        "fits": {
+          "3560000": {
+            "indicated_hz": 3560004.3194211866,
+            "phase_residual_rms_rad": 0.058066898777256924,
+            "amplitude_min_ratio": 0.8184709006809133,
+            "contrast_db": 53.40943434172897,
+            "half_window_difference_hz": 5.7549215853214264e-05
+          },
+          "3570100": {
+            "indicated_hz": 3570107.3887598407,
+            "phase_residual_rms_rad": 0.009687967879368821,
+            "amplitude_min_ratio": 0.9988078324039066,
+            "contrast_db": 95.97574898441904,
+            "half_window_difference_hz": 0.014786933083087206
+          },
+          "3640000": {
+            "indicated_hz": 3640004.4044913254,
+            "phase_residual_rms_rad": 0.05162539633084452,
+            "amplitude_min_ratio": 0.836204235073444,
+            "contrast_db": 53.24712885516539,
+            "half_window_difference_hz": 0.0025683287531137466
+          }
+        },
+        "physical_rf_error_hz": [
+          2.901274082575535,
+          3.2159169950024302
+        ],
+        "physical_raw_error_ppm": [
+          0.8114492527018299,
+          0.8995820534766654
+        ],
+        "nco_nominal_hz": 3570100.004319102,
+        "rf_correction_applied": false,
+        "clock_generation_before_after": [
+          "27",
+          "28"
+        ],
+        "model_generation_before_after": [
+          "42",
+          "43"
+        ],
+        "pure_frequency_ppb_before_after": [
+          1351,
+          1963
+        ],
+        "total_rate_ppb_before_after": [
+          -8038,
+          776
+        ],
+        "skew_ppb_before_after": [
+          33777,
+          41148
+        ],
+        "api_model_stable": false,
+        "board_age_min": 20.965736163633334,
+        "candidate_qualified_before_after": [
+          false,
+          false
+        ],
+        "pure_rate_verdict": "excluded_model_transition",
+        "physical_absolute_utc_phase_verified": false,
+        "running_clock_count": 6,
+        "running_clock_span_ns": 1591846000,
+        "mapped_rate_ppb_interval": [
+          -628.201471750408,
+          1884.604415251224
+        ]
+      },
+      {
+        "label": "start",
+        "board": "B",
+        "capture_sha256": "1cabe3ab44aa9e93dd1f549fcfcc88b174069f3458ebd60d8ee6c063d74930ed",
+        "metadata_sha256": "38aa04cb712254ab8c227bf05304e1f327fadcf12e58ad8e4ba4518722695e4d",
+        "capture_start_utc": "2026-10-18T22:17:59.632Z",
+        "boot": "98e76a283e7778ae4bc23103905fd814",
+        "source": "pool.ntp.org",
+        "complete_tone_interval_s": [
+          3.876,
+          5.877
+        ],
+        "fit_interval_s": [
+          4.176,
+          5.577
+        ],
+        "fits": {
+          "3560000": {
+            "indicated_hz": 3560004.319399781,
+            "phase_residual_rms_rad": 0.05801762609430914,
+            "amplitude_min_ratio": 0.8198799440086973,
+            "contrast_db": 53.569072486336424,
+            "half_window_difference_hz": 0.005288307089358568
+          },
+          "3570100": {
+            "indicated_hz": 3570101.640591726,
+            "phase_residual_rms_rad": 0.0123119894217045,
+            "amplitude_min_ratio": 0.9987529472550957,
+            "contrast_db": 96.07766123120857,
+            "half_window_difference_hz": 0.018840632867068052
+          },
+          "3640000": {
+            "indicated_hz": 3640004.4056506343,
+            "phase_residual_rms_rad": 0.050970163722580925,
+            "amplitude_min_ratio": 0.8512076493837668,
+            "contrast_db": 53.32482219135766,
+            "half_window_difference_hz": 0.0013784640468657017
+          }
+        },
+        "physical_rf_error_hz": [
+          -2.8470031789738623,
+          -2.5323849875014033
+        ],
+        "physical_raw_error_ppm": [
+          -0.7986673419580226,
+          -0.7105414656263137
+        ],
+        "nco_nominal_hz": 3570100.004319102,
+        "rf_correction_applied": false,
+        "clock_generation_before_after": [
+          "32",
+          "32"
+        ],
+        "model_generation_before_after": [
+          "48",
+          "48"
+        ],
+        "pure_frequency_ppb_before_after": [
+          2069,
+          2069
+        ],
+        "total_rate_ppb_before_after": [
+          1167,
+          1167
+        ],
+        "skew_ppb_before_after": [
+          27102,
+          27102
+        ],
+        "api_model_stable": true,
+        "board_age_min": 25.20648544506667,
+        "candidate_qualified_before_after": [
+          false,
+          false
+        ],
+        "pure_rate_verdict": "worsened",
+        "physical_absolute_utc_phase_verified": false,
+        "pure_corrected_rate_error_ppm": [
+          1.270331005599247,
+          1.358457064263394
+        ],
+        "total_corrected_rate_error_ppm": [
+          0.3683317259971893,
+          0.45645770517179596
+        ],
+        "pure_rate_absolute_improvement_ppm": [
+          -0.6479155986370803,
+          -0.4716636636412242
+        ],
+        "phase_slew_ppb": -902,
+        "frozen_phase_only_rate_error_ppm": [
+          -1.70066662156008,
+          -1.6125408247179116
+        ],
+        "incremental_frequency_rate_improvement_ppm": [
+          1.1560831195461156,
+          1.3323348955628909
+        ],
+        "incremental_frequency_rate_verdict": "improved",
+        "running_clock_count": 6,
+        "running_clock_span_ns": 1588040000,
+        "mapped_rate_ppb_interval": [
+          1.8891211808266795,
+          2520.717362283066
+        ]
+      }
+    ]
+  },
+  "reference_allowance_certified": false,
+  "absolute_timestamp_path_delay_calibrated": false,
+  "full_alternate_feedback_controller_simulated": false,
+  "gates_changed": false,
+  "boards": {
+    "A": {
+      "count": 174,
+      "clock_valid_count": 174,
+      "eligible_adjacent_windows": 147,
+      "excluded_adjacent_windows": 25,
+      "adjacent_window_counts": {
+        "without_learned_frequency": {
+          "improved": 0,
+          "worsened": 61,
+          "unresolved": 86
+        },
+        "without_new_frequency_since_capture_start": {
+          "improved": 110,
+          "worsened": 0,
+          "unresolved": 37
+        }
+      },
+      "all_horizon_counts": {
+        "without_learned_frequency": {
+          "improved": 38,
+          "worsened": 268,
+          "unresolved": 174
+        },
+        "without_new_frequency_since_capture_start": {
+          "improved": 375,
+          "worsened": 1,
+          "unresolved": 104
+        }
+      },
+      "all_horizon_rejections": {
+        "holdout binding changed": 522
+      },
+      "initial_frequency_ppb": 2148,
+      "final_pulse_frequency_ppb": 443,
+      "final_pulse_total_rate_ppb": 17340,
+      "observed_offset_ns_range": [
+        589257,
+        3660246
+      ],
+      "observed_offset_ns_start_end": [
+        3293799,
+        3071956
+      ],
+      "observed_offset_rms_ns": 2728702.8539026077,
+      "edge_bracket_ns_range": [
+        5000,
+        7000
+      ],
+      "pulse_width_ns_range": [
+        1071831,
+        1085978
+      ],
+      "conditional_native_rate_ppm_interval": [
+        {
+          "numerator": -181893000000,
+          "denominator": 438503277143
+        },
+        {
+          "numerator": 240271000000,
+          "denominator": 125286359229
+        }
+      ],
+      "plot_rows": [
+        {
+          "segment": "pulse-history",
+          "sequence": "4",
+          "tick": 0,
+          "host_utc_ns": 1792361916239823703,
+          "pico_error_ns": [
+            2268040,
+            4319558
+          ],
+          "indicated_error_mid_ns": 3293799,
+          "pure_frequency_ppb": 2148,
+          "total_rate_ppb": 716,
+          "statistical_frequency_uncertainty_ppb": 35865
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "5",
+          "tick": 1,
+          "host_utc_ns": 1792361926240996160,
+          "pico_error_ns": [
+            2289111,
+            4327573
+          ],
+          "indicated_error_mid_ns": 3308342,
+          "pure_frequency_ppb": 2148,
+          "total_rate_ppb": 716,
+          "statistical_frequency_uncertainty_ppb": 35865
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "6",
+          "tick": 2,
+          "host_utc_ns": 1792361936243065734,
+          "pico_error_ns": [
+            2293310,
+            4352226
+          ],
+          "indicated_error_mid_ns": 3322768,
+          "pure_frequency_ppb": 2148,
+          "total_rate_ppb": 716,
+          "statistical_frequency_uncertainty_ppb": 35865
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "7",
+          "tick": 3,
+          "host_utc_ns": 1792361946239446428,
+          "pico_error_ns": [
+            2315604,
+            4358544
+          ],
+          "indicated_error_mid_ns": 3337074,
+          "pure_frequency_ppb": 2148,
+          "total_rate_ppb": 716,
+          "statistical_frequency_uncertainty_ppb": 35865
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "8",
+          "tick": 4,
+          "host_utc_ns": 1792361956240865420,
+          "pico_error_ns": [
+            2336763,
+            4369401
+          ],
+          "indicated_error_mid_ns": 3353082,
+          "pure_frequency_ppb": 2148,
+          "total_rate_ppb": 716,
+          "statistical_frequency_uncertainty_ppb": 35865
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "9",
+          "tick": 5,
+          "host_utc_ns": 1792361966243429522,
+          "pico_error_ns": [
+            2341672,
+            4394288
+          ],
+          "indicated_error_mid_ns": 3367980,
+          "pure_frequency_ppb": 2148,
+          "total_rate_ppb": 716,
+          "statistical_frequency_uncertainty_ppb": 35865
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "10",
+          "tick": 6,
+          "host_utc_ns": 1792361976241164617,
+          "pico_error_ns": [
+            2351332,
+            4393425
+          ],
+          "indicated_error_mid_ns": 3372378,
+          "pure_frequency_ppb": 2026,
+          "total_rate_ppb": -934,
+          "statistical_frequency_uncertainty_ppb": 30924
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "11",
+          "tick": 7,
+          "host_utc_ns": 1792361986250343431,
+          "pico_error_ns": [
+            2354292,
+            4387837
+          ],
+          "indicated_error_mid_ns": 3371064,
+          "pure_frequency_ppb": 2026,
+          "total_rate_ppb": -934,
+          "statistical_frequency_uncertainty_ppb": 30924
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "12",
+          "tick": 8,
+          "host_utc_ns": 1792361996244961257,
+          "pico_error_ns": [
+            2343490,
+            4396987
+          ],
+          "indicated_error_mid_ns": 3370238,
+          "pure_frequency_ppb": 2026,
+          "total_rate_ppb": -934,
+          "statistical_frequency_uncertainty_ppb": 30924
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "13",
+          "tick": 9,
+          "host_utc_ns": 1792362006246321249,
+          "pico_error_ns": [
+            2347867,
+            4394626
+          ],
+          "indicated_error_mid_ns": 3371246,
+          "pure_frequency_ppb": 2026,
+          "total_rate_ppb": -934,
+          "statistical_frequency_uncertainty_ppb": 30924
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "14",
+          "tick": 10,
+          "host_utc_ns": 1792362016244386312,
+          "pico_error_ns": [
+            2333156,
+            4400211
+          ],
+          "indicated_error_mid_ns": 3366683,
+          "pure_frequency_ppb": 2026,
+          "total_rate_ppb": -934,
+          "statistical_frequency_uncertainty_ppb": 30924
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "15",
+          "tick": 11,
+          "host_utc_ns": 1792362026237650522,
+          "pico_error_ns": [
+            2344394,
+            4391553
+          ],
+          "indicated_error_mid_ns": 3367973,
+          "pure_frequency_ppb": 2026,
+          "total_rate_ppb": -934,
+          "statistical_frequency_uncertainty_ppb": 30924
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "16",
+          "tick": 12,
+          "host_utc_ns": 1792362036240500869,
+          "pico_error_ns": [
+            2351102,
+            4387164
+          ],
+          "indicated_error_mid_ns": 3369133,
+          "pure_frequency_ppb": 2238,
+          "total_rate_ppb": 865,
+          "statistical_frequency_uncertainty_ppb": 30279
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "17",
+          "tick": 13,
+          "host_utc_ns": 1792362046238016907,
+          "pico_error_ns": [
+            2359949,
+            4415241
+          ],
+          "indicated_error_mid_ns": 3387595,
+          "pure_frequency_ppb": 2238,
+          "total_rate_ppb": 865,
+          "statistical_frequency_uncertainty_ppb": 30279
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "18",
+          "tick": 14,
+          "host_utc_ns": 1792362056236589353,
+          "pico_error_ns": [
+            2379497,
+            4425801
+          ],
+          "indicated_error_mid_ns": 3402649,
+          "pure_frequency_ppb": 2238,
+          "total_rate_ppb": 865,
+          "statistical_frequency_uncertainty_ppb": 30279
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "19",
+          "tick": 15,
+          "host_utc_ns": 1792362066236127413,
+          "pico_error_ns": [
+            2403851,
+            4437327
+          ],
+          "indicated_error_mid_ns": 3420589,
+          "pure_frequency_ppb": 2238,
+          "total_rate_ppb": 865,
+          "statistical_frequency_uncertainty_ppb": 30279
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "20",
+          "tick": 16,
+          "host_utc_ns": 1792362076232480571,
+          "pico_error_ns": [
+            2410784,
+            4463078
+          ],
+          "indicated_error_mid_ns": 3436931,
+          "pure_frequency_ppb": 2238,
+          "total_rate_ppb": 865,
+          "statistical_frequency_uncertainty_ppb": 30279
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "21",
+          "tick": 17,
+          "host_utc_ns": 1792362086236610982,
+          "pico_error_ns": [
+            2433154,
+            4473886
+          ],
+          "indicated_error_mid_ns": 3453520,
+          "pure_frequency_ppb": 2238,
+          "total_rate_ppb": 865,
+          "statistical_frequency_uncertainty_ppb": 30279
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "22",
+          "tick": 18,
+          "host_utc_ns": 1792362096231083003,
+          "pico_error_ns": [
+            2440866,
+            4502132
+          ],
+          "indicated_error_mid_ns": 3471499,
+          "pure_frequency_ppb": 2238,
+          "total_rate_ppb": 865,
+          "statistical_frequency_uncertainty_ppb": 30279
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "23",
+          "tick": 19,
+          "host_utc_ns": 1792362106243045546,
+          "pico_error_ns": [
+            2445466,
+            4490427
+          ],
+          "indicated_error_mid_ns": 3467946,
+          "pure_frequency_ppb": 1732,
+          "total_rate_ppb": -2036,
+          "statistical_frequency_uncertainty_ppb": 27189
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "24",
+          "tick": 20,
+          "host_utc_ns": 1792362116244038265,
+          "pico_error_ns": [
+            2436411,
+            4472044
+          ],
+          "indicated_error_mid_ns": 3454227,
+          "pure_frequency_ppb": 1732,
+          "total_rate_ppb": -2036,
+          "statistical_frequency_uncertainty_ppb": 27189
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "25",
+          "tick": 21,
+          "host_utc_ns": 1792362126244120629,
+          "pico_error_ns": [
+            2413996,
+            4470731
+          ],
+          "indicated_error_mid_ns": 3442363,
+          "pure_frequency_ppb": 1732,
+          "total_rate_ppb": -2036,
+          "statistical_frequency_uncertainty_ppb": 27189
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "26",
+          "tick": 22,
+          "host_utc_ns": 1792362136241628820,
+          "pico_error_ns": [
+            2407998,
+            4452347
+          ],
+          "indicated_error_mid_ns": 3430172,
+          "pure_frequency_ppb": 1732,
+          "total_rate_ppb": -2036,
+          "statistical_frequency_uncertainty_ppb": 27189
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "27",
+          "tick": 23,
+          "host_utc_ns": 1792362146235371687,
+          "pico_error_ns": [
+            2403705,
+            4431906
+          ],
+          "indicated_error_mid_ns": 3417805,
+          "pure_frequency_ppb": 1732,
+          "total_rate_ppb": -2036,
+          "statistical_frequency_uncertainty_ppb": 27189
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "28",
+          "tick": 24,
+          "host_utc_ns": 1792362156233759862,
+          "pico_error_ns": [
+            2381439,
+            4429822
+          ],
+          "indicated_error_mid_ns": 3405630,
+          "pure_frequency_ppb": 1732,
+          "total_rate_ppb": -2036,
+          "statistical_frequency_uncertainty_ppb": 27189
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "29",
+          "tick": 25,
+          "host_utc_ns": 1792362166234284991,
+          "pico_error_ns": [
+            2379165,
+            4419857
+          ],
+          "indicated_error_mid_ns": 3399511,
+          "pure_frequency_ppb": 1555,
+          "total_rate_ppb": 796,
+          "statistical_frequency_uncertainty_ppb": 24212
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "30",
+          "tick": 26,
+          "host_utc_ns": 1792362176233493944,
+          "pico_error_ns": [
+            2385009,
+            4446107
+          ],
+          "indicated_error_mid_ns": 3415558,
+          "pure_frequency_ppb": 1555,
+          "total_rate_ppb": 796,
+          "statistical_frequency_uncertainty_ppb": 24212
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "31",
+          "tick": 27,
+          "host_utc_ns": 1792362186234064628,
+          "pico_error_ns": [
+            2409744,
+            4456004
+          ],
+          "indicated_error_mid_ns": 3432874,
+          "pure_frequency_ppb": 1555,
+          "total_rate_ppb": 796,
+          "statistical_frequency_uncertainty_ppb": 24212
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "32",
+          "tick": 28,
+          "host_utc_ns": 1792362196232453552,
+          "pico_error_ns": [
+            2430656,
+            4465244
+          ],
+          "indicated_error_mid_ns": 3447950,
+          "pure_frequency_ppb": 1555,
+          "total_rate_ppb": 796,
+          "statistical_frequency_uncertainty_ppb": 24212
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "33",
+          "tick": 29,
+          "host_utc_ns": 1792362206236102393,
+          "pico_error_ns": [
+            2435786,
+            4490432
+          ],
+          "indicated_error_mid_ns": 3463109,
+          "pure_frequency_ppb": 1555,
+          "total_rate_ppb": 796,
+          "statistical_frequency_uncertainty_ppb": 24212
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "34",
+          "tick": 30,
+          "host_utc_ns": 1792362216235003656,
+          "pico_error_ns": [
+            2459689,
+            4498003
+          ],
+          "indicated_error_mid_ns": 3478846,
+          "pure_frequency_ppb": 1555,
+          "total_rate_ppb": 796,
+          "statistical_frequency_uncertainty_ppb": 24212
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "35",
+          "tick": 31,
+          "host_utc_ns": 1792362226237242144,
+          "pico_error_ns": [
+            2480578,
+            4509138
+          ],
+          "indicated_error_mid_ns": 3494858,
+          "pure_frequency_ppb": 1555,
+          "total_rate_ppb": 796,
+          "statistical_frequency_uncertainty_ppb": 24212
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "36",
+          "tick": 32,
+          "host_utc_ns": 1792362236238084313,
+          "pico_error_ns": [
+            2487430,
+            4534948
+          ],
+          "indicated_error_mid_ns": 3511189,
+          "pure_frequency_ppb": 1219,
+          "total_rate_ppb": 884,
+          "statistical_frequency_uncertainty_ppb": 21369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "37",
+          "tick": 33,
+          "host_utc_ns": 1792362246239998197,
+          "pico_error_ns": [
+            2509727,
+            4548883
+          ],
+          "indicated_error_mid_ns": 3529305,
+          "pure_frequency_ppb": 1219,
+          "total_rate_ppb": 884,
+          "statistical_frequency_uncertainty_ppb": 21369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "38",
+          "tick": 34,
+          "host_utc_ns": 1792362256238896673,
+          "pico_error_ns": [
+            2515174,
+            4574484
+          ],
+          "indicated_error_mid_ns": 3544829,
+          "pure_frequency_ppb": 1219,
+          "total_rate_ppb": 884,
+          "statistical_frequency_uncertainty_ppb": 21369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "39",
+          "tick": 35,
+          "host_utc_ns": 1792362266240561755,
+          "pico_error_ns": [
+            2540843,
+            4584651
+          ],
+          "indicated_error_mid_ns": 3562747,
+          "pure_frequency_ppb": 1219,
+          "total_rate_ppb": 884,
+          "statistical_frequency_uncertainty_ppb": 21369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "40",
+          "tick": 36,
+          "host_utc_ns": 1792362276238010662,
+          "pico_error_ns": [
+            2564046,
+            4595634
+          ],
+          "indicated_error_mid_ns": 3579840,
+          "pure_frequency_ppb": 1219,
+          "total_rate_ppb": 884,
+          "statistical_frequency_uncertainty_ppb": 21369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "41",
+          "tick": 37,
+          "host_utc_ns": 1792362286240162407,
+          "pico_error_ns": [
+            2570024,
+            4622166
+          ],
+          "indicated_error_mid_ns": 3596095,
+          "pure_frequency_ppb": 1219,
+          "total_rate_ppb": 884,
+          "statistical_frequency_uncertainty_ppb": 21369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "42",
+          "tick": 38,
+          "host_utc_ns": 1792362296232988616,
+          "pico_error_ns": [
+            2586478,
+            4632283
+          ],
+          "indicated_error_mid_ns": 3609380,
+          "pure_frequency_ppb": 708,
+          "total_rate_ppb": -439,
+          "statistical_frequency_uncertainty_ppb": 20431
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "43",
+          "tick": 39,
+          "host_utc_ns": 1792362306240382937,
+          "pico_error_ns": [
+            2599906,
+            4625213
+          ],
+          "indicated_error_mid_ns": 3612559,
+          "pure_frequency_ppb": 708,
+          "total_rate_ppb": -439,
+          "statistical_frequency_uncertainty_ppb": 20431
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "44",
+          "tick": 40,
+          "host_utc_ns": 1792362316234674324,
+          "pico_error_ns": [
+            2592344,
+            4639001
+          ],
+          "indicated_error_mid_ns": 3615672,
+          "pure_frequency_ppb": 708,
+          "total_rate_ppb": -439,
+          "statistical_frequency_uncertainty_ppb": 20431
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "45",
+          "tick": 41,
+          "host_utc_ns": 1792362326234184607,
+          "pico_error_ns": [
+            2597861,
+            4638918
+          ],
+          "indicated_error_mid_ns": 3618389,
+          "pure_frequency_ppb": 708,
+          "total_rate_ppb": -439,
+          "statistical_frequency_uncertainty_ppb": 20431
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "46",
+          "tick": 42,
+          "host_utc_ns": 1792362336232120635,
+          "pico_error_ns": [
+            2592785,
+            4653938
+          ],
+          "indicated_error_mid_ns": 3623361,
+          "pure_frequency_ppb": 708,
+          "total_rate_ppb": -439,
+          "statistical_frequency_uncertainty_ppb": 20431
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "47",
+          "tick": 43,
+          "host_utc_ns": 1792362346237729588,
+          "pico_error_ns": [
+            2602279,
+            4649538
+          ],
+          "indicated_error_mid_ns": 3625908,
+          "pure_frequency_ppb": 708,
+          "total_rate_ppb": -439,
+          "statistical_frequency_uncertainty_ppb": 20431
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "48",
+          "tick": 44,
+          "host_utc_ns": 1792362356233681617,
+          "pico_error_ns": [
+            2611559,
+            4644200
+          ],
+          "indicated_error_mid_ns": 3627879,
+          "pure_frequency_ppb": 708,
+          "total_rate_ppb": -439,
+          "statistical_frequency_uncertainty_ppb": 20431
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "49",
+          "tick": 45,
+          "host_utc_ns": 1792362366233692422,
+          "pico_error_ns": [
+            2600823,
+            4653324
+          ],
+          "indicated_error_mid_ns": 3627073,
+          "pure_frequency_ppb": 545,
+          "total_rate_ppb": -935,
+          "statistical_frequency_uncertainty_ppb": 19231
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "50",
+          "tick": 46,
+          "host_utc_ns": 1792362376236062305,
+          "pico_error_ns": [
+            2605783,
+            4645598
+          ],
+          "indicated_error_mid_ns": 3625690,
+          "pure_frequency_ppb": 545,
+          "total_rate_ppb": -935,
+          "statistical_frequency_uncertainty_ppb": 19231
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "51",
+          "tick": 47,
+          "host_utc_ns": 1792362386234229873,
+          "pico_error_ns": [
+            2609077,
+            4640168
+          ],
+          "indicated_error_mid_ns": 3624622,
+          "pure_frequency_ppb": 545,
+          "total_rate_ppb": -935,
+          "statistical_frequency_uncertainty_ppb": 19231
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "52",
+          "tick": 48,
+          "host_utc_ns": 1792362396230615761,
+          "pico_error_ns": [
+            2599042,
+            4651427
+          ],
+          "indicated_error_mid_ns": 3625234,
+          "pure_frequency_ppb": 545,
+          "total_rate_ppb": -935,
+          "statistical_frequency_uncertainty_ppb": 19231
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "53",
+          "tick": 0,
+          "host_utc_ns": 1792362430238122981,
+          "pico_error_ns": [
+            2599392,
+            4653641
+          ],
+          "indicated_error_mid_ns": 3626516,
+          "pure_frequency_ppb": 574,
+          "total_rate_ppb": -308,
+          "statistical_frequency_uncertainty_ppb": 18284
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "54",
+          "tick": 1,
+          "host_utc_ns": 1792362440237422343,
+          "pico_error_ns": [
+            2609323,
+            4652986
+          ],
+          "indicated_error_mid_ns": 3631154,
+          "pure_frequency_ppb": 574,
+          "total_rate_ppb": -308,
+          "statistical_frequency_uncertainty_ppb": 18284
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "55",
+          "tick": 2,
+          "host_utc_ns": 1792362450253710083,
+          "pico_error_ns": [
+            2617950,
+            4650879
+          ],
+          "indicated_error_mid_ns": 3634414,
+          "pure_frequency_ppb": 574,
+          "total_rate_ppb": -308,
+          "statistical_frequency_uncertainty_ppb": 18284
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "56",
+          "tick": 3,
+          "host_utc_ns": 1792362460236659247,
+          "pico_error_ns": [
+            2611753,
+            4664748
+          ],
+          "indicated_error_mid_ns": 3638250,
+          "pure_frequency_ppb": 574,
+          "total_rate_ppb": -308,
+          "statistical_frequency_uncertainty_ppb": 18284
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "57",
+          "tick": 4,
+          "host_utc_ns": 1792362470236479717,
+          "pico_error_ns": [
+            2619822,
+            4662739
+          ],
+          "indicated_error_mid_ns": 3641280,
+          "pure_frequency_ppb": 574,
+          "total_rate_ppb": -308,
+          "statistical_frequency_uncertainty_ppb": 18284
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "58",
+          "tick": 5,
+          "host_utc_ns": 1792362480235073358,
+          "pico_error_ns": [
+            2614645,
+            4677634
+          ],
+          "indicated_error_mid_ns": 3646139,
+          "pure_frequency_ppb": 574,
+          "total_rate_ppb": -308,
+          "statistical_frequency_uncertainty_ppb": 18284
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "59",
+          "tick": 6,
+          "host_utc_ns": 1792362490239526599,
+          "pico_error_ns": [
+            2623886,
+            4671909
+          ],
+          "indicated_error_mid_ns": 3647897,
+          "pure_frequency_ppb": 644,
+          "total_rate_ppb": -597,
+          "statistical_frequency_uncertainty_ppb": 17381
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "60",
+          "tick": 7,
+          "host_utc_ns": 1792362500237490521,
+          "pico_error_ns": [
+            2630923,
+            4667028
+          ],
+          "indicated_error_mid_ns": 3648975,
+          "pure_frequency_ppb": 644,
+          "total_rate_ppb": -597,
+          "statistical_frequency_uncertainty_ppb": 17381
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "61",
+          "tick": 8,
+          "host_utc_ns": 1792362510249304934,
+          "pico_error_ns": [
+            2623371,
+            4679754
+          ],
+          "indicated_error_mid_ns": 3651562,
+          "pure_frequency_ppb": 644,
+          "total_rate_ppb": -597,
+          "statistical_frequency_uncertainty_ppb": 17381
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "62",
+          "tick": 9,
+          "host_utc_ns": 1792362520235656026,
+          "pico_error_ns": [
+            2631320,
+            4677621
+          ],
+          "indicated_error_mid_ns": 3654470,
+          "pure_frequency_ppb": 644,
+          "total_rate_ppb": -597,
+          "statistical_frequency_uncertainty_ppb": 17381
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "63",
+          "tick": 10,
+          "host_utc_ns": 1792362530235496172,
+          "pico_error_ns": [
+            2641671,
+            4672978
+          ],
+          "indicated_error_mid_ns": 3657324,
+          "pure_frequency_ppb": 644,
+          "total_rate_ppb": -597,
+          "statistical_frequency_uncertainty_ppb": 17381
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "64",
+          "tick": 11,
+          "host_utc_ns": 1792362540238197364,
+          "pico_error_ns": [
+            2633469,
+            4684796
+          ],
+          "indicated_error_mid_ns": 3659132,
+          "pure_frequency_ppb": 644,
+          "total_rate_ppb": -597,
+          "statistical_frequency_uncertainty_ppb": 17381
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "65",
+          "tick": 12,
+          "host_utc_ns": 1792362550238558750,
+          "pico_error_ns": [
+            2640138,
+            4680355
+          ],
+          "indicated_error_mid_ns": 3660246,
+          "pure_frequency_ppb": 644,
+          "total_rate_ppb": -597,
+          "statistical_frequency_uncertainty_ppb": 17381
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "66",
+          "tick": 13,
+          "host_utc_ns": 1792362560244760428,
+          "pico_error_ns": [
+            2616202,
+            4675925
+          ],
+          "indicated_error_mid_ns": 3646063,
+          "pure_frequency_ppb": 159,
+          "total_rate_ppb": -2336,
+          "statistical_frequency_uncertainty_ppb": 15880
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "67",
+          "tick": 14,
+          "host_utc_ns": 1792362570248746549,
+          "pico_error_ns": [
+            2608121,
+            4653764
+          ],
+          "indicated_error_mid_ns": 3630942,
+          "pure_frequency_ppb": 159,
+          "total_rate_ppb": -2336,
+          "statistical_frequency_uncertainty_ppb": 15880
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "68",
+          "tick": 15,
+          "host_utc_ns": 1792362580248536749,
+          "pico_error_ns": [
+            2597301,
+            4632184
+          ],
+          "indicated_error_mid_ns": 3614742,
+          "pure_frequency_ppb": 159,
+          "total_rate_ppb": -2336,
+          "statistical_frequency_uncertainty_ppb": 15880
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "69",
+          "tick": 16,
+          "host_utc_ns": 1792362590241951206,
+          "pico_error_ns": [
+            2576769,
+            4631802
+          ],
+          "indicated_error_mid_ns": 3604285,
+          "pure_frequency_ppb": 159,
+          "total_rate_ppb": -2336,
+          "statistical_frequency_uncertainty_ppb": 15880
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "70",
+          "tick": 17,
+          "host_utc_ns": 1792362600243544796,
+          "pico_error_ns": [
+            2561538,
+            4604853
+          ],
+          "indicated_error_mid_ns": 3583195,
+          "pure_frequency_ppb": 159,
+          "total_rate_ppb": -2336,
+          "statistical_frequency_uncertainty_ppb": 15880
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "71",
+          "tick": 18,
+          "host_utc_ns": 1792362610244762212,
+          "pico_error_ns": [
+            2551386,
+            4583173
+          ],
+          "indicated_error_mid_ns": 3567279,
+          "pure_frequency_ppb": 159,
+          "total_rate_ppb": -2336,
+          "statistical_frequency_uncertainty_ppb": 15880
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "72",
+          "tick": 19,
+          "host_utc_ns": 1792362620243075529,
+          "pico_error_ns": [
+            2524069,
+            4575854
+          ],
+          "indicated_error_mid_ns": 3549961,
+          "pure_frequency_ppb": 7,
+          "total_rate_ppb": -2684,
+          "statistical_frequency_uncertainty_ppb": 14578
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "73",
+          "tick": 20,
+          "host_utc_ns": 1792362630247759020,
+          "pico_error_ns": [
+            2511371,
+            4551570
+          ],
+          "indicated_error_mid_ns": 3531470,
+          "pure_frequency_ppb": 7,
+          "total_rate_ppb": -2684,
+          "statistical_frequency_uncertainty_ppb": 14578
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "74",
+          "tick": 21,
+          "host_utc_ns": 1792362640245512461,
+          "pico_error_ns": [
+            2480801,
+            4541258
+          ],
+          "indicated_error_mid_ns": 3511029,
+          "pure_frequency_ppb": 7,
+          "total_rate_ppb": -2684,
+          "statistical_frequency_uncertainty_ppb": 14578
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "75",
+          "tick": 22,
+          "host_utc_ns": 1792362650245477833,
+          "pico_error_ns": [
+            2470017,
+            4515298
+          ],
+          "indicated_error_mid_ns": 3492657,
+          "pure_frequency_ppb": 7,
+          "total_rate_ppb": -2684,
+          "statistical_frequency_uncertainty_ppb": 14578
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "76",
+          "tick": 23,
+          "host_utc_ns": 1792362660243891857,
+          "pico_error_ns": [
+            2457081,
+            4490186
+          ],
+          "indicated_error_mid_ns": 3473633,
+          "pure_frequency_ppb": 7,
+          "total_rate_ppb": -2684,
+          "statistical_frequency_uncertainty_ppb": 14578
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "77",
+          "tick": 24,
+          "host_utc_ns": 1792362670238707874,
+          "pico_error_ns": [
+            2426976,
+            4482257
+          ],
+          "indicated_error_mid_ns": 3454616,
+          "pure_frequency_ppb": 7,
+          "total_rate_ppb": -2684,
+          "statistical_frequency_uncertainty_ppb": 14578
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "78",
+          "tick": 25,
+          "host_utc_ns": 1792362680239744852,
+          "pico_error_ns": [
+            2413892,
+            4456385
+          ],
+          "indicated_error_mid_ns": 3435138,
+          "pure_frequency_ppb": 7,
+          "total_rate_ppb": -2684,
+          "statistical_frequency_uncertainty_ppb": 14578
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "79",
+          "tick": 26,
+          "host_utc_ns": 1792362690256331938,
+          "pico_error_ns": [
+            2375514,
+            4401575
+          ],
+          "indicated_error_mid_ns": 3388544,
+          "pure_frequency_ppb": -311,
+          "total_rate_ppb": -5333,
+          "statistical_frequency_uncertainty_ppb": 13834
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "80",
+          "tick": 27,
+          "host_utc_ns": 1792362700246590227,
+          "pico_error_ns": [
+            2319180,
+            4365331
+          ],
+          "indicated_error_mid_ns": 3342255,
+          "pure_frequency_ppb": -311,
+          "total_rate_ppb": -5333,
+          "statistical_frequency_uncertainty_ppb": 13834
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "81",
+          "tick": 28,
+          "host_utc_ns": 1792362710243078480,
+          "pico_error_ns": [
+            2276506,
+            4318499
+          ],
+          "indicated_error_mid_ns": 3297502,
+          "pure_frequency_ppb": -311,
+          "total_rate_ppb": -5333,
+          "statistical_frequency_uncertainty_ppb": 13834
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "82",
+          "tick": 29,
+          "host_utc_ns": 1792362720244612110,
+          "pico_error_ns": [
+            2220857,
+            4281888
+          ],
+          "indicated_error_mid_ns": 3251372,
+          "pure_frequency_ppb": -311,
+          "total_rate_ppb": -5333,
+          "statistical_frequency_uncertainty_ppb": 13834
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "83",
+          "tick": 30,
+          "host_utc_ns": 1792362730246650402,
+          "pico_error_ns": [
+            2182000,
+            4229161
+          ],
+          "indicated_error_mid_ns": 3205580,
+          "pure_frequency_ppb": -311,
+          "total_rate_ppb": -5333,
+          "statistical_frequency_uncertainty_ppb": 13834
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "84",
+          "tick": 31,
+          "host_utc_ns": 1792362740247397606,
+          "pico_error_ns": [
+            2144290,
+            4177463
+          ],
+          "indicated_error_mid_ns": 3160876,
+          "pure_frequency_ppb": -311,
+          "total_rate_ppb": -5333,
+          "statistical_frequency_uncertainty_ppb": 13834
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "85",
+          "tick": 32,
+          "host_utc_ns": 1792362750251314588,
+          "pico_error_ns": [
+            2131273,
+            4184563
+          ],
+          "indicated_error_mid_ns": 3157918,
+          "pure_frequency_ppb": 672,
+          "total_rate_ppb": 2217,
+          "statistical_frequency_uncertainty_ppb": 63696
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "86",
+          "tick": 33,
+          "host_utc_ns": 1792362760242955281,
+          "pico_error_ns": [
+            2166727,
+            4207723
+          ],
+          "indicated_error_mid_ns": 3187225,
+          "pure_frequency_ppb": 672,
+          "total_rate_ppb": 2217,
+          "statistical_frequency_uncertainty_ppb": 63696
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "87",
+          "tick": 34,
+          "host_utc_ns": 1792362770241763453,
+          "pico_error_ns": [
+            2202535,
+            4233571
+          ],
+          "indicated_error_mid_ns": 3218053,
+          "pure_frequency_ppb": 672,
+          "total_rate_ppb": 2217,
+          "statistical_frequency_uncertainty_ppb": 63696
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "88",
+          "tick": 35,
+          "host_utc_ns": 1792362780245691683,
+          "pico_error_ns": [
+            2220328,
+            4271318
+          ],
+          "indicated_error_mid_ns": 3245823,
+          "pure_frequency_ppb": 672,
+          "total_rate_ppb": 2217,
+          "statistical_frequency_uncertainty_ppb": 63696
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "89",
+          "tick": 36,
+          "host_utc_ns": 1792362790241484619,
+          "pico_error_ns": [
+            2257499,
+            4294275
+          ],
+          "indicated_error_mid_ns": 3275887,
+          "pure_frequency_ppb": 672,
+          "total_rate_ppb": 2217,
+          "statistical_frequency_uncertainty_ppb": 63696
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "90",
+          "tick": 37,
+          "host_utc_ns": 1792362800244265794,
+          "pico_error_ns": [
+            2276277,
+            4334147
+          ],
+          "indicated_error_mid_ns": 3305212,
+          "pure_frequency_ppb": 672,
+          "total_rate_ppb": 2217,
+          "statistical_frequency_uncertainty_ppb": 63696
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "91",
+          "tick": 38,
+          "host_utc_ns": 1792362810267962010,
+          "pico_error_ns": [
+            2306440,
+            4352513
+          ],
+          "indicated_error_mid_ns": 3329476,
+          "pure_frequency_ppb": 740,
+          "total_rate_ppb": -3881,
+          "statistical_frequency_uncertainty_ppb": 164412
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "92",
+          "tick": 39,
+          "host_utc_ns": 1792362820243917177,
+          "pico_error_ns": [
+            2282049,
+            4315570
+          ],
+          "indicated_error_mid_ns": 3298809,
+          "pure_frequency_ppb": 740,
+          "total_rate_ppb": -3881,
+          "statistical_frequency_uncertainty_ppb": 164412
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "93",
+          "tick": 40,
+          "host_utc_ns": 1792362830244381167,
+          "pico_error_ns": [
+            2240966,
+            4294673
+          ],
+          "indicated_error_mid_ns": 3267819,
+          "pure_frequency_ppb": 740,
+          "total_rate_ppb": -3881,
+          "statistical_frequency_uncertainty_ppb": 164412
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "94",
+          "tick": 41,
+          "host_utc_ns": 1792362840243399227,
+          "pico_error_ns": [
+            2215011,
+            4258508
+          ],
+          "indicated_error_mid_ns": 3236759,
+          "pure_frequency_ppb": 740,
+          "total_rate_ppb": -3881,
+          "statistical_frequency_uncertainty_ppb": 164412
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "95",
+          "tick": 42,
+          "host_utc_ns": 1792362850244070546,
+          "pico_error_ns": [
+            2189568,
+            4220313
+          ],
+          "indicated_error_mid_ns": 3204940,
+          "pure_frequency_ppb": 740,
+          "total_rate_ppb": -3881,
+          "statistical_frequency_uncertainty_ppb": 164412
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "96",
+          "tick": 43,
+          "host_utc_ns": 1792362860245468062,
+          "pico_error_ns": [
+            2148983,
+            4199868
+          ],
+          "indicated_error_mid_ns": 3174425,
+          "pure_frequency_ppb": 740,
+          "total_rate_ppb": -3881,
+          "statistical_frequency_uncertainty_ppb": 164412
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "97",
+          "tick": 44,
+          "host_utc_ns": 1792362870249631857,
+          "pico_error_ns": [
+            2126897,
+            4162364
+          ],
+          "indicated_error_mid_ns": 3144630,
+          "pure_frequency_ppb": 740,
+          "total_rate_ppb": -3881,
+          "statistical_frequency_uncertainty_ppb": 164412
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "98",
+          "tick": 45,
+          "host_utc_ns": 1792362880253549399,
+          "pico_error_ns": [
+            1963268,
+            4019786
+          ],
+          "indicated_error_mid_ns": 2991527,
+          "pure_frequency_ppb": 274,
+          "total_rate_ppb": -23302,
+          "statistical_frequency_uncertainty_ppb": 127182
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "99",
+          "tick": 46,
+          "host_utc_ns": 1792362890249319819,
+          "pico_error_ns": [
+            1743979,
+            3787245
+          ],
+          "indicated_error_mid_ns": 2765612,
+          "pure_frequency_ppb": 274,
+          "total_rate_ppb": -23302,
+          "statistical_frequency_uncertainty_ppb": 127182
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "100",
+          "tick": 47,
+          "host_utc_ns": 1792362900248501984,
+          "pico_error_ns": [
+            1522024,
+            3554870
+          ],
+          "indicated_error_mid_ns": 2538447,
+          "pure_frequency_ppb": 274,
+          "total_rate_ppb": -23302,
+          "statistical_frequency_uncertainty_ppb": 127182
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "101",
+          "tick": 48,
+          "host_utc_ns": 1792362910248877150,
+          "pico_error_ns": [
+            1286837,
+            3340726
+          ],
+          "indicated_error_mid_ns": 2313781,
+          "pure_frequency_ppb": 274,
+          "total_rate_ppb": -23302,
+          "statistical_frequency_uncertainty_ppb": 127182
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "102",
+          "tick": 49,
+          "host_utc_ns": 1792362920245224185,
+          "pico_error_ns": [
+            1065985,
+            3108504
+          ],
+          "indicated_error_mid_ns": 2087244,
+          "pure_frequency_ppb": 274,
+          "total_rate_ppb": -23302,
+          "statistical_frequency_uncertainty_ppb": 127182
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "103",
+          "tick": 50,
+          "host_utc_ns": 1792362930248088869,
+          "pico_error_ns": [
+            846534,
+            2878590
+          ],
+          "indicated_error_mid_ns": 1862562,
+          "pure_frequency_ppb": 274,
+          "total_rate_ppb": -23302,
+          "statistical_frequency_uncertainty_ppb": 127182
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "104",
+          "tick": 51,
+          "host_utc_ns": 1792362940246192624,
+          "pico_error_ns": [
+            625716,
+            2676947
+          ],
+          "indicated_error_mid_ns": 1651331,
+          "pure_frequency_ppb": -377,
+          "total_rate_ppb": -14448,
+          "statistical_frequency_uncertainty_ppb": 128495
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "105",
+          "tick": 52,
+          "host_utc_ns": 1792362950246970395,
+          "pico_error_ns": [
+            494440,
+            2536683
+          ],
+          "indicated_error_mid_ns": 1515561,
+          "pure_frequency_ppb": -377,
+          "total_rate_ppb": -14448,
+          "statistical_frequency_uncertainty_ppb": 128495
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "106",
+          "tick": 53,
+          "host_utc_ns": 1792362960245764772,
+          "pico_error_ns": [
+            345772,
+            2409599
+          ],
+          "indicated_error_mid_ns": 1377685,
+          "pure_frequency_ppb": -377,
+          "total_rate_ppb": -14448,
+          "statistical_frequency_uncertainty_ppb": 128495
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "107",
+          "tick": 54,
+          "host_utc_ns": 1792362970242768920,
+          "pico_error_ns": [
+            216687,
+            2265386
+          ],
+          "indicated_error_mid_ns": 1241036,
+          "pure_frequency_ppb": -377,
+          "total_rate_ppb": -14448,
+          "statistical_frequency_uncertainty_ppb": 128495
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "108",
+          "tick": 55,
+          "host_utc_ns": 1792362980246032665,
+          "pico_error_ns": [
+            86063,
+            2121520
+          ],
+          "indicated_error_mid_ns": 1103791,
+          "pure_frequency_ppb": -377,
+          "total_rate_ppb": -14448,
+          "statistical_frequency_uncertainty_ppb": 128495
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "109",
+          "tick": 56,
+          "host_utc_ns": 1792362990242718035,
+          "pico_error_ns": [
+            -60306,
+            1995151
+          ],
+          "indicated_error_mid_ns": 967422,
+          "pure_frequency_ppb": -377,
+          "total_rate_ppb": -14448,
+          "statistical_frequency_uncertainty_ppb": 128495
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "110",
+          "tick": 57,
+          "host_utc_ns": 1792363000248184071,
+          "pico_error_ns": [
+            -185216,
+            1854989
+          ],
+          "indicated_error_mid_ns": 834886,
+          "pure_frequency_ppb": -377,
+          "total_rate_ppb": -14448,
+          "statistical_frequency_uncertainty_ppb": 128495
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "111",
+          "tick": 58,
+          "host_utc_ns": 1792363010244960511,
+          "pico_error_ns": [
+            -245011,
+            1781962
+          ],
+          "indicated_error_mid_ns": 768475,
+          "pure_frequency_ppb": -416,
+          "total_rate_ppb": -3951,
+          "statistical_frequency_uncertainty_ppb": 114492
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "112",
+          "tick": 59,
+          "host_utc_ns": 1792363020243513932,
+          "pico_error_ns": [
+            -290454,
+            1755563
+          ],
+          "indicated_error_mid_ns": 732554,
+          "pure_frequency_ppb": -416,
+          "total_rate_ppb": -3951,
+          "statistical_frequency_uncertainty_ppb": 114492
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "113",
+          "tick": 60,
+          "host_utc_ns": 1792363030244078276,
+          "pico_error_ns": [
+            -313515,
+            1722936
+          ],
+          "indicated_error_mid_ns": 704710,
+          "pure_frequency_ppb": -416,
+          "total_rate_ppb": -3951,
+          "statistical_frequency_uncertainty_ppb": 114492
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "114",
+          "tick": 61,
+          "host_utc_ns": 1792363040240429219,
+          "pico_error_ns": [
+            -356453,
+            1698988
+          ],
+          "indicated_error_mid_ns": 671267,
+          "pure_frequency_ppb": -416,
+          "total_rate_ppb": -3951,
+          "statistical_frequency_uncertainty_ppb": 114492
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "115",
+          "tick": 62,
+          "host_utc_ns": 1792363050259005159,
+          "pico_error_ns": [
+            -384001,
+            1660656
+          ],
+          "indicated_error_mid_ns": 638327,
+          "pure_frequency_ppb": -416,
+          "total_rate_ppb": -3951,
+          "statistical_frequency_uncertainty_ppb": 114492
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "116",
+          "tick": 63,
+          "host_utc_ns": 1792363060242507298,
+          "pico_error_ns": [
+            -409738,
+            1625115
+          ],
+          "indicated_error_mid_ns": 607688,
+          "pure_frequency_ppb": -416,
+          "total_rate_ppb": -3951,
+          "statistical_frequency_uncertainty_ppb": 114492
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "117",
+          "tick": 64,
+          "host_utc_ns": 1792363070246680746,
+          "pico_error_ns": [
+            -438224,
+            1616738
+          ],
+          "indicated_error_mid_ns": 589257,
+          "pure_frequency_ppb": 240,
+          "total_rate_ppb": 1188,
+          "statistical_frequency_uncertainty_ppb": 122024
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "118",
+          "tick": 65,
+          "host_utc_ns": 1792363080243462945,
+          "pico_error_ns": [
+            -413973,
+            1631089
+          ],
+          "indicated_error_mid_ns": 608558,
+          "pure_frequency_ppb": 240,
+          "total_rate_ppb": 1188,
+          "statistical_frequency_uncertainty_ppb": 122024
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "119",
+          "tick": 66,
+          "host_utc_ns": 1792363090246379965,
+          "pico_error_ns": [
+            -387104,
+            1642180
+          ],
+          "indicated_error_mid_ns": 627538,
+          "pure_frequency_ppb": 240,
+          "total_rate_ppb": 1188,
+          "statistical_frequency_uncertainty_ppb": 122024
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "120",
+          "tick": 67,
+          "host_utc_ns": 1792363100247618554,
+          "pico_error_ns": [
+            -377709,
+            1671607
+          ],
+          "indicated_error_mid_ns": 646949,
+          "pure_frequency_ppb": 240,
+          "total_rate_ppb": 1188,
+          "statistical_frequency_uncertainty_ppb": 122024
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "121",
+          "tick": 68,
+          "host_utc_ns": 1792363110252027584,
+          "pico_error_ns": [
+            -347047,
+            1691885
+          ],
+          "indicated_error_mid_ns": 672419,
+          "pure_frequency_ppb": 240,
+          "total_rate_ppb": 1188,
+          "statistical_frequency_uncertainty_ppb": 122024
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "122",
+          "tick": 69,
+          "host_utc_ns": 1792363120251653029,
+          "pico_error_ns": [
+            -343700,
+            1714648
+          ],
+          "indicated_error_mid_ns": 685474,
+          "pure_frequency_ppb": 240,
+          "total_rate_ppb": 1188,
+          "statistical_frequency_uncertainty_ppb": 122024
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "123",
+          "tick": 70,
+          "host_utc_ns": 1792363130246333704,
+          "pico_error_ns": [
+            -319372,
+            1728970
+          ],
+          "indicated_error_mid_ns": 704799,
+          "pure_frequency_ppb": 240,
+          "total_rate_ppb": 1188,
+          "statistical_frequency_uncertainty_ppb": 122024
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "124",
+          "tick": 71,
+          "host_utc_ns": 1792363140247378217,
+          "pico_error_ns": [
+            -240445,
+            1795055
+          ],
+          "indicated_error_mid_ns": 777305,
+          "pure_frequency_ppb": 720,
+          "total_rate_ppb": 7831,
+          "statistical_frequency_uncertainty_ppb": 115274
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "125",
+          "tick": 72,
+          "host_utc_ns": 1792363150242721959,
+          "pico_error_ns": [
+            -165263,
+            1890389
+          ],
+          "indicated_error_mid_ns": 862563,
+          "pure_frequency_ppb": 720,
+          "total_rate_ppb": 7831,
+          "statistical_frequency_uncertainty_ppb": 115274
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "126",
+          "tick": 73,
+          "host_utc_ns": 1792363160246646681,
+          "pico_error_ns": [
+            -73509,
+            1971191
+          ],
+          "indicated_error_mid_ns": 948841,
+          "pure_frequency_ppb": 720,
+          "total_rate_ppb": 7831,
+          "statistical_frequency_uncertainty_ppb": 115274
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "127",
+          "tick": 74,
+          "host_utc_ns": 1792363170256884359,
+          "pico_error_ns": [
+            20623,
+            2047703
+          ],
+          "indicated_error_mid_ns": 1034163,
+          "pure_frequency_ppb": 720,
+          "total_rate_ppb": 7831,
+          "statistical_frequency_uncertainty_ppb": 115274
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "128",
+          "tick": 75,
+          "host_utc_ns": 1792363180248845824,
+          "pico_error_ns": [
+            96092,
+            2143304
+          ],
+          "indicated_error_mid_ns": 1119698,
+          "pure_frequency_ppb": 720,
+          "total_rate_ppb": 7831,
+          "statistical_frequency_uncertainty_ppb": 115274
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "129",
+          "tick": 76,
+          "host_utc_ns": 1792363190248762395,
+          "pico_error_ns": [
+            187748,
+            2222504
+          ],
+          "indicated_error_mid_ns": 1205126,
+          "pure_frequency_ppb": 720,
+          "total_rate_ppb": 7831,
+          "statistical_frequency_uncertainty_ppb": 115274
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "130",
+          "tick": 77,
+          "host_utc_ns": 1792363200245013575,
+          "pico_error_ns": [
+            234484,
+            2289368
+          ],
+          "indicated_error_mid_ns": 1261926,
+          "pure_frequency_ppb": 370,
+          "total_rate_ppb": 394,
+          "statistical_frequency_uncertainty_ppb": 56444
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "131",
+          "tick": 78,
+          "host_utc_ns": 1792363210239446097,
+          "pico_error_ns": [
+            251210,
+            2294598
+          ],
+          "indicated_error_mid_ns": 1272904,
+          "pure_frequency_ppb": 370,
+          "total_rate_ppb": 394,
+          "statistical_frequency_uncertainty_ppb": 56444
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "132",
+          "tick": 79,
+          "host_utc_ns": 1792363220246084349,
+          "pico_error_ns": [
+            268528,
+            2300776
+          ],
+          "indicated_error_mid_ns": 1284652,
+          "pure_frequency_ppb": 370,
+          "total_rate_ppb": 394,
+          "statistical_frequency_uncertainty_ppb": 56444
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "133",
+          "tick": 80,
+          "host_utc_ns": 1792363230248003964,
+          "pico_error_ns": [
+            272870,
+            2325204
+          ],
+          "indicated_error_mid_ns": 1299037,
+          "pure_frequency_ppb": 370,
+          "total_rate_ppb": 394,
+          "statistical_frequency_uncertainty_ppb": 56444
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "134",
+          "tick": 81,
+          "host_utc_ns": 1792363240246458506,
+          "pico_error_ns": [
+            284475,
+            2330515
+          ],
+          "indicated_error_mid_ns": 1307495,
+          "pure_frequency_ppb": 370,
+          "total_rate_ppb": 394,
+          "statistical_frequency_uncertainty_ppb": 56444
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "135",
+          "tick": 82,
+          "host_utc_ns": 1792363250242716054,
+          "pico_error_ns": [
+            305339,
+            2331555
+          ],
+          "indicated_error_mid_ns": 1318447,
+          "pure_frequency_ppb": 370,
+          "total_rate_ppb": 394,
+          "statistical_frequency_uncertainty_ppb": 56444
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "136",
+          "tick": 83,
+          "host_utc_ns": 1792363260244685540,
+          "pico_error_ns": [
+            305822,
+            2352100
+          ],
+          "indicated_error_mid_ns": 1328961,
+          "pure_frequency_ppb": 370,
+          "total_rate_ppb": 394,
+          "statistical_frequency_uncertainty_ppb": 56444
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "137",
+          "tick": 84,
+          "host_utc_ns": 1792363270244548444,
+          "pico_error_ns": [
+            293907,
+            2331186
+          ],
+          "indicated_error_mid_ns": 1312546,
+          "pure_frequency_ppb": -60,
+          "total_rate_ppb": -2647,
+          "statistical_frequency_uncertainty_ppb": 53474
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "138",
+          "tick": 85,
+          "host_utc_ns": 1792363280243280745,
+          "pico_error_ns": [
+            263586,
+            2319905
+          ],
+          "indicated_error_mid_ns": 1291745,
+          "pure_frequency_ppb": -60,
+          "total_rate_ppb": -2647,
+          "statistical_frequency_uncertainty_ppb": 53474
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "139",
+          "tick": 86,
+          "host_utc_ns": 1792363290244961862,
+          "pico_error_ns": [
+            250695,
+            2295562
+          ],
+          "indicated_error_mid_ns": 1273128,
+          "pure_frequency_ppb": -60,
+          "total_rate_ppb": -2647,
+          "statistical_frequency_uncertainty_ppb": 53474
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "140",
+          "tick": 87,
+          "host_utc_ns": 1792363300244863886,
+          "pico_error_ns": [
+            235668,
+            2269541
+          ],
+          "indicated_error_mid_ns": 1252604,
+          "pure_frequency_ppb": -60,
+          "total_rate_ppb": -2647,
+          "statistical_frequency_uncertainty_ppb": 53474
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "141",
+          "tick": 88,
+          "host_utc_ns": 1792363310246299977,
+          "pico_error_ns": [
+            207473,
+            2261554
+          ],
+          "indicated_error_mid_ns": 1234513,
+          "pure_frequency_ppb": -60,
+          "total_rate_ppb": -2647,
+          "statistical_frequency_uncertainty_ppb": 53474
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "142",
+          "tick": 89,
+          "host_utc_ns": 1792363320244741097,
+          "pico_error_ns": [
+            192458,
+            2235329
+          ],
+          "indicated_error_mid_ns": 1213893,
+          "pure_frequency_ppb": -60,
+          "total_rate_ppb": -2647,
+          "statistical_frequency_uncertainty_ppb": 53474
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "143",
+          "tick": 90,
+          "host_utc_ns": 1792363330252261821,
+          "pico_error_ns": [
+            179992,
+            2210347
+          ],
+          "indicated_error_mid_ns": 1195169,
+          "pure_frequency_ppb": -214,
+          "total_rate_ppb": -2686,
+          "statistical_frequency_uncertainty_ppb": 40772
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "144",
+          "tick": 91,
+          "host_utc_ns": 1792363340254174901,
+          "pico_error_ns": [
+            149879,
+            2199300
+          ],
+          "indicated_error_mid_ns": 1174589,
+          "pure_frequency_ppb": -214,
+          "total_rate_ppb": -2686,
+          "statistical_frequency_uncertainty_ppb": 40772
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "145",
+          "tick": 92,
+          "host_utc_ns": 1792363350257585075,
+          "pico_error_ns": [
+            134997,
+            2175834
+          ],
+          "indicated_error_mid_ns": 1155415,
+          "pure_frequency_ppb": -214,
+          "total_rate_ppb": -2686,
+          "statistical_frequency_uncertainty_ppb": 40772
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "146",
+          "tick": 93,
+          "host_utc_ns": 1792363360250742845,
+          "pico_error_ns": [
+            105126,
+            2166165
+          ],
+          "indicated_error_mid_ns": 1135645,
+          "pure_frequency_ppb": -214,
+          "total_rate_ppb": -2686,
+          "statistical_frequency_uncertainty_ppb": 40772
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "147",
+          "tick": 94,
+          "host_utc_ns": 1792363370252266249,
+          "pico_error_ns": [
+            94204,
+            2136279
+          ],
+          "indicated_error_mid_ns": 1115241,
+          "pure_frequency_ppb": -214,
+          "total_rate_ppb": -2686,
+          "statistical_frequency_uncertainty_ppb": 40772
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "148",
+          "tick": 95,
+          "host_utc_ns": 1792363380255252959,
+          "pico_error_ns": [
+            78360,
+            2112703
+          ],
+          "indicated_error_mid_ns": 1095531,
+          "pure_frequency_ppb": -214,
+          "total_rate_ppb": -2686,
+          "statistical_frequency_uncertainty_ppb": 40772
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "149",
+          "tick": 96,
+          "host_utc_ns": 1792363390256678247,
+          "pico_error_ns": [
+            50017,
+            2104482
+          ],
+          "indicated_error_mid_ns": 1077249,
+          "pure_frequency_ppb": -261,
+          "total_rate_ppb": -369,
+          "statistical_frequency_uncertainty_ppb": 33642
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "150",
+          "tick": 97,
+          "host_utc_ns": 1792363400255994982,
+          "pico_error_ns": [
+            57596,
+            2103433
+          ],
+          "indicated_error_mid_ns": 1080514,
+          "pure_frequency_ppb": -261,
+          "total_rate_ppb": -369,
+          "statistical_frequency_uncertainty_ppb": 33642
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "151",
+          "tick": 98,
+          "host_utc_ns": 1792363410253106478,
+          "pico_error_ns": [
+            68726,
+            2099311
+          ],
+          "indicated_error_mid_ns": 1084018,
+          "pure_frequency_ppb": -261,
+          "total_rate_ppb": -369,
+          "statistical_frequency_uncertainty_ppb": 33642
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "152",
+          "tick": 99,
+          "host_utc_ns": 1792363420247282950,
+          "pico_error_ns": [
+            62226,
+            2112867
+          ],
+          "indicated_error_mid_ns": 1087546,
+          "pure_frequency_ppb": -261,
+          "total_rate_ppb": -369,
+          "statistical_frequency_uncertainty_ppb": 33642
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "153",
+          "tick": 100,
+          "host_utc_ns": 1792363430248265310,
+          "pico_error_ns": [
+            74485,
+            2108888
+          ],
+          "indicated_error_mid_ns": 1091686,
+          "pure_frequency_ppb": -261,
+          "total_rate_ppb": -369,
+          "statistical_frequency_uncertainty_ppb": 33642
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "154",
+          "tick": 101,
+          "host_utc_ns": 1792363440249558685,
+          "pico_error_ns": [
+            68092,
+            2121531
+          ],
+          "indicated_error_mid_ns": 1094811,
+          "pure_frequency_ppb": -261,
+          "total_rate_ppb": -369,
+          "statistical_frequency_uncertainty_ppb": 33642
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "155",
+          "tick": 102,
+          "host_utc_ns": 1792363450247926987,
+          "pico_error_ns": [
+            72615,
+            2120404
+          ],
+          "indicated_error_mid_ns": 1096509,
+          "pure_frequency_ppb": -261,
+          "total_rate_ppb": -369,
+          "statistical_frequency_uncertainty_ppb": 33642
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "156",
+          "tick": 103,
+          "host_utc_ns": 1792363460252683186,
+          "pico_error_ns": [
+            85045,
+            2117578
+          ],
+          "indicated_error_mid_ns": 1101311,
+          "pure_frequency_ppb": -226,
+          "total_rate_ppb": -196,
+          "statistical_frequency_uncertainty_ppb": 30260
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "157",
+          "tick": 104,
+          "host_utc_ns": 1792363470249947098,
+          "pico_error_ns": [
+            82111,
+            2135688
+          ],
+          "indicated_error_mid_ns": 1108899,
+          "pure_frequency_ppb": -226,
+          "total_rate_ppb": -196,
+          "statistical_frequency_uncertainty_ppb": 30260
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "158",
+          "tick": 105,
+          "host_utc_ns": 1792363480250981707,
+          "pico_error_ns": [
+            91582,
+            2133999
+          ],
+          "indicated_error_mid_ns": 1112790,
+          "pure_frequency_ppb": -226,
+          "total_rate_ppb": -196,
+          "statistical_frequency_uncertainty_ppb": 30260
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "159",
+          "tick": 106,
+          "host_utc_ns": 1792363490250375678,
+          "pico_error_ns": [
+            103064,
+            2131575
+          ],
+          "indicated_error_mid_ns": 1117319,
+          "pure_frequency_ppb": -226,
+          "total_rate_ppb": -196,
+          "statistical_frequency_uncertainty_ppb": 30260
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "160",
+          "tick": 107,
+          "host_utc_ns": 1792363500250255941,
+          "pico_error_ns": [
+            98797,
+            2146316
+          ],
+          "indicated_error_mid_ns": 1122556,
+          "pure_frequency_ppb": -226,
+          "total_rate_ppb": -196,
+          "statistical_frequency_uncertainty_ppb": 30260
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "161",
+          "tick": 108,
+          "host_utc_ns": 1792363510251175805,
+          "pico_error_ns": [
+            110542,
+            2144843
+          ],
+          "indicated_error_mid_ns": 1127692,
+          "pure_frequency_ppb": -226,
+          "total_rate_ppb": -196,
+          "statistical_frequency_uncertainty_ppb": 30260
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "162",
+          "tick": 109,
+          "host_utc_ns": 1792363520254025973,
+          "pico_error_ns": [
+            112425,
+            2166657
+          ],
+          "indicated_error_mid_ns": 1139541,
+          "pure_frequency_ppb": 216,
+          "total_rate_ppb": 5044,
+          "statistical_frequency_uncertainty_ppb": 39249
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "163",
+          "tick": 110,
+          "host_utc_ns": 1792363530245347699,
+          "pico_error_ns": [
+            173462,
+            2220168
+          ],
+          "indicated_error_mid_ns": 1196815,
+          "pure_frequency_ppb": 216,
+          "total_rate_ppb": 5044,
+          "statistical_frequency_uncertainty_ppb": 39249
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "164",
+          "tick": 111,
+          "host_utc_ns": 1792363540247061596,
+          "pico_error_ns": [
+            236723,
+            2273113
+          ],
+          "indicated_error_mid_ns": 1254918,
+          "pure_frequency_ppb": 216,
+          "total_rate_ppb": 5044,
+          "statistical_frequency_uncertainty_ppb": 39249
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "165",
+          "tick": 112,
+          "host_utc_ns": 1792363550245910105,
+          "pico_error_ns": [
+            283227,
+            2339591
+          ],
+          "indicated_error_mid_ns": 1311409,
+          "pure_frequency_ppb": 216,
+          "total_rate_ppb": 5044,
+          "statistical_frequency_uncertainty_ppb": 39249
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "166",
+          "tick": 113,
+          "host_utc_ns": 1792363560253374886,
+          "pico_error_ns": [
+            348704,
+            2390552
+          ],
+          "indicated_error_mid_ns": 1369628,
+          "pure_frequency_ppb": 216,
+          "total_rate_ppb": 5044,
+          "statistical_frequency_uncertainty_ppb": 39249
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "167",
+          "tick": 114,
+          "host_utc_ns": 1792363570247656774,
+          "pico_error_ns": [
+            412839,
+            2440641
+          ],
+          "indicated_error_mid_ns": 1426740,
+          "pure_frequency_ppb": 216,
+          "total_rate_ppb": 5044,
+          "statistical_frequency_uncertainty_ppb": 39249
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "168",
+          "tick": 115,
+          "host_utc_ns": 1792363580246755001,
+          "pico_error_ns": [
+            460628,
+            2509398
+          ],
+          "indicated_error_mid_ns": 1485013,
+          "pure_frequency_ppb": 216,
+          "total_rate_ppb": 5044,
+          "statistical_frequency_uncertainty_ppb": 39249
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "169",
+          "tick": 116,
+          "host_utc_ns": 1792363590265230382,
+          "pico_error_ns": [
+            613405,
+            2646929
+          ],
+          "indicated_error_mid_ns": 1630167,
+          "pure_frequency_ppb": 443,
+          "total_rate_ppb": 17340,
+          "statistical_frequency_uncertainty_ppb": 88910
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "170",
+          "tick": 117,
+          "host_utc_ns": 1792363600248277743,
+          "pico_error_ns": [
+            783100,
+            2836510
+          ],
+          "indicated_error_mid_ns": 1809805,
+          "pure_frequency_ppb": 443,
+          "total_rate_ppb": 17340,
+          "statistical_frequency_uncertainty_ppb": 88910
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "171",
+          "tick": 118,
+          "host_utc_ns": 1792363610251010510,
+          "pico_error_ns": [
+            968993,
+            3013085
+          ],
+          "indicated_error_mid_ns": 1991039,
+          "pure_frequency_ppb": 443,
+          "total_rate_ppb": 17340,
+          "statistical_frequency_uncertainty_ppb": 88910
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "172",
+          "tick": 119,
+          "host_utc_ns": 1792363620253397152,
+          "pico_error_ns": [
+            1153060,
+            3188734
+          ],
+          "indicated_error_mid_ns": 2170897,
+          "pure_frequency_ppb": 443,
+          "total_rate_ppb": 17340,
+          "statistical_frequency_uncertainty_ppb": 88910
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "173",
+          "tick": 120,
+          "host_utc_ns": 1792363630252288407,
+          "pico_error_ns": [
+            1323800,
+            3378484
+          ],
+          "indicated_error_mid_ns": 2351142,
+          "pure_frequency_ppb": 443,
+          "total_rate_ppb": 17340,
+          "statistical_frequency_uncertainty_ppb": 88910
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "174",
+          "tick": 121,
+          "host_utc_ns": 1792363640251355906,
+          "pico_error_ns": [
+            1510002,
+            3552286
+          ],
+          "indicated_error_mid_ns": 2531144,
+          "pure_frequency_ppb": 443,
+          "total_rate_ppb": 17340,
+          "statistical_frequency_uncertainty_ppb": 88910
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "175",
+          "tick": 122,
+          "host_utc_ns": 1792363650266119891,
+          "pico_error_ns": [
+            1696673,
+            3726643
+          ],
+          "indicated_error_mid_ns": 2711658,
+          "pure_frequency_ppb": 443,
+          "total_rate_ppb": 17340,
+          "statistical_frequency_uncertainty_ppb": 88910
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "176",
+          "tick": 123,
+          "host_utc_ns": 1792363660250074511,
+          "pico_error_ns": [
+            1866056,
+            3917020
+          ],
+          "indicated_error_mid_ns": 2891538,
+          "pure_frequency_ppb": 443,
+          "total_rate_ppb": 17340,
+          "statistical_frequency_uncertainty_ppb": 88910
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "177",
+          "tick": 124,
+          "host_utc_ns": 1792363670250892592,
+          "pico_error_ns": [
+            2052032,
+            4091880
+          ],
+          "indicated_error_mid_ns": 3071956,
+          "pure_frequency_ppb": 443,
+          "total_rate_ppb": 17340,
+          "statistical_frequency_uncertainty_ppb": 88910
+        }
+      ]
+    },
+    "B": {
+      "count": 174,
+      "clock_valid_count": 174,
+      "eligible_adjacent_windows": 146,
+      "excluded_adjacent_windows": 26,
+      "adjacent_window_counts": {
+        "without_learned_frequency": {
+          "improved": 66,
+          "worsened": 0,
+          "unresolved": 80
+        },
+        "without_new_frequency_since_capture_start": {
+          "improved": 0,
+          "worsened": 69,
+          "unresolved": 77
+        }
+      },
+      "all_horizon_counts": {
+        "without_learned_frequency": {
+          "improved": 240,
+          "worsened": 0,
+          "unresolved": 223
+        },
+        "without_new_frequency_since_capture_start": {
+          "improved": 0,
+          "worsened": 234,
+          "unresolved": 229
+        }
+      },
+      "all_horizon_rejections": {
+        "holdout binding changed": 539
+      },
+      "initial_frequency_ppb": 2450,
+      "final_pulse_frequency_ppb": 738,
+      "final_pulse_total_rate_ppb": 644,
+      "observed_offset_ns_range": [
+        -1805880,
+        501622
+      ],
+      "observed_offset_ns_start_end": [
+        -1206166,
+        -1206085
+      ],
+      "observed_offset_rms_ns": 1132192.6757384306,
+      "edge_bracket_ns_range": [
+        5000,
+        7000
+      ],
+      "pulse_width_ns_range": [
+        1073942,
+        1084813
+      ],
+      "conditional_native_rate_ppm_interval": [
+        {
+          "numerator": -3526097000000,
+          "denominator": 1753933588097
+        },
+        {
+          "numerator": 564269000000,
+          "denominator": 1753929508731
+        }
+      ],
+      "plot_rows": [
+        {
+          "segment": "pulse-history",
+          "sequence": "7",
+          "tick": 0,
+          "host_utc_ns": 1792361916921740172,
+          "pico_error_ns": [
+            -2232425,
+            -179907
+          ],
+          "indicated_error_mid_ns": -1206166,
+          "pure_frequency_ppb": 2450,
+          "total_rate_ppb": 2444,
+          "statistical_frequency_uncertainty_ppb": 29150
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "8",
+          "tick": 1,
+          "host_utc_ns": 1792361926842610195,
+          "pico_error_ns": [
+            -2210919,
+            -172457
+          ],
+          "indicated_error_mid_ns": -1191688,
+          "pure_frequency_ppb": 2450,
+          "total_rate_ppb": 2444,
+          "statistical_frequency_uncertainty_ppb": 29150
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "9",
+          "tick": 2,
+          "host_utc_ns": 1792361936846275325,
+          "pico_error_ns": [
+            -2205276,
+            -146360
+          ],
+          "indicated_error_mid_ns": -1175818,
+          "pure_frequency_ppb": 2450,
+          "total_rate_ppb": 2444,
+          "statistical_frequency_uncertainty_ppb": 29150
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "10",
+          "tick": 3,
+          "host_utc_ns": 1792361946841025634,
+          "pico_error_ns": [
+            -2180597,
+            -137657
+          ],
+          "indicated_error_mid_ns": -1159127,
+          "pure_frequency_ppb": 2450,
+          "total_rate_ppb": 2444,
+          "statistical_frequency_uncertainty_ppb": 29150
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "11",
+          "tick": 4,
+          "host_utc_ns": 1792361956847302330,
+          "pico_error_ns": [
+            -2161143,
+            -128505
+          ],
+          "indicated_error_mid_ns": -1144824,
+          "pure_frequency_ppb": 2158,
+          "total_rate_ppb": 2105,
+          "statistical_frequency_uncertainty_ppb": 25465
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "12",
+          "tick": 5,
+          "host_utc_ns": 1792361966862283144,
+          "pico_error_ns": [
+            -2157946,
+            -104330
+          ],
+          "indicated_error_mid_ns": -1131138,
+          "pure_frequency_ppb": 2158,
+          "total_rate_ppb": 2105,
+          "statistical_frequency_uncertainty_ppb": 25465
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "13",
+          "tick": 6,
+          "host_utc_ns": 1792361976926762101,
+          "pico_error_ns": [
+            -2138142,
+            -97048
+          ],
+          "indicated_error_mid_ns": -1117595,
+          "pure_frequency_ppb": 2158,
+          "total_rate_ppb": 2105,
+          "statistical_frequency_uncertainty_ppb": 25465
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "14",
+          "tick": 7,
+          "host_utc_ns": 1792361986853629405,
+          "pico_error_ns": [
+            -2121672,
+            -88126
+          ],
+          "indicated_error_mid_ns": -1104899,
+          "pure_frequency_ppb": 2158,
+          "total_rate_ppb": 2105,
+          "statistical_frequency_uncertainty_ppb": 25465
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "15",
+          "tick": 8,
+          "host_utc_ns": 1792361996848100446,
+          "pico_error_ns": [
+            -2117689,
+            -63191
+          ],
+          "indicated_error_mid_ns": -1090440,
+          "pure_frequency_ppb": 2158,
+          "total_rate_ppb": 2105,
+          "statistical_frequency_uncertainty_ppb": 25465
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "16",
+          "tick": 9,
+          "host_utc_ns": 1792362006849372641,
+          "pico_error_ns": [
+            -2099516,
+            -54756
+          ],
+          "indicated_error_mid_ns": -1077136,
+          "pure_frequency_ppb": 2158,
+          "total_rate_ppb": 2105,
+          "statistical_frequency_uncertainty_ppb": 25465
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "17",
+          "tick": 10,
+          "host_utc_ns": 1792362016848389251,
+          "pico_error_ns": [
+            -2099788,
+            -31733
+          ],
+          "indicated_error_mid_ns": -1065761,
+          "pure_frequency_ppb": 989,
+          "total_rate_ppb": -2667,
+          "statistical_frequency_uncertainty_ppb": 21511
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "18",
+          "tick": 11,
+          "host_utc_ns": 1792362026849792687,
+          "pico_error_ns": [
+            -2123776,
+            -76617
+          ],
+          "indicated_error_mid_ns": -1100197,
+          "pure_frequency_ppb": 989,
+          "total_rate_ppb": -2667,
+          "statistical_frequency_uncertainty_ppb": 21511
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "19",
+          "tick": 12,
+          "host_utc_ns": 1792362036923273969,
+          "pico_error_ns": [
+            -2153009,
+            -117948
+          ],
+          "indicated_error_mid_ns": -1135479,
+          "pure_frequency_ppb": 989,
+          "total_rate_ppb": -2667,
+          "statistical_frequency_uncertainty_ppb": 21511
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "20",
+          "tick": 13,
+          "host_utc_ns": 1792362046840034827,
+          "pico_error_ns": [
+            -2197982,
+            -142691
+          ],
+          "indicated_error_mid_ns": -1170337,
+          "pure_frequency_ppb": 989,
+          "total_rate_ppb": -2667,
+          "statistical_frequency_uncertainty_ppb": 21511
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "21",
+          "tick": 14,
+          "host_utc_ns": 1792362056838200467,
+          "pico_error_ns": [
+            -2227628,
+            -181325
+          ],
+          "indicated_error_mid_ns": -1204477,
+          "pure_frequency_ppb": 989,
+          "total_rate_ppb": -2667,
+          "statistical_frequency_uncertainty_ppb": 21511
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "22",
+          "tick": 15,
+          "host_utc_ns": 1792362066836724720,
+          "pico_error_ns": [
+            -2255467,
+            -222992
+          ],
+          "indicated_error_mid_ns": -1239230,
+          "pure_frequency_ppb": 989,
+          "total_rate_ppb": -2667,
+          "statistical_frequency_uncertainty_ppb": 21511
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "23",
+          "tick": 16,
+          "host_utc_ns": 1792362076832656471,
+          "pico_error_ns": [
+            -2300127,
+            -246834
+          ],
+          "indicated_error_mid_ns": -1273481,
+          "pure_frequency_ppb": 989,
+          "total_rate_ppb": -2667,
+          "statistical_frequency_uncertainty_ppb": 21511
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "24",
+          "tick": 17,
+          "host_utc_ns": 1792362086852461971,
+          "pico_error_ns": [
+            -2328846,
+            -286115
+          ],
+          "indicated_error_mid_ns": -1307481,
+          "pure_frequency_ppb": 573,
+          "total_rate_ppb": -2694,
+          "statistical_frequency_uncertainty_ppb": 20369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "25",
+          "tick": 18,
+          "host_utc_ns": 1792362096913731438,
+          "pico_error_ns": [
+            -2373580,
+            -311315
+          ],
+          "indicated_error_mid_ns": -1342448,
+          "pure_frequency_ppb": 573,
+          "total_rate_ppb": -2694,
+          "statistical_frequency_uncertainty_ppb": 20369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "26",
+          "tick": 19,
+          "host_utc_ns": 1792362106855923684,
+          "pico_error_ns": [
+            -2398674,
+            -352713
+          ],
+          "indicated_error_mid_ns": -1375694,
+          "pure_frequency_ppb": 573,
+          "total_rate_ppb": -2694,
+          "statistical_frequency_uncertainty_ppb": 20369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "27",
+          "tick": 20,
+          "host_utc_ns": 1792362116853626381,
+          "pico_error_ns": [
+            -2428707,
+            -393074
+          ],
+          "indicated_error_mid_ns": -1410891,
+          "pure_frequency_ppb": 573,
+          "total_rate_ppb": -2694,
+          "statistical_frequency_uncertainty_ppb": 20369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "28",
+          "tick": 21,
+          "host_utc_ns": 1792362126850953973,
+          "pico_error_ns": [
+            -2474350,
+            -418615
+          ],
+          "indicated_error_mid_ns": -1446483,
+          "pure_frequency_ppb": 573,
+          "total_rate_ppb": -2694,
+          "statistical_frequency_uncertainty_ppb": 20369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "29",
+          "tick": 22,
+          "host_utc_ns": 1792362136856502707,
+          "pico_error_ns": [
+            -2502891,
+            -459542
+          ],
+          "indicated_error_mid_ns": -1481217,
+          "pure_frequency_ppb": 573,
+          "total_rate_ppb": -2694,
+          "statistical_frequency_uncertainty_ppb": 20369
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "30",
+          "tick": 23,
+          "host_utc_ns": 1792362146862354897,
+          "pico_error_ns": [
+            -2526501,
+            -498300
+          ],
+          "indicated_error_mid_ns": -1512401,
+          "pure_frequency_ppb": 481,
+          "total_rate_ppb": -425,
+          "statistical_frequency_uncertainty_ppb": 18823
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "31",
+          "tick": 24,
+          "host_utc_ns": 1792362156916937756,
+          "pico_error_ns": [
+            -2548451,
+            -500068
+          ],
+          "indicated_error_mid_ns": -1524260,
+          "pure_frequency_ppb": 481,
+          "total_rate_ppb": -425,
+          "statistical_frequency_uncertainty_ppb": 18823
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "32",
+          "tick": 25,
+          "host_utc_ns": 1792362166839646632,
+          "pico_error_ns": [
+            -2556481,
+            -515790
+          ],
+          "indicated_error_mid_ns": -1536136,
+          "pure_frequency_ppb": 481,
+          "total_rate_ppb": -425,
+          "statistical_frequency_uncertainty_ppb": 18823
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "33",
+          "tick": 26,
+          "host_utc_ns": 1792362176835290086,
+          "pico_error_ns": [
+            -2580138,
+            -519041
+          ],
+          "indicated_error_mid_ns": -1549590,
+          "pure_frequency_ppb": 481,
+          "total_rate_ppb": -425,
+          "statistical_frequency_uncertainty_ppb": 18823
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "34",
+          "tick": 27,
+          "host_utc_ns": 1792362186845469655,
+          "pico_error_ns": [
+            -2584288,
+            -538029
+          ],
+          "indicated_error_mid_ns": -1561159,
+          "pure_frequency_ppb": 481,
+          "total_rate_ppb": -425,
+          "statistical_frequency_uncertainty_ppb": 18823
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "35",
+          "tick": 28,
+          "host_utc_ns": 1792362196834185826,
+          "pico_error_ns": [
+            -2590623,
+            -555036
+          ],
+          "indicated_error_mid_ns": -1572830,
+          "pure_frequency_ppb": 481,
+          "total_rate_ppb": -425,
+          "statistical_frequency_uncertainty_ppb": 18823
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "36",
+          "tick": 29,
+          "host_utc_ns": 1792362206846731077,
+          "pico_error_ns": [
+            -2611903,
+            -556258
+          ],
+          "indicated_error_mid_ns": -1584081,
+          "pure_frequency_ppb": 481,
+          "total_rate_ppb": -425,
+          "statistical_frequency_uncertainty_ppb": 18823
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "37",
+          "tick": 30,
+          "host_utc_ns": 1792362216912368776,
+          "pico_error_ns": [
+            -2625439,
+            -586126
+          ],
+          "indicated_error_mid_ns": -1605783,
+          "pure_frequency_ppb": 605,
+          "total_rate_ppb": -1621,
+          "statistical_frequency_uncertainty_ppb": 18732
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "38",
+          "tick": 31,
+          "host_utc_ns": 1792362226836431438,
+          "pico_error_ns": [
+            -2643724,
+            -616165
+          ],
+          "indicated_error_mid_ns": -1629945,
+          "pure_frequency_ppb": 605,
+          "total_rate_ppb": -1621,
+          "statistical_frequency_uncertainty_ppb": 18732
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "39",
+          "tick": 32,
+          "host_utc_ns": 1792362236839718619,
+          "pico_error_ns": [
+            -2677884,
+            -630367
+          ],
+          "indicated_error_mid_ns": -1654126,
+          "pure_frequency_ppb": 605,
+          "total_rate_ppb": -1621,
+          "statistical_frequency_uncertainty_ppb": 18732
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "40",
+          "tick": 33,
+          "host_utc_ns": 1792362246843541519,
+          "pico_error_ns": [
+            -2697603,
+            -658448
+          ],
+          "indicated_error_mid_ns": -1678026,
+          "pure_frequency_ppb": 605,
+          "total_rate_ppb": -1621,
+          "statistical_frequency_uncertainty_ppb": 18732
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "41",
+          "tick": 34,
+          "host_utc_ns": 1792362256841666693,
+          "pico_error_ns": [
+            -2732854,
+            -673545
+          ],
+          "indicated_error_mid_ns": -1703200,
+          "pure_frequency_ppb": 605,
+          "total_rate_ppb": -1621,
+          "statistical_frequency_uncertainty_ppb": 18732
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "42",
+          "tick": 35,
+          "host_utc_ns": 1792362266854813870,
+          "pico_error_ns": [
+            -2748280,
+            -704473
+          ],
+          "indicated_error_mid_ns": -1726377,
+          "pure_frequency_ppb": 605,
+          "total_rate_ppb": -1621,
+          "statistical_frequency_uncertainty_ppb": 18732
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "43",
+          "tick": 36,
+          "host_utc_ns": 1792362276918037674,
+          "pico_error_ns": [
+            -2762970,
+            -731383
+          ],
+          "indicated_error_mid_ns": -1747177,
+          "pure_frequency_ppb": 745,
+          "total_rate_ppb": -169,
+          "statistical_frequency_uncertainty_ppb": 16991
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "44",
+          "tick": 37,
+          "host_utc_ns": 1792362286841494514,
+          "pico_error_ns": [
+            -2783087,
+            -730946
+          ],
+          "indicated_error_mid_ns": -1757017,
+          "pure_frequency_ppb": 745,
+          "total_rate_ppb": -169,
+          "statistical_frequency_uncertainty_ppb": 16991
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "45",
+          "tick": 38,
+          "host_utc_ns": 1792362296833734872,
+          "pico_error_ns": [
+            -2783777,
+            -737972
+          ],
+          "indicated_error_mid_ns": -1760875,
+          "pure_frequency_ppb": 745,
+          "total_rate_ppb": -169,
+          "statistical_frequency_uncertainty_ppb": 16991
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "46",
+          "tick": 39,
+          "host_utc_ns": 1792362306842398843,
+          "pico_error_ns": [
+            -2788999,
+            -762692
+          ],
+          "indicated_error_mid_ns": -1775846,
+          "pure_frequency_ppb": 745,
+          "total_rate_ppb": -169,
+          "statistical_frequency_uncertainty_ppb": 16991
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "47",
+          "tick": 40,
+          "host_utc_ns": 1792362316835053085,
+          "pico_error_ns": [
+            -2808416,
+            -762759
+          ],
+          "indicated_error_mid_ns": -1785588,
+          "pure_frequency_ppb": 745,
+          "total_rate_ppb": -169,
+          "statistical_frequency_uncertainty_ppb": 16991
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "48",
+          "tick": 41,
+          "host_utc_ns": 1792362326848593009,
+          "pico_error_ns": [
+            -2815540,
+            -775483
+          ],
+          "indicated_error_mid_ns": -1795512,
+          "pure_frequency_ppb": 745,
+          "total_rate_ppb": -169,
+          "statistical_frequency_uncertainty_ppb": 16991
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "49",
+          "tick": 42,
+          "host_utc_ns": 1792362336908467377,
+          "pico_error_ns": [
+            -2835956,
+            -775803
+          ],
+          "indicated_error_mid_ns": -1805880,
+          "pure_frequency_ppb": 745,
+          "total_rate_ppb": -169,
+          "statistical_frequency_uncertainty_ppb": 16991
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "50",
+          "tick": 43,
+          "host_utc_ns": 1792362346834855445,
+          "pico_error_ns": [
+            -2827571,
+            -780311
+          ],
+          "indicated_error_mid_ns": -1803941,
+          "pure_frequency_ppb": 1406,
+          "total_rate_ppb": 1401,
+          "statistical_frequency_uncertainty_ppb": 17978
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "51",
+          "tick": 44,
+          "host_utc_ns": 1792362356834211546,
+          "pico_error_ns": [
+            -2813364,
+            -780722
+          ],
+          "indicated_error_mid_ns": -1797043,
+          "pure_frequency_ppb": 1406,
+          "total_rate_ppb": 1401,
+          "statistical_frequency_uncertainty_ppb": 17978
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "52",
+          "tick": 45,
+          "host_utc_ns": 1792362366833902199,
+          "pico_error_ns": [
+            -2816947,
+            -764445
+          ],
+          "indicated_error_mid_ns": -1790696,
+          "pure_frequency_ppb": 1406,
+          "total_rate_ppb": 1401,
+          "statistical_frequency_uncertainty_ppb": 17978
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "53",
+          "tick": 46,
+          "host_utc_ns": 1792362376834776880,
+          "pico_error_ns": [
+            -2804785,
+            -765969
+          ],
+          "indicated_error_mid_ns": -1785377,
+          "pure_frequency_ppb": 1406,
+          "total_rate_ppb": 1401,
+          "statistical_frequency_uncertainty_ppb": 17978
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "54",
+          "tick": 47,
+          "host_utc_ns": 1792362386836047226,
+          "pico_error_ns": [
+            -2795268,
+            -763176
+          ],
+          "indicated_error_mid_ns": -1779222,
+          "pure_frequency_ppb": 1406,
+          "total_rate_ppb": 1401,
+          "statistical_frequency_uncertainty_ppb": 17978
+        },
+        {
+          "segment": "pulse-history",
+          "sequence": "55",
+          "tick": 48,
+          "host_utc_ns": 1792362396908147951,
+          "pico_error_ns": [
+            -2798141,
+            -746755
+          ],
+          "indicated_error_mid_ns": -1772448,
+          "pure_frequency_ppb": 1406,
+          "total_rate_ppb": 1401,
+          "statistical_frequency_uncertainty_ppb": 17978
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "56",
+          "tick": 0,
+          "host_utc_ns": 1792362430913057834,
+          "pico_error_ns": [
+            -2762454,
+            -708204
+          ],
+          "indicated_error_mid_ns": -1735329,
+          "pure_frequency_ppb": 1596,
+          "total_rate_ppb": 1942,
+          "statistical_frequency_uncertainty_ppb": 19384
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "57",
+          "tick": 1,
+          "host_utc_ns": 1792362440834199130,
+          "pico_error_ns": [
+            -2747457,
+            -703793
+          ],
+          "indicated_error_mid_ns": -1725625,
+          "pure_frequency_ppb": 1596,
+          "total_rate_ppb": 1942,
+          "statistical_frequency_uncertainty_ppb": 19384
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "58",
+          "tick": 2,
+          "host_utc_ns": 1792362450851483791,
+          "pico_error_ns": [
+            -2730751,
+            -695821
+          ],
+          "indicated_error_mid_ns": -1713286,
+          "pure_frequency_ppb": 1596,
+          "total_rate_ppb": 1942,
+          "statistical_frequency_uncertainty_ppb": 19384
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "59",
+          "tick": 3,
+          "host_utc_ns": 1792362460842923750,
+          "pico_error_ns": [
+            -2730743,
+            -676747
+          ],
+          "indicated_error_mid_ns": -1703745,
+          "pure_frequency_ppb": 1596,
+          "total_rate_ppb": 1942,
+          "statistical_frequency_uncertainty_ppb": 19384
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "60",
+          "tick": 4,
+          "host_utc_ns": 1792362470838962066,
+          "pico_error_ns": [
+            -2716522,
+            -674604
+          ],
+          "indicated_error_mid_ns": -1695563,
+          "pure_frequency_ppb": 1295,
+          "total_rate_ppb": 1233,
+          "statistical_frequency_uncertainty_ppb": 18571
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "61",
+          "tick": 5,
+          "host_utc_ns": 1792362480837044227,
+          "pico_error_ns": [
+            -2723219,
+            -660229
+          ],
+          "indicated_error_mid_ns": -1691724,
+          "pure_frequency_ppb": 1295,
+          "total_rate_ppb": 1233,
+          "statistical_frequency_uncertainty_ppb": 18571
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "62",
+          "tick": 6,
+          "host_utc_ns": 1792362490920132379,
+          "pico_error_ns": [
+            -2712888,
+            -664864
+          ],
+          "indicated_error_mid_ns": -1688876,
+          "pure_frequency_ppb": 1295,
+          "total_rate_ppb": 1233,
+          "statistical_frequency_uncertainty_ppb": 18571
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "63",
+          "tick": 7,
+          "host_utc_ns": 1792362500839180163,
+          "pico_error_ns": [
+            -2701713,
+            -665607
+          ],
+          "indicated_error_mid_ns": -1683660,
+          "pure_frequency_ppb": 1295,
+          "total_rate_ppb": 1233,
+          "statistical_frequency_uncertainty_ppb": 18571
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "64",
+          "tick": 8,
+          "host_utc_ns": 1792362510874003132,
+          "pico_error_ns": [
+            -2707821,
+            -651437
+          ],
+          "indicated_error_mid_ns": -1679629,
+          "pure_frequency_ppb": 1295,
+          "total_rate_ppb": 1233,
+          "statistical_frequency_uncertainty_ppb": 18571
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "65",
+          "tick": 9,
+          "host_utc_ns": 1792362520838408965,
+          "pico_error_ns": [
+            -2696613,
+            -651311
+          ],
+          "indicated_error_mid_ns": -1673962,
+          "pure_frequency_ppb": 1295,
+          "total_rate_ppb": 1233,
+          "statistical_frequency_uncertainty_ppb": 18571
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "66",
+          "tick": 10,
+          "host_utc_ns": 1792362530835469288,
+          "pico_error_ns": [
+            -2686439,
+            -655131
+          ],
+          "indicated_error_mid_ns": -1670785,
+          "pure_frequency_ppb": 1295,
+          "total_rate_ppb": 1233,
+          "statistical_frequency_uncertainty_ppb": 18571
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "67",
+          "tick": 11,
+          "host_utc_ns": 1792362540839204344,
+          "pico_error_ns": [
+            -2688504,
+            -636176
+          ],
+          "indicated_error_mid_ns": -1662340,
+          "pure_frequency_ppb": 1424,
+          "total_rate_ppb": 1717,
+          "statistical_frequency_uncertainty_ppb": 16176
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "68",
+          "tick": 12,
+          "host_utc_ns": 1792362550911748579,
+          "pico_error_ns": [
+            -2673684,
+            -634466
+          ],
+          "indicated_error_mid_ns": -1654075,
+          "pure_frequency_ppb": 1424,
+          "total_rate_ppb": 1717,
+          "statistical_frequency_uncertainty_ppb": 16176
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "69",
+          "tick": 13,
+          "host_utc_ns": 1792362560842434098,
+          "pico_error_ns": [
+            -2674456,
+            -614732
+          ],
+          "indicated_error_mid_ns": -1644594,
+          "pure_frequency_ppb": 1424,
+          "total_rate_ppb": 1717,
+          "statistical_frequency_uncertainty_ppb": 16176
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "70",
+          "tick": 14,
+          "host_utc_ns": 1792362570850639302,
+          "pico_error_ns": [
+            -2658620,
+            -612976
+          ],
+          "indicated_error_mid_ns": -1635798,
+          "pure_frequency_ppb": 1424,
+          "total_rate_ppb": 1717,
+          "statistical_frequency_uncertainty_ppb": 16176
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "71",
+          "tick": 15,
+          "host_utc_ns": 1792362580847898679,
+          "pico_error_ns": [
+            -2643616,
+            -608732
+          ],
+          "indicated_error_mid_ns": -1626174,
+          "pure_frequency_ppb": 1424,
+          "total_rate_ppb": 1717,
+          "statistical_frequency_uncertainty_ppb": 16176
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "72",
+          "tick": 16,
+          "host_utc_ns": 1792362590841456673,
+          "pico_error_ns": [
+            -2645686,
+            -590652
+          ],
+          "indicated_error_mid_ns": -1618169,
+          "pure_frequency_ppb": 1424,
+          "total_rate_ppb": 1717,
+          "statistical_frequency_uncertainty_ppb": 16176
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "73",
+          "tick": 17,
+          "host_utc_ns": 1792362600848752042,
+          "pico_error_ns": [
+            -2613684,
+            -571368
+          ],
+          "indicated_error_mid_ns": -1592526,
+          "pure_frequency_ppb": 1886,
+          "total_rate_ppb": 5859,
+          "statistical_frequency_uncertainty_ppb": 15210
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "74",
+          "tick": 18,
+          "host_utc_ns": 1792362610921762600,
+          "pico_error_ns": [
+            -2557978,
+            -526190
+          ],
+          "indicated_error_mid_ns": -1542084,
+          "pure_frequency_ppb": 1886,
+          "total_rate_ppb": 5859,
+          "statistical_frequency_uncertainty_ppb": 15210
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "75",
+          "tick": 19,
+          "host_utc_ns": 1792362620842305896,
+          "pico_error_ns": [
+            -2518273,
+            -466487
+          ],
+          "indicated_error_mid_ns": -1492380,
+          "pure_frequency_ppb": 1886,
+          "total_rate_ppb": 5859,
+          "statistical_frequency_uncertainty_ppb": 15210
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "76",
+          "tick": 20,
+          "host_utc_ns": 1792362630858057298,
+          "pico_error_ns": [
+            -2460882,
+            -420682
+          ],
+          "indicated_error_mid_ns": -1440782,
+          "pure_frequency_ppb": 1886,
+          "total_rate_ppb": 5859,
+          "statistical_frequency_uncertainty_ppb": 15210
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "77",
+          "tick": 21,
+          "host_utc_ns": 1792362640843491059,
+          "pico_error_ns": [
+            -2421772,
+            -361314
+          ],
+          "indicated_error_mid_ns": -1391543,
+          "pure_frequency_ppb": 1886,
+          "total_rate_ppb": 5859,
+          "statistical_frequency_uncertainty_ppb": 15210
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "78",
+          "tick": 22,
+          "host_utc_ns": 1792362650842624988,
+          "pico_error_ns": [
+            -2363113,
+            -317831
+          ],
+          "indicated_error_mid_ns": -1340472,
+          "pure_frequency_ppb": 1886,
+          "total_rate_ppb": 5859,
+          "statistical_frequency_uncertainty_ppb": 15210
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "79",
+          "tick": 23,
+          "host_utc_ns": 1792362660842805176,
+          "pico_error_ns": [
+            -2307213,
+            -274107
+          ],
+          "indicated_error_mid_ns": -1290660,
+          "pure_frequency_ppb": 1886,
+          "total_rate_ppb": 5859,
+          "statistical_frequency_uncertainty_ppb": 15210
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "80",
+          "tick": 24,
+          "host_utc_ns": 1792362670920027979,
+          "pico_error_ns": [
+            -2254100,
+            -200818
+          ],
+          "indicated_error_mid_ns": -1227459,
+          "pure_frequency_ppb": 2274,
+          "total_rate_ppb": 7214,
+          "statistical_frequency_uncertainty_ppb": 13231
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "81",
+          "tick": 25,
+          "host_utc_ns": 1792362680847699562,
+          "pico_error_ns": [
+            -2184789,
+            -143295
+          ],
+          "indicated_error_mid_ns": -1164042,
+          "pure_frequency_ppb": 2274,
+          "total_rate_ppb": 7214,
+          "statistical_frequency_uncertainty_ppb": 13231
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "82",
+          "tick": 26,
+          "host_utc_ns": 1792362690859346419,
+          "pico_error_ns": [
+            -2113930,
+            -87868
+          ],
+          "indicated_error_mid_ns": -1100899,
+          "pure_frequency_ppb": 2274,
+          "total_rate_ppb": 7214,
+          "statistical_frequency_uncertainty_ppb": 13231
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "83",
+          "tick": 27,
+          "host_utc_ns": 1792362700846571197,
+          "pico_error_ns": [
+            -2059753,
+            -13601
+          ],
+          "indicated_error_mid_ns": -1036677,
+          "pure_frequency_ppb": 2274,
+          "total_rate_ppb": 7214,
+          "statistical_frequency_uncertainty_ppb": 13231
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "84",
+          "tick": 28,
+          "host_utc_ns": 1792362710845415898,
+          "pico_error_ns": [
+            -1992875,
+            48119
+          ],
+          "indicated_error_mid_ns": -972378,
+          "pure_frequency_ppb": 2274,
+          "total_rate_ppb": 7214,
+          "statistical_frequency_uncertainty_ppb": 13231
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "85",
+          "tick": 29,
+          "host_utc_ns": 1792362720848227640,
+          "pico_error_ns": [
+            -1939636,
+            122396
+          ],
+          "indicated_error_mid_ns": -908620,
+          "pure_frequency_ppb": 2274,
+          "total_rate_ppb": 7214,
+          "statistical_frequency_uncertainty_ppb": 13231
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "86",
+          "tick": 30,
+          "host_utc_ns": 1792362730923012611,
+          "pico_error_ns": [
+            -1872174,
+            173988
+          ],
+          "indicated_error_mid_ns": -849093,
+          "pure_frequency_ppb": 2406,
+          "total_rate_ppb": 6382,
+          "statistical_frequency_uncertainty_ppb": 12629
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "87",
+          "tick": 31,
+          "host_utc_ns": 1792362740848225750,
+          "pico_error_ns": [
+            -1810819,
+            222355
+          ],
+          "indicated_error_mid_ns": -794232,
+          "pure_frequency_ppb": 2406,
+          "total_rate_ppb": 6382,
+          "statistical_frequency_uncertainty_ppb": 12629
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "88",
+          "tick": 32,
+          "host_utc_ns": 1792362750849404022,
+          "pico_error_ns": [
+            -1765149,
+            288141
+          ],
+          "indicated_error_mid_ns": -738504,
+          "pure_frequency_ppb": 2406,
+          "total_rate_ppb": 6382,
+          "statistical_frequency_uncertainty_ppb": 12629
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "89",
+          "tick": 33,
+          "host_utc_ns": 1792362760841208485,
+          "pico_error_ns": [
+            -1703465,
+            337531
+          ],
+          "indicated_error_mid_ns": -682967,
+          "pure_frequency_ppb": 2406,
+          "total_rate_ppb": 6382,
+          "statistical_frequency_uncertainty_ppb": 12629
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "90",
+          "tick": 34,
+          "host_utc_ns": 1792362770841439686,
+          "pico_error_ns": [
+            -1642686,
+            389350
+          ],
+          "indicated_error_mid_ns": -626668,
+          "pure_frequency_ppb": 2406,
+          "total_rate_ppb": 6382,
+          "statistical_frequency_uncertainty_ppb": 12629
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "91",
+          "tick": 35,
+          "host_utc_ns": 1792362780844692621,
+          "pico_error_ns": [
+            -1598598,
+            452392
+          ],
+          "indicated_error_mid_ns": -573103,
+          "pure_frequency_ppb": 2406,
+          "total_rate_ppb": 6382,
+          "statistical_frequency_uncertainty_ppb": 12629
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "92",
+          "tick": 36,
+          "host_utc_ns": 1792362790919974654,
+          "pico_error_ns": [
+            -1535524,
+            502252
+          ],
+          "indicated_error_mid_ns": -516636,
+          "pure_frequency_ppb": 2558,
+          "total_rate_ppb": 6483,
+          "statistical_frequency_uncertainty_ppb": 12790
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "93",
+          "tick": 37,
+          "host_utc_ns": 1792362800840860486,
+          "pico_error_ns": [
+            -1489403,
+            568467
+          ],
+          "indicated_error_mid_ns": -460468,
+          "pure_frequency_ppb": 2558,
+          "total_rate_ppb": 6483,
+          "statistical_frequency_uncertainty_ppb": 12790
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "94",
+          "tick": 38,
+          "host_utc_ns": 1792362810866228717,
+          "pico_error_ns": [
+            -1428236,
+            618838
+          ],
+          "indicated_error_mid_ns": -404699,
+          "pure_frequency_ppb": 2558,
+          "total_rate_ppb": 6483,
+          "statistical_frequency_uncertainty_ppb": 12790
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "95",
+          "tick": 39,
+          "host_utc_ns": 1792362820841041594,
+          "pico_error_ns": [
+            -1365337,
+            669185
+          ],
+          "indicated_error_mid_ns": -348076,
+          "pure_frequency_ppb": 2558,
+          "total_rate_ppb": 6483,
+          "statistical_frequency_uncertainty_ppb": 12790
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "96",
+          "tick": 40,
+          "host_utc_ns": 1792362830840667751,
+          "pico_error_ns": [
+            -1318587,
+            734121
+          ],
+          "indicated_error_mid_ns": -292233,
+          "pure_frequency_ppb": 2558,
+          "total_rate_ppb": 6483,
+          "statistical_frequency_uncertainty_ppb": 12790
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "97",
+          "tick": 41,
+          "host_utc_ns": 1792362840844136535,
+          "pico_error_ns": [
+            -1257266,
+            785232
+          ],
+          "indicated_error_mid_ns": -236017,
+          "pure_frequency_ppb": 2558,
+          "total_rate_ppb": 6483,
+          "statistical_frequency_uncertainty_ppb": 12790
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "98",
+          "tick": 42,
+          "host_utc_ns": 1792362850920286608,
+          "pico_error_ns": [
+            -1194463,
+            837283
+          ],
+          "indicated_error_mid_ns": -178590,
+          "pure_frequency_ppb": 2558,
+          "total_rate_ppb": 6483,
+          "statistical_frequency_uncertainty_ppb": 12790
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "99",
+          "tick": 43,
+          "host_utc_ns": 1792362860846647821,
+          "pico_error_ns": [
+            -1171756,
+            880130
+          ],
+          "indicated_error_mid_ns": -145813,
+          "pure_frequency_ppb": 2231,
+          "total_rate_ppb": 2911,
+          "statistical_frequency_uncertainty_ppb": 13310
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "100",
+          "tick": 44,
+          "host_utc_ns": 1792362870855286330,
+          "pico_error_ns": [
+            -1142556,
+            892912
+          ],
+          "indicated_error_mid_ns": -124822,
+          "pure_frequency_ppb": 2231,
+          "total_rate_ppb": 2911,
+          "statistical_frequency_uncertainty_ppb": 13310
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "101",
+          "tick": 45,
+          "host_utc_ns": 1792362880853230528,
+          "pico_error_ns": [
+            -1130780,
+            924740
+          ],
+          "indicated_error_mid_ns": -103020,
+          "pure_frequency_ppb": 2231,
+          "total_rate_ppb": 2911,
+          "statistical_frequency_uncertainty_ppb": 13310
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "102",
+          "tick": 46,
+          "host_utc_ns": 1792362890847678729,
+          "pico_error_ns": [
+            -1104855,
+            938413
+          ],
+          "indicated_error_mid_ns": -83221,
+          "pure_frequency_ppb": 2231,
+          "total_rate_ppb": 2911,
+          "statistical_frequency_uncertainty_ppb": 13310
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "103",
+          "tick": 47,
+          "host_utc_ns": 1792362900848623078,
+          "pico_error_ns": [
+            -1079994,
+            952854
+          ],
+          "indicated_error_mid_ns": -63570,
+          "pure_frequency_ppb": 2231,
+          "total_rate_ppb": 2911,
+          "statistical_frequency_uncertainty_ppb": 13310
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "104",
+          "tick": 48,
+          "host_utc_ns": 1792362910926582304,
+          "pico_error_ns": [
+            -1069241,
+            983649
+          ],
+          "indicated_error_mid_ns": -42796,
+          "pure_frequency_ppb": 2231,
+          "total_rate_ppb": 2911,
+          "statistical_frequency_uncertainty_ppb": 13310
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "105",
+          "tick": 49,
+          "host_utc_ns": 1792362920847876721,
+          "pico_error_ns": [
+            -1040465,
+            1002055
+          ],
+          "indicated_error_mid_ns": -19205,
+          "pure_frequency_ppb": 2458,
+          "total_rate_ppb": 5781,
+          "statistical_frequency_uncertainty_ppb": 12584
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "106",
+          "tick": 50,
+          "host_utc_ns": 1792362930859730132,
+          "pico_error_ns": [
+            -984645,
+            1045413
+          ],
+          "indicated_error_mid_ns": 30384,
+          "pure_frequency_ppb": 2458,
+          "total_rate_ppb": 5781,
+          "statistical_frequency_uncertainty_ppb": 12584
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "107",
+          "tick": 51,
+          "host_utc_ns": 1792362940848004355,
+          "pico_error_ns": [
+            -944955,
+            1106277
+          ],
+          "indicated_error_mid_ns": 80661,
+          "pure_frequency_ppb": 2458,
+          "total_rate_ppb": 5781,
+          "statistical_frequency_uncertainty_ppb": 12584
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "108",
+          "tick": 52,
+          "host_utc_ns": 1792362950848795558,
+          "pico_error_ns": [
+            -891664,
+            1149580
+          ],
+          "indicated_error_mid_ns": 128958,
+          "pure_frequency_ppb": 2458,
+          "total_rate_ppb": 5781,
+          "statistical_frequency_uncertainty_ppb": 12584
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "109",
+          "tick": 53,
+          "host_utc_ns": 1792362960848800814,
+          "pico_error_ns": [
+            -853212,
+            1209616
+          ],
+          "indicated_error_mid_ns": 178202,
+          "pure_frequency_ppb": 2458,
+          "total_rate_ppb": 5781,
+          "statistical_frequency_uncertainty_ppb": 12584
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "110",
+          "tick": 54,
+          "host_utc_ns": 1792362970918306957,
+          "pico_error_ns": [
+            -796291,
+            1252409
+          ],
+          "indicated_error_mid_ns": 228059,
+          "pure_frequency_ppb": 2458,
+          "total_rate_ppb": 5781,
+          "statistical_frequency_uncertainty_ppb": 12584
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "111",
+          "tick": 55,
+          "host_utc_ns": 1792362980846595444,
+          "pico_error_ns": [
+            -740657,
+            1295801
+          ],
+          "indicated_error_mid_ns": 277572,
+          "pure_frequency_ppb": 2458,
+          "total_rate_ppb": 5781,
+          "statistical_frequency_uncertainty_ppb": 12584
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "112",
+          "tick": 56,
+          "host_utc_ns": 1792362990844426515,
+          "pico_error_ns": [
+            -721736,
+            1333722
+          ],
+          "indicated_error_mid_ns": 305993,
+          "pure_frequency_ppb": 2239,
+          "total_rate_ppb": 2830,
+          "statistical_frequency_uncertainty_ppb": 12928
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "113",
+          "tick": 57,
+          "host_utc_ns": 1792363000849391793,
+          "pico_error_ns": [
+            -693888,
+            1345318
+          ],
+          "indicated_error_mid_ns": 325715,
+          "pure_frequency_ppb": 2239,
+          "total_rate_ppb": 2830,
+          "statistical_frequency_uncertainty_ppb": 12928
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "114",
+          "tick": 58,
+          "host_utc_ns": 1792363010848652989,
+          "pico_error_ns": [
+            -668468,
+            1357506
+          ],
+          "indicated_error_mid_ns": 344519,
+          "pure_frequency_ppb": 2239,
+          "total_rate_ppb": 2830,
+          "statistical_frequency_uncertainty_ppb": 12928
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "115",
+          "tick": 59,
+          "host_utc_ns": 1792363020845478840,
+          "pico_error_ns": [
+            -659341,
+            1386677
+          ],
+          "indicated_error_mid_ns": 363668,
+          "pure_frequency_ppb": 2239,
+          "total_rate_ppb": 2830,
+          "statistical_frequency_uncertainty_ppb": 12928
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "116",
+          "tick": 60,
+          "host_utc_ns": 1792363030921398646,
+          "pico_error_ns": [
+            -627864,
+            1407588
+          ],
+          "indicated_error_mid_ns": 389862,
+          "pure_frequency_ppb": 2239,
+          "total_rate_ppb": 2830,
+          "statistical_frequency_uncertainty_ppb": 12928
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "117",
+          "tick": 61,
+          "host_utc_ns": 1792363040840509482,
+          "pico_error_ns": [
+            -624695,
+            1431747
+          ],
+          "indicated_error_mid_ns": 403526,
+          "pure_frequency_ppb": 2239,
+          "total_rate_ppb": 2830,
+          "statistical_frequency_uncertainty_ppb": 12928
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "118",
+          "tick": 62,
+          "host_utc_ns": 1792363050862338655,
+          "pico_error_ns": [
+            -601479,
+            1443179
+          ],
+          "indicated_error_mid_ns": 420850,
+          "pure_frequency_ppb": 1933,
+          "total_rate_ppb": 1810,
+          "statistical_frequency_uncertainty_ppb": 11613
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "119",
+          "tick": 63,
+          "host_utc_ns": 1792363060841041213,
+          "pico_error_ns": [
+            -587635,
+            1447219
+          ],
+          "indicated_error_mid_ns": 429792,
+          "pure_frequency_ppb": 1933,
+          "total_rate_ppb": 1810,
+          "statistical_frequency_uncertainty_ppb": 11613
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "120",
+          "tick": 64,
+          "host_utc_ns": 1792363070845625049,
+          "pico_error_ns": [
+            -587525,
+            1467437
+          ],
+          "indicated_error_mid_ns": 439956,
+          "pure_frequency_ppb": 1933,
+          "total_rate_ppb": 1810,
+          "statistical_frequency_uncertainty_ppb": 11613
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "121",
+          "tick": 65,
+          "host_utc_ns": 1792363080844957297,
+          "pico_error_ns": [
+            -575323,
+            1470739
+          ],
+          "indicated_error_mid_ns": 447708,
+          "pure_frequency_ppb": 1933,
+          "total_rate_ppb": 1810,
+          "statistical_frequency_uncertainty_ppb": 11613
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "122",
+          "tick": 66,
+          "host_utc_ns": 1792363090923960725,
+          "pico_error_ns": [
+            -556862,
+            1472422
+          ],
+          "indicated_error_mid_ns": 457780,
+          "pure_frequency_ppb": 1933,
+          "total_rate_ppb": 1810,
+          "statistical_frequency_uncertainty_ppb": 11613
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "123",
+          "tick": 67,
+          "host_utc_ns": 1792363100849065014,
+          "pico_error_ns": [
+            -558167,
+            1492149
+          ],
+          "indicated_error_mid_ns": 466991,
+          "pure_frequency_ppb": 1933,
+          "total_rate_ppb": 1810,
+          "statistical_frequency_uncertainty_ppb": 11613
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "124",
+          "tick": 68,
+          "host_utc_ns": 1792363110854001951,
+          "pico_error_ns": [
+            -542412,
+            1496520
+          ],
+          "indicated_error_mid_ns": 477054,
+          "pure_frequency_ppb": 1933,
+          "total_rate_ppb": 1810,
+          "statistical_frequency_uncertainty_ppb": 11613
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "125",
+          "tick": 69,
+          "host_utc_ns": 1792363120851994780,
+          "pico_error_ns": [
+            -547451,
+            1510897
+          ],
+          "indicated_error_mid_ns": 481723,
+          "pure_frequency_ppb": 1790,
+          "total_rate_ppb": 1286,
+          "statistical_frequency_uncertainty_ppb": 10405
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "126",
+          "tick": 70,
+          "host_utc_ns": 1792363130847595509,
+          "pico_error_ns": [
+            -539177,
+            1509165
+          ],
+          "indicated_error_mid_ns": 484994,
+          "pure_frequency_ppb": 1790,
+          "total_rate_ppb": 1286,
+          "statistical_frequency_uncertainty_ppb": 10405
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "127",
+          "tick": 71,
+          "host_utc_ns": 1792363140848063784,
+          "pico_error_ns": [
+            -528031,
+            1507469
+          ],
+          "indicated_error_mid_ns": 489719,
+          "pure_frequency_ppb": 1790,
+          "total_rate_ppb": 1286,
+          "statistical_frequency_uncertainty_ppb": 10405
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "128",
+          "tick": 72,
+          "host_utc_ns": 1792363150919027141,
+          "pico_error_ns": [
+            -533464,
+            1522188
+          ],
+          "indicated_error_mid_ns": 494362,
+          "pure_frequency_ppb": 1790,
+          "total_rate_ppb": 1286,
+          "statistical_frequency_uncertainty_ppb": 10405
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "129",
+          "tick": 73,
+          "host_utc_ns": 1792363160846718495,
+          "pico_error_ns": [
+            -525342,
+            1519358
+          ],
+          "indicated_error_mid_ns": 497008,
+          "pure_frequency_ppb": 1790,
+          "total_rate_ppb": 1286,
+          "statistical_frequency_uncertainty_ppb": 10405
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "130",
+          "tick": 74,
+          "host_utc_ns": 1792363170862432881,
+          "pico_error_ns": [
+            -511918,
+            1515162
+          ],
+          "indicated_error_mid_ns": 501622,
+          "pure_frequency_ppb": 1790,
+          "total_rate_ppb": 1286,
+          "statistical_frequency_uncertainty_ppb": 10405
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "131",
+          "tick": 75,
+          "host_utc_ns": 1792363180871200788,
+          "pico_error_ns": [
+            -525898,
+            1522313
+          ],
+          "indicated_error_mid_ns": 498207,
+          "pure_frequency_ppb": 1354,
+          "total_rate_ppb": -1010,
+          "statistical_frequency_uncertainty_ppb": 10153
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "132",
+          "tick": 76,
+          "host_utc_ns": 1792363190850895149,
+          "pico_error_ns": [
+            -539031,
+            1496724
+          ],
+          "indicated_error_mid_ns": 478846,
+          "pure_frequency_ppb": 1354,
+          "total_rate_ppb": -1010,
+          "statistical_frequency_uncertainty_ppb": 10153
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "133",
+          "tick": 77,
+          "host_utc_ns": 1792363200850126137,
+          "pico_error_ns": [
+            -567083,
+            1488800
+          ],
+          "indicated_error_mid_ns": 460858,
+          "pure_frequency_ppb": 1354,
+          "total_rate_ppb": -1010,
+          "statistical_frequency_uncertainty_ppb": 10153
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "134",
+          "tick": 78,
+          "host_utc_ns": 1792363210921287606,
+          "pico_error_ns": [
+            -579304,
+            1463083
+          ],
+          "indicated_error_mid_ns": 441889,
+          "pure_frequency_ppb": 1354,
+          "total_rate_ppb": -1010,
+          "statistical_frequency_uncertainty_ppb": 10153
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "135",
+          "tick": 79,
+          "host_utc_ns": 1792363220844568038,
+          "pico_error_ns": [
+            -593166,
+            1438081
+          ],
+          "indicated_error_mid_ns": 422457,
+          "pure_frequency_ppb": 1354,
+          "total_rate_ppb": -1010,
+          "statistical_frequency_uncertainty_ppb": 10153
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "136",
+          "tick": 80,
+          "host_utc_ns": 1792363230858647513,
+          "pico_error_ns": [
+            -621684,
+            1429649
+          ],
+          "indicated_error_mid_ns": 403982,
+          "pure_frequency_ppb": 1354,
+          "total_rate_ppb": -1010,
+          "statistical_frequency_uncertainty_ppb": 10153
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "137",
+          "tick": 81,
+          "host_utc_ns": 1792363240847586503,
+          "pico_error_ns": [
+            -638527,
+            1407512
+          ],
+          "indicated_error_mid_ns": 384492,
+          "pure_frequency_ppb": 1354,
+          "total_rate_ppb": -1010,
+          "statistical_frequency_uncertainty_ppb": 10153
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "138",
+          "tick": 82,
+          "host_utc_ns": 1792363250846742748,
+          "pico_error_ns": [
+            -675369,
+            1351846
+          ],
+          "indicated_error_mid_ns": 338238,
+          "pure_frequency_ppb": 907,
+          "total_rate_ppb": -4058,
+          "statistical_frequency_uncertainty_ppb": 10601
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "139",
+          "tick": 83,
+          "host_utc_ns": 1792363260847535755,
+          "pico_error_ns": [
+            -730407,
+            1316870
+          ],
+          "indicated_error_mid_ns": 293231,
+          "pure_frequency_ppb": 907,
+          "total_rate_ppb": -4058,
+          "statistical_frequency_uncertainty_ppb": 10601
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "140",
+          "tick": 84,
+          "host_utc_ns": 1792363270923858701,
+          "pico_error_ns": [
+            -780354,
+            1255925
+          ],
+          "indicated_error_mid_ns": 237785,
+          "pure_frequency_ppb": 907,
+          "total_rate_ppb": -4058,
+          "statistical_frequency_uncertainty_ppb": 10601
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "141",
+          "tick": 85,
+          "host_utc_ns": 1792363280840147680,
+          "pico_error_ns": [
+            -839353,
+            1216966
+          ],
+          "indicated_error_mid_ns": 188806,
+          "pure_frequency_ppb": 907,
+          "total_rate_ppb": -4058,
+          "statistical_frequency_uncertainty_ppb": 10601
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "142",
+          "tick": 86,
+          "host_utc_ns": 1792363290855418710,
+          "pico_error_ns": [
+            -883157,
+            1160710
+          ],
+          "indicated_error_mid_ns": 138776,
+          "pure_frequency_ppb": 907,
+          "total_rate_ppb": -4058,
+          "statistical_frequency_uncertainty_ppb": 10601
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "143",
+          "tick": 87,
+          "host_utc_ns": 1792363300845325978,
+          "pico_error_ns": [
+            -927428,
+            1107445
+          ],
+          "indicated_error_mid_ns": 90008,
+          "pure_frequency_ppb": 907,
+          "total_rate_ppb": -4058,
+          "statistical_frequency_uncertainty_ppb": 10601
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "144",
+          "tick": 88,
+          "host_utc_ns": 1792363310845700960,
+          "pico_error_ns": [
+            -1000523,
+            1053558
+          ],
+          "indicated_error_mid_ns": 26517,
+          "pure_frequency_ppb": 520,
+          "total_rate_ppb": -7056,
+          "statistical_frequency_uncertainty_ppb": 9575
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "145",
+          "tick": 89,
+          "host_utc_ns": 1792363320848211536,
+          "pico_error_ns": [
+            -1074993,
+            967878
+          ],
+          "indicated_error_mid_ns": -53558,
+          "pure_frequency_ppb": 520,
+          "total_rate_ppb": -7056,
+          "statistical_frequency_uncertainty_ppb": 9575
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "146",
+          "tick": 90,
+          "host_utc_ns": 1792363330930063262,
+          "pico_error_ns": [
+            -1148462,
+            880893
+          ],
+          "indicated_error_mid_ns": -133785,
+          "pure_frequency_ppb": 520,
+          "total_rate_ppb": -7056,
+          "statistical_frequency_uncertainty_ppb": 9575
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "147",
+          "tick": 91,
+          "host_utc_ns": 1792363340856227800,
+          "pico_error_ns": [
+            -1237033,
+            813388
+          ],
+          "indicated_error_mid_ns": -211823,
+          "pure_frequency_ppb": 520,
+          "total_rate_ppb": -7056,
+          "statistical_frequency_uncertainty_ppb": 9575
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "148",
+          "tick": 92,
+          "host_utc_ns": 1792363350867732499,
+          "pico_error_ns": [
+            -1312440,
+            729397
+          ],
+          "indicated_error_mid_ns": -291522,
+          "pure_frequency_ppb": 520,
+          "total_rate_ppb": -7056,
+          "statistical_frequency_uncertainty_ppb": 9575
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "149",
+          "tick": 93,
+          "host_utc_ns": 1792363360857306588,
+          "pico_error_ns": [
+            -1400629,
+            660410
+          ],
+          "indicated_error_mid_ns": -370110,
+          "pure_frequency_ppb": 520,
+          "total_rate_ppb": -7056,
+          "statistical_frequency_uncertainty_ppb": 9575
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "150",
+          "tick": 94,
+          "host_utc_ns": 1792363370864287850,
+          "pico_error_ns": [
+            -1471409,
+            570666
+          ],
+          "indicated_error_mid_ns": -450372,
+          "pure_frequency_ppb": 413,
+          "total_rate_ppb": -7041,
+          "statistical_frequency_uncertainty_ppb": 8854
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "151",
+          "tick": 95,
+          "host_utc_ns": 1792363380861696577,
+          "pico_error_ns": [
+            -1546271,
+            488072
+          ],
+          "indicated_error_mid_ns": -529100,
+          "pure_frequency_ppb": 413,
+          "total_rate_ppb": -7041,
+          "statistical_frequency_uncertainty_ppb": 8854
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "152",
+          "tick": 96,
+          "host_utc_ns": 1792363390934840139,
+          "pico_error_ns": [
+            -1636894,
+            418571
+          ],
+          "indicated_error_mid_ns": -609162,
+          "pure_frequency_ppb": 413,
+          "total_rate_ppb": -7041,
+          "statistical_frequency_uncertainty_ppb": 8854
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "153",
+          "tick": 97,
+          "host_utc_ns": 1792363400855862393,
+          "pico_error_ns": [
+            -1711834,
+            335003
+          ],
+          "indicated_error_mid_ns": -688416,
+          "pure_frequency_ppb": 413,
+          "total_rate_ppb": -7041,
+          "statistical_frequency_uncertainty_ppb": 8854
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "154",
+          "tick": 98,
+          "host_utc_ns": 1792363410855989232,
+          "pico_error_ns": [
+            -1784047,
+            246538
+          ],
+          "indicated_error_mid_ns": -768755,
+          "pure_frequency_ppb": 413,
+          "total_rate_ppb": -7041,
+          "statistical_frequency_uncertainty_ppb": 8854
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "155",
+          "tick": 99,
+          "host_utc_ns": 1792363420849106522,
+          "pico_error_ns": [
+            -1873364,
+            178277
+          ],
+          "indicated_error_mid_ns": -847544,
+          "pure_frequency_ppb": 413,
+          "total_rate_ppb": -7041,
+          "statistical_frequency_uncertainty_ppb": 8854
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "156",
+          "tick": 100,
+          "host_utc_ns": 1792363430849073662,
+          "pico_error_ns": [
+            -1941886,
+            91517
+          ],
+          "indicated_error_mid_ns": -925185,
+          "pure_frequency_ppb": 413,
+          "total_rate_ppb": -7041,
+          "statistical_frequency_uncertainty_ppb": 8854
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "157",
+          "tick": 101,
+          "host_utc_ns": 1792363440853584101,
+          "pico_error_ns": [
+            -1998326,
+            55113
+          ],
+          "indicated_error_mid_ns": -971607,
+          "pure_frequency_ppb": 494,
+          "total_rate_ppb": -1120,
+          "statistical_frequency_uncertainty_ppb": 8715
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "158",
+          "tick": 102,
+          "host_utc_ns": 1792363450925334247,
+          "pico_error_ns": [
+            -2015647,
+            32142
+          ],
+          "indicated_error_mid_ns": -991753,
+          "pure_frequency_ppb": 494,
+          "total_rate_ppb": -1120,
+          "statistical_frequency_uncertainty_ppb": 8715
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "159",
+          "tick": 103,
+          "host_utc_ns": 1792363460856857623,
+          "pico_error_ns": [
+            -2027395,
+            5138
+          ],
+          "indicated_error_mid_ns": -1011129,
+          "pure_frequency_ppb": 494,
+          "total_rate_ppb": -1120,
+          "statistical_frequency_uncertainty_ppb": 8715
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "160",
+          "tick": 104,
+          "host_utc_ns": 1792363470857561360,
+          "pico_error_ns": [
+            -2058154,
+            -5577
+          ],
+          "indicated_error_mid_ns": -1031866,
+          "pure_frequency_ppb": 494,
+          "total_rate_ppb": -1120,
+          "statistical_frequency_uncertainty_ppb": 8715
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "161",
+          "tick": 105,
+          "host_utc_ns": 1792363480853697240,
+          "pico_error_ns": [
+            -2072954,
+            -30537
+          ],
+          "indicated_error_mid_ns": -1051746,
+          "pure_frequency_ppb": 494,
+          "total_rate_ppb": -1120,
+          "statistical_frequency_uncertainty_ppb": 8715
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "162",
+          "tick": 106,
+          "host_utc_ns": 1792363490850884218,
+          "pico_error_ns": [
+            -2085479,
+            -57968
+          ],
+          "indicated_error_mid_ns": -1071724,
+          "pure_frequency_ppb": 494,
+          "total_rate_ppb": -1120,
+          "statistical_frequency_uncertainty_ppb": 8715
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "163",
+          "tick": 107,
+          "host_utc_ns": 1792363500853655715,
+          "pico_error_ns": [
+            -2115979,
+            -67460
+          ],
+          "indicated_error_mid_ns": -1091720,
+          "pure_frequency_ppb": 525,
+          "total_rate_ppb": -879,
+          "statistical_frequency_uncertainty_ppb": 8806
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "164",
+          "tick": 108,
+          "host_utc_ns": 1792363510933577802,
+          "pico_error_ns": [
+            -2127457,
+            -93156
+          ],
+          "indicated_error_mid_ns": -1110307,
+          "pure_frequency_ppb": 525,
+          "total_rate_ppb": -879,
+          "statistical_frequency_uncertainty_ppb": 8806
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "165",
+          "tick": 109,
+          "host_utc_ns": 1792363520855295234,
+          "pico_error_ns": [
+            -2153854,
+            -99623
+          ],
+          "indicated_error_mid_ns": -1126739,
+          "pure_frequency_ppb": 525,
+          "total_rate_ppb": -879,
+          "statistical_frequency_uncertainty_ppb": 8806
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "166",
+          "tick": 110,
+          "host_utc_ns": 1792363530842566728,
+          "pico_error_ns": [
+            -2168585,
+            -120880
+          ],
+          "indicated_error_mid_ns": -1144733,
+          "pure_frequency_ppb": 525,
+          "total_rate_ppb": -879,
+          "statistical_frequency_uncertainty_ppb": 8806
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "167",
+          "tick": 111,
+          "host_utc_ns": 1792363540845821697,
+          "pico_error_ns": [
+            -2180396,
+            -144007
+          ],
+          "indicated_error_mid_ns": -1162202,
+          "pure_frequency_ppb": 525,
+          "total_rate_ppb": -879,
+          "statistical_frequency_uncertainty_ppb": 8806
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "168",
+          "tick": 112,
+          "host_utc_ns": 1792363550842945006,
+          "pico_error_ns": [
+            -2209692,
+            -152329
+          ],
+          "indicated_error_mid_ns": -1181011,
+          "pure_frequency_ppb": 525,
+          "total_rate_ppb": -879,
+          "statistical_frequency_uncertainty_ppb": 8806
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "169",
+          "tick": 113,
+          "host_utc_ns": 1792363560855553292,
+          "pico_error_ns": [
+            -2220720,
+            -178873
+          ],
+          "indicated_error_mid_ns": -1199797,
+          "pure_frequency_ppb": 525,
+          "total_rate_ppb": -879,
+          "statistical_frequency_uncertainty_ppb": 8806
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "170",
+          "tick": 114,
+          "host_utc_ns": 1792363570928554013,
+          "pico_error_ns": [
+            -2218412,
+            -189610
+          ],
+          "indicated_error_mid_ns": -1204011,
+          "pure_frequency_ppb": 820,
+          "total_rate_ppb": 1045,
+          "statistical_frequency_uncertainty_ppb": 9425
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "171",
+          "tick": 115,
+          "host_utc_ns": 1792363580848004262,
+          "pico_error_ns": [
+            -2226645,
+            -177875
+          ],
+          "indicated_error_mid_ns": -1202260,
+          "pure_frequency_ppb": 820,
+          "total_rate_ppb": 1045,
+          "statistical_frequency_uncertainty_ppb": 9425
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "172",
+          "tick": 116,
+          "host_utc_ns": 1792363590868237586,
+          "pico_error_ns": [
+            -2217845,
+            -183321
+          ],
+          "indicated_error_mid_ns": -1200583,
+          "pure_frequency_ppb": 820,
+          "total_rate_ppb": 1045,
+          "statistical_frequency_uncertainty_ppb": 9425
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "173",
+          "tick": 117,
+          "host_utc_ns": 1792363600847036715,
+          "pico_error_ns": [
+            -2226917,
+            -172507
+          ],
+          "indicated_error_mid_ns": -1199712,
+          "pure_frequency_ppb": 820,
+          "total_rate_ppb": 1045,
+          "statistical_frequency_uncertainty_ppb": 9425
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "174",
+          "tick": 118,
+          "host_utc_ns": 1792363610853421823,
+          "pico_error_ns": [
+            -2219366,
+            -175274
+          ],
+          "indicated_error_mid_ns": -1197320,
+          "pure_frequency_ppb": 820,
+          "total_rate_ppb": 1045,
+          "statistical_frequency_uncertainty_ppb": 9425
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "175",
+          "tick": 119,
+          "host_utc_ns": 1792363620854265509,
+          "pico_error_ns": [
+            -2214343,
+            -178669
+          ],
+          "indicated_error_mid_ns": -1196506,
+          "pure_frequency_ppb": 820,
+          "total_rate_ppb": 1045,
+          "statistical_frequency_uncertainty_ppb": 9425
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "176",
+          "tick": 120,
+          "host_utc_ns": 1792363630936650767,
+          "pico_error_ns": [
+            -2222608,
+            -167924
+          ],
+          "indicated_error_mid_ns": -1195266,
+          "pure_frequency_ppb": 738,
+          "total_rate_ppb": 644,
+          "statistical_frequency_uncertainty_ppb": 8901
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "177",
+          "tick": 121,
+          "host_utc_ns": 1792363640853580858,
+          "pico_error_ns": [
+            -2219999,
+            -177715
+          ],
+          "indicated_error_mid_ns": -1198857,
+          "pure_frequency_ppb": 738,
+          "total_rate_ppb": 644,
+          "statistical_frequency_uncertainty_ppb": 8901
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "178",
+          "tick": 122,
+          "host_utc_ns": 1792363650867508549,
+          "pico_error_ns": [
+            -2216033,
+            -186063
+          ],
+          "indicated_error_mid_ns": -1201048,
+          "pure_frequency_ppb": 738,
+          "total_rate_ppb": 644,
+          "statistical_frequency_uncertainty_ppb": 8901
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "179",
+          "tick": 123,
+          "host_utc_ns": 1792363660849267085,
+          "pico_error_ns": [
+            -2228566,
+            -178602
+          ],
+          "indicated_error_mid_ns": -1203584,
+          "pure_frequency_ppb": 738,
+          "total_rate_ppb": 644,
+          "statistical_frequency_uncertainty_ppb": 8901
+        },
+        {
+          "segment": "resume/pulse-history",
+          "sequence": "180",
+          "tick": 124,
+          "host_utc_ns": 1792363670853288586,
+          "pico_error_ns": [
+            -2225009,
+            -187161
+          ],
+          "indicated_error_mid_ns": -1206085,
+          "pure_frequency_ppb": 738,
+          "total_rate_ppb": 644,
+          "statistical_frequency_uncertainty_ppb": 8901
+        }
+      ]
+    }
+  }
+}

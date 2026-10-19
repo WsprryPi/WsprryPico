@@ -55,14 +55,36 @@ double t_coefficient(unsigned freedom) {
 }
 struct Line {
     double x = 0, y = 0, slope = 0, rate_sd = 0, offset_sd = 0, sd = 0;
-    double delay_coefficient = 0;
+    double delay_coefficient = 0, rate_bias = 0, offset_bias = 0;
+    double admission_sd = 4, admission_skew = .002;
     unsigned runs = 0, positive = 0, negative = 0, active_runs = 0;
     unsigned freedom = 1;
 };
+double peer_distance(const Measurement& s) {
+    return s.delay / 2 + s.root_dispersion - s.root_dispersion_wire / 65536.0;
+}
+struct NoiseScale {
+    double minimum, spread;
+};
+NoiseScale noise_scale(std::span<const Measurement> samples, double precision) {
+    // Statistical weights describe variation on this client/server path.
+    // Upstream root distance still participates in agreement/error gates.
+    if (samples.empty())
+        return {precision, precision};
+    std::array<double, sample_capacity> distances{};
+    for (unsigned i = 0; i < samples.size(); ++i)
+        distances[i] = peer_distance(samples[i]);
+    std::sort(distances.begin(), distances.begin() + samples.size());
+    const auto n = samples.size();
+    const auto median = (distances[(n - 1) / 2] + distances[n / 2]) / 2;
+    const auto minimum = distances[0];
+    return {minimum + precision,
+            std::clamp((median - minimum) / 0.7, precision, std::max(precision, minimum))};
+}
 // Centered weighted least squares. x is raw seconds; y is the change of
 // receive-UTC minus raw seconds. No floating-point Unix epoch is fitted.
 Line regress(std::span<const Measurement> samples, double precision, double asymmetry,
-             std::span<const Measurement> runs_samples,
+             NoiseScale noise, std::span<const Measurement> runs_samples,
              std::span<const RegressionPoint> predecessors, std::uint64_t predecessor_raw,
              std::uint64_t predecessor_utc) {
     Line result;
@@ -83,8 +105,8 @@ Line regress(std::span<const Measurement> samples, double precision, double asym
         return std::pair{x, y};
     };
     auto weight = [&](const Measurement& s) {
-        const auto distance = std::max(precision, s.root_delay / 2 + s.root_dispersion);
-        return 1 / (distance * distance);
+        const auto relative_sd = 1 + std::max(0.0, peer_distance(s) - noise.minimum) / noise.spread;
+        return 1 / (relative_sd * relative_sd);
     };
     double sw = 0, sx = 0, sy = 0, sz = 0;
     for (const auto& s : samples) {
@@ -117,13 +139,8 @@ Line regress(std::span<const Measurement> samples, double precision, double asym
     result.delay_coefficient = asymmetry;
     const bool joint =
         samples.size() >= 13 && determinant > xx * zz * 0.01 && zz > sw * precision * precision;
-    if (joint) {
-        result.delay_coefficient =
-            std::clamp(asymmetry + (yz * xx - xy_sum * xz) / determinant, -0.5, 0.5);
-        const auto correction = result.delay_coefficient - asymmetry;
-        result.slope = (xy_sum - correction * xz) / xx;
-        result.y -= correction * mz;
-    }
+    // The independently learned delay term is fixed during history selection.
+    // Keep its joint covariance even when weak evidence leaves it disabled.
     double residual_sum = 0, variance_sum = 0;
     for (const auto& s : samples) {
         const auto [x, y] = xy(s);
@@ -133,18 +150,17 @@ Line regress(std::span<const Measurement> samples, double precision, double asym
         variance_sum += residual * residual;
     }
     const auto freedom = std::max(1U, unsigned(samples.size()) - (joint ? 3 : 2));
+    const auto conditional_freedom = std::max(1U, unsigned(samples.size()) - 2);
+    const auto conditional_variance = residual_sum / conditional_freedom;
+    result.admission_sd = std::sqrt(conditional_variance * samples.size() / sw);
+    result.admission_skew =
+        xx > 0 ? std::sqrt(conditional_variance / xx) * t_coefficient(conditional_freedom) : .002;
     // A quantization-limited line has no resolved residual signs. Once the
     // residual variance exceeds timestamp precision, count every sign using
     // the ordinary runs null model; dropping near-zero members biases it.
     const double tie = variance_sum > freedom * precision * precision ? 0 : precision;
     int previous = 0;
-    // Predecessors can test a clock regime only if their path effect is
-    // modelled. With variable delay and no identifiable asymmetry coefficient,
-    // extending the residual test would mistake queue structure for drift and
-    // prevent a short fit from ever gathering enough data to identify it.
-    const bool variable_delay = std::any_of(samples.begin(), samples.end(), [&](const auto& s) {
-        return s.delay - min_delay > precision;
-    });
+    // Test the causal predecessor horizon using the same learned path term.
     const auto test = [&](double x, double y, double delay, double rounding_error) {
         const auto residual = y - result.y - result.slope * (x - result.x) -
                               result.delay_coefficient * (delay - min_delay);
@@ -157,16 +173,14 @@ Line regress(std::span<const Measurement> samples, double precision, double asym
             previous = sign;
         }
     };
-    if (!variable_delay || joint)
-        for (const auto& s : predecessors) {
-            const auto [x, y] = past_xy(s);
-            const double rounding =
-                std::abs(result.delay_coefficient) *
-                (std::nextafter(s.delay, std::numeric_limits<float>::infinity()) - s.delay);
-            test(x, y, s.delay, rounding);
-        }
-    const auto tested = variable_delay && !joint ? samples : runs_samples;
-    for (const auto& s : tested) {
+    for (const auto& s : predecessors) {
+        const auto [x, y] = past_xy(s);
+        const double rounding =
+            std::abs(result.delay_coefficient) *
+            (std::nextafter(s.delay, std::numeric_limits<float>::infinity()) - s.delay);
+        test(x, y, s.delay, rounding);
+    }
+    for (const auto& s : runs_samples) {
         const auto [x, y] = xy(s);
         test(x, y, s.delay, 0);
     }
@@ -186,6 +200,15 @@ Line regress(std::span<const Measurement> samples, double precision, double asym
     result.rate_sd = xx > 0 ? std::sqrt(variance * (joint ? zz / determinant : 1 / xx)) : 1;
     const auto end_x = difference(last.raw_ns, origin.raw_ns);
     const auto dx = end_x - result.x;
+    if (joint) {
+        // Withholding a weak path correction does not establish that it is
+        // zero. Cover the alternative identifiable fit in public error bounds,
+        // without using it to steer the frequency/phase point estimate.
+        const auto alternative =
+            std::clamp(asymmetry + (yz * xx - xy_sum * xz) / determinant, -0.5, 0.5);
+        result.rate_bias = std::abs((alternative - asymmetry) * xz / xx);
+        result.offset_bias = std::abs((alternative - asymmetry) * (mz + xz / xx * dx));
+    }
     // Prediction is for minimum delay (z=0). Include covariance with the
     // learned delay coefficient; it is not an independent known constant.
     const auto leverage =
@@ -363,6 +386,7 @@ void Engine::clear(Source& s) {
     s.last.reset();
     s.pending = s.denied = s.synchronized = false;
     s.min_delay = s.asymmetry = 0;
+    s.asymmetry_evidence = 0;
 }
 void Engine::reset(std::uint64_t now) {
     for (auto& s : sources_) {
@@ -436,10 +460,11 @@ bool Engine::receive(unsigned slot, std::span<const std::uint8_t> packet, std::u
     if (!config_valid_ || slot >= source_capacity)
         return false;
     auto& s = sources_[slot];
+    bool candidate = false;
     auto reject = [&](Rejection reason) {
         ++s.status.rejected;
         s.status.reason = reason;
-        if (s.last)
+        if (candidate && s.last)
             s.last->rejection = reason;
         return false;
     };
@@ -475,6 +500,10 @@ bool Engine::receive(unsigned slot, std::span<const std::uint8_t> packet, std::u
     const auto receive_utc = timestamp(packet.subspan(32, 8), config_.era_start_utc_ns);
     const auto send_utc = timestamp(packet.subspan(40, 8), config_.era_start_utc_ns);
     const auto reference_utc = timestamp(packet.subspan(16, 8), config_.era_start_utc_ns);
+    // A new request nonce does not make a repeated server transmit timestamp
+    // a new clock observation. Do not let duplicates refresh the model's age.
+    if (s.last && send_utc == s.last->server_send_ns)
+        return reject(Rejection::Correlation);
     const auto elapsed = difference(now, s.send_ns);
     if (!read(packet.subspan(32, 8)) || !read(packet.subspan(40, 8)) || send_utc < receive_utc ||
         reference_utc > send_utc || precision < -40 || precision > 0 ||
@@ -509,6 +538,7 @@ bool Engine::receive(unsigned slot, std::span<const std::uint8_t> packet, std::u
     measurement.leap = leap;
     measurement.precision_log = precision;
     s.last = measurement;
+    candidate = true;
     ++s.status.replies;
     s.status.last_receive_ns = now;
     s.status.reach |= 1;
@@ -520,14 +550,22 @@ bool Engine::receive(unsigned slot, std::span<const std::uint8_t> packet, std::u
         return reject(Rejection::Distance);
     // Excess-delay testing uses the preceding model. A new measurement cannot
     // first alter its own baseline, variance or prediction to pass this test.
-    if (s.count >= 3 && config_.max_delay_deviation_ratio > 0) {
+    // A source fit can initialize UTC from three observations, but its delay
+    // classification needs six retained observations, as in the reference.
+    // Packet validity, absolute delay/distance and clock/RF bounds still apply.
+    if (s.status.estimate.samples >= 6 && config_.max_delay_deviation_ratio > 0) {
         const auto& e = s.status.estimate;
-        const double delay_increase = delay - s.min_delay;
-        const double noise = std::max(config_.precision, e.jitter);
+        const double queue_phase = (delay - s.min_delay) / 2;
+        const double noise = std::max(1e-9, e.admission_jitter);
         const double expected = difference(source_utc(s, measurement.raw_ns), measurement.utc_ns);
-        const double growth = difference(now, e.raw_ns) * e.skew;
-        if (delay_increase > config_.max_delay_deviation_ratio * noise + 2 * growth &&
-            std::abs(expected) > config_.max_delay_deviation_ratio * noise + growth)
+        const double age = std::max(0.0, difference(measurement.raw_ns, e.raw_ns));
+        const double allowance = config_.max_delay_deviation_ratio * noise +
+                                 age * (e.admission_skew + config_.max_clock_error_ppm * 1e-6);
+        // Half the extra round-trip delay is a phase error, in the same units
+        // as jitter. Permit the existing oscillator-stability allowance. A
+        // phase innovation beyond any such queue cannot be rejected as queue
+        // noise; it must reach the fit and its unchanged uncertainty gates.
+        if (queue_phase > allowance && std::abs(expected) <= queue_phase + allowance)
             return reject(Rejection::DelayDeviation);
     }
     // Age the test horizon before admitting a new fit point. A shortened fit
@@ -596,6 +634,66 @@ void Engine::fit(Source& source) {
     e.samples = source.count;
     if (!source.count)
         return;
+    const auto initial_count = source.count - source.fit_start;
+    const auto initial_points = std::span{source.samples.data() + source.fit_start, initial_count};
+    const auto noise = noise_scale(initial_points, config_.precision);
+    // Learn the queue coefficient over the same causal residual-test horizon,
+    // independently of frequency weights. Removing the time trend from delay
+    // and phase is the ordinary partial-regression estimate. A weak accidental
+    // correlation must not immediately change every sample's phase.
+    const auto preceding = std::min(source.runs_count - initial_count, initial_count);
+    const auto start = source.fit_start > preceding ? source.fit_start - preceding : 0;
+    const auto extra_count =
+        std::min(source.predecessor_count, preceding - (source.fit_start - start));
+    const auto& anchor = initial_points.front();
+    const auto visit = [&](auto accept) {
+        for (unsigned i = source.predecessor_count - extra_count; i < source.predecessor_count;
+             ++i) {
+            const auto& s = source.predecessors[i];
+            const auto phase = std::int64_t(source.predecessor_utc_ns - anchor.utc_ns) -
+                               std::int64_t(source.predecessor_raw_ns - anchor.raw_ns);
+            accept(difference(s.raw_ns, anchor.raw_ns), (phase + s.phase_ns) / billion,
+                   double(s.delay));
+        }
+        for (unsigned i = start; i < source.count; ++i) {
+            const auto& s = source.samples[i];
+            const auto x = difference(s.raw_ns, anchor.raw_ns);
+            accept(x, difference(s.utc_ns, anchor.utc_ns) - x, s.delay);
+        }
+    };
+    double sx = 0, sy = 0, sz = 0;
+    const auto n = source.count - start + extra_count;
+    visit([&](double x, double y, double z) {
+        sx += x;
+        sy += y;
+        sz += z;
+    });
+    const auto mx = sx / n, my = sy / n, mz = sz / n;
+    double xx = 0, xy = 0, xz = 0, zz = 0, yz = 0;
+    visit([&](double x, double y, double z) {
+        x -= mx;
+        y -= my;
+        z -= mz;
+        xx += x * x;
+        xy += x * y;
+        xz += x * z;
+        zz += z * z;
+        yz += y * z;
+    });
+    const auto determinant = xx * zz - xz * xz;
+    const bool identifiable =
+        n >= 4 && determinant > xx * zz * 0.01 && zz > n * config_.precision * config_.precision;
+    const auto coefficient = identifiable ? (yz * xx - xy * xz) / determinant : 0;
+    if (!identifiable || coefficient * source.asymmetry_evidence < 0) {
+        source.asymmetry_evidence = 0;
+        source.asymmetry = 0;
+    } else {
+        if (std::abs(coefficient) >= 0.45)
+            source.asymmetry_evidence =
+                std::clamp(source.asymmetry_evidence + (coefficient > 0 ? 1 : -1), -1000, 1000);
+        if (std::abs(source.asymmetry_evidence) >= 10)
+            source.asymmetry = std::clamp(coefficient, -0.5, 0.5);
+    }
     while (source.count - source.fit_start >= 3) {
         const auto active_count = source.count - source.fit_start;
         const auto points = std::span{source.samples.data() + source.fit_start, active_count};
@@ -611,9 +709,8 @@ void Engine::fit(Source& source) {
             std::min(source.predecessor_count, preceding - (source.fit_start - runs_start));
         const auto extra = std::span{
             source.predecessors.data() + source.predecessor_count - extra_count, extra_count};
-        const auto line = regress(points, config_.precision, 0, runs_points, extra,
-                                  source.predecessor_raw_ns, source.predecessor_utc_ns);
-        source.asymmetry = line.delay_coefficient;
+        const auto line = regress(points, config_.precision, source.asymmetry, noise, runs_points,
+                                  extra, source.predecessor_raw_ns, source.predecessor_utc_ns);
         const auto signs = line.positive + line.negative;
         // Residuals of a correct centered line have equiprobable signs. Use
         // that null model rather than conditioning on the observed imbalance:
@@ -623,7 +720,11 @@ void Engine::fit(Source& source) {
             const double pairs = 0.5 * signs * signs;
             const double expected = 1 + pairs / signs;
             const double variance = pairs * (pairs - signs) / (double(signs) * signs * (signs - 1));
-            if (line.runs < expected - 1.645 * std::sqrt(std::max(0.0, variance))) {
+            // Two-decimal lower-tail normal quantile. At a 54-observation
+            // horizon, 1.645 rounds the critical count up to 22 instead of
+            // 21 and wrongly prunes a line with 22 runs. Derive the count
+            // arithmetically; no upstream threshold table is included.
+            if (line.runs < expected - 1.65 * std::sqrt(std::max(0.0, variance))) {
                 ++source.fit_start;
                 continue;
             }
@@ -635,14 +736,16 @@ void Engine::fit(Source& source) {
         e.first_raw_ns = first.raw_ns;
         e.rate = line.slope;
         e.rate_sd = std::max(1e-12, line.rate_sd);
-        e.skew = std::max(1e-12, line.rate_sd * t_coefficient(line.freedom));
+        e.skew = std::max(1e-12, line.rate_sd * t_coefficient(line.freedom) + line.rate_bias);
         e.offset_sd = line.offset_sd;
         e.jitter = std::max(1e-9, line.sd);
+        e.admission_jitter = std::max(1e-9, line.admission_sd);
+        e.admission_skew = std::max(1e-12, line.admission_skew);
         e.asymmetry = line.delay_coefficient;
         const auto elapsed = difference(last.raw_ns, first.raw_ns);
         e.utc_ns = add_time(first.utc_ns, elapsed + line.y + line.slope * (elapsed - line.x));
         e.root_delay = last.root_delay;
-        e.root_dispersion = last.root_dispersion + line.offset_sd;
+        e.root_dispersion = last.root_dispersion + line.offset_sd + line.offset_bias;
         e.runs = line.active_runs;
         e.valid = std::isfinite(e.skew) && std::isfinite(e.rate) && e.utc_ns;
         return;

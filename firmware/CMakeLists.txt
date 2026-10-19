@@ -34,6 +34,7 @@ foreach(image IN LISTS wsprry_application_images)
     add_executable(${image} EXCLUDE_FROM_ALL
         ../src/standalone/pico/main.cpp ../src/standalone/pico/adapters.cpp
         ../src/standalone/pico/net_trace.cpp
+        ../src/time/pico/clock_probe.cpp
         ../src/hardware/pico/amplifier_output.cpp
         pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp)
     target_include_directories(${image} PRIVATE

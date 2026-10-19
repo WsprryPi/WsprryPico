@@ -29,6 +29,16 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def internet_queue_cases():
+    common = {'sources':4, 'forward_ns':10_000_000, 'backward_ns':10_000_000,
+              'noise_s':.005, 'queue_s':.02}
+    return {
+        'internet_weak_queue': dict(common, ppm=.8, queue_forward_fraction=.7, noise_seed=1701),
+        'internet_forward_queue': dict(common, ppm=.8, queue_forward_fraction=1, noise_seed=2802),
+        'internet_reverse_queue': dict(common, ppm=-.65, queue_forward_fraction=0, noise_seed=3903),
+    }
+
+
 def plant(t, case):
     """Uncorrected hardware ticks; includes a continuous frequency step."""
     if 'ramp_ppm_per_hour' in case:
@@ -55,7 +65,10 @@ def events(case, tick_s):
             if forward <= 0 or backward <= 0:
                 raise ValueError('A physical path delay must be positive')
             if 'queue_s' in case:
-                forward += round(case['queue_s'] * SECOND * ((i*7)%11)/10)
+                queue = round(case['queue_s'] * SECOND * ((i*7)%11)/10)
+                forward_queue = round(queue * case.get('queue_forward_fraction', 1))
+                forward += forward_queue
+                backward += queue - forward_queue
             receive = send + forward + backward
             bias = round(case.get('bias_s', 0) * SECOND)
             if 'phase_step_s' in case and send >= case['switch_s'] * SECOND:
@@ -149,6 +162,7 @@ def main():
         'heldout_pool': {'ppm':35, 'sources':4, 'forward_ns':10_000_000,
                          'backward_ns':10_000_000, 'noise_s':.005, 'noise_seed':314159},
     }
+    cases.update(internet_queue_cases())
     if args.validation_seeds:
         for seed in [271828, 918273, 161803]:
             for base in ['heldout_pool', 'heldout_ramp', 'majority']:

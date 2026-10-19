@@ -102,6 +102,14 @@ and WTP inventory. `scripts/console_trace.py` reads bounded diagnostic pages;
 Inspect an opt-in entry point before running it; normal software checks do not
 open devices.
 
+The [USB clock pulse probe](clock-pulse-probe.md) brackets an explicit GP22
+edge with application UTC snapshots. Its finite Linux wiring checker records
+GPIO timestamps without submitting time, claiming RF ownership or starting jobs.
+The read-only input-context helper preserves idle levels, RP1 control registers
+and current/historical power flags before refusing a fault. See the
+[packet and clock-control comparison](microchrony-conformance-results.md) for
+reference boundaries, known-error convergence and physical-test limitations.
+
 `src/rf_analysis/` contains offline sample-job construction, keyed-signal,
 reference-carrier, relative-drive, aborted-waveform and RF-presence analysis.
 Its deterministic regressions use synthetic samples. Enable them with the existing

@@ -84,6 +84,7 @@ extern "C" [[gnu::used]] const char wsprrypico_usb_update_contract[] =
 #include "standalone/scheduler.hpp"
 #include "standalone/wtp_profile.hpp"
 #include "time/controller_time.hpp"
+#include "time/pico/clock_probe.hpp"
 #include "tusb.h"
 #include "usb/reply_priority.hpp"
 #include "usb/transport.hpp"
@@ -746,6 +747,8 @@ int main() {
     std::size_t length = 0;
     bool overflow = false;
     wsprrypico::usb::ConsoleReply console_reply;
+    static wsprrypico::time::ClockProbe clock_probe;
+    static wsprrypico::time::PicoClockProbe clock_probe_hardware(clock);
     std::array<std::uint8_t, 64> console_input{};
     std::size_t console_input_size = 0, console_input_offset = 0;
     std::uint64_t reboot_at = 0;
@@ -1047,6 +1050,50 @@ int main() {
             result += ",\"more\":" + std::string(next < trace.records().size() ? "true" : "false") +
                       "}\n";
             return result;
+        }
+        if (text.starts_with("CLOCKPROBE ")) {
+            const auto current = service.activity();
+            const auto status = service.status();
+            const auto source = time_arbiter.status();
+            const auto model = network.ntp_control();
+            const auto now = monotonic_now(nullptr);
+            const auto rate = network.ntp_rate(now);
+            const auto pin_free = [](const wsprrypico::hardware::PinPlan& pins) {
+                const auto allocation = wsprrypico::hardware::validate(pins);
+                return allocation.valid() && allocation.owners[22].empty();
+            };
+            wsprrypico::time::ClockProbeGuard guard;
+            guard.permitted =
+                !boot_recovery && !recovery_reset_at && !reset_coordinator.pending() &&
+                !reboot_at && !bootstrap.setup_pending() && !service.maintenance() &&
+                store.healthy() && profile_store.healthy() && access_store.healthy() &&
+                runtime_profile_ready() && store.config() && !store.config()->enabled &&
+                scheduler.idle() && !scheduler.hardware_restart_required() &&
+                !scheduler.hardware_application_failed() && !current.owned &&
+                !current.output_active && !engine.output_active() &&
+                current.state != wsprrypico::wtp::State::Loaded &&
+                current.state != wsprrypico::wtp::State::Armed &&
+                current.state != wsprrypico::wtp::State::Running &&
+                current.state != wsprrypico::wtp::State::Failed && pin_free(boot_pins) &&
+                pin_free(store.config()->pins);
+            guard.source_sntp = source.source == wsprrypico::time::ActiveTimeSource::Sntp;
+            guard.disagreement = source.disagreement;
+            guard.ntp_generation = model.generation;
+            guard.source_epoch = model.selected_epoch;
+            guard.source_raw_ns = model.selected_sample_raw_ns;
+            guard.frequency_ppb = model.frequency_ppb;
+            guard.frequency_uncertainty_ppb = rate.uncertainty_ppb;
+            return clock_probe.command(text.substr(11),
+                                       {identities.device_id(), status.boot_id,
+                                        wsprrypico::firmware::kFirmwareVersion,
+                                        wsprrypico::firmware::kBuildRevision},
+                                       guard, now, clock_probe_hardware);
+        }
+        if (text.starts_with("NTP PACKETS ")) {
+            return network.ntp_packet_page(text.substr(12),
+                                           {identities.device_id(), service.status().boot_id,
+                                            wsprrypico::firmware::kFirmwareVersion,
+                                            wsprrypico::firmware::kBuildRevision, ""});
         }
         if (text.starts_with("NTP HISTORY ")) {
             return network.ntp_history_page(text.substr(12),

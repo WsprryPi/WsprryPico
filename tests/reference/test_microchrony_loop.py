@@ -3,7 +3,7 @@
 """Hardware-free, known-truth acceptance of the production Engine clock loop."""
 import sys
 
-from compare_chrony49_loop import events, run, summarize
+from compare_chrony49_loop import events, internet_queue_cases, run, summarize
 
 if sys.flags.optimize:
     raise RuntimeError('Validation requires assertions; run without -O')
@@ -40,3 +40,18 @@ for name, case in cases.items():
     valid = [r for r in rows if r[2] > -10**18]
     assert all(b[2] >= a[2] for a,b in zip(valid,valid[1:])), name
 print(f'{len(cases)} complete Engine loops passed known UTC/rate truth, recovery and holdover checks')
+
+# Variable round-trip delay exercises path weighting and learned asymmetry,
+# which the constant-RTT pool fixtures above cannot distinguish. The UTC error
+# includes injected path asymmetry; these limits do not replace the existing
+# ten cases or alter a production uncertainty, freshness or RF gate.
+queue_rms_limits = {'internet_weak_queue':.780, 'internet_forward_queue':.450,
+                    'internet_reverse_queue':.350}
+for name, case in internet_queue_cases().items():
+    result = summarize(run(executable, 0, events(case, 1)), case)
+    assert result['first_sync_s'] <= 8, (name,result)
+    assert result['last_hour_utc_rms_ms'] < queue_rms_limits[name], (name,result)
+    assert result['last_hour_utc_max_abs_ms'] < 2, (name,result)
+    assert result['last_hour_frequency_max_abs_ppm'] < .5, (name,result)
+    assert result['frequency_settles_1ppm_s'] <= 1800, (name,result)
+print('3 variable-delay loops passed known UTC/rate truth checks')
