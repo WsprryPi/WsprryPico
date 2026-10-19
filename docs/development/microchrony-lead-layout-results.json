@@ -1,0 +1,725 @@
+{
+  "schema": "microchrony-lead-layout-results/1",
+  "campaign_completed": true,
+  "start_ct": "2026-10-19T07:19:46-05:00",
+  "finish_ct": "2026-10-19T08:16:37-05:00",
+  "hard_deadline_ct": "2026-10-19T08:19:46-05:00",
+  "duration_seconds": 3411.3087876470236,
+  "all_quality_gates_unchanged": true,
+  "pico_firmware_or_saved_settings_changed": false,
+  "root_cause_proven": false,
+  "unexpected_gpio_recurrence_observed": false,
+  "electrical_installation_qualified": false,
+  "firmware": {
+    "revision": "89738cad878c-dirty",
+    "uf2_sha256": "dc779bbd3a354763a5dce3618ac636a7404eda6d5dd40b3370a69db7753c24fe",
+    "engine": "pio-dma-gp2",
+    "system_clock_hz": 138000000,
+    "post_run_identity_basis": "same board, boot, reported revision and prior verified application; no reset or post-run flash readback"
+  },
+  "private_evidence": {
+    "files": 2704,
+    "bytes": 140783097,
+    "manifest_sha256": "43a7609f74d14780c4802bef6fdc88f285b7d3bebefd8291272210059e3cc80a",
+    "verified": true
+  },
+  "visibility": {
+    "schema": "offline-conformance-evidence-verification/1",
+    "complete_campaign": true,
+    "history_pages": 1409,
+    "coverage": {
+      "A": {
+        "originals": 458,
+        "per_slot": {
+          "0": 115,
+          "1": 115,
+          "2": 113,
+          "3": 115
+        },
+        "pre_capture_deficit": 87,
+        "newly_accepted_frontier_differences": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0
+        },
+        "post_baseline_frontier_verified": true,
+        "accepted_wire_original_matches": 235,
+        "accepted_wire_outside_pulse_collection": 0,
+        "accepted_wire_missing_inside_verified_pulse_window": 0
+      },
+      "B": {
+        "originals": 461,
+        "per_slot": {
+          "0": 115,
+          "1": 115,
+          "2": 115,
+          "3": 116
+        },
+        "pre_capture_deficit": 94,
+        "newly_accepted_frontier_differences": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0
+        },
+        "post_baseline_frontier_verified": true,
+        "accepted_wire_original_matches": 241,
+        "accepted_wire_outside_pulse_collection": 0,
+        "accepted_wire_missing_inside_verified_pulse_window": 0
+      }
+    },
+    "bindings": {
+      "total": 118,
+      "independently_bound": 110,
+      "saved_bound_but_not_independently_bound": 0
+    },
+    "packets": {
+      "A": {
+        "pages": 332,
+        "retained_wire": 242,
+        "accepted": 235,
+        "rejected": 7,
+        "first_gap": 322,
+        "new_wire_since_capture_baseline": 210
+      },
+      "B": {
+        "pages": 333,
+        "retained_wire": 242,
+        "accepted": 241,
+        "rejected": 1,
+        "first_gap": 321,
+        "new_wire_since_capture_baseline": 210
+      }
+    },
+    "pulses": {
+      "A": {
+        "count": 319,
+        "qualified": 315
+      },
+      "B": {
+        "count": 319,
+        "qualified": 319
+      }
+    }
+  },
+  "gpio": {
+    "wiring": {
+      "pulses": 6,
+      "events": 12,
+      "audit_rows": 7,
+      "unexpected_events": 0,
+      "configuration_changed": false,
+      "power_flags": [
+        327680
+      ]
+    },
+    "pulse-history": {
+      "pulses": 638,
+      "events": 1276,
+      "audit_rows": 3237,
+      "unexpected_events": 0,
+      "configuration_changed": false,
+      "power_flags": [
+        327680
+      ]
+    },
+    "independently_verified_main_duplicates": {
+      "A": 54,
+      "B": 54
+    },
+    "wiring_duplicate_raw_reply_available": false
+  },
+  "absolute_timestamp_path_delay_calibrated": false,
+  "reference_allowance_certified": false,
+  "full_alternate_feedback_controller_simulated": false,
+  "holdout_scope": "Open-loop forecasts before any model/source change; identical starting phase and finite slew. Longer horizons overlap and are not independent trials.",
+  "boards": {
+    "A": {
+      "serial": "0BF4B4AEC9FFB344",
+      "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+      "boot_id": "c9d4f5bba4b5353bdd7c05e0a10553a2",
+      "source": "pool.ntp.org",
+      "manual_ppm": "0.000",
+      "mode": "manual",
+      "first_pulse_ct": "2026-10-19T07:21:44-05:00",
+      "last_pulse_ct": "2026-10-19T08:14:44-05:00",
+      "pulses": 319,
+      "clock_qualified": 315,
+      "unqualified_ticks": [
+        311,
+        312,
+        313,
+        314
+      ],
+      "query_delta_from_campaign_start": 210,
+      "new_accepted_originals_after_main_capture_baseline": 201,
+      "reference_root_distance_ns_range": [
+        10095,
+        30476
+      ],
+      "phase_mid_first_last_ms": [
+        -2.859008,
+        -4.679239
+      ],
+      "phase_mid_range_ms": [
+        -5.529866,
+        -2.859008
+      ],
+      "phase_mid_rms_ms": 4.548194635153803,
+      "phase_last_intervals_ms": {
+        "1": [
+          -5.697882,
+          -3.660595
+        ],
+        "5": [
+          -9.697882,
+          0.339405
+        ]
+      },
+      "pure_frequency_first_last_ppb": [
+        -1723,
+        -1365
+      ],
+      "pulse_width_ns_range": [
+        1070386,
+        1084479
+      ],
+      "raw_edge_bracket_ns_range": [
+        5000,
+        7000
+      ],
+      "holdouts_by_reference_allowance_ms_plus_rootdistance": {
+        "1": {
+          "adjacent": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 266,
+              "unresolved": 0
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 43,
+              "unresolved": 223
+            }
+          },
+          "all_overlapping_horizons": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 865,
+              "unresolved": 0
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 29,
+              "worsened": 433,
+              "unresolved": 403
+            }
+          },
+          "rejections": {
+            "holdout binding changed": 989,
+            "unqualified clock record": 39
+          }
+        },
+        "5": {
+          "adjacent": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 83,
+              "unresolved": 183
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 5,
+              "unresolved": 261
+            }
+          },
+          "all_overlapping_horizons": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 255,
+              "unresolved": 610
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 0,
+              "worsened": 152,
+              "unresolved": 713
+            }
+          },
+          "rejections": {
+            "holdout binding changed": 989,
+            "unqualified clock record": 39
+          }
+        }
+      },
+      "restoration": {
+        "state": "empty",
+        "owner_id": null,
+        "output_active": false,
+        "enabled": false,
+        "clock_state": "synchronized",
+        "sync_age_ns": "13746944000",
+        "uncertainty_ns": "118353942",
+        "fresh_under_90s": true,
+        "saved_settings_unchanged": true
+      }
+    },
+    "B": {
+      "serial": "CDDBF8767C506C07",
+      "device_id": "29f20b7342051ef947aa56cb9d4fab42",
+      "boot_id": "5e0eae1065aad8d8c5a43588ee9ff8f2",
+      "source": "pool.ntp.org",
+      "manual_ppm": "0.000",
+      "mode": "manual",
+      "first_pulse_ct": "2026-10-19T07:21:45-05:00",
+      "last_pulse_ct": "2026-10-19T08:14:45-05:00",
+      "pulses": 319,
+      "clock_qualified": 319,
+      "unqualified_ticks": [],
+      "query_delta_from_campaign_start": 211,
+      "new_accepted_originals_after_main_capture_baseline": 203,
+      "reference_root_distance_ns_range": [
+        10095,
+        30476
+      ],
+      "phase_mid_first_last_ms": [
+        -3.323446,
+        -4.429076
+      ],
+      "phase_mid_range_ms": [
+        -5.271014,
+        -3.323446
+      ],
+      "phase_mid_rms_ms": 4.4800694043282,
+      "phase_last_intervals_ms": {
+        "1": [
+          -5.44822,
+          -3.409932
+        ],
+        "5": [
+          -9.44822,
+          0.590068
+        ]
+      },
+      "pure_frequency_first_last_ppb": [
+        -568,
+        141
+      ],
+      "pulse_width_ns_range": [
+        1069108,
+        1084793
+      ],
+      "raw_edge_bracket_ns_range": [
+        5000,
+        7000
+      ],
+      "holdouts_by_reference_allowance_ms_plus_rootdistance": {
+        "1": {
+          "adjacent": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 113,
+              "unresolved": 156
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 34,
+              "worsened": 0,
+              "unresolved": 235
+            }
+          },
+          "all_overlapping_horizons": {
+            "without_learned_frequency": {
+              "improved": 24,
+              "worsened": 563,
+              "unresolved": 281
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 196,
+              "worsened": 74,
+              "unresolved": 598
+            }
+          },
+          "rejections": {
+            "holdout binding changed": 1025
+          }
+        },
+        "5": {
+          "adjacent": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 9,
+              "unresolved": 260
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 7,
+              "worsened": 0,
+              "unresolved": 262
+            }
+          },
+          "all_overlapping_horizons": {
+            "without_learned_frequency": {
+              "improved": 0,
+              "worsened": 73,
+              "unresolved": 795
+            },
+            "without_new_frequency_since_capture_start": {
+              "improved": 91,
+              "worsened": 0,
+              "unresolved": 777
+            }
+          },
+          "rejections": {
+            "holdout binding changed": 1025
+          }
+        }
+      },
+      "restoration": {
+        "state": "empty",
+        "owner_id": null,
+        "output_active": false,
+        "enabled": false,
+        "clock_state": "synchronized",
+        "sync_age_ns": "16761777000",
+        "uncertainty_ns": "126228600",
+        "fresh_under_90s": true,
+        "saved_settings_unchanged": true
+      }
+    }
+  },
+  "rf": {
+    "fit_allowance_hz": 0.05,
+    "gpsdo_engineering_allowance_ppb": 10,
+    "independent_rf_correction_applied": false,
+    "common_oscillator_utc_rate_inference_only": true,
+    "fit_gates": {
+      "minimum_contrast_db": 30,
+      "maximum_phase_rms_rad_exclusive": 0.15,
+      "minimum_amplitude_ratio": 0.5,
+      "maximum_half_window_difference_hz": 0.1
+    },
+    "rows": [
+      {
+        "board": "A",
+        "label": "start",
+        "capture_sha256": "de7199deeeb2d7d174f0895975239935b88203c4cd9c4d1f3b72d3d64d9925a2",
+        "metadata_sha256": "c7b6c5cc13057bad25b84d36f6d4dbff349c73cfe07185b10ffefe574171f2ce",
+        "capture_start_utc": "2026-10-19T12:20:12.353Z",
+        "nco_nominal_hz": 3570100.004319102,
+        "physical_rf_error_hz": [
+          4.988085362453441,
+          5.302737246459583
+        ],
+        "physical_raw_error_ppm": [
+          1.3959738535122512,
+          1.4841091672641
+        ],
+        "api_triplet_bound": [
+          true,
+          false
+        ],
+        "api_model_stable": false,
+        "pure_frequency_ppb_before_after": [
+          -1878,
+          -1878
+        ],
+        "pure_rate_verdict": "excluded_model_transition",
+        "candidate_qualified_before_after": [
+          false,
+          false
+        ],
+        "fits": {
+          "3560000": {
+            "indicated_hz": 3560004.2581044324,
+            "phase_residual_rms_rad": 0.05485823575516196,
+            "amplitude_min_ratio": 0.8463930206342015,
+            "contrast_db": 54.12984589377088,
+            "half_window_difference_hz": 0.0025749076157808304
+          },
+          "3570100": {
+            "indicated_hz": 3570109.414338364,
+            "phase_residual_rms_rad": 0.013693871135738563,
+            "amplitude_min_ratio": 0.998713112423636,
+            "contrast_db": 96.36479419651798,
+            "half_window_difference_hz": 0.020905005279928446
+          },
+          "3640000": {
+            "indicated_hz": 3640004.3437864794,
+            "phase_residual_rms_rad": 0.059059160472422684,
+            "amplitude_min_ratio": 0.815035839193214,
+            "contrast_db": 52.673710296360795,
+            "half_window_difference_hz": 0.006605991628021002
+          }
+        },
+        "outer_api_clock_generations": [
+          [
+            "93",
+            "93"
+          ],
+          [
+            "93",
+            "94"
+          ]
+        ]
+      },
+      {
+        "board": "B",
+        "label": "start",
+        "capture_sha256": "3dc8ac8ad13dbfe22400db627aef1d7fde8e4397fb61e1fe5d3b6183fd48e117",
+        "metadata_sha256": "4c7b3ae40d9dc2992438642c9ba48d5d340198b3b2c7fe98b549f84dd7830be0",
+        "capture_start_utc": "2026-10-19T12:20:55.375Z",
+        "nco_nominal_hz": 3570100.004319102,
+        "physical_rf_error_hz": [
+          -0.19251356021230498,
+          0.12211605467886681
+        ],
+        "physical_raw_error_ppm": [
+          -0.055133655072456544,
+          0.03299542100679427
+        ],
+        "api_triplet_bound": [
+          true,
+          true
+        ],
+        "api_model_stable": true,
+        "pure_frequency_ppb_before_after": [
+          -429,
+          -429
+        ],
+        "pure_rate_verdict": "worsened",
+        "pure_corrected_rate_error_ppm": [
+          -0.4841336314201185,
+          -0.3960045931482413
+        ],
+        "pure_rate_absolute_improvement_ppm": [
+          -0.429,
+          -0.36300917214144707
+        ],
+        "total_corrected_rate_error_ppm": [
+          -0.4611336326881926,
+          -0.37300459238934663
+        ],
+        "phase_slew_ppb": 23,
+        "incremental_frequency_rate_verdict": "worsened",
+        "incremental_frequency_rate_improvement_ppm": [
+          -0.4289999901330002,
+          -0.3170091706236577
+        ],
+        "candidate_qualified_before_after": [
+          true,
+          true
+        ],
+        "fits": {
+          "3560000": {
+            "indicated_hz": 3560004.2292196867,
+            "phase_residual_rms_rad": 0.05239062797857103,
+            "amplitude_min_ratio": 0.8142266546203377,
+            "contrast_db": 54.05401138279868,
+            "half_window_difference_hz": 0.002898125909268856
+          },
+          "3570100": {
+            "indicated_hz": 3570104.2045019707,
+            "phase_residual_rms_rad": 0.012663616189478536,
+            "amplitude_min_ratio": 0.9987109684865386,
+            "contrast_db": 96.31348191174816,
+            "half_window_difference_hz": 0.01932941935956478
+          },
+          "3640000": {
+            "indicated_hz": 3640004.312240007,
+            "phase_residual_rms_rad": 0.0568829983915667,
+            "amplitude_min_ratio": 0.7834775256031514,
+            "contrast_db": 52.96396002027194,
+            "half_window_difference_hz": 0.004461856093257666
+          }
+        },
+        "outer_api_clock_generations": [
+          [
+            "94",
+            "94"
+          ],
+          [
+            "94",
+            "94"
+          ]
+        ]
+      },
+      {
+        "board": "A",
+        "label": "end",
+        "capture_sha256": "c2e7ad2d871e11d271587be539973b5c5698f74d926aa3d9f753ff102ba01f02",
+        "metadata_sha256": "845192ac2cdb7115c3443aac5613e340f2276bfac165cd5aa3ab2811f71d5e07",
+        "capture_start_utc": "2026-10-19T13:15:13.972Z",
+        "nco_nominal_hz": 3570100.004319102,
+        "physical_rf_error_hz": [
+          4.964067203351909,
+          5.27871899047062
+        ],
+        "physical_raw_error_ppm": [
+          1.3892462663095186,
+          1.4773815529227916
+        ],
+        "api_triplet_bound": [
+          false,
+          true
+        ],
+        "api_model_stable": false,
+        "pure_frequency_ppb_before_after": [
+          -1532,
+          -1532
+        ],
+        "pure_rate_verdict": "excluded_model_transition",
+        "candidate_qualified_before_after": [
+          true,
+          true
+        ],
+        "fits": {
+          "3560000": {
+            "indicated_hz": 3560004.215392683,
+            "phase_residual_rms_rad": 0.054329726534453955,
+            "amplitude_min_ratio": 0.7786955609366014,
+            "contrast_db": 53.97751761849565,
+            "half_window_difference_hz": 0.0021734857000410557
+          },
+          "3570100": {
+            "indicated_hz": 3570109.3473216943,
+            "phase_residual_rms_rad": 0.01112505684325521,
+            "amplitude_min_ratio": 0.9984078694460656,
+            "contrast_db": 96.56549147679527,
+            "half_window_difference_hz": 0.016953790094703436
+          },
+          "3640000": {
+            "indicated_hz": 3640004.2988050925,
+            "phase_residual_rms_rad": 0.058285992762219005,
+            "amplitude_min_ratio": 0.8028402241462717,
+            "contrast_db": 52.79884120979247,
+            "half_window_difference_hz": 0.0023918459191918373
+          }
+        },
+        "outer_api_clock_generations": [
+          [
+            "143",
+            "144"
+          ],
+          [
+            "144",
+            "144"
+          ]
+        ]
+      },
+      {
+        "board": "B",
+        "label": "end",
+        "capture_sha256": "9b79ed2c2e6c0e5e5e76eaaaebda610577e83372ca77adde713211d9f9216c03",
+        "metadata_sha256": "3c7cb84a169c98fe88a096860e13f72edfc00c8a76c522394e6e2d9afb6a2c18",
+        "capture_start_utc": "2026-10-19T13:15:57.209Z",
+        "nco_nominal_hz": 3570100.004319102,
+        "physical_rf_error_hz": [
+          -0.36458444461541745,
+          -0.049955573326023586
+        ],
+        "physical_raw_error_ppm": [
+          -0.10333143222013905,
+          -0.015202564426868199
+        ],
+        "api_triplet_bound": [
+          true,
+          true
+        ],
+        "api_model_stable": true,
+        "pure_frequency_ppb_before_after": [
+          151,
+          151
+        ],
+        "pure_rate_verdict": "unresolved",
+        "pure_corrected_rate_error_ppm": [
+          0.047668552176814684,
+          0.13579743327754457
+        ],
+        "pure_rate_absolute_improvement_ppm": [
+          -0.12059486885067637,
+          0.05566288004332437
+        ],
+        "total_corrected_rate_error_ppm": [
+          0.4636685091909389,
+          0.5517974269532778
+        ],
+        "phase_slew_ppb": 416,
+        "incremental_frequency_rate_verdict": "worsened",
+        "incremental_frequency_rate_improvement_ppm": [
+          -0.15099999770441278,
+          -0.15099998439695372
+        ],
+        "candidate_qualified_before_after": [
+          true,
+          true
+        ],
+        "fits": {
+          "3560000": {
+            "indicated_hz": 3560004.2116713966,
+            "phase_residual_rms_rad": 0.056946660709653305,
+            "amplitude_min_ratio": 0.8343996264943188,
+            "contrast_db": 54.14429127358355,
+            "half_window_difference_hz": 0.0016849669627845287
+          },
+          "3570100": {
+            "indicated_hz": 3570104.0150479604,
+            "phase_residual_rms_rad": 0.010663400546190669,
+            "amplitude_min_ratio": 0.9985761585160247,
+            "contrast_db": 95.50543728161063,
+            "half_window_difference_hz": 0.01617936324328184
+          },
+          "3640000": {
+            "indicated_hz": 3640004.2960043345,
+            "phase_residual_rms_rad": 0.05826771480891258,
+            "amplitude_min_ratio": 0.8254252727871465,
+            "contrast_db": 52.81761234235489,
+            "half_window_difference_hz": 0.004106063395738602
+          }
+        },
+        "outer_api_clock_generations": [
+          [
+            "145",
+            "145"
+          ],
+          [
+            "145",
+            "145"
+          ]
+        ]
+      }
+    ]
+  },
+  "restoration": {
+    "checked_ct": "2026-10-19T08:26:20-05:00",
+    "all_workers_and_guards_exited": true,
+    "canonical_locks_acquired": true,
+    "gpio_restored": true,
+    "gpsdo_hz": 10000000,
+    "gpsdo_outputs_and_pps_off": true,
+    "host_gps_pps_selected": true
+  },
+  "analysis_provenance": {
+    "src/rf_analysis/clock_measurement.py": "1cbff5962547399b262b305f99391dc7bb7dc5fa7cc69729f76bffa082d5d935",
+    "scripts/clock_pulse_probe.py": "22802e4db24fd6ab2a32aab1d8e2f0fc3214709a036120f354917136db17a07c",
+    "build/microchrony-lead-layout-20261019/verify_evidence.py": "8f4436152ff95ec3d2064f7eaf5a569cef2398347dc5531c4b5cead63cbbcd0b",
+    "build/microchrony-lead-layout-20261019/analyze_pulses.py": "70a6ebaa7686b0001b94dce570722bc368ac74ccde299985c4c40029eb86c8f2",
+    "build/microchrony-lead-layout-20261019/analyze_rf.py": "3a626699d347d01a145cc0db498487d6fd443dd6d541a6b05ecd18a7cc796d61",
+    "build/microchrony-lead-layout-20261019/audit_terminal.py": "336bed6e4e999f51486ac5e225407b0448d748b578327befe55f2da9b6ef29fe",
+    "build/microchrony-lead-layout-20261019/publish_summary.py": "af8885d7dc3b8d288d5e0ebd300e8868b5f8345e281b1ce0018439c0d2b3b5ea",
+    "build/microchrony-lead-layout-20261019/terminal-independent-verification.json": "1be37990be9f8894bf0bf1f43fce2d608d7368052d44ae8e5e0e0d3ed49b0d17",
+    "build/microchrony-lead-layout-20261019/terminal-arithmetic-audit.json": "d4770f9a9f0dfefbf89419291a472190247fc173ea8afa955e2f35cf9388de27",
+    "build/microchrony-lead-layout-20261019/pulse-results-1ms.json": "03930b937d816ad7448088d851840e6ec69f1863083d6b1be9a79985c4c73acc",
+    "build/microchrony-lead-layout-20261019/pulse-results-5ms.json": "585d0571a019ebd2e34ab05cc7118666c6ca0a6ed1efaa5196f0f5871f1cced5",
+    "build/microchrony-lead-layout-20261019/epoch-results.json": "7b19676b43a54d81e32f1e039a78928d7e4a90682a1a2c0fda5cfd10f2c9b7a2",
+    "build/microchrony-lead-layout-20261019/terminal-evidence/active-harness-manifest.json": "8847bbffd628e6923b811be39c1e1459d94efd7c4cccffb972e21853be9d126d",
+    "build/microchrony-lead-layout-20261019/post-restoration-verification.json": "f69a12b39af608e186f67e866c8a800b7dd60a71d842e16731983d6675a1d063"
+  },
+  "independent_arithmetic_treatments_checked": 6932,
+  "review": {
+    "method": "Separate adversarial self-review and independent arithmetic; no new agent or human review",
+    "final_assessment_complete": true,
+    "assessment": "Share with caveats: finite observations and conditional arithmetic; absolute UTC/RF qualification remains open",
+    "measurement_arithmetic_tests_passed": 17,
+    "pulse_probe_tests_passed": 7,
+    "local_links_and_anchors_checked": 35,
+    "open_actionable_analysis_findings": 0
+  }
+}

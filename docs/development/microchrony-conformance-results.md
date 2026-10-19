@@ -6,10 +6,13 @@ rounding boundary. Local-path weighting and sustained asymmetry evidence remain
 separate from upstream uncertainty. Public covariance, clock-error, source,
 launch and RF bounds remain conservative. Manual PPM remains separate.
 
-The deterministic comparisons pass. The October 19 physical rerun stopped at
-07:02:02 CDT after recurring unexpected GPIO events; its measurement fault
+The deterministic comparisons pass. The earlier October 19 physical rerun stopped
+at 07:02:02 CDT after recurring unexpected GPIO events; its measurement fault
 remains unresolved. Retained pulse forecasts and initial RF checkpoints show
 mixed phase/frequency effects, not a robust actual-UTC improvement on both boards.
+The subsequent [lead-layout comparison](microchrony-lead-layout-results.md)
+completed with 319 main pulses per board and no unexpected edges. It retains
+mixed correction results and does not establish the electrical root cause.
 
 The comparison has three boundaries: actual offered packets at Chrony 4.9's
 NCR admission path; normalized source histories at its SST statistics API; and

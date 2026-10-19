@@ -47,6 +47,10 @@ external Chrony 4.9 comparison, remaining behavioral differences and serial-boun
 loads of the normal replacement firmware on B and subsequently authorized A.
 The historical overnight logger remains stopped; the replacement has its own
 finite NTP-only validation.
+The later [lead-layout pulse/RF comparison](microchrony-lead-layout-results.md)
+completed on both pool-configured boards with no unexpected GPIO edges. Its
+conditional timing and RF results do not establish consistent accuracy
+improvement or independent physical RF calibration.
 
 ## 1. Persistent standalone manual PPM
 
