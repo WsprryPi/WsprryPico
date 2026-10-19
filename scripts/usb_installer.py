@@ -35,7 +35,7 @@ import urllib.parse
 import urllib.request
 import uuid
 
-INSTALLER_VERSION = '0.1.1'
+INSTALLER_VERSION = '0.1.2'
 REPOSITORY = 'WsprryPi/WsprryPico'
 API = 'https://api.github.com/repos/' + REPOSITORY + '/'
 DOWNLOAD = 'https://github.com/' + REPOSITORY + '/releases/download/'
@@ -43,7 +43,14 @@ SCHEMA = Path(__file__).parent / 'ci/release-manifest-1.schema.json'
 SCHEMA_BYTES = None  # A deployed adapter may supply its verified immutable bytes.
 PERSISTENT_START = 0x3EE000  # Preserve the superset, including NTP learning.
 FLASH_SIZE = 0x400000
-PICOTOOL_REVISION = '6f6458d792b93685a11423b244a585eaa99eafcf'
+PICOTOOL_MIN_VERSION = (2, 3, 0)
+PICOTOOL_OPTIONS = {
+    'info': ('-a', '--ser'),
+    'save': ('-r', '-v', '-t', '--ser'),
+    'load': ('--ignore-partitions', '-v', '-u', '-x', '--ser'),
+    'verify': ('-t', '-o', '--ser'),
+    'erase': ('-r', '--ser'),
+}
 MAX_DOWNLOAD = 16 * 1024 * 1024
 HEX40 = r'[0-9a-f]{40}'
 HEX64 = r'[0-9a-f]{64}'
@@ -869,11 +876,17 @@ def public_snapshot(device):
 class Picotool:
     def __init__(self, path='picotool'):
         resolved = shutil.which(str(path))
-        require(resolved, 'Install picotool 2.3.0 with USB support; see the USB installer guide')
+        require(resolved, 'Install picotool 2.3 or newer within 2.x, with USB support; see the USB installer guide')
         self.path = Path(resolved).resolve()
         report = command([self.path, 'version'])
-        require(report.startswith('picotool v2.3.0 ') and 'without USB support' not in report,
-                'USB-enabled picotool 2.3.0 is required (pinned source ' + PICOTOOL_REVISION + ')')
+        version = re.match(r'^picotool v([0-9]+)\.([0-9]+)\.([0-9]+) ', report)
+        require(version and tuple(map(int, version.groups())) >= PICOTOOL_MIN_VERSION and
+                int(version[1]) == 2 and 'without USB support' not in report,
+                'picotool 2.3 or newer within 2.x, with USB support, is required')
+        for operation, options in PICOTOOL_OPTIONS.items():
+            help_text = command([self.path, 'help', operation])
+            require(all(re.search(r'(?<![\w-])' + re.escape(option) + r'(?![\w-])', help_text)
+                        for option in options), 'picotool lacks required ' + operation + ' command options')
         self.identity = {'version': report.strip(), 'sha256': sha(self.path.read_bytes())}
 
     def run(self, serial, *args, timeout=60):
@@ -958,7 +971,7 @@ def save_json(path, value):
     save_bytes(path, (json.dumps(value, indent=2, sort_keys=True) + '\n').encode())
 
 
-def prune_transactions(root, *, retain_history=False):
+def prune_transactions(root, *, retain_history=False, keep=None, admit=True):
     """Bound completed/unchanged history for seven days; never erase recovery."""
     complete, unchanged, unresolved = [], [], []
     for directory in root.iterdir():
@@ -982,13 +995,28 @@ def prune_transactions(root, *, retain_history=False):
             unresolved.append(directory)
     # Cap retained uncertain operations by refusing new ones, never discarding
     # the only old-image/settings recovery material to make room.
-    require(len(unresolved) < 8, 'Eight unresolved transactions retained; reconcile recovery before another update')
+    if admit:
+        require(len(unresolved) < 8, 'Eight unresolved transactions retained; reconcile recovery before another update')
+    if keep is not None:
+        require(keep.parent == root and keep.is_dir() and not keep.is_symlink(), 'Invalid current transaction')
     if retain_history:
         return
     for history, limit in ((complete, 2), (unchanged, 8)):
-        for index, directory in enumerate(sorted(history, key=lambda p: p.stat().st_mtime, reverse=True)):
-            if index >= limit or time.time() - directory.stat().st_mtime > 7 * 86400:
+        for index, directory in enumerate(sorted(history, key=lambda p: (p == keep, p.stat().st_mtime), reverse=True)):
+            if directory != keep and (index >= limit or time.time() - directory.stat().st_mtime > 7 * 86400):
                 shutil.rmtree(directory)
+
+
+def trim_finished_history(record, path):
+    """Bound finished history without changing the flash result or losing recovery."""
+    if record.get('operation') == 'erase' or record.get('recovery_required') is not False or record.get('record_write_failed'):
+        return
+    try:
+        # An existing operation may finish while eight other records need recovery.
+        # Capacity gates new work only; unresolved records are never evicted.
+        prune_transactions(path.parent.parent, keep=path.parent, admit=False)
+    except (OSError, Refusal):
+        record['retention_warning'] = 'Finished history could not be trimmed; retained backups need administrator review.'
 
 
 def classify_flash(data):
@@ -1211,6 +1239,7 @@ def transaction(args, files, manifest, image, client=None):
                 save_json(path, record)
             except OSError:
                 record['record_write_failed'] = True
+            trim_finished_history(record, path)
             raise TransactionFailure('Interrupted; inspect the retained transaction and use manual BOOTSEL recovery.'
                                      if isinstance(error, KeyboardInterrupt) else str(error), record, path, error) from error
 
@@ -1288,6 +1317,7 @@ def verify_application(args, tool, record, path, manifest, snapshot):
     record.update(stage='complete', recovery_required=False,
                   target=observed['target'], preserved=True)
     save_json(path, record)
+    trim_finished_history(record, path)
     return dict(record, transaction=str(path))
 
 
@@ -1599,7 +1629,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
                       'uf2': candidate_asset(files, manifest),
                       'source_kind': 'local-development' if 'local-build.json' in files else 'canonical-ci',
                       'preserves': 'all reserved flash bytes; public saved state after boot',
-                      'requires': 'Pico 2 W, manual BOOTSEL for initial install/recovery, USB-enabled picotool 2.3.0'}
+                      'requires': 'Pico 2 W, manual BOOTSEL for initial install/recovery, picotool 2.3+ within 2.x with USB support'}
             if not (args.bundle or args.local_build or args.local_bundle or args.stable):
                 result['recent_ci'] = recent_ci(client, args.branch, manifest)
             if args.operation == 'plan' and args.output:

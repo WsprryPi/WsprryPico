@@ -633,6 +633,128 @@ class InstallerTests(unittest.TestCase):
             self.assertNotIn('before.bin', json.dumps(record))
 
 
+class PicotoolCompatibilityTests(unittest.TestCase):
+    def tool(self, version, *, missing=None, usb=True):
+        with tempfile.TemporaryDirectory() as temporary:
+            binary = Path(temporary)/'picotool'
+            binary.write_bytes(b'fixture executable')
+            def command(arguments):
+                if arguments[1:] == ['version']:
+                    return 'picotool v'+version+' (Linux, fixture)'+('' if usb else ' (without USB support)')
+                self.assertEqual(arguments[1], 'help')
+                operation = arguments[2]
+                options = {'info': '-a --ser', 'save': '-r -v -t --ser',
+                           'load': '--ignore-partitions -v -u -x --ser',
+                           'verify': '-t -o --ser', 'erase': '-r --ser'}[operation]
+                return options.replace(missing[1], '') if missing and operation == missing[0] else options
+            with patch.object(installer.shutil, 'which', return_value=str(binary)), \
+                 patch.object(installer, 'command', side_effect=command):
+                return installer.Picotool().identity
+
+    def test_current_and_future_compatible_2x_releases_are_accepted(self):
+        for version in ('2.3.0', '2.3.1', '2.3.8', '2.4.0', '2.99.12'):
+            with self.subTest(version=version):
+                identity = self.tool(version)
+                self.assertTrue(identity['version'].startswith('picotool v'+version+' '))
+                self.assertEqual(identity['sha256'], installer.sha(b'fixture executable'))
+
+    def test_old_major_new_major_prerelease_and_usb_less_builds_refuse(self):
+        for version in ('1.5.0', '2.2.9', '3.0.0', '2.3.1-rc1', 'not-a-version'):
+            with self.subTest(version=version), self.assertRaises(installer.Refusal):
+                self.tool(version)
+        with self.assertRaisesRegex(installer.Refusal, 'USB support'):
+            self.tool('2.3.1', usb=False)
+
+    def test_each_required_usb_operation_refuses_missing_options(self):
+        for operation, option in (('info', '-a'), ('info', '--ser'), ('save', '-r'), ('save', '-v'),
+                                 ('load', '--ignore-partitions'), ('load', '-x'), ('load', '-u'),
+                                 ('verify', '-o'), ('verify', '-t'), ('erase', '-r')):
+            with self.subTest(operation=operation, option=option), self.assertRaisesRegex(installer.Refusal, operation):
+                self.tool('2.4.0', missing=(operation, option))
+
+
+class FinishedHistoryTests(unittest.TestCase):
+    def record(self, root, name, *, recovery=False, stage='complete', operation='upgrade'):
+        directory = root/(SERIAL+'-'+name)
+        directory.mkdir()
+        value = dict(schema='wsprrypico-usb-transaction/1', serial=SERIAL, operation=operation,
+                     stage=stage, recovery_required=recovery)
+        installer.save_json(directory/'transaction.json', value)
+        (directory/'before.bin').write_bytes(b'private fixture backup')
+        return directory, value
+
+    def test_verified_application_finishes_at_limit_and_keeps_all_pending_backups(self):
+        _, manifest, _ = fixture(modern=True)
+        snapshot = dict(target=dict(device_id=installer.device_id(SERIAL), boot_id='b'*32),
+            firmware=manifest['firmware_version'], source_revision=manifest['source']['revision'][:12],
+            status=dict(job=dict(state='empty', output_active=False, owner_id=None),
+                        standalone=dict(suspended=False, watermark_utc_ns='7')),
+            config={'config': {'enabled': False}}, progress=dict(fields={}, draft_revision='1'),
+            hostname={'saved': 'fixture.local'}, frequency={'frequency_hz': None}, calibration={'saved': None})
+        board = dict(serial=SERIAL, mode='application', parent='fixed')
+        class Management:
+            def __init__(self, _): pass
+            def __enter__(self): return self
+            def __exit__(self, *_): pass
+            def get(self, _): return {'phase': 'verification'}
+            def finish_verification(self, _): pass
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            old = [self.record(root, str(index))[0] for index in range(2)]
+            # Future timestamps must not evict the transaction just verified.
+            for index, directory in enumerate(old):
+                os.utime(directory, (installer.time.time()+3600+index,)*2)
+            pending = [self.record(root, 'pending-'+str(index), recovery=True, stage='failed')[0] for index in range(8)]
+            current, record = self.record(root, 'current', recovery=True, stage='launching_verification_boot')
+            record['parent'] = 'fixed'
+            args = SimpleNamespace(device=SERIAL)
+            with patch.object(installer, 'discover', return_value=[board]), \
+                 patch.object(installer, 'selected', return_value=board), \
+                 patch.object(installer, 'public_snapshot', return_value=snapshot), \
+                 patch.object(installer, 'Management', Management):
+                result = installer.verify_application(args, None, record, current/'transaction.json', manifest, snapshot)
+            self.assertEqual(result['stage'], 'complete')
+            self.assertTrue(result['preserved'])
+            self.assertNotIn('retention_warning', result)
+            self.assertEqual(Path(result['transaction']), current/'transaction.json')
+            self.assertEqual((current/'before.bin').read_bytes(), b'private fixture backup')
+            complete = [p for p in root.glob('*/transaction.json') if not installer.decode(p.read_bytes())['recovery_required']]
+            self.assertEqual(len(complete), 2)
+            self.assertFalse(old[0].exists())
+            for directory in pending:
+                self.assertEqual((directory/'before.bin').read_bytes(), b'private fixture backup')
+
+    def test_completed_refusal_is_trimmed_after_it_is_recorded(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for index in range(8):
+                directory, _ = self.record(root, str(index), stage='failed')
+                os.utime(directory, (installer.time.time()+index+1,)*2)
+            current, record = self.record(root, 'current', stage='failed')
+            installer.trim_finished_history(record, current/'transaction.json')
+            self.assertEqual(len(list(root.glob('*/transaction.json'))), 8)
+            self.assertTrue(current.exists())
+
+    def test_cleanup_failure_does_not_replace_the_completed_flash_result(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory, record = self.record(Path(temporary), 'current')
+            with patch.object(installer, 'prune_transactions', side_effect=PermissionError('/private/path')):
+                installer.trim_finished_history(record, directory/'transaction.json')
+            self.assertEqual(record['stage'], 'complete')
+            self.assertFalse(record['recovery_required'])
+            self.assertIn('retention_warning', record)
+            self.assertNotIn('/private/path', record['retention_warning'])
+            self.assertTrue((directory/'before.bin').exists())
+
+    def test_pending_and_erase_results_never_trigger_finished_cleanup(self):
+        for values in (dict(recovery_required=True), dict(operation='erase'), dict(record_write_failed=True)):
+            record = dict(operation='upgrade', recovery_required=False)
+            record.update(values)
+            with self.subTest(values=values), patch.object(installer, 'prune_transactions') as prune:
+                installer.trim_finished_history(record, Path('/unused/transaction.json'))
+                prune.assert_not_called()
+
+
 class EraseTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

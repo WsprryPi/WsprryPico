@@ -1,6 +1,6 @@
 # USB installer
 
-The shared installer is `scripts/usb_installer.py` (version 0.1.1). It runs with
+The shared installer is `scripts/usb_installer.py` (version 0.1.2). It runs with
 Python 3.10 or newer and its standard library on macOS and Linux. Windows and
 WSL USB operation are unsupported. The current implementation is under
 validation; [the result record](usb-installer-results.md) defines its acceptance.
@@ -171,11 +171,14 @@ python3 -B tests/installer_release_tests.py
 
 ## USB dependency and device selection
 
-Programming requires a USB-enabled **picotool 2.3.0** built from the project pin
-`6f6458d792b93685a11423b244a585eaa99eafcf` in
-[Raspberry Pi picotool](https://github.com/raspberrypi/picotool/tree/6f6458d792b93685a11423b244a585eaa99eafcf).
-The installer checks its version, requires USB support and records the executable
-SHA-256. It accepts an explicit `--picotool /absolute/path/to/picotool`. It does
+Programming accepts **picotool 2.3 or newer within the 2.x series**, including
+the public [2.3.1 release](https://github.com/raspberrypi/picotool/releases/tag/2.3.1).
+The installer checks the version, USB support and the command options needed for
+identity, backup, programming, verification and erase. Older versions, prereleases,
+3.x versions and builds without the required capabilities are refused. USB is a
+normal picotool capability; builds without libusb cannot access a connected Pico.
+The exact executable version and SHA-256 are recorded for each transaction.
+It accepts an explicit `--picotool /absolute/path/to/picotool`. It does
 not install packages, acquire an SDK, bundle a local executable or run the whole
 bootstrap as root. Tool acquisition/build is an administrator/developer step;
 retain picotool's upstream license when redistributing it.
@@ -350,20 +353,45 @@ checks still apply, so an unavailable or divergent source comparison refuses. Ge
 from expiring secret backups, with a maximum of 32 boards; retire an unused
 reference explicitly before adding another board.
 
+## Transaction retention
+
+Completed install/upgrade histories are limited to two transactions, and
+pre-programming refusals to eight, with a seven-day lifetime. Cleanup runs
+before new work and after a verified completion or unchanged refusal. The
+current transaction is retained even if an older record has a future timestamp.
+Unresolved records and their backups are never evicted; eight unresolved
+transactions block new work while explicit recovery remains available.
+An explicit full erase retains other host backups and histories.
+
+A cleanup failure adds `retention_warning` to the result. It does not replace a
+verified firmware result, discard an unresolved transaction or expose private
+paths. Retained records from an older installer use their original printed
+continuation command, which downloads that exact installer revision.
+
 ## Bootstrap and Pi access
 
 `bash scripts/install_usb.sh discover` exercises the maintained bootstrap.
 It resolves the installer source revision once and retrieves the core and schema
 at that immutable revision. Firmware selection remains main unless changed
-explicitly. A published curl command will be recorded only after the reviewed
-installer has been committed and pushed; the isolated development version is
-not advertised as a working public bootstrap.
+explicitly. The public bootstrap can also run without a repository checkout:
+
+```sh
+set -o pipefail
+curl -fsSL --proto '=https' --proto-redir '=https' \
+  https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh |
+bash -s -- discover
+```
+
+For an existing WsprryPico application, replace `discover` with
+`upgrade --branch devel --device SERIAL --board pico2_w --yes`, using the
+discovered USB serial. The command selects the latest verified devel firmware
+and preserves saved settings. Python, picotool and USB permissions must already
+be available. The bootstrap runs as the ordinary user, not through `sudo`.
 
 WsprryPi's selected USB Pico controls call the identified deployed core. The
-package-time adapter fetches exact pinned files and verifies their hashes;
+adapter verifies an independently published compatible installer and its hashes;
 browser requests cannot supply commands, URLs or local paths. Only the selected
 member is held, with a private persistent marker across service restart. The
 marker remains until core verification and Pi USB reconnection both succeed.
 Network-only selections do not offer a USB update. Local compilation remains
-an explicit host command. Deployment pinning and real Pi USB acceptance remain
-open in the result record.
+an explicit host command.
