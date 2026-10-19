@@ -47,6 +47,37 @@ does not retry requests automatically or load GitHub credentials. A rate limit
 on optional additional-run status leaves the verified selected image usable and
 reports its reason separately in `recent_ci`.
 
+## Independently published installer
+
+The USB installer has its own lightweight CI workflow,
+`.github/workflows/usb-installer.yml`. It tests the installer and publication
+logic independently of firmware builds. Successful main/devel runs publish
+the exact core, firmware-manifest schema and `usb-installer.json` receipt at
+`usb-installer-v1-BRANCH-RUN.ATTEMPT`. The permanent
+`usb-installer-v1-main` and `usb-installer-v1-devel` release bodies point to
+the latest tested compatible bundle; existing version assets are never replaced.
+
+The receipt declares installer contract 1, `wsprrypico-usb-result/1`,
+`wsprrypico-usb-transaction/1`, firmware-manifest schema 1, minimum Python,
+installer version, source, successful verification job, workflow identity and
+exact file sizes/SHA-256. Compatible implementation fixes keep the contract.
+A breaking result, transaction or deployment interface needs a new contract and
+channel; it must not be published as contract 1. Firmware image versions and
+firmware branch bookmarks remain independent.
+
+WsprryPi selects by supported installer contract and channel. An explicit image
+check may refresh the shared installer without a Pi source change. Its checked
+image and every transaction retain their exact installer; recovery must never
+resolve the current channel or substitute newer code. The Pi bounds completed
+image/backup caches across installer versions while retaining unresolved recovery.
+
+Publication checks run without an SDK, compiler, attached Pico or network:
+
+```sh
+python3 -B tests/usb_installer_tests.py
+python3 -B tests/installer_release_tests.py
+```
+
 ## USB dependency and device selection
 
 Programming requires a USB-enabled **picotool 2.3.0** built from the project pin
