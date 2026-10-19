@@ -10,9 +10,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from validate_wtp_contract import SchemaValidator, load_json, frame, loads_strict
 from wtp_monitor import FrameDecoder
 
-schema = load_json(ROOT / "docs/protocol/wtp-1.schema.json")
+schema = load_json(ROOT / "engineering/protocol/wtp-1.schema.json")
 validator = SchemaValidator(schema)
-vectors = load_json(ROOT / "docs/protocol/test-vectors/wtp-1.json")
+vectors = load_json(ROOT / "engineering/protocol/test-vectors/wtp-1.json")
 
 class Peer:
     def __init__(self):

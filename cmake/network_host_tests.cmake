@@ -89,7 +89,7 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_link_libraries(bootstrap_crypto_tests PRIVATE wsprrypico_core mbedcrypto)
     target_compile_options(bootstrap_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME bootstrap_crypto_tests COMMAND bootstrap_crypto_tests
-        ${CMAKE_SOURCE_DIR}/docs/protocol/WiFi-Bootstrap-v1-vectors.json)
+        ${CMAKE_SOURCE_DIR}/engineering/protocol/WiFi-Bootstrap-v1-vectors.json)
     add_executable(consumer_radio_crypto_tests tests/consumer_radio_crypto_tests.cpp
         src/network/pico/consumer_radio_crypto.cpp src/network/pico/psa_lifetime.cpp)
     target_compile_definitions(consumer_radio_crypto_tests PRIVATE
@@ -97,9 +97,9 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_link_libraries(consumer_radio_crypto_tests PRIVATE wsprrypico_core mbedcrypto)
     target_compile_options(consumer_radio_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME consumer_radio_crypto_tests COMMAND consumer_radio_crypto_tests
-        ${CMAKE_SOURCE_DIR}/docs/protocol/Consumer-Radio-v1-vectors.json)
+        ${CMAKE_SOURCE_DIR}/engineering/protocol/Consumer-Radio-v1-vectors.json)
     add_test(NAME consumer_recovery_crypto_tests COMMAND consumer_radio_crypto_tests
-        ${CMAKE_SOURCE_DIR}/docs/protocol/Consumer-Recovery-v1-vectors.json)
+        ${CMAKE_SOURCE_DIR}/engineering/protocol/Consumer-Recovery-v1-vectors.json)
     add_executable(consumer_session_driver tests/consumer_session_driver.cpp
         src/network/pico/http_server.cpp src/network/pico/consumer_radio_crypto.cpp
         src/network/pico/psa_lifetime.cpp)

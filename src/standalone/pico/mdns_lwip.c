@@ -1,5 +1,5 @@
 /* Project-owned integration around immutable SDK-pinned lwIP mdns.c.
- * See docs/development/mdns-responder.md and docs/licenses/lwip-mdns.txt.
+ * See engineering/development/mdns-responder.md and engineering/licenses/lwip-mdns.txt.
  * Including the exact upstream translation unit permits bounded initialization
  * and complete cleanup of its private retained-packet list without an SDK patch.
  */

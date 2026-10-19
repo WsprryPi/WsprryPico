@@ -223,7 +223,7 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_options(usb_management_driver PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME usb_management_vectors COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/usb_management_vectors.py $<TARGET_FILE:usb_management_driver>
-        ${CMAKE_SOURCE_DIR}/docs/protocol/USB-Management-v1-vectors.json)
+        ${CMAKE_SOURCE_DIR}/engineering/protocol/USB-Management-v1-vectors.json)
     find_package(Threads REQUIRED)
     enable_language(C)
     add_executable(heap_metrics_tests tests/heap_metrics_tests.c src/runtime/pico/heap_metrics.c)

@@ -2,7 +2,7 @@
 
 μChrony is retained for UTC discipline. NTP RF calibration and the live
 Pico-to-Pi GPIO pulse path are retired; existing captured-input tools operate
-on historical files only. See the [closeout](../../docs/development/ntp-work-closeout.md).
+on historical files only. See the [closeout](../../engineering/development/ntp-work-closeout.md).
 
 These original MIT drivers keep the external GPL reference separate from
 μChrony and the firmware. They download nothing, install nothing, adjust no
@@ -87,7 +87,7 @@ python3 tests/reference/compare_chrony49_frequency.py "$receipts/chrony49-contro
 `test_microchrony_loop.py` provides ten known-truth CI cases without an external
 reference, network or hardware. `plot_chrony49_loop.py BEFORE AFTER DIRECTORY`
 uses installed gnuplot to plot raw truth errors from saved reports. The
-[clock-loop record](../../docs/development/microchrony-clock-loop.md) specifies
+[clock-loop record](../../engineering/development/microchrony-clock-loop.md) specifies
 the baseline identity, exact checks, results and remaining differences.
 
 The adaptive-history/source-combination follow-up preserves the previous engine
@@ -135,7 +135,7 @@ opposite. The stdout protocol is unchanged.
 weak, forward and reverse queue asymmetry with known sub-ppm oscillator error.
 The original ten CI cases and their limits remain; three further UTC/rate
 acceptance cases exercise the new path-weighting and asymmetry behavior.
-The [Internet diagnosis](../../docs/development/microchrony-internet-diagnosis.md)
+The [Internet diagnosis](../../engineering/development/microchrony-internet-diagnosis.md)
 records comparison results and the captured-pulse tradeoff.
 
 For a privately retained completed pulse campaign, the pooled diagnostic checks
@@ -252,7 +252,7 @@ nonces; both implementations receive the resulting identical bytes. It preserves
 original intervals and body quality fields, requires full retained basic packets
 and reports differences from live verdicts separately from reference disagreement.
 Missing boot state, autonomous polling and combined clock feedback are outside
-that frozen-output boundary. The [result record](../../docs/development/microchrony-lead-replay-results.md)
+that frozen-output boundary. The [result record](../../engineering/development/microchrony-lead-replay-results.md)
 retains the adverse source/path bias and incomplete pre-capture visibility.
 
 `NTP PACKETS <cursor>` is a read-only USB Console command. Start with cursor
@@ -319,7 +319,7 @@ Adaptive pruning, transient frequency, covariance and startup selection can
 differ. Complete packet-admission, daemon selection/servo and leap-execution
 equivalence remain unproven. The recorded upstream unit run passed 16 tests,
 skipped nine and failed the socket test on the Mac; it was not a clean upstream
-suite. The [results](../../docs/development/microchrony-results.md) describe
+suite. The [results](../../engineering/development/microchrony-results.md) describe
 these limits and separate software checks from live application and RF claims.
 
 ## Captured NTP consistency
@@ -401,10 +401,10 @@ reproducible from the verified private evidence and the two phase analyses:
 
 ```sh
 python3 tests/reference/summarize_microchrony_live.py "$receipts/full-evidence" \
-  "$receipts" docs/development/microchrony-live-comparison.json
+  "$receipts" engineering/development/microchrony-live-comparison.json
 python3 tests/reference/plot_microchrony_live.py \
-  docs/development/microchrony-live-comparison.json \
-  docs/development/figures/microchrony-live-convergence.png
+  engineering/development/microchrony-live-comparison.json \
+  engineering/development/figures/microchrony-live-convergence.png
 ```
 
 The plot uses an already installed gnuplot. Its frequency estimates and

@@ -31,7 +31,7 @@ class CapacityTests(unittest.TestCase):
         self.assertNotEqual(job['job_id'], sample_aligned_job('2' * 32)['job_id'])
 
     def test_maximum_and_one_over_frames_have_truthful_lengths_and_crc(self):
-        schema = json.loads((Path(__file__).resolve().parents[1] / 'docs/protocol/wtp-1.schema.json').read_text())
+        schema = json.loads((Path(__file__).resolve().parents[1] / 'engineering/protocol/wtp-1.schema.json').read_text())
         validator = SchemaValidator(schema)
         for oversized, size in ((False, 65536), (True, 65537)):
             raw = wtp_capacity_frame('1' * 32, '2' * 32, oversized)

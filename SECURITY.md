@@ -17,7 +17,7 @@ encryption; an active page-substitution attacker can steal the password.
 Default consumer Plain LAN WTP permits clients that can reach station TCP port
 31417 after accepted network time. Network reachability is its trust boundary.
 Engineering mutual TLS has separate credentials and is disabled by default.
-See [certificate management](docs/development/network-control.md) for renewal
+See [certificate management](engineering/development/network-control.md) for renewal
 and compromise recovery.
 
 Engineering BLE uses Just Works pairing plus an application password. Its

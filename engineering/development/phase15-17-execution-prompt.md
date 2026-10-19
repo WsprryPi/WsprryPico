@@ -32,7 +32,7 @@ merely to publish this software testing prerelease.
 ## 1. Verify prerequisites and refresh the execution baseline
 
 Work from `/Users/lbussy/GitHub/WsprryPico`. Read `AGENTS.md`, `README.md`,
-`CONTRACT.md`, `docs/architecture.md`, `docs/development/README.md`, the current
+`CONTRACT.md`, `engineering/architecture.md`, `engineering/development/README.md`, the current
 [Consolidated backlog](consolidated-backlog.md), the
 [acceptance record](consolidated-backlog.md),
 [USB management contract](../protocol/USB-Management.md), and current [GPIO drive](gpio-drive.md), [firmware selection](firmware-foundation.md)
@@ -200,7 +200,7 @@ Checksums establish byte integrity; do not call them a signature or attestation.
 ## 6. Prepare complete testing release notes
 
 Write the exact release body to a maintained Markdown file, such as
-`docs/development/phase15-17-release-notes.md`, and use `--notes-file`.
+`engineering/development/phase15-17-release-notes.md`, and use `--notes-file`.
 Include:
 
 - Testing status, exact tag/source, board, asset names and verification steps.
@@ -317,7 +317,7 @@ the concrete blocker. A successful CLI exit alone does not close this item.
 
 ## 10. Record acceptance, commit evidence and hand off
 
-Create `docs/development/phase15-17-results.md` with baseline and frozen `F`,
+Create `engineering/development/phase15-17-results.md` with baseline and frozen `F`,
 version/tag, build/artifact identities, checks, reviewer findings/repairs/final
 reassessment, publication and remote/download verification, storage/compatibility
 policy, limitations and any hardware/restoration state. Keep raw firmware and

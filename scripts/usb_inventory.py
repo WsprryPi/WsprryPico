@@ -186,7 +186,7 @@ def main():
             'Invalid device identity')
     session = inventory_session(args.session_id)
     schema = loads_strict((Path(__file__).resolve().parents[1] /
-                          'docs/protocol/wtp-1.schema.json').read_text())
+                          'engineering/protocol/wtp-1.schema.json').read_text())
     validator = SchemaValidator(schema)
     sequence = 0
 

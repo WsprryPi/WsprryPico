@@ -12,7 +12,7 @@ Blank/network-only AP roots retain the Wi-Fi-first pages described below;
 with an explicit Wi-Fi-first refusal where needed. These profiles have no job
 control authority. Cross-document commissioning changes ask before discarding
 edited fields. Unavailable setup/control shows bounded recovery guidance.
-Station details use [automatic Type 1/2/3 planning](../../../docs/development/wspr-planning.md).
+Station details use [automatic Type 1/2/3 planning](../../../engineering/development/wspr-planning.md).
 
 The firmware embeds these local pages and their bundles for the open Pico
 setup AP. `/` and `/index.html` show Wi-Fi setup when it is available;

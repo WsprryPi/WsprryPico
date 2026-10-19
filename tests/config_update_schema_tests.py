@@ -14,8 +14,8 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 DRIVER = sys.argv.pop(1)
-SCHEMA = json.loads((ROOT / 'docs/protocol/transmitter-config-update-1.schema.json').read_text())
-VECTORS = json.loads((ROOT / 'docs/protocol/transmitter-config-update-1-vectors.json').read_text())
+SCHEMA = json.loads((ROOT / 'engineering/protocol/transmitter-config-update-1.schema.json').read_text())
+VECTORS = json.loads((ROOT / 'engineering/protocol/transmitter-config-update-1-vectors.json').read_text())
 
 
 def unique(pairs):

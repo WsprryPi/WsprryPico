@@ -2,7 +2,7 @@
 
 This standalone diagnostic stays outside the normal application build. It
 checks I²C communication with an attached candidate and implements no production
-Si5351 RF engine. The [Si5351 design reference](../../../docs/development/si5351-engine-notes.md)
+Si5351 RF engine. The [Si5351 design reference](../../../engineering/development/si5351-engine-notes.md)
 defines the engine boundary and the consolidated backlog selects unfinished work.
 
 Minimal Pico 2 W sketch: I²C0, GP4 SDA (header pin 6), GP5 SCL (header pin 7),

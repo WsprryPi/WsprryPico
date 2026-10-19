@@ -84,7 +84,7 @@ separation, bounded rationale and explicit ambiguity/alternate call. Old full
 config paths may preserve an unchanged new identity during unrelated edits but
 cannot introduce a changed new format. ETags, target/boot binding, idle/storage
 checks, password-null preservation, flags, pins, schedules and watermark remain.
-`docs/protocol/transmitter-application-2.schema.json` validates actual responses;
+`engineering/protocol/transmitter-application-2.schema.json` validates actual responses;
 legacy schemas are untouched. WTP/1, management/1 and /2, Consumer-Radio/1 and
 Consumer-Recovery/1 are unchanged.
 

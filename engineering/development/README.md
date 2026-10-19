@@ -21,7 +21,7 @@ paths in the environment or ignored `CMakeUserPresets.json`.
 
 Owned implementation is under `src/`, deterministic tests under `tests/`,
 build helpers under `cmake/` and `scripts/`, and protocols/schemas/vectors under
-`docs/protocol/`. Keep firmware, captures, credentials and generated headers
+`engineering/protocol/`. Keep firmware, captures, credentials and generated headers
 under ignored build/private directories. Maintain `.pio` source rather than
 generated `.pio.h` headers. Preserve upstream licenses and source provenance.
 
@@ -163,3 +163,21 @@ The [NTP closeout](ntp-work-closeout.md) records current manual-only RF correcti
 and retained μChrony UTC discipline. Earlier investigation evidence remains in
 the [NTP work record](ntp-work-results.md). Chrony is an external test reference,
 not a firmware dependency. Physical UTC/RF accuracy remains unqualified.
+
+## Operator manual and publication
+
+Current operator instructions are in [the Sphinx manual](../../docs/index.md).
+Only `docs/` is a Sphinx source tree; engineering contracts, schemas, evidence
+and saved handoffs stay here and are excluded from public search.
+
+Build with the project-local documentation environment:
+
+```sh
+python3 -m venv docs/.venv
+docs/.venv/bin/python -m pip install -r docs/requirements.txt
+docs/.venv/bin/python -m sphinx -E -a -n -W --keep-going -b html docs docs/_build/html
+```
+
+Run these commands from the repository root. The documentation dependencies do
+not install an SDK or toolchain. [Migration and publication evidence](operator-documentation-results.md)
+records source coverage, screenshots, reproducible checks and publication state.

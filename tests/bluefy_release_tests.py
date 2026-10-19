@@ -10,7 +10,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-RELEASE = ROOT / "docs" / "bluefy"
+RELEASE = ROOT / "build" / "bluefy-validation"
 SOURCE = ROOT / "src" / "provisioning" / "web"
 
 
@@ -56,7 +56,7 @@ def source_release():
 
 def main():
     subprocess.run([sys.executable, str(ROOT / "scripts" / "build_bluefy_release.py"),
-                    "--check"], check=True)
+                    "--write", "--output", str(RELEASE)], check=True)
     manifest = json.loads((RELEASE / "release-manifest.json").read_text())
     assert manifest["version"] == manifest["protocol"] == 1
     assert re.fullmatch(r"[0-9a-f]{64}", manifest["release"])

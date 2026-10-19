@@ -12,7 +12,7 @@ server_header = (ROOT / "src/network/pico/server.hpp").read_text()
 main = (ROOT / "src/standalone/pico/main.cpp").read_text()
 network_cmake = (ROOT / "cmake/network.cmake").read_text()
 mbedtls = (ROOT / "src/network/pico/mbedtls_config.h").read_text()
-protocol = (ROOT / "docs/protocol/WTP.md").read_text()
+protocol = (ROOT / "engineering/protocol/WTP.md").read_text()
 lwipopts = (ROOT / "src/standalone/pico/lwipopts.h").read_text()
 
 # Reclaim the previous response only at completed/cancelled close or after

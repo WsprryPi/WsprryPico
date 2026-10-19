@@ -15,7 +15,7 @@ import analyze_rf_feasibility as rf
 
 class FeasibilityTests(unittest.TestCase):
     def test_report_is_current(self):
-        self.assertEqual((ROOT / "docs/rf-calculations.md").read_text(), rf.report())
+        self.assertEqual((ROOT / "engineering/rf-calculations.md").read_text(), rf.report())
 
     def test_static_dividers_cannot_resolve_four_tones(self):
         for base in rf.BASES:

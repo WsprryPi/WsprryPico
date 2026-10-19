@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from validate_wtp_contract import SchemaValidator, ValidationError, loads_strict
 
-protocol = ROOT / 'docs/protocol'
+protocol = ROOT / 'engineering/protocol'
 drive = json.loads((protocol / 'transmitter-gpio-drive-1.schema.json').read_text())
 class Validator(SchemaValidator):
     def resolve(self, ref):

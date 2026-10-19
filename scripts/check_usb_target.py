@@ -74,7 +74,7 @@ def main():
     if os.path.realpath(args.console) == os.path.realpath(args.wtp):
         parser.error('Console and WTP must be different interfaces')
     args.output.mkdir(parents=True, exist_ok=False)
-    schema = load_json(Path(__file__).resolve().parents[1] / 'docs/protocol/wtp-1.schema.json')
+    schema = load_json(Path(__file__).resolve().parents[1] / 'engineering/protocol/wtp-1.schema.json')
     validator = SchemaValidator(schema)
     session = uuid.uuid4().hex
     sequence = 0

@@ -116,7 +116,7 @@ class LoadReplyTests(unittest.TestCase):
                 decoded = FrameDecoder()
                 payloads = decoded.feed(bytes.fromhex(r['hex']))
                 self.assertFalse(decoded.buffer)
-                schema = load_json(ROOT / 'docs/protocol/wtp-1.schema.json')
+                schema = load_json(ROOT / 'engineering/protocol/wtp-1.schema.json')
                 messages = [json.loads(v) for v in payloads]
                 for message in messages:
                     self.assertFalse(SchemaValidator(schema).errors(message, schema))
@@ -157,7 +157,7 @@ class LoadReplyTests(unittest.TestCase):
                     decoder = FrameDecoder()
                     payloads = decoder.feed(bytes.fromhex(exchange['hex']))
                     self.assertFalse(decoder.buffer)
-                    schema = load_json(ROOT / 'docs/protocol/wtp-1.schema.json')
+                    schema = load_json(ROOT / 'engineering/protocol/wtp-1.schema.json')
                     messages = [json.loads(p) for p in payloads]
                     for message in messages:
                         self.assertFalse(SchemaValidator(schema).errors(message, schema))
@@ -191,7 +191,7 @@ class LoadReplyTests(unittest.TestCase):
                 decoder = FrameDecoder()
                 messages = [json.loads(p) for p in decoder.feed(bytes.fromhex(exchange['hex']))]
                 self.assertFalse(decoder.buffer)
-                schema = load_json(ROOT / 'docs/protocol/wtp-1.schema.json')
+                schema = load_json(ROOT / 'engineering/protocol/wtp-1.schema.json')
                 for message in messages:
                     self.assertFalse(SchemaValidator(schema).errors(message, schema))
                 response, = [m for m in messages if m['type']=='response']

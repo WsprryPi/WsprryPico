@@ -1,0 +1,53 @@
+/* WsprryPi-Docs typography, spacing and chrome adapted for the Pico manual.
+ * Reference: c0215b6d980ae809dfacdeb9d2ef557dfc71445e (MIT, Lee Bussy).
+ * Full attribution and license: reference/credits.md. */
+:root {
+  --pico-ink: #243746;
+  --pico-heading: #223345;
+  --pico-link: #355774;
+  --pico-chrome: #405e7a;
+  --pico-paper: #ffffff;
+  --pico-pale: #ecf1f6;
+  --pico-border: #b7c4cf;
+}
+.wy-nav-content { max-width: 980px; }
+.wy-side-nav-search, .wy-nav-side, .wy-nav-top { background: var(--pico-chrome); }
+.wy-side-nav-search > a, .wy-nav-top a, .wy-nav-top-toggle { color: var(--pico-paper); }
+.wy-menu-vertical p.caption { color: var(--pico-pale); }
+.wy-menu-vertical a { color: var(--pico-pale); line-height: 1.4; }
+.wy-menu-vertical a:hover { color: var(--pico-paper); background: #344d64; }
+.wy-menu-vertical li.current > a { color: var(--pico-ink); }
+.rst-content { color: var(--pico-ink); font-size: 1rem; line-height: 1.6; }
+.rst-content h1, .rst-content h2, .rst-content h3 {
+  color: var(--pico-heading); line-height: 1.2; scroll-margin-top: 1rem;
+}
+.rst-content h1 { font-size: clamp(2rem, 3vw, 2.5rem); }
+.rst-content h2 { margin-top: 2rem; }
+.rst-content p, .rst-content ul, .rst-content ol { max-width: 68ch; }
+.rst-content li + li { margin-top: .35rem; }
+.rst-content a { color: var(--pico-link); text-decoration: underline; text-underline-offset: .15em; }
+a:focus-visible, button:focus-visible, input:focus-visible {
+  outline: 3px solid currentColor; outline-offset: 3px;
+}
+.rst-content figure { margin: 1.5rem 0; }
+.rst-content figure img { border: 1px solid var(--pico-border); height: auto; max-width: 100%; }
+.rst-content figcaption { font-size: .9rem; margin-top: .5rem; }
+.rst-content code.literal { overflow-wrap: anywhere; }
+.rst-content pre { overflow-x: auto; }
+.rst-content table.docutils { display: block; max-width: 100%; overflow-x: auto; }
+.rst-content table.docutils td, .rst-content table.docutils th { white-space: normal; }
+.wy-nav-top-toggle {
+  appearance: none; background: transparent; border: 0; cursor: pointer;
+  float: left; min-width: 44px; min-height: 44px; font-size: 24px;
+}
+.skip-link {
+  position: fixed; top: -100px; left: 1rem; z-index: 1000;
+  background: var(--pico-paper); color: var(--pico-ink); padding: .75rem;
+}
+.skip-link:focus { top: .5rem; }
+::selection { background: var(--pico-pale); color: var(--pico-ink); }
+@media (max-width: 768px) {
+  .wy-nav-content { padding: 1.5rem 1rem; }
+  .wy-menu-vertical a { padding-top: .7rem; padding-bottom: .7rem; }
+  .wy-nav-top { line-height: 44px; padding: .5rem 1rem; }
+}

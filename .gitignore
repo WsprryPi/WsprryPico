@@ -60,6 +60,7 @@ CMakeUserPresets.json
 __pycache__/
 *.py[cod]
 .pytest_cache/
+/engineering/_build/
 /docs/_build/
 node_modules/
 

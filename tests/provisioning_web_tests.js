@@ -1,6 +1,6 @@
 "use strict";
 const assert = require("assert");
-const vectors = require("../docs/protocol/Field-GATT-v1-vectors.json");
+const vectors = require("../engineering/protocol/Field-GATT-v1-vectors.json");
 const {canonicalProfile, profileInputFromFile, Client, MAX_PROFILE_BYTES, FRAGMENT_BYTES,
   GATT_FRAME_BYTES, MAX_COMMAND_BYTES,
   MAX_STATUS_BYTES, WTP_SEGMENT_BYTES, frames, FrameReceiver, crc32c, wtpFrame,

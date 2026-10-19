@@ -40,7 +40,7 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    and rewrite operator-facing prose around current capabilities. Keep needed
    technical material in engineering documentation; add no documentation
    placeholder or future promise. [Cleanup guidance](repository-cleanup-prompt.md).
-9. ▧ **Operator documentation.** Final instructions, screenshots and
+9. ⏳ **Operator documentation.** Final instructions, screenshots and
    Read the Docs Community publication.
    [Saved prompt](operator-documentation-execution-prompt.md).
 10. ▧ **Testing prerelease.** Publish the verified CI image, manifest and

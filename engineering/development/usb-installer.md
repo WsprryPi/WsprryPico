@@ -5,70 +5,26 @@ Python 3.10 or newer and its standard library on macOS and Linux. Windows and
 WSL USB operation are unsupported. The [acceptance record](usb-installer-results.md)
 distinguishes software checks, published downloads and recorded board tests.
 
-## Full flash erase
+## Operator instructions
 
-`erase` explicitly removes firmware and all saved data from all 4 MiB of the
-Pico 2 W external flash. It includes profiles, credentials, certificates,
-Bluetooth bonds, standalone settings, schedules, watermarks, NTP learning,
-saved drafts, diagnostic scratch and the E10 sector. No flash region is
-preserved. Immutable ROM, chip identity and OTP are outside the flash operation.
+The canonical [installation/update guide](../../docs/install.md) and
+[recovery/erase guide](../../docs/maintain.md#recovery-and-reset) describe current
+operator actions. This document retains installer contracts, implementation
+boundaries and physical acceptance scope.
 
-Select the physical USB serial and confirm both the board and destructive
-operation:
+## Full flash erase contract
 
-```sh
-python3 scripts/usb_installer.py discover
-python3 scripts/usb_installer.py erase --device 1545B6EFBF78028C --board pico2_w --yes
-```
+The explicit erase operation removes all 4 MiB of external flash, verifies every
+byte against `0xff`, leaves BOOTSEL active and creates no credential backup.
+Immutable ROM, chip identity and OTP are outside external flash. Same-board
+serial/port/chip checks, durable intent and retry behavior remain shared with
+the transaction implementation. A failed or interrupted check is unresolved.
+Existing host backups remain retained.
 
-If firmware is running, the installer first requires an idle, unowned Pico
-with its saved standalone schedule disabled or unconfigured. It prepares an
-erase transaction and prints same-port BOOTSEL reconnect instructions and an
-exact `recover` continuation command. Preparation changes no flash. Reconnect
-that Pico while holding BOOTSEL, then run the printed command. A Pico already
-in BOOTSEL can be erased directly. Neither path forces a running device to
-reset or stops a job.
-
-The command uses the pinned picotool's
-[range erase and binary verification](https://github.com/raspberrypi/picotool/blob/6f6458d792b93685a11423b244a585eaa99eafcf/main.cpp)
-over `0x10000000` through exclusive `0x10400000`. The explicitly confirmed
-Pico 2 W target defines the [4 MiB capacity](https://github.com/raspberrypi/pico-sdk/blob/079c6f39023649b154152db30f1d781e884879bc/src/boards/include/boards/pico2_w.h).
-Picotool's flash-size estimate
-depends on existing contents and is absent for uniform or blank flash; it is
-not used as a geometry check. The installer checks the RP2350 chip ID,
-USB serial and physical port, durably records erase intent,
-erases the range and compares every byte with `0xff`. Success requires a
-complete successful comparison and returns `erase_verified: true` and
-`erased_bytes: 4194304`. It leaves the Pico in BOOTSEL and does not install
-firmware or reconnect a runtime application.
-
-Erase does not resolve or download a firmware image and does not create a
-backup of credentials or old flash. Only a blank comparison file and transaction
-metadata are retained. Existing host backups, snapshots and other devices are
-untouched. On interruption, permission failure or a failed comparison, the
-result remains unresolved; never assume the data is gone. The printed
-same-board `recover` command repeats erase and full verification without a
-firmware bundle or backup. It never restores the old data.
-
-WsprryPi's **Pico firmware over USB** panel offers **Erase firmware and all
-data…** without an image check. It requires confirmation for the selected USB
-Pico, pauses that member, and shows the BOOTSEL instructions. **Erase after
-BOOTSEL** requires another explicit confirmation. An interrupted erase offers
-**Retry full erase**; success reports verified blank flash without attempting
-an application reconnection. The Pi retains the exact installer for recovery.
-It can refresh the compatible installer independently of firmware downloads;
-an already cached erase-capable installer remains usable offline.
-
-The deterministic erase tests cover identity/port checks, uniform and blank
-flash, explicit confirmation, preparation, full-range comparison, a nonblank
-last byte, disconnects, recovery and retention of existing host backups.
-
-Run the hardware-free installer and publication checks from the repository root:
-
-```sh
-python3 tests/usb_installer_tests.py
-python3 tests/installer_release_tests.py
-```
+The deterministic erase checks include identity/port, explicit confirmation,
+uniform/blank flash, full-range comparison, a nonblank last byte, interruption,
+recovery and preservation of existing backups. Reproduction commands remain in
+[the development guide](README.md).
 
 ### Physical erase check
 
@@ -105,13 +61,6 @@ public version release. A verified CI prerelease is eligible. Missing branches,
 assets, incompatible manifests and failed provenance checks cause refusal;
 another branch, older image or compilation is never selected implicitly.
 
-```sh
-python3 scripts/usb_installer.py discover
-python3 scripts/usb_installer.py plan --output /private/tmp/pico-main-bundle
-python3 scripts/usb_installer.py plan --branch devel --output /private/tmp/pico-devel-bundle
-python3 scripts/usb_installer.py plan --branch devel --version 0.1.0-ci.39084514130.1
-python3 scripts/usb_installer.py plan --stable
-```
 
 Output directories must be new. `--bundle DIRECTORY` revalidates a previously
 saved public bundle without another download. It cannot accompany another
@@ -162,12 +111,14 @@ image and every transaction retain their exact installer; recovery must never
 resolve the current channel or substitute newer code. The Pi bounds completed
 image/backup caches across installer versions while retaining unresolved recovery.
 
-Publication checks run without an SDK, compiler, attached Pico or network:
+Hardware-free publication checks use `python3 tests/usb_installer_tests.py` and
+`python3 tests/installer_release_tests.py` from the repository root.
 
 ```sh
 python3 -B tests/usb_installer_tests.py
 python3 -B tests/installer_release_tests.py
 ```
+
 
 ## USB dependency and device selection
 
@@ -189,69 +140,13 @@ serial clients under their paired data interfaces. Tty suffixes are not roles.
 BOOTSEL identifies RP2350, so `--board pico2_w` explicitly confirms the board's
 wireless hardware. Re-enumeration must retain the serial and physical port.
 
-For first installation, disconnect the selected Pico, hold BOOTSEL, reconnect
-its data cable, release BOOTSEL and run discovery. Programming always needs an
-explicit operation, selected device, board and `--yes`.
-
-For an interactive `install` or `upgrade`, omit `--device` to choose from a
-numbered list of connected Picos. Each entry shows the USB serial, running
-firmware or BOOTSEL mode, and USB port. Enter a listed number to select that
-Pico, or press Enter or type `q` to cancel before any firmware work. A single
-connected Pico also requires selection. The installer rechecks the selected
-serial, mode and port when selected and again under its device lock after image
-resolution, before creating a transaction. A disconnected, moved or changed board
-causes refusal. Only the selected Pico is programmed, with the same backup,
-saved-state preservation and recovery checks as an explicit USB serial.
-
-```sh
-bash scripts/install_usb.sh upgrade --branch devel --board pico2_w --yes
-```
-
-The menu reads `/dev/tty`, so it also works when the bootstrap is piped into
-Bash. Prompts go to stderr; stdout remains one JSON result. It requires a
-controlling terminal with stderr attached to a terminal. Unattended commands,
-`--json-only`, and WsprryPi's imported installer entry point require
-`--device SERIAL` and never prompt. Explicit `--device` bypasses the menu.
-`discover` and `plan` remain noninteractive; `snapshot`, destructive `erase`
-and `recover` continue to require an explicit serial.
-
-```sh
-python3 scripts/usb_installer.py install --branch devel \
-  --bundle /private/tmp/pico-devel-bundle \
-  --device 1545B6EFBF78028C --board pico2_w --yes --picotool /path/to/picotool
-```
-
-Initial installation requires erased saved-state banks and an erased or exact
-known RP2350 workaround boot sector. Unknown application bytes cause refusal
-and a private backup. Only an explicit `--replace-unidentified-application`
-initial-install choice can replace them; it still refuses existing saved-state
-or unknown boot-sector data. It is not a reset or migration command.
-
-## Terminal BOOTSEL instructions
-
-Running `scripts/usb_installer.py` or `scripts/install_usb.sh` directly prints
-BOOTSEL instructions to stderr. Stdout remains one JSON result, with the same
-result schema and exit statuses used by WsprryPi. Redirect stdout separately
-when saving or parsing results; do not merge stderr into the JSON stream.
-`--json-only` suppresses the BOOTSEL instructions for standalone automation.
-The imported `main()` entry point used by WsprryPi stays quiet by default.
-
-Initial installation identifies the selected Pico and explains the button
-sequence before checking its BOOTSEL connection. A Pico already in BOOTSEL
-stays connected. Otherwise, follow the reconnect instructions and rerun the
-install command. The installer does not wait for keyboard input or reconnect
-automatically. Supported guarded upgrades enter BOOTSEL automatically; they
-do not ask for a manual unplug during programming or verification.
+Interactive device selection and initial BOOTSEL use are documented in the
+[operator guide](../../docs/install.md). The installer rechecks selected serial,
+mode and port before creating a transaction and under the device lock. Only the
+selected Pico is programmed.
 
 ## Preserving upgrade and recovery
 
-```sh
-python3 scripts/usb_installer.py upgrade --branch devel \
-  --bundle /private/tmp/pico-devel-bundle \
-  --device 1545B6EFBF78028C --board pico2_w --yes --picotool /path/to/picotool
-python3 scripts/usb_installer.py recover --transaction /private/path/transaction.json \
-  --device 1545B6EFBF78028C --board pico2_w --yes --picotool /path/to/picotool
-```
 
 An ordinary upgrade starts in the running application and takes its own fresh
 USB snapshot. It refuses active, owned, uncertain, faulted or configured STOP
@@ -353,6 +248,9 @@ accepted normal `scripts/build_pico.sh` target with a new build directory and
 its linked engine, flash, USB, stack and heap checks. It validates generic
 network-disabled, credential-free defaults and the linked USB update contract.
 
+The explicit developer commands use the selected source revision and a new
+build directory; these are separate from ordinary public-image installation:
+
 ```sh
 PICO_SDK_PATH=/existing/pico-sdk \
 PICOTOOL_FETCH_FROM_GIT_PATH=/existing/populated-dependencies \
@@ -360,8 +258,9 @@ python3 scripts/usb_installer.py plan --branch devel \
   --local-build /path/to/WsprryPico --source-revision FULL_SOURCE_SHA \
   --build-dir /new/private/build --allow-dirty --output /new/local-bundle
 python3 scripts/usb_installer.py upgrade --branch devel --local-bundle /new/local-bundle \
-  --device 1545B6EFBF78028C --board pico2_w --yes --picotool /path/to/picotool
+  --device SERIAL --board pico2_w --yes --picotool /path/to/picotool
 ```
+
 
 `--allow-dirty` explicitly selects a development build; omit it for a clean
 checkout. Source HEAD, actual dirty identity and input digest are retained, and
@@ -391,25 +290,10 @@ continuation command, which downloads that exact installer revision.
 
 ## Bootstrap and Pi access
 
-`bash scripts/install_usb.sh discover` exercises the maintained bootstrap.
-It resolves the installer source revision once and retrieves the core and schema
-at that immutable revision. Firmware selection remains main unless changed
-explicitly. The public bootstrap can also run without a repository checkout:
-
-```sh
-set -o pipefail
-curl -fsSL --proto '=https' --proto-redir '=https' \
-  https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh |
-bash -s -- discover
-```
-
-For an existing WsprryPico application, replace `discover` with
-`upgrade --branch devel --device SERIAL --board pico2_w --yes`, using the
-discovered USB serial. The command selects the latest verified devel firmware
-and preserves saved settings. In an interactive terminal, omit `--device SERIAL`
-to choose the Pico from the numbered menu. Python, picotool and USB permissions
-must already be available. The bootstrap runs as the ordinary user, not through
-`sudo`.
+The bootstrap resolves its installer source revision once and retrieves the
+core and schema at that immutable revision. Firmware branch selection remains
+independent. Current invocation instructions live in the
+[operator installation guide](../../docs/install.md).
 
 WsprryPi's selected USB Pico controls call the identified deployed core. The
 adapter verifies an independently published compatible installer and its hashes;

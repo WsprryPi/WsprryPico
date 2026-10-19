@@ -2,7 +2,7 @@
 
 ## Scope and working practices
 
-- Read README.md, CONTRACT.md and docs/architecture.md before implementation.
+- Read README.md, CONTRACT.md and engineering/architecture.md before implementation.
 - Preserve user changes and inspect the current working state before editing.
 - Keep changes within the requested slice. Other WsprryPi-family repositories
   are independent; reading them does not authorize changing them.
@@ -14,7 +14,7 @@
 ## Repository and work-harness cleanup
 
 - For an explicit request to clean up WsprryPico or this project/repository,
-  follow [the reusable cleanup prompt](docs/development/repository-cleanup-prompt.md).
+  follow [the reusable cleanup prompt](engineering/development/repository-cleanup-prompt.md).
 - Inventory deletion, rewrite, retention and hold decisions before cleanup
   changes. Cover project artifacts in the checkout, local work areas and
   identified Raspberry Pi harnesses; preserve user work and shared tools.
@@ -48,7 +48,7 @@
   transport, storage and RF engine adapters.
 - USB CDC is the reference transport. RF timing is always local to RP2350;
   complete jobs must not depend on per-symbol USB or network delivery.
-- Keep WTP device-neutral and independently versioned in docs/protocol/WTP.md.
+- Keep WTP device-neutral and independently versioned in engineering/protocol/WTP.md.
 - Preserve the shared JSON browser API direction. Do not introduce Apache/PHP
   into firmware or a third protocol repository.
 - Record unresolved design choices as proposals, not implemented contracts.
@@ -82,4 +82,4 @@
 - Record exact board, firmware, engine, clock, mode and setup for hardware evidence.
   Mock or host results do not qualify target timing or RF output.
 - Do not invent working build/test commands. Current development status and
-  available checks are in docs/development/README.md.
+  available checks are in engineering/development/README.md.

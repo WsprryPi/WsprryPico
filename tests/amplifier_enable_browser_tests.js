@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const path = require('node:path');
 const root = path.resolve(__dirname,'..');
 const amplifier = require('../src/network/web/amplifier-enable.js');
-const schema = JSON.parse(fs.readFileSync(path.join(root,'docs/protocol/transmitter-amplifier-enable-1.schema.json')));
+const schema = JSON.parse(fs.readFileSync(path.join(root,'engineering/protocol/transmitter-amplifier-enable-1.schema.json')));
 const descriptor = Object.fromEntries(Object.entries(schema.properties).map(([k,v])=>[k,v.const ?? v.enum?.[0] ?? null]));
 descriptor.default_active_high = true;
 assert(amplifier.supported(descriptor));

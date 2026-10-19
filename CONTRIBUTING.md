@@ -1,7 +1,7 @@
 # Contributing
 
-Read [the project contract](CONTRACT.md), [architecture](docs/architecture.md)
-and [development guide](docs/development/README.md) before making changes.
+Read [the project contract](CONTRACT.md), [architecture](engineering/architecture.md)
+and [development guide](engineering/development/README.md) before making changes.
 
 Keep changes focused and preserve existing work. Update the relevant design
 or protocol documentation with behavior changes, clearly identifying drafts.

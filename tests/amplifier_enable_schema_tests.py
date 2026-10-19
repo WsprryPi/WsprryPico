@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from validate_wtp_contract import SchemaValidator, loads_strict
 
-protocol = ROOT / 'docs/protocol'
+protocol = ROOT / 'engineering/protocol'
 def schema(name):
     return json.loads((protocol / (name + '.schema.json')).read_text())
 

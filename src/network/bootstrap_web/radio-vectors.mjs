@@ -19,5 +19,5 @@ const vector={version:1,device_id:id.device_id,boot_id:id.boot_id,generation:id.
  password:'test-only-password',transcript_sha256:hex(state.digest),login_hex:hex(state.finish),request_hex:hex(seal(state,1n,request)),
  request_plain:JSON.stringify(request),response_hex:hex(response),response_plain:JSON.stringify(value),
  request_key_hex:hex(state.keys.subarray(0,32)),large_request_sha256:hex(sha256(seal(state,2n,{pad:'x'.repeat(32714)})))};
-fs.writeFileSync(new URL('../../../docs/protocol/Consumer-Radio-v1-vectors.json',import.meta.url),JSON.stringify(vector,null,2)+'\n');
+fs.writeFileSync(new URL('../../../engineering/protocol/Consumer-Radio-v1-vectors.json',import.meta.url),JSON.stringify(vector,null,2)+'\n');
 state.keys.fill(0);state.digest.fill(0);

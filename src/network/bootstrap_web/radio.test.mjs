@@ -129,7 +129,7 @@ test('capacity, pending login and rate refusals have distinct feedback without r
 });
 test('recovery fixed domain vector and altered scope refuse',async()=>{
   const {readFileSync}=await import('node:fs');
-  const v=JSON.parse(readFileSync(new URL('../../../docs/protocol/Consumer-Recovery-v1-vectors.json',import.meta.url)));
+  const v=JSON.parse(readFileSync(new URL('../../../engineering/protocol/Consumer-Recovery-v1-vectors.json',import.meta.url)));
   const g={...grant,login_ms:5000,recovery:v.recovery};
   const s=authenticate(fixed(),g,v.password,id,v.recovery);
   assert.equal(retirementSelector(v,v.session_id),v.selector_for_session_id);

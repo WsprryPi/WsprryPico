@@ -178,7 +178,7 @@ def firmware(deps, audit, identifier, version):
 
 def licenses(deps, destination):
     sources = [(ROOT, [ROOT / 'LICENSE.md', ROOT / 'THIRD_PARTY_NOTICES.md',
-                      ROOT / 'src/encoding/WsprryPi-LICENSE.md', *(ROOT / 'docs/licenses').glob('*.txt')])]
+                      ROOT / 'src/encoding/WsprryPi-LICENSE.md', *(ROOT / 'engineering/licenses').glob('*.txt')])]
     for name in ('sdk', 'arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi'):
         base = deps / name
         paths = [p for p in base.rglob('*') if p.is_file() and '.git' not in p.parts

@@ -22,7 +22,7 @@ with patch.object(sys, "argv", ["wtp_probe", "/not-a-device"]), patch.object(wtp
             assert error.code == 2
     opening.assert_not_called()
 
-vectors=load_json(Path(__file__).resolve().parents[1]/"docs/protocol/test-vectors/wtp-1.json")
+vectors=load_json(Path(__file__).resolve().parents[1]/"engineering/protocol/test-vectors/wtp-1.json")
 bodies={case["message"].get("op"):case["message"].get("body") for case in vectors["schema_cases"]
         if case["valid"] and case["message"].get("type")=="response" and case["message"].get("ok")}
 bodies["GET_CLOCK"]={"state":"unsynchronized","utc_now_ns":"0","monotonic_now_ns":"0",

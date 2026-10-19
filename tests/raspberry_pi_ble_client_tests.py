@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VECTORS = json.loads((ROOT / "docs/protocol/Field-GATT-v1-vectors.json").read_text())
+VECTORS = json.loads((ROOT / "engineering/protocol/Field-GATT-v1-vectors.json").read_text())
 SPEC = importlib.util.spec_from_file_location("wsprrypico_ble", ROOT / "scripts/wsprrypico_ble.py")
 ble = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None

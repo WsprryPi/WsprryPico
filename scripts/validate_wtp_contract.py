@@ -12,7 +12,7 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL_DIR = ROOT / "docs" / "protocol"
+PROTOCOL_DIR = ROOT / "engineering" / "protocol"
 SCHEMA_PATH = PROTOCOL_DIR / "wtp-1.schema.json"
 CONTRACT_PATH = PROTOCOL_DIR / "wtp-1-contract.json"
 VECTORS_PATH = PROTOCOL_DIR / "test-vectors" / "wtp-1.json"

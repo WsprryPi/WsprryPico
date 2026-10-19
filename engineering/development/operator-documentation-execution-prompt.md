@@ -18,7 +18,7 @@ described below belong to that later execution.
 ## Entry and execution authority
 
 Work in /Users/lbussy/GitHub/WsprryPico. Read AGENTS.md, README.md, CONTRACT.md,
-docs/architecture.md, docs/development/README.md and the consolidated backlog
+engineering/architecture.md, engineering/development/README.md and the consolidated backlog
 before implementation. Print the complete Finish now section in its existing
 order, preserving the NTP Work grouping and using ✅ finished, ⏳ in flight and
 ▧ not started. Mark only item 9 ⏳ when execution begins. Preserve concurrent

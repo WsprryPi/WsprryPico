@@ -127,7 +127,7 @@ class Peer:
         self.args, self.evidence = args, evidence
         self.session = uuid.uuid4().hex
         self.stream = None
-        self.schema = json.loads((ROOT / "docs/protocol/wtp-1.schema.json").read_text())
+        self.schema = json.loads((ROOT / "engineering/protocol/wtp-1.schema.json").read_text())
         self.validator = SchemaValidator(self.schema)
 
     def close(self):

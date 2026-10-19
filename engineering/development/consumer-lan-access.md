@@ -1,39 +1,15 @@
 # Consumer LAN access and temporary setup Wi-Fi
 
-## Everyday use
+## Operator entry points and transaction authority
 
-Keep your computer or phone on its normal Wi-Fi. Open `http://<current-Pico-IP>/`
-or `http://<configured-hostname>.local/` in an ordinary browser. The page also
-works at `/radio`. Use the hostname actually reported by the Pico; its default
-is `wsprrypico-<last-six-station-MAC-hex>.local`. A network/client without local
-multicast name resolution can use the current IPv4 address directly.
+The [connection guide](../../docs/connect.md), [configuration guide](../../docs/configure.md)
+and [recovery instructions](../../docs/maintain.md) are the canonical operator
+procedures. This record specifies listener, transaction, interface and AP timing
+behavior. The default hostname is `wsprrypico-<last-six-station-MAC-hex>.local`;
+identity/freshness semantics are defined in [device presentation](device-presentation.md).
+The two task areas share a document, authentication slot and drafts. LAN root
+selects Station/Transmission; committed-consumer AP root selects Wi-Fi/Host.
 
-Log in with the Wi-Fi password saved on that Pico. Password fields use the
-network setup page's eye control to show/hide what you type; they start masked.
-The eye never retrieves a saved password. Radio settings, schedules,
-pin assignments and job controls use the existing shared application API.
-The shared main heading and browser tab identify the Pico by its reported
-boot-active hostname, including when opened by IP. Before login the name is a
-public observation; sign in separately to authorize access. Open **About this
-Pico / Diagnostics** in either task area to select/copy the **full stable device
-ID**. Use that ID to distinguish two devices with the same name. The boot ID is a
-separate observation. Saved rename-pending names do not replace the active
-heading; connection loss or logout labels it **Last confirmed**. If no name has
-been observed, the page says **Hostname unavailable** and retains current-IP/
-setup-Wi-Fi recovery guidance. Name discovery is reported independently. See [device presentation](device-presentation.md) for identity and freshness semantics.
-
-**Station/Transmission** contains station identity, schedules, pins and explicit
-job controls. **Wi-Fi/Host** contains network credentials, time server, hostname,
-restart/reconnect and setup access guidance. Area links keep one login and all
-drafts in the same document; `/station` and `/wifi-host` survive reload. Saved
-state, output observations and recovery remain shared. On an available setup AP,
-a fresh root selects Wi-Fi/Host. LAN root selects Station/Transmission.
-The profile-owned network and station editors use their existing transactional
-paths. Each has one visible editor in its appropriate area.
-These changes preserve schedules, radio configuration and no-repeat cursors.
-Saving can reconnect/restart the Pico. Keep the tab open or use **Continue at
-the Pico’s hostname** after joining the saved network. Log in after it returns,
-then select **Check saved result** before repeating an uncertain save.
 An explicit setup transaction pauses new scheduled launches and rejects
 competing radio/settings/WTP mutations until it completes or expires. Status
 reads remain available. Setup starts only with idle, unowned RF authority;
@@ -53,29 +29,15 @@ IPv4 address. Internet access, public DNS, NTP and engineering TLS are not
 admission prerequisites. Operations requiring valid UTC retain their checks.
 Engineering certificate control and Plain LAN WTP remain separate surfaces.
 
-## Setup Wi-Fi and the button
+## AP and button coordination
 
-With healthy saved infrastructure Wi-Fi the consumer AP is normally off.
-Factory button wiring is an active-low switch from **GP14 / physical pin 19
-to GND**, with the internal pull-up. Delivered standard and standalone RF
-builds enable the existing PIO/DMA capture adapter. A saved custom button pin
-or explicit disabled/null selection takes precedence; pin roles stay exclusive.
-
-- A debounced release under 0.4 seconds requests reset.
-- Reaching 0.9 seconds held requests authoritative transmission shutdown.
-  A release from 0.4 to under 0.9 seconds requests shutdown on release.
-- Reaching nine seconds held requests setup AP after verified shutdown.
-  Holding longer emits no repeated actions. The AP stays available while held.
-- Every AP window ends ten minutes after actual activation. Button release,
-  repeated requests, traffic and clients do not extend it. After expiry a new
-  deliberate request can open another bounded window.
-
-Join the Pico setup Wi-Fi and open `http://192.168.4.1/` for Wi-Fi-first setup,
-or `/radio` for the same authenticated radio/setup workflow as the LAN page.
-The saved infrastructure network stays configured and connected where possible.
-The radio page displays the LAN hostname and current station IP for returning
-to normal Wi-Fi. The explicit stop gesture retains its existing scheduling/RF
-inhibition behavior; leaving the AP does not rearm a transmission.
+The active-low GP14 capture adapter, configurable exclusive pin plan and
+single-action debouncing retain the gesture timings specified in the
+[operator button table](../../docs/connect.md#request-setup-wi-fi-with-the-external-button).
+AP requests follow confirmed local output shutdown and never rearm a job.
+Each activation has a hard ten-minute lifetime measured from actual activation;
+hold, release, requests, traffic and clients cannot extend it. Saved network
+credentials, profile and no-repeat state are not changed by AP coordination.
 
 A blank device starts setup AP automatically. A saved network unavailable for
 60 seconds requests fallback AP without a button. Background station retries

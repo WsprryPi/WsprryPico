@@ -83,7 +83,7 @@ assert not reconnected.pending
 # Failure cleanup is bound to the known owner/job even before ARM is attempted.
 from rf_wtp import cleanup_owned
 from validate_wtp_contract import SchemaValidator
-schema = json.loads((ROOT/'docs/protocol/wtp-1.schema.json').read_text())
+schema = json.loads((ROOT/'engineering/protocol/wtp-1.schema.json').read_text())
 validator = SchemaValidator(schema)
 finite = dict(job_id='1'*32, profile='rf-events/1', mode='tone', total_duration_ns='20000000000',
               allow_frequency_adjustment=True, events=[dict(offset_ns='0', duration_ns='20000000000',

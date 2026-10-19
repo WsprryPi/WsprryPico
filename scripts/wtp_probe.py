@@ -22,7 +22,7 @@ def main():
     args = parser.parse_args()
     if not args.run:
         parser.error("--run is required; use only with authorization for this USB smoke test")
-    schema = load_json(Path(__file__).resolve().parents[1] / "docs/protocol/wtp-1.schema.json")
+    schema = load_json(Path(__file__).resolve().parents[1] / "engineering/protocol/wtp-1.schema.json")
     validator = SchemaValidator(schema)
     session = uuid.uuid4().hex
     decoder = FrameDecoder()

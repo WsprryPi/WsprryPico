@@ -12,8 +12,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from validate_wtp_contract import SchemaValidator, ValidationError, loads_strict
 
 DRIVER = Path(sys.argv.pop(1))
-SCHEMA = json.loads((ROOT / "docs/protocol/transmitter-application-1.schema.json").read_text())
-VECTORS = json.loads((ROOT / "docs/protocol/transmitter-application-1-vectors.json").read_text())
+SCHEMA = json.loads((ROOT / "engineering/protocol/transmitter-application-1.schema.json").read_text())
+VECTORS = json.loads((ROOT / "engineering/protocol/transmitter-application-1-vectors.json").read_text())
 VALIDATOR = SchemaValidator(SCHEMA)
 
 
@@ -23,7 +23,7 @@ def run_driver(*args):
 
 
 def inventory():
-    text = (ROOT / "docs/transmitter-application-contract.md").read_text()
+    text = (ROOT / "engineering/transmitter-application-contract.md").read_text()
     table = text.split("| Current WsprryPi setting |")[1].split("\nRelated Pi settings")[0]
     return [re.split(r"(?<!\\)\|", line)[1].strip().replace("`", "").replace(r"\|", "|")
             for line in table.splitlines() if line.startswith("| ") and not line.startswith("| ---")]
@@ -83,7 +83,7 @@ class ApplicationSchemaTests(unittest.TestCase):
                 for child in value:
                     visit(child)
         visit(SCHEMA)
-        coverage = json.loads((ROOT / "docs/protocol/transmitter-application-1-coverage.json").read_text())
+        coverage = json.loads((ROOT / "engineering/protocol/transmitter-application-1-coverage.json").read_text())
         self.assertEqual([row["source_setting"] for row in coverage["settings"]], inventory())
         for row in coverage["settings"]:
             self.assertIn(row["disposition"], {"implemented_pico_adapter", "partial_pico_adapter",

@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from validate_wtp_contract import SchemaValidator
 
-schema = json.loads((ROOT / "docs/protocol/transmitter-application-2.schema.json").read_text())
+schema = json.loads((ROOT / "engineering/protocol/transmitter-application-2.schema.json").read_text())
 validator = SchemaValidator(schema)
 samples = json.loads(subprocess.check_output([sys.argv[1], "--samples"], text=True))
 for name, sample in samples.items():

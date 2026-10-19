@@ -46,7 +46,7 @@ Standalone Wi-Fi builds also link the pinned SDK's network dependencies:
 
 - [lwIP](https://git.savannah.nongnu.org/cgit/lwip.git/), 2.2.1 at
   `77dcd25a72509eb83f72b033d219b1d40cd8eb95`, BSD-3-Clause. Retained upstream
-  [COPYING](docs/licenses/lwip.txt). The project supplies `lwipopts.h`; upstream
+  [COPYING](engineering/licenses/lwip.txt). The project supplies `lwipopts.h`; upstream
   source is unchanged and remains in the external SDK checkout.
 - [cyw43-driver](https://github.com/georgerobotics/cyw43-driver), v1.1.1 at
   `055d64274b014dd7b1c2fc94d26e8a18face7124`, including the SDK-selected
@@ -54,9 +54,9 @@ Standalone Wi-Fi builds also link the pinned SDK's network dependencies:
   resources remain unchanged. A hash-verified build overlay of `cyw43_ll.c`
   preserves outgoing frames across shared-buffer receive polling; generated
   copies retain the original header and identify the modification. Retained upstream
-  [LICENSE.RP](docs/licenses/cyw43-driver-RP.txt) covers use with Raspberry Pi
+  [LICENSE.RP](engineering/licenses/cyw43-driver-RP.txt) covers use with Raspberry Pi
   semiconductor devices; the alternative upstream
-  [LICENSE](docs/licenses/cyw43-driver.txt) is retained too. These are distinct
+  [LICENSE](engineering/licenses/cyw43-driver.txt) is retained too. These are distinct
   from the project's MIT license. Preserve the applicable notices and
   disclaimers in documentation/materials accompanying firmware distribution.
 
@@ -75,19 +75,19 @@ parser is original project code based on the published packet format.
 The network firmware links [Mbed TLS](https://github.com/Mbed-TLS/mbedtls), 3.6.6 at
 `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`, from the pinned SDK submodule.
 It is dual licensed Apache-2.0 OR GPL-2.0-or-later; this project selects
-Apache-2.0. The unmodified upstream [LICENSE](docs/licenses/mbedtls.txt) is
+Apache-2.0. The unmodified upstream [LICENSE](engineering/licenses/mbedtls.txt) is
 retained. The SDK checkout remains external and unchanged, including the PSA
 RNG source explicitly added to the SDK target. The build compiles three generated,
 hash-checked modified Mbed TLS translation units for TLS 1.3 certificate alerts;
-see the [patch provenance](docs/development/tls-certificate-alerts.md). These
+see the [patch provenance](engineering/development/tls-certificate-alerts.md). These
 derived files retain upstream headers and use Apache-2.0, not the project MIT license. Preserve applicable upstream
 notices and the Apache license with distributed firmware/test binaries.
 The HTTP adapter, browser assets and certificate scripts are original MIT
 project contributions; no WsprryPi vendor browser assets are copied.
 
 The network firmware also links the exact pinned lwIP mDNS responder (`mdns.c`,
-`mdns_domain.c`, `mdns_out.c`). Its retained [BSD notice](docs/licenses/lwip-mdns.txt)
-and [integration record](docs/development/mdns-responder.md) describe the narrow
+`mdns_domain.c`, `mdns_out.c`). Its retained [BSD notice](engineering/licenses/lwip-mdns.txt)
+and [integration record](engineering/development/mdns-responder.md) describe the narrow
 project-owned lifecycle wrapper. SDK source is unmodified; no DNS-SD service
 registration or third-party application code is added.
 
@@ -97,22 +97,22 @@ libraries from the retained npm dependency tree:
 
 - [noble-curves](https://github.com/paulmillr/noble-curves), npm
   @noble/curves 2.3.0, MIT, copyright 2022 Paul Miller. Retained exact
-  [license](docs/licenses/noble-curves.txt). The page uses its X25519 adapter.
+  [license](engineering/licenses/noble-curves.txt). The page uses its X25519 adapter.
 - [noble-ciphers](https://github.com/paulmillr/noble-ciphers), npm
   @noble/ciphers 2.3.0, MIT, copyright 2022 Paul Miller and 2016 Thomas Pornin
-  in the package license. Retained exact [license](docs/licenses/noble-ciphers.txt).
+  in the package license. Retained exact [license](engineering/licenses/noble-ciphers.txt).
   The page uses ChaCha20-Poly1305. Original module copyright comments are
   preserved by the bundle's legal-comments setting.
 - [noble-hashes](https://github.com/paulmillr/noble-hashes), npm
   @noble/hashes 2.3.0, MIT, copyright 2022 Paul Miller. Retained exact
-  [license](docs/licenses/noble-hashes.txt). The page uses SHA-256 and HKDF.
+  [license](engineering/licenses/noble-hashes.txt). The page uses SHA-256 and HKDF.
 
 The upstream library sources are unchanged; the original project adapter
 performs identity/session binding and bounded encrypted radio API requests.
 The exact package versions, registry URLs and integrity values are retained
 in src/network/bootstrap_web/package-lock.json. Its build-only esbuild 0.28.2
 bundles and minifies JavaScript; it is not linked into Pico firmware as a tool.
-Its exact MIT license is retained at [esbuild](docs/licenses/esbuild.txt);
+Its exact MIT license is retained at [esbuild](engineering/licenses/esbuild.txt);
 preserve that notice if distributing the build tool.
 The generated radio bundle preserves upstream legal comments. Distribute these
 full retained licenses with the bundled browser assets and firmware materials.

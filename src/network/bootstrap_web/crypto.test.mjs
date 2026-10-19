@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs';
 import {x25519} from '@noble/curves/ed25519.js';
 import {begin, seal, slotDigest, available} from './crypto.js';
 
-const vector = JSON.parse(readFileSync(new URL('../../../docs/protocol/WiFi-Bootstrap-v1-vectors.json',
+const vector = JSON.parse(readFileSync(new URL('../../../engineering/protocol/WiFi-Bootstrap-v1-vectors.json',
   import.meta.url)));
 assert.equal(available(), true);
 const pending = begin();

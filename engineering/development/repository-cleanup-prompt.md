@@ -33,7 +33,7 @@ project-specific Mac and Raspberry Pi work harnesses.
   and technical uses of phase or step are not development chronology.
 - Put selected future work only in a maintained, committed backlog document
   or a real issue.
-  `docs/development/consolidated-backlog.md` is the current backlog entry point;
+  `engineering/development/consolidated-backlog.md` is the current backlog entry point;
   verify its successor if the repository has reorganized. Preserve selected
   requirements, priority and acceptance criteria. Do not invent issues,
   features, deadlines or commitments during cleanup, or publish issues without
@@ -146,7 +146,7 @@ Do not install tools, download SDKs, start a build or alter a host to inventory 
 ### Repository and dependency discovery
 
 - Read applicable `AGENTS.md`, `README.md`, `CONTRACT.md`,
-  `docs/architecture.md`, `docs/development/README.md`, the current backlog,
+  `engineering/architecture.md`, `engineering/development/README.md`, the current backlog,
   `.gitignore`, build presets, dependency pins and relevant release metadata.
   Inspect the actual implementation where documentation disagrees. Historical
   result files do not override current code or selected requirements.

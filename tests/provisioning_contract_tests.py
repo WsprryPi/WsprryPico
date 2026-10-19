@@ -4,11 +4,17 @@
 import json
 from pathlib import Path
 import re
+import subprocess
+import sys
+import tempfile
 
 
 repo = Path(__file__).resolve().parents[1]
 web = (repo / "src/provisioning/web/bluefy.js").read_text()
-published_web = (repo / "docs/bluefy/bluefy.js").read_text()
+with tempfile.TemporaryDirectory(prefix="pico-provisioning-") as generated:
+    subprocess.run([sys.executable, str(repo / "scripts/build_bluefy_release.py"),
+                    "--write", "--output", generated], check=True, stdout=subprocess.DEVNULL)
+    published_web = (Path(generated) / "bluefy.js").read_text()
 linux_client = (repo / "scripts/wsprrypico_ble.py").read_text()
 command_header = (repo / "src/provisioning/command.hpp").read_text()
 command_source = (repo / "src/provisioning/command.cpp").read_text()
@@ -18,8 +24,8 @@ local_access = (repo / "src/provisioning/local_access.cpp").read_text()
 profile_header = (repo / "src/provisioning/profile.hpp").read_text()
 gatt = (repo / "src/provisioning/pico/gatt_transport.cpp").read_text()
 gatt_profile = (repo / "src/provisioning/pico/field_access.gatt").read_text()
-contract = (repo / "docs/protocol/Field-GATT.md").read_text()
-vectors = json.loads((repo / "docs/protocol/Field-GATT-v1-vectors.json").read_text())
+contract = (repo / "engineering/protocol/Field-GATT.md").read_text()
+vectors = json.loads((repo / "engineering/protocol/Field-GATT-v1-vectors.json").read_text())
 
 assert vectors["protocol"] == "Field-GATT/1"
 assert vectors["wire_version"] == 1

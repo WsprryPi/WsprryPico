@@ -87,7 +87,7 @@ def compare(destination, expected):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, default=ROOT / "docs" / "bluefy")
+    parser.add_argument("--output", type=Path, default=ROOT / "build" / "bluefy-validation")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--write", action="store_true")
     mode.add_argument("--check", action="store_true")

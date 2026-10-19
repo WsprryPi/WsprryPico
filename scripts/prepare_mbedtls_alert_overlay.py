@@ -64,7 +64,7 @@ def prepare(source, output):
     for name, text in originals.items():
         banner = ('/* Modified by WsprryPico: TLS 1.3 certificate rejection alerts.\n'
                   ' * Derived from pinned Mbed TLS 3.6.6; Apache-2.0 selected.\n'
-                  ' * See docs/development/tls-certificate-alerts.md. */\n')
+                  ' * See engineering/development/tls-certificate-alerts.md. */\n')
         target = output / name
         content = banner + text
         if not target.exists() or target.read_text() != content:
