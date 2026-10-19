@@ -5,9 +5,11 @@ from email.message import Message
 import io
 import json
 import os
+import shlex
 import shutil
 from pathlib import Path
 import struct
+import subprocess
 import sys
 import tempfile
 from types import SimpleNamespace
@@ -629,6 +631,225 @@ class InstallerTests(unittest.TestCase):
             self.assertEqual(any(c[0] == 'load' for c in commands), failure == 'preservation')
             self.assertFalse(any(c[0] == 'reboot' for c in commands))
             self.assertNotIn('before.bin', json.dumps(record))
+
+
+class StandaloneGuidanceTests(unittest.TestCase):
+    def waiting(self):
+        return dict(operation='upgrade', stage='awaiting_bootsel', manual_bootsel_required=True,
+                    recovery_required=True, serial=SERIAL, transaction='/private/fixture/transaction.json')
+
+    def invoke(self, record, operation='upgrade', failure=False, human=True, extra=(), messages=None):
+        messages = io.StringIO() if messages is None else messages
+        with patch.object(installer, 'Https', return_value=Network('main')), \
+             patch.object(installer, 'transaction', return_value=record,
+                          side_effect=installer.TransactionFailure('not ready', record, Path(record['transaction'])) if failure else None), \
+             patch.object(installer, 'recover_transaction', return_value=record,
+                          side_effect=installer.TransactionFailure('not ready', record, Path(record['transaction'])) if failure else None), \
+             contextlib.redirect_stdout(io.StringIO()) as output, \
+             contextlib.redirect_stderr(messages):
+            status = installer.main([operation, '--device', SERIAL, '--board', 'pico2_w', '--yes', *extra], human=human)
+        expected = {**record, 'schema':'wsprrypico-usb-result/1', 'installer_version':installer.INSTALLER_VERSION,
+                    'ok':not failure}
+        if failure:
+            expected['error'] = 'not ready'
+        self.assertEqual(output.getvalue(), json.dumps(expected, sort_keys=True) + '\n')
+        self.assertEqual(status, 3 if failure else 0)
+        return messages.getvalue()
+
+    def test_waiting_upgrade_explains_reconnect_and_continuation(self):
+        messages = self.invoke(self.waiting())
+        for detail in ('no firmware has been written', SERIAL, 'Unplug', 'Hold BOOTSEL',
+                       'same physical USB port', 'Release BOOTSEL', 'do not edit its settings',
+                       'recover', '--transaction /private/fixture/transaction.json', '--yes',
+                       'Keep USB connected until programming and verification finish'):
+            self.assertIn(detail, messages)
+
+    def test_failed_pending_continuation_keeps_retry_guidance(self):
+        record = dict(self.waiting(), stage='failed', failure_stage='awaiting_bootsel')
+        messages = self.invoke(record, operation='recover', failure=True)
+        self.assertIn('BOOTSEL reconnect required', messages)
+        self.assertIn('recover --transaction', messages)
+        self.assertNotIn('installation complete', messages.lower())
+
+    def test_programming_failure_offers_bootsel_recovery_without_untouched_claim(self):
+        record = dict(self.waiting(), stage='failed', failure_stage='programming',
+                      program_authorized=True, manual_bootsel_required=False)
+        messages = self.invoke(record, failure=True)
+        self.assertIn('Installation is incomplete', messages)
+        self.assertIn('BOOTSEL recovery is required', messages)
+        self.assertIn('Hold BOOTSEL', messages)
+        self.assertIn('recover --transaction', messages)
+        self.assertNotIn('no firmware has been written', messages)
+
+    def test_verification_failure_preserves_hold_and_offers_retry_without_unplug(self):
+        for stage in ('launching_verification_boot', 'application_verified_maintenance_held',
+                      'verification_release_requested'):
+            with self.subTest(stage=stage):
+                record = dict(self.waiting(), stage='failed', failure_stage=stage,
+                              program_authorized=True, manual_bootsel_required=False)
+                messages = self.invoke(record, operation='recover', failure=True)
+                self.assertIn('Keep Pico ' + SERIAL + ' connected', messages)
+                self.assertIn('recover --transaction', messages)
+                self.assertNotIn('Unplug', messages)
+                self.assertNotIn('Hold BOOTSEL', messages)
+
+    def test_imported_main_and_json_only_remain_quiet(self):
+        self.assertEqual(self.invoke(self.waiting(), human=False), '')
+        self.assertEqual(self.invoke(self.waiting(), extra=['--json-only']), '')
+        self.assertEqual(self.invoke(self.waiting(), operation='install', extra=['--json-only']), '')
+
+    def test_modern_complete_and_unrelated_failure_do_not_request_reconnect(self):
+        self.assertEqual(self.invoke(dict(stage='complete', serial=SERIAL)), '')
+        for record in (dict(self.waiting(), manual_bootsel_required=False),
+                       dict(self.waiting(), program_authorized=True),
+                       dict(self.waiting(), stage='failed', failure_stage='launching_verification_boot')):
+            with self.subTest(record=record):
+                self.assertEqual(self.invoke(record), '')
+
+    def test_initial_install_explains_button_and_keeps_json_result(self):
+        messages = self.invoke(dict(stage='complete', serial=SERIAL), operation='install')
+        for detail in ('Initial installation requires BOOTSEL', 'already in BOOTSEL', SERIAL,
+                       'Hold BOOTSEL', 'same physical USB port', 'Release BOOTSEL'):
+            self.assertIn(detail, messages)
+        self.assertNotIn('recover --transaction', messages)
+
+    def test_disconnected_stderr_cannot_change_result_or_exit_status(self):
+        class Disconnected(io.StringIO):
+            def write(self, text):
+                raise BrokenPipeError('terminal closed')
+        for failure in (False, True):
+            with self.subTest(failure=failure):
+                record = dict(self.waiting(), stage='failed', failure_stage='awaiting_bootsel') if failure else self.waiting()
+                self.invoke(record, failure=failure, messages=Disconnected())
+
+    def test_command_formatting_failure_cannot_replace_json_result(self):
+        for failure in (False, True):
+            with self.subTest(failure=failure), \
+                 patch.object(installer, 'continuation_command', side_effect=OSError('directory unavailable')):
+                record = dict(self.waiting(), stage='failed', failure_stage='awaiting_bootsel') if failure else self.waiting()
+                self.assertEqual(self.invoke(record, failure=failure), '')
+
+    def test_local_continuation_executes_literal_arguments_and_custom_paths(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            hostile = "with spaces ' \" $HOME $(touch INJECTED) `touch INJECTED`;"
+            script = root / (hostile + '.py')
+            script.write_text('import json,sys\nprint(json.dumps(sys.argv[1:]))\n')
+            state = root / hostile / 'state'
+            transaction = state / 'transaction.json'
+            tool = 'tools/' + hostile + '/picotool'
+            args = SimpleNamespace(picotool=tool, state_dir=state)
+            record = dict(self.waiting(), transaction=str(transaction))
+            with patch.object(installer, '__file__', str(script)), \
+                 patch.dict(os.environ, {'WSPRRY_PICO_USB_INSTALLER_REVISION':''}):
+                command = installer.continuation_command(args, record)
+            result = subprocess.run(['bash', '-c', command], cwd=root, text=True, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout), ['recover', '--transaction', str(transaction),
+                '--device', SERIAL, '--board', 'pico2_w', '--yes', '--picotool=' + str(Path(tool).absolute()),
+                '--state-dir', str(state)])
+            self.assertFalse((root / 'INJECTED').exists())
+
+    def test_leading_dash_tool_name_reaches_recovery_parser(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            args = SimpleNamespace(picotool='--custom-picotool', state_dir=root)
+            record = dict(self.waiting(), transaction=str(root / 'missing' / 'transaction.json'))
+            with patch.dict(os.environ, {'WSPRRY_PICO_USB_INSTALLER_REVISION':''}):
+                command = installer.continuation_command(args, record)
+            result = subprocess.run(['bash', '-c', command], text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('Select an existing private transaction.json', json.loads(result.stdout)['error'])
+        self.assertEqual(result.stderr, '')
+
+    def test_unvalidated_bootstrap_revision_cannot_enter_command(self):
+        args = SimpleNamespace(picotool='picotool', state_dir=Path('/private/state'))
+        with patch.dict(os.environ, {'WSPRRY_PICO_USB_INSTALLER_REVISION':'$(touch INJECTED)'}):
+            command = installer.continuation_command(args, self.waiting())
+        self.assertNotIn('curl', command)
+        self.assertNotIn('INJECTED', command)
+        self.assertEqual(shlex.split(command)[:2], [sys.executable, str(Path(installer.__file__).resolve())])
+
+    def bootstrap_fixture(self, root):
+        revision = 'a' * 40
+        tools = root / 'tools'; tools.mkdir()
+        source = root / 'source'; source.mkdir()
+        (source / 'install_usb.sh').write_bytes((ROOT / 'scripts/install_usb.sh').read_bytes())
+        record = dict(self.waiting(), transaction=str(root / "private ' $HOME $(touch INJECTED) `touch INJECTED`" / 'transaction.json'))
+        _, manifest, proof = fixture('main')
+        overrides = (f"\n    resolve = lambda *a: ({{'ci-publication.json':{encoded(proof)!r}}}, {manifest!r}, b'')\n"
+                     "    recent_ci = lambda *a: {}\n"
+                     f"    transaction = lambda *a: {record!r}\n"
+                     "    def recover_transaction(args):\n"
+                     "        print(json.dumps(vars(args), default=str), file=sys.stderr)\n"
+                     "        return {'stage':'complete'}\n")
+        core = (ROOT / 'scripts/usb_installer.py').read_text().replace(
+            "if __name__ == '__main__':\n", "if __name__ == '__main__':\n" + overrides)
+        (source / 'usb_installer.py').write_text(core)
+        (source / 'release-manifest-1.schema.json').write_text('{}')
+        curl = tools / 'curl'
+        curl.write_text('#!' + sys.executable + '\n' +
+            'import json,os,sys\nfrom pathlib import Path\n'
+            'url=sys.argv[-1]\n'
+            'with open(os.environ["CURL_LOG"],"a") as log: log.write(url+"\\n")\n'
+            'if os.environ.get("CURL_FAIL"): sys.exit(22)\n'
+            'if url.endswith("commits/devel"): print(json.dumps({"sha":"' + revision + '"}))\n'
+            'else: sys.stdout.buffer.write((Path(os.environ["CURL_SOURCE"])/url.rsplit("/",1)[-1]).read_bytes())\n')
+        curl.chmod(0o700)
+        temporary = root / 'temporary'; temporary.mkdir()
+        environment = dict(os.environ, PATH=str(tools) + os.pathsep + os.environ['PATH'],
+                           CURL_LOG=str(root / 'curl.log'), CURL_SOURCE=str(source), TMPDIR=str(temporary),
+                           WSPRRY_PICO_USB_INSTALLER_REVISION='')
+        return environment, revision, record, temporary
+
+    @unittest.skipIf(os.geteuid() == 0, 'Bootstrap requires an ordinary user')
+    def test_piped_bootstrap_continuation_survives_cleanup_and_pins_revision(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            environment, revision, record, downloads = self.bootstrap_fixture(root)
+            first = subprocess.run(['bash', '-s', '--', 'upgrade', '--device', SERIAL, '--board', 'pico2_w',
+                                    '--yes', '--picotool', "tools/custom ' picotool", '--state-dir', str(root / 'state')],
+                input=(ROOT / 'scripts/install_usb.sh').read_text(), env=environment, cwd=root,
+                text=True, capture_output=True, timeout=10)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertEqual(json.loads(first.stdout)['stage'], 'awaiting_bootsel')
+            self.assertEqual(list(downloads.iterdir()), [])
+            command = next(line.strip() for line in first.stderr.splitlines() if line.startswith('  bash '))
+            self.assertNotIn('wsprrypico-usb.', command)
+            second = subprocess.run(['bash', '-c', command], env=environment, cwd=root,
+                                    text=True, capture_output=True, timeout=10)
+            self.assertEqual(second.returncode, 0, second.stderr)
+            self.assertEqual(json.loads(second.stdout)['stage'], 'complete')
+            arguments = json.loads(next(line for line in second.stderr.splitlines() if line.startswith('{')))
+            self.assertEqual(arguments['transaction'], record['transaction'])
+            self.assertEqual(arguments['device'], SERIAL)
+            self.assertEqual(arguments['board'], 'pico2_w')
+            self.assertTrue(arguments['yes'])
+            self.assertEqual(arguments['picotool'], str(root / "tools/custom ' picotool"))
+            self.assertEqual(arguments['state_dir'], str(root / 'state'))
+            urls = (root / 'curl.log').read_text().splitlines()
+            self.assertEqual(sum(url.endswith('commits/devel') for url in urls), 1)
+            self.assertTrue(all('/' + revision + '/' in url for url in urls if not url.endswith('commits/devel')))
+            self.assertEqual(list(downloads.iterdir()), [])
+            self.assertFalse((root / 'INJECTED').exists())
+            failed = subprocess.run(['bash', '-c', command], env=dict(environment, CURL_FAIL='1'), cwd=root,
+                                    text=True, capture_output=True, timeout=10)
+            self.assertNotEqual(failed.returncode, 0)
+            self.assertEqual(failed.stdout, '')
+
+    @unittest.skipIf(os.geteuid() == 0, 'Bootstrap requires an ordinary user')
+    def test_bootstrap_rejects_bad_revision_before_network(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            environment, _, _, downloads = self.bootstrap_fixture(root)
+            environment['WSPRRY_PICO_USB_INSTALLER_REVISION'] = '$(touch INJECTED)'
+            result = subprocess.run(['bash', '-s'], input=(ROOT / 'scripts/install_usb.sh').read_text(),
+                                    env=environment, cwd=root, text=True, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn('full lowercase Git commit SHA', result.stderr)
+            self.assertFalse((root / 'curl.log').exists())
+            self.assertFalse((root / 'INJECTED').exists())
+            self.assertEqual(list(downloads.iterdir()), [])
 
 
 if __name__ == '__main__':

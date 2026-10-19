@@ -81,6 +81,22 @@ and a private backup. Only an explicit `--replace-unidentified-application`
 initial-install choice can replace them; it still refuses existing saved-state
 or unknown boot-sector data. It is not a reset or migration command.
 
+## Terminal BOOTSEL instructions
+
+Running `scripts/usb_installer.py` or `scripts/install_usb.sh` directly prints
+BOOTSEL instructions to stderr. Stdout remains one JSON result, with the same
+result schema and exit statuses used by WsprryPi. Redirect stdout separately
+when saving or parsing results; do not merge stderr into the JSON stream.
+`--json-only` suppresses the BOOTSEL instructions for standalone automation.
+The imported `main()` entry point used by WsprryPi stays quiet by default.
+
+Initial installation identifies the selected Pico and explains the button
+sequence before checking its BOOTSEL connection. A Pico already in BOOTSEL
+stays connected. Otherwise, follow the reconnect instructions and rerun the
+install command. The installer does not wait for keyboard input or reconnect
+automatically. Supported guarded upgrades enter BOOTSEL automatically; they
+do not ask for a manual unplug during programming or verification.
+
 ## Preserving upgrade and recovery
 
 ```sh
@@ -106,6 +122,27 @@ suspension remains intact.
 When prompted, unplug the selected Pico, hold BOOTSEL while reconnecting it to
 the same physical USB port, then release BOOTSEL. Run `recover` with the
 returned transaction path (or choose **Continue after BOOTSEL** in WsprryPi).
+The standalone flasher prints a ready-to-run continuation command on stderr.
+Copy that command after reconnecting; it supplies the actual transaction,
+selected USB serial, board confirmation, `--yes`, picotool and private state
+directory. Paths are shell-quoted, including paths containing spaces or quotes.
+The command uses the retained image without repeating image selection. A
+failed pending continuation repeats the reconnect guidance and command;
+preparation and failed continuation are not completed installation.
+
+If programming fails after backup and compatibility checks, the flasher
+identifies the incomplete installation and prints a BOOTSEL recovery command.
+Leave a Pico already in BOOTSEL connected. A failure during postboot
+verification instead asks to keep the Pico connected and prints a verification
+retry command so an existing maintenance hold can be verified on the same boot.
+
+For a piped `install_usb.sh` invocation, the continuation downloads the same
+immutable installer revision and works after the initial temporary directory
+has been removed. Its `WSPRRY_PICO_USB_INSTALLER_REVISION` value pins installer
+source only; firmware selection and the cached transaction remain separate.
+The bootstrap validates this value as a full lowercase commit SHA. Run the
+printed command as the same ordinary user, with the same USB permissions.
+
 Continuation revalidates the checked target, installed CI receipt, preflight,
 USB serial, physical port and RP2350 chip ID. It completes a verified full-flash
 backup and checks the old application bytes against the identified CI image

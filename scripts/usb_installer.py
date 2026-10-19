@@ -20,6 +20,7 @@ import platform
 import plistlib
 import re
 import select
+import shlex
 import shutil
 import stat
 import struct
@@ -1357,7 +1358,76 @@ def continue_migration(args, record, path, manifest, image):
         raise TransactionFailure(str(error), record, path, error) from error
 
 
-def main(argv=None, schema_bytes=None):
+def continuation_command(args, result):
+    """Render arguments only; continuation still requires an explicit invocation."""
+    picotool = args.picotool
+    if '/' in picotool:
+        picotool = str(Path(picotool).absolute())
+    arguments = ['recover', '--transaction', str(Path(result['transaction']).absolute()),
+                 '--device', result['serial'], '--board', 'pico2_w', '--yes',
+                 '--picotool=' + picotool, '--state-dir', str(args.state_dir.absolute())]
+    revision = os.environ.get('WSPRRY_PICO_USB_INSTALLER_REVISION', '')
+    if re.fullmatch('[0-9a-f]{40}', revision):
+        # The bootstrap's temporary Python path disappears on exit. Re-fetch
+        # the same bootstrap/core revision, retaining the cached image in the
+        # transaction. pipefail also reports a failed bootstrap download.
+        download = ['curl', '--fail', '--silent', '--show-error', '--location',
+                    '--proto', '=https', '--proto-redir', '=https',
+                    '--connect-timeout', '10', '--max-time', '60', '--max-filesize', '1048576',
+                    f'https://raw.githubusercontent.com/{REPOSITORY}/{revision}/scripts/install_usb.sh']
+        launch = ['env', 'WSPRRY_PICO_USB_INSTALLER_REVISION=' + revision, 'bash', '-s', '--']
+        pipeline = shlex.join(download) + ' | ' + shlex.join(launch) + ' "$@"'
+        return shlex.join(['bash', '-o', 'pipefail', '-c', pipeline, 'wsprrypico-usb', *arguments])
+    return shlex.join([sys.executable, str(Path(__file__).resolve()), *arguments])
+
+
+def reconnect_instructions(serial):
+    return (f'For Pico {serial}:\n'
+            '  1. Unplug its USB data cable.\n'
+            '  2. Hold BOOTSEL while reconnecting it to the same physical USB port.\n'
+            '  3. Release BOOTSEL after reconnecting.\n')
+
+
+def terminal_message(message):
+    # A disconnected terminal must not change programming results or emit a
+    # second JSON response from the outer exception handler.
+    try:
+        print(message, file=sys.stderr, flush=True)
+    except (OSError, ValueError):
+        pass
+
+
+def bootsel_callout(args, result):
+    pending = (result.get('manual_bootsel_required') is True and
+               result.get('recovery_required') is True and
+               result.get('operation') == 'upgrade' and
+               (result.get('stage') == 'awaiting_bootsel' or
+                result.get('stage') == 'failed' and result.get('failure_stage') == 'awaiting_bootsel') and
+               not result.get('program_authorized'))
+    if pending:
+        terminal_message('BOOTSEL reconnect required. The update is waiting; no firmware has been written.\n'
+                         + reconnect_instructions(result['serial']) +
+                         'Keep the Pico idle and do not edit its settings. After reconnecting, run:\n\n  '
+                         + continuation_command(args, result) +
+                         '\n\nKeep USB connected until programming and verification finish.')
+    elif result.get('recovery_required') is True and (result.get('program_authorized') is True or
+                                                    result.get('preserved') is True):
+        stage = result.get('failure_stage', result.get('stage'))
+        if stage in ('backed_up', 'programming', 'programmed_and_flash_verified'):
+            terminal_message('Installation is incomplete; BOOTSEL recovery is required.\n'
+                             'If this Pico is already in BOOTSEL, leave it connected. Otherwise:\n'
+                             + reconnect_instructions(result['serial']) +
+                             'After reconnecting, run:\n\n  ' + continuation_command(args, result) +
+                             '\n\nKeep USB connected until programming and verification finish.')
+        elif stage in ('launching_verification_boot', 'application_verified_maintenance_held',
+                       'verification_release_requested', 'complete'):
+            terminal_message('Firmware verification or its acknowledgement is incomplete.\n'
+                             f'Keep Pico {result["serial"]} connected; do not reset it while retrying verification.\n'
+                             'Retry verification using the retained transaction:\n\n  '
+                             + continuation_command(args, result))
+
+
+def main(argv=None, schema_bytes=None, *, human=False):
     global SCHEMA_BYTES
     SCHEMA_BYTES = schema_bytes
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1381,6 +1451,7 @@ def main(argv=None, schema_bytes=None):
     parser.add_argument('--bundle', type=Path, help='Previously verified public bundle directory (offline planning/install)')
     parser.add_argument('--state-dir', type=Path, default=Path.home() / '.local/state/wsprrypico-usb')
     parser.add_argument('--transaction', type=Path, help='Exact private transaction.json for explicit same-board recovery')
+    parser.add_argument('--json-only', action='store_true', help='Suppress BOOTSEL guidance; stdout always contains JSON results')
     args = parser.parse_args(argv)
     os.umask(0o077)
     try:
@@ -1436,14 +1507,26 @@ def main(argv=None, schema_bytes=None):
                 result['bundle'] = str(args.output)
             if args.operation in ('install', 'upgrade'):
                 require(args.device and args.yes, 'Programming requires explicit --device, operation and --yes')
+                if human and not args.json_only and args.operation == 'install':
+                    terminal_message('Initial installation requires BOOTSEL mode. If this Pico is already in BOOTSEL,\n'
+                                     'leave it connected. Otherwise reconnect as follows, then rerun this install command:\n'
+                                     + reconnect_instructions(args.device) +
+                                     'Keep USB connected until programming and verification finish.')
                 result = transaction(args, files, manifest, image, client)
         print(json.dumps({**result, 'schema': 'wsprrypico-usb-result/1',
                           'installer_version': INSTALLER_VERSION, 'ok': True}, sort_keys=True))
+        if human and not args.json_only:
+            # Formatting guidance must not replace an already emitted result.
+            with contextlib.suppress(OSError, ValueError):
+                bootsel_callout(args, result)
         return 0
     except TransactionFailure as error:
         print(json.dumps({**error.result, 'schema': 'wsprrypico-usb-result/1',
                           'installer_version': INSTALLER_VERSION, 'ok': False,
                           'error': str(error), **error.details}, sort_keys=True))
+        if human and not args.json_only:
+            with contextlib.suppress(OSError, ValueError):
+                bootsel_callout(args, error.result)
         return 3 if error.result['recovery_required'] else 2
     except (Refusal, OSError, KeyError, TypeError, subprocess.SubprocessError, ValueError) as error:
         print(json.dumps({'schema': 'wsprrypico-usb-result/1', 'installer_version': INSTALLER_VERSION,
@@ -1457,4 +1540,4 @@ def main(argv=None, schema_bytes=None):
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(human=True))
