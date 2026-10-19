@@ -54,13 +54,20 @@ def main():
     parser.add_argument('reference', type=Path)
     parser.add_argument('output', type=Path)
     parser.add_argument('--segment', default='resume/pulse-history')
+    parser.add_argument('--manifest', default='final-manifest.json',
+                        help='Hash inventory relative to the closed evidence root')
+    parser.add_argument('--manifest-sha256', help='Expected externally recorded manifest digest')
     parser.add_argument('--matched-rtc', action='store_true',
                         help='Both clocks start at the translated UTC origin, before any sample')
     args = parser.parse_args()
     root = args.evidence.resolve(strict=True)
     segment = (root / args.segment).resolve(strict=True)
     assert segment.is_relative_to(root)
-    manifest = json.loads((root/'final-manifest.json').read_text())['files']
+    manifest_path = (root/args.manifest).resolve(strict=True)
+    assert manifest_path.is_relative_to(root)
+    if args.manifest_sha256:
+        assert sha(manifest_path) == args.manifest_sha256, 'Manifest differs from recorded evidence'
+    manifest = json.loads(manifest_path.read_text())['files']
     hashes = {}
 
     def load(path):
@@ -72,7 +79,8 @@ def main():
     baseline = json.loads(load(segment/'capture-baseline.json'))['boards']
     pulses = [json.loads(line) for line in load(segment/'pulses.jsonl').splitlines()]
     report = {'schema':'microchrony-captured-pool-diagnosis/1', 'script_sha256':sha(__file__),
-              'manifest_sha256':sha(root/'final-manifest.json'), 'boards':{},
+              'manifest_file':str(manifest_path.relative_to(root)),
+              'manifest_sha256':sha(manifest_path), 'boards':{},
               'binaries_sha256':{n:sha(p) for n,p in [('before',args.before), ('after',args.after),
                                                     ('chrony49',args.reference)]},
               'limits':['Cold zero-frequency initialization; incomplete pre-capture boot history.',
@@ -103,7 +111,11 @@ def main():
                 records[record['id']] = record
         assert len(cohorts) == 4 and {k[1] for k in cohorts} == set(range(4))
         assert len({k[0] for k in cohorts}) == 1
-        frontier = json.loads(load(sorted(segment.glob(board+'-final-frontier-info-*.json'))[-1]))['response']
+        frontiers = sorted(segment.glob(board+'-post-rf-frontier-info-*.json'))
+        if not frontiers:
+            frontiers = sorted(segment.glob(board+'-final-frontier-info-*.json'))
+        assert frontiers, 'No stable accepted-original frontier'
+        frontier = json.loads(load(frontiers[-1]))['response']
         assert {k[0] for k in cohorts} == {frontier['status']['boot_id']}
         identity = (frontier['device_id'],frontier['status']['boot_id'],
                     frontier['firmware'],frontier['revision'])

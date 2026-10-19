@@ -202,6 +202,20 @@ static void event(int fd, int flags, void* context) {
                         selection.state_char, selection.score, SST_GetJitterAsymmetry(stats));
             }
             fputc('\n', stderr);
+            fprintf(stderr, "S %llu %d", (unsigned long long)truth_ns, slot);
+            for (int i = 0; i < 4; ++i) {
+                SST_Stats stats = SRC_GetSourcestats(sources[i]);
+                struct timespec now;
+                double low, high, distance, variance, first, last;
+                LCL_ReadCookedTime(&now, NULL);
+                if (!SST_Samples(stats)) {
+                    fprintf(stderr, " 0");
+                    continue;
+                }
+                SST_GetSelectionData(stats, &now, &low, &high, &distance, &variance, &first, &last);
+                fprintf(stderr, " %.15g", distance);
+            }
+            fputc('\n', stderr);
         }
         printf("%llu %d %.0Lf %.12g %.12g %.12g %.12g %d %d", (unsigned long long)truth_ns, action,
                system_seconds * 1e9L, -pure / (1 + pure * 1e-6),

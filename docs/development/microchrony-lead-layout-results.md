@@ -17,6 +17,9 @@ claims. All adverse and unqualified observations are retained.
 The [sanitized numerical record](microchrony-lead-layout-results.json) binds the
 private evidence and calculations. The earlier stopped runs and their results
 remain in the [conformance report](microchrony-conformance-results.md).
+The later [captured-input replay](microchrony-lead-replay-results.md) compares
+these inputs with Chrony 4.9 and records software repairs; it does not replace
+the observations of the firmware that ran here.
 
 ## Setup, bounds and restoration
 

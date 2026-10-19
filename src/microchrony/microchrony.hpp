@@ -71,6 +71,9 @@ struct Estimate {
     // Packet classification uses conditional residual statistics; public
     // covariance/bounds above still include uncertainty in the path model.
     double admission_jitter = 4, admission_skew = 0.002;
+    // Conditional regression errors steer the controller; they never replace
+    // joint covariance/path ambiguity in public bounds or admission gates.
+    double control_rate_sd = 0.002, control_skew = 0.002, control_offset_sd = 4;
     std::uint64_t raw_ns = 0, utc_ns = 0, first_raw_ns = 0;
     unsigned samples = 0, runs = 0;
 };
@@ -123,6 +126,7 @@ FrequencyEstimate combine_frequency(FrequencyEstimate previous, FrequencyEstimat
 struct SourceEstimate {
     double offset = 0, offset_sd = 0, rate = 0, rate_sd = 0, skew = 0;
     double distance = 0, age = 0;
+    double control_skew = 0; // Zero uses skew; the public bound always uses skew.
 };
 struct CombinedEstimate {
     double offset = 0, offset_sd = 0, rate = 0, rate_sd = 0, skew = 0, frequency_bound = 0;

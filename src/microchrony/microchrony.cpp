@@ -57,6 +57,7 @@ struct Line {
     double x = 0, y = 0, slope = 0, rate_sd = 0, offset_sd = 0, sd = 0;
     double delay_coefficient = 0, rate_bias = 0, offset_bias = 0;
     double admission_sd = 4, admission_skew = .002;
+    double control_rate_sd = .002, control_offset_sd = 4;
     unsigned runs = 0, positive = 0, negative = 0, active_runs = 0;
     unsigned freedom = 1;
 };
@@ -200,6 +201,11 @@ Line regress(std::span<const Measurement> samples, double precision, double asym
     result.rate_sd = xx > 0 ? std::sqrt(variance * (joint ? zz / determinant : 1 / xx)) : 1;
     const auto end_x = difference(last.raw_ns, origin.raw_ns);
     const auto dx = end_x - result.x;
+    // The learned path term is fixed for the controller's conditional line.
+    // Keep the separate joint fit and identifiable alternatives below for
+    // public uncertainty and every existing qualification/admission gate.
+    result.control_rate_sd = xx > 0 ? std::sqrt(conditional_variance / xx) : 1;
+    result.control_offset_sd = std::sqrt(conditional_variance * (1 / sw + dx * dx / xx));
     if (joint) {
         // Withholding a weak path correction does not establish that it is
         // zero. Cover the alternative identifiable fit in public error bounds,
@@ -303,7 +309,8 @@ CombinedEstimate combine_sources(std::span<const SourceEstimate> sources) {
         // Keep the dispersion about the chosen reference, including inter-source
         // disagreement. A weighted center does not erase that disagreement.
         offset_variance += offset_weight * (error * error + s.offset * s.offset);
-        skew_weights += 1 / std::max(1e-24, s.skew * s.skew);
+        const auto control_skew = s.control_skew > 0 ? s.control_skew : s.skew;
+        skew_weights += 1 / std::max(1e-24, control_skew * control_skew);
     }
     if (!offset_weights || !frequency_weights)
         return result;
@@ -741,6 +748,9 @@ void Engine::fit(Source& source) {
         e.jitter = std::max(1e-9, line.sd);
         e.admission_jitter = std::max(1e-9, line.admission_sd);
         e.admission_skew = std::max(1e-12, line.admission_skew);
+        e.control_rate_sd = std::max(1e-12, line.control_rate_sd);
+        e.control_skew = e.admission_skew;
+        e.control_offset_sd = line.control_offset_sd;
         e.asymmetry = line.delay_coefficient;
         const auto elapsed = difference(last.raw_ns, first.raw_ns);
         e.utc_ns = add_time(first.utc_ns, elapsed + line.y + line.slope * (elapsed - line.x));
@@ -770,9 +780,18 @@ double Engine::distance(const Source& s, std::uint64_t raw) const {
 }
 double Engine::selection_distance(const Source& s, std::uint64_t raw) const {
     double path = std::numeric_limits<double>::infinity();
-    for (unsigned j = s.fit_start; j < s.count; ++j)
-        path = std::min(path, s.samples[j].root_delay / 2 + s.samples[j].root_dispersion);
-    return path + std::max(0.0, difference(raw, s.status.estimate.raw_ns)) * s.status.estimate.skew;
+    // Ranking/combination weights use the conditional line statistics. The
+    // full joint/path bound in distance() still governs source admission,
+    // agreement, reported clock error and application/RF qualification.
+    // Age each candidate path from its own exchange. An old low-delay sample
+    // must not inherit the newest fit's timestamp and remain artificially best.
+    for (unsigned j = s.fit_start; j < s.count; ++j) {
+        const auto& sample = s.samples[j];
+        const auto age = std::max(0.0, difference(raw, sample.raw_ns));
+        path = std::min(path, sample.root_delay / 2 + sample.root_dispersion +
+                                  age * s.status.estimate.control_skew);
+    }
+    return path;
 }
 void Engine::select(std::uint64_t now, bool score_update) {
     std::array<unsigned, source_capacity> candidates{};
@@ -936,12 +955,13 @@ void Engine::discipline(unsigned selected, std::span<const unsigned> combined, s
         const auto& s = sources_[i];
         const auto& e = s.status.estimate;
         estimates[index++] = {difference(source_utc(s, now), origin),
-                              e.offset_sd,
+                              e.control_offset_sd,
                               e.rate,
-                              e.rate_sd,
+                              e.control_rate_sd,
                               e.skew,
                               selection_distance(s, now),
-                              difference(source.status.estimate.raw_ns, e.raw_ns)};
+                              difference(source.status.estimate.raw_ns, e.raw_ns),
+                              e.control_skew};
         used_generation_[i] = s.status.generation;
     }
     const auto estimate = combine_sources({estimates.data(), index});

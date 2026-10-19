@@ -33,6 +33,13 @@ trajectories, and compares learned-rate control with phase damping alone against
 known error. The selected tests establish bounded behavior, not complete daemon
 equivalence.
 
+The [lead-layout captured-input comparison](../../docs/development/microchrony-lead-replay-results.md)
+separates conditional controller weights from conservative public bounds and
+ages each candidate path from its own exchange. It substantially closes the
+Chrony frequency/phase replay difference while retaining the Internet inputs'
+adverse bias and every existing quality gate. Software agreement does not
+establish improved physical UTC or RF accuracy.
+
 ## Integration
 
 Use `add_subdirectory(path/to/microchrony)` and link the `microchrony` target, or
@@ -104,6 +111,9 @@ the 54-observation boundary, without including an upstream table.
 Phase combines by inverse source distance; frequency combines by inverse
 frequency variance. Disagreement and estimate age enter phase-controller error.
 Controller statistical error remains separate from conservative public bounds.
+Conditional regression errors weight the controller; full joint covariance and
+path ambiguity still govern qualification. Each retained candidate path ages
+from its own measurement timestamp before ranking and combination weighting.
 The engine stays within its existing 32 KiB limit.
 Frequency combination gives a new equally precise fit three times the previous
 estimate's weight and expands tracking error on disagreement. The controller's

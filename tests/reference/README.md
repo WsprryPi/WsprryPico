@@ -212,6 +212,45 @@ controlled conditional prior, not a recovered live RTC or boot history.
 
 ## Offered packet diagnostics
 
+### Closed lead-layout capture
+
+The completed October 19 lead-layout run uses a retrieval manifest and a stable
+post-RF accepted frontier. The replay supports those without rewriting the
+closed evidence. Use the original manifest digest, a preserved before binary
+and the newly built `microchrony_loop`:
+
+```sh
+receipts=build/microchrony-lead-replay-20261019
+evidence=build/microchrony-lead-layout-20261019/terminal-evidence
+engine=build/microchrony-conformance-20261019/host/microchrony_loop
+python3 tests/reference/diagnose_chrony49_capture.py "$evidence" \
+  "$receipts/microchrony-before" "$engine" \
+  "$receipts/chrony49-loop-instrumented" "$receipts/pooled.json" \
+  --segment pulse-history --manifest retrieval-manifest.json \
+  --manifest-sha256 43a7609f74d14780c4802bef6fdc88f285b7d3bebefd8291272210059e3cc80a \
+  --matched-rtc
+python3 tests/reference/compare_chrony49_captured_packets.py "$evidence" \
+  "$receipts/chrony49-packet" "$receipts/microchrony-before" \
+  "$engine" "$receipts/packets.json" \
+  --manifest-sha256 43a7609f74d14780c4802bef6fdc88f285b7d3bebefd8291272210059e3cc80a
+python3 tests/reference/compare_chrony49_histories.py "$evidence" \
+  "$receipts/pooled.json" "$receipts/chrony49-stats" \
+  "$engine" "$receipts/histories.json"
+python3 tests/reference/analyze_chrony49_path_bias.py "$evidence" \
+  "$receipts/pooled.json" "$receipts/histories.json" "$receipts/path-bias.json"
+```
+
+The commands name the retained after executable; configure a fresh host build
+as above when reproducing elsewhere. Source-API diagnostics (`C` for conditional engine errors and
+`S` for external selection distances) describe weights, not independent truth.
+The packet replay translates a common UTC origin and regenerates correlation
+nonces; both implementations receive the resulting identical bytes. It preserves
+original intervals and body quality fields, requires full retained basic packets
+and reports differences from live verdicts separately from reference disagreement.
+Missing boot state, autonomous polling and combined clock feedback are outside
+that frozen-output boundary. The [result record](../../docs/development/microchrony-lead-replay-results.md)
+retains the adverse source/path bias and incomplete pre-capture visibility.
+
 `NTP PACKETS <cursor>` is a read-only USB Console command. Start with cursor
 `0`, verify device/boot/firmware/revision, then use the returned decimal-string
 `next_cursor`. Drain while `more` is true. Each response holds at most four

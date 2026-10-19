@@ -291,6 +291,42 @@ void correlated_delay() {
     // treating its fitted delay coefficient as known understates that bound.
     CHECK(estimate.skew > 0.15e-6);
     CHECK(std::abs(estimate.rate + .000020) <= estimate.skew);
+    CHECK(estimate.control_skew < estimate.skew);
+    CHECK(estimate.control_rate_sd < estimate.rate_sd);
+    CHECK(estimate.control_offset_sd < estimate.offset_sd);
+}
+void conditional_statistics_do_not_open_update_gate() {
+    Config c;
+    c.max_delay_deviation_ratio = 0;
+    Engine reference(c);
+    CHECK(reference.configure(0, 1, 0));
+    for (unsigned i = 1; i <= 32; ++i) {
+        const double delay = .01 + .00015 * i + (i % 2 ? .0005 : -.0005);
+        const double noise = ((i * 7) % 5 - 2.0) * .00004;
+        CHECK(measurement(reference, 0, i * 64 * second, -.000020 * i * 64 + .4 * delay + noise,
+                          std::uint64_t(delay * 1e9)));
+    }
+    const auto fitted = reference.status(0, 32 * 64 * second + second).estimate;
+    CHECK(fitted.skew > fitted.control_skew + 1e-9);
+    c.max_update_skew_ppm = (fitted.skew + fitted.control_skew) * .5e6;
+    Engine e(c);
+    CHECK(e.configure(0, 1, 0));
+    unsigned blocked = 0;
+    for (unsigned i = 1; i <= 32; ++i) {
+        const auto raw = i * 64 * second;
+        const auto previous = e.tracking(raw).utc_frequency_ppb;
+        const double delay = .01 + .00015 * i + (i % 2 ? .0005 : -.0005);
+        const double noise = ((i * 7) % 5 - 2.0) * .00004;
+        CHECK(measurement(e, 0, raw, -.000020 * i * 64 + .4 * delay + noise,
+                          std::uint64_t(delay * 1e9)));
+        const auto estimate = e.status(0, raw + second).estimate;
+        if (estimate.valid && estimate.control_skew < c.max_update_skew_ppm * 1e-6 &&
+            estimate.skew > c.max_update_skew_ppm * 1e-6) {
+            CHECK(e.tracking(raw + second).utc_frequency_ppb == previous);
+            ++blocked;
+        }
+    }
+    CHECK(blocked > 0);
 }
 void path_noise_weights() {
     Config config;
@@ -518,6 +554,10 @@ void source_combination() {
     for (const auto& source : s)
         CHECK(r.frequency_bound >= source.skew + std::abs(source.rate - r.rate));
     CHECK(r.skew < r.frequency_bound);
+    s[0].control_skew = s[1].control_skew = 1e-9;
+    const auto conditional = combine_sources(s);
+    CHECK(conditional.skew < r.skew);
+    CHECK(conditional.frequency_bound == r.frequency_bound);
     Config config;
     config.min_poll = config.max_poll = 6;
     config.max_clock_error_ppm = 50;
@@ -531,6 +571,19 @@ void source_combination() {
     // A healthy peer one poll old is eligible under the same combine limit,
     // even on a short path with the Pico's conservative holdover allowance.
     CHECK(engine.tracking(21 * 64 * second + 1'000'000).combined_sources == 2);
+}
+void aged_path_minimum_loses_preference() {
+    Config c;
+    c.max_delay_deviation_ratio = 0;
+    Engine e(c);
+    CHECK(e.configure(0, 1, 0) && e.configure(1, 2, 0));
+    for (unsigned i = 1; i <= 32; ++i) {
+        const auto raw = i * 64 * second;
+        CHECK(measurement(e, 0, raw, i % 2 ? .003 : -.003, i == 1 ? 500'000 : 100'000'000));
+        CHECK(measurement(e, 1, raw + second, 0, 4'000'000));
+    }
+    CHECK(e.history(0).front().id == 1); // The old best path is still retained.
+    CHECK(e.tracking(32 * 64 * second + 2 * second).selected == 1);
 }
 void phase_change_preserves_frequency() {
     Config config;
@@ -635,6 +688,7 @@ int main(int argc, char** argv) {
     control_rules();
     frequency_innovation();
     source_combination();
+    aged_path_minimum_loses_preference();
     phase_change_preserves_frequency();
     variable_delay_retention();
     predecessor_phase_rebase();
@@ -648,5 +702,6 @@ int main(int argc, char** argv) {
     withdrawals();
     combined_bound();
     correlated_delay();
+    conditional_statistics_do_not_open_update_gate();
     std::cout << "microchrony deterministic checks passed; Engine bytes=" << sizeof(Engine) << '\n';
 }

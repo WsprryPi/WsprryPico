@@ -16,6 +16,9 @@ struct ClockLoopTestAccess {
         engine.clock_raw_ns_ = 0;
         engine.clock_utc_ns_ = 1'800'000'000ULL * second;
     }
+    static double ranking_distance(const Engine& engine, unsigned slot, std::uint64_t raw) {
+        return engine.selection_distance(engine.sources_[slot], raw);
+    }
 };
 } // namespace microchrony
 
@@ -232,6 +235,14 @@ int main(int argc, char** argv) {
                                   : s.combined ? '+'
                                                : '-')
                               << ' ' << s.selection_score << ' ' << e.asymmetry;
+                }
+                std::cerr << '\n';
+                std::cerr << "C " << truth << ' ' << slot;
+                for (unsigned i = 0; i < 4; ++i) {
+                    const auto e = engine.status(i, raw).estimate;
+                    std::cerr << ' ' << e.control_rate_sd * 1e6 << ' ' << e.control_skew * 1e6
+                              << ' ' << e.control_offset_sd << ' '
+                              << microchrony::ClockLoopTestAccess::ranking_distance(engine, i, raw);
                 }
                 std::cerr << '\n';
             }

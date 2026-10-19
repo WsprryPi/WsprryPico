@@ -23,8 +23,9 @@ def sha(path):
 
 
 def compare(root, cohort, reference, engine):
-    manifest = root / 'final-manifest.json'
     verified = json.loads(cohort.read_text())
+    manifest = (root / verified.get('manifest_file', 'final-manifest.json')).resolve(strict=True)
+    assert manifest.is_relative_to(root.resolve())
     assert sha(manifest) == verified['manifest_sha256']
     for name, digest in verified['inputs_sha256'].items():
         path = (root / name).resolve(strict=True)
