@@ -1,0 +1,51 @@
+{
+  "artifacts": [
+    {
+      "archive_sha256": "0e801542bcf87db56a431ac0b84b581d3f17787a3079fc1afc49be5743da7160",
+      "expires_at": "2027-01-17T22:44:55Z",
+      "id": 12228440923,
+      "kind": "deployment",
+      "name": "WsprryPico-firmware-devel-39337091361-1-consumer"
+    },
+    {
+      "archive_sha256": "8d6b0a25e3fd88e10338baec7438d3ef33882fc746d0160d1e0ebd6b04de377d",
+      "expires_at": "2027-01-17T22:44:55Z",
+      "id": 12228495784,
+      "kind": "audit",
+      "name": "WsprryPico-audit-devel-39337091361-1-consumer"
+    }
+  ],
+  "attempt": 1,
+  "branch": "devel",
+  "checksums_policy": "Original CI SHA256SUMS covers UF2, manifest and three notices; original archive digests and notes hash are in this receipt.",
+  "inspection_tool": {
+    "sha256": "c146c628c5b4b2dc9e3fad0ccff858a7f0aa20a2c19e7af4563e825100ef963f",
+    "source_checkout_clean": true,
+    "source_revision": "6f6458d792b93685a11423b244a585eaa99eafcf",
+    "version": "picotool v2.3.0 (Darwin, AppleClang-21.0.0.21000101, Release)\n\nThis version of picotool was compiled without USB support. Some commands are not available."
+  },
+  "installer_default_eligible": false,
+  "make_latest": false,
+  "manifest_sha256": "05d7c30028cf8f43a4cdb1dc5d1e55058373b2002e281bf292f0f5067d319f87",
+  "notes_sha256": "35b8a080b09fe4c2a709ad157302432066e2d57c768b2b223c0db71fc13d6087",
+  "prerelease": true,
+  "repository": "WsprryPi/WsprryPico",
+  "run_id": 39337091361,
+  "schema": "wsprrypico-testing-publication/1",
+  "source": "675d56dc94008568bff34c7068ce59afa364fac3",
+  "tag": "v0.1.0-testing.1",
+  "uf2": {
+    "bytes": 4849664,
+    "path": "WsprryPico-0.1.0-testing.1-pico2_w.uf2",
+    "sha256": "969cace3ecf7f8221df0f7777e3efd9105cd942560f10b1491e1613360b423b5"
+  },
+  "url": "https://github.com/WsprryPi/WsprryPico/actions/runs/39337091361",
+  "verification": "independent-linked-image",
+  "verified": true,
+  "verify_job": {
+    "conclusion": "success",
+    "id": 118349188093,
+    "status": "completed"
+  },
+  "version": "0.1.0-testing.1"
+}

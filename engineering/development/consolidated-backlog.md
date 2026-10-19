@@ -45,8 +45,9 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    Read the Docs Community publication.
    [Operator manual](https://wsprrypico.readthedocs.io/en/devel/) and
    [result and evidence](operator-documentation-results.md).
-10. ▧ **Testing prerelease.** Publish the verified CI image, manifest and
-    checksums. [Saved prompt](phase15-17-execution-prompt.md).
+10. ✅ **Testing prerelease.** Published the verified CI image, manifest and
+    checksums. [Acceptance record](phase15-17-results.md) and
+    [testing release](https://github.com/WsprryPi/WsprryPico/releases/tag/v0.1.0-testing.1).
 
 ## Remain in backlog for future
 

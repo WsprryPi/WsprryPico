@@ -33,6 +33,11 @@ The [software/build CI guide](software-build-ci.md) defines Linux checks,
 deployment manifests, source/version identity, integrity verification and
 separate main/devel downloads. Installation consumes exact verified bytes.
 
+The [testing prerelease acceptance](phase15-17-results.md) records the exact
+reviewed source, CI image, manifest, checksums and public download audit for
+[0.1.0-testing.1](https://github.com/WsprryPi/WsprryPico/releases/tag/v0.1.0-testing.1).
+Its manual testing series is outside the installer's run-derived CI selection contract.
+
 ## Deterministic validation
 
 Build and run the hardware-free portable core on a supported host:
