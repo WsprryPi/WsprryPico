@@ -173,7 +173,10 @@ The deployed RTD version selector initially inherited 30%-opacity white text;
 the final CSS explicitly gives its selector and option list readable palette
 colors. The dynamically inserted native selector also receives the accessible
 name “Documentation version”; its bounded observer disconnects after insertion.
-These issues were discovered only after RTD added its live controls.
+These issues were discovered only after RTD added its live controls. The first
+contrast rule in `c02e5d8` was weaker than the theme's full selector; live computed
+style exposed the failed override. The corrected rule matches theme specificity
+for normal, focus, hover and active states, including the native option list.
 
 The push-only integration also automatically built the independently committed
 installer update `e5dc075a9383fae6d8225b2e31af34e4654b5da6` successfully in

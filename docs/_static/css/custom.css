@@ -14,8 +14,13 @@
 .wy-side-nav-search, .wy-nav-side, .wy-nav-top { background: var(--pico-chrome); }
 .wy-side-nav-search > a, .wy-nav-top a, .wy-nav-top-toggle { color: var(--pico-paper); }
 .wy-side-nav-search .version-switch,
-.wy-side-nav-search .version-switch select { color: var(--pico-pale); }
-.wy-side-nav-search .version-switch select option {
+.wy-side-nav-search > div.switch-menus > div.version-switch select,
+.wy-side-nav-search > div.switch-menus > div.version-switch select:active,
+.wy-side-nav-search > div.switch-menus > div.version-switch select:focus,
+.wy-side-nav-search > div.switch-menus > div.version-switch select:hover {
+    color: var(--pico-pale);
+}
+.wy-side-nav-search > div.switch-menus > div.version-switch select option {
     background: var(--pico-paper); color: var(--pico-ink);
 }
 .wy-menu-vertical p.caption { color: var(--pico-pale); }
@@ -31,7 +36,7 @@
 .rst-content p, .rst-content ul, .rst-content ol { max-width: 68ch; }
 .rst-content li + li { margin-top: .35rem; }
 .rst-content a { color: var(--pico-link); text-decoration: underline; text-underline-offset: .15em; }
-a:focus-visible, button:focus-visible, input:focus-visible {
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
     outline: 3px solid currentColor; outline-offset: 3px;
 }
 .rst-content figure { margin: 1.5rem 0; }
