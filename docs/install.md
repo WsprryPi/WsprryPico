@@ -40,6 +40,34 @@ Discovery shows physical USB serials and ports. Select the intended board;
 the USB serial is different from the full stable device ID shown by firmware.
 If discovery finds nothing, check the data cable and USB permissions.
 
+### Run directly with curl
+
+You can also run the public bootstrap without keeping a local script. After
+completing [the update preparation below](#preserve-settings-during-an-update),
+run this from a Bash terminal as your ordinary user:
+
+```sh
+set -o pipefail
+curl --fail --silent --show-error --location \
+  --proto '=https' --proto-redir '=https' \
+  --connect-timeout 10 --max-time 60 --max-filesize 1048576 \
+  https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh \
+  | bash -s -- upgrade --board pico2_w --yes
+```
+
+This updates from the latest verified **main** image. Add `--branch devel`
+after `--yes` to deliberately select the latest verified devel image. The
+`devel` segment in the bootstrap URL selects the installer source; it does not
+select the firmware branch.
+
+The installer can still ask to download picotool, select a Pico and remove
+downloaded tools: these prompts use the terminal rather than the piped script
+input. With several boards attached, compare the listed USB serial and port
+before choosing. For unattended use, supply `--device SERIAL` and the explicit
+download/cleanup options below. Resolve reported network or DNS errors before
+retrying. If an installer transaction was created, follow its status and
+recovery guidance before starting another update.
+
 ## Picotool download and cleanup
 
 Accept the picotool download prompt when installing or updating if you want
@@ -68,7 +96,8 @@ bash install_usb.sh upgrade --branch devel --device SERIAL \
 
 The bootstrap removes its temporary files on exit. A deliberately downloaded
 `install_usb.sh`, saved image bundles and private firmware backups remain yours
-to retain; tool cleanup does not remove them.
+to retain; tool cleanup does not remove them. Firmware transactions and backups
+follow the separate [retention and recovery policy](maintain.md#usb-update-backups-and-recovery).
 
 ## First installation
 
@@ -92,7 +121,9 @@ do not assume that replacing it can preserve its settings.
 
 1. Finish or abort any job through its owning controller, release control and
    leave the Pico idle. Disable its standalone schedule. Resolve STOP/fault
-   states through the normal controls before updating.
+   states through the normal controls before updating. If WsprryPi uses this
+   USB connection, follow [the standalone-on-Pi procedure](wsprrypi.md#standalone-installer-on-a-wsprrypi-host)
+   to pause its service while the standalone installer runs.
 2. Run:
 
    ```sh

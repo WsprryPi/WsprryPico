@@ -56,6 +56,35 @@ blank comparison and reports **erase_verified: true** and **4194304** erased
 bytes. An interrupted or failed check does not prove erasure. Existing host
 backups remain. [Install firmware again](install.md) before normal use.
 
+## USB update backups and recovery
+
+The standalone installer keeps private transactions and full-flash backups
+under `~/.local/state/wsprrypico-usb`. WsprryPi keeps its managed update state
+under `/var/lib/wsprrypi/pico-usb`. These files can contain Wi-Fi credentials,
+keys and bonds. Keep them outside Git and web-served directories; never attach
+a full backup or an unsanitized transaction to an issue.
+
+Standalone history is bounded per state directory. Before a new transaction,
+completed history is limited to two records and unchanged/refused history to
+eight; either expires after seven days. Pruning happens on invocation, and the
+new transaction can temporarily add one record. Unresolved recovery records
+are retained. Eight unresolved records block new work rather than deleting
+the evidence needed to recover a board. WsprryPi also bounds completed caches
+across installer versions while retaining unresolved work.
+
+If an update is incomplete, keep the selected Pico connected and use the exact
+same-board continuation command printed by the installer, including any
+requested BOOTSEL reconnect on the same port. Recovery uses the retained image;
+the public bootstrap fetches its original installer revision. In WsprryPi, use
+**Continue after BOOTSEL** or **Recover this update** as shown. Do not replace
+recovery with a new image selection, copy a
+backup to another board or restore flash blindly.
+
+Downloaded-tool cleanup keeps firmware backups and pending transactions. An
+unresolved operation retains its managed picotool so the continuation remains
+usable. Success requires a verified final result and the expected running
+firmware identity; preparation or a successful USB command alone is incomplete.
+
 ## Support information
 
 Record firmware/source identity, full stable device ID, transport, engine and

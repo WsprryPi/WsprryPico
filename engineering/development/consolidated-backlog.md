@@ -27,7 +27,8 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
      [Decision and closeout](ntp-work-closeout.md).
 5. ✅ **Impeccable UI review**, including provisioning; accepted and closed.
    VoiceOver testing is closed as not required.
-   Installer coverage is deferred.
+   Installer workflow coverage is recorded separately in the
+   [installer acceptance](usb-installer-results.md).
 6. ✅ **Software/build CI and deployment images.** Run checks and produce usable
    UF2 images with version/source identity, checksums and a manifest before
    release efforts. Use the CI image for decode verification and publication.

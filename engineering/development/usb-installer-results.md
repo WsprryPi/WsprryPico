@@ -265,6 +265,34 @@ bootstrap/adapter results. These identify the accepted source and downloads;
 later successful builds may advance the permanent branch bookmarks. The
 evidence-only closeout does not relabel those firmware bytes.
 
+## Acceptance documentation verification
+
+The end-to-end record was committed in
+`a93ffcd6c9cb66f0ee967a1a4bae73019c8908de`. Its complete
+[software/firmware CI run 39330079188](https://github.com/WsprryPi/WsprryPico/actions/runs/39330079188)
+passed verification and publication, with 160 registered tests, zero failures
+and zero skips. Read the Docs successfully built the same commit for
+[devel](https://app.readthedocs.org/projects/wsprrypico/builds/35254589/) and
+[latest](https://app.readthedocs.org/projects/wsprrypico/builds/35254590/).
+No failure required an implementation change.
+
+The [operator-manual publication](operator-documentation-results.md) is complete.
+Current [installation](../../docs/install.md),
+[backup/recovery](../../docs/maintain.md#usb-update-backups-and-recovery) and
+[WsprryPi-host](../../docs/wsprrypi.md#standalone-installer-on-a-wsprrypi-host)
+instructions cover public bootstrap use, interactive tool acquisition/cleanup,
+bounded transaction history and service handoff. The recorded physical firmware
+remains the exact `c02e5d8` image above; later documentation/CI commits do not
+relabel it. Prerelease work remains a separate backlog item.
+
+Final local documentation checks passed the strict Sphinx build, 93 Markdown
+sources, 15 HTML pages and 1,174 local link/anchor targets. Ten companion
+engineering-note links and anchors were checked against the current Pico
+sources, built manual and existing Pi operator manual. Impeccable review of
+installation, recovery and same-host handoff pages at 1280 × 720 and
+390 × 844 found no layout issues. This documentation-only pass did not repeat
+hardware or service operations.
+
 ## Acceptance limits
 
 Acceptance covers the implemented installer contract, verified downloads and
