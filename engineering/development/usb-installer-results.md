@@ -1,10 +1,11 @@
 # USB installer acceptance
 
-Status: **accepted for the bounded USB installer slice**. Main and devel images,
-public installer 0.1.3, anonymous bootstrap planning and cached Pi-adapter
-planning pass. Recorded Pico C installation, preserving migration, recovery
-and erase paths retain their stated source-specific limits. This closeout loads
-no firmware, operates no Pico, changes no host service and performs no RF tests.
+Status: **accepted for the bounded USB installer slice**. Recorded main/devel
+publication, anonymous bootstrap planning and cached Pi-adapter planning cover
+installer 0.1.3. The 2026-10-19 public bootstrap upgrade additionally passes with
+installer 0.1.4 on Pico C, including official picotool download, cleanup and
+Fleet reconnection. Installation, preserving migration, recovery and erase
+observations retain their stated source-specific limits.
 
 ## Delivered behavior
 
@@ -21,6 +22,14 @@ stdout remains one JSON result. Explicit serials bypass the menu. Imported Pi
 execution and unattended/JSON-only commands still require a serial and never
 prompt. The selected serial, mode and physical port are rechecked under the
 device lock after image resolution, before creating a transaction.
+
+Installer 0.1.4 adds prerequisite checks and an optional verified official
+picotool download for supported native macOS/Linux hosts. Cleanup offers to
+remove the managed package while retaining private backups and unresolved
+recovery. Existing tools remain unchanged. The
+[tool-download contract](standalone-tool-downloads.md) defines supported hosts,
+consent, cache verification and retention; the physical check below qualifies
+the recorded ARM64 host and board.
 
 Upgrades retain every byte from flash offset `0x3ee000` through `0x400000`
 before reboot and compare public saved semantics afterward. Guarded maintenance,
@@ -54,15 +63,103 @@ and served roots.
 | Linux/Pi preserving BOOTSEL migration and reconnection recovery | The [companion acceptance](https://github.com/WsprryPi/WsprryPi/blob/7b01762/docs/pico-usb-installer.md#validation-and-documentation-impact) records Pico C on wspr4 upgraded to `0.1.0-ci.39145255987.1`, source `f6ed8a208e2919a00b7ced044349fd45336f8760`. The full backup, reserved bytes, public saved state and exact new boot passed; the host maintenance hold cleared. Connection-only recovery retained that boot without reflashing. |
 | Linux CLI/core full erase and repeated recovery | The [physical erase check](usb-installer.md#physical-erase-check) records Pico C on wspr4 USB parent `1-1.3`, picotool 2.3.0, original image `0.1.0-ci.39155533863.1` / source prefix `0a7c05d1c41b`. All 4,194,304 bytes populated with `0x5a` were erased and independently read back blank. A nonblank final byte failed verification; repeated erase recovery passed. Original full flash and saved semantics were restored and verified. |
 | Deployed Pi web erase and restoration | The [2026-10-19 record](https://github.com/WsprryPi/WsprryPi/blob/8bfa1672a41098dba68c0ef60f23d042977d63a3/docs/development/pico-usb-erase-web-test-20261019.md) binds wspr4, Pico C, application/UI `8b7b7fee5dc334f753ec06b1b635108893967670`, published installer 0.1.1 / source `90bb95ebd054fa9084185e5ef9ed79528609c014`, and release `usb-installer-v1-devel-39249064224.1`. Production web preparation and continuation passed. Independent full-flash blank comparison and byte-identical restoration passed; the service returned ready, idle, unowned and output inactive. |
+| Public Linux bootstrap upgrade, tool download/cleanup and Fleet reconnection | The [2026-10-19 end-to-end check](#public-bootstrap-upgrade-with-tool-download-and-cleanup) records installer 0.1.4 on wspr4/Pico C with an official ARM64 picotool 2.3.1 download. Upgrade to `0.1.0-ci.39324562626.1`, reserved-byte and saved-state verification, interactive cleanup and reconnection after restarting WsprryPi passed. |
 
 No RF jobs were part of these installer observations. The full erase test's
 private restoration image was a separate test fixture; erase itself created
 no backup. The recorded web BOOTSEL handoff used the guarded USB fixture rather
 than a physical unplug/hold/replug sequence.
 
+## Public bootstrap upgrade with tool download and cleanup
+
+**Passed on 2026-10-19.** This physical end-to-end check used wspr4, a Raspberry
+Pi 4 running 64-bit Debian 13, Python 3.13.5 and curl 8.14.1, with 20 GiB free.
+Pico C was a Pico 2 W / RP2350, USB serial `1545B6EFBF78028C`, device ID
+`c2a3a2a314c948b50a8562a1aeb69669`, physical USB parent `1-1.3`. Its normal
+firmware used the PIO/DMA GP2 engine; no RF job or clock measurement was run.
+
+| Input | Tested identity |
+| --- | --- |
+| Public bootstrap/core source | `633228781ff85ec489d81a4e4a68a73129e7e185`, installer 0.1.4 |
+| Bootstrap SHA-256 | `c6e50ab9bc26043ce7c5d72e173b35f56980aa0ab9d229f942bebde588b66614` |
+| Installer core SHA-256 | `baa4585a3dda8eae030ededd24cbba395742a93f4ca747b4646d8d04e74d644b` |
+| Before firmware | `0.1.0-ci.39261692018.1`, source prefix `b22549bf7370` |
+| Installed devel firmware | [`0.1.0-ci.39324562626.1`](https://github.com/WsprryPi/WsprryPico/releases/tag/v0.1.0-ci.39324562626.1), source `c02e5d875dfdf2aa23e2220a95dd6ea7563adb4c`, verified [CI run 39324562626/1](https://github.com/WsprryPi/WsprryPico/actions/runs/39324562626) |
+| Installed UF2 SHA-256 | `3575fb1c315557d1ffcb95d1fe4c6c9ec06338dd80f81f65389ff54ab472c261` |
+| Downloaded tool | Official [`picotool-2.3.1-aarch64-lin.tar.gz`](https://github.com/raspberrypi/pico-sdk-tools/releases/tag/v2.3.1-0), GNU 12.2.0 Release |
+| Tool archive SHA-256 | `8cce5579c92e77c0439f34d4f49d37b1dc7d1e7c455233398f2e7b49599f67aa` |
+| Tool executable SHA-256 | `9d5543b0218323751dce3946ae3390efa69ad9fd6600030e6ba265ffb2223a35` |
+
+The tested bootstrap and core bytes match the 0.1.4 implementation published
+from `e5dc075a9383fae6d8225b2e31af34e4654b5da6`; the core was independently
+[verified and published by CI](https://github.com/WsprryPi/WsprryPico/actions/runs/39323109626).
+Later documentation commits changed the resolved bootstrap source identity
+without changing those executable bytes.
+
+WsprryPi was confirmed ready with Pico C idle, unowned and output inactive,
+then stopped for exclusive standalone USB access. Before/after snapshots and
+hashes of existing private host files were retained. Pico C had no committed
+standalone configuration and its unconfigured suspension was preserved.
+
+The test ran the public pipeline below in a real terminal. The runner exported
+`PATH=/usr/bin:/bin`, excluding the existing `/usr/local/bin/picotool` without
+changing that executable. `TMPDIR` pointed to private test staging, and
+`TEST_STATE_DIR` denotes the separate private state directory recorded below.
+No `--picotool`, `--download-picotool`, `--device` or cleanup override was used:
+the download, numbered selection and cleanup prompts were exercised.
+
+```sh
+curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+  --connect-timeout 10 --max-time 60 --max-filesize 1048576 \
+  https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh \
+  | bash -s -- upgrade --branch devel --board pico2_w --yes \
+      --state-dir "$TEST_STATE_DIR"
+```
+
+The first attempt ended with curl exit 28 during DNS resolution, before the
+bootstrap started or firmware work occurred. After DNS resolution succeeded,
+the repeated pipeline offered the official tool download. Accepting it verified
+the archive and executable. Selecting menu entry 1 bound Pico C to USB parent
+`1-1.3`. The installer resolved the latest verified devel image, entered guarded
+BOOTSEL without a manual reconnect, verified a full same-board backup, programmed
+and verified the image, checked retained storage and completed postboot admission.
+Its final result was exit 0, `stage: complete`, `preserved: true` and
+`recovery_required: false`.
+
+Independent comparison confirmed the 4,194,304-byte backup's recorded hash and
+byte equality across all 73,728 bytes at `0x3ee000..0x400000` in the pre-program
+backup and programmed readback. Before/after public saved semantics matched:
+configuration, progress fields/draft revision, hostname, frequency, saved
+calibration, standalone watermark and suspension. All 47 pre-existing private
+host files matched their original hashes.
+
+Accepting cleanup removed the downloaded picotool, retained archive and support
+files. No managed package or bootstrap temporary file remained. Only the small
+private tool lock/state index remained, and the existing system picotool 2.3.0
+was byte-identical. Firmware backups and transaction evidence remained private.
+
+After `sudo systemctl restart wsprrypi`, the runtime reported the same USB
+serial/device ID, the installed version, a ready USB session and management
+connection, no maintenance/recovery requirement, no owner and inactive output.
+The Fleet page showed the connected saved device and attached USB Pico C,
+an idle device, the new installed version and automatically refreshed status.
+The browser reported WsprryPi build `3.2.0-devel+8b7b7fe`. No application binary
+or deployment was replaced for this test.
+
+Private evidence remains on wspr4 at
+`/home/pi/pico-public-upgrade-20261019.ZF6PyA5W/`, including the runner,
+terminal transcripts, settings snapshots and verification report. The separate
+state root is
+`/home/pi/.local/state/wsprrypico-usb/public-curl-20261019-ZF6PyA5W/`;
+transaction `1545B6EFBF78028C-zn8ua2pj` retains its valid full backup and readback.
+Raw backups, snapshots, transcripts, captures and downloaded firmware/tools are
+not included in Git. This check qualifies one ARM64 host/board upgrade and
+reconnection; it does not exercise a configured standalone schedule, physical
+power interruption, another host architecture or RF behavior.
+
 ## Validation so far
 
-The final-source focused checks on 2026-10-19 pass:
+The installer 0.1.3 focused checks on 2026-10-19 pass:
 
 - 85 installer behavioral tests, including initial installation, guarded and
   legacy preserving paths, recovery, privacy/retention, rate limits, full erase,
@@ -76,10 +173,17 @@ The final-source focused checks on 2026-10-19 pass:
   overflow and pass button/recovery gating.
 - Bootstrap Bash syntax, ShellCheck and both repositories' whitespace checks.
 
+For installer 0.1.4, 85 core, 35 prerequisite/download/cache/cleanup and six
+publication tests passed on both macOS and the isolated wspr4 source snapshot.
+The 126-test publication gate also passed in CI run 39323109626. The nine Pi
+deployment and 19 compatible-distribution/recovery tests passed again. These
+software checks are separate from the physical public-upgrade observation above.
+
 Commands from the Pico root:
 
 ```sh
 python3 -B tests/usb_installer_tests.py
+python3 -B tests/usb_tool_download_tests.py
 python3 -B tests/installer_release_tests.py
 python3 -B scripts/validate_wtp_contract.py
 bash -n scripts/install_usb.sh
@@ -168,5 +272,7 @@ the recorded physical paths. It does not qualify physical interruption or
 power-cut recovery, every board/host combination, arbitrary downgrades, a
 physical two-board menu/programming campaign, automatic A/B rollback or RF
 quality. Current manifests admit CI testing images; no compatible stable image
-is claimed. Windows and WSL USB operation remain unsupported. The current work
-adds no new physical qualification and performs no live package deployment.
+is claimed. Windows and WSL USB operation remain unsupported. The 0.1.4 physical
+check above qualifies its recorded standalone upgrade and Fleet reconnection;
+it does not extend the other source-specific observations or replace the
+application installed on the Pi.
