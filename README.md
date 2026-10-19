@@ -5,8 +5,10 @@ RP2350**. It runs standalone schedules and finite jobs, or serves as a WsprryPi
 transmitter backend. Complete jobs execute locally; symbol timing does not
 depend on continuous USB or network delivery.
 
-The [operator manual](docs/index.md) covers preparation, installation, connection,
+The [published operator manual](https://wsprrypico.readthedocs.io/en/devel/)
+covers preparation, installation, connection,
 configuration, operation and recovery. Start with [Prepare your Pico](docs/start.md).
+The [manual source](docs/index.md) is maintained in this repository.
 A blank consumer starts temporary setup Wi-Fi; configured devices use their
 saved network and the device-served browser interface. USB provides local
 configuration, controller time and job control without Wi-Fi. Supported upgrades

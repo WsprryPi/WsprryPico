@@ -3,8 +3,11 @@
 ## First Wi-Fi connection
 
 1. Power the Pico with normal firmware. Without saved Wi-Fi it starts a
-   temporary setup network. Select the WsprryPico setup network shown by your
-   phone or computer. Keep that connection if the device reports no Internet.
+   temporary **open** setup network named **WsprryPico-** followed by six
+   hexadecimal characters. It needs no Wi-Fi join password. Select the intended
+   Pico's network and keep that connection if your phone or computer reports
+   no Internet. This setup-network join is separate from signing in to the
+   configured control page with the saved infrastructure Wi-Fi password.
 2. Open **http://192.168.4.1/** explicitly. Do not wait for a captive portal or
    use a search engine. Enter the Wi-Fi SSID, password and time server on the
    setup page. Follow its trial and save steps.

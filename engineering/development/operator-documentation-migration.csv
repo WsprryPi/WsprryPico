@@ -1,5 +1,5 @@
 original_path,original_sha256,disposition,engineering_path,operator_destination,preservation
-docs/.nojekyll,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,retain engineering,engineering/.nojekyll,,byte-identical
+docs/.nojekyll,e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,remove obsolete Pages configuration,,,Empty Jekyll-bypass marker; Pages disabled and Sphinx operator site independent
 docs/architecture.md,ecb921b60bca057e83c2223f182e142feeeff0363e3af1710d442680c32572ef,retain engineering,engineering/architecture.md,,byte-identical
 docs/bluefy/app.js,7aad7d33027442a0e3b094c4451b4c196e6e582d25e8abf1bc7d43ff6c0545da,remove generated Pages output,,,Canonical src/provisioning/web and integrity tests retained
 docs/bluefy/bluefy.js,af9ce1bc346818f9274444e7c3aeaa94f15aa534357d8446896c51bc32a66920,remove generated Pages output,,,Canonical src/provisioning/web and integrity tests retained

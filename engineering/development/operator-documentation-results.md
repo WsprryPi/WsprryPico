@@ -12,8 +12,8 @@ The [155-row migration map](operator-documentation-migration.csv) records every
 original tracked documentation file, its original SHA-256, disposition, retained
 engineering destination and operator destination for meaningful mixed sections.
 There were no docs symlinks, untracked files, ignored captures or environments.
-The directory contained 4,715,740 bytes. All 148 nongenerated files are retained;
-the seven generated `docs/bluefy` outputs are retired. Original protocols,
+The directory contained 4,715,740 bytes. All 147 engineering source/evidence files are retained; the seven generated
+`docs/bluefy` outputs and the empty obsolete `.nojekyll` Pages marker are retired. Original protocols,
 evidence JSON, figures and upstream license files remain byte-identical (66 files).
 
 Current how-to content is consolidated into 13 Sphinx/MyST operator pages.
@@ -92,8 +92,17 @@ source-path/service compatibility; no local C++ compilation was attempted.
 The retained network fixture fails the current progress-session AP admission
 scenario before collecting schema samples; its source-equivalence limit is
 recorded rather than presented as a pass. The current pure schemas and service
-readbacks pass. Fresh Linux CI remains separate evidence and must verify the
-new source/layout before completion. Packaging checks pass all 36 tests when
+readbacks pass. Fresh Linux verification now supersedes that fixture limit:
+[run 39322329643](https://github.com/WsprryPi/WsprryPico/actions/runs/39322329643)
+at exact source `59fd5f4f11e1e07c1c707e35d99352d52aeb9397` passed all 160
+registered tests, with zero failures, skips or historical-evidence exclusions.
+WTP, browser npm, packaging failures, consumer UI, inhibited regression and
+compatibility build checks passed; reproducibility was identical. The normal
+consumer firmware bundle and linked-image audit artifacts uploaded successfully.
+These are software/build results, not physical RF qualification. The ignored
+`build/operator-documentation/fresh-linux-verify.log` has SHA-256
+`0b253ac26b3c35fb8a7a6e32ca626b879517db358c04624499973a090c8f1e84`.
+Packaging checks pass all 36 tests when
 run as `docs/.venv/bin/python tests/ci_bundle_tests.py`; the initial system-Python
 attempt lacked YAML/jsonschema dependencies and is not a packaging failure.
 An attempted nonexistent `tests/ci_manifest_tests.py` invocation performed no
@@ -118,8 +127,12 @@ width. Search for BOOTSEL returns four operator pages and no engineering records
 Desktop typography, labels, previous/next controls and image treatment were
 visually inspected. Both images link to their full-size versions for narrow
 screens. Source/HTML link checking covers 94 maintained Markdown sources,
-15 HTML pages and 1,171 local targets with zero errors. Raw rendered screenshots
-remain ignored under build/operator-documentation. No broad WCAG certification
+15 HTML pages and 1,174 local targets with zero errors. The current narrow screenshot is
+`build/operator-documentation/manual-mobile-viewport.jpg` (390×844), captured
+with an explicit CUA viewport clip. Earlier automatic/full-surface captures had
+host-pane scaling/cropping artifacts and were discarded. The current capture and
+DOM widths agree. Raw rendered screenshots remain ignored under
+build/operator-documentation. No broad WCAG certification
 or screen-reader acceptance is inferred.
 
 ## Publication state
@@ -128,16 +141,73 @@ The existing Community project is `wsprrypico`, with repository
 `https://github.com/WsprryPi/WsprryPico`. The user authenticated in the internal
 browser. An old `latest` build attempt is not treated as successful publication.
 Its original RTD branch override was unset, with GitHub default branch `main`.
-This task will configure the accepted devel source deliberately; GitHub's default
+This task configured the accepted devel source deliberately; GitHub's default
 branch, main, tags and releases are outside this task.
 
 GitHub Pages initially used legacy publication from `devel:/docs`, at the old
 project URL including `/bluefy/`. The seven generated outputs are removed;
-actual Pages setting retirement and live RTD build verification are pending.
-Item 9 remains in flight until publication, affected checks and final review pass.
+GitHub Pages was deleted through the repository Pages API, followed by a 404
+readback. A push-only signed webhook (GitHub ID 700551712, RTD integration
+334708) now delivers to the Pico project; its ping returned 200 OK. No GitHub
+App permission/ownership expansion was used. The temporary private secret file
+was removed; no credential is in Git.
+
+The first reviewed source publication is
+`59fd5f4f11e1e07c1c707e35d99352d52aeb9397`, non-force pushed with independently
+matching live origin/devel. [RTD build 35253186](https://app.readthedocs.org/projects/wsprrypico/builds/35253186/)
+finished successfully for that exact commit and version devel. Its raw log
+confirms Ubuntu 24.04, Python 3.12.13, pinned dependencies, warnings-as-errors
+and 13 source pages. Both RTD default branch and default version are deliberately
+`devel`. GitHub default branch remains `main`; no release/stable claim is made.
+
+The public [operator manual](https://wsprrypico.readthedocs.io/en/devel/) serves
+the expected home/task navigation and custom chrome color rgb(64,94,122).
+Both live operator images are complete at native 1280×720 with correct alt text
+and full-size links. The companion Pico setup deep link and its section anchor
+resolve in the browser. Live BOOTSEL search returns four operator pages. The main/devel
+CI indexes and raw bootstrap download returned HTTP 200. CLI requests to RTD's
+public CDN received its bot filter; the authenticated internal browser verified
+the actual HTTPS pages instead of treating those responses as missing pages.
+The final live review remains required before item 9 completion.
+The deployed RTD version selector initially inherited 30%-opacity white text;
+the final CSS explicitly gives its selector and option list readable palette
+colors. The dynamically inserted native selector also receives the accessible
+name “Documentation version”; its bounded observer disconnects after insertion.
+These issues were discovered only after RTD added its live controls.
+
+The push-only integration also automatically built the independently committed
+installer update `e5dc075a9383fae6d8225b2e31af34e4654b5da6` successfully in
+[devel build 35253314](https://app.readthedocs.org/projects/wsprrypico/builds/35253314/).
 
 ## External references
 
 - [RTD v2 configuration](https://docs.readthedocs.com/platform/stable/config-file/v2.html)
 - [Community publication tutorial](https://docs.readthedocs.com/platform/stable/tutorial/index.html)
 - [RTD versions](https://docs.readthedocs.com/platform/stable/versions.html)
+
+
+## Concurrent work boundary
+
+Unrelated installer work appeared after this task's clean entry. The source
+commit excludes `.github/workflows/usb-installer.yml`, `scripts/install_usb.sh`,
+`scripts/usb_installer.py`, `tests/usb_installer_tests.py`,
+`tests/installer_release_tests.py`, `tests/usb_tool_download_tests.py` and
+`engineering/development/standalone-tool-downloads.md`. Later edits to `docs/install.md` and
+`engineering/development/usb-installer.md` also belong to that task. That work
+was independently committed as `e5dc075a9383fae6d8225b2e31af34e4654b5da6`
+while this documentation closeout remained active. This task preserves that
+commit and its installation guidance. The initial published manual describes
+its original committed installer source; the later download features belong
+to e5dc075 and are not relabelled as original 59fd5f4 behavior.
+
+
+## Independent review disposition
+
+The reviewer rechecked all repaired operator findings, migration rows, image
+hashes, the corrected 390×844 screenshot and successful RTD raw log. No actionable
+source/deployment finding remained at that review. The reviewer independently
+confirmed source/remote and CI identity, but its browser and independent RTD web
+fetch were unavailable. Live navigation/search/assets/keyboard observations
+therefore rely on the primary browser evidence, with source and stored images
+reviewed independently. The added live version-selector contrast fix receives
+a final source/live check before completion.
