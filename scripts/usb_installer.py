@@ -7,6 +7,17 @@ explicitly confirmed operation; install and upgrade preserve saved state.
 """
 from __future__ import annotations
 
+import sys
+
+if sys.version_info < (3, 10):
+    sys.stderr.write('Python ' + sys.version.split()[0] + ' is unsupported; install Python 3.10 or newer from '
+                     'https://www.python.org/downloads/ or your OS package manager, then rerun.\n')
+    raise SystemExit(2)
+if sys.platform not in ('linux', 'darwin'):
+    sys.stderr.write('This USB installer supports macOS and Linux. Native Windows and Git Bash are unsupported; '
+                     'use a supported host.\n')
+    raise SystemExit(2)
+
 import argparse
 import contextlib
 from datetime import datetime, timezone
@@ -14,6 +25,7 @@ from email.utils import parsedate_to_datetime
 import errno
 import fcntl
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -26,7 +38,7 @@ import shutil
 import stat
 import struct
 import subprocess
-import sys
+import tarfile
 import tempfile
 import termios
 import time
@@ -34,8 +46,9 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+import zipfile
 
-INSTALLER_VERSION = '0.1.3'
+INSTALLER_VERSION = '0.1.4'
 REPOSITORY = 'WsprryPi/WsprryPico'
 API = 'https://api.github.com/repos/' + REPOSITORY + '/'
 DOWNLOAD = 'https://github.com/' + REPOSITORY + '/releases/download/'
@@ -51,6 +64,16 @@ PICOTOOL_OPTIONS = {
     'verify': ('-t', '-o', '--ser'),
     'erase': ('-r', '--ser'),
 }
+TOOL_RELEASE = 'v2.3.1-0'
+TOOL_DOWNLOADS = {
+    'mac': ('picotool-2.3.1-mac.zip', 1894547,
+            '7bb3cea5d9f1b000fc758cf4b54774fda5c16a9899d342ef6b0c30138988793b'),
+    'aarch64-lin': ('picotool-2.3.1-aarch64-lin.tar.gz', 970927,
+                    '8cce5579c92e77c0439f34d4f49d37b1dc7d1e7c455233398f2e7b49599f67aa'),
+    'x86_64-lin': ('picotool-2.3.1-x86_64-lin.tar.gz', 1027494,
+                   '878a1a1e7d8336b8be60300c7218f366d9790c0d3a211b181d6d172e80b1248e'),
+}
+TOOL_ORIGIN = 'https://github.com/raspberrypi/pico-sdk-tools/releases/download/'
 MAX_DOWNLOAD = 16 * 1024 * 1024
 HEX40 = r'[0-9a-f]{40}'
 HEX64 = r'[0-9a-f]{64}'
@@ -878,7 +901,12 @@ class Picotool:
         resolved = shutil.which(str(path))
         require(resolved, 'Install picotool 2.3 or newer within 2.x, with USB support; see the USB installer guide')
         self.path = Path(resolved).resolve()
-        report = command([self.path, 'version'])
+        try:
+            report = command([self.path, 'version'])
+        except (OSError, Refusal, subprocess.SubprocessError) as error:
+            raise Refusal('Cannot run picotool at ' + str(self.path) +
+                          '; check its CPU architecture and runtime libraries, or use an official package from '
+                          'https://github.com/raspberrypi/pico-sdk-tools/releases') from error
         version = re.match(r'^picotool v([0-9]+)\.([0-9]+)\.([0-9]+) ', report)
         require(version and tuple(map(int, version.groups())) >= PICOTOOL_MIN_VERSION and
                 int(version[1]) == 2 and 'without USB support' not in report,
@@ -903,6 +931,295 @@ class Picotool:
         self.run(serial, 'verify', path, '-t', 'bin', '-o', '0x10000000')
         path.chmod(0o600)
         return data
+
+
+def tool_platform():
+    system, machine = platform.system(), platform.machine().lower()
+    require(system in ('Darwin', 'Linux') and 'microsoft' not in platform.release().lower(),
+            'USB flashing supports native macOS and Linux; Windows, Git Bash and WSL are unsupported')
+    if system == 'Darwin' and machine in ('arm64', 'x86_64'):
+        return 'mac'
+    require(sys.maxsize > 2**32 and machine in ('aarch64', 'arm64', 'x86_64', 'amd64'),
+            'No official picotool download is supported for this host architecture; install a compatible '
+            'USB-enabled picotool 2.3+ within 2.x and pass --picotool /absolute/path/to/picotool')
+    return 'aarch64-lin' if machine in ('aarch64', 'arm64') else 'x86_64-lin'
+
+
+def terminal_confirm(message):
+    require(sys.stderr.isatty(), 'An interactive terminal is required; use the explicit unattended options')
+    with open('/dev/tty', encoding='utf-8') as terminal:
+        require(terminal.isatty(), 'An interactive terminal is required')
+        while True:
+            print(message + ' [y/N]: ', end='', file=sys.stderr, flush=True)
+            answer = terminal.readline().strip().lower()
+            if answer in ('', 'n', 'no', 'q'):
+                return False
+            if answer in ('y', 'yes'):
+                return True
+            print('Enter y to continue or n to decline.', file=sys.stderr, flush=True)
+
+
+def owned_tool_path(path, directory=False):
+    info = path.lstat()
+    require((stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)) and
+            info.st_uid == os.getuid() and info.st_mode & 0o077 == 0,
+            'Unsafe installer-managed picotool storage; inspect its ownership and permissions')
+
+
+def tool_inventory(directory):
+    files, directories, total = {}, [], 0
+    owned_tool_path(directory, True)
+    for path in sorted(directory.rglob('*')):
+        owned_tool_path(path, path.is_dir())
+        name = path.relative_to(directory).as_posix()
+        if path.is_dir():
+            directories.append(name)
+        elif name != '.tool.json':
+            total += path.stat().st_size
+            require(total <= 32 * 1024 * 1024 and len(files) < 128, 'Oversized managed picotool package')
+            files[name] = sha(path.read_bytes())
+    return {'files': files, 'directories': directories}
+
+
+def picotool_archive(data, filename):
+    """Validate a bounded archive without allowing links, special files or traversal."""
+    entries, total = {}, 0
+    def member(name, size, directory, read):
+        nonlocal total
+        name = name.rstrip('/')
+        require(name and re.fullmatch(r'[A-Za-z0-9._/-]+', name) and
+                all(part not in ('', '.', '..') for part in name.split('/')) and name not in entries and
+                name not in ('.archive', '.tool.json'),
+                'Unsafe or duplicate path in picotool archive')
+        total += size
+        require(size >= 0 and total <= 32 * 1024 * 1024 and len(entries) < 128,
+                'Oversized picotool archive')
+        if directory:
+            entries[name] = None
+        else:
+            payload = read()
+            require(len(payload) == size, 'Incomplete picotool archive member')
+            entries[name] = payload
+    try:
+        if filename.endswith('.zip'):
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                for item in archive.infolist():
+                    kind = stat.S_IFMT(item.external_attr >> 16)
+                    require(kind in (0, stat.S_IFDIR, stat.S_IFREG), 'Links or special files in picotool archive')
+                    member(item.filename, item.file_size, item.is_dir(), lambda item=item: archive.read(item))
+        else:
+            with tarfile.open(fileobj=io.BytesIO(data), mode='r:gz') as archive:
+                for item in archive:
+                    require(item.isfile() or item.isdir(), 'Links or special files in picotool archive')
+                    member(item.name, item.size, item.isdir(), lambda item=item: archive.extractfile(item).read())
+    except (zipfile.BadZipFile, tarfile.TarError, RuntimeError) as error:
+        raise Refusal('Invalid official picotool archive') from error
+    require(entries.get('picotool/picotool') is not None, 'Official package has no picotool executable')
+    for name in entries:
+        require(all(str(parent) not in entries or entries[str(parent)] is None
+                    for parent in Path(name).parents if str(parent) != '.'),
+                'Conflicting paths in picotool archive')
+    return entries
+
+
+def extract_picotool(data, filename, destination):
+    for name, payload in picotool_archive(data, filename).items():
+        path = destination / name
+        if payload is None:
+            path.mkdir(mode=0o700, parents=True, exist_ok=True)
+        else:
+            path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            with path.open('xb') as output:
+                output.write(payload)
+            path.chmod(0o700 if name == 'picotool/picotool' else 0o600)
+
+
+class ManagedPicotool:
+    """A private, verified package held under one lock through programming/cleanup."""
+    def __init__(self):
+        require(os.geteuid() != 0, 'Download picotool as your ordinary user, not root')
+        self.root = Path.home() / '.cache/wsprrypico-usb/tools'
+        self.fd, self.package = None, None
+        for parent in (self.root, *self.root.parents):
+            require(not parent.is_symlink(), 'Symlink in managed picotool destination; use --picotool instead')
+            require(not (parent / '.git').exists(), 'Managed picotool cannot be stored inside a Git checkout')
+        for path in (self.root.parent.parent, self.root.parent, self.root):
+            path.mkdir(mode=0o700, exist_ok=True)
+        owned_tool_path(self.root.parent, True)
+        owned_tool_path(self.root, True)
+        self.fd = os.open(self.root / '.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+        try:
+            owned_tool_path(self.root / '.lock')
+            fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BaseException:
+            self.close()
+            raise Refusal('Installer-managed picotool is busy or unsafe; retry after the other installer exits')
+
+    def close(self):
+        if self.fd is not None:
+            descriptor = self.fd
+            self.fd = None
+            os.close(descriptor)
+
+    def register_state(self, state):
+        # Remember every admitted state domain so another run cannot remove a
+        # tool needed by a transaction stored outside its own --state-dir.
+        allowed = (Path.home() / '.local/state/wsprrypico-usb', Path('/var/lib/wsprrypi/pico-usb'))
+        state = private_directory(state)
+        domain = next(base for base in allowed if state == base or base in state.parents)
+        path = self.root / '.states.json'
+        roots = []
+        if path.exists():
+            owned_tool_path(path)
+            require(path.stat().st_size <= 4096, 'Oversized picotool state index')
+            roots = decode(path.read_bytes())
+            require(isinstance(roots, list) and 0 < len(roots) <= 2 and all(root in map(str, allowed) for root in roots),
+                    'Unknown picotool state index; retain tools for administrator review')
+        save_json(path, sorted(set(roots) | {str(domain)}))
+
+    def verify(self, package):
+        owned_tool_path(package, True)
+        sources = [value for value in TOOL_DOWNLOADS.values() if value[2] == package.name]
+        require(len(sources) == 1, 'Unknown managed picotool release')
+        filename, size, digest = sources[0]
+        owned_tool_path(package / '.archive')
+        require((package / '.archive').stat().st_size == size, 'Managed picotool archive size changed')
+        archive = (package / '.archive').read_bytes()
+        require(sha(archive) == digest, 'Managed picotool archive SHA-256 changed')
+        entries = picotool_archive(archive, filename)
+        files = {name: sha(data) for name, data in entries.items() if data is not None}
+        directories = {name for name, data in entries.items() if data is None}
+        for name in entries:
+            directories.update(str(parent) for parent in Path(name).parents if str(parent) != '.')
+        expected = {'files': {**files, '.archive': digest}, 'directories': sorted(directories)}
+        owned_tool_path(package / '.tool.json')
+        require((package / '.tool.json').stat().st_size <= 65536, 'Oversized picotool receipt')
+        receipt = decode((package / '.tool.json').read_bytes())
+        require(receipt == {'schema': 'wsprrypico-managed-picotool/1',
+                            'archive_sha256': digest, **expected} and tool_inventory(package) == expected,
+                'Managed picotool files changed; retain them for administrator review')
+
+    def obtain(self, key):
+        filename, size, digest = TOOL_DOWNLOADS[key]
+        package = self.root / digest
+        if package.exists() or package.is_symlink():
+            self.verify(package)
+        else:
+            require(shutil.disk_usage(self.root).free >= 128 * 1024 * 1024,
+                    'Need at least 128 MiB free for picotool and private firmware backups')
+            terminal_message('Downloading official picotool 2.3.1 for ' + key + ' (' + str(size) + ' bytes).')
+            data = Https().get(TOOL_ORIGIN + TOOL_RELEASE + '/' + filename, size)
+            require(len(data) == size and sha(data) == digest, 'Official picotool download size/SHA-256 mismatch')
+            with tempfile.TemporaryDirectory(prefix='.download-', dir=self.root) as temporary:
+                staging = Path(temporary)
+                extract_picotool(data, filename, staging)
+                (staging / '.archive').write_bytes(data)
+                (staging / '.archive').chmod(0o600)
+                save_json(staging / '.tool.json', {'schema': 'wsprrypico-managed-picotool/1',
+                                                 'archive_sha256': digest, **tool_inventory(staging)})
+                staging.rename(package)
+        self.package = package
+        self.verify(package)
+        return package / 'picotool/picotool'
+
+    def cleanup(self, args, recovery_required):
+        if self.package is None or args.tool_cleanup == 'keep':
+            return
+        state_index = self.root / '.states.json'
+        owned_tool_path(state_index)
+        require(state_index.stat().st_size <= 4096, 'Oversized picotool state index')
+        roots = decode(state_index.read_bytes())
+        allowed = (str(Path.home() / '.local/state/wsprrypico-usb'), '/var/lib/wsprrypi/pico-usb')
+        require(isinstance(roots, list) and 0 < len(roots) <= 2 and all(root in allowed for root in roots),
+                'Unknown picotool state index; retaining tool')
+        for root in map(Path, roots):
+            for parent in (root, *root.parents):
+                require(not parent.is_symlink(), 'Symlink in private recovery storage; retaining tool')
+            require(root.is_dir(), 'Private recovery storage is missing; retaining tool for review')
+            def unreadable(error):
+                raise error
+            for directory, children, names in os.walk(root, onerror=unreadable, followlinks=False):
+                require(not any((Path(directory) / child).is_symlink() for child in children),
+                        'Symlink in private recovery storage; retaining tool')
+                if 'transaction.json' in names or 'transaction.json' in children:
+                    path = Path(directory) / 'transaction.json'
+                    info = path.lstat()
+                    require(stat.S_ISREG(info.st_mode) and info.st_size <= 65536,
+                            'Unknown private recovery record; keeping downloaded picotool')
+                    record = decode(path.read_bytes())
+                    require(isinstance(record, dict) and record.get('schema') == 'wsprrypico-usb-transaction/1' and
+                            type(record.get('recovery_required')) is bool,
+                            'Unknown private transaction; retaining downloaded picotool')
+                    recovery_required = recovery_required or record.get('recovery_required') is not False
+        if recovery_required:
+            terminal_message('Downloaded picotool retained: unfinished firmware work may need it for recovery. '
+                             'Backups and firmware were kept.')
+            return
+        remove = args.tool_cleanup == 'remove'
+        if args.tool_cleanup == 'ask' and not args.json_only and sys.stderr.isatty():
+            remove = terminal_confirm('Remove the installer-downloaded picotool and its support files? '
+                                      'Private firmware backups will be kept.')
+        if remove:
+            self.verify(self.package)
+            shutil.rmtree(self.package)
+            terminal_message('Removed the downloaded picotool and its support files. Private backups were kept.')
+        else:
+            terminal_message('Downloaded picotool kept in ' + str(self.package) + '. Private backups were kept.')
+
+
+def prepare_standalone_picotool(args):
+    """No download authority in the imported Fleet entry point or Picotool class."""
+    explicit = args.picotool is not None
+    args.picotool = args.picotool if explicit else 'picotool'
+    manager = None
+    root = Path.home() / '.cache/wsprrypico-usb/tools'
+    try:
+        backup_volume = args.state_dir.expanduser().absolute()
+        while not backup_volume.exists():
+            backup_volume = backup_volume.parent
+        require(shutil.disk_usage(backup_volume).free >= 128 * 1024 * 1024,
+                'Need at least 128 MiB free in the private backup destination before a USB update')
+        resolved = shutil.which(args.picotool)
+        if resolved and root in Path(resolved).resolve().parents:
+            manager = ManagedPicotool()
+            package = Path(resolved).resolve().parent.parent
+            require(package.parent == manager.root and re.fullmatch(HEX64, package.name),
+                    'Invalid managed picotool path')
+            manager.package = package
+            manager.verify(manager.package)
+            manager.register_state(args.state_dir)
+            args.picotool = str(Path(resolved).resolve())
+        try:
+            Picotool(args.picotool)
+            return manager
+        except (Refusal, OSError, subprocess.SubprocessError) as error:
+            if explicit or manager is not None:
+                raise
+            key = tool_platform()
+            if not args.download_picotool:
+                terminal_message(str(error))
+                require(not args.json_only and sys.stderr.isatty(),
+                        str(error) + '; install it from https://github.com/raspberrypi/pico-sdk-tools/releases '
+                        'or rerun with --download-picotool')
+                require(terminal_confirm('Use an official, SHA-256-verified picotool 2.3.1 download for this host?'),
+                        'Picotool download declined; install a compatible picotool or pass --picotool /absolute/path')
+            manager = ManagedPicotool()
+            manager.register_state(args.state_dir)
+            args.picotool = str(manager.obtain(key))
+            Picotool(args.picotool)
+            terminal_message('Verified official picotool 2.3.1; using the private managed copy.')
+            return manager
+    except BaseException:
+        if manager is not None:
+            try:
+                manager.cleanup(args, False)
+            except (OSError, Refusal, ValueError, KeyError, TypeError, KeyboardInterrupt):
+                terminal_message('Tool setup cleanup is unconfirmed; retain the private cache for review. '
+                                 'Firmware backups were not removed.')
+            finally:
+                with contextlib.suppress(OSError):
+                    manager.close()
+        raise
 
 
 @contextlib.contextmanager
@@ -1612,15 +1929,26 @@ def main(argv=None, schema_bytes=None, *, human=False):
     parser.add_argument('--yes', action='store_true', help='Confirm the explicit install, upgrade, recovery or destructive erase operation')
     parser.add_argument('--replace-unidentified-application', action='store_true',
                         help='Initial installation only: explicitly replace unknown application bytes, requiring erased saved state')
-    parser.add_argument('--picotool', default='picotool')
+    parser.add_argument('--picotool', help='Existing executable; an explicit path never triggers a fallback download')
+    parser.add_argument('--download-picotool', action='store_true', help='Allow an official verified picotool download when needed (standalone only)')
+    parser.add_argument('--tool-cleanup', choices=('ask', 'keep', 'remove'), default='ask',
+                        help='Cleanup of installer-managed picotool; backups and unresolved recovery are always retained')
     parser.add_argument('--output', type=Path, help='New private snapshot or verified offline bundle directory')
     parser.add_argument('--bundle', type=Path, help='Previously verified public bundle directory (offline planning/install)')
     parser.add_argument('--state-dir', type=Path, default=Path.home() / '.local/state/wsprrypico-usb')
     parser.add_argument('--transaction', type=Path, help='Exact private transaction.json for explicit same-board recovery')
-    parser.add_argument('--json-only', action='store_true', help='Disable terminal selection and BOOTSEL guidance; stdout always contains JSON results')
+    parser.add_argument('--json-only', action='store_true', help='Disable terminal prompts and BOOTSEL guidance; stdout always contains JSON results')
     args = parser.parse_args(argv)
     os.umask(0o077)
+    managed_tool, recovery_pending = None, False
     try:
+        require(platform.system() in ('Darwin', 'Linux') and 'microsoft' not in platform.release().lower(),
+                'USB flashing supports native macOS and Linux; Windows, Git Bash and WSL are unsupported')
+        require(not (args.download_picotool or args.tool_cleanup != 'ask') or
+                human and args.operation in ('install', 'upgrade', 'erase', 'recover'),
+                'Picotool download/cleanup options are for standalone install, upgrade, erase or recover')
+        require(not (args.picotool is not None and args.download_picotool),
+                'Choose an existing --picotool or allow --download-picotool; an explicit tool is never replaced')
         require(not args.bundle or not (args.version or args.stable or args.local_build or args.local_bundle),
                 '--bundle cannot be combined with another image selector')
         require(not args.replace_unidentified_application or args.operation == 'install',
@@ -1628,6 +1956,8 @@ def main(argv=None, schema_bytes=None, *, human=False):
         if args.operation in ('install', 'upgrade'):
             require(args.yes, 'Programming requires an explicit operation and --yes')
             require(args.board == 'pico2_w', 'Explicit --board pico2_w confirmation is required for BOOTSEL hardware')
+            if human:
+                managed_tool = prepare_standalone_picotool(args)
             if not args.device:
                 require(human and not args.json_only, 'Programming requires explicit --device SERIAL for unattended use')
                 device = select_interactive_device(args.operation)
@@ -1638,8 +1968,21 @@ def main(argv=None, schema_bytes=None, *, human=False):
             require(not (args.version or args.stable or args.local_build or args.local_bundle or args.bundle or
                          args.output or args.transaction or args.build_dir or args.source_revision or args.allow_dirty or
                          args.branch != 'main'), 'Erase does not accept firmware image selectors, output or transaction options')
+            require(args.device and args.yes and args.board == 'pico2_w',
+                    'Erase requires --device SERIAL --board pico2_w --yes')
+            if human:
+                managed_tool = prepare_standalone_picotool(args)
+            args.picotool = args.picotool or 'picotool'
+            recovery_pending = True
             result = erase_transaction(args)
         elif args.operation == 'recover':
+            require(args.device and args.yes and args.transaction and args.board == 'pico2_w',
+                    'Recovery requires --device, --transaction, --board pico2_w and --yes')
+            require(args.transaction.is_file(), 'Select an existing private transaction.json')
+            if human:
+                managed_tool = prepare_standalone_picotool(args)
+            args.picotool = args.picotool or 'picotool'
+            recovery_pending = True
             result = recover_transaction(args)
         elif args.operation == 'snapshot':
             require(args.device and args.output, 'snapshot requires --device and a new private --output file')
@@ -1690,7 +2033,10 @@ def main(argv=None, schema_bytes=None, *, human=False):
                                      'leave it connected. Otherwise reconnect as follows, then rerun this install command:\n'
                                      + reconnect_instructions(args.device) +
                                      'Keep USB connected until programming and verification finish.')
+                args.picotool = args.picotool or 'picotool'
+                recovery_pending = True
                 result = transaction(args, files, manifest, image, client)
+        recovery_pending = result.get('recovery_required', False) is not False
         print(json.dumps({**result, 'schema': 'wsprrypico-usb-result/1',
                           'installer_version': INSTALLER_VERSION, 'ok': True}, sort_keys=True))
         if human and not args.json_only:
@@ -1699,6 +2045,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
                 bootsel_callout(args, result)
         return 0
     except TransactionFailure as error:
+        recovery_pending = error.result.get('recovery_required') is not False
         print(json.dumps({**error.result, 'schema': 'wsprrypico-usb-result/1',
                           'installer_version': INSTALLER_VERSION, 'ok': False,
                           'error': str(error), **error.details}, sort_keys=True))
@@ -1713,8 +2060,20 @@ def main(argv=None, schema_bytes=None, *, human=False):
         return 2
     except KeyboardInterrupt:
         print(json.dumps({'schema': 'wsprrypico-usb-result/1', 'ok': False,
-                          'error': 'Cancelled; inspect the private transaction before retrying. BOOTSEL recovery may be required.'}))
+                          'installer_version': INSTALLER_VERSION, 'recovery_required': recovery_pending,
+                          'error': 'Cancelled; inspect the private transaction before retrying. BOOTSEL recovery may be required.'
+                          if recovery_pending else 'Cancelled before firmware work; no firmware was written.'}))
         return 130
+    finally:
+        if managed_tool is not None:
+            try:
+                managed_tool.cleanup(args, recovery_pending)
+            except (OSError, Refusal, ValueError, KeyError, TypeError, KeyboardInterrupt):
+                terminal_message('Tool cleanup is unconfirmed; inspect the private tool cache. '
+                                 'Firmware backups and recovery records were not removed.')
+            finally:
+                with contextlib.suppress(OSError):
+                    managed_tool.close()
 
 
 if __name__ == '__main__':

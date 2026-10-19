@@ -1,6 +1,6 @@
 # USB installer
 
-The shared installer is `scripts/usb_installer.py` (version 0.1.3). It runs with
+The shared installer is `scripts/usb_installer.py` (version 0.1.4). It runs with
 Python 3.10 or newer and its standard library on macOS and Linux. Windows and
 WSL USB operation are unsupported. The [acceptance record](usb-installer-results.md)
 distinguishes software checks, published downloads and recorded board tests.
@@ -111,11 +111,12 @@ image and every transaction retain their exact installer; recovery must never
 resolve the current channel or substitute newer code. The Pi bounds completed
 image/backup caches across installer versions while retaining unresolved recovery.
 
-Hardware-free publication checks use `python3 tests/usb_installer_tests.py` and
-`python3 tests/installer_release_tests.py` from the repository root.
+Hardware-free publication checks run the core, tool-download and publication
+suites from the repository root.
 
 ```sh
 python3 -B tests/usb_installer_tests.py
+python3 -B tests/usb_tool_download_tests.py
 python3 -B tests/installer_release_tests.py
 ```
 
@@ -129,10 +130,13 @@ identity, backup, programming, verification and erase. Older versions, prereleas
 3.x versions and builds without the required capabilities are refused. USB is a
 normal picotool capability; builds without libusb cannot access a connected Pico.
 The exact executable version and SHA-256 are recorded for each transaction.
-It accepts an explicit `--picotool /absolute/path/to/picotool`. It does
-not install packages, acquire an SDK, bundle a local executable or run the whole
-bootstrap as root. Tool acquisition/build is an administrator/developer step;
-retain picotool's upstream license when redistributing it.
+It accepts an explicit `--picotool /absolute/path/to/picotool`. The standalone
+entry can offer an official, size/SHA-256-verified picotool 2.3.1 download when
+no compatible executable is available. Its private cache, consent, extraction,
+recovery retention and cleanup contracts are described in
+[standalone tool downloads](standalone-tool-downloads.md). The imported Fleet
+entry never downloads or removes tools. Neither entry installs system packages
+or acquires an SDK, and the bootstrap must run as an ordinary user.
 
 Discovery binds USB serial and physical parent. Application CDC roles are
 Console interface 0, WTP interface 2 and management interface 4; macOS places

@@ -46,6 +46,7 @@ class InstallerPublicationTests(unittest.TestCase):
     def test_workflow_has_independent_verify_and_publish_dependency(self):
         workflow=(ROOT/'.github/workflows/usb-installer.yml').read_text()
         self.assertIn('needs: verify',workflow);self.assertIn('python tests/usb_installer_tests.py',workflow)
+        self.assertIn('python tests/usb_tool_download_tests.py',workflow)
         self.assertIn('python tests/installer_release_tests.py',workflow)
         self.assertNotIn('build_pico',workflow);self.assertNotIn('scripts/ci/run.py build',workflow)
     def test_channel_advances_only_after_every_asset_is_verified_and_public(self):

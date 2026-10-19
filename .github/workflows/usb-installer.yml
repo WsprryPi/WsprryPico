@@ -10,6 +10,7 @@ on:
       - scripts/ci/installer_release.py
       - scripts/ci/publish.py
       - tests/usb_installer_tests.py
+      - tests/usb_tool_download_tests.py
       - tests/installer_release_tests.py
       - tests/fixtures/usb-installer/**
       - .github/workflows/usb-installer.yml
@@ -22,6 +23,7 @@ on:
       - scripts/ci/installer_release.py
       - scripts/ci/publish.py
       - tests/usb_installer_tests.py
+      - tests/usb_tool_download_tests.py
       - tests/installer_release_tests.py
       - tests/fixtures/usb-installer/**
       - .github/workflows/usb-installer.yml
@@ -44,6 +46,7 @@ jobs:
         with:
           python-version: '3.12.11'
       - run: python tests/usb_installer_tests.py
+      - run: python tests/usb_tool_download_tests.py
       - run: python tests/installer_release_tests.py
   publish:
     needs: verify

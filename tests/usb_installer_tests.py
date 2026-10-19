@@ -940,6 +940,7 @@ class InteractiveSelectionTests(unittest.TestCase):
         with patch.object(installer, 'open', return_value=terminal, side_effect=open_error, create=True) as opened, \
              patch.object(installer, 'discover', side_effect=[boards, boards if fresh is None else fresh]) as discovery, \
              patch.object(installer, 'Https', return_value=net) as network, \
+             patch.object(installer, 'prepare_standalone_picotool', return_value=None), \
              patch.object(installer, 'transaction', side_effect=transaction) as programming, \
              patch.object(installer, 'Picotool', side_effect=AssertionError('Real USB tool opened')), \
              patch.object(installer, 'public_snapshot', side_effect=AssertionError('Unselected USB device opened')), \
@@ -1103,14 +1104,17 @@ class StandaloneGuidanceTests(unittest.TestCase):
 
     def invoke(self, record, operation='upgrade', failure=False, human=True, extra=(), messages=None):
         messages = io.StringIO() if messages is None else messages
-        with patch.object(installer, 'Https', return_value=Network('main')), \
+        with tempfile.NamedTemporaryFile() as transaction, \
+             patch.object(installer, 'Https', return_value=Network('main')), \
+             patch.object(installer, 'prepare_standalone_picotool', return_value=None), \
              patch.object(installer, 'transaction', return_value=record,
                           side_effect=installer.TransactionFailure('not ready', record, Path(record['transaction'])) if failure else None), \
              patch.object(installer, 'recover_transaction', return_value=record,
                           side_effect=installer.TransactionFailure('not ready', record, Path(record['transaction'])) if failure else None), \
              contextlib.redirect_stdout(io.StringIO()) as output, \
              contextlib.redirect_stderr(messages):
-            status = installer.main([operation, '--device', SERIAL, '--board', 'pico2_w', '--yes', *extra], human=human)
+            recovery = ['--transaction', transaction.name] if operation == 'recover' else []
+            status = installer.main([operation, '--device', SERIAL, '--board', 'pico2_w', '--yes', *recovery, *extra], human=human)
         expected = {**record, 'schema':'wsprrypico-usb-result/1', 'installer_version':installer.INSTALLER_VERSION,
                     'ok':not failure}
         if failure:
@@ -1239,8 +1243,11 @@ class StandaloneGuidanceTests(unittest.TestCase):
         source = root / 'source'; source.mkdir()
         (source / 'install_usb.sh').write_bytes((ROOT / 'scripts/install_usb.sh').read_bytes())
         record = dict(self.waiting(), transaction=str(root / "private ' $HOME $(touch INJECTED) `touch INJECTED`" / 'transaction.json'))
+        Path(record['transaction']).parent.mkdir()
+        Path(record['transaction']).write_text('{}')
         _, manifest, proof = fixture('main')
         overrides = (f"\n    resolve = lambda *a: ({{'ci-publication.json':{encoded(proof)!r}}}, {manifest!r}, b'')\n"
+                     "    prepare_standalone_picotool = lambda args: None\n"
                      "    recent_ci = lambda *a: {}\n"
                      f"    transaction = lambda *a: {record!r}\n"
                      "    def recover_transaction(args):\n"
