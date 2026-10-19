@@ -1,10 +1,10 @@
 # USB installer acceptance
 
-Status: **in flight: final main-image and installer 0.1.3 publication checks
-remain**. Shared-core behavior, companion integration and the recorded Pico C
-installation, preserving migration, recovery and erase paths have passed their
-stated checks. The final publication work does not load firmware, operate a
-Pico, change a host service or perform RF tests.
+Status: **accepted for the bounded USB installer slice**. Main and devel images,
+public installer 0.1.3, anonymous bootstrap planning and cached Pi-adapter
+planning pass. Recorded Pico C installation, preserving migration, recovery
+and erase paths retain their stated source-specific limits. This closeout loads
+no firmware, operates no Pico, changes no host service and performs no RF tests.
 
 ## Delivered behavior
 
@@ -37,9 +37,10 @@ WsprryPi's policy is installer contract 1 on the devel installer channel;
 firmware selection remains independently main by default. Compatible installers
 are resolved from published receipts rather than a Pi source pin. Checked images
 and transactions retain their exact verified installer for offline recovery.
-The companion source at `8bfa1672a41098dba68c0ef60f23d042977d63a3` includes this
-integration and the recorded live web erase. No companion implementation change
-is needed for installer 0.1.3.
+The companion source at `7d92c83a1517ef44b8b8b02c466ba0ba33daa405` includes this
+integration, the recorded live web erase and reconciled documentation. Its
+complete [non-hardware CI](https://github.com/WsprryPi/WsprryPi/actions/runs/39311888533)
+passes. No companion implementation change is needed for installer 0.1.3.
 
 ## Recorded physical acceptance
 
@@ -100,11 +101,11 @@ git diff --check
 ```
 
 The local default Python lacks PyYAML and jsonschema, so its attempted
-`tests/ci_bundle_tests.py` run did not pass. Canonical Linux CI supplies the
-hash-pinned dependencies and runs the complete registered suite plus normal,
-inhibited and compatibility firmware builds. Earlier Linux C++ and linked
-firmware acceptance remains bound to its recorded source; no local macOS C++
-compilation was attempted for this closeout.
+`tests/ci_bundle_tests.py` run did not pass. Both completed canonical Linux runs
+pass that packaging suite with the hash-pinned dependencies, all 160 registered
+CTest suites with zero failures/skips, WTP/browser checks, normal/inhibited/
+compatibility firmware builds and identical-UF2 reproducibility. The public
+manifests retain these results. No local macOS C++ compilation was attempted.
 
 ## Independent review
 
@@ -122,18 +123,45 @@ The reviewer also identified a lightweight-workflow coverage gap: bootstrap-only
 changes were absent from its path filters. Both filters now include
 `scripts/install_usb.sh`. The unfiltered canonical firmware workflow already
 covered the installer through CTest. Review of the complete reconciled diff and
-publication evidence is a separate final gate.
+the mode/retention wording repairs cleared the implementation commit
+`7b77485f92d02061016075552984ee7dd72f02ba` with no remaining actionable findings.
+The reviewed full-diff SHA-256 values were
+`04e1550d0bad3ebe358fdbbc5db874f5c626d7dd652e3c8ea3c24b4ff919e581` for Pico
+and `964b8550b00444da79abd8fd0546930698ef08fc8d69c0c394963b7b8dc262cd` for Pi.
 
-## Publication gate and limits
+## Published acceptance
 
-The 2026-10-19 read-only audit verified that the public bootstrap's installer
-0.1.2 anonymously planned devel image `0.1.0-ci.39273840545.1` from source
-`650ead37e161d67b27035b7cec0faf983d940119`. The default main plan correctly
-refused its missing `ci-main` bookmark. Main then lacked the canonical workflow
-and was 671 commits behind devel. The operator explicitly authorized merging
-into main for this work. Final acceptance requires genuine successful main CI,
-public installer 0.1.3, anonymous main/devel bootstrap planning and a final
-independent reassessment before closing backlog item 7.
+The operator-authorized fast-forward brought the canonical workflows into main.
+Both branches built and published genuine branch-bound images from reviewed
+source `7b77485f92d02061016075552984ee7dd72f02ba`:
+
+| Channel | Accepted firmware | Complete canonical run |
+| --- | --- | --- |
+| main | `0.1.0-ci.39311922564.1` | [39311922564](https://github.com/WsprryPi/WsprryPico/actions/runs/39311922564) |
+| devel | `0.1.0-ci.39311887375.1` | [39311887375](https://github.com/WsprryPi/WsprryPico/actions/runs/39311887375) |
+
+Installer 0.1.3 was published independently from the same source for
+[main](https://github.com/WsprryPi/WsprryPico/releases/tag/usb-installer-v1-main-39311922589.1)
+and [devel](https://github.com/WsprryPi/WsprryPico/releases/tag/usb-installer-v1-devel-39311887550.1).
+WsprryPi's production distribution verifier anonymously checked both receipts,
+source tags, successful installer CI, complete assets and exact core/schema
+bytes against the reviewed Git objects.
+
+The public `curl | bash` bootstrap was checked against its committed source,
+then run anonymously with `plan` and no branch option, and again with
+`--branch devel`. Both returned installer 0.1.3, the intended branch/image and
+successful exact-asset/provenance verification. WsprryPi's imported entry point
+then revalidated both saved bundles offline using its verified devel-channel
+0.1.3 installer. Both returned contract 1 and the same image identity.
+These operations performed no device discovery, programming or settings write.
+
+The [publication evidence](usb-installer-publication.json) retains immutable
+release/run/source identities, receipt/manifest/UF2 hashes, test counts and
+bootstrap/adapter results. These identify the accepted source and downloads;
+later successful builds may advance the permanent branch bookmarks. The
+evidence-only closeout does not relabel those firmware bytes.
+
+## Acceptance limits
 
 Acceptance covers the implemented installer contract, verified downloads and
 the recorded physical paths. It does not qualify physical interruption or

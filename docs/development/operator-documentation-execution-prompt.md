@@ -81,7 +81,7 @@ protocol documents. These paths describe the preparation layout; update live
 links to their engineering locations when the directory moves.
 
 Use the [CI image contract](software-build-ci.md),
-[USB installer handoff](phase15-18-execution-prompt.md),
+[USB installer guide](usb-installer.md),
 [browser interface contracts](browser-pages.md) and
 [testing prerelease handoff](phase15-17-execution-prompt.md) to understand
 boundaries and consumers, not as proof those tasks have executed. Use their

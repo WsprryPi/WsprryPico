@@ -117,9 +117,9 @@ Output directories must be new. `--bundle DIRECTORY` revalidates a previously
 saved public bundle without another download. It cannot accompany another
 image selector. Stable selection is explicit and never substitutes CI. The
 current public manifest contract describes CI testing images; no compatible
-stable image is available. The initial acceptance snapshot has no main image;
-main therefore refuses until canonical CI publishes one there. `recent_ci`
-reports additional run status separately from the immutable selected image.
+stable image is available. Main and devel each have a verified permanent CI
+download index. `recent_ci` reports additional run status separately from the
+immutable selected image. Missing or invalid downloads still cause refusal.
 
 The ordinary path uses anonymous HTTPS and needs no Git, compiler, SDK or
 GitHub account. A saved successful verification receipt remains usable after

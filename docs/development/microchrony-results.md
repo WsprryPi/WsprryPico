@@ -26,7 +26,7 @@ into the primary `devel` checkout on 2026-10-18, retaining the USB installer and
 documentation cleanup. Historical device evidence still applies only to its
 recorded image and sources. A fresh Linux portable build, 13 focused CTest suites
 and normal/inhibited firmware cross-builds pass for the combined source. The
-[installer record](usb-installer-results.md#validation-so-far) lists the remaining
+[installer record](usb-installer-results.md#validation-so-far) records the
 consolidation checks and their limits. Those integration checks did not load a
 combined image; the subsequent crossover record covers the new deployment.
 

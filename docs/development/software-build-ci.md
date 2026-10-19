@@ -24,9 +24,8 @@ preview images when opened, updated or reopened. Merging a PR into `main`
 therefore builds the resulting `main` commit as well. There are no path filters
 or build cancellation groups. Publication is serialized separately per branch,
 with up to 100 waiting jobs retained using GitHub's `queue: max` setting.
-The workflow must be merged into `main` before its first main-branch download
-can exist. Manual dispatch is not assumed available while `main` lacks this
-workflow. Repository settings and the default branch are unchanged.
+Both branches contain the canonical workflow and have verified permanent
+downloads. Repository settings and the default branch are unchanged.
 
 Manual dispatch, where available, accepts only the enumerated `consumer`
 profile. Embedded versions are generated before building as
@@ -136,8 +135,8 @@ The permanent download pages are [devel](https://github.com/WsprryPi/WsprryPico/
 and [main](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-main). Each page
 links to that branch's latest successfully verified and published version.
 The first successful publication creates the corresponding page. Failed builds
-leave its previous version available. A main page first becomes available after
-the workflow is merged into main and its build succeeds.
+leave its previous version available. The [installer acceptance](usb-installer-results.md#published-acceptance)
+records the first verified main image and its exact source.
 
 [`scripts/ci/publish.py`](../../scripts/ci/publish.py) downloads the exact artifact
 pair after the read-only verification job passes, checks provenance/checksums

@@ -32,11 +32,10 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
    UF2 images with version/source identity, checksums and a manifest before
    release efforts. Use the CI image for decode verification and publication.
    [Build and image guide](software-build-ci.md).
-7. ⏳ **USB installer.** Standalone and WsprryPi access, preserving saved
+7. ✅ **USB installer.** Standalone and WsprryPi access, preserving saved
    settings; default to the latest verified saved main CI image, with explicit
    devel selection.
    [Installer guide](usb-installer.md) and [acceptance record](usb-installer-results.md).
-   [Saved prompt](phase15-18-execution-prompt.md).
 8. ✅ **Repository and work-harness cleanup.** Remove obsolete project artifacts
    and rewrite operator-facing prose around current capabilities. Keep needed
    technical material in engineering documentation; add no documentation
