@@ -1,6 +1,7 @@
 """Behavioral installer failure tests: substitute network and the USB writer."""
 import contextlib
 import copy
+from email.message import Message
 import io
 import json
 import os
@@ -40,6 +41,8 @@ def fixture(branch='devel', modern=False):
     manifest = installer.decode((base / 'release-manifest.json').read_bytes())
     proof = installer.decode((base / 'ci-publication.json').read_bytes())
     if modern:
+        manifest = installer.decode(encoded(manifest).replace(b'39084514130', b'40000000000'))
+        proof = installer.decode(encoded(proof).replace(b'39084514130', b'40000000000'))
         manifest['update'].update(usb_maintenance=1, postboot_verification=1)
     manifest['workflow']['ref'] = 'refs/heads/' + branch
     proof['branch'] = branch
@@ -88,26 +91,123 @@ class Network:
             return dict(tag_name='ci-' + self.branch, draft=False,
                         body='<!-- wsprrypico-ci-index/1\n' + json.dumps(self.index) + '\n-->')
         if path.startswith('releases/tags/ci-'):
-            raise installer.Refusal('HTTP 404')
+            raise installer.HttpFailure(404)
         if path == 'releases/tags/' + self.tag:
             return self.release
         if path.startswith('actions/workflows/software-build.yml/runs?'):
             return {'workflow_runs': []}
         if path == 'releases/latest':
-            raise installer.Refusal('Public download unavailable (HTTP 404)')
+            raise installer.HttpFailure(404)
         if path.startswith('git/ref/tags/'):
             return {'object': {'type': 'commit', 'sha': self.proof['source']}}
         if path.startswith('actions/runs/'):
             if path.endswith('per_page=100'):
                 return self.jobs
             if self.unavailable_run:
-                raise installer.Refusal('HTTP 404')
+                raise installer.HttpFailure(404)
             return self.run
         raise AssertionError('Unexpected network request: ' + path)
 
     def get(self, url, limit):
         self.calls.append(url)
         return self.files[url.rsplit('/', 1)[1]]
+
+
+class HttpFailureTests(unittest.TestCase):
+    NOW = 1792350000
+
+    def http_error(self, status, headers=None, message='private upstream detail'):
+        fields = Message()
+        for name, value in (headers or {}).items():
+            fields[name] = value
+        return installer.urllib.error.HTTPError(installer.API + 'releases/tags/ci-devel', status,
+                                                'upstream failure', fields, io.BytesIO(encoded({'message': message})))
+
+    def refusal(self, status, headers=None, message='private upstream detail'):
+        with patch.object(installer.urllib.request, 'urlopen', side_effect=self.http_error(status, headers, message)), \
+             patch.object(installer.time, 'time', return_value=self.NOW):
+            with self.assertRaises(installer.Refusal) as caught:
+                installer.resolve(installer.Https(), 'devel')
+        return caught.exception
+
+    def test_primary_limit_survives_cli_without_usb_or_secret_details(self):
+        failure = self.http_error(403, {'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset': str(self.NOW + 90)},
+                                  'API rate limit exceeded for private address; secret-header-value')
+        with patch.object(installer.urllib.request, 'urlopen', side_effect=failure) as network, \
+             patch.object(installer.time, 'time', return_value=self.NOW), \
+             patch.object(installer, 'Picotool', side_effect=AssertionError('USB writer requested')), \
+             patch.object(installer, 'Management', side_effect=AssertionError('USB control requested')), \
+             contextlib.redirect_stdout(io.StringIO()) as output:
+            code = installer.main(['plan', '--branch', 'devel'])
+        result = json.loads(output.getvalue())
+        self.assertEqual(code, 2)
+        self.assertEqual(result['error_code'], 'github_rate_limited')
+        self.assertEqual(result['retry_at'], self.NOW + 91)
+        self.assertFalse(result['recovery_required'])
+        self.assertIn('anonymous API request limit is exhausted (HTTP 403)', result['error'])
+        self.assertIn('UTC', result['error'])
+        self.assertNotIn('No verified', result['error'])
+        self.assertNotIn('private address', output.getvalue())
+        self.assertNotIn('secret-header', output.getvalue())
+        self.assertEqual(network.call_count, 1)
+
+    def test_retry_after_seconds_and_http_date_are_honored(self):
+        date = installer.datetime.fromtimestamp(self.NOW + 125, installer.timezone.utc)
+        for status, headers, deadline in [
+                (429, {'Retry-After': '120'}, self.NOW + 121),
+                (403, {'Retry-After': date.strftime('%a, %d %b %Y %H:%M:%S GMT')}, self.NOW + 126),
+                (403, {'X-RateLimit-Remaining':'0','X-RateLimit-Reset':str(self.NOW + 90),'Retry-After':'120'}, self.NOW + 121)]:
+            with self.subTest(status=status, headers=headers):
+                error = self.refusal(status, headers)
+                self.assertIsInstance(error, installer.GitHubRateLimit)
+                self.assertEqual(error.details['retry_at'], deadline)
+
+    def test_secondary_limit_without_usable_headers_has_honest_minimum(self):
+        for headers in [{}, {'Retry-After':'invalid'}, {'Retry-After':'9' * 200},
+                        {'X-RateLimit-Remaining':'0','X-RateLimit-Reset':'-1'},
+                        {'Retry-After':'Wed, 01 Jan 2020 00:00:00 GMT'}]:
+            with self.subTest(headers=headers):
+                error = self.refusal(403, headers, 'You have exceeded a secondary rate limit.')
+                self.assertEqual(error.details['retry_at'], self.NOW + 60)
+                self.assertIn('no usable retry time', str(error))
+                self.assertIn('at least one minute', str(error))
+        self.assertIsInstance(self.refusal(429), installer.GitHubRateLimit)
+
+    def test_missing_bookmark_is_distinct_from_permissions_server_and_connectivity(self):
+        self.assertIn('No verified devel', str(self.refusal(404)))
+        for status in [401, 403, 500, 503]:
+            with self.subTest(status=status):
+                error = self.refusal(status)
+                self.assertIsInstance(error, installer.HttpFailure)
+                self.assertEqual(error.status, status)
+                self.assertNotIn('No verified', str(error))
+        with patch.object(installer.urllib.request, 'urlopen', side_effect=installer.urllib.error.URLError('private detail')):
+            with self.assertRaisesRegex(installer.Refusal, 'check connectivity'):
+                installer.resolve(installer.Https(), 'devel')
+
+    def test_limit_at_release_or_live_provenance_is_not_replaced(self):
+        for fail_at in ['releases/tags/v', 'actions/runs/']:
+            net = Network()
+            api = net.api
+            error = installer.GitHubRateLimit(403, {'X-RateLimit-Remaining':'0','X-RateLimit-Reset':str(int(installer.time.time()) + 60)})
+            def request(path):
+                if path.startswith(fail_at):
+                    raise error
+                return api(path)
+            with patch.object(net, 'api', side_effect=request), self.assertRaises(installer.GitHubRateLimit) as caught:
+                installer.resolve(net, 'devel')
+            self.assertIs(caught.exception, error)
+
+    def test_additional_run_limit_keeps_verified_image_and_retry_guidance(self):
+        error = installer.GitHubRateLimit(429, {'Retry-After':'60'})
+        with patch.object(Network, 'api', side_effect=error):
+            result = installer.recent_ci(Network(), 'devel', {})
+        self.assertFalse(result['available'])
+        self.assertEqual(result['error_code'], 'github_rate_limited')
+        self.assertEqual(result['retry_at'], error.details['retry_at'])
+        self.assertEqual(result['reason'], str(error))
+        wrapped = installer.TransactionFailure(str(error), {'recovery_required':True}, Path('/private/transaction'), error)
+        self.assertEqual(wrapped.details, error.details)
 
 
 class InstallerTests(unittest.TestCase):
@@ -264,6 +364,20 @@ class InstallerTests(unittest.TestCase):
     def test_completed_bootsel_recovery_remains_repeatable_in_application(self):
         self.upgrade_transaction(programming_recovery=True)
 
+    def test_legacy_migration_waits_then_preserves_settings_and_finishes(self):
+        self.upgrade_transaction(migration=True)
+
+    def test_migration_failure_paths_never_authorize_a_write(self):
+        for failure in ('enabled', 'busy', 'not_bootsel', 'wrong_port', 'backup', 'old_image', 'snapshot', 'old_bundle'):
+            with self.subTest(failure=failure):
+                self.upgrade_transaction(migration=True, migration_failure=failure)
+
+    def test_legacy_migration_semantic_mismatch_keeps_verification_hold(self):
+        self.upgrade_transaction(migration=True, mismatch=True)
+
+    def test_legacy_migration_reserved_readback_mismatch_never_boots(self):
+        self.upgrade_transaction(migration=True, migration_failure='reserved')
+
     def test_unchanged_refusals_have_bounded_expiring_history(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary)
@@ -335,28 +449,36 @@ class InstallerTests(unittest.TestCase):
             with self.assertRaises(installer.Refusal):installer.installed_local(root,'0'*16,{'source_revision':'a'*12},flash)
             self.assertNotIn('backup',next(root.glob('.local-reference-*.json')).read_text())
 
-    def upgrade_transaction(self,mismatch=False,fault=False,declined=False,old_network_failure=False,recovery_retries=False,programming_recovery=False):
+    def upgrade_transaction(self,mismatch=False,fault=False,declined=False,old_network_failure=False,recovery_retries=False,programming_recovery=False,migration=False,migration_failure=None):
         files,manifest,_=fixture(modern=True); image=b'A'*256+b'B'*256
+        old_files,old_manifest,_=fixture() if migration else (files,manifest,None)
         before=bytearray(b'\xff'*installer.FLASH_SIZE);before[:len(image)]=image
         for offset in range(installer.PERSISTENT_START,installer.FLASH_SIZE,4096):before[offset+17]=71
         original=bytes(before); commands=[]; phase=['application','verification']; snapshots=[0]
-        board=lambda:dict(serial=SERIAL,parent='fixed',mode=phase[0],ports={'4':'fixture'})
+        board=lambda:dict(serial=SERIAL,parent='changed' if migration_failure=='wrong_port' and phase[0]=='bootsel' else 'fixed',mode=phase[0],ports={'4':'fixture'})
         def snapshot(_):
             snapshots[0]+=1
             return dict(serial=SERIAL,parent='fixed',target=dict(scope='member',device_id=installer.device_id(SERIAL),boot_id='b'*32),
-                revision='"4"',firmware='0.1.0-ci.2.1' if old_network_failure and snapshots[0]==1 else manifest['firmware_version'],source_revision=manifest['source']['revision'][:12],
-                status=dict(job=dict(state='failed' if fault and snapshots[0]>1 else 'empty',output_active=False,owner_id=None),standalone=dict(suspended=False,watermark_utc_ns='7')),
-                config={'config':{'enabled':False}},progress=dict(fields={'callsign':'AA0NT'},draft_revision='3'),
+                revision='"4"',firmware=('0.1.0-ci.2.1' if old_network_failure else old_manifest['firmware_version']) if snapshots[0]==1 else manifest['firmware_version'],source_revision=manifest['source']['revision'][:12],
+                status=dict(job=dict(state='failed' if fault and snapshots[0]>1 else 'running' if migration_failure=='busy' else 'empty',output_active=False,owner_id=None),standalone=dict(suspended=False,watermark_utc_ns='7')),
+                config={'config':{'enabled':migration_failure=='enabled'}},progress=dict(fields={'callsign':'AA0NT'},draft_revision='3'),
                 hostname={'saved':'changed.local' if mismatch and snapshots[0]>1 else 'fixture.local'},
                 frequency={'frequency_hz':None},calibration={'saved':None})
         class Tool:
             path='fixture'; identity={'version':'fixture'}
+            reads=0
             def __init__(self,_):pass
             def run(self,serial,*args,**_):
                 commands.append(args)
                 if '-x' in args:phase[0]='application'
                 return ' type: RP2350\n chipid: 0x'+serial.lower()+'\n'
-            def read_flash(self,serial,path):path.write_bytes(original);return original
+            def read_flash(self,serial,path):
+                self.reads+=1
+                if migration_failure=='backup':raise installer.Refusal('backup failed')
+                data=(b'X'+original[1:]) if migration_failure=='old_image' else original
+                if migration_failure=='reserved' and self.reads>1:
+                    data=data[:installer.PERSISTENT_START]+b'X'+data[installer.PERSISTENT_START+1:]
+                path.write_bytes(data);return data
         class Management:
             def __init__(self,_):pass
             def __enter__(self):return self
@@ -372,11 +494,39 @@ class InstallerTests(unittest.TestCase):
             with patch.object(installer,'private_directory',return_value=Path(temporary)), \
                  patch.object(installer,'device_lock',lambda _:contextlib.nullcontext()), \
                  patch.object(installer,'Picotool',Tool),patch.object(installer,'command',return_value=info), \
-                 patch.object(installer,'selected',side_effect=lambda *a,**k:board()), \
+                 patch.object(installer,'selected',wraps=installer.selected), \
                  patch.object(installer,'discover',side_effect=lambda:[board()]), \
                  patch.object(installer,'public_snapshot',side_effect=snapshot),patch.object(installer,'Management',Management), \
-                 patch.object(installer,'resolve_installed',side_effect=installer.Refusal('old network unavailable') if old_network_failure else None,return_value=(files,manifest,image)):
-                if mismatch or fault or declined or old_network_failure:
+                 patch.object(installer,'resolve_installed',side_effect=installer.Refusal('old network unavailable') if old_network_failure else None,return_value=(old_files,old_manifest,image)):
+                if migration:
+                    if migration_failure in ('enabled','busy'):
+                        with self.assertRaises(installer.TransactionFailure):installer.transaction(args,files,manifest,image,Network())
+                        self.assertFalse(commands);return
+                    result=installer.transaction(args,files,manifest,image,Network())
+                    self.assertEqual(result['stage'],'awaiting_bootsel')
+                    self.assertTrue(result['manual_bootsel_required'])
+                    self.assertFalse(commands);self.assertFalse(list(Path(temporary).glob('*/before.bin')))
+                    args.transaction=Path(result['transaction'])
+                    phase[0]='application' if migration_failure=='not_bootsel' else 'bootsel'
+                    if migration_failure=='snapshot':(args.transaction.parent/'preflight.json').write_text('{}')
+                    if migration_failure=='old_bundle':(args.transaction.parent/'installed/SHA256SUMS').write_text('changed')
+                    if migration_failure or mismatch:
+                        with self.assertRaises(installer.TransactionFailure):installer.recover_transaction(args)
+                        self.assertEqual(phase[1],'verification')
+                        if migration_failure:
+                            if migration_failure=='reserved':
+                                self.assertEqual(len([c for c in commands if c[0]=='load']),1)
+                                self.assertFalse(any('-x' in c for c in commands));return
+                            self.assertFalse(any(c[0]=='load' for c in commands))
+                            if migration_failure=='not_bootsel':
+                                migration_failure=None;phase[0]='bootsel'
+                                self.assertEqual(installer.recover_transaction(args)['stage'],'complete')
+                            return
+                    else:
+                        result=installer.recover_transaction(args)
+                        self.assertEqual(result['stage'],'complete');self.assertEqual(phase[1],'idle')
+                        self.assertEqual(installer.recover_transaction(args)['stage'],'complete')
+                elif mismatch or fault or declined or old_network_failure:
                     reason='Saved semantic state' if mismatch else 'busy' if fault else 'Firmware refused' if declined else 'old network unavailable'
                     with self.assertRaisesRegex(installer.TransactionFailure,reason):installer.transaction(args,files,manifest,image,Network())
                     self.assertEqual(phase[1],'verification')
@@ -403,6 +553,8 @@ class InstallerTests(unittest.TestCase):
                             self.assertEqual(phase[1],'verification')
                     self.assertEqual(installer.recover_transaction(args)['stage'],'complete')
             record=json.loads(next(Path(temporary).glob('*/transaction.json')).read_text())
+            if declined or old_network_failure:
+                self.assertIn('refused' if declined else 'network unavailable', record['failure_reason'])
             self.assertEqual(record['recovery_required'],mismatch or fault)
             self.assertEqual(len([a for a in commands if a[0]=='load']),0 if declined or old_network_failure else 4 if programming_recovery else 2)
             if declined or old_network_failure:

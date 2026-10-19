@@ -37,6 +37,12 @@ Saved settings survive supported upgrades. Changed output pins or drive require
 an explicit restart before transmission. If a save reply is lost, reconnect,
 check the saved result and review it before saving again.
 
+USB firmware updates use a verified CI image and retain saved settings. Older
+firmware may request a one-time BOOTSEL reconnect: follow the installer prompt,
+reconnect to the same USB port and continue the prepared update. Its saved
+standalone schedule must be disabled or unconfigured first. Keep USB connected
+during programming and verification.
+
 The factory button connects **GP14 (physical pin 19) to GND**:
 
 - Release in under 0.4 seconds to request a reset.

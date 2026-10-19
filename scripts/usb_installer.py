@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 import errno
 import fcntl
 import hashlib
@@ -51,10 +53,46 @@ class Refusal(ValueError):
     """An unsafe, unsupported, or incomplete operation; never a fallback."""
 
 
+class HttpFailure(Refusal):
+    def __init__(self, status):
+        self.status = status
+        super().__init__('Public download unavailable (HTTP %s); device unchanged' % status)
+
+
+class GitHubRateLimit(Refusal):
+    def __init__(self, status, headers):
+        now = int(time.time())
+        deadlines = []
+        primary = headers.get('X-RateLimit-Remaining') == '0'
+        if primary:
+            reset = headers.get('X-RateLimit-Reset', '')
+            if re.fullmatch(r'[0-9]{1,12}', reset) and now <= int(reset) <= now + 7 * 86400:
+                deadlines.append(int(reset) + 1)
+        retry = headers.get('Retry-After', '')
+        if re.fullmatch(r'[0-9]{1,6}', retry):
+            if int(retry) <= 7 * 86400:
+                deadlines.append(now + int(retry) + 1)
+        elif retry:
+            try:
+                date = parsedate_to_datetime(retry)
+                if date.tzinfo is not None and now <= date.timestamp() <= now + 7 * 86400:
+                    deadlines.append(int(date.timestamp()) + 1)
+            except (TypeError, ValueError, OverflowError):
+                pass
+        # Without usable server guidance, GitHub requires at least one minute.
+        deadline = max(deadlines) if deadlines else now + 60
+        when = datetime.fromtimestamp(deadline, timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')
+        reason = "GitHub's anonymous API request limit is exhausted" if primary else 'GitHub temporarily rate-limited this API request'
+        guidance = '' if deadlines else ' GitHub provided no usable retry time; wait at least one minute.'
+        super().__init__(f'{reason} (HTTP {status}). Retry after {when}.{guidance}')
+        self.details = {'error_code': 'github_rate_limited', 'retry_at': deadline}
+
+
 class TransactionFailure(Refusal):
-    def __init__(self, message, record, path):
+    def __init__(self, message, record, path, cause=None):
         super().__init__(message)
         self.result = dict(record, transaction=str(path))
+        self.details = getattr(cause, 'details', {})
 
 
 class MaintenanceDeclined(Refusal):
@@ -158,7 +196,20 @@ class Https:
                 require(length is None or int(length) == len(content), 'Partial download')
                 return bytes(content)
         except urllib.error.HTTPError as error:
-            raise Refusal('Public download unavailable (HTTP %s); device unchanged' % error.code) from error
+            with error:
+                headers = error.headers or {}
+                if urllib.parse.urlsplit(url).hostname == 'api.github.com' and error.code in (403, 429):
+                    try:
+                        body = decode(error.read(8192))
+                    except (Refusal, OSError):
+                        body = {}
+                    message = body.get('message', '') if isinstance(body, dict) else ''
+                    limited = (error.code == 429 or headers.get('X-RateLimit-Remaining') == '0' or
+                               headers.get('Retry-After') is not None or
+                               isinstance(message, str) and ('rate limit' in message.lower() or 'abuse detection' in message.lower()))
+                    if limited:
+                        raise GitHubRateLimit(error.code, headers) from error
+                raise HttpFailure(error.code) from error
         except (OSError, urllib.error.URLError) as error:
             raise Refusal('HTTPS download failed; check connectivity or use a verified offline bundle') from error
 
@@ -314,9 +365,10 @@ def resolve(client, branch='main', version=None, stable=False):
     else:
         try:
             bookmark = client.api('releases/tags/ci-' + branch)
-        except Refusal as error:
-            raise Refusal(f'No verified {branch} CI download is available. Select --branch devel '
-                          'explicitly if intended, or wait for a successful main build.') from error
+        except HttpFailure as error:
+            if error.status != 404:
+                raise
+            raise Refusal(f'No verified {branch} CI download is available; its published branch bookmark is missing.') from error
         require(bookmark['tag_name'] == 'ci-' + branch and not bookmark['draft'], 'Invalid bookmark release')
         index = parse_index(bookmark['body'], branch)
         tag = index['tag']
@@ -360,9 +412,9 @@ def resolve(client, branch='main', version=None, stable=False):
     # expiration. If live run metadata exists, require the whole run to pass.
     try:
         run = client.api(f"actions/runs/{manifest['workflow']['run_id']}/attempts/{manifest['workflow']['attempt']}")
-    except Refusal as error:
-        require('HTTP 404' in str(error) or 'HTTP 410' in str(error),
-                'Cannot verify live CI status; retry or use an offline bundle')
+    except HttpFailure as error:
+        if error.status not in (404, 410):
+            raise
     else:
         require(run['status'] == 'completed' and run['conclusion'] == 'success' and
                 run['head_sha'] == manifest['source']['revision'] and run['head_branch'] == branch and
@@ -409,6 +461,8 @@ def recent_ci(client, branch, manifest):
                         'source': run['head_sha'], 'status': run['status'], 'conclusion': run['conclusion']},
                         'selection': 'Pinned published image remains selected; additional run is not substituted'}
         return {'available': True, 'newer_run': None}
+    except GitHubRateLimit as error:
+        return {'available': False, 'reason': str(error), **error.details}
     except (Refusal, KeyError, TypeError, ValueError):
         return {'available': False, 'reason': 'Additional CI run status is unavailable; selected public receipt was verified'}
 
@@ -1002,6 +1056,25 @@ def transaction(args, files, manifest, image, client=None):
                     compare = client.api('compare/' + old_source + '...' + new_source)
                     require(compare['status'] == 'ahead' and compare['merge_base_commit']['sha'] == old_source,
                             'Downgrade/diverged source is unsupported for saved storage')
+                if old_manifest['update'].get('usb_maintenance') != 1:
+                    # Legacy applications cannot hold their writers/scheduler.
+                    # The operator performs the physical reset; no reset/STOP
+                    # command or flash write is authorized by this preparation.
+                    require(snapshot['config'].get('config') is None or
+                            snapshot['config']['config'].get('enabled') is False,
+                            'Disable the saved standalone schedule deliberately before BOOTSEL migration')
+                    require(snapshot['source_revision'] == old_source[:12],
+                            'Installed source does not match its verified CI image')
+                    installed = directory / 'installed'
+                    installed.mkdir(mode=0o700)
+                    for name, data in old_files.items():
+                        save_bytes(installed / name, data)
+                    record.update(stage='awaiting_bootsel', recovery_required=True,
+                                  manual_bootsel_required=True, installed_branch=old_manifest['workflow']['ref'].rsplit('/', 1)[-1],
+                                  installed_source=old_source, installed_version=old_version,
+                                  preflight_sha256=sha((directory / 'preflight.json').read_bytes()))
+                    save_json(path, record)
+                    return dict(record, transaction=str(path))
                 # All network/provenance work completes before requesting reset.
                 record.update(stage='entering_bootsel', recovery_required=True)
                 save_json(path, record)
@@ -1054,12 +1127,13 @@ def transaction(args, files, manifest, image, client=None):
         except BaseException as error:
             record['failure_stage'] = record['stage']
             record['stage'] = 'failed'
+            record['failure_reason'] = str(error)
             try:
                 save_json(path, record)
             except OSError:
                 record['record_write_failed'] = True
             raise TransactionFailure('Interrupted; inspect the retained transaction and use manual BOOTSEL recovery.'
-                                     if isinstance(error, KeyboardInterrupt) else str(error), record, path) from error
+                                     if isinstance(error, KeyboardInterrupt) else str(error), record, path, error) from error
 
 
 def program_verified(args, tool, record, path, manifest, image, before, snapshot):
@@ -1187,6 +1261,12 @@ def recover_transaction(args):
     require(manifest['source']['revision'] == record['source'] and
             candidate_asset(files, manifest)['sha256'] == record['uf2_sha256'],
             'Recovery bundle differs from original transaction')
+    pending_migration = (record.get('manual_bootsel_required') is True and
+                         record.get('operation') == 'upgrade' and
+                         record.get('failure_stage', record['stage']) == 'awaiting_bootsel' and
+                         not record.get('program_authorized'))
+    if pending_migration:
+        return continue_migration(args, record, path, manifest, image)
     require(record.get('program_authorized') is True or record.get('preserved') is True,
             'No completed compatibility authorization; inspect the unchanged image and use deliberate recovery')
     backup = path.parent / 'before.bin'
@@ -1220,11 +1300,61 @@ def recover_transaction(args):
             if record['stage'] != 'failed':
                 record['failure_stage'] = record['stage']
             record.update(stage='failed', recovery_required=True)
+            record['failure_reason'] = str(error)
             try:
                 save_json(path, record)
             except OSError:
                 record['record_write_failed'] = True
-            raise TransactionFailure(str(error), record, path) from error
+            raise TransactionFailure(str(error), record, path, error) from error
+
+
+def continue_migration(args, record, path, manifest, image):
+    """Authorize a legacy migration only after physical same-board BOOTSEL."""
+    try:
+        require(manifest['update'].get('usb_maintenance') == manifest['update'].get('postboot_verification') == 1,
+                'Migration target lacks guarded postboot verification')
+        snapshot_path = path.parent / 'preflight.json'
+        require(snapshot_path.is_file() and not snapshot_path.is_symlink() and
+                snapshot_path.stat().st_size <= MAX_DOWNLOAD and
+                sha(snapshot_path.read_bytes()) == record['preflight_sha256'], 'Migration snapshot integrity mismatch')
+        snapshot = decode(snapshot_path.read_bytes())
+        require(snapshot['serial'] == args.device and snapshot['parent'] == record['parent'] and
+                snapshot['target']['device_id'] == device_id(args.device) and
+                snapshot['firmware'] == record['installed_version'] and
+                snapshot['source_revision'] == record['installed_source'][:12], 'Migration preflight identity mismatch')
+        admit_snapshot(snapshot)
+        require(snapshot['config'].get('config') is None or snapshot['config']['config'].get('enabled') is False,
+                'Migration requires a disabled standalone schedule')
+        old_manifest, old_image = verify_bundle(read_bundle(path.parent / 'installed'), record['installed_branch'])
+        require(old_manifest['source']['revision'] == record['installed_source'] and
+                old_manifest['firmware_version'] == snapshot['firmware'] and
+                old_manifest['update'].get('usb_maintenance') != 1, 'Migration installed image identity mismatch')
+        with device_lock(args.device):
+            selected(args.device, 'bootsel', record['parent'])
+            tool = Picotool(args.picotool)
+            info = tool.run(args.device, 'info', '-a')
+            require(re.search(r'^ type:\s+RP2350$', info, re.M) and
+                    re.search(r'^ chipid:\s+0x' + args.device.lower() + '$', info, re.M), 'Migration BOOTSEL chip identity mismatch')
+            require(shutil.disk_usage(path.parent).free >= 128 * 1024 * 1024,
+                    'Need at least 128 MiB for private backup/transaction')
+            before = tool.read_flash(args.device, path.parent / 'before.bin')
+            with (path.parent / 'before.bin').open('rb') as backup:
+                os.fsync(backup.fileno())
+            require(before[:len(old_image)] == old_image, 'Installed firmware does not match its verified CI image')
+            require(int(old_manifest['update']['application_end'], 16) <= int(manifest['update']['application_end'], 16) or
+                    before[PERSISTENT_START:0x3F0000] == b'\xff' * 8192,
+                    'Newly reserved storage is not erased; migration is unsupported')
+            record.update(stage='backed_up', program_authorized=True, backup_sha256=sha(before),
+                          persistent_sha256=sha(before[PERSISTENT_START:]), manual_bootsel_required=False)
+            save_json(path, record)
+            return program_verified(args, tool, record, path, manifest, image, before, snapshot)
+    except BaseException as error:
+        if record['stage'] != 'failed':
+            record['failure_stage'] = record['stage']
+        record.update(stage='failed', recovery_required=True)
+        record['failure_reason'] = str(error)
+        save_json(path, record)
+        raise TransactionFailure(str(error), record, path, error) from error
 
 
 def main(argv=None, schema_bytes=None):
@@ -1313,11 +1443,12 @@ def main(argv=None, schema_bytes=None):
     except TransactionFailure as error:
         print(json.dumps({**error.result, 'schema': 'wsprrypico-usb-result/1',
                           'installer_version': INSTALLER_VERSION, 'ok': False,
-                          'error': str(error)}, sort_keys=True))
+                          'error': str(error), **error.details}, sort_keys=True))
         return 3 if error.result['recovery_required'] else 2
     except (Refusal, OSError, KeyError, TypeError, subprocess.SubprocessError, ValueError) as error:
         print(json.dumps({'schema': 'wsprrypico-usb-result/1', 'installer_version': INSTALLER_VERSION,
-                          'ok': False, 'error': str(error), 'recovery_required': False}, sort_keys=True))
+                          'ok': False, 'error': str(error), 'recovery_required': False,
+                          **getattr(error, 'details', {})}, sort_keys=True))
         return 2
     except KeyboardInterrupt:
         print(json.dumps({'schema': 'wsprrypico-usb-result/1', 'ok': False,

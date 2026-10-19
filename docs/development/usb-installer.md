@@ -36,6 +36,17 @@ Actions retention expiry when the public release and exact hashes remain intact.
 HTTPS/repository ownership is the distribution trust boundary; checksums are
 integrity checks, not signatures.
 
+GitHub API rate limits are reported separately from a missing branch bookmark,
+permission failures and connection errors. Refusals include the HTTP status and
+an earliest retry time in UTC, using GitHub's `X-RateLimit-Reset` and
+`Retry-After` headers. If both apply, the later time is used. Missing or invalid
+retry guidance requires at least a one-minute wait, identified as a minimum
+rather than a confirmed quota reset. The result includes
+`error_code: github_rate_limited` and `retry_at` in Unix seconds. The installer
+does not retry requests automatically or load GitHub credentials. A rate limit
+on optional additional-run status leaves the verified selected image usable and
+reports its reason separately in `recent_ci`.
+
 ## USB dependency and device selection
 
 Programming requires a USB-enabled **picotool 2.3.0** built from the project pin
@@ -85,9 +96,29 @@ USB snapshot. It refuses active, owned, uncertain, faulted or configured STOP
 state. It never sends STOP, claims RF ownership or changes saved settings to
 obtain admission. Firmware must provide guarded USB maintenance, and the target
 manifest must declare `usb_maintenance: 1` and `postboot_verification: 1`.
-Older installed firmware without this operation needs a deliberate, separately
-identified manual recovery/migration; no 1200-baud reset or forced takeover is
-assumed. An unconfigured board's automatic suspension remains intact.
+For verified older CI firmware without this operation, upgrade prepares a
+settings-preserving BOOTSEL migration and returns `awaiting_bootsel` with a
+private transaction path. It writes no firmware and sends no reset or STOP.
+The saved standalone schedule must already be disabled or unconfigured; the
+installer does not change that setting. An unconfigured board's automatic
+suspension remains intact.
+
+When prompted, unplug the selected Pico, hold BOOTSEL while reconnecting it to
+the same physical USB port, then release BOOTSEL. Run `recover` with the
+returned transaction path (or choose **Continue after BOOTSEL** in WsprryPi).
+Continuation revalidates the checked target, installed CI receipt, preflight,
+USB serial, physical port and RP2350 chip ID. It completes a verified full-flash
+backup and checks the old application bytes against the identified CI image
+before authorizing programming. It applies the same reserved-storage and
+postboot semantic checks as a guarded upgrade. A wrong board, changed image,
+incompatible reserved storage or failed backup refuses without programming.
+No 1200-baud reset, forced takeover, mass erase or settings transplant is used.
+
+The pending transaction survives host and browser restarts. Keep the Pico idle
+and do not edit its settings during the reconnect. Starting `recover` before
+BOOTSEL is ready leaves the pending transaction available for another explicit
+attempt. The Pi keeps this member paused until verification and reconnection
+complete; it never treats the preparation result as a completed installation.
 
 The acknowledged preflash hold excludes WTP admission, standalone slot/watermark
 reservation, application writes and provisioning commits. A verified full-flash
@@ -124,9 +155,11 @@ completed, a record is not authority to program: inspect the unchanged image
 and perform deliberate BOOTSEL recovery.
 
 Results are JSON `wsprrypico-usb-result/1`. Exit 0 means the requested operation
-completed, 2 is refusal/failure before ambiguous programming, and 3 means a
+completed or prepared an `awaiting_bootsel` continuation. Only `complete`
+establishes finished installation. Exit 2 is refusal/failure before ambiguous programming, and 3 means a
 retained transaction needs recovery. Cancellation within a transaction retains
-its last durable stage. A successful tool process or USB appearance is
+its last durable stage. Failed transactions also retain `failure_reason` in
+the private record. A successful tool process or USB appearance is
 insufficient for upgrade success.
 
 ## Explicit developer builds
