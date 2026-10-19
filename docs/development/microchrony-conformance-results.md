@@ -295,7 +295,11 @@ control/pad registers and sampled idle-low levels. Its latest power receipt was
 20 seconds old and had no current fault bits; the historical `0x50000` flags
 remain unchanged. This cannot exclude a short electrical transient or establish
 a kernel/interrupt cause. **The measurement fault is unresolved.** The earlier
-shared-supply hotplug is a clue, not an established repair or cause.
+shared-supply hotplug is a clue, not an established repair or cause. The operator
+confirmed that no power or connection changes occurred around the second burst
+at 07:01:55. Another deliberate hotplug therefore does not explain the recurrence;
+spontaneous electrical disturbance and GPIO interrupt/event reporting remain
+unseparated possibilities.
 
 Before the fault, 103 commanded pulses per board produced 412 consecutive
 physical events. All A pulses and 99 B pulses satisfy clock-binding checks;

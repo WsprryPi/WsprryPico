@@ -35,7 +35,9 @@
     "power_sample_age_at_fault_s": 20.001190217008116,
     "historical_power_flags": "0x50000",
     "electrical_waveform_recorded": false,
-    "shared_power_transient_proven": false
+    "shared_power_transient_proven": false,
+    "operator_reports_power_or_connection_change_at_repeat_fault": false,
+    "repeat_event_explained_by_new_deliberate_hotplug": false
   },
   "visibility": {
     "schema": "offline-conformance-evidence-verification/1",
