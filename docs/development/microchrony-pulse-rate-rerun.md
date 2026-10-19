@@ -1,5 +1,10 @@
 # Internet NTP: independent pulse and RF measurements
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 The finite A/B comparison retained **320 physical pulses per board** and
 finished at **19:10:30 CDT on October 18, 2026**, before its 19:12:23 deadline.
 Both boards used `pool.ntp.org`. The corrected logger continued through B's

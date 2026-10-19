@@ -1,5 +1,10 @@
 # Internet NTP: path weighting and selected-source freshness
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 This is the October 18 investigation record. The subsequent
 [packet and clock-loop conformance results](microchrony-conformance-results.md)
 correct the comparison boundary, resolve the fixed-coordinate source-history

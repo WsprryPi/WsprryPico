@@ -1,9 +1,9 @@
 # Portable experimental RF stream
 
 Carrier correction is selected centrally before preparation and freezes for
-the active job or standalone Type 2/3 pair. See [NTP work](ntp-work-results.md)
-for durable manual ppm, reciprocal rate handling and the unresolved physical
-gate that keeps NTP RF selection on manual fallback.
+the active job or standalone Type 2/3 pair. It uses persistent manual PPM only.
+The [NTP closeout](ntp-work-closeout.md) records the rejection of NTP-derived
+RF calibration; μChrony UTC control is independent of carrier correction.
 
 The portable stream uses an abstract sink; the [PIO/DMA sink](pio-dma-driver.md)
 provides its SDK implementation. Source validation does not qualify physical

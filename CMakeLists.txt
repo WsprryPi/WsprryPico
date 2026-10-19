@@ -65,7 +65,6 @@ add_library(wsprrypico_core
     src/application/config_update.cpp
     src/application/resources.cpp
     src/application/frequency_policy.cpp
-    src/time/clock_probe.cpp
     src/hardware/pins.cpp
     src/provisioning/profile.cpp
     src/provisioning/network_profile.cpp
@@ -339,12 +338,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/clock_measurement_tests.py)
     add_test(NAME ntp_packet_evidence COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/ntp_packet_tests.py $<TARGET_FILE:ntp_work_tests>)
-    add_executable(clock_probe_tests tests/clock_probe_tests.cpp)
-    target_link_libraries(clock_probe_tests PRIVATE wsprrypico_core)
-    target_compile_options(clock_probe_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
-    add_test(NAME clock_probe COMMAND clock_probe_tests)
-    add_test(NAME clock_pulse_probe COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/clock_pulse_probe_tests.py)
     add_executable(ntp_work_tests tests/ntp_work_tests.cpp)
     target_link_libraries(ntp_work_tests PRIVATE wsprrypico_rf)
     target_compile_options(ntp_work_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)

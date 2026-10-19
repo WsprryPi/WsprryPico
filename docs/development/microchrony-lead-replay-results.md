@@ -1,5 +1,10 @@
 # Captured Internet samples: μChrony versus Chrony 4.9
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 The completed October 19 lead-layout run exposed two remaining μChrony control
 differences. Conditional regression errors now weight the controller while
 joint covariance and path ambiguity remain in the public bounds. Path ranking

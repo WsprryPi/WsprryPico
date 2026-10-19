@@ -19,7 +19,8 @@ struct Config {
     hardware::PinPlan pins;
     unsigned gpio_drive_ma = 4; // Nominal direct RF pad current, never WSPR power.
     std::int32_t manual_correction_ppb = 0;
-    bool ntp_rf_calibration = false; // Explicit opt-in; numeric estimates remain volatile.
+    bool ntp_rf_calibration =
+        false; // Legacy storage compatibility only; never selects RF correction.
     // No transmit frequency is selected by a firmware image or legacy record.
     std::optional<std::uint32_t> wspr_base_frequency_hz;
     bool enabled = false;

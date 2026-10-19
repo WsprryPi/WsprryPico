@@ -2,7 +2,13 @@
 
 The independently advertised `transmitter-rf-calibration/1` resource at
 `/api/v1/rf-calibration` supports exact-target/revision GET/PUT through admitted
-management carriers. It preserves legacy closed config/progress shapes.
+management carriers. RF correction is manual only: `calibration.mode` must be
+`"manual"`; `"ntp"` returns HTTP 400 `ntp_rf_rejected` without changing the saved
+manual value. GET reports manual mode, and selection never consumes a live or
+saved NTP estimate. The legacy `ntp_rf_calibration` config field remains readable
+for storage/closed-view compatibility but has no RF authority. Older candidate
+diagnostic fields remain non-runnable. Legacy closed config/progress shapes
+are preserved. See the [decision and compatibility details](development/ntp-work-closeout.md).
 `transmitter-ntp-observations/1` at `/api/v1/ntp-observations` binds source-labelled
 measurements to member/boot/firmware/clock identity. See the
 [NTP work record](development/ntp-work-results.md) for fields, units, authority,

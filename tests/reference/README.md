@@ -1,5 +1,9 @@
 # External Chrony 4.9 reference
 
+μChrony is retained for UTC discipline. NTP RF calibration and the live
+Pico-to-Pi GPIO pulse path are retired; existing captured-input tools operate
+on historical files only. See the [closeout](../../docs/development/ntp-work-closeout.md).
+
 These original MIT drivers keep the external GPL reference separate from
 μChrony and the firmware. They download nothing, install nothing, adjust no
 host clock, and perform no network or board operations. Keep upstream sources,

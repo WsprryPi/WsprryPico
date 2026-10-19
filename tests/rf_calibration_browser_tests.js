@@ -20,6 +20,10 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
   await read.onclick();
   input.value='10.000'; input.oninput();
   assert.equal(save.disabled,false);
+  mode.value='ntp'; mode.onchange();
+  assert.equal(save.disabled,true);
+  mode.value='manual'; mode.onchange();
+  assert.equal(save.disabled,false);
   await save.onclick(); assert.equal(writes,1);
   input.value='20.000'; input.oninput(); fail=true;
   await save.onclick(); assert.equal(input.value,'20.000'); assert.equal(save.disabled,true);
@@ -55,6 +59,6 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
   await ui.save.onclick();
   assert.equal(requests[1].options.headers['If-Match'],'actual-revision');
   assert.equal(JSON.parse(requests[1].options.body).calibration.manual_ppm,'1.234');
-  assert.match(ui.status.textContent,/Calibration saved/);
+  assert.match(ui.status.textContent,/Manual calibration saved/);
   console.log('RF calibration browser checks passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

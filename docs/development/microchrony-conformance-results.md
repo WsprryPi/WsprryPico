@@ -1,5 +1,10 @@
 # μChrony packet admission and complete clock-control comparison
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 The original MIT implementation corrects packet-delay admission, conditional
 variance normalization, repeated-server-timestamp handling and a runs-test
 rounding boundary. Local-path weighting and sustained asymmetry evidence remain
@@ -19,9 +24,7 @@ NCR admission path; normalized source histories at its SST statistics API; and
 complete source-selection/frequency/phase loops driven by known physical clock
 error. Agreement at one boundary does not establish complete daemon equivalence.
 The [sanitized numerical results](microchrony-conformance-results.json) retain
-input, executable, script and private-artifact hashes. The
-[execution prompt](microchrony-conformance-validation-prompt.md) specifies the
-preservation, validation, physical-test and review requirements.
+input, executable, script and private-artifact hashes. The [closeout](ntp-work-closeout.md) records the final scope and disposition.
 
 ## Packet admission and adaptive history
 

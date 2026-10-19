@@ -1,5 +1,10 @@
 # NTP UTC servo and correction retention
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 The normal `WsprryPico.uf2` includes bounded interim UTC steering and a separate
 NTP-learning journal. Manual PPM remains in its existing configuration journal.
 The strict NTP RF fit and independent physical RF gate remain unchanged.

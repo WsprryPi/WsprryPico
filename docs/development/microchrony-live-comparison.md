@@ -1,5 +1,10 @@
 # μChrony live NTP comparison
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 The finite A/B crossover completed on October 18, 2026, from **11:19:32 to
 13:17:52 CDT**. The source swap completed at **12:19:38 CDT**. Both the observer
 and its independent deadline guard exited normally, before the 13:19:32 hard

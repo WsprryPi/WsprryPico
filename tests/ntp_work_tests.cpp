@@ -56,8 +56,10 @@ void manual() {
     REQUIRE(f.store.config()->manual_correction_ppb == 10125);
     standalone::Store reboot(f.flash);
     REQUIRE(reboot.load() && reboot.config()->manual_correction_ppb == 10125);
-    REQUIRE(request("0", "ntp").status == 200);
-    REQUIRE(f.store.config()->manual_correction_ppb == 0 && f.store.config()->ntp_rf_calibration);
+    const auto rejected = request("0", "ntp");
+    REQUIRE(rejected.status == 400 && rejected.body.find("ntp_rf_rejected") != std::string::npos);
+    REQUIRE(f.store.config()->manual_correction_ppb == 10125 &&
+            !f.store.config()->ntp_rf_calibration);
     REQUIRE(request("-100.001").status == 400);
     REQUIRE(request("1.2345").status == 400);
     REQUIRE(request("0", "automatic").status == 400);
@@ -74,6 +76,11 @@ void manual() {
     REQUIRE(standalone::parse_config(*replaced)->manual_correction_ppb == 0);
     REQUIRE(!standalone::parse_config(*replaced)->ntp_rf_calibration);
     REQUIRE(f.store.save(extended));
+    const auto legacy_view =
+        f.api.handle({"GET", "/api/v1/rf-calibration", {}, {{"host", "127.0.0.1:8443"}}}, "test",
+                     "127.0.0.1:8443");
+    REQUIRE(legacy_view.status == 200 &&
+            legacy_view.body.find("\"mode\":\"manual\"") != std::string::npos);
     REQUIRE(wtp::json::parse(f.scheduler.command("CONFIG " + network_test::config))
                 ->get("ok")
                 ->boolean());
@@ -518,7 +525,6 @@ void freeze() {
     c.ntp_rf_calibration = true;
     REQUIRE(store.save(c));
     network_test::Clock clock;
-    time::RateEstimate r{true, -10000, 1000, 42, clock.now, 2000 * ns, 32, "qualified_software"};
     // Separate cache media avoids aliasing the real config journal in this test.
     network_test::Flash learned_flash;
     standalone::NtpRetention cached(learned_flash, std::string(32, 'a'), 138000000);
@@ -527,19 +533,18 @@ void freeze() {
     REQUIRE(cached.save(-10000, provenance,
                         standalone::NtpRetention::RfPrior{-10000, 1000, 32, 2000 * ns, provenance},
                         0));
-    engine.retention(cached);
-    engine.ntp_candidate(r, clock, true);
+    // A legacy opt-in and retained RF prior have no route to the RF engine.
     engine.calibration_boundary();
     REQUIRE(engine.prepare(job).accepted && raw.correction == -10000);
-    REQUIRE(engine.calibration_status(clock.now).find("\"saved_ntp_available\":true") !=
+    REQUIRE(engine.calibration_status(clock.now).find("\"saved_ntp_available\":false") !=
             std::string::npos);
-    REQUIRE(engine.calibration_status(clock.now).find("independent_rf_unverified") !=
+    REQUIRE(engine.calibration_status(clock.now).find("ntp_rf_rejected") != std::string::npos);
+    REQUIRE(engine.calibration_status(clock.now).find("\"next_source\":\"manual\"") !=
             std::string::npos);
-    REQUIRE(engine.calibration_status(clock.now + time::ntp_fresh_ns + 1)
-                .find("independent_rf_unverified") != std::string::npos);
-    engine.ntp_candidate(r, clock, false);
-    REQUIRE(engine.calibration_status(clock.now).find("unsupported_clock_topology") !=
-            std::string::npos);
+    REQUIRE(
+        engine.calibration_status(clock.now + time::ntp_fresh_ns + 1).find("\"next_ppb\":-10000") !=
+        std::string::npos);
+    REQUIRE(cached.record()->rf.has_value()); // Historical bytes stay readable, never applied.
     c.manual_correction_ppb = 0;
     c.ntp_rf_calibration = false;
     REQUIRE(store.save(c));

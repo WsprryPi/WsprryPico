@@ -84,7 +84,6 @@ extern "C" [[gnu::used]] const char wsprrypico_usb_update_contract[] =
 #include "standalone/scheduler.hpp"
 #include "standalone/wtp_profile.hpp"
 #include "time/controller_time.hpp"
-#include "time/pico/clock_probe.hpp"
 #include "tusb.h"
 #include "usb/reply_priority.hpp"
 #include "usb/transport.hpp"
@@ -234,7 +233,7 @@ void reserve_field(Response& result, std::string_view name,
 }
 #endif
 std::size_t heap_peak = 0;
-bool ntp_rf_topology() {
+bool ntp_retention_topology() {
 #ifdef WSPRRY_PICO_STANDALONE_RF
     // Register/configuration evidence only; never a frequency measurement.
     return wsprrypico::rf::sample_rate == 138'000'000 && clock_get_hz(clk_ref) == 12'000'000 &&
@@ -391,7 +390,7 @@ int main() {
         wsprrypico::standalone::PicoFlash::Region::Ntp);
     static wsprrypico::standalone::NtpRetention ntp_retention(
         ntp_flash, identities.device_id(), (std::uint64_t(138'000'000) << 32) | 138'000'000);
-    const bool ntp_prior_loaded = ntp_rf_topology() && ntp_retention.load();
+    const bool ntp_prior_loaded = ntp_retention_topology() && ntp_retention.load();
     bool usb_erased_access_ok =
         profile_store.healthy() &&
         (profile_store.source() == wsprrypico::provisioning::ProfileSource::Unprovisioned ||
@@ -468,7 +467,6 @@ int main() {
 #endif
     static wsprrypico::standalone::FrequencyPolicyEngine policy_engine(
         engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz);
-    policy_engine.retention(ntp_retention);
     static wsprrypico::wtp::JobService service(clock, policy_engine, identities, config);
     if (usb_update_boot)
         service.hold_update_verification();
@@ -747,8 +745,6 @@ int main() {
     std::size_t length = 0;
     bool overflow = false;
     wsprrypico::usb::ConsoleReply console_reply;
-    static wsprrypico::time::ClockProbe clock_probe;
-    static wsprrypico::time::PicoClockProbe clock_probe_hardware(clock);
     std::array<std::uint8_t, 64> console_input{};
     std::size_t console_input_size = 0, console_input_offset = 0;
     std::uint64_t reboot_at = 0;
@@ -1051,44 +1047,6 @@ int main() {
                       "}\n";
             return result;
         }
-        if (text.starts_with("CLOCKPROBE ")) {
-            const auto current = service.activity();
-            const auto status = service.status();
-            const auto source = time_arbiter.status();
-            const auto model = network.ntp_control();
-            const auto now = monotonic_now(nullptr);
-            const auto rate = network.ntp_rate(now);
-            const auto pin_free = [](const wsprrypico::hardware::PinPlan& pins) {
-                const auto allocation = wsprrypico::hardware::validate(pins);
-                return allocation.valid() && allocation.owners[22].empty();
-            };
-            wsprrypico::time::ClockProbeGuard guard;
-            guard.permitted =
-                !boot_recovery && !recovery_reset_at && !reset_coordinator.pending() &&
-                !reboot_at && !bootstrap.setup_pending() && !service.maintenance() &&
-                store.healthy() && profile_store.healthy() && access_store.healthy() &&
-                runtime_profile_ready() && store.config() && !store.config()->enabled &&
-                scheduler.idle() && !scheduler.hardware_restart_required() &&
-                !scheduler.hardware_application_failed() && !current.owned &&
-                !current.output_active && !engine.output_active() &&
-                current.state != wsprrypico::wtp::State::Loaded &&
-                current.state != wsprrypico::wtp::State::Armed &&
-                current.state != wsprrypico::wtp::State::Running &&
-                current.state != wsprrypico::wtp::State::Failed && pin_free(boot_pins) &&
-                pin_free(store.config()->pins);
-            guard.source_sntp = source.source == wsprrypico::time::ActiveTimeSource::Sntp;
-            guard.disagreement = source.disagreement;
-            guard.ntp_generation = model.generation;
-            guard.source_epoch = model.selected_epoch;
-            guard.source_raw_ns = model.selected_sample_raw_ns;
-            guard.frequency_ppb = model.frequency_ppb;
-            guard.frequency_uncertainty_ppb = rate.uncertainty_ppb;
-            return clock_probe.command(text.substr(11),
-                                       {identities.device_id(), status.boot_id,
-                                        wsprrypico::firmware::kFirmwareVersion,
-                                        wsprrypico::firmware::kBuildRevision},
-                                       guard, now, clock_probe_hardware);
-        }
         if (text.starts_with("NTP PACKETS ")) {
             return network.ntp_packet_page(text.substr(12),
                                            {identities.device_id(), service.status().boot_id,
@@ -1365,19 +1323,14 @@ int main() {
                              core0_guard.bottom == reinterpret_cast<std::uintptr_t>(&__StackLimit));
             number_field(result, "core0_stack_scan_us", core0_stack_scan_us);
             const auto flash_resources = wsprrypico::standalone::flash_resources();
-            result +=
-                ",\"ntp_retention\":{\"healthy\":" +
-                std::string(ntp_retention.healthy() ? "true" : "false") + ",\"sequence\":\"" +
-                std::to_string(ntp_retention.sequence()) + "\",\"saved_utc_rate_ppb\":" +
-                (ntp_retention.record() ? std::to_string(ntp_retention.record()->utc_rate_ppb)
-                                        : "null") +
-                ",\"boot_utc_rate_ppb\":" +
-                (ntp_boot_rate ? std::to_string(*ntp_boot_rate) : "null") +
-                ",\"saved_rf_available\":" +
-                (ntp_retention.healthy() && ntp_retention.record() && ntp_retention.record()->rf
-                     ? "true"
-                     : "false") +
-                ",\"saved_rf\":" + ntp_retention.rf_json() + "}";
+            result += ",\"ntp_retention\":{\"healthy\":" +
+                      std::string(ntp_retention.healthy() ? "true" : "false") + ",\"sequence\":\"" +
+                      std::to_string(ntp_retention.sequence()) + "\",\"saved_utc_rate_ppb\":" +
+                      (ntp_retention.record() ? std::to_string(ntp_retention.record()->utc_rate_ppb)
+                                              : "null") +
+                      ",\"boot_utc_rate_ppb\":" +
+                      (ntp_boot_rate ? std::to_string(*ntp_boot_rate) : "null") +
+                      ",\"saved_rf_available\":false,\"saved_rf\":null}";
             number_field(result, "chip_reset_reason", powman_hw->chip_reset, true);
             number_field(result, "flash_read_attempts", flash_resources.read_attempts, true);
             number_field(result, "flash_erase_attempts", flash_resources.erase_attempts, true);
@@ -2052,12 +2005,10 @@ int main() {
             (network_state != wsprrypico::wtp::State::Armed &&
              network_state != wsprrypico::wtp::State::Running))
             network.poll();
-        policy_engine.ntp_candidate(network.ntp_rate(monotonic_now(nullptr)), clock,
-                                    ntp_rf_topology());
         const auto cache_now = monotonic_now(nullptr);
         if (!boot_recovery && !recovery_reset_at && !reset_coordinator.pending() && !reboot_at &&
             time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Sntp &&
-            ntp_rf_topology()) {
+            ntp_retention_topology()) {
             const auto original = network.ntp_original();
             const auto& control = network.ntp_control();
             if (original && original->raw_ns != ntp_cache_observed_raw_ns &&
@@ -2067,26 +2018,21 @@ int main() {
                 const auto rate = network.ntp_rate(cache_now);
                 wsprrypico::standalone::NtpRetention::Provenance source{
                     service.status().boot_id, network.ntp_endpoint(), original->epoch,
-                    rate.generation, original->utc_ns};
-                std::optional<wsprrypico::standalone::NtpRetention::RfPrior> rf;
-                if (rate.qualified && rate.sampled_ns == original->raw_ns &&
-                    wsprrypico::time::oscillator_correction(rate))
-                    rf = {rate.utc_rate_ppb, rate.uncertainty_ppb, rate.samples, rate.span_ns,
-                          source};
+                    control.generation, original->utc_ns};
                 const auto utc = control.learned && control.raw_ns <= cache_now &&
                                          control.generation == rate.generation &&
                                          control.selected_sample_raw_ns == original->raw_ns &&
                                          control.selected_epoch == original->epoch
                                      ? std::optional(control.frequency_ppb)
                                      : std::nullopt;
-                (void)ntp_retention.stage(utc, source, rf, control.rate_uncertainty_ppb);
+                (void)ntp_retention.stage(utc, source, std::nullopt, control.rate_uncertainty_ppb);
             }
         }
         if (!boot_recovery && !recovery_reset_at && !reset_coordinator.pending() &&
             !reset_coordinator.blocks_admission() && !reboot_at && !bootstrap.setup_pending() &&
             !bootstrap.owner_claim_pending() && scheduler.idle() &&
             wsprrypico::provisioning::idle_for_access(provisioning_activity(&service)) &&
-            ntp_rf_topology()) {
+            ntp_retention_topology()) {
             (void)ntp_retention.flush(cache_now);
         }
         if (reset_coordinator.blocks_admission() || recovery_reset_at)

@@ -1,7 +1,11 @@
 # NTP work results
 
-Executed 2026-10-17 under the [saved prompt](ntp-work-execution-prompt.md).
-Only consolidated backlog item 4 is selected. Software checks and linked
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
+Historical execution began 2026-10-17. Consolidated backlog item 4 is now closed. Software checks and linked
 images do not establish physical UTC accuracy, carrier calibration or symbol
 timing. The [evidence manifest](ntp-work-evidence.json) binds the final inputs,
 test outputs, image identities and actual live budget.

@@ -133,8 +133,11 @@ settings retain their defaults, including
 `maxslewrate 83333.333`, and `corrtimeratio 3`. These are configuration choices,
 not alternate NTP estimators. The bounded profile withdraws a source after
 eight consecutive unanswered requests, rather than retaining an unreachable
-association for the Unix daemon default lifetime. Pico RF carrier correction retains a separate
-±100 ppm range and independent physical qualification gate.
+association for the Unix daemon default lifetime. Pico RF carrier correction uses only the independent, persistent manual PPM
+value within its existing ±100 ppm range. NTP-derived RF calibration is rejected;
+legacy candidate diagnostics never grant RF authority. The Pico-to-Pi GPIO pulse
+measurement path is retired. The [closeout](../../docs/development/ntp-work-closeout.md)
+records that disposition; future GPS/PPS input remains in the backlog.
 
 Supported scope is a bounded IPv4 basic client with a virtual UTC clock. It does
 not implement NTS/MAC authentication, NTP server/peer modes, interleaved or

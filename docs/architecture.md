@@ -153,7 +153,11 @@ or enabled settings after failing to parse a new record.
 
 The autonomous NTP engine is the original MIT [μChrony](../src/microchrony/README.md)
 module. The Pico adapter imports its virtual UTC model without another NTP
-estimator or servo. The controller/NTP arbiter retains cross-source authority
+estimator or servo. Its rate estimate and retained seed control UTC only; the RF
+engine uses the saved manual PPM. NTP-derived RF calibration is rejected and has
+no selection path. Old RF-prior journal fields remain readable but are inert.
+The retired Pico-to-Pi pulse instrumentation is absent from firmware and host
+tools. The controller/NTP arbiter retains cross-source authority
 and disagreement handling for BLE and SoftAP observations. Chrony 4.9 remains
 an external test reference; full behavioral equivalence and physical UTC/RF
 accuracy remain unqualified. [Replacement results](development/microchrony-results.md)
@@ -165,8 +169,10 @@ Host tests, cross-linking, physical device observations and RF measurements are
 separate evidence classes. Conducted support applies only to its exact
 board/source/image/clock/mode/receiver/path. It establishes no calibrated output
 power, antenna-ready emissions, general physical interoperability or release
-reliability. Manual PPM remains independent; NTP time does not qualify automatic
-RF frequency calibration. No production engine/range is broadly qualified.
+reliability. Manual PPM remains independent; NTP-derived RF frequency calibration
+is not supported. Future GPS/PPS ingestion will reuse the UTC engine through a
+qualified reference-clock adapter; it is not implemented today. No production
+engine/range is broadly qualified.
 
 The [shared transmitter/fleet contract](transmitter-application-contract.md)
 defines configuration domains and controller-owned versus member-owned

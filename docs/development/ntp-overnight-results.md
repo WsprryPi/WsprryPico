@@ -1,5 +1,10 @@
 # Overnight NTP comparison
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 The user authorized this run after B passed one physical cold start and three
 fresh post-cold NTP observations. It extends the completed original experiment's
 collection budget. The [retention report](ntp-retained-results.md) records the

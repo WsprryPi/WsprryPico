@@ -19,6 +19,7 @@ class NtpRetention {
         std::uint64_t epoch = 0, generation = 0, reference_utc_ns = 0;
         bool operator==(const Provenance&) const = default;
     };
+    // Legacy journal payload only; no production NTP-to-RF consumer or new RF learning.
     struct RfPrior {
         std::int32_t utc_rate_ppb = 0;
         std::uint32_t uncertainty_ppb = 0, samples = 0;
@@ -201,18 +202,6 @@ class NtpRetention {
     void on_erase(void (*observer)(void*), void* context) {
         erase_observer_ = observer;
         erase_context_ = context;
-    }
-    std::string rf_json() const {
-        if (!healthy_ || !record_ || !record_->rf)
-            return "null";
-        const auto& r = *record_->rf;
-        return "{\"historical\":true,\"age_known\":false,\"utc_rate_ppb\":" +
-               std::to_string(r.utc_rate_ppb) +
-               ",\"uncertainty_ppb\":" + std::to_string(r.uncertainty_ppb) +
-               ",\"samples\":" + std::to_string(r.samples) + ",\"span_ns\":\"" +
-               std::to_string(r.span_ns) + "\",\"source_boot\":\"" + r.source.boot +
-               "\",\"source_epoch\":\"" + std::to_string(r.source.epoch) +
-               "\",\"reference_utc_ns\":\"" + std::to_string(r.source.reference_utc_ns) + "\"}";
     }
     bool healthy() const {
         return healthy_;

@@ -17,16 +17,14 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
 3. ✅ **Amplifier-enable GPIO during transmissions.** Assert the configured enable
    pin before RF starts and return it inactive after completion, stop, abort
    or fault. See [amplifier enable](amplifier-enable.md).
-4. ⏳ **NTP Work** [Saved prompt](ntp-work-execution-prompt.md).
+4. ✅ **NTP Work — closed.**
    - ✅ Persistent standalone manual PPM.
-   - ✅ NTP filtering and UTC rate discipline.
-   - ⏳ **Implement μChrony for NTP-derived RF calculation.** Replace prior
-     estimators with an original MIT implementation; validate the bounded Chrony 4.9
-     profile and complete independent RF qualification while preserving independent
-     manual PPM and launch limits.
-     The bounded software comparison and normal-firmware A/B NTP checks are
-     complete; full daemon equivalence and physical RF acceptance remain
-     unqualified. [Replacement results](microchrony-results.md).
+   - ✅ NTP filtering and UTC rate discipline using the original MIT μChrony engine.
+   - ✅ **4.3: RF-calibration investigation closed — rejected for current use.**
+     Retain μChrony for UTC discipline and the future GPS/PPS foundation. Internet
+     NTP has not demonstrated reliable RF-calibration benefit. RF correction uses
+     the saved manual PPM only. The Pico-to-Pi GPIO pulse measurement path is removed.
+     [Decision and closeout](ntp-work-closeout.md).
 5. ✅ **Impeccable UI review**, including provisioning; accepted and closed.
    VoiceOver testing is closed as not required.
    Installer coverage is deferred.
@@ -93,8 +91,9 @@ Status: ✅ finished; ⏳ in flight; ▧ not started.
     rules](https://chrony-project.org/doc/4.9/chrony.conf.html#refclock) using
     original MIT code. Validate UTC timing and RF frequency separately against
     independent physical references, with measured path errors and explicit
-    acceptance bounds. The present A/B GPIO pulses measure the NTP-controlled
-    clocks; they do not feed PPS into either Pico's clock-control loop.
+    acceptance bounds. The retired Pico-to-Pi GPIO measurement path is not a
+    prerequisite or input for this future GPS/PPS work; use a qualified reference
+    source connected through the proposed input adapter.
 - **Advanced Pico scheduling and durable controller/member transfer**, after
   WsprryPi [issue 333](https://github.com/WsprryPi/WsprryPi/issues/333) research.
 - **Keying-envelope work.**

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "standalone/ntp_retention.hpp"
 #include "standalone/storage.hpp"
 #include "time/ntp_filter.hpp"
 #include "wtp/job_service.hpp"
@@ -26,15 +25,6 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     }
     void freeze_pair_calibration(bool freeze) override {
         pair_frozen_ = freeze;
-    }
-    void ntp_candidate(time::RateEstimate candidate, const wtp::Clock& clock,
-                       bool topology_supported) {
-        candidate_ = candidate;
-        clock_ = &clock;
-        topology_supported_ = topology_supported;
-    }
-    void retention(const NtpRetention& value) {
-        retention_ = &value;
     }
     std::string calibration_status(std::uint64_t now) const override;
     std::string_view diagnostic() const override {
@@ -75,21 +65,11 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     struct Selection {
         std::int32_t ppb = 0;
         std::uint64_t generation = 0;
-        bool ntp = false;
-        bool saved = false;
     };
-    Selection selection(std::uint64_t now) const;
-    const char* fallback_reason(std::uint64_t now) const;
+    Selection selection() const;
     std::optional<Selection> frozen_;
     bool pair_frozen_ = false;
     std::optional<std::int32_t> programmed_;
-    time::RateEstimate candidate_;
-    const NtpRetention* retention_ = nullptr;
-    const wtp::Clock* clock_ = nullptr;
-    bool topology_supported_ = false;
-    // Physical applicability is unverified for this source/image. There is no
-    // API toggle that can promote software fitting into independent RF evidence.
-    static constexpr bool independent_rf_verified_ = false;
     wtp::RfEngine& engine_;
     const Store& store_;
     const std::uint64_t minimum_, maximum_;

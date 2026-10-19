@@ -19,7 +19,7 @@
     function render() {
       read.disabled = busy || !available;
       input.disabled = mode.disabled = busy || !available || !observed || !revision;
-      save.disabled = input.disabled || review || !edited || ppm(input.value) === null || !['manual','ntp'].includes(mode.value);
+      save.disabled = input.disabled || review || !edited || ppm(input.value) === null || mode.value !== 'manual';
       if (discard) discard.disabled = busy || !observed || !revision;
       if (adopt) { adopt.hidden = !review; adopt.disabled = busy || !observed || !revision; }
       input.setAttribute('aria-invalid',String(ppm(input.value) === null));
@@ -30,7 +30,7 @@
           v.target?.scope !== 'member' || !/^[0-9a-f]{32}$/.test(v.target.device_id) ||
           !/^[0-9a-f]{32}$/.test(v.target.boot_id) || !v.storage_healthy ||
           typeof v.saved?.manual_ppm !== 'string' || ppm(v.saved.manual_ppm) === null ||
-          !['manual','ntp'].includes(v.saved.mode)) throw new Error('Calibration readback is unavailable or unsupported.');
+          v.saved.mode !== 'manual') throw new Error('Calibration readback is unavailable or unsupported.');
       return v;
     }
     async function load() {
@@ -44,7 +44,7 @@
           input.value = v.saved.manual_ppm; mode.value = v.saved.mode; draftTarget = identity(v);
         }
         review = edited && draftTarget !== identity(v);
-        status.textContent = `Saved ${v.saved.manual_ppm} ppm (${v.saved.mode}). Next job: ${v.selection?.next_ppb ?? 'unavailable'} ppb. ${v.selection?.reason ?? ''}${edited ? ' Your entry is preserved.' : ''}${review ? ' Review the new Pico identity before using this entry.' : ''}`;
+        status.textContent = `Saved ${v.saved.manual_ppm} ppm (${v.saved.mode}). Next job: ${v.selection?.next_ppb ?? 'unavailable'} ppb. Network time disciplines UTC only.${edited ? ' Your entry is preserved.' : ''}${review ? ' Review the new Pico identity before using this entry.' : ''}`;
       } catch (e) { if (ticket === epoch) status.textContent = e.message; }
       finally { busy = false; render(); }
     }
@@ -62,7 +62,7 @@
           throw new Error('Saved calibration differs; read saved calibration before another save.');
         observed = v; revision = r.revision; edited = false; review = false;
         input.value = v.saved.manual_ppm; mode.value = v.saved.mode; draftTarget = identity(v);
-        status.textContent = 'Calibration saved for future jobs. ' + (v.selection?.reason ?? '');
+        status.textContent = 'Manual calibration saved for future jobs.';
         afterSave();
       } catch (e) { if (ticket === epoch) status.textContent = e.message + ' Read saved calibration before another save; your entry is preserved.'; }
       finally { busy = false; render(); }

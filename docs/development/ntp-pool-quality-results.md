@@ -1,5 +1,10 @@
 # NTP pool quality and extended history: paused
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 This record describes the earlier pause. The subsequently authorized
 [compact-status and bounded-USB follow-up](ntp-pool-usb-results.md) resolves
 that resource boundary and records its separate B run. The restoration below

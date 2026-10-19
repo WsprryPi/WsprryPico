@@ -26,7 +26,9 @@ messages before LOAD/ARM; WTP carries complete encoded jobs. See
 [finite jobs](docs/development/extended-jobs.md) and
 [WSPR planning](docs/development/wspr-planning.md).
 
-UTC synchronization and RF frequency calibration are separate. Job launch
+μChrony supplies UTC discipline; RF carrier correction uses the persistent manual
+PPM value. NTP-derived RF calibration and Pico-to-Pi GPIO timing pulses are not
+supported. GPS/PPS input is future work in the consolidated backlog. Job launch
 retains clock uncertainty, age, ownership, frequency, hardware and output
 inhibition checks. A compile or simulated job establishes neither physical
 symbol timing nor RF performance.

@@ -308,10 +308,9 @@ HttpResponse BrowserApi::rf_calibration() const {
     auto result = ok(
         "{\"schema\":\"transmitter-rf-calibration/1\",\"target\":" +
         application::target(device_, service_.status().boot_id) + ",\"saved\":" +
-        (config
-             ? "{\"manual_ppm\":" + json::quote(rf::format_ppm(config->manual_correction_ppb)) +
-                   ",\"mode\":" + json::quote(config->ntp_rf_calibration ? "ntp" : "manual") + "}"
-             : "null") +
+        (config ? "{\"manual_ppm\":" + json::quote(rf::format_ppm(config->manual_correction_ppb)) +
+                      ",\"mode\":" + json::quote("manual") + "}"
+                : "null") +
         ",\"selection\":" + service_.calibration_status() +
         ",\"execution_engine\":" + json::quote(service_.config().capability_engine) +
         ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") + "}");
@@ -1074,6 +1073,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         const auto mode = value.get("mode")->string();
         if (!ppb || (mode != "manual" && mode != "ntp"))
             return http_error(400, "invalid_calibration");
+        if (mode == "ntp")
+            return http_error(400, "ntp_rf_rejected");
         if (!effective_config())
             return http_error(409, "not_configured");
         auto updated = *effective_config();
@@ -1082,8 +1083,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         updated.ntp_rf_calibration = false;
         candidate = standalone::serialize_config(updated);
         candidate.pop_back();
-        candidate += ",\"manual_correction_ppb\":" + std::to_string(*ppb) +
-                     ",\"ntp_rf_calibration\":" + (mode == "ntp" ? "true}" : "false}");
+        candidate +=
+            ",\"manual_correction_ppb\":" + std::to_string(*ppb) + ",\"ntp_rf_calibration\":false}";
     } else if (drive_resource) {
         const auto checked = application::validate_envelope(
             *root, "transmitter-gpio-drive/1", "gpio_drive_ma", device_, service_.status().boot_id);

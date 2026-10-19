@@ -3,8 +3,9 @@
 Persistent carrier calibration uses the independently advertised
 `/api/v1/rf-calibration` resource. Saved manual correction is signed ppb with
 zero/manual default and decimal ppm presentation; saves take effect only at
-future preparation. [NTP work](ntp-work-results.md) defines sign, persistence,
-consent, filtering/rate mapping and the independent RF gate.
+future preparation. RF correction uses manual PPM only; μChrony controls UTC.
+The [NTP closeout](ntp-work-closeout.md) records the rejection of NTP-derived RF
+calibration and removal of the Pico-to-Pi GPIO timing link.
 
 Current [Hostname selection](hostname.md) uses the saved consumer profile name for a new boot while keeping the running boot coherent. The editor does not require message/job entry, alter station/schedule readiness, clear STOP, or change pins/watermarks. Engineering names require replacement matching credentials.
 
@@ -392,9 +393,8 @@ independent absolute UTC or RF accuracy.
 
 Routine status contains compact source, phase, frequency, skew and readiness
 summaries. Complete original records use [bounded USB pages](ntp-usb-diagnostics.md).
-Persistent manual PPM remains independent. NTP RF candidates require a current
-statistical rate bound, freshness and supported topology; automatic carrier
-selection remains inhibited by the independent physical RF gate. The
+Persistent manual PPM remains independent and is the only RF correction source.
+NTP estimates and saved RF priors have no RF selection path. The
 [historical NTP results](ntp-work-results.md) retain evidence for earlier images.
 
 The time arbiter accepts authenticated controller/phone time when SNTP is unavailable.
@@ -431,24 +431,25 @@ Maintained application linker layouts and image checks reject
 ordinary image content in all reserved regions. Station, schedules and watermark
 addresses are unchanged.
 
-Manual PPM and automatic NTP learning use separate journals. Manual correction
-and selected mode remain unchanged until an explicit configuration change or
-operational reset. The learned cache binds device, algorithm/topology version,
+Manual PPM and learned UTC rate use separate journals. Manual correction remains
+unchanged until an explicit configuration change or operational reset. The
+legacy NTP RF-mode flag remains readable but is inert. The learned cache binds
+device, algorithm/topology version,
 normal clock ratio, source endpoint, boot, epoch and original reference time.
-UTC frequency/skew and software-qualified RF learning retain separate provenance.
+UTC frequency/skew retains its original source provenance.
 Writes require idle/unowned state outside provisioning, reset and reboot, a
-minimum five-minute interval and a meaningful 0.1 ppm change, a halving of UTC skew, or first RF value.
-Pending independent UTC/RF learning survives that cooldown in RAM.
+minimum five-minute interval and a meaningful 0.1 ppm change or a halving of UTC
+skew. Pending UTC learning survives that cooldown in RAM. Production does not
+stage new RF priors.
 
 The 192-byte cache payload version 2 stores pure UTC frequency and skew,
 separately from temporary phase-slew rate and any RF prior. It reads version 1
 with broad unknown skew; older images do not understand version 2. After restart,
 a saved frequency seeds μChrony with a broad provisional error bound. It restores
 no UTC, sample history or freshness; acquisition still requires real replies.
-A saved RF value is historical, with unknown current age. It can supply an NTP-mode
-startup fallback only after the same topology, adjustment-consent and independent
-physical RF gates permit it. The physical RF gate remains unverified in this
-image. Fresh calibration qualification is still determined from current originals.
+Legacy RF payloads remain readable to preserve journal compatibility, but cannot
+supply a startup fallback or any other RF correction. They do not invalidate the
+separate UTC seed.
 Cache corruption cannot make configuration unhealthy. A torn cache update can
 recover the last verified record; unknown device/version/topology records are
 rejected without erasing them. Full operational reset erases and verifies both

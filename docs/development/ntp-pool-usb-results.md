@@ -1,5 +1,10 @@
 # Compact NTP status and bounded USB histories
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 The normal `WsprryPico.uf2` image `0.0.0-ntp-pool-usb-r2` resolves the earlier
 routine-status memory conflict. A real authenticated Consumer-Radio/1 request
 sequence succeeded on B with both 32-record histories full. The pool baseline

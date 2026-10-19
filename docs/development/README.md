@@ -102,13 +102,12 @@ and WTP inventory. `scripts/console_trace.py` reads bounded diagnostic pages;
 Inspect an opt-in entry point before running it; normal software checks do not
 open devices.
 
-The [USB clock pulse probe](clock-pulse-probe.md) brackets an explicit GP22
-edge with application UTC snapshots. Its finite Linux wiring checker records
-GPIO timestamps without submitting time, claiming RF ownership or starting jobs.
-The read-only input-context helper preserves idle levels, RP1 control registers
-and current/historical power flags before refusing a fault. See the
-[packet and clock-control comparison](microchrony-conformance-results.md) for
-reference boundaries, known-error convergence and physical-test limitations.
+μChrony supplies UTC discipline and persisted provisional clock rate. RF
+correction uses manual PPM only. The [NTP closeout](ntp-work-closeout.md)
+records the rejection of Internet NTP for RF calibration and removal of the
+Pico-to-Pi GPIO pulse firmware and host tooling. GPS/PPS reference input remains
+future work. The [packet and clock-control comparison](microchrony-conformance-results.md)
+retains reference boundaries, known-error convergence and historical physical-test limits.
 
 `src/rf_analysis/` contains offline sample-job construction, keyed-signal,
 reference-carrier, relative-drive, aborted-waveform and RF-presence analysis.
@@ -160,8 +159,7 @@ before using the replacement. Disabled defaults in an existing cache are allowed
 - [USB time uncertainty](usb-time-uncertainty.md) and
   [calibration calculation methods](gpio-time-calibration-research-methods.md).
 
-NTP work and its live investigation inputs remain in the
-[NTP work record](ntp-work-results.md).
-Manual RF correction, UTC synchronization and automatic RF calibration have
-separate acceptance boundaries. Chrony is an external test reference, not a
-firmware dependency. Physical UTC/RF accuracy remains unqualified.
+The [NTP closeout](ntp-work-closeout.md) records current manual-only RF correction
+and retained μChrony UTC discipline. Earlier investigation evidence remains in
+the [NTP work record](ntp-work-results.md). Chrony is an external test reference,
+not a firmware dependency. Physical UTC/RF accuracy remains unqualified.

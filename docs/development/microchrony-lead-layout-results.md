@@ -1,5 +1,10 @@
 # μChrony A/B results after GPIO lead rearrangement
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 The finite October 19 comparison completed at **08:16:37 CDT**, before its
 08:19:46 deadline. Both boards produced 319 main-capture pulses with **zero
 unexpected GPIO events**. The rearranged leads supported a complete measurement
@@ -217,7 +222,6 @@ python3 build/microchrony-lead-layout-20261019/analyze_pulses.py
 python3 build/microchrony-lead-layout-20261019/analyze_rf.py
 python3 build/microchrony-lead-layout-20261019/audit_terminal.py
 python3 tests/clock_measurement_tests.py
-python3 tests/clock_pulse_probe_tests.py
 ```
 
 The checks establish the reported finite observations and conditional arithmetic.

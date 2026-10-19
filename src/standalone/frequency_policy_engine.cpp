@@ -21,8 +21,7 @@ wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
         if (event.rf_on && (!event.frequency_nhz || !allowed(*event.frequency_nhz)))
             return {};
     }
-    const auto now = clock_ ? clock_->snapshot().monotonic_now_ns : 0;
-    const auto selected = pair_frozen_ && frozen_ ? *frozen_ : selection(now);
+    const auto selected = pair_frozen_ && frozen_ ? *frozen_ : selection();
     if ((selected.ppb && !job.allow_frequency_adjustment) ||
         (programmed_ != selected.ppb && !engine_.set_frequency_correction_ppb(selected.ppb)))
         return {};
@@ -39,92 +38,28 @@ wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
     frozen_ = selected;
     return prepared;
 }
-FrequencyPolicyEngine::Selection FrequencyPolicyEngine::selection(std::uint64_t now) const {
+FrequencyPolicyEngine::Selection FrequencyPolicyEngine::selection() const {
     Selection result;
     if (store_.config()) {
         result.ppb = store_.config()->manual_correction_ppb;
         result.generation = store_.config_sequence();
     }
-    if (std::string_view(fallback_reason(now)) == "qualified_ntp") {
-        result.ppb = *time::oscillator_correction(candidate_);
-        result.generation = candidate_.generation;
-        result.ntp = true;
-    } else if (std::string_view(fallback_reason(now)) == "saved_ntp_prior") {
-        const auto& prior = *retention_->record()->rf;
-        time::RateEstimate rate;
-        rate.qualified = true;
-        rate.utc_rate_ppb = prior.utc_rate_ppb;
-        const auto correction = time::oscillator_correction(rate);
-        if (!correction)
-            return result;
-        result.ppb = *correction;
-        result.generation = retention_->sequence();
-        result.ntp = result.saved = true;
-    }
     return result;
 }
-const char* FrequencyPolicyEngine::fallback_reason(std::uint64_t now) const {
-    if (!store_.config() || !store_.config()->ntp_rf_calibration)
-        return "manual_mode";
-    const bool saved =
-        retention_ && retention_->healthy() && retention_->record() && retention_->record()->rf;
-    const bool fresh = clock_ && candidate_.qualified && now >= candidate_.sampled_ns &&
-                       now - candidate_.sampled_ns <= time::ntp_fresh_ns &&
-                       time::oscillator_correction(candidate_);
-    if (saved && !fresh) {
-        if (!topology_supported_)
-            return "unsupported_clock_topology";
-        if (!independent_rf_verified_)
-            return "independent_rf_unverified";
-        return "saved_ntp_prior";
-    }
-    if (!clock_ || !candidate_.qualified)
-        return candidate_.reason;
-    if (now < candidate_.sampled_ns || now - candidate_.sampled_ns > time::ntp_fresh_ns)
-        return "stale";
-    if (!time::oscillator_correction(candidate_))
-        return "out_of_range";
-    if (!topology_supported_)
-        return "unsupported_clock_topology";
-    if (!independent_rf_verified_)
-        return "independent_rf_unverified";
-    return "qualified_ntp";
-}
-std::string FrequencyPolicyEngine::calibration_status(std::uint64_t now) const {
-    const auto next = selection(now);
-    auto visible_candidate = candidate_;
-    if (now < candidate_.sampled_ns || now - candidate_.sampled_ns > time::ntp_fresh_ns) {
-        visible_candidate.qualified = false;
-        visible_candidate.reason = "stale";
-    }
-    const auto correction = time::oscillator_correction(visible_candidate);
-    const auto age = now >= candidate_.sampled_ns ? now - candidate_.sampled_ns : 0;
-    // Reciprocal uncertainty: |dr/ds| <= 1e18/(1e9-200000)^2, plus integer rounding.
-    const auto rf_uncertainty =
-        (std::uint64_t(candidate_.uncertainty_ppb) * 1'001 + 999) / 1000 + 2;
-    return "{\"candidate\":" + time::rate_json(visible_candidate) +
-           ",\"candidate_correction_ppb\":" + (correction ? std::to_string(*correction) : "null") +
-           ",\"candidate_uncertainty_ppb\":" + std::to_string(rf_uncertainty) +
-           ",\"saved_ntp_available\":" +
-           (retention_ && retention_->healthy() && retention_->record() && retention_->record()->rf
-                ? "true"
-                : "false") +
-           ",\"saved_ntp\":" + (retention_ ? retention_->rf_json() : "null") +
-           ",\"candidate_age_ns\":\"" + std::to_string(age) +
-           "\",\"topology_supported\":" + (topology_supported_ ? "true" : "false") +
-           ",\"independent_rf_verified\":false,\"next_ppb\":" + std::to_string(next.ppb) +
-           ",\"next_generation\":\"" + std::to_string(next.generation) + "\"" +
-           ",\"next_source\":" +
-           wtp::json::quote(next.saved ? "ntp_saved"
-                            : next.ntp ? "ntp"
-                                       : "manual") +
-           ",\"reason\":" + wtp::json::quote(fallback_reason(now)) +
-           ",\"prepared_ppb\":" + (frozen_ ? std::to_string(frozen_->ppb) : "null") +
-           ",\"prepared_source\":" +
-           (frozen_ ? wtp::json::quote(frozen_->saved ? "ntp_saved"
-                                       : frozen_->ntp ? "ntp"
-                                                      : "manual")
-                    : "null") +
+std::string FrequencyPolicyEngine::calibration_status(std::uint64_t) const {
+    const auto next = selection();
+    // Retain the v1 diagnostic shape, with no runnable or qualified NTP input.
+    time::RateEstimate rejected;
+    rejected.reason = "ntp_rf_rejected";
+    return "{\"candidate\":" + time::rate_json(rejected) +
+           ",\"candidate_correction_ppb\":null,\"candidate_uncertainty_ppb\":0,"
+           "\"saved_ntp_available\":false,\"saved_ntp\":null,\"candidate_age_ns\":\"0\","
+           "\"topology_supported\":false,\"independent_rf_verified\":false,"
+           "\"ntp_rf_supported\":false,\"next_ppb\":" +
+           std::to_string(next.ppb) + ",\"next_generation\":\"" + std::to_string(next.generation) +
+           "\"" + ",\"next_source\":\"manual\",\"reason\":\"manual_mode\",\"prepared_ppb\":" +
+           (frozen_ ? std::to_string(frozen_->ppb) : "null") +
+           ",\"prepared_source\":" + (frozen_ ? "\"manual\"" : "null") +
            ",\"prepared_generation\":" +
            (frozen_ ? wtp::json::quote(std::to_string(frozen_->generation)) : "null") + "}";
 }

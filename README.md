@@ -81,9 +81,10 @@ inactive when output stops. LPF control and an external Si5351 engine are
 unavailable.
 
 Network time synchronization and RF frequency correction are separate.
-Manual PPM correction is retained; automatic NTP-derived RF calibration is
-not qualified. The explicitly selected `WsprryPico-Inhibited` firmware simulates
-jobs without generating RF.
+μChrony maintains UTC for timed launches. RF carrier correction uses the
+persistent manual PPM setting; NTP-derived RF calibration is not supported.
+The explicitly selected `WsprryPico-Inhibited` firmware simulates jobs without
+generating RF.
 
 Consumer web pages use HTTP with password-authenticated encrypted application
 traffic. HTTP page delivery is unauthenticated: a substituted page can steal

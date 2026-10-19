@@ -1,5 +1,10 @@
 # Independent pulse and RF clock-rate comparison
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 The finite Internet-NTP comparison produced **174 valid pulse measurements per
 board**, then the logger terminated at **17:48:00 CDT on October 18, 2026**.
 The clock's freshness check became false and the logger treated that condition

@@ -1,5 +1,10 @@
 # μChrony clock-control comparison
 
+Current disposition: [NTP work is closed](ntp-work-closeout.md). μChrony is
+retained for UTC discipline and future GPS/PPS input; NTP-derived RF calibration
+is rejected. The Pico-to-Pi GPIO pulse path is retired. Results below describe
+their recorded images and evidence, not current operating instructions.
+
 The complete supported source-to-clock control paths are compared against
 unmodified Chrony 4.9 using identical deterministic oscillator ticks, server
 timestamps, network delays and loss. Twenty-five four-hour traces have independent
