@@ -1,22 +1,29 @@
 """Operator manual only. Engineering material is outside this source tree."""
 import os
 import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent / "_ext"))
 
 project = "WsprryPico"
 author = "Lee C. Bussy and contributors"
 copyright = "2026, Lee C. Bussy and contributors"
-extensions = ["myst_parser"]
+extensions = ["image_delivery", "myst_parser"]
+templates_path = ["_templates"]
 source_suffix = {".md": "markdown"}
 master_doc = "index"
 language = "en"
-exclude_patterns = ["_build", ".venv", "requirements.txt", "Thumbs.db", ".DS_Store"]
-myst_enable_extensions = ["colon_fence", "deflist"]
+exclude_patterns = ["_build", ".venv", "requirements.txt", "Makefile", "make.bat",
+                    "Thumbs.db", ".DS_Store"]
+myst_enable_extensions = ["colon_fence", "deflist", "tasklist"]
 myst_heading_anchors = 4
 nitpicky = True
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
     "logo_only": False,
     "collapse_navigation": False,
+    "sticky_navigation": True,
     "navigation_depth": 3,
     "includehidden": True,
     "titles_only": True,

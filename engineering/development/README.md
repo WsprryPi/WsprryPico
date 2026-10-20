@@ -183,6 +183,29 @@ docs/.venv/bin/python -m pip install -r docs/requirements.txt
 docs/.venv/bin/python -m sphinx -E -a -n -W --keep-going -b html docs docs/_build/html
 ```
 
-Run these commands from the repository root. The documentation dependencies do
-not install an SDK or toolchain. [Migration and publication evidence](operator-documentation-results.md)
+Run these commands from the repository root. After creating the local environment,
+`make -C docs html` uses that environment and enables warnings as errors. On
+Windows, create `docs\.venv` with `py -m venv docs\.venv`, install the same pinned
+requirements with `docs\.venv\Scripts\python -m pip install -r docs/requirements.txt`,
+then run `docs\make.bat html`.
+
+Validate the built site's local links and the image-loading policy with:
+
+```sh
+docs/.venv/bin/python scripts/check_documentation.py
+docs/.venv/bin/python tests/test_image_delivery.py
+```
+
+The shared scaffold follows WsprryPi-Docs
+`c0215b6d980ae809dfacdeb9d2ef557dfc71445e`: Sphinx/MyST/RTD navigation,
+logo/favicon, typography, search/code/table/footer styling, a native mobile
+menu button and HTML image-delivery hints. Pico retains its operator-only
+navigation, version-selector contrast/label fixes, skip link and touch targets.
+Pi-specific compatibility-table styles, unused autodoc/todo/viewcode extensions,
+the unused antenna asset, unpinned editor dependencies and non-HTML export
+configuration are outside this scaffold. Its dependencies stay pinned in
+`docs/requirements.txt`. Attribution is in the [public credits](../../docs/reference/credits.md).
+
+The documentation dependencies do not install an SDK or toolchain.
+[Migration and publication evidence](operator-documentation-results.md)
 records source coverage, screenshots, reproducible checks and publication state.

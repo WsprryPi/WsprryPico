@@ -3,11 +3,16 @@
 Original WsprryPico code and documentation are covered by [MIT](LICENSE.md).
 Third-party material retains its own license and attribution requirements.
 
-The operator manual adapts typography, navigation styling and keyboard support
+The operator manual adapts typography, navigation styling, keyboard support
+and Sphinx build helpers
 from [WsprryPi-Docs](https://github.com/WsprryPi/WsprryPi-Docs) at
 `c0215b6d980ae809dfacdeb9d2ef557dfc71445e`. Its
 `docs/_static/WsprryPi_Logo.png` and `docs/_static/favicon.ico` are copied
-unchanged from that revision. MIT, copyright 2024 Lee Bussy; the complete
+unchanged from that revision, along with `docs/_templates/layout.html` and
+`tests/test_image_delivery.py`. The adapted `docs/_ext/image_delivery.py`
+converts inferred pixel styles to intrinsic HTML dimensions for the pinned
+Docutils 0.21 writer, preserving responsive sizing and authored dimensions.
+MIT, copyright 2024 Lee Bussy; the complete
 retained notice is in [the manual's credits](docs/reference/credits.md).
 Preserve that notice with distributions of these assets and adapted material.
 

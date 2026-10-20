@@ -6,10 +6,14 @@ See [third-party notices](https://github.com/WsprryPi/WsprryPico/blob/devel/THIR
 for firmware and browser dependency attribution.
 
 The manual uses Sphinx, MyST Markdown and sphinx_rtd_theme. Its typography,
-spacing, navigation colors and mobile keyboard behavior adapt
+spacing, navigation colors, mobile navigation and build helpers adapt
 [WsprryPi-Docs](https://github.com/WsprryPi/WsprryPi-Docs) at
 `c0215b6d980ae809dfacdeb9d2ef557dfc71445e`.
 The WsprryPi logo and favicon are copied unchanged from the same revision.
+The image-delivery extension and its build regression test come from the same
+revision. The Pico extension adapts inferred dimensions for pinned Docutils 0.21
+so responsive CSS can resize images. They preserve authored sizing, keep the first
+content image eager, and defer later images.
 
 The adapted portions retain this license:
 

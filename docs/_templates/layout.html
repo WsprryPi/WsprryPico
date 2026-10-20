@@ -1,0 +1,9 @@
+{% extends "!layout.html" %}
+
+{% block mobile_nav %}
+  <button type="button" class="wy-nav-top-toggle" data-toggle="wy-nav-top" aria-expanded="false">
+    <span class="fa fa-bars" aria-hidden="true"></span>
+    <span class="visually-hidden">Open navigation menu</span>
+  </button>
+  <a href="{{ pathto(master_doc) }}">{{ project }}</a>
+{% endblock %}

@@ -18,7 +18,6 @@ Keep schedules disabled and output inactive while setting up. Sign in, choose
 
 ```{figure} _static/images/station-draft.jpg
 :alt: Station identity editor showing an encodable saved draft, separate Save valid station fields and Apply saved station actions, and the standalone frequency section.
-:width: 960px
 :target: _static/images/station-draft.jpg
 
 Current page with illustrative fixture data. An encodable saved draft is separate

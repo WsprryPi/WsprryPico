@@ -25,26 +25,19 @@ document.addEventListener("DOMContentLoaded", () => {
         skip.textContent = "Skip to content";
         document.body.prepend(skip);
     }
-    const oldToggle = document.querySelector(".wy-nav-top [data-toggle='wy-nav-top']");
-    if (!oldToggle) return;
-    const toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = "wy-nav-top-toggle";
-    toggle.setAttribute("data-toggle", "wy-nav-top");
-    toggle.setAttribute("aria-label", "Open navigation menu");
-    toggle.innerHTML = '<span class="fa fa-bars" aria-hidden="true"></span>';
-    const icon = toggle.querySelector("i");
-    if (icon) icon.setAttribute("aria-hidden", "true");
-    oldToggle.replaceWith(toggle);
+    const toggle = document.querySelector(".wy-nav-top-toggle");
+    const label = toggle && toggle.querySelector(".visually-hidden");
+    if (!toggle || !label) return;
     const side = document.querySelector(".wy-nav-side");
     if (side) { side.id = "manual-navigation"; toggle.setAttribute("aria-controls", side.id); }
     const shifted = () => document.querySelector(".wy-nav-content-wrap.shift") !== null;
     const sync = () => {
         toggle.setAttribute("aria-expanded", String(shifted()));
-        toggle.setAttribute("aria-label", shifted() ? "Close navigation menu" : "Open navigation menu");
+        label.textContent = shifted() ? "Close navigation menu" : "Open navigation menu";
     };
-    // The theme binds its delegated toggle handler before DOMContentLoaded.
-    toggle.addEventListener("click", () => setTimeout(sync, 0));
+    // The theme also closes the menu after same-page navigation links.
+    const content = document.querySelector(".wy-nav-content-wrap");
+    if (content) new MutationObserver(sync).observe(content, {attributes: true, attributeFilter: ["class"]});
     document.addEventListener("keydown", event => {
         if (event.key !== "Escape" || !shifted()) return;
         document.querySelectorAll("[data-toggle='wy-nav-shift'], [data-toggle='rst-versions']")

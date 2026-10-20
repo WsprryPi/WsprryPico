@@ -35,7 +35,6 @@ Use the page links to retain current browser drafts.
 
 ```{figure} _static/images/radio-login.jpg
 :alt: Pico control page with its reported hostname, Station/Transmission and Wi-Fi/Host links, and the empty Saved Wi-Fi password login field.
-:width: 960px
 :target: _static/images/radio-login.jpg
 
 Current consumer login page with a synthetic hostname. The password field is
