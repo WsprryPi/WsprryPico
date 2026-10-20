@@ -9,6 +9,7 @@ The manual uses Sphinx, MyST Markdown and sphinx_rtd_theme. Its typography,
 spacing, navigation colors and mobile keyboard behavior adapt
 [WsprryPi-Docs](https://github.com/WsprryPi/WsprryPi-Docs) at
 `c0215b6d980ae809dfacdeb9d2ef557dfc71445e`.
+The WsprryPi logo and favicon are copied unchanged from the same revision.
 
 The adapted portions retain this license:
 

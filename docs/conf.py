@@ -15,6 +15,7 @@ myst_heading_anchors = 4
 nitpicky = True
 html_theme = "sphinx_rtd_theme"
 html_theme_options = {
+    "logo_only": False,
     "collapse_navigation": False,
     "navigation_depth": 3,
     "includehidden": True,
@@ -22,6 +23,8 @@ html_theme_options = {
     "prev_next_buttons_location": "both",
     "style_external_links": True,
 }
+html_logo = "_static/WsprryPi_Logo.png"
+html_favicon = "_static/favicon.ico"
 html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
 html_js_files = ["js/accessibility.js"]

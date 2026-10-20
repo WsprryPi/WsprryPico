@@ -3,6 +3,14 @@
 Original WsprryPico code and documentation are covered by [MIT](LICENSE.md).
 Third-party material retains its own license and attribution requirements.
 
+The operator manual adapts typography, navigation styling and keyboard support
+from [WsprryPi-Docs](https://github.com/WsprryPi/WsprryPi-Docs) at
+`c0215b6d980ae809dfacdeb9d2ef557dfc71445e`. Its
+`docs/_static/WsprryPi_Logo.png` and `docs/_static/favicon.ico` are copied
+unchanged from that revision. MIT, copyright 2024 Lee Bussy; the complete
+retained notice is in [the manual's credits](docs/reference/credits.md).
+Preserve that notice with distributions of these assets and adapted material.
+
 The optional host interoperability test compiles unmodified WTP-Client
 sources from [WsprryPi](https://github.com/WsprryPi/WsprryPi) at
 `c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf`. The external component is MIT,
