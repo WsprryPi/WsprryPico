@@ -70,12 +70,58 @@ does not clear the restart requirement. Read saved and active settings separatel
 | Active hardware | Pins/drive selected at boot; may differ from saved settings |
 | Ready to transmit | Clock, owner, frequency, hardware and output guards also allow a job |
 
+### Keep incomplete progress
+
+On firmware offering **Save valid station fields**, a callsign, locator or
+reported power can be saved independently. An invalid edited field stays in
+the browser as **Not saved** while other valid fields can be retained. Fields
+you do not edit keep their saved values. Clearing a callsign or locator and
+saving clears that draft field; it does not substitute the previous applied
+value. **0 dBm** is valid reported power; a blank choice is missing power.
+
+Schedules save as one complete set, and radio pins as one complete allocation.
+An invalid schedule set or conflicting pin plan remains unsaved as a unit while
+unrelated valid edits can be retained. Consumer Wi-Fi and hostname changes use
+their own complete save workflows in [Wi-Fi/Host](maintain.md#rename-or-change-wi-fi).
+
+After Wi-Fi setup, **Set your station details** can also retain incomplete
+progress with **Save valid fields**. Complete and save the missing values,
+then choose **Apply saved station settings** and check the setup result.
+Saved progress survives a page reload, a new login and a restart. Unsaved
+browser text does not; copy it before leaving a tab.
+
+### Apply device-saved values
+
+**Apply saved station** uses the values in the Pico's saved station summary,
+even if newer unsaved text is visible in the editor. Complete the saved station
+and review its WSPR plan first. An incomplete or unencodable station cannot
+be applied for local WSPR. A valid radio-settings draft can still apply using
+the previously complete station. QRSS, FSKCW, DFCW and externally prepared jobs
+have their own input and admission requirements.
+
 A draft save does not arm a job. Explicitly saving/applying **Enable standalone
 schedules** authorizes automatic transmissions at later eligible slots once
 all readiness checks pass. A saved or complete configuration alone does not
 establish RF readiness. Review [Operate](operate.md) before enabling it.
 
-If a save reply is lost, use **Read saved settings and keep draft**, compare the
-readback, then choose **I reviewed saved settings; enable a new save** only
-after review. For commissioning, use **Check saved result** and its continuation.
-Reconnect and sign in again if requested. Do not blindly repeat a save.
+An already enabled schedule continues with its applied settings while you save
+progress. Saving an unchecked enable box alone does not disable that schedule;
+apply the change and confirm readback. Saving progress also leaves STOP and
+fault state intact. Completing a draft, logging in, refreshing or restarting
+never applies that draft automatically.
+
+### Recover an uncertain save
+
+If a save reply is lost, keep the tab open, sign in again if needed and use
+**Read saved settings and keep draft**. Compare the readback, then choose
+**I reviewed saved settings; enable a new save** only after review. During
+setup, draft recovery uses **Read saved progress; keep edits** followed by
+**I reviewed saved progress; enable a new save**. Use **Check saved result**
+and its continuation for an uncertain setup application.
+
+The change may already be stored. Matching values do not identify which
+interrupted request committed. Follow the reported continuation without
+automatically repeating Save or Apply. **Reload saved settings** discards
+unsaved edits and adopts device-saved progress. Provisioning and full resets
+remove saved progress; read the [reset consequences](maintain.md#recovery-and-reset)
+before using them.

@@ -26,9 +26,11 @@ Choose how to operate:
 - **Standalone:** Save your station, frequency and WSPR schedule on the Pico,
   or send individual messages from its browser page. A network time server
   supplies UTC when connected.
-- **WsprryPi member:** Connect the Pico by USB, or select its supported network
-  transport in WsprryPi. WsprryPi submits complete jobs; the Pico executes them.
-  See [Use with WsprryPi](wsprrypi.md).
+- **WsprryPi member:** Follow
+  [Add a WsprryPico in the WsprryPi manual](https://wsprry-pi.readthedocs.io/en/devel/Install/pico.html)
+  to connect, identify and schedule the device from the Pi. USB supports
+  configuration, controller time and jobs without Wi-Fi; standalone Wi-Fi
+  commissioning is not a prerequisite for that route.
 
 Install the [normal firmware](install.md) next. A fresh generic image has no
 selected transmit frequency. A saved draft does not run; applying enabled

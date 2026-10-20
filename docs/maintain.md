@@ -2,14 +2,55 @@
 
 ## Rename or change Wi-Fi
 
-In **Wi-Fi/Host**, read the saved and active hostname before editing. Save the
-new name, then use the explicit restart control when idle. A saved rename is
-pending until restart; it does not prove that name discovery works. Follow the
-continuation link, sign in again and confirm the same full device ID.
+### Change the hostname
 
-Restart checks can run for about 90 seconds. If they time out, open the saved
-name manually or find the current IP in your router. A duplicate hostname
-requires choosing a different name. Countdown or refresh never means ready.
+Disable the Pico's standalone schedule and resolve any pending, owned or active
+job before editing. On a page with saved progress, save and apply the schedule
+change, then confirm it is disabled. Turning off WsprryPi transmission alone
+does not disable the Pico's schedule.
+
+1. In **Wi-Fi/Host → Device hostname**, read **Active** and **Saved**. Enter
+   the **Full local hostname**, such as `pico-a.local`: one label of 1–63 ASCII
+   letters, digits or hyphens followed by `.local`, starting and ending with
+   a letter or digit. Spaces, underscores, extra labels, IP addresses and URLs
+   are refused. Letters are stored in lowercase; a final root dot is removed.
+2. Choose **Save hostname**. **Active** belongs to this boot; **Saved** belongs
+   to the next boot. Saving does not restart or immediately change the address.
+   Sign in again if requested and **Refresh** to confirm the saved result.
+3. Copy any unsaved drafts before leaving. Choose **Restart device** once and
+   confirm. A lost reply never triggers an automatic second restart.
+4. Follow **Continue at pico-a.local (sign in again)**, using your chosen name.
+   Sign in and refresh. Success requires the same full device ID, a different
+   boot and the intended name as both **Active** and **Saved**.
+
+If a save reply is lost, it may already have succeeded. Read the saved name
+before considering another save; use **I reviewed the saved hostname; enable
+a new save** only after review. **Cancel reconnect checks** stops this tab's
+checks; it does not undo the saved name or cancel a requested restart. Checks
+end after about 90 seconds. If they time out, open the saved name manually or
+find the current IP in your router. For a duplicate name, reconnect by IP or
+[setup Wi-Fi](connect.md#request-setup-wi-fi-with-the-external-button) and choose
+a unique name; the Pico does not add a suffix automatically. A countdown or
+returning page alone does not establish restart or readiness.
+
+**Use default hostname** fills the editor with the hardware-derived name;
+confirm, **Save hostname** and restart to apply it. Renaming preserves the
+device ID, setup Wi-Fi name, Wi-Fi password, retained clients and unrelated
+settings. The browser title starts with the confirmed active hostname, even
+when opened by IP. A pending or last-confirmed name is an observation; verify
+the device before entering a password.
+
+Complete station commissioning if only Wi-Fi setup is saved. Engineering
+certificate-bound names are read-only here and require matching replacement
+credentials through provisioning. For consumer certificate-update refusals,
+restore time synchronization and follow the reported recovery error. Keep
+certificate verification enabled.
+
+If WsprryPi connects over the network, follow its
+[connection-profile update procedure](https://wsprry-pi.readthedocs.io/en/devel/Advanced_Operations/ini_configuration/transmitter_backends.html#after-a-pico-hostname-change)
+after verifying the rename. Renaming a Fleet profile changes only its label.
+
+### Change Wi-Fi
 
 Change Wi-Fi through its trial/save controls and check the confirmed result
 before leaving the old connection. A new password becomes the consumer login

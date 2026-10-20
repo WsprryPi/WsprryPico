@@ -11,18 +11,44 @@ use UTC period boundaries plus the selected phase and a one-second launch
 offset. The Pico reserves each occurrence before transmitting. It does not
 catch up missed windows or replay consumed slots after a restart or failure.
 
-An ordinary callsign uses Type 1 with a four-character on-air locator. Supported
-compound calls use Type 2 with a four-character locator, or Type 2 followed by
-Type 3 in adjacent two-minute windows with a six-character locator. A bracketed
-call selects Type 3 only and requires six locator characters. Read the planner's
-accepted result; unsupported identities are refused rather than shortened.
+### Automatic WSPR plan
+
+The Pico chooses its standalone plan from the applied callsign and locator.
+WsprryPi's host planning preferences and prepared jobs remain separate.
+
+| Callsign and locator | Pico standalone plan |
+| --- | --- |
+| Ordinary encodable call, four characters | Type 1 single |
+| Ordinary call, six characters | Type 1 single; first four locator characters on air, all six retained |
+| Supported compound call, four characters | Type 2 single; no locator in that frame |
+| Supported compound call, six characters | Type 2 then Type 3 in adjacent two-minute windows |
+| Explicit `<CALL>`, six characters | Type 3 single; brackets excluded from the hash |
+| Explicit `<CALL>`, four characters, or unsupported syntax | Refused for complete station saves or local WSPR application |
+
+Supported compound prefixes contain one to three alphanumeric characters before
+an encodable base call; suffixes contain one alphanumeric or two decimal digits
+after it. `W1A/AA0NT` is a supported prefix form even though `W1A` is itself
+a valid base call. `<W1A/AA0NT>` requests Type 3 only. The complete station token
+accepts 3–12 ASCII characters including brackets. Malformed brackets, whitespace,
+multiple slashes and out-of-range affixes are refused without truncation.
+Locators use A–R, two digits and, for six characters, an A–X subsquare.
+Older firmware may accept only Type 1 station writes; use the installed
+firmware's reported planning support.
 
 Type 2 contains no locator. Type 3 carries a callsign hash, so receivers may
 need the preceding Type 2 or other callsign context to display the full call.
-A cold receiver can show `<...>` with grid and power. Some suffix encodings
-are ambiguous (`/Q`–`/Z` overlap `/00`–`/09`); hash collisions are possible.
-The recorded successful Type 2/3 pair is one board/image/payload at 3.570100 MHz,
-not a general guarantee for every receiver or compound call.
+A cold receiver can show `<...>` with grid and power. Two-digit suffixes
+`/00`–`/09` share Type 2 encodings with `/Q`–`/Z`; a paired Type 3 hashes the
+requested full callsign. Hash collisions are possible. The recorded successful
+Type 2/3 pair is one board/image/payload at 3.570100 MHz, not a general guarantee for
+every receiver or compound call.
+
+A pair starts its second frame 120 seconds after the first. The Pico reserves
+both slots before the first frame and holds one ownership lease across the
+pair. Intersecting schedule occurrences are consumed conservatively. STOP,
+restart, changed configuration, lost clock/ownership or failure cannot resume
+a stray second frame or replay the first. There is no catch-up or automatic
+retry. A failed output cutoff requires recovery and confirmed inactive output.
 
 ## Send QRSS, FSKCW or DFCW
 
@@ -38,8 +64,11 @@ not a general guarantee for every receiver or compound call.
 QRSS keys the carrier on and off. FSKCW keeps it active and shifts it downward
 during gaps. DFCW distinguishes dots and dashes by frequency.
 
-For a finite test tone, use WsprryPi's tone control or prepare a complete encoded
-tone job. The Pico page has no dedicated tone editor. Open **Load a job file**,
+For a finite test tone from WsprryPi, choose **Mode → Finite tone** in a
+supported [Fleet output schedule](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Setup/index.html#assign-an-output-schedule).
+Its continuous **Test Tone** control is unavailable for the Pico WTP backend.
+Alternatively, prepare a complete encoded tone job. The Pico page has no
+dedicated tone editor. Open **Load a job file**,
 select its **Job JSON file**, enter **Start time (UTC)** and choose **Load and
 arm job**. These advanced jobs use the same readiness/ownership checks; invalid
 or oversized plans are refused before execution.

@@ -1,22 +1,32 @@
 # Use with WsprryPi
 
-Use a WsprryPi version that supports the Pico transport and management features
-you need. See the companion manual's
-[Pico and Fleet setup](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Setup/Transmitter/index.html#add-a-pico-and-manage-outputs).
+WsprryPi sends complete jobs; the Pico owns their execution and symbol timing.
+Use a WsprryPi version that supports the transport and management features you
+need. Start with the companion manual's
+[Add a WsprryPico](https://wsprry-pi.readthedocs.io/en/devel/Install/pico.html).
 
-## USB member
+## Set up the Pi controller
 
-1. Connect the Pico by a USB data cable to the Pi running WsprryPi.
-2. In WsprryPi **Setup → Fleet**, discover the USB Pico. Compare its full stable
-   device ID and reported saved name with the intended device.
-3. Add/select that member, review its station, pins, drive and frequency policy,
-   and use WsprryPi's schedule/job controls.
+The WsprryPi manual owns the controller workflows:
+
+- [Connect, identify and select a Pico](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Setup/Transmitter/index.html#add-a-pico-and-manage-outputs)
+  over USB or a supported network transport.
+- [Assign independent output schedules](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Setup/index.html#assign-an-output-schedule)
+  and distinguish them from the Pi's single selected output.
+- [Update Pico firmware through Fleet](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Setup/Transmitter/index.html#install-or-update-pico-firmware-over-usb)
+  and [reconcile an unresolved job](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Setup/Transmitter/index.html#pico-status-and-recovery).
+- [Configure CLI and INI connections](https://wsprry-pi.readthedocs.io/en/devel/Advanced_Operations/ini_configuration/transmitter_backends.html#pico-wtp),
+  including [Pi connection changes after a Pico rename](https://wsprry-pi.readthedocs.io/en/devel/Advanced_Operations/ini_configuration/transmitter_backends.html#after-a-pico-hostname-change).
 
 USB provides configuration and controller time without Wi-Fi. Administrative
-USB access does not take over an existing RF job. Firmware updates use the
-**Pico firmware over USB** panel; a member stays paused until verification
-and reconnection complete. Review the image branch explicitly: its default is
-main even when the Pi itself runs devel.
+USB access does not take over an existing RF job. Plain LAN control and browser
+login have different [access boundaries](reference/security.md).
+
+For device-side work, use this manual's [firmware installer](install.md),
+[connections](connect.md), [configuration](configure.md),
+[output limits](reference/output.md), [manual RF correction](reference/time.md)
+and [maintenance and recovery](maintain.md). Complete jobs execute locally;
+disconnecting the Pi does not convert or cancel them.
 
 ## Standalone installer on a WsprryPi host
 
@@ -51,14 +61,6 @@ If the installer reports an uncertain update or requires recovery, keep
 WsprryPi paused and complete the printed same-board recovery procedure before
 returning the Pico to host control. A downloaded-tool cleanup prompt does not
 remove the firmware backup.
-
-## Network member
-
-Normal consumer firmware exposes **Plain LAN WTP on TCP port 31417** after
-station Wi-Fi connects and network time has been accepted. Use a trusted LAN;
-any client able to reach that port can submit commands under its LAN authority.
-The browser password is not a WTP/TCP access control. Engineering mutual-TLS
-profiles are a separate setup with no automatic downgrade.
 
 ## Ownership and schedules
 

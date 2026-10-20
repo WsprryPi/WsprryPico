@@ -6,9 +6,13 @@ transmitter backend. Complete jobs execute locally; symbol timing does not
 depend on continuous USB or network delivery.
 
 The [published operator manual](https://wsprrypico.readthedocs.io/en/devel/)
-covers preparation, installation, connection,
-configuration, operation and recovery. Start with [Prepare your Pico](docs/start.md).
-The [manual source](docs/index.md) is maintained in this repository.
+covers Pico preparation, firmware, standalone configuration, operation and
+recovery. Start with [Prepare your Pico](docs/start.md).
+For adding a Pico to an existing WsprryPi installation, start with
+[Add a WsprryPico in the WsprryPi manual](https://wsprry-pi.readthedocs.io/en/devel/Install/pico.html).
+That manual covers Pi connections, Fleet, host schedules and Pi-managed updates;
+this repository owns the [Pico manual](docs/index.md) and engineering details.
+
 A blank consumer starts temporary setup Wi-Fi; configured devices use their
 saved network and the device-served browser interface. USB provides local
 configuration, controller time and job control without Wi-Fi. Supported upgrades
