@@ -4,11 +4,24 @@ The printable parts are [Bottom.stl](Bottom.stl), [Top.stl](Top.stl),
 [Wall-Hanger.stl](Wall-Hanger.stl) and [Opener.stl](Opener.stl), all in this
 folder. Dimensions and CAD coordinates use millimetres.
 
-The [interactive assembly view](pico-case-assembly.html) shows these Bottom,
-Top and Opener meshes with a simplified Pico 2 W board, USB socket, BOOTSEL
-switch and GPIO headers. Rotate and zoom the assembled, cutaway, lifted-lid,
-underside and individual stencil views. The viewer needs internet access for
-its pinned Three.js library and native browser gzip decompression support.
+![Assembled WsprryPico case showing the lid stencil, BOOTSEL actuator and USB opening](images/case-assembled.png)
+
+Assembled case rendered from the Bottom and Top meshes. Colors are illustrative.
+
+![WsprryPico case with its lid lifted above a simplified Pico 2 W board](images/case-lid-lifted.png)
+
+Lid lifted to show a simplified Pico 2 W board, USB socket and GPIO headers.
+
+The PNG images above display directly in the GitHub README. For interactive
+rotation and zoom, open [pico-case-assembly.html](pico-case-assembly.html),
+choose **Download raw file** on GitHub, then open the downloaded file in a
+browser. GitHub displays the HTML source when opening the file link.
+
+The downloaded viewer shows the Bottom, Top and Opener meshes with a simplified
+Pico 2 W board, USB socket, BOOTSEL switch and GPIO headers. It provides
+assembled, cutaway, lifted-lid, underside and individual stencil views. It
+needs internet access for its pinned Three.js library and native browser gzip
+decompression support.
 
 | Part | X × Y × Z envelope (mm) | Features |
 | --- | --- | --- |
@@ -81,8 +94,8 @@ one part. `--output` selects a separate case folder with the same layout.
 The maintained stencil outlines support size and placement changes without
 retracing. After editing the artwork, run `python parametric/trace_stencil.py`
 before regeneration; tracing requires eleven separate apertures. The saved
-interactive view embeds a snapshot of the STL meshes and needs refreshing
-after geometry changes.
+interactive view and README images contain snapshots of the STL meshes and
+need refreshing after geometry changes.
 
 [verification.json](parametric/verification.json) records mesh integrity,
 STEP validity, dimensions, volumes and bidirectional distances between each
