@@ -17,7 +17,7 @@ The focused local checks passed on 2026-10-21:
 | Check | Result |
 | --- | --- |
 | `docs/.venv/bin/python tests/ci_bundle_tests.py` | 52 tests passed |
-| `python3 tests/usb_installer_tests.py` | 89 tests passed |
+| `python3 tests/usb_installer_tests.py` | 90 tests passed |
 | `python3 tests/installer_release_tests.py` | 6 tests passed |
 | `python3 tests/usb_tool_download_tests.py` | 35 tests passed |
 | `python3 scripts/validate_wtp_contract.py` | 23 schema, 7 raw JSON, 1 framing and 8 transition cases passed |
@@ -72,7 +72,13 @@ before returning a verified result. Regressions swap otherwise valid events
 and move a tag during collection; verification must fail before a usable
 receipt or USB operation.
 
-The third assessment rechecked the repaired paths, both workflow permissions
+The third assessment compared build-metadata download URLs with GitHub's actual
+API representation. It found raw `+` characters in the original fixtures where
+GitHub returns `%2B`. The shared asset URL constructor now encodes tag and
+filename components; installer fixtures use the real representation and reject
+unexpected URLs. Publisher links use the same constructor.
+
+The fourth assessment rechecked the repaired paths, both workflow permissions
 and default-off publication conditions, explicit latest-stable selection,
 immutable tags/assets, historical CI/testing behavior, preview isolation,
 storage guards and deployed installer payload compatibility. No additional

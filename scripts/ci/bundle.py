@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from check_application_image import validate as validate_engine
 from check_standalone_image import validate_uf2
 from firmware_payload import verify_payload
-from usb_installer import MAX_VERSION, SEMVER, firmware_channel, version_kind
+from usb_installer import MAX_VERSION, SEMVER, firmware_channel, release_asset_url, version_kind
 
 PROFILES = {
     'consumer': {'target': 'WsprryPico', 'engine': 'pio-dma', 'role': 'uninhibited'},

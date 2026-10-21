@@ -591,6 +591,8 @@ class BundleTests(unittest.TestCase):
             with self.subTest(version=version):
                 self.release_fixture(version)
                 self.verify()
+                if '+' in version:
+                    self.assertIn('%2B',publish.asset_url('v'+version,f'WsprryPico-{version}-pico2_w.uf2'))
                 args, responses, archives = self.download_fixture('release', event='workflow_dispatch')
                 args.destination = self.base / version
                 with patch.object(publish,'tag_commit',return_value=self.source):

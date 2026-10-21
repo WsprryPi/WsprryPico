@@ -90,7 +90,7 @@ class Network:
         assets = dict(self.files, **{'audit.zip': b'audit', 'deployment.zip': b'deployment'})
         self.release = dict(tag_name=self.tag, draft=False, prerelease=installer.version_kind(self.proof['version']) != 'stable',
                             assets=[dict(name=n, state='uploaded', size=len(d), digest='sha256:' + installer.sha(d),
-                                         browser_download_url=installer.DOWNLOAD + self.tag + '/' + n)
+                                         browser_download_url=installer.release_asset_url(self.tag, n))
                                     for n, d in assets.items()])
         for artifact in self.proof['artifacts']:
             next(a for a in self.release['assets'] if a['name'] == artifact['kind'] + '.zip')['digest'] = 'sha256:' + artifact['archive_sha256']
@@ -128,7 +128,7 @@ class Network:
 
     def get(self, url, limit):
         self.calls.append(url)
-        return self.files[url.rsplit('/', 1)[1]]
+        return self.files[installer.urllib.parse.unquote(url.rsplit('/', 1)[1])]
 
 
 class HttpFailureTests(unittest.TestCase):
@@ -271,6 +271,19 @@ class InstallerTests(unittest.TestCase):
         with patch.object(net,'api',side_effect=api),patch.object(installer,'discover',side_effect=AssertionError('USB opened')):
             with self.assertRaisesRegex(installer.Refusal,'tag changed during download'):
                 installer.resolve(net,version='1.0.0-beta.1')
+
+    def test_build_metadata_uses_github_encoded_tag_and_asset_components(self):
+        version='1.0.0+build.001'
+        tag='v'+version
+        name=f'WsprryPico-{version}-pico2_w.uf2'
+        expected=installer.DOWNLOAD+'v1.0.0%2Bbuild.001/WsprryPico-1.0.0%2Bbuild.001-pico2_w.uf2'
+        self.assertEqual(installer.release_asset_url(tag,name),expected)
+        net=Network(version=version)
+        installer.resolve(net,version=version)
+        self.assertIn(expected,net.calls)
+        net.release['assets'][0]['browser_download_url']=installer.DOWNLOAD+tag+'/'+net.release['assets'][0]['name']
+        with self.assertRaisesRegex(installer.Refusal,'public asset'):
+            installer.resolve(net,version=version)
 
     def test_beta_and_final_preserving_upgrade_and_recovery(self):
         self.upgrade_transaction(version='1.0.0-beta.1',programming_recovery=True)

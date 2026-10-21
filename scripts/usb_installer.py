@@ -128,6 +128,11 @@ def firmware_channel(version, workflow):
     return stream, 'ci-testing', stream != 'pull-request' and kind != 'testing'
 
 
+def release_asset_url(tag, name):
+    """GitHub's API encodes each tag/asset path component, including plus."""
+    return DOWNLOAD + urllib.parse.quote(tag, safe='') + '/' + urllib.parse.quote(name, safe='')
+
+
 class HttpFailure(Refusal):
     def __init__(self, status):
         self.status = status
@@ -463,10 +468,11 @@ def resolve(client, branch='main', version=None, stable=False):
     files = {}
     for name in sorted(names):
         asset = inventory[name]
+        url = release_asset_url(tag, name)
         require(asset['state'] == 'uploaded' and type(asset['size']) is int and
                 0 < asset['size'] <= MAX_DOWNLOAD and re.fullmatch('sha256:' + HEX64, asset['digest']) and
-                asset['browser_download_url'] == DOWNLOAD + tag + '/' + name, 'Invalid public asset')
-        data = client.get(DOWNLOAD + tag + '/' + name, asset['size'])
+                asset['browser_download_url'] == url, 'Invalid public asset')
+        data = client.get(url, asset['size'])
         require(len(data) == asset['size'] and 'sha256:' + sha(data) == asset['digest'], 'Public asset mismatch')
         files[name] = data
     manifest, image = verify_bundle(files, branch)
@@ -635,7 +641,7 @@ def resolve_installed(client, version):
         return resolve(client, version=version)
     release = client.api('releases/tags/v' + version)
     metadata = [a for a in release['assets'] if a['name'] == 'release-manifest.json']
-    url = DOWNLOAD + 'v' + version + '/release-manifest.json'
+    url = release_asset_url('v' + version, 'release-manifest.json')
     require(len(metadata) == 1 and metadata[0]['browser_download_url'] == url,
             'Installed image provenance is unavailable')
     manifest = decode(client.get(url, 2 * 1024 * 1024))

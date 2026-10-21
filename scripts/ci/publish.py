@@ -68,7 +68,7 @@ def release_url(tag):
 
 
 def asset_url(tag, name):
-    return BASE + '/releases/download/' + tag + '/' + name
+    return bundle.release_asset_url(tag, name)
 
 
 def asset_inventory(release):
