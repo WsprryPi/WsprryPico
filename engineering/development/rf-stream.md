@@ -2,7 +2,7 @@
 
 Carrier correction is selected centrally before preparation and freezes for
 the active job or standalone Type 2/3 pair. It uses persistent manual PPM only.
-The [NTP closeout](ntp-work-closeout.md) records the rejection of NTP-derived
+The [UTC/RF contract](clock-discipline.md) defines the rejection of NTP-derived
 RF calibration; μChrony UTC control is independent of carrier correction.
 
 The portable stream uses an abstract sink; the [PIO/DMA sink](pio-dma-driver.md)

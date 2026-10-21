@@ -86,7 +86,7 @@ sequences. The 5 m sequence requires known-inactive reboot and complete jobs
 with exact realized NCO frequencies and merged equal-frequency events (127
 events, the same sampled 162-symbol waveform). This does not guarantee that
 every 162-event request admits under retained history. The
-[point matrix](phase15-13-result-matrix.json) preserves refusals, invalid/partial
+[point matrix](band-test-points.json) preserves refusals, invalid/partial
 observations and the acceptance conditions.
 
 138 MHz keyed modes include repeated trials; 132/150 MHz are single screens.
@@ -99,6 +99,6 @@ native route or qualify 2 m.
 These results establish no LPF, calibrated power/frequency/launch timing,
 antenna-ready emissions, general reliability or release qualification.
 Nondefault GPIO drive inherits no all-band qualification. The
-[machine-readable support catalog](phase14-band-support.json) carries these
+[machine-readable support catalog](band-support.json) carries these
 scoped dispositions; numeric admission and legal operating permission remain
 separate.

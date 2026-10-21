@@ -8,11 +8,25 @@ manual value. GET reports manual mode, and selection never consumes a live or
 saved NTP estimate. The legacy `ntp_rf_calibration` config field remains readable
 for storage/closed-view compatibility but has no RF authority. Older candidate
 diagnostic fields remain non-runnable. Legacy closed config/progress shapes
-are preserved. See the [decision and compatibility details](development/ntp-work-closeout.md).
+are preserved. See the [decision and compatibility details](development/clock-discipline.md).
 `transmitter-ntp-observations/1` at `/api/v1/ntp-observations` binds source-labelled
 measurements to member/boot/firmware/clock identity. See the
-[NTP work record](development/ntp-work-results.md) for fields, units, authority,
-fallback and evidence limits.
+[time policy](development/standalone.md#time-policy) for authority and fallback,
+and [bounded USB diagnostics](development/ntp-usb-diagnostics.md) for original
+observation identity and measurement limits.
+
+Manual correction stores signed integer `manual_correction_ppb` within ±100000
+ppb. The API accepts a decimal string with at most three fractional digits and
+returns three digits; whitespace, exponents, nonfinite values, coercion and
+clamping are refused. Positive PPM means the source runs fast and reduces the
+NCO increment. PUT requires the exact target, current `If-Match`, supported
+schema and authenticated management or local USB authority. Its body is
+`{schema,target,calibration:{manual_ppm,mode}}` with `mode: "manual"`.
+A save requires idle/unowned state and an existing configuration. It starts no
+job and establishes no readiness. Type 2/3 pairs freeze correction across both
+frames; later ordinary jobs select anew. A controller supplying compensated
+frequencies must select zero/manual on Pico or refuse frequency adjustment;
+WTP/1 does not identify precompensated input.
 
 The application also exposes these application services through the separately framed
 [USB management adapter](protocol/USB-Management.md), under internal local

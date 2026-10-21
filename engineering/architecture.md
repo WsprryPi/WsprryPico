@@ -160,8 +160,8 @@ The retired Pico-to-Pi pulse instrumentation is absent from firmware and host
 tools. The controller/NTP arbiter retains cross-source authority
 and disagreement handling for BLE and SoftAP observations. Chrony 4.9 remains
 an external test reference; full behavioral equivalence and physical UTC/RF
-accuracy remain unqualified. [Replacement results](development/microchrony-results.md)
-record the exact validation scope. Physical phone-time accuracy remains unqualified.
+accuracy remain unqualified. The [UTC/RF contract](development/clock-discipline.md)
+defines compatibility and measurement boundaries. Physical phone-time accuracy remains unqualified.
 
 ## Qualification and shared application boundaries
 

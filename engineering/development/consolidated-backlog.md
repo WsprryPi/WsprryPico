@@ -1,53 +1,9 @@
 # Consolidated backlog
 
-Updated 2026-10-19. Finish the current work below before release. Previously
-completed work remains complete. Retain handoffs needed for selected unfinished
-work; retire obsolete execution prompts under the cleanup guidance.
-
-## Finish now
-
-Status: ✅ finished; ⏳ in flight; ▧ not started.
-
-1. ✅ **Current contract reconciliation.** Align current API, carrier, GPIO-drive
-   and build descriptions with the accepted implementation.
-2. ✅ **Short WSPR Type 2/3 decode.** Test one Type 2 → Type 3 pair at
-   3.570100 MHz (80 m), selected by the operator during execution, on one Pico
-   with `wsprd`; record the result and associated
-   evidence closeout. [Result](short-wspr-type23-decode-results.md).
-3. ✅ **Amplifier-enable GPIO during transmissions.** Assert the configured enable
-   pin before RF starts and return it inactive after completion, stop, abort
-   or fault. See [amplifier enable](amplifier-enable.md).
-4. ✅ **NTP Work — closed.**
-   - ✅ Persistent standalone manual PPM.
-   - ✅ NTP filtering and UTC rate discipline using the original MIT μChrony engine.
-   - ✅ **4.3: RF-calibration investigation closed — rejected for current use.**
-     Retain μChrony for UTC discipline and the future GPS/PPS foundation. Internet
-     NTP has not demonstrated reliable RF-calibration benefit. RF correction uses
-     the saved manual PPM only. The Pico-to-Pi GPIO pulse measurement path is removed.
-     [Decision and closeout](ntp-work-closeout.md).
-5. ✅ **Impeccable UI review**, including provisioning; accepted and closed.
-   VoiceOver testing is closed as not required.
-   Installer workflow coverage is recorded separately in the
-   [installer acceptance](usb-installer-results.md).
-6. ✅ **Software/build CI and deployment images.** Run checks and produce usable
-   UF2 images with version/source identity, checksums and a manifest before
-   release efforts. Use the CI image for decode verification and publication.
-   [Build and image guide](software-build-ci.md).
-7. ✅ **USB installer.** Standalone and WsprryPi access, preserving saved
-   settings; default to the latest verified saved main CI image, with explicit
-   devel selection.
-   [Installer guide](usb-installer.md) and [acceptance record](usb-installer-results.md).
-8. ✅ **Repository and work-harness cleanup.** Remove obsolete project artifacts
-   and rewrite operator-facing prose around current capabilities. Keep needed
-   technical material in engineering documentation; add no documentation
-   placeholder or future promise. [Cleanup guidance](repository-cleanup-prompt.md).
-9. ✅ **Operator documentation.** Final instructions, screenshots and
-   Read the Docs Community publication.
-   [Operator manual](https://wsprrypico.readthedocs.io/en/devel/) and
-   [result and evidence](operator-documentation-results.md).
-10. ✅ **Testing prerelease.** Published the verified CI image, manifest and
-    checksums. [Acceptance record](phase15-17-results.md) and
-    [testing release](https://github.com/WsprryPi/WsprryPico/releases/tag/v0.1.0-testing.1).
+Selected unfinished work is listed below. Current product behavior is documented
+in the maintained guides; completed execution records are not an active work list.
+The reusable [cleanup instructions](repository-cleanup-prompt.md) govern explicit
+repository and harness cleanup requests.
 
 ## Remain in backlog for future
 

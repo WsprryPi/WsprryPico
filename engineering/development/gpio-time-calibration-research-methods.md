@@ -4,7 +4,7 @@ A device UTC mapping, an NTP packet exchange and an independently measured RF
 carrier are different observations. A rate fitted to periodic Console INFO
 snapshots is a diagnostic estimate; it is not a complete NTP sample stream or
 an RF calibration. Current RF correction uses manual PPM only; NTP-derived RF
-calibration is [rejected](ntp-work-closeout.md). The Pico-to-Pi GPIO measurement
+calibration is [rejected](clock-discipline.md). The Pico-to-Pi GPIO measurement
 path is retired. These methods remain available for offline historical analysis.
 
 ## Observation identity and quality
@@ -73,6 +73,6 @@ can mimic oscillator-rate changes.
 
 These calculations are hardware-free diagnostic methods. They neither alter
 firmware settings nor qualify target timing, automatic NTP-derived RF
-correction, calibrated power or spectral performance. Current acceptance and
-selected work remain in the [NTP closeout](ntp-work-closeout.md) and
+correction, calibrated power or spectral performance. Current behavior and
+selected work are defined in the [UTC/RF contract](clock-discipline.md) and
 [consolidated backlog](consolidated-backlog.md).

@@ -39,7 +39,7 @@
     "6m_WSPR": "Qualified includes separately reviewed Pico A/138 MHz receiver-only +125 Hz retune acceptance; the transmitted waveform and original nominal failed flags remain unchanged.",
     "4m": "Unqualified at representable 150 MHz under the all-mode reliable-WSPR requirement. Unavailable for direct synthesis at 132/138 MHz. Successful individual Tone, keyed and occasional WSPR observations remain unchanged; the all-mode status does not claim each mode failed individually.",
     "2m": "Unavailable for native direct output at all three clocks; no native harmonic mapping is implemented. Manually mapped 138 MHz third-harmonic WSPR pilots remain Unqualified evidence, without promoting the other modes to tested failures.",
-    "8m_5m": "qualified all five modes only at 40.001/60.001 MHz on Pico A, current clean-source 165303458e49, normal 138 MHz. WSPR requires demonstrated fixed receiver-audio translation (+125/+200 Hz respectively); accepted 5m WSPR uses a cold boot and waveform-equivalent compact realized-frequency complete jobs. Broad envelopes retain the experimental opt-in. Nominal failures, invalid/partial attempts and four diagnostic RF windows are preserved in the result matrix. Pico B and alternate clocks were not tested.",
+    "8m_5m": "qualified all five modes only at 40.001/60.001 MHz on Pico A, source 165303458e49, normal 138 MHz. WSPR requires demonstrated fixed receiver-audio translation (+125/+200 Hz respectively); accepted 5m WSPR uses a cold boot and waveform-equivalent compact realized-frequency complete jobs. Broad envelopes retain the experimental opt-in. Nominal failures, invalid/partial attempts and four diagnostic RF windows are preserved in the result matrix. Pico B and alternate clocks were not tested.",
     "limits": "Unfiltered conducted evidence does not establish calibrated transmitter power or antenna-ready emissions."
   },
   "point_scope": {
@@ -69,7 +69,7 @@
     },
     "five_metre_wspr_condition": "Known inactive reboot, compact complete job with exact realized frequencies and merged equal-frequency events; same sampled waveform and ordinary current firmware.",
     "admission": "allow_unqualified_frequency=true; allow_non_amateur_frequency=false. Broad correlation envelopes are not promoted.",
-    "matrix": "phase15-13-result-matrix.json",
+    "matrix": "band-test-points.json",
     "results": "band-support.md",
     "support_policy": "clock-support.md",
     "nominal_planned": 14,

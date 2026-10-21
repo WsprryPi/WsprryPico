@@ -33,15 +33,10 @@ The [software/build CI guide](software-build-ci.md) defines Linux checks,
 deployment manifests, source/version identity, integrity verification and
 separate main/devel downloads. Installation consumes exact verified bytes.
 
-The [testing prerelease acceptance](phase15-17-results.md) records the exact
-reviewed source, CI image, manifest, checksums and public download audit for
-[0.1.0-testing.1](https://github.com/WsprryPi/WsprryPico/releases/tag/v0.1.0-testing.1).
-Its manual testing series is outside the installer's run-derived CI selection contract.
 The [release tooling guide](software-build-ci.md#beta-and-final-firmware-tags)
 defines beta/final tag builds and explicit publication. Pushes run verification
-without publishing. The [reusable execution prompt](release-tooling-prompt.md)
-and [implementation and review record](release-tooling-results.md) cover the
-release-tooling scope separately from firmware or physical qualification.
+without publishing. Firmware versions and the installer's implementation version
+are independent; installation downloads a compiled, verified UF2.
 
 ## Deterministic validation
 
@@ -112,12 +107,10 @@ and WTP inventory. `scripts/console_trace.py` reads bounded diagnostic pages;
 Inspect an opt-in entry point before running it; normal software checks do not
 open devices.
 
-μChrony supplies UTC discipline and persisted provisional clock rate. RF
-correction uses manual PPM only. The [NTP closeout](ntp-work-closeout.md)
-records the rejection of Internet NTP for RF calibration and removal of the
-Pico-to-Pi GPIO pulse firmware and host tooling. GPS/PPS reference input remains
-future work. The [packet and clock-control comparison](microchrony-conformance-results.md)
-retains reference boundaries, known-error convergence and historical physical-test limits.
+μChrony supplies UTC discipline and a persisted provisional clock rate. RF
+correction uses manual PPM only. The [UTC/RF contract](clock-discipline.md)
+defines compatibility and the independent measurement boundary. GPS/PPS input
+remains future work; the Pico-to-Pi GPIO pulse path is unavailable.
 
 `src/rf_analysis/` contains offline sample-job construction, keyed-signal,
 reference-carrier, relative-drive, aborted-waveform and RF-presence analysis.
@@ -143,8 +136,7 @@ before using the replacement. Disabled defaults in an existing cache are allowed
 
 - [Portable core](portable-core.md), [WTP endpoint](wtp-endpoint.md) and
   [USB CDC roles](usb-cdc.md).
-- [USB installation and preserving upgrades](usb-installer.md) and
-  [installer acceptance](usb-installer-results.md).
+- [USB installation and preserving upgrades](usb-installer.md).
 - [WTP/1](../protocol/WTP.md), [USB management/time](../protocol/USB-Management.md),
   [Field-GATT/1](../protocol/Field-GATT.md), [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md)
   and the [browser API](../browser-api.md).
@@ -169,16 +161,11 @@ before using the replacement. Disabled defaults in an existing cache are allowed
 - [USB time uncertainty](usb-time-uncertainty.md) and
   [calibration calculation methods](gpio-time-calibration-research-methods.md).
 
-The [NTP closeout](ntp-work-closeout.md) records current manual-only RF correction
-and retained μChrony UTC discipline. Earlier investigation evidence remains in
-the [NTP work record](ntp-work-results.md). Chrony is an external test reference,
-not a firmware dependency. Physical UTC/RF accuracy remains unqualified.
-
 ## Operator manual and publication
 
 Current operator instructions are in [the Sphinx manual](../../docs/index.md).
-Only `docs/` is a Sphinx source tree; engineering contracts, schemas, evidence
-and saved handoffs stay here and are excluded from public search.
+Only `docs/` is a Sphinx source tree; engineering contracts, schemas and technical guides stay here and are excluded
+from public search.
 
 Build with the project-local documentation environment:
 
@@ -212,5 +199,4 @@ configuration are outside this scaffold. Its dependencies stay pinned in
 `docs/requirements.txt`. Attribution is in the [public credits](../../docs/reference/credits.md).
 
 The documentation dependencies do not install an SDK or toolchain.
-[Migration and publication evidence](operator-documentation-results.md)
-records source coverage, screenshots, reproducible checks and publication state.
+Current instructional screenshots remain under `docs/_static/images/`.

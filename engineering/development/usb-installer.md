@@ -2,8 +2,8 @@
 
 The shared installer is `scripts/usb_installer.py` (version 0.2.0). It runs with
 Python 3.10 or newer and its standard library on macOS and Linux. Windows and
-WSL USB operation are unsupported. The [acceptance record](usb-installer-results.md)
-distinguishes software checks, published downloads and recorded board tests.
+WSL USB operation are unsupported. Integrity checks bind downloads to their
+source and CI provenance; physical behavior remains scoped to identified boards.
 
 ## Operator instructions
 
@@ -26,31 +26,21 @@ uniform/blank flash, full-range comparison, a nonblank last byte, interruption,
 recovery and preservation of existing backups. Reproduction commands remain in
 [the development guide](README.md).
 
-### Physical erase check
+### Physical erase applicability
 
-The 2026-10-19 CLI/core check covers Pico C, a Pico 2 W / RP2350 on wspr4,
-USB serial `1545B6EFBF78028C`, device ID
-`c2a3a2a314c948b50a8562a1aeb69669`, USB parent `1-1.3`, and USB-enabled
-picotool 2.3.0. Its original firmware is `0.1.0-ci.39155533863.1`, source
-`0a7c05d1c41b`, with no configured standalone schedule. The tested installer
-SHA-256 is `f568a1abb1452c250ee3ffc9361005e1d9d72c8c2fd8b5a65e25f02b5a9a15f0`.
-
-Application-side erase preparation performs no flash write. The test fixture
-uses the existing guarded USB maintenance transition to enter BOOTSEL and
-keeps a separate private restoration backup. All 4,194,304 flash bytes are
-populated with verified `0x5a` before the prepared erase is continued. Erase
-and an independent full-flash readback confirm every byte is `0xff`, with
-SHA-256 `cd3517473707d59c3d915b52a3e16213cadce80d9ffb2b4371958fb7acb51a08`.
-The erase transaction contains only its blank comparison file and metadata.
-The Pico remains in BOOTSEL. A deliberate nonblank byte at `0x103fffff` makes
-full-range verification fail; a repeated erase recovery clears it and passes.
-
-Restoration is verified byte-for-byte across the original 4 MiB, followed by
-matching firmware/source and saved semantics after boot. The wspr4 service
-returns active and ready, with the Pico unowned and output inactive. No RF jobs
-or RF-clock measurements occur. This qualifies the recorded board and USB
-CLI/core path; physical power-cut/disconnect cases and the live Pi web route
-remain separate from the deterministic failure and browser checks.
+The bounded CLI/core erase observation is Pico C / Pico 2 W / RP2350 on wspr4,
+USB `1545B6EFBF78028C`, device `c2a3a2a314c948b50a8562a1aeb69669`, USB parent
+`1-1.3`, USB-enabled picotool 2.3.0 and installer SHA-256
+`f568a1abb1452c250ee3ffc9361005e1d9d72c8c2fd8b5a65e25f02b5a9a15f0`.
+The original image is `0.1.0-ci.39155533863.1`, source `0a7c05d1c41b`, with no
+configured standalone schedule. This observation covers an independently
+verified 4,194,304-byte blank readback after a full `0x5a` fixture, rejection of
+a nonblank final byte at `0x103fffff`, and successful repeat erase recovery.
+The all-`0xff` SHA-256 is
+`cd3517473707d59c3d915b52a3e16213cadce80d9ffb2b4371958fb7acb51a08`.
+Restoration was verified across the original 4 MiB and saved semantics. Physical
+power-cut/disconnect cases, the live Pi web route, other boards and RF behavior
+are outside that observation. Current installed firmware is not asserted.
 
 ## Image selection and planning
 
@@ -68,8 +58,8 @@ image selector. `--version 1.0.0-beta.1` or `--version 1.0.0` selects that exact
 semantic tag independently of the CI branch selector. `--stable` selects GitHub's
 latest full release and requires a final semantic version; absence or invalid
 provenance causes refusal without substituting CI. These selectors require a
-published compatible bundle and do not publish or create one. Main and devel each have a verified permanent CI
-download index. `recent_ci` reports additional run status separately from the
+published compatible bundle and do not publish or create one. Main/devel CI selection requires a published branch bookmark; an absent
+bookmark causes refusal. `recent_ci` reports additional run status separately from the
 immutable selected image. Missing or invalid downloads still cause refusal.
 
 The ordinary path uses anonymous HTTPS and needs no Git, compiler, SDK or
@@ -101,39 +91,39 @@ does not retry requests automatically or load GitHub credentials. A rate limit
 on optional additional-run status leaves the verified selected image usable and
 reports its reason separately in `recent_ci`.
 
-## Independently published installer
+## Installer source distribution
 
-The USB installer has its own lightweight CI workflow,
-`.github/workflows/usb-installer.yml`. It tests the installer and publication
-logic independently of firmware builds. Successful main/devel runs publish
-the exact core, firmware-manifest schema and `usb-installer.json` receipt at
-`usb-installer-v1-BRANCH-RUN.ATTEMPT`. The permanent
-`usb-installer-v1-main` and `usb-installer-v1-devel` release bodies point to
-the latest tested compatible bundle; existing version assets are never replaced.
+The standalone bootstrap fetches the Python installer and firmware-manifest
+schema from one immutable source revision. WsprryPi selects the configured
+main/devel branch head only after its canonical `software-build.yml` run and
+verification job have succeeded. It downloads both files through GitHub's
+Contents API at that SHA, checks Git blob identities, and stores their exact
+sizes, SHA-256 hashes, source and verification receipt in private storage.
+A pending or unavailable check retains an already verified installer; a fresh
+client waits for successful verification. No separate installer releases or
+release tags are required.
 
-The receipt declares installer contract 1, `wsprrypico-usb-result/1`,
-`wsprrypico-usb-transaction/1`, firmware-manifest schema 1, minimum Python,
-installer version, source, successful verification job, workflow identity and
-exact file sizes/SHA-256. Compatible implementation fixes keep the contract.
-A breaking result, transaction or deployment interface needs a new contract and
-channel; it must not be published as contract 1. Firmware image versions and
-firmware branch bookmarks remain independent.
+Installer contract 1 retains `wsprrypico-usb-result/1`,
+`wsprrypico-usb-transaction/1`, firmware-manifest schema 1 and Python 3.10+.
+Installer implementation versions are independent of firmware image versions.
+Firmware is downloaded as a compiled UF2 from a separately verified firmware
+release; the operator's machine does not compile it.
 
-WsprryPi selects by supported installer contract and channel. An explicit image
-check may refresh the shared installer without a Pi source change. Its checked
-image and every transaction retain their exact installer; recovery must never
-resolve the current channel or substitute newer code. The Pi bounds completed
-image/backup caches across installer versions while retaining unresolved recovery.
+Checked image plans and transactions retain their exact installer and schema.
+Recovery uses those local bytes offline, including existing contract-1 receipts,
+and never substitutes the current branch implementation. Pi cache budgets span
+installer versions and preserve unresolved recovery transactions.
 
-Hardware-free publication checks run the core, tool-download and publication
-suites from the repository root.
+Hardware-free checks:
 
 ```sh
 python3 -B tests/usb_installer_tests.py
 python3 -B tests/usb_tool_download_tests.py
-python3 -B tests/installer_release_tests.py
 ```
 
+Physical interruption/power-cut recovery, arbitrary downgrades, every board/host
+combination and RF quality remain unqualified. Windows and WSL USB operation
+are unsupported. Software checks do not establish physical recovery success.
 
 ## USB dependency and device selection
 

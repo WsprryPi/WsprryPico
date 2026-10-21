@@ -4,7 +4,7 @@ Persistent carrier calibration uses the independently advertised
 `/api/v1/rf-calibration` resource. Saved manual correction is signed ppb with
 zero/manual default and decimal ppm presentation; saves take effect only at
 future preparation. RF correction uses manual PPM only; μChrony controls UTC.
-The [NTP closeout](ntp-work-closeout.md) records the rejection of NTP-derived RF
+The [UTC/RF contract](clock-discipline.md) defines manual-only RF
 calibration and removal of the Pico-to-Pi GPIO timing link.
 
 Current [Hostname selection](hostname.md) uses the saved consumer profile name for a new boot while keeping the running boot coherent. The editor does not require message/job entry, alter station/schedule readiness, clear STOP, or change pins/watermarks. Engineering names require replacement matching credentials.
@@ -173,7 +173,7 @@ canonical Config readback; STATUS exposes their effective values.
 4 m remains Unqualified
 for every release mode under the required reliable-WSPR gate, and native direct
 2 m is Unavailable. See the [qualification catalog](band-support.md)
-and [machine-readable statuses](phase14-band-support.json). Experimental consent
+and [machine-readable statuses](band-support.json). Experimental consent
 does not change qualification, promote prior failed results or override engine
 availability. Correlation
 envelopes match WsprryPi's Band-Lookup catalog and are not jurisdiction-specific
@@ -343,9 +343,8 @@ same non-sliding ten-minute cap; the 120-second join grace does not renew it.
 The autonomous NTP implementation is [μChrony](../../src/microchrony/README.md),
 an original MIT portable engine with a Pico network/clock adapter. Chrony 4.9
 is an external private test reference; no Chrony code is linked into firmware.
-The [replacement results](microchrony-results.md) distinguish tested behavior,
-differential disagreements and unqualified target behavior. Full Chrony
-behavioral equivalence is not established.
+The [UTC/RF contract](clock-discipline.md) defines compatibility and measurement
+boundaries. Full Chrony behavioral equivalence is not established.
 
 The Pico adapter checks the configured IPv4 endpoint and UDP port 123. The
 engine correlates 48-byte basic NTPv3/v4 server replies with a one-shot random
@@ -395,7 +394,7 @@ Routine status contains compact source, phase, frequency, skew and readiness
 summaries. Complete original records use [bounded USB pages](ntp-usb-diagnostics.md).
 Persistent manual PPM remains independent and is the only RF correction source.
 NTP estimates and saved RF priors have no RF selection path. The
-[historical NTP results](ntp-work-results.md) retain evidence for earlier images.
+[UTC/RF contract](clock-discipline.md) defines retained journal compatibility.
 
 The time arbiter accepts authenticated controller/phone time when SNTP is unavailable.
 The device computes uncertainty from a fixed 250 ms phone allowance, the full

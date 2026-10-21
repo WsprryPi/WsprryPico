@@ -76,7 +76,7 @@ def testing_metadata(source):
         'references': [base + path for path in (
             'engineering/development/gpio-drive.md', 'engineering/protocol/USB-Management.md',
             'src/standalone/pico/flash_layout.hpp', 'src/standalone/progress.cpp',
-            'engineering/development/short-wspr-type23-decode-results.md',
+            'engineering/development/wspr-planning.md',
             'engineering/development/band-support.md', 'LICENSE.md', 'THIRD_PARTY_NOTICES.md')],
     }
 

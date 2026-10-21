@@ -1,4 +1,4 @@
-# Pico RF bench and initial target evidence
+# Pico RF bench
 
 The separately built `WsprryPico-RFBench` image provides CPU benchmarks and finite
 GP2 tones. It boots idle, uses USB CDC Commands, and reports
@@ -9,7 +9,7 @@ chooses transmissions and measurements.
 
 The subsequent [stream completion contract](rf-stream.md#completion-and-local-state-observations) adds `FRAME`,
 intentional abort/rearm, higher-resolution analysis and simultaneous GPSDO
-comparison. The initial results below remain tied to their original images.
+comparison. Reference ratios remain tied to their identified source and setup.
 
 ## Build and connection
 
@@ -38,8 +38,8 @@ new build and a new output directory for each invocation):
 python3 scripts/rf_bench.py \
   --port /dev/cu.usbmodem2103 --serial 0BF4B4AEC9FFB344 \
   --revision d35dffce91a3-dirty \
-  --firmware build/rf-target-evidence/image-9/WsprryPico-RFBench.uf2 \
-  --output build/rf-target-evidence/new-benchmark benchmark --blocks 128
+  --firmware build/rf-bench/firmware/WsprryPico-RFBench.uf2 \
+  --output build/rf-bench/benchmark benchmark --blocks 128
 ```
 
 Actions are `status`, `stop`, `benchmark`, `run`, `frame`, `wspr` and `bootloader`. A run accepts
@@ -87,7 +87,7 @@ Audio preserves captured elapsed time, frequency error and drift. The synthetic
 WAV slot name and trailing silence do not establish UTC alignment. For encoded
 frequency measurements, pass the 162 tone digits using `measure_rf_bench.py
 --symbols DIGITS`; equal adjacent symbols have no physical transition to test.
-The [bounded Type 2/3 decode scope](short-wspr-type23-decode-results.md) is
+The [bounded Type 2/3 decode scope](wspr-planning.md#conducted-type-23-applicability) is
 independent of this bench tool.
 
 ## Flashing without the button
@@ -144,7 +144,7 @@ a WsprryPi transmitter profile or promote evidence to a Harness qualification.
 python3 scripts/capture_rf_bench.py \
   --port /dev/cu.usbmodem2103 --serial 0BF4B4AEC9FFB344 \
   --revision d35dffce91a3-dirty \
-  --firmware build/rf-target-evidence/image-9/WsprryPico-RFBench.uf2 \
+  --firmware build/rf-bench/firmware/WsprryPico-RFBench.uf2 \
   --output build/rf-target-evidence/new-capture --attenuation-db 60 \
   --tone 0 --duration-ms 1000
 ```

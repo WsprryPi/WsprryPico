@@ -465,14 +465,14 @@ installed; set `OPENSSL_ROOT_DIR` if CMake needs its location.
 ASan/UBSan applies to C and C++ (including Mbed TLS):
 
 ```sh
-cmake -S . -B build/phase11-3-sanitize -DCMAKE_BUILD_TYPE=Debug \
+cmake -S . -B build/network-sanitize -DCMAKE_BUILD_TYPE=Debug \
   -DWSPRRY_PICO_BUILD_TESTS=ON \
   -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls \
   -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/c39fae3/WsprryPi \
   -DCMAKE_C_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer' \
   -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
-cmake --build build/phase11-3-sanitize --parallel
-ctest --test-dir build/phase11-3-sanitize --output-on-failure
+cmake --build build/network-sanitize --parallel
+ctest --test-dir build/network-sanitize --output-on-failure
 ```
 
 A separate ThreadSanitizer build can omit TLS and run `rf_worker_tests` and
@@ -481,4 +481,4 @@ These test software synchronization, not Pico interrupt/flash latency. Optional
 actual desktop/mobile rendering uses an already installed Chrome and Node with
 built-in WebSocket support: `node tests/network_browser_render.js`. Set
 `CHROME_BIN` outside macOS. It starts an isolated local fixture server/profile,
-keeps credentials mocked and saves ignored images under `build/phase11-2-ui`.
+keeps credentials mocked and saves ignored images under `build/network-ui`.
