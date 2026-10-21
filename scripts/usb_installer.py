@@ -453,13 +453,7 @@ def resolve(client, branch='main', version=None, stable=False):
     kind = version_kind(tag[1:])
     require(release['tag_name'] == tag and release['prerelease'] is (kind != 'stable') and release['draft'] is False,
             'Release classification/version mismatch')
-    obj = client.api('git/ref/tags/' + tag)['object']
-    for _ in range(4):
-        if obj['type'] == 'commit':
-            break
-        require(obj['type'] == 'tag', 'Unsupported version tag object')
-        obj = client.api('git/tags/' + obj['sha'])['object']
-    require(obj['type'] == 'commit' and re.fullmatch(HEX40, obj['sha']), 'Invalid version tag')
+    tag_source = release_tag_source(client, tag)
     inventory = {a['name']: a for a in release['assets']}
     version = tag[1:]
     names = {'release-manifest.json', 'ci-publication.json', 'SHA256SUMS', 'LICENSE.md',
@@ -477,7 +471,7 @@ def resolve(client, branch='main', version=None, stable=False):
         files[name] = data
     manifest, image = verify_bundle(files, branch)
     require(manifest['firmware_version'] == version and manifest['intended_tag'] == tag and
-            obj['sha'] == manifest['source']['revision'], 'Version tag/source mismatch')
+            tag_source == manifest['source']['revision'], 'Version tag/source mismatch')
     for artifact in decode(files['ci-publication.json'])['artifacts']:
         archive = inventory[artifact['kind'] + '.zip']
         require(archive['state'] == 'uploaded' and
@@ -500,7 +494,7 @@ def resolve(client, branch='main', version=None, stable=False):
                 run['head_sha'] == manifest['source']['revision'] and run['head_branch'] == expected_branch and
                 run['path'] == '.github/workflows/software-build.yml' and
                 run['head_repository']['full_name'] == REPOSITORY and
-                run['event'] in ('push', 'workflow_dispatch') and
+                run['event'] == manifest['workflow']['event'] and
                 run['run_attempt'] == manifest['workflow']['attempt'], 'CI run is not a canonical success')
         jobs = client.api(f"actions/runs/{manifest['workflow']['run_id']}/attempts/{manifest['workflow']['attempt']}/jobs?per_page=100")
         by_name = {job['name']: job for job in jobs['jobs']}
@@ -509,7 +503,19 @@ def resolve(client, branch='main', version=None, stable=False):
                 all(j['status'] == 'completed' and j['conclusion'] == 'success' for j in by_name.values()) and
                 by_name['verify']['id'] == decode(files['ci-publication.json'])['verify_job']['id'],
                 'Required CI jobs or verification receipt disagree')
+    require(release_tag_source(client, tag) == tag_source, 'Version tag changed during download')
     return files, manifest, image
+
+
+def release_tag_source(client, tag):
+    obj = client.api('git/ref/tags/' + tag)['object']
+    for _ in range(4):
+        if obj['type'] == 'commit':
+            break
+        require(obj['type'] == 'tag', 'Unsupported version tag object')
+        obj = client.api('git/tags/' + obj['sha'])['object']
+    require(obj['type'] == 'commit' and re.fullmatch(HEX40, obj['sha']), 'Invalid version tag')
+    return obj['sha']
 
 
 def command(arguments, timeout=30):

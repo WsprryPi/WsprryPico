@@ -167,6 +167,9 @@ def retrieve(args, for_publication=False):
                'verified': True, 'verification': 'accepted-verify-job-and-payload' if for_publication else 'independent-linked-image'}
     if not for_publication:
         receipt['inspection_tool'] = inspection_tool()
+    if tagged:
+        bundle.require(publish.tag_commit('v' + args.version) == args.source,
+                       'Release tag changed during download')
     (destination / 'verified-download.json').write_text(json.dumps(receipt, indent=2) + '\n')
     return receipt
 
@@ -233,6 +236,7 @@ def retrieve_published(args):
         publish.check_asset(assets[path.name], path)
     receipt['verification'] = 'independent-linked-image-from-preserved-release'
     receipt['inspection_tool'] = inspection_tool()
+    bundle.require(publish.tag_commit(tag) == args.source, 'Version tag changed during preserved download')
     (destination / 'verified-download.json').write_text(json.dumps(receipt, indent=2) + '\n')
     return receipt
 

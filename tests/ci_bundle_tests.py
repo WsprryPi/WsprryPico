@@ -714,6 +714,14 @@ class BundleTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError,'current trusted publisher'):
                     self.retrieve_fixture(args,responses,archives,publication=True)
 
+    def test_tag_movement_before_download_receipt_is_refused(self):
+        self.release_fixture('1.0.0-beta.1')
+        args,responses,archives=self.download_fixture('release')
+        with patch.object(publish,'tag_commit',side_effect=[self.source,'b'*40]):
+            with self.assertRaisesRegex(ValueError,'tag changed during download'):
+                self.retrieve_fixture(args,responses,archives)
+        self.assertFalse((args.destination/'verified-download.json').exists())
+
     def test_only_manual_optin_authorizes_either_publication_entrypoint(self):
         import installer_release
         env = dict(CI_PUBLISH='true',GITHUB_ACTIONS='true',GITHUB_JOB='publish',

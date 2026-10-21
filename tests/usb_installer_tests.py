@@ -245,7 +245,7 @@ class InstallerTests(unittest.TestCase):
                         self.assertEqual(installer.resolve(net,branch,stable=True)[1]['firmware_version'],version)
 
     def test_release_misclassification_tag_swap_preview_and_failed_jobs_refuse_before_usb(self):
-        for mutation in ('classification','tag','source','job','skipped','event','branch'):
+        for mutation in ('classification','tag','source','job','skipped','event','event-swap','branch'):
             net=Network(version='1.0.0-beta.1')
             if mutation=='classification':net.release['prerelease']=False
             if mutation=='tag':net.release['tag_name']='v1.0.0'
@@ -253,9 +253,24 @@ class InstallerTests(unittest.TestCase):
             if mutation=='job':net.jobs['jobs'][1]['conclusion']='failure'
             if mutation=='skipped':net.jobs['jobs'][1]['conclusion']='skipped'
             if mutation=='event':net.run['event']='pull_request'
+            if mutation=='event-swap':net.run['event']='push'
             if mutation=='branch':net.run['head_branch']='devel'
             with self.subTest(mutation=mutation),patch.object(installer,'discover',side_effect=AssertionError('USB opened')):
                 with self.assertRaises(installer.Refusal):installer.resolve(net,version='1.0.0-beta.1')
+
+    def test_tag_movement_during_release_download_refuses_before_usb(self):
+        net=Network(version='1.0.0-beta.1')
+        original=net.api
+        reads=0
+        def api(path):
+            nonlocal reads
+            if path=='git/ref/tags/'+net.tag:
+                reads+=1
+                if reads>1:return {'object':{'type':'commit','sha':'a'*40}}
+            return original(path)
+        with patch.object(net,'api',side_effect=api),patch.object(installer,'discover',side_effect=AssertionError('USB opened')):
+            with self.assertRaisesRegex(installer.Refusal,'tag changed during download'):
+                installer.resolve(net,version='1.0.0-beta.1')
 
     def test_beta_and_final_preserving_upgrade_and_recovery(self):
         self.upgrade_transaction(version='1.0.0-beta.1',programming_recovery=True)
