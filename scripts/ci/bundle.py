@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from check_application_image import validate as validate_engine
 from check_standalone_image import validate_uf2
 from firmware_payload import verify_payload
+from usb_installer import MAX_VERSION, SEMVER, firmware_channel, version_kind
 
 PROFILES = {
     'consumer': {'target': 'WsprryPico', 'engine': 'pio-dma', 'role': 'uninhibited'},
@@ -85,11 +86,15 @@ def build_stream(event, ref):
         return ref.removeprefix('refs/heads/')
     if event == 'pull_request' and isinstance(ref, str) and re.fullmatch(r'refs/pull/[1-9][0-9]*/merge', ref):
         return 'pull-request'
+    if event in ('push', 'workflow_dispatch') and isinstance(ref, str) and ref.startswith('refs/tags/v'):
+        require(version_kind(ref.removeprefix('refs/tags/v')) in ('prerelease', 'stable'),
+                'CI/testing versions require their original branch workflow')
+        return 'release'
     raise ValueError('Unsupported CI event or branch')
 
 
 def artifact_name(kind, stream, run, attempt):
-    require(kind in ('firmware', 'audit') and stream in ('devel', 'main', 'pull-request'),
+    require(kind in ('firmware', 'audit') and stream in ('devel', 'main', 'pull-request', 'release'),
             'Unsupported artifact stream')
     return f'WsprryPico-{kind}-{stream}-{run}-{attempt}-consumer'
 
@@ -122,7 +127,7 @@ def descriptor(path, root):
 def safe_file(root, record):
     name = record['path']
     require(isinstance(name, str) and len(name) <= 200 and
-            re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/-]*', name) and
+            re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/+-]*', name) and
             not any(part in ('', '.', '..') for part in name.split('/')), 'Unsafe asset path')
     path = root / name
     require(path.resolve().is_relative_to(root.resolve()), 'Asset escapes bundle')
@@ -299,14 +304,16 @@ def create(deployment, audit, source, version, selected, checks, build_inputs):
                 'revision': os.environ['CI_WORKFLOW_SHA'], 'event': event, 'ref': ref,
                 'run_id': int(os.environ['GITHUB_RUN_ID']), 'attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
                 'url': f'https://github.com/WsprryPi/WsprryPico/actions/runs/{os.environ["GITHUB_RUN_ID"]}'}
+    actual_stream, channel, eligible = firmware_channel(version, workflow)
+    require(stream == actual_stream, 'Version/workflow stream mismatch')
     manifest = {
         'schema_version': 1, 'product': 'WsprryPico', 'firmware_version': version,
-        'intended_tag': 'v' + version, 'channel': 'ci-testing',
+        'intended_tag': 'v' + version, 'channel': channel,
         'repository': 'https://github.com/WsprryPi/WsprryPico',
         'source': {'revision': source, 'tree': capture('git', '-C', ROOT, 'rev-parse', source + '^{tree}'),
                    'clean': True, 'input_digest_sha256': hashlib.sha256(source_inventory).hexdigest()},
         'workflow': workflow,
-        'deployment_candidate': stream in ('devel', 'main') and not is_testing_version(version),
+        'deployment_candidate': eligible,
         'firmware': {'profile': 'consumer', 'target': 'WsprryPico', 'board': 'pico2_w',
                      'processor': 'RP2350', 'family_id': 'e48bff59', 'role': 'uninhibited',
                      'engine': 'pio-dma', 'clock_hz': 138000000,
@@ -350,9 +357,10 @@ def verify(deployment, audit, source, version, inspect=True):
                 ['git', '-C', str(ROOT), 'ls-tree', '-r', source])).hexdigest(), 'Source tree/input digest mismatch')
     require(manifest['workflow']['revision'] == source, 'Workflow revision differs from artifact source')
     stream = build_stream(manifest['workflow']['event'], manifest['workflow']['ref'])
-    require('-testing.' not in version or is_testing_version(version), 'Unsupported testing version series')
+    actual_stream, channel, eligible = firmware_channel(version, manifest['workflow'])
+    require(actual_stream == stream and manifest['channel'] == channel, 'Version/channel/ref mismatch')
     testing = is_testing_version(version)
-    require(manifest['deployment_candidate'] == (stream in ('devel', 'main') and not testing),
+    require(manifest['deployment_candidate'] == eligible,
             'Untrusted deployment channel')
     if testing:
         require(manifest['workflow']['event'] == 'workflow_dispatch' and stream == 'devel' and

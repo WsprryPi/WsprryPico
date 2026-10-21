@@ -32,7 +32,8 @@
     },
     "firmware_version": {
       "type": "string",
-      "pattern": "^0\\.[0-9]{1,4}\\.[0-9]{1,4}-(testing\\.[1-9][0-9]{0,5}|ci\\.[1-9][0-9]{0,19}\\.[1-9][0-9]{0,5})$"
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$",
+      "maxLength": 128
     },
     "intended_tag": {
       "type": "string",
@@ -40,7 +41,11 @@
       "maxLength": 200000
     },
     "channel": {
-      "const": "ci-testing"
+      "enum": [
+        "ci-testing",
+        "prerelease",
+        "stable"
+      ]
     },
     "repository": {
       "const": "https://github.com/WsprryPi/WsprryPico"

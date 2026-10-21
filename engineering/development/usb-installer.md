@@ -1,6 +1,6 @@
 # USB installer
 
-The shared installer is `scripts/usb_installer.py` (version 0.1.4). It runs with
+The shared installer is `scripts/usb_installer.py` (version 0.2.0). It runs with
 Python 3.10 or newer and its standard library on macOS and Linux. Windows and
 WSL USB operation are unsupported. The [acceptance record](usb-installer-results.md)
 distinguishes software checks, published downloads and recorded board tests.
@@ -64,9 +64,11 @@ another branch, older image or compilation is never selected implicitly.
 
 Output directories must be new. `--bundle DIRECTORY` revalidates a previously
 saved public bundle without another download. It cannot accompany another
-image selector. Stable selection is explicit and never substitutes CI. The
-current public manifest contract describes CI testing images; no compatible
-stable image is available. Main and devel each have a verified permanent CI
+image selector. `--version 1.0.0-beta.1` or `--version 1.0.0` selects that exact
+semantic tag independently of the CI branch selector. `--stable` selects GitHub's
+latest full release and requires a final semantic version; absence or invalid
+provenance causes refusal without substituting CI. These selectors require a
+published compatible bundle and do not publish or create one. Main and devel each have a verified permanent CI
 download index. `recent_ci` reports additional run status separately from the
 immutable selected image. Missing or invalid downloads still cause refusal.
 
@@ -75,6 +77,18 @@ GitHub account. A saved successful verification receipt remains usable after
 Actions retention expiry when the public release and exact hashes remain intact.
 HTTPS/repository ownership is the distribution trust boundary; checksums are
 integrity checks, not signatures.
+
+Beta/final manifests use the `release` artifact stream, exact tag workflow ref
+and `prerelease`/`stable` channel. The shared standard-library policy in
+`usb_installer.py` is also imported by CI. The manifest schema remains version 1
+and uses the existing bounded schema interpreter. The independently distributed
+installer still consists of its manifest, Python core and canonical schema;
+no additional runtime module or companion-repository change is required.
+Firmware major version grants no new storage compatibility. Existing flash
+boundaries, same-board backups, settings readback, upgrade and recovery guards
+apply to CI, beta and final images. Pending transactions retain their original
+installer version and immutable bootstrap revision; resume them with that
+recorded installer rather than substituting a new core.
 
 GitHub API rate limits are reported separately from a missing branch bookmark,
 permission failures and connection errors. Refusals include the HTTP status and

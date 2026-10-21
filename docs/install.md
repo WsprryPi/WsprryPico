@@ -24,6 +24,13 @@ Each index points to an exact version with its manifest and SHA-256 checksums.
 These are CI testing images, not a stable release. The installer verifies
 image identity, source, workflow and checksums before programming.
 
+To select a published beta or final release, add `--version 1.0.0-beta.1` or
+`--version 1.0.0` to the installer command, using the actual version without
+the tag's `v` prefix. These are exact selections and do not use the main/devel
+CI index. Use `--stable` to select the latest published full release. If the
+selected release is unavailable or fails verification, the installer stops.
+It does not substitute another image. These options do not create a release.
+
 ## Get the installer and identify the Pico
 
 Download the project bootstrap into a local file, inspect it, and run it as

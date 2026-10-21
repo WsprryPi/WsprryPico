@@ -18,8 +18,8 @@ unqualified. Full-board boot, USB, RF and timing acceptance remain separate.
 
 ## Triggers and identity
 
-Every push to `devel` or `main`, including a merge or documentation-only change,
-runs checks and builds firmware. Pull requests targeting either branch build
+Every push to `devel`, `main` or a semantic `v<version>` tag, including a merge
+or documentation-only change, runs checks and builds firmware. Pull requests targeting either branch build
 preview images when opened, updated or reopened. Merging a PR into `main`
 therefore builds the resulting `main` commit as well. There are no path filters
 or build cancellation groups. Publication is serialized separately per branch,
@@ -30,10 +30,54 @@ downloads. Repository settings and the default branch are unchanged.
 Manual dispatch, where available, accepts only the enumerated `consumer`
 profile. Ordinary embedded versions are generated before building as
 `0.1.0-ci.<run-id>.<attempt>`. Different attempts
-have different identities. Successful trusted branch builds publish those exact
+have different identities. Explicitly published trusted branch builds preserve those exact
 bytes under unique `v<version>` prerelease tags. They remain CI testing images;
 `main` does not automatically become a stable product release. Publication does
 not mark a prerelease as GitHub's latest stable release.
+
+**Verification does not publish.** Both firmware and installer publication jobs
+require a manual `workflow_dispatch` with `publish=true`; the default is false.
+Pushes, pull requests, tag pushes and ordinary manual checks leave existing
+releases, assets and main/devel bookmarks untouched. The publisher entry points
+enforce the same authorization. Existing downloads remain available until an
+explicit publication advances their channel.
+
+### Beta and final firmware tags
+
+Firmware tags use `v` followed by [SemVer 2.0.0](https://semver.org/spec/v2.0.0.html),
+for example `v1.0.0-beta.1` or `v1.0.0`. The version without `v` is embedded in
+the image and its filename. Valid build metadata is supported; the bounded
+version string is at most 128 ASCII characters. Numeric identifiers obey SemVer
+leading-zero rules. `ci` and `testing` prefixes retain their historical reserved
+identities. Major version does not select protocol or storage compatibility.
+
+A release tag must peel to the checked-out source on maintained main/devel
+history. Its build uses the `release` artifact stream, manifest channel
+`prerelease` or `stable`, exact tag workflow ref and the same complete software,
+linked-image and reproducibility checks as CI. Beta/final assets retain the
+existing six-file deployment bundle, two original archives and
+`ci-publication.json` verification receipt. They do not advance CI bookmarks.
+
+After a tag exists, check its exact source without publishing:
+
+```sh
+gh workflow run software-build.yml --repo WsprryPi/WsprryPico \
+  --ref v1.0.0-beta.1 -f publish=false
+```
+
+Publication is a separate deliberate manual dispatch at that tag with
+`-f publish=true`. This runs the full checks again before publishing. Beta
+releases set GitHub `prerelease:true`; final releases set `prerelease:false`.
+`make_latest` defaults false. Only an explicitly published final tag can use
+`-f make_latest=true` to select GitHub's latest stable release. Existing tag
+targets and published bytes cannot be replaced. Original draft receipts must
+remain identical when resuming an interrupted upload; a rebuild/run/attempt
+cannot replace a draft's previously uploaded assets.
+
+Main/devel CI publication uses a manual dispatch on that branch with
+`-f publish=true`. Installer publication independently uses
+`usb-installer.yml`, a main/devel ref and `-f publish=true`. A successful build
+alone authorizes neither publication.
 
 An explicit manual `devel` dispatch may select `testing_version` with the strict
 form `0.1.0-testing.N` (positive N, at most six digits). That dispatch runs the
@@ -181,7 +225,7 @@ not sufficient firmware identity. PR jobs have no write token and never publish.
 
 [`scripts/ci/download.py`](../../scripts/ci/download.py) retrieves an explicitly
 selected run/attempt. It requires the actual GitHub run to be a completed
-successful canonical `devel` or `main` push/manual run with the expected source and
+successful canonical `devel`, `main` or `release` push/manual run with the expected source and
 workflow path/ID. It checks every required job, both immutable artifact IDs,
 expiry and archive digests, safely extracts each archive, then independently
 validates the manifest, all file sizes/hashes, actual test reports, source and
@@ -209,6 +253,16 @@ locator/hint. Selection from Actions storage must independently require the cano
 repository/workflow/source, successful **whole run**, required successful job
 and complete matching artifact pair. A partially uploaded, failed, cancelled,
 expired or PR run is ineligible for Actions retrieval even if one artifact exists.
+An intentionally skipped publisher in a workflow with explicit publication
+opt-in is allowed for read-only retrieval. A failed or cancelled publisher is
+ineligible. Published installer bundles still require successful publication.
+
+For beta/final artifacts, use `--branch release` and the exact semantic version
+without `v`; source/run/attempt remain mandatory. This works before publication
+and, with `--published`, from preserved release assets after Actions expiry.
+The downloader checks the current tag target against the exact source as well
+as the workflow ref, manifest, release classification and receipt. Tag builds
+do not inherit the source branch's CI image identity.
 
 For preserved release archives use the same explicit identity and add
 `--published`. This path verifies the public release/tag, preserved verification

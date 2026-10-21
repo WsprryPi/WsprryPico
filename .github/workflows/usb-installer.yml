@@ -28,6 +28,11 @@ on:
       - tests/fixtures/usb-installer/**
       - .github/workflows/usb-installer.yml
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the verified installer (default is checks only)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -50,7 +55,7 @@ jobs:
       - run: python tests/installer_release_tests.py
   publish:
     needs: verify
-    if: github.repository == 'WsprryPi/WsprryPico' && github.event_name != 'pull_request'
+    if: github.repository == 'WsprryPi/WsprryPico' && github.event_name == 'workflow_dispatch' && inputs.publish && (github.ref == 'refs/heads/devel' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -60,6 +65,7 @@ jobs:
       group: usb-installer-publication-${{ github.ref }}
       cancel-in-progress: false
     env:
+      CI_PUBLISH: ${{ inputs.publish && 'true' || 'false' }}
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

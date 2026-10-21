@@ -44,17 +44,36 @@ def inputs():
         raise ValueError('A real GitHub run/attempt is required')
     if os.environ.get('CI_VERSION'):
         raise ValueError('Firmware identity is generated uniquely per run/attempt; overrides are unsupported')
-    version = os.environ.get('CI_TESTING_VERSION', '') or f'0.1.0-ci.{run_id}.{attempt}'
+    tagged = stream == 'release'
+    version = (os.environ['GITHUB_REF'].removeprefix('refs/tags/v') if tagged else
+               os.environ.get('CI_TESTING_VERSION', '') or f'0.1.0-ci.{run_id}.{attempt}')
     if os.environ.get('CI_TESTING_VERSION'):
         bundle.require(bundle.is_testing_version(version) and
                        os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch' and
                        os.environ.get('GITHUB_REF') == 'refs/heads/devel',
                        'Testing versions require a manual devel dispatch and 0.1.0-testing.N')
-    if not re.fullmatch(r'0\.[0-9]{1,4}\.[0-9]{1,4}-(?:testing\.[1-9][0-9]{0,5}|ci\.[1-9][0-9]{0,19}\.[1-9][0-9]{0,5})', version):
-        raise ValueError('Use an explicit pre-1.0 testing version, or the generated CI version')
+    bundle.firmware_channel(version, dict(event=os.environ['GITHUB_EVENT_NAME'],
+                            ref=os.environ['GITHUB_REF'], run_id=int(run_id), attempt=int(attempt)))
+    publish = os.environ.get('CI_PUBLISH', 'false')
+    latest = os.environ.get('CI_MAKE_LATEST', 'false')
+    bundle.require(publish in ('true', 'false') and latest in ('true', 'false') and
+                   (publish == 'false' or os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch') and
+                   (latest == 'false' or publish == 'true' and bundle.version_kind(version) == 'stable'),
+                   'Publication/latest selection requires explicit manual authorization and a final version for latest')
     source = capture('git', 'rev-parse', 'HEAD')
     if source != os.environ.get('CI_EVENT_SHA'):
         raise ValueError('Actual checkout differs from workflow event SHA')
+    if tagged:
+        bundle.require(capture('git', 'rev-parse', os.environ['GITHUB_REF'] + '^{commit}') == source,
+                       'Release tag/source mismatch')
+        maintained = False
+        for branch in ('main', 'devel'):
+            ref = 'refs/remotes/origin/' + branch
+            if subprocess.run(['git', 'show-ref', '--verify', '--quiet', ref], cwd=ROOT).returncode == 0:
+                result = subprocess.run(['git', 'merge-base', '--is-ancestor', source, ref], cwd=ROOT)
+                bundle.require(result.returncode in (0, 1), 'Cannot verify release source ancestry')
+                maintained |= result.returncode == 0
+        bundle.require(maintained, 'Release source must belong to maintained main/devel history')
     if capture('git', 'status', '--porcelain', '--untracked-files=all'):
         raise ValueError('Clean tracked and untracked CI input required')
     for name in ('CMakeUserPresets.json', 'pico_config.local.h', 'config/local'):

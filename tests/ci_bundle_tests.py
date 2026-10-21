@@ -22,6 +22,48 @@ import run as ci_run
 
 
 class TestingInputTests(unittest.TestCase):
+    def test_semver_policy_matches_schema_and_rejects_unsafe_or_reserved_versions(self):
+        schema = bundle.read_json(bundle.SCHEMA)['properties']['firmware_version']
+        self.assertEqual(schema['pattern'], '^' + bundle.SEMVER + '$')
+        self.assertEqual(schema['maxLength'], bundle.MAX_VERSION)
+        for version, kind in [('1.0.0-beta.1', 'prerelease'), ('1.0.0', 'stable'),
+                              ('12.34.56-rc.0+build.001', 'prerelease'), ('1.0.0+001', 'stable'),
+                              ('0.1.0-ci.123.1', 'ci'), ('0.1.0-testing.1', 'testing')]:
+            self.assertEqual(bundle.version_kind(version), kind)
+        for version in ('v1.0.0', '01.0.0', '1.00.0', '1.0.01', '1.0', '1.0.0-beta.01',
+                        '1.0.0+', '1.0.0-a..b', '1.0.0\n', '1.0.0/evil', '1.0.0;touch',
+                        '1.0.0-' + 'a'*128, '1.0.0-ci.1.1', '0.1.0-ci.0.1',
+                        '0.1.0-testing.01', '0.1.0-ci.1.1+forged', None):
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                bundle.version_kind(version)
+
+    def test_release_tag_inputs_require_exact_source_and_maintained_history(self):
+        for version in ('1.0.0-beta.1', '1.0.0', '1.0.0+build.1'):
+            for event in ('push', 'workflow_dispatch'):
+                env = dict(CI_PROFILE='consumer', CI_STREAM='release', GITHUB_RUN_ID='123',
+                           GITHUB_RUN_ATTEMPT='1', GITHUB_EVENT_NAME=event,
+                           GITHUB_REF='refs/tags/v'+version, CI_EVENT_SHA='a'*40,
+                           GITHUB_REPOSITORY='WsprryPi/WsprryPico')
+                def capture(*args):
+                    return 'a'*40 if args[:2] == ('git', 'rev-parse') else ''
+                with self.subTest(version=version,event=event), patch.dict(os.environ,env,clear=True), \
+                     patch.object(ci_run,'capture',side_effect=capture), \
+                     patch.object(ci_run.Path,'exists',return_value=False), \
+                     patch.object(ci_run.subprocess,'run',return_value=SimpleNamespace(returncode=0)):
+                    self.assertEqual(ci_run.inputs()[1], version)
+                    with patch.object(ci_run.subprocess,'run',return_value=SimpleNamespace(returncode=1)):
+                        with self.assertRaisesRegex(ValueError,'maintained'):
+                            ci_run.inputs()
+                    with patch.dict(os.environ,{'CI_EVENT_SHA':'b'*40}):
+                        with self.assertRaisesRegex(ValueError,'checkout'):
+                            ci_run.inputs()
+                    with patch.dict(os.environ,{'CI_MAKE_LATEST':'true'}):
+                        with self.assertRaisesRegex(ValueError,'explicit manual'):
+                            ci_run.inputs()
+                    with patch.dict(os.environ,{'CI_TESTING_VERSION':'0.1.0-testing.1'}):
+                        with self.assertRaises(ValueError):
+                            ci_run.inputs()
+
     def test_testing_identity_is_manual_devel_only(self):
         env = dict(CI_PROFILE='consumer', CI_STREAM='devel', GITHUB_RUN_ID='123',
                    GITHUB_RUN_ATTEMPT='1', GITHUB_EVENT_NAME='workflow_dispatch',
@@ -29,7 +71,8 @@ class TestingInputTests(unittest.TestCase):
                    GITHUB_REPOSITORY='WsprryPi/WsprryPico', CI_TESTING_VERSION='0.1.0-testing.1')
         def capture(*args):
             return 'a'*40 if args[:2] == ('git', 'rev-parse') else ''
-        with patch.dict(os.environ, env, clear=True), patch.object(ci_run, 'capture', side_effect=capture):
+        with patch.dict(os.environ, env, clear=True), patch.object(ci_run, 'capture', side_effect=capture), \
+             patch.object(ci_run.Path, 'exists', return_value=False):
             self.assertEqual(ci_run.inputs()[1], '0.1.0-testing.1')
             for field, value in [('GITHUB_EVENT_NAME','push'), ('GITHUB_REF','refs/heads/main'),
                                  ('CI_TESTING_VERSION','0.1.0-testing.0'),
@@ -110,7 +153,11 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(workflow['permissions'], {'contents':'read'})
         publisher = workflow['jobs']['publish']
         self.assertEqual(publisher['needs'], 'verify')
-        self.assertIn("github.event_name != 'pull_request'", publisher['if'])
+        self.assertEqual(workflow['on']['push']['tags'], ['v*'])
+        self.assertIn("github.event_name == 'workflow_dispatch'", publisher['if'])
+        self.assertIn('inputs.publish', publisher['if'])
+        self.assertEqual(workflow['on']['workflow_dispatch']['inputs']['publish']['default'], 'false')
+        self.assertEqual(workflow['on']['workflow_dispatch']['inputs']['make_latest']['default'], 'false')
         self.assertIn("github.repository == 'WsprryPi/WsprryPico'", publisher['if'])
         self.assertIn('!inputs.testing_version', publisher['if'])
         self.assertEqual(workflow['jobs']['verify']['env']['CI_TESTING_VERSION'],
@@ -338,7 +385,8 @@ class BundleTests(unittest.TestCase):
 
     def download_fixture(self, branch, legacy=False, event=None):
         event = event or ('pull_request' if branch == 'pull-request' else 'push')
-        ref = 'refs/pull/23/merge' if event == 'pull_request' else 'refs/heads/' + branch
+        ref = ('refs/tags/v' + self.version if branch == 'release' else
+               'refs/pull/23/merge' if event == 'pull_request' else 'refs/heads/' + branch)
         self.mutate_manifest(lambda v: v.update(
             workflow=dict(v['workflow'], event=event, ref=ref),
             deployment_candidate=branch != 'pull-request' and not bundle.is_testing_version(self.version)))
@@ -355,7 +403,7 @@ class BundleTests(unittest.TestCase):
                 name=f'WsprryPico-{kind}-1-1-consumer' if legacy else bundle.artifact_name(kind, branch, 1, 1),
                 digest='sha256:' + bundle.sha(archive), expired=False, expires_at='2030-01-01T00:00:00Z'))
         run = dict(status='completed', conclusion='success', run_attempt=1,
-                   head_sha=self.source, head_branch=branch, event=event,
+                   head_sha=self.source, head_branch='v'+self.version if branch == 'release' else branch, event=event,
                    path='.github/workflows/software-build.yml', workflow_id=7,
                    head_repository={'full_name':download.REPOSITORY}, html_url='https://github.com/'+download.REPOSITORY+'/actions/runs/1')
         responses = {'actions/runs/1/attempts/1':run,
@@ -524,6 +572,163 @@ class BundleTests(unittest.TestCase):
         receipt = self.retrieve_fixture(args, responses, archives)
         receipt['verification'] = 'accepted-verify-job-and-payload'
         return args, receipt
+
+    def release_fixture(self, version):
+        manifest = bundle.read_json(self.deploy / 'release-manifest.json')
+        payload = next(a for a in manifest['assets'] if a['path'].endswith('.uf2'))
+        self.version = version
+        path = self.deploy / f'WsprryPico-{version}-pico2_w.uf2'
+        (self.deploy / payload['path']).rename(path)
+        payload.update(bundle.descriptor(path, self.deploy))
+        manifest.update(firmware_version=version, intended_tag='v'+version,
+                        channel=bundle.version_kind(version), deployment_candidate=True)
+        manifest['workflow'].update(ref='refs/tags/v'+version)
+        (self.deploy / 'release-manifest.json').write_text(json.dumps(manifest))
+        self.reseal()
+
+    def test_tag_manifest_creation_download_publication_and_expired_archive_roundtrip(self):
+        for version in ('1.0.0-beta.1', '1.0.0', '1.0.0-rc.2+build.001'):
+            with self.subTest(version=version):
+                self.release_fixture(version)
+                self.verify()
+                args, responses, archives = self.download_fixture('release', event='workflow_dispatch')
+                args.destination = self.base / version
+                with patch.object(publish,'tag_commit',return_value=self.source):
+                    receipt = self.retrieve_fixture(args,responses,archives)
+                receipt['verification'] = 'accepted-verify-job-and-payload'
+                releases,tags,mutations,api,upload = self.publication_service()
+                tags['v'+version] = self.source
+                with patch.object(publish,'api',side_effect=api), patch.object(publish.subprocess,'run',side_effect=upload):
+                    tag = publish.preserve(receipt,args.destination)
+                    self.assertEqual(releases[tag]['prerelease'], bundle.version_kind(version) != 'stable')
+                    self.assertEqual(releases[tag]['make_latest'],'false')
+                    self.assertEqual(len(releases[tag]['assets']),9)
+                    before = copy.deepcopy(mutations)
+                    publish.preserve(receipt,args.destination)
+                    self.assertEqual(mutations,before)
+                original = args.destination
+                args.destination = self.base / (version+'-expired')
+                actual_run = subprocess.run
+                def fetch(command,stdout,**kwargs):
+                    if command[0] != 'gh':
+                        return actual_run(command,stdout=stdout,**kwargs)
+                    identifier = int(command[-1].split('/')[-1])
+                    filename = next(a['name'] for a in releases[tag]['assets'] if a['id']==identifier)
+                    stdout.write((original/filename).read_bytes())
+                verifier = bundle.verify
+                with patch.object(publish,'api',side_effect=api), \
+                     patch.object(download.subprocess,'run',side_effect=fetch), \
+                     patch.object(download,'inspection_tool',return_value={'path':'fixture'}), \
+                     patch.object(bundle,'required_tests',return_value={'fixture'}), \
+                     patch.object(bundle,'verify',side_effect=lambda d,a,s,v:verifier(d,a,s,v,inspect=False)):
+                    self.assertEqual(download.retrieve_published(args)['version'],version)
+
+    def test_readonly_tag_download_allows_skipped_publish_but_rejects_failure_and_source_swap(self):
+        self.release_fixture('1.0.0-beta.1')
+        args,responses,archives = self.download_fixture('release')
+        publisher = next(j for j in responses['actions/runs/1/attempts/1/jobs']['jobs'] if j['name']=='publish')
+        publisher['conclusion'] = 'skipped'
+        with patch.object(publish,'tag_commit',return_value=self.source), patch.object(download,'optional_publication',return_value=True):
+            self.assertTrue(self.retrieve_fixture(args,responses,archives)['verified'])
+            publisher['conclusion'] = 'failure'
+            with self.assertRaisesRegex(ValueError,'publication job'):
+                self.retrieve_fixture(args,responses,archives)
+
+    def test_release_creator_and_manifest_reject_channel_ref_and_run_swaps(self):
+        import usb_installer
+        from jsonschema import ValidationError
+        for version in ('1.0.0-beta.1','1.0.0','1.0.0-foo-testing.1+build.0'):
+            created = self.base / ('create-'+version)
+            created.mkdir()
+            for name in ('LICENSE.md','THIRD_PARTY_NOTICES.md','DEPENDENCY-LICENSES.txt'):
+                (created/name).write_bytes((self.deploy/name).read_bytes())
+            env = dict(GITHUB_EVENT_NAME='push',GITHUB_REF='refs/tags/v'+version,
+                       CI_WORKFLOW_SHA=self.source,GITHUB_RUN_ID='1',GITHUB_RUN_ATTEMPT='1')
+            with patch.dict(os.environ,env):
+                bundle.create(created,self.audit,self.source,version,['consumer'],self.checks,self.inputs)
+            with patch.object(bundle,'required_tests',return_value={'fixture'}):
+                manifest=bundle.verify(created,self.audit,self.source,version,inspect=False)
+            usb_installer.schema_check(manifest,bundle.read_json(bundle.SCHEMA))
+        self.release_fixture('1.0.0-beta.1')
+        baseline=(self.deploy/'release-manifest.json').read_text()
+        for mutate in (lambda m:m.update(channel='stable'),
+                       lambda m:m.update(deployment_candidate=False),
+                       lambda m:m['workflow'].update(ref='refs/tags/v1.0.0-beta.2'),
+                       lambda m:m['workflow'].update(ref='refs/heads/devel'),
+                       lambda m:m['workflow'].update(event='pull_request'),
+                       lambda m:m.update(intended_tag='v1.0.0')):
+            (self.deploy/'release-manifest.json').write_text(baseline)
+            self.mutate_manifest(mutate)
+            self.reseal()
+            with self.assertRaises((ValueError,ValidationError)):self.verify()
+
+    def test_beta_cannot_be_latest_and_tag_movement_cannot_publish_a_draft(self):
+        self.release_fixture('1.0.0-beta.1')
+        args,responses,archives=self.download_fixture('release')
+        with patch.object(publish,'tag_commit',return_value=self.source):
+            receipt=self.retrieve_fixture(args,responses,archives)
+        receipt['verification']='accepted-verify-job-and-payload'
+        with patch.object(publish,'api',side_effect=AssertionError('mutation')):
+            with self.assertRaisesRegex(ValueError,'latest stable'):
+                publish.preserve(dict(receipt,make_latest=True),args.destination)
+        releases,tags,mutations,api,upload=self.publication_service()
+        tag='v'+self.version
+        tags[tag]=self.source
+        def moved(command,**kwargs):
+            upload(command,**kwargs)
+            tags[tag]='b'*40
+        with patch.object(publish,'api',side_effect=api),patch.object(publish.subprocess,'run',side_effect=moved):
+            with self.assertRaisesRegex(ValueError,'changed before publication'):
+                publish.preserve(receipt,args.destination)
+        self.assertTrue(releases[tag]['draft'])
+        self.assertFalse(any(method=='PATCH' for _,method,_ in mutations))
+        with patch.object(publish,'tag_commit',return_value='b'*40):
+            with self.assertRaisesRegex(ValueError,'tag/source'):
+                self.retrieve_fixture(args,responses,archives)
+
+    def test_final_latest_selection_is_explicit_and_does_not_advance_ci_bookmarks(self):
+        self.release_fixture('1.0.0')
+        args,responses,archives=self.download_fixture('release',event='workflow_dispatch')
+        with patch.object(publish,'tag_commit',return_value=self.source):
+            receipt=self.retrieve_fixture(args,responses,archives)
+        receipt.update(verification='accepted-verify-job-and-payload',make_latest=True)
+        releases,tags,mutations,api,upload=self.publication_service()
+        tags['v1.0.0']=self.source
+        with patch.object(publish,'api',side_effect=api),patch.object(publish.subprocess,'run',side_effect=upload):
+            publish.preserve(receipt,args.destination)
+        self.assertEqual(set(releases),{'v1.0.0'})
+        self.assertIs(releases['v1.0.0']['prerelease'],False)
+        self.assertEqual(releases['v1.0.0']['make_latest'],'true')
+
+    def test_tag_publication_collector_binds_current_job_to_exact_tag_run(self):
+        self.release_fixture('1.0.0-beta.1')
+        args,responses,archives=self.download_fixture('release',event='workflow_dispatch')
+        responses['actions/runs/1/attempts/1'].update(status='in_progress',conclusion=None)
+        publisher=next(j for j in responses['actions/runs/1/attempts/1/jobs']['jobs'] if j['name']=='publish')
+        publisher.update(status='in_progress',conclusion=None)
+        env=dict(GITHUB_ACTIONS='true',GITHUB_JOB='publish',GITHUB_RUN_ID='1',GITHUB_RUN_ATTEMPT='1',
+                 GITHUB_SHA=self.source,GITHUB_REF='refs/tags/v'+self.version,GITHUB_REPOSITORY=download.REPOSITORY)
+        with patch.dict(os.environ,env),patch.object(publish,'tag_commit',return_value=self.source):
+            self.assertEqual(self.retrieve_fixture(args,responses,archives,publication=True)['branch'],'release')
+            with patch.dict(os.environ,{'GITHUB_REF':'refs/tags/v1.0.0-beta.2'}):
+                with self.assertRaisesRegex(ValueError,'current trusted publisher'):
+                    self.retrieve_fixture(args,responses,archives,publication=True)
+
+    def test_only_manual_optin_authorizes_either_publication_entrypoint(self):
+        import installer_release
+        env = dict(CI_PUBLISH='true',GITHUB_ACTIONS='true',GITHUB_JOB='publish',
+                   GITHUB_EVENT_NAME='workflow_dispatch',GITHUB_REPOSITORY=download.REPOSITORY)
+        with patch.dict(os.environ,env,clear=True):
+            publish.require_authorization()
+            for field,value in [('CI_PUBLISH','false'),('GITHUB_ACTIONS','false'),('GITHUB_JOB','verify'),
+                                ('GITHUB_EVENT_NAME','push'),('GITHUB_EVENT_NAME','pull_request'),
+                                ('GITHUB_REPOSITORY','fork/WsprryPico')]:
+                with self.subTest(field=field,value=value), patch.dict(os.environ,{field:value}), \
+                     patch.object(publish,'api',side_effect=AssertionError('network mutation')):
+                    with self.assertRaisesRegex(ValueError,'explicit manual'):
+                        publish.require_authorization()
+                    with self.assertRaisesRegex(ValueError,'explicit manual'):
+                        installer_release.main()
 
     def publication_service(self):
         releases, tags, mutations = {}, {}, []

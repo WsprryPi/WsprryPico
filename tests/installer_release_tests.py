@@ -48,6 +48,8 @@ class InstallerPublicationTests(unittest.TestCase):
         self.assertIn('needs: verify',workflow);self.assertIn('python tests/usb_installer_tests.py',workflow)
         self.assertIn('python tests/usb_tool_download_tests.py',workflow)
         self.assertIn('python tests/installer_release_tests.py',workflow)
+        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.publish",workflow)
+        self.assertIn('default: false',workflow)
         self.assertNotIn('build_pico',workflow);self.assertNotIn('scripts/ci/run.py build',workflow)
     def test_channel_advances_only_after_every_asset_is_verified_and_public(self):
         manifest,files=self.build();state={'release':None,'channel':None,'calls':[]}

@@ -48,7 +48,7 @@ import urllib.request
 import uuid
 import zipfile
 
-INSTALLER_VERSION = '0.1.4'
+INSTALLER_VERSION = '0.2.0'
 REPOSITORY = 'WsprryPi/WsprryPico'
 API = 'https://api.github.com/repos/' + REPOSITORY + '/'
 DOWNLOAD = 'https://github.com/' + REPOSITORY + '/releases/download/'
@@ -79,10 +79,53 @@ HEX40 = r'[0-9a-f]{40}'
 HEX64 = r'[0-9a-f]{64}'
 SERIAL = r'[0-9A-F]{16}'
 VERSION = r'0\.1\.0-ci\.([1-9][0-9]{0,19})\.([1-9][0-9]{0,5})'
+# Shared with CI through this standalone, standard-library-only module. Keeping
+# the policy here preserves the three-file deployed installer contract.
+SEMVER = (r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
+          r'(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+          r'(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?'
+          r'(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?')
+MAX_VERSION = 128
 
 
 class Refusal(ValueError):
     """An unsafe, unsupported, or incomplete operation; never a fallback."""
+
+
+def version_kind(version):
+    """Classify bounded SemVer independently of publication authorization."""
+    match = re.fullmatch(SEMVER, version) if isinstance(version, str) and len(version) <= MAX_VERSION else None
+    if not match:
+        raise Refusal('Invalid semantic firmware version')
+    if re.fullmatch(VERSION, version):
+        return 'ci'
+    if re.fullmatch(r'0\.1\.0-testing\.[1-9][0-9]{0,5}', version):
+        return 'testing'
+    if match[4] and match[4].split('.')[0] in ('ci', 'testing'):
+        raise Refusal('Reserved CI/testing version identity')
+    return 'prerelease' if match[4] is not None else 'stable'
+
+
+def firmware_channel(version, workflow):
+    """Bind version kind to the actual workflow ref, never its display name."""
+    kind = version_kind(version)
+    event, ref = workflow['event'], workflow['ref']
+    if kind in ('prerelease', 'stable'):
+        require(event in ('push', 'workflow_dispatch') and ref == 'refs/tags/v' + version,
+                'Release version requires its exact tag ref')
+        return 'release', kind, True
+    require(event in ('push', 'workflow_dispatch', 'pull_request'), 'Unsupported build event')
+    if event == 'pull_request':
+        require(kind == 'ci' and re.fullmatch(r'refs/pull/[1-9][0-9]*/merge', ref), 'Invalid preview identity')
+        stream = 'pull-request'
+    else:
+        require(ref in ('refs/heads/main', 'refs/heads/devel'), 'Unsupported CI branch')
+        stream = ref.removeprefix('refs/heads/')
+    if kind == 'testing':
+        require(event == 'workflow_dispatch' and stream == 'devel', 'Testing version requires manual devel dispatch')
+    else:
+        require(version == f"0.1.0-ci.{workflow['run_id']}.{workflow['attempt']}", 'CI version/run mismatch')
+    return stream, 'ci-testing', stream != 'pull-request' and kind != 'testing'
 
 
 class HttpFailure(Refusal):
@@ -321,21 +364,22 @@ def verify_bundle(files, branch, schema_path=SCHEMA):
     proof = decode(files['ci-publication.json'])
     source, workflow = manifest['source'], manifest['workflow']
     version = manifest['firmware_version']
-    require(re.fullmatch(VERSION, version), 'Unsupported version/storage compatibility policy')
+    stream, channel, eligible = firmware_channel(version, workflow)
+    tagged = stream == 'release'
+    require(eligible and (tagged or stream == branch), 'Unsupported version/download stream')
     require(manifest['deployment_candidate'] is True and source['clean'] is True and
-            manifest['channel'] == 'ci-testing' and
+            manifest['channel'] == channel and
             workflow['event'] in ('push', 'workflow_dispatch') and
-            workflow['ref'] == 'refs/heads/' + branch and
             workflow['revision'] == source['revision'] and
             workflow['url'] == f"https://github.com/{REPOSITORY}/actions/runs/{workflow['run_id']}" and
-            version == f"0.1.0-ci.{workflow['run_id']}.{workflow['attempt']}", 'Untrusted firmware provenance')
+            manifest['intended_tag'] == 'v' + version, 'Untrusted firmware provenance')
     checks = manifest['checks']
     require(checks['registered'] > 0 and checks['registered'] == checks['passed'] and
             checks['failed'] == checks['skipped'] == 0 and
             len(checks['test_names']) == len(set(checks['test_names'])) == checks['registered'],
             'Required CI checks did not all pass')
     require(proof['schema'] == 'wsprrypico-ci-publication/1' and proof['repository'] == REPOSITORY and
-            proof['branch'] == branch and proof['source'] == source['revision'] and
+            proof['branch'] == stream and proof['source'] == source['revision'] and
             proof['version'] == version and proof['tag'] == manifest['intended_tag'] == 'v' + version and
             proof['run_id'] == workflow['run_id'] and proof['attempt'] == workflow['attempt'] and
             proof['url'] == workflow['url'] and
@@ -349,7 +393,7 @@ def verify_bundle(files, branch, schema_path=SCHEMA):
                 for a in artifacts), 'Invalid original artifact identities')
     for artifact in artifacts:
         prefix = 'firmware' if artifact['kind'] == 'deployment' else 'audit'
-        require(artifact['name'] == f"WsprryPico-{prefix}-{branch}-{workflow['run_id']}-{workflow['attempt']}-consumer",
+        require(artifact['name'] == f"WsprryPico-{prefix}-{stream}-{workflow['run_id']}-{workflow['attempt']}-consumer",
                 'Original artifact belongs to another branch/run/attempt')
     require(manifest['update']['ordinary_update_erases_settings'] is False and
             manifest['update']['whole_flash_erase_required'] is False and
@@ -371,7 +415,7 @@ def verify_bundle(files, branch, schema_path=SCHEMA):
                 'release-manifest.json': sha(files['release-manifest.json'])}
     checks = {}
     for line in lines:
-        match = re.fullmatch(r'([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9._-]*)', line)
+        match = re.fullmatch(r'([0-9a-f]{64})  ([A-Za-z0-9][A-Za-z0-9._+-]*)', line)
         require(match and match[2] not in checks, 'Malformed/duplicate checksum inventory')
         checks[match[2]] = match[1]
     require(checks == expected and proof['uf2'] == next(a for a in assets if a['path'] == uf2_name),
@@ -387,11 +431,12 @@ def resolve(client, branch='main', version=None, stable=False):
         require(not version, 'Choose either stable or an explicit version')
         release = client.api('releases/latest')
         require(release.get('draft') is False and release.get('prerelease') is False, 'No stable release is available')
-        # Stable remains subject to the same canonical provenance/storage checks.
-        # The current public v1 contract describes CI testing images only.
-        raise Refusal('No compatible stable image is published under the supported CI manifest contract; use latest CI or --version explicitly')
+        require(isinstance(release.get('tag_name'), str) and release['tag_name'].startswith('v'),
+                'Invalid stable release tag')
+        version = release['tag_name'][1:]
+        require(version_kind(version) == 'stable', 'Stable selection requires a final semantic version')
     if version:
-        require(re.fullmatch(VERSION, version), 'Unsupported explicit version')
+        require(version_kind(version) != 'testing', 'Historical testing releases are not installer candidates')
         tag = 'v' + version
         index = None
     else:
@@ -405,8 +450,9 @@ def resolve(client, branch='main', version=None, stable=False):
         index = parse_index(bookmark['body'], branch)
         tag = index['tag']
     release = client.api('releases/tags/' + tag)
-    require(release['tag_name'] == tag and release['prerelease'] is True and release['draft'] is False,
-            'Release is not an eligible CI testing image')
+    kind = version_kind(tag[1:])
+    require(release['tag_name'] == tag and release['prerelease'] is (kind != 'stable') and release['draft'] is False,
+            'Release classification/version mismatch')
     obj = client.api('git/ref/tags/' + tag)['object']
     for _ in range(4):
         if obj['type'] == 'commit':
@@ -430,7 +476,8 @@ def resolve(client, branch='main', version=None, stable=False):
         require(len(data) == asset['size'] and 'sha256:' + sha(data) == asset['digest'], 'Public asset mismatch')
         files[name] = data
     manifest, image = verify_bundle(files, branch)
-    require(obj['sha'] == manifest['source']['revision'], 'Version tag/source mismatch')
+    require(manifest['firmware_version'] == version and manifest['intended_tag'] == tag and
+            obj['sha'] == manifest['source']['revision'], 'Version tag/source mismatch')
     for artifact in decode(files['ci-publication.json'])['artifacts']:
         archive = inventory[artifact['kind'] + '.zip']
         require(archive['state'] == 'uploaded' and
@@ -448,8 +495,9 @@ def resolve(client, branch='main', version=None, stable=False):
         if error.status not in (404, 410):
             raise
     else:
+        expected_branch = tag if kind in ('stable', 'prerelease') else branch
         require(run['status'] == 'completed' and run['conclusion'] == 'success' and
-                run['head_sha'] == manifest['source']['revision'] and run['head_branch'] == branch and
+                run['head_sha'] == manifest['source']['revision'] and run['head_branch'] == expected_branch and
                 run['path'] == '.github/workflows/software-build.yml' and
                 run['head_repository']['full_name'] == REPOSITORY and
                 run['event'] in ('push', 'workflow_dispatch') and
@@ -575,7 +623,10 @@ def remember_local(directory, record):
 
 def resolve_installed(client, version):
     """An installed image keeps its own original branch provenance."""
-    require(re.fullmatch(VERSION, version), 'Unsupported installed firmware identity')
+    kind = version_kind(version)
+    require(kind != 'testing', 'Unsupported installed testing firmware identity')
+    if kind in ('stable', 'prerelease'):
+        return resolve(client, version=version)
     release = client.api('releases/tags/v' + version)
     metadata = [a for a in release['assets'] if a['name'] == 'release-manifest.json']
     url = DOWNLOAD + 'v' + version + '/release-manifest.json'
@@ -1475,7 +1526,8 @@ def transaction(args, files, manifest, image, client=None):
                 if old_version == '0.0.0-devel':
                     old_files, old_manifest, old_image = installed_local(root, serial, snapshot)
                 else:
-                    require(re.fullmatch(VERSION, old_version), 'Unsupported installed firmware; retain backup and recover deliberately')
+                    require(version_kind(old_version) in ('ci', 'prerelease', 'stable'),
+                            'Unsupported installed firmware; retain backup and recover deliberately')
                     old_files, old_manifest, old_image = ((files, manifest, image) if old_version == manifest['firmware_version'] and
                                                         'local-build.json' not in files else resolve_installed(client, old_version))
                 old_source, new_source = old_manifest['source']['revision'], manifest['source']['revision']
@@ -1681,7 +1733,7 @@ def recover_transaction(args):
             return finish_erase(args, record, path)
     require(record['schema'] == 'wsprrypico-usb-transaction/1' and record['serial'] == args.device and
             record['installer_version'] == INSTALLER_VERSION and
-            (re.fullmatch(VERSION, record['version']) or record['version'] == '0.0.0-devel') and
+            (record['version'] == '0.0.0-devel' or version_kind(record['version']) in ('ci', 'prerelease', 'stable')) and
             record['branch'] in ('main', 'devel') and re.fullmatch(HEX40, record['source']),
             'Incompatible or wrong-board recovery record')
     names = ({'local-build.json', f"WsprryPico-{record['version']}-pico2_w.uf2"} if (path.parent / 'local-build.json').exists() else
@@ -1917,7 +1969,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     parser.add_argument('operation', choices=('discover', 'plan', 'snapshot', 'install', 'upgrade', 'recover', 'erase'))
     parser.add_argument('--branch', choices=('main', 'devel'), default='main')
     choice = parser.add_mutually_exclusive_group()
-    choice.add_argument('--version', help='Explicit compatible CI version (never silently falls back)')
+    choice.add_argument('--version', help='Exact beta/final or CI version, without v (never silently falls back)')
     choice.add_argument('--stable', action='store_true', help='Explicit stable selection; refuses when no compatible stable is published')
     choice.add_argument('--local-build', type=Path, help='Explicit developer source checkout to compile with existing pinned tools')
     choice.add_argument('--local-bundle', type=Path, help='Explicit previously built developer bundle')

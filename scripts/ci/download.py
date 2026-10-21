@@ -29,7 +29,7 @@ def extract(archive, destination):
                        'Invalid or oversized archive inventory')
         for item in members:
             name = item.filename.rstrip('/')
-            bundle.require(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/-]*', name) and
+            bundle.require(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/+-]*', name) and
                            not any(part in ('', '.', '..') for part in name.split('/')) and
                            not stat.S_ISLNK(item.external_attr >> 16) and
                            item.file_size <= bundle.MAX_FILE, 'Unsafe archive member')
@@ -68,6 +68,13 @@ def required_jobs(source):
     return set(workflow['jobs'])
 
 
+def optional_publication(source):
+    import yaml
+    workflow = yaml.load(bundle.capture('git', '-C', bundle.ROOT, 'show',
+                          source + ':.github/workflows/software-build.yml'), Loader=yaml.BaseLoader)
+    return 'inputs.publish' in workflow['jobs'].get('publish', {}).get('if', '')
+
+
 def inspection_tool():
     path = shutil.which('picotool')
     return {'path': path, 'sha256': bundle.sha(path), 'version': bundle.capture('picotool', 'version')}
@@ -76,11 +83,19 @@ def inspection_tool():
 def retrieve(args, for_publication=False):
     bundle.require(args.run > 0 and args.attempt > 0 and re.fullmatch('[0-9a-f]{40}', args.source),
                    'Invalid run/attempt/source')
-    bundle.require(args.branch in ('devel', 'main'), 'Unsupported download branch')
+    bundle.require(args.branch in ('devel', 'main', 'release'), 'Unsupported download stream')
+    kind = bundle.version_kind(args.version)
+    tagged = args.branch == 'release'
+    bundle.require(tagged == (kind in ('prerelease', 'stable')), 'Version/download stream mismatch')
+    ref = 'refs/tags/v' + args.version if tagged else 'refs/heads/' + args.branch
+    head_branch = 'v' + args.version if tagged else args.branch
+    if tagged:
+        import publish
+        bundle.require(publish.tag_commit('v' + args.version) == args.source, 'Release tag/source mismatch')
     if for_publication:
         expected = {'GITHUB_ACTIONS':'true', 'GITHUB_JOB':'publish', 'GITHUB_RUN_ID':str(args.run),
                     'GITHUB_RUN_ATTEMPT':str(args.attempt), 'GITHUB_SHA':args.source,
-                    'GITHUB_REF':'refs/heads/' + args.branch, 'GITHUB_REPOSITORY':REPOSITORY}
+                    'GITHUB_REF':ref, 'GITHUB_REPOSITORY':REPOSITORY}
         bundle.require(all(os.environ.get(k) == v for k,v in expected.items()),
                        'Publication collection is restricted to its current trusted publisher job')
     run = api(f'actions/runs/{args.run}/attempts/{args.attempt}')
@@ -92,7 +107,7 @@ def retrieve(args, for_publication=False):
     publishing = for_publication and run['status'] == 'in_progress' and run['conclusion'] is None
     bundle.require((complete or publishing) and
                    run['run_attempt'] == args.attempt and run['head_sha'] == args.source and
-                   run['head_branch'] == args.branch and run['event'] in ('push', 'workflow_dispatch') and
+                   run['head_branch'] == head_branch and run['event'] in ('push', 'workflow_dispatch') and
                    run['path'] == '.github/workflows/software-build.yml' and
                    run['head_repository']['full_name'] == REPOSITORY,
                    'Run is not a complete successful canonical ' + args.branch + ' build')
@@ -108,10 +123,13 @@ def retrieve(args, for_publication=False):
                    'Required CI job did not pass')
     if 'publish' in expected_jobs:
         publisher = by_name['publish']
+        outcomes = {'skipped'} if testing else {'success'}
+        if not for_publication and optional_publication(args.source):
+            outcomes.add('skipped')
         bundle.require((for_publication and publisher['status'] == 'in_progress' and
                         publisher['conclusion'] is None) or
                        (publisher['status'] == 'completed' and
-                        publisher['conclusion'] == ('skipped' if testing else 'success')),
+                        publisher['conclusion'] in outcomes),
                        'Required publication job did not pass')
     bundle.require(not for_publication or 'publish' in expected_jobs, 'Publisher absent from frozen source')
     inventory = api(f'actions/runs/{args.run}/artifacts?per_page=100')
@@ -137,10 +155,10 @@ def retrieve(args, for_publication=False):
         bundle.inspect_payload(destination / 'audit/consumer', 'consumer', int(manifest['update']['application_end'], 16))
     identity = manifest['workflow']
     bundle.require(identity['run_id'] == args.run and identity['attempt'] == args.attempt and
-                   identity['event'] == run['event'] and identity['ref'] == 'refs/heads/' + args.branch and
+                   identity['event'] == run['event'] and identity['ref'] == ref and
                    identity['url'] == f'https://github.com/{REPOSITORY}/actions/runs/{args.run}' and
                    identity['path'] == run['path'] and
-                   (testing or args.version == f'0.1.0-ci.{args.run}.{args.attempt}'),
+                   (tagged or testing or args.version == f'0.1.0-ci.{args.run}.{args.attempt}'),
                    'Manifest belongs to a different CI run/attempt')
     receipt = {'branch': args.branch, 'run_id': args.run, 'attempt': args.attempt, 'source': args.source,
                'version': args.version, 'url': run['html_url'], 'artifacts': receipts,
@@ -156,12 +174,16 @@ def retrieve(args, for_publication=False):
 def retrieve_published(args):
     """Validate preserved archives even after Actions storage expires."""
     import publish
-    bundle.require(args.branch in ('devel', 'main') and args.run > 0 and args.attempt > 0 and
+    kind = bundle.version_kind(args.version)
+    tagged = kind in ('prerelease', 'stable')
+    bundle.require(args.branch in ('devel', 'main', 'release') and args.run > 0 and args.attempt > 0 and
                    re.fullmatch('[0-9a-f]{40}', args.source) and
-                   args.version == f'0.1.0-ci.{args.run}.{args.attempt}', 'Invalid published identity')
+                   ((tagged and args.branch == 'release') or
+                    (kind == 'ci' and args.branch != 'release' and
+                     args.version == f'0.1.0-ci.{args.run}.{args.attempt}')), 'Invalid published identity')
     tag = 'v' + args.version
     release = publish.api('releases/tags/' + tag)
-    bundle.require(not release['draft'] and release['prerelease'] and release['tag_name'] == tag and
+    bundle.require(not release['draft'] and release['prerelease'] is (kind != 'stable') and release['tag_name'] == tag and
                    publish.tag_commit(tag) == args.source, 'Ineligible published version')
     assets = publish.asset_inventory(release)
     names = {f'WsprryPico-{args.version}-pico2_w.uf2', 'release-manifest.json', 'SHA256SUMS',
@@ -202,7 +224,7 @@ def retrieve_published(args):
         extract(destination / (kind + '.zip'), destination / kind)
     manifest = bundle.verify(destination / 'deployment', destination / 'audit', args.source, args.version)
     bundle.require(bundle.sha(destination / 'deployment/release-manifest.json') == receipt['manifest_sha256'] and
-                   manifest['workflow']['ref'] == 'refs/heads/' + args.branch and
+                   manifest['workflow']['ref'] == ('refs/tags/' + tag if tagged else 'refs/heads/' + args.branch) and
                    manifest['workflow']['run_id'] == args.run and manifest['workflow']['attempt'] == args.attempt and
                    manifest['workflow']['url'] == receipt['url'] and
                    receipt['uf2'] == next(a for a in manifest['assets'] if a['path'].endswith('.uf2')),
@@ -217,7 +239,8 @@ def retrieve_published(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--branch', choices=('devel', 'main'), default='devel')
+    parser.add_argument('--branch', choices=('devel', 'main', 'release'), default='devel',
+                        help='Artifact stream; release selects an exact semantic version tag')
     parser.add_argument('--run', type=int, required=True)
     parser.add_argument('--attempt', type=int, required=True)
     parser.add_argument('--source', required=True)

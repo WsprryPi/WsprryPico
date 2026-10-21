@@ -104,7 +104,8 @@ def find_version_release(tag):
 
 def version_body(receipt):
     tag = 'v' + receipt['version']
-    return (f"{receipt['branch']} CI firmware for Pico 2 W.\n\n"
+    label = 'Release' if receipt['branch'] == 'release' else receipt['branch'] + ' CI'
+    return (f"{label} firmware for Pico 2 W.\n\n"
             f"Version `{receipt['version']}`; source `{receipt['source']}`.\n\n"
             f"[Build and checks]({receipt['url']}) · "
             f"[UF2]({asset_url(tag, receipt['uf2']['path'])}) · "
@@ -117,8 +118,16 @@ def version_body(receipt):
 
 def preserve(receipt, destination):
     """Draft until complete; retries may only add missing draft assets."""
+    kind = bundle.version_kind(receipt['version'])
+    bundle.require(kind != 'testing' and receipt['branch'] in ('main', 'devel', 'release'),
+                   'Unsupported publication stream')
+    bundle.require((receipt['branch'] == 'release') == (kind in ('stable', 'prerelease')),
+                   'Version/publication stream mismatch')
+    prerelease = kind != 'stable'
+    make_latest = receipt.get('make_latest', False)
+    bundle.require(type(make_latest) is bool and (not make_latest or kind == 'stable'),
+                   'Only an explicitly selected final release can become latest stable')
     tag = 'v' + receipt['version']
-    ensure_tag(tag, receipt['source'])
     body = version_body(receipt)
     name = f"WsprryPico {receipt['branch']} {receipt['version']}"
     proof = dict(receipt, schema='wsprrypico-ci-publication/1', repository=REPOSITORY,
@@ -130,11 +139,15 @@ def preserve(receipt, destination):
                   (destination / 'deployment.zip', destination / 'audit.zip', proof_path)})
     bundle.require(len(files) == 9 and all(p.is_file() and not p.is_symlink() for p in files.values()),
                    'Incomplete publication inventory')
+    if receipt['branch'] == 'release':
+        bundle.require(tag_commit(tag) == receipt['source'], 'Release tag/source mismatch')
+    else:
+        ensure_tag(tag, receipt['source'])
     release = find_version_release(tag)
     if release is None:
         release = api('releases', 'POST', {'tag_name': tag, 'target_commitish': receipt['source'],
-                      'name': name, 'body': body, 'draft': True, 'prerelease': True, 'make_latest': 'false'})
-    bundle.require(release['tag_name'] == tag and release['prerelease'] and
+                      'name': name, 'body': body, 'draft': True, 'prerelease': prerelease, 'make_latest': 'false'})
+    bundle.require(release['tag_name'] == tag and release['prerelease'] is prerelease and
                    release['name'] == name and release['body'] == body,
                    'Existing version release has different identity')
     existing = asset_inventory(release)
@@ -150,10 +163,14 @@ def preserve(receipt, destination):
     bundle.require(set(existing) == set(files), 'Publication assets are incomplete')
     for filename, path in files.items():
         check_asset(existing[filename], path)
+    bundle.require(release['tag_name'] == tag and release['prerelease'] is prerelease and
+                   release['name'] == name and release['body'] == body,
+                   'Release metadata changed before publication')
+    bundle.require(tag_commit(tag) == receipt['source'], 'Version tag changed before publication')
     if release['draft']:
         release = api('releases/' + str(release['id']), 'PATCH',
-                      {'draft': False, 'prerelease': True, 'make_latest': 'false'})
-    bundle.require(not release['draft'] and release['prerelease'] and
+                      {'draft': False, 'prerelease': prerelease, 'make_latest': 'true' if make_latest else 'false'})
+    bundle.require(not release['draft'] and release['prerelease'] is prerelease and
                    tag_commit(tag) == receipt['source'], 'Version release is not eligible')
     return tag
 
@@ -260,14 +277,31 @@ def main():
         print(json.dumps(resolve(args.resolve), indent=2))
         return
     bundle.require(args.destination is not None, 'Publication destination is required')
+    require_authorization()
     branch = bundle.build_stream(os.environ.get('GITHUB_EVENT_NAME'), os.environ.get('GITHUB_REF'))
     run, attempt = int(os.environ['GITHUB_RUN_ID']), int(os.environ['GITHUB_RUN_ATTEMPT'])
     request = SimpleNamespace(branch=branch, run=run, attempt=attempt, source=os.environ['GITHUB_SHA'],
-                              version=f'0.1.0-ci.{run}.{attempt}', destination=args.destination)
+                              version=(os.environ['GITHUB_REF'].removeprefix('refs/tags/v') if branch == 'release'
+                                       else f'0.1.0-ci.{run}.{attempt}'), destination=args.destination)
+    make_latest = os.environ.get('CI_MAKE_LATEST', 'false')
+    bundle.require(make_latest in ('true', 'false') and
+                   (make_latest == 'false' or bundle.version_kind(request.version) == 'stable'),
+                   'Latest selection requires an explicit final release')
     receipt = download.retrieve(request, for_publication=True)
+    if branch == 'release':
+        receipt['make_latest'] = make_latest == 'true'
     preserve(receipt, args.destination)
     receipt['manifest_sha256'] = bundle.sha(args.destination / 'deployment/release-manifest.json')
-    print(json.dumps(update_index(receipt), indent=2))
+    print(json.dumps(receipt if branch == 'release' else update_index(receipt), indent=2))
+
+
+def require_authorization():
+    bundle.require(os.environ.get('CI_PUBLISH') == 'true' and
+                   os.environ.get('GITHUB_ACTIONS') == 'true' and
+                   os.environ.get('GITHUB_JOB') == 'publish' and
+                   os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch' and
+                   os.environ.get('GITHUB_REPOSITORY') == REPOSITORY,
+                   'Publication requires explicit manual publish=true in the trusted publisher job')
 
 
 if __name__ == '__main__':

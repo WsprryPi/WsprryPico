@@ -104,6 +104,7 @@ def publish_bundle(manifest, files, destination):
 
 
 def main():
+    publish.require_authorization()
     channel = publish.bundle.build_stream(os.environ['GITHUB_EVENT_NAME'], os.environ['GITHUB_REF'])
     run, attempt = int(os.environ['GITHUB_RUN_ID']), int(os.environ['GITHUB_RUN_ATTEMPT'])
     source = os.environ['GITHUB_SHA']

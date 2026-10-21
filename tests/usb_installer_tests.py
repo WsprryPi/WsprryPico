@@ -42,7 +42,7 @@ def uf2():
             block(0x2000, 0x10000100, 1, 2, 0xE48BFF59, b'B' * 256))
 
 
-def fixture(branch='devel', modern=False):
+def fixture(branch='devel', modern=False, version=None):
     """Real canonical public metadata with clearly synthetic image/license bytes."""
     base = ROOT / 'tests/fixtures/usb-installer'
     manifest = installer.decode((base / 'release-manifest.json').read_bytes())
@@ -55,6 +55,15 @@ def fixture(branch='devel', modern=False):
     proof['branch'] = branch
     for artifact in proof['artifacts']:
         artifact['name'] = artifact['name'].replace('-devel-', '-' + branch + '-')
+    if version:
+        previous = manifest['firmware_version']
+        manifest.update(firmware_version=version, intended_tag='v'+version, channel=installer.version_kind(version))
+        manifest['workflow'].update(ref='refs/tags/v'+version, event='workflow_dispatch')
+        for asset in manifest['assets']:
+            asset['path'] = asset['path'].replace(previous,version)
+        proof.update(version=version,tag='v'+version,branch='release')
+        for artifact in proof['artifacts']:
+            artifact['name'] = artifact['name'].replace('-'+branch+'-','-release-')
     files = {a['path']: (uf2() if a['path'].endswith('.uf2') else b'synthetic test license\n')
              for a in manifest['assets']}
     for asset in manifest['assets']:
@@ -70,8 +79,8 @@ def fixture(branch='devel', modern=False):
 
 
 class Network:
-    def __init__(self, branch='devel'):
-        self.files, self.manifest, self.proof = fixture(branch)
+    def __init__(self, branch='devel', version=None):
+        self.files, self.manifest, self.proof = fixture(branch,version=version)
         self.branch, self.calls = branch, []
         self.tag = self.manifest['intended_tag']
         self.index = dict(schema='wsprrypico-ci-index/1', repository=installer.REPOSITORY,
@@ -79,15 +88,15 @@ class Network:
                           version=self.proof['version'], run_id=self.proof['run_id'], attempt=self.proof['attempt'],
                           uf2=self.proof['uf2'], manifest_sha256=self.proof['manifest_sha256'])
         assets = dict(self.files, **{'audit.zip': b'audit', 'deployment.zip': b'deployment'})
-        self.release = dict(tag_name=self.tag, draft=False, prerelease=True,
+        self.release = dict(tag_name=self.tag, draft=False, prerelease=installer.version_kind(self.proof['version']) != 'stable',
                             assets=[dict(name=n, state='uploaded', size=len(d), digest='sha256:' + installer.sha(d),
                                          browser_download_url=installer.DOWNLOAD + self.tag + '/' + n)
                                     for n, d in assets.items()])
         for artifact in self.proof['artifacts']:
             next(a for a in self.release['assets'] if a['name'] == artifact['kind'] + '.zip')['digest'] = 'sha256:' + artifact['archive_sha256']
         self.run = dict(status='completed', conclusion='success', head_sha=self.proof['source'],
-                        head_branch=branch, path='.github/workflows/software-build.yml',
-                        head_repository={'full_name': installer.REPOSITORY}, event='push', run_attempt=1)
+                        head_branch=self.tag if version else branch, path='.github/workflows/software-build.yml',
+                        head_repository={'full_name': installer.REPOSITORY}, event='workflow_dispatch' if version else 'push', run_attempt=1)
         self.jobs = {'total_count': 2, 'jobs': [dict(name='verify', id=self.proof['verify_job']['id'], status='completed', conclusion='success'),
                                               dict(name='publish', id=2, status='completed', conclusion='success')]}
         self.unavailable_run = False
@@ -104,6 +113,8 @@ class Network:
         if path.startswith('actions/workflows/software-build.yml/runs?'):
             return {'workflow_runs': []}
         if path == 'releases/latest':
+            if self.release['prerelease'] is False:
+                return self.release
             raise installer.HttpFailure(404)
         if path.startswith('git/ref/tags/'):
             return {'object': {'type': 'commit', 'sha': self.proof['source']}}
@@ -218,6 +229,38 @@ class HttpFailureTests(unittest.TestCase):
 
 
 class InstallerTests(unittest.TestCase):
+    def test_explicit_beta_final_metadata_and_stable_selection_keep_canonical_provenance(self):
+        for version in ('1.0.0-beta.1','1.0.0','1.0.0+build.001'):
+            for branch in ('main','devel'):
+                with self.subTest(version=version,branch=branch):
+                    net=Network(branch,version)
+                    _,manifest,image=installer.resolve(net,branch,version)
+                    self.assertEqual(manifest['firmware_version'],version)
+                    self.assertEqual(len(image),512)
+                    self.assertFalse(any('releases/tags/ci-' in c for c in net.calls))
+                    self.assertEqual(installer.resolve_installed(net,version)[1]['firmware_version'],version)
+                    net.unavailable_run=True
+                    self.assertEqual(installer.resolve(net,branch,version)[2],image)
+                    if installer.version_kind(version)=='stable':
+                        self.assertEqual(installer.resolve(net,branch,stable=True)[1]['firmware_version'],version)
+
+    def test_release_misclassification_tag_swap_preview_and_failed_jobs_refuse_before_usb(self):
+        for mutation in ('classification','tag','source','job','skipped','event','branch'):
+            net=Network(version='1.0.0-beta.1')
+            if mutation=='classification':net.release['prerelease']=False
+            if mutation=='tag':net.release['tag_name']='v1.0.0'
+            if mutation=='source':net.run['head_sha']='a'*40
+            if mutation=='job':net.jobs['jobs'][1]['conclusion']='failure'
+            if mutation=='skipped':net.jobs['jobs'][1]['conclusion']='skipped'
+            if mutation=='event':net.run['event']='pull_request'
+            if mutation=='branch':net.run['head_branch']='devel'
+            with self.subTest(mutation=mutation),patch.object(installer,'discover',side_effect=AssertionError('USB opened')):
+                with self.assertRaises(installer.Refusal):installer.resolve(net,version='1.0.0-beta.1')
+
+    def test_beta_and_final_preserving_upgrade_and_recovery(self):
+        self.upgrade_transaction(version='1.0.0-beta.1',programming_recovery=True)
+        self.upgrade_transaction(version='1.0.0',old_version='1.0.0-beta.1',programming_recovery=True)
+
     def test_public_bundles_on_both_branches(self):
         for branch in ('main', 'devel'):
             with self.subTest(branch=branch):
@@ -456,9 +499,9 @@ class InstallerTests(unittest.TestCase):
             with self.assertRaises(installer.Refusal):installer.installed_local(root,'0'*16,{'source_revision':'a'*12},flash)
             self.assertNotIn('backup',next(root.glob('.local-reference-*.json')).read_text())
 
-    def upgrade_transaction(self,mismatch=False,fault=False,declined=False,old_network_failure=False,recovery_retries=False,programming_recovery=False,migration=False,migration_failure=None):
-        files,manifest,_=fixture(modern=True); image=b'A'*256+b'B'*256
-        old_files,old_manifest,_=fixture() if migration else (files,manifest,None)
+    def upgrade_transaction(self,mismatch=False,fault=False,declined=False,old_network_failure=False,recovery_retries=False,programming_recovery=False,migration=False,migration_failure=None,version=None,old_version=None):
+        files,manifest,_=fixture(modern=True,version=version); image=b'A'*256+b'B'*256
+        old_files,old_manifest,_=fixture(modern=True,version=old_version) if old_version else fixture() if migration else (files,manifest,None)
         before=bytearray(b'\xff'*installer.FLASH_SIZE);before[:len(image)]=image
         for offset in range(installer.PERSISTENT_START,installer.FLASH_SIZE,4096):before[offset+17]=71
         original=bytes(before); commands=[]; phase=['application','verification']; snapshots=[0]

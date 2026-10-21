@@ -37,6 +37,11 @@ The [testing prerelease acceptance](phase15-17-results.md) records the exact
 reviewed source, CI image, manifest, checksums and public download audit for
 [0.1.0-testing.1](https://github.com/WsprryPi/WsprryPico/releases/tag/v0.1.0-testing.1).
 Its manual testing series is outside the installer's run-derived CI selection contract.
+The [release tooling guide](software-build-ci.md#beta-and-final-firmware-tags)
+defines beta/final tag builds and explicit publication. Pushes run verification
+without publishing. The [reusable execution prompt](release-tooling-prompt.md)
+and [implementation and review record](release-tooling-results.md) cover the
+release-tooling scope separately from firmware or physical qualification.
 
 ## Deterministic validation
 
