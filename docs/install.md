@@ -41,9 +41,7 @@ If discovery finds nothing, check the data cable and USB permissions.
 
 ### Run directly with curl
 
-You can also run the public bootstrap without keeping a local script. After
-completing [the update preparation below](#preserve-settings-during-an-update),
-run this from a Bash terminal as your ordinary user:
+You can also run the public bootstrap without keeping a local script. For a first installation, hold **BOOTSEL** while connecting the Pico, release it, then run this from a Bash terminal as your ordinary user:
 
 ```sh
 set -o pipefail
@@ -51,10 +49,12 @@ curl --fail --silent --show-error --location \
   --proto '=https' --proto-redir '=https' \
   --connect-timeout 10 --max-time 60 --max-filesize 1048576 \
   https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh \
-  | bash -s -- upgrade --board pico2_w --yes --version 1.0.0-beta.1
+  | bash -s -- install --board pico2_w --yes --version 1.0.0-beta.1
 ```
 
-This updates to the exact Beta 1 firmware. Keep `--version 1.0.0-beta.1` in the command; `--branch devel` does not select the Beta release.
+This installs the exact Beta 1 firmware after checking the existing flash. Installation refuses existing saved data. Keep `--version 1.0.0-beta.1` in the command; `--branch devel` does not select the Beta release.
+
+For an existing WsprryPico, complete [the update preparation below](#preserve-settings-during-an-update), leave its firmware running, and replace `install` with `upgrade` in the command. Starting an upgrade in BOOTSEL stops before tool or firmware downloads. Reconnect without holding BOOTSEL before retrying. If an update already has a retained transaction, use its printed recovery command.
 
 The installer can still ask to download picotool, select a Pico and remove
 downloaded tools: these prompts use the terminal rather than the piped script
@@ -63,6 +63,8 @@ before choosing. For unattended use, supply `--device SERIAL` and the explicit
 download/cleanup options below. Resolve reported network or DNS errors before
 retrying. If an installer transaction was created, follow its status and
 recovery guidance before starting another update.
+
+Terminal runs show progress and a readable result. Add `--json-only` for JSON without questions or terminal guidance; this requires `--device SERIAL` for programming. Redirecting standard output also retains the JSON result while terminal questions and guidance stay on standard error.
 
 ## Picotool download and cleanup
 

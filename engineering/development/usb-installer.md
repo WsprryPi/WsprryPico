@@ -141,6 +141,10 @@ Interactive device selection and initial BOOTSEL use are documented in the
 mode and port before creating a transaction and under the device lock. Only the
 selected Pico is programmed.
 
+Install/upgrade mode admission precedes picotool preparation and image resolution, including explicit-device and imported calls. BOOTSEL upgrades return `error_code: device_mode_mismatch`, the serial and expected/observed modes, with first-install, running-application and retained-transaction recovery guidance. A mode mismatch never changes the selected operation. Device identity, mode and port are checked again under the transaction lock after image resolution.
+
+The standalone entry renders progress and results for a terminal when both output streams are terminals. Imported calls, redirected standard output and `--json-only` retain the single `wsprrypico-usb-result/1` JSON response. `--json-only` disables device-selection, tool-download and cleanup questions and BOOTSEL guidance. Progress describes actual transaction stages; completion requires the existing flash and application checks. Preflight refusals do not create recovery work; cleanup independently checks all retained transaction records before removing a managed tool.
+
 ## Preserving upgrade and recovery
 
 

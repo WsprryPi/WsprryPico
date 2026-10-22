@@ -41,6 +41,5 @@ for installer_file in scripts/usb_installer.py scripts/ci/release-manifest-1.sch
         "https://raw.githubusercontent.com/WsprryPi/WsprryPico/$installer_revision/$installer_file" \
         > "$installer_tmp/$installer_file"
 done
-echo "WsprryPico installer source: $installer_revision" >&2
 if [[ $# == 0 ]]; then set -- discover; fi
 WSPRRY_PICO_USB_INSTALLER_REVISION="$installer_revision" python3 "$installer_tmp/scripts/usb_installer.py" "$@"
