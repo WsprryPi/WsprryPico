@@ -44,23 +44,11 @@ are outside that observation. Current installed firmware is not asserted.
 
 ## Image selection and planning
 
-No firmware branch option means **main**, independently of the checkout,
-bootstrap or WsprryPi branch. `--branch devel` selects devel explicitly. Latest
-CI resolution uses the permanent `ci-main` or `ci-devel` bookmark and its exact
-public version release. A verified CI prerelease is eligible. Missing branches,
-assets, incompatible manifests and failed provenance checks cause refusal;
-another branch, older image or compilation is never selected implicitly.
+Beta testers select the published Beta 1 firmware with `--version 1.0.0-beta.1`, independently of the checkout, bootstrap or WsprryPi branch. No `--branch` option is required. An explicit `--version` selects the exact semantic tag and bypasses the CI branch bookmarks. `--stable` selects GitHub's latest full release and requires a final semantic version; it excludes betas. These selectors require a published compatible bundle and do not publish or create one. No final release is currently published.
 
+Without an explicit version or another image selector, the firmware branch defaults to **main**; `--branch devel` selects devel explicitly. CI resolution requires the corresponding published `ci-main` or `ci-devel` bookmark and its exact public version release. Neither bookmark is currently published. A missing bookmark, missing assets, incompatible manifest or failed provenance check causes refusal; another branch, older image or compilation is never selected implicitly.
 
-Output directories must be new. `--bundle DIRECTORY` revalidates a previously
-saved public bundle without another download. It cannot accompany another
-image selector. `--version 1.0.0-beta.1` or `--version 1.0.0` selects that exact
-semantic tag independently of the CI branch selector. `--stable` selects GitHub's
-latest full release and requires a final semantic version; absence or invalid
-provenance causes refusal without substituting CI. These selectors require a
-published compatible bundle and do not publish or create one. Main/devel CI selection requires a published branch bookmark; an absent
-bookmark causes refusal. `recent_ci` reports additional run status separately from the
-immutable selected image. Missing or invalid downloads still cause refusal.
+Output directories must be new. `--bundle DIRECTORY` revalidates a previously saved public bundle without another download. It cannot accompany another image selector. `recent_ci` reports additional run status separately from the immutable selected image. Missing or invalid downloads still cause refusal.
 
 The ordinary path uses anonymous HTTPS and needs no Git, compiler, SDK or
 GitHub account. A saved successful verification receipt remains usable after
