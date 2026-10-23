@@ -24,8 +24,7 @@ in memory and never automatically repeats a mutation.
 An inexact numeric generation in the legacy setup status remains unconfirmed;
 it is never reported as a failed save based on rounded JavaScript arithmetic.
 
-Page access and authentication require only station association and a usable
-IPv4 address. Internet access, public DNS, NTP and engineering TLS are not
+Page access and authentication accept the saved source-4 Wi-Fi-only profile as well as source-5 consumer profiles, with station association and a usable IPv4 address. No station claim or runnable configuration is manufactured. Internet access, public DNS, NTP and engineering TLS are not
 admission prerequisites. Operations requiring valid UTC retain their checks.
 Engineering certificate control and Plain LAN WTP remain separate surfaces.
 
@@ -35,16 +34,14 @@ The active-low GP14 capture adapter, configurable exclusive pin plan and
 single-action debouncing retain the gesture timings specified in the
 [operator button table](../../docs/connect.md#request-setup-wi-fi-with-the-external-button).
 AP requests follow confirmed local output shutdown and never rearm a job.
-Each activation has a hard ten-minute lifetime measured from actual activation;
-hold, release, requests, traffic and clients cannot extend it. Saved network
+An associated Wi-Fi client retains every AP activation. The final disconnect starts a ten-minute inactivity interval. Initial unjoined access lasts ten minutes, or 120 seconds for Console join grace; the grace begins at actual activation. Browser traffic and login slots do not substitute for association. The driver samples CYW43 associated stations once per second and refreshes the sample at expiry. Saved network
 credentials, profile and no-repeat state are not changed by AP coordination.
 
 A blank device starts setup AP automatically. A saved network unavailable for
 60 seconds requests fallback AP without a button. Background station retries
 occur at 30-second intervals; a latched failed join gets a one-second leave
 interval before retry. Recovered association plus IPv4 must remain stable for
-30 seconds before fallback is withdrawn. Fallback never extends the hard AP window. An unchanged outage cannot reopen
-an expired window; stable recovery rearms a later outage. The AP coordinator
+30 seconds before fallback is withdrawn, and an associated AP client retains access through that recovery. An unchanged outage cannot reopen an expired window; stable recovery rearms a later outage. The AP coordinator
 does not rewrite credentials, profiles or cursors during these transitions.
 
 Activation/physical AP transitions are deferred while output is active,
@@ -55,9 +52,7 @@ loaded/armed/running operation; mutations retain BUSY and ownership checks.
 An existing AP radio session loses admission when the RF policy withdraws its
 surface. Page loss never aborts, releases, rearms or restarts a job.
 
-At manual/recovery withdrawal, an existing reply gets at most ten seconds to
-drain within the hard AP cap; new AP connections are refused during that drain. An idle connection
-or page polling cannot retain the AP. Each HTTP connection has its existing
+At manual/recovery withdrawal, an existing reply gets at most ten seconds to drain; new AP connections are refused during that drain. HTTP connections and page polling cannot retain the AP without a Wi-Fi association. Each HTTP connection has its existing
 ten-second total deadline, one request and bounded buffers. Three fixed consumer login slots are shared between AP and LAN, with at most
 one pending ordinary login and the existing expiry bounds.
 
@@ -87,7 +82,7 @@ on ordinary HTTP LAN origins. The native browser `fetch` function is bound to
 its Window receiver. **HTTP does not authenticate the delivered page.** An active
 page-substitution attacker can steal an entered password; encrypted application
 payloads do not fix that risk. The genuine page protects traffic against passive
-observation and rejects clients without the saved passphrase. It is not a PAKE.
+observation and rejects clients without the Pico password. It is not a PAKE.
 Plain LAN WTP remains reachable by any client admitted by the local network.
 
 AP public commissioning remains physically local to that interface. LAN

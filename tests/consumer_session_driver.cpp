@@ -219,7 +219,6 @@ struct Driver {
                            &crypto[3]};
     std::array<tcp_pcb, 2> sockets;
     std::array<std::string, 2> remaining_input;
-#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
     struct AccessMedia : provisioning::AccessMedia {
         std::array<std::uint8_t, 8192> bytes;
         AccessMedia() {
@@ -239,6 +238,7 @@ struct Driver {
         }
     } access_media;
     provisioning::AccessStore access{access_media};
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
     struct Led : provisioning::IndicatorOutput {
         bool write(bool) override {
             return true;
@@ -290,7 +290,8 @@ struct Driver {
     Driver(unsigned boot = 0, const Media* retained = nullptr,
            const network_test::Flash* saved = nullptr,
            std::string selected_device = std::string(32, '1'),
-           const network_test::Flash* saved_progress = nullptr)
+           const network_test::Flash* saved_progress = nullptr, bool blank = false,
+           const AccessMedia* saved_access = nullptr)
         : device(std::move(selected_device)), f(boot, device) {
         if (retained)
             media = *retained;
@@ -310,7 +311,7 @@ struct Driver {
         p.tls.hostname = "wsprrypico-0a60df.local";
         p.request_sha256 = std::string(64, 'a');
         check(profiles.load());
-        if (!retained)
+        if (!retained && !blank)
             check(profiles.select(provisioning::ProfileSource::ConsumerProfile,
                                   provisioning::serialize_consumer_profile(p)));
         check(runtime.load(profiles, p.device_id, provisioning::BuildBundleState::Absent));
@@ -336,19 +337,23 @@ struct Driver {
                 return true;
             },
             &api_restarts);
-        if (!saved)
+        if (!saved && !blank)
             check(f.scheduler.command("CONFIG " + network_test::config).find("true") !=
                   std::string::npos);
-        if (!saved)
+        if (!saved && !blank)
             check(f.store.reserve(1791970000000000000ULL));
-        radio.admission(true);
+        radio.admission(runtime.control_healthy(profiles) &&
+                        runtime.consumer_browser_selected(profiles));
         radio.listeners(true, "192.168.1.53", hostname);
         f.api.management_availability(
             {ManagementProfile::Consumer, 1, true, false, false, true, true});
         for (auto& pcb : sockets)
             pcb.closed = true;
-#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+        if (saved_access)
+            access_media = *saved_access;
         check(access.load());
+        radio.password_storage(access, "wspr-0a60df");
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
         network.hostname = hostname;
         server.configure(f.service.status().boot_id, access, profiles, random, indicator, network,
                          runtime, platform, "default-password");
@@ -630,10 +635,11 @@ struct Driver {
 };
 } // namespace
 int main(int argc, char** argv) {
-    const std::string device = argc == 2 ? argv[1] : std::string(32, '1');
+    const std::string device = argc >= 2 ? argv[1] : std::string(32, '1');
+    const bool blank = argc == 3 && std::string_view(argv[2]) == "--blank";
     check(valid_device_id(device));
     unsigned boot = 0;
-    auto driver = std::make_unique<Driver>(boot, nullptr, nullptr, device);
+    auto driver = std::make_unique<Driver>(boot, nullptr, nullptr, device, nullptr, blank);
     std::cerr << "ConsumerRadioApi=" << sizeof(ConsumerRadioApi)
               << " crypto=" << sizeof(PicoConsumerRadioCrypto) << " HTTP=" << sizeof(PicoHttpServer)
               << '\n';
@@ -645,8 +651,10 @@ int main(int argc, char** argv) {
             const auto media = driver->media;
             const auto flash = driver->f.flash;
             const auto progress_flash = driver->progress_flash;
+            const auto access_media = driver->access_media;
             driver.reset();
-            driver = std::make_unique<Driver>(++boot, &media, &flash, device, &progress_flash);
+            driver = std::make_unique<Driver>(++boot, &media, &flash, device, &progress_flash,
+                                              false, &access_media);
             std::cout << "{}" << std::endl;
         } else
             std::cout << driver->command(*root) << std::endl;

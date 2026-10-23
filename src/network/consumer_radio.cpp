@@ -1,5 +1,6 @@
 #include "network/consumer_radio.hpp"
 
+#include "application/resources.hpp"
 #include "network/bootstrap_codec.hpp"
 #include "network/identity.hpp"
 #include "wtp/json.hpp"
@@ -113,12 +114,92 @@ bool consumer_radio_header_matches(wtp::InputView packet, std::span<const std::u
                       [](std::uint8_t a, char b) { return a == static_cast<std::uint8_t>(b); });
 }
 
+std::string_view ConsumerRadioApi::authentication_password() const {
+    if (!admission_open_ || !runtime_.control_healthy(store_))
+        return {};
+    std::string_view password;
+    if (store_.source() == provisioning::ProfileSource::ConsumerProfile) {
+        const auto* profile = runtime_.consumer_profile();
+        if (!profile || profile->device_id != device_)
+            return {};
+        password = profile->password;
+    } else if (store_.source() == provisioning::ProfileSource::NetworkOnly) {
+        const auto* profile = runtime_.network_profile();
+        if (!profile || profile->device_id != device_)
+            return {};
+        password = profile->password;
+    } else
+        return {};
+    if (password_store_ && password_store_->state() != provisioning::AccessStoreState::Erased) {
+        const auto* saved = password_store_->record();
+        if (!saved || saved->reset.pending())
+            return {};
+        if (!saved->radio_password.empty())
+            password = saved->radio_password;
+    }
+    return password;
+}
 bool ConsumerRadioApi::available() const {
-    const auto* profile = runtime_.consumer_profile();
-    return admission_open_ && store_.healthy() &&
-           store_.source() == provisioning::ProfileSource::ConsumerProfile && profile &&
-           profile->device_id == device_ && store_.sequence() == runtime_.generation() &&
-           !profile->password.empty();
+    return !authentication_password().empty();
+}
+
+std::array<std::uint8_t, 32> ConsumerRadioApi::password_digest() const {
+    const auto* record = password_store_ ? password_store_->record() : nullptr;
+    const std::string_view password = record ? std::string_view(record->radio_password) : "";
+    return wtp::sha256(
+        std::span(reinterpret_cast<const std::uint8_t*>(password.data()), password.size()));
+}
+
+HttpResponse ConsumerRadioApi::password_resource(const HttpRequest& request) {
+    if (!password_store_)
+        return http_error(404, "not_found");
+    const auto revision = "\"password:" + std::to_string(store_.sequence()) + ':' +
+                          std::to_string(password_store_->sequence()) + "\"";
+    if (request.method != "GET") {
+        if (request.method != "PUT")
+            return http_error(405, "method_not_allowed");
+        if (!api_.access_change_ready())
+            return http_error(409, "busy");
+        if (request.header("if-match").empty())
+            return http_error(428, "revision_required");
+        if (request.header("if-match") != revision)
+            return http_error(412, "revision_conflict");
+        if (request.body_view().size() > 512)
+            return http_error(400, "invalid_password");
+        const auto root = wtp::json::parse(request.body_view());
+        if (!root || application::validate_envelope(*root, "pico-password/1", "password", device_,
+                                                    boot_) != application::Envelope::Valid)
+            return http_error(400, "invalid_password");
+        const auto field = root->get("password");
+        if (field->type() != '"' && field->raw != "null")
+            return http_error(400, "invalid_password");
+        if (field->raw == "null" &&
+            ((runtime_.consumer_profile() && runtime_.consumer_profile()->password.empty()) ||
+             (runtime_.network_profile() && runtime_.network_profile()->password.empty())))
+            return http_error(409, "wifi_password_unavailable");
+        auto password = field->raw == "null" ? std::string{} : field->string();
+        const bool valid = field->raw == "null" || provisioning::valid_local_password(password);
+        const bool saved =
+            valid && password_store_->set_radio_password(password, initial_field_password_);
+        volatile char* secret = password.data();
+        for (std::size_t i = 0; i < password.size(); ++i)
+            secret[i] = 0;
+        if (!valid)
+            return http_error(400, "invalid_password");
+        if (!saved)
+            return http_error(503, "password_save_unconfirmed");
+    }
+    const auto* saved = password_store_->record();
+    HttpResponse result{
+        200,
+        "{\"schema\":\"pico-password/1\",\"target\":" + application::target(device_, boot_) +
+            ",\"wifi_default\":" + (!saved || saved->radio_password.empty() ? "true" : "false") +
+            ",\"saved\":true}",
+        "application/json",
+        {}};
+    result.etag = "\"password:" + std::to_string(store_.sequence()) + ':' +
+                  std::to_string(password_store_->sequence()) + "\"";
+    return result;
 }
 void ConsumerRadioApi::listeners(bool ap, std::string_view station_ip, std::string_view hostname) {
     if (station_ip == station_ip_ && hostname == hostname_ && ap == ap_available_)
@@ -155,6 +236,14 @@ bool ConsumerRadioApi::page_admitted(const HttpRequest& request,
                             (host == station_ip_ || (!hostname_.empty() && host == hostname_))));
 }
 void ConsumerRadioApi::poll(std::uint64_t now_ms) {
+    if (password_store_ && password_store_->sequence() != password_sequence_) {
+        const auto current = password_digest();
+        // Field/BLE updates share this journal but do not change Pico login.
+        if (current != password_digest_)
+            close();
+        password_digest_ = current;
+        password_sequence_ = password_store_->sequence();
+    }
     const bool healthy = available();
     if (recovery_.state != State::None &&
         (!healthy || recovery_.binding.generation != store_.sequence() ||
@@ -305,7 +394,7 @@ HttpResponse ConsumerRadioApi::finish(Session& session, const HttpRequest& reque
     // Every complete finish consumes the pending exchange, even a bad password.
     session.state = State::None;
     if (!session.crypto->authenticate(*request.buffered_body, session.binding,
-                                      runtime_.consumer_profile()->password)) {
+                                      authentication_password())) {
         close(session);
         return http_error(401, "radio_authentication_failed");
     }
@@ -429,7 +518,7 @@ HttpResponse ConsumerRadioApi::recovery_finish(const HttpRequest& request,
         return http_error(403, "radio_session_context_mismatch");
     recovery_.state = State::None; // One complete proof, including bad proofs.
     if (!recovery_.crypto->authenticate(*request.buffered_body, recovery_.binding,
-                                        runtime_.consumer_profile()->password)) {
+                                        authentication_password())) {
         close(recovery_);
         return http_error(401, "radio_recovery_rejected");
     }
@@ -480,6 +569,7 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
     session.seen_ms = now_ms;
     const auto root = wtp::json::parse(*plaintext);
     HttpResponse result = http_error(400, "invalid_radio_request");
+    bool password_saved = false;
     if (root && wtp::json::fields(*root, {"method", "path", "if_match", "body"})) {
         const auto method = root->get("method"), path = root->get("path"),
                    match = root->get("if_match"), body = root->get("body");
@@ -513,7 +603,13 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
                              {"x-wsprrypico-request", "1"}};
             if (match->type() == '"')
                 inner.headers["if-match"] = match->string();
-            if (inner.path.starts_with("/api/v1/consumer/setup/") && setup_handler_) {
+            if (inner.path == "/api/v1/consumer/password") {
+                if (inner.method != "GET" && setup_busy_ && setup_busy_(setup_context_))
+                    result = http_error(409, "setup_pending");
+                else
+                    result = password_resource(inner);
+                password_saved = inner.method == "PUT" && result.status == 200;
+            } else if (inner.path.starts_with("/api/v1/consumer/setup/") && setup_handler_) {
                 inner.path.erase(0, std::string_view("/api/v1/consumer/setup").size());
                 // Each production setup decoder has its own closed header
                 // policy. Do not carry ordinary API or the other adapter's
@@ -546,7 +642,10 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
     if (size > max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes ||
         !wtp::memory_admitted(size * 2 + 4096) || !envelope.reserve(size)) {
         finish_request(transaction, false);
-        close(session);
+        if (password_saved)
+            close();
+        else
+            close(session);
         return http_error(503, "radio_response_unavailable");
     }
     envelope.append(wtp::InputView(prefix));
@@ -558,10 +657,18 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
     envelope.append(wtp::InputView("}"));
     if (!wtp::json::parse(envelope.view())) {
         finish_request(transaction, false);
-        close(session);
+        if (password_saved)
+            close();
+        else
+            close(session);
         return http_error(503, "radio_response_unavailable");
     }
     auto response = session.crypto->seal(envelope.view(), session.binding, sequence);
+    if (password_saved) {
+        password_sequence_ = password_store_->sequence();
+        password_digest_ = password_digest();
+        close(); // The sealed reply owns its ciphertext; retire even if delivery is lost.
+    }
     if (!response) {
         finish_request(transaction, false);
         close(session);
@@ -589,9 +696,13 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
         page_admitted(request, interface))
         return {200,
                 "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
-                    ",\"boot_id\":" + wtp::json::quote(boot_) +
-                    ",\"generation\":" + wtp::json::quote(std::to_string(store_.sequence())) +
-                    ",\"authentication\":\"saved_wifi_passphrase\"}",
+                    ",\"boot_id\":" + wtp::json::quote(boot_) + ",\"generation\":" +
+                    wtp::json::quote(std::to_string(store_.sequence())) + ",\"authentication\":" +
+                    wtp::json::quote(password_store_ && password_store_->record() &&
+                                             !password_store_->record()->radio_password.empty()
+                                         ? "pico_password"
+                                         : "saved_wifi_passphrase") +
+                    "}",
                 "application/json",
                 {}};
     const bool binary = request.path != "/api/consumer/v1/start" &&

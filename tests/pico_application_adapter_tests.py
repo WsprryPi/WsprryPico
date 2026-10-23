@@ -24,6 +24,54 @@ def block(source, anchor):
 
 @unittest.skipUnless(sys.platform.startswith('linux'), 'Linux C++ validation')
 class AdapterTests(unittest.TestCase):
+    def test_softap_association_cache_and_driver_error(self):
+        source = (ROOT / 'src/provisioning/pico/field_platform.cpp').read_text()
+        begin, end = block(source, 'bool PicoSoftAp::client_connected(')
+        program = r'''
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstdint>
+std::uint64_t now_ms=0;
+std::uint64_t time_us_64(){return now_ms*1000;}
+int cyw43_state=0, calls=0, result=0;
+void cyw43_wifi_ap_get_stas(int*,int* count,std::uint8_t* mac){
+ assert(*count==1);++calls;
+ if(result<0)return; // SDK ensure-up error leaves input capacity untouched.
+ *count=result;
+ if(result)mac[0]=2;
+}
+struct PicoSoftAp {
+ bool running_=false,clients_sampled_=false,client_connected_=false;
+ std::uint64_t clients_sampled_ms_=0;
+ bool client_connected(bool refresh=false) ACTUAL
+};
+int main(){
+ PicoSoftAp ap;
+ assert(!ap.client_connected()&&calls==0);
+ ap.running_=true;
+ assert(!ap.client_connected()&&calls==1);
+ result=1;now_ms=999;
+ assert(!ap.client_connected()&&calls==1);
+ now_ms=1000;
+ assert(ap.client_connected()&&calls==2);
+ result=0;
+ assert(!ap.client_connected(true)&&calls==3);
+ result=-1;
+ assert(!ap.client_connected(true)&&calls==4);
+ ap.running_=false;
+ assert(!ap.client_connected(true)&&calls==4);
+}
+'''.replace('ACTUAL', source[begin:end])
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory)
+            (path / 'softap.cpp').write_text(program)
+            built = subprocess.run(['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
+                                    str(path / 'softap.cpp'), '-o', str(path / 'softap')],
+                                   capture_output=True, text=True, timeout=60)
+            self.assertEqual(built.returncode, 0, built.stderr)
+            subprocess.run([str(path / 'softap')], check=True, capture_output=True, timeout=10)
+
     def test_actual_indicator_poll_selects_transmit_gate_only_for_rf(self):
         main = (ROOT / 'src/standalone/pico/main.cpp').read_text()
         begin, end = block(main, 'const auto poll_indicator =')

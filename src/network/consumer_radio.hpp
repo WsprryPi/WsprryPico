@@ -98,6 +98,13 @@ class ConsumerRadioApi {
         close();
     }
     bool available() const;
+    void password_storage(provisioning::AccessStore& store,
+                          std::string_view initial_field_password) {
+        password_store_ = &store;
+        initial_field_password_ = initial_field_password;
+        password_sequence_ = store.sequence();
+        password_digest_ = password_digest();
+    }
     void listeners(bool ap, std::string_view station_ip, std::string_view hostname);
     bool page_admitted(const HttpRequest& request, ConsumerInterface interface) const;
     using SetupHandler = HttpResponse (*)(const HttpRequest&, std::uint64_t,
@@ -138,6 +145,9 @@ class ConsumerRadioApi {
         ConsumerInterface interface = ConsumerInterface::None;
     };
     void close(Session& session);
+    std::string_view authentication_password() const;
+    HttpResponse password_resource(const HttpRequest& request);
+    std::array<std::uint8_t, 32> password_digest() const;
     Session* select(wtp::InputView packet);
     bool admitted(const HttpRequest& request, bool binary) const;
     HttpResponse start(const HttpRequest& request, std::uint64_t now_ms,
@@ -159,6 +169,10 @@ class ConsumerRadioApi {
     std::optional<std::uint64_t> last_recovery_ms_;
     std::uint64_t session_serial_ = 0;
     bool admission_open_ = false;
+    provisioning::AccessStore* password_store_ = nullptr;
+    std::string initial_field_password_;
+    std::uint64_t password_sequence_ = 0;
+    std::array<std::uint8_t, 32> password_digest_{};
     std::optional<std::uint64_t> last_start_ms_;
     bool ap_available_ = false;
     std::string station_ip_, hostname_;

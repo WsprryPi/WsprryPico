@@ -11,10 +11,10 @@ existing contracts. This transport supplies the missing authenticated consumer
 radio page and shared Browser API; it does not retain the withdrawn browser
 owner keys or change the immediate commissioning transaction.
 
-A healthy source-5 consumer profile normally keeps its AP off. Open
+A healthy source-4 Wi-Fi-only or source-5 consumer profile normally keeps its AP off. No station claim or synchronized UTC is required for browser access or authentication. Open
 `http://<current-station-IPv4>/` or `http://<configured-local-hostname>/` on
 infrastructure Wi-Fi, or `/radio` on either admitted interface. Log in with
-the Wi-Fi passphrase saved in the consumer profile. AP access is temporary
+the Pico password. Its default is the Wi-Fi passphrase saved in the selected profile; an independently saved Pico password takes precedence. AP access is temporary
 button-requested or automatic unavailable-network fallback. AP association
 alone grants no private radio read or mutation. The station listener exposes
 only the public radio document/identity and encrypted consumer routes.
@@ -49,7 +49,7 @@ in RAM for the bounded exchange and are never returned by identity/config reads.
 All routes use an explicitly interface-classified port-80 listener. Public GET
 `/api/consumer/v1/identity` returns version `1`, device/boot lowercase 32-hex IDs,
 profile generation as a canonical nonzero decimal string, and authentication
-`saved_wifi_passphrase`. Station Host must be its current IPv4 or exact configured
+`saved_wifi_passphrase` for the default, or `pico_password` for a separate Pico password. Station Host must be its current IPv4 or exact configured
 local hostname; AP Host must be `192.168.4.1`. An explicit `:80` Host is accepted.
 Other ports, malformed authorities and wildcard/suffix matches are rejected.
 POSTs require Origin `http://<admitted-host-without-default-port>`,
@@ -86,7 +86,7 @@ Transcript bytes, in order:
 5. Challenge then browser nonce, each 16 bytes.
 
 Let `T=SHA256(transcript)` and
-`IKM=X25519(shared secret) || SHA256(saved passphrase ASCII bytes)`.
+`IKM=X25519(shared secret) || SHA256(Pico password ASCII bytes)`.
 Reject an invalid/all-zero shared secret. HKDF-SHA256 uses salt `T` and info
 `WsprryPico radio login v1` for the 32-byte login key. A separate HKDF with info
 `WsprryPico radio traffic v1` produces 64 bytes: browser-request key first,
@@ -192,3 +192,13 @@ known shared secret/transcript. Passive capture alone does not provide that
 shared secret. This existing protocol limitation remains; a strong passphrase
 and trusted endpoint/network matter. Native local code prevents device-page
 execution but does not authenticate a unique device before emitting that proof.
+
+## Pico password settings
+
+Inside an authenticated Consumer-Radio envelope, `GET /api/v1/consumer/password` returns schema `pico-password/1`, the member target `{scope, device_id, boot_id}`, Boolean `wifi_default`, and `saved:true`, with an ETag. It returns no password or verifier. The ordinary API, public setup interface, engineering transport and Plain LAN WTP do not expose this resource.
+
+`PUT` on the same logical route requires `If-Match` from that read and exactly `{schema, target, password}`. The schema and exact member device/boot must match. A password is 8–63 printable ASCII characters; JSON null explicitly selects the saved Wi-Fi default and is refused when no Wi-Fi password exists. The caller must be authenticated, the transmitter idle and unowned, and no setup/configuration mutation may be pending. There is no implicit retry. Responses use `428 revision_required`, `412 revision_conflict`, `400 invalid_password`, `409 busy`, `409 setup_pending`, `409 wifi_password_unavailable` or `503 password_save_unconfirmed` as applicable.
+
+The access journal stores the separate Pico password independently of network and station profiles. Its legacy version-2 payload remains valid; version 3 adds a length-prefixed password at byte 160, with at most 63 following bytes and zero padding. Journal framing, slots, commit/readback and fault behavior are unchanged. Creating this record for browser settings keeps BLE disabled and field mode off. Other access-journal writes preserve the separate Pico password; browser logins are invalidated only when that password changes, not when unrelated access metadata changes.
+
+The Pico verifies the journal save and seals the response before retiring all browser sessions and pending recovery proofs, including the initiating session. A lost response does not undo a committed password change. The operator signs in with the new password, or tries the previous password if the new one is refused, then reads the setting before another explicit save. Wi-Fi, station, schedule, watermark and job ownership are unchanged. Restart preserves the password; access/provisioning/full-settings resets clear it. Wi-Fi updates preserve an explicit Pico password, while default-mode login follows the newly saved Wi-Fi passphrase.

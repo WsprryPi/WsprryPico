@@ -81,6 +81,11 @@ async function capture(name,anchor=null){
         if(process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1')continue;
         const image=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
         await writeFile(path.join(output,`${name}-${view.name}-${theme}.png`),Buffer.from(image.data,'base64'));
+        if(name==='pico-password-default' && view.name==='desktop' && theme==='light') {
+            const clip=await cdp.evaluate('(()=>{const r=document.getElementById("pico-password-form").getBoundingClientRect();return {x:r.x+scrollX,y:r.y+scrollY,width:r.width,height:r.height,scale:1};})()');
+            const detail=await cdp.send('Page.captureScreenshot',{format:'png',clip,captureBeyondViewport:true});
+            await writeFile(path.join(output,'pico-password-form.png'),Buffer.from(detail.data,'base64'));
+        }
     }
 }
 try {
@@ -92,6 +97,73 @@ try {
     cdp=new Cdp(page.webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
     // Chromium may expose its initial about:blank target before processing the
     // launch URL. Drive the selected target explicitly on every host.
+    // A first-time operator saves only Wi-Fi, then uses the LAN page after a
+    // reboot. Exercise the shipped browser scripts with no station/config journal.
+    await f.stop();f=new Fixture(process.argv[2],['1'.repeat(32),'--blank']);await f.time(1000);
+    await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
+    await until(()=>cdp.evaluate('document.getElementById("submit") && !document.getElementById("submit").disabled'),'first Wi-Fi form');
+    await field('ssid','Home Net');await field('password','test-password');await click('submit');
+    await until(()=>cdp.evaluate('!document.getElementById("accepted").hidden'),'first Wi-Fi accepted');
+    await f.command({op:'bench_network',linked:true,safe:true});
+    await f.time(f.now+3000);await f.time(f.now+1000);
+    await until(()=>cdp.evaluate('!document.getElementById("connected").hidden'),'Wi-Fi save confirmation');
+    assert.equal((await f.command({op:'stats'})).config_sequence,'0');
+    await f.command({op:'reboot'});await f.time(7000);
+    await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
+    await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy && !document.getElementById("local-login").hidden'),'Wi-Fi-only LAN login');
+    await field('local-password','test-password');await cdp.evaluate('document.getElementById("local-login").requestSubmit()');
+    await until(()=>cdp.evaluate('typeof online !== "undefined" && online && !busy'),'Wi-Fi-only authenticated controls');
+    assert.equal(await cdp.evaluate('document.getElementById("consumer-callsign").value'),'');
+    assert.equal(await cdp.evaluate('document.getElementById("consumer-ssid").value'),'Home Net');
+    assert.equal((await f.command({op:'stats'})).config_sequence,'0');
+    await capture('wifi-only-lan-control','station-area');
+    await click('wifi-host-link');
+    await until(()=>cdp.evaluate('!!picoPasswordState && !document.getElementById("pico-password-settings").disabled'),'editable Pico password');
+    assert.equal(await cdp.evaluate('picoPasswordState.data.wifi_default'),true);
+    await capture('pico-password-default','pico-password-form');
+    await field('pico-new-password','separate-browser-password');await field('pico-confirm-password','does-not-match');
+    await cdp.evaluate('document.getElementById("pico-password-form").requestSubmit()');
+    assert.match(await cdp.evaluate('document.getElementById("pico-password-error").textContent'),/do not match/);
+    assert.equal(await cdp.evaluate('document.activeElement.id'),'pico-confirm-password');
+    await field('pico-confirm-password','separate-browser-password');
+    await cdp.evaluate('document.getElementById("pico-password-form").requestSubmit()');
+    await until(()=>cdp.evaluate('!localAuthenticated && !busy && document.getElementById("local-status").textContent.includes("Pico password saved")'),'Pico password saved and browser signed out');
+    assert.equal(await cdp.evaluate('document.getElementById("pico-new-password").value+document.getElementById("pico-confirm-password").value'),'');
+    await f.time(f.now+1000);await field('local-password','separate-browser-password');
+    await cdp.evaluate('document.getElementById("local-login").requestSubmit()');
+    await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'separate Pico password login');
+    assert.equal(await cdp.evaluate('picoPasswordState.data.wifi_default'),false);
+    assert.equal(await cdp.evaluate('document.getElementById("consumer-ssid").value'),'Home Net');
+    assert.equal((await f.command({op:'stats'})).config_sequence,'0');
+    await capture('pico-password-custom','pico-password-form');
+    await f.command({op:'reboot'});await f.time(f.now+1000);
+    await cdp.send('Page.navigate',{url:'http://192.168.1.53/wifi-host'});
+    await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy'),'Pico password persisted across reboot');
+    await field('local-password','separate-browser-password');await cdp.evaluate('document.getElementById("local-login").requestSubmit()');
+    await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'persisted Pico password authenticated');
+    await click('pico-password-default');
+    await until(()=>cdp.evaluate('!localAuthenticated && !busy'),'Wi-Fi password restored as default');
+    await f.time(f.now+1000);await field('local-password','test-password');await cdp.evaluate('document.getElementById("local-login").requestSubmit()');
+    await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'restored default Pico password login');
+    assert.equal(await cdp.evaluate('picoPasswordState.data.wifi_default'),true);
+    await click('station-link');
+    await field('consumer-callsign','K1ABC');await field('consumer-locator','FN42');await field('consumer-power','30');
+    await cdp.evaluate('document.getElementById("consumer-station-form").requestSubmit()');
+    await until(()=>cdp.evaluate('!busy && savedProgress?.data.station.callsign==="K1ABC"'),'optional station progress after Wi-Fi-only login');
+    await click('apply-station-progress');
+    await until(()=>cdp.evaluate('!busy && !!consumerAttempt'),'optional station submitted from Wi-Fi-only profile');
+    await f.time(f.now+3000);await f.command({op:'activate'});await f.time(f.now+1000);
+    assert.equal((await f.command({op:'stats'})).profile_generation,'2');
+    await f.command({op:'reboot'});await f.time(f.now+1000);
+    await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
+    await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy'),'optional station reboot login');
+    await field('local-password','test-password');await cdp.evaluate('document.getElementById("local-login").requestSubmit()');
+    await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'optional station authenticated readback');
+    assert.equal(await cdp.evaluate('currentConfig.station.callsign'),'K1ABC');
+    assert.equal(await cdp.evaluate('currentConfig.wifi.ssid'),'Home Net');
+    await capture('optional-station-saved','station-area');
+    await cdp.send('Page.navigate',{url:'about:blank'});
+    await f.stop();f=new Fixture(process.argv[2]);await f.time(1000);
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy'),'production control document');
     assert.equal(await cdp.evaluate(`!document.getElementById('station-area').hidden && document.getElementById('wifi-host-area').hidden`),true);
@@ -184,7 +256,7 @@ try {
     await click('station-link');await click('wifi-host-link');await click('refresh');await until(()=>cdp.evaluate('!busy'),'post-save area refresh');
     assert.equal((await f.command({op:'stats'})).profile_programs,afterStation.profile_programs,'navigation cannot replay setup');
     assert.equal(await cdp.evaluate('currentConfig.station.callsign'),'K1ABC');
-    for(const mode of ['blank','network']) {
+    for(const mode of ['blank']) {
       await cdp.send('Page.navigate',{url:'about:blank'});
       await f.stop();f=new Fixture(process.argv[2]);await f.time(1000);
       await f.command({op:'page_profile',mode});
@@ -195,25 +267,9 @@ try {
       await cdp.send('Page.navigate',{url:'http://192.168.4.1/station'});
       await until(()=>cdp.evaluate(`!!document.getElementById('owner-form') && document.title.includes('Station setup')`),'station commissioning '+mode);
       assert.equal(await cdp.evaluate(`!!document.getElementById('message-form')`),false);
-      await until(()=>cdp.evaluate(mode==='blank'
-        ? `!document.getElementById('owner-wifi-first').hidden`
-        : `!document.getElementById('owner-settings').hidden && (!document.getElementById('owner-save-progress').disabled || !document.getElementById('owner-submit').disabled)`),'ready station commissioning '+mode);
+      await until(()=>cdp.evaluate(`!document.getElementById('owner-wifi-first').hidden`),'ready station commissioning '+mode);
       await capture(mode+'-station-setup');
-      if(mode==='network') {
-        const generation=(await f.command({op:'stats'})).profile_generation;
-        await field('owner-callsign','K1ABC');await field('owner-locator','FN42');await field('owner-power','30');
-        if(await cdp.evaluate(`!document.getElementById('owner-save-progress').hidden`)) {
-          await click('owner-save-progress');
-          await until(()=>cdp.evaluate(`!document.getElementById('owner-submit').disabled`),'saved station progress ready to apply');
-        }
-        await cdp.evaluate(`document.getElementById('owner-submit').focus();document.getElementById('owner-form').requestSubmit()`);
-        await until(()=>cdp.evaluate(`!document.getElementById('owner-checking').hidden || !document.getElementById('owner-accepted').hidden`),'station transaction submitted');
-        await f.time(f.now+3000);await f.time(f.now+1000);
-        await until(()=>cdp.evaluate(`!document.getElementById('owner-saved').hidden`),'confirmed optional station save');
-        assert.notEqual((await f.command({op:'stats'})).profile_generation,generation);
-        assert.equal(await cdp.evaluate('document.activeElement.id'),'owner-title','station transition moves focus out of hidden form');
-        await capture('optional-station-saved');
-      } else {
+      {
         await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
         await until(()=>cdp.evaluate(`!document.getElementById('credentials').hidden && !document.getElementById('submit').disabled`),'blank Wi-Fi ready');
         await field('ssid','é');await field('password','setup-password');
@@ -279,7 +335,7 @@ try {
     await capture('unavailable-recovery');
     await writeFile(path.join(output,'requests.json'),JSON.stringify(requests,null,2)+'\n');
     console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,production_routes:true,real_crypto:true,
-      defaults:true,reciprocal_navigation:true,drafts:true,back_forward_reload:true,no_session_churn:true,no_navigation_mutations:true,station_save_without_message:true,receipt_reconciliation:true,zoom_200:true,section_keyboard_focus:true,accessible_message_name:true,inline_wifi_errors:true,transition_focus:true,recovery_cancel_origin:true}));
+      wifi_only_lan_after_reboot:true,optional_station_from_wifi_only:true,defaults:true,reciprocal_navigation:true,drafts:true,back_forward_reload:true,no_session_churn:true,no_navigation_mutations:true,station_save_without_message:true,receipt_reconciliation:true,zoom_200:true,section_keyboard_focus:true,accessible_message_name:true,inline_wifi_errors:true,transition_focus:true,recovery_cancel_origin:true}));
 } catch(error) {
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate('({url:location.href,text:document.body?.innerText.slice(0,1000)})').catch(e=>e.message):null}));throw error;
 } finally {cdp?.ws.close();chrome?.kill();proxy.close();await f.stop();await fB.stop();}

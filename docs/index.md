@@ -39,6 +39,7 @@ operate
 wsprrypi
 maintain
 troubleshoot
+usb
 ```
 
 ```{toctree}

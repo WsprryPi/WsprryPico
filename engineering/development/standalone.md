@@ -83,8 +83,8 @@ newline. The administration commands below share this implemented interface.
 Send one command at a time and wait for its JSON response; diagnostics use the
 bounded existing Console queue. A client must inspect `ok`, not assume a
 successful serial write saved anything. `ACCESS SOFTAP <full-device-id>` now
-requests one nonextending 120-second SoftAP join/login grace while access
-storage is healthy. It neither changes credentials nor authorizes the browser;
+requests an initial 120-second SoftAP join window while access
+storage is healthy. A connected Wi-Fi client retains the AP; the final disconnect starts a ten-minute inactivity interval. The command neither changes credentials nor authorizes the browser;
 the page still requires the local-access password.
 
 Sanitized document (replace all station/network fields before using it):
@@ -335,8 +335,7 @@ full operational erase.
 The core-0-owned onboard LED identifies a device and slow-blinks only while
 SoftAP is actually ready. It is advisory and never proves RF or output safety.
 These behaviors are production-wired through the access/reset/indicator core.
-Every actual AP activation has the
-same non-sliding ten-minute cap; the 120-second join grace does not renew it.
+An associated Wi-Fi client retains every AP path. The final disconnect starts a ten-minute inactivity interval. An unjoined Console request retains its 120-second join grace; other initial windows last ten minutes. Browser sessions and button holds do not substitute for an association or reopen expired access.
 
 ## Time policy
 

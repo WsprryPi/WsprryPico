@@ -349,10 +349,7 @@ submission but HTTP does not authenticate page delivery. Provisioned engineering
 field access uses
 `https://<station-MAC-derived-hostname>[<configured-port>]/`, normally resolved
 by AP-interface mDNS, so Safari validates the existing device certificate by
-hostname. `ACCESS SOFTAP <full-device-id>` requests one nonextending 120-second
-join/login grace while access storage is healthy; field, recovery and fallback requests remain controlled by the access manager.
-Every actual AP activation ends within ten minutes of enablement regardless of
-stored field intent, session activity, held buttons or the join grace.
+hostname. `ACCESS SOFTAP <full-device-id>` requests a 120-second join grace while access storage is healthy; field, recovery and fallback requests remain controlled by the access manager. An associated Wi-Fi client retains every AP path independently of browser traffic or authentication. The final disconnect starts a ten-minute inactivity interval. Unjoined initial access expires after ten minutes, or after the Console's 120-second grace. Expired access requires a new deliberate request or a new outage after stable station recovery.
 
 The browser offers manual status refresh, station/Wi-Fi/schedule edits, explicit
 reload of saved settings, complete job upload/UTC arm, owner abort/release and

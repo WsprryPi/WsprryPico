@@ -5,6 +5,20 @@ in the maintained guides; completed execution records are not an active work lis
 The reusable [cleanup instructions](repository-cleanup-prompt.md) govern explicit
 repository and harness cleanup requests.
 
+## Operator validation
+
+### TODO: Lee to test USB browser recovery on Windows
+
+Follow [Recover browser access over USB](../../docs/usb.md) on a native Windows computer using desktop Google Chrome and an installed Pico. The browser terminal has returned INFO from a connected Pico on macOS; Windows validation remains open. This test covers the browser Console route, not Windows support for the command-line installer.
+
+- [ ] Record the Windows and Chrome versions, Pico USB serial, full device ID, firmware version and source revision.
+- [ ] Confirm that Device Manager shows the Pico's serial ports and that Hardware Ids identifies the Console with **MI_00**, WTP with **MI_02** and management with **MI_04**. Record the matching Console COM number; confirm that Chrome's chooser lets the operator select that exact port.
+- [ ] Follow the documented SerialTerminal.com settings: DTR on; RTS, dtrDsr and rtsCts off; Advanced terminal view; 115200 baud; **send with /n** on and **send with /r** off. Confirm that the command box and **Send** transmit `INFO` successfully.
+- [ ] Confirm that the complete INFO reply remains available by scrolling inside the terminal, including its initial `ok`, `device_id`, `firmware` and `revision` fields and final closing JSON. Read the network address and web-service fields without losing the start of the reply.
+- [ ] With the Pico idle, send `ACCESS SOFTAP` with that full device ID. Confirm the successful reply, join setup Wi-Fi and open `http://192.168.4.1/`. Record any refusal with firmware identity. Check connected-client retention and the ten-minute interval after the final disconnect using firmware containing that change.
+- [ ] Close the browser terminal tab and confirm another serial terminal can open the Console. Capture Windows screenshots of Device Manager identity, Chrome's selected port, terminal settings and the successful INFO reply; keep credentials and private network details out of published images.
+- [ ] Update the USB walkthrough with the observed Windows labels, screenshots and any required corrections. Mark Windows verified only after the real Windows/Pico procedure succeeds.
+
 ## Remain in backlog for future
 
 - **Si5351**

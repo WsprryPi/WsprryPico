@@ -58,8 +58,13 @@ try {
  for(const mode of ['blank','network','unavailable']) {
    await f.command({op:'page_profile',mode});
    const root=await complete(f,'192.168.4.1',true,'/');
-   assert.equal(root.response.status,200);
-   if(mode==='unavailable') {
+   assert.equal(root.response.status,mode==='network'?302:200);
+   if(mode==='network') {
+     assert.equal(root.response.status,302);
+     assert.equal(root.response.headers.get('location'),'/wifi-host');
+     for(const route of ['/station','/radio','/wifi-host','/owner.html'])
+       assert.match((await complete(f,'192.168.4.1',true,route)).html,/id="consumer-station-form"/);
+   } else if(mode==='unavailable') {
      assert.ok(!root.html.includes('<form'));assert.match(root.html,/USB Console recovery/);
    } else {
      assert.match(root.html,/id="wifi-form"/);
@@ -71,7 +76,7 @@ try {
      for(const route of ['/station','/radio','/owner.html'])
        assert.match((await complete(f,'192.168.4.1',true,route)).html,/id="owner-form"/);
    }
-   assert.equal((await complete(f,'192.168.1.53',false,'/')).response.status,403);
+   assert.equal((await complete(f,'192.168.1.53',false,'/')).response.status,mode==='network'?200:403);
  }
  assert.equal((await f.command({op:'stats'})).api_restarts,0);
  console.log('PASS production AP/LAN aliases, exact Host/interface admission, commissioning/unavailable routes, full streaming and CSP; zero restarts');

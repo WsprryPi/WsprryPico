@@ -7,6 +7,7 @@
 #include "pico/cyw43_arch.h"
 #include "pico/flash.h"
 #include "pico/rand.h"
+#include "pico/time.h"
 #include "standalone/pico/flash_layout.hpp"
 
 #include <algorithm>
@@ -97,6 +98,26 @@ bool PicoSoftAp::start_blank(const LocalIdentity& identity) {
     return start_impl(identity, {}, true);
 }
 
+bool PicoSoftAp::client_connected(bool refresh) {
+    if (!running_)
+        return false;
+    const auto now_ms = time_us_64() / 1000;
+    if (refresh || !clients_sampled_ || now_ms < clients_sampled_ms_ ||
+        now_ms - clients_sampled_ms_ >= 1'000) {
+        // One MAC is enough to establish that at least one station remains.
+        std::array<std::uint8_t, 6> station{};
+        int count = 1;
+        cyw43_wifi_ap_get_stas(&cyw43_state, &count, station.data());
+        // The SDK can return early without updating count if the driver is
+        // unavailable. Require an actual returned MAC, not the input capacity.
+        client_connected_ =
+            count > 0 && std::any_of(station.begin(), station.end(), [](auto b) { return b; });
+        clients_sampled_ = true;
+        clients_sampled_ms_ = now_ms;
+    }
+    return client_connected_;
+}
+
 bool PicoSoftAp::start_impl(const LocalIdentity& identity, std::string_view password,
                             bool captive) {
     if (running_ || identity.softap_ssid.empty() || (!captive && !valid_local_password(password)))
@@ -123,6 +144,7 @@ bool PicoSoftAp::start_impl(const LocalIdentity& identity, std::string_view pass
     }
     running_ = true;
     captive_ = captive;
+    client_connected_ = clients_sampled_ = false;
     return true;
 }
 
@@ -134,6 +156,7 @@ void PicoSoftAp::stop() {
     }
     running_ = false;
     captive_ = false;
+    client_connected_ = clients_sampled_ = false;
 }
 
 bool PicoSoftAp::ready() const {

@@ -23,10 +23,10 @@ export class RadioClient {
         radio_login_rate_limited:'Logins must be at least one second apart. Wait a second, then try again.',
         radio_recovery_pending:'A retirement proof is pending for at most five seconds. Check again before another explicit attempt.',
         radio_recovery_rate_limited:'Retirement attempts must be at least one second apart.',
-        radio_recovery_rejected:'Retirement authentication was rejected. Verify the current saved Wi-Fi password.',
+        radio_recovery_rejected:'Retirement authentication was rejected. Verify the current Pico password.',
         radio_recovery_unavailable:'Retirement could not be confirmed. Keep the same selected login for another explicit check.'
       };
-      const error = new Error(messages[code] || (response.status === 401 ? 'Wi-Fi password rejected or this radio session expired. Log in again.' : 'Radio request rejected'));
+      const error = new Error(messages[code] || (response.status === 401 ? 'Pico password rejected or this radio session expired. Log in again.' : 'Radio request rejected'));
       error.code = typeof code === 'string' && /^[a-z0-9_]{1,80}$/.test(code) ? code : 'radio_response_unconfirmed'; throw error;
     }
     if (binary) {
@@ -41,13 +41,13 @@ export class RadioClient {
     const id = await response.json();
     unhex(id.device_id,16); unhex(id.boot_id,16);
     if (Object.keys(id).sort().join(',') !== 'authentication,boot_id,device_id,generation,version' ||
-        id.version !== 1 || id.authentication !== 'saved_wifi_passphrase' || typeof id.generation !== 'string' ||
+        id.version !== 1 || !['saved_wifi_passphrase','pico_password'].includes(id.authentication) || typeof id.generation !== 'string' ||
         !/^[1-9][0-9]{0,19}$/.test(id.generation) || BigInt(id.generation) > 0xffffffffffffffffn) throw new Error('Invalid Pico identity');
     return id;
   }
   async login(password, identity) {
     if (this.busy) throw new Error('A radio request is already in progress');
-    if (typeof password !== 'string' || !/^[\x20-\x7e]{8,63}$/.test(password)) throw new Error('Use the saved Wi-Fi password, 8–63 ASCII characters');
+    if (typeof password !== 'string' || !/^[\x20-\x7e]{8,63}$/.test(password)) throw new Error('Use the Pico password, 8–63 ASCII characters');
     unhex(identity.device_id,16);unhex(identity.boot_id,16);
     this.busy = true; let pending,state;
     try {
@@ -69,7 +69,7 @@ export class RadioClient {
   }
   async request(path, method = 'GET', body, etag, timeout = 30000) {
     if (this.busy) throw new Error('A radio request is already in progress');
-    if (!this.authenticated) { const error = new Error('Log in with the saved Wi-Fi password'); error.code='radio_authentication_required'; throw error; }
+    if (!this.authenticated) { const error = new Error('Log in with the Pico password'); error.code='radio_authentication_required'; throw error; }
     // Validate/encode before consuming a sequence or changing authentication.
     const sequence = this.sequence;
     let packet;
@@ -118,7 +118,7 @@ export class RadioClient {
   async retire(password, discovery, target) {
     if (this.busy) throw new Error('A radio request is already in progress');
     unhex(target,16);
-    if (typeof password !== 'string' || !/^[\x20-\x7e]{8,63}$/.test(password)) throw new Error('Use the current saved Wi-Fi password, 8–63 ASCII characters');
+    if (typeof password !== 'string' || !/^[\x20-\x7e]{8,63}$/.test(password)) throw new Error('Use the current Pico password, 8–63 ASCII characters');
     if (this.context && (discovery.authority !== this.context.authority || discovery.interface !== this.context.interface)) throw new Error('Retirement authority does not match this client');
     this.busy = true;let pending,state,finishAttempted=false;
     try {

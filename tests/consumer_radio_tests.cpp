@@ -98,7 +98,7 @@ struct Test {
         r.headers["origin"] = "http://" + authority;
         return api.handle(r, now, tx, interface);
     }
-    Test() {
+    Test(bool network_only = false) {
         provisioning::ConsumerProfile profile;
         profile.device_id = device;
         profile.owner_epoch = 0;
@@ -112,12 +112,19 @@ struct Test {
         profile.tls.hostname = "wsprrypico-0a60df.local";
         profile.request_sha256 = std::string(64, 'a');
         assert(store.load());
-        assert(store.select(provisioning::ProfileSource::ConsumerProfile,
-                            provisioning::serialize_consumer_profile(profile)));
+        if (network_only)
+            assert(
+                store.select(provisioning::ProfileSource::NetworkOnly,
+                             provisioning::serialize_network_profile(
+                                 {device, profile.ssid, profile.password, profile.time_server})));
+        else
+            assert(store.select(provisioning::ProfileSource::ConsumerProfile,
+                                provisioning::serialize_consumer_profile(profile)));
         assert(runtime.load(store, device, provisioning::BuildBundleState::Absent));
         fixture.api.consumer_config(runtime);
-        assert(fixture.scheduler.command("CONFIG " + config).find("true") != std::string::npos);
-        api.admission(true);
+        if (!network_only)
+            assert(fixture.scheduler.command("CONFIG " + config).find("true") != std::string::npos);
+        api.admission(runtime.control_healthy(store) && runtime.consumer_browser_selected(store));
         api.listeners(true, "192.168.1.53", "wsprrypico-0a60df.local");
         assert(fixture.store.reserve(1791970000000000000ULL));
     }
@@ -154,6 +161,30 @@ struct Test {
 };
 } // namespace
 int main() {
+    for (const auto* host : {"192.168.1.53", "wsprrypico-0a60df.local"}) {
+        Test t(true);
+        t.authority = host;
+        t.interface = network::ConsumerInterface::Station;
+        network::HttpRequest page{"GET", "/", "", {{"host", host}}};
+        assert(t.api.page_admitted(page, t.interface));
+        assert(!t.runtime.consumer_profile());
+        assert(!t.fixture.store.config());
+        const auto profile = t.media.data;
+        t.login();
+        auto response = t.call("GET", "/api/v1/config");
+        assert(response.status == 200);
+        assert(response.body.find("\"config\":null") != std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+        response = t.call("GET", "/api/v1/capabilities");
+        assert(response.body.find("\"consumer_setup_identity\":true") != std::string::npos);
+        t.api.finish_request(t.transaction - 1, true);
+        assert(t.media.data == profile);
+        assert(!t.fixture.store.config());
+        // A changed or corrupt profile must close the old authenticated authority.
+        assert(t.store.select(provisioning::ProfileSource::Unprovisioned, ""));
+        assert(!t.api.available());
+        assert(t.call("GET", "/api/v1/status").status == 409);
+    }
     {
         Test t;
         t.login();

@@ -13,12 +13,14 @@ For adding a Pico to an existing WsprryPi installation, start with
 That manual covers Pi connections, Fleet, host schedules and Pi-managed updates;
 this repository owns the [Pico manual](docs/index.md) and engineering details.
 
-A blank consumer starts temporary setup Wi-Fi; configured devices use their
+A new Pico starts temporary setup Wi-Fi; configured devices use their
 saved network and the device-served browser interface. USB provides local
 configuration, controller time and job control without Wi-Fi. Supported upgrades
 preserve saved settings.
 
-Normal firmware uses direct GPIO PIO/DMA output at 138 MHz. The output is
+After saving Wi-Fi through [initial setup](docs/connect.md#first-wi-fi-connection), reconnect your computer or phone to your home network and open **http://** followed by the Pico's current IP address and **/**. Station details are not needed to open the page or sign in. If the Pico answers ping but its page will not open, follow the [browser troubleshooting steps](docs/troubleshoot.md#pico-answers-ping-but-the-browser-cannot-open-its-page) or the [standalone USB recovery walkthrough](docs/usb.md).
+
+WsprryPico uses direct GPIO PIO/DMA output at 138 MHz. The output is
 unfiltered and needs suitable filtering, attenuation, load and any amplifier.
 Reported WSPR dBm is message content, not measured RF power. Generic images
 select no transmit frequency. Save and review a frequency before deliberately

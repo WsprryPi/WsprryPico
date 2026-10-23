@@ -1,7 +1,7 @@
 # Access and security
 
 Use consumer control on a trusted network. Its HTTP page authenticates the
-saved Wi-Fi password and encrypts application traffic, but **HTTP does not
+Pico password (the saved Wi-Fi password by default) and encrypts application traffic, but **HTTP does not
 authenticate the page delivered to your browser**. An active attacker who
 substitutes that page can steal a password entered there.
 

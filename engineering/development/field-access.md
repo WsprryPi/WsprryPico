@@ -5,10 +5,7 @@ manager and one JobService. Consumer Wi-Fi setup and password-encrypted radio
 control use the [consumer access](consumer-lan-access.md) and
 [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md) contracts. Their open
 Wi-Fi-first setup supersedes read-only blank-AP policy for that consumer surface.
-Every actual AP activation, including engineering field/recovery requests, has
-the same non-sliding ten-minute cap from activation. Stored field intent and
-session activity cannot extend an expired AP window. USB remains the local
-recovery transport.
+Every AP path, including engineering field and recovery access, remains available while a Wi-Fi client is associated. The final disconnect starts a ten-minute inactivity interval. Initial unjoined access lasts ten minutes, except the Console's two-minute join grace. Browser traffic, authentication slots and stored field intent do not substitute for association or reopen an expired window. USB remains the local recovery transport.
 
 Provisioning remains outside WTP/1. All field job control enters the existing
 JobService; transport loss does not prove inactivity or transfer ownership.
@@ -392,7 +389,7 @@ unknown. They never release an owner or clear a job/fault.
 
 The profile journal, local-access/field state and BTstack bonds remain physically
 and logically separate from station, schedule, watermark and E10 storage. The
-local-access/field journal owns the password state, current access epoch,
+local-access/field journal owns the field password, the separate consumer Pico password, current access epoch,
 authorized-bond epoch index and persistent field-mode flag. Password, bond,
 field-mode and profile operations preserve station, schedule and watermark
 records unless the explicit full operational erase is selected.

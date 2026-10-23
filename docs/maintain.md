@@ -50,24 +50,42 @@ If WsprryPi connects over the network, follow its
 [connection-profile update procedure](https://wsprry-pi.readthedocs.io/en/devel/Advanced_Operations/ini_configuration/transmitter_backends.html#after-a-pico-hostname-change)
 after verifying the rename. Renaming a Fleet profile changes only its label.
 
+### Change the Pico password
+
+The default **Pico password** is the home Wi-Fi password saved during setup. Set a separate Pico password in the browser without changing the network password:
+
+1. Sign in with the current Pico password. Open **Wi-Fi/Host → Pico password**.
+2. Enter the new password in **New Pico password** and **Confirm new Pico password**. Use 8–63 characters; accented letters and emoji are not supported.
+3. Select **Save Pico password**. Wait for confirmation, then sign in with the new password. Saving signs out all Pico browser logins; the new password survives a restart.
+
+```{figure} _static/images/pico-password.jpg
+:alt: Pico password controls showing the Wi-Fi default status, New Pico password and Confirm new Pico password fields, Save Pico password, and Use Wi-Fi password as Pico password.
+:target: _static/images/pico-password.jpg
+
+The **Pico password** section under **Wi-Fi/Host**. Both new-password fields are empty. Software preview; select the image to enlarge it.
+```
+
+To return to the default, select **Use Wi-Fi password as Pico password** in the same section. Sign in again with the Wi-Fi password currently saved on the Pico. A separate Pico password is preserved when Wi-Fi or station details change. When the Wi-Fi default is selected, the Pico password follows changes to the saved Wi-Fi password.
+
+If the save result is unconfirmed, try signing in with the new Pico password, then the previous password if the new one is refused. If neither password works, restart the Pico and try again. Read the password setting after signing in; do not automatically repeat a password save. If the current Pico password is forgotten, see [Recovery and reset](#recovery-and-reset); changing Wi-Fi credentials over USB does not clear a separate Pico password.
+
 ### Change Wi-Fi
 
-Change Wi-Fi through its trial/save controls and check the confirmed result
-before leaving the old connection. A new password becomes the consumer login
-password after activation. USB can save, replace or explicitly delete the Wi-Fi
-connection without joining it; changes require the supported restart step.
-Deleting Wi-Fi retains station, pins, schedules, hostname, STOP and watermarks.
-**Disconnect Wi-Fi** changes runtime connectivity; it is not credential deletion.
+Wi-Fi credentials let the Pico join your network. The browser uses them as its default Pico password until you [set a separate Pico password](#change-the-pico-password). To update the Pico after changing your router's password, or to move it to another network:
+
+1. Sign in with the current **Pico password**. If the Pico can no longer join your home network, reopen [setup Wi-Fi](connect.md#request-setup-wi-fi-with-the-external-button) or use the [USB Console](usb.md#request-setup-wi-fi-from-the-console) to request it. Join setup Wi-Fi, open **http://192.168.4.1/** and sign in there.
+2. Open **Wi-Fi/Host**. Under **Wi-Fi network**, enter the network name and its current password. Keep the saved time server unless it needs changing, then select **Save Wi-Fi network**. The password must match that network's actual Wi-Fi password so the Pico can connect.
+3. Keep the page open while it checks and saves the connection. If the result is unconfirmed, reconnect and select **Check saved result** before submitting another save. Follow any displayed restart instruction.
+4. Once the new settings are applied, reconnect to the home network and open the Pico's current address. Sign in with your separate Pico password if you set one, or with the **new Wi-Fi password** if you use the default. Previous browser logins expire when the saved network credentials change.
+
+WsprryPi's [USB settings controls](connect.md#usb-access-without-wi-fi) can update saved network credentials without a Pico browser login. USB can save, replace or explicitly delete the Wi-Fi connection without joining it; changes require the supported restart step. Deleting Wi-Fi retains station, pins, schedules, hostname, a separate Pico password, STOP and watermarks. **Disconnect Wi-Fi** changes runtime connectivity; it is not credential deletion.
 
 ## Recovery and reset
 
 Prefer readback and reconnect before resetting. Reset choices remove different
 data; read the device's confirmation carefully:
 
-- **Reset provisioning…:** Clears network credentials, certificates, engineering
-  access, Bluetooth bonds and saved progress. It preserves station details,
-  schedules and the consumed-slot watermark; the retained time-server setting
-  returns to its default.
+- **Reset provisioning…:** Clears the separate Pico password, network credentials, certificates, engineering access, Bluetooth bonds and saved progress. It preserves station details, schedules and the consumed-slot watermark; the retained time-server setting returns to its default.
 - **Erase all settings…:** Also clears station details, schedules, the consumed-slot
   watermark and retained NTP learning. Firmware and protected platform boot
   storage remain installed. The page calls this **Full erase**; it is distinct

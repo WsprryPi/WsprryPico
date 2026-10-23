@@ -91,10 +91,7 @@ it does not close station clients or USB transactions.
 POST `/api/usb/v1/ap` uses `{schema:"transmitter-ap-request/1",target}` and the
 current If-Match. It requests a new bounded manual AP window after ACK, subject
 to existing idle/output/radio availability checks. It never renews an active
-window or a continuously held button. All actual AP activations have the same
-non-sliding ten-minute maximum; repeated unchanged conditions do not reopen an
-expired AP. New deliberate requests or a new outage after stable station
-recovery can rearm it. USB stays usable with AP off.
+window or a continuously held button. A Wi-Fi client association retains the AP, and the final disconnect starts a ten-minute inactivity interval. With no associated clients, this initial manual window expires after ten minutes; the separate Console join request initially allows 120 seconds. Repeated unchanged conditions do not reopen an expired AP. New deliberate requests or a new outage after stable station recovery can rearm it. USB stays usable with AP off.
 
 ## UTC exchange
 

@@ -13,9 +13,7 @@ is missing or incompatible, the installer offers to download a verified
 official package for macOS, Linux ARM64 or Linux x86-64. Other architectures
 need an existing compatible picotool. No SDK or compiler is needed.
 
-Use the normal **WsprryPico** image. **WsprryPico-Inhibited** simulates jobs
-without RF and is for diagnostics. Do not substitute a bench or compatibility
-image for the normal download.
+Install the **WsprryPico** firmware using the commands below.
 
 ## Select Beta 1 firmware
 

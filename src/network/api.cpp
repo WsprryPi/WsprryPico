@@ -37,6 +37,8 @@ void append(std::string& output, InputView input) {
 std::optional<standalone::Config> BrowserApi::effective_config() const {
     if (!store_.healthy())
         return {};
+    if (consumer_runtime_ && consumer_runtime_->network_profile())
+        return {}; // Wi-Fi-only setup does not manufacture a runnable station.
     if (consumer_runtime_ && consumer_runtime_->consumer_profile()) {
         // A USB profile can save a name/network before a complete runnable
         // station exists. Do not manufacture an empty station or generation 0.
@@ -57,7 +59,8 @@ std::string BrowserApi::revision() const {
         (progress_ ? ":progress:" + std::to_string(progress_->sequence()) + ":profile:" +
                          std::to_string(consumer_runtime_ ? consumer_runtime_->generation() : 0)
                    : "") +
-        (consumer_runtime_ && consumer_runtime_->consumer_profile()
+        (consumer_runtime_ &&
+                 (consumer_runtime_->consumer_profile() || consumer_runtime_->network_profile())
              ? ":consumer:" + std::to_string(consumer_runtime_->generation())
              : "");
     const auto digest =
@@ -696,7 +699,10 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
                 "\"application\":true,\"station\":true,\"hardware\":true,\"consumer_setup_"
                 "identity\":" +
-                (consumer_runtime_ && consumer_runtime_->consumer_profile() ? "true" : "false") +
+                (consumer_runtime_ && (consumer_runtime_->consumer_profile() ||
+                                       consumer_runtime_->network_profile())
+                     ? "true"
+                     : "false") +
                 ","
                 "\"softap\":true,\"ble\":true,\"restart\":" +
                 (restart_ ? "true" : "false") +
@@ -1221,7 +1227,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         if (!error.empty())
             return http_error(503, error);
     }
-    if (!local_usb && station_changed && consumer_runtime_ && consumer_runtime_->consumer_profile())
+    if (!local_usb && station_changed && consumer_runtime_ &&
+        (consumer_runtime_->consumer_profile() || consumer_runtime_->network_profile()))
         return http_error(409, "consumer_setup_identity_required");
     if (local_usb && local_settings_ && consumer_runtime_ &&
         consumer_runtime_->consumer_profile()) {

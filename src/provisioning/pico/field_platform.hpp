@@ -29,6 +29,7 @@ class PicoSoftAp {
     bool start_blank(const LocalIdentity& identity);
     void stop();
     bool ready() const;
+    bool client_connected(bool refresh = false);
     bool running() const {
         return running_;
     }
@@ -42,5 +43,7 @@ class PicoSoftAp {
     wsprry_captive_dns_t dns_{};
     bool running_ = false;
     bool captive_ = false;
+    bool client_connected_ = false, clients_sampled_ = false;
+    std::uint64_t clients_sampled_ms_ = 0;
 };
 } // namespace wsprrypico::provisioning

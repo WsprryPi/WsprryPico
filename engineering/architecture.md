@@ -38,8 +38,7 @@ of `/api/v1/`; legacy closed views remain independently negotiated. USB selects
 authority, revision, application and delivery semantics. Management authority
 alone grants no transmitter ownership.
 
-Consumer port-80 control is available through the current station IP/hostname
-and an available AP. The saved Wi-Fi passphrase authenticates encrypted,
+Consumer port-80 control is available through the current station IP/hostname and an available AP after Wi-Fi-only setup; a station claim and synchronized UTC are not prerequisites. The Pico password, defaulting to the saved Wi-Fi passphrase, authenticates encrypted,
 volatile [Consumer-Radio/1](protocol/Consumer-Radio-v1.md) sessions. HTTP page
 delivery remains unauthenticated. Public commissioning stays AP-only; LAN
 commissioning uses authenticated transactional wrappers. Interface, Host,
@@ -68,12 +67,7 @@ SoftAP portal is the offline consumer setup path.
 
 Consumer setup presents Wi-Fi first and optional station details separately.
 A blank Pico starts an open setup AP; saved consumers normally keep it off.
-Every actual activation has a non-sliding ten-minute cap, including manual,
-blank, fallback, field and recovery paths. Requests, button holds/releases,
-clients and retries cannot renew it. An expired window stays latched until a
-new deliberate request or an outage after stable station recovery. A 60-second
-outage requests fallback; 30-second stable recovery rearms a later outage.
-AP expiry withdraws AP clients only and keeps station service available.
+An associated Wi-Fi client retains every AP path without browser traffic or authentication. The last disconnect starts a ten-minute inactivity interval. Without an association, the initial window is ten minutes, or two minutes for Console join grace. CYW43 station association is sampled once per second and refreshed at expiry before withdrawing an AP. An expired window stays latched until a new deliberate request or an outage after stable station recovery. A 60-second outage requests fallback; 30-second stable recovery rearms a later outage, without evicting an associated AP client. AP expiry keeps station service available.
 Armed, running, failed and uncertain output states defer/withdraw the AP path;
 automatic recovery cannot abort an accepted job.
 

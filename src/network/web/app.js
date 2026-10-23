@@ -14,7 +14,7 @@ if (typeof module !== 'undefined') module.exports = {pinOwners};
 const $ = id => document.getElementById(id);
 const pageIdentity = WsprryPicoPresentation.create(document);
 const canonicalHostname = WsprryPicoPresentation.canonicalHostname;
-const passwordFields = ['local-password','config-password','consumer-password','retirement-password'];
+const passwordFields = ['local-password','config-password','consumer-password','retirement-password','pico-new-password','pico-confirm-password'];
 function setPasswordVisible(id, visible) {
   const input = $(id), toggle = $(id + '-toggle');
   const blocked = input.readOnly || input.disabled || input.matches?.(':disabled');
@@ -26,7 +26,7 @@ function setPasswordVisible(id, visible) {
     input.type = type;
     if (start !== null && start !== undefined) input.setSelectionRange(start,end,direction);
   }
-  const name = id === 'local-password' ? $('local-password-label').textContent.replace(/^[A-Z]/,c => c.toLowerCase()) : 'Wi-Fi password';
+  const name = id === 'local-password' ? $('local-password-label').textContent.replace(/^[A-Z]/,c => c.toLowerCase()) : id === 'retirement-password' ? 'Pico password' : id === 'pico-new-password' ? 'new Pico password' : id === 'pico-confirm-password' ? 'password confirmation' : 'Wi-Fi password';
   const label = (visible ? 'Hide ' : 'Show ') + name;
   toggle.setAttribute('aria-label',label);
   toggle.setAttribute('aria-pressed',String(visible));
@@ -52,6 +52,7 @@ const radio = globalThis.WsprryPicoConsumerRadio?.createClient();
 let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
+let picoPasswordState = null;
 const supportsAmplifier = () => globalThis.WsprryAmplifier?.supported(capabilities?.amplifier_enable) === true;
 let localIdentity = null, localAuthenticated = false;
 let engineeringStationDirty = false, engineeringNetworkDirty = false;
@@ -494,14 +495,14 @@ async function discoverLocal() {
   if (radio) {
     $('local-access').hidden = false;
     $('local-heading').textContent = 'Radio access';
-    $('local-password-label').textContent = 'Saved Wi-Fi password';
-    $('local-description').textContent = 'Enter the password for the Wi-Fi network saved on this Pico. Your radio session stays in this tab and expires after inactivity.';
+    $('local-password-label').textContent = 'Pico password';
+    $('local-description').textContent = 'Enter the Pico password. By default, it is the Wi-Fi password saved on this Pico. Use your separate Pico password if you changed it. Your login stays in this tab and expires after inactivity.';
     try {
       localIdentity = await radio.identity();
       checkReturningDevice(localIdentity.device_id);
       pageIdentity.bind(localIdentity);
       await presentationTitle();
-      $('local-status').textContent = 'Signed out. Enter the saved Wi-Fi password to log in.';
+      $('local-status').textContent = 'Signed out. Enter the Pico password to log in.';
       notice('Log in to read or change radio settings.');
     } catch (error) { notice(error.message + '. Check the Pico address and your Wi-Fi connection, then reload.',true); }
     return true;
@@ -553,6 +554,8 @@ function controls(connected) {
   $('consumer-network-settings').disabled = busy || !idle || !localAuthenticated || Boolean(consumerAttempt);
   $('consumer-station-settings').disabled = $('consumer-network-settings').disabled;
   $('consumer-check-save').disabled = busy || !localAuthenticated || !consumerAttempt;
+  $('pico-password-settings').disabled = busy || !idle || !localAuthenticated || !picoPasswordState || Boolean(consumerAttempt);
+  $('pico-password-default').disabled = $('pico-password-settings').disabled || picoPasswordState?.data.wifi_default !== false || !currentConfig?.wifi?.ssid && !$('consumer-ssid').value;
   $('hostname-settings').disabled = busy || !idle || !hostnameState?.writable;
   $('hostname-save').disabled = busy || !idle || !hostnameState?.writable || hostnameUncertain;
   $('hostname-default').disabled = $('hostname-save').disabled;
@@ -582,20 +585,20 @@ function controls(connected) {
   }
   for (const id of passwordFields) setPasswordVisible(id,$(id).type === 'text');
 }
-function fill(c) {
+function fill(c, network = c?.wifi) {
   currentConfig = c; dirty = false;
   const form = $('config').elements;
   if (!engineeringStationDirty) for (const name of ['callsign','locator','power_dbm']) form[name].value = c?.station[name] ?? '';
   if (!engineeringNetworkDirty) {
-    form.ssid.value = c?.wifi.ssid ?? '';
-    form.ntp_ipv4.value = c?.wifi.ntp_ipv4 ?? 'pool.ntp.org';
+    form.ssid.value = network?.ssid ?? '';
+    form.ntp_ipv4.value = network?.ntp_ipv4 ?? 'pool.ntp.org';
   }
   if (radio) {
     $('consumer-identity-help').hidden = false;
     for (const name of ['callsign','locator','power_dbm','ssid','password','ntp_ipv4']) form[name].readOnly = true;
     if (!consumerSetupDirty) {
-      $('consumer-ssid').value = c?.wifi.ssid ?? '';
-      $('consumer-time-server').value = c?.wifi.ntp_ipv4 ?? 'pool.ntp.org';
+      $('consumer-ssid').value = network?.ssid ?? '';
+      $('consumer-time-server').value = network?.ntp_ipv4 ?? 'pool.ntp.org';
       $('consumer-callsign').value = c?.station.callsign ?? '';
       $('consumer-locator').value = c?.station.locator ?? '';
       $('consumer-power').value = c?.station.power_dbm ?? 37;
@@ -639,7 +642,22 @@ async function refresh(loadConfig = false) {
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
     $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network or pin settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
     if (s.frequency_required) $('recovery').textContent += ' Standalone transmission is blocked: choose and save a WSPR frequency in Schedules and radio pins, then explicitly enable schedules.';
-    if (loadConfig) { const c = await api('config'); const config=checkedConfig(c); revision = c.revision; fill(config); const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; $('save-reconcile-status').textContent = 'Saved settings reloaded into this browser. Review any new edits before saving.'; showProgress(); }
+    if (loadConfig) {
+      const c = await api('config'); const config=checkedConfig(c);
+      let network = config?.wifi;
+      if (radio && !config) {
+        const saved = (await api('consumer/setup/api/owner/v1/public-status')).data;
+        if (saved.version !== 1 || saved.device_id !== localIdentity.device_id ||
+            saved.boot_id !== localIdentity.boot_id || saved.generation !== localIdentity.generation ||
+            ![4,5].includes(saved.profile_source) ||
+            saved.network !== null && (typeof saved.network?.ssid !== 'string' || typeof saved.network?.time_server !== 'string'))
+          throw new Error('Saved Wi-Fi could not be confirmed. Read the Pico identity and try again.');
+        network = saved.network ? {ssid:saved.network.ssid,ntp_ipv4:saved.network.time_server} : undefined;
+      }
+      revision = c.revision; fill(config,network);
+      const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; $('save-reconcile-status').textContent = 'Saved settings reloaded into this browser. Review any new edits before saving.'; showProgress();
+      if (radio) await readPicoPassword();
+    }
     updateProgress(); messagePreview();
     notice('Connected · Status updated ' + observedAt); controls(true);
   } catch (e) { markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Session ended. Log in again; your draft is preserved.'; notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
@@ -656,6 +674,73 @@ async function action(fn) {
   }
   finally { busy = false; controls(online); }
 }
+async function readPicoPassword() {
+  try {
+    const result = await api('consumer/password');
+    if (result.data.schema !== 'pico-password/1' || !result.revision ||
+        result.data.target?.device_id !== localIdentity.device_id ||
+        result.data.target?.boot_id !== localIdentity.boot_id ||
+        typeof result.data.wifi_default !== 'boolean' || result.data.saved !== true)
+      throw new Error('The Pico password setting could not be confirmed. Refresh before changing it.');
+    picoPasswordState = result;
+    $('pico-password-form').hidden = false;
+    $('pico-password-status').textContent = result.data.wifi_default
+      ? 'Using the default: the Wi-Fi password saved on this Pico.'
+      : 'Using a separate Pico password. Changing Wi-Fi does not change it.';
+  } catch (error) {
+    picoPasswordState = null;
+    $('pico-password-form').hidden = error.code === 'not_found';
+    if (error.code !== 'not_found') throw error;
+  }
+}
+function picoPasswordSignedOut(message) {
+  radio.clear(); picoPasswordState = null; localAuthenticated = false;
+  $('local-login').hidden = false; $('local-logout').hidden = true;
+  snapshot = null; requireReadback(); controls(false); markTitleStale();
+  $('pico-password-status').textContent = message;
+  $('local-status').textContent = message;
+  $('local-password').focus();
+}
+async function savePicoPassword(password) {
+  if (!picoPasswordState) throw new Error('Read the Pico password setting before changing it.');
+  try {
+    const result = await api('consumer/password','PUT',{
+      schema:'pico-password/1',target:picoPasswordState.data.target,password
+    },picoPasswordState.revision);
+    if (result.data.schema !== 'pico-password/1' || result.data.saved !== true ||
+        result.data.wifi_default !== (password === null) ||
+        result.data.target?.device_id !== localIdentity.device_id ||
+        result.data.target?.boot_id !== localIdentity.boot_id)
+      throw Object.assign(new Error('The Pico password save could not be confirmed.'),{unconfirmed:true});
+    const message = password === null ? 'Pico password saved. Sign in with the saved Wi-Fi password.'
+      : 'Pico password saved. Sign in with your new Pico password.';
+    picoPasswordSignedOut(message); notice(message);
+  } catch (error) {
+    if (error.unconfirmed || error.code === 'password_save_unconfirmed') {
+      picoPasswordSignedOut('Password change unconfirmed. Try signing in with the new password, then the previous password if refused. If neither works, restart the Pico and try again. Do not repeat the save automatically.');
+      error.message = $('local-status').textContent;
+    }
+    throw error;
+  } finally {
+    clearPassword('pico-new-password'); clearPassword('pico-confirm-password');
+  }
+}
+$('pico-password-form').onsubmit = event => {
+  event.preventDefault();
+  const password = $('pico-new-password').value, confirm = $('pico-confirm-password').value;
+  const valid = /^[\x20-\x7e]{8,63}$/.test(password);
+  const message = !valid ? 'Use 8–63 characters without accented letters or emoji.'
+    : password !== confirm ? 'The Pico passwords do not match. Enter the same password twice.' : '';
+  $('pico-password-error').textContent = message;
+  for (const id of ['pico-new-password','pico-confirm-password']) $(id).setAttribute('aria-invalid',String(Boolean(message)));
+  if (message) { $(!valid ? 'pico-new-password' : 'pico-confirm-password').focus(); return; }
+  return action(() => savePicoPassword(password));
+};
+for (const id of ['pico-new-password','pico-confirm-password']) $(id).oninput = () => {
+  $('pico-password-error').textContent = '';
+  for (const field of ['pico-new-password','pico-confirm-password']) $(field).setAttribute('aria-invalid','false');
+};
+$('pico-password-default').onclick = () => action(() => savePicoPassword(null));
 $('refresh').onclick = () => action(() => refresh());
 $('local-login').onsubmit = event => { event.preventDefault(); return action(async () => {
   cancelReconnect();
@@ -685,6 +770,7 @@ $('local-login').onsubmit = event => { event.preventDefault(); return action(asy
   }
   if (dirty || writeState !== 'ready' && saveAttempt) { await refresh(); await readSavedKeepingDraft(); }
   else await refresh(true);
+  if (radio && !picoPasswordState && localAuthenticated) await readPicoPassword();
   notice(radio ? 'Radio session authorized. Check saved-state review before another save.' : 'Local SoftAP session authorized.');
 }); };
 $('inspect-logins').onclick = () => action(async () => {
@@ -696,7 +782,7 @@ $('inspect-logins').onclick = () => action(async () => {
   const lost = radio.lostSession;
   $('retirement-target').replaceChildren(new Option('Choose a login explicitly',''),...discovery.sessions.map(s =>
     new Option(`${s.selector} · ${s.state}${lost?.selector === s.selector && lost.boot_id === discovery.boot_id ? ' · retained selector from this tab' : ''}`,s.selector)));
-  $('retirement-status').textContent = `Pico ${discovery.device_id}; ${discovery.interface} at ${discovery.authority}. A login may belong to another operator. Retirement ends only that login and cancels its undelivered effects. Saved settings and radio jobs remain. Enter the current saved Wi-Fi password below, select a login, then retire it.`;
+  $('retirement-status').textContent = `Pico ${discovery.device_id}; ${discovery.interface} at ${discovery.authority}. A login may belong to another operator. Retirement ends only that login and cancels its undelivered effects. Saved settings and radio jobs remain. Enter the current Pico password below, select a login, then retire it.`;
 });
 $('retirement-target').onchange = () => controls(online);
 $('retire-login').onclick = () => action(async () => {

@@ -1,5 +1,7 @@
 # Configure your station
 
+Station details are needed to configure transmissions. You can connect the Pico to Wi-Fi and sign in to its control page before entering them.
+
 Keep schedules disabled and output inactive while setting up. Sign in, choose
 **Station/Transmission**, and read the saved settings before changing them.
 
