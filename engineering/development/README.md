@@ -137,6 +137,7 @@ before using the replacement. Disabled defaults in an existing cache are allowed
 - [Portable core](portable-core.md), [WTP endpoint](wtp-endpoint.md) and
   [USB CDC roles](usb-cdc.md).
 - [USB installation and preserving upgrades](usb-installer.md).
+- [Factory-new Wi-Fi, Pico password and setup-network checklist](factory-new-access-checklist.md) for manual checks from a Mac or Raspberry Pi.
 - [WTP/1](../protocol/WTP.md), [USB management/time](../protocol/USB-Management.md),
   [Field-GATT/1](../protocol/Field-GATT.md), [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md)
   and the [browser API](../browser-api.md).

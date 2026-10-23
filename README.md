@@ -20,7 +20,7 @@ A **job** is one complete transmission, including any message repeats and gaps. 
 | Transmit indicator | **Onboard LED**; no external LED needed |
 | Optional external control button | A normally open momentary push button between **GP14**, physical pin **19**, and **GND** (ground) |
 
-External pin assignments can use **GP0–GP22** or **GP26–GP28**, excluding pins already assigned to another role. Settings use GPIO numbers, which differ from physical header pin numbers. Saved custom assignments take precedence over the defaults. The [hardware preparation guide](docs/start.md#hardware-connections) covers RF wiring, an optional external LED with its series resistor, and the external button. That button provides reset, transmission shutdown and setup Wi-Fi controls; the onboard **BOOTSEL** button is used for firmware installation.
+External GPIO assignments can use **GP0–GP22** or **GP26–GP28**. Each GPIO can serve only one role; the settings prevent overlapping assignments. Settings use GPIO numbers, which differ from physical header pin numbers. Saved custom assignments take precedence over the defaults. The [hardware preparation guide](docs/start.md#hardware-connections) covers RF wiring, an optional external LED with its series resistor, and the external button. That button provides reset, transmission shutdown and setup Wi-Fi controls; the onboard **BOOTSEL** button is used for firmware installation.
 
 ## Standalone setup
 

@@ -7,6 +7,8 @@ repository and harness cleanup requests.
 
 ## Operator validation
 
+- Run the [factory-new access checklist](factory-new-access-checklist.md) on a Pico 2 W using a Mac or Raspberry Pi. Record Wi-Fi-only browser access, separate-password persistence and connected-client setup-network retention; physical results remain unverified until the manual run completes.
+
 ### TODO: Lee to test USB browser recovery on Windows
 
 Follow [Recover browser access over USB](../../docs/usb.md) on a native Windows computer using desktop Google Chrome and an installed Pico. The browser terminal has returned INFO from a connected Pico on macOS; Windows validation remains open. This test covers the browser Console route, not Windows support for the command-line installer.

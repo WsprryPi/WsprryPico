@@ -10,6 +10,7 @@
   Do not reset, stash or remove existing work or Git metadata without authorization.
 - Fix actionable review findings and rerun affected checks before claiming completion.
 - Report what changed, checks performed, limitations and actual repository state.
+- Keep published project documentation on Read the Docs. Do not reintroduce GitHub Pages or any Pages deployment workflows, publishing branches, environments or repository settings.
 
 ## Repository and work-harness cleanup
 
