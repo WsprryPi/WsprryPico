@@ -6,7 +6,7 @@ For browser control, have the name and password of a compatible **2.4 GHz Wi-Fi 
 
 ## Hardware connections
 
-The transmit LED is built in. An external LED and control button are optional. Disconnect USB and any other power before adding or changing wiring. Confirm board orientation against the official [Pico 2 W pinout](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html#wireless-board-layout). GPIO names such as **GP14** differ from physical header pin numbers; settings use the **GPIO number**.
+The transmit LED is built in. An external LED and control button are optional. Disconnect USB and any other power before adding or changing wiring. Confirm board orientation against the official [Pico 2 W pinout](https://www.raspberrypi.com/documentation/microcontrollers/pico-series.html#wireless-board-layout). **GPIO** means general-purpose input/output. GPIO names such as **GP14** differ from physical header pin numbers; settings use the **GPIO number**.
 
 | Connection | Factory default | Available selections |
 | --- | --- | --- |
@@ -43,6 +43,6 @@ The **Switch input** setting in **Pin assignments** selects the button's GPIO. I
 ## Choose how to operate
 
 - **Standalone:** Save your station, frequency and WSPR schedule on the Pico, or send individual messages from its browser page. A network time server supplies UTC when connected.
-- **WsprryPi member:** Follow [Add a WsprryPico in the WsprryPi manual](https://wsprry-pi.readthedocs.io/en/devel/Install/pico.html) to connect, identify and schedule the device from the Pi. USB supports configuration, controller time and jobs without Wi-Fi; standalone Wi-Fi commissioning is not a prerequisite for that route.
+- **WsprryPi member:** Follow [Add a WsprryPico in the WsprryPi manual](https://wsprry-pi.readthedocs.io/en/devel/Install/pico.html) to connect, identify and schedule the device from the Pi. USB supports configuration, controller time and jobs without Wi-Fi; you do not need to set up the Pico's Wi-Fi for that route.
 
-Install the [normal firmware](install.md) next. A fresh generic image has no selected transmit frequency. A saved draft does not run; applying enabled schedules authorizes future automatic transmissions when ready.
+Install the [firmware](install.md) next. A new installation has no selected transmit frequency. Enter and apply the [station and schedule settings](configure.md) before enabling automatic transmissions.

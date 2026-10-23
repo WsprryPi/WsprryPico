@@ -2,20 +2,26 @@
 
 ## Computer requirements
 
-You need a USB **data** cable and a computer with a serial terminal. WsprryPi is not required. Choose the route for your computer:
+You need a USB **data** cable and a computer with a serial terminal: an application that sends text commands to the Pico and displays its replies. The browser route below supplies that terminal without installing a desktop terminal application. WsprryPi is not required. Choose the route for your computer:
 
 | Computer | USB Console route |
 | --- | --- |
 | Windows | Use desktop **Google Chrome** and the [browser terminal](#open-the-console-in-a-browser). This route does not use WSL or the installer script. |
 | Mac or native Linux | Use the [browser terminal](#open-the-console-in-a-browser), or [find and open the Console from a terminal](#find-and-open-the-console-on-macos-or-linux). |
 
-The browser route uses [Web Serial, which Chrome provides on Windows, macOS and Linux](https://developer.chrome.com/docs/capabilities/serial#browser_support). It has been checked with a connected Pico in Chrome on macOS; Windows port selection has not yet been checked with hardware. The command-line discovery and installer tools require **macOS or native Linux**; Windows, Git Bash and WSL are unsupported by those tools.
+The browser route uses [Web Serial, which Chrome provides on Windows, macOS and Linux](https://developer.chrome.com/docs/capabilities/serial#browser_support), to give the terminal site access to the USB port you select. The command-line discovery and installer tools require **macOS or native Linux**; Windows, Git Bash and WSL are unsupported by those tools.
 
 ## When to use USB recovery
 
 Use this procedure when a standalone Pico has joined your Wi-Fi but its browser page will not open, or when you need setup Wi-Fi and have no external button fitted. These steps read diagnostics and request temporary setup Wi-Fi; they do not reinstall firmware or erase settings.
 
-USB offers a text **Console** as well as two connections used by controller software. The Console accepts short commands such as `INFO`. The other connections, WTP and management, are for software. Identify the Console before connecting; a port's number or position in a list does not establish its role.
+One USB cable provides three separate serial ports. Identify the **Console** before connecting; a port's number or position in a list does not establish its role.
+
+| Connection | USB interface number | Purpose |
+| --- | --- | --- |
+| Console | 0 | Human-readable commands such as `INFO`, `STATUS` and `ABORT` |
+| WTP | 2 | Transmission jobs sent by controller software using the WsprryPi Transmitter Protocol |
+| Management | 4 | Saved settings and time supplied by controller software |
 
 If the Pico is already controlled by WsprryPi, use [its Fleet settings controls](connect.md#usb-access-without-wi-fi). Finish or abort any existing job through its owning controller and confirm inactive output before attempting setup. Losing the browser connection does not stop a job.
 
@@ -48,7 +54,7 @@ If the Pico is already controlled by WsprryPi, use [its Fleet settings controls]
    A connected Pico answering INFO in Chrome on macOS. Settings and firmware values will differ on your Pico.
    ```
 
-For the setup Wi-Fi request below, enter the command in the same box and click **Send**. When finished, close the terminal tab to release the port. A failed connection or no reply needs a check of the selected Console port, DTR, newline setting and whether another program has the port open.
+Enter subsequent Console commands in the same box and click **Send**. When finished, close the terminal tab to release the port. A failed connection or no reply needs a check of the selected Console port, **DTR** (the serial connection's ready signal), newline setting and whether another program has the port open.
 
 ## Find and open the Console on macOS or Linux
 
@@ -93,7 +99,15 @@ The Pico replies with a long line of diagnostic text in JSON format. You do not 
 
 The dotted field names above describe fields inside the `network` part of the reply. Web-service readiness is a firmware observation; it does not prove that your browser can reach the page. If it reports ready but the page still fails, return to the [browser checks](troubleshoot.md#pico-answers-ping-but-the-browser-cannot-open-its-page) and retain the exact browser error.
 
+## Stop output from the Console
+
+Open the identified Console as described above. Send `ABORT` with the same LF/newline ending used for `INFO`. This local USB command stops the current job even when another controller owns it, and suspends the Pico's automatic schedule for this boot. Wait for the reply, then send `STATUS` and check for `"ok":true`, `"output_active":false` and `"suspended":true`.
+
+Saved schedule enablement is retained, so an enabled schedule can run again after a restart. To keep automatic transmission disabled across restarts, disable the schedule in the browser and save and apply that change. If the stop result is missing or output remains unknown, keep the RF path connected and follow [Status, stop and connection loss](operate.md#status-stop-and-connection-loss).
+
 ## Request setup Wi-Fi from the Console
+
+`SOFTAP` means a software-created access point: the Pico's temporary setup Wi-Fi network. This command requests that network without changing the saved Wi-Fi credentials.
 
 1. Copy the full **device_id** from the `INFO` reply. Type this command, replacing `YOUR_FULL_DEVICE_ID` with that value, without quotation marks or angle brackets:
 

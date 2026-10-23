@@ -23,7 +23,7 @@ Setup Wi-Fi stays available while your phone or computer is connected to it. Aft
 
 ## Open the control page
 
-Once the Pico has joined your home network, use its **home-network IP address** or its reported **`.local` hostname**. The setup address **192.168.4.1** works only while you are connected to the Pico's own setup Wi-Fi.
+Once the Pico has joined your home network, use its **home-network IP address** or its reported **`.local` hostname**. An IP address is a numeric network address such as `192.168.1.123`; a hostname is a name such as `wsprrypico-0a60df.local`. The setup address **192.168.4.1** works only while you are connected to the Pico's own setup Wi-Fi.
 
 1. Connect your phone or computer to the same home network as the Pico. A wired computer on that network also works. Avoid a guest network that prevents devices from reaching each other.
 2. Find the Pico in your router's connected-device list, or use the hostname reported by the setup page. A default name looks like `wsprrypico-0a60df.local`; your Pico's suffix will differ.
@@ -40,12 +40,9 @@ If the Pico answers ping but the page does not open, follow [Pico answers ping b
 
 Use a current desktop or mobile browser with JavaScript enabled. The Pico serves its own page.
 
-**Station/Transmission** holds station identity, schedules, radio pins and job
-controls. **Wi-Fi/Host** holds Wi-Fi, Pico password, time server, hostname and restart controls.
-The shared status and recovery controls stay available when switching areas.
-Use the page links to retain current browser drafts.
+**Station/Transmission** holds station identity, schedules, radio pins and job controls. **Wi-Fi/Host** holds Wi-Fi, Pico password, time server, hostname and restart controls. The shared status and recovery controls stay available when switching areas. Use the page links to retain current browser drafts.
 
-The hostname identifies the running device; a saved rename takes effect only after restart. The full stable device ID distinguishes Picos sharing a name. An IP address can change after reconnecting to the network. If `.local` fails, use the current IP in your router. After signing in, check the full device ID in **About this Pico / Diagnostics** against your recorded identity.
+The hostname identifies the running device; a saved rename takes effect only after restart. The **full stable device ID** is the Pico's permanent 32-character hexadecimal identifier. It distinguishes Picos sharing a name and differs from the USB serial used by the installer. An IP address can change after reconnecting to the network. If `.local` fails, use the current IP in your router. After signing in, check the full device ID in **About this Pico / Diagnostics** and record it for later identification.
 
 ## Request setup Wi-Fi with the external button
 
