@@ -56,6 +56,14 @@ Pin or drive changes require an **explicit restart** in **Wi-Fi/Host** before
 transmitting. Saving does not program the running pad. Changing a value back
 does not clear the restart requirement. Read saved and active settings separately.
 
+### LED and button settings
+
+Open **Station/Transmission → Schedules and radio pins → Pin assignments** to inspect or change the transmit indicator and external button. The [hardware preparation guide](start.md#hardware-connections) lists the defaults, available GPIOs and example wiring. GPIO menus use **GP numbers**, not physical header pin numbers. Each GPIO can serve only one role; pins assigned to another role are unavailable.
+
+1. Under **TX indicator**, keep **Onboard LED** for the built-in indicator, choose **External GPIO** for an external LED, or choose **Disabled**. For an external LED, select its **External indicator pin** and **Indicator polarity**. Available external pins are **GP0–GP22** and **GP26–GP28**, excluding pins already in use. The default indicator is **Onboard LED**; external polarity defaults to **Active-high**.
+2. Under **Switch input**, read the saved button pin. The factory default is **GP14**, physical pin **19**. Choose an unused GPIO from the same ranges or **Disabled**. Wire a normally open push button between the selected GPIO and GND; the input uses an internal pull-up.
+3. Save with **Save valid fields** or **Save schedules and pins**, read the result, and choose **Apply saved settings** when offered. Use **Wi-Fi/Host → Restart device** to activate changed pin settings. Read the saved and active assignments again after restart and confirm that they match the wiring before transmitting.
+
 ## Understand what was saved
 
 | Observation | Meaning |
