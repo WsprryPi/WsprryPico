@@ -240,6 +240,70 @@ its last durable stage. Failed transactions also retain `failure_reason` in
 the private record. A successful tool process or USB appearance is
 insufficient for upgrade success.
 
+## wspr5a preserving-upgrade hardware observations
+
+Two physical same-image upgrades passed on 2026-10-23: one with the existing unconfigured state, and one with non-default saved settings and a disabled standalone schedule. Both used the same identified Pico and the updated standalone installer. The observations describe the recorded setup and state at completion.
+
+| Setup | Recorded identity |
+| --- | --- |
+| Host | `wspr5a`, user `pi`, Linux AArch64, kernel `6.18.50+rpt-rpi-2712`, Python 3.13.5 |
+| Board | Pico 2 W / RP2350 |
+| USB serial and physical parent | `1545B6EFBF78028C`, port `3-2` |
+| Firmware device ID | `c2a3a2a314c948b50a8562a1aeb69669` |
+| Installer | 0.2.0, commit `1b8d51b22365b6d183029862cad56918067a1590` |
+| Installer SHA-256 | `c2d609c706b71dac9d9bb79b3e77f3adcde1daa88265ef712ca212112853d2d3` |
+| Firmware before and after | `0.1.0-ci.39953536554.1`, source `3ffd65ec5c0c9856739dd5707f1df9716aace5ee` |
+| Engine and image clock | `pio-dma-gp2`; 138,000,000 Hz from the verified firmware manifest |
+| Programming tool | USB-enabled picotool 2.3.1, Linux GNU-12.2.0 Release |
+| Picotool executable SHA-256 | `9d5543b0218323751dce3946ae3390efa69ad9fd6600030e6ba265ffb2223a35` |
+| Control and terminal | USB CDC management, guarded BOOTSEL and FLASH_UPDATE verification boot; both output streams attached to a real 100-column controlling PTY |
+
+The remote checkout remained clean at the firmware source above; the bootstrap downloaded the pinned installer without updating that checkout. Both runs used this command from `/home/pi/WsprryPico`, with no download-consent or cleanup override:
+
+```sh
+WSPRRY_PICO_USB_INSTALLER_REVISION=1b8d51b22365b6d183029862cad56918067a1590 \
+bash scripts/install_usb.sh upgrade --branch devel \
+  --version 0.1.0-ci.39953536554.1 --device 1545B6EFBF78028C \
+  --board pico2_w --yes
+```
+
+Picotool was absent from `PATH`. Both runs automatically verified and reused the retained private 2.3.1 package, printed the reuse notice, asked neither a download nor a removal question, and left the entire cached tool package unchanged. Captured terminal output had blank lines before and after **Check USB programming tools**, **Check firmware**, **Upgrade firmware** and **Firmware verified**. Both installer transactions exited 0 and reached `complete` with `preserved:true` and `recovery_required:false`.
+
+Saved-state hashes below use SHA-256 over the UTF-8 JSON serialization of `saved_semantics(snapshot)`, with `sort_keys=True` and `separators=(',', ':')`.
+
+### Existing unconfigured state
+
+The first run began with no saved standalone configuration, selected frequency or saved draft fields. All 4,194,304 bytes in the before/after programming readbacks were identical. The reserved range `0x3ee000..0x400000` contained 73,728 unchanged bytes, with SHA-256 `fac1c5d8304431c9e2eb9ea63346318c1b8fbec4895af559d6fef3d4ab093990`.
+
+An independent postboot USB snapshot matched the separate baseline and the installer's held preflight snapshot for Config, saved progress fields and draft revision, hostname, frequency, calibration, watermark and suspension. The stable saved-state SHA-256 was `52250afb29235e7345bf66917de7a600013f9966aa8ec97a085034a30ce9e37f`. A new boot ID confirmed application restart; the same serial and physical port returned with maintenance idle, no owner and output inactive. This run alone did not exercise a populated configuration.
+
+### Non-default settings and disabled schedule
+
+A fresh, verified full-flash backup preceded the second test's settings changes. The following values were saved through the production USB management API and independently verified after an explicit restart before upgrading:
+
+| Saved field | Test value |
+| --- | --- |
+| Hostname | `installer-preserve-test.local` |
+| Station | Synthetic callsign `AA0NT`, locator `EM18`, WSPR message power 13 dBm |
+| Selected frequency | 14,097,100 Hz |
+| Manual correction | `1.234` ppm, manual mode |
+| Stored schedule | Period 600 seconds, phase 120 seconds, global `enabled:false` |
+| Saved station draft | Callsign, locator and power: three fields |
+
+All these values survived the upgrade unchanged, including the disabled schedule and saved draft revision. Manual correction was checked through `/api/v1/rf-calibration`; the general Config response intentionally omits that separate field. The complete stable saved-state SHA-256 before and after the upgrade was `8d9c3d652d8677e7437196173f4f4604b4359a105ac51e621c804d87345c15b4`.
+
+The installer's before/after programming readbacks matched across all 4 MiB. The reserved range was byte-for-byte identical before the verification boot, with SHA-256 `83bce4002efdc48f861204ab5dd0e9c823181176d1890fa3c7768c9fce301df4`. Fresh postboot reads matched the seeded settings and the transaction's preflight snapshot; maintenance was released after verification.
+
+The original unconfigured state was then restored on the same identified board from the fresh backup. A pre-restoration read confirmed the application region still matched the original image. Only the original reserved flash range was written, followed by independent reserved-range and full-flash readback verification. The restored 4 MiB matched the original backup before reboot, with SHA-256 `8b659e09707c57767d38994d52de34aa887a769d9322b5f695f9968e2b760b2c`; this was also the first test's common full-flash hash.
+
+After the verification boot, the original saved semantics matched again, with SHA-256 `52250afb29235e7345bf66917de7a600013f9966aa8ec97a085034a30ce9e37f`. Readback confirmed no saved configuration, no draft fields, no selected frequency, no saved calibration, the original saved/active hostname `wsprrypico-0a59dd.local`, and the original Wi-Fi state. The device finished idle and unowned, with output inactive, maintenance released and no outstanding restoration. The private test harness performed this bounded restoration after the installer's preserving upgrade had completed.
+
+### Evidence and applicability
+
+Private snapshots, terminal transcripts, tool inventories and structured verification reports are retained on `wspr5a` under `/home/pi/.local/state/wsprrypico-installer-checks/20261023T150444Z` and `/home/pi/.local/state/wsprrypico-installer-checks/20261023T171104Z-nondefault`. The corresponding installer transaction directories under `/home/pi/.local/state/wsprrypico-usb` are `1545B6EFBF78028C-w5aajp15` and `1545B6EFBF78028C-4j1fveno`. Credential-bearing flash backups remain in owner-only private state storage and are excluded from source control.
+
+No transmit job was submitted, and no enabled schedule was saved. These observations cover ordinary completion, cached-tool reuse, terminal spacing, saved-state preservation and restoration only for the recorded host, board and same firmware image. They do not establish interrupted or power-cut recovery, cross-version migration, downgrade support, other host/board combinations, the WsprryPi web update route, physical clock accuracy or RF performance.
+
 ## Explicit developer builds
 
 Existing pinned SDK 2.3.1 (`079c6f39023649b154152db30f1d781e884879bc`), submodules,
