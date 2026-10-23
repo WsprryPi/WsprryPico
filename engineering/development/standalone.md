@@ -67,7 +67,7 @@ never steals an external ownership lease, depends on a USB connection, or sends
 per-symbol requests. USB disconnect does not invalidate SNTP time. WTP/1 itself
 is unchanged. Authenticated HTTPS/browser APIs and WTP/TCP now share this service;
 see [network control](network-control.md). The
-[Field access](field-access.md) defines engineering BLE/Bluefy and SoftAP
+[Field access](field-access.md) defines engineering BLE and SoftAP
 local control through this same service. Consumer commissioning follows
 [consumer access](consumer-lan-access.md). General physical/fleet interoperability
 remains unqualified.

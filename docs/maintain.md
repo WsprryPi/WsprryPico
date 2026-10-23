@@ -58,11 +58,8 @@ The default **Pico password** is the home Wi-Fi password saved during setup. Set
 2. Enter the new password in **New Pico password** and **Confirm new Pico password**. Use 8–63 characters; accented letters and emoji are not supported.
 3. Select **Save Pico password**. Wait for confirmation, then sign in with the new password. Saving signs out all Pico browser logins; the new password survives a restart.
 
-```{figure} _static/images/pico-password.jpg
+```{image} _static/images/pico-password.jpg
 :alt: Pico password controls showing the Wi-Fi default status, New Pico password and Confirm new Pico password fields, Save Pico password, and Use Wi-Fi password as Pico password.
-:target: _static/images/pico-password.jpg
-
-The **Pico password** section under **Wi-Fi/Host**. Both new-password fields are empty. Software preview; select the image to enlarge it.
 ```
 
 To return to the default, select **Use Wi-Fi password as Pico password** in the same section. Sign in again with the Wi-Fi password currently saved on the Pico. A separate Pico password is preserved when Wi-Fi or station details change. When the Wi-Fi default is selected, the Pico password follows changes to the saved Wi-Fi password.

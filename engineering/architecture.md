@@ -57,11 +57,10 @@ drafts and require saved-state readback/review before a new save. See
 [recovery](development/session-recovery.md).
 
 BLE uses independently versioned [Field-GATT/1](protocol/Field-GATT.md), shared
-by firmware, Bluefy and the native Linux BlueZ client. ATT segmentation adds no
+by firmware and the native Linux BlueZ client. ATT segmentation adds no
 job protocol; GATT WTP enters the same service. Request-bound proofs, staged
 profile digests, bond/access epochs and USB-local confirmation protect their
-specified mutations. Bluefy offline reuse is unsupported. The device-served
-SoftAP portal is the offline consumer setup path.
+specified mutations. The device-served SoftAP portal is the offline consumer setup path.
 
 ## Setup and local access
 

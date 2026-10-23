@@ -72,8 +72,7 @@ application-password enrollment, retained bond epochs and request-bound
 step-up protect their respective operations. The public MAC-derived default
 is not a secret; ordinary flash offers no confidentiality guarantee.
 [Field access](engineering/development/field-access.md) defines trust/reset and
-controller-time boundaries. Bluefy offline reuse is unsupported; the
-device-served SoftAP portal provides offline consumer setup.
+controller-time boundaries. The device-served SoftAP portal provides offline consumer setup.
 
 ## Setup, storage and hardware
 

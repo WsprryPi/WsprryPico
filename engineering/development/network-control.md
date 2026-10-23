@@ -196,8 +196,7 @@ These commands remain developer provisioning, not a finished end-user setup
 flow. Current production firmware can boot from a committed runtime profile,
 enforces access-journal health fail closed, starts encrypted BLE provisioning
 and local control, and connects the network-only delivery-safe profile
-activator. The checked-in Bluefy page and Raspberry Pi/Linux client can write
-the complete profile transaction. Their deterministic coverage and bounded
+activator. The Raspberry Pi/Linux client can write the complete profile transaction. Its deterministic coverage and bounded
 live local-control evidence do not by themselves qualify a general end-user
 provisioning path.
 
@@ -213,8 +212,7 @@ engineering field HTTPS or the independent USB time exchange.
 BLE and SoftAP have deterministic policy, parser and client tests. Cross-builds
 and bounded peer checks do not establish general physical interoperability.
 
-Bluefy does not maintain an offline cache. Its offline reuse is unsupported and
-the device-served SoftAP portal supplies offline consumer setup.
+The device-served SoftAP portal supplies offline consumer setup.
 
 ### Renewal and compromised credentials
 

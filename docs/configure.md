@@ -18,14 +18,8 @@ Keep schedules disabled and output inactive while setting up. Sign in, choose
 4. Check the saved WSPR plan and readback. A compound call with a six-character
    locator can select two adjacent frames; see [WSPR operation](operate.md#wspr-schedules).
 
-```{figure} _static/images/station-draft.jpg
+```{image} _static/images/station-draft.jpg
 :alt: Station identity editor showing an encodable saved draft, separate Save valid station fields and Apply saved station actions, and the standalone frequency section.
-:target: _static/images/station-draft.jpg
-
-Current page with illustrative fixture data. An encodable saved draft is separate
-from applied settings and transmit readiness. This is a software preview, not a
-board acceptance result.
-Select the image to open it at full size.
 ```
 
 ## Frequency and schedules
