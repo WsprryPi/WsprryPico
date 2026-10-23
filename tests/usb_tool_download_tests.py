@@ -100,6 +100,84 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(len(self.calls), 1)
         self.assertEqual(len(list(second.root.glob('?'*64))), 1)
 
+    def test_retained_tool_never_needs_download_consent_or_offers_default_cleanup(self):
+        first = self.obtain()
+        executable, package = self.args.picotool, first.package
+        first.close()
+        self.args.download_picotool = False
+        self.args.tool_cleanup = 'ask'
+        for source in ('cache', 'explicit', 'PATH'):
+            for json_only in (False, True):
+                with self.subTest(source=source, json_only=json_only):
+                    self.args.picotool = executable if source == 'explicit' else None
+                    self.args.json_only = json_only
+                    original_which = shutil.which
+                    with contextlib.redirect_stderr(io.StringIO()) as messages, \
+                         patch.object(installer.sys.stderr, 'isatty', return_value=True), \
+                         patch.object(installer, 'terminal_confirm', side_effect=AssertionError('retained tool prompted')), \
+                         patch.object(installer.shutil, 'which', side_effect=lambda name:
+                             executable if source == 'PATH' and name == 'picotool' else original_which(name)):
+                        manager = installer.prepare_standalone_picotool(self.args)
+                        try:
+                            self.assertEqual(self.args.picotool, executable)
+                            manager.cleanup(self.args, False)
+                            self.assertNotIn('Tool cleanup', messages.getvalue())
+                            self.assertTrue(package.is_dir())
+                        finally:
+                            manager.close()
+        self.assertEqual(len(self.calls), 1)
+
+    def test_existing_compatible_tool_on_path_never_prompts_or_creates_cache(self):
+        executable = self.home/'existing-picotool'
+        with zipfile.ZipFile(io.BytesIO(self.data)) as package:
+            executable.write_bytes(package.read('picotool/picotool'))
+        executable.chmod(0o700)
+        original_which = shutil.which
+        self.args.download_picotool = self.args.json_only = False
+        self.args.tool_cleanup = 'ask'
+        with patch.object(installer.shutil, 'which', side_effect=lambda name:
+                 str(executable) if name == 'picotool' else original_which(name)), \
+             patch.object(installer, 'terminal_confirm', side_effect=AssertionError('existing tool prompted')):
+            self.assertIsNone(installer.prepare_standalone_picotool(self.args))
+        self.assertEqual(self.calls, [])
+        self.assertFalse((self.home/'.cache').exists())
+        self.assertTrue(executable.is_file())
+
+    def test_changed_cached_tool_is_refused_before_prompts_or_downloads(self):
+        first = self.obtain()
+        executable = Path(self.args.picotool)
+        first.close()
+        executable.write_bytes(b'user work')
+        self.args.picotool = None
+        self.args.download_picotool = self.args.json_only = False
+        self.args.tool_cleanup = 'ask'
+        with contextlib.redirect_stderr(io.StringIO()), \
+             patch.object(installer.sys.stderr, 'isatty', return_value=True), \
+             patch.object(installer, 'terminal_confirm', side_effect=AssertionError('changed cache prompted')), \
+             self.assertRaisesRegex(installer.Refusal, 'files changed'):
+            installer.prepare_standalone_picotool(self.args)
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(executable.read_bytes(), b'user work')
+        lease = installer.ManagedPicotool()
+        lease.close()
+
+    def test_first_download_requires_consent_and_offers_cleanup_once(self):
+        self.args.download_picotool = self.args.json_only = False
+        self.args.tool_cleanup = 'ask'
+        with contextlib.redirect_stderr(io.StringIO()) as messages, \
+             patch.object(installer.sys.stderr, 'isatty', return_value=True), \
+             patch.object(installer, 'terminal_confirm', side_effect=[True, False]) as prompt:
+            manager = installer.prepare_standalone_picotool(self.args)
+            try:
+                manager.cleanup(self.args, False)
+                self.assertTrue(manager.package.is_dir())
+            finally:
+                manager.close()
+        self.assertEqual([call.args[0] for call in prompt.call_args_list],
+                         ['Download picotool 2.3.1?', 'Remove downloaded tools?'])
+        self.assertIn('\n\nTool cleanup\n\n', messages.getvalue())
+        self.assertEqual(len(self.calls), 1)
+
     def test_existing_compatible_explicit_tool_is_untouched(self):
         executable = self.home/'existing-picotool'
         with zipfile.ZipFile(io.BytesIO(self.data)) as package:

@@ -7,11 +7,7 @@ reports missing or unsupported Python with instructions before downloading its
 code. Windows, Git Bash and WSL are unsupported. Run as your ordinary user.
 On Linux, arrange access to the USB device first.
 
-Programming also needs a USB-enabled **picotool 2.3 or newer within the 2.x
-series**. An existing compatible picotool is used without replacement. If it
-is missing or incompatible, the installer offers to download a verified
-official package for macOS, Linux ARM64 or Linux x86-64. Other architectures
-need an existing compatible picotool. No SDK or compiler is needed.
+Programming also needs a USB-enabled **picotool 2.3 or newer within the 2.x series**. The installer checks for an existing compatible executable and a previously retained private copy before offering a download. Existing tools are reused without download or cleanup questions. If neither is available, the installer offers a verified official package for macOS, Linux ARM64 or Linux x86-64. Other architectures need an existing compatible picotool. No SDK or compiler is needed.
 
 Install the **WsprryPico** firmware using the commands below.
 
@@ -73,11 +69,7 @@ checks its size and SHA-256 before execution, and keeps its support files
 alongside the executable. It does not change system tools or `PATH`.
 To use your own executable, add `--picotool /absolute/path/to/picotool`.
 
-After the operation, the installer offers to remove its downloaded picotool
-and support files. Declining keeps one reusable private package under
-`~/.cache/wsprrypico-usb/tools`. Cleanup keeps firmware backups and transaction
-records. An unfinished update or uncertain recovery record retains the tool
-even if removal was requested, so the printed recovery command can still run.
+After the operation, the installer offers cleanup only if it downloaded picotool during that run. Declining keeps one reusable private package under `~/.cache/wsprrypico-usb/tools`; later runs reuse it without download or cleanup questions. Cleanup keeps firmware backups and transaction records. An unfinished update or uncertain recovery record retains the tool even if removal was requested, so the printed recovery command can still run.
 
 For unattended use, provide `--device SERIAL` and explicitly allow downloading
 with `--download-picotool`. `--yes` confirms programming; it does not approve

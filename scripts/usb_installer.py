@@ -1125,6 +1125,7 @@ class ManagedPicotool:
         require(os.geteuid() != 0, 'Download picotool as your ordinary user, not root')
         self.root = Path.home() / '.cache/wsprrypico-usb/tools'
         self.fd, self.package = None, None
+        self.downloaded = False
         for parent in (self.root, *self.root.parents):
             require(not parent.is_symlink(), 'Symlink in managed picotool destination; use --picotool instead')
             require(not (parent / '.git').exists(), 'Managed picotool cannot be stored inside a Git checkout')
@@ -1203,12 +1204,16 @@ class ManagedPicotool:
                 save_json(staging / '.tool.json', {'schema': 'wsprrypico-managed-picotool/1',
                                                  'archive_sha256': digest, **tool_inventory(staging)})
                 staging.rename(package)
+                self.downloaded = True
         self.package = package
         self.verify(package)
         return package / 'picotool/picotool'
 
     def cleanup(self, args, recovery_required):
-        if self.package is None or args.tool_cleanup == 'keep':
+        # Default cleanup applies only to this run's download. An explicit
+        # --tool-cleanup remove may still retire a retained managed package.
+        if (self.package is None or args.tool_cleanup == 'keep' or
+                args.tool_cleanup == 'ask' and not self.downloaded):
             return
         state_index = self.root / '.states.json'
         owned_tool_path(state_index)
@@ -1241,7 +1246,7 @@ class ManagedPicotool:
             return
         remove = args.tool_cleanup == 'remove'
         if args.tool_cleanup == 'ask' and not args.json_only and sys.stderr.isatty():
-            terminal_message('\nTool cleanup')
+            terminal_section('Tool cleanup')
             terminal_paragraph('Remove picotool and its support files when finished. Private firmware backups and recovery records will be kept.')
             remove = terminal_confirm('Remove downloaded tools?')
         if remove:
@@ -1281,7 +1286,14 @@ def prepare_standalone_picotool(args):
             if explicit or manager is not None:
                 raise
             key = tool_platform()
-            if not args.download_picotool:
+            # Check retained packages under the same lock used for programming
+            # before asking for download consent. A declined first download
+            # must not create a cache or a private state directory.
+            if root.exists() or root.is_symlink():
+                manager = ManagedPicotool()
+            package = root / TOOL_DOWNLOADS[key][2]
+            cached = manager is not None and (package.exists() or package.is_symlink())
+            if not cached and not args.download_picotool:
                 terminal_paragraph(str(error))
                 require(not args.json_only and sys.stderr.isatty(),
                         str(error) + '; install it from https://github.com/raspberrypi/pico-sdk-tools/releases '
@@ -1289,11 +1301,13 @@ def prepare_standalone_picotool(args):
                 terminal_paragraph('The official picotool 2.3.1 download will be checked with SHA-256 and kept in a private cache.')
                 require(terminal_confirm('Download picotool 2.3.1?'),
                         'Picotool download declined; install a compatible picotool or pass --picotool /absolute/path')
-            manager = ManagedPicotool()
+            if manager is None:
+                manager = ManagedPicotool()
             manager.register_state(args.state_dir)
             args.picotool = str(manager.obtain(key))
             Picotool(args.picotool)
-            terminal_message('Verified official picotool 2.3.1; using the private managed copy.')
+            terminal_paragraph('Verified official picotool 2.3.1; using the private managed copy.' if manager.downloaded else
+                               'Verified retained picotool 2.3.1; reusing the private managed copy.')
             return manager
     except BaseException:
         if manager is not None:
@@ -1928,6 +1942,10 @@ def terminal_message(message):
         pass
 
 
+def terminal_section(title):
+    terminal_message('\n' + title + '\n')
+
+
 def terminal_paragraph(message):
     width = max(32, min(76, shutil.get_terminal_size().columns - 2))
     for index, paragraph in enumerate(str(message).split('\n\n')):
@@ -1949,25 +1967,25 @@ def emit_result(args, result):
         print(json.dumps(result, sort_keys=True))
         return
     if not result['ok']:
-        terminal_message('\nUnable to continue')
+        terminal_section('Unable to continue')
         terminal_paragraph(result['error'])
     elif result.get('recovery_required'):
-        terminal_message('\nAction required')
+        terminal_section('Action required')
     elif result.get('stage') == 'complete':
-        terminal_message('\nErase verified' if result.get('operation') == 'erase' else '\nFirmware verified')
+        terminal_section('Erase verified' if result.get('operation') == 'erase' else 'Firmware verified')
         if result.get('version'):
             terminal_paragraph('Version ' + result['version'])
         if result.get('preserved'):
             terminal_paragraph('Saved flash preserved; firmware startup verified.')
     elif 'devices' in result:
-        terminal_message('\nConnected Picos')
+        terminal_section('Connected Picos')
         if not result['devices']:
             terminal_paragraph('No supported Pico found. Check the USB data cable and device permissions.')
         for device in result['devices']:
             mode = 'Running firmware' if device['mode'] == 'application' else 'BOOTSEL'
             terminal_paragraph(device['serial'] + ' / ' + mode + ' / USB port ' + device['parent'])
     elif result.get('stage') == 'planned':
-        terminal_message('\nFirmware checked')
+        terminal_section('Firmware checked')
         terminal_paragraph('Version ' + result['version'] + ' / source ' + result['source'][:12])
         terminal_paragraph('No Pico was programmed.')
         if result.get('bundle'):
@@ -1975,7 +1993,7 @@ def emit_result(args, result):
         if result.get('recent_ci', {}).get('reason'):
             terminal_paragraph(result['recent_ci']['reason'])
     elif result.get('snapshot'):
-        terminal_message('\nSnapshot saved')
+        terminal_section('Snapshot saved')
         terminal_paragraph(result['snapshot'])
     if result.get('serial') and result.get('error_code') != 'device_mode_mismatch':
         terminal_paragraph('Pico ' + result['serial'])
@@ -2101,7 +2119,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     managed_tool, recovery_pending = None, False
     try:
         if args.terminal_ui:
-            terminal_message('\nWsprryPico USB installer\n')
+            terminal_section('WsprryPico USB installer')
             terminal_paragraph({'install': 'Install firmware', 'upgrade': 'Upgrade firmware',
                                 'recover': 'Recover a saved transaction', 'erase': 'Erase firmware and all saved data',
                                 'discover': 'Find connected Picos', 'plan': 'Check firmware',
@@ -2131,7 +2149,8 @@ def main(argv=None, schema_bytes=None, *, human=False):
             args.device, args.selected_parent, args.selected_mode = device['serial'], device['parent'], device['mode']
             terminal_progress(args, f"Pico {args.device} / USB port {device['parent']}")
             if human:
-                terminal_progress(args, 'Check USB programming tools...')
+                if args.terminal_ui:
+                    terminal_section('Check USB programming tools')
                 managed_tool = prepare_standalone_picotool(args)
         if args.operation == 'discover':
             result = {'devices': discover()}
@@ -2168,7 +2187,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
                       'next': 'Diagnostic snapshot only. An upgrade takes a fresh snapshot and guarded maintenance itself.'}
         else:
             if args.terminal_ui:
-                terminal_message('\nCheck firmware')
+                terminal_section('Check firmware')
                 terminal_paragraph('Verify the selected image, checksums and source. This may take a moment...')
             client = Https()
             if args.local_build:
@@ -2205,11 +2224,12 @@ def main(argv=None, schema_bytes=None, *, human=False):
                                   ' / source ' + manifest['source']['revision'][:12])
                 require(args.device and args.yes, 'Programming requires explicit --device, operation and --yes')
                 if human and not args.json_only and args.operation == 'install':
-                    terminal_message('\nInstall firmware')
-                    terminal_paragraph('The selected Pico is in BOOTSEL. Keep USB connected until programming and verification finish.')
-                    terminal_paragraph('Check existing flash before installing. Existing saved data will stop this installation.')
+                    terminal_section('Install firmware')
+                    terminal_paragraph('The selected Pico is in BOOTSEL. Keep USB connected until programming and verification finish.\n\n'
+                                       'Check existing flash before installing. Existing saved data will stop this installation.')
+                    terminal_message('')
                 elif args.terminal_ui:
-                    terminal_message('\nUpgrade firmware')
+                    terminal_section('Upgrade firmware')
                 args.picotool = args.picotool or 'picotool'
                 recovery_pending = True
                 result = transaction(args, files, manifest, image, client)

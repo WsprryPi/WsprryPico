@@ -1244,6 +1244,17 @@ class StandaloneGuidanceTests(unittest.TestCase):
                 if failure:
                     self.assertNotIn('no firmware has been written', messages)
 
+    def test_terminal_sections_have_blank_lines_before_and_after_headings(self):
+        record = dict(stage='complete', serial=SERIAL, version='1.0.0-beta.1',
+                      preserved=True, recovery_required=False)
+        messages = self.invoke(record, operation='install', terminal_output=True,
+                               messages=InteractiveSelectionTests.Terminal())
+        self.assertTrue(messages.startswith('\nWsprryPico USB installer\n\n'))
+        for heading in ('Check USB programming tools', 'Check firmware',
+                        'Install firmware', 'Firmware verified'):
+            with self.subTest(heading=heading):
+                self.assertIn('\n\n' + heading + '\n\n', messages)
+
     def test_json_only_and_imported_results_stay_json_even_when_stdout_is_a_terminal(self):
         for kwargs in (dict(extra=['--json-only']), dict(human=False)):
             with self.subTest(kwargs=kwargs):
