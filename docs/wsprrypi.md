@@ -45,6 +45,8 @@ Only one controller can hold the Pico's transmitter at a time. A job's **owner**
 
 Before switching to a Pi-run schedule, disable the Pico's **Enable standalone schedules**, save and apply the change, then confirm it is disabled. Finish or abort any existing job and release control before starting the Pi schedule. The Pi's schedule and the Pico's saved schedule are separate; stopping one does not disable the other.
 
+The Pico standalone **WSPR dial frequency (Hz)** sets a center 1,500 Hz higher. Pi Fleet WSPR **RF center** entries are already absolute RF centers. For example, standalone dial `3568600` and Fleet RF center `3570100` describe the same nominal four-tone placement. A standalone dial save does not change Pi-submitted absolute job frequencies. WsprryPi displays the member’s saved WSPR dial in its recurrence summary; **not configured** means no dial is selected.
+
 When returning to standalone use, pause and stop the Pi's output schedule, confirm inactive output and released control, then review and enable the Pico's schedule deliberately. See [standalone schedule settings](configure.md#frequency-and-schedules) and [stop controls](operate.md#status-stop-and-connection-loss).
 
 Experimental-frequency permissions are also separate on the Pi and Pico; both must permit the requested frequency. See [Output and band limits](reference/output.md) before enabling an experimental range.

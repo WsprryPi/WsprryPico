@@ -31,6 +31,8 @@ A **compound callsign** has a prefix or suffix separated from the base call by `
 
 Type 2 contains no locator. A Type 3 hash does not contain the full callsign, so a receiver may need the preceding Type 2 or another message to resolve it. A receiver without that context can show `<...>` with grid and power. Different callsigns can share a hash. Two-digit suffixes `/00`–`/09` share Type 2 encodings with `/Q`–`/Z`; a paired Type 3 uses the requested full callsign when calculating its hash.
 
+Standalone WSPR uses the saved whole-Hz USB dial frequency. Its four tones lie at center −2.197265625, −0.732421875, +0.732421875 and +2.197265625 Hz, where center is dial +1500 Hz. For dial `14095600`, the tones are `14097097.802734375`, `14097099.267578125`, `14097100.732421875` and `14097102.197265625 Hz`. There is no random placement. Individual jobs and Pi Fleet WSPR RF-center entries retain their own frequency references.
+
 A pair starts its second frame 120 seconds after the first. The Pico reserves both windows and keeps control between frames. Other scheduled occurrences that would overlap the pair are skipped. STOP, restart, changed settings, lost clock or control, or a failure can prevent the second frame; the Pico does not later resume the pair or automatically retry it. If output cannot be confirmed inactive, resolve that condition before another transmission.
 
 ## Send QRSS, FSKCW or DFCW

@@ -60,12 +60,24 @@ class DecodeTests(unittest.TestCase):
                                                         fault_stage=0, engine_diagnostic=''), ids[1]))
 
     def test_frequency_mapping(self):
-        pair.frequency_mapping(3570100, 3.568600)
-        pair.frequency_mapping(14097100, 14.095600)
+        self.assertEqual(pair.frequency_mapping(3568600), 3570100)
+        self.assertEqual(pair.frequency_mapping(14095600), 14097100)
+        for bad in (0, True, '14095600', 14095600.0, float('nan'), 2**64):
+            with self.assertRaises(ValueError):
+                pair.frequency_mapping(bad)
+        physical = {'ready': {'status': {'schedule_dial_frequency_nhz': '14095600000000000'}}}
+        self.assertEqual(pair.validate_dial(physical, 14095600), 14097100)
+        for bad in ('14097100000000000', '14097097802734375', '0'):
+            physical['ready']['status']['schedule_dial_frequency_nhz'] = bad
+            with self.assertRaises(ValueError):
+                pair.validate_dial(physical, 14095600)
         with self.assertRaises(ValueError):
-            pair.frequency_mapping(14097100, 3.568600)
-        with self.assertRaises(ValueError):
-            pair.frequency_mapping(3570100, float('nan'))
+            pair.validate_dial({'ready': {'status': {'schedule_base_frequency_nhz':'14095600000000000'}}}, 14095600)
+
+    def test_decoder_rejects_nonfinite_dial_before_execution(self):
+        for dial in (float('nan'), float('inf'), 0, -1):
+            with self.assertRaises(ValueError):
+                pair.run_decoder(Path('/missing'), Path('/missing.wav'), Path('/missing'), dial)
 
     def test_sample_job_time_association(self):
         origin = 1792266800

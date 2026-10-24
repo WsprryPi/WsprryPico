@@ -254,7 +254,7 @@ HttpResponse BrowserApi::config(bool drive, bool amplifier) const {
         redacted.password.clear();
         redacted.manual_correction_ppb = 0;
         redacted.ntp_rf_calibration = false;
-        redacted.wspr_base_frequency_hz.reset();
+        redacted.wspr_dial_frequency_hz.reset();
         if (!drive)
             redacted.gpio_drive_ma = 4;
         body = standalone::serialize_config(redacted, amplifier);
@@ -293,9 +293,9 @@ HttpResponse BrowserApi::standalone_frequency() const {
     auto result = ok(
         "{\"schema\":\"transmitter-standalone-frequency/1\",\"target\":" +
         application::target(device_, service_.status().boot_id) + ",\"frequency_hz\":" +
-        (config && config->wspr_base_frequency_hz ? std::to_string(*config->wspr_base_frequency_hz)
+        (config && config->wspr_dial_frequency_hz ? std::to_string(*config->wspr_dial_frequency_hz)
                                                   : "null") +
-        ",\"configured\":" + (config && config->wspr_base_frequency_hz ? "true" : "false") +
+        ",\"configured\":" + (config && config->wspr_dial_frequency_hz ? "true" : "false") +
         ",\"allowed\":" +
         (config && standalone::wspr_frequency_allowed(*config,
                                                       service_.config().minimum_frequency_nhz,
@@ -400,10 +400,10 @@ HttpResponse BrowserApi::application_config(bool extended, bool usb_management, 
         recurrence += ',' + json::quote(field) + ':' + std::string(value->get(field)->raw);
     // Legacy application resources require a decimal string. Zero means
     // unconfigured; the independent frequency resource reports explicit null.
-    recurrence += ",\"schedule_base_frequency_nhz\":" +
-                  (value->get("schedule_base_frequency_nhz")->raw == "null"
+    recurrence += ",\"schedule_dial_frequency_nhz\":" +
+                  (value->get("schedule_dial_frequency_nhz")->raw == "null"
                        ? std::string("\"0\"")
-                       : std::string(value->get("schedule_base_frequency_nhz")->raw));
+                       : std::string(value->get("schedule_dial_frequency_nhz")->raw));
     recurrence +=
         ",\"expires_utc_s\":" + json::quote(std::string(value->get("expires_utc_s")->raw));
     recurrence += '}';
@@ -682,7 +682,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "\"path\":\"/api/v1/ntp-observations\"},"
                 "\"standalone_frequency\":{\"schema\":\"transmitter-standalone-frequency/1\","
                 "\"path\":\"/api/v1/standalone-frequency\",\"method\":\"PUT\",\"units\":\"Hz\","
-                "\"activation\":\"next_job\",\"default\":null},"
+                "\"reference\":\"wspr_usb_dial\",\"activation\":\"next_job\",\"default\":null},"
                 "\"rf_calibration\":{\"schema\":\"transmitter-rf-calibration/1\","
                 "\"path\":\"/api/v1/rf-calibration\",\"method\":\"PUT\","
                 "\"units\":\"ppm\",\"precision\":3,\"minimum\":\"-100.000\","
@@ -874,7 +874,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         // preserves these omitted settings through the central config merger.
         compatible.manual_correction_ppb = 0;
         compatible.ntp_rf_calibration = false;
-        compatible.wspr_base_frequency_hz.reset();
+        compatible.wspr_dial_frequency_hz.reset();
         // Legacy apply has no drive authority. Omit the extension on its old
         // config route; ordinary candidate merge preserves the saved value and
         // the response retains its original closed configuration shape.
@@ -1057,9 +1057,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         if (!effective_config())
             return http_error(409, "not_configured");
         auto updated = *effective_config();
-        if (!updated.wspr_base_frequency_hz)
+        if (!updated.wspr_dial_frequency_hz)
             updated.enabled = false; // A first selection cannot resume an inherited schedule.
-        updated.wspr_base_frequency_hz = std::uint32_t(root->get("frequency_hz")->integer());
+        updated.wspr_dial_frequency_hz = std::uint32_t(root->get("frequency_hz")->integer());
         if (!standalone::wspr_frequency_allowed(updated, service_.config().minimum_frequency_nhz,
                                                 service_.config().maximum_frequency_nhz))
             return http_error(400, "frequency_not_allowed");
@@ -1208,7 +1208,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const auto validated = standalone::parse_config(candidate);
     if (!validated)
         return http_error(400, "invalid_config");
-    if (validated->enabled && !validated->wspr_base_frequency_hz)
+    if (validated->enabled && !validated->wspr_dial_frequency_hz)
         return http_error(400, "standalone_frequency_required");
     const auto existing = effective_config();
     const bool station_changed = !existing || existing->callsign != validated->callsign ||

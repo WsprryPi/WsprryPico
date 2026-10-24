@@ -40,7 +40,7 @@ class Scheduler {
 
   private:
     bool prepare_frame(const encoding::WsprFrame& frame, std::uint64_t slot,
-                       std::uint32_t base_frequency_hz);
+                       const std::array<std::uint64_t, 4>& tones);
     void cancel_pair(wtp::ErrorCode reason);
     void poll_pair();
     struct Pair {
@@ -48,7 +48,7 @@ class Scheduler {
         std::uint64_t second_slot, config_sequence, renew_at, anchor_utc, anchor_monotonic,
             anchor_uncertainty;
         wtp::ClockSnapshot mapping;
-        std::uint32_t base_frequency_hz;
+        std::array<std::uint64_t, 4> tones;
         unsigned frame = 0;
     };
     std::optional<Pair> pair_;

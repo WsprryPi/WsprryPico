@@ -35,9 +35,18 @@ def matches(output, frame_type, call, grid, power):
     return result
 
 
-def frequency_mapping(base_hz, dial_mhz):
-    if not all(math.isfinite(v) for v in (base_hz, dial_mhz)) or abs(dial_mhz * 1e6 + 1500 - base_hz) > .001:
-        raise ValueError('RF base and 1500 Hz audio/dial mapping disagree')
+def frequency_mapping(dial_hz):
+    """Whole-Hz standalone WSPR USB dial to nominal RF center, without a fit."""
+    if type(dial_hz) is not int or not 98503 <= dial_hz <= 74998496:
+        raise ValueError('Expected a whole-Hz WSPR dial frequency')
+    return dial_hz + 1500
+
+
+def validate_dial(physical, dial_hz):
+    center_hz = frequency_mapping(dial_hz)
+    if physical['ready']['status'].get('schedule_dial_frequency_nhz') != str(dial_hz * 10**9):
+        raise ValueError('Capture/standalone dial identity mismatch')
+    return center_hz
 
 
 def validate_windows(intervals, rate, sample_count):
@@ -129,7 +138,8 @@ def associate(intervals, rate, metadata, physical):
 
 
 def run_decoder(executable, wav, directory, dial_mhz, timeout=90):
-    frequency_mapping(float(dial_mhz) * 1e6 + 1500, float(dial_mhz))
+    if not math.isfinite(dial_mhz) or dial_mhz <= 0:
+        raise ValueError('Expected a finite positive WSPR dial in MHz')
     before = table_state(directory)
     command = [str(executable.resolve()), '-d', '-a', str(directory.resolve()),
                '-f', f'{dial_mhz:.6f}', str(wav.resolve())]
@@ -153,13 +163,13 @@ def fresh_directory(path):
         raise ValueError('Preexisting decoder hash state')
 
 
-def convert_audio(iq, rate, center, base):
+def convert_audio(iq, rate, capture_center_hz, wspr_center_hz):
     """Deterministic IQ conversion; preserve received frequency, drift and time."""
     import numpy as np
     from measure_rf_bench import baseband
-    if rate < 10000 or abs(base - center) > rate / 2 - 2000:
-        raise ValueError('RF base is outside usable capture span')
-    bb, brate = baseband(iq, rate, center, base)
+    if rate < 10000 or abs(wspr_center_hz - capture_center_hz) > rate / 2 - 2000:
+        raise ValueError('WSPR RF center is outside usable capture span')
+    bb, brate = baseband(iq, rate, capture_center_hz, wspr_center_hz)
     if brate != 1000:
         raise ValueError('Expected exactly 1000 Hz intermediate rate')
     taps = np.sinc(np.arange(-120, 121) / 12) * np.hanning(241)
@@ -174,7 +184,7 @@ def convert_audio(iq, rate, center, base):
     padding = 120 * 12000 - len(audio)
     audio = np.pad(audio, (0, padding))
     parameters = dict(input_samples=len(iq), intermediate_rate_hz=brate, output_rate_hz=12000,
-                      frequency_translation_hz=base - center, audio_mapping_hz=1500,
+                      frequency_translation_hz=wspr_center_hz - capture_center_hz, audio_mapping_hz=1500,
                       decimator_hann_samples=int(rate / 1000), interpolation_taps=241,
                       interpolation_taps_float64_le_sha256=hashlib.sha256(taps.astype('<f8').tobytes()).hexdigest(),
                       audio_peak_before_normalization=peak, normalization_multiplier=28000 / peak,
@@ -186,7 +196,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ('iq', 'metadata', 'physical', 'output', 'wsprd'):
         parser.add_argument('--' + name, type=Path, required=True)
-    parser.add_argument('--base-hz', type=int, required=True)
+    parser.add_argument('--dial-hz', type=int, required=True, help='Whole-Hz standalone WSPR USB dial; center is dial + 1500 Hz')
     parser.add_argument('--expect', nargs=3, required=True, metavar=('CALL', 'GRID', 'POWER'))
     args = parser.parse_args()
     import numpy as np
@@ -202,13 +212,12 @@ def main():
             or metadata.get('resolved_device') != {'driver': 'sdrplay', 'serial': '2404058C60'}
             or metadata.get('requested_sample_count') != metadata['retained_sample_count']
             or metadata['retained_sample_count'] != int(physical['capture_argv'][5])
-            or physical.get('capture_sha256', capture_hash) != capture_hash
-            or str(args.base_hz * 10**9) != physical['ready']['status']['schedule_base_frequency_nhz']):
-        raise ValueError('Capture/physical/base identity mismatch')
-    rate, center = settings['sample_rate_hz'], settings['center_frequency_hz']
-    dial = (args.base_hz - 1500) / 1e6
-    frequency_mapping(args.base_hz, dial)
-    bb, brate = baseband(iq, rate, center, args.base_hz)
+            or physical.get('capture_sha256', capture_hash) != capture_hash):
+        raise ValueError('Capture/physical identity mismatch')
+    rate, capture_center_hz = settings['sample_rate_hz'], settings['center_frequency_hz']
+    wspr_center_hz = validate_dial(physical, args.dial_hz)
+    dial_mhz = args.dial_hz / 1e6
+    bb, brate = baseband(iq, rate, capture_center_hz, wspr_center_hz)
     power = np.abs(bb)**2
     threshold = max(float(np.median(power[:1000])) * 100, float(np.quantile(power, .95)) * .05)
     active = np.flatnonzero(power > threshold)
@@ -222,18 +231,18 @@ def main():
                       rf_intervals_samples=intervals, job_associations=associations)
     (args.output / 'completion-assessment.json').write_text(json.dumps(completion, indent=2) + '\n')
     result = dict(schema='short-wspr-type23-decode/1', capture_sha256=capture_hash,
-                  decoder_sha256=digest(args.wsprd), base_hz=args.base_hz, dial_mhz=dial,
+                  decoder_sha256=digest(args.wsprd), dial_hz=args.dial_hz, wspr_center_hz=wspr_center_hz, capture_center_hz=capture_center_hz, dial_mhz=dial_mhz,
                   job_associations=associations,
                   completion_assessment=completion,
                   detector=dict(threshold=threshold, intervals_samples=intervals,
                                 method='1 kHz Hann baseband power; merge gaps up to 20 ms; retain intervals over 30 s'),
-                  conversion='120 s real IQ windows starting 1 s before detected RF onset; fixed RF-base translation, Hann integrate/decimate to 1 kHz, 241-tap Hann-sinc interpolation to 12 kHz, real 1500 Hz mapping, peak normalization to 28000 and trailing silence only. No frequency/drift fit, time stretch, expected symbols, or offset search.',
+                  conversion='120 s real IQ windows starting 1 s before detected RF onset; fixed WSPR-center translation, Hann integrate/decimate to 1 kHz, 241-tap Hann-sinc interpolation to 12 kHz, real 1500 Hz mapping, peak normalization to 28000 and trailing silence only. No frequency/drift fit, time stretch, expected symbols, or offset search.',
                   windows=[], decodes=[], controls={}, passed=False)
     wavs = []
     for index, (first, last) in enumerate(intervals):
         start = first - rate
         stop = start + 120 * rate
-        audio, parameters = convert_audio(iq[start:stop], rate, center, args.base_hz)
+        audio, parameters = convert_audio(iq[start:stop], rate, capture_center_hz, wspr_center_hz)
         # A filename labels the observed slot; UTC evidence is in the retained physical log.
         label = time.strftime('%y%m%d_%H%M', time.gmtime(physical['slots_utc_s'][index] - 1))
         wav = args.output / (label + '.wav')
@@ -249,12 +258,12 @@ def main():
     fresh_directory(primary); fresh_directory(cold)
     call, grid, dbm = args.expect
     for frame_type, wav in zip((2, 3), wavs):
-        decoded = run_decoder(args.wsprd, wav, primary, dial)
+        decoded = run_decoder(args.wsprd, wav, primary, dial_mhz)
         decoded['frame_type'] = frame_type
         decoded['matches'] = matches(decoded['stdout'], frame_type, call, grid, dbm)
         result['decodes'].append(decoded)
         (args.output / f'decode-type{frame_type}.json').write_text(json.dumps(decoded, indent=2) + '\n')
-    control = run_decoder(args.wsprd, wavs[1], cold, dial)
+    control = run_decoder(args.wsprd, wavs[1], cold, dial_mhz)
     control['resolved_matches'] = matches(control['stdout'], 3, call, grid, dbm)
     control['unresolved_matches'] = matches(control['stdout'], 3, '...', grid, dbm)
     control['behavior'] = ('decoder_failure' if control['returncode'] != 0 else

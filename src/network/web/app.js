@@ -60,6 +60,7 @@ let writeState = 'readback', savedReadback = null, saveAttempt = null, retiremen
 
 if ($('standalone-frequency-form')) $('standalone-frequency-form').onsubmit = event => event.preventDefault();
 const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-frequency') ? WsprryStandaloneFrequency.create({
+  ranges:()=>capabilities?.wtp?.frequency_ranges,
   input:$('standalone-frequency'),read:$('standalone-frequency-read'),save:$('standalone-frequency-save'),discard:$('standalone-frequency-discard'),adopt:$('standalone-frequency-adopt'),status:$('standalone-frequency-status'),
   exchange:async (method,body,match)=>{if (!WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency)) throw new Error('Standalone frequency configuration is unsupported.'); return api('standalone-frequency',method,body,match);},
   afterSave:()=>requireReadback()
@@ -451,7 +452,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
       storage_fault:'Settings storage could not be verified. Resolve storage health before another save',
       invalid_gpio_drive:'Choose 2, 4, 8 or 12 mA for GPIO drive strength',
       standalone_frequency_required:'Choose and save a standalone WSPR frequency before enabling schedules',
-      invalid_wspr_frequency:'Enter a whole transmit frequency in Hz, without commas or decimals',
+      invalid_wspr_frequency:'Enter a whole WSPR dial frequency in Hz, without commas or decimals',
       frequency_not_allowed:'The WSPR tones fall outside the engine limits or saved frequency permissions. Choose an allowed frequency',
       revision_conflict:'Saved settings changed. Your edits are preserved. Read current saved settings and review them before a new save',
       precondition_failed:'Saved revision changed. Your edits are preserved. Read and review current saved settings',

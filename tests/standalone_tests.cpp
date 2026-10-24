@@ -331,10 +331,10 @@ struct Engine : wtp::RfEngine {
         return active;
     }
 };
-constexpr std::uint32_t selected_test_frequency_hz = 3'570'100;
+constexpr std::uint32_t selected_test_frequency_hz = 3'568'600;
 standalone::Config scheduled_config() {
     auto config = *standalone::parse_config(example);
-    config.wspr_base_frequency_hz = selected_test_frequency_hz;
+    config.wspr_dial_frequency_hz = selected_test_frequency_hz;
     return config;
 }
 void live_config_tests() {
@@ -451,9 +451,9 @@ void scheduler_tests() {
     CHECK(engine.prepared == 1 && engine.job.events.size() == 162);
     CHECK(engine.job.total_duration_ns == 110'592'000'000ULL);
     CHECK(engine.job.events[0].frequency_nhz ==
-          std::uint64_t{selected_test_frequency_hz} * ns + 1'464'843'750ULL);
+          3'570'099'267'578'125ULL);
     CHECK(scheduler.status().find(
-              "\"schedule_base_frequency_nhz\":\"" +
+              "\"schedule_dial_frequency_nhz\":\"" +
               std::to_string(std::uint64_t{selected_test_frequency_hz} * ns) +
               "\"") != std::string::npos);
     CHECK(scheduler.command("CONFIG " + example).find("busy") != std::string::npos);
@@ -820,7 +820,7 @@ void paired_scheduler_tests() {
         const auto plan = encoding::wspr_plan(config.callsign, config.locator, config.power_dbm);
         for (unsigned i = 0; i < 162; ++i)
             CHECK(engine.job.events[i].frequency_nhz ==
-                  std::uint64_t{selected_test_frequency_hz} * ns +
+                  3'570'097'802'734'375ULL +
                       plan->frames[0].symbols[i] * 1'464'843'750ULL);
         clock.advance(5 * ns);
         scheduler.poll();
@@ -864,7 +864,7 @@ void paired_scheduler_tests() {
                 const auto& event = engine.job.events[i];
                 CHECK(event.offset_ns == (std::uint64_t{i} * 2'048'000'000ULL + 1) / 3);
                 CHECK(event.frequency_nhz ==
-                      std::uint64_t{selected_test_frequency_hz} * ns +
+                      3'570'097'802'734'375ULL +
                           plan->frames[1].symbols[i] * 1'464'843'750ULL);
             }
             clock.advance(9'408'000'000ULL);

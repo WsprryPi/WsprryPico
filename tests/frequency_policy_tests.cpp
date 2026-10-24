@@ -365,13 +365,15 @@ void autonomous_admission() {
     const auto next = (f.clock.snapshot().utc_now_ns / period + 1) * period + hz;
     f.clock.utc = next - 5 * hz - f.clock.now;
     auto config = *f.store.config();
-    config.wspr_base_frequency_hz = 3'570'100;
+    config.wspr_dial_frequency_hz = 3'568'600;
     config.enabled = true;
     REQUIRE(
         f.scheduler.command("CONFIG " + standalone::serialize_config(config)).find("\"ok\":true") !=
         std::string::npos);
+    REQUIRE(!f.store.config()->enabled); // First dial selection cannot enable recurrence.
+    REQUIRE(f.scheduler.command("CONFIG " + standalone::serialize_config(config)).find("\"ok\":true") != std::string::npos);
     f.scheduler.poll();
-    const auto base = std::uint64_t{*config.wspr_base_frequency_hz} * hz;
+    const auto base = 3'570'097'802'734'375ULL;
     if (application::frequency_allowed(base, false, false)) {
         REQUIRE(f.service.status().state == wtp::State::Armed && f.raw.schedules == 1);
     } else {

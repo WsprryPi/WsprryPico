@@ -11,7 +11,15 @@ Draft202012Validator.check_schema(schema)
 validator = Draft202012Validator({'$ref': '#/$defs/read', '$defs': schema['$defs']})
 samples = json.loads(subprocess.check_output([sys.argv[1], '--samples'], text=True))
 assert samples[0]['frequency_hz'] is None and samples[0]['configured'] is False
-assert samples[1]['frequency_hz'] == 14097100 and samples[1]['configured'] is True
+assert samples[1]['frequency_hz'] == 14095600 and samples[1]['configured'] is True
 for sample in samples:
     validator.validate(sample)
 print('Unset and saved frequency responses conform to resource version 1')
+
+write = Draft202012Validator({'$ref':'#/$defs/write','$defs':schema['$defs']})
+base = {k:samples[1][k] for k in ('schema','target','frequency_hz')}
+for value in (98503, 74998496, 14095600.0):
+    write.validate(dict(base,frequency_hz=value))
+for value in (0,98502,74998497,14095600.5,'14095600','14.0956MHz',True):
+    assert not write.is_valid(dict(base,frequency_hz=value)), value
+print('Schema integer-domain bounds checked independently of strict lexical parsing')

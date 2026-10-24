@@ -1758,7 +1758,7 @@ def saved_semantics(snapshot):
             'progress_fields': snapshot['progress']['fields'],
             'draft_revision': snapshot['progress']['draft_revision'],
             'hostname': snapshot['hostname'].get('saved'),
-            'frequency': snapshot['frequency']['frequency_hz'],
+            'frequency': snapshot['frequency']['frequency_hz'],  # Whole-Hz standalone WSPR dial, unchanged.
             'calibration': snapshot['calibration']['saved'],
             'watermark_utc_ns': snapshot['status']['standalone']['watermark_utc_ns'],
             'suspended': snapshot['status']['standalone']['suspended']}

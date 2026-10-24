@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/WsprryPi/WsprryPico/transmitter-standalone-frequency/1",
-  "title": "Standalone WSPR frequency resource version 1",
+  "title": "Standalone WSPR USB dial frequency resource version 1",
   "$defs": {
     "target": {
       "type": "object",
@@ -42,8 +42,9 @@
         },
         "frequency_hz": {
           "type": "integer",
-          "minimum": 100000,
-          "maximum": 74999994
+          "minimum": 98503,
+          "maximum": 74998496,
+          "description": "Whole-Hz WSPR USB dial. Nominal RF center is dial + 1500 Hz; all four RF tones must satisfy the selected engine and frequency permissions. Bounds cover supported 132/138/150 MHz engines; the server applies the selected engine limits."
         }
       }
     },
@@ -69,8 +70,9 @@
           "anyOf": [
             {
               "type": "integer",
-              "minimum": 100000,
-              "maximum": 74999994
+              "minimum": 98503,
+              "maximum": 74998496,
+              "description": "Whole-Hz WSPR USB dial. Nominal RF center is dial + 1500 Hz; all four RF tones must satisfy the selected engine and frequency permissions. Bounds cover supported 132/138/150 MHz engines; the server applies the selected engine limits."
             },
             {
               "type": "null"

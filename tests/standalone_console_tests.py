@@ -45,9 +45,10 @@ class ConsoleTests(unittest.TestCase):
     def test_private_configuration_gate_and_redaction(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'private.json'
-            value = dict(enabled=True, expires_utc_s=1200, wifi=dict(password='PRIVATE-SENTINEL'))
+            value = dict(enabled=True, expires_utc_s=1200, wspr_dial_frequency_hz=3568737, wifi=dict(password='PRIVATE-SENTINEL'))
             path.write_text(json.dumps(value))
-            self.assertTrue(standalone_console.configuration(path, True, 1000).startswith('CONFIG '))
+            command = standalone_console.configuration(path, True, 1000)
+            self.assertEqual(json.loads(command[7:])['wspr_dial_frequency_hz'],3568737)
             for enabled, now in [(False, 1000), (True, 1200), (True, 0)]:
                 if now == 0:
                     value['expires_utc_s'] = 4000

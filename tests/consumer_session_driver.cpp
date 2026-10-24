@@ -413,6 +413,19 @@ struct Driver {
                        reinterpret_cast<const std::uint8_t*>(wire.data()), wire.size()))) +
                    "}";
         }
+        if (op == "frequency_state") {
+            standalone::Store retained(f.flash);
+            check(retained.load());
+            const auto& config = retained.config();
+            return "{\"saved_dial_hz\":" +
+                (config && config->wspr_dial_frequency_hz ? std::to_string(*config->wspr_dial_frequency_hz) : "null") +
+                ",\"sequence\":\"" + std::to_string(retained.config_sequence()) +
+                "\",\"enabled\":" + (config && config->enabled ? "true" : "false") + "}";
+        }
+        if (op == "flash_failure") {
+            f.flash.fail = v.get("fail")->boolean();
+            return "{}";
+        }
         if (op == "time") {
             std::uint64_t time;
             check(wtp::json::decimal(*v.get("ms"), time));

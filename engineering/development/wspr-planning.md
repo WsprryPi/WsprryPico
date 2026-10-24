@@ -35,11 +35,7 @@ collision/full-call resolution guarantee is claimed.
 
 ## Frozen pair and authority contract
 
-A bounded portable plan owns at most two fixed 162-symbol arrays. The existing
-JobService receives two separate complete 162-event, 110.592-second jobs in
-adjacent even-minute UTC +1-second windows. Both arrays, identity/power and the
-original Pico RF base frequency are frozen; there is no second policy decision,
-Pi dial offset, per-symbol network dependency or second scheduler.
+A bounded portable plan owns at most two fixed 162-symbol arrays. JobService receives two separate complete 162-event, 110.592-second jobs in adjacent even-minute UTC +1-second windows. Both symbol arrays, identity/power and one saved WSPR USB dial snapshot are frozen. The scheduler converts the dial once into the four exact nominal RF targets around dial +1500 Hz and reuses those targets for both frames, with no random placement. Each frame retains engine and policy admission; neither remote WTP jobs nor explicit-frequency messages add this standalone offset.
 
 Nominal start separation is 120 seconds, RF-off gap 9.408 seconds and overall
 span 230.592 seconds. Each frame retains its independent local UTC/holdover

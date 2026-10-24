@@ -11,6 +11,8 @@ The generator's numeric range is **100 kHz through 68,999,999 Hz**. **1 kHz is 1
 | 4 m | Unavailable in the normal 138 MHz firmware |
 | 2 m | Unavailable with direct GPIO output |
 
+For standalone WSPR, enter the whole-Hz USB dial in **WSPR dial frequency (Hz)**. The four RF tones surround dial +1,500 Hz, and every tone must fit the generator range and frequency permissions. The normal 138 MHz engine allows dial values from 98503 through 68998496 Hz on numeric engine limits alone; frequency permissions also apply. The dial is a reference, not an emitted RF frequency.
+
 The band names in metres describe approximate radio wavelengths. They are not frequency entries for the browser's Hz fields. Use a frequency appropriate for your chosen mode and operating privileges.
 
 The RF output is **unfiltered**. It contains the wanted signal and unwanted frequencies, including **harmonics**, which are multiples of the intended frequency. Use a suitable output filter before an antenna connection. A **load** is the circuit or device receiving the output; use a suitable test load or measurement connection while checking the setup. **Attenuation** reduces signal level to suit the next device. Filtering, attenuation, the load and any amplifier must suit the frequency and signal level.

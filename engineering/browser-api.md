@@ -178,33 +178,13 @@ asset connections. The individual asset paths remain available to tooling.
 
 ## Configuration and revisions
 
-The configuration schema is the existing [standalone version-1 schema](development/standalone.md).
-On initial setup or explicit replacement, omitted `wifi.ntp_ipv4` uses
-`pool.ntp.org`; ordinary API PUT preserves the saved value. An explicit hostname or IPv4
-address is preserved, and invalid/empty values are rejected. The browser prefills
-the same default for a new configuration.
-Passwords are returned as JSON null. A null password in PUT preserves the stored
-password; it is rejected when no stored config exists. Supplying a new password
-replaces it after full validation. Successful and failed responses never echo it.
-The existing station, recurrence, overlap, expiry and storage rules remain in
-force. Autonomous WSPR requires an explicitly saved runtime base frequency;
-firmware images select none. Config v1 has no per-schedule frequency/mode
-field. The independently versioned `transmitter-standalone-frequency/1`
-resource at `/api/v1/standalone-frequency` owns the shared standalone WSPR
-frequency. GET reports whole-Hz `frequency_hz` (null when unset), `configured`,
-`allowed`, target identity and storage health with the current ETag. PUT uses
-that schema, the exact member/boot target and an integer `frequency_hz`, with
-If-Match and idle authority. All four WSPR tones must pass the current engine
-limits and saved frequency permissions. A first frequency selection leaves
-schedules disabled until explicitly enabled; later changes apply to future
-jobs. Legacy config/progress routes preserve the selection without exposing
-it in their closed schemas. Legacy application recurrence uses `"0"` for an
-unset frequency; the dedicated resource is authoritative. See the
-[resource schema](protocol/transmitter-standalone-frequency-1.schema.json).
-Complete job routes support the advertised modes/frequencies, subject to frequency policy
-and engine admission. Type 1/2/3 station admission requires the explicit
-versioned routes below; its software acceptance does not close the separate
-captured-RF decode item in the [backlog](development/consolidated-backlog.md).
+The configuration schema is the existing [standalone version-1 schema](development/standalone.md). On initial setup or explicit replacement, omitted `wifi.ntp_ipv4` uses `pool.ntp.org`; ordinary API PUT preserves the saved value. An explicit hostname or IPv4 address is preserved, and invalid/empty values are rejected. The browser prefills the same default for a new configuration. Passwords are returned as JSON null. A null password in PUT preserves the stored password; it is rejected when no stored config exists. Supplying a new password replaces it after full validation. Successful and failed responses never echo it. The existing station, recurrence, overlap, expiry and storage rules remain in force.
+
+Autonomous WSPR requires an explicitly saved whole-Hz WSPR USB dial frequency. Firmware images select none. The independent `transmitter-standalone-frequency/1` resource at `/api/v1/standalone-frequency` owns `frequency_hz`, the dial in whole Hz; capabilities identify its reference as `wspr_usb_dial`. GET reports null when unset, `configured`, `allowed`, target identity and storage health with the current ETag. PUT requires the exact member/boot target, strict integer token, If-Match and idle authority. Center is dial + 1500 Hz, with four tones spaced 1.46484375 Hz symmetrically around it and no random placement. Dial `14095600` produces RF center `14097100 Hz` and tone 0 `14097097.802734375 Hz`. Every resulting tone must pass actual engine limits and frequency permissions. The dial itself is a reference and need not lie inside the emitted RF range. The [resource schema](protocol/transmitter-standalone-frequency-1.schema.json) spans the supported engine configurations; the server applies the selected engine's bounds.
+
+A first selection leaves schedules disabled. Saving applies at `next_job`, preserves STOP and does not alter an accepted job or grant ownership. Both frames of a pair use one frequency snapshot. Configuration and progress resources preserve and redact the independently owned dial. All application views 1 through 4 expose `schedule_dial_frequency_nhz`, an exact integer nHz string; `"0"` means unset. Standalone status uses null for the same unset state. Remote absolute WTP jobs and explicit-frequency message APIs do not consume the standalone dial or add its audio offset.
+
+Complete job routes support the advertised modes/frequencies, subject to frequency policy and engine admission. Type 1/2/3 station admission requires the explicit versioned routes below; its software acceptance does not close the separate captured-RF decode item in the [backlog](development/consolidated-backlog.md).
 
 Optional top-level `allow_unqualified_frequency` and
 `allow_non_amateur_frequency` booleans are advanced, persisted settings. Both

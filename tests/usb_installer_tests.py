@@ -229,6 +229,19 @@ class HttpFailureTests(unittest.TestCase):
 
 
 class InstallerTests(unittest.TestCase):
+    def test_saved_dial_semantics_are_exact_and_independent(self):
+        snapshot = dict(config={'config':{'station':{'callsign':'K1ABC'}}},
+                        progress={'fields':{},'draft_revision':'17'},
+                        hostname={'saved':'pico.local'}, frequency={'frequency_hz':3568737},
+                        calibration={'saved':{'manual_ppm':'-3.470'}},
+                        status={'standalone':{'watermark_utc_ns':'1800000000000000000','suspended':True}})
+        before = installer.saved_semantics(snapshot)
+        self.assertEqual(before['frequency'],3568737)
+        self.assertEqual(before,installer.saved_semantics(copy.deepcopy(snapshot)))
+        for wrong in (3570237,3568737000000000,None):
+            changed=copy.deepcopy(snapshot);changed['frequency']['frequency_hz']=wrong
+            self.assertNotEqual(before,installer.saved_semantics(changed))
+
     def test_explicit_beta_final_metadata_and_stable_selection_keep_canonical_provenance(self):
         for version in ('1.0.0-beta.1','1.0.0','1.0.0+build.001'):
             for branch in ('main','devel'):

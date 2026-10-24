@@ -52,7 +52,7 @@ struct Member {
 void readings_and_scoped_saves() {
     Member m;
     auto enabled = *m.f.store.config();
-    enabled.wspr_base_frequency_hz = 14'097'100;
+    enabled.wspr_dial_frequency_hz = 14'095'600;
     enabled.enabled = true;
     enabled.expires_utc_s = 1'900'000'000;
     enabled.allow_unqualified_frequency = true;
