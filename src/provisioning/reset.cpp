@@ -102,6 +102,10 @@ ResetResult ResetCoordinator::resume() {
         }
         ++record.epoch;
         record.password.assign(identity_.default_password);
+        volatile char* radio_secret = record.radio_password.data();
+        for (std::size_t i = 0; i < record.radio_password.size(); ++i)
+            radio_secret[i] = 0;
+        record.radio_password.clear();
         record.default_password = true;
         record.field_mode = level == ResetLevel::Access;
         record.ble_disabled = false;

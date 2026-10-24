@@ -42,6 +42,7 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
   const actualApi = vm.runInNewContext(apiSource + '\napi;',{
     returnReceipt:false,consumerAttempt:false,localIdentity:null,radio:null,
     supportsAmplifier:()=>false,AbortSignal,
+    frequencyEditor:{observeRevision:value=>assert.equal(value,'actual-revision')},
     fetch:async(path,options)=>{
       requests.push({path,options});
       const body=options.body ? JSON.parse(options.body) : null;

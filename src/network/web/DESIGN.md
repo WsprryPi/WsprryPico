@@ -265,3 +265,7 @@ font, native controls and bounded local assets remain the design authority.
 The private `.impeccable/design.json` sidecar contains component previews and
 metadata. Its generated tonal ramps are panel illustrations, not additional
 implemented palette tokens.
+
+### Pico password settings
+
+The consumer login label is Pico password. Its default is the saved Wi-Fi password. Wi-Fi/Host presents a separate Pico password fieldset with current default/custom status, two masked confirmation fields, existing eye controls, inline errors and explicit save/default actions. Fields use two desktop columns and one mobile column. Saving signs out browser sessions and returns keyboard focus to login; no password is placed in a URL, receipt or browser storage.

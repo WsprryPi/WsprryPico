@@ -2,7 +2,7 @@
 
 μChrony is retained for UTC discipline. NTP RF calibration and the live
 Pico-to-Pi GPIO pulse path are retired; existing captured-input tools operate
-on historical files only. See the [closeout](../../engineering/development/ntp-work-closeout.md).
+on historical files only. See the [UTC/RF contract](../../engineering/development/clock-discipline.md).
 
 These original MIT drivers keep the external GPL reference separate from
 μChrony and the firmware. They download nothing, install nothing, adjust no
@@ -26,15 +26,14 @@ make -j4
 
 ## Reproduction
 
-The recorded isolated validation uses the following existing external build.
-Run from the WsprryPico checkout, after building its host tests. On
-the recorded Mac, source `scripts/xcode_env.sh` before compiling. Assertions
-must remain enabled; the comparison scripts reject Python `-O`.
+Use an independently obtained and built Chrony 4.9 tree and a supported Linux
+host build. Run from the WsprryPico checkout. Assertions must remain enabled;
+the comparison scripts reject Python `-O`. Known broken local compilers are
+not a supported reproduction environment.
 
 ```sh
-source scripts/xcode_env.sh
-reference=/Users/lbussy/GitHub/WsprryPico/build/ntp-statistical-20261018/chrony-4.9
-receipts=build/microchrony-validation-20261018
+reference=/absolute/path/to/chrony-4.9
+receipts=build/reference-checks
 python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-stats"
 python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-control" control
 python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-selection" selection
@@ -70,7 +69,7 @@ or a physical Pico/network clock.
 With the existing external build and a configured host build:
 
 ```sh
-receipts=build/microchrony-loop-20261018
+receipts=build/reference-checks
 python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-loop" loop
 python3 tests/reference/compare_chrony49_loop.py "$receipts/chrony49-loop" \
   "$receipts/host/microchrony_loop" "$receipts/after.json"
@@ -86,16 +85,9 @@ python3 tests/reference/compare_chrony49_frequency.py "$receipts/chrony49-contro
 
 `test_microchrony_loop.py` provides ten known-truth CI cases without an external
 reference, network or hardware. `plot_chrony49_loop.py BEFORE AFTER DIRECTORY`
-uses installed gnuplot to plot raw truth errors from saved reports. The
-[clock-loop record](../../engineering/development/microchrony-clock-loop.md) specifies
-the baseline identity, exact checks, results and remaining differences.
-
-The adaptive-history/source-combination follow-up preserves the previous engine
-and its comparison under ignored `build/microchrony-loop-20261018/adaptive-combination/before/`.
-Its full comparison uses `--validation-seeds` for 25 four-hour traces. The CI
-clock-loop test now checks ten known-truth cases, including three further pool
-noise seeds and a majority with a falseticker; existing acceptance limits remain
-and pool RMS checks are added.
+uses installed gnuplot to plot raw truth errors from privately saved reports.
+The full comparison uses `--validation-seeds` for 25 four-hour traces.
+Known-truth CI includes pool noise and a majority with a falseticker.
 
 `chrony49_combination.c` isolates unmodified SST/SRC objects by replacing only the
 public REF output sink. It records every source estimate and the actual combined
@@ -106,17 +98,17 @@ checking all active sample-count decisions and frequency differences. Timestamp
 and measurement admission remain outside the scalar SST tests.
 
 ```sh
-receipts=build/microchrony-loop-20261018/adaptive-combination
+receipts=build/reference-checks/adaptive-combination
 python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-stats"
 python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-combination" combination
 python3 tests/reference/compare_chrony49_adaptation.py "$receipts/chrony49-stats" \
-  "$receipts/chrony49-combination" build/microchrony-loop-20261018/host/microchrony_tests \
-  build/microchrony-loop-20261018/host/microchrony_loop "$receipts/adaptation.json"
+  "$receipts/chrony49-combination" build/reference-checks/host/microchrony_tests \
+  build/reference-checks/host/microchrony_loop "$receipts/adaptation.json"
 python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-loop" loop
 python3 tests/reference/compare_chrony49_loop.py "$receipts/chrony49-loop" \
-  build/microchrony-loop-20261018/host/microchrony_loop "$receipts/after.json" --validation-seeds
+  build/reference-checks/host/microchrony_loop "$receipts/after.json" --validation-seeds
 python3 tests/reference/plot_chrony49_loop.py \
-  "$receipts/before/build/microchrony-loop-20261018/after.json" \
+  "$receipts/before.json" \
   "$receipts/after.json" "$receipts/comparison" --adaptive
 ```
 
@@ -135,8 +127,6 @@ opposite. The stdout protocol is unchanged.
 weak, forward and reverse queue asymmetry with known sub-ppm oscillator error.
 The original ten CI cases and their limits remain; three further UTC/rate
 acceptance cases exercise the new path-weighting and asymmetry behavior.
-The [Internet diagnosis](../../engineering/development/microchrony-internet-diagnosis.md)
-records comparison results and the captured-pulse tradeoff.
 
 For a privately retained completed pulse campaign, the pooled diagnostic checks
 manifest hashes, stable board/boot/image/source identity and newly captured
@@ -148,7 +138,7 @@ uncalibrated reference/path limitation. Full rows and diagnostics stay private.
 
 ```sh
 python3 tests/reference/diagnose_chrony49_capture.py \
-  build/microchrony-pulse-rate-rerun-20261018/terminal-evidence \
+  build/reference-checks/terminal-evidence \
   "$receipts/microchrony-before" "$receipts/host/microchrony_loop" \
   "$receipts/chrony49-loop" "$receipts/pooled-replay.json"
 ```
@@ -189,7 +179,7 @@ The cohort report must first pass manifest, identity and baseline checks.
 ```sh
 python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-stats"
 python3 tests/reference/compare_chrony49_histories.py \
-  build/microchrony-pulse-rate-rerun-20261018/terminal-evidence \
+  build/reference-checks/terminal-evidence \
   "$receipts/pooled-replay.json" "$receipts/chrony49-stats" \
   "$receipts/host/microchrony_loop" "$receipts/histories.json"
 python3 tests/reference/compare_chrony49_ablations.py \
@@ -216,44 +206,11 @@ controlled conditional prior, not a recovered live RTC or boot history.
 
 ## Offered packet diagnostics
 
-### Closed lead-layout capture
-
-The completed October 19 lead-layout run uses a retrieval manifest and a stable
-post-RF accepted frontier. The replay supports those without rewriting the
-closed evidence. Use the original manifest digest, a preserved before binary
-and the newly built `microchrony_loop`:
-
-```sh
-receipts=build/microchrony-lead-replay-20261019
-evidence=build/microchrony-lead-layout-20261019/terminal-evidence
-engine=build/microchrony-conformance-20261019/host/microchrony_loop
-python3 tests/reference/diagnose_chrony49_capture.py "$evidence" \
-  "$receipts/microchrony-before" "$engine" \
-  "$receipts/chrony49-loop-instrumented" "$receipts/pooled.json" \
-  --segment pulse-history --manifest retrieval-manifest.json \
-  --manifest-sha256 43a7609f74d14780c4802bef6fdc88f285b7d3bebefd8291272210059e3cc80a \
-  --matched-rtc
-python3 tests/reference/compare_chrony49_captured_packets.py "$evidence" \
-  "$receipts/chrony49-packet" "$receipts/microchrony-before" \
-  "$engine" "$receipts/packets.json" \
-  --manifest-sha256 43a7609f74d14780c4802bef6fdc88f285b7d3bebefd8291272210059e3cc80a
-python3 tests/reference/compare_chrony49_histories.py "$evidence" \
-  "$receipts/pooled.json" "$receipts/chrony49-stats" \
-  "$engine" "$receipts/histories.json"
-python3 tests/reference/analyze_chrony49_path_bias.py "$evidence" \
-  "$receipts/pooled.json" "$receipts/histories.json" "$receipts/path-bias.json"
-```
-
-The commands name the retained after executable; configure a fresh host build
-as above when reproducing elsewhere. Source-API diagnostics (`C` for conditional engine errors and
-`S` for external selection distances) describe weights, not independent truth.
-The packet replay translates a common UTC origin and regenerates correlation
-nonces; both implementations receive the resulting identical bytes. It preserves
-original intervals and body quality fields, requires full retained basic packets
-and reports differences from live verdicts separately from reference disagreement.
-Missing boot state, autonomous polling and combined clock feedback are outside
-that frozen-output boundary. The [result record](../../engineering/development/microchrony-lead-replay-results.md)
-retains the adverse source/path bias and incomplete pre-capture visibility.
+Captured-input comparison tools require independently retained private manifests,
+original packet pages and matching executable hashes. They operate offline;
+examples below use `receipts` for a private analysis directory. A captured-input
+replay does not reconstruct missing boot state or prove absolute UTC accuracy.
+The original manifests and source identities must remain attached to inputs.
 
 `NTP PACKETS <cursor>` is a read-only USB Console command. Start with cursor
 `0`, verify device/boot/firmware/revision, then use the returned decimal-string
@@ -297,7 +254,7 @@ and queue cases have independent numerical tolerances. Drift-change recovery
 must discard obsolete history and recover within eight admitted observations.
 The correlated-delay case preserves μChrony's full joint covariance and must
 cover the injected rate; a smaller upstream skew is not a reason to shrink it.
-All rows, differences, inputs and executable hashes are retained.
+Generated reports include rows, differences, inputs and executable hashes.
 
 The control driver invokes the unmodified public `REF_SetReference` API and
 actual generic clock driver with private dummy clock operations. An in-process
@@ -317,10 +274,8 @@ not assert all-row selection equivalence.
 
 Adaptive pruning, transient frequency, covariance and startup selection can
 differ. Complete packet-admission, daemon selection/servo and leap-execution
-equivalence remain unproven. The recorded upstream unit run passed 16 tests,
-skipped nine and failed the socket test on the Mac; it was not a clean upstream
-suite. The [results](../../engineering/development/microchrony-results.md) describe
-these limits and separate software checks from live application and RF claims.
+equivalence remain unproven. Software comparisons establish neither live
+application behavior nor physical UTC/RF accuracy.
 
 ## Captured NTP consistency
 
@@ -396,21 +351,6 @@ cohorts; pre-capture gaps remain explicit. Separate cold source replays omit
 persisted seeds, previous rejected packets and live pool combination, and do
 not establish absolute UTC accuracy or live application-clock authority.
 
-For the finite A/B crossover, the derived engineering record and figure are
-reproducible from the verified private evidence and the two phase analyses:
-
-```sh
-python3 tests/reference/summarize_microchrony_live.py "$receipts/full-evidence" \
-  "$receipts" engineering/development/microchrony-live-comparison.json
-python3 tests/reference/plot_microchrony_live.py \
-  engineering/development/microchrony-live-comparison.json \
-  engineering/development/figures/microchrony-live-convergence.png
-```
-
-The plot uses an already installed gnuplot. Its frequency estimates and
-uncertainty curves are not measurements of residual oscillator error.
-
-
 For the same-input source-estimator comparison on actual saved Pico originals:
 
 ```sh
@@ -421,4 +361,4 @@ The command verifies the existing capture and binary hashes and writes
 `captured-source-comparison.json` in that private directory. It uses normalized
 scalar observations and the existing portable host stats profile, not the full
 Pico profile or a complete daemon feedback loop. Source-fit agreement is not an
-independent accuracy measurement. The results document records the divergences.
+independent accuracy measurement. The generated report records divergences.

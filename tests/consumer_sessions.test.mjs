@@ -48,6 +48,30 @@ async function run(name,fn) {
   finally {await f.stop();}
 }
 if(import.meta.url===new URL(process.argv[1],'file:').href) {
+await run('separate Pico password persists, rejects stale saves and retires all browser logins',async f=>{
+  const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
+  const read=await a.request('consumer/password'),state=await read.json();
+  assert.equal(state.schema,'pico-password/1');assert.equal(state.wifi_default,true);
+  const etag=read.headers.get('etag'),body={schema:state.schema,target:state.target,password:'private-pico-password'};
+  assert.equal((await a.request('consumer/password','PUT',body)).status,428);
+  assert.equal((await a.request('consumer/password','PUT',body,'"stale"')).status,412);
+  assert.equal((await a.request('consumer/password','PUT',{...body,password:'short'},etag)).status,400);
+  assert.equal((await a.request('consumer/password','PUT',{...body,target:{...body.target,device_id:'2'.repeat(32)}},etag)).status,400);
+  const changed=await a.request('consumer/password','PUT',body,etag);
+  assert.equal(changed.status,200);assert.equal((await changed.json()).wifi_default,false);
+  await assert.rejects(a.request('status'));await assert.rejects(b.request('status'));
+  await f.time(3000);await assert.rejects(f.login(a,'test-password'),/password/i);
+  await f.time(4000);await f.login(a,'private-pico-password');
+  const observed=JSON.stringify(await(await a.request('consumer/password')).json());
+  assert.ok(!observed.includes('private-pico-password'));assert.ok(!observed.includes('test-password'));
+  await f.command({op:'reboot'});await f.time(5000);await f.login(a,'private-pico-password');
+  const saved=await a.request('consumer/password'),savedState=await saved.json();
+  assert.equal(savedState.wifi_default,false);
+  const restored=await a.request('consumer/password','PUT',{schema:savedState.schema,target:savedState.target,password:null},saved.headers.get('etag'));
+  assert.equal(restored.status,200);assert.equal((await restored.json()).wifi_default,true);
+  await f.time(6000);await assert.rejects(f.login(a,'private-pico-password'),/password/i);
+  await f.time(7000);await f.login(a);assert.equal((await a.request('status')).status,200);
+});
 await run('three real independent station/hostname sessions, quotas, logout and reuse',async f=>{
   const a=f.client(),b=f.client(),c=f.client('wsprrypico-0a60df.local');
   await f.login(a);await assert.rejects(f.login(b),/second|request|login/i);assert.ok(a.authenticated);

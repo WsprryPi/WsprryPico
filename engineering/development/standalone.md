@@ -4,7 +4,7 @@ Persistent carrier calibration uses the independently advertised
 `/api/v1/rf-calibration` resource. Saved manual correction is signed ppb with
 zero/manual default and decimal ppm presentation; saves take effect only at
 future preparation. RF correction uses manual PPM only; μChrony controls UTC.
-The [NTP closeout](ntp-work-closeout.md) records the rejection of NTP-derived RF
+The [UTC/RF contract](clock-discipline.md) defines manual-only RF
 calibration and removal of the Pico-to-Pi GPIO timing link.
 
 Current [Hostname selection](hostname.md) uses the saved consumer profile name for a new boot while keeping the running boot coherent. The editor does not require message/job entry, alter station/schedule readiness, clear STOP, or change pins/watermarks. Engineering names require replacement matching credentials.
@@ -26,34 +26,17 @@ applied. The inhibited image initializes a configured output inactive and never
 asserts it for a simulated job. Pin/polarity saves require explicit restart and
 retain the existing sticky hardware inhibition, including A/B/A saves.
 
-Explicit `WsprryPico-Inhibited` selects the local lifecycle simulator. It never
-enables RF output, reports `inhibited-standalone-simulator`, and its linked image
-is checked for absence of the physical engine/worker. Simulated starts and
-completions do not establish physical timing. Both variants expose finite
-`wspr`, `tone`, `qrss`, `fskcw` and `dfcw` jobs with the existing 512-event,
-3600-second capacity, 100 kHz through one Hz below half the selected sample rate.
-See [build commands and target selection](firmware-foundation.md).
-Autonomous WSPR schedules use an explicitly saved whole-Hz base frequency,
-configured at runtime through the consumer settings page or the independently
-versioned `/api/v1/standalone-frequency` resource. Firmware images select no
-transmit frequency and contain no enabled station schedule. An older record
-without a saved frequency remains readable but cannot claim, prepare or arm
-an autonomous job. Its first explicit frequency save leaves schedules disabled;
-the operator must enable them deliberately. An already configured frequency
-change applies to the next job without a firmware rebuild or restart. Both
-frames of a Type 2/3 pair retain one frequency snapshot.
+Explicit `WsprryPico-Inhibited` selects the local lifecycle simulator. It never enables RF output, reports `inhibited-standalone-simulator`, and its linked image is checked for absence of the physical engine/worker. Simulated starts and completions do not establish physical timing. Both variants expose finite `wspr`, `tone`, `qrss`, `fskcw` and `dfcw` jobs with the existing 512-event, 3600-second capacity, 100 kHz through one Hz below half the selected sample rate. See [build commands and target selection](firmware-foundation.md). Autonomous WSPR schedules use an explicitly saved whole-Hz WSPR USB dial frequency, configured through the consumer settings page or `/api/v1/standalone-frequency`. The persisted member is `wspr_dial_frequency_hz`; the resource's `frequency_hz` is the same whole-Hz dial. A fresh configuration has no selected frequency. A first frequency save leaves schedules disabled; enabling them remains deliberate. Later changes activate at the next job, without restart, ownership acquisition or clearing STOP. Both frames of a Type 2/3 pair retain one exact nominal tone snapshot alongside the existing calibration freeze.
 
-`STATUS` reports the selected base in nanohertz, or null when unset, together
-with `frequency_required`. Legacy application resource projections use the
-nontransmitting decimal-string sentinel `"0"` when unset. Generic updates
-preserve explicitly saved frequency; older firmware may reject the new optional
-stored field, so downgrade preservation is unqualified. Explicit physical
-Console `CONFIG` may supply `wspr_base_frequency_hz` in whole Hz; omitted legacy
-writes preserve its saved value. No build-time band selection remains.
-This is experimental scope, not supported-band or output-power qualification.
-See [clock limits](clock-support.md) and [band support](band-support.md) for
-frequency admission and conducted applicability.
-The separate `WsprryPico-RFBench` and USB-time `WsprryPico-RFWTP` remain available.
+For dial `D`, the nominal RF center is `C = D + 1500 Hz` and tone `k` is `C + (k - 1.5) × 1.46484375 Hz`, for `k = 0, 1, 2, 3`. No random placement applies. Preparation uses integer nHz: audio offset `1500000000000`, spacing `1464843750`, center-to-tone-0 offset `2197265625`. Dial `14095600` produces center `14097100 Hz` and exact tone targets `14097097802734375`, `14097099267578125`, `14097100732421875`, `14097102197265625` nHz. These are nominal requested targets; manual correction and NCO quantization remain subsequent engine responsibilities.
+
+Every emitted tone must pass the selected engine limits and saved frequency permissions. The dial reference itself is not emitted. For a 138 MHz engine's RF range of 100000–68999999 Hz, pure engine dial bounds are 98503–68998496 Hz; 132 MHz and 150 MHz engines have upper dial bounds 65998496 and 74998496 Hz. Policy may narrow those ranges. The schema's 98503–74998496 integer domain spans the supported engines; API admission applies the actual selected engine. Strict JSON tokens reject fractions, exponent notation and suffixes independently of JSON Schema's numeric integer domain.
+
+`STATUS` reports `schedule_dial_frequency_nhz` as an exact decimal string, or null when unset, together with `frequency_required`. Application views 1 through 4 use the same member and the nontransmitting string sentinel `"0"` when unset. Generic configuration resources redact the independently owned setting; complete PUT, merge, replace, partial resources and Console CONFIG omission preserve it. Explicit Console `CONFIG` supplies `wspr_dial_frequency_hz` in whole Hz. Unknown saved members follow ordinary strict configuration rejection. A rejected latest journal record does not resurrect older enabled settings.
+
+The offline `scripts/decode_wspr_type23_pair.py --dial-hz <whole-Hz dial>` input is checked against the captured `schedule_dial_frequency_nhz`. It derives WSPR center as dial + 1500 Hz for capture translation and audio conversion; receiver tuning center remains independent. Synthetic analysis tests do not establish RF decoding or timing qualification.
+
+This is experimental scope, not supported-band or output-power qualification. See [clock limits](clock-support.md) and [band support](band-support.md) for frequency admission and conducted applicability. The separate `WsprryPico-RFBench` and USB-time `WsprryPico-RFWTP` remain available.
 
 The application images also enforce the saved experimental frequency policy
 below before engine preparation. Numeric capabilities describe representability;
@@ -67,7 +50,7 @@ never steals an external ownership lease, depends on a USB connection, or sends
 per-symbol requests. USB disconnect does not invalidate SNTP time. WTP/1 itself
 is unchanged. Authenticated HTTPS/browser APIs and WTP/TCP now share this service;
 see [network control](network-control.md). The
-[Field access](field-access.md) defines engineering BLE/Bluefy and SoftAP
+[Field access](field-access.md) defines engineering BLE and SoftAP
 local control through this same service. Consumer commissioning follows
 [consumer access](consumer-lan-access.md). General physical/fleet interoperability
 remains unqualified.
@@ -83,8 +66,8 @@ newline. The administration commands below share this implemented interface.
 Send one command at a time and wait for its JSON response; diagnostics use the
 bounded existing Console queue. A client must inspect `ok`, not assume a
 successful serial write saved anything. `ACCESS SOFTAP <full-device-id>` now
-requests one nonextending 120-second SoftAP join/login grace while access
-storage is healthy. It neither changes credentials nor authorizes the browser;
+requests an initial 120-second SoftAP join window while access
+storage is healthy. A connected Wi-Fi client retains the AP; the final disconnect starts a ten-minute inactivity interval. The command neither changes credentials nor authorizes the browser;
 the page still requires the local-access password.
 
 Sanitized document (replace all station/network fields before using it):
@@ -93,6 +76,7 @@ Sanitized document (replace all station/network fields before using it):
 {
   "version": 1,
   "enabled": false,
+  "wspr_dial_frequency_hz": 14095600,
   "station": {"callsign": "K1ABC", "locator": "FN42", "power_dbm": 20},
   "wifi": {
     "ssid": "YOUR-NETWORK",
@@ -173,7 +157,7 @@ canonical Config readback; STATUS exposes their effective values.
 4 m remains Unqualified
 for every release mode under the required reliable-WSPR gate, and native direct
 2 m is Unavailable. See the [qualification catalog](band-support.md)
-and [machine-readable statuses](phase14-band-support.json). Experimental consent
+and [machine-readable statuses](band-support.json). Experimental consent
 does not change qualification, promote prior failed results or override engine
 availability. Correlation
 envelopes match WsprryPi's Band-Lookup catalog and are not jurisdiction-specific
@@ -335,17 +319,15 @@ full operational erase.
 The core-0-owned onboard LED identifies a device and slow-blinks only while
 SoftAP is actually ready. It is advisory and never proves RF or output safety.
 These behaviors are production-wired through the access/reset/indicator core.
-Every actual AP activation has the
-same non-sliding ten-minute cap; the 120-second join grace does not renew it.
+An associated Wi-Fi client retains every AP path. The final disconnect starts a ten-minute inactivity interval. An unjoined Console request retains its 120-second join grace; other initial windows last ten minutes. Browser sessions and button holds do not substitute for an association or reopen expired access.
 
 ## Time policy
 
 The autonomous NTP implementation is [μChrony](../../src/microchrony/README.md),
 an original MIT portable engine with a Pico network/clock adapter. Chrony 4.9
 is an external private test reference; no Chrony code is linked into firmware.
-The [replacement results](microchrony-results.md) distinguish tested behavior,
-differential disagreements and unqualified target behavior. Full Chrony
-behavioral equivalence is not established.
+The [UTC/RF contract](clock-discipline.md) defines compatibility and measurement
+boundaries. Full Chrony behavioral equivalence is not established.
 
 The Pico adapter checks the configured IPv4 endpoint and UDP port 123. The
 engine correlates 48-byte basic NTPv3/v4 server replies with a one-shot random
@@ -395,7 +377,7 @@ Routine status contains compact source, phase, frequency, skew and readiness
 summaries. Complete original records use [bounded USB pages](ntp-usb-diagnostics.md).
 Persistent manual PPM remains independent and is the only RF correction source.
 NTP estimates and saved RF priors have no RF selection path. The
-[historical NTP results](ntp-work-results.md) retain evidence for earlier images.
+[UTC/RF contract](clock-discipline.md) defines retained journal compatibility.
 
 The time arbiter accepts authenticated controller/phone time when SNTP is unavailable.
 The device computes uncertainty from a fixed 250 ms phone allowance, the full

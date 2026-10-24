@@ -724,8 +724,7 @@ class BundleTests(unittest.TestCase):
                 self.retrieve_fixture(args,responses,archives)
         self.assertFalse((args.destination/'verified-download.json').exists())
 
-    def test_only_manual_optin_authorizes_either_publication_entrypoint(self):
-        import installer_release
+    def test_only_manual_optin_authorizes_firmware_publication(self):
         env = dict(CI_PUBLISH='true',GITHUB_ACTIONS='true',GITHUB_JOB='publish',
                    GITHUB_EVENT_NAME='workflow_dispatch',GITHUB_REPOSITORY=download.REPOSITORY)
         with patch.dict(os.environ,env,clear=True):
@@ -737,8 +736,6 @@ class BundleTests(unittest.TestCase):
                      patch.object(publish,'api',side_effect=AssertionError('network mutation')):
                     with self.assertRaisesRegex(ValueError,'explicit manual'):
                         publish.require_authorization()
-                    with self.assertRaisesRegex(ValueError,'explicit manual'):
-                        installer_release.main()
 
     def publication_service(self):
         releases, tags, mutations = {}, {}, []

@@ -1,36 +1,30 @@
 #!/usr/bin/env python3
-"""Read-only identity check for optional actual-client interoperability tests."""
+"""Validate caller-selected client sources; Git identity is informational."""
 
 from pathlib import Path
 import subprocess
 import sys
 
-REVISION = "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf"
+REQUIRED = (
+    "src/codec.cpp", "src/frame_parser.cpp", "src/wire.cpp", "src/session.cpp",
+    "src/detail/json.cpp", "include/wtp/codec.hpp", "include/wtp/session.hpp",
+)
 
 
 def verify(source):
     source = Path(source).resolve(strict=True)
-
-    def git(*args):
-        return subprocess.check_output(["git", "-C", str(source), *args])
-
-    if Path(git("rev-parse", "--show-toplevel").decode().strip()).resolve() != source:
-        raise ValueError("Select the WsprryPi repository root")
-    if git("rev-parse", "HEAD").decode().strip() != REVISION:
-        raise ValueError("WsprryPi HEAD differs from the reviewed host revision")
-    paths = git("ls-tree", "-r", "--name-only", REVISION, "src/WTP-Client").decode().splitlines()
-    if not paths:
-        raise ValueError("Missing WTP client sources")
-    for name in paths:
-        if (source / name).read_bytes() != git("show", f"{REVISION}:{name}"):
-            raise ValueError(f"WTP client differs from reviewed source: {name}")
-    # Untracked headers could shadow tracked headers in the compiler's search path.
-    component = source / "src/WTP-Client"
-    for directory in (component / "src", component / "include"):
-        for path in directory.rglob("*"):
-            if path.is_file() and str(path.relative_to(source)) not in paths:
-                raise ValueError(f"Unreviewed client source/header: {path}")
-    print(f"Verified WsprryPi client {REVISION}: {len(paths)} tracked files")
+    client = source / "src/WTP-Client"
+    for name in REQUIRED:
+        if not (client / name).is_file():
+            raise ValueError(f"Missing required WsprryPi client source: {client / name}")
+    print(f"Selected WsprryPi client source: {source}", flush=True)
+    for args in (("rev-parse", "HEAD"), ("status", "--short")):
+        try:
+            result = subprocess.run(["git", "-C", str(source), *args], text=True,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+            print(result.stdout.strip() if result.returncode == 0 else "Git identity unavailable", flush=True)
+        except OSError:
+            print("Git identity unavailable", flush=True)
 
 
 if __name__ == "__main__":
@@ -38,5 +32,5 @@ if __name__ == "__main__":
         raise SystemExit("Usage: verify_wsprrypi_client.py WSPRRYPI_SOURCE")
     try:
         verify(sys.argv[1])
-    except (OSError, ValueError, subprocess.CalledProcessError) as error:
+    except (OSError, ValueError) as error:
         raise SystemExit(str(error)) from error

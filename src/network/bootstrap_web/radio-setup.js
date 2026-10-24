@@ -37,6 +37,13 @@ export async function prepareNetwork(client, identity, settings) {
 }
 export async function prepareStation(client, identity, settings) {
   claimPlaintext({ssid:'',password:'',...settings}).fill(0);
+  const current = await setup(client, '/api/owner/v1/public-status');
+  const source = current.profile_source;
+  if (current.version !== 1 || current.device_id !== identity.device_id ||
+      current.boot_id !== identity.boot_id || current.generation !== identity.generation ||
+      !((source === 4 && current.source === 'network_only') ||
+        (source === 5 && current.source === 'consumer')))
+    throw new Error('Pico setup identity changed. Read its saved settings and try again');
   const owner = globalThis.WsprryPicoOwnerKey.keygen();
   const ownerPublic = globalThis.WsprryPicoOwnerKey.getPublicKey(owner.secretKey, false);
   owner.secretKey.fill(0);
@@ -46,15 +53,15 @@ export async function prepareStation(client, identity, settings) {
     const browserNonce = hex(random(16));
     const started = await setup(client, settings.progressRevision ? '/api/owner/v1/claim/progress/start' : '/api/owner/v1/claim/start', {version:1,device_id:identity.device_id,
       owner_public_key:b64(ownerPublic),browser_public_key:b64(pair.publicKey),browser_nonce:browserNonce,
-      profile_source:5,generation:identity.generation,...(settings.progressRevision ? {progress_revision:settings.progressRevision} : {})});
+      profile_source:source,generation:identity.generation,...(settings.progressRevision ? {progress_revision:settings.progressRevision} : {})});
     if (started.version !== 1 || started.device_id !== identity.device_id || started.boot_id !== identity.boot_id ||
-        started.profile_source !== 5 || started.generation !== identity.generation ||
+        started.profile_source !== source || started.generation !== identity.generation ||
         started.browser_nonce !== browserNonce || started.browser_public_key !== b64(pair.publicKey) ||
         started.owner_key_sha256 !== hex(sha256(ownerPublic))) throw new Error('Pico setup identity changed');
     const requestId = hex(random(16)), nonce = random(12);
     const envelope = sealOwnerClaim({origin:'http://192.168.4.1',deviceId:identity.device_id,
       bootId:started.boot_id,slotId:started.slot_id,ownerPublicKey:ownerPublic,browserPublicKey:pair.publicKey,
-      picoPublicKey:decodeKey(started.pico_public_key),browserNonce,requestId,source:5,generation:started.generation},
+      picoPublicKey:decodeKey(started.pico_public_key),browserNonce,requestId,source,generation:started.generation},
     pair.secretKey, nonce, {ssid:'',password:'',...settings});
     return {kind:'station',device:identity.device_id,generation:(BigInt(identity.generation)+1n).toString(),
       digest:hex(sha256(unhex(requestId,16))),submit:{version:1,device_id:identity.device_id,boot_id:started.boot_id,

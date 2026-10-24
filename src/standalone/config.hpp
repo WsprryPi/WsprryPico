@@ -2,6 +2,7 @@
 #include "hardware/pins.hpp"
 #include "wtp/json.hpp"
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -22,7 +23,7 @@ struct Config {
     bool ntp_rf_calibration =
         false; // Legacy storage compatibility only; never selects RF correction.
     // No transmit frequency is selected by a firmware image or legacy record.
-    std::optional<std::uint32_t> wspr_base_frequency_hz;
+    std::optional<std::uint32_t> wspr_dial_frequency_hz;
     bool enabled = false;
     bool allow_unqualified_frequency = false;
     bool allow_non_amateur_frequency = false;
@@ -39,6 +40,14 @@ std::string serialize_config(const Config& config, bool amplifier_view = false);
 bool valid_gpio_drive(unsigned ma);
 bool valid_gpio_drive_token(wtp::json::Value value);
 bool valid_time_server(std::string_view value);
+// Standalone USB dial to nominal RF targets. Calibration and NCO realization
+// belong to the engine, after these exact requested targets are constructed.
+inline constexpr std::uint64_t audio_offset_nhz = 1'500'000'000'000ULL;
+inline constexpr std::uint64_t spacing_nhz = 1'464'843'750ULL;
+inline constexpr std::uint64_t center_to_tone0_nhz = 2'197'265'625ULL;
+inline constexpr std::uint32_t minimum_wspr_dial_hz = 98'503;
+inline constexpr std::uint32_t maximum_wspr_dial_hz = 74'998'496;
+std::optional<std::array<std::uint64_t, 4>> wspr_tones(std::uint64_t dial_hz);
 bool valid_wspr_frequency_token(wtp::json::Value value);
 bool wspr_frequency_allowed(const Config& config, std::uint64_t minimum_nhz,
                             std::uint64_t maximum_nhz);

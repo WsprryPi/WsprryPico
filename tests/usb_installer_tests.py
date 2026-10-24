@@ -229,6 +229,19 @@ class HttpFailureTests(unittest.TestCase):
 
 
 class InstallerTests(unittest.TestCase):
+    def test_saved_dial_semantics_are_exact_and_independent(self):
+        snapshot = dict(config={'config':{'station':{'callsign':'K1ABC'}}},
+                        progress={'fields':{},'draft_revision':'17'},
+                        hostname={'saved':'pico.local'}, frequency={'frequency_hz':3568737},
+                        calibration={'saved':{'manual_ppm':'-3.470'}},
+                        status={'standalone':{'watermark_utc_ns':'1800000000000000000','suspended':True}})
+        before = installer.saved_semantics(snapshot)
+        self.assertEqual(before['frequency'],3568737)
+        self.assertEqual(before,installer.saved_semantics(copy.deepcopy(snapshot)))
+        for wrong in (3570237,3568737000000000,None):
+            changed=copy.deepcopy(snapshot);changed['frequency']['frequency_hz']=wrong
+            self.assertNotEqual(before,installer.saved_semantics(changed))
+
     def test_explicit_beta_final_metadata_and_stable_selection_keep_canonical_provenance(self):
         for version in ('1.0.0-beta.1','1.0.0','1.0.0+build.001'):
             for branch in ('main','devel'):
@@ -394,6 +407,7 @@ class InstallerTests(unittest.TestCase):
         record = dict(schema='wsprrypico-usb-transaction/1', stage='failed', recovery_required=True)
         for failure in (False, True):
             with patch.object(installer, 'Https', return_value=net), \
+                 patch.object(installer, 'selected', return_value=dict(serial=SERIAL, mode='bootsel', parent='1-1.3')), \
                  patch.object(installer, 'transaction', side_effect=installer.TransactionFailure('fixture', record, Path('/private/fixture')) if failure else None,
                               return_value=dict(record, stage='complete')), \
                  contextlib.redirect_stdout(io.StringIO()) as output:
@@ -698,7 +712,7 @@ class InstallerTests(unittest.TestCase):
                  patch.object(installer, 'private_directory', return_value=Path(temporary)), \
                  patch.object(installer, 'command', return_value=' name: WsprryPico\n version: ' + manifest['firmware_version'] + '\n description: Standalone PIO/DMA RF ' + manifest['source']['revision'][:12] + '\n pico_board: pico2_w\n target chip: RP2350\n'), \
                  patch.object(installer, 'device_lock', lambda _: contextlib.nullcontext()), \
-                 patch.object(installer, 'selected', return_value=dict(parent='fixture')):
+                 patch.object(installer, 'selected', return_value=dict(serial=SERIAL, mode='bootsel', parent='fixture')):
                 with self.assertRaises(installer.Refusal):
                     installer.transaction(args, files, manifest, image)
             record = json.loads(next(Path(temporary).glob('*/transaction.json')).read_text())
@@ -1000,7 +1014,7 @@ class InteractiveSelectionTests(unittest.TestCase):
         def isatty(self):
             return True
 
-    def invoke(self, arguments=None, answer='2\n', fresh=None, human=True, tty=True, open_error=None, boards=None):
+    def invoke(self, arguments=None, answer='1\n', fresh=None, human=True, tty=True, open_error=None, boards=None):
         boards = [dict(serial=self.OTHER, mode='bootsel', parent='1-1.4', ports={}),
                   dict(serial=SERIAL, mode='application', parent='1-1.3', ports={})] if boards is None else boards
         terminal = self.Terminal(answer) if isinstance(answer, str) else answer
@@ -1011,14 +1025,14 @@ class InteractiveSelectionTests(unittest.TestCase):
         with patch.object(installer, 'open', return_value=terminal, side_effect=open_error, create=True) as opened, \
              patch.object(installer, 'discover', side_effect=[boards, boards if fresh is None else fresh]) as discovery, \
              patch.object(installer, 'Https', return_value=net) as network, \
-             patch.object(installer, 'prepare_standalone_picotool', return_value=None), \
+             patch.object(installer, 'prepare_standalone_picotool', return_value=None) as tools, \
              patch.object(installer, 'transaction', side_effect=transaction) as programming, \
              patch.object(installer, 'Picotool', side_effect=AssertionError('Real USB tool opened')), \
              patch.object(installer, 'public_snapshot', side_effect=AssertionError('Unselected USB device opened')), \
              contextlib.redirect_stdout(io.StringIO()) as output, contextlib.redirect_stderr(messages):
             code = installer.main(['upgrade', '--board', 'pico2_w', '--yes'] if arguments is None else arguments, human=human)
         return SimpleNamespace(code=code, result=json.loads(output.getvalue()), messages=messages.getvalue(),
-                               opened=opened, discovery=discovery, network=network, programming=programming)
+                               opened=opened, discovery=discovery, network=network, programming=programming, tools=tools)
 
     def refused(self, result):
         self.assertEqual(result.code, 2)
@@ -1031,18 +1045,30 @@ class InteractiveSelectionTests(unittest.TestCase):
         result = self.invoke()
         self.assertEqual(result.code, 0)
         self.assertTrue(result.result['preserved'])
-        self.assertEqual(result.result['serial'], self.OTHER)
+        self.assertEqual(result.result['serial'], SERIAL)
         self.assertIn('1. USB ' + SERIAL, result.messages)
         self.assertIn('2. USB ' + self.OTHER, result.messages)
         self.assertIn('Running firmware; USB port 1-1.3', result.messages)
         self.assertIn('BOOTSEL; USB port 1-1.4', result.messages)
-        self.assertIn('Selected Pico ' + self.OTHER, result.messages)
+        self.assertIn('Selected Pico ' + SERIAL, result.messages)
         self.assertEqual(result.discovery.call_count, 2)
         result.opened.assert_called_once_with('/dev/tty', encoding='utf-8')
         args = result.programming.call_args.args[0]
-        self.assertEqual((args.operation, args.board, args.yes, args.device), ('upgrade', 'pico2_w', True, self.OTHER))
-        self.assertEqual(args.selected_parent, '1-1.4')
-        self.assertEqual(args.selected_mode, 'bootsel')
+        self.assertEqual((args.operation, args.board, args.yes, args.device), ('upgrade', 'pico2_w', True, SERIAL))
+        self.assertEqual(args.selected_parent, '1-1.3')
+        self.assertEqual(args.selected_mode, 'application')
+
+    def test_bootsel_upgrade_refuses_before_tool_setup_network_or_transaction(self):
+        for arguments, answer in ((None, '2\n'),
+                                  (['upgrade', '--device', self.OTHER, '--board', 'pico2_w', '--yes'], '')):
+            with self.subTest(arguments=arguments):
+                result = self.invoke(arguments, answer=answer)
+                self.refused(result)
+                result.tools.assert_not_called()
+                self.assertEqual(result.result['error_code'], 'device_mode_mismatch')
+                self.assertEqual(result.result['observed_mode'], 'bootsel')
+                for detail in ('install instead of upgrade', 'existing saved data', 'without holding BOOTSEL', 'recover command'):
+                    self.assertIn(detail, result.result['error'])
 
     def test_invalid_choices_repeat_without_default_selection(self):
         result = self.invoke(answer='0\n99\n-1\nabc\n' + '9' * 5000 + '\n1\n')
@@ -1051,11 +1077,17 @@ class InteractiveSelectionTests(unittest.TestCase):
         result.programming.assert_called_once()
 
     def test_install_menu_selects_bootsel_board_and_preserves_existing_guidance(self):
-        result = self.invoke(['install', '--board', 'pico2_w', '--yes'])
+        result = self.invoke(['install', '--board', 'pico2_w', '--yes'], answer='2\n')
         self.assertEqual(result.code, 0)
         self.assertEqual(result.result['serial'], self.OTHER)
         self.assertIn('Select the Pico to install:', result.messages)
-        self.assertIn('Initial installation requires BOOTSEL', result.messages)
+        self.assertIn('The selected Pico is in BOOTSEL', result.messages)
+
+    def test_install_on_running_firmware_explains_preserving_upgrade_without_downloading(self):
+        result = self.invoke(['install', '--board', 'pico2_w', '--yes'])
+        self.refused(result)
+        result.tools.assert_not_called()
+        self.assertIn('upgrade instead of install', result.result['error'])
 
     def test_cancel_empty_eof_and_interrupt_never_start_firmware_work(self):
         class Interrupted(self.Terminal):
@@ -1077,9 +1109,9 @@ class InteractiveSelectionTests(unittest.TestCase):
                 self.assertIn(reason, result.result['error'])
 
     def test_changed_or_disconnected_choice_never_falls_back_to_another_board(self):
-        for fresh in ([dict(serial=SERIAL, mode='application', parent='1-1.3', ports={})],
-                      [dict(serial=self.OTHER, mode='bootsel', parent='other-port', ports={})],
-                      [dict(serial=self.OTHER, mode='application', parent='1-1.4', ports={})]):
+        for fresh in ([dict(serial=self.OTHER, mode='bootsel', parent='1-1.4', ports={})],
+                      [dict(serial=SERIAL, mode='application', parent='other-port', ports={})],
+                      [dict(serial=SERIAL, mode='bootsel', parent='1-1.3', ports={})]):
             with self.subTest(fresh=fresh):
                 self.refused(self.invoke(fresh=fresh))
 
@@ -1148,7 +1180,7 @@ class InteractiveSelectionTests(unittest.TestCase):
                 self.assertEqual(result.code, 0)
                 self.assertEqual(result.result['serial'], SERIAL)
                 result.opened.assert_not_called()
-                result.discovery.assert_not_called()
+                self.assertEqual(result.discovery.call_count, 1)
                 self.assertEqual(result.messages, '')
 
     def test_board_and_operation_confirmation_are_required_before_menu(self):
@@ -1173,16 +1205,18 @@ class StandaloneGuidanceTests(unittest.TestCase):
         return dict(operation='upgrade', stage='awaiting_bootsel', manual_bootsel_required=True,
                     recovery_required=True, serial=SERIAL, transaction='/private/fixture/transaction.json')
 
-    def invoke(self, record, operation='upgrade', failure=False, human=True, extra=(), messages=None):
+    def invoke(self, record, operation='upgrade', failure=False, human=True, extra=(), messages=None, terminal_output=False):
         messages = io.StringIO() if messages is None else messages
+        stdout = InteractiveSelectionTests.Terminal() if terminal_output else io.StringIO()
         with tempfile.NamedTemporaryFile() as transaction, \
+             patch.object(installer, 'selected', return_value=dict(serial=SERIAL, mode='bootsel' if operation == 'install' else 'application', parent='1-1.3')), \
              patch.object(installer, 'Https', return_value=Network('main')), \
              patch.object(installer, 'prepare_standalone_picotool', return_value=None), \
              patch.object(installer, 'transaction', return_value=record,
                           side_effect=installer.TransactionFailure('not ready', record, Path(record['transaction'])) if failure else None), \
              patch.object(installer, 'recover_transaction', return_value=record,
                           side_effect=installer.TransactionFailure('not ready', record, Path(record['transaction'])) if failure else None), \
-             contextlib.redirect_stdout(io.StringIO()) as output, \
+             contextlib.redirect_stdout(stdout) as output, \
              contextlib.redirect_stderr(messages):
             recovery = ['--transaction', transaction.name] if operation == 'recover' else []
             status = installer.main([operation, '--device', SERIAL, '--board', 'pico2_w', '--yes', *recovery, *extra], human=human)
@@ -1190,7 +1224,11 @@ class StandaloneGuidanceTests(unittest.TestCase):
                     'ok':not failure}
         if failure:
             expected['error'] = 'not ready'
-        self.assertEqual(output.getvalue(), json.dumps(expected, sort_keys=True) + '\n')
+        if terminal_output and human and '--json-only' not in extra and messages.isatty():
+            self.assertEqual(output.getvalue(), '')
+            self.assertNotIn('wsprrypico-usb-result/1', messages.getvalue())
+        else:
+            self.assertEqual(output.getvalue(), json.dumps(expected, sort_keys=True) + '\n')
         self.assertEqual(status, 3 if failure else 0)
         return messages.getvalue()
 
@@ -1201,6 +1239,53 @@ class StandaloneGuidanceTests(unittest.TestCase):
                        'recover', '--transaction /private/fixture/transaction.json', '--yes',
                        'Keep USB connected until programming and verification finish'):
             self.assertIn(detail, messages)
+
+    def test_terminal_success_waiting_and_failure_are_distinct_without_raw_json(self):
+        cases = ((dict(operation='upgrade', stage='complete', serial=SERIAL, version='1.0.0-beta.1',
+                       preserved=True, recovery_required=False), False, 'Firmware verified'),
+                 (self.waiting(), False, 'Action required'),
+                 (dict(self.waiting(), stage='failed', failure_stage='programming', program_authorized=True),
+                  True, 'Unable to continue'))
+        for record, failure, expected in cases:
+            with self.subTest(stage=record['stage']):
+                messages = self.invoke(record, failure=failure, terminal_output=True,
+                                       messages=InteractiveSelectionTests.Terminal())
+                self.assertIn(expected, messages)
+                if record['stage'] != 'complete':
+                    self.assertNotIn('Firmware verified', messages)
+                    self.assertIn('recover --transaction', messages)
+                if failure:
+                    self.assertNotIn('no firmware has been written', messages)
+
+    def test_terminal_sections_have_blank_lines_before_and_after_headings(self):
+        record = dict(stage='complete', serial=SERIAL, version='1.0.0-beta.1',
+                      preserved=True, recovery_required=False)
+        messages = self.invoke(record, operation='install', terminal_output=True,
+                               messages=InteractiveSelectionTests.Terminal())
+        self.assertTrue(messages.startswith('\nWsprryPico USB installer\n\n'))
+        for heading in ('Check USB programming tools', 'Check firmware',
+                        'Install firmware', 'Firmware verified'):
+            with self.subTest(heading=heading):
+                self.assertIn('\n\n' + heading + '\n\n', messages)
+
+    def test_json_only_and_imported_results_stay_json_even_when_stdout_is_a_terminal(self):
+        for kwargs in (dict(extra=['--json-only']), dict(human=False)):
+            with self.subTest(kwargs=kwargs):
+                self.assertEqual(self.invoke(self.waiting(), terminal_output=True,
+                    messages=InteractiveSelectionTests.Terminal(), **kwargs), '')
+
+    def test_preflight_refusal_does_not_invent_pending_recovery_for_tool_cleanup(self):
+        cleanup = []
+        manager = SimpleNamespace(cleanup=lambda args, pending: cleanup.append(pending), close=lambda: None)
+        with patch.object(installer, 'selected', return_value=dict(serial=SERIAL, mode='application', parent='1-1.3')), \
+             patch.object(installer, 'Https', return_value=Network('main')), \
+             patch.object(installer, 'prepare_standalone_picotool', return_value=manager), \
+             patch.object(installer, 'transaction', side_effect=installer.Refusal('preflight refused')), \
+             contextlib.redirect_stdout(io.StringIO()) as output:
+            code = installer.main(['upgrade', '--device', SERIAL, '--board', 'pico2_w', '--yes'], human=True)
+        self.assertEqual(code, 2)
+        self.assertFalse(json.loads(output.getvalue())['recovery_required'])
+        self.assertEqual(cleanup, [False])
 
     def test_failed_pending_continuation_keeps_retry_guidance(self):
         record = dict(self.waiting(), stage='failed', failure_stage='awaiting_bootsel')
@@ -1244,11 +1329,11 @@ class StandaloneGuidanceTests(unittest.TestCase):
             with self.subTest(record=record):
                 self.assertEqual(self.invoke(record), '')
 
-    def test_initial_install_explains_button_and_keeps_json_result(self):
+    def test_initial_install_confirms_ready_board_and_keeps_json_result(self):
         messages = self.invoke(dict(stage='complete', serial=SERIAL), operation='install')
-        for detail in ('Initial installation requires BOOTSEL', 'already in BOOTSEL', SERIAL,
-                       'Hold BOOTSEL', 'same physical USB port', 'Release BOOTSEL'):
+        for detail in ('The selected Pico is in BOOTSEL', 'Keep USB connected', 'Existing saved data will stop'):
             self.assertIn(detail, messages)
+        self.assertNotIn('Hold BOOTSEL', messages)
         self.assertNotIn('recover --transaction', messages)
 
     def test_disconnected_stderr_cannot_change_result_or_exit_status(self):
@@ -1318,6 +1403,7 @@ class StandaloneGuidanceTests(unittest.TestCase):
         Path(record['transaction']).write_text('{}')
         _, manifest, proof = fixture('main')
         overrides = (f"\n    resolve = lambda *a: ({{'ci-publication.json':{encoded(proof)!r}}}, {manifest!r}, b'')\n"
+                     f"    discover = lambda: [dict(serial={SERIAL!r}, mode='application', parent='1-1.3', ports={{}})]\n"
                      "    prepare_standalone_picotool = lambda args: None\n"
                      "    recent_ci = lambda *a: {}\n"
                      f"    transaction = lambda *a: {record!r}\n"
@@ -1344,11 +1430,12 @@ class StandaloneGuidanceTests(unittest.TestCase):
         return environment, revision, record, temporary
 
     @unittest.skipIf(os.geteuid() == 0, 'Bootstrap requires an ordinary user')
-    def test_piped_bootstrap_selects_via_controlling_terminal_with_clean_json(self):
+    def test_piped_bootstrap_uses_terminal_selection_and_formats_terminal_or_redirected_results(self):
         # Feed Bash's script through stdin while the operator answers /dev/tty.
         # Public downloads and programming are substituted; no USB is opened.
-        for columns, answer in ((100, b'bad\n2\n'), (40, b'\n')):
-            with self.subTest(columns=columns), tempfile.TemporaryDirectory() as temporary:
+        for columns, answer, stdout_tty in ((100, b'bad\n1\n', False), (40, b'\n', False),
+                                            (100, b'1\n', True), (40, b'2\n', True)):
+            with self.subTest(columns=columns, stdout_tty=stdout_tty), tempfile.TemporaryDirectory() as temporary:
                 root = Path(temporary).resolve()
                 environment, _, _, downloads = self.bootstrap_fixture(root)
                 core = root / 'source/usb_installer.py'
@@ -1366,7 +1453,7 @@ class StandaloneGuidanceTests(unittest.TestCase):
                 process = None
                 try:
                     process = subprocess.Popen(['bash', '-s', '--', 'upgrade', '--board', 'pico2_w', '--yes'],
-                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=slave,
+                        stdin=subprocess.PIPE, stdout=slave if stdout_tty else subprocess.PIPE, stderr=slave,
                         cwd=root, env=environment, preexec_fn=claim_terminal)
                     os.close(slave)
                     slave = None
@@ -1381,7 +1468,9 @@ class StandaloneGuidanceTests(unittest.TestCase):
                             transcript.extend(os.read(master, 4096))
                     os.write(master, answer)
                     output = bytearray()
-                    streams = {master: transcript, process.stdout.fileno(): output}
+                    streams = {master: transcript}
+                    if not stdout_tty:
+                        streams[process.stdout.fileno()] = output
                     deadline = time.monotonic() + 10
                     # Drain both streams before wait(): macOS can hold a session
                     # leader in exit until its controlling PTY has been drained.
@@ -1401,10 +1490,16 @@ class StandaloneGuidanceTests(unittest.TestCase):
                     os.close(master)
                     master = None
                     process.wait(timeout=5)
-                    process.stdout.close()
+                    if not stdout_tty:
+                        process.stdout.close()
                     text = transcript.decode()
-                    result = json.loads(output)
-                    self.assertEqual(len(output.splitlines()), 1)
+                    result = None if stdout_tty else json.loads(output)
+                    if stdout_tty:
+                        self.assertEqual(output, b'')
+                        self.assertNotIn('wsprrypico-usb-result/1', text)
+                        self.assertIn('WsprryPico USB installer', text)
+                    else:
+                        self.assertEqual(len(output.splitlines()), 1)
                     self.assertIn('1. USB ' + SERIAL, text)
                     self.assertIn('2. USB ' + InteractiveSelectionTests.OTHER, text)
                     self.assertIn('Running firmware; USB port 1-1.3', text)
@@ -1412,13 +1507,23 @@ class StandaloneGuidanceTests(unittest.TestCase):
                     self.assertEqual(list(downloads.iterdir()), [])
                     if columns == 100:
                         self.assertEqual(process.returncode, 0, text)
-                        self.assertEqual(result['serial'], InteractiveSelectionTests.OTHER)
-                        self.assertTrue(result['preserved'])
-                        self.assertIn('Enter one of the listed numbers', text)
+                        if stdout_tty:
+                            self.assertIn('Firmware verified', text)
+                            self.assertIn('Check firmware', text)
+                        else:
+                            self.assertEqual(result['serial'], SERIAL)
+                            self.assertTrue(result['preserved'])
+                            self.assertIn('Enter one of the listed numbers', text)
                     else:
                         self.assertEqual(process.returncode, 2, text)
-                        self.assertFalse(result['recovery_required'])
-                        self.assertIn('selection cancelled', result['error'])
+                        if stdout_tty:
+                            self.assertIn('Unable to continue', text)
+                            self.assertIn('First installation:', text)
+                            self.assertNotIn('Check firmware', text)
+                            self.assertNotIn('Firmware verified', text)
+                        else:
+                            self.assertFalse(result['recovery_required'])
+                            self.assertIn('selection cancelled', result['error'])
                 finally:
                     if master is not None:
                         os.close(master)

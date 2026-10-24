@@ -35,11 +35,7 @@ collision/full-call resolution guarantee is claimed.
 
 ## Frozen pair and authority contract
 
-A bounded portable plan owns at most two fixed 162-symbol arrays. The existing
-JobService receives two separate complete 162-event, 110.592-second jobs in
-adjacent even-minute UTC +1-second windows. Both arrays, identity/power and the
-original Pico RF base frequency are frozen; there is no second policy decision,
-Pi dial offset, per-symbol network dependency or second scheduler.
+A bounded portable plan owns at most two fixed 162-symbol arrays. JobService receives two separate complete 162-event, 110.592-second jobs in adjacent even-minute UTC +1-second windows. Both symbol arrays, identity/power and one saved WSPR USB dial snapshot are frozen. The scheduler converts the dial once into the four exact nominal RF targets around dial +1500 Hz and reuses those targets for both frames, with no random placement. Each frame retains engine and policy admission; neither remote WTP jobs nor explicit-frequency messages add this standalone offset.
 
 Nominal start separation is 120 seconds, RF-off gap 9.408 seconds and overall
 span 230.592 seconds. Each frame retains its independent local UTC/holdover
@@ -128,7 +124,50 @@ prove general receiver correlation or RF decoding.
 Unchanged Pi's one-character prefix encoding (`W/AA0NT`) differs from WSJT-X:
 its prefix branch shifts once, leaving space/W/NUL; correct packing needs two
 leading spaces. Pico pads by exact prefix length and matches the independent
-vector. This reference discrepancy is retained in `pi-one-prefix-rereview.log`;
-no WSPR-Reference repair was made. Its reviewed unchecked copies, invalid-input
+vector. Independent vectors represent the one-character prefix discrepancy;
+no WSPR-Reference repair is included. Its reviewed unchecked copies, invalid-input
 substitution and aligned-hash hazards were avoided; they are source observations,
 not newly claimed runtime reproductions.
+
+## Conducted Type 2/3 applicability
+
+The demonstrated pair is `PJ4/AA0NT`, `EM18IG`, 20 dBm at **3.570100 MHz** on
+Pico A: USB `0BF4B4AEC9FFB344`, WTP `fd6127d11d6aca42a9905fa3fb1bf1d5`.
+The normal `WsprryPico` image uses GP2 PIO/DMA, 138 MHz and 4 mA drive, from
+source `14698ca1dba32914959530a3b5a0cf41f74caf8f`, build identity
+`14698ca1dba3-dirty`, UF2 SHA-256
+`6cbe319e996b4a935dc7ba311583832e68228177cb2b7434573776ab19284528`.
+The recorded dirty build identity includes enclosing documentation changes.
+It identifies a bounded observation rather than a CI-produced image.
+
+The conducted path is GP2/GND, 20 dB attenuation, combiner and 40 dB attenuation
+into wspr5 RSP1B `2404058C60`, without an antenna, amplifier, filter or enabled
+GPSDO output. Capture settings are CF32, channel 0, 250000 sample/s, 200000 Hz
+bandwidth, 3545100 Hz tuning, 20 dB gain, AGC/bias tee off.
+
+| Frame | Independent expected-message decode |
+| --- | --- |
+| Type 2 | `PJ4/AA0NT 20` |
+| Type 3 | `<PJ4/AA0NT> EM18IG 20`, full callsign resolved from the preceding Type 2 |
+
+The independent decoder is Debian WSJT-X `wsjtx 2.7.0+repack-1` `wsprd`, SHA-256
+`3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3`.
+It starts with an empty hash directory; Type 2 supplies context for Type 3.
+Cold Type 3 still decodes its grid/power with an unresolved `<...>` callsign.
+No known callsign, symbol or hash entry is injected. The
+[offline decoder helper](../../scripts/decode_wspr_type23_pair.py) separates
+frame matching, preserves that context ordering and rejects wrong identity,
+missing halves, stale state and decoder failures.
+
+The observation contains two adjacent complete local jobs and a 480-second,
+120000000-complex-sample capture without reported overflow, timeout or clipping.
+Receiver sample-axis durations are 110.593/110.592 seconds with 120.024-second
+onset separation. These values do not qualify calibrated duration or launch
+timing without hardware timestamps. Completion requires both ordered running
+jobs, complete associated sample intervals and frame-2/2 terminal readback
+without a pending pair, owner, output, error or DMA fault. The scheduler releases
+completed jobs, so persistent `complete` is not a valid sole completion criterion.
+
+The result qualifies only this board/image/frequency/payload/path. It establishes
+no general compound-call/hash-collision guarantee, other-board/band/clock support,
+calibrated power/frequency/timing or release qualification.

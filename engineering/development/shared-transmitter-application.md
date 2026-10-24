@@ -199,12 +199,7 @@ later adds `gpio_drive_ma` only when nondefault, in the same Config v1 journal.
 
 ## Foundation implementation boundary
 
-The local scheduler continues member-owned WSPR recurrence at the explicitly saved runtime
-base frequency. Application expiry and frequency observations use decimal
-strings; schedule period/phase retain the existing integer semantics. The
-controller may independently dispatch complete finite WTP jobs but must not also
-dispatch occurrences belonging to an enabled member schedule. Recurrence transfer and automatic controller/member fallback are unavailable;
-member-owned recurrence uses the current standalone WSPR planner.
+The local scheduler runs member-owned WSPR recurrence from the explicitly saved whole-Hz USB dial. Its four nominal RF tones surround dial +1500 Hz with no random placement. Application expiry and `schedule_dial_frequency_nhz` observations use exact decimal strings; `"0"` means no dial is selected. Schedule period/phase retain integer seconds. The controller independently dispatches complete absolute-frequency WTP jobs and does not also dispatch occurrences belonging to an enabled member schedule. Recurrence transfer and automatic controller/member fallback are unavailable; member-owned recurrence uses the standalone WSPR planner.
 
 Software results do not establish physical/RF/fleet qualification. Current contracts identify implemented
 extensions. Current work is selected only in the

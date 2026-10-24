@@ -196,8 +196,7 @@ These commands remain developer provisioning, not a finished end-user setup
 flow. Current production firmware can boot from a committed runtime profile,
 enforces access-journal health fail closed, starts encrypted BLE provisioning
 and local control, and connects the network-only delivery-safe profile
-activator. The checked-in Bluefy page and Raspberry Pi/Linux client can write
-the complete profile transaction. Their deterministic coverage and bounded
+activator. The Raspberry Pi/Linux client can write the complete profile transaction. Its deterministic coverage and bounded
 live local-control evidence do not by themselves qualify a general end-user
 provisioning path.
 
@@ -213,8 +212,7 @@ engineering field HTTPS or the independent USB time exchange.
 BLE and SoftAP have deterministic policy, parser and client tests. Cross-builds
 and bounded peer checks do not establish general physical interoperability.
 
-Bluefy does not maintain an offline cache. Its offline reuse is unsupported and
-the device-served SoftAP portal supplies offline consumer setup.
+The device-served SoftAP portal supplies offline consumer setup.
 
 ### Renewal and compromised credentials
 
@@ -349,10 +347,7 @@ submission but HTTP does not authenticate page delivery. Provisioned engineering
 field access uses
 `https://<station-MAC-derived-hostname>[<configured-port>]/`, normally resolved
 by AP-interface mDNS, so Safari validates the existing device certificate by
-hostname. `ACCESS SOFTAP <full-device-id>` requests one nonextending 120-second
-join/login grace while access storage is healthy; field, recovery and fallback requests remain controlled by the access manager.
-Every actual AP activation ends within ten minutes of enablement regardless of
-stored field intent, session activity, held buttons or the join grace.
+hostname. `ACCESS SOFTAP <full-device-id>` requests a 120-second join grace while access storage is healthy; field, recovery and fallback requests remain controlled by the access manager. An associated Wi-Fi client retains every AP path independently of browser traffic or authentication. The final disconnect starts a ten-minute inactivity interval. Unjoined initial access expires after ten minutes, or after the Console's 120-second grace. Expired access requires a new deliberate request or a new outage after stable station recovery.
 
 The browser offers manual status refresh, station/Wi-Fi/schedule edits, explicit
 reload of saved settings, complete job upload/UTC arm, owner abort/release and
@@ -444,35 +439,30 @@ test, which uses the same loopback port. Stop it with Ctrl-C.
 
 ## Companion interoperability and sanitizers
 
-Optional actual client interoperability uses unmodified reviewed WsprryPi sources at
-`c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf`. Use an explicit clean checkout of that
-revision; the option never fetches, edits or builds inside the companion checkout:
+Optional actual client interoperability compiles caller-selected WsprryPi sources, including edited working files. Source paths and available Git identity are informational; a historical revision or clean checkout is not required. Missing required files and compiler/contract errors still fail. The options never fetch, edit or build inside the companion checkout:
 
 ```sh
 cmake -S . -B build-host \
-  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/c39fae3/WsprryPi \
+  -DWSPRRY_PICO_WSPRRYPI_SOURCE=/path/to/selected/WsprryPi \
+  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/selected/WsprryPi \
   -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls
 cmake --build build-host --parallel
 ctest --test-dir build-host --output-on-failure
 ```
 
-The compatibility test `network_11_1_interop` builds the existing client, application,
-scheduler and TLS/HTTP implementation; the companion's own harness independently
-enforces its Pico source pin. An isolated local source copy is useful
-when its working checkout is advancing. OpenSSL development files must already be
-installed; set `OPENSSL_ROOT_DIR` if CMake needs its location.
+The `host_client_interop_tests` fixture runs the actual client against the Pico endpoint/job service. The retained `network_11_1_interop` target builds the selected client, application, scheduler and TLS/HTTP implementation. Pi's own current-source fixtures independently validate selected Pico sources. Use unused build directories, serialize fixtures sharing loopback ports and keep the separately pinned MbedTLS dependency policy. Release manifests retain their chosen dependency provenance; they do not impose a local source admission gate. OpenSSL development files must already be installed; set `OPENSSL_ROOT_DIR` if CMake needs its location.
 
 ASan/UBSan applies to C and C++ (including Mbed TLS):
 
 ```sh
-cmake -S . -B build/phase11-3-sanitize -DCMAKE_BUILD_TYPE=Debug \
+cmake -S . -B build/network-sanitize -DCMAKE_BUILD_TYPE=Debug \
   -DWSPRRY_PICO_BUILD_TESTS=ON \
   -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls \
-  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/c39fae3/WsprryPi \
+  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/selected/WsprryPi \
   -DCMAKE_C_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer' \
   -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
-cmake --build build/phase11-3-sanitize --parallel
-ctest --test-dir build/phase11-3-sanitize --output-on-failure
+cmake --build build/network-sanitize --parallel
+ctest --test-dir build/network-sanitize --output-on-failure
 ```
 
 A separate ThreadSanitizer build can omit TLS and run `rf_worker_tests` and
@@ -481,4 +471,4 @@ These test software synchronization, not Pico interrupt/flash latency. Optional
 actual desktop/mobile rendering uses an already installed Chrome and Node with
 built-in WebSocket support: `node tests/network_browser_render.js`. Set
 `CHROME_BIN` outside macOS. It starts an isolated local fixture server/profile,
-keeps credentials mocked and saves ignored images under `build/phase11-2-ui`.
+keeps credentials mocked and saves ignored images under `build/network-ui`.

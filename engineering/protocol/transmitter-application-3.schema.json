@@ -467,7 +467,7 @@
         "suspended",
         "expires_utc_s",
         "schedules",
-        "schedule_base_frequency_nhz"
+        "schedule_dial_frequency_nhz"
       ],
       "properties": {
         "authority": {
@@ -490,7 +490,8 @@
             "$ref": "#/$defs/schedule"
           }
         },
-        "schedule_base_frequency_nhz": {
+        "schedule_dial_frequency_nhz": {
+          "description": "Saved standalone WSPR USB dial in exact integer nHz; string 0 means unset and nontransmitting.",
           "$ref": "#/$defs/decimal"
         }
       }

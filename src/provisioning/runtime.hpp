@@ -56,6 +56,11 @@ class RuntimeProfile {
     bool consumer_selected(const ProfileStore& store) const {
         return consumer_selected_ || store.source() == ProfileSource::ConsumerProfile;
     }
+    bool consumer_browser_selected(const ProfileStore& store) const {
+        // Saving Wi-Fi establishes browser authentication without a station claim.
+        // Callers still require control_healthy() before admitting that authority.
+        return consumer_selected(store) || store.source() == ProfileSource::NetworkOnly;
+    }
     std::uint64_t generation() const {
         return generation_;
     }

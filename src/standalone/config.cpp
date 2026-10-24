@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <charconv>
+#include <limits>
 #include <numeric>
 
 namespace wsprrypico::standalone {
@@ -49,18 +50,30 @@ bool integer(wtp::json::Value value, std::uint32_t& n) {
 bool valid_gpio_drive(unsigned ma) {
     return ma == 2 || ma == 4 || ma == 8 || ma == 12;
 }
+std::optional<std::array<std::uint64_t, 4>> wspr_tones(std::uint64_t dial_hz) {
+    constexpr auto nhz_per_hz = 1'000'000'000ULL;
+    constexpr auto highest_offset = audio_offset_nhz + center_to_tone0_nhz;
+    if (!dial_hz || dial_hz > (std::numeric_limits<std::uint64_t>::max() - highest_offset) / nhz_per_hz)
+        return {};
+    const auto tone0 = dial_hz * nhz_per_hz + audio_offset_nhz - center_to_tone0_nhz;
+    std::array<std::uint64_t, 4> tones{};
+    for (unsigned k = 0; k < tones.size(); ++k)
+        tones[k] = tone0 + k * spacing_nhz;
+    return tones;
+}
 bool valid_wspr_frequency_token(wtp::json::Value value) {
     std::uint32_t frequency = 0;
     return integer(value, frequency) && std::to_string(frequency) == value.raw &&
-           frequency >= 100'000 && frequency <= 74'999'994;
+           frequency >= minimum_wspr_dial_hz && frequency <= maximum_wspr_dial_hz;
 }
 bool wspr_frequency_allowed(const Config& config, std::uint64_t minimum_nhz,
                             std::uint64_t maximum_nhz) {
-    if (!config.wspr_base_frequency_hz)
+    if (!config.wspr_dial_frequency_hz)
         return false;
-    const auto base = std::uint64_t{*config.wspr_base_frequency_hz} * 1'000'000'000ULL;
-    for (unsigned symbol = 0; symbol < 4; ++symbol) {
-        const auto tone = base + symbol * 1'464'843'750ULL;
+    const auto tones = wspr_tones(*config.wspr_dial_frequency_hz);
+    if (!tones)
+        return false;
+    for (const auto tone : *tones) {
         if (tone < minimum_nhz || tone > maximum_nhz ||
             !application::frequency_allowed(tone, config.allow_unqualified_frequency,
                                             config.allow_non_amateur_frequency))
@@ -126,7 +139,7 @@ std::optional<Config> parse_config(std::string_view text) {
         !fields(*root, {"version", "enabled", "station", "wifi", "schedules"},
                 {"expires_utc_s", "pins", "allow_unqualified_frequency",
                  "allow_non_amateur_frequency", "gpio_drive_ma", "manual_correction_ppb",
-                 "ntp_rf_calibration", "wspr_base_frequency_hz"}) ||
+                 "ntp_rf_calibration", "wspr_dial_frequency_hz"}) ||
         root->get("version")->raw != "1" ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
@@ -142,10 +155,10 @@ std::optional<Config> parse_config(std::string_view text) {
         if (wifi.get(name)->type() != '"')
             return {};
     Config c;
-    if (const auto frequency = root->get("wspr_base_frequency_hz")) {
+    if (const auto frequency = root->get("wspr_dial_frequency_hz")) {
         if (!valid_wspr_frequency_token(*frequency))
             return {};
-        c.wspr_base_frequency_hz = std::uint32_t(frequency->integer());
+        c.wspr_dial_frequency_hz = std::uint32_t(frequency->integer());
     }
     if (const auto correction = root->get("manual_correction_ppb")) {
         std::int32_t value = 0;
@@ -261,8 +274,8 @@ std::string serialize_config(const Config& c, bool amplifier_view) {
         result += ",\"manual_correction_ppb\":" + std::to_string(c.manual_correction_ppb);
     if (c.ntp_rf_calibration)
         result += ",\"ntp_rf_calibration\":true";
-    if (c.wspr_base_frequency_hz)
-        result += ",\"wspr_base_frequency_hz\":" + std::to_string(*c.wspr_base_frequency_hz);
+    if (c.wspr_dial_frequency_hz)
+        result += ",\"wspr_dial_frequency_hz\":" + std::to_string(*c.wspr_dial_frequency_hz);
     return result + "}";
 }
 } // namespace wsprrypico::standalone

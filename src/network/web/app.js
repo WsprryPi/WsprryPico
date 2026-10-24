@@ -14,7 +14,7 @@ if (typeof module !== 'undefined') module.exports = {pinOwners};
 const $ = id => document.getElementById(id);
 const pageIdentity = WsprryPicoPresentation.create(document);
 const canonicalHostname = WsprryPicoPresentation.canonicalHostname;
-const passwordFields = ['local-password','config-password','consumer-password','retirement-password'];
+const passwordFields = ['local-password','config-password','consumer-password','retirement-password','pico-new-password','pico-confirm-password'];
 function setPasswordVisible(id, visible) {
   const input = $(id), toggle = $(id + '-toggle');
   const blocked = input.readOnly || input.disabled || input.matches?.(':disabled');
@@ -26,7 +26,7 @@ function setPasswordVisible(id, visible) {
     input.type = type;
     if (start !== null && start !== undefined) input.setSelectionRange(start,end,direction);
   }
-  const name = id === 'local-password' ? $('local-password-label').textContent.replace(/^[A-Z]/,c => c.toLowerCase()) : 'Wi-Fi password';
+  const name = id === 'local-password' ? $('local-password-label').textContent.replace(/^[A-Z]/,c => c.toLowerCase()) : id === 'retirement-password' ? 'Pico password' : id === 'pico-new-password' ? 'new Pico password' : id === 'pico-confirm-password' ? 'password confirmation' : 'Wi-Fi password';
   const label = (visible ? 'Hide ' : 'Show ') + name;
   toggle.setAttribute('aria-label',label);
   toggle.setAttribute('aria-pressed',String(visible));
@@ -52,6 +52,7 @@ const radio = globalThis.WsprryPicoConsumerRadio?.createClient();
 let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
+let picoPasswordState = null, frequencyRefreshing = false;
 const supportsAmplifier = () => globalThis.WsprryAmplifier?.supported(capabilities?.amplifier_enable) === true;
 let localIdentity = null, localAuthenticated = false;
 let engineeringStationDirty = false, engineeringNetworkDirty = false;
@@ -59,8 +60,13 @@ let writeState = 'readback', savedReadback = null, saveAttempt = null, retiremen
 
 if ($('standalone-frequency-form')) $('standalone-frequency-form').onsubmit = event => event.preventDefault();
 const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-frequency') ? WsprryStandaloneFrequency.create({
+  ranges:()=>capabilities?.wtp?.frequency_ranges,
   input:$('standalone-frequency'),read:$('standalone-frequency-read'),save:$('standalone-frequency-save'),discard:$('standalone-frequency-discard'),adopt:$('standalone-frequency-adopt'),status:$('standalone-frequency-status'),
-  exchange:async (method,body,match)=>{if (!WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency)) throw new Error('Standalone frequency configuration is unsupported.'); return api('standalone-frequency',method,body,match);},
+  run:frequencyAction,
+  context:()=>({device_id:localIdentity?.device_id,boot_id:snapshot?.job.boot_id}),
+  hasProgress:()=>supportsProgress(),
+  stationActions:draft=>draft ? `Choose ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.` : `Complete Station identity, choose ${$(radio ? 'save-station-progress' : 'save-engineering-station-progress').textContent}, then ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.`,
+  exchange:async (method,body,match,resource = 'standalone-frequency')=>{if (!WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency)) throw new Error('Standalone frequency configuration is unsupported.'); return api(resource,method,body,match,30000,true);},
   afterSave:()=>requireReadback()
 }) : null;
 if ($('rf-calibration-form')) $('rf-calibration-form').onsubmit = event => event.preventDefault();
@@ -407,7 +413,7 @@ function updateSetupReceipt() {
   if (hash && usable) $('consumer-resume').href = 'http://' + hostname + '/' + hash;
 }
 const notice = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
-async function api(path, method = 'GET', body, etag, timeout = 30000) {
+async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyObservation = false) {
   if ((returnReceipt || consumerAttempt) && localIdentity) checkReturningDevice(localIdentity.device_id);
   const headers = {};
   if (localIdentity) headers['X-WsprryPico-Session'] = session;
@@ -416,6 +422,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
   let response;
   const settingWrite = method !== 'GET' && ['config','config/2','config/update','config/update/2','schedules','station','station/2','hardware','progress/update','progress/apply'].includes(path);
   if (settingWrite) {
+    frequencyEditor?.invalidate();
     if (writeState !== 'ready' || !revision) throw new Error('Read and review saved settings before a new save');
     // Bounded context; credentials are never retained in the attempt record.
     const intended = JSON.parse(JSON.stringify(body));
@@ -450,8 +457,9 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
       storage_fault:'Settings storage could not be verified. Resolve storage health before another save',
       invalid_gpio_drive:'Choose 2, 4, 8 or 12 mA for GPIO drive strength',
       standalone_frequency_required:'Choose and save a standalone WSPR frequency before enabling schedules',
-      invalid_wspr_frequency:'Enter a whole transmit frequency in Hz, without commas or decimals',
+      invalid_wspr_frequency:'Enter a whole WSPR dial frequency in Hz, without commas or decimals',
       frequency_not_allowed:'The WSPR tones fall outside the engine limits or saved frequency permissions. Choose an allowed frequency',
+      FREQUENCY_REJECTED:'A requested RF frequency is outside the engine limits or saved frequency permissions. Review the requested frequencies',
       revision_conflict:'Saved settings changed. Your edits are preserved. Read current saved settings and review them before a new save',
       precondition_failed:'Saved revision changed. Your edits are preserved. Read and review current saved settings',
       pin_conflict:`GP${data.gp} is already assigned to ${data.owner}; choose a different pin for ${data.role}`,
@@ -473,7 +481,9 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
     if (code === 'message_event_limit_exceeded') message = data.calculated_events + ' events exceed the device limit of ' + data.max_events + '. Reduce repetition or use a simpler message';
     const error = new Error(message); error.code = code; error.serverResponse=true; throw error;
   }
-  return {data, revision:response.headers.get('ETag')};
+  const observedRevision = response.headers.get('ETag');
+  if (!frequencyObservation && !path.startsWith('consumer/') && observedRevision) frequencyEditor?.observeRevision(observedRevision);
+  return {data, revision:observedRevision};
 }
 async function local(path, method = 'GET', body, timeout = 30000) {
   if (returnReceipt && localIdentity) checkReturningDevice(localIdentity.device_id);
@@ -494,14 +504,14 @@ async function discoverLocal() {
   if (radio) {
     $('local-access').hidden = false;
     $('local-heading').textContent = 'Radio access';
-    $('local-password-label').textContent = 'Saved Wi-Fi password';
-    $('local-description').textContent = 'Enter the password for the Wi-Fi network saved on this Pico. Your radio session stays in this tab and expires after inactivity.';
+    $('local-password-label').textContent = 'Pico password';
+    $('local-description').textContent = 'Enter the Pico password. By default, it is the Wi-Fi password saved on this Pico. Use your separate Pico password if you changed it. Your login stays in this tab and expires after inactivity.';
     try {
       localIdentity = await radio.identity();
       checkReturningDevice(localIdentity.device_id);
       pageIdentity.bind(localIdentity);
       await presentationTitle();
-      $('local-status').textContent = 'Signed out. Enter the saved Wi-Fi password to log in.';
+      $('local-status').textContent = 'Signed out. Enter the Pico password to log in.';
       notice('Log in to read or change radio settings.');
     } catch (error) { notice(error.message + '. Check the Pico address and your Wi-Fi connection, then reload.',true); }
     return true;
@@ -530,7 +540,7 @@ async function discoverLocal() {
 function controls(connected) {
   online = connected;
   calibrationEditor?.setAvailability(!!connected && !busy && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
-  frequencyEditor?.setAvailability(!!connected && !busy && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  frequencyEditor?.setAvailability(!!connected && (!busy || frequencyRefreshing) && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   driveEditor?.setAvailability(!!connected && !busy && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
   $('reload-config').disabled = busy || !online;
@@ -553,6 +563,8 @@ function controls(connected) {
   $('consumer-network-settings').disabled = busy || !idle || !localAuthenticated || Boolean(consumerAttempt);
   $('consumer-station-settings').disabled = $('consumer-network-settings').disabled;
   $('consumer-check-save').disabled = busy || !localAuthenticated || !consumerAttempt;
+  $('pico-password-settings').disabled = busy || !idle || !localAuthenticated || !picoPasswordState || Boolean(consumerAttempt);
+  $('pico-password-default').disabled = $('pico-password-settings').disabled || picoPasswordState?.data.wifi_default !== false || !currentConfig?.wifi?.ssid && !$('consumer-ssid').value;
   $('hostname-settings').disabled = busy || !idle || !hostnameState?.writable;
   $('hostname-save').disabled = busy || !idle || !hostnameState?.writable || hostnameUncertain;
   $('hostname-default').disabled = $('hostname-save').disabled;
@@ -582,20 +594,20 @@ function controls(connected) {
   }
   for (const id of passwordFields) setPasswordVisible(id,$(id).type === 'text');
 }
-function fill(c) {
+function fill(c, network = c?.wifi) {
   currentConfig = c; dirty = false;
   const form = $('config').elements;
   if (!engineeringStationDirty) for (const name of ['callsign','locator','power_dbm']) form[name].value = c?.station[name] ?? '';
   if (!engineeringNetworkDirty) {
-    form.ssid.value = c?.wifi.ssid ?? '';
-    form.ntp_ipv4.value = c?.wifi.ntp_ipv4 ?? 'pool.ntp.org';
+    form.ssid.value = network?.ssid ?? '';
+    form.ntp_ipv4.value = network?.ntp_ipv4 ?? 'pool.ntp.org';
   }
   if (radio) {
     $('consumer-identity-help').hidden = false;
     for (const name of ['callsign','locator','power_dbm','ssid','password','ntp_ipv4']) form[name].readOnly = true;
     if (!consumerSetupDirty) {
-      $('consumer-ssid').value = c?.wifi.ssid ?? '';
-      $('consumer-time-server').value = c?.wifi.ntp_ipv4 ?? 'pool.ntp.org';
+      $('consumer-ssid').value = network?.ssid ?? '';
+      $('consumer-time-server').value = network?.ntp_ipv4 ?? 'pool.ntp.org';
       $('consumer-callsign').value = c?.station.callsign ?? '';
       $('consumer-locator').value = c?.station.locator ?? '';
       $('consumer-power').value = c?.station.power_dbm ?? 37;
@@ -639,7 +651,22 @@ async function refresh(loadConfig = false) {
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
     $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network or pin settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
     if (s.frequency_required) $('recovery').textContent += ' Standalone transmission is blocked: choose and save a WSPR frequency in Schedules and radio pins, then explicitly enable schedules.';
-    if (loadConfig) { const c = await api('config'); const config=checkedConfig(c); revision = c.revision; fill(config); const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; $('save-reconcile-status').textContent = 'Saved settings reloaded into this browser. Review any new edits before saving.'; showProgress(); }
+    if (loadConfig) {
+      const c = await api('config'); const config=checkedConfig(c);
+      let network = config?.wifi;
+      if (radio && !config) {
+        const saved = (await api('consumer/setup/api/owner/v1/public-status')).data;
+        if (saved.version !== 1 || saved.device_id !== localIdentity.device_id ||
+            saved.boot_id !== localIdentity.boot_id || saved.generation !== localIdentity.generation ||
+            ![4,5].includes(saved.profile_source) ||
+            saved.network !== null && (typeof saved.network?.ssid !== 'string' || typeof saved.network?.time_server !== 'string'))
+          throw new Error('Saved Wi-Fi could not be confirmed. Read the Pico identity and try again.');
+        network = saved.network ? {ssid:saved.network.ssid,ntp_ipv4:saved.network.time_server} : undefined;
+      }
+      revision = c.revision; fill(config,network);
+      const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; $('save-reconcile-status').textContent = 'Saved settings reloaded into this browser. Review any new edits before saving.'; showProgress();
+      if (radio) await readPicoPassword();
+    }
     updateProgress(); messagePreview();
     notice('Connected · Status updated ' + observedAt); controls(true);
   } catch (e) { markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Session ended. Log in again; your draft is preserved.'; notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
@@ -654,8 +681,87 @@ async function action(fn) {
     notice(e.message + (e.code ? ' (' + e.code + ')' : '') + (e.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : ''),true);
     $('local-status').textContent = localAuthenticated ? 'Authenticated. Request rejected; your edits are preserved.' : 'Connection or session unconfirmed. Inspect occupied logins if login cannot proceed; no action was repeated.';
   }
-  finally { busy = false; controls(online); }
+  finally {
+    // Consumer requests are sequential. Keep other actions locked until this
+    // readiness read completes, including after login or station application.
+    frequencyRefreshing = true; controls(online);
+    try { await frequencyEditor?.refresh(); }
+    finally { frequencyRefreshing = false; busy = false; controls(online); }
+  }
 }
+async function frequencyAction(fn) {
+  if (busy) return;
+  busy = true; frequencyRefreshing = true; controls(online);
+  try { await fn(); }
+  finally { frequencyRefreshing = false; busy = false; controls(online); }
+}
+async function readPicoPassword() {
+  try {
+    const result = await api('consumer/password');
+    if (result.data.schema !== 'pico-password/1' || !result.revision ||
+        result.data.target?.device_id !== localIdentity.device_id ||
+        result.data.target?.boot_id !== localIdentity.boot_id ||
+        typeof result.data.wifi_default !== 'boolean' || result.data.saved !== true)
+      throw new Error('The Pico password setting could not be confirmed. Refresh before changing it.');
+    picoPasswordState = result;
+    $('pico-password-form').hidden = false;
+    $('pico-password-status').textContent = result.data.wifi_default
+      ? 'Using the default: the Wi-Fi password saved on this Pico.'
+      : 'Using a separate Pico password. Changing Wi-Fi does not change it.';
+  } catch (error) {
+    picoPasswordState = null;
+    $('pico-password-form').hidden = error.code === 'not_found';
+    if (error.code !== 'not_found') throw error;
+  }
+}
+function picoPasswordSignedOut(message) {
+  radio.clear(); picoPasswordState = null; localAuthenticated = false;
+  $('local-login').hidden = false; $('local-logout').hidden = true;
+  snapshot = null; requireReadback(); controls(false); markTitleStale();
+  $('pico-password-status').textContent = message;
+  $('local-status').textContent = message;
+  $('local-password').focus();
+}
+async function savePicoPassword(password) {
+  if (!picoPasswordState) throw new Error('Read the Pico password setting before changing it.');
+  try {
+    const result = await api('consumer/password','PUT',{
+      schema:'pico-password/1',target:picoPasswordState.data.target,password
+    },picoPasswordState.revision);
+    if (result.data.schema !== 'pico-password/1' || result.data.saved !== true ||
+        result.data.wifi_default !== (password === null) ||
+        result.data.target?.device_id !== localIdentity.device_id ||
+        result.data.target?.boot_id !== localIdentity.boot_id)
+      throw Object.assign(new Error('The Pico password save could not be confirmed.'),{unconfirmed:true});
+    const message = password === null ? 'Pico password saved. Sign in with the saved Wi-Fi password.'
+      : 'Pico password saved. Sign in with your new Pico password.';
+    picoPasswordSignedOut(message); notice(message);
+  } catch (error) {
+    if (error.unconfirmed || error.code === 'password_save_unconfirmed') {
+      picoPasswordSignedOut('Password change unconfirmed. Try signing in with the new password, then the previous password if refused. If neither works, restart the Pico and try again. Do not repeat the save automatically.');
+      error.message = $('local-status').textContent;
+    }
+    throw error;
+  } finally {
+    clearPassword('pico-new-password'); clearPassword('pico-confirm-password');
+  }
+}
+$('pico-password-form').onsubmit = event => {
+  event.preventDefault();
+  const password = $('pico-new-password').value, confirm = $('pico-confirm-password').value;
+  const valid = /^[\x20-\x7e]{8,63}$/.test(password);
+  const message = !valid ? 'Use 8–63 characters without accented letters or emoji.'
+    : password !== confirm ? 'The Pico passwords do not match. Enter the same password twice.' : '';
+  $('pico-password-error').textContent = message;
+  for (const id of ['pico-new-password','pico-confirm-password']) $(id).setAttribute('aria-invalid',String(Boolean(message)));
+  if (message) { $(!valid ? 'pico-new-password' : 'pico-confirm-password').focus(); return; }
+  return action(() => savePicoPassword(password));
+};
+for (const id of ['pico-new-password','pico-confirm-password']) $(id).oninput = () => {
+  $('pico-password-error').textContent = '';
+  for (const field of ['pico-new-password','pico-confirm-password']) $(field).setAttribute('aria-invalid','false');
+};
+$('pico-password-default').onclick = () => action(() => savePicoPassword(null));
 $('refresh').onclick = () => action(() => refresh());
 $('local-login').onsubmit = event => { event.preventDefault(); return action(async () => {
   cancelReconnect();
@@ -685,6 +791,7 @@ $('local-login').onsubmit = event => { event.preventDefault(); return action(asy
   }
   if (dirty || writeState !== 'ready' && saveAttempt) { await refresh(); await readSavedKeepingDraft(); }
   else await refresh(true);
+  if (radio && !picoPasswordState && localAuthenticated) await readPicoPassword();
   notice(radio ? 'Radio session authorized. Check saved-state review before another save.' : 'Local SoftAP session authorized.');
 }); };
 $('inspect-logins').onclick = () => action(async () => {
@@ -696,7 +803,7 @@ $('inspect-logins').onclick = () => action(async () => {
   const lost = radio.lostSession;
   $('retirement-target').replaceChildren(new Option('Choose a login explicitly',''),...discovery.sessions.map(s =>
     new Option(`${s.selector} · ${s.state}${lost?.selector === s.selector && lost.boot_id === discovery.boot_id ? ' · retained selector from this tab' : ''}`,s.selector)));
-  $('retirement-status').textContent = `Pico ${discovery.device_id}; ${discovery.interface} at ${discovery.authority}. A login may belong to another operator. Retirement ends only that login and cancels its undelivered effects. Saved settings and radio jobs remain. Enter the current saved Wi-Fi password below, select a login, then retire it.`;
+  $('retirement-status').textContent = `Pico ${discovery.device_id}; ${discovery.interface} at ${discovery.authority}. A login may belong to another operator. Retirement ends only that login and cancels its undelivered effects. Saved settings and radio jobs remain. Enter the current Pico password below, select a login, then retire it.`;
 });
 $('retirement-target').onchange = () => controls(online);
 $('retire-login').onclick = () => action(async () => {
@@ -889,13 +996,36 @@ function checkPlanLimits(plan) {
   if (!Array.isArray(plan.events) || !plan.events.length || plan.events.length > capabilities.wtp.max_events) throw new Error('This device allows at most ' + capabilities.wtp.max_events + ' events per job. Reduce the message complexity or repetition');
   return duration;
 }
+function messageFrequencyFields() {
+  const mode = $('message-mode').value;
+  $('message-frequency-label').textContent = mode === 'fskcw' ? 'Space frequency (Hz)' : mode === 'dfcw' ? 'Dot frequency (Hz)' : 'Carrier frequency (Hz)';
+  $('message-frequency-help').textContent = mode === 'fskcw' ? 'Direct RF space frequency. Mark is above space by the positive shift; gaps within a message use space. Repeat gaps have RF off.' : mode === 'dfcw' ? 'Direct RF dot frequency. Dash is above dot by the positive shift; both use the selected dot length. Gaps have RF off.' : 'Direct RF carrier frequency. Dots and dashes use this frequency; gaps have RF off.';
+  $('message-shift').disabled = mode === 'qrss';
+  $('message-shift-help').textContent = mode === 'qrss' ? 'Unused in QRSS. Your shift entry is kept for FSKCW and DFCW.' : mode === 'fskcw' ? 'Positive shift in Hz: mark = space + shift.' : 'Positive shift in Hz: dash = dot + shift.';
+}
+function messageFrequencies(mode) {
+  const fail = (id, text) => { const error = new Error(text); error.input = id; throw error; };
+  const parse = (id, label) => { try { return nanoDecimal($(id).value,label); } catch (error) { error.input=id; throw error; } };
+  const base = parse('message-frequency',mode === 'fskcw' ? 'Space frequency' : mode === 'dfcw' ? 'Dot frequency' : 'Carrier frequency');
+  if (!base) fail('message-frequency','Enter a frequency greater than zero.');
+  const shift = mode === 'qrss' ? 0n : parse('message-shift','Frequency shift');
+  if (mode !== 'qrss' && !shift) fail('message-shift','Enter a frequency shift greater than zero.');
+  const upper = base + shift;
+  if (upper > 18446744073709551615n) fail('message-shift','Frequency plus shift is too large. Reduce the frequency or shift.');
+  const states = mode === 'qrss' ? [['Carrier',base]] : mode === 'fskcw' ? [['Space',base],['Mark',upper]] : [['Dot',base],['Dash',upper]];
+  const ranges = capabilities?.wtp?.frequency_ranges;
+  for (const [name,frequency] of states) {
+    if (Array.isArray(ranges) && !ranges.some(r => frequency >= BigInt(r.minimum_nhz) && frequency <= BigInt(r.maximum_nhz)))
+      fail(frequency === base ? 'message-frequency' : 'message-shift',name + ' frequency is outside the available engine ranges. Choose a frequency and shift within those ranges.');
+  }
+  const hz = n => { const fraction=(n%1000000000n).toString().padStart(9,'0').replace(/0+$/,''); return n/1000000000n + (fraction ? '.'+fraction : '') + ' Hz'; };
+  return {frequency:mode === 'fskcw' ? upper : base,second:mode === 'qrss' ? 0n : mode === 'fskcw' ? base : upper,preview:states.map(([name,n])=>name+' '+hz(n)).join(' · ')};
+}
 function messagePlan() {
   const text = $('message-text').value, mode = $('message-mode').value;
   if (!text || text.length > 32) throw new Error('Use 1–32 characters, including spaces. The message has ' + text.length);
   if (!['qrss','fskcw','dfcw'].includes(mode)) throw new Error('Choose QRSS, FSKCW or DFCW');
-  const frequency = nanoDecimal($('message-frequency').value, 'Frequency');
-  const shift = mode === 'qrss' ? 0n : nanoDecimal($('message-shift').value, 'Frequency shift');
-  if (!frequency || (mode !== 'qrss' && (!shift || shift >= frequency))) throw new Error('Use a positive frequency and a smaller positive frequency shift');
+  const frequencies = messageFrequencies(mode);
   const dot = nanoDecimal($('message-dot').value, 'Dot length');
   const scaled = (id, label) => {
     const product = dot * nanoDecimal($(id).value, label);
@@ -925,16 +1055,18 @@ function messagePlan() {
   const maximum = capabilities?.wtp?.max_job_duration_ns ? BigInt(capabilities.wtp.max_job_duration_ns) : 3600000000000n;
   if (duration > maximum || duration > 3600000000000n) throw new Error('Calculated duration: ' + durationText(duration) + '. Maximum: ' + durationText(maximum < 3600000000000n ? maximum : 3600000000000n) + '. Shorten the timing or reduce repeats');
   if (events > (capabilities?.wtp?.max_events || 512)) throw new Error(events + ' events exceed the device limit of ' + (capabilities?.wtp?.max_events || 512) + '. Reduce repetition or use a simpler message');
-  return {duration,events,body:{mode,message:text,frequency_nhz:frequency.toString(),space_frequency_nhz:(mode==='qrss'?0n:frequency-shift).toString(),timing:Object.fromEntries(Object.entries(timing).map(([k,v])=>[k,v.toString()])),repeat_count:repeat,repeat_gap_ns:repeatGap.toString(),allow_frequency_adjustment:true}};
+  return {duration,events,frequencies:frequencies.preview,body:{mode,message:text,frequency_nhz:frequencies.frequency.toString(),space_frequency_nhz:frequencies.second.toString(),timing:Object.fromEntries(Object.entries(timing).map(([k,v])=>[k,v.toString()])),repeat_count:repeat,repeat_gap_ns:repeatGap.toString(),allow_frequency_adjustment:true}};
 }
 let messageEdited = false;
 function messagePreview() {
+  messageFrequencyFields();
+  for (const id of ['message-frequency','message-shift']) $(id).setAttribute('aria-invalid','false');
   if (!messageEdited && !$('message-text').value) {
     $('message-preview').textContent = 'Enter a message and frequency to calculate its duration.';
     $('message-preview').classList.toggle('error',false); return;
   }
-  try { const p = messagePlan(); $('message-preview').textContent = durationText(p.duration) + ' · ' + p.events + ' / ' + (capabilities?.wtp?.max_events || 512) + ' events · ' + $('message-text').value.length + ' / 32 characters'; $('message-preview').classList.toggle('error',false); }
-  catch (e) { $('message-preview').textContent = e.message; $('message-preview').classList.toggle('error',true); }
+  try { const p = messagePlan(); $('message-preview').textContent = p.frequencies + ' · ' + durationText(p.duration) + ' · ' + p.events + ' / ' + (capabilities?.wtp?.max_events || 512) + ' events · ' + $('message-text').value.length + ' / 32 characters'; $('message-preview').classList.toggle('error',false); }
+  catch (e) { $('message-preview').textContent = e.message; $('message-preview').classList.toggle('error',true); if (e.input) $(e.input).setAttribute('aria-invalid','true'); }
 }
 function updateProgress() {
   if (!activePlan || !snapshot || snapshot.job.boot_id !== activePlan.bootId || snapshot.job.job_id !== activePlan.jobId) { $('job-progress').textContent = ''; return; }
@@ -945,8 +1077,12 @@ function updateProgress() {
   const bounded = elapsed < 0n ? 0n : elapsed > activePlan.durationNs ? activePlan.durationNs : elapsed;
   $('job-progress').textContent = 'Running · estimated ' + durationText(bounded) + ' of ' + durationText(activePlan.durationNs) + ' · ' + (Number(bounded*1000n/activePlan.durationNs)/10).toFixed(1) + '% · status checked ' + observedAt;
 }
-$('message-form').oninput = () => { messageEdited=true; messagePreview(); };
+$('message-form').oninput = () => { messageEdited=true; $('message-result').textContent=''; messagePreview(); };
+$('message-mode').onchange = () => { $('message-result').textContent=''; messagePreview(); };
+messagePreview();
 $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=true; messagePreview(); return action(async () => {
+  $('message-result').textContent = ''; $('message-result').classList.toggle('error',false);
+  try {
   if (!capabilities?.message_jobs) throw new Error('This firmware does not support message submission');
   const plan = messagePlan(), startMs = Date.parse($('message-start').value + 'Z');
   if (!Number.isFinite(startMs)) throw new Error('Choose a UTC start time');
@@ -957,7 +1093,12 @@ $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=tr
   await job('ARM',{job_id:plan.body.job_id,start_utc_ns:(BigInt(startMs)*1000000n).toString(),max_start_uncertainty_ns:capabilities.wtp.maximum_arm_uncertainty_ns});
   activePlan = {bootId:snapshot?.job.boot_id,jobId:plan.body.job_id,startMs,durationNs:plan.duration};
   $('job-result').textContent = 'Message armed · ' + durationText(plan.duration) + '. Timing is now local to the Pico.';
+  $('message-result').textContent = $('job-result').textContent;
   await observeAfterArm();
+  } catch (error) {
+    $('message-result').textContent = error.message.replace(/[.!?]$/,'') + (error.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : '.') + ' Your entries are preserved.';
+    $('message-result').classList.toggle('error',true); throw error;
+  }
 }); };
 if (typeof setInterval === 'function') setInterval(() => {
   if (!busy && online && activePlan && ['armed','running'].includes(snapshot?.job.state)) action(() => refresh());

@@ -1,19 +1,15 @@
 # Raspberry Pi/Linux BLE local-control client
 
 `scripts/wsprrypico_ble.py` is the supported native BlueZ client for the
-WsprryPico GATT service. It gives a Raspberry Pi the same
-encrypted, application-authorized local-control path used by the checked-in
-Bluefy page without adding another device protocol or job service.
+WsprryPico GATT service. It gives a Raspberry Pi an encrypted, application-authorized local-control path to the device's existing job service.
 The UUIDs, framing, authorization exchanges, provisioning vocabulary and WTP
 mapping are defined by the frozen
 [Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md) and its
 [machine-readable conformance vectors](../protocol/Field-GATT-v1-vectors.json).
-Firmware, Bluefy and this client are source/host conforming to that contract.
+Firmware and this client are source/host conforming to that contract.
 Physical evidence does not establish general peer/fleet interoperability.
 
-This tool is an additional local/bench client. Bluefy remains the selected
-iPhone client, and a Raspberry Pi run is not evidence for Bluefy/iOS offline
-acceptance. For normal remote job transfer and job control, authenticated
+This tool is a local/bench client. For normal remote job transfer and job control, authenticated
 TLS/TCP remains a first-class WTP transport. USB CDC remains the canonical
 reference transport. All three carry complete jobs to the same device
 `JobService`; symbol timing never depends on BLE, USB or network packet timing.
@@ -104,8 +100,7 @@ python3 scripts/wsprrypico_ble.py --address AA:BB:CC:DD:EE:FF \
   --device-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa wtp-status
 ```
 
-`sync-time` uses the same principal/session/device/nonce-bound challenge as
-Bluefy. The target begins charging latency when it starts the final challenge
+`sync-time` uses a principal/session/device/nonce-bound challenge. The target begins charging latency when it starts the final challenge
 response indication, a conservative boundary before the controller can first
 sample UTC. The Linux client sends the ordered `time_submit` fragments with the
 encrypted GATT write-without-response property so per-fragment ATT replies do
@@ -201,6 +196,4 @@ reply or process exit is never evidence that RF output is inactive.
 identity binding, authorization, field controls, WTP negotiation/status, the
 bound step-up/apply transaction, confirmation polling, cancellation, the exact
 7,168-byte transfer and local file controls. The vector-driven provisioning
-contract check keeps firmware, Bluefy, Linux, documentation and the frozen
-limits synchronized. These deterministic checks establish no RF, general release, Bluefy/iOS or
-physical UTC-accuracy qualification.
+contract check keeps firmware, Linux, documentation and the frozen limits synchronized. These deterministic checks establish no RF, general release or physical UTC-accuracy qualification.

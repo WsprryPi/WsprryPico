@@ -3,11 +3,14 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const source = fs.readFileSync(__dirname + '/../src/network/web/device-presentation.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/saved-progress.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/config-validation.js','utf8') + '\n' + fs.readFileSync(__dirname + '/../src/network/web/app.js','utf8');
+const scripts = process.env.WSPRRY_PICO_BROWSER_SHIPPED ? ['device-presentation.min.js','config-validation.min.js','app.min.js'] : ['device-presentation.js','saved-progress.js','config-validation.js','app.js'];
+const source = scripts.map(name=>fs.readFileSync(__dirname + '/../src/network/web/'+name,'utf8')).join('\n');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false) {
     const ids = ['device-name','device-name-state','device-id','device-boot','device-observation','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
-    ids.push('draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
+    ids.push('pico-password-form','pico-password-settings','pico-password-default','pico-password-status','pico-password-help','pico-password-error','pico-new-password','pico-confirm-password','draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
+    ids.push('message-frequency-label','message-frequency-help','message-shift-help','message-result');
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
+    elements['message-mode'].value='qrss'; // Native select initially selects its first option.
     for (const id of ['consumer-setup','consumer-network-settings','consumer-station-settings',
       'consumer-check-save','consumer-network-form','consumer-station-form','consumer-ssid',
       'consumer-password','consumer-time-server','consumer-callsign','consumer-locator','consumer-return','consumer-save-status','consumer-resume'])
@@ -38,7 +41,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1',configured_hostname:'old.local'}};
     elements['config-password'] = elements.config.elements.password;
     elements['local-password-label'].textContent = 'Local-access password';
-    for (const id of ['local-password','config-password','consumer-password','retirement-password']) {
+    for (const id of ['local-password','config-password','consumer-password','retirement-password','pico-new-password','pico-confirm-password']) {
         Object.assign(elements[id], {type:'password',selectionStart:0,selectionEnd:0,selectionDirection:'none',
             setSelectionRange(start,end,direction) { this.selectionStart=start;this.selectionEnd=end;this.selectionDirection=direction; }});
         elements[id+'-toggle'] = {attributes:{},setAttribute(name,value) { this.attributes[name]=value; }};
@@ -83,7 +86,8 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                 if (f.restartMode === 'lost') throw new Error('lost restart response');
                 if (f.restartMode === 'success') state.job.boot_id = 'b'.repeat(32);
                 status = 202; data = {restart_requested:true};
-            } else if (path.endsWith('status')) data = structuredClone(state);
+            } else if (path.endsWith('consumer/password')) data = {schema:'pico-password/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:'a'.repeat(32)},wifi_default:true,saved:true};
+            else if (path.endsWith('status')) data = structuredClone(state);
             else if (path.endsWith('config/update')) {
                 const patch=JSON.parse(options.body).config;
                 if(patch.station)Object.assign(config.station,patch.station);
@@ -131,7 +135,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             prepareNetwork:async()=>({kind:'network',device:'1'.repeat(32),generation:'4',digest:'a'.repeat(64),submit:{secret:'must-not-survive'}}),
             submitSetup:async()=>{ f.setupSubmits=(f.setupSubmits||0)+1; f.radio.authenticated=false; throw new Error('reply lost'); },
             checkSetup:async()=> f.setupCheckResult || 'saved',
-            logout:async()=>{ f.radio.authenticated=false; }
+            clear:()=>{ f.radio.authenticated=false; },logout:async()=>{ f.radio.authenticated=false; }
         };
         context.WsprryPicoConsumerRadio={createClient:()=>f.radio};
     }
@@ -252,7 +256,7 @@ if (require.main === module) (async () => {
     assert.equal(password.type,'text');
     assert.equal(password.value.length,63);
     assert.deepEqual([password.selectionStart,password.selectionEnd,password.selectionDirection],[3,11,'backward']);
-    assert.equal(toggle.attributes['aria-label'],'Hide saved Wi-Fi password');
+    assert.equal(toggle.attributes['aria-label'],'Hide pico password');
     assert.equal(toggle.attributes['aria-pressed'],'true');
     assert.equal(visibility.elements['local-password-slash'].attributes.hidden,false);
     assert.equal(visibility.elements['consumer-password'].type,'password');
@@ -272,7 +276,7 @@ if (require.main === module) (async () => {
     visibility.elements['consumer-password-toggle'].onclick();
     assert.equal(visibility.elements['consumer-password'].type,'text');
     await visibility.elements['local-logout'].onclick();
-    for (const id of ['local-password','config-password','consumer-password','retirement-password']) {
+    for (const id of ['local-password','config-password','consumer-password','retirement-password','pico-new-password','pico-confirm-password']) {
         assert.equal(visibility.elements[id].value,'');assert.equal(visibility.elements[id].type,'password');
         assert.equal(visibility.elements[id+'-toggle'].attributes['aria-pressed'],'false');
     }

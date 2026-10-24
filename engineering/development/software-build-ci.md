@@ -24,8 +24,9 @@ preview images when opened, updated or reopened. Merging a PR into `main`
 therefore builds the resulting `main` commit as well. There are no path filters
 or build cancellation groups. Publication is serialized separately per branch,
 with up to 100 waiting jobs retained using GitHub's `queue: max` setting.
-Both branches contain the canonical workflow and have verified permanent
-downloads. Repository settings and the default branch are unchanged.
+Both branches contain the canonical workflow. Branch downloads require an
+explicitly published bookmark; an absent bookmark refuses selection. Tagged
+firmware can be selected explicitly, including `--version 1.0.0-beta.1`.
 
 Manual dispatch, where available, accepts only the enumerated `consumer`
 profile. Ordinary embedded versions are generated before building as
@@ -35,10 +36,10 @@ bytes under unique `v<version>` prerelease tags. They remain CI testing images;
 `main` does not automatically become a stable product release. Publication does
 not mark a prerelease as GitHub's latest stable release.
 
-**Verification does not publish.** Both firmware and installer publication jobs
+**Verification does not publish.** Firmware publication jobs
 require a manual `workflow_dispatch` with `publish=true`; the default is false.
 Pushes, pull requests, tag pushes and ordinary manual checks leave existing
-releases, assets and main/devel bookmarks untouched. The publisher entry points
+releases, assets and main/devel bookmarks untouched. The firmware publisher entry points
 enforce the same authorization. Existing downloads remain available until an
 explicit publication advances their channel.
 
@@ -75,9 +76,9 @@ remain identical when resuming an interrupted upload; a rebuild/run/attempt
 cannot replace a draft's previously uploaded assets.
 
 Main/devel CI publication uses a manual dispatch on that branch with
-`-f publish=true`. Installer publication independently uses
-`usb-installer.yml`, a main/devel ref and `-f publish=true`. A successful build
-alone authorizes neither publication.
+`-f publish=true`. The [installer client](usb-installer.md#installer-source-distribution)
+uses verified immutable source and needs no separate release. A successful build
+alone does not authorize firmware publication.
 
 An explicit manual `devel` dispatch may select `testing_version` with the strict
 form `0.1.0-testing.N` (positive N, at most six digits). That dispatch runs the
@@ -100,8 +101,7 @@ does not update either bookmark or create a stable release.
 The actual checked-out full source SHA is recorded. PR head, synthetic merge
 commit and trusted branch commits are distinct identities. PR artifacts are test
 outputs and cannot be selected as the trusted consumer deployment candidate.
-The source commit containing firmware/workflow inputs is **F**. A later
-evidence-only commit **E** records acceptance without relabelling F's firmware.
+
 
 ## Inputs and checks
 
@@ -197,8 +197,8 @@ The permanent download pages are [devel](https://github.com/WsprryPi/WsprryPico/
 and [main](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-main). Each page
 links to that branch's latest successfully verified and published version.
 The first successful publication creates the corresponding page. Failed builds
-leave its previous version available. The [installer acceptance](usb-installer-results.md#published-acceptance)
-records the first verified main image and its exact source.
+leave its previous version available. An absent branch bookmark causes refusal;
+explicit beta/final selectors use their own verified release.
 
 [`scripts/ci/publish.py`](../../scripts/ci/publish.py) downloads the exact artifact
 pair after the read-only verification job passes, checks provenance/checksums

@@ -1,5 +1,5 @@
 # Optional test dependency only. Never fetched, installed or linked into firmware.
-set(WSPRRY_PICO_WSPRRYPI_SOURCE "" CACHE PATH "Explicit reviewed WsprryPi checkout for host client interoperability")
+set(WSPRRY_PICO_WSPRRYPI_SOURCE "" CACHE PATH "Caller-selected WsprryPi sources for host client interoperability")
 if(WSPRRY_PICO_WSPRRYPI_SOURCE)
     set(client_root "${WSPRRY_PICO_WSPRRYPI_SOURCE}/src/WTP-Client")
     execute_process(COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/verify_wsprrypi_client.py"
@@ -22,4 +22,6 @@ if(WSPRRY_PICO_WSPRRYPI_SOURCE)
     target_link_libraries(host_client_interop_tests PRIVATE reference_host_client host_endpoint_bridge)
     target_compile_options(host_client_interop_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME host_client_interop_tests COMMAND host_client_interop_tests)
+    add_test(NAME companion_source_selection_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/companion_source_selection_tests.py "${WSPRRY_PICO_WSPRRYPI_SOURCE}")
 endif()

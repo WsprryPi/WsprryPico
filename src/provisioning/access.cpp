@@ -56,7 +56,8 @@ void secure_clear(std::string& value) {
 
 bool valid_record(const AccessRecord& record) {
     if (!record.epoch || !valid_local_password(record.password) ||
-        record.bond_count > authorized_bond_capacity)
+        record.bond_count > authorized_bond_capacity ||
+        (!record.radio_password.empty() && !valid_local_password(record.radio_password)))
         return false;
     for (std::size_t i = 0; i < record.bond_count; ++i) {
         if (!record.bonds[i])
@@ -91,7 +92,7 @@ bool valid_record(const AccessRecord& record) {
 std::array<std::uint8_t, access_page_size> serialize(const AccessRecord& record) {
     std::array<std::uint8_t, access_page_size> out{};
     put(std::span(out).subspan(0, 8), record_magic);
-    put(std::span(out).subspan(8, 4), 2);
+    put(std::span(out).subspan(8, 4), record.radio_password.empty() ? 2 : 3);
     put(std::span(out).subspan(16, 8), record.epoch);
     std::uint8_t flags = 0;
     if (record.default_password)
@@ -111,13 +112,20 @@ std::array<std::uint8_t, access_page_size> serialize(const AccessRecord& record)
               out.begin() + 64);
     out[96] = static_cast<std::uint8_t>(record.password.size());
     std::copy(record.password.begin(), record.password.end(), out.begin() + 97);
+    if (!record.radio_password.empty()) {
+        out[160] = static_cast<std::uint8_t>(record.radio_password.size());
+        std::copy(record.radio_password.begin(), record.radio_password.end(), out.begin() + 161);
+    }
     return out;
 }
 
 std::optional<AccessRecord> deserialize(std::span<const std::uint8_t> bytes) {
     if (bytes.size() != access_page_size || get(bytes.subspan(0, 8)) != record_magic ||
-        get(bytes.subspan(8, 4)) != 2 || bytes[24] & ~std::uint8_t{7} || bytes[29] || bytes[30] ||
-        bytes[31] || bytes[96] > 63)
+        (get(bytes.subspan(8, 4)) != 2 && get(bytes.subspan(8, 4)) != 3) ||
+        bytes[24] & ~std::uint8_t{7} || bytes[29] || bytes[30] || bytes[31] || bytes[96] > 63)
+        return {};
+    const bool custom = get(bytes.subspan(8, 4)) == 3;
+    if (custom && (bytes[160] < 8 || bytes[160] > 63))
         return {};
     AccessRecord record;
     record.epoch = get(bytes.subspan(16, 8));
@@ -133,9 +141,13 @@ std::optional<AccessRecord> deserialize(std::span<const std::uint8_t> bytes) {
     std::copy_n(bytes.begin() + 64, record.reset.request_digest.size(),
                 record.reset.request_digest.begin());
     record.password.assign(reinterpret_cast<const char*>(bytes.data() + 97), bytes[96]);
+    if (custom)
+        record.radio_password.assign(reinterpret_cast<const char*>(bytes.data() + 161), bytes[160]);
     const auto used = 97 + bytes[96];
-    if (!std::all_of(bytes.begin() + used, bytes.end(),
+    if (!std::all_of(bytes.begin() + used, custom ? bytes.begin() + 160 : bytes.end(),
                      [](std::uint8_t value) { return value == 0; }) ||
+        (custom && !std::all_of(bytes.begin() + 161 + bytes[160], bytes.end(),
+                                [](std::uint8_t value) { return value == 0; })) ||
         !valid_record(record)) {
         scrub(record);
         return {};
@@ -286,6 +298,7 @@ bool idle_for_access(const Activity& activity) {
 
 void scrub(AccessRecord& record) {
     secure_clear(record.password);
+    secure_clear(record.radio_password);
     record.epoch = 0;
     record.default_password = false;
     record.field_mode = false;
@@ -363,6 +376,32 @@ bool AccessStore::replace(const AccessRecord& record) {
     if (record == record_)
         return true;
     return commit(record);
+}
+
+bool AccessStore::set_radio_password(std::string_view password,
+                                     std::string_view initial_field_password) {
+    if ((!password.empty() && !valid_local_password(password)) ||
+        (state_ != AccessStoreState::Erased && !healthy()) ||
+        (record() && record()->reset.pending()))
+        return false;
+    if (state_ == AccessStoreState::Erased && password.empty())
+        return true;
+    AccessRecord next = record() ? *record() : AccessRecord{};
+    if (state_ == AccessStoreState::Erased) {
+        next.epoch = 1;
+        next.password = initial_field_password;
+        // Saving a browser password must not enable the separate BLE surface.
+        next.ble_disabled = true;
+    }
+    secure_clear(next.radio_password);
+    next.radio_password = password;
+    const bool saved = state_ == AccessStoreState::Erased ? commit(next) : replace(next);
+    // A failed commit acknowledgement may still have selected the new record.
+    // Read the journal before reporting success; never fall back on a fault.
+    const bool loaded = saved || load();
+    const bool verified = loaded && healthy() && record_ == next;
+    scrub(next);
+    return verified;
 }
 
 bool AccessStore::commit(const AccessRecord& record) {

@@ -3,17 +3,15 @@
 Status: frozen Field-GATT/1 source contract. This document defines the custom
 Bluetooth Low Energy interface implemented in `devel`. The checked-in
 [conformance vectors](Field-GATT-v1-vectors.json) bind its UUIDs, limits,
-profile-apply sequence and provisional-bond expiry policy across firmware,
-Bluefy and the native Raspberry Pi client. An incompatible wire change requires
+profile-apply sequence and provisional-bond expiry policy across firmware
+and the native Raspberry Pi client. An incompatible wire change requires
 a new Field-GATT protocol version. Source/host conformance does not establish physical interoperability or
 end-user acceptance.
 
 This document is written for technically experienced operators, client authors
 and maintainers. It explains how to identify the correct Pico, establish the
 two layers of authorization, exchange field commands, provision a complete
-profile and carry WTP/1 over GATT. Normal users should use the checked-in
-Bluefy page or the supported Raspberry Pi/Linux client rather than constructing
-GATT values by hand.
+profile and carry WTP/1 over GATT. Use the supported Raspberry Pi/Linux client to exchange GATT values.
 
 The words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT** and
 **MAY** describe this custom protocol's current conformance requirements.
@@ -44,19 +42,6 @@ defined separately by the
 [engineering field-access contract](../development/field-access.md).
 
 ## 2. Supported clients
-
-### Bluefy on iPhone
-
-Open the repository-owned page from the project-approved HTTPS origin in
-Bluefy. The page verifies its release assets before enabling the picker. The
-page is the engineering iPhone client; there is no native WsprryPico iOS app.
-Consumer commissioning uses the separately selected open SoftAP portal.
-
-Bluefy uses the field command/status characteristics for authorization,
-provisioning and local controls. When the operator requests WTP status, the page
-selects a connection-scoped raw-WTP mode on that same characteristic pair. It
-does this because the accepted Bluefy path must keep one status listener and one
-write characteristic stable for the life of the connection.
 
 ### Raspberry Pi or Linux with BlueZ
 
@@ -156,8 +141,7 @@ bond to an application-authorized principal.
 An already-authorized retained bond is admitted when the encrypted link is
 restored. It still sends `authorize` to establish a new field session, but the
 current target treats that request's required `password` member as
-non-authoritative and does not validate its contents. Bluefy sends an empty
-string; the current native client still prompts for and sends a bounded value.
+non-authoritative and does not validate its contents. An empty string is permitted; the current native client still prompts for and sends a bounded value.
 Entering text in this request is not a fresh password proof and MUST NOT be
 represented as one. A new or provisional bond still requires the
 current nonempty password, and empty-password authorization MUST fail for it.
@@ -228,8 +212,7 @@ device permits only one queued field reply, and a conforming client sends one
 field request at a time, correlates the response by `request_id`, and waits for
 all response indications to complete before starting an unrelated exchange.
 
-Clients SHOULD use acknowledged writes for field frames. The selected Bluefy
-controller-time path may send leading `time_submit` frames without response and
+Clients SHOULD use acknowledged writes for field frames. A controller-time path may send leading `time_submit` frames without response and
 the final frame with response. ATT ordering plus the acknowledged tail preserves
 complete-message ordering while staying inside the time-uncertainty budget.
 The application response still arrives as one or more indications.
@@ -332,8 +315,7 @@ new field session.
 For a new or provisional bond, the password is 8 through 63 printable ASCII
 characters and is validated as the application credential. For an already-
 authorized retained bond, the member remains syntactically required but its
-value is currently ignored. Bluefy sends an empty string; the native client
-currently sends its prompted bounded value. Success establishes the field
+value is currently ignored. An empty string is permitted; the native client currently sends its prompted bounded value. Success establishes the field
 session and restores field-framed mode. It does not create a fresh password
 proof for profile, password, bond, trust or reset mutation.
 
@@ -422,7 +404,7 @@ and, for controller time, the same principal.
 
 ### `select_wtp_status_carrier`
 
-This operation exists for the Bluefy connection. The request has only the
+This operation selects WTP on the field characteristic pair. The request has only the
 common fields and uses the field session. Success is:
 
 ```json
@@ -502,7 +484,7 @@ yet joined a station network needs authenticated controller time before its
 first profile can pass this check.
 
 Real profiles contain private material. Keep them outside Git, do not paste
-them into issue reports or logs, and clear the Bluefy form/tab after use.
+them into issue reports or logs, and clear temporary client copies after use.
 
 ### Step 1: `open`
 
@@ -635,7 +617,7 @@ by WTP/1. Its device ID and boot ID must be checked. Field authorization grants
 access to the transport; it does not bypass WTP session, claim, lease, replay,
 clock, output or lifecycle rules.
 
-### Bluefy field-carrier mode
+### Field-carrier mode
 
 After successful `select_wtp_status_carrier`, use the same steps but substitute
 field command (`7d6b0003...`) and field status (`7d6b0004...`). Values on those
@@ -739,7 +721,7 @@ connection and do not perform interactive work between the two messages.
 
 ### Field commands stop working after WTP status
 
-Bluefy deliberately selected raw-WTP mode on the field characteristics. That
+The client selected raw-WTP mode on the field characteristics. That
 mode lasts until disconnect. Reconnect, re-read identity and authorize a new
 field session before sending framed field commands.
 
@@ -771,13 +753,12 @@ The wire behavior is implemented by:
 - `src/provisioning/gatt_framing.*` for field segmentation;
 - `src/provisioning/command.*` and `src/provisioning/ble_session.*` for the JSON
   vocabulary and authorization state;
-- `src/provisioning/pico/gatt_transport.*` for BTstack transport behavior;
-- `src/provisioning/web/bluefy.js` for the selected iPhone client; and
+- `src/provisioning/pico/gatt_transport.*` for BTstack transport behavior; and
 - `scripts/wsprrypico_ble.py` for the supported BlueZ client.
 
 Those files are implementations, not an excuse to leave behavior undocumented.
 The machine-readable [Field-GATT/1 vectors](Field-GATT-v1-vectors.json) and
-deterministic firmware, Bluefy and native-Pi tests enforce the frozen constants,
+deterministic firmware and native-Pi tests enforce the frozen constants,
 profile sequence, 7,168-byte transfer boundary, bound step-up/apply behavior and
 provisional-bond expiry cleanup. If code, vectors and this contract disagree,
 the change is not conforming. Compatible clarifications must update all affected

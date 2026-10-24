@@ -12,7 +12,7 @@ bool elapsed(std::uint64_t now, std::uint64_t then, std::uint64_t limit) {
 bool SoftApCoordinator::request_join_grace(std::uint64_t now_ms) {
     if (grace(now_ms))
         return false;
-    if (expired_) {
+    if (expired_ || !requested_) {
         expired_ = false;
         activated_ = false;
     }
@@ -48,8 +48,20 @@ void SoftApCoordinator::station(bool usable, std::uint64_t now_ms) {
     station_usable_ = usable;
 }
 
+void SoftApCoordinator::client_connected(bool value, std::uint64_t now_ms) {
+    value = value && activated_ && requested_ && !expired_;
+    if (value || client_connected_) {
+        // Association, rather than a browser cookie or traffic, retains access.
+        // The last disconnect starts a fresh ten-minute inactivity window.
+        activated_ms_ = now_ms;
+        client_hold_ = true;
+    }
+    client_connected_ = value;
+}
+
 bool SoftApCoordinator::grace(std::uint64_t now_ms) const {
-    return grace_active_ && !elapsed(now_ms, grace_started_ms_, softap_join_grace_ms);
+    return grace_active_ &&
+           (!activated_ || !elapsed(now_ms, grace_started_ms_, softap_join_grace_ms));
 }
 
 bool SoftApCoordinator::manual_setup(std::uint64_t now_ms) const {
@@ -62,15 +74,19 @@ void SoftApCoordinator::ready(bool value) {
     if (ready_ && !activated_) {
         activated_ = true;
         activated_ms_ = last_poll_ms_;
+        if (grace_active_)
+            grace_started_ms_ = last_poll_ms_;
     }
 }
 
 bool SoftApCoordinator::poll(std::uint64_t now_ms) {
     last_poll_ms_ = now_ms;
-    if (activated_ && elapsed(now_ms, activated_ms_, softap_manual_setup_ms)) {
+    if (activated_ && !client_connected_ &&
+        elapsed(now_ms, activated_ms_, softap_manual_setup_ms)) {
         expired_ = true;
         manual_active_ = grace_active_ = draining_ = false;
         ready_ = requested_ = false;
+        client_hold_ = false;
     }
     if (station_seen_ && station_usable_ &&
         elapsed(now_ms, station_changed_ms_, softap_station_stable_ms))
@@ -91,10 +107,11 @@ bool SoftApCoordinator::poll(std::uint64_t now_ms) {
         }
     }
     const bool field_mode = access_.record() && access_.record()->field_mode;
-    const bool retained = (!temporary_access_ && (token_records_ || reply_active_)) ||
+    const bool retained = client_hold_ ||
+                          (!temporary_access_ && (token_records_ || reply_active_)) ||
                           grace(now_ms) || manual_setup(now_ms);
     if (fallback_ && station_usable_ &&
-        elapsed(now_ms, station_changed_ms_, softap_station_stable_ms) &&
+        elapsed(now_ms, station_changed_ms_, softap_station_stable_ms) && !client_connected_ &&
         (temporary_access_ || !retained) && !field_mode && !recovery_)
         fallback_ = false;
     const bool desired =
@@ -114,6 +131,21 @@ bool SoftApCoordinator::poll(std::uint64_t now_ms) {
 
 SoftApStatus SoftApCoordinator::status(std::uint64_t now_ms) const {
     const bool manual = manual_setup(now_ms);
+    auto remaining =
+        client_connected_ ? softap_manual_setup_ms
+        : activated_ && !expired_ && now_ms >= activated_ms_
+            ? softap_manual_setup_ms - std::min(softap_manual_setup_ms, now_ms - activated_ms_)
+            : 0;
+    const bool field_mode = access_.record() && access_.record()->field_mode;
+    const bool retained_without_grace = blank_profile_ || field_mode || recovery_ || fallback_ ||
+                                        client_hold_ || manual ||
+                                        (!temporary_access_ && (token_records_ || reply_active_));
+    if (activated_ && grace_active_ && !retained_without_grace)
+        remaining =
+            std::min(remaining, now_ms >= grace_started_ms_
+                                    ? softap_join_grace_ms -
+                                          std::min(softap_join_grace_ms, now_ms - grace_started_ms_)
+                                    : 0);
     return {requested_,
             ready_,
             no_profile_,
@@ -127,9 +159,8 @@ SoftApStatus SoftApCoordinator::status(std::uint64_t now_ms) const {
             manual && manual_button_held_,
             draining_,
             expired_,
-            activated_ && !expired_ && now_ms >= activated_ms_
-                ? softap_manual_setup_ms - std::min(softap_manual_setup_ms, now_ms - activated_ms_)
-                : 0};
+            remaining,
+            client_connected_};
 }
 
 SoftApSurface SoftApCoordinator::surface(bool clock_usable) const {

@@ -5,10 +5,7 @@ manager and one JobService. Consumer Wi-Fi setup and password-encrypted radio
 control use the [consumer access](consumer-lan-access.md) and
 [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md) contracts. Their open
 Wi-Fi-first setup supersedes read-only blank-AP policy for that consumer surface.
-Every actual AP activation, including engineering field/recovery requests, has
-the same non-sliding ten-minute cap from activation. Stored field intent and
-session activity cannot extend an expired AP window. USB remains the local
-recovery transport.
+Every AP path, including engineering field and recovery access, remains available while a Wi-Fi client is associated. The final disconnect starts a ten-minute inactivity interval. Initial unjoined access lasts ten minutes, except the Console's two-minute join grace. Browser traffic, authentication slots and stored field intent do not substitute for association or reopen an expired window. USB remains the local recovery transport.
 
 Provisioning remains outside WTP/1. All field job control enters the existing
 JobService; transport loss does not prove inactivity or transfer ownership.
@@ -113,8 +110,8 @@ exposes no secret and grants no principal.
 
 The enrollment flow is:
 
-1. Bluefy connects and iOS completes Just Works pairing.
-2. The checked-in page reads and confirms the full device ID.
+1. The BLE client connects and its operating system completes Just Works pairing.
+2. The client reads and confirms the full device ID.
 3. The operator enters the local-access password.
 4. The target adapter validates device, session, locality, encrypted-link and
    password assertions.
@@ -161,7 +158,7 @@ limitation.
 Every boot starts with UTC unsynchronized. No battery-backed or persisted UTC is
 trusted. The preferred source is a reachable configured NTP server,
 including a local LAN server that needs no Internet. When none is reachable,
-an authenticated, full-device-ID-bound Bluefy or SoftAP controller supplies an
+an authenticated, full-device-ID-bound BLE or SoftAP controller supplies an
 experimental phone-time observation to the existing UTC discipline.
 
 The exchange uses a fresh nonce and Pico monotonic challenge timestamp. The
@@ -183,7 +180,7 @@ computes, rather than accepts from the client, a nonzero uncertainty comprising:
 Stale, replayed, wrong-device, wrong-session, nonmonotonic and over-budget
 observations are rejected. Phone UTC must be within the existing 2025-2099
 supported era. The existing 500 ms maximum uncertainty and 90-second WTP
-source-age admission are not relaxed. Bluefy and Safari request a sample at
+source-age admission are not relaxed. Browser controllers request a sample at
 connection and no less often than every 60 seconds while active. If iOS suspends
 the page or the connection ends, age and uncertainty continue to grow normally;
 new ARM and standalone-schedule admissions eventually fail.
@@ -226,7 +223,7 @@ leap-pending indicator. This is an explicit limitation, not GNSS, authenticated
 NTP, calibrated UTC or independently verified phone accuracy. UI and status
 report source, sample age, conservative uncertainty and disagreement state.
 
-Enrolled Bluefy, explicit USB-local tooling and the provisioned server-
+Enrolled BLE clients, explicit USB-local tooling and the provisioned server-
 authenticated pre-clock SoftAP surface can identify and synchronize the device,
 but cannot arm a job until the ordinary WTP clock and leap checks pass. Public blank-AP reads grant no controller-time authority; the consumer setup
 page uses its independently challenge-bound time adapter. UTC is never restored as valid merely from
@@ -392,7 +389,7 @@ unknown. They never release an owner or clear a job/fault.
 
 The profile journal, local-access/field state and BTstack bonds remain physically
 and logically separate from station, schedule, watermark and E10 storage. The
-local-access/field journal owns the password state, current access epoch,
+local-access/field journal owns the field password, the separate consumer Pico password, current access epoch,
 authorized-bond epoch index and persistent field-mode flag. Password, bond,
 field-mode and profile operations preserve station, schedule and watermark
 records unless the explicit full operational erase is selected.
@@ -446,17 +443,9 @@ eight replay digests for five minutes and full device/principal/transport
 binding. Staged secrets are scrubbed after apply, cancel, timeout and every
 terminal failure. Persistent flash is not claimed confidential.
 
-## Bluefy page and offline operation
+## Local clients and offline operation
 
-The repository-owned Web Bluetooth page is the engineering iPhone client. Its
-version/integrity identity must be visible; it may
-not load unapproved remote scripts, analytics or credential services. It must
-clear temporary secrets. Bluefy does not maintain the required offline cache;
-offline Bluefy operation is unsupported and is not an acceptance gate. Release
-assets and host cache-policy checks do not establish browser offline support.
-
-The repository also supplies a native Raspberry Pi/Linux BlueZ command-line
-client as an additional local/bench controller. It selects an exact Bluetooth
+The native Raspberry Pi/Linux BlueZ command-line client provides local control. It selects an exact Bluetooth
 address, verifies the full encrypted device identity, uses the same Just Works
 enrollment, retained-bond and application-password policy, and reuses the exact
 provisioning and WTP GATT characteristics. It must not set the BlueZ device
@@ -466,5 +455,4 @@ and consumer portal offline acceptance.
 
 Offline physical acceptance isolates the Pico field network from Internet,
 disables cellular data and proves the device-served setup portal remains
-usable. Keep Wi-Fi enabled for the connection to the Pico. Bluefy is not the
-offline field path. Selecting Bluefy does not authorize host trust-store changes.
+usable. Keep Wi-Fi enabled for the connection to the Pico.

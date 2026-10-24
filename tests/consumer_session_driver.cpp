@@ -5,6 +5,7 @@
 #include "network/pico/http_server.hpp"
 #include "network_support.hpp"
 #include "provisioning/consumer_profile.hpp"
+#include "standalone/frequency_policy_engine.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
@@ -189,11 +190,50 @@ struct HostnamePlatform : provisioning::ConsumerClaimCommitPlatform {
         return false;
     }
 };
+// Test-only observation at the real engine admission boundary. Lifecycle is
+// delegated to the same dry-run engine; production exposes no debug resource.
+struct ObservedEngine : wtp::RfEngine {
+    standalone::DryRunEngine engine;
+    std::optional<standalone::FrequencyPolicyEngine> policy;
+    std::optional<wtp::Job> accepted;
+    wtp::RfEngine& active() {
+        return policy ? static_cast<wtp::RfEngine&>(*policy) : engine;
+    }
+    wtp::PrepareResult prepare(const wtp::Job& job) override {
+        auto result = active().prepare(job);
+        if (result.accepted)
+            accepted = job;
+        return result;
+    }
+    bool schedules_locally() const override {
+        return engine.schedules_locally();
+    }
+    void calibration_boundary() override {
+        active().calibration_boundary();
+    }
+    bool schedule(const wtp::Job& job, std::uint64_t start,
+                  const wtp::LocalStartConditions& conditions) override {
+        return active().schedule(job, start, conditions);
+    }
+    bool begin(const wtp::Job& job, std::uint64_t start) override {
+        return engine.begin(job, start);
+    }
+    wtp::EngineReport poll(std::uint64_t now) override {
+        return engine.poll(now);
+    }
+    bool disable(std::uint64_t deadline) override {
+        return engine.disable(deadline);
+    }
+    bool output_active() const override {
+        return engine.output_active();
+    }
+};
 struct Driver {
     std::string device;
-    network_test::Fixture f;
+    ObservedEngine consumer_engine, engineering_engine;
+    network_test::Fixture f{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &consumer_engine};
     // Independent engineering adapter boundary for genuine served-page tests.
-    network_test::Fixture engineering;
+    network_test::Fixture engineering{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &engineering_engine};
     network_test::Flash engineering_progress_flash;
     standalone::Progress engineering_progress{engineering_progress_flash};
     network_test::Flash progress_flash;
@@ -219,7 +259,6 @@ struct Driver {
                            &crypto[3]};
     std::array<tcp_pcb, 2> sockets;
     std::array<std::string, 2> remaining_input;
-#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
     struct AccessMedia : provisioning::AccessMedia {
         std::array<std::uint8_t, 8192> bytes;
         AccessMedia() {
@@ -239,6 +278,7 @@ struct Driver {
         }
     } access_media;
     provisioning::AccessStore access{access_media};
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
     struct Led : provisioning::IndicatorOutput {
         bool write(bool) override {
             return true;
@@ -290,8 +330,9 @@ struct Driver {
     Driver(unsigned boot = 0, const Media* retained = nullptr,
            const network_test::Flash* saved = nullptr,
            std::string selected_device = std::string(32, '1'),
-           const network_test::Flash* saved_progress = nullptr)
-        : device(std::move(selected_device)), f(boot, device) {
+           const network_test::Flash* saved_progress = nullptr, bool blank = false,
+           const AccessMedia* saved_access = nullptr)
+        : device(std::move(selected_device)), f(boot, device, &consumer_engine) {
         if (retained)
             media = *retained;
         if (saved) {
@@ -310,7 +351,7 @@ struct Driver {
         p.tls.hostname = "wsprrypico-0a60df.local";
         p.request_sha256 = std::string(64, 'a');
         check(profiles.load());
-        if (!retained)
+        if (!retained && !blank)
             check(profiles.select(provisioning::ProfileSource::ConsumerProfile,
                                   provisioning::serialize_consumer_profile(p)));
         check(runtime.load(profiles, p.device_id, provisioning::BuildBundleState::Absent));
@@ -336,19 +377,23 @@ struct Driver {
                 return true;
             },
             &api_restarts);
-        if (!saved)
+        if (!saved && !blank)
             check(f.scheduler.command("CONFIG " + network_test::config).find("true") !=
                   std::string::npos);
-        if (!saved)
+        if (!saved && !blank)
             check(f.store.reserve(1791970000000000000ULL));
-        radio.admission(true);
+        radio.admission(runtime.control_healthy(profiles) &&
+                        runtime.consumer_browser_selected(profiles));
         radio.listeners(true, "192.168.1.53", hostname);
         f.api.management_availability(
             {ManagementProfile::Consumer, 1, true, false, false, true, true});
         for (auto& pcb : sockets)
             pcb.closed = true;
-#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+        if (saved_access)
+            access_media = *saved_access;
         check(access.load());
+        radio.password_storage(access, "wspr-0a60df");
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
         network.hostname = hostname;
         server.configure(f.service.status().boot_id, access, profiles, random, indicator, network,
                          runtime, platform, "default-password");
@@ -388,6 +433,97 @@ struct Driver {
     }
     std::string command(const wtp::json::Value& v) {
         const auto op = field(v, "op");
+        if (op == "forget_engineering_station") {
+            check(engineering.scheduler.idle());
+            engineering.flash = network_test::Flash{};
+            check(engineering.store.load());
+            return "{}";
+        }
+        if (op == "first_use_profile") {
+            // Named first-use fixtures leave the established configured/CW fixtures intact.
+            const auto mode = field(v, "mode");
+            check(f.scheduler.idle());
+            f.flash = network_test::Flash{};
+            check(f.store.load());
+            media = Media{};
+            check(profiles.load());
+            if (mode == "network" || mode == "network-backing") {
+                check(profiles.select(provisioning::ProfileSource::NetworkOnly,
+                                      provisioning::serialize_network_profile(
+                                          {device, "test-network", "test-password"})));
+                if (mode == "network-backing")
+                    check(f.store.save(*standalone::parse_config(network_test::config)));
+            } else {
+                check(mode == "usb" || mode == "overlay");
+                provisioning::ConsumerProfile p;
+                p.device_id = device;
+                p.ssid = "test-network";
+                p.password = "test-password";
+                p.time_server = "192.0.2.1";
+                p.callsign = "AA0NT";
+                p.locator = "EM18";
+                p.power_dbm = 37;
+                p.usb_managed = mode == "usb";
+                if (p.usb_managed) {
+                    p.callsign.clear();
+                    p.locator.clear();
+                    p.power_dbm = 0;
+                }
+                p.tls_pending = true;
+                p.tls.hostname = "wsprrypico-0a60df.local";
+                p.request_sha256 = std::string(64, 'a');
+                check(profiles.select(provisioning::ProfileSource::ConsumerProfile,
+                                      provisioning::serialize_consumer_profile(p)));
+            }
+            check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
+            std::destroy_at(&f.scheduler);
+            std::construct_at(&f.scheduler, f.store, f.service);
+            radio.admission(runtime.control_healthy(profiles) &&
+                            runtime.consumer_browser_selected(profiles));
+            poll_server();
+            return "{}";
+        }
+        if (op == "message_review") {
+            // Model a boot after the fixture's initial saved configuration.
+            // This runs before serving the opt-in CW review and never on a device.
+            for (auto* fixture : {&f, &engineering}) {
+                check(fixture->scheduler.idle());
+                std::destroy_at(&fixture->scheduler);
+                std::construct_at(&fixture->scheduler, fixture->store, fixture->service);
+                fixture->api.set_active_job_connections(true);
+            }
+            consumer_engine.policy.emplace(consumer_engine.engine, f.store,
+                                           f.service.config().minimum_frequency_nhz,
+                                           f.service.config().maximum_frequency_nhz);
+            engineering_engine.policy.emplace(engineering_engine.engine, engineering.store,
+                                              engineering.service.config().minimum_frequency_nhz,
+                                              engineering.service.config().maximum_frequency_nhz);
+            return "{}";
+        }
+        if (op == "accepted_job") {
+            const auto& job =
+                (field(v, "surface") == "engineering" ? engineering_engine : consumer_engine)
+                    .accepted;
+            if (!job)
+                return "null";
+            std::string result =
+                "{\"job_id\":" + wtp::json::quote(job->job_id) +
+                ",\"mode\":" + wtp::json::quote(job->mode) + ",\"total_duration_ns\":\"" +
+                std::to_string(job->total_duration_ns) + "\",\"allow_frequency_adjustment\":" +
+                (job->allow_frequency_adjustment ? "true" : "false") + ",\"events\":[";
+            for (const auto& event : job->events) {
+                if (result.back() != '[')
+                    result += ',';
+                result +=
+                    "{\"offset_ns\":\"" + std::to_string(event.offset_ns) +
+                    "\",\"duration_ns\":\"" + std::to_string(event.duration_ns) +
+                    "\",\"rf_on\":" + (event.rf_on ? "true" : "false") + ",\"frequency_nhz\":" +
+                    (event.frequency_nhz ? wtp::json::quote(std::to_string(*event.frequency_nhz))
+                                         : "null") +
+                    "}";
+            }
+            return result + "]}";
+        }
         if (op == "engineering_request") {
             std::vector<std::uint8_t> body;
             const auto encoded = field(v, "b64");
@@ -407,6 +543,19 @@ struct Driver {
                    wtp::json::quote(bootstrap_hex(std::span(
                        reinterpret_cast<const std::uint8_t*>(wire.data()), wire.size()))) +
                    "}";
+        }
+        if (op == "frequency_state") {
+            standalone::Store retained(f.flash);
+            check(retained.load());
+            const auto& config = retained.config();
+            return "{\"saved_dial_hz\":" +
+                (config && config->wspr_dial_frequency_hz ? std::to_string(*config->wspr_dial_frequency_hz) : "null") +
+                ",\"sequence\":\"" + std::to_string(retained.config_sequence()) +
+                "\",\"enabled\":" + (config && config->enabled ? "true" : "false") + "}";
+        }
+        if (op == "flash_failure") {
+            f.flash.fail = v.get("fail")->boolean();
+            return "{}";
         }
         if (op == "time") {
             std::uint64_t time;
@@ -630,10 +779,11 @@ struct Driver {
 };
 } // namespace
 int main(int argc, char** argv) {
-    const std::string device = argc == 2 ? argv[1] : std::string(32, '1');
+    const std::string device = argc >= 2 ? argv[1] : std::string(32, '1');
+    const bool blank = argc == 3 && std::string_view(argv[2]) == "--blank";
     check(valid_device_id(device));
     unsigned boot = 0;
-    auto driver = std::make_unique<Driver>(boot, nullptr, nullptr, device);
+    auto driver = std::make_unique<Driver>(boot, nullptr, nullptr, device, nullptr, blank);
     std::cerr << "ConsumerRadioApi=" << sizeof(ConsumerRadioApi)
               << " crypto=" << sizeof(PicoConsumerRadioCrypto) << " HTTP=" << sizeof(PicoHttpServer)
               << '\n';
@@ -645,8 +795,10 @@ int main(int argc, char** argv) {
             const auto media = driver->media;
             const auto flash = driver->f.flash;
             const auto progress_flash = driver->progress_flash;
+            const auto access_media = driver->access_media;
             driver.reset();
-            driver = std::make_unique<Driver>(++boot, &media, &flash, device, &progress_flash);
+            driver = std::make_unique<Driver>(++boot, &media, &flash, device, &progress_flash,
+                                              false, &access_media);
             std::cout << "{}" << std::endl;
         } else
             std::cout << driver->command(*root) << std::endl;

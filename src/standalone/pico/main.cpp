@@ -460,6 +460,9 @@ int main() {
     const auto consumer_source_selected = [&]() {
         return runtime_profile.consumer_selected(profile_store);
     };
+    const auto consumer_browser_selected = [&]() {
+        return runtime_profile.consumer_browser_selected(profile_store);
+    };
 #ifdef WSPRRY_PICO_STANDALONE_RF
     const auto config = wsprrypico::standalone::wtp_profile(true);
 #else
@@ -608,7 +611,7 @@ int main() {
     // automatic outage recovery; they do not recreate station credentials.
     softap_coordinator.blank_profile(runtime_profile.source() ==
                                      wsprrypico::provisioning::RuntimeSource::Unprovisioned);
-    softap_coordinator.temporary_access(consumer_source_selected());
+    softap_coordinator.temporary_access(consumer_browser_selected());
     softap_coordinator.recovery(boot_recovery);
 #ifdef WSPRRY_PICO_JOURNAL_FAULT_FIXTURE
     // Test-only, RF-inhibited access window. Consumer USB field commands remain
@@ -662,9 +665,11 @@ int main() {
         browser_api, profile_store, runtime_profile, random_source,
         {&consumer_radio_crypto[0], &consumer_radio_crypto[1], &consumer_radio_crypto[2]},
         identities.device_id(), service.status().boot_id, &consumer_radio_crypto[3]);
+    consumer_radio.password_storage(access_store,
+                                    derived_identity ? derived_identity->default_password : "");
     bootstrap.radio_control(consumer_radio);
     bootstrap.progress_control(browser_api);
-    if (consumer_source_selected())
+    if (consumer_browser_selected())
         bootstrap.setup_control(
             +[](void* context) {
                 static_cast<wsprrypico::network::PicoServer*>(context)->set_admission(false);
@@ -1669,7 +1674,8 @@ int main() {
 #endif
         if ((consumer_source_selected() || bootstrap.owner_claim_pending() ||
              !runtime_profile_ready()) &&
-            text != "ABORT" && text != "REBOOT" && text != "BOOTSEL")
+            text != "ABORT" && text != "REBOOT" && text != "BOOTSEL" &&
+            !text.starts_with("ACCESS SOFTAP "))
             return "{\"ok\":false,\"error\":\"profile_runtime_unavailable\"}\n";
         if (text.starts_with("HEAP PROBE ")) {
             const auto capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
@@ -1863,19 +1869,22 @@ int main() {
         return scheduler.command(text);
     };
     const auto expire_ap_if_due = [&]() {
-        (void)softap_coordinator.poll(time_us_64() / 1000ULL);
+        const auto now_ms = time_us_64() / 1000ULL;
+        softap_coordinator.client_connected(
+            softap.client_connected(softap_coordinator.status(now_ms).remaining_ms == 0), now_ms);
+        (void)softap_coordinator.poll(now_ms);
         if (softap_coordinator.expired() && softap.running()) {
             const auto address = network.ipv4();
-            consumer_radio.listeners(false,
-                                     consumer_source_selected() && network.link_up() ? address : "",
-                                     network.configured_hostname());
+            consumer_radio.listeners(
+                false, consumer_browser_selected() && network.link_up() ? address : "",
+                network.configured_hostname());
             bootstrap.withdraw_ap();
             (void)network.softap_name(false, {});
             softap.stop();
         }
     };
     while (true) {
-        // The hard AP deadline is serviced even during reset intent/recovery
+        // AP association and inactivity are serviced during reset intent/recovery
         // and before any early continue can bypass ordinary radio polling.
         expire_ap_if_due();
         poll_indicator(); // Also service the indicator on reset/recovery paths.
@@ -1997,11 +2006,11 @@ int main() {
 #endif
         watchdog_hw->scratch[1] = 4;
         const auto network_state = service.activity().state;
-        if (consumer_source_selected() && !boot_recovery && !recovery_reset_at &&
+        if (consumer_browser_selected() && !boot_recovery && !recovery_reset_at &&
             !reset_coordinator.pending())
             server.set_admission(runtime_profile_ready() && !bootstrap.setup_pending() &&
                                  !reboot_at);
-        if (consumer_source_selected() || server.listening() || server.plain_listening() ||
+        if (consumer_browser_selected() || server.listening() || server.plain_listening() ||
             (network_state != wsprrypico::wtp::State::Armed &&
              network_state != wsprrypico::wtp::State::Running))
             network.poll();
@@ -2038,7 +2047,7 @@ int main() {
         if (reset_coordinator.blocks_admission() || recovery_reset_at)
             continue;
         const auto field_now_ms = time_us_64() / 1000ULL;
-        consumer_radio.admission(runtime_profile_ready() && consumer_source_selected() &&
+        consumer_radio.admission(runtime_profile_ready() && consumer_browser_selected() &&
                                  blank_access_available() && !boot_recovery &&
                                  !reset_coordinator.pending() && !reboot_at);
         if ((consumer_source_selected() || bootstrap.owner_claim_pending()) && gatt.running())
@@ -2055,6 +2064,9 @@ int main() {
         const bool station_ready =
             network.link_up() && !station_ip.empty() && station_ip != "0.0.0.0";
         softap_coordinator.station(station_ready, field_now_ms);
+        softap_coordinator.client_connected(
+            softap.client_connected(softap_coordinator.status(field_now_ms).remaining_ms == 0),
+            field_now_ms);
         softap_coordinator.token_records(
             local_access.live_softap_sessions(field_now_ms, service.owner_session_id()));
         softap_coordinator.reply_active(server.softap_active() || bootstrap.reply_active());
@@ -2063,7 +2075,7 @@ int main() {
             service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
         const auto access_activity = provisioning_activity(&service);
         const bool radio_unarmed_access =
-            consumer_source_selected() && consumer_radio.available() &&
+            consumer_browser_selected() && consumer_radio.available() &&
             wsprrypico::network::consumer_radio_network_idle(access_activity);
         const bool blank_captive =
             bootstrap_started &&
@@ -2087,7 +2099,7 @@ int main() {
                    softap.running()) {
             if (softap_coordinator.expired()) {
                 consumer_radio.listeners(
-                    false, station_ready && consumer_source_selected() ? station_ip : "",
+                    false, station_ready && consumer_browser_selected() ? station_ip : "",
                     network.configured_hostname());
                 bootstrap.withdraw_ap();
             }
@@ -2097,7 +2109,7 @@ int main() {
         softap_coordinator.ready(softap.running());
         const bool softap_name_ready = network.softap_name(softap.ready(), deployment_hostname);
         const bool bootstrap_active = bootstrap_started && softap.ready() && blank_captive;
-        const bool consumer_station = bootstrap_started && consumer_source_selected() &&
+        const bool consumer_station = bootstrap_started && consumer_browser_selected() &&
                                       consumer_radio.available() && station_ready;
         consumer_radio.listeners(bootstrap_active, consumer_station ? station_ip : "",
                                  network.configured_hostname());
@@ -2107,16 +2119,16 @@ int main() {
                      runtime_profile.source() ==
                          wsprrypico::provisioning::RuntimeSource::Unprovisioned
                  ? wsprrypico::network::ManagementProfile::Blank
-             : consumer_source_selected() ? wsprrypico::network::ManagementProfile::Consumer
-                                          : wsprrypico::network::ManagementProfile::Engineering,
+             : consumer_browser_selected() ? wsprrypico::network::ManagementProfile::Consumer
+                                           : wsprrypico::network::ManagementProfile::Engineering,
              runtime_profile_ready() ? runtime_profile.generation() : 0,
              (service.clock_snapshot().state == wsprrypico::wtp::ClockState::Unsynchronized ||
               !service.clock_snapshot().utc_now_ns),
-             !consumer_source_selected() && station_ready && server.listening() &&
+             !consumer_browser_selected() && station_ready && server.listening() &&
                  server.engineering_management_admitted() &&
                  service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized &&
                  service.clock_snapshot().utc_now_ns != 0,
-             !consumer_source_selected() && softap.ready() && server.listening() &&
+             !consumer_browser_selected() && softap.ready() && server.listening() &&
                  server.engineering_management_admitted() &&
                  surface == wsprrypico::provisioning::SoftApSurface::Normal,
              consumer_station && bootstrap.listening(),

@@ -2,11 +2,13 @@
 
 ## Before you begin
 
-Use native macOS or Linux, Python **3.10 or newer**, and `curl`. The installer reports missing or unsupported Python with instructions before downloading its code. Windows, Git Bash and WSL are unsupported. Run as your ordinary user. On Linux, arrange access to the USB device first.
+Firmware is the application stored on the Pico. Installing or updating it uses a USB data cable and a **Terminal application on your computer**, not the Pico's text Console or a browser address bar.
 
-Programming also needs a USB-enabled **picotool 2.3 or newer within the 2.x series**. An existing compatible picotool is used without replacement. If it is missing or incompatible, the installer offers to download a verified official package for macOS, Linux ARM64 or Linux x86-64. Other architectures need an existing compatible picotool. No SDK or compiler is needed.
+Use native macOS or Linux, Python **3.10 or newer**, and `curl`. The installer reports missing or unsupported Python with instructions before downloading its code. Windows, Git Bash and WSL are unsupported. Run the installer as your ordinary user. On Linux, that user needs permission to access the USB device; see picotool's [USB permission instructions](https://github.com/raspberrypi/picotool/blob/master/BUILDING.md#linux--macos) if programming is refused for insufficient permissions.
 
-Use the normal **WsprryPico** image. **WsprryPico-Inhibited** simulates jobs without RF and is for diagnostics. Do not substitute a bench or compatibility image for the normal download.
+Programming also needs **picotool**, Raspberry Pi's USB programming utility, at **version 2.3 or newer within the 2.x series**, with USB support. The installer checks for an existing compatible executable and a previously retained private copy before offering a download. Existing tools are reused without download or cleanup questions. If neither is available, the installer offers a verified official package for macOS, Linux ARM64 or Linux x86-64. Other architectures need an existing compatible picotool. No SDK or compiler is needed.
+
+Install the **WsprryPico** firmware using the commands below.
 
 ## Select Beta 1 firmware
 
@@ -16,7 +18,7 @@ No `--branch` option is needed for Beta 1. The firmware version is independent o
 
 ## Get the installer and identify the Pico
 
-Download the project bootstrap into a local file, inspect it, and run it as your ordinary user:
+Open a terminal in a folder where you can keep the installer. Download the small launcher script as `install_usb.sh`, inspect it in a text editor, and run it as your ordinary user. Keep using this folder for subsequent commands that begin with `bash install_usb.sh`:
 
 ```sh
 curl --fail --location --proto '=https' --proto-redir '=https' \
@@ -25,7 +27,7 @@ curl --fail --location --proto '=https' --proto-redir '=https' \
 bash install_usb.sh discover
 ```
 
-Discovery shows physical USB serials and ports. Select the intended board; the USB serial is different from the full stable device ID shown by firmware. If discovery finds nothing, check the data cable and USB permissions.
+Discovery lists connected boards with their USB serial numbers and ports. Record the serial for the intended board; wherever a command below contains `SERIAL`, replace that word with this exact USB serial. It differs from the full stable device ID shown by firmware. If discovery finds nothing, check the data cable and USB permissions.
 
 ### Run directly with curl
 
@@ -52,7 +54,7 @@ Terminal runs show progress and a readable result. Add `--json-only` for JSON wi
 
 Accept the picotool download prompt when installing or updating if you want the installer to supply it. The download uses the reviewed **2.3.1** package from [Raspberry Pi's SDK tools release](https://github.com/raspberrypi/pico-sdk-tools/releases/tag/v2.3.1-0), checks its size and SHA-256 before execution, and keeps its support files alongside the executable. It does not change system tools or `PATH`. To use your own executable, add `--picotool /absolute/path/to/picotool`.
 
-After the operation, the installer offers to remove its downloaded picotool and support files. Declining keeps one reusable private package under `~/.cache/wsprrypico-usb/tools`. Cleanup keeps firmware backups and transaction records. An unfinished update or uncertain recovery record retains the tool even if removal was requested, so the printed recovery command can still run.
+After the operation, the installer offers cleanup only if it downloaded picotool during that run. Declining keeps one reusable private package under `~/.cache/wsprrypico-usb/tools`; later runs reuse it without download or cleanup questions. Cleanup keeps firmware backups and transaction records. An unfinished update or uncertain recovery record retains the tool even if removal was requested, so the printed recovery command can still run.
 
 For unattended use, provide `--device SERIAL` and explicitly allow downloading with `--download-picotool`. `--yes` confirms programming; it does not approve tool downloads. Choose `--tool-cleanup keep` or `--tool-cleanup remove` to skip the cleanup question. Without a terminal, or with `--json-only`, the default keeps downloaded tools. For example:
 
@@ -66,7 +68,6 @@ The bootstrap removes its temporary files on exit. A deliberately downloaded `in
 ## First installation
 
 1. Disconnect the selected Pico. Hold its onboard **BOOTSEL** button while reconnecting the data cable, then release it.
-
 2. Run the installer. Confirm that the numbered selection is your **Pico 2 W**:
 
    ```sh
@@ -75,12 +76,13 @@ The bootstrap removes its temporary files on exit. A deliberately downloaded `in
 
 3. Keep USB connected through programming and verification. A final verified result, followed by the running firmware identity, confirms completion.
 
+After successful installation, leave the Pico powered and continue to [Connect to your Pico](connect.md). Its setup Wi-Fi lets you save the network details and open the control page.
+
 The command selects Beta 1 explicitly. If an existing application cannot be identified, stop and inspect the refusal; do not assume that replacing it can preserve its settings.
 
 ## Preserve settings during an update
 
 1. Finish or abort any job through its owning controller, release control and leave the Pico idle. Disable its standalone schedule. Resolve STOP/fault states through the normal controls before updating. If WsprryPi uses this USB connection, follow [the standalone-on-Pi procedure](wsprrypi.md#standalone-installer-on-a-wsprrypi-host) to pause its service while the standalone installer runs.
-
 2. Run:
 
    ```sh
@@ -88,10 +90,8 @@ The command selects Beta 1 explicitly. If an existing application cannot be iden
    ```
 
 3. Choose the intended Pico from the list. The installer binds the transaction to its serial and physical port, checks compatibility, backs up flash and verifies retained settings after programming.
-
-4. Older firmware may display **awaiting_bootsel**. Reconnect that same Pico to the same USB port while holding BOOTSEL. Run the exact continuation command printed by the installer. WsprryPi offers **Continue after BOOTSEL**.
-
-5. After success, read back station settings, frequency, pins and firmware/source identity. Enable a schedule deliberately only after reviewing readiness.
+4. If the installer displays **awaiting_bootsel**, reconnect that same Pico to the same USB port while holding BOOTSEL. Run the exact continuation command printed by the installer. WsprryPi offers **Continue after BOOTSEL**.
+5. After success, open the control page and use **Reload saved settings** to check station details and pins, then **Read saved frequency** to check the WSPR frequency. Check the firmware version and source revision in the installer's result; the [USB Console `INFO` reply](usb.md#read-the-address-and-web-service-status) can read them again. Review [transmit readiness](operate.md#before-transmitting) before enabling and applying a schedule again.
 
 Preparation or a BOOTSEL prompt is not a completed update. If interrupted, keep the private transaction and backup directories and use the printed same-board recovery command. Do not start a new image selection in place of that transaction. Backups contain credentials; keep them private.
 

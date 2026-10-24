@@ -1,53 +1,25 @@
 # Consolidated backlog
 
-Updated 2026-10-19. Finish the current work below before release. Previously
-completed work remains complete. Retain handoffs needed for selected unfinished
-work; retire obsolete execution prompts under the cleanup guidance.
+Selected unfinished work is listed below. Current product behavior is documented
+in the maintained guides; completed execution records are not an active work list.
+The reusable [cleanup instructions](repository-cleanup-prompt.md) govern explicit
+repository and harness cleanup requests.
 
-## Finish now
+## Operator validation
 
-Status: ✅ finished; ⏳ in flight; ▧ not started.
+- Run the [factory-new access checklist](factory-new-access-checklist.md) on a Pico 2 W using a Mac or Raspberry Pi. Record Wi-Fi-only browser access, separate-password persistence and connected-client setup-network retention; physical results remain unverified until the manual run completes.
 
-1. ✅ **Current contract reconciliation.** Align current API, carrier, GPIO-drive
-   and build descriptions with the accepted implementation.
-2. ✅ **Short WSPR Type 2/3 decode.** Test one Type 2 → Type 3 pair at
-   3.570100 MHz (80 m), selected by the operator during execution, on one Pico
-   with `wsprd`; record the result and associated
-   evidence closeout. [Result](short-wspr-type23-decode-results.md).
-3. ✅ **Amplifier-enable GPIO during transmissions.** Assert the configured enable
-   pin before RF starts and return it inactive after completion, stop, abort
-   or fault. See [amplifier enable](amplifier-enable.md).
-4. ✅ **NTP Work — closed.**
-   - ✅ Persistent standalone manual PPM.
-   - ✅ NTP filtering and UTC rate discipline using the original MIT μChrony engine.
-   - ✅ **4.3: RF-calibration investigation closed — rejected for current use.**
-     Retain μChrony for UTC discipline and the future GPS/PPS foundation. Internet
-     NTP has not demonstrated reliable RF-calibration benefit. RF correction uses
-     the saved manual PPM only. The Pico-to-Pi GPIO pulse measurement path is removed.
-     [Decision and closeout](ntp-work-closeout.md).
-5. ✅ **Impeccable UI review**, including provisioning; accepted and closed.
-   VoiceOver testing is closed as not required.
-   Installer workflow coverage is recorded separately in the
-   [installer acceptance](usb-installer-results.md).
-6. ✅ **Software/build CI and deployment images.** Run checks and produce usable
-   UF2 images with version/source identity, checksums and a manifest before
-   release efforts. Use the CI image for decode verification and publication.
-   [Build and image guide](software-build-ci.md).
-7. ✅ **USB installer.** Standalone and WsprryPi access, preserving saved
-   settings; default to the latest verified saved main CI image, with explicit
-   devel selection.
-   [Installer guide](usb-installer.md) and [acceptance record](usb-installer-results.md).
-8. ✅ **Repository and work-harness cleanup.** Remove obsolete project artifacts
-   and rewrite operator-facing prose around current capabilities. Keep needed
-   technical material in engineering documentation; add no documentation
-   placeholder or future promise. [Cleanup guidance](repository-cleanup-prompt.md).
-9. ✅ **Operator documentation.** Final instructions, screenshots and
-   Read the Docs Community publication.
-   [Operator manual](https://wsprrypico.readthedocs.io/en/devel/) and
-   [result and evidence](operator-documentation-results.md).
-10. ✅ **Testing prerelease.** Published the verified CI image, manifest and
-    checksums. [Acceptance record](phase15-17-results.md) and
-    [testing release](https://github.com/WsprryPi/WsprryPico/releases/tag/v0.1.0-testing.1).
+### TODO: Lee to test USB browser recovery on Windows
+
+Follow [Recover browser access over USB](../../docs/usb.md) on a native Windows computer using desktop Google Chrome and an installed Pico. The browser terminal has returned INFO from a connected Pico on macOS; Windows validation remains open. This test covers the browser Console route, not Windows support for the command-line installer.
+
+- [ ] Record the Windows and Chrome versions, Pico USB serial, full device ID, firmware version and source revision.
+- [ ] Confirm that Device Manager shows the Pico's serial ports and that Hardware Ids identifies the Console with **MI_00**, WTP with **MI_02** and management with **MI_04**. Record the matching Console COM number; confirm that Chrome's chooser lets the operator select that exact port.
+- [ ] Follow the documented SerialTerminal.com settings: DTR on; RTS, dtrDsr and rtsCts off; Advanced terminal view; 115200 baud; **send with /n** on and **send with /r** off. Confirm that the command box and **Send** transmit `INFO` successfully.
+- [ ] Confirm that the complete INFO reply remains available by scrolling inside the terminal, including its initial `ok`, `device_id`, `firmware` and `revision` fields and final closing JSON. Read the network address and web-service fields without losing the start of the reply.
+- [ ] With the Pico idle, send `ACCESS SOFTAP` with that full device ID. Confirm the successful reply, join setup Wi-Fi and open `http://192.168.4.1/`. Record any refusal with firmware identity. Check connected-client retention and the ten-minute interval after the final disconnect using firmware containing that change.
+- [ ] Close the browser terminal tab and confirm another serial terminal can open the Console. Capture Windows screenshots of Device Manager identity, Chrome's selected port, terminal settings and the successful INFO reply; keep credentials and private network details out of published images.
+- [ ] Update the USB walkthrough with the observed Windows labels, screenshots and any required corrections. Mark Windows verified only after the real Windows/Pico procedure succeeds.
 
 ## Remain in backlog for future
 

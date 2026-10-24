@@ -283,6 +283,58 @@ void identity_and_journal() {
     CHECK(reloaded.load());
     CHECK(*reloaded.record() == record);
 
+    // The existing access journal preserves its legacy field password while
+    // independently saving a Pico browser password, including torn writes.
+    AccessMemory password_media = media;
+    provisioning::AccessStore passwords(password_media);
+    CHECK(passwords.load());
+    CHECK(passwords.record()->radio_password.empty());
+    CHECK(!passwords.set_radio_password("short", identity->default_password));
+    CHECK(passwords.set_radio_password("separate-pico-password", identity->default_password));
+    provisioning::AccessStore password_reboot(password_media);
+    CHECK(password_reboot.load());
+    CHECK(password_reboot.record()->radio_password == "separate-pico-password");
+    CHECK(password_reboot.record()->password == record.password);
+    CHECK(password_reboot.record()->epoch == record.epoch);
+    AccessMemory browser_only_media;
+    provisioning::AccessStore browser_only(browser_only_media);
+    CHECK(browser_only.load());
+    CHECK(browser_only.set_radio_password("browser-only-password", identity->default_password));
+    CHECK(browser_only.record()->ble_disabled);
+    CHECK(!browser_only.record()->field_mode);
+    for (int fail = 0; fail < 4; ++fail) {
+        AccessMemory interrupted = password_media;
+        provisioning::AccessStore attempt(interrupted);
+        CHECK(attempt.load());
+        interrupted.operation = 0;
+        interrupted.fail_at = fail;
+        CHECK(!attempt.set_radio_password("replacement-pico-password", identity->default_password));
+        interrupted.fail_at = -1;
+        provisioning::AccessStore recovered(interrupted);
+        CHECK(recovered.load());
+        CHECK(recovered.record()->radio_password == "separate-pico-password");
+        CHECK(recovered.record()->password == record.password);
+    }
+    password_media.fail_commit_after_apply = true;
+    CHECK(password_reboot.set_radio_password("replacement-pico-password",
+                                             identity->default_password));
+    password_media.fail_commit_after_apply = false;
+    CHECK(password_reboot.set_radio_password("", identity->default_password));
+    provisioning::AccessStore default_reboot(password_media);
+    CHECK(default_reboot.load());
+    CHECK(default_reboot.record()->radio_password.empty());
+    CHECK(default_reboot.record()->password == record.password);
+    AccessMemory unreadable_media = password_media;
+    provisioning::AccessStore unreadable(unreadable_media);
+    CHECK(unreadable.load());
+    unreadable_media.fail_readback_after_commit = true;
+    CHECK(!unreadable.set_radio_password("saved-before-read-fault", identity->default_password));
+    CHECK(!unreadable.healthy());
+    unreadable_media.fail_readback_after_commit = false;
+    unreadable_media.reads_failed = false;
+    CHECK(unreadable.load());
+    CHECK(unreadable.record()->radio_password == "saved-before-read-fault");
+
     auto replacement = record;
     replacement.password = "field-day-secret";
     replacement.default_password = false;
@@ -1189,6 +1241,60 @@ void runtime_policy() {
     CHECK(grace_ap.poll(lifetime - 1));
     CHECK(!grace_ap.poll(lifetime));
     CHECK(!grace_ap.poll(2 * lifetime));
+
+    // A Wi-Fi association retains every setup path without any HTTP login,
+    // traffic, token, button hold or browser page. Only the final disconnect
+    // starts a new inactivity window.
+    for (unsigned mode = 0; mode < 5; ++mode) {
+        provisioning::SoftApCoordinator connected_ap(store);
+        connected_ap.temporary_access(true);
+        connected_ap.station(mode != 3, 0);
+        if (mode == 0)
+            connected_ap.blank_profile(true);
+        else if (mode == 1)
+            CHECK(connected_ap.request_manual_setup(0, true));
+        else if (mode == 2)
+            CHECK(connected_ap.request_join_grace(0));
+        else if (mode == 4)
+            connected_ap.recovery(true);
+        const auto activated = provisioning::softap_fallback_ms;
+        CHECK(connected_ap.poll(activated));
+        connected_ap.ready(true);
+        connected_ap.client_connected(true, activated + 1);
+        CHECK(connected_ap.poll(activated + 4 * lifetime));
+        CHECK(connected_ap.status(activated + 4 * lifetime).client_connected);
+        CHECK(!connected_ap.expired());
+        // Recovery of the home network cannot evict an associated operator.
+        connected_ap.station(true, activated + 4 * lifetime);
+        CHECK(connected_ap.poll(activated + 5 * lifetime));
+        connected_ap.client_connected(true, activated + 5 * lifetime);
+        CHECK(connected_ap.poll(activated + 6 * lifetime));
+        const auto disconnected = activated + 6 * lifetime;
+        connected_ap.client_connected(false, disconnected);
+        CHECK(connected_ap.poll(disconnected + lifetime - 1));
+        CHECK(!connected_ap.status(disconnected).client_connected);
+        CHECK(connected_ap.status(disconnected).remaining_ms == lifetime);
+        CHECK(!connected_ap.poll(disconnected + lifetime));
+        CHECK(connected_ap.expired());
+        connected_ap.client_connected(true, disconnected + 2 * lifetime);
+        CHECK(!connected_ap.poll(disconnected + 2 * lifetime));
+    }
+
+    provisioning::SoftApCoordinator unattended_grace(store);
+    unattended_grace.temporary_access(true);
+    CHECK(unattended_grace.request_join_grace(0));
+    CHECK(unattended_grace.poll(lifetime)); // No timeout before actual activation.
+    unattended_grace.ready(true);
+    CHECK(unattended_grace.poll(lifetime + provisioning::softap_join_grace_ms - 1));
+    CHECK(!unattended_grace.poll(lifetime + provisioning::softap_join_grace_ms));
+    // A new deliberate request after an unjoined window gets a complete join
+    // window, independent of the older activation's ten-minute deadline.
+    const auto next_join = 2 * lifetime - 1;
+    CHECK(unattended_grace.request_join_grace(next_join));
+    CHECK(unattended_grace.poll(next_join));
+    unattended_grace.ready(true);
+    CHECK(unattended_grace.poll(next_join + provisioning::softap_join_grace_ms - 1));
+    CHECK(!unattended_grace.poll(next_join + provisioning::softap_join_grace_ms));
     CHECK(media.bytes == access_before_manual);
     ap.no_profile(false);
     CHECK(ap.surface(false) == provisioning::SoftApSurface::ProvisionedPreClock);
@@ -1420,6 +1526,7 @@ void reset_policy() {
     CHECK(access.initialize(access_record));
     access_record.bonds[0] = 7;
     access_record.bond_count = 1;
+    access_record.radio_password = "custom-before-reset";
     CHECK(access.replace(access_record));
     provisioning::scrub(access_record);
     ProfileMemory profile_media;
@@ -1447,6 +1554,7 @@ void reset_policy() {
     CHECK(!reset.pending());
     CHECK(access.record()->epoch == 2);
     CHECK(access.record()->default_password);
+    CHECK(access.record()->radio_password.empty());
     CHECK(!access.record()->field_mode);
     CHECK(access.record()->bond_count == 0);
     CHECK(!access.record()->ble_disabled);

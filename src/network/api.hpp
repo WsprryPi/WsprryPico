@@ -66,6 +66,9 @@ class BrowserApi {
     }
     // All calls are serialized by the application owner. Tokens are never reused.
     bool mutation_pending() const { return pending_transaction_.has_value(); }
+    bool access_change_ready() const {
+        return scheduler_.idle() && !mutation_pending();
+    }
     void finish_request(std::uint64_t transaction = 0, bool apply = true) {
         if (pending_transaction_ && *pending_transaction_ == transaction) {
             const bool allowed = apply && scheduler_.idle();

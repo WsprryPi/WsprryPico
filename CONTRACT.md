@@ -59,8 +59,7 @@ configuration, applied hardware or transmit readiness.
 
 Consumer control is available at the station IP/hostname and an available AP's
 `/radio` path under [Consumer-Radio/1](engineering/protocol/Consumer-Radio-v1.md).
-The saved Wi-Fi password authenticates encrypted, volatile application
-sessions. HTTP page delivery is unauthenticated and retains page-substitution
+The Pico password authenticates encrypted, volatile application sessions for both Wi-Fi-only and completed station profiles. Its default is the saved Wi-Fi password; an independently saved Pico password survives Wi-Fi and station changes. Password changes retire all browser logins and pending recovery proofs without changing Wi-Fi, field/BLE access, schedules or job ownership. Station details and synchronized UTC are not prerequisites for page access or login. HTTP page delivery is unauthenticated and retains page-substitution
 risk. Public setup mutations stay AP-only; LAN setup uses authenticated
 wrappers around the same trial/commit authority. Profile-owned Wi-Fi and
 station identity retain their transactional setup paths. Lost replies require
@@ -73,20 +72,12 @@ application-password enrollment, retained bond epochs and request-bound
 step-up protect their respective operations. The public MAC-derived default
 is not a secret; ordinary flash offers no confidentiality guarantee.
 [Field access](engineering/development/field-access.md) defines trust/reset and
-controller-time boundaries. Bluefy offline reuse is unsupported; the
-device-served SoftAP portal provides offline consumer setup.
+controller-time boundaries. The device-served SoftAP portal provides offline consumer setup.
 
 ## Setup, storage and hardware
 
 A blank consumer starts setup Wi-Fi. Saved consumers normally keep the AP off.
-Every AP activation has a non-sliding ten-minute lifetime from actual
-activation, including blank, manual, fallback, field and recovery paths.
-Holding/releasing a button, traffic and retries cannot extend the window.
-Expiry stays latched until a new deliberate request or a new outage after
-stable recovery. A 60-second outage requests fallback; 30 seconds of stable
-station recovery rearms a later outage. RF guards defer AP activation without
-aborting an accepted job; expiry removes AP clients while preserving station
-service. See [consumer access](engineering/development/consumer-lan-access.md).
+An associated Wi-Fi client retains every AP path, including blank, manual, fallback, field and recovery access. The last client disconnect starts a ten-minute inactivity interval; home-network recovery does not evict an associated client. With no client association, initial windows remain ten minutes, except the Console's two-minute join grace. Association is checked independently of browser traffic, login slots and credentials. Expiry stays latched until a new deliberate request or a new outage after stable recovery. A 60-second outage requests fallback; 30 seconds of stable station recovery rearms a later outage. RF guards still defer AP activation without aborting an accepted job. Explicit restart and reset remain connection boundaries. See [consumer access](engineering/development/consumer-lan-access.md).
 
 The default active-low button is GP14, physical pin 19. A debounced release
 under 0.4 seconds requests reset; reaching 0.9 seconds held requests shutdown;

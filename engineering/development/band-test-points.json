@@ -1,0 +1,1062 @@
+{
+  "schema": "conducted-band-test-points/1",
+  "source_revision": "165303458e49feaac1de54c8344058f56578d533",
+  "sdk_commit": "079c6f39023649b154152db30f1d781e884879bc",
+  "toolchain": "arm-none-eabi-gcc (Arm GNU Toolchain 15.3.Rel1 (Build arm-15.180)) 15.3.1 20260627",
+  "picotool_commit": "6f6458d792b93685a11423b244a585eaa99eafcf",
+  "elf_sha256": "128c975c6af14350a72df7f4c672eb534c60eb36023d41aba6afa30696cbe84c",
+  "firmware_version": "0.0.0-devel",
+  "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+  "board": "A",
+  "serial": "0BF4B4AEC9FFB344",
+  "device_id": "fd6127d11d6aca42a9905fa3fb1bf1d5",
+  "boot_id": "05c4a2859477659b1dd7b594029f0c1a",
+  "clock_hz": 138000000,
+  "engine": "pio-dma-gp2",
+  "gpio": 2,
+  "cells": [
+    {
+      "band": "8m",
+      "mode": "TONE",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "windows": [
+        "A-8m-TONE-1"
+      ],
+      "condition": "nominal receiver audio tuning"
+    },
+    {
+      "band": "8m",
+      "mode": "WSPR",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "windows": [
+        "A-8m-WSPR-1",
+        "A-8m-WSPR-2",
+        "A-8m-WSPR-3"
+      ],
+      "condition": "fixed +125 Hz receiver audio translation of original IQ"
+    },
+    {
+      "band": "8m",
+      "mode": "QRSS",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "windows": [
+        "A-8m-QRSS-1"
+      ],
+      "condition": "nominal receiver audio tuning"
+    },
+    {
+      "band": "8m",
+      "mode": "FSKCW",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "windows": [
+        "A-8m-FSKCW-1"
+      ],
+      "condition": "nominal receiver audio tuning"
+    },
+    {
+      "band": "8m",
+      "mode": "DFCW",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "windows": [
+        "A-8m-DFCW-1"
+      ],
+      "condition": "nominal receiver audio tuning"
+    },
+    {
+      "band": "5m",
+      "mode": "TONE",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "windows": [
+        "A-5m-TONE-1"
+      ],
+      "condition": "nominal receiver audio tuning"
+    },
+    {
+      "band": "5m",
+      "mode": "WSPR",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "windows": [
+        "DIAG-A-5m-WSPR-1",
+        "DIAG-A-5m-WSPR-2",
+        "DIAG-A-5m-WSPR-3"
+      ],
+      "condition": "fixed +200 Hz receiver audio translation of original IQ"
+    },
+    {
+      "band": "5m",
+      "mode": "QRSS",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "windows": [
+        "A-5m-QRSS-1"
+      ],
+      "condition": "nominal receiver audio tuning"
+    },
+    {
+      "band": "5m",
+      "mode": "FSKCW",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "windows": [
+        "DIAG-A-5m-FSKCW-1"
+      ],
+      "condition": "nominal receiver audio tuning"
+    },
+    {
+      "band": "5m",
+      "mode": "DFCW",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "windows": [
+        "A-5m-DFCW-1"
+      ],
+      "condition": "nominal receiver audio tuning"
+    }
+  ],
+  "observations": [
+    {
+      "window_id": "A-8m-TONE-1",
+      "planned_window_id": "A-8m-TONE-1",
+      "diagnostic": false,
+      "band": "8m",
+      "mode": "TONE",
+      "boot_id": "12dd706bd685134ee19965d8a7b4a6d6",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "condition": "nominal receiver audio tuning",
+      "details": {
+        "minimum_contrast_db": 89.19622319343696,
+        "interior_amplitude_min_ratio": 0.9956358929365557,
+        "indicated_offset_mean_hz": 124.8104361206293,
+        "reference_compared_offset_mean_hz": 81.0294073611498,
+        "observed_reference_compared_offset_range_hz": [
+          80.64920402318239,
+          81.48349830508232
+        ],
+        "empirical_half_range_hz": 0.4171471409499645,
+        "absolute_uncertainty_hz": null,
+        "frequency_acceptance": "descriptive only; no selected calibrated absolute-error gate",
+        "uncertainty": "Empirical range is repeatability plus drift, not combined uncertainty. Simultaneous reference subtraction uses the nominal SDR sample axis; absolute/sample-scale calibration is unavailable."
+      }
+    },
+    {
+      "window_id": "A-8m-WSPR-1",
+      "planned_window_id": "A-8m-WSPR-1",
+      "diagnostic": false,
+      "band": "8m",
+      "mode": "WSPR",
+      "boot_id": "12dd706bd685134ee19965d8a7b4a6d6",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "condition": "fixed +125 Hz receiver audio translation of original IQ",
+      "details": {
+        "decode": {
+          "schema": "phase14-wspr-decode-acceptance/1",
+          "passed": true,
+          "issues": [],
+          "expected": [
+            "AA0NT",
+            "EM18",
+            "37"
+          ],
+          "matches": [
+            "2359  38 -0.0  40.001124 -4  AA0NT EM18 37 "
+          ],
+          "legacy_screen_passed": false,
+          "operator_amendment": "2026-10-09: WSPR passes when the external tool decodes the expected transmission.",
+          "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+        },
+        "decoder_command": [
+          "/usr/bin/wsprd",
+          "-d",
+          "-H",
+          "-f",
+          "39.999625",
+          "/home/pi/conducted-band-20261017/source/build/acquisition-5/A-8m-WSPR-1/receiver-plus125hz/691231_2359.wav"
+        ],
+        "decoder_exit_status": 0,
+        "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+        "audio_sha256": "17407f6d82d71f6a65a4319301a68f248e383a5cd7a3b0efb9ecc02111332dc5",
+        "audio_path": "/home/pi/conducted-band-20261017/source/build/acquisition-5/A-8m-WSPR-1/receiver-plus125hz/691231_2359.wav",
+        "decoder_files": {
+          "decode.json": "b1a4e1d266fce1b92c6327b5b58634b473c48de13f7cebc77613a8435dd55ecb",
+          "wsprd.stdout": "0e4f280496d60a1def7c00a0a0a48fb21c7bfe81ca9f5cddca427de66244a2f9",
+          "wsprd.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "window_id": "A-8m-WSPR-2",
+      "planned_window_id": "A-8m-WSPR-2",
+      "diagnostic": false,
+      "band": "8m",
+      "mode": "WSPR",
+      "boot_id": "12dd706bd685134ee19965d8a7b4a6d6",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "condition": "fixed +125 Hz receiver audio translation of original IQ",
+      "details": {
+        "decode": {
+          "schema": "phase14-wspr-decode-acceptance/1",
+          "passed": true,
+          "issues": [],
+          "expected": [
+            "AA0NT",
+            "EM18",
+            "37"
+          ],
+          "matches": [
+            "2359  38 -0.0  40.001121 -2  AA0NT EM18 37 "
+          ],
+          "legacy_screen_passed": false,
+          "operator_amendment": "2026-10-09: WSPR passes when the external tool decodes the expected transmission.",
+          "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+        },
+        "decoder_command": [
+          "/usr/bin/wsprd",
+          "-d",
+          "-H",
+          "-f",
+          "39.999625",
+          "/home/pi/conducted-band-20261017/source/build/acquisition-5/A-8m-WSPR-2/receiver-plus125hz/691231_2359.wav"
+        ],
+        "decoder_exit_status": 0,
+        "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+        "audio_sha256": "0ed9cec3d2e26399fe090e33dfdb984430e5a72e7fbb005002b22986142b84e3",
+        "audio_path": "/home/pi/conducted-band-20261017/source/build/acquisition-5/A-8m-WSPR-2/receiver-plus125hz/691231_2359.wav",
+        "decoder_files": {
+          "decode.json": "9dab86e7431fdbd871926cca187a675d9fad792306e1ec39a0521de5c3b86cef",
+          "wsprd.stdout": "6612f475d020d7f2ab34765d9bc05ff80b5cbcfd2c859117a908465229eeee20",
+          "wsprd.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "window_id": "A-8m-WSPR-3",
+      "planned_window_id": "A-8m-WSPR-3",
+      "diagnostic": false,
+      "band": "8m",
+      "mode": "WSPR",
+      "boot_id": "12dd706bd685134ee19965d8a7b4a6d6",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "condition": "fixed +125 Hz receiver audio translation of original IQ",
+      "details": {
+        "decode": {
+          "schema": "phase14-wspr-decode-acceptance/1",
+          "passed": true,
+          "issues": [],
+          "expected": [
+            "AA0NT",
+            "EM18",
+            "37"
+          ],
+          "matches": [
+            "2359  39 -0.0  40.001119 -1  AA0NT EM18 37 "
+          ],
+          "legacy_screen_passed": false,
+          "operator_amendment": "2026-10-09: WSPR passes when the external tool decodes the expected transmission.",
+          "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+        },
+        "decoder_command": [
+          "/usr/bin/wsprd",
+          "-d",
+          "-H",
+          "-f",
+          "39.999625",
+          "/home/pi/conducted-band-20261017/source/build/acquisition-5/A-8m-WSPR-3/receiver-plus125hz/691231_2359.wav"
+        ],
+        "decoder_exit_status": 0,
+        "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+        "audio_sha256": "83bb7878726cf681ea03734a234d440ac67faae951a50186c93dc48de10846a5",
+        "audio_path": "/home/pi/conducted-band-20261017/source/build/acquisition-5/A-8m-WSPR-3/receiver-plus125hz/691231_2359.wav",
+        "decoder_files": {
+          "decode.json": "92f327442b9629fbe2d467399d7d8c4ee1f84b840b41e4846f03d29c6227b3ba",
+          "wsprd.stdout": "0f39fe6dbddc4f43c3e92597ec86a076b62389c4654bead28a032687e65cdeb6",
+          "wsprd.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "window_id": "A-8m-QRSS-1",
+      "planned_window_id": "A-8m-QRSS-1",
+      "diagnostic": false,
+      "band": "8m",
+      "mode": "QRSS",
+      "boot_id": "12dd706bd685134ee19965d8a7b4a6d6",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "condition": "nominal receiver audio tuning",
+      "details": {
+        "schema": "phase14-human-copy/1",
+        "passed": true,
+        "issues": [],
+        "operator_amendment": "2026-10-08: QRSS, FSKCW and DFCW are copied by humans; drift is not an immediate failure.",
+        "legacy_screen_passed": false,
+        "legacy_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed"
+        ],
+        "diagnostic_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed"
+        ],
+        "frequency_state_pairs": [],
+        "method": "Retain 20 ms envelope/transition timing, acquired continuous marks, >=10 dB contrast, amplitude >=0.5 and independent final silence; locally ordered frequency states retain >=half requested separation.",
+        "limitations": [
+          "Evidence of reproduced human-copy marks/states; no formal human listening study.",
+          "Phase residual, smooth drift and nominal carrier error remain separate diagnostics; no calibrated absolute-frequency claim."
+        ],
+        "overall_screen_passed": true
+      }
+    },
+    {
+      "window_id": "A-8m-FSKCW-1",
+      "planned_window_id": "A-8m-FSKCW-1",
+      "diagnostic": false,
+      "band": "8m",
+      "mode": "FSKCW",
+      "boot_id": "12dd706bd685134ee19965d8a7b4a6d6",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "condition": "nominal receiver audio tuning",
+      "details": {
+        "schema": "phase14-human-copy/1",
+        "passed": true,
+        "issues": [],
+        "operator_amendment": "2026-10-08: QRSS, FSKCW and DFCW are copied by humans; drift is not an immediate failure.",
+        "legacy_screen_passed": false,
+        "legacy_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed state frequency residual failed",
+          "keyed frequency transition fit residual exceeds 0.15 Hz",
+          "keyed frequency transition fit residual exceeds 0.15 Hz"
+        ],
+        "diagnostic_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed state frequency residual failed",
+          "keyed frequency transition fit residual exceeds 0.15 Hz",
+          "keyed frequency transition fit residual exceeds 0.15 Hz"
+        ],
+        "frequency_state_pairs": [
+          {
+            "before_event_index": 1,
+            "after_event_index": 2,
+            "expected_jump_hz": -5.012378096,
+            "observed_jump_hz": -5.08690982311964,
+            "before_interval_s": [
+              12.613,
+              13.113
+            ],
+            "after_interval_s": [
+              13.153,
+              13.653
+            ]
+          },
+          {
+            "before_event_index": 2,
+            "after_event_index": 3,
+            "expected_jump_hz": 5.012378096,
+            "observed_jump_hz": 4.986204214394093,
+            "before_interval_s": [
+              21.613,
+              22.113
+            ],
+            "after_interval_s": [
+              22.153,
+              22.653
+            ]
+          },
+          {
+            "before_event_index": 3,
+            "after_event_index": 4,
+            "expected_jump_hz": -5.012378096,
+            "observed_jump_hz": -5.0339795127511024,
+            "before_interval_s": [
+              30.613,
+              31.113
+            ],
+            "after_interval_s": [
+              31.153,
+              31.653
+            ]
+          },
+          {
+            "before_event_index": 4,
+            "after_event_index": 5,
+            "expected_jump_hz": 5.012378096,
+            "observed_jump_hz": 4.9901735708117485,
+            "before_interval_s": [
+              39.613,
+              40.113
+            ],
+            "after_interval_s": [
+              40.153,
+              40.653
+            ]
+          }
+        ],
+        "method": "Retain 20 ms envelope/transition timing, acquired continuous marks, >=10 dB contrast, amplitude >=0.5 and independent final silence; locally ordered frequency states retain >=half requested separation.",
+        "limitations": [
+          "Evidence of reproduced human-copy marks/states; no formal human listening study.",
+          "Phase residual, smooth drift and nominal carrier error remain separate diagnostics; no calibrated absolute-frequency claim."
+        ],
+        "overall_screen_passed": true
+      }
+    },
+    {
+      "window_id": "A-8m-DFCW-1",
+      "planned_window_id": "A-8m-DFCW-1",
+      "diagnostic": false,
+      "band": "8m",
+      "mode": "DFCW",
+      "boot_id": "12dd706bd685134ee19965d8a7b4a6d6",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 40001000,
+      "status": "Qualified",
+      "condition": "nominal receiver audio tuning",
+      "details": {
+        "schema": "phase14-human-copy/1",
+        "passed": true,
+        "issues": [],
+        "operator_amendment": "2026-10-08: QRSS, FSKCW and DFCW are copied by humans; drift is not an immediate failure.",
+        "legacy_screen_passed": false,
+        "legacy_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed state frequency residual failed"
+        ],
+        "diagnostic_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed state frequency residual failed"
+        ],
+        "frequency_state_pairs": [
+          {
+            "before_event_index": 1,
+            "after_event_index": 3,
+            "expected_jump_hz": -5.012378096,
+            "observed_jump_hz": -4.7991530522704124,
+            "before_interval_s": [
+              12.733,
+              13.233
+            ],
+            "after_interval_s": [
+              16.273,
+              16.773
+            ]
+          },
+          {
+            "before_event_index": 3,
+            "after_event_index": 5,
+            "expected_jump_hz": 5.012378096,
+            "observed_jump_hz": 5.2608350813388824,
+            "before_interval_s": [
+              18.733,
+              19.233
+            ],
+            "after_interval_s": [
+              22.273,
+              22.773
+            ]
+          }
+        ],
+        "method": "Retain 20 ms envelope/transition timing, acquired continuous marks, >=10 dB contrast, amplitude >=0.5 and independent final silence; locally ordered frequency states retain >=half requested separation.",
+        "limitations": [
+          "Evidence of reproduced human-copy marks/states; no formal human listening study.",
+          "Phase residual, smooth drift and nominal carrier error remain separate diagnostics; no calibrated absolute-frequency claim."
+        ],
+        "overall_screen_passed": true
+      }
+    },
+    {
+      "window_id": "A-5m-TONE-1",
+      "planned_window_id": "A-5m-TONE-1",
+      "diagnostic": false,
+      "band": "5m",
+      "mode": "TONE",
+      "boot_id": "12dd706bd685134ee19965d8a7b4a6d6",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "condition": "nominal receiver audio tuning",
+      "details": {
+        "minimum_contrast_db": 74.01053614548496,
+        "interior_amplitude_min_ratio": 0.9931026410493556,
+        "indicated_offset_mean_hz": 180.87222809195518,
+        "reference_compared_offset_mean_hz": 117.08801531791687,
+        "observed_reference_compared_offset_range_hz": [
+          116.65110317617655,
+          117.61394762992859
+        ],
+        "empirical_half_range_hz": 0.48142222687602043,
+        "absolute_uncertainty_hz": null,
+        "frequency_acceptance": "descriptive only; no selected calibrated absolute-error gate",
+        "uncertainty": "Empirical range is repeatability plus drift, not combined uncertainty. Simultaneous reference subtraction uses the nominal SDR sample axis; absolute/sample-scale calibration is unavailable."
+      }
+    },
+    {
+      "window_id": "DIAG-A-5m-WSPR-1",
+      "planned_window_id": "A-5m-WSPR-1",
+      "diagnostic": true,
+      "band": "5m",
+      "mode": "WSPR",
+      "boot_id": "05c4a2859477659b1dd7b594029f0c1a",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "condition": "fixed +200 Hz receiver audio translation of original IQ",
+      "details": {
+        "decode": {
+          "schema": "phase14-wspr-decode-acceptance/1",
+          "passed": true,
+          "issues": [],
+          "expected": [
+            "AA0NT",
+            "EM18",
+            "37"
+          ],
+          "matches": [
+            "2359  38 -0.0  60.001181 -3  AA0NT EM18 37 ",
+            "2359 -28  0.0  60.001301 -3  AA0NT EM18 37 "
+          ],
+          "legacy_screen_passed": false,
+          "operator_amendment": "2026-10-09: WSPR passes when the external tool decodes the expected transmission.",
+          "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+        },
+        "decoder_command": [
+          "/usr/bin/wsprd",
+          "-d",
+          "-H",
+          "-f",
+          "59.9997",
+          "/home/pi/conducted-band-20261017/source/build/cold-focused/DIAG-A-5m-WSPR-1/receiver-plus200hz/691231_2359.wav"
+        ],
+        "decoder_exit_status": 0,
+        "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+        "audio_sha256": "80a3a6374f757dbf0b36c20be88e300f1613fa219a3f0f8bb4cddf0bfe13929c",
+        "audio_path": "/home/pi/conducted-band-20261017/source/build/cold-focused/DIAG-A-5m-WSPR-1/receiver-plus200hz/691231_2359.wav",
+        "decoder_files": {
+          "decode.json": "ddaef94be3bb119d493c56565b4afe1208afaf7adf4b0f0e2602e5fb479ae907",
+          "wsprd.stdout": "4971183de7ce6b22f371033a8af424398a5c51fdf5ef24f854875caedb14bdfe",
+          "wsprd.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "window_id": "DIAG-A-5m-WSPR-2",
+      "planned_window_id": "A-5m-WSPR-2",
+      "diagnostic": true,
+      "band": "5m",
+      "mode": "WSPR",
+      "boot_id": "05c4a2859477659b1dd7b594029f0c1a",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "condition": "fixed +200 Hz receiver audio translation of original IQ",
+      "details": {
+        "decode": {
+          "schema": "phase14-wspr-decode-acceptance/1",
+          "passed": true,
+          "issues": [],
+          "expected": [
+            "AA0NT",
+            "EM18",
+            "37"
+          ],
+          "matches": [
+            "2359  39 -0.0  60.001179 -1  AA0NT EM18 37 ",
+            "2359 -25  0.0  60.001300 -1  AA0NT EM18 37 "
+          ],
+          "legacy_screen_passed": false,
+          "operator_amendment": "2026-10-09: WSPR passes when the external tool decodes the expected transmission.",
+          "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+        },
+        "decoder_command": [
+          "/usr/bin/wsprd",
+          "-d",
+          "-H",
+          "-f",
+          "59.9997",
+          "/home/pi/conducted-band-20261017/source/build/cold-focused/DIAG-A-5m-WSPR-2/receiver-plus200hz/691231_2359.wav"
+        ],
+        "decoder_exit_status": 0,
+        "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+        "audio_sha256": "23362328967cffb6173693676cd8f839e989ece12f629b594b32debe966697b8",
+        "audio_path": "/home/pi/conducted-band-20261017/source/build/cold-focused/DIAG-A-5m-WSPR-2/receiver-plus200hz/691231_2359.wav",
+        "decoder_files": {
+          "decode.json": "42425530e9a1e8cf866352011097132a7c43f84237cde5294a99bf0229258844",
+          "wsprd.stdout": "4b2de19a6bbf2fa75ecc52ae13b5972e59b7f935552720c26b9a9274c59d3eeb",
+          "wsprd.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "window_id": "DIAG-A-5m-WSPR-3",
+      "planned_window_id": "A-5m-WSPR-3",
+      "diagnostic": true,
+      "band": "5m",
+      "mode": "WSPR",
+      "boot_id": "05c4a2859477659b1dd7b594029f0c1a",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "condition": "fixed +200 Hz receiver audio translation of original IQ",
+      "details": {
+        "decode": {
+          "schema": "phase14-wspr-decode-acceptance/1",
+          "passed": true,
+          "issues": [],
+          "expected": [
+            "AA0NT",
+            "EM18",
+            "37"
+          ],
+          "matches": [
+            "2359  39 -0.0  60.001178 -1  AA0NT EM18 37 ",
+            "2359 -23  0.0  60.001299 -2  AA0NT EM18 37 "
+          ],
+          "legacy_screen_passed": false,
+          "operator_amendment": "2026-10-09: WSPR passes when the external tool decodes the expected transmission.",
+          "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+        },
+        "decoder_command": [
+          "/usr/bin/wsprd",
+          "-d",
+          "-H",
+          "-f",
+          "59.9997",
+          "/home/pi/conducted-band-20261017/source/build/cold-focused/DIAG-A-5m-WSPR-3/receiver-plus200hz/691231_2359.wav"
+        ],
+        "decoder_exit_status": 0,
+        "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+        "audio_sha256": "b06eed1da2f7421c02648b83c9e18d2f6e867683a0f9fc5f49d59a0336cf477d",
+        "audio_path": "/home/pi/conducted-band-20261017/source/build/cold-focused/DIAG-A-5m-WSPR-3/receiver-plus200hz/691231_2359.wav",
+        "decoder_files": {
+          "decode.json": "f03b564ea78c4c257adff196f1b9805b5edca1dc0285f0213fbe756146fdd095",
+          "wsprd.stdout": "00421054a2adbd70d6bda46b491dbfebf21b7dd9353353d5df3c63399c4fa2c1",
+          "wsprd.stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    {
+      "window_id": "A-5m-QRSS-1",
+      "planned_window_id": "A-5m-QRSS-1",
+      "diagnostic": false,
+      "band": "5m",
+      "mode": "QRSS",
+      "boot_id": "12dd706bd685134ee19965d8a7b4a6d6",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "condition": "nominal receiver audio tuning",
+      "details": {
+        "schema": "phase14-human-copy/1",
+        "passed": true,
+        "issues": [],
+        "operator_amendment": "2026-10-08: QRSS, FSKCW and DFCW are copied by humans; drift is not an immediate failure.",
+        "legacy_screen_passed": false,
+        "legacy_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed"
+        ],
+        "diagnostic_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed"
+        ],
+        "frequency_state_pairs": [],
+        "method": "Retain 20 ms envelope/transition timing, acquired continuous marks, >=10 dB contrast, amplitude >=0.5 and independent final silence; locally ordered frequency states retain >=half requested separation.",
+        "limitations": [
+          "Evidence of reproduced human-copy marks/states; no formal human listening study.",
+          "Phase residual, smooth drift and nominal carrier error remain separate diagnostics; no calibrated absolute-frequency claim."
+        ],
+        "overall_screen_passed": true
+      }
+    },
+    {
+      "window_id": "DIAG-A-5m-FSKCW-1",
+      "planned_window_id": "A-5m-FSKCW-1",
+      "diagnostic": true,
+      "band": "5m",
+      "mode": "FSKCW",
+      "boot_id": "05c4a2859477659b1dd7b594029f0c1a",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "condition": "nominal receiver audio tuning",
+      "details": {
+        "schema": "phase14-human-copy/1",
+        "passed": true,
+        "issues": [],
+        "operator_amendment": "2026-10-08: QRSS, FSKCW and DFCW are copied by humans; drift is not an immediate failure.",
+        "legacy_screen_passed": false,
+        "legacy_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed state frequency residual failed",
+          "keyed frequency transition fit residual exceeds 0.15 Hz",
+          "keyed frequency transition fit residual exceeds 0.15 Hz"
+        ],
+        "diagnostic_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed state frequency residual failed",
+          "keyed frequency transition fit residual exceeds 0.15 Hz",
+          "keyed frequency transition fit residual exceeds 0.15 Hz"
+        ],
+        "frequency_state_pairs": [
+          {
+            "before_event_index": 1,
+            "after_event_index": 2,
+            "expected_jump_hz": -4.980247467,
+            "observed_jump_hz": -5.068190947175026,
+            "before_interval_s": [
+              12.857,
+              13.357
+            ],
+            "after_interval_s": [
+              13.397,
+              13.897
+            ]
+          },
+          {
+            "before_event_index": 2,
+            "after_event_index": 3,
+            "expected_jump_hz": 4.980247467,
+            "observed_jump_hz": 4.948005139827728,
+            "before_interval_s": [
+              21.857,
+              22.357
+            ],
+            "after_interval_s": [
+              22.397,
+              22.897
+            ]
+          },
+          {
+            "before_event_index": 3,
+            "after_event_index": 4,
+            "expected_jump_hz": -4.980247467,
+            "observed_jump_hz": -4.996921084821224,
+            "before_interval_s": [
+              30.857,
+              31.357
+            ],
+            "after_interval_s": [
+              31.397,
+              31.897
+            ]
+          },
+          {
+            "before_event_index": 4,
+            "after_event_index": 5,
+            "expected_jump_hz": 4.980247467,
+            "observed_jump_hz": 4.949540309607983,
+            "before_interval_s": [
+              39.857,
+              40.357
+            ],
+            "after_interval_s": [
+              40.397,
+              40.897
+            ]
+          }
+        ],
+        "method": "Retain 20 ms envelope/transition timing, acquired continuous marks, >=10 dB contrast, amplitude >=0.5 and independent final silence; locally ordered frequency states retain >=half requested separation.",
+        "limitations": [
+          "Evidence of reproduced human-copy marks/states; no formal human listening study.",
+          "Phase residual, smooth drift and nominal carrier error remain separate diagnostics; no calibrated absolute-frequency claim."
+        ],
+        "overall_screen_passed": true
+      }
+    },
+    {
+      "window_id": "A-5m-DFCW-1",
+      "planned_window_id": "A-5m-DFCW-1",
+      "diagnostic": false,
+      "band": "5m",
+      "mode": "DFCW",
+      "boot_id": "12dd706bd685134ee19965d8a7b4a6d6",
+      "source_revision": "165303458e49",
+      "firmware_sha256": "cb6ccfa3e9354d84c5ca3c993f4965f70716ed8bd99b076011406199fa1850eb",
+      "frequency_hz": 60001000,
+      "status": "Qualified",
+      "condition": "nominal receiver audio tuning",
+      "details": {
+        "schema": "phase14-human-copy/1",
+        "passed": true,
+        "issues": [],
+        "operator_amendment": "2026-10-08: QRSS, FSKCW and DFCW are copied by humans; drift is not an immediate failure.",
+        "legacy_screen_passed": false,
+        "legacy_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed state frequency residual failed"
+        ],
+        "diagnostic_issues": [
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed carrier continuity, frequency or coherence failed",
+          "keyed state frequency residual failed"
+        ],
+        "frequency_state_pairs": [
+          {
+            "before_event_index": 1,
+            "after_event_index": 3,
+            "expected_jump_hz": -4.980247467,
+            "observed_jump_hz": -4.6820486932992935,
+            "before_interval_s": [
+              12.65,
+              13.15
+            ],
+            "after_interval_s": [
+              16.19,
+              16.69
+            ]
+          },
+          {
+            "before_event_index": 3,
+            "after_event_index": 5,
+            "expected_jump_hz": 4.980247467,
+            "observed_jump_hz": 5.345326237380505,
+            "before_interval_s": [
+              18.65,
+              19.15
+            ],
+            "after_interval_s": [
+              22.19,
+              22.69
+            ]
+          }
+        ],
+        "method": "Retain 20 ms envelope/transition timing, acquired continuous marks, >=10 dB contrast, amplitude >=0.5 and independent final silence; locally ordered frequency states retain >=half requested separation.",
+        "limitations": [
+          "Evidence of reproduced human-copy marks/states; no formal human listening study.",
+          "Phase residual, smooth drift and nominal carrier error remain separate diagnostics; no calibrated absolute-frequency claim."
+        ],
+        "overall_screen_passed": true
+      }
+    }
+  ],
+  "wspr_frames": [
+    {
+      "window_id": "A-8m-WSPR-1",
+      "planned_window_id": "A-8m-WSPR-1",
+      "nominal_receiver_tuning_passed": false,
+      "capture_role": "original",
+      "accepted_passed": true,
+      "condition": "fixed +125 Hz receiver audio translation of original IQ",
+      "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+      "decoder_exit_status": 0,
+      "decode": {
+        "passed": true,
+        "issues": [],
+        "expected": [
+          "AA0NT",
+          "EM18",
+          "37"
+        ],
+        "matches": [
+          "2359  38 -0.0  40.001124 -4  AA0NT EM18 37 "
+        ],
+        "legacy_screen_passed": false,
+        "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+      }
+    },
+    {
+      "window_id": "A-8m-WSPR-2",
+      "planned_window_id": "A-8m-WSPR-2",
+      "nominal_receiver_tuning_passed": true,
+      "capture_role": "original",
+      "accepted_passed": true,
+      "condition": "fixed +125 Hz receiver audio translation of original IQ",
+      "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+      "decoder_exit_status": 0,
+      "decode": {
+        "passed": true,
+        "issues": [],
+        "expected": [
+          "AA0NT",
+          "EM18",
+          "37"
+        ],
+        "matches": [
+          "2359  38 -0.0  40.001121 -2  AA0NT EM18 37 "
+        ],
+        "legacy_screen_passed": false,
+        "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+      }
+    },
+    {
+      "window_id": "A-8m-WSPR-3",
+      "planned_window_id": "A-8m-WSPR-3",
+      "nominal_receiver_tuning_passed": false,
+      "capture_role": "original",
+      "accepted_passed": true,
+      "condition": "fixed +125 Hz receiver audio translation of original IQ",
+      "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+      "decoder_exit_status": 0,
+      "decode": {
+        "passed": true,
+        "issues": [],
+        "expected": [
+          "AA0NT",
+          "EM18",
+          "37"
+        ],
+        "matches": [
+          "2359  39 -0.0  40.001119 -1  AA0NT EM18 37 "
+        ],
+        "legacy_screen_passed": false,
+        "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+      }
+    },
+    {
+      "window_id": "DIAG-A-5m-WSPR-1",
+      "planned_window_id": "A-5m-WSPR-1",
+      "nominal_receiver_tuning_passed": false,
+      "capture_role": "focused_retest",
+      "accepted_passed": true,
+      "condition": "fixed +200 Hz receiver audio translation of original IQ",
+      "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+      "decoder_exit_status": 0,
+      "decode": {
+        "passed": true,
+        "issues": [],
+        "expected": [
+          "AA0NT",
+          "EM18",
+          "37"
+        ],
+        "matches": [
+          "2359  38 -0.0  60.001181 -3  AA0NT EM18 37 ",
+          "2359 -28  0.0  60.001301 -3  AA0NT EM18 37 "
+        ],
+        "legacy_screen_passed": false,
+        "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+      }
+    },
+    {
+      "window_id": "DIAG-A-5m-WSPR-2",
+      "planned_window_id": "A-5m-WSPR-2",
+      "nominal_receiver_tuning_passed": false,
+      "capture_role": "focused_retest",
+      "accepted_passed": true,
+      "condition": "fixed +200 Hz receiver audio translation of original IQ",
+      "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+      "decoder_exit_status": 0,
+      "decode": {
+        "passed": true,
+        "issues": [],
+        "expected": [
+          "AA0NT",
+          "EM18",
+          "37"
+        ],
+        "matches": [
+          "2359  39 -0.0  60.001179 -1  AA0NT EM18 37 ",
+          "2359 -25  0.0  60.001300 -1  AA0NT EM18 37 "
+        ],
+        "legacy_screen_passed": false,
+        "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+      }
+    },
+    {
+      "window_id": "DIAG-A-5m-WSPR-3",
+      "planned_window_id": "A-5m-WSPR-3",
+      "nominal_receiver_tuning_passed": false,
+      "capture_role": "focused_retest",
+      "accepted_passed": true,
+      "condition": "fixed +200 Hz receiver audio translation of original IQ",
+      "decoder_sha256": "3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3",
+      "decoder_exit_status": 0,
+      "decode": {
+        "passed": true,
+        "issues": [],
+        "expected": [
+          "AA0NT",
+          "EM18",
+          "37"
+        ],
+        "matches": [
+          "2359  39 -0.0  60.001178 -1  AA0NT EM18 37 ",
+          "2359 -23  0.0  60.001299 -2  AA0NT EM18 37 "
+        ],
+        "legacy_screen_passed": false,
+        "method": "Successful external wsprd exit and exact expected callsign/grid/power in retained decoder stdout; drift/residual measurements remain diagnostics."
+      }
+    }
+  ],
+  "boot_scope": "Every observation retains its actual boot; top-level boot_id is the final retained state.",
+  "accounting": {
+    "nominal_planned": 14,
+    "nominal_armed": 12,
+    "nominal_control_complete": 11,
+    "nominal_untransmitted": [
+      "A-5m-WSPR-2",
+      "A-5m-WSPR-3"
+    ],
+    "nominal_invalid_capture": [
+      "A-5m-WSPR-1"
+    ],
+    "nominal_observer_aborted": [
+      "A-5m-FSKCW-1"
+    ],
+    "diagnostic_rf_windows": 4,
+    "total_rf_windows": 16,
+    "pre_arm_non_rf_load_failures": 2,
+    "note": "The original 5 m sequence did not qualify: first RF frame completed, receiver acquisition became incomplete at the next LOAD, and two original slots were not transmitted. A separately planned three-frame waveform-equivalent diagnostic provides the accepted 5 m sequence; one FSKCW diagnostic follows its preserved RENEW-timeout observer abort."
+  },
+  "limits": [
+    "Exact two conducted points on Pico A, unfiltered attenuator/combiner path.",
+    "Receiver audio conditions are part of WSPR acceptance; nominal failures remain.",
+    "No calibrated absolute RF/time/power, LPF, antenna, both-board or alternate-clock qualification."
+  ]
+}

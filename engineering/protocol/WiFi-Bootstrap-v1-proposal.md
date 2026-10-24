@@ -17,8 +17,7 @@ reply and schedules a restart after the ACK is delivered, with a bounded
 fallback. After restart, the AP is normally off while saved station Wi-Fi is
 usable. It starts immediately with an erased journal, returns after station
 loss, or opens through the selected GP14 gesture after confirmed shutdown.
-The setup transaction requires no runtime BOOTSEL press. Every AP activation
-has a non-sliding ten-minute cap; client activity and replies cannot extend it.
+The setup transaction requires no runtime BOOTSEL press. An associated Wi-Fi client retains the AP, and the last disconnect starts a ten-minute inactivity interval. Unjoined initial access lasts ten minutes; the Console's initial join grace is 120 seconds. Browser traffic and authentication alone do not extend access or reopen expiry.
 The AP-only envelope, encrypted plaintext, header checks and one-use slot are
 bounded independently. The sealed plaintext now accepts
 an optional one-byte length plus a 1–253-byte time-server name after the Wi-Fi
@@ -71,8 +70,7 @@ commit blocks new saves and uses restart/readback to resolve authority.
 
 Source, generation and durable request digest must match to prove a save.
 Volatile attempt digests can identify a failure but cannot prove commit. The
-terminal reply and ACK coordinate restart within bounded deadlines; they do
-not extend the AP lifetime. The portal preserves drafts until explicit review.
+terminal reply and ACK coordinate restart within bounded deadlines. Wi-Fi client association retains the AP independently of those messages; the final disconnect starts its ten-minute inactivity interval. The portal preserves drafts until explicit review.
 
 ## Encoding and routes
 

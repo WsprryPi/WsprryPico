@@ -5,6 +5,8 @@
 #include "standalone/progress.hpp"
 #include "wtp/json.hpp"
 
+#include <tuple>
+
 using namespace wsprrypico;
 namespace {
 constexpr std::uint64_t hz = 1'000'000'000;
@@ -359,19 +361,68 @@ void progress_storage_fault_admission() {
     REQUIRE(f.engine.poll(now.monotonic_now_ns).state == wtp::EngineState::Idle);
     REQUIRE(!f.engine.output_active());
 }
+void message_frequency_policy() {
+    // The browser cannot waive per-event policy, engine bounds or ownership.
+    const auto body = [](std::string mode, std::uint64_t first, std::uint64_t second) {
+        return "{\"job_id\":\"" + std::string(32, '7') + "\",\"mode\":" + wtp::json::quote(mode) +
+               ",\"message\":\"A E\",\"frequency_nhz\":\"" + std::to_string(first) +
+               "\",\"space_frequency_nhz\":\"" + std::to_string(second) +
+               "\",\"timing\":{\"dot_ns\":\"3000000000\",\"dash_ns\":\"9000000000\","
+               "\"intra_gap_ns\":\"3000000000\",\"character_gap_ns\":\"9000000000\","
+               "\"word_gap_ns\":\"21000000000\"},\"repeat_count\":2,"
+               "\"repeat_gap_ns\":\"7000000000\",\"allow_frequency_adjustment\":true}";
+    };
+    for (const auto mode : {"qrss", "fskcw", "dfcw"}) {
+        for (const auto& [first, second, allowed] :
+             {std::tuple{14096905 * hz, 14096900 * hz, true},
+              std::tuple{14096900 * hz, 14096905 * hz, std::string_view(mode) != "fskcw"},
+              std::tuple{14000000 * hz, 14000000 * hz - 1, std::string_view(mode) == "qrss"},
+              std::tuple{14350000 * hz + 1, 14096900 * hz, false},
+              std::tuple{14096900 * hz, 74999999 * hz + 1, std::string_view(mode) == "qrss"},
+              std::tuple{100000 * hz - 1, 14096900 * hz, false},
+              std::tuple{74999999 * hz + 1, 14096900 * hz, false}}) {
+            Fixture f;
+            const auto compact = body(mode, first, second);
+            const auto send = [&] {
+                return f.call("POST", "/api/v1/jobs",
+                              "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" +
+                                  f.id() + "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact +
+                                  '}');
+            };
+            REQUIRE(send().status ==
+                    (std::string_view(mode) == "fskcw" && first <= second ? 400U : 409U));
+            REQUIRE(f.raw.preparations == 0);
+            f.claim();
+            REQUIRE((send().status == 200) == allowed);
+            REQUIRE(f.raw.preparations == (allowed ? 1U : 0U));
+            REQUIRE(f.service.status().state == (allowed ? wtp::State::Loaded : wtp::State::Empty));
+        }
+    }
+    // Explicit consent permits a large positive shift; no subtraction rule.
+    Fixture f;
+    f.flags(true, true);
+    f.claim();
+    const auto compact = body("dfcw", 100000 * hz, 200000 * hz);
+    REQUIRE(f.call("POST", "/api/v1/jobs",
+                   "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" + f.id() +
+                       "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact + '}')
+                .status == 200);
+}
 void autonomous_admission() {
     Fixture f;
     const auto period = 120 * hz;
     const auto next = (f.clock.snapshot().utc_now_ns / period + 1) * period + hz;
     f.clock.utc = next - 5 * hz - f.clock.now;
     auto config = *f.store.config();
-    config.wspr_base_frequency_hz = 3'570'100;
+    config.wspr_dial_frequency_hz = 3'568'600;
     config.enabled = true;
     REQUIRE(
         f.scheduler.command("CONFIG " + standalone::serialize_config(config)).find("\"ok\":true") !=
         std::string::npos);
+    REQUIRE(!f.store.config()->enabled); // First dial selection cannot enable recurrence.
+    REQUIRE(f.scheduler.command("CONFIG " + standalone::serialize_config(config)).find("\"ok\":true") != std::string::npos);
     f.scheduler.poll();
-    const auto base = std::uint64_t{*config.wspr_base_frequency_hz} * hz;
+    const auto base = 3'570'097'802'734'375ULL;
     if (application::frequency_allowed(base, false, false)) {
         REQUIRE(f.service.status().state == wtp::State::Armed && f.raw.schedules == 1);
     } else {
@@ -393,6 +444,7 @@ int main() {
     band_and_engine_limits();
     admission_and_revocation();
     progress_storage_fault_admission();
+    message_frequency_policy();
     autonomous_admission();
     std::cout << "frequency policy checks passed\n";
 }

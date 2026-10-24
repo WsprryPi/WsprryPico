@@ -6,39 +6,14 @@ rules. Chrony source is not copied, translated, vendored or linked into this
 library or the Pico firmware. The adjacent [license](LICENSE.md) permits reuse
 independently of WsprryPico.
 
-The external Chrony 4.9 comparison covers eight source-statistics streams,
-160 phase-steering cases and five source-selection traces. The tested phase
-rules, final source choices and named hysteresis switch agree; startup selection,
-adaptive history, transient frequency and reported skew can differ. Full
-behavioral equivalence has not been demonstrated. This is an original bounded
-implementation, not a port or complete replacement for the Unix daemon.
-
-The [clock-loop comparison](../../engineering/development/microchrony-clock-loop.md)
-also exercises complete source-to-clock feedback on 28 identical four-hour
-physical-event traces with independently known oscillator and UTC error. It
-includes changing drift, phase changes, restart seeds, holdover and four sources;
-six additional 256-point histories and 274 same-estimate combinations check
-adaptation and source combination separately. The record quantifies retained
-quantization and variable-delay limits.
-
-The [Internet-source follow-up](../../engineering/development/microchrony-internet-diagnosis.md)
-adds variable-delay tests and pooled replays of retained A/B inputs. It records
-both closer frequency agreement and worse indicated UTC offsets in the captured
-pulse replay; matching a reference controller does not establish absolute accuracy.
-
-The [packet and independent-clock comparison](../../engineering/development/microchrony-conformance-results.md)
-also exercises Chrony's actual packet admission before its statistics API. It
-separates packet filtering, fixed raw-coordinate regression and coupled clock
-trajectories, and compares learned-rate control with phase damping alone against
-known error. The selected tests establish bounded behavior, not complete daemon
-equivalence.
-
-The [lead-layout captured-input comparison](../../engineering/development/microchrony-lead-replay-results.md)
-separates conditional controller weights from conservative public bounds and
-ages each candidate path from its own exchange. It substantially closes the
-Chrony frequency/phase replay difference while retaining the Internet inputs'
-adverse bias and every existing quality gate. Software agreement does not
-establish improved physical UTC or RF accuracy.
+Software comparisons exercise source statistics, packet admission, phase steering,
+selection, source-to-clock feedback and adaptive histories against external
+Chrony 4.9 and independently known synthetic error. The bounded profile can
+differ in startup selection, transient frequency, history and skew. Complete
+daemon equivalence, physical UTC/RF accuracy and exhaustive worst-case callback
+latency are unqualified. See the [reference harness](../../tests/reference/README.md)
+for reproducible comparisons and the [measurement boundaries](../../engineering/development/microchrony-independent-measurement.md)
+for physical reference requirements.
 
 ## Integration
 
@@ -136,16 +111,15 @@ eight consecutive unanswered requests, rather than retaining an unreachable
 association for the Unix daemon default lifetime. Pico RF carrier correction uses only the independent, persistent manual PPM
 value within its existing ±100 ppm range. NTP-derived RF calibration is rejected;
 legacy candidate diagnostics never grant RF authority. The Pico-to-Pi GPIO pulse
-measurement path is retired. The [closeout](../../engineering/development/ntp-work-closeout.md)
-records that disposition; future GPS/PPS input remains in the backlog.
+measurement path is retired. The [UTC/RF contract](../../engineering/development/clock-discipline.md)
+defines compatibility; GPS/PPS input remains selected future work.
 
 Supported scope is a bounded IPv4 basic client with a virtual UTC clock. It does
 not implement NTS/MAC authentication, NTP server/peer modes, interleaved or
 extension-field modes, Unix kernel control, reference clocks, GPS/PPS or RTC
 tracking. Pending leap indicators are exposed to the application; leap-second
 execution is not yet a demonstrated Chrony-equivalent behavior. The Pico job
-policy excludes jobs near announced leap transitions. The [target results](../../engineering/development/microchrony-results.md) record
-measured callback latency, applied-clock checks and their finite scope. Exhaustive
+policy excludes jobs near announced leap transitions. Exhaustive
 worst-case latency, long-term clock behavior and physical RF accuracy remain
 unqualified.
 

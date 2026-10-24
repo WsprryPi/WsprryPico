@@ -12,7 +12,6 @@
 namespace wsprrypico::standalone {
 namespace {
 constexpr std::uint64_t ns = 1'000'000'000ULL;
-constexpr std::uint64_t spacing = 1'464'843'750ULL;
 constexpr std::uint64_t frame_duration = 110'592'000'000ULL;
 constexpr std::uint64_t slot_duration = 120 * ns;
 constexpr auto local_id = "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
@@ -105,7 +104,12 @@ void Scheduler::poll() {
         candidate - now.utc_now_ns < 2 * ns)
         return;
     const auto& c = *store_.config();
-    if (!c.wspr_base_frequency_hz) {
+    if (!c.wspr_dial_frequency_hz) {
+        last_error_ = wtp::ErrorCode::FrequencyRejected;
+        return;
+    }
+    const auto tones = wspr_tones(*c.wspr_dial_frequency_hz);
+    if (!tones) {
         last_error_ = wtp::ErrorCode::FrequencyRejected;
         return;
     }
@@ -155,13 +159,12 @@ void Scheduler::poll() {
                      now.monotonic_now_ns,
                      now.uncertainty_ns,
                      now,
-                     *c.wspr_base_frequency_hz};
-    if (!prepare_frame(plan->frames[0], candidate, *c.wspr_base_frequency_hz))
+                     *tones};
+    if (!prepare_frame(plan->frames[0], candidate, *tones))
         pair_.reset();
 }
 bool Scheduler::prepare_frame(const encoding::WsprFrame& frame, std::uint64_t slot,
-                              std::uint32_t base_frequency_hz) {
-    const auto frequency = std::uint64_t{base_frequency_hz} * ns;
+                              const std::array<std::uint64_t, 4>& tones) {
     wtp::Job job{id(slot), "rf-events/1", "wspr", frame_duration, {}, true};
     if (!job.events.reserve(162)) {
         last_error_ = wtp::ErrorCode::InternalError;
@@ -172,7 +175,7 @@ bool Scheduler::prepare_frame(const encoding::WsprFrame& frame, std::uint64_t sl
         const auto start = (std::uint64_t{i} * 2'048'000'000ULL + 1) / 3;
         const auto end = (std::uint64_t{i + 1} * 2'048'000'000ULL + 1) / 3;
         if (!job.events.push_back(
-                {start, end - start, true, frequency + frame.symbols[i] * spacing})) {
+                {start, end - start, true, tones[frame.symbols[i]]})) {
             last_error_ = wtp::ErrorCode::InternalError;
             (void)request("RELEASE");
             return false;
@@ -255,7 +258,7 @@ void Scheduler::poll_pair() {
         return;
     last_frame_ = 2;
     pair_->frame = 1;
-    if (!prepare_frame(pair_->plan.frames[1], slot, pair_->base_frequency_hz))
+    if (!prepare_frame(pair_->plan.frames[1], slot, pair_->tones))
         pair_.reset();
 }
 std::string Scheduler::status() const {
@@ -293,13 +296,13 @@ std::string Scheduler::status() const {
            std::to_string(clock.utc_now_ns) + "\"" + ",\"monotonic_now_ns\":\"" +
            std::to_string(clock.monotonic_now_ns) + "\"" + ",\"sync_age_ns\":\"" +
            std::to_string(clock.sync_age_ns) + "\"" + ",\"station\":" + station +
-           ",\"schedules\":" + schedules + ",\"schedule_base_frequency_nhz\":" +
-           (store_.config() && store_.config()->wspr_base_frequency_hz
+           ",\"schedules\":" + schedules + ",\"schedule_dial_frequency_nhz\":" +
+           (store_.config() && store_.config()->wspr_dial_frequency_hz
                 ? wtp::json::quote(
-                      std::to_string(std::uint64_t{*store_.config()->wspr_base_frequency_hz} * ns))
+                      std::to_string(std::uint64_t{*store_.config()->wspr_dial_frequency_hz} * ns))
                 : "null") +
            ",\"frequency_required\":" +
-           (store_.config() && store_.config()->wspr_base_frequency_hz ? "false" : "true") +
+           (store_.config() && store_.config()->wspr_dial_frequency_hz ? "false" : "true") +
            ",\"engine\":" + wtp::json::quote(service_.config().capability_engine) +
            ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") +
            ",\"reboot_required\":" + (reboot_required_ ? "true" : "false") +
@@ -359,10 +362,18 @@ std::string Scheduler::command(std::string_view line) {
             config->manual_correction_ppb = store_.config()->manual_correction_ppb;
         if (!supplied->get("ntp_rf_calibration"))
             config->ntp_rf_calibration = store_.config()->ntp_rf_calibration;
-        if (!supplied->get("wspr_base_frequency_hz"))
-            config->wspr_base_frequency_hz = store_.config()->wspr_base_frequency_hz;
+        if (!supplied->get("wspr_dial_frequency_hz"))
+            config->wspr_dial_frequency_hz = store_.config()->wspr_dial_frequency_hz;
     }
-    if (config->enabled && !config->wspr_base_frequency_hz)
+    if (supplied->get("wspr_dial_frequency_hz") &&
+        (!store_.config() || config->wspr_dial_frequency_hz != store_.config()->wspr_dial_frequency_hz) &&
+        !wspr_frequency_allowed(*config, service_.config().minimum_frequency_nhz,
+                                service_.config().maximum_frequency_nhz))
+        return error("frequency_not_allowed");
+    if (config->wspr_dial_frequency_hz &&
+        (!store_.config() || !store_.config()->wspr_dial_frequency_hz))
+        config->enabled = false; // First Console selection also requires deliberate enablement.
+    if (config->enabled && !config->wspr_dial_frequency_hz)
         return error("standalone_frequency_required");
     if (!store_.save(*config))
         return error("storage_fault");

@@ -11,11 +11,7 @@ programming and verification. An existing compatible executable is used without
 replacement. `--picotool /absolute/path` selects an existing executable and
 never falls back to a download if that selection fails.
 
-If picotool is missing or incompatible, an interactive terminal offers an
-official download. An unattended command must explicitly allow it with
-`--download-picotool`. Flash confirmation through `--yes` does not authorize
-downloading tools. Requirements and available backup space are checked before
-firmware image resolution and device maintenance.
+If no compatible executable is available on `PATH`, the installer checks its private cache and verifies a retained package before reuse. Reusing an existing executable or cached package needs no download consent. If neither is available, an interactive terminal offers an official download; an unattended command must explicitly allow it with `--download-picotool`. Flash confirmation through `--yes` does not authorize downloading tools. Requirements and available backup space are checked before firmware image resolution and device maintenance.
 
 ```sh
 python3 scripts/usb_installer.py upgrade --branch devel \
@@ -54,11 +50,7 @@ new copy for each update. A lock protects managed tools throughout an update
 or recovery. Firmware transactions and backups remain under their existing
 private state directory and retention policy.
 
-`--tool-cleanup ask` is the default. After the operation, a terminal offers to
-remove the downloaded picotool, its retained archive and support files.
-Without a terminal, the tool is kept. `--tool-cleanup keep` retains it without
-asking; `--tool-cleanup remove` requests removal without prompting.
-`--json-only` never asks questions; its default cleanup policy keeps the tool.
+`--tool-cleanup ask` is the default. After the operation, a terminal offers to remove picotool, its retained archive and support files only when the current run downloaded them. Previously retained packages are kept without a cleanup question. Without a terminal, the tool is kept. `--tool-cleanup keep` retains it without asking; `--tool-cleanup remove` explicitly requests removal of a managed package, including a retained one, without prompting. `--json-only` never asks questions; its default cleanup policy keeps the tool.
 
 Cleanup removes only an unchanged installer-managed package. It never removes
 an existing user-installed picotool, firmware backups or recovery records.

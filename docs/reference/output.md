@@ -1,31 +1,26 @@
 # Output and band limits
 
-Normal firmware uses direct GPIO PIO/DMA output with a **138 MHz** system clock.
-Its native numeric range is **100 kHz through 68,999,999 Hz**. Numeric admission
-does not establish RF quality or legal operating permission.
+The normal firmware generates **RF**, a radio-frequency signal, directly on the configured **GPIO output pin**. The factory selection is **GP2, physical pin 4**; see [hardware preparation](../start.md#hardware-connections) for wiring and other pin choices. The Pico uses a **138 MHz** system clock for this output.
+
+The generator's numeric range is **100 kHz through 68,999,999 Hz**. **1 kHz is 1,000 Hz; 1 MHz is 1,000,000 Hz.** That range does not mean every frequency inside it is enabled or suitable for transmission. The firmware also checks the selected band and frequency permissions.
 
 | Range | Current operating boundary |
 | --- | --- |
-| 2200 m, 630 m, 160 m, 80 m, 60 m, 40 m, 30 m, 20 m, 17 m, 15 m, 12 m, 10 m, 6 m | Ordinary admitted bands; conducted tone/WSPR/QRSS/FSKCW/DFCW results exist at recorded points |
-| 8 m and 5 m experimental envelopes | Explicit unqualified-frequency opt-in required; tested 40.001/60.001 MHz points do not qualify the entire envelopes |
-| 4 m | Unavailable at 138 MHz; a separate 150 MHz build can represent it but fails the required reliable-WSPR support gate for all release modes |
-| 2 m | Native direct output unavailable |
+| 2200 m, 630 m, 160 m, 80 m, 60 m, 40 m, 30 m, 20 m, 17 m, 15 m, 12 m, 10 m, 6 m | Enabled by the normal frequency policy, subject to the chosen frequency, RF setup and operating privileges |
+| 8 m and 5 m experimental ranges | Disabled by default; require explicit advanced experimental-frequency permission |
+| 4 m | Unavailable in the normal 138 MHz firmware |
+| 2 m | Unavailable with direct GPIO output |
 
-The RF output is **unfiltered**. Use an appropriate output filter, attenuation,
-load and any amplifier. Conducted results establish neither antenna-ready
-emissions nor calibrated transmitter power. Relative received carrier levels
-are not transmitter watts. Nondefault drive strengths have no inherited
-all-band qualification.
+For standalone WSPR, enter the whole-Hz USB dial in **WSPR dial frequency (Hz)**. The four RF tones surround dial +1,500 Hz, and every tone must fit the generator range and frequency permissions. The normal 138 MHz engine allows dial values from 98503 through 68998496 Hz on numeric engine limits alone; frequency permissions also apply. The dial is a reference, not an emitted RF frequency.
 
-**Reported WSPR power** is message content. **GPIO drive** is a pad-current
-selection. Neither is an RF power measurement. The optional amplifier-enable
-output covers one entire job, including keyed gaps, and returns inactive when
-the job stops. Check polarity and inactive behavior before attaching an amplifier.
+The band names in metres describe approximate radio wavelengths. They are not frequency entries for the browser's Hz fields. Use a frequency appropriate for your chosen mode and operating privileges.
 
-Experimental frequency permissions are off by default. They do not override
-engine limits, ownership, time, pin conflicts or output inhibition, and do not
-change qualification. Band envelopes do not grant operating privileges.
+The RF output is **unfiltered**. It contains the wanted signal and unwanted frequencies, including **harmonics**, which are multiples of the intended frequency. Use a suitable output filter before an antenna connection. A **load** is the circuit or device receiving the output; use a suitable test load or measurement connection while checking the setup. **Attenuation** reduces signal level to suit the next device. Filtering, attenuation, the load and any amplifier must suit the frequency and signal level.
 
-The engineering [conducted support record](https://github.com/WsprryPi/WsprryPico/blob/devel/engineering/development/band-support.md)
-identifies boards, images, clocks, modes and receiver paths. It is point-scoped
-evidence and is not a measurement of every current image or frequency.
+**Reported WSPR power** is the power value sent in the beacon message. **GPIO drive** selects the output pin's electrical drive setting, in milliamps. Neither control measures RF power. Measure the actual output with suitable equipment; a received signal level alone is not a transmitter-power measurement. Recheck the RF setup when changing drive, frequency, filtering or amplification.
+
+The optional **amplifier-enable** output is a separate logic control signal. It stays active for an entire job, including message gaps, and becomes inactive when the job stops. It does not supply amplifier power. Check its [pin and polarity settings](../configure.md#pins-and-drive) before connecting amplifier control circuitry.
+
+Experimental frequency permissions are advanced configuration settings; the ordinary browser form does not edit them. They do not expand the generator's limits or bypass time, control ownership, pin or output checks. Permission in firmware is not a statement of RF performance or local operating authority.
+
+The engineering [conducted support record](https://github.com/WsprryPi/WsprryPico/blob/devel/engineering/development/band-support.md) identifies the exact boards, firmware, clocks, modes, frequencies and measurement connections used for its results. Those measurements do not establish performance for every installation or frequency.

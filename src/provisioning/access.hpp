@@ -48,6 +48,9 @@ struct AccessRecord {
     std::array<std::uint64_t, authorized_bond_capacity> bonds{};
     std::uint8_t bond_count = 0;
     ResetIntent reset;
+    // Empty selects the saved Wi-Fi password for consumer browser login.
+    // Independent of the engineering field/BLE password above.
+    std::string radio_password;
     bool operator==(const AccessRecord&) const = default;
 };
 
@@ -86,6 +89,7 @@ class AccessStore {
     bool load();
     bool initialize(const AccessRecord& record);
     bool replace(const AccessRecord& record);
+    bool set_radio_password(std::string_view password, std::string_view initial_field_password);
     AccessStoreState state() const {
         return state_;
     }

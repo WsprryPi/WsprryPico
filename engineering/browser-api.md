@@ -8,11 +8,25 @@ manual value. GET reports manual mode, and selection never consumes a live or
 saved NTP estimate. The legacy `ntp_rf_calibration` config field remains readable
 for storage/closed-view compatibility but has no RF authority. Older candidate
 diagnostic fields remain non-runnable. Legacy closed config/progress shapes
-are preserved. See the [decision and compatibility details](development/ntp-work-closeout.md).
+are preserved. See the [decision and compatibility details](development/clock-discipline.md).
 `transmitter-ntp-observations/1` at `/api/v1/ntp-observations` binds source-labelled
 measurements to member/boot/firmware/clock identity. See the
-[NTP work record](development/ntp-work-results.md) for fields, units, authority,
-fallback and evidence limits.
+[time policy](development/standalone.md#time-policy) for authority and fallback,
+and [bounded USB diagnostics](development/ntp-usb-diagnostics.md) for original
+observation identity and measurement limits.
+
+Manual correction stores signed integer `manual_correction_ppb` within ±100000
+ppb. The API accepts a decimal string with at most three fractional digits and
+returns three digits; whitespace, exponents, nonfinite values, coercion and
+clamping are refused. Positive PPM means the source runs fast and reduces the
+NCO increment. PUT requires the exact target, current `If-Match`, supported
+schema and authenticated management or local USB authority. Its body is
+`{schema,target,calibration:{manual_ppm,mode}}` with `mode: "manual"`.
+A save requires idle/unowned state and an existing configuration. It starts no
+job and establishes no readiness. Type 2/3 pairs freeze correction across both
+frames; later ordinary jobs select anew. A controller supplying compensated
+frequencies must select zero/manual on Pico or refuse frequency adjustment;
+WTP/1 does not identify precompensated input.
 
 The application also exposes these application services through the separately framed
 [USB management adapter](protocol/USB-Management.md), under internal local
@@ -164,33 +178,13 @@ asset connections. The individual asset paths remain available to tooling.
 
 ## Configuration and revisions
 
-The configuration schema is the existing [standalone version-1 schema](development/standalone.md).
-On initial setup or explicit replacement, omitted `wifi.ntp_ipv4` uses
-`pool.ntp.org`; ordinary API PUT preserves the saved value. An explicit hostname or IPv4
-address is preserved, and invalid/empty values are rejected. The browser prefills
-the same default for a new configuration.
-Passwords are returned as JSON null. A null password in PUT preserves the stored
-password; it is rejected when no stored config exists. Supplying a new password
-replaces it after full validation. Successful and failed responses never echo it.
-The existing station, recurrence, overlap, expiry and storage rules remain in
-force. Autonomous WSPR requires an explicitly saved runtime base frequency;
-firmware images select none. Config v1 has no per-schedule frequency/mode
-field. The independently versioned `transmitter-standalone-frequency/1`
-resource at `/api/v1/standalone-frequency` owns the shared standalone WSPR
-frequency. GET reports whole-Hz `frequency_hz` (null when unset), `configured`,
-`allowed`, target identity and storage health with the current ETag. PUT uses
-that schema, the exact member/boot target and an integer `frequency_hz`, with
-If-Match and idle authority. All four WSPR tones must pass the current engine
-limits and saved frequency permissions. A first frequency selection leaves
-schedules disabled until explicitly enabled; later changes apply to future
-jobs. Legacy config/progress routes preserve the selection without exposing
-it in their closed schemas. Legacy application recurrence uses `"0"` for an
-unset frequency; the dedicated resource is authoritative. See the
-[resource schema](protocol/transmitter-standalone-frequency-1.schema.json).
-Complete job routes support the advertised modes/frequencies, subject to frequency policy
-and engine admission. Type 1/2/3 station admission requires the explicit
-versioned routes below; its software acceptance does not close the separate
-captured-RF decode item in the [backlog](development/consolidated-backlog.md).
+The configuration schema is the existing [standalone version-1 schema](development/standalone.md). On initial setup or explicit replacement, omitted `wifi.ntp_ipv4` uses `pool.ntp.org`; ordinary API PUT preserves the saved value. An explicit hostname or IPv4 address is preserved, and invalid/empty values are rejected. The browser prefills the same default for a new configuration. Passwords are returned as JSON null. A null password in PUT preserves the stored password; it is rejected when no stored config exists. Supplying a new password replaces it after full validation. Successful and failed responses never echo it. The existing station, recurrence, overlap, expiry and storage rules remain in force.
+
+Autonomous WSPR requires an explicitly saved whole-Hz WSPR USB dial frequency. Firmware images select none. The independent `transmitter-standalone-frequency/1` resource at `/api/v1/standalone-frequency` owns `frequency_hz`, the dial in whole Hz; capabilities identify its reference as `wspr_usb_dial`. GET reports null when unset, `configured`, `allowed`, target identity and storage health with the current ETag. PUT requires an effective applied station, the exact member/boot target, strict integer token, If-Match and idle authority. Without that station it returns `409 not_configured` before configuration persistence. The browser brackets frequency and saved-progress reads with `station/2` readback and requires matching targets and ETags. Applied consumer overlays remain authoritative even with no standalone record; network-only profiles and unapplied USB-managed profiles do not establish readiness. Draft completeness affects guidance only. An applied station with an unset frequency permits the first selection. Observed revision changes and connection/boot transitions invalidate editor readiness; station application refreshes it while retaining the dial draft. A `not_configured` save preserves the entry and explains explicit station application without retrying. Center is dial + 1500 Hz, with four tones spaced 1.46484375 Hz symmetrically around it and no random placement. Dial `14095600` produces RF center `14097100 Hz` and tone 0 `14097097.802734375 Hz`. Every resulting tone must pass actual engine limits and frequency permissions. The dial itself is a reference and need not lie inside the emitted RF range. The [resource schema](protocol/transmitter-standalone-frequency-1.schema.json) spans the supported engine configurations; the server applies the selected engine's bounds.
+
+A first selection leaves schedules disabled. Saving applies at `next_job`, preserves STOP and does not alter an accepted job or grant ownership. Both frames of a pair use one frequency snapshot. Configuration and progress resources preserve and redact the independently owned dial. All application views 1 through 4 expose `schedule_dial_frequency_nhz`, an exact integer nHz string; `"0"` means unset. Standalone status uses null for the same unset state. Remote absolute WTP jobs and explicit-frequency message APIs do not consume the standalone dial or add its audio offset.
+
+Complete job routes support the advertised modes/frequencies, subject to frequency policy and engine admission. Type 1/2/3 station admission requires the explicit versioned routes below; its software acceptance does not close the separate captured-RF decode item in the [backlog](development/consolidated-backlog.md).
 
 Optional top-level `allow_unqualified_frequency` and
 `allow_non_amateur_frequency` booleans are advanced, persisted settings. Both
@@ -308,7 +302,7 @@ Example body for `operation: "LOAD_MESSAGE"`:
   "job_id": "33333333333333333333333333333333",
   "mode": "qrss",
   "message": "TEST",
-  "frequency_nhz": "135500000000000",
+  "frequency_nhz": "14096900000000000",
   "space_frequency_nhz": "0",
   "timing": {
     "dot_ns": "3000000000",
@@ -323,14 +317,19 @@ Example body for `operation: "LOAD_MESSAGE"`:
 }
 ```
 
-The limit is 32 ASCII characters including spaces; no silent truncation or
-splitting occurs. Alphabet: A–Z, 0–9 and `/?.,-+=`, with ASCII case folding.
-ASCII whitespace counts toward length; consecutive whitespace forms one word
-gap, and leading/trailing whitespace produces no extra RF interval. A message
-must contain a Morse character. Timing fields are positive integer nanoseconds.
-FSKCW uses `frequency_nhz` for marks and a lower positive
-`space_frequency_nhz` for spaces. DFCW uses those two distinct frequencies for
-dots and dashes; both marks have `dot_ns` duration. QRSS and DFCW gaps are RF-off.
+The limit is 32 ASCII characters including spaces; no silent truncation or splitting occurs. Alphabet: A–Z, 0–9 and `/?.,-+=`, with ASCII case folding. ASCII whitespace counts toward length; consecutive whitespace forms one word gap, and leading/trailing whitespace produces no extra RF interval. A message must contain a Morse character. Timing fields are positive integer nanoseconds.
+
+The API accepts absolute RF frequencies as integer nHz strings. QRSS uses `frequency_nhz` for its carrier; its second frequency remains unused. FSKCW uses `frequency_nhz` for mark and `space_frequency_nhz` for space, with mark strictly above space. DFCW uses `frequency_nhz` for dot and the field named `space_frequency_nhz` for dash. Both distinct positive DFCW orientations are accepted: dot may be below or above dash. Both DFCW elements use `dot_ns` duration. FSKCW intra-element, character and word gaps use space; QRSS and DFCW gaps have RF off. All repeat gaps and the final 1,000 ns tail have RF off.
+
+The browser constructs these explicit API values from a mode-specific reference B and positive shift s using exact decimal-Hz to integer-nHz arithmetic:
+
+| Browser mode and reference | `frequency_nhz` | `space_frequency_nhz` | Preview for B = 14096900 Hz, s = 5 Hz |
+| --- | --- | --- | --- |
+| QRSS carrier | B | 0 | Carrier 14096900 Hz |
+| FSKCW space | B + s | B | Space 14096900 Hz; mark 14096905 Hz |
+| DFCW dot | B | B + s | Dot 14096900 Hz; dash 14096905 Hz |
+
+In the example, B is `14096900000000000` nHz and B + s is `14096905000000000` nHz. The form accepts up to nine decimal places, checks positive inputs, checked uint64 addition and each requested RF state against advertised engine ranges. Shift is disabled and ignored in QRSS while its raw draft is retained. Mode changes preserve all raw frequency, shift, text and timing drafts. Preview and submission share one calculation; neither preview nor mode selection writes settings or submits jobs. Frequency policy and all admission checks remain authoritative on the server. Direct API requests, absolute WTP events and finite tones receive no browser reference conversion or standalone WSPR offset. `allow_frequency_adjustment` retains its existing consent semantics; requested nominal frequencies do not describe backend realization or measured RF.
 
 The server expands the complete finite message before ordinary LOAD validation;
 it does not emit RF until the subsequent ARM succeeds. HELLO, CLAIM, ownership,

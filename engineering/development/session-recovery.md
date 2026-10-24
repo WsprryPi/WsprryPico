@@ -8,7 +8,7 @@ the frozen management/1 and management/2 discovery documents stay unchanged.
 
 Recovery retires one explicitly selected login and never creates a replacement
 session or repeats an application request. The operator supplies the current
-saved Wi-Fi password for a fresh authenticated exchange. A retained nonsecret
+Pico password (the saved Wi-Fi password by default) for a fresh authenticated exchange. A retained nonsecret
 retirement selector identifies the affected login after traffic-key loss; it is
 not a retirement credential. It is a domain-separated one-way alias of the
 raw traffic ID, device and boot; discovery never publishes traffic IDs. An alias

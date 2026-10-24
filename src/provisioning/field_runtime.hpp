@@ -31,6 +31,7 @@ struct SoftApStatus {
     bool draining = false;
     bool expired = false;
     std::uint64_t remaining_ms = 0;
+    bool client_connected = false;
 };
 
 class SoftApCoordinator {
@@ -50,6 +51,7 @@ class SoftApCoordinator {
                               bool button_held = false);
     void manual_button_released(std::uint64_t now_ms);
     void station(bool usable, std::uint64_t now_ms);
+    void client_connected(bool value, std::uint64_t now_ms);
     void token_records(std::size_t count) {
         token_records_ = count;
     }
@@ -89,6 +91,7 @@ class SoftApCoordinator {
     bool manual_button_held_ = false;
     bool temporary_access_ = false, draining_ = false;
     bool activated_ = false, expired_ = false, fallback_armed_ = true;
+    bool client_connected_ = false, client_hold_ = false;
     std::uint64_t activated_ms_ = 0, last_poll_ms_ = 0;
     std::uint64_t drain_started_ms_ = 0;
 };
