@@ -94,8 +94,11 @@ struct Fixture {
     standalone::Scheduler scheduler{store, service};
     Network network;
     network::BrowserApi api;
-    Fixture(unsigned boot = 0, std::string device = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-        : identities(boot), api(service, store, scheduler, network, device, "test-firmware") {
+    Fixture(unsigned boot = 0, std::string device = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            wtp::RfEngine* observer = nullptr)
+        : identities(boot),
+          service(clock, observer ? *observer : engine, identities, physical_policy()),
+          api(service, store, scheduler, network, device, "test-firmware") {
         REQUIRE(store.load());
     }
 };

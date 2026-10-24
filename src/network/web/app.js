@@ -454,6 +454,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
       standalone_frequency_required:'Choose and save a standalone WSPR frequency before enabling schedules',
       invalid_wspr_frequency:'Enter a whole WSPR dial frequency in Hz, without commas or decimals',
       frequency_not_allowed:'The WSPR tones fall outside the engine limits or saved frequency permissions. Choose an allowed frequency',
+      FREQUENCY_REJECTED:'A requested RF frequency is outside the engine limits or saved frequency permissions. Review the requested frequencies',
       revision_conflict:'Saved settings changed. Your edits are preserved. Read current saved settings and review them before a new save',
       precondition_failed:'Saved revision changed. Your edits are preserved. Read and review current saved settings',
       pin_conflict:`GP${data.gp} is already assigned to ${data.owner}; choose a different pin for ${data.role}`,
@@ -976,13 +977,36 @@ function checkPlanLimits(plan) {
   if (!Array.isArray(plan.events) || !plan.events.length || plan.events.length > capabilities.wtp.max_events) throw new Error('This device allows at most ' + capabilities.wtp.max_events + ' events per job. Reduce the message complexity or repetition');
   return duration;
 }
+function messageFrequencyFields() {
+  const mode = $('message-mode').value;
+  $('message-frequency-label').textContent = mode === 'fskcw' ? 'Space frequency (Hz)' : mode === 'dfcw' ? 'Dot frequency (Hz)' : 'Carrier frequency (Hz)';
+  $('message-frequency-help').textContent = mode === 'fskcw' ? 'Direct RF space frequency. Mark is above space by the positive shift; gaps within a message use space. Repeat gaps have RF off.' : mode === 'dfcw' ? 'Direct RF dot frequency. Dash is above dot by the positive shift; both use the selected dot length. Gaps have RF off.' : 'Direct RF carrier frequency. Dots and dashes use this frequency; gaps have RF off.';
+  $('message-shift').disabled = mode === 'qrss';
+  $('message-shift-help').textContent = mode === 'qrss' ? 'Unused in QRSS. Your shift entry is kept for FSKCW and DFCW.' : mode === 'fskcw' ? 'Positive shift in Hz: mark = space + shift.' : 'Positive shift in Hz: dash = dot + shift.';
+}
+function messageFrequencies(mode) {
+  const fail = (id, text) => { const error = new Error(text); error.input = id; throw error; };
+  const parse = (id, label) => { try { return nanoDecimal($(id).value,label); } catch (error) { error.input=id; throw error; } };
+  const base = parse('message-frequency',mode === 'fskcw' ? 'Space frequency' : mode === 'dfcw' ? 'Dot frequency' : 'Carrier frequency');
+  if (!base) fail('message-frequency','Enter a frequency greater than zero.');
+  const shift = mode === 'qrss' ? 0n : parse('message-shift','Frequency shift');
+  if (mode !== 'qrss' && !shift) fail('message-shift','Enter a frequency shift greater than zero.');
+  const upper = base + shift;
+  if (upper > 18446744073709551615n) fail('message-shift','Frequency plus shift is too large. Reduce the frequency or shift.');
+  const states = mode === 'qrss' ? [['Carrier',base]] : mode === 'fskcw' ? [['Space',base],['Mark',upper]] : [['Dot',base],['Dash',upper]];
+  const ranges = capabilities?.wtp?.frequency_ranges;
+  for (const [name,frequency] of states) {
+    if (Array.isArray(ranges) && !ranges.some(r => frequency >= BigInt(r.minimum_nhz) && frequency <= BigInt(r.maximum_nhz)))
+      fail(frequency === base ? 'message-frequency' : 'message-shift',name + ' frequency is outside the available engine ranges. Choose a frequency and shift within those ranges.');
+  }
+  const hz = n => { const fraction=(n%1000000000n).toString().padStart(9,'0').replace(/0+$/,''); return n/1000000000n + (fraction ? '.'+fraction : '') + ' Hz'; };
+  return {frequency:mode === 'fskcw' ? upper : base,second:mode === 'qrss' ? 0n : mode === 'fskcw' ? base : upper,preview:states.map(([name,n])=>name+' '+hz(n)).join(' · ')};
+}
 function messagePlan() {
   const text = $('message-text').value, mode = $('message-mode').value;
   if (!text || text.length > 32) throw new Error('Use 1–32 characters, including spaces. The message has ' + text.length);
   if (!['qrss','fskcw','dfcw'].includes(mode)) throw new Error('Choose QRSS, FSKCW or DFCW');
-  const frequency = nanoDecimal($('message-frequency').value, 'Frequency');
-  const shift = mode === 'qrss' ? 0n : nanoDecimal($('message-shift').value, 'Frequency shift');
-  if (!frequency || (mode !== 'qrss' && (!shift || shift >= frequency))) throw new Error('Use a positive frequency and a smaller positive frequency shift');
+  const frequencies = messageFrequencies(mode);
   const dot = nanoDecimal($('message-dot').value, 'Dot length');
   const scaled = (id, label) => {
     const product = dot * nanoDecimal($(id).value, label);
@@ -1012,16 +1036,18 @@ function messagePlan() {
   const maximum = capabilities?.wtp?.max_job_duration_ns ? BigInt(capabilities.wtp.max_job_duration_ns) : 3600000000000n;
   if (duration > maximum || duration > 3600000000000n) throw new Error('Calculated duration: ' + durationText(duration) + '. Maximum: ' + durationText(maximum < 3600000000000n ? maximum : 3600000000000n) + '. Shorten the timing or reduce repeats');
   if (events > (capabilities?.wtp?.max_events || 512)) throw new Error(events + ' events exceed the device limit of ' + (capabilities?.wtp?.max_events || 512) + '. Reduce repetition or use a simpler message');
-  return {duration,events,body:{mode,message:text,frequency_nhz:frequency.toString(),space_frequency_nhz:(mode==='qrss'?0n:frequency-shift).toString(),timing:Object.fromEntries(Object.entries(timing).map(([k,v])=>[k,v.toString()])),repeat_count:repeat,repeat_gap_ns:repeatGap.toString(),allow_frequency_adjustment:true}};
+  return {duration,events,frequencies:frequencies.preview,body:{mode,message:text,frequency_nhz:frequencies.frequency.toString(),space_frequency_nhz:frequencies.second.toString(),timing:Object.fromEntries(Object.entries(timing).map(([k,v])=>[k,v.toString()])),repeat_count:repeat,repeat_gap_ns:repeatGap.toString(),allow_frequency_adjustment:true}};
 }
 let messageEdited = false;
 function messagePreview() {
+  messageFrequencyFields();
+  for (const id of ['message-frequency','message-shift']) $(id).setAttribute('aria-invalid','false');
   if (!messageEdited && !$('message-text').value) {
     $('message-preview').textContent = 'Enter a message and frequency to calculate its duration.';
     $('message-preview').classList.toggle('error',false); return;
   }
-  try { const p = messagePlan(); $('message-preview').textContent = durationText(p.duration) + ' · ' + p.events + ' / ' + (capabilities?.wtp?.max_events || 512) + ' events · ' + $('message-text').value.length + ' / 32 characters'; $('message-preview').classList.toggle('error',false); }
-  catch (e) { $('message-preview').textContent = e.message; $('message-preview').classList.toggle('error',true); }
+  try { const p = messagePlan(); $('message-preview').textContent = p.frequencies + ' · ' + durationText(p.duration) + ' · ' + p.events + ' / ' + (capabilities?.wtp?.max_events || 512) + ' events · ' + $('message-text').value.length + ' / 32 characters'; $('message-preview').classList.toggle('error',false); }
+  catch (e) { $('message-preview').textContent = e.message; $('message-preview').classList.toggle('error',true); if (e.input) $(e.input).setAttribute('aria-invalid','true'); }
 }
 function updateProgress() {
   if (!activePlan || !snapshot || snapshot.job.boot_id !== activePlan.bootId || snapshot.job.job_id !== activePlan.jobId) { $('job-progress').textContent = ''; return; }
@@ -1032,8 +1058,12 @@ function updateProgress() {
   const bounded = elapsed < 0n ? 0n : elapsed > activePlan.durationNs ? activePlan.durationNs : elapsed;
   $('job-progress').textContent = 'Running · estimated ' + durationText(bounded) + ' of ' + durationText(activePlan.durationNs) + ' · ' + (Number(bounded*1000n/activePlan.durationNs)/10).toFixed(1) + '% · status checked ' + observedAt;
 }
-$('message-form').oninput = () => { messageEdited=true; messagePreview(); };
+$('message-form').oninput = () => { messageEdited=true; $('message-result').textContent=''; messagePreview(); };
+$('message-mode').onchange = () => { $('message-result').textContent=''; messagePreview(); };
+messagePreview();
 $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=true; messagePreview(); return action(async () => {
+  $('message-result').textContent = ''; $('message-result').classList.toggle('error',false);
+  try {
   if (!capabilities?.message_jobs) throw new Error('This firmware does not support message submission');
   const plan = messagePlan(), startMs = Date.parse($('message-start').value + 'Z');
   if (!Number.isFinite(startMs)) throw new Error('Choose a UTC start time');
@@ -1044,7 +1074,12 @@ $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=tr
   await job('ARM',{job_id:plan.body.job_id,start_utc_ns:(BigInt(startMs)*1000000n).toString(),max_start_uncertainty_ns:capabilities.wtp.maximum_arm_uncertainty_ns});
   activePlan = {bootId:snapshot?.job.boot_id,jobId:plan.body.job_id,startMs,durationNs:plan.duration};
   $('job-result').textContent = 'Message armed · ' + durationText(plan.duration) + '. Timing is now local to the Pico.';
+  $('message-result').textContent = $('job-result').textContent;
   await observeAfterArm();
+  } catch (error) {
+    $('message-result').textContent = error.message.replace(/[.!?]$/,'') + (error.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : '.') + ' Your entries are preserved.';
+    $('message-result').classList.toggle('error',true); throw error;
+  }
 }); };
 if (typeof setInterval === 'function') setInterval(() => {
   if (!busy && online && activePlan && ['armed','running'].includes(snapshot?.job.state)) action(() => refresh());

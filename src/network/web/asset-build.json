@@ -11,10 +11,10 @@
         "amplifier-enable.js": "4a44353c0dbe15d6992e738d62ff7595d3d15e3a891cf2d571290e6163bbd8ac",
         "gpio-drive.js": "012c3c98032384077e86525a6bc3aa19a0dfc7d91ed73deb90205eaf8cd6a70f",
         "saved-progress.js": "eda273462a85879a5060d72d9380c3d7834d50f75c4cdbc9b12c10e7e2232195",
-        "app.js": "3cd617372285ad4b5f10724849666755ef7277fc520f5f7edc6ebd5d0bc677dd"
+        "app.js": "ec82fa0abfca6bafc869a05013f56686951a6de8217cd7580946bb29ccfeb46c"
       },
-      "sha256": "8a3b77985738cf23dd8e168eaf6ee33f6845ae0a1534bf5553a1445fd67f52c4",
-      "bytes": 103251
+      "sha256": "dc8ee1a2d33e41868e14583424af8e15f3dd0ec2a6e9dfb556bf064e20ca4c9d",
+      "bytes": 105966
     },
     "config-validation.min.js": {
       "inputs": {

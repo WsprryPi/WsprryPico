@@ -317,6 +317,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/tests/saved_progress_tests.js)
         add_test(NAME network_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/network_browser_tests.js)
+        add_test(NAME message_frequency_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/message_frequency_browser_tests.js)
     endif()
     add_executable(firmware_profile_tests tests/firmware_profile_tests.cpp)
     target_link_libraries(firmware_profile_tests PRIVATE wsprrypico_rf)

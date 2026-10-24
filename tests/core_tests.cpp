@@ -746,6 +746,80 @@ void test_sha256_allocation_free_padding_boundaries() {
     }
 }
 
+void test_cw_frequency_events() {
+    using namespace wsprrypico::encoding;
+    constexpr std::uint64_t base = 14096900000000000ULL, upper = 14096905000000000ULL;
+    for (auto mode : {"qrss", "fskcw", "dfcw"}) {
+        const bool dfcw = std::string_view(mode) == "dfcw",
+                   fskcw = std::string_view(mode) == "fskcw";
+        MorseMessage m{std::string(32, 'e'),
+                       mode,
+                       "A E",
+                       fskcw ? upper : base,
+                       std::string_view(mode) == "qrss" ? 0 : (fskcw ? base : upper),
+                       3000000000ULL,
+                       9000000000ULL,
+                       3000000000ULL,
+                       9000000000ULL,
+                       21000000000ULL,
+                       2,
+                       7000000000ULL,
+                       true};
+        const auto result = compile_message(m);
+        CHECK(result.job.has_value());
+        const auto& job = *result.job;
+        CHECK(job.events.size() == 12);
+        CHECK(job.total_duration_ns == (dfcw ? 73000001000ULL : 85000001000ULL));
+        const std::array<std::uint64_t, 12> seconds{3, 3, dfcw ? 3U : 9U, 21, 3, 7,
+                                                    3, 3, dfcw ? 3U : 9U, 21, 3, 0};
+        const std::array<bool, 12> marks{true, false, true, false, true, false,
+                                         true, false, true, false, true, false};
+        std::uint64_t offset = 0;
+        for (std::size_t i = 0; i < seconds.size(); ++i) {
+            const auto& event = job.events[i];
+            CHECK(event.offset_ns == offset);
+            CHECK(event.duration_ns == (i == 11 ? 1000 : seconds[i] * 1000000000ULL));
+            const bool on = marks[i] || (fskcw && (i == 1 || i == 3 || i == 7 || i == 9));
+            CHECK(event.rf_on == on);
+            const auto frequency =
+                fskcw ? (marks[i] ? upper : base) : (dfcw && (i == 2 || i == 8) ? upper : base);
+            CHECK(event.frequency_nhz == (on ? std::optional(frequency) : std::nullopt));
+            offset += event.duration_ns;
+        }
+        CHECK(offset == job.total_duration_ns && job.allow_frequency_adjustment);
+        m.text = "AE";
+        m.repeat_count = 1;
+        const auto characters = compile_message(m);
+        CHECK(characters.job && characters.job->events.size() == 6);
+        CHECK(characters.job->events[3].duration_ns == 9000000000ULL);
+        CHECK(characters.job->events[3].rf_on == fskcw);
+        CHECK(characters.job->events[3].frequency_nhz ==
+              (fskcw ? std::optional(base) : std::nullopt));
+        if (dfcw) {
+            std::swap(m.mark_frequency_nhz, m.space_frequency_nhz);
+            const auto reverse = compile_message(m);
+            CHECK(reverse.job && reverse.job->events[0].frequency_nhz == upper &&
+                  reverse.job->events[2].frequency_nhz == base);
+        }
+        if (std::string_view(mode) == "qrss") {
+            m.space_frequency_nhz = std::numeric_limits<std::uint64_t>::max();
+            CHECK(compile_message(m).job.has_value()); // Existing unused second frequency.
+        } else {
+            m.space_frequency_nhz = m.mark_frequency_nhz;
+            CHECK(compile_message(m).error == "invalid_message_frequency");
+            m.space_frequency_nhz = 0;
+            CHECK(compile_message(m).error == "invalid_message_frequency");
+            m.mark_frequency_nhz = 0;
+            CHECK(compile_message(m).error == "invalid_message_frequency");
+            if (fskcw) {
+                m.mark_frequency_nhz = base;
+                m.space_frequency_nhz = upper;
+                CHECK(compile_message(m).error == "invalid_message_frequency");
+            }
+        }
+    }
+}
+
 void test_extended_morse_message_boundaries() {
     using namespace wsprrypico::encoding;
     MorseMessage m;
@@ -2115,6 +2189,7 @@ int main() {
         {"paged JSON and digest boundaries", test_paged_json_and_digest_boundaries},
         {"LOAD array traversal boundaries", test_load_array_traversal_boundaries},
         {"paged nested wide object keys", test_paged_nested_wide_object_keys},
+        {"CW frequency events", test_cw_frequency_events},
         {"extended Morse boundaries", test_extended_morse_message_boundaries},
         {"fragmented and combined frames", test_fragmented_and_combined_frames},
         {"frame recovery limits and timeout", test_frame_recovery_limits_and_timeout},

@@ -5,6 +5,7 @@
 #include "network/pico/http_server.hpp"
 #include "network_support.hpp"
 #include "provisioning/consumer_profile.hpp"
+#include "standalone/frequency_policy_engine.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
@@ -189,11 +190,50 @@ struct HostnamePlatform : provisioning::ConsumerClaimCommitPlatform {
         return false;
     }
 };
+// Test-only observation at the real engine admission boundary. Lifecycle is
+// delegated to the same dry-run engine; production exposes no debug resource.
+struct ObservedEngine : wtp::RfEngine {
+    standalone::DryRunEngine engine;
+    std::optional<standalone::FrequencyPolicyEngine> policy;
+    std::optional<wtp::Job> accepted;
+    wtp::RfEngine& active() {
+        return policy ? static_cast<wtp::RfEngine&>(*policy) : engine;
+    }
+    wtp::PrepareResult prepare(const wtp::Job& job) override {
+        auto result = active().prepare(job);
+        if (result.accepted)
+            accepted = job;
+        return result;
+    }
+    bool schedules_locally() const override {
+        return engine.schedules_locally();
+    }
+    void calibration_boundary() override {
+        active().calibration_boundary();
+    }
+    bool schedule(const wtp::Job& job, std::uint64_t start,
+                  const wtp::LocalStartConditions& conditions) override {
+        return active().schedule(job, start, conditions);
+    }
+    bool begin(const wtp::Job& job, std::uint64_t start) override {
+        return engine.begin(job, start);
+    }
+    wtp::EngineReport poll(std::uint64_t now) override {
+        return engine.poll(now);
+    }
+    bool disable(std::uint64_t deadline) override {
+        return engine.disable(deadline);
+    }
+    bool output_active() const override {
+        return engine.output_active();
+    }
+};
 struct Driver {
     std::string device;
-    network_test::Fixture f;
+    ObservedEngine consumer_engine, engineering_engine;
+    network_test::Fixture f{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &consumer_engine};
     // Independent engineering adapter boundary for genuine served-page tests.
-    network_test::Fixture engineering;
+    network_test::Fixture engineering{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &engineering_engine};
     network_test::Flash engineering_progress_flash;
     standalone::Progress engineering_progress{engineering_progress_flash};
     network_test::Flash progress_flash;
@@ -292,7 +332,7 @@ struct Driver {
            std::string selected_device = std::string(32, '1'),
            const network_test::Flash* saved_progress = nullptr, bool blank = false,
            const AccessMedia* saved_access = nullptr)
-        : device(std::move(selected_device)), f(boot, device) {
+        : device(std::move(selected_device)), f(boot, device, &consumer_engine) {
         if (retained)
             media = *retained;
         if (saved) {
@@ -393,6 +433,47 @@ struct Driver {
     }
     std::string command(const wtp::json::Value& v) {
         const auto op = field(v, "op");
+        if (op == "message_review") {
+            // Model a boot after the fixture's initial saved configuration.
+            // This runs before serving the opt-in CW review and never on a device.
+            for (auto* fixture : {&f, &engineering}) {
+                check(fixture->scheduler.idle());
+                std::destroy_at(&fixture->scheduler);
+                std::construct_at(&fixture->scheduler, fixture->store, fixture->service);
+                fixture->api.set_active_job_connections(true);
+            }
+            consumer_engine.policy.emplace(consumer_engine.engine, f.store,
+                                           f.service.config().minimum_frequency_nhz,
+                                           f.service.config().maximum_frequency_nhz);
+            engineering_engine.policy.emplace(engineering_engine.engine, engineering.store,
+                                              engineering.service.config().minimum_frequency_nhz,
+                                              engineering.service.config().maximum_frequency_nhz);
+            return "{}";
+        }
+        if (op == "accepted_job") {
+            const auto& job =
+                (field(v, "surface") == "engineering" ? engineering_engine : consumer_engine)
+                    .accepted;
+            if (!job)
+                return "null";
+            std::string result =
+                "{\"job_id\":" + wtp::json::quote(job->job_id) +
+                ",\"mode\":" + wtp::json::quote(job->mode) + ",\"total_duration_ns\":\"" +
+                std::to_string(job->total_duration_ns) + "\",\"allow_frequency_adjustment\":" +
+                (job->allow_frequency_adjustment ? "true" : "false") + ",\"events\":[";
+            for (const auto& event : job->events) {
+                if (result.back() != '[')
+                    result += ',';
+                result +=
+                    "{\"offset_ns\":\"" + std::to_string(event.offset_ns) +
+                    "\",\"duration_ns\":\"" + std::to_string(event.duration_ns) +
+                    "\",\"rf_on\":" + (event.rf_on ? "true" : "false") + ",\"frequency_nhz\":" +
+                    (event.frequency_nhz ? wtp::json::quote(std::to_string(*event.frequency_nhz))
+                                         : "null") +
+                    "}";
+            }
+            return result + "]}";
+        }
         if (op == "engineering_request") {
             std::vector<std::uint8_t> body;
             const auto encoded = field(v, "b64");

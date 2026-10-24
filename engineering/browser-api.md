@@ -302,7 +302,7 @@ Example body for `operation: "LOAD_MESSAGE"`:
   "job_id": "33333333333333333333333333333333",
   "mode": "qrss",
   "message": "TEST",
-  "frequency_nhz": "135500000000000",
+  "frequency_nhz": "14096900000000000",
   "space_frequency_nhz": "0",
   "timing": {
     "dot_ns": "3000000000",
@@ -317,14 +317,19 @@ Example body for `operation: "LOAD_MESSAGE"`:
 }
 ```
 
-The limit is 32 ASCII characters including spaces; no silent truncation or
-splitting occurs. Alphabet: A–Z, 0–9 and `/?.,-+=`, with ASCII case folding.
-ASCII whitespace counts toward length; consecutive whitespace forms one word
-gap, and leading/trailing whitespace produces no extra RF interval. A message
-must contain a Morse character. Timing fields are positive integer nanoseconds.
-FSKCW uses `frequency_nhz` for marks and a lower positive
-`space_frequency_nhz` for spaces. DFCW uses those two distinct frequencies for
-dots and dashes; both marks have `dot_ns` duration. QRSS and DFCW gaps are RF-off.
+The limit is 32 ASCII characters including spaces; no silent truncation or splitting occurs. Alphabet: A–Z, 0–9 and `/?.,-+=`, with ASCII case folding. ASCII whitespace counts toward length; consecutive whitespace forms one word gap, and leading/trailing whitespace produces no extra RF interval. A message must contain a Morse character. Timing fields are positive integer nanoseconds.
+
+The API accepts absolute RF frequencies as integer nHz strings. QRSS uses `frequency_nhz` for its carrier; its second frequency remains unused. FSKCW uses `frequency_nhz` for mark and `space_frequency_nhz` for space, with mark strictly above space. DFCW uses `frequency_nhz` for dot and the field named `space_frequency_nhz` for dash. Both distinct positive DFCW orientations are accepted: dot may be below or above dash. Both DFCW elements use `dot_ns` duration. FSKCW intra-element, character and word gaps use space; QRSS and DFCW gaps have RF off. All repeat gaps and the final 1,000 ns tail have RF off.
+
+The browser constructs these explicit API values from a mode-specific reference B and positive shift s using exact decimal-Hz to integer-nHz arithmetic:
+
+| Browser mode and reference | `frequency_nhz` | `space_frequency_nhz` | Preview for B = 14096900 Hz, s = 5 Hz |
+| --- | --- | --- | --- |
+| QRSS carrier | B | 0 | Carrier 14096900 Hz |
+| FSKCW space | B + s | B | Space 14096900 Hz; mark 14096905 Hz |
+| DFCW dot | B | B + s | Dot 14096900 Hz; dash 14096905 Hz |
+
+In the example, B is `14096900000000000` nHz and B + s is `14096905000000000` nHz. The form accepts up to nine decimal places, checks positive inputs, checked uint64 addition and each requested RF state against advertised engine ranges. Shift is disabled and ignored in QRSS while its raw draft is retained. Mode changes preserve all raw frequency, shift, text and timing drafts. Preview and submission share one calculation; neither preview nor mode selection writes settings or submits jobs. Frequency policy and all admission checks remain authoritative on the server. Direct API requests, absolute WTP events and finite tones receive no browser reference conversion or standalone WSPR offset. `allow_frequency_adjustment` retains its existing consent semantics; requested nominal frequencies do not describe backend realization or measured RF.
 
 The server expands the complete finite message before ordinary LOAD validation;
 it does not emit RF until the subsequent ARM succeeds. HELLO, CLAIM, ownership,

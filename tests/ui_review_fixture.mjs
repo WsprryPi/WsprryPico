@@ -31,6 +31,7 @@ try {
     const fixture = new Fixture(executable);
     await fixture.time(1000);
     if (profile) await fixture.command({op:'page_profile', mode:profile});
+    if (process.argv[5] === 'messages') await fixture.command({op:'message_review'});
     let queue = Promise.resolve();
     const server = http.createServer((request, response) => {
       queue = queue.then(async () => {
@@ -39,7 +40,7 @@ try {
             request.headers.host === `127.0.0.1:${firstPort+index}`) {
           const chunks=[]; for await (const chunk of request) chunks.push(chunk);
           const command=JSON.parse(Buffer.concat(chunks));
-          assert(['reboot','flash_failure','frequency_state'].includes(command.op));
+          assert(['reboot','flash_failure','frequency_state','accepted_job'].includes(command.op));
           const result=await fixture.command(command);
           response.writeHead(200,{'Content-Type':'application/json'}); response.end(JSON.stringify(result)); return;
         }
