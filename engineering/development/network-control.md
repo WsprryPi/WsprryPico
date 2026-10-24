@@ -458,7 +458,7 @@ ASan/UBSan applies to C and C++ (including Mbed TLS):
 cmake -S . -B build/network-sanitize -DCMAKE_BUILD_TYPE=Debug \
   -DWSPRRY_PICO_BUILD_TESTS=ON \
   -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls \
-  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/c39fae3/WsprryPi \
+  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/selected/WsprryPi \
   -DCMAKE_C_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer' \
   -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
 cmake --build build/network-sanitize --parallel
