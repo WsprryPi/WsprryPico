@@ -6,15 +6,15 @@
   "groups": {
     "app.min.js": {
       "inputs": {
-        "standalone-frequency.js": "474a79d94e2717ae99ea5e2203d34da362232f16f966289fd98d9bbc586cc3c0",
+        "standalone-frequency.js": "aa5f9421c208863f80774ac9455d547f384ee96cd32e8f1d2f93e9b18167b897",
         "rf-calibration.js": "69c5f3500a0524ea247460699ceadb042672ff74f093c1cb717f5642721d4830",
         "amplifier-enable.js": "4a44353c0dbe15d6992e738d62ff7595d3d15e3a891cf2d571290e6163bbd8ac",
         "gpio-drive.js": "012c3c98032384077e86525a6bc3aa19a0dfc7d91ed73deb90205eaf8cd6a70f",
         "saved-progress.js": "eda273462a85879a5060d72d9380c3d7834d50f75c4cdbc9b12c10e7e2232195",
-        "app.js": "ec82fa0abfca6bafc869a05013f56686951a6de8217cd7580946bb29ccfeb46c"
+        "app.js": "5348979d26a9c40bc40ea860a4c6a6786a9b864737754135f117b18f0b22c9f0"
       },
-      "sha256": "dc8ee1a2d33e41868e14583424af8e15f3dd0ec2a6e9dfb556bf064e20ca4c9d",
-      "bytes": 105966
+      "sha256": "08904db0e688f28ae2bff37529c04e8ce0f22c8d2dc4c3cd5944336c617cc79c",
+      "bytes": 108991
     },
     "config-validation.min.js": {
       "inputs": {

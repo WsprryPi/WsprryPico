@@ -15,7 +15,9 @@ const instances = [];
 const definitions = [
   ['consumer-lan', null, false], ['blank', 'blank', true],
   ['network-only', 'network', true], ['unavailable', 'unavailable', true],
-  ['consumer-ap', null, true], ['engineering', null, false]
+  ['consumer-ap', null, true], ['engineering', null, false],
+  ['first-use-network', 'first-use:network', false], ['first-use-usb', 'first-use:usb', false],
+  ['first-use-overlay', 'first-use:overlay', false], ['first-use-network-backing', 'first-use:network-backing', false]
 ];
 
 function decodeWire(wire) {
@@ -30,7 +32,8 @@ try {
   for (const [index, [name, profile, ap]] of definitions.entries()) {
     const fixture = new Fixture(executable);
     await fixture.time(1000);
-    if (profile) await fixture.command({op:'page_profile', mode:profile});
+    if (profile?.startsWith('first-use:')) await fixture.command({op:'first_use_profile',mode:profile.slice(10)});
+    else if (profile) await fixture.command({op:'page_profile', mode:profile});
     if (process.argv[5] === 'messages') await fixture.command({op:'message_review'});
     let queue = Promise.resolve();
     const server = http.createServer((request, response) => {
@@ -40,7 +43,7 @@ try {
             request.headers.host === `127.0.0.1:${firstPort+index}`) {
           const chunks=[]; for await (const chunk of request) chunks.push(chunk);
           const command=JSON.parse(Buffer.concat(chunks));
-          assert(['reboot','flash_failure','frequency_state','accepted_job'].includes(command.op));
+          assert(['reboot','flash_failure','frequency_state','accepted_job','time','activate','forget_engineering_station'].includes(command.op));
           const result=await fixture.command(command);
           response.writeHead(200,{'Content-Type':'application/json'}); response.end(JSON.stringify(result)); return;
         }

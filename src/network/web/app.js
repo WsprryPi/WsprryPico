@@ -52,7 +52,7 @@ const radio = globalThis.WsprryPicoConsumerRadio?.createClient();
 let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
-let picoPasswordState = null;
+let picoPasswordState = null, frequencyRefreshing = false;
 const supportsAmplifier = () => globalThis.WsprryAmplifier?.supported(capabilities?.amplifier_enable) === true;
 let localIdentity = null, localAuthenticated = false;
 let engineeringStationDirty = false, engineeringNetworkDirty = false;
@@ -62,7 +62,11 @@ if ($('standalone-frequency-form')) $('standalone-frequency-form').onsubmit = ev
 const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-frequency') ? WsprryStandaloneFrequency.create({
   ranges:()=>capabilities?.wtp?.frequency_ranges,
   input:$('standalone-frequency'),read:$('standalone-frequency-read'),save:$('standalone-frequency-save'),discard:$('standalone-frequency-discard'),adopt:$('standalone-frequency-adopt'),status:$('standalone-frequency-status'),
-  exchange:async (method,body,match)=>{if (!WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency)) throw new Error('Standalone frequency configuration is unsupported.'); return api('standalone-frequency',method,body,match);},
+  run:frequencyAction,
+  context:()=>({device_id:localIdentity?.device_id,boot_id:snapshot?.job.boot_id}),
+  hasProgress:()=>supportsProgress(),
+  stationActions:draft=>draft ? `Choose ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.` : `Complete Station identity, choose ${$(radio ? 'save-station-progress' : 'save-engineering-station-progress').textContent}, then ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.`,
+  exchange:async (method,body,match,resource = 'standalone-frequency')=>{if (!WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency)) throw new Error('Standalone frequency configuration is unsupported.'); return api(resource,method,body,match,30000,true);},
   afterSave:()=>requireReadback()
 }) : null;
 if ($('rf-calibration-form')) $('rf-calibration-form').onsubmit = event => event.preventDefault();
@@ -409,7 +413,7 @@ function updateSetupReceipt() {
   if (hash && usable) $('consumer-resume').href = 'http://' + hostname + '/' + hash;
 }
 const notice = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
-async function api(path, method = 'GET', body, etag, timeout = 30000) {
+async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyObservation = false) {
   if ((returnReceipt || consumerAttempt) && localIdentity) checkReturningDevice(localIdentity.device_id);
   const headers = {};
   if (localIdentity) headers['X-WsprryPico-Session'] = session;
@@ -418,6 +422,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
   let response;
   const settingWrite = method !== 'GET' && ['config','config/2','config/update','config/update/2','schedules','station','station/2','hardware','progress/update','progress/apply'].includes(path);
   if (settingWrite) {
+    frequencyEditor?.invalidate();
     if (writeState !== 'ready' || !revision) throw new Error('Read and review saved settings before a new save');
     // Bounded context; credentials are never retained in the attempt record.
     const intended = JSON.parse(JSON.stringify(body));
@@ -476,7 +481,9 @@ async function api(path, method = 'GET', body, etag, timeout = 30000) {
     if (code === 'message_event_limit_exceeded') message = data.calculated_events + ' events exceed the device limit of ' + data.max_events + '. Reduce repetition or use a simpler message';
     const error = new Error(message); error.code = code; error.serverResponse=true; throw error;
   }
-  return {data, revision:response.headers.get('ETag')};
+  const observedRevision = response.headers.get('ETag');
+  if (!frequencyObservation && !path.startsWith('consumer/') && observedRevision) frequencyEditor?.observeRevision(observedRevision);
+  return {data, revision:observedRevision};
 }
 async function local(path, method = 'GET', body, timeout = 30000) {
   if (returnReceipt && localIdentity) checkReturningDevice(localIdentity.device_id);
@@ -533,7 +540,7 @@ async function discoverLocal() {
 function controls(connected) {
   online = connected;
   calibrationEditor?.setAvailability(!!connected && !busy && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
-  frequencyEditor?.setAvailability(!!connected && !busy && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  frequencyEditor?.setAvailability(!!connected && (!busy || frequencyRefreshing) && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   driveEditor?.setAvailability(!!connected && !busy && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
   $('reload-config').disabled = busy || !online;
@@ -674,7 +681,19 @@ async function action(fn) {
     notice(e.message + (e.code ? ' (' + e.code + ')' : '') + (e.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : ''),true);
     $('local-status').textContent = localAuthenticated ? 'Authenticated. Request rejected; your edits are preserved.' : 'Connection or session unconfirmed. Inspect occupied logins if login cannot proceed; no action was repeated.';
   }
-  finally { busy = false; controls(online); }
+  finally {
+    // Consumer requests are sequential. Keep other actions locked until this
+    // readiness read completes, including after login or station application.
+    frequencyRefreshing = true; controls(online);
+    try { await frequencyEditor?.refresh(); }
+    finally { frequencyRefreshing = false; busy = false; controls(online); }
+  }
+}
+async function frequencyAction(fn) {
+  if (busy) return;
+  busy = true; frequencyRefreshing = true; controls(online);
+  try { await fn(); }
+  finally { frequencyRefreshing = false; busy = false; controls(online); }
 }
 async function readPicoPassword() {
   try {

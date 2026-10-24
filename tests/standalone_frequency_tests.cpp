@@ -1,5 +1,6 @@
 #include "application/config_update.hpp"
 #include "network_support.hpp"
+#include "standalone/progress.hpp"
 #include <limits>
 
 using namespace wsprrypico;
@@ -80,6 +81,56 @@ struct Member {
         return request("PUT", "/api/v1/standalone-frequency", envelope(value));
     }
 };
+// Independent production guard/persistence coverage; no browser gating involved.
+void first_use_requires_explicit_station_application() {
+    network_test::Fixture f;
+    network_test::Flash drafts;
+    standalone::Progress progress(drafts);
+    REQUIRE(progress.load());
+    f.api.progress_settings(progress);
+    auto request = [&](std::string method, std::string path, std::string body = "") {
+        return f.api.handle({method,
+                             path,
+                             body,
+                             {{"host", "127.0.0.1:8443"},
+                              {"origin", "https://127.0.0.1:8443"},
+                              {"content-type", "application/json"},
+                              {"x-wsprrypico-request", "1"},
+                              {"if-match", f.api.revision()}}},
+                            "test", "127.0.0.1:8443");
+    };
+    const auto target = application::target(std::string(32, 'a'), f.service.status().boot_id);
+    const auto frequency =
+        "{\"schema\":\"transmitter-standalone-frequency/1\",\"target\":" + target +
+        ",\"frequency_hz\":14095600}";
+    REQUIRE(!f.store.config() && f.store.healthy());
+    REQUIRE(request("GET", "/api/v1/standalone-frequency").body.find("\"frequency_hz\":null") !=
+            std::string::npos);
+    REQUIRE(request("PUT", "/api/v1/standalone-frequency", frequency).status == 409);
+    REQUIRE(f.store.config_sequence() == 0 && !f.store.config());
+    const auto draft = request(
+        "POST", "/api/v1/progress/update",
+        "{\"schema\":\"transmitter-progress/1\",\"target\":" + target + ",\"request_id\":\"" +
+            std::string(32, 'd') +
+            "\",\"fields\":{\"callsign\":\"AA0NT\",\"locator\":\"EM18\",\"power_dbm\":37}}");
+    REQUIRE(draft.status == 200 &&
+            draft.body.find("\"station_complete\":true") != std::string::npos);
+    REQUIRE(draft.body.find("\"applied_station\":null") != std::string::npos);
+    const auto refused = request("PUT", "/api/v1/standalone-frequency", frequency);
+    REQUIRE(refused.status == 409 && refused.body.find("not_configured") != std::string::npos);
+    REQUIRE(f.store.config_sequence() == 0 && !f.store.config());
+    const auto applied =
+        request("POST", "/api/v1/progress/apply",
+                "{\"schema\":\"transmitter-progress/1\",\"target\":" + target +
+                    ",\"application\":{\"draft_revision\":\"" +
+                    std::to_string(progress.sequence()) + "\",\"domain\":\"station\"}}");
+    REQUIRE(applied.status == 200 && f.store.config() && !f.store.config()->enabled);
+    REQUIRE(!f.store.config()->wspr_dial_frequency_hz);
+    REQUIRE(request("PUT", "/api/v1/standalone-frequency", frequency).status == 200);
+    standalone::Store reboot(f.flash);
+    REQUIRE(reboot.load() && reboot.config()->wspr_dial_frequency_hz == 14095600);
+    REQUIRE(!reboot.config()->enabled && !f.service.activity().owned && !f.engine.output_active());
+}
 void identity_atomicity_and_old_journal() {
     Member m;
     REQUIRE(m.frequency("3568737").status == 200);
@@ -386,6 +437,7 @@ int main(int argc, char** argv) {
         std::cout << '[' << unset.body << ',' << selected.body << "]\n";
         return 0;
     }
+    first_use_requires_explicit_station_application();
     blocked_dial_survives_unrelated_updates();
     identity_atomicity_and_old_journal();
     absolute_jobs_ignore_standalone_dial();

@@ -433,6 +433,56 @@ struct Driver {
     }
     std::string command(const wtp::json::Value& v) {
         const auto op = field(v, "op");
+        if (op == "forget_engineering_station") {
+            check(engineering.scheduler.idle());
+            engineering.flash = network_test::Flash{};
+            check(engineering.store.load());
+            return "{}";
+        }
+        if (op == "first_use_profile") {
+            // Named first-use fixtures leave the established configured/CW fixtures intact.
+            const auto mode = field(v, "mode");
+            check(f.scheduler.idle());
+            f.flash = network_test::Flash{};
+            check(f.store.load());
+            media = Media{};
+            check(profiles.load());
+            if (mode == "network" || mode == "network-backing") {
+                check(profiles.select(provisioning::ProfileSource::NetworkOnly,
+                                      provisioning::serialize_network_profile(
+                                          {device, "test-network", "test-password"})));
+                if (mode == "network-backing")
+                    check(f.store.save(*standalone::parse_config(network_test::config)));
+            } else {
+                check(mode == "usb" || mode == "overlay");
+                provisioning::ConsumerProfile p;
+                p.device_id = device;
+                p.ssid = "test-network";
+                p.password = "test-password";
+                p.time_server = "192.0.2.1";
+                p.callsign = "AA0NT";
+                p.locator = "EM18";
+                p.power_dbm = 37;
+                p.usb_managed = mode == "usb";
+                if (p.usb_managed) {
+                    p.callsign.clear();
+                    p.locator.clear();
+                    p.power_dbm = 0;
+                }
+                p.tls_pending = true;
+                p.tls.hostname = "wsprrypico-0a60df.local";
+                p.request_sha256 = std::string(64, 'a');
+                check(profiles.select(provisioning::ProfileSource::ConsumerProfile,
+                                      provisioning::serialize_consumer_profile(p)));
+            }
+            check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
+            std::destroy_at(&f.scheduler);
+            std::construct_at(&f.scheduler, f.store, f.service);
+            radio.admission(runtime.control_healthy(profiles) &&
+                            runtime.consumer_browser_selected(profiles));
+            poll_server();
+            return "{}";
+        }
         if (op == "message_review") {
             // Model a boot after the fixture's initial saved configuration.
             // This runs before serving the opt-in CW review and never on a device.
