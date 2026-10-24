@@ -439,23 +439,18 @@ test, which uses the same loopback port. Stop it with Ctrl-C.
 
 ## Companion interoperability and sanitizers
 
-Optional actual client interoperability uses unmodified reviewed WsprryPi sources at
-`c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf`. Use an explicit clean checkout of that
-revision; the option never fetches, edits or builds inside the companion checkout:
+Optional actual client interoperability compiles caller-selected WsprryPi sources, including edited working files. Source paths and available Git identity are informational; a historical revision or clean checkout is not required. Missing required files and compiler/contract errors still fail. The options never fetch, edit or build inside the companion checkout:
 
 ```sh
 cmake -S . -B build-host \
-  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/clean/c39fae3/WsprryPi \
+  -DWSPRRY_PICO_WSPRRYPI_SOURCE=/path/to/selected/WsprryPi \
+  -DWSPRRY_PICO_NETWORK_CLIENT_SOURCE=/path/to/selected/WsprryPi \
   -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/path/to/pico-sdk/lib/mbedtls
 cmake --build build-host --parallel
 ctest --test-dir build-host --output-on-failure
 ```
 
-The compatibility test `network_11_1_interop` builds the existing client, application,
-scheduler and TLS/HTTP implementation; the companion's own harness independently
-enforces its Pico source pin. An isolated local source copy is useful
-when its working checkout is advancing. OpenSSL development files must already be
-installed; set `OPENSSL_ROOT_DIR` if CMake needs its location.
+The `host_client_interop_tests` fixture runs the actual client against the Pico endpoint/job service. The retained `network_11_1_interop` target builds the selected client, application, scheduler and TLS/HTTP implementation. Pi's own current-source fixtures independently validate selected Pico sources. Use unused build directories, serialize fixtures sharing loopback ports and keep the separately pinned MbedTLS dependency policy. Release manifests retain their chosen dependency provenance; they do not impose a local source admission gate. OpenSSL development files must already be installed; set `OPENSSL_ROOT_DIR` if CMake needs its location.
 
 ASan/UBSan applies to C and C++ (including Mbed TLS):
 
