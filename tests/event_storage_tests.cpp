@@ -179,16 +179,18 @@ void internal_control_memory() {
 }
 
 std::size_t admission_origin = std::numeric_limits<std::size_t>::max();
+std::size_t admission_extra = 0;
 std::size_t request_lifetime_headroom() {
     const auto used = heap_live_bytes + live_bytes;
     if (admission_origin == std::numeric_limits<std::size_t>::max())
         admission_origin = used;
-    // Exactly the normal preparation plus authority reserve at the first
-    // check; later real allocations consume it, rather than a call counter.
-    const auto capacity = admission_origin + 65536;
+    // Fix capacity at the first check. Later real allocations consume it,
+    // including full terminal history; no per-occurrence budget reset hides
+    // retained growth. The request-lifetime case adds no history allowance.
+    const auto capacity = admission_origin + 65536 + admission_extra;
     return used < capacity ? capacity - used : 0;
 }
-void standalone_request_lifetime_admission() {
+void standalone_request_lifetime_admission(bool retained_history = false) {
     struct Flash final : standalone::Flash {
         std::array<std::uint8_t, 16384> bytes{};
         Flash() {
@@ -254,16 +256,25 @@ void standalone_request_lifetime_admission() {
     TestIdentity identity;
     JobService service(clock, engine, identity);
     standalone::Scheduler scheduler(store, service);
-    for (unsigned occurrence = 0; occurrence != 2; ++occurrence) {
-        admission_origin = std::numeric_limits<std::size_t>::max();
+    admission_origin = std::numeric_limits<std::size_t>::max();
+    admission_extra = retained_history ? 4096 : 0;
+    for (unsigned occurrence = 0; occurrence != (retained_history ? 16 : 2); ++occurrence) {
+        if (!retained_history)
+            admission_origin = std::numeric_limits<std::size_t>::max();
         available_memory = request_lifetime_headroom;
         scheduler.poll();
         available_memory = nullptr;
+        if (service.status().state != State::Armed)
+            std::cerr << "Standalone occurrence " << occurrence + 1 << ": LOAD stage "
+                      << scheduler.last_load_stage() << ", free "
+                      << scheduler.last_load_free_after() << '\n';
         assert(service.status().state == State::Armed);
         assert(engine.preparations == occurrence + 1);
         clock.now += 5'000'000'000ULL;
         scheduler.poll();
         assert(service.status().state == State::Complete && !service.status().owner_id);
+        assert(service.status().terminal_records.size() ==
+               std::min<std::size_t>(occurrence + 1, service.config().terminal_record_entries));
         clock.now += 115'000'000'000ULL;
     }
 }
@@ -291,6 +302,7 @@ void operator delete[](void* memory, std::size_t) noexcept {
 int main() {
     internal_control_memory();
     standalone_request_lifetime_admission();
+    standalone_request_lifetime_admission(true);
     {
         TestClock quiet_clock;
         TestIdentity quiet_identity;

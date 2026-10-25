@@ -639,7 +639,8 @@ class JobService {
         std::uint64_t start_utc_ns;
         std::uint64_t max_uncertainty_ns;
         std::uint64_t start_monotonic_ns;
-        Response response;
+        // Preserve the original mapping without retaining unused reply fields.
+        ClockSnapshot clock_snapshot;
         bool scheduled_locally = false;
         std::optional<std::uint64_t> launch_monotonic_ns = {};
     };
@@ -666,6 +667,7 @@ class JobService {
     Response reject(ErrorCode code) const;
     Response success() const;
     Response retained_load_response(const RetainedJob& retained) const;
+    Response arm_response(const ArmRecord& arm) const;
     bool valid_id(std::string_view value) const;
     bool owns(const Request& request) const;
     ErrorCode validate_job(const Job& job) const;

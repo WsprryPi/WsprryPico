@@ -55,7 +55,7 @@ local control through this same service. Consumer commissioning follows
 [consumer access](consumer-lan-access.md). General physical/fleet interoperability
 remains unqualified.
 
-The in-process scheduler generates fresh request identifiers and omits transport reply-cache entries. It retains the same session, ownership, validation and completed-job identity/history rules. Completed jobs retain the fields needed to reconstruct their LOAD response rather than a full response object. Requests received through a transport retain the ordinary WTP reply-cache guarantees. Native LOAD checks its preparation and authority reserves after constructing the complete request and can reclaim optional USB management buffers before admission.
+The in-process scheduler generates fresh request identifiers and omits transport reply-cache entries. It retains the same session, ownership, validation and completed-job identity/history rules. Completed jobs retain the fields needed to reconstruct their LOAD and ARM responses rather than full response objects. ARM history preserves the original clock snapshot and start mapping. Requests received through a transport retain the ordinary WTP reply-cache guarantees. Native LOAD checks its preparation and authority reserves after constructing the complete request and can reclaim optional USB management buffers before admission.
 
 Console `INFO` reports the last native LOAD's `load_free_before` and `load_free_after` byte counts around reclamation. Its `load_stage` is `0` before an attempt, `1` during the native check, `2` for a native reserve refusal, `3` for a JobService rejection, or `4` for acceptance. Read these with `status.last_error` to distinguish memory admission from other load failures.
 
