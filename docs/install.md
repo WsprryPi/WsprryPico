@@ -12,9 +12,11 @@ Install the **WsprryPico** firmware using the commands below.
 
 ## Select Beta 1 firmware
 
-Use the published [Beta 1 firmware, version **1.0.0-beta.1**](https://github.com/WsprryPi/WsprryPico/releases/tag/v1.0.0-beta.1), for Beta testing. The installation, update and image-check commands below include `--version 1.0.0-beta.1` to select that exact release. The version argument omits the tag's `v` prefix. The installer verifies image identity, source, workflow and SHA-256 checksums before programming; it stops if the selected release is unavailable or fails verification.
+Use the published [Beta 1 firmware, version **1.0.0-beta.1**](https://github.com/WsprryPi/WsprryPico/releases/tag/v1.0.0-beta.1), for Beta testing. The Beta installation, update and image-check commands below include `--version 1.0.0-beta.1` to select that exact release. The version argument omits the tag's `v` prefix. The installer verifies image identity, source, workflow and SHA-256 checksums before programming; it stops if the selected release is unavailable or fails verification.
 
 No `--branch` option is needed for Beta 1. The firmware version is independent of the installer source and any WsprryPi branch. The `devel` segment in the installer download URL below selects the installer source, while `--version 1.0.0-beta.1` selects the firmware.
+
+For development firmware, use the [published devel download](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-devel) and the [devel upgrade command](#upgrade-to-devel-firmware).
 
 ## Get the installer and identify the Pico
 
@@ -95,6 +97,21 @@ The command selects Beta 1 explicitly. If an existing application cannot be iden
 
 Preparation or a BOOTSEL prompt is not a completed update. If interrupted, keep the private transaction and backup directories and use the printed same-board recovery command. Do not start a new image selection in place of that transaction. Backups contain credentials; keep them private.
 
+### Upgrade to devel firmware
+
+To upgrade to the latest published `devel` firmware, finish or abort any job, release control and disable standalone scheduling. Leave the Pico idle and running normally over USB. If WsprryPi uses this connection, follow [the standalone-on-Pi procedure](wsprrypi.md#standalone-installer-on-a-wsprrypi-host) to pause its service. Run this command from a Bash terminal as your ordinary user:
+
+```sh
+set -o pipefail
+curl --fail --silent --show-error --location \
+  --proto '=https' --proto-redir '=https' \
+  --connect-timeout 10 --max-time 60 --max-filesize 1048576 \
+  https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh \
+  | bash -s -- upgrade --branch devel --board pico2_w --yes
+```
+
+Select the intended Pico when prompted. The installer checks compatibility, backs up flash and verifies retained settings through the same update process described above. Start with the firmware running normally; if the installer requests BOOTSEL, follow its printed continuation command for the same board and USB port. After success, review saved settings and transmit readiness before enabling a schedule.
+
 ## Check an image without programming
 
 ```sh
@@ -105,7 +122,9 @@ The output directory must be new. Confirm the returned version is `1.0.0-beta.1`
 
 ## Other firmware selectors
 
-Without an explicit version or another image selector, the installer tries the **main CI channel**. `--branch devel` selects the **devel CI channel**. These channels require separately published CI indexes; neither index is currently published, so either selection stops with a missing-download error. Use `--version 1.0.0-beta.1` for the current Beta.
+`--branch devel` selects the latest [published devel firmware](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-devel). Its download page identifies the firmware version and source revision.
+
+Without an explicit version or another image selector, the installer selects the **main CI channel**, also selected by `--branch main`. That channel has no published download, so the installer stops with a missing-download error. Select `--branch devel` or `--version 1.0.0-beta.1` instead.
 
 `--version` selects an exact published release independently of the CI channels. `--stable` selects the latest published final release and excludes betas; no final release is currently published. If a requested image is unavailable or fails verification, the installer stops without substituting another image.
 
