@@ -12,6 +12,7 @@ struct DisciplineConfig {
     std::uint64_t max_uncertainty_ns = 1'000'000'000ULL;
     std::uint64_t oscillator_drift_ppb = 50'000;
     std::uint64_t max_rate_observation_age_ns = 0; // Zero inherits the ordinary observation limit.
+    std::uint64_t non_ntp_holdover_for_ns = 0;     // Zero inherits the general holdover limit.
 };
 
 class UtcDiscipline final : public wtp::Clock, public ObservationSink {
@@ -21,10 +22,13 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
     bool observe(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
                  std::uint64_t uncertainty_ns, wtp::LeapState leap,
                  std::optional<std::uint64_t> leap_transition_utc_ns = {});
-    bool observe(ObservationSource, std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
+    bool observe(ObservationSource source, std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
                  std::uint64_t uncertainty_ns, wtp::LeapState leap,
                  std::optional<std::uint64_t> leap_transition_utc_ns, std::string_view) override {
-        return observe(utc_ns, sampled_monotonic_ns, uncertainty_ns, leap, leap_transition_utc_ns);
+        if (!observe(utc_ns, sampled_monotonic_ns, uncertainty_ns, leap, leap_transition_utc_ns))
+            return false;
+        observation_source_ = source;
+        return true;
     }
     bool observe_rate(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
                       std::uint64_t uncertainty_ns, std::int32_t rate_ppb,
@@ -53,6 +57,7 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
     wtp::LeapState leap_ = wtp::LeapState::Unknown;
     std::optional<std::uint64_t> leap_transition_utc_ns_;
     bool imported_ntp_ = false;
+    ObservationSource observation_source_ = ObservationSource::Sntp;
     std::uint64_t source_ns_ = 0, imported_generation_ = 0, rate_until_ns_ = UINT64_MAX;
     std::int32_t subsequent_rate_ppb_ = 0;
     std::uint32_t imported_growth_ppb_ = 1000;

@@ -221,6 +221,6 @@ int main() {
     CHECK(standalone::wtp_profile(true).max_events == 512);
     CHECK(standalone::wtp_profile(true).max_job_duration_ns == 3'600'000'000'000ULL);
     CHECK(standalone::wtp_profile(true).maximum_arm_uncertainty_ns == 500'000'000ULL);
-    CHECK(standalone::wtp_profile(true).maximum_holdover_age_ns == 90'000'000'000ULL);
+    CHECK(standalone::wtp_profile(true).maximum_holdover_age_ns == 3'600'000'000'000ULL);
     std::cout << "USB framing, ACK ownership, memory refusal and time lifecycle passed\n";
 }

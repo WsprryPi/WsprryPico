@@ -214,6 +214,8 @@ class SchemaValidator:
                 errors.append(f"{path}: integer is below minimum")
             if instance > schema.get("maximum", instance):
                 errors.append(f"{path}: integer is above maximum")
+            if "multipleOf" in schema and instance % schema["multipleOf"] != 0:
+                errors.append(f"{path}: integer is not a permitted multiple")
             if instance < -2147483648 or instance > 2147483647:
                 errors.append(f"{path}: JSON integer exceeds WTP/1 range")
         return errors

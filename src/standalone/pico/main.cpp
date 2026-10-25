@@ -370,8 +370,6 @@ int main() {
     set_sys_clock_khz(wsprrypico::rf::sample_rate / 1000, true);
 #endif
     tud_init(0);
-    const auto discipline = wsprrypico::standalone::clock_profile();
-    static wsprrypico::time::UtcDiscipline clock(monotonic_now, nullptr, discipline);
     static wsprrypico::standalone::PicoFlash flash;
     static wsprrypico::standalone::Store store(flash);
     static wsprrypico::standalone::PicoFlash progress_flash(true);
@@ -379,6 +377,10 @@ int main() {
     const bool progress_loaded = progress.load();
     store.progress(progress);
     const bool store_loaded = store.load() && progress_loaded;
+    const auto ntp_timeout_s = store.config() ? store.config()->ntp_timeout_s
+                                              : wsprrypico::standalone::default_ntp_timeout_s;
+    const auto discipline = wsprrypico::standalone::clock_profile(ntp_timeout_s);
+    static wsprrypico::time::UtcDiscipline clock(monotonic_now, nullptr, discipline);
     static wsprrypico::standalone::PicoProfileMedia profile_media;
     static wsprrypico::provisioning::ProfileStore profile_store(profile_media);
     const bool profile_store_loaded = profile_store.load();
@@ -464,9 +466,9 @@ int main() {
         return runtime_profile.consumer_browser_selected(profile_store);
     };
 #ifdef WSPRRY_PICO_STANDALONE_RF
-    const auto config = wsprrypico::standalone::wtp_profile(true);
+    const auto config = wsprrypico::standalone::wtp_profile(true, ntp_timeout_s);
 #else
-    const auto config = wsprrypico::standalone::wtp_profile(false);
+    const auto config = wsprrypico::standalone::wtp_profile(false, ntp_timeout_s);
 #endif
     static wsprrypico::standalone::FrequencyPolicyEngine policy_engine(
         engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz);

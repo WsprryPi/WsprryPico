@@ -269,3 +269,7 @@ implemented palette tokens.
 ### Pico password settings
 
 The consumer login label is Pico password. Its default is the saved Wi-Fi password. Wi-Fi/Host presents a separate Pico password fieldset with current default/custom status, two masked confirmation fields, existing eye controls, inline errors and explicit save/default actions. Fields use two desktop columns and one mobile column. Saving signs out browser sessions and returns keyboard focus to login; no password is placed in a URL, receipt or browser storage.
+
+### NTP update timeout
+
+The timeout control follows the existing native fieldset and read/save/discard pattern in Schedules and radio pins. It uses whole minutes, defaults to 60 minutes, and keeps saved and active values separate. Reads remain available during a transmission; saves require inactive, unowned output and a current target/revision. The help explains restart activation and the independent timing-uncertainty limit. Unconfirmed writes require readback before another save, and changing Pico identity preserves the entry behind explicit review.

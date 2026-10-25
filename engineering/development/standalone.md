@@ -367,11 +367,7 @@ UTC or weakens job admission.
 The Pico profile uses the Chrony settings equivalent to `minpoll 6 maxpoll 6`,
 `maxdrift 100` and `maxclockerror 50`: normal polling is every 64 seconds plus
 less than one second of jitter, the oscillator range is ±100 ppm, and holdover
-retains its conservative 50 ppm allowance. The existing job limits remain
-500 ms total uncertainty and 90 seconds since an actual source observation,
-checked at admission and launch. Clock status can enter holdover through
-180 seconds. Packet acceptance, statistical synchronization and permission to
-launch a job are separate. Delay filtering or an outage can skip slots.
+retains its conservative 50 ppm allowance. Job admission and launch enforce 500 ms total uncertainty and the boot-active configured NTP timeout. The timeout defaults to one hour and accepts whole minutes from 60 through 86400 seconds. Clock status changes from synchronized to holdover after at most 90 seconds; that label alone does not prevent another job within the configured timeout. Source age remains tied to the last original accepted observation, so reprojecting an old model cannot renew the timeout. Loss of an available NTP estimate leaves the accepted clock anchor to age under these bounds. Packet acceptance, statistical synchronization and permission to launch a job remain separate.
 
 The single μChrony model supplies UTC frequency and finite phase slew directly;
 there is no second NTP servo. Immutable clock copies include the end of a slew
@@ -389,8 +385,7 @@ NTP estimates and saved RF priors have no RF selection path. The
 
 The time arbiter accepts authenticated controller/phone time when SNTP is unavailable.
 The device computes uncertainty from a fixed 250 ms phone allowance, the full
-round trip and local margins; it retains the 500 ms uncertainty and 90-second
-ARM-age gates, requests refresh no slower than 60 seconds and starts every reboot
+round trip and local margins; it retains the 500 ms uncertainty and separate 90-second controller-source freshness gate, requests refresh no slower than 60 seconds and starts every reboot
 unsynchronized. Phone time reports `leap=normal` as an explicit limitation.
 The controller/SNTP arbiter and authenticated BLE/field HTTPS controller-time
 adapters are production-wired. USB management has its separate qualified

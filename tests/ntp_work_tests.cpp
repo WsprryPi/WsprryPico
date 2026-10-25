@@ -466,6 +466,8 @@ void mapping() {
     raw += 117 * ns;
     REQUIRE(clock.snapshot().state == wtp::ClockState::Holdover);
     raw += 64 * ns;
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Holdover);
+    raw += 3420 * ns;
     REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
     REQUIRE(clock.snapshot().model_generation > generation);
     time::UtcDiscipline cold(now, &raw, standalone::clock_profile());

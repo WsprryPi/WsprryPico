@@ -618,11 +618,16 @@ void sntp_tests() {
     }
     CHECK(clock.snapshot().utc_now_ns / ns == 1'800'000'004);
     mono += 181 * ns;
+    CHECK(clock.snapshot().state == wtp::ClockState::Holdover);
+    source.remove(0, mono);
+    CHECK(!source.apply(mono));
+    CHECK(clock.snapshot().state == wtp::ClockState::Holdover);
+    mono += 3420 * ns;
     CHECK(clock.snapshot().state == wtp::ClockState::Unsynchronized);
 }
 void sntp_poll_schedule_test() {
     // The production profile uses the engine's bounded initial burst and a
-    // 64-second normal poll, consistent with the existing 90-second job age.
+    // 64-second normal poll; the configured outage timeout is independent.
     std::uint64_t mono = 0;
     auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
     time::UtcDiscipline clock(now, &mono);
@@ -726,15 +731,17 @@ void autonomous_test() {
     constexpr auto ns = 1'000'000'000ULL;
     std::uint64_t mono = 0;
     auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
-    const auto config = standalone::clock_profile();
+    const auto config = standalone::clock_profile(180);
     time::UtcDiscipline clock(now, &mono, config);
     time::Sntp sntp(clock);
     MemoryFlash flash;
     standalone::Store store(flash);
-    CHECK(store.load() && store.save(scheduled_config()));
+    auto timed_config = scheduled_config();
+    timed_config.ntp_timeout_s = 180;
+    CHECK(store.load() && store.save(timed_config));
     standalone::DryRunEngine engine;
     Identity identity;
-    const auto capabilities = standalone::wtp_profile(false);
+    const auto capabilities = standalone::wtp_profile(false, 180);
     wtp::JobService service(clock, engine, identity, capabilities);
     standalone::Scheduler scheduler(store, service);
     scheduler.poll();
@@ -759,13 +766,22 @@ void autonomous_test() {
     CHECK(service.status().state == wtp::State::Running);
     mono = start_mono + 1000 + 110'592'000'000ULL;
     scheduler.poll();
-    CHECK(service.status().state == wtp::State::Complete && !engine.output_active());
+    CHECK(service.status().state == wtp::State::Armed && !engine.output_active());
     CHECK(clock.snapshot().state == wtp::ClockState::Holdover);
-    // No USB input at any point. Loss of network time does not produce another job.
+    // A second frame can launch inside the configured three-minute grace.
+    std::uint64_t second_start = 0;
+    CHECK(time::inverse(clock.snapshot(), start_utc + 120 * ns, second_start));
+    mono = second_start + 1000;
+    scheduler.poll();
+    CHECK(service.status().state == wtp::State::Running);
+    mono = second_start + 1000 + 110'592'000'000ULL;
+    scheduler.poll();
+    CHECK(service.status().state == wtp::State::Complete && !engine.output_active());
+    // Accepted frames finish; after the grace expires, no further job starts.
     mono += 120 * ns;
     scheduler.poll();
     CHECK(service.status().state == wtp::State::Complete);
-    CHECK(store.watermark() == start_utc);
+    CHECK(store.watermark() == start_utc + 120 * ns);
     CHECK(clock.snapshot().state == wtp::ClockState::Unsynchronized);
     // Oscillator aging can cross the 500 ms budget after admission. Launch
     // must recheck the aged observation instead of trusting the earlier ARM.

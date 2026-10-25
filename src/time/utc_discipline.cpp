@@ -2,6 +2,7 @@
 
 #include "time/mapping.hpp"
 
+#include <algorithm>
 #include <limits>
 
 namespace wsprrypico::time {
@@ -18,6 +19,7 @@ UtcDiscipline::UtcDiscipline(MonotonicNow now, void* context, DisciplineConfig c
     : now_(now), context_(context), config_(config),
       config_valid_(now && config.synchronized_for_ns <= config.holdover_for_ns &&
                     config.holdover_for_ns <= 604'800'000'000'000ULL &&
+                    config.non_ntp_holdover_for_ns <= 604'800'000'000'000ULL &&
                     config.max_observation_age_ns <= config.holdover_for_ns &&
                     config.max_rate_observation_age_ns <= config.holdover_for_ns &&
                     config.max_uncertainty_ns > 0 &&
@@ -48,6 +50,7 @@ bool UtcDiscipline::accept(std::uint64_t utc_ns, std::uint64_t sampled_monotonic
     rate_ppb_ = 0;
     rate_uncertainty_ppb_ = 0;
     imported_ntp_ = false;
+    observation_source_ = ObservationSource::Sntp;
     rate_until_ns_ = UINT64_MAX;
     subsequent_rate_ppb_ = 0;
     ++generation_;
@@ -100,6 +103,7 @@ bool UtcDiscipline::observe_ntp_model(const RateObservation& source,
         ++generation_;
     imported_generation_ = model.model_generation;
     imported_ntp_ = valid_ = true;
+    observation_source_ = ObservationSource::Sntp;
     utc_ns_ = model.utc_now_ns;
     monotonic_ns_ = model.monotonic_now_ns;
     source_ns_ = model.monotonic_now_ns - model.sync_age_ns;
@@ -167,9 +171,13 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
                 0,
                 generation_};
     auto state = wtp::ClockState::Unsynchronized;
-    if (age <= config_.synchronized_for_ns)
+    const auto maximum_age =
+        observation_source_ != ObservationSource::Sntp && config_.non_ntp_holdover_for_ns
+            ? config_.non_ntp_holdover_for_ns
+            : config_.holdover_for_ns;
+    if (age <= std::min(config_.synchronized_for_ns, maximum_age))
         state = wtp::ClockState::Synchronized;
-    else if (age <= config_.holdover_for_ns)
+    else if (age <= maximum_age)
         state = wtp::ClockState::Holdover;
     auto result = wtp::ClockSnapshot{state,
                                      utc,

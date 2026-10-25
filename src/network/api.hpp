@@ -109,6 +109,7 @@ class BrowserApi {
     std::optional<standalone::Config> effective_config() const;
     HttpResponse config(bool drive = false, bool amplifier = false) const;
     HttpResponse gpio_drive() const;
+    HttpResponse ntp_timeout() const;
     HttpResponse rf_calibration() const;
     HttpResponse standalone_frequency() const;
     HttpResponse station_config(bool extended = false) const;

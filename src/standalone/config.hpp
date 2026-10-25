@@ -10,6 +10,9 @@
 #include <vector>
 
 namespace wsprrypico::standalone {
+inline constexpr unsigned default_ntp_timeout_s = 3600;
+inline constexpr unsigned minimum_ntp_timeout_s = 60;
+inline constexpr unsigned maximum_ntp_timeout_s = 86400;
 inline constexpr std::size_t max_config_bytes = 1800;
 inline constexpr char default_time_server[] = "pool.ntp.org";
 struct Schedule {
@@ -33,12 +36,14 @@ struct Config {
     std::string ssid, password;
     std::string ntp_ipv4 = default_time_server; // Legacy key also accepts a DNS hostname.
     std::vector<Schedule> schedules;
+    unsigned ntp_timeout_s = default_ntp_timeout_s;
     bool operator==(const Config&) const = default;
 };
 std::optional<Config> parse_config(std::string_view text);
 std::string serialize_config(const Config& config, bool amplifier_view = false);
 bool valid_gpio_drive(unsigned ma);
 bool valid_gpio_drive_token(wtp::json::Value value);
+bool valid_ntp_timeout_token(wtp::json::Value value);
 bool valid_time_server(std::string_view value);
 // Standalone USB dial to nominal RF targets. Calibration and NCO realization
 // belong to the engine, after these exact requested targets are constructed.

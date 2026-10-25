@@ -44,6 +44,7 @@ Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), se
         active_network_ = network_digest(*store_.config());
         active_pins_ = store_.config()->pins;
         active_gpio_drive_ma_ = store_.config()->gpio_drive_ma;
+        active_ntp_timeout_s_ = store_.config()->ntp_timeout_s;
         boot_configured_ = store_.healthy();
     }
 }
@@ -385,6 +386,8 @@ std::string Scheduler::command(std::string_view line) {
             config->ntp_rf_calibration = store_.config()->ntp_rf_calibration;
         if (!supplied->get("wspr_dial_frequency_hz"))
             config->wspr_dial_frequency_hz = store_.config()->wspr_dial_frequency_hz;
+        if (!supplied->get("ntp_timeout_s"))
+            config->ntp_timeout_s = store_.config()->ntp_timeout_s;
     }
     if (supplied->get("wspr_dial_frequency_hz") &&
         (!store_.config() || config->wspr_dial_frequency_hz != store_.config()->wspr_dial_frequency_hz) &&
@@ -410,7 +413,8 @@ std::string Scheduler::command(std::string_view line) {
         }
     }
     reboot_required_ = external_network_restart_required_ || pin_restart_required_ ||
-                       !active_network_ || *active_network_ != network_digest(*config);
+                       active_ntp_timeout_s_ != config->ntp_timeout_s || !active_network_ ||
+                       *active_network_ != network_digest(*config);
     return status();
 }
 } // namespace wsprrypico::standalone

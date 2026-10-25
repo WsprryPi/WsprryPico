@@ -255,6 +255,7 @@ HttpResponse BrowserApi::config(bool drive, bool amplifier) const {
         redacted.manual_correction_ppb = 0;
         redacted.ntp_rf_calibration = false;
         redacted.wspr_dial_frequency_hz.reset();
+        redacted.ntp_timeout_s = standalone::default_ntp_timeout_s;
         if (!drive)
             redacted.gpio_drive_ma = 4;
         body = standalone::serialize_config(redacted, amplifier);
@@ -317,6 +318,19 @@ HttpResponse BrowserApi::rf_calibration() const {
         ",\"selection\":" + service_.calibration_status() +
         ",\"execution_engine\":" + json::quote(service_.config().capability_engine) +
         ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") + "}");
+    result.etag = revision();
+    return result;
+}
+HttpResponse BrowserApi::ntp_timeout() const {
+    const auto config = effective_config();
+    const auto saved = config ? config->ntp_timeout_s : standalone::default_ntp_timeout_s;
+    const auto active = scheduler_.active_ntp_timeout_s();
+    auto result = ok("{\"schema\":\"transmitter-ntp-timeout/1\",\"target\":" +
+                     application::target(device_, service_.status().boot_id) +
+                     ",\"saved_timeout_s\":" + std::to_string(saved) +
+                     ",\"active_timeout_s\":" + std::to_string(active) +
+                     ",\"pending_restart\":" + (saved != active ? "true" : "false") +
+                     ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
     result.etag = revision();
     return result;
 }
@@ -761,6 +775,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return standalone_frequency();
         if (r.path == "/api/v1/gpio-drive")
             return gpio_drive();
+        if (r.path == "/api/v1/ntp-timeout")
+            return ntp_timeout();
         if (r.path == "/api/v1/config/4")
             return config(true, true);
         if (r.path == "/api/v1/hardware/3")
@@ -875,6 +891,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         compatible.manual_correction_ppb = 0;
         compatible.ntp_rf_calibration = false;
         compatible.wspr_dial_frequency_hz.reset();
+        compatible.ntp_timeout_s = standalone::default_ntp_timeout_s;
         // Legacy apply has no drive authority. Omit the extension on its old
         // config route; ordinary candidate merge preserves the saved value and
         // the response retains its original closed configuration shape.
@@ -942,6 +959,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const bool calibration_resource = r.path == "/api/v1/rf-calibration";
     const bool frequency_resource = r.path == "/api/v1/standalone-frequency";
     const bool drive_resource = r.path == "/api/v1/gpio-drive";
+    const bool ntp_resource = r.path == "/api/v1/ntp-timeout";
     const bool extended_config =
         drive_config || r.path == "/api/v1/config/2" || r.path == "/api/v1/config/update/2";
     const bool config_update =
@@ -958,10 +976,11 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         (r.method != "PUT" ||
          (r.path != "/api/v1/config" && r.path != "/api/v1/config/2" &&
           r.path != "/api/v1/config/3" && r.path != "/api/v1/config/4" && !drive_resource &&
-          !calibration_resource && !frequency_resource && r.path != "/api/v1/schedules" &&
-          r.path != "/api/v1/network" && !scoped_resource)))
+          !calibration_resource && !frequency_resource && !ntp_resource &&
+          r.path != "/api/v1/schedules" && r.path != "/api/v1/network" && !scoped_resource)))
         return http_error(404, "not_found");
-    if ((scoped_resource || drive_resource || calibration_resource || frequency_resource) &&
+    if ((scoped_resource || drive_resource || calibration_resource || frequency_resource ||
+         ntp_resource) &&
         r.body_view().size() > application::max_update_bytes)
         return http_error(413, "resource_body_too_large");
     if (config_update && r.body_view().size() > application::max_config_update_bytes)
@@ -1091,6 +1110,23 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         candidate.pop_back();
         candidate +=
             ",\"manual_correction_ppb\":" + std::to_string(*ppb) + ",\"ntp_rf_calibration\":false}";
+    } else if (ntp_resource) {
+        const auto checked = application::validate_envelope(
+            *root, "transmitter-ntp-timeout/1", "timeout_s", device_, service_.status().boot_id);
+        if (checked != application::Envelope::Valid)
+            return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
+                              "invalid_ntp_timeout_resource");
+        if (!standalone::valid_ntp_timeout_token(*root->get("timeout_s")))
+            return http_error(400, "invalid_ntp_timeout");
+        if (!effective_config())
+            return http_error(409, "not_configured");
+        auto updated = *effective_config();
+        updated.ntp_timeout_s = unsigned(root->get("timeout_s")->integer());
+        candidate = standalone::serialize_config(updated);
+        if (updated.ntp_timeout_s == standalone::default_ntp_timeout_s) {
+            candidate.pop_back();
+            candidate += ",\"ntp_timeout_s\":" + std::to_string(updated.ntp_timeout_s) + "}";
+        }
     } else if (drive_resource) {
         const auto checked = application::validate_envelope(
             *root, "transmitter-gpio-drive/1", "gpio_drive_ma", device_, service_.status().boot_id);
@@ -1272,6 +1308,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return standalone_frequency();
     if (drive_resource)
         return gpio_drive();
+    if (ntp_resource)
+        return ntp_timeout();
     if (station_resource)
         return station_config(extended_station);
     if (hardware_resource)

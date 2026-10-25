@@ -26,6 +26,9 @@ class Scheduler {
     unsigned active_gpio_drive_ma() const {
         return active_gpio_drive_ma_;
     }
+    unsigned active_ntp_timeout_s() const {
+        return active_ntp_timeout_s_;
+    }
     bool reboot_required() const {
         return reboot_required_;
     }
@@ -77,5 +80,6 @@ class Scheduler {
     std::optional<wtp::PayloadDigest> active_network_;
     hardware::PinPlan active_pins_;
     unsigned active_gpio_drive_ma_ = 4;
+    unsigned active_ntp_timeout_s_ = default_ntp_timeout_s;
 };
 } // namespace wsprrypico::standalone

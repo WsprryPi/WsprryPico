@@ -208,8 +208,9 @@ bool ControllerTimeArbiter::accept(const Observation& observation) {
             ? clock_.observe_rate(observation.utc_ns, observation.monotonic_ns,
                                   observation.uncertainty_ns, observation.rate_ppb,
                                   observation.rate_uncertainty_ppb, observation.generation)
-            : clock_.observe(observation.utc_ns, observation.monotonic_ns,
-                             observation.uncertainty_ns, wtp::LeapState::Normal);
+            : clock_.observe(observation.source, observation.utc_ns, observation.monotonic_ns,
+                             observation.uncertainty_ns, wtp::LeapState::Normal, {},
+                             observation.principal);
     if (!accepted)
         return false;
     current_ = observation;

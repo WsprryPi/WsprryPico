@@ -141,6 +141,7 @@ session cookie that page script cannot read.
 | GET `/api/v1/pins` | Eligible choices and boot-selected active plan |
 | POST `/api/v1/pins/validate` | Nonmutating complete candidate pin-plan review |
 | GET/PUT `/api/v1/gpio-drive` | `transmitter-gpio-drive/1`; separate saved/boot/pad observations and idle-only saved drive update |
+| GET/PUT `/api/v1/ntp-timeout` | `transmitter-ntp-timeout/1`; saved and boot-active maximum NTP source age, in seconds; default 3600, whole minutes 60–86400; changes require restart |
 | GET/PUT `/api/v1/hostname` | `transmitter-hostname/1`; profile-owned saved/active/default names; save applies on explicit restart |
 | GET `/api/v1/progress`, `/api/v1/progress/2` | `transmitter-progress/1` or drive-aware `/2`; independent saved draft |
 | POST `/api/v1/progress/update`, `/api/v1/progress/update/2` | Matching progress schema; save valid units with per-field outcomes, without applying them |

@@ -70,6 +70,12 @@ const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-fr
   afterSave:result=>reconcileConfirmedSettings(result,result.data.target,'Frequency saved. Schedule settings are ready to edit; saving a frequency does not enable schedules.')
 }) : null;
 if ($('rf-calibration-form')) $('rf-calibration-form').onsubmit = event => event.preventDefault();
+if ($('ntp-timeout-form')) $('ntp-timeout-form').onsubmit = event => event.preventDefault();
+const ntpTimeoutEditor = globalThis.WsprryNtpTimeout && $('ntp-timeout-minutes') ? WsprryNtpTimeout.create({
+  input:$('ntp-timeout-minutes'),read:$('ntp-timeout-read'),save:$('ntp-timeout-save'),discard:$('ntp-timeout-discard'),adopt:$('ntp-timeout-adopt'),status:$('ntp-timeout-status'),
+  exchange:(method,body,match)=>api('ntp-timeout',method,body,match),
+  afterSave:()=>refresh()
+}) : null;
 const calibrationEditor = globalThis.WsprryRfCalibration && $('rf-manual-ppm') ? WsprryRfCalibration.create({
   input:$('rf-manual-ppm'),mode:$('rf-calibration-mode'),read:$('rf-calibration-read'),save:$('rf-calibration-save'),discard:$('rf-calibration-discard'),adopt:$('rf-calibration-adopt'),status:$('rf-calibration-status'),
   exchange:async (method,body,match)=>{if (!WsprryRfCalibration.supported(capabilities?.rf_calibration)) throw new Error('Calibration configuration is unsupported.'); return api('rf-calibration',method,body,match);},
@@ -360,7 +366,7 @@ function showDraftComparison() {
   // Never copy password text into comparison markup, including revealed inputs.
   if (radio ? $('consumer-password').value : f.password.value)
     output.append(node('p','A new Wi-Fi password is entered in this browser. Password values are hidden from this comparison.'));
-  output.append(node('p',(p ? 'Omitted progress fields use the complete saved settings; cleared fields remain distinct.' : 'Saved progress was not observed.') + ' Drive and carrier calibration retain their separate readback controls.'));
+  output.append(node('p',(p ? 'Omitted progress fields use the complete saved settings; cleared fields remain distinct.' : 'Saved progress was not observed.') + ' GPIO drive, carrier calibration and the NTP timeout have separate readback controls.'));
 }
 async function readSavedKeepingDraft() {
   requireReadback();
@@ -588,6 +594,7 @@ function controls(connected) {
   calibrationEditor?.setAvailability(!!connected && !busy && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   frequencyEditor?.setAvailability(!!connected && (!busy || frequencyRefreshing) && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   driveEditor?.setAvailability(!!connected && !busy && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  ntpTimeoutEditor?.setAvailability(!!connected && !busy && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
   $('reload-config').disabled = busy || !online;
   const idle = online && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
@@ -680,14 +687,14 @@ async function refresh(loadConfig = false) {
     if (!pinChoices) { try { pinChoices = (await api('pins')).data.choices; } catch (_) {} }
     snapshot = (await api('status')).data; expectedPause = false; observedAt = new Date().toLocaleTimeString();
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) capabilities = (await api('capabilities')).data;
-    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); }
+    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); }
     capabilitiesBoot = snapshot.job.boot_id;
     const s = snapshot.standalone, n = snapshot.network;
     $('state').textContent = snapshot.job.state;
     $('job-result').textContent = snapshot.job.job_id ? `Job ${snapshot.job.job_id}: ${snapshot.job.state} · observed ${observedAt}` : 'No loaded job · observed ' + observedAt;
     if (s.last_job === snapshot.job.job_id && Number.isInteger(s.wspr_frame) && s.wspr_frame > 0 && s.wspr_frame <= s.wspr_frames && [1,2].includes(s.wspr_frames)) $('job-result').textContent += ` · standalone WSPR frame ${s.wspr_frame} of ${s.wspr_frames}${s.wspr_pair_pending ? ' · pair in progress' : ''}`;
     $('output').textContent = snapshot.job.output_active === true ? 'Active' : snapshot.job.output_active === false ? 'Inactive' : 'Unknown';
-    $('clock').textContent = `${s.clock_state} · ±${(Number(s.uncertainty_ns)/1e6).toFixed(2)} ms`;
+    $('clock').textContent = `${s.clock_state === 'holdover' ? 'using last time update' : s.clock_state} · ±${(Number(s.uncertainty_ns)/1e6).toFixed(2)} ms`;
     $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id === 'e'.repeat(32) ? 'Pico schedule' : snapshot.job.owner_id || 'Available';
     $('engine').textContent = s.engine;
     $('network').textContent = `${n.link_status === 3 ? 'Connected' : 'Disconnected'} · ${n.ipv4 || 'No address'}`;
@@ -701,7 +708,7 @@ async function refresh(loadConfig = false) {
       updateSetupReceipt();
     }
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
-    $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Network or pin settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
+    $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
     if (s.frequency_required) $('recovery').textContent += ' Standalone transmission is blocked: choose and save a WSPR frequency in Schedules and radio pins, then explicitly enable schedules.';
     if (loadConfig) {
       const c = await api('config'); const config=checkedConfig(c);

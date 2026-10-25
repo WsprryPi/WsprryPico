@@ -12,6 +12,8 @@ UTC discipline. GPS/PPS ingestion is selected future work in the
 
 ## Compatibility and persistence
 
+The standalone NTP update timeout defaults to 3600 seconds and is stored as the optional Config v1 field `ntp_timeout_s`; omitted fields select that default. The independent [transmitter-ntp-timeout/1 resource](../protocol/transmitter-ntp-timeout-1.schema.json) exposes saved and boot-active values. Whole-minute values from 60 through 86400 seconds are accepted with exact target and If-Match binding while idle. Changes require restart, preserve station/network/pin/frequency/STOP settings, and inhibit new standalone jobs until that restart. Legacy closed Config and progress views omit this field and preserve it on ordinary saves and replacements. The service advertises the active maximum source age in its existing WTP capabilities. The 500 ms job uncertainty limit, local launch checks, leap handling and initial synchronization requirement are unchanged.
+
 The existing `transmitter-rf-calibration/1` resource remains available for manual
 PPM. Its GET response reports `saved.mode: "manual"`; PUT accepts manual mode
 and rejects `mode: "ntp"` with HTTP 400 `ntp_rf_rejected`, without changing the

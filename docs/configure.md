@@ -19,6 +19,8 @@ The page has two useful read controls. **Reload saved settings** replaces the br
 
 ## Frequency and schedules
 
+**NTP update timeout** controls how long the Pico can continue using its last valid NTP time when updates are missing. The default is **60 minutes (1 hour)**. In **Station/Transmission → Schedules and radio pins**, choose **Read saved timeout**, enter 1–1440 whole minutes, then choose **Save timeout** while transmissions are stopped. Restart the Pico to activate a changed value; readback shows saved and active values separately. This setting does not change the time server. The Pico needs valid time after startup. During a later update gap, increasing estimated timing uncertainty can pause new transmissions before the timeout; an accepted frame finishes. Valid NTP updates resume normal synchronization and scheduling automatically.
+
 For a complete start-to-finish example, follow [Your first WSPR transmission](operate.md#your-first-wspr-transmission).
 
 Complete station details, choose **Save valid station fields**, then explicitly choose **Apply saved station** and confirm its result before saving a dial. A complete saved station draft is still a draft; it does not enable **Save frequency**. The guidance beside the frequency controls identifies the missing step. You can enter a dial while station setup is incomplete; the page retains it when you save and apply the station. After application is confirmed, the frequency controls become ready without reloading the page.

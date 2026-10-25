@@ -137,6 +137,8 @@ std::optional<std::string> config_candidate(Value supplied,
     // Even their replace operation must preserve its saved selection.
     if (current && current->wspr_dial_frequency_hz)
         member(result, "wspr_dial_frequency_hz", std::to_string(*current->wspr_dial_frequency_hz));
+    if (current && current->ntp_timeout_s != standalone::default_ntp_timeout_s)
+        member(result, "ntp_timeout_s", std::to_string(current->ntp_timeout_s));
     result += '}';
     if (result.size() > standalone::max_config_bytes)
         return {};

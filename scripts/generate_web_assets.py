@@ -12,7 +12,7 @@ web = root / 'src/network/web'
 # Minified artifacts are maintained by the existing pinned npm build. Verify
 # exact source/output identity here so ordinary CMake remains Python-only.
 groups = {
-    'app.min.js': ['standalone-frequency.js', 'rf-calibration.js', 'amplifier-enable.js', 'gpio-drive.js', 'saved-progress.js', 'app.js'],
+    'app.min.js': ['standalone-frequency.js', 'rf-calibration.js', 'amplifier-enable.js', 'gpio-drive.js', 'ntp-timeout.js', 'saved-progress.js', 'app.js'],
     'config-validation.min.js': ['config-validation.js'],
     'device-presentation.min.js': ['device-presentation.js'],
     'organization.min.js': ['organization.js'],

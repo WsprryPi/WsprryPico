@@ -16,7 +16,7 @@ microchrony::Config pico_config() {
     config.max_drift_ppm = 100;      // Supported Pico oscillator range, separate from phase slew.
     config.max_clock_error_ppm = 50; // Existing conservative Pico holdover drift allowance.
     config.max_poll =
-        config.min_poll; // chrony minpoll 6 maxpoll 6: keep the 90 s job-age contract.
+        config.min_poll; // Routine polling stays at 64 seconds; outage policy is separate.
     return config;
 }
 std::uint64_t ns(double seconds) {
@@ -57,7 +57,6 @@ void NtpClient::reset_peer(bool invalidate_clock) {
     request_ns_.fill(0);
     request_tokens_.fill(0);
     packet_accepted_ = arbiter_selected_ = false;
-    applied_generation_ = 0;
     control_ = {};
     if (invalidate_clock)
         clock_.invalidate(ObservationSource::Sntp);
@@ -130,10 +129,9 @@ bool NtpClient::apply(std::uint64_t now) {
     arbiter_selected_ = false;
     control_ = {};
     if (!tracking.synchronized || tracking.source_raw_ns > now) {
-        if (applied_generation_) {
-            clock_.invalidate(ObservationSource::Sntp);
-            applied_generation_ = 0;
-        }
+        // Losing a usable NTP estimate is not a new clock observation. Leave
+        // the last accepted anchor at its original age; the discipline's
+        // configured timeout and growing uncertainty decide its usability.
         return false;
     }
     wtp::ClockSnapshot model;
@@ -197,7 +195,6 @@ bool NtpClient::apply(std::uint64_t now) {
     arbiter_selected_ = clock_.observe_ntp_model(
         source, model, std::uint32_t(std::ceil(core_.config().max_clock_error_ppm * 1000)));
     if (arbiter_selected_) {
-        applied_generation_ = tracking.generation;
         control_ = {model.utc_now_ns,
                     now,
                     model.uncertainty_ns,
