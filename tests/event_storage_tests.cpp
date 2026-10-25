@@ -190,6 +190,37 @@ std::size_t request_lifetime_headroom() {
     const auto capacity = admission_origin + 65536 + admission_extra;
     return used < capacity ? capacity - used : 0;
 }
+void adjustment_storage_round_trip() {
+    for (const unsigned tones : {1U, 4U, 5U, 162U}) {
+        std::vector<FrequencyAdjustment> expected;
+        for (unsigned i = 0; i < 162; ++i)
+            expected.push_back({i * 3, 7'040'100'000'000'000ULL + i % tones,
+                                7'040'100'000'000'001ULL + i % tones});
+        const auto baseline = heap_live_bytes;
+        AdjustmentList list(expected);
+        assert(list.size() == expected.size());
+        assert(std::equal(list.begin(), list.end(), expected.begin()));
+        if (tones <= 4)
+            assert(heap_live_bytes - baseline < expected.size() * sizeof(FrequencyAdjustment) / 2);
+        auto retained = list;
+        list.clear();
+        for (std::size_t i = 0; i < expected.size(); ++i)
+            assert(retained[i] == expected[i]);
+        assert(retained.begin()->event_index == expected.front().event_index);
+        auto original = expected;
+        ++expected[0].realized_frequency_nhz;
+        assert(retained == AdjustmentList(original));
+        assert(!(retained == AdjustmentList(expected)));
+    }
+    // A wide index is representable through the ordinary list, never truncated.
+    for (const auto index : {511U, 16383U, 16384U, 65536U}) {
+        const std::vector<FrequencyAdjustment> wide(10, {index, 1, 2});
+        const AdjustmentList list(wide);
+        assert(std::equal(list.begin(), list.end(), wide.begin()));
+    }
+    assert(AdjustmentList{}.empty());
+}
+
 void standalone_request_lifetime_admission(bool retained_history = false) {
     struct Flash final : standalone::Flash {
         std::array<std::uint8_t, 16384> bytes{};
@@ -224,9 +255,13 @@ void standalone_request_lifetime_admission(bool retained_history = false) {
     struct Engine final : RfEngine {
         unsigned preparations = 0;
         bool begun = false;
-        PrepareResult prepare(const Job&) override {
+        PrepareResult prepare(const Job& job) override {
             ++preparations;
-            return {true, {}};
+            PrepareResult result{true, {}};
+            for (std::size_t i = 0; i < job.events.size(); ++i)
+                result.adjustments.push_back(
+                    {i, *job.events[i].frequency_nhz, *job.events[i].frequency_nhz + 1});
+            return result;
         }
         bool begin(const Job&, std::uint64_t) override {
             begun = true;
@@ -300,6 +335,7 @@ void operator delete[](void* memory, std::size_t) noexcept {
 }
 
 int main() {
+    adjustment_storage_round_trip();
     internal_control_memory();
     standalone_request_lifetime_admission();
     standalone_request_lifetime_admission(true);

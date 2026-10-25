@@ -459,14 +459,14 @@ Response JobService::dispatch(Request& request) {
             if (!retained->arm || retained->arm->start_utc_ns != body->start_utc_ns ||
                 retained->arm->max_uncertainty_ns != body->max_start_uncertainty_ns)
                 return reject(ErrorCode::InvalidState);
-            auto response = arm_response(*retained->arm);
+            auto response = arm_response(retained->job_id, *retained->arm);
             touch_terminal(body->job_id);
             return response;
         }
-        if (arm_ && arm_->job_id == body->job_id) {
+        if (arm_ && job_ && job_->job_id == body->job_id) {
             if (arm_->start_utc_ns == body->start_utc_ns &&
                 arm_->max_uncertainty_ns == body->max_start_uncertainty_ns) {
-                return arm_response(*arm_);
+                return arm_response(job_->job_id, *arm_);
             }
             if (state_ == State::Armed || state_ == State::Running) {
                 return reject(ErrorCode::ArmConflict);
@@ -487,13 +487,9 @@ Response JobService::dispatch(Request& request) {
             return reject(error);
         }
         state_ = State::Armed;
-        arm_ = ArmRecord{body->job_id,
-                         body->start_utc_ns,
-                         body->max_start_uncertainty_ns,
-                         start_monotonic_ns,
-                         now,
-                         engine_.schedules_locally()};
-        auto response = arm_response(*arm_);
+        arm_ = ArmRecord{body->start_utc_ns, body->max_start_uncertainty_ns, start_monotonic_ns,
+                         now, engine_.schedules_locally()};
+        auto response = arm_response(job_->job_id, *arm_);
         if (arm_->scheduled_locally &&
             (!engine_.schedule(
                  *job_, start_monotonic_ns,
@@ -797,12 +793,12 @@ Response JobService::retained_load_response(const RetainedJob& retained) const {
     return response;
 }
 
-Response JobService::arm_response(const ArmRecord& arm) const {
+Response JobService::arm_response(std::string_view job_id, const ArmRecord& arm) const {
     Response response;
     response.ok = true;
     response.state = State::Armed;
     response.boot_id = boot_id_;
-    response.job_id = arm.job_id;
+    response.job_id = std::string(job_id);
     response.start_monotonic_ns = arm.start_monotonic_ns;
     response.start_utc_ns = arm.start_utc_ns;
     response.clock_snapshot = arm.clock_snapshot;

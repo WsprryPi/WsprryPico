@@ -331,34 +331,117 @@ struct FrequencyAdjustment {
 
 // LOAD adjustments never change after preparation. Share one immutable list
 // across active-job, response-cache and terminal-history lifetimes. Copying a
-// response must not duplicate a maximum 512-entry allocation.
+// response must not duplicate a maximum 512-entry allocation. Repeated tones
+// retain their frequency pair once, with exact per-event indexes and order.
 class AdjustmentList {
+    struct Compact {
+        std::array<std::pair<std::uint64_t, std::uint64_t>, 4> tones{};
+        // Low two bits select a tone; the other fourteen retain the event index.
+        std::vector<std::uint16_t> events;
+    };
+
   public:
+    class Iterator {
+      public:
+        using value_type = FrequencyAdjustment;
+        using reference = FrequencyAdjustment;
+        using difference_type = std::ptrdiff_t;
+        using iterator_category = std::forward_iterator_tag;
+        struct Pointer {
+            FrequencyAdjustment value;
+            const FrequencyAdjustment* operator->() const {
+                return &value;
+            }
+        };
+        using pointer = Pointer;
+        Iterator() = default;
+        Iterator(const AdjustmentList* owner, std::size_t index) : owner_(owner), index_(index) {}
+        FrequencyAdjustment operator*() const {
+            return (*owner_)[index_];
+        }
+        Pointer operator->() const {
+            return {**this};
+        }
+        Iterator& operator++() {
+            ++index_;
+            return *this;
+        }
+        Iterator operator++(int) {
+            auto previous = *this;
+            ++*this;
+            return previous;
+        }
+        bool operator==(const Iterator&) const = default;
+
+      private:
+        const AdjustmentList* owner_ = nullptr;
+        std::size_t index_ = 0;
+    };
     AdjustmentList() = default;
     AdjustmentList(std::vector<FrequencyAdjustment> values) {
-        if (!values.empty())
+        if (values.empty())
+            return;
+        std::array<std::pair<std::uint64_t, std::uint64_t>, 4> tones{};
+        std::size_t count = 0;
+        bool compact = true;
+        for (const auto& value : values) {
+            const auto pair =
+                std::pair{value.requested_frequency_nhz, value.realized_frequency_nhz};
+            if (value.event_index > (std::numeric_limits<std::uint16_t>::max() >> 2)) {
+                compact = false;
+                break;
+            }
+            if (std::find(tones.begin(), tones.begin() + count, pair) == tones.begin() + count) {
+                if (count == tones.size()) {
+                    compact = false;
+                    break;
+                }
+                tones[count++] = pair;
+            }
+        }
+        if (compact && sizeof(tones) + values.size() * sizeof(std::uint16_t) <
+                           values.size() * sizeof(FrequencyAdjustment)) {
+            auto result = std::make_shared<Compact>();
+            result->tones = tones;
+            result->events.reserve(values.size());
+            for (const auto& value : values) {
+                const auto pair =
+                    std::pair{value.requested_frequency_nhz, value.realized_frequency_nhz};
+                const auto tone =
+                    std::find(tones.begin(), tones.begin() + count, pair) - tones.begin();
+                result->events.push_back(
+                    static_cast<std::uint16_t>((value.event_index << 2) | tone));
+            }
+            compact_ = std::move(result);
+        } else
             values_ = std::make_shared<const std::vector<FrequencyAdjustment>>(std::move(values));
     }
     std::size_t size() const {
-        return values_ ? values_->size() : 0;
+        return compact_ ? compact_->events.size() : values_ ? values_->size() : 0;
     }
     bool empty() const {
         return size() == 0;
     }
-    const FrequencyAdjustment* begin() const {
-        return values_ ? values_->data() : nullptr;
+    Iterator begin() const {
+        return {this, 0};
     }
-    const FrequencyAdjustment* end() const {
-        return values_ ? values_->data() + size() : nullptr;
+    Iterator end() const {
+        return {this, size()};
     }
-    const FrequencyAdjustment& operator[](std::size_t index) const {
+    FrequencyAdjustment operator[](std::size_t index) const {
+        if (compact_) {
+            const auto event = compact_->events[index];
+            const auto& pair = compact_->tones[event & 3];
+            return {static_cast<std::size_t>(event >> 2), pair.first, pair.second};
+        }
         return (*values_)[index];
     }
     void clear() {
         values_.reset();
+        compact_.reset();
     }
     bool operator==(const AdjustmentList& other) const {
-        if (values_ == other.values_)
+        if (values_ == other.values_ && compact_ == other.compact_)
             return true;
         if (size() != other.size())
             return false;
@@ -370,6 +453,7 @@ class AdjustmentList {
 
   private:
     std::shared_ptr<const std::vector<FrequencyAdjustment>> values_;
+    std::shared_ptr<const Compact> compact_;
 };
 
 struct PrepareResult {
@@ -635,7 +719,6 @@ class JobService {
         bool release_after_terminal = false;
     };
     struct ArmRecord {
-        std::string job_id;
         std::uint64_t start_utc_ns;
         std::uint64_t max_uncertainty_ns;
         std::uint64_t start_monotonic_ns;
@@ -667,7 +750,7 @@ class JobService {
     Response reject(ErrorCode code) const;
     Response success() const;
     Response retained_load_response(const RetainedJob& retained) const;
-    Response arm_response(const ArmRecord& arm) const;
+    Response arm_response(std::string_view job_id, const ArmRecord& arm) const;
     bool valid_id(std::string_view value) const;
     bool owns(const Request& request) const;
     ErrorCode validate_job(const Job& job) const;
