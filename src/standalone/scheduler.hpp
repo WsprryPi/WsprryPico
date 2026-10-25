@@ -11,6 +11,15 @@ class Scheduler {
     bool idle() const;
     bool reset_permitted() const;
     bool suspended() const { return suspended_; }
+    std::size_t last_load_free_before() const {
+        return last_load_free_before_;
+    }
+    std::size_t last_load_free_after() const {
+        return last_load_free_after_;
+    }
+    unsigned last_load_stage() const {
+        return last_load_stage_;
+    }
     const hardware::PinPlan& active_pins() const {
         return active_pins_;
     }
@@ -53,6 +62,8 @@ class Scheduler {
     };
     std::optional<Pair> pair_;
     unsigned last_frame_ = 0, last_frame_count_ = 0;
+    std::size_t last_load_free_before_ = 0, last_load_free_after_ = 0;
+    unsigned last_load_stage_ = 0;
     wtp::Response request(std::string_view operation, wtp::RequestBody body = {});
     Store& store_;
     wtp::JobService& service_;

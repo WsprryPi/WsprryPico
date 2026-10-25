@@ -56,7 +56,27 @@ wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody bo
     r.body = std::move(body);
     r.payload_digest = wtp::sha256(
         std::span(reinterpret_cast<const std::uint8_t*>(r.request_id.data()), r.request_id.size()));
-    return service_.handle(std::move(r));
+    // Account for this request's identities before checking the LOAD reserve.
+    // A check before constructing Request can pass while these allocations
+    // leave too little headroom for JobService's identical admission gate.
+    // This local producer owns the decoded job, so optional USB buffers may
+    // be reclaimed without invalidating its input or reducing either reserve.
+    if (operation == "LOAD") {
+        last_load_stage_ = 1;
+        last_load_free_before_ = wtp::available_memory ? wtp::available_memory() : SIZE_MAX;
+        const bool admitted = wtp::authoritative_memory_admitted(32768);
+        last_load_free_after_ = wtp::available_memory ? wtp::available_memory() : SIZE_MAX;
+        if (!admitted) {
+            last_load_stage_ = 2;
+            wtp::Response response;
+            response.error = wtp::ErrorCode::InternalError;
+            return response;
+        }
+    }
+    auto response = service_.handle_internal(std::move(r));
+    if (operation == "LOAD")
+        last_load_stage_ = response.ok ? 4 : 3;
+    return response;
 }
 bool Scheduler::idle() const {
     const auto s = service_.activity();
@@ -181,14 +201,6 @@ bool Scheduler::prepare_frame(const encoding::WsprFrame& frame, std::uint64_t sl
             (void)request("RELEASE");
             return false;
         }
-    }
-    // This local producer owns the complete decoded job. Like WTP admission,
-    // it may reclaim optional USB diagnostic buffers before LOAD, without
-    // weakening the separate preparation and authority/RF memory reserves.
-    if (!wtp::authoritative_memory_admitted(32768)) {
-        last_error_ = wtp::ErrorCode::InternalError;
-        (void)request("RELEASE");
-        return false;
     }
     last_job_ = job.job_id;
     auto response = request("LOAD", std::move(job));

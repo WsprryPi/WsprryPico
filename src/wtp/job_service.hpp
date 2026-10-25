@@ -570,6 +570,10 @@ class JobService {
     // decoded request so a maximum LOAD does not allocate a second event list.
     Response handle(const Request& request);
     Response handle(Request&& request);
+    // Trusted in-process producers use fresh IDs and never replay requests.
+    // Omit only their reply cache; retain sessions, ownership, validation and
+    // completed-job identity/history exactly as for transport requests.
+    Response handle_internal(Request&& request);
     // Physical Console safety control only; never exposed as a network operation.
     Response local_abort();
     // Local physical output interlock. Once set, no transport or scheduler may
@@ -642,7 +646,8 @@ class JobService {
     struct RetainedJob {
         std::string job_id;
         PayloadDigest digest;
-        Response load_response;
+        AdjustmentList adjustments;
+        bool load_output_active;
         std::optional<ArmRecord> arm;
     };
 
@@ -655,11 +660,12 @@ class JobService {
         std::uint64_t lru;
     };
 
-    Response handle_owned(Request& request);
+    Response handle_owned(Request& request, bool retain_response = true);
     Response dispatch(Request& request);
     Response abort_job(std::string_view job_id);
     Response reject(ErrorCode code) const;
     Response success() const;
+    Response retained_load_response(const RetainedJob& retained) const;
     bool valid_id(std::string_view value) const;
     bool owns(const Request& request) const;
     ErrorCode validate_job(const Job& job) const;

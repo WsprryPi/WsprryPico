@@ -688,7 +688,7 @@ async function refresh(loadConfig = false) {
     if (s.last_job === snapshot.job.job_id && Number.isInteger(s.wspr_frame) && s.wspr_frame > 0 && s.wspr_frame <= s.wspr_frames && [1,2].includes(s.wspr_frames)) $('job-result').textContent += ` · standalone WSPR frame ${s.wspr_frame} of ${s.wspr_frames}${s.wspr_pair_pending ? ' · pair in progress' : ''}`;
     $('output').textContent = snapshot.job.output_active === true ? 'Active' : snapshot.job.output_active === false ? 'Inactive' : 'Unknown';
     $('clock').textContent = `${s.clock_state} · ±${(Number(s.uncertainty_ns)/1e6).toFixed(2)} ms`;
-    $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id || 'Available';
+    $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id === 'e'.repeat(32) ? 'Pico schedule' : snapshot.job.owner_id || 'Available';
     $('engine').textContent = s.engine;
     $('network').textContent = `${n.link_status === 3 ? 'Connected' : 'Disconnected'} · ${n.ipv4 || 'No address'}`;
     $('hostname').textContent = n.configured_hostname || 'IP-only deployment';

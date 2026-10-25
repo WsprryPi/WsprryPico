@@ -1286,6 +1286,9 @@ int main() {
             number_field(result, "heap_available_bytes",
                          heap.uordblks < heap_capacity ? heap_capacity - heap.uordblks : 0);
             number_field(result, "heap_capacity_bytes", heap_capacity);
+            number_field(result, "load_free_before", scheduler.last_load_free_before());
+            number_field(result, "load_free_after", scheduler.last_load_free_after());
+            number_field(result, "load_stage", scheduler.last_load_stage());
             number_field(result, "heap_arena_bytes", heap.arena);
             number_field(result, "heap_arena_free_bytes", heap.fordblks);
             number_field(result, "heap_free_chunks", heap.ordblks);

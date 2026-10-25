@@ -6,6 +6,8 @@ Open the Pico's [control page](connect.md#open-the-control-page), sign in and ch
 
 A **job** is one complete transmission, including its repeats and gaps. Its **owner** is the controller that reserved the Pico for that job: this browser, WsprryPi or the Pico's own scheduler. Signing in gives access to the page; submitting a job requests control of the transmitter. The browser handles that request automatically when you choose **Load and arm message** or **Load and arm job**. Another controller's job cannot be taken over by opening a new tab.
 
+The **Owner** field identifies current control: **Pico schedule** for the Pico's local scheduler, **This browser** for this tab, and **Available** when no controller holds it. Other controllers may appear as session identifiers.
+
 ## Your first WSPR transmission
 
 Use this walkthrough after [installing firmware](install.md), [connecting the Pico to your home Wi-Fi](connect.md) and preparing the [RF connections and load](start.md#hardware-connections). Keep standalone schedules disabled until the final enable step. Use your own callsign, location, reported power and permitted band; the frequency below is an example.

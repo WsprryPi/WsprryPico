@@ -131,7 +131,11 @@ Response JobService::handle(Request&& request) {
     return handle_owned(request);
 }
 
-Response JobService::handle_owned(Request& request) {
+Response JobService::handle_internal(Request&& request) {
+    return handle_owned(request, false);
+}
+
+Response JobService::handle_owned(Request& request, bool retain_response) {
     const auto now = clock_.snapshot();
     runtime::ActivitySpan status_span(
         runtime::activity_trace(), runtime::ActivityKind::Status,
@@ -213,7 +217,8 @@ Response JobService::handle_owned(Request& request) {
     }
 
     auto response = dispatch(request);
-    remember(request, response, now.monotonic_now_ns);
+    if (retain_response)
+        remember(request, response, now.monotonic_now_ns);
     return response;
 }
 
@@ -337,7 +342,7 @@ Response JobService::dispatch(Request& request) {
             if (retained != retained_jobs_.end()) {
                 if (retained->digest != replay->digest)
                     return reject(ErrorCode::JobIdConflict);
-                auto response = retained->load_response;
+                auto response = retained_load_response(*retained);
                 touch_terminal(replay->job_id);
                 return response;
             }
@@ -367,7 +372,7 @@ Response JobService::dispatch(Request& request) {
         if (retained != retained_jobs_.end()) {
             if (retained->digest != job_digest(*body))
                 return reject(ErrorCode::JobIdConflict);
-            auto response = retained->load_response;
+            auto response = retained_load_response(*retained);
             touch_terminal(body->job_id);
             return response;
         }
@@ -426,14 +431,14 @@ Response JobService::dispatch(Request& request) {
         // equal immutable values; eight histories must not multiply this list.
         const auto identical = std::find_if(
             retained_jobs_.begin(), retained_jobs_.end(), [&](const RetainedJob& retained) {
-                const auto& values = retained.load_response.adjustments;
+                const auto& values = retained.adjustments;
                 return values.size() == preparation.adjustments.size() &&
                        (values.empty() ||
                         std::equal(values.begin(), values.end(), preparation.adjustments.begin()));
             });
         adjustments_ = identical == retained_jobs_.end()
                            ? AdjustmentList(std::move(preparation.adjustments))
-                           : identical->load_response.adjustments;
+                           : identical->adjustments;
         arm_.reset();
         state_ = State::Loaded;
         auto response = success();
@@ -782,6 +787,17 @@ Response JobService::success() const {
     return response;
 }
 
+Response JobService::retained_load_response(const RetainedJob& retained) const {
+    Response response;
+    response.ok = true;
+    response.state = State::Loaded;
+    response.boot_id = boot_id_;
+    response.job_id = retained.job_id;
+    response.output_active = retained.load_output_active;
+    response.adjustments = retained.adjustments;
+    return response;
+}
+
 bool JobService::valid_id(std::string_view value) const {
     return value.size() == 32 && std::all_of(value.begin(), value.end(), [](char character) {
                return (character >= '0' && character <= '9') ||
@@ -935,11 +951,10 @@ void JobService::record_terminal(State state, ErrorCode error, std::uint64_t now
     terminal_records_.push_front(TerminalRecord{job_ ? job_->job_id : std::string{}, state, now_ns,
                                                 engine_.output_active(), error});
     if (job_) {
-        auto load = success();
-        load.state = State::Loaded;
-        load.job_id = job_->job_id;
-        load.adjustments = adjustments_;
-        retained_jobs_.push_front({job_->job_id, job_digest_, std::move(load), arm_});
+        // Reconstruct the fixed LOAD reply fields on replay instead of keeping
+        // a full Response (including unused clock/status storage) per job.
+        retained_jobs_.push_front(
+            {job_->job_id, job_digest_, adjustments_, engine_.output_active(), arm_});
         if (state == State::Complete) {
             // Completion has authoritatively stopped the engine. Status needs
             // the identity and duration; retained replay uses the digest above.
