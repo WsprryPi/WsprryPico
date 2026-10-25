@@ -8,6 +8,7 @@
 #include "time/sntp.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
 #include "wtp/json.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <algorithm>
 #include <array>
@@ -795,6 +796,41 @@ void autonomous_test() {
     fake.value.state = wtp::ClockState::Unsynchronized;
     CHECK(dry.poll(ns).state == wtp::EngineState::Missed && !dry.output_active());
 }
+void standalone_memory_admission_test() {
+    static bool reclaimed;
+    static unsigned reclaim_calls;
+    for (const bool sufficient_after_reclaim : {false, true}) {
+        reclaimed = false;
+        reclaim_calls = 0;
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        CHECK(store.load() && store.save(scheduled_config()));
+        Clock clock;
+        clock.advance(116 * 1'000'000'000ULL);
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        wtp::available_memory = []() -> std::size_t { return reclaimed ? 81920 : 64000; };
+        wtp::reclaim_optional_memory = [] { ++reclaim_calls; };
+        if (sufficient_after_reclaim)
+            wtp::reclaim_optional_memory = [] {
+                ++reclaim_calls;
+                reclaimed = true;
+            };
+        scheduler.poll();
+        wtp::available_memory = nullptr;
+        wtp::reclaim_optional_memory = nullptr;
+        CHECK(reclaim_calls == 1);
+        CHECK(engine.prepared == (sufficient_after_reclaim ? 1U : 0U));
+        CHECK(service.status().state ==
+              (sufficient_after_reclaim ? wtp::State::Armed : wtp::State::Empty));
+        if (!sufficient_after_reclaim) {
+            CHECK(!service.status().owner_id && !engine.output_active());
+            CHECK(scheduler.status().find("INTERNAL_ERROR") != std::string::npos);
+        }
+    }
+}
 void paired_scheduler_tests() {
     constexpr std::uint64_t ns = 1'000'000'000ULL, duration = 110'592'000'000ULL;
     for (unsigned fault = 0; fault < 11; ++fault) {
@@ -1054,6 +1090,7 @@ int main() {
     reset_guard_tests();
     configuration_fault_reset_tests();
     scheduler_tests();
+    standalone_memory_admission_test();
     paired_scheduler_tests();
     sntp_tests();
     sntp_poll_schedule_test();

@@ -281,6 +281,27 @@ void expire_ap_preserves_station() {
     check(h.finished.size() == 2 && h.finished.at(h.handled.back()));
 }
 void parser_and_pressure() {
+    {
+        Harness h;
+        tcp_pcb ordinary, hostile;
+        h.accept(ordinary);
+        h.accept(hostile);
+        // The real running WSPR frame leaves about 61 KiB. Small status
+        // requests fit while the 32 KiB authority reserve remains intact.
+        wsprrypico::wtp::available_memory = []() -> std::size_t { return 61280; };
+        h.request(ordinary);
+        h.complete(ordinary);
+        check(h.handled.size() == 1 && !ordinary.aborted);
+        std::string prefix = "GET / HTTP/1.1\r\nHost: x\r\n";
+        for (unsigned i = 0; i < 150; ++i)
+            prefix += "x-" + std::to_string(i) + ": a\r\n";
+        prefix += "\r\n";
+        check(prefix.size() < wsprrypico::network::max_http_headers);
+        h.receive(hostile, prefix);
+        h.complete(hostile);
+        check(h.handled.size() == 1 && hostile.wire.starts_with("HTTP/1.1 400"));
+        wsprrypico::wtp::available_memory = nullptr;
+    }
     for (auto bad :
          {std::string("GET / HTTP/1.1\n\n"),
           std::string("GET / HTTP/1.1\r\nHost: x\r\n\r\nGET / HTTP/1.1\r\nHost: x\r\n\r\n"),

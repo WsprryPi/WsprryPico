@@ -4,6 +4,7 @@
 #include "time/mapping.hpp"
 #include "time/sntp.hpp"
 #include "wtp/codec.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -180,6 +181,14 @@ bool Scheduler::prepare_frame(const encoding::WsprFrame& frame, std::uint64_t sl
             (void)request("RELEASE");
             return false;
         }
+    }
+    // This local producer owns the complete decoded job. Like WTP admission,
+    // it may reclaim optional USB diagnostic buffers before LOAD, without
+    // weakening the separate preparation and authority/RF memory reserves.
+    if (!wtp::authoritative_memory_admitted(32768)) {
+        last_error_ = wtp::ErrorCode::InternalError;
+        (void)request("RELEASE");
+        return false;
     }
     last_job_ = job.job_id;
     auto response = request("LOAD", std::move(job));

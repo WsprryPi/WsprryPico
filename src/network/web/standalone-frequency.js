@@ -92,7 +92,7 @@
         observed = v; revision = r.revision; knownRevision = r.revision; edited = false; review = false;
         input.value = String(v.frequency_hz); draftTarget = identity(v);
         status.textContent = `Saved WSPR dial ${v.frequency_hz.toLocaleString('en-US')} Hz for future standalone WSPR jobs. A first frequency selection leaves schedules disabled; enable them when ready.`;
-        afterSave();
+        await afterSave(r);
       } catch (e) {
         if (ticket === epoch) {
           if (e.code === 'not_configured') { ready = false; draftOnly = false; status.textContent = prerequisite(); return; }

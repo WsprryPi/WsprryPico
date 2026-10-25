@@ -61,6 +61,18 @@ std::string HttpResponse::body_text() const {
     return out;
 }
 void HttpParser::parse_headers() {
+    const auto lines = static_cast<std::size_t>(std::count(headers_.begin(), headers_.end(), '\n'));
+    const auto fields = lines > 2 ? lines - 2 : 0;
+    // Allow for tree nodes, allocator/alignment overhead, temporary names and
+    // copied method/path/values. Keep the authority reserve for both ordinary
+    // browser headers and adversarial prefixes containing many tiny fields.
+    constexpr auto field_workspace =
+        sizeof(decltype(request_.headers)::value_type) + 8 * sizeof(void*) + 128;
+    if (!wtp::memory_admitted(6 * headers_.size() + fields * field_workspace + 1024)) {
+        exhausted_ = true;
+        failed_ = true;
+        return;
+    }
     const auto end = headers_.find("\r\n");
     const auto line = std::string_view(headers_).substr(0, end);
     const auto first = line.find(' '), last = line.rfind(' ');
@@ -158,6 +170,12 @@ std::size_t HttpParser::receive(std::span<const std::uint8_t> bytes) {
         if (!headers_done_) {
             if (headers_.size() >= max_http_headers || c > 126 ||
                 (c < 32 && c != '\r' && c != '\n')) {
+                failed_ = true;
+                break;
+            }
+            if (headers_.size() == headers_.capacity() &&
+                !wtp::memory_admitted(header_prefix_workspace)) {
+                exhausted_ = true;
                 failed_ = true;
                 break;
             }

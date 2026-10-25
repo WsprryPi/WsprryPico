@@ -625,11 +625,9 @@ int main() {
     else if (store_loaded &&
              runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock)
         runtime_network_config = runtime_profile.overlay(wsprrypico::standalone::Config{});
-    if (boot_recovery || !runtime_profile_ready() ||
-        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
-        runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::NetworkOnly ||
-        (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::ConsumerPreClock &&
-         (!runtime_profile.consumer_profile() || !runtime_profile.consumer_profile()->usb_managed)))
+    if (boot_recovery ||
+        !runtime_profile.standalone_boot_ready(profile_store, store_loaded && store.healthy() &&
+                                                                  store.config().has_value()))
         (void)scheduler.command("STOP");
     watchdog_hw->scratch[1] = 2;
     if (!boot_recovery && radio_identity_ok && runtime_network_config)

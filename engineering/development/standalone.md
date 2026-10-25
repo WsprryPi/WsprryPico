@@ -221,6 +221,10 @@ Reboot and UTC rollback conservatively skip both reserved windows. See the
 [WSPR planning contract](wspr-planning.md) for source-specific software
 acceptance and remaining physical qualification.
 
+The shared runtime boot policy permits a healthy browser-commissioned profile with a saved standalone configuration to resume its explicitly enabled schedule after restart. `ConsumerPreClock` describes structural profile admission; it does not add another STOP on every boot of a configured transmitter. Unprovisioned, Wi-Fi-only, stale or unhealthy profiles retain their boot guard. An initial ordinary consumer profile without standalone settings remains suspended until configuration and an explicit restart. Every scheduled launch still checks the actual clock, frequency, ownership, hardware and output state.
+
+Local WSPR preparation uses the same authoritative optional-buffer reclamation as WTP admission before LOAD. It owns the complete decoded job and can retire optional USB diagnostic buffers without borrowing their input. The preparation allowance and separate 32 KiB authority/RF reserve remain unchanged; insufficient memory still refuses the occurrence, releases ownership and does not replay the reserved slot.
+
 A new/erased device has no configuration and cannot schedule. Saving requires
 an idle unowned service and verified flash writes. `reboot_required` covers
 boot-network differences, external profile restart requirements and the sticky

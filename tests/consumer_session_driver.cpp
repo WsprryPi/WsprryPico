@@ -478,6 +478,9 @@ struct Driver {
             check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
             std::destroy_at(&f.scheduler);
             std::construct_at(&f.scheduler, f.store, f.service);
+            if (!runtime.standalone_boot_ready(profiles,
+                                               f.store.healthy() && f.store.config().has_value()))
+                (void)f.scheduler.command("STOP");
             radio.admission(runtime.control_healthy(profiles) &&
                             runtime.consumer_browser_selected(profiles));
             poll_server();
@@ -492,6 +495,9 @@ struct Driver {
                 std::construct_at(&fixture->scheduler, fixture->store, fixture->service);
                 fixture->api.set_active_job_connections(true);
             }
+            if (!runtime.standalone_boot_ready(profiles,
+                                               f.store.healthy() && f.store.config().has_value()))
+                (void)f.scheduler.command("STOP");
             consumer_engine.policy.emplace(consumer_engine.engine, f.store,
                                            f.service.config().minimum_frequency_nhz,
                                            f.service.config().maximum_frequency_nhz);
@@ -552,6 +558,18 @@ struct Driver {
                 (config && config->wspr_dial_frequency_hz ? std::to_string(*config->wspr_dial_frequency_hz) : "null") +
                 ",\"sequence\":\"" + std::to_string(retained.config_sequence()) +
                 "\",\"enabled\":" + (config && config->enabled ? "true" : "false") + "}";
+        }
+        if (op == "schedule_tick") {
+            // Synthetic time drives the production scheduler and dry-run engine.
+            // No device access or physical RF output is provided by this fixture.
+            std::uint64_t delta;
+            check(wtp::json::decimal(*v.get("delta_ns"), delta) && delta <= 600'000'000'000ULL);
+            f.clock.now += delta;
+            f.scheduler.poll();
+            auto result = f.scheduler.status();
+            if (!result.empty() && result.back() == '\n')
+                result.pop_back();
+            return result;
         }
         if (op == "flash_failure") {
             f.flash.fail = v.get("fail")->boolean();

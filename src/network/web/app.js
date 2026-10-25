@@ -67,7 +67,7 @@ const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-fr
   hasProgress:()=>supportsProgress(),
   stationActions:draft=>draft ? `Choose ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.` : `Complete Station identity, choose ${$(radio ? 'save-station-progress' : 'save-engineering-station-progress').textContent}, then ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.`,
   exchange:async (method,body,match,resource = 'standalone-frequency')=>{if (!WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency)) throw new Error('Standalone frequency configuration is unsupported.'); return api(resource,method,body,match,30000,true);},
-  afterSave:()=>requireReadback()
+  afterSave:result=>reconcileConfirmedSettings(result,result.data.target,'Frequency saved. Schedule settings are ready to edit; saving a frequency does not enable schedules.')
 }) : null;
 if ($('rf-calibration-form')) $('rf-calibration-form').onsubmit = event => event.preventDefault();
 const calibrationEditor = globalThis.WsprryRfCalibration && $('rf-manual-ppm') ? WsprryRfCalibration.create({
@@ -195,6 +195,7 @@ async function saveProgressFields(fields,station = false,output) {
   savedProgress = {data:{...result.data},revision:result.revision};
   delete savedProgress.data.outcomes; delete savedProgress.data.request_id;
   revision = result.revision;
+  saveAttempt = null;
   if (savedReadback) {
     savedReadback.progress = savedProgress.data;
     savedReadback.revision = revision;
@@ -303,6 +304,7 @@ function checkedConfig(result, allowNull = true) {
   return result.data.config;
 }
 function requireReadback() {
+  if (saveAttempt) saveAttempt.reviewRequired = true;
   writeState = 'readback'; revision = ''; savedReadback = null;
   $('saved-readback-details').hidden = true;
   $('saved-active-status').textContent = 'Saved and active observations need fresh readback.';
@@ -385,6 +387,50 @@ async function readSavedKeepingDraft() {
     (h?.storage_healthy === false ? 'Storage fault. ' : '') + (h?.application_error ? `Application fault: ${h.application_error}. ` : '') +
     (after.data.station?.storage_healthy === false ? 'Station storage fault.' : '');
   $('save-reconcile-status').textContent = 'Current saved settings are shown below. Your draft is unchanged. Review differences before enabling a new explicit save. Matching values do not prove which earlier request saved them.';
+}
+async function reconcileConfirmedSettings(result,target,message) {
+  // Only adopt the exact revision acknowledged by this explicit save. A later
+  // writer or changed boot still needs the operator's saved-state review.
+  const earlierReviewRequired = saveAttempt?.reviewRequired === true;
+  try {
+    await readSavedKeepingDraft();
+    if (earlierReviewRequired) {
+      $('save-reconcile-status').textContent = 'The save succeeded. An earlier settings save still needs review; review the current saved settings before another save. Your edits are preserved.';
+      return false;
+    }
+    if (savedReadback.revision !== result.revision || JSON.stringify(savedReadback.target) !== JSON.stringify(target)) {
+      $('save-reconcile-status').textContent = 'The save succeeded, but the Pico or its saved settings changed afterward. Review the current saved settings before another save. Your edits are preserved.';
+      return false;
+    }
+    revision = savedReadback.revision; currentConfig = savedReadback.config; writeState = 'ready';
+    saveAttempt = null;
+    $('save-reconcile-status').textContent = message;
+    return true;
+  } catch (_) {
+    requireReadback();
+    $('save-reconcile-status').textContent = 'The save succeeded, but current settings could not be read back. Choose Read saved settings and keep draft, then review them before another save. Your edits are preserved.';
+    return false;
+  }
+}
+function standaloneStatus() {
+  if (!snapshot) return 'Standalone WSPR status is unknown. Refresh to read the Pico.';
+  const s = snapshot.standalone, j = snapshot.job;
+  if (!s.storage_healthy) return 'Standalone WSPR is blocked by a settings storage fault.';
+  if (!s.configured) return 'Standalone WSPR setup is incomplete. Apply station identity and save a WSPR dial frequency before enabling schedules.';
+  if (!s.enabled) return 'Standalone WSPR is disabled. Check Enable standalone schedules, save valid fields, then apply saved settings when ready.';
+  if (s.suspended) return 'Standalone WSPR is suspended by STOP. Review the saved schedule and explicitly restart while idle to resume.';
+  if (s.reboot_required) return 'Standalone WSPR is waiting for a restart to apply saved network or pin settings.';
+  if (s.frequency_required) return 'Standalone WSPR needs a saved WSPR dial frequency.';
+  if (['armed','running'].includes(j.state) && j.job_id === s.last_job) return `Standalone WSPR job is ${j.state}. Refresh for the latest confirmed state.`;
+  if (s.wspr_pair_pending && j.job_id === s.last_job) return 'Standalone WSPR pair is in progress. The Pico retains control between its two frames. Refresh to update.';
+  if (j.owner_id !== null || ['loaded','armed','running','failed'].includes(j.state) || j.output_active !== false) return 'Standalone WSPR is waiting for the transmitter to be available. Check Job, Owner and RF output.';
+  if (s.clock_state === 'unsynchronized') return 'Standalone WSPR is waiting for clock synchronization. Check the time server in Wi-Fi/Host.';
+  if (s.clock_state === 'holdover' && (!capabilities?.wtp?.maximum_holdover_age_ns || BigInt(capabilities.wtp.maximum_holdover_age_ns) === 0n || BigInt(s.sync_age_ns) > BigInt(capabilities.wtp.maximum_holdover_age_ns))) return 'Standalone WSPR is waiting for fresh clock synchronization. The current holdover is outside the permitted age; check the time server.';
+  if (capabilities?.wtp?.maximum_arm_uncertainty_ns && BigInt(s.uncertainty_ns) > BigInt(capabilities.wtp.maximum_arm_uncertainty_ns)) return 'Standalone WSPR is waiting for a more precise clock. Check Clock and the time server.';
+  if (!s.schedules?.length) return 'Standalone WSPR has no scheduled windows. Enter a schedule, save valid fields and apply saved settings.';
+  if (s.expires_utc_s && BigInt(s.utc_now_ns) >= BigInt(s.expires_utc_s)*1000000000n) return 'Standalone WSPR schedule has expired. Review its UTC expiry, save and apply the change.';
+  if (s.last_error) return 'The last standalone WSPR attempt was refused: ' + (s.last_error.code || 'unknown error') + '. Check the clock, frequency and output settings; missed windows are skipped.';
+  return 'Standalone WSPR is enabled and waiting for a scheduled UTC window. An empty Job is normal before preparation. Refresh to update; starts still require clock and output checks.';
 }
 function readSetupReceipt(hash) {
   if (typeof hash !== 'string' || !hash.startsWith('#save=') || hash.length > 512) return null;
@@ -592,6 +638,12 @@ function controls(connected) {
     $('apply-station-progress').disabled = busy || !idle || writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.station_complete || !savedProgress.data.wspr_plan?.supported || Boolean(consumerAttempt);
     $('consumer-station-settings').disabled ||= writeState !== 'ready';
   }
+  if ($('standalone-status')) $('standalone-status').textContent = standaloneStatus();
+  if ($('schedule-save-help')) $('schedule-save-help').textContent = !online ? 'Sign in and refresh status before changing schedules.' :
+    busy ? 'Waiting for the current request to finish.' : !idle ? 'Wait for inactive output and released control before saving schedules.' :
+    writeState === 'readback' ? 'Before another save, choose Read saved settings and keep draft in Saved settings and recovery above. Your checkbox edit is preserved.' :
+    writeState === 'review' ? 'Review the comparison in Saved settings and recovery above, then choose I reviewed saved settings; enable a new save. Your checkbox edit is preserved.' :
+    'Save valid fields stores your edits as a draft. Apply saved settings makes the saved schedule active. Checking or unchecking the box alone does not change the Pico.';
   for (const id of passwordFields) setPasswordVisible(id,$(id).type === 'text');
 }
 function fill(c, network = c?.wifi) {
@@ -664,7 +716,7 @@ async function refresh(loadConfig = false) {
         network = saved.network ? {ssid:saved.network.ssid,ntp_ipv4:saved.network.time_server} : undefined;
       }
       revision = c.revision; fill(config,network);
-      const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; $('save-reconcile-status').textContent = 'Saved settings reloaded into this browser. Review any new edits before saving.'; showProgress();
+      const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; saveAttempt = null; $('save-reconcile-status').textContent = 'Saved settings reloaded into this browser. Review any new edits before saving.'; showProgress();
       if (radio) await readPicoPassword();
     }
     updateProgress(); messagePreview();
@@ -825,6 +877,7 @@ $('review-saved').onclick = () => action(async () => {
   const target = (await readApplication()).data.target;
   if (JSON.stringify(target) !== JSON.stringify(savedReadback.target)) {requireReadback();throw new Error('Pico changed; read saved settings again');}
   revision = savedReadback.revision; currentConfig = savedReadback.config; writeState='ready';
+  saveAttempt = null;
   $('save-reconcile-status').textContent = 'Fresh saved revision selected. Your draft is preserved. Save settings sends one new explicit mutation; concurrent changes can still refuse it.';
 });
 $('local-logout').onclick = () => action(async () => {
@@ -905,9 +958,15 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
 }); };
 async function applyProgressDomain(domain) {
   if (!savedProgress || writeState !== 'ready') throw new Error('Read and review saved progress before applying.');
+  const target = savedProgress.data.target;
   const result = await api('progress/apply','POST',{schema:'transmitter-progress/1',target:savedProgress.data.target,application:{draft_revision:savedProgress.data.draft_revision,domain}},savedProgress.revision);
   currentConfig = checkedConfig(result,false); revision = result.revision;
-  await refresh(); await readSavedKeepingDraft();
+  await refresh();
+  const reconciled = await reconcileConfirmedSettings(result,target,'Saved settings applied and read back. New edits can be saved; check Transmitter status for standalone WSPR operation.');
+  if (reconciled && domain === 'radio') for (const unit of ['enabled','schedules','expires_utc_s','pins']) {
+    const outcome = $('progress-error-settings-' + unit);
+    if (outcome && !progressEdits.has(unit)) { outcome.textContent = 'Saved value applied.'; outcome.classList.toggle('error',false); }
+  }
   notice(result.data.reboot_required ? 'Saved progress applied. Network or pin changes need an explicit restart.' : 'Saved progress applied. Check the selected operation’s current status before transmitting.');
 }
 $('apply-progress').onclick = () => action(() => applyProgressDomain('radio'));

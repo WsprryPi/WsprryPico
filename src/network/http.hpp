@@ -97,6 +97,9 @@ struct HttpResponse {
 // challenge/submit pair. The owner enforces a total connection deadline.
 class HttpParser {
   public:
+    // Collect only the bounded raw prefix first. Map/string allocations are
+    // admitted separately from the actual completed header's shape.
+    static constexpr std::size_t header_prefix_workspace = 2 * max_http_headers + 1024;
     std::size_t receive(std::span<const std::uint8_t> bytes);
     void reset_secure();
     bool ready() const {

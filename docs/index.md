@@ -18,7 +18,7 @@ For a first standalone setup, follow these pages in order:
 2. [Install firmware](install.md): load the Pico's operating program over USB.
 3. [Connect](connect.md): join setup Wi-Fi, save your home network and open the control page.
 4. [Configure your station](configure.md): enter station details and a transmit frequency, then review the schedule.
-5. [Operate](operate.md): enable a reviewed schedule or send an individual message.
+5. [Your first WSPR transmission](operate.md#your-first-wspr-transmission): save and apply the schedule, observe its first transmission and disable it after the trial. Use [Operate](operate.md) for individual message jobs.
 
 Already configured? Go to [Operate](operate.md).
 

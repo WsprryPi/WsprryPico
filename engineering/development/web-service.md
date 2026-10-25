@@ -13,7 +13,7 @@ serialized owner. Core 1 remains dedicated to the RF worker.
 | Port-80 connections | Two across AP and station; excess connections reset without evicting admitted clients |
 | Task storage | Compile-time `sizeof(PicoHttpServer) <= 2048`; retained Linux build reports 1976 bytes, excluding dynamic buffers/lwIP |
 | HTTP input | Existing 2048-byte headers and 32768-byte body maximum; narrower setup-route limits retained |
-| Header admission | Each incomplete-header fragment requires 32768 bytes of shared heap workspace above the existing 32768-byte authority reserve; pressure resets that connection before parser growth |
+| Header admission | Raw-prefix growth requires 5120 bytes of workspace; the completed header separately admits method/path, strings and map nodes using its byte and field counts; both retain the 32768-byte authority reserve, and pressure refuses the connection before allocation |
 | Body admission | Existing shared paged-buffer admission; already reserved body pages continue without requiring another header allowance |
 | Output | At most one 1024-byte chunk per task per poll; first task alternates each poll; immutable assets borrow flash storage |
 | Lifetime | Absolute ten seconds from accept, including partial input and stalled ACKs; traffic does not extend it |

@@ -5,6 +5,7 @@ import {mkdtemp,readFile,writeFile,mkdir} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
+import {firstWsprTransmission} from './standalone_wspr_trial.mjs';
 
 const driver=process.argv[2], output=path.resolve(process.argv[3] || 'build/standalone-frequency-ui');
 const firstUse=process.argv[4]?.startsWith('first-use:') ? process.argv[4].slice(10) : null;
@@ -17,7 +18,7 @@ let fixture, chrome, cdp;
 class Cdp {
   constructor(url) {
     this.ws=new WebSocket(url);this.pending=new Map();this.sequence=0;
-    this.ws.onmessage=event=>{const r=JSON.parse(event.data),p=this.pending.get(r.id);if(p){this.pending.delete(r.id);r.error?p.reject(Error(r.error.message)):p.resolve(r.result);}};
+    this.ws.onmessage=event=>{const r=JSON.parse(event.data);if(r.method==='Page.javascriptDialogOpening'){void this.send('Page.handleJavaScriptDialog',{accept:true});return;}const p=this.pending.get(r.id);if(p){this.pending.delete(r.id);r.error?p.reject(Error(r.error.message)):p.resolve(r.result);}};
   }
   async open(){if(this.ws.readyState!==1)await new Promise((resolve,reject)=>{this.ws.onopen=resolve;this.ws.onerror=reject;});}
   send(method,params={}){const id=++this.sequence;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('Browser deadline: '+method));},15000);this.pending.set(id,{resolve:v=>{clearTimeout(timer);resolve(v);},reject:e=>{clearTimeout(timer);reject(e);}});this.ws.send(JSON.stringify({id,method,params}));});}
@@ -31,6 +32,7 @@ async function control(command) {
   assert.equal(r.status,200);return r.json();
 }
 async function capture(name){
+  if(process.env.UI_REVIEW_NO_CAPTURE==='1') return;
   for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name==='mobile'});
     await cdp.evaluate(`document.getElementById('${name.includes('text-200') ? 'standalone-frequency-status' : 'standalone-frequency-form'}').scrollIntoView({block:'start'})`);
@@ -41,7 +43,7 @@ async function capture(name){
 }
 try {
   let fixtureOutput='';
-  fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'18939',output],{stdio:['ignore','pipe','pipe'],detached:processGroup});
+  fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'18939',output,...(process.argv[5]==='transmission' ? ['messages'] : [])],{stdio:['ignore','pipe','pipe'],detached:processGroup});
   fixture.stdout.on('data',data=>{fixtureOutput+=data;});
   fixture.stderr.on('data',data=>{fixtureOutput+=data;});
   await until(()=>fixtureOutput.includes('READY;'),'fixture startup');
@@ -132,11 +134,15 @@ try {
     await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
     await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
     await until(()=>cdp.evaluate(`document.getElementById('standalone-frequency-status').textContent.includes('Saved WSPR dial 14,095,600 Hz for future')`),'first saved dial');
-    const accepted=await control({op:'frequency_state'});
+    let accepted=await control({op:'frequency_state'});
     assert.equal(accepted.saved_dial_hz,14095600);assert.equal(accepted.enabled,false);
     assert.equal(await cdp.evaluate('snapshot.job.output_active'),false);
     assert.equal((await cdp.evaluate('frequencyWrites')).length,1);
     await capture('first-save');
+    if(process.argv[5]==='transmission') {
+      await firstWsprTransmission({cdp,click,field,until,control,capture});
+      accepted=await control({op:'frequency_state'});
+    }
     await field('standalone-frequency','7038600');
     await cdp.evaluate(`globalThis.frequencyTransport=radio.fetcher;radio.fetcher=async()=>{throw Error('Synthetic lost connection before dispatch');};`);
     await click('standalone-frequency-save');

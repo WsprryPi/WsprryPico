@@ -19,6 +19,8 @@ The page has two useful read controls. **Reload saved settings** replaces the br
 
 ## Frequency and schedules
 
+For a complete start-to-finish example, follow [Your first WSPR transmission](operate.md#your-first-wspr-transmission).
+
 Complete station details, choose **Save valid station fields**, then explicitly choose **Apply saved station** and confirm its result before saving a dial. A complete saved station draft is still a draft; it does not enable **Save frequency**. The guidance beside the frequency controls identifies the missing step. You can enter a dial while station setup is incomplete; the page retains it when you save and apply the station. After application is confirmed, the frequency controls become ready without reloading the page.
 
 In **Station/Transmission → Schedules and radio pins → Standalone WSPR frequency**, enter a **WSPR dial frequency (Hz)** appropriate for your band, RF setup and operating privileges. **Hz** means hertz; **1 MHz = 1,000,000 Hz**. Enter a whole number without commas or a unit suffix. Choose **Save frequency** while idle, then **Read saved frequency** to confirm it. A fresh installation has no selected WSPR dial frequency, so the field is blank. Standalone WSPR places four tones around a center 1,500 Hz above the dial, without random placement: enter `14095600` for a center of `14097100 Hz`. Both frames of a pair use one saved dial. A first selection leaves schedules disabled; later saves apply to the next job and preserve STOP. Read and Discard do not save a new value. An invalid or rejected save retains your entry for correction. Unsaved frequency text exists only in the current browser tab and is not a committed setting after a reload or reboot. If a reply is uncertain, read the saved frequency and review it before another explicit save; the page does not retry the write automatically. Individual message jobs have their own frequency field.
@@ -41,7 +43,9 @@ To save and start automatic WSPR:
 
 1. Leave **Enable standalone schedules** unchecked while entering and reviewing station details, frequency and schedule times.
 2. Choose **Save valid fields** or **Save schedules and pins**, read the result, and use **Apply saved settings** when offered. Check that the saved values match your intended setup. Complete any requested restart before enabling output.
-3. When you are ready to transmit, check **Enable standalone schedules**, save and apply again, then **Refresh** the transmitter status. The Pico waits for the next eligible window and an acceptable clock; see [Operate](operate.md#wspr-schedules).
+3. When you are ready to transmit, check **Enable standalone schedules**, save and apply again, then **Refresh** the transmitter status and confirm standalone WSPR is enabled. The Pico waits for the next eligible window and an acceptable clock; see [Operate](operate.md#wspr-schedules).
+
+A confirmed frequency save or settings application refreshes the settings revision while preserving browser edits. If Save or Apply is disabled, read the guidance beside the schedule buttons. A required saved-state review uses **Read saved settings and keep draft**, followed by **I reviewed saved settings; enable a new save** in **Saved settings and recovery**; **Read saved frequency** and transmitter-status **Refresh** do not complete that review.
 
 To prevent later automatic starts, uncheck **Enable standalone schedules**, save and apply, then confirm it is disabled. This is separate from aborting a job that is already accepted or running.
 

@@ -151,6 +151,8 @@ def host_checks(deps, audit):
     os.environ['CHROME_BIN'] = chrome
     execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
             host / 'consumer_bootstrap_driver', audit / 'consumer-ui')
+    execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
+            host / 'consumer_bootstrap_driver', audit / 'first-wspr-ui', 'first-use:network', 'transmission')
     execute(log, 'node', ROOT / 'tests/session_timeout_browser.mjs',
             host / 'consumer_bootstrap_driver', audit / 'session-timeout-ui')
     return {'registered': len(names), 'passed': len(cases), 'failed': 0, 'skipped': 0,
