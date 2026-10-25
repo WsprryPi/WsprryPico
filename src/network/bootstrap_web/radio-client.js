@@ -1,6 +1,8 @@
 import {begin,authenticate,seal,open,clear,unhex,retirementSelector} from './radio-crypto.js';
 import {prepareNetwork,prepareStation,submitSetup,checkSetup} from './radio-setup.js';
 
+const idleMs = 30 * 60 * 1000, absoluteMs = 8 * 60 * 60 * 1000;
+
 export class RadioClient {
   constructor(fetcher = globalThis.fetch?.bind(globalThis), now = () => Date.now(), context) {
     this.fetcher = fetcher; this.now = now; this.state = null; this.busy = false; this.lostSession = null;
@@ -8,7 +10,7 @@ export class RadioClient {
   }
   clear() { clear(this.state); this.state = null; }
   get authenticated() {
-    if (this.state && (this.now() < this.seen || this.now()-this.started >= 900000 || this.now()-this.seen >= 300000)) this.clear();
+    if (this.state && (this.now() < this.seen || this.now()-this.started >= absoluteMs || this.now()-this.seen >= idleMs)) this.clear();
     return Boolean(this.state);
   }
   async post(path, body, binary, timeout) {

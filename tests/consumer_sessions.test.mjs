@@ -121,19 +121,45 @@ await run('unknown IDs, wrong sequence, wrong origin and invalid tag isolate add
 });
 await run('independent idle, login and absolute expiry, and interface invalidation',async f=>{
   const a=f.client(),b=f.client('192.168.4.1',true);await f.login(a);await f.time(2000);await f.login(b);
-  await f.time(300999);assert.equal((await b.request('status')).status,200);
-  await f.time(301000);await assert.rejects(a.request('status'));assert.equal((await b.request('status')).status,200);
-  await f.time(302000);await f.login(a);
+  await f.time(1800999);assert.equal((await b.request('status')).status,200);
+  await f.time(1801000);await assert.rejects(a.request('status'));assert.equal((await b.request('status')).status,200);
+  await f.time(1802000);await f.login(a);
   await f.command({op:'listeners',ap:false,ip:'192.168.1.53',host:'wsprrypico-0a60df.local'});
   assert.equal((await a.request('status')).status,200);await assert.rejects(b.request('status'));
   await f.command({op:'listeners',ap:true,ip:'192.168.1.53',host:'wsprrypico-0a60df.local'});
-  await f.time(303000);await f.login(b);
+  await f.time(1803000);await f.login(b);
   await f.command({op:'listeners',ap:true,ip:'192.168.1.54',host:'wsprrypico-0a60df.local'});
   assert.equal((await b.request('status')).status,200);await assert.rejects(a.request('status'));
-  for(const ms of [500000,700000,900000,1100000]){await f.time(ms);assert.equal((await b.request('status')).status,200);}
-  await f.time(1203000);await assert.rejects(b.request('status'));
-  a.host='192.168.1.54';a.fetcher=(p,o)=>f.fetch(a.host,false,p,o);await f.time(1204000);await f.login(a);
-  await f.time(1203000);await assert.rejects(a.request('status'));
+  for(let elapsed=1000000;elapsed<28800000;elapsed+=1000000){await f.time(1803000+elapsed);assert.equal((await b.request('status')).status,200);}
+  await f.time(1803000+28800000-1);assert.equal(b.authenticated,true);
+  await f.time(1803000+28800000);await assert.rejects(b.request('status'));
+  a.host='192.168.1.54';a.fetcher=(p,o)=>f.fetch(a.host,false,p,o);await f.time(f.now+1000);await f.login(a);
+  await f.time(f.now-1);await assert.rejects(a.request('status'));
+});
+await run('server expires idle and absolute sessions even when a client keeps its keys',async f=>{
+  const a=f.client();await f.login(a);
+  // Freeze the client clock so its local expiry cannot mask a server defect.
+  a.now=()=>1000;
+  await f.time(301000);assert.equal(a.authenticated,true);
+  await a.identity(); // Public traffic does not renew authenticated idle time.
+  await f.time(1800999);assert.equal((await a.request('status')).status,200);
+  await f.time(3600998);await a.identity();assert.equal(a.authenticated,true);
+  await f.time(3600999);await assert.rejects(a.request('status'));
+  await f.login(a);
+  const started=f.now;
+  for(let elapsed=1000000;elapsed<28800000;elapsed+=1000000){await f.time(started+elapsed);assert.equal((await a.request('status')).status,200);}
+  await f.time(started+28800000-1);assert.equal((await a.request('status')).status,200);
+  await f.time(started+28800000);await assert.rejects(a.request('status'));
+});
+await run('idle expiry frees one occupied slot without evicting its active peers',async f=>{
+  const a=f.client(),b=f.client(),c=f.client(),next=f.client();
+  await f.login(a);await f.time(2000);await f.login(b);await f.time(3000);await f.login(c);
+  await f.time(1800999);
+  assert.equal((await b.request('status')).status,200);assert.equal((await c.request('status')).status,200);
+  await assert.rejects(f.login(next),/three radio sessions/);
+  await f.time(1801000);await f.login(next);
+  assert.equal(a.authenticated,false);
+  for(const client of [b,c,next])assert.equal((await client.request('status')).status,200);
 });
 await run('stale concurrent edits share one journal and keep both logins',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);

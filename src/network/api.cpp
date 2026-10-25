@@ -720,7 +720,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "\"configuration_updates\":" +
                 application::config_update_capabilities() +
                 ",\"management_carriers\":{\"schema\":" +
-                json::quote(local_usb ? "transmitter-management/3" : "transmitter-management/2") +
+                json::quote(management_schema(carrier)) +
                 ",\"path\":\"/api/"
                 "v1/management\"}"
                 ",\"active_job_connections\":" +

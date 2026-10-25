@@ -28,15 +28,7 @@ frames; later ordinary jobs select anew. A controller supplying compensated
 frequencies must select zero/manual on Pico or refuse frequency adjustment;
 WTP/1 does not identify precompensated input.
 
-The application also exposes these application services through the separately framed
-[USB management adapter](protocol/USB-Management.md), under internal local
-physical authority. It supports configuration, saved progress, canonical name,
-saved Wi-Fi lifecycle, restart and qualified controller UTC without a Pico
-network session. USB capability/application views identify `usb_physical` and
-discovery selects `transmitter-management/3`; existing network views retain
-their prior shapes and carrier schemas. USB grants no transmitter ownership
-and uses the same JobService, validators, revisions and journals. See [USB local configuration](development/usb-local-configuration.md) for
-configuration and delivery semantics.
+The application also exposes these application services through the separately framed [USB management adapter](protocol/USB-Management.md), under internal local physical authority. It supports configuration, saved progress, canonical name, saved Wi-Fi lifecycle, restart and qualified controller UTC without a Pico network session. USB capability/application views identify `usb_physical` and discovery selects `transmitter-management/5`; network views select `transmitter-management/4`. Both preserve their respective carrier projections. USB grants no transmitter ownership and uses the same JobService, validators, revisions and journals. See [USB local configuration](development/usb-local-configuration.md) for configuration and delivery semantics.
 
 The independently versioned [hostname resource](development/hostname.md) is at `GET/PUT /api/v1/hostname`. It preserves Config, application, capabilities and consumer identity v1 shapes. Consumer renames preserve CA/client trust, consume a profile generation and apply on explicit restart; engineering names remain credential-bound. See that record for exact envelopes, readback and recovery.
 
@@ -126,7 +118,7 @@ session cookie that page script cannot read.
 | Method and path | Behavior |
 |---|---|
 | GET `/api/v1/capabilities` | `api_version`, WTP service capabilities under `wtp`, implemented management `features`, body/connection limits, `active_job_connections` |
-| GET `/api/v1/management` | `transmitter-management/2` on network carriers; `/3` on USB. Support, availability and selected authenticated context; see [current carrier policy](#management-carrier-discovery). |
+| GET `/api/v1/management` | `transmitter-management/4` on network carriers; `/5` on USB. Support, availability and selected authenticated context; see [current carrier policy](#management-carrier-discovery). |
 | GET `/api/v1/status` | `job` service status/terminal records, `standalone` config/clock health, `network` state |
 | GET `/api/v1/jobs` | Same current/retained job inspection snapshot as status |
 | POST `/api/v1/jobs` | Explicit HELLO, CLAIM, RENEW, LOAD, LOAD_MESSAGE, ARM, ABORT or RELEASE through the common service |
@@ -452,41 +444,11 @@ new RF admissions until then. Read saved versus active plans separately.
 
 ## Management-carrier discovery
 
-Capabilities add a top-level `management_carriers` reference with
-`path:"/api/v1/management"` and schema `transmitter-management/2` on network
-carriers or `transmitter-management/3` on USB. This is
-outside the closed `application_resources` and application capability objects;
-their legacy `authenticated_https` value is retained on network projections
-for strict legacy compatibility. USB-selected views instead identify `usb_physical`.
-The selected authenticated carrier serves the discovery document. Public
-consumer identity/discovery cannot authorize reads or writes. Unsupported
-versions/types, unavailable selected carriers and identity/profile-generation
-mismatches must refuse without another-carrier retry. The full wire shape,
-operation list, profile matrix and budget interpretation are in the
-[carrier contract](development/management-carriers.md), with the
-explicit [version-2 session contract](development/consumer-sessions.md).
-Version 2 preserves the closed shape and all version-1 limits except integer
-`consumer_sessions:3`, adding integer `consumer_pending_logins:1` to limits.
-Updated Pi accepts each version's exact limits; old Pi refuses version 2.
-No fallback, downgraded authentication or mutation retry is added.
+Capabilities add a top-level `management_carriers` reference with `path:"/api/v1/management"` and schema `transmitter-management/4` on network carriers or `transmitter-management/5` on USB. This is outside the closed `application_resources` and application capability objects; their legacy `authenticated_https` value is retained on network projections for strict legacy compatibility. USB-selected views instead identify `usb_physical`. The selected authenticated carrier serves the discovery document. Public consumer identity/discovery cannot authorize reads or writes. Unsupported versions/types, unavailable selected carriers and identity/profile-generation mismatches must refuse without another-carrier retry. The full wire shape, operation list, profile matrix and budget interpretation are in the [carrier contract](development/management-carriers.md), with the explicit [session contract](development/consumer-sessions.md). Version 2 preserves the closed shape and all version-1 limits except integer `consumer_sessions:3`, adding integer `consumer_pending_logins:1` to limits. Updated Pi accepts each version's exact limits; old Pi refuses version 2. No fallback, downgraded authentication or mutation retry is added.
 
-USB version 3 adds the fifth `usb_physical` carrier row, selects it and removes
-`usb_json` from `unsupported`. Network version 2 deliberately retains its four
-rows and legacy `usb_json` exclusion; it is a projection, not a global statement
-that current firmware lacks USB management. Version 1 remains the legacy
-one-session shape. The common `operations` subset is not an exhaustive route
-allowlist: station, hardware, hostname, progress, drive, jobs and USB-specific
-resources retain their independent descriptors/contracts.
+Historical USB version 3 adds the fifth `usb_physical` carrier row, selects it and removes `usb_json` from `unsupported`. Network version 2 deliberately retains its four rows and legacy `usb_json` exclusion; it is a projection, not a global statement that current firmware lacks USB management. Version 1 remains the legacy one-session shape. The common `operations` subset is not an exhaustive route allowlist: station, hardware, hostname, progress, drive, jobs and USB-specific resources retain their independent descriptors/contracts.
 
-The accepted [USB projection](development/usb-local-configuration.md)
-keeps application schema names but substitutes `usb_physical` for the embedded
-`management_carrier` and removes `usb_json_management` from its unavailable
-list. The unchanged application/1, /2 and /3 schema files still encode the
-network `authenticated_https` capability definitions; those definitions do not
-validate USB application readbacks unchanged. USB projection validation follows
-its explicit contract and [local-management tests](../tests/usb_local_management_tests.cpp).
-This accepted carrier extension does not relax network schemas or authorize
-unknown future shapes. No schema artifact is changed by this reconciliation.
+The accepted [USB projection](development/usb-local-configuration.md) keeps application schema names but substitutes `usb_physical` for the embedded `management_carrier` and removes `usb_json_management` from its unavailable list. The unchanged application/1, /2 and /3 schema files still encode the network `authenticated_https` capability definitions; those definitions do not validate USB application readbacks unchanged. USB projection validation follows its explicit contract and [local-management tests](../tests/usb_local_management_tests.cpp). Current network version 4 and USB version 5 retain the /2 and /3 shapes, changing only idle/absolute limits to 1800000/28800000 ms. Versions 1, 2 and 3 retain their historical exact limits. Updated Pi accepts these explicitly supported versions and selects consumer deadlines from authenticated discovery; older clients refuse /4 and /5. This session-policy extension does not relax network schemas or authorize unknown future shapes.
 
 
 ## Login retirement and uncertain saves

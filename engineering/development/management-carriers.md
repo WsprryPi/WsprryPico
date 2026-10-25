@@ -23,22 +23,11 @@ Consumer public setup mutations are AP-only. Authenticated LAN setup uses the
 same transactional profile authority through the encrypted wrapper. Raw station
 HTTP never acquires public AP mutation authority.
 
-Consumer sessions use three fixed slots and at most one pending ordinary login;
-full capacity refuses without eviction. Pending login has a 30-second deadline,
-active sessions retain five-minute idle/15-minute absolute limits, and the
-separate [recovery exchange](session-recovery.md) has a five-second proof
-workspace. Two bounded port-80 tasks service requests cooperatively. Slot,
-transport and memory capacities are independent; they do not promise simultaneous
-maximum-size allocation. HTTP page delivery remains unauthenticated.
+Consumer sessions use three fixed slots and at most one pending ordinary login; full capacity refuses without eviction. Pending login has a 30-second deadline, active sessions retain thirty-minute idle/eight-hour absolute limits, and the separate [recovery exchange](session-recovery.md) has a five-second proof workspace. Two bounded port-80 tasks service requests cooperatively. Slot, transport and memory capacities are independent; they do not promise simultaneous maximum-size allocation. HTTP page delivery remains unauthenticated.
 
 ## Discovery and versioning
 
-Network discovery is closed `transmitter-management/2`; /1 remains a frozen
-legacy one-session view. USB independently selects /3 and advertises the physical
-carrier. A legacy network view's `usb_json_management` exclusion does not claim
-that current UMP1 firmware lacks USB management. Clients accept only exact
-supported descriptors, schema/route tuples, limits and selected target bindings.
-Unknown versions refuse without a hidden downgrade or carrier substitution.
+Network discovery is closed `transmitter-management/4`; USB selects /5 and advertises the physical carrier. These preserve the /2 network and /3 USB shapes respectively, with only `idle_ms:1800000` and `absolute_ms:28800000` changed. Historical /1, /2 and /3 remain frozen at five minutes idle and fifteen minutes absolute; /1 has one consumer session, while /2 and /3 have three sessions and one pending login. Updated Pi clients validate each supported version exactly and select local deadlines only from authenticated discovery. Older clients explicitly refuse /4 and /5; there is no fallback. A legacy network view's `usb_json_management` exclusion does not claim that current UMP1 firmware lacks USB management. Clients accept only exact supported descriptors, schema/route tuples, limits and selected target bindings. Unknown versions refuse without a hidden downgrade or carrier substitution.
 
 Resource schemas are independent of the `/api/v1/` namespace. Application,
 station, hardware, GPIO drive, amplifier and saved-progress extensions use their

@@ -17,7 +17,10 @@ int main() {
     response = f.api.handle(read, "consumer-radio:test", "127.0.0.1", 0,
                             network::ManagementCarrier::ConsumerStation);
     auto root = wtp::json::parse(response.body);
-    assert(root && root->get("schema")->string() == "transmitter-management/2");
+    assert(root && root->get("schema")->string() == "transmitter-management/4");
+    assert(root->get("limits")->get("idle_ms")->raw == "1800000");
+    assert(root->get("limits")->get("absolute_ms")->raw == "28800000");
+    assert(root->get("limits")->get("login_ms")->raw == "30000");
     assert(root->get("limits")->get("consumer_sessions")->raw == "3");
     assert(root->get("limits")->get("consumer_pending_logins")->raw == "1");
     assert(root->get("profile_generation")->string() == "139");
@@ -33,6 +36,7 @@ int main() {
     const auto caps = f.api.handle(read, "tls-cert:test", "127.0.0.1");
     root = wtp::json::parse(caps.body);
     assert(root->get("management_carriers")->get("path")->string() == "/api/v1/management");
+    assert(root->get("management_carriers")->get("schema")->string() == "transmitter-management/4");
     assert(root->get("application_resources")->get("management_carrier")->string() ==
            "authenticated_https");
     for (auto profile : {network::ManagementProfile::Blank, network::ManagementProfile::Recovery}) {

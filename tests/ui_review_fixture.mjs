@@ -45,6 +45,7 @@ try {
           const command=JSON.parse(Buffer.concat(chunks));
           assert(['reboot','flash_failure','frequency_state','accepted_job','time','activate','forget_engineering_station'].includes(command.op));
           const result=await fixture.command(command);
+          if (command.op === 'time') fixture.now = Number(command.ms);
           response.writeHead(200,{'Content-Type':'application/json'}); response.end(JSON.stringify(result)); return;
         }
         const authority=ap ? '192.168.4.1' : '192.168.1.53';

@@ -117,26 +117,7 @@ is 32,768 bytes, leaving 32,724 bytes for plaintext. Input pages are decrypted
 in place only with exclusive ownership; no application parse occurs until the
 entire tag verifies. Response envelopes and ciphertext use bounded pages.
 
-POST logical `/api/v1/consumer/logout`, body `{}`, closes the volatile session
-after constructing its encrypted acknowledgement. It does not abort or release
-a job. Sessions expire after five idle minutes or fifteen total minutes and
-close on profile generation changes, reboot, admission loss or invalid tags.
-Logout, expiry, invalid tags and sequence exhaustion affect only the addressed
-session; every session has its own keys, context, timers and exact sequence.
-Ordinary configuration journal revisions do not expire other logins.
-No automatic mutation retry occurs. On a lost response the page clears its keys,
-preserves edits, and blocks saves until authentication, authoritative saved-state
-readback and explicit review establish a fresh revision. Status or login alone
-cannot unlock saving. [Consumer-Recovery/1](Consumer-Recovery-v1.md) adds a
-separately versioned, password-authenticated retirement proof usable at full
-ordinary capacity. It lists one-way retirement aliases, never raw traffic IDs,
-and requires explicit target selection. It creates no replacement session and
-replays no application request.
-Deferred restart/network-disable actions execute only after the complete reply
-has been acknowledged on the matching transport transaction. A lost/partial reply or
-session expiry cancels only that transaction's still-pending deferred action.
-A normally acknowledged HTTP connection close leaves the login usable. Already committed settings or
-accepted WTP operations can remain effective after a lost reply.
+POST logical `/api/v1/consumer/logout`, body `{}`, closes the volatile session after constructing its encrypted acknowledgement. It does not abort or release a job. Sessions expire after thirty idle minutes or eight total hours and close on profile generation changes, reboot, admission loss or invalid tags. Logout, expiry, invalid tags and sequence exhaustion affect only the addressed session; every session has its own keys, context, timers and exact sequence. Ordinary configuration journal revisions do not expire other logins. Idle time renews only after an authenticated request; public reads, page visibility and form editing do not renew it. The absolute deadline starts at successful authentication and never renews. Management discovery /4 (network) and /5 (USB) advertise `idle_ms:1800000` and `absolute_ms:28800000`; historical /1, /2 and /3 retain five-minute idle and fifteen-minute absolute limits. Consumer-Radio/1 handshake bytes and cryptographic vectors are unchanged. No automatic mutation retry occurs. On a lost response the page clears its keys, preserves edits, and blocks saves until authentication, authoritative saved-state readback and explicit review establish a fresh revision. Status or login alone cannot unlock saving. [Consumer-Recovery/1](Consumer-Recovery-v1.md) adds a separately versioned, password-authenticated retirement proof usable at full ordinary capacity. It lists one-way retirement aliases, never raw traffic IDs, and requires explicit target selection. It creates no replacement session and replays no application request. Deferred restart/network-disable actions execute only after the complete reply has been acknowledged on the matching transport transaction. A lost/partial reply or session expiry cancels only that transaction's still-pending deferred action. A normally acknowledged HTTP connection close leaves the login usable. Already committed settings or accepted WTP operations can remain effective after a lost reply.
 
 DHCP/link/hostname changes close station sessions and cancel pending deferred
 actions. AP withdrawal closes AP sessions without closing a healthy LAN session.

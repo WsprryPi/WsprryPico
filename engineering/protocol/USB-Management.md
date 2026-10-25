@@ -58,22 +58,7 @@ Every response has exactly:
 
 ## Shared resources and delivery
 
-A resource request has exactly `schema,id,operation,session,target,method,path,
-body,if_match`, with operation `request`. Body is a JSON string or an empty
-string for no body. Method, path and If-Match strings are bounded to 8, 128 and
-256 bytes respectively. Resource bodies retain their smaller independent
-limits; the outer JSON string encoding must also fit the envelope maximum.
-The adapter dispatches typed requests to the shared
-application handlers under the internal `usb-physical` principal. Mutations
-retain target/revision checks, idle/safety admission, validators and journals.
-See [local configuration](../development/usb-local-configuration.md) for
-hostname, Wi-Fi, profile versions and migration. Ordinary `/api/v1/` resources
-retain their independently versioned schemas and semantics.
-USB-selected application/capability views identify `usb_physical`, remove USB
-JSON from the unavailable list and select `transmitter-management/3` discovery.
-The shared base-operation inventory is not an exhaustive list of USB-specific
-resources; the explicit resources and their independent contracts below apply.
-Network projections and their previous carrier schema versions are unchanged.
+A resource request has exactly `schema,id,operation,session,target,method,path, body,if_match`, with operation `request`. Body is a JSON string or an empty string for no body. Method, path and If-Match strings are bounded to 8, 128 and 256 bytes respectively. Resource bodies retain their smaller independent limits; the outer JSON string encoding must also fit the envelope maximum. The adapter dispatches typed requests to the shared application handlers under the internal `usb-physical` principal. Mutations retain target/revision checks, idle/safety admission, validators and journals. See [local configuration](../development/usb-local-configuration.md) for hostname, Wi-Fi, profile versions and migration. Ordinary `/api/v1/` resources retain their independently versioned schemas and semantics. USB-selected application/capability views identify `usb_physical`, remove USB JSON from the unavailable list and select `transmitter-management/5` discovery. Historical /3 retains its five-minute idle/fifteen-minute absolute consumer policy; /5 advertises thirty minutes idle/eight hours absolute with the same USB shape. The shared base-operation inventory is not an exhaustive list of USB-specific resources; the explicit resources and their independent contracts below apply. Network projections and their previous carrier schema versions are unchanged.
 
 Every resource response requires ACK, including errors. ACK has exactly
 `schema,id,operation,session,target`, operation `ack`. The adapter accepts ACK

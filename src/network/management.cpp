@@ -20,10 +20,7 @@ std::string management_contract(const ManagementAvailability& state, ManagementC
         rows += "{\"carrier\":" + wtp::json::quote(names[i]) +
                 ",\"built_in\":true,\"available\":" + (available[i] ? "true}" : "false}");
     }
-    return std::string("{\"schema\":") +
-           wtp::json::quote(selected == ManagementCarrier::UsbPhysical
-                                ? "transmitter-management/3"
-                                : "transmitter-management/2") +
+    return std::string("{\"schema\":") + wtp::json::quote(management_schema(selected)) +
            ",\"target\":" + application::target(device, boot) +
            ",\"profile\":" + wtp::json::quote(profiles[static_cast<unsigned>(state.profile)]) +
            ",\"preclock\":" + (state.preclock ? "true" : "false") + ",\"profile_generation\":" +
@@ -37,8 +34,11 @@ std::string management_contract(const ManagementAvailability& state, ManagementC
            "\"operations\":{\"GET\":[\"capabilities\",\"status\",\"config\",\"schedules\","
            "\"network\",\"application\",\"management\"],\"PUT\":[\"config\",\"schedules\","
            "\"network\"],\"POST\":[\"config/update\"]},\"limits\":{\"http_body\":32768,"
-           "\"consumer_plaintext\":32724,\"config\":1800,\"update\":2048,\"login_ms\":30000,"
-           "\"idle_ms\":300000,\"absolute_ms\":900000,\"consumer_sessions\":3,\"consumer_pending_"
+           "\"consumer_plaintext\":32724,\"config\":1800,\"update\":2048,\"login_ms\":" +
+           std::to_string(ConsumerRadioApi::login_ms) +
+           ",\"idle_ms\":" + std::to_string(ConsumerRadioApi::idle_ms) +
+           ",\"absolute_ms\":" + std::to_string(ConsumerRadioApi::absolute_ms) +
+           ",\"consumer_sessions\":3,\"consumer_pending_"
            "logins\":1}}";
 }
 } // namespace wsprrypico::network

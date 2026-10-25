@@ -474,8 +474,30 @@ int main() {
         result = t.call("PUT", "/api/v1/network", "{\"enabled\":false}", t.fixture.api.revision());
         t.api.finish_request(t.transaction - 1, true);
         assert(!t.fixture.network.enabled);
-        t.now += 300000;
+        t.now += network::ConsumerRadioApi::idle_ms;
         assert(!t.api.active(t.now));
+    }
+    {
+        Test t;
+        t.login();
+        const auto started = t.now;
+        t.now = started + 300000;
+        assert(t.api.active(t.now)); // The former idle limit no longer closes a login.
+        t.now = started + 1800000 - 1;
+        assert(t.api.active(t.now));
+        ++t.now;
+        assert(!t.api.active(t.now));
+        t.login();
+        const auto fresh = t.now;
+        for (std::uint64_t elapsed = 1000000; elapsed < 28800000; elapsed += 1000000) {
+            t.now = fresh + elapsed;
+            assert(t.call("GET", "/api/v1/status").status == 200);
+            t.api.finish_request(t.transaction - 1, true);
+        }
+        t.now = fresh + 28800000 - 1;
+        assert(t.api.active(t.now));
+        ++t.now;
+        assert(!t.api.active(t.now)); // Authenticated traffic never renews absolute time.
     }
     {
         Test t;

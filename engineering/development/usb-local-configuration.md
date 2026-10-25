@@ -123,10 +123,7 @@ stdin/stdout with volatile flash and no network/Pico SDK. It establishes wire
 interoperability, not physical USB, flash endurance, network association,
 restart/re-enumeration or transmitter RF qualification.
 
-Current USB discovery is `transmitter-management/3`, with five carrier rows and
-selected `usb_physical`. The network /2 projection remains unchanged, including
-its legacy closed USB exclusion. Neither that projection nor USB WTP connectivity
-is the authority for USB JSON support; negotiate UMP1 and read its capabilities.
+Current USB discovery is `transmitter-management/5` (the /3 carrier shape with thirty-minute idle/eight-hour absolute consumer limits), with five carrier rows and selected `usb_physical`. The network /2 projection remains unchanged, including its legacy closed USB exclusion. Neither that projection nor USB WTP connectivity is the authority for USB JSON support; negotiate UMP1 and read its capabilities.
 
 The independent [GPIO-drive descriptor](gpio-drive.md) selects config/3,
 update/3 with `transmitter-config-update/2`, application/3, hardware/2 and

@@ -75,7 +75,22 @@ test('client login binds identity, never retries mutation, clears uncertain sess
   assert.equal(mutations,2); assert.equal(starts,1); assert.equal(client.authenticated,false);
   await assert.rejects(client.request('status'),/Log in/); assert.equal(mutations,2);
   await client.login('test-only-password',id);
-  now+=300000; assert.equal(client.authenticated,false);
+  now+=300000; assert.equal(client.authenticated,true);
+  now+=1499999; assert.equal(client.authenticated,true);
+  now++; assert.equal(client.authenticated,false);
+});
+test('browser idle renewal retains an independent eight-hour hard deadline',async()=>{
+  let now=1000;
+  const client=new RadioClient(async(path,options)=>{
+    const sequence=new DataView(options.body.buffer,options.body.byteOffset+20,8).getBigUint64(0);
+    return new Response(response(client.state,sequence,{status:200,etag:null,body:{ok:true}}),{headers:{'Content-Type':'application/octet-stream'}});
+  },()=>now);
+  client.state=vectorState();client.sequence=1n;client.started=client.seen=now;
+  for(let elapsed=1000000;elapsed<28800000;elapsed+=1000000){now=1000+elapsed;await client.request('status');}
+  now=1000+28800000-1;assert.equal(client.authenticated,true);
+  now++;assert.equal(client.authenticated,false);
+  client.state=vectorState();client.started=client.seen=now;
+  now--;assert.equal(client.authenticated,false);
 });
 test('wrong boot acknowledgement, concurrency and active response substitution fail closed',async()=>{
   const client=new RadioClient(); client.state=vectorState(); client.identityContext=id; client.sequence=1n; client.started=client.seen=Date.now();

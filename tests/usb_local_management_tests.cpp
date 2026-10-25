@@ -137,6 +137,8 @@ void blank_usb_workflow() {
     const auto management_json = wtp::json::parse(management.body);
     REQUIRE(management_json && usb_caps_json->get("management_carriers")->get("schema")->string() ==
                                    management_json->get("schema")->string());
+    REQUIRE(management_json->get("limits")->get("idle_ms")->raw == "1800000");
+    REQUIRE(management_json->get("limits")->get("absolute_ms")->raw == "28800000");
     REQUIRE(application::capabilities().find("\"management_carrier\":\"authenticated_https\"") !=
             std::string::npos);
     REQUIRE(application::capabilities().find("usb_json_management") != std::string::npos);
@@ -156,7 +158,7 @@ void blank_usb_workflow() {
     REQUIRE(t.runtime.overlay(*t.f.store.config())->callsign == "AA0NT");
     REQUIRE(t.request("GET", "/api/v1/config/2").body.find("\"password\":null") !=
             std::string::npos);
-    REQUIRE(t.request("GET", "/api/v1/management").body.find("transmitter-management/3") !=
+    REQUIRE(t.request("GET", "/api/v1/management").body.find("transmitter-management/5") !=
             std::string::npos);
     REQUIRE(t.wifi(network1).status == 200);
     const auto first = t.f.api.revision();

@@ -46,25 +46,7 @@ wrong Host/Origin/interface, stale identity/generation, oversized/duplicate JSON
 invalid keys and failed RNG/allocation/crypto. All workspace keys are erased on
 consumption, expiry or context invalidation. No private application reads occur.
 
-A client retiring its own login clears its traffic state before dispatching
-the finish proof. A lost reply retains only the alias and invalidates saving.
-A lost recovery reply is reconciled by another explicit authenticated retirement
-of the same boot-bound target: an absent target returns an authenticated absent
-result. No slot is allocated and nonreused boot-local session IDs prevent a
-delayed proof from retiring a new occupant. Abandoned recovery starts can delay
-another recovery by at most five seconds with healthy transport and no competing
-new starts. Repeated competing traffic can deny service; no availability guarantee
-is made against that traffic. No ordinary
-five-minute expiry or reboot is required. A complete recovery followed by an
-explicit ordinary login requires four POSTs plus discovery/identity reads; the
-existing one-second ordinary login pacing still applies. Browser discovery and
-identity reads each have a five-second timeout; recovery POSTs each have five
-seconds and ordinary login POSTs each have 30 seconds. Native HTTP exchanges each
-have an eight-second absolute deadline and check the proof's five-second
-pre-finish budget. There is no retry loop. A successful finish retires during
-that dispatch within the server proof lifetime; timeout/refusal is reported
-explicitly. These are bounded attempts under a healthy transport, not an
-availability promise under competing traffic.
+A client retiring its own login clears its traffic state before dispatching the finish proof. A lost reply retains only the alias and invalidates saving. A lost recovery reply is reconciled by another explicit authenticated retirement of the same boot-bound target: an absent target returns an authenticated absent result. No slot is allocated and nonreused boot-local session IDs prevent a delayed proof from retiring a new occupant. Abandoned recovery starts can delay another recovery by at most five seconds with healthy transport and no competing new starts. Repeated competing traffic can deny service; no availability guarantee is made against that traffic. No ordinary session expiry or reboot is required. A complete recovery followed by an explicit ordinary login requires four POSTs plus discovery/identity reads; the existing one-second ordinary login pacing still applies. Browser discovery and identity reads each have a five-second timeout; recovery POSTs each have five seconds and ordinary login POSTs each have 30 seconds. Native HTTP exchanges each have an eight-second absolute deadline and check the proof's five-second pre-finish budget. There is no retry loop. A successful finish retires during that dispatch within the server proof lifetime; timeout/refusal is reported explicitly. These are bounded attempts under a healthy transport, not an availability promise under competing traffic.
 
 Retirement cancels only the selected session's still-pending transaction through
 the existing false-delivery callback. Already durable settings and accepted jobs

@@ -37,6 +37,18 @@ To return to the default, select **Use Wi-Fi password as Pico password** in the 
 
 If the save result is unconfirmed, try signing in with the new Pico password, then the previous password if the new one is refused. If neither password works, restart the Pico and try again. Read the password setting after signing in; do not automatically repeat a password save. If the current Pico password is forgotten, see [Recovery and reset](#recovery-and-reset); changing Wi-Fi credentials over USB does not clear a separate Pico password.
 
+### Recover an occupied login
+
+The Pico supports three browser or compatible controller logins at once. Closing or reloading a tab can leave its login occupying a slot until it expires. An active tab's **Log out** button frees its own login immediately. If that tab is unavailable, use login retirement:
+
+1. Open the Pico's control page at the same IP address or hostname used by the affected login.
+2. Open **Recover an occupied login**, then select **Inspect occupied logins**.
+3. Choose the login to retire. The listed codes identify occupied logins, but a shared Pico password cannot tell you which operator owns each one. The page identifies a retained login from this tab when available; review the selection before continuing.
+4. Enter the current Pico password, select **Authenticate and retire selected login**, and confirm the selected login may belong to another operator.
+5. After confirmation, sign in again. If a previous save was unconfirmed, read the saved settings and review them against your draft before making another save.
+
+Retirement ends only the selected login. It does not stop an accepted transmission or undo saved settings. If retirement is unconfirmed, keep the same selection for an explicit check; do not repeat an unconfirmed settings save. Inspection and retirement apply to the address and Wi-Fi interface currently in use.
+
 ### Change Wi-Fi
 
 Wi-Fi credentials let the Pico join your network. The browser uses them as its default Pico password until you [set a separate Pico password](#change-the-pico-password). To update the Pico after changing your router's password, or to move it to another network:

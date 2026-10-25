@@ -70,8 +70,8 @@ class ConsumerRadioApi {
     static constexpr std::size_t session_capacity = 3;
     static constexpr std::size_t pending_capacity = 1;
     static constexpr std::uint64_t login_ms = 30'000;
-    static constexpr std::uint64_t idle_ms = 5 * 60'000;
-    static constexpr std::uint64_t absolute_ms = 15 * 60'000;
+    static constexpr std::uint64_t idle_ms = 30 * 60'000;
+    static constexpr std::uint64_t absolute_ms = 8 * 60 * 60'000;
     ConsumerRadioApi(BrowserApi& api, provisioning::ProfileStore& store,
                      provisioning::RuntimeProfile& runtime, provisioning::RandomSource& random,
                      const std::array<ConsumerRadioCrypto*, session_capacity>& crypto,

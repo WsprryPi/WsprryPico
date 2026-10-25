@@ -27,16 +27,7 @@ station port 31417 and a shared network principal after station IPv4 and accepte
 network time. Build-time off/TLS choices are explicit; no automatic downgrade
 exists. Engineering mutual TLS defaults off; consumer Plain LAN defaults on.
 
-The browser uses lightweight HTTP handlers and static assets backed by the
-shared [JSON API](browser-api.md). Resource schema versions are independent
-of `/api/v1/`; legacy closed views remain independently negotiated. USB selects
-`transmitter-management/3` and `usb_physical`; network discovery retains /2.
-[Management carriers](development/management-carriers.md),
-[configuration updates](development/configuration-updates.md),
-[saved progress](development/saved-progress.md) and
-[USB local configuration](development/usb-local-configuration.md) define exact
-authority, revision, application and delivery semantics. Management authority
-alone grants no transmitter ownership.
+The browser uses lightweight HTTP handlers and static assets backed by the shared [JSON API](browser-api.md). Resource schema versions are independent of `/api/v1/`; legacy closed views remain independently negotiated. USB selects `transmitter-management/5` and `usb_physical`; network discovery uses /4. Historical /1, /2 and /3 retain their original session limits. [Management carriers](development/management-carriers.md), [configuration updates](development/configuration-updates.md), [saved progress](development/saved-progress.md) and [USB local configuration](development/usb-local-configuration.md) define exact authority, revision, application and delivery semantics. Management authority alone grants no transmitter ownership.
 
 Consumer port-80 control is available through the current station IP/hostname and an available AP after Wi-Fi-only setup; a station claim and synchronized UTC are not prerequisites. The Pico password, defaulting to the saved Wi-Fi passphrase, authenticates encrypted,
 volatile [Consumer-Radio/1](protocol/Consumer-Radio-v1.md) sessions. HTTP page

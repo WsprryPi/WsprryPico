@@ -23,15 +23,7 @@ WTP, TLS-WTP and BLE WTP carry jobs without acquiring JSON administration.
 Console line commands, WTP binary frames and UMP1 frames have separate roles.
 Physical USB identity is not cryptographic device authentication.
 
-Network views advertise `transmitter-management/2`; USB selects `/3` with the
-additional physical carrier. The legacy `/1` discovery and legacy network
-projections remain closed. See [API discovery](../browser-api.md#management-carrier-discovery),
-[USB framing/delivery](../protocol/USB-Management.md) and
-[Consumer-Radio/1](../protocol/Consumer-Radio-v1.md). HTTP effects wait for the
-matching complete-response acknowledgement; UMP1 effects wait for the matching
-resource ACK. Lost delivery cancels undelivered deferred effects, not durable
-saves or accepted jobs. Read authoritative saved/active state and review before
-another explicit mutation; never replay an uncertain write automatically.
+Network views advertise `transmitter-management/4`; USB selects `/5` with the additional physical carrier. The legacy `/1` discovery and legacy network projections remain closed. See [API discovery](../browser-api.md#management-carrier-discovery), [USB framing/delivery](../protocol/USB-Management.md) and [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md). HTTP effects wait for the matching complete-response acknowledgement; UMP1 effects wait for the matching resource ACK. Lost delivery cancels undelivered deferred effects, not durable saves or accepted jobs. Read authoritative saved/active state and review before another explicit mutation; never replay an uncertain write automatically.
 
 Source: [carrier projections](../../src/network/management.cpp),
 [TLS/interface admission](../../src/network/pico/server.cpp),

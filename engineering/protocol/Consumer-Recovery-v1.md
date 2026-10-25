@@ -91,12 +91,7 @@ ever dispatched with them.
 
 ## Results, cleanup and retries
 
-A lost finish reply is unconfirmed. The operator can repeat a fresh authenticated
-retirement of the same boot-bound target after any abandoned proof workspace
-expires. The acknowledgement reports an absent target safely. This does not
-allocate a replacement session or advance ordinary traffic sequences. A new
-login remains an explicit operation and keeps ordinary one-second pacing.
-No five-minute ordinary expiry or reboot is needed for capacity recovery.
+A lost finish reply is unconfirmed. The operator can repeat a fresh authenticated retirement of the same boot-bound target after any abandoned proof workspace expires. The acknowledgement reports an absent target safely. This does not allocate a replacement session or advance ordinary traffic sequences. A new login remains an explicit operation and keeps ordinary one-second pacing. No ordinary session expiry or reboot is needed for capacity recovery.
 
 Retirement closes only the selected login's traffic/proof state and invokes
 false delivery for its still-pending transaction. The singleton setup authority
