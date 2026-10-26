@@ -188,7 +188,7 @@ try {
   assert.equal(await cdp.evaluate('document.activeElement.id'),'standalone-frequency-save');
   await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,nativeVirtualKeyCode:13,text:'\r'});
   await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
-  await until(()=>cdp.evaluate(`document.getElementById('standalone-frequency-status').textContent.includes('Saved WSPR dial 14,095,600 Hz for future')`),'saved readback');
+  await until(()=>cdp.evaluate(`!busy && document.getElementById('standalone-frequency-status').textContent.includes('Saved WSPR dial 14,095,600 Hz for future')`),'saved readback');
   assert.equal(await cdp.evaluate(`document.getElementById('config').elements.enabled.checked`),false,'frequency save does not enable a schedule');
   await field('standalone-frequency','bad');
   await click('standalone-frequency-discard');
