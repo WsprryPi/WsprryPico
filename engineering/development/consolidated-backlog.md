@@ -32,6 +32,7 @@ Follow [Recover browser access over USB](../../docs/usb.md) on a native Windows 
 
 ### UI
 
+- [ ] **WsprryPi-style contextual status console with Reset Pico.** Follow the [saved execution prompt](wsprrypi-style-status-console-prompt.md) for mode-aware status, public read-only visibility, accurate schedule/progress/frequency information and a guarded authenticated reset. Include adversarial review and repeated assessment after fixes. Not started; prompt saved only.
 - **LPF/band-selector control**, if economically useful.
 - Collapse all sections by default except **Transmitter status**.
 - Make login and takeover less obtrusive.
