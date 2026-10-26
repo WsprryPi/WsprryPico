@@ -7,8 +7,6 @@ repository and harness cleanup requests.
 
 ## Operator validation
 
-- Run the [factory-new access checklist](factory-new-access-checklist.md) on a Pico 2 W using a Mac or Raspberry Pi. Record Wi-Fi-only browser access, separate-password persistence and connected-client setup-network retention; physical results remain unverified until the manual run completes.
-
 ### TODO: Lee to test USB browser recovery on Windows
 
 Follow [Recover browser access over USB](../../docs/usb.md) on a native Windows computer using desktop Google Chrome and an installed Pico. The browser terminal has returned INFO from a connected Pico on macOS; Windows validation remains open. This test covers the browser Console route, not Windows support for the command-line installer.
@@ -21,13 +19,23 @@ Follow [Recover browser access over USB](../../docs/usb.md) on a native Windows 
 - [ ] Close the browser terminal tab and confirm another serial terminal can open the Console. Capture Windows screenshots of Device Manager identity, Chrome's selected port, terminal settings and the successful INFO reply; keep credentials and private network details out of published images.
 - [ ] Update the USB walkthrough with the observed Windows labels, screenshots and any required corrections. Mark Windows verified only after the real Windows/Pico procedure succeeds.
 
-## Remain in backlog for future
+## Backlog TODO
+
+- **Optional amplifier settling and lead/tail timing.**
+
+### UI
+
+- **LPF/band-selector control**, if economically useful.
+- Collapse all sections by default except **Transmitter status**.
+- Make login and takeover less obtrusive.
+- Add logically grouped menu links using in-page `#anchors`, with `/wifi-host` as the navigation reference. Selecting a link should scroll to its section and expand it.
+- Add a **Back to Status** link to each section that collapses all other sections and returns to **Transmitter status**, leaving it expanded.
+
+## Possible future work
 
 - **Si5351**
   - Optional external-engine enhancement.
   - CLK2 calibration only if that engine is selected.
-- **Optional amplifier settling and lead/tail timing.**
-- **LPF/band-selector control**, if economically useful.
 - **Optional GPS UTC + PPS and improved holdover.**
   - Reuse the original MIT [μChrony engine](../../src/microchrony/README.md):
     bounded source histories, adaptive frequency estimation, source selection
