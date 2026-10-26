@@ -187,3 +187,29 @@ STATUS `job_id` and `owner_id` with a fresh matching boot for job authority;
 do not infer unowned output from missing Console fields. HTTP status exposes
 service `job` and scheduler `standalone` objects separately. Console resource
 counters require their actual launch epoch and observation time for correlation.
+
+## Windows browser Console validation, 2026-10-26
+
+The Windows portion used native desktop Chrome through an RDP session to `ecm-mule`; the AP portion used the spare `wlan0` adapter on `wspr5`, as directed by the operator. This is bounded Console and setup-network evidence for the installed image. It does not qualify the Windows command-line installer, RF output, target timing or a direct Windows Wi-Fi association.
+
+| Item | Observed identity |
+| --- | --- |
+| Windows | Windows 11 Pro, DisplayVersion 26H2, build 26300.9711 |
+| Chrome at the USB test | 155.0.8059.85 |
+| Board | Pico 2 W, USB serial `1545B6EFBF78028C` |
+| Device ID | `c2a3a2a314c948b50a8562a1aeb69669` |
+| Firmware | `0.0.0-devel`, revision `03e0df4d7875` |
+| Matching source | `03e0df4d7875ec505631e563fa2fe4f5b4834ec4` |
+| Boot ID throughout the accepted AP observations | `fc2ff9fa82a2f79fafdac569a0ffbffd` |
+| Engine and system clock reported by INFO | `pio-dma-gp2`, 138000000 Hz |
+| Console / WTP / management | COM6 / COM9 / COM10, interfaces MI_00 / MI_02 / MI_04 |
+
+Device Manager displayed generic **USB Serial Device (COMn)** entries. Its Hardware Ids identified COM6 as MI_00. Chrome's chooser displayed **WsprryPico - WsprryPico Console (COM6)** separately from WTP and management. With DTR on, RTS and flow control off, 115200 baud, Advanced terminal, **send with /n** on and **send with /r** off, the command box and **Send** returned successful uppercase `INFO` and `ACCESS SOFTAP` replies. Scrolling inside the terminal retained the INFO identity fields, network fields and final closing JSON. Closing the terminal tab released COM6 for a subsequent native .NET SerialPort reader. The [operator walkthrough](../../docs/usb.md) contains cropped Windows screenshots of port identity, chooser, signal settings, INFO and the successful setup request.
+
+`ACCESS SOFTAP c2a3a2a314c948b50a8562a1aeb69669` returned `ok:true` and `join_grace_ms:120000`. On wspr5, the temporary AP connection used `wlan0` with automatic default routes and DNS disabled; the existing `wlan1` uplink remained in use. Two HTTP reads of `http://192.168.4.1/`, separated by 181396 ms of monotonic time, returned HTTP 200 and the same 291917-byte document with SHA-256 `47ab9bbc75cb7cccbbced43e91cbb25a1a184c0ded505e420bdd78dfbfcd1dbf`. Both presentation-API replies matched the device and boot IDs above, and NetworkManager reported the AP client connected. This establishes page delivery beyond the initial two-minute join window with a connected client.
+
+The controlled final client disconnect occurred at approximately 21:45:12 UTC. USB INFO then reported the decreasing inactivity countdown while the AP remained ready. At 21:55:09.132 UTC it reported 3320 ms remaining, AP service ready and the AP interface up. At 21:55:14.653 UTC it reported zero remaining, expiry true, adapter running false, service ready false and the AP interface down with address `0.0.0.0`. These samples bracket the expected ten-minute expiry by a 5.522-second observation interval. All 121 samples retained the same boot ID and inactive output; the reader closed the Console after the final sample. This verifies the firmware-reported AP shutdown after real client disconnection; no independent radio capture was made.
+
+After the Windows reboot, native Chrome opened the Pico's reported station address over ecm-mule's existing LAN connection and displayed the Radio access login form. No login, saved-profile change or transmission was performed. The accepted AP retention and expiry observations used wspr5; the earlier Windows Wi-Fi automation did not establish a reliable direct-association result. An earlier temporary Windows DNS override was restored to DHCP, and the operator rebooted Windows after the failed network automation. Following the operator's restriction, no further Windows Wi-Fi, DNS, route, firewall or proxy changes were made. The temporary wspr5 AP profile and disconnect watchdogs were removed or collected; its original adapter and route state was verified.
+
+No firmware was loaded, settings erased or RF job submitted. All sampled USB status objects reported inactive output, disabled scheduling, empty state and no owner. Standalone Console `STATUS` returned `profile_runtime_unavailable` in this `consumer_preclock` setup; this run therefore does not verify the walkthrough's separate ABORT/STATUS procedure or every Console command.

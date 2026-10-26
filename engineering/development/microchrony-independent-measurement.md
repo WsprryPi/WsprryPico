@@ -30,4 +30,4 @@ observation path. Future GPS UTC/PPS work must verify UTC-second pairing,
 latency, common-clock binding, reference errors, source disagreement and
 loss/recovery. Any RF correction additionally needs independent conducted
 carrier qualification. See [UTC discipline](clock-discipline.md) and the
-[selected future work](consolidated-backlog.md#remain-in-backlog-for-future).
+[selected future work](consolidated-backlog.md#possible-future-work).

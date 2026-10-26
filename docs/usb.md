@@ -36,9 +36,24 @@ If the Pico is already controlled by WsprryPi, use [its Fleet settings controls]
    Serial signal settings used for the connected Pico. The monitor button beside Home opens the Advanced terminal.
    ```
 
+   ```{figure} _static/images/usb-windows-settings.png
+   :alt: SerialTerminal.com on Windows with DTR checked and RTS, dtrDsr and rtsCts unchecked.
+   :width: 650px
+
+   The same signal settings in Windows Chrome: DTR is the checked box.
+   ```
+
 3. Set **Baud** to **115200**. Check **send with /n** and uncheck **send with /r**; those are the site's labels for newline and carriage return. Use the command box beside **Send**, rather than typing into the lower terminal area.
-4. Identify the Console port before clicking **Connect**. On **macOS or Linux**, use the discovery steps in the next section and copy the port under **"0"**. On **Windows**, open **Device Manager → Ports (COM & LPT)**, open the Pico port's **Properties → Details → Hardware Ids**, and find the entry containing **MI_00**: that is the Console. **MI_02** is WTP and **MI_04** is management. Record the Console's **COM** number. If several Picos are connected, also verify which USB device the port belongs to. Do not choose an arbitrary COM port if you cannot identify it.
-5. Click **Connect**, select that exact port in Chrome's chooser, then click the chooser's **Connect**. Chrome may label all three connections simply **WsprryPico**; match the port path or COM number you identified. The example below uses `cu.usbmodem101`, but your port will differ.
+4. Identify the Console port before clicking **Connect**. On **macOS or Linux**, use the discovery steps in the next section and copy the port under **"0"**. On **Windows**, open **Device Manager → Ports (COM & LPT)**. The Pico's ports can appear as **USB Serial Device (COMn)**. Open each candidate's **Properties → Details → Hardware Ids**, and find the entry containing **MI_00**: that is the Console. **MI_02** is WTP and **MI_04** is management. Record the Console's **COM** number. If several Picos are connected, also verify which USB device the port belongs to. Do not choose an arbitrary COM port if you cannot identify it.
+
+   ```{figure} _static/images/usb-windows-console.png
+   :alt: Windows Device Manager properties for USB Serial Device COM6, with Hardware Ids showing MI_00 for the Console interface.
+   :width: 407px
+
+   Windows identifies this Console as COM6 and MI_00. Your COM number can differ.
+   ```
+
+5. Click **Connect**, select that exact port in Chrome's chooser, then click the chooser's **Connect**. Windows Chrome can show a role name such as **WsprryPico - WsprryPico Console (COM6)**. Other systems may label all three connections simply **WsprryPico**. In either case, match the port path or COM number you identified. The Mac example uses `cu.usbmodem101`; port names and numbers vary.
 
    ```{figure} _static/images/usb-browser-port.jpg
    :alt: Chrome's serial-port chooser with WsprryPico cu.usbmodem101 selected, alongside two other Pico ports.
@@ -46,7 +61,14 @@ If the Pico is already controlled by WsprryPi, use [its Fleet settings controls]
    The Console port selected after checking USB interface identity on this Mac. Windows shows COM port names.
    ```
 
-6. Type `INFO` in the command box and click **Send**. Wait for the JSON reply. Scroll **inside the terminal output** back to its start to find `"ok":true`, `device_id`, `revision` and `firmware`. Use the [diagnostic field guide](#read-the-address-and-web-service-status) below. Before sending another command, wait for the current reply to finish.
+   ```{figure} _static/images/usb-windows-port.png
+   :alt: Windows Chrome serial-port chooser with WsprryPico Console COM6 selected, distinct from Management COM10 and WTP COM9.
+   :width: 450px
+
+   The Console COM6 entry selected in Windows Chrome after checking MI_00 in Device Manager.
+   ```
+
+6. Type uppercase `INFO` in the command box and click **Send**. Console commands are case-sensitive. Wait for the JSON reply. Scroll **inside the terminal output** back to its start to find `"ok":true`, `device_id`, `revision` and `firmware`. Use the [diagnostic field guide](#read-the-address-and-web-service-status) below. Before sending another command, wait for the current reply to finish.
 
    ```{figure} _static/images/usb-browser-info.jpg
    :alt: Advanced browser terminal showing an INFO command and the beginning of a real Pico JSON diagnostic reply, with ok true, device_id, revision and firmware fields.
@@ -54,7 +76,13 @@ If the Pico is already controlled by WsprryPi, use [its Fleet settings controls]
    A connected Pico answering INFO in Chrome on macOS. Settings and firmware values will differ on your Pico.
    ```
 
-Enter subsequent Console commands in the same box and click **Send**. When finished, close the terminal tab to release the port. A failed connection or no reply needs a check of the selected Console port, **DTR** (the serial connection's ready signal), newline setting and whether another program has the port open.
+   ```{figure} _static/images/usb-windows-info.png
+   :alt: Windows Chrome Advanced terminal showing uppercase INFO and a real successful Pico reply with device_id, revision and firmware.
+
+   The start of an INFO reply in Windows Chrome. Scroll inside the terminal to read the rest of the reply, then return to these identity fields.
+   ```
+
+Enter subsequent Console commands in the same box and click **Send**. When finished, close the terminal tab to release the port. A failed connection, refused command or no reply needs a check of the selected Console port, uppercase command spelling, **DTR** (the serial connection's ready signal), newline setting and whether another program has the port open. If the terminal website itself will not load, resolve the computer's Internet or DNS problem before continuing.
 
 ## Find and open the Console on macOS or Linux
 
@@ -101,7 +129,7 @@ The dotted field names above describe fields inside the `network` part of the re
 
 ## Stop output from the Console
 
-Open the identified Console as described above. Send `ABORT` with the same LF/newline ending used for `INFO`. This local USB command stops the current job even when another controller owns it, and suspends the Pico's automatic schedule for this boot. Wait for the reply, then send `STATUS` and check for `"ok":true`, `"output_active":false` and `"suspended":true`.
+Open the identified Console as described above. Send `ABORT` with the same LF/newline ending used for `INFO`. This local USB command stops the current job even when another controller owns it, and suspends the Pico's automatic schedule for this boot. Wait for the reply, then send `STATUS` and check for `"ok":true`, `"output_active":false` and `"suspended":true`. If `STATUS` returns `profile_runtime_unavailable`, retain that error; the command has not confirmed the stop result.
 
 Saved schedule enablement is retained, so an enabled schedule can run again after a restart. To keep automatic transmission disabled across restarts, disable the schedule in the browser and save and apply that change. If the stop result is missing or output remains unknown, keep the RF path connected and follow [Status, stop and connection loss](operate.md#status-stop-and-connection-loss).
 
@@ -116,6 +144,13 @@ Saved schedule enablement is retained, so an enabled schedule can run again afte
    ```
 
 2. Click **Send** in the browser terminal, press **Ctrl+J** in `screen`, or use LF/newline in another serial terminal. A successful request returns `"ok":true` and `"join_grace_ms":120000`, giving you **two minutes to join** the setup network. Once your phone or computer connects, setup Wi-Fi stays available for as long as a device remains connected. After the last device disconnects, it stays available for another **ten minutes**. A successful request does not prove the network is already active; activation can be deferred while output is busy or uncertain.
+
+   ```{figure} _static/images/usb-windows-softap.png
+   :alt: Windows Chrome showing ACCESS SOFTAP with the Pico's full device ID and a successful reply containing join_grace_ms 120000.
+
+   A successful setup Wi-Fi request in Windows Chrome. Use your own Pico's full device_id; the long reply can wrap across terminal lines.
+   ```
+
 3. Join the setup network as described below. If the reply says `wrong_device`, recheck the full `device_id`. If it says `busy`, an earlier join window may still be active; try joining it. If it says `access_unavailable`, retain the error and firmware identity for support. Do not replace a refusal with an erase or a guessed configuration command.
 
 To close `screen`, press **Ctrl+A**, then **backslash (\\)**, then **y**. Close another serial terminal using its disconnect control. Closing the Console does not stop an accepted job or disable saved schedules.
