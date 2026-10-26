@@ -26,7 +26,7 @@ Native Windows Chrome Console identity, settings, complete INFO display, success
 
 ### UI
 
-6. [ ] ⏳ **WsprryPi-style contextual status console with Reset Pico.** Follow the [saved execution prompt](wsprrypi-style-status-console-prompt.md), including its full standing execution authority, for mode-aware status, public read-only visibility, accurate schedule/progress/frequency information and a guarded authenticated reset. Include adversarial review and repeated assessment after fixes. In progress.
+6. [x] ✅ **WsprryPi-style contextual status console with Reset Pico.** Mode-aware accepted-job and future-schedule context, public read-only status, nominal frequencies, coarse progress, manual correction, clocks and guarded authenticated reset are available. See the maintained [status-console contract](status-console.md). Character-level progression remains unimplemented.
 7. Collapse all sections by default except **Transmitter status**.
 8. Make login and takeover less obtrusive.
 9. Add logically grouped menu links using in-page `#anchors`, with `/wifi-host` as the navigation reference. Selecting a link should scroll to its section and expand it.

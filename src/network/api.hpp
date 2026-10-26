@@ -13,6 +13,9 @@ class NetworkControl {
   public:
     virtual ~NetworkControl() = default;
     virtual std::string status() const = 0;
+    virtual std::string operations_status() const {
+        return status();
+    }
     virtual bool set_enabled(bool enabled) = 0;
     virtual bool request_enabled(bool enabled) {
         return set_enabled(enabled);
@@ -74,11 +77,16 @@ class BrowserApi {
     bool access_change_ready() const {
         return scheduler_.idle() && !mutation_pending();
     }
+    bool restart_safe() const {
+        return scheduler_.idle() && service_.activity().state != wtp::State::Loaded &&
+               store_.healthy() && !scheduler_.message_pause_pending() &&
+               !scheduler_.message_recovery_required();
+    }
     void finish_request(std::uint64_t transaction = 0, bool apply = true) {
         if (pending_transaction_ && *pending_transaction_ == transaction) {
             const bool allowed = apply && scheduler_.idle();
             if (pending_restart_) {
-                if (allowed && restart_)
+                if (allowed && restart_safe() && restart_)
                     (void)restart_(restart_context_);
             } else
                 network_.finish_request(allowed);

@@ -140,6 +140,13 @@ inline MorseResult compile_message(const MorseMessage& input, std::size_t event_
     job.mode = input.mode;
     job.allow_frequency_adjustment = input.allow_frequency_adjustment;
     job.total_duration_ns = result.calculated_duration_ns;
+    job.message = wtp::MessagePresentation{input.text,
+                                           input.mark_frequency_nhz,
+                                           input.space_frequency_nhz,
+                                           input.dot_ns,
+                                           input.mode == "dfcw" ? input.dot_ns : input.dash_ns,
+                                           input.repeat_gap_ns,
+                                           input.repeat_count};
     if (!job.events.reserve(result.calculated_events))
         return fail("resource_exhausted");
     bool stored = true;

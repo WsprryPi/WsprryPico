@@ -3,10 +3,11 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const scripts = process.env.WSPRRY_PICO_BROWSER_SHIPPED ? ['device-presentation.min.js','config-validation.min.js','app.min.js'] : ['device-presentation.js','saved-progress.js','config-validation.js','utc-datetime.js','message-schedule.js','app.js'];
+const scripts = process.env.WSPRRY_PICO_BROWSER_SHIPPED ? ['device-presentation.min.js','config-validation.min.js','app.min.js'] : ['operations.js','device-presentation.js','saved-progress.js','config-validation.js','utc-datetime.js','message-schedule.js','app.js'];
 const source = scripts.map(name=>fs.readFileSync(__dirname + '/../src/network/web/'+name,'utf8')).join('\n');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false) {
     const ids = ['device-name','device-name-state','device-id','device-boot','device-observation','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
+    ids.push('console-state','console-explanation','console-announcement','console-mode','console-frequency','console-message','console-progress','console-next','console-correction','console-local','console-utc','console-observed','console-reset','console-actions');
     ids.push('pico-password-form','pico-password-settings','pico-password-default','pico-password-status','pico-password-help','pico-password-error','pico-new-password','pico-confirm-password','draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
     ids.push('message-frequency-label','message-frequency-help','message-shift-help','message-result');
     ids.push('schedule-save-help','standalone-status');
@@ -69,16 +70,17 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     for(const input of Object.values(elements.config.elements)) input.reportValidity=()=>true;
     for(const [id,names] of [['engineering-station-form',['callsign','locator','power_dbm']],['engineering-network-form',['ssid','password','ntp_ipv4']],['config',['schedules','expiry']]])
       elements[id].querySelectorAll=()=>names.map(name=>elements.config.elements[name]);
-    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id],createElement:makeNode,querySelectorAll:selector=>['.field-result','[aria-invalid]'].includes(selector)?[]:[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>f.confirm,
+    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id],createElement:makeNode,querySelectorAll:selector=>['.field-result','[aria-invalid]'].includes(selector)?[]:[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>{if(f.confirmAdvance)f.now+=f.confirmAdvance;return f.confirm;},
         fetch:async (path, options) => {
             calls.push({path,options});
+            if(f.expireResetRead&&path.endsWith('config')&&options.method==='GET'){f.expireResetRead=false;f.now+=16000;vm.runInContext('consoleTick()',context);}
             if (f.offline) throw new Error('offline');
             let data, status = 200;
             if (path === '/local/v1/identity') { status = f.localMode ? 200 : 404; data = f.localMode ? {device_id:'1'.repeat(32),surface:'normal'} : {error:{code:'not_found'}}; }
             else if (path === '/local/v1/status') data = {wtp_session:f.mappedSession};
             else if (path.endsWith('hostname')) {
                 if (options.method === 'PUT') { f.savedHostname=JSON.parse(options.body).hostname; f.hostnameGeneration=(f.hostnameGeneration||1)+1; }
-                data = {schema:'transmitter-hostname/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},
+                data = {schema:'transmitter-hostname/1',target:{scope:'member',device_id:f.hostnameDevice||'1'.repeat(32),boot_id:state.job.boot_id},
                     saved:f.savedHostname||state.network.configured_hostname,active:state.network.configured_hostname,default:'default.local',writable:true,pending_restart:!!f.savedHostname&&f.savedHostname!==state.network.configured_hostname,reason:'',generation:String(f.hostnameGeneration||1),storage_healthy:true};
             }
             else if (path.endsWith('message-schedule')||path.endsWith('message-schedule/pause')) {
@@ -92,12 +94,13 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             else if (path.endsWith('pins')) data = {choices:{eligible_gps:[...Array(23).keys(),26,27,28],i2c_pairs:[{controller:0,sda_gp:4,scl_gp:5}]}};
             else if (path.endsWith('application/2')) { if(f.appV2) data=f.appV2; else {status=404; data={error:{code:'not_found'}};} }
             else if (path.endsWith('application')) data = {target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},hardware:f.appHardware || {saved:config.pins || null,active:null,pending_restart:true,application_error:null}};
-            else if (path.endsWith('capabilities')) data = {...(f.scheduleSupport?{message_schedule:{schema:'transmitter-message-schedule/1',path:'/api/v1/message-schedule',pause:'/api/v1/message-schedule/pause',min_period_s:60,max_period_s:86400,preparation_lead_ns:'2000000000',max_storage_bytes:1984}}:{}),configuration_updates:{schema:'transmitter-config-update/1',path:'/api/v1/config/update',method:'POST',modes:['merge','replace']},features:{restart:true},active_job_connections:activeConnections,message_jobs:{max_characters:32},wtp:{maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
+            else if (path.endsWith('capabilities')) data = {...(f.operations?{operations_status:{schema:'transmitter-operations/1',path:'/api/v1/operations'}}:{}),...(f.scheduleSupport?{message_schedule:{schema:'transmitter-message-schedule/1',path:'/api/v1/message-schedule',pause:'/api/v1/message-schedule/pause',min_period_s:60,max_period_s:86400,preparation_lead_ns:'2000000000',max_storage_bytes:1984}}:{}),configuration_updates:{schema:'transmitter-config-update/1',path:'/api/v1/config/update',method:'POST',modes:['merge','replace']},features:{restart:true},active_job_connections:activeConnections,message_jobs:{max_characters:32},wtp:{maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
             else if (path.endsWith('restart')) {
                 if (f.restartMode === 'lost') throw new Error('lost restart response');
-                if (f.restartMode === 'success') state.job.boot_id = 'b'.repeat(32);
+                if (f.restartMode === 'success') { state.job.boot_id = 'b'.repeat(32); if(f.operations) f.operations.target.boot_id=f.operations.job.boot_id=f.operations.standalone.boot_id=state.job.boot_id; }
                 status = 202; data = {restart_requested:true};
             } else if (path.endsWith('consumer/password')) data = {schema:'pico-password/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:'a'.repeat(32)},wifi_default:true,saved:true};
+            else if(path.endsWith('operations')) { if(f.delayObservation) await f.delayObservation; data=structuredClone(f.operations); }
             else if (path.endsWith('status')) data = structuredClone(state);
             else if (path.endsWith('config/update')) {
                 const patch=JSON.parse(options.body).config;
@@ -272,7 +275,7 @@ if (require.main === module) (async () => {
     compact.state.standalone.reboot_required=true;await compact.elements.refresh.onclick();
     assert.match(compact.elements['message-availability'].textContent,/require a restart/);
     compact.state.standalone.reboot_required=false;compact.state.job.output_active=null;
-    await compact.elements.refresh.onclick();assert.match(compact.elements['message-availability'].textContent,/does not permit/);
+    await compact.elements.refresh.onclick();assert.match(compact.elements['message-availability'].textContent,/RF output is unknown/);assert.equal(compact.elements.restart.disabled,true);
     const naming=await fixture();
     naming.elements['hostname-input'].value='bad name';await naming.elements['hostname-form'].onsubmit(submit);
     assert.equal(naming.elements['hostname-input'].getAttribute('aria-invalid'),'true');

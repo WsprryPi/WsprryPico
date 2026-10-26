@@ -2,6 +2,7 @@
 
 #include "runtime/activity_trace.hpp"
 #include "time/mapping.hpp"
+#include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 
 #include <algorithm>
@@ -164,8 +165,9 @@ Response JobService::handle_owned(Request& request, bool retain_response) {
     }
     // Check before replay as well as dispatch. An earlier successful ARM must
     // never be acknowledged as a live permission after a physical stop.
-    if ((output_inhibited_ || maintenance()) && (request.operation == "CLAIM" || request.operation == "RENEW" ||
-                              request.operation == "LOAD" || request.operation == "ARM"))
+    if ((output_inhibited_ || maintenance()) &&
+        (request.operation == "CLAIM" || request.operation == "RENEW" ||
+         request.operation == "LOAD" || request.operation == "ARM"))
         return reject(ErrorCode::Busy);
 
     auto session = std::find_if(sessions_.begin(), sessions_.end(), [&](const Session& candidate) {
@@ -424,6 +426,20 @@ Response JobService::dispatch(Request& request) {
                 adjustment.realized_frequency_nhz == 0 || duplicate) {
                 return reject(ErrorCode::DeviceFault);
             }
+        }
+        observed_event_count_ = accepted.events.size();
+        observed_frequency_count_ = 0;
+        observed_frequencies_truncated_ = false;
+        for (const auto& event : accepted.events) {
+            if (!event.rf_on || !event.frequency_nhz)
+                continue;
+            const auto end = observed_frequencies_.begin() + observed_frequency_count_;
+            if (std::find(observed_frequencies_.begin(), end, *event.frequency_nhz) != end)
+                continue;
+            if (observed_frequency_count_ < observed_frequencies_.size())
+                observed_frequencies_[observed_frequency_count_++] = *event.frequency_nhz;
+            else
+                observed_frequencies_truncated_ = true;
         }
         job_ = std::move(accepted);
         job_digest_ = accepted_digest;
@@ -751,7 +767,7 @@ ServiceActivity JobService::activity() const {
     return result;
 }
 
-ServiceStatus JobService::status() const {
+ServiceStatus JobService::status(bool history) const {
     const auto current = activity();
     ServiceStatus result{boot_id_,     current.state, current.output_active,
                          std::nullopt, std::nullopt,  {}};
@@ -761,7 +777,8 @@ ServiceStatus JobService::status() const {
     if (job_) {
         result.job_id = job_->job_id;
     }
-    result.terminal_records.assign(terminal_records_.begin(), terminal_records_.end());
+    if (history)
+        result.terminal_records.assign(terminal_records_.begin(), terminal_records_.end());
     return result;
 }
 
@@ -1000,6 +1017,35 @@ void JobService::release_execution_input() {
         // storage is no longer consulted by this execution path.
         job_->events.clear();
     }
+}
+
+std::string JobService::presentation_json() const {
+    if (!job_)
+        return "null";
+    const auto n = [](std::uint64_t value) { return json::quote(std::to_string(value)); };
+    std::string frequencies = "[";
+    for (std::size_t i = 0; i < observed_frequency_count_; ++i) {
+        if (i)
+            frequencies += ',';
+        frequencies += n(observed_frequencies_[i]);
+    }
+    frequencies += ']';
+    std::string message = "null";
+    if (job_->message) {
+        const auto& m = *job_->message;
+        message = "{\"text\":" + json::quote(m.text) + ",\"frequency_nhz\":" + n(m.frequency_nhz) +
+                  ",\"space_frequency_nhz\":" + n(m.space_frequency_nhz) +
+                  ",\"dot_ns\":" + n(m.dot_ns) + ",\"dash_ns\":" + n(m.dash_ns) +
+                  ",\"repeat_gap_ns\":" + n(m.repeat_gap_ns) +
+                  ",\"repeat_count\":" + std::to_string(m.repeat_count) + "}";
+    }
+    return "{\"mode\":" + json::quote(job_->mode) +
+           ",\"duration_ns\":" + n(job_->total_duration_ns) +
+           ",\"start_utc_ns\":" + (arm_ ? n(arm_->start_utc_ns) : "null") +
+           ",\"event_count\":" + std::to_string(observed_event_count_) +
+           ",\"frequencies_nhz\":" + frequencies +
+           ",\"frequencies_truncated\":" + (observed_frequencies_truncated_ ? "true" : "false") +
+           ",\"message\":" + message + "}";
 }
 
 void JobService::clear_job() {

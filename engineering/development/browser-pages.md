@@ -15,7 +15,7 @@ authority. Existing identity/presentation and cryptographic schemas stay frozen.
 | Area / shared region | Fields, observations and actions | Save authority |
 | --- | --- | --- |
 | Shared access and recovery | Login/logout, password visibility, occupied login inspection/explicit retirement, notices, reload/read/review, saved configuration comparison, pending setup receipt/check/continuation | Existing session and readback adapters; no navigation login |
-| Shared transmitter status | Job, output, clock, owner, engine, Wi-Fi, hostname/discovery summary, Refresh, Abort/Release and recovery guidance | Read-only observations; explicit existing job controls |
+| Shared transmitter status | [Contextual job/schedule console](status-console.md), mode/frequency/progress/correction, clocks, shared Reset Pico, detailed output/owner/connection observations and existing Abort/Release | Read-only observations; explicit existing job controls |
 | Station/Transmission | Callsign, four/six-character locator, WSPR power and saved/draft plans | One visible profile-appropriate editor: consumer transactional setup or engineering configuration |
 | Station/Transmission | Schedule enable, period/phase pairs, expiry, RF/switch/indicator GPIO and polarity, amplifier enable and unavailable LPF/I²C help | Existing configuration journal, separate saved/active pin semantics |
 | Station/Transmission | Message, mode, frequency/shift, dot/repeats/gaps, timing, start; JSON job file/start, preview/result/progress | Explicit existing Load/Arm; one JobService |

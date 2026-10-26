@@ -12,7 +12,7 @@ if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; No
 const output=path.resolve(process.argv[3] || 'build/hostname-browser-integration');
 await mkdir(output,{recursive:true});
 const profile=await mkdtemp(path.join(os.tmpdir(),'p1510-chrome-'));
-let f=new Fixture(process.argv[2]);await f.time(1000);
+let f=new Fixture(process.argv[2]);await f.time(1000);await f.command({op:'reboot'});await f.time(1000);
 let old=false, dropNext=false, blockPresentation=true, failRadioRequests=false, chrome, cdp, cdpB;
 let captures=0;
 const fB=new Fixture(process.argv[2],['2'.repeat(32)]);await fB.time(1000);
@@ -63,12 +63,12 @@ class Cdp {
 async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(Date.now()<end){try{const r=await fn();if(r)return r;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+label+(last?' '+last.message:''));}
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
-async function capture(name){
+async function capture(name,target){
     if(process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1')return;
     for(const theme of ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
         await cdp.send('Emulation.setDeviceMetricsOverride',{...view,name:undefined,deviceScaleFactor:1,mobile:view.name==='mobile'});
         await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
-        await cdp.evaluate('scrollTo(0,0)');
+        await cdp.evaluate(target?`document.getElementById(${JSON.stringify(target)}).scrollIntoView({block:'start'})`:'scrollTo(0,0)');
         assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,'horizontal overflow');
         const image=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
         ++captures;await writeFile(path.join(output,`${name}-${view.name}-${theme}.png`),Buffer.from(image.data,'base64'));
@@ -125,6 +125,47 @@ try {
     await login();
     await identity('wsprrypico-0a60df.local');await capture('authenticated-wifi-diagnostics');
     await click('station-link');await capture('authenticated-station-diagnostics');
+    // Shipped console observes genuine accepted jobs through encrypted HTTP.
+    assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Schedules disabled');
+    const other=f.client();await f.time(f.now+1000);await f.login(other);let operationSequence=0;
+    const logicalOwner='8'.repeat(32);
+    async function radioJob(operation,body={}) {
+        const response=await other.request('jobs','POST',{session_id:logicalOwner,request_id:(++operationSequence).toString(16).padStart(32,'0'),operation,body});
+        assert.equal(response.status,200,operation);return response.json();
+    }
+    await radioJob('HELLO',{versions:['WTP/1'],client_name:'console fixture',client_version:'1'});
+    await field('message-text','PRESERVE LOCAL DRAFT');
+    for(const mode of ['qrss','fskcw','dfcw','tone']) {
+        await radioJob('CLAIM',{owner_id:logicalOwner,lease_ms:60000});
+        const jobId=(100+operationSequence).toString(16).padStart(32,'0');
+        if(mode==='tone') await radioJob('LOAD',{job_id:jobId,profile:'rf-events/1',mode,total_duration_ns:'10000000000',allow_frequency_adjustment:false,events:[{offset_ns:'0',duration_ns:'10000000000',rf_on:true,frequency_nhz:'135500000000000'}]});
+        else await radioJob('LOAD_MESSAGE',{job_id:jobId,mode,message:'TE',frequency_nhz:mode==='dfcw'?'135505000000000':'135500000000000',space_frequency_nhz:mode==='qrss'?'0':mode==='dfcw'?'135500000000000':'135495000000000',timing:{dot_ns:'3000000000',dash_ns:'9000000000',intra_gap_ns:'1000000000',character_gap_ns:'3000000000',word_gap_ns:'7000000000'},repeat_count:1,repeat_gap_ns:'0',allow_frequency_adjustment:true});
+        const before=await (await other.request('operations')).json();
+        const start=(BigInt(before.standalone.utc_now_ns)+2000000000n).toString();
+        await radioJob('ARM',{job_id:jobId,start_utc_ns:start,max_start_uncertainty_ns:'1000'});
+        await click('refresh');await until(()=>cdp.evaluate('!busy'),'armed operations');
+        assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Job armed');
+        assert.equal(await cdp.evaluate(`document.getElementById('console-reset').disabled`),true);
+        await f.command({op:'schedule_tick',delta_ns:'2000000000'});
+        await click('refresh');await until(()=>cdp.evaluate('!busy'),'running operations');
+        assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Job running');
+        assert.match(await cdp.evaluate(`document.getElementById('console-frequency').textContent`),mode==='qrss'?/Carrier/:mode==='fskcw'?/Space.*\nMark/:mode==='dfcw'?/Dot 135505 Hz\nDash 135500 Hz/:/Nominal RF/);
+        if(mode==='dfcw') await capture('operations-running-dfcw','operations-console');
+        assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'PRESERVE LOCAL DRAFT');
+        await radioJob('ABORT',{job_id:jobId});await radioJob('RELEASE');
+    }
+    await other.logout();await click('refresh');await until(()=>cdp.evaluate('!busy'),'operations released');
+    await capture('operations-idle','operations-console');
+    await cdp.evaluate(`document.getElementById('message-text').focus()`);
+    const picoUtc=await cdp.evaluate(`document.getElementById('console-utc').textContent`);
+    for(const timezoneId of ['Asia/Tokyo','America/New_York','UTC']) {
+        await cdp.send('Emulation.setTimezoneOverride',{timezoneId});await cdp.evaluate('consoleTick()');
+        assert.equal(await cdp.evaluate('Intl.DateTimeFormat().resolvedOptions().timeZone'),timezoneId);
+        assert.equal(await cdp.evaluate(`document.getElementById('console-utc').textContent`),picoUtc,'local timezone cannot change Pico UTC');
+        assert.equal(await cdp.evaluate(`document.activeElement.id`),'message-text','clock ticks retain focus');
+    }
+    await cdp.send('Emulation.setTimezoneOverride',{timezoneId:'America/Chicago'});
+
     await click('wifi-host-link');
     assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
     await field('hostname-input','K.local');
@@ -225,7 +266,8 @@ try {
     assert.equal(await cdp.evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'long identity at 200% zoom');
     if(process.env.HOSTNAME_BROWSER_NO_CAPTURE!=='1') {++captures;const zoom=await cdp.send('Page.captureScreenshot',{format:'png'});await writeFile(path.join(output,'long-name-zoom-200.png'),Buffer.from(zoom.data,'base64'));}
     await cdp.evaluate(`document.body.style.zoom=''`);
-    await f.time(f.now+300001);await click('refresh');
+    const idleLimit=await cdp.evaluate('(async()=> (await api("management")).data.limits.idle_ms)()');
+    await f.time(f.now+idleLimit+1);await click('refresh');
     await until(()=>cdp.evaluate('!busy && !localAuthenticated && !radio.authenticated'),'session expiry');
     assert.match(await cdp.evaluate(`document.getElementById('local-status').textContent`),/Session ended/);
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Last confirmed/);

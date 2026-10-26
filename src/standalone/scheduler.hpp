@@ -12,6 +12,7 @@ class Scheduler {
     std::uint64_t message_lead_ns() const;
     std::optional<std::uint64_t> next_message_start() const;
     std::string message_status() const;
+    std::optional<std::uint64_t> next_wspr_start() const;
     bool pause_message();
     bool message_pause_pending() const {
         return message_pause_pending_;
@@ -68,7 +69,7 @@ class Scheduler {
         return hardware_application_failed_;
     }
     std::string command(std::string_view line);
-    std::string status() const;
+    std::string status(const wtp::ServiceStatus* observation = nullptr) const;
 
   private:
     bool poll_message();

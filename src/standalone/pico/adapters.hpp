@@ -67,6 +67,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     bool request_enabled(bool enabled) override;
     void finish_request(bool idle) override;
     std::string status() const override;
+    std::string operations_status() const override;
     std::string ntp_history_page(std::string_view request,
                                  time::NtpDiagnosticBinding binding) const;
     std::string ntp_packet_page(std::string_view cursor, time::NtpDiagnosticBinding binding) const;

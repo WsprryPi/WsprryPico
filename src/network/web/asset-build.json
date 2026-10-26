@@ -2,10 +2,11 @@
   "schema": "operator-assets/1",
   "tool": "esbuild/0.28.2",
   "target": "es2020",
-  "recipe_sha256": "771e031c75d883407ac23b51aa9205faff8bf6121c9460e1e77d818f58402a4e",
+  "recipe_sha256": "fc78f15ae6b2c48d60a934aae12567b046e652346eac0e5dd30cd009421ca071",
   "groups": {
     "app.min.js": {
       "inputs": {
+        "operations.js": "493527dcae54deeee0332002a52cdc24d63aaeb499667a5fb83f4eecdd741500",
         "standalone-frequency.js": "3d4cdaf2f517278d12fe9ed31121c1c7ea4d425255e8d794277abb83a1c9725f",
         "rf-calibration.js": "69c5f3500a0524ea247460699ceadb042672ff74f093c1cb717f5642721d4830",
         "amplifier-enable.js": "4a44353c0dbe15d6992e738d62ff7595d3d15e3a891cf2d571290e6163bbd8ac",
@@ -14,10 +15,10 @@
         "saved-progress.js": "eda273462a85879a5060d72d9380c3d7834d50f75c4cdbc9b12c10e7e2232195",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "a692a0bd0fcbcfde4f2852c93f3fb6a5290beaea713ec24c2a4023389fd6858e",
-        "app.js": "01e1bb892aeefdbc0764325548db2877a2f14329a417f0b30ba68a7cf4a04eac"
+        "app.js": "002b671145053e38d8c77d3e1da74ff6ea4d70792f7f2dad383be6a5d524c8b5"
       },
-      "sha256": "f96eaea457f16e4fa4a5db1f7a21b14177988ad8842b13993945975a03b5ba4d",
-      "bytes": 136378
+      "sha256": "be20e3e7f39dd37e5cb770d4b3d534cf82eff07ea9bf2019433c8b57a263bbde",
+      "bytes": 155634
     },
     "config-validation.min.js": {
       "inputs": {

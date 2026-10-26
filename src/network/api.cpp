@@ -699,7 +699,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     // reserve unchanged while avoiding a false 503 under an established TLS
     // observer and a resident RF plan.
     const bool status_read =
-        r.method == "GET" && (r.path == "/api/v1/status" || r.path == "/api/v1/jobs");
+        r.method == "GET" &&
+        (r.path == "/api/v1/status" || r.path == "/api/v1/jobs" || r.path == "/api/v1/operations");
     const auto request_scratch = status_read ? 8192 : working_bytes * 2 + 16384;
     if (!wtp::memory_admitted(request_scratch))
         return http_error(503, "resource_exhausted");
@@ -798,7 +799,12 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 encode_response(request, response, service_.config(), device_, firmware_);
             auto value = json::parse(caps);
             return ok(
-                "{\"ntp_observations\":{\"schema\":\"transmitter-ntp-observations/1\","
+                std::string("{") +
+                (carrier == ManagementCarrier::EngineeringField
+                     ? ""
+                     : "\"operations_status\":{\"schema\":\"transmitter-operations/1\",\"path\":\"/"
+                       "api/v1/operations\"},") +
+                "\"ntp_observations\":{\"schema\":\"transmitter-ntp-observations/1\","
                 "\"path\":\"/api/v1/ntp-observations\"},"
                 "\"standalone_frequency\":{\"schema\":\"transmitter-standalone-frequency/1\","
                 "\"path\":\"/api/v1/standalone-frequency\",\"method\":\"PUT\",\"units\":\"Hz\","
@@ -855,6 +861,24 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                            : "") +
                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
                 "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}");
+        }
+        if (r.path == "/api/v1/operations") {
+            if (carrier == ManagementCarrier::EngineeringField)
+                return http_error(403, "operation_not_permitted");
+            const auto observed = service_.status(false);
+            const auto next = scheduler_.next_wspr_start();
+            auto result =
+                ok("{\"schema\":\"transmitter-operations/1\",\"target\":" +
+                   application::target(device_, observed.boot_id) + ",\"job\":" +
+                   status_json(observed) + ",\"accepted\":" + service_.presentation_json() +
+                   ",\"standalone\":" + scheduler_.status(&observed) + ",\"message_schedule\":" +
+                   scheduler_.message_status() + ",\"next_wspr_start_utc_ns\":" +
+                   (next ? json::quote(std::to_string(*next)) : "null") +
+                   ",\"correction\":" + service_.calibration_status() + ",\"reset_allowed\":" +
+                   (restart_ && restart_safe() && !pending_transaction_ ? "true" : "false") +
+                   ",\"network\":" + network_.operations_status() + ",\"transport\":null}");
+            result.etag = revision();
+            return result;
         }
         if (r.path == "/api/v1/status" || r.path == "/api/v1/jobs")
             return ok(
@@ -1153,6 +1177,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return http_error(400, "invalid_restart");
         if (!restart_)
             return http_error(503, "restart_unavailable");
+        if (!restart_safe())
+            return http_error(409, "restart_blocked");
         pending_restart_ = true;
         pending_transaction_ = transaction;
         ++network_revision_; // Consume the revision; never replay an ambiguous reset.

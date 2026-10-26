@@ -273,6 +273,15 @@ class EventList {
     Failure failure_ = Failure::None;
 };
 
+// Compiler provenance for presentation only. Never decoded from rf-events/1,
+// hashed, or consulted by admission/execution. Bounded to the compiler's text.
+struct MessagePresentation {
+    std::string text;
+    std::uint64_t frequency_nhz = 0, space_frequency_nhz = 0;
+    std::uint64_t dot_ns = 0, dash_ns = 0, repeat_gap_ns = 0;
+    std::uint32_t repeat_count = 0;
+    bool operator==(const MessagePresentation&) const = default;
+};
 struct Job {
     std::string job_id;
     std::string profile = "rf-events/1";
@@ -280,6 +289,7 @@ struct Job {
     std::uint64_t total_duration_ns = 0;
     EventList events;
     bool allow_frequency_adjustment = false;
+    std::optional<MessagePresentation> message = {};
 
     bool operator==(const Job&) const = default;
 };
@@ -676,17 +686,26 @@ class JobService {
     // Local maintenance only, serialized by the same owner as handle()/poll().
     // It cannot stop work or clear faults and does not alter saved enablement.
     bool begin_maintenance();
-    void end_maintenance() { maintenance_deadline_ns_ = 0; }
-    void hold_update_verification() { update_verification_ = true; }
-    void finish_update_verification() { update_verification_ = false; }
+    void end_maintenance() {
+        maintenance_deadline_ns_ = 0;
+    }
+    void hold_update_verification() {
+        update_verification_ = true;
+    }
+    void finish_update_verification() {
+        update_verification_ = false;
+    }
     [[nodiscard]] bool verification_safe() const {
         return ready_ && !output_inhibited_ && !owner_ && state_ == State::Empty &&
                !engine_.output_active();
     }
-    [[nodiscard]] bool update_verification() const { return update_verification_; }
+    [[nodiscard]] bool update_verification() const {
+        return update_verification_;
+    }
     [[nodiscard]] bool maintenance() const {
-        return update_verification_ || (maintenance_deadline_ns_ &&
-               clock_.snapshot().monotonic_now_ns < maintenance_deadline_ns_);
+        return update_verification_ ||
+               (maintenance_deadline_ns_ &&
+                clock_.snapshot().monotonic_now_ns < maintenance_deadline_ns_);
     }
     void poll();
     void reset();
@@ -694,7 +713,9 @@ class JobService {
     [[nodiscard]] std::string active_load_replay_id() const {
         return job_ && (state_ == State::Loaded || state_ == State::Armed) ? job_->job_id : "";
     }
-    [[nodiscard]] ServiceStatus status() const;
+    [[nodiscard]] ServiceStatus status(bool history = true) const;
+    // Application-core read only; no event walk or retained view while RF runs.
+    [[nodiscard]] std::string presentation_json() const;
     [[nodiscard]] std::string_view owner_session_id() const {
         return owner_ ? std::string_view(owner_->session_id) : std::string_view{};
     }
@@ -780,6 +801,9 @@ class JobService {
     std::vector<Session> sessions_;
     std::optional<Owner> owner_;
     std::optional<Job> job_;
+    std::array<std::uint64_t, 4> observed_frequencies_{};
+    std::size_t observed_frequency_count_ = 0, observed_event_count_ = 0;
+    bool observed_frequencies_truncated_ = false;
     PayloadDigest job_digest_{};
     AdjustmentList adjustments_;
     std::optional<ArmRecord> arm_;

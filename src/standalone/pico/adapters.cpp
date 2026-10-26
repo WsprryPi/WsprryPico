@@ -842,6 +842,15 @@ std::string PicoNetwork::pool_status(std::uint64_t now) const {
     }
     return result + "]}";
 }
+std::string PicoNetwork::operations_status() const {
+    return "{\"enabled\":" + std::string(enabled_ ? "true" : "false") + ",\"link_status\":" +
+           std::to_string(initialized_ ? cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA)
+                                       : -99) +
+           ",\"ipv4\":" + wtp::json::quote(ipv4()) +
+           ",\"configured_hostname\":" + wtp::json::quote(mdns_.hostname()) +
+           ",\"mdns_state\":" + wtp::json::quote(mdns_.state()) +
+           ",\"mdns_reason\":" + wtp::json::quote(mdns_.reason()) + "}";
+}
 std::string PicoNetwork::status() const {
     const auto* softap = &cyw43_state.netif[CYW43_ITF_AP];
     const auto softap_netif =

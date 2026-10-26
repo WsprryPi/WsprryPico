@@ -53,6 +53,45 @@ let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let observedClockMs = 0;
+let observationEpoch = 0, operationsSnapshot = null, operationsTarget = null, consoleObservedMs = 0, privateStatusVisible = false;
+const consolePut = (id,text) => { const e=$(id); if(e && e.textContent!==text) e.textContent=text; };
+function consoleState(state,explanation) {
+  if ($('console-state')?.textContent!==state) consolePut('console-announcement',state+'. '+explanation);
+  consolePut('console-state',state); consolePut('console-explanation',explanation);
+}
+function clearConsole(reason = 'Read a fresh observation before using controls.') {
+  operationsSnapshot=null; consoleObservedMs=0;
+  consoleState(reconnectRunning ? 'Reset unconfirmed · reconnecting' : restartSent ? 'Reset unconfirmed' : 'Status unavailable',reason);
+  for(const id of ['state','output','clock','owner','engine','network','hostname','discovery']) consolePut(id,'Unknown');
+  consolePut('job-progress','Progress unavailable · status unknown');
+  consolePut('discovery-help','');
+  for(const field of ['mode','frequency','message','progress','next','correction','utc','observed']) consolePut('console-'+field,'Unavailable');
+  consolePut('console-actions','Sign in and read current status to use controls.');
+  if($('console-reset')) $('console-reset').disabled=true;
+}
+function clearPrivateStatus() {
+  privateStatusVisible=false;
+  clearConsole('Signed out. Read-only transmitter status remains available.');
+  for(const id of ['job-result','job-progress','standalone-status','recovery','saved-active-status','saved-wspr-plan','saved-readback','hostname-status','pico-password-status','progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status','message-schedule-status']) consolePut(id,'');
+  if($('saved-readback-details')) $('saved-readback-details').hidden=true;
+  hostnameState=null; picoPasswordState=null; messageScheduleReadback=null;
+}
+function renderConsole() {
+  if (!operationsSnapshot) return;
+  privateStatusVisible=true;
+  const view=WsprryOperations.model(operationsSnapshot,capabilities,session);
+  consoleState(view.state,view.explanation);
+  for(const field of ['mode','frequency','message','progress','next','correction','actions']) consolePut('console-'+field,view[field]);
+  consolePut('console-observed',new Date(consoleObservedMs).toISOString().replace('T',' ').replace('.000Z',' UTC'));
+  consolePut('console-utc',operationsSnapshot.standalone.clock_state==='unsynchronized'?'Unavailable · Pico clock unsynchronized':WsprryOperations.utc(operationsSnapshot.standalone.utc_now_ns)+' · at observation');
+}
+function consoleTick() {
+  consolePut('console-local',new Date(Date.now()).toLocaleString(undefined,{timeZoneName:'short'}));
+  if(consoleObservedMs && Date.now()-consoleObservedMs>15000) {
+    ++observationEpoch; snapshot=null; markTitleStale(); clearConsole('The observation is over 15 seconds old. RF output and current job state are unknown.'); controls(false);
+  }
+}
+
 function utcNowMs() {
   const value = snapshot?.standalone?.utc_now_ns;
   if (observedClockMs && ['synchronized','holdover'].includes(snapshot?.standalone?.clock_state) && typeof value === 'string' && /^\d+$/.test(value))
@@ -84,11 +123,17 @@ function focusInitialLogin() {
 async function refreshPublicStatus() {
   if (!radio || radio.authenticated) return;
   const epoch = ++publicStatusEpoch;
+  if(privateStatusVisible) clearPrivateStatus();
   try {
     const value = await radio.publicStatus();
     if (epoch !== publicStatusEpoch || radio.authenticated) return;
     if (localIdentity && value.device_id !== localIdentity.device_id) throw new Error('Pico identity changed');
-    const observed = new Date(Date.now()).toISOString().slice(11,19) + ' UTC';
+    consoleObservedMs=Date.now();
+    const observed = new Date(consoleObservedMs).toISOString().slice(11,19) + ' UTC';
+    const unexpectedRf=value.output_active&&!['armed','running'].includes(value.state);
+    consoleState(unexpectedRf||value.state==='failed'?'Recovery required':value.state==='running'?'Job running':value.state==='armed'?'Job armed':'Transmitter '+value.state, unexpectedRf?'RF is reported active outside an accepted running job. Check the output and recover through the authorized controller or USB Console.':value.state==='running'&&!value.output_active?'An accepted job is running with RF off at this observation. A keyed gap does not mean completion.':'Read-only device observation. Sign in for job, schedule and frequency details.');
+    consolePut('console-utc',value.utc_now_ns===null?'Unavailable · Pico clock unsynchronized':WsprryOperations.utc(value.utc_now_ns)+' · at observation');
+    consolePut('console-observed',new Date(consoleObservedMs).toISOString().replace('T',' ').replace('.000Z',' UTC'));
     $('state').textContent = value.state;
     $('output').textContent = value.output_active ? 'Active' : 'Inactive';
     $('clock').textContent = `${value.clock_state === 'holdover' ? 'using last time update' : value.clock_state} · ±${(Number(value.uncertainty_ns)/1e6).toFixed(2)} ms`;
@@ -101,6 +146,7 @@ async function refreshPublicStatus() {
     if ($('public-status-note')) $('public-status-note').textContent = 'Signed out · Read-only transmitter status · observed ' + observed;
   } catch (error) {
     if (epoch !== publicStatusEpoch || radio.authenticated) return;
+    clearConsole('Public status could not be read. RF output and current job state are unknown.');
     for (const id of ['state','output','clock','owner','engine','network']) $(id).textContent = 'Unknown';
     if ($('public-status-note')) $('public-status-note').textContent = 'Signed out · Transmitter status unavailable. Check the connection and refresh.';
   }
@@ -542,6 +588,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
     error.unconfirmed = true;
     if (settingWrite) requireReadback();
     markTitleStale();
+    clearConsole('Request outcome unconfirmed. Read fresh status; no action was repeated.');
     snapshot = null; $('state').textContent = 'Unknown · request unconfirmed';
     $('output').textContent = 'Unknown'; $('job-progress').textContent = 'Progress unavailable · request unconfirmed'; controls(false);
     if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; $('local-status').textContent = 'Session ended or unconfirmed. Log in again; your draft is preserved.'; }
@@ -643,6 +690,10 @@ async function discoverLocal() {
   } catch (_) { return false; }
 }
 function controls(connected) {
+  if(radio&&!radio.authenticated) {
+    connected=false; snapshot=null; localAuthenticated=false;
+    if(privateStatusVisible) { ++publicStatusEpoch; clearPrivateStatus(); }
+  }
   online = connected;
   messageSchedulingControls();
   if ($('public-status-note')) $('public-status-note').hidden = !radio || radio.authenticated;
@@ -678,7 +729,8 @@ function controls(connected) {
   $('hostname-default').disabled = $('hostname-save').disabled;
   $('hostname-review').hidden = !hostnameReviewReady;
   $('hostname-review').disabled = busy || !idle;
-  $('restart').disabled = busy || !idle || !capabilities?.features?.restart || restartSent;
+  $('restart').disabled = busy || !idle || snapshot?.job.state==='loaded' || !capabilities?.features?.restart || restartSent || Boolean(operationsSnapshot&&!operationsSnapshot.reset_allowed) || !consoleObservedMs || Date.now()-consoleObservedMs>15000;
+  if($('console-reset')) $('console-reset').disabled=$('restart').disabled;
   if (hostnameState?.pending_restart) {
     $('consumer-network-settings').disabled = true;
     $('consumer-station-settings').disabled = true;
@@ -688,7 +740,7 @@ function controls(connected) {
   $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
   $('message-availability').textContent = !online ? (radio && !localAuthenticated ? 'Log in above to prepare a message.' : 'Connection unavailable. Refresh status before preparing a message; RF output is unknown.') :
     busy ? 'Waiting for the current request to finish.' : !idle ? 'The transmitter is occupied or its job/output state does not permit a new job. Check Transmitter status above.' :
-    snapshot.standalone.reboot_required ? 'Saved changes require a restart. Use Restart device in Wi-Fi/Host before preparing another job.' :
+    snapshot.standalone.reboot_required ? 'Saved changes require a restart. Use Reset Pico in Wi-Fi/Host before preparing another job.' :
     !capabilities?.message_jobs ? 'This firmware does not advertise message jobs. A supported job file can still be used below.' :
     'Prepare a complete message below. Load and arm sends one explicit job; the Pico validates its timing and frequency.';
   $('abort').disabled = busy || !online || snapshot?.job.owner_id !== session || !['loaded','armed','running'].includes(snapshot.job.state);
@@ -700,7 +752,7 @@ function controls(connected) {
     $('apply-station-progress').disabled = busy || !idle || writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.station_complete || !savedProgress.data.wspr_plan?.supported || Boolean(consumerAttempt);
     $('consumer-station-settings').disabled ||= writeState !== 'ready';
   }
-  if ($('standalone-status')) $('standalone-status').textContent = standaloneStatus();
+  if ($('standalone-status')) consolePut('standalone-status',standaloneStatus());
   if ($('schedule-save-help')) $('schedule-save-help').textContent = !online ? 'Sign in and refresh status before changing schedules.' :
     busy ? 'Waiting for the current request to finish.' : !idle ? 'Wait for inactive output and released control before saving schedules.' :
     writeState === 'readback' ? 'Before another save, choose Read saved settings and keep draft in Saved settings and recovery above. Your checkbox edit is preserved.' :
@@ -734,7 +786,8 @@ function fill(c, network = c?.wifi) {
   form.expiry.value = c?.expires_utc_s ? new Date(c.expires_utc_s * 1000).toISOString().slice(0,19) : '';
   utcEditors.forEach(editor=>editor.sync());
 }
-async function refresh(loadConfig = false) {
+async function refresh(loadConfig = false, quiet = false) {
+  const epoch=++observationEpoch;
   if (radio && !radio.authenticated) {
     localAuthenticated = false; snapshot = null;
     $('local-login').hidden = false; $('local-logout').hidden = true;
@@ -747,7 +800,38 @@ async function refresh(loadConfig = false) {
   try {
     if (!capabilities) capabilities = (await api('capabilities')).data;
     if (!pinChoices) { try { pinChoices = (await api('pins')).data.choices; } catch (_) {} }
-    snapshot = (await api('status')).data; expectedPause = false; observedClockMs = Date.now();
+    const enhanced=globalThis.WsprryOperations?.supported(capabilities.operations_status);
+    if(capabilities.operations_status!==undefined&&!enhanced) throw new Error('Unsupported operations status schema');
+    const observation=(await api(enhanced?'operations':'status')).data;
+    if(epoch!==observationEpoch || radio&&!radio.authenticated) return;
+    const boundBoot=localIdentity?.boot_id||operationsTarget?.boot_id||capabilitiesBoot;
+    if(!radio&&!localIdentity&&boundBoot&&observation.job?.boot_id!==boundBoot) {
+      const device=operationsTarget?.device_id||hostnameState?.target.device_id;
+      snapshot=null; clearConsole('A different boot was observed. Checking the authenticated device identity.'); controls(false);
+      const identity=(await api('hostname')).data;
+      if(epoch!==observationEpoch) return;
+      if(!device||identity.schema!=='transmitter-hostname/1'||identity.target?.scope!=='member'||
+         identity.target.device_id!==device||identity.target.boot_id!==observation.job?.boot_id||
+         !/^[0-9a-f]{32}$/.test(identity.target.boot_id)||canonicalHostname(identity.active)!==identity.active)
+        throw new Error('The new boot could not be bound to the same authenticated Pico');
+      operationsTarget={...identity.target};activePlan=null;requireReadback();
+    }
+    if(enhanced) {
+      const expected=localIdentity?.boot_id?localIdentity:operationsTarget;
+      if(!WsprryOperations.valid(observation,expected)) throw new Error('Operations observation is malformed or belongs to a different Pico or boot');
+      operationsTarget={...observation.target}; operationsSnapshot=observation;
+    } else {
+      if(!WsprryOperations.basicValid(observation,localIdentity?.boot_id||operationsTarget?.boot_id||capabilitiesBoot)) throw new Error('Basic status is malformed or belongs to a different boot');
+      operationsSnapshot=null;
+      for(const field of ['mode','frequency','message','progress','next','correction']) consolePut('console-'+field,'Unavailable on this connection');
+    }
+    privateStatusVisible=true; snapshot=observation; consoleObservedMs=Date.now(); expectedPause = false; observedClockMs = Date.now();
+    if(!enhanced) {
+      const j=snapshot.job;
+      consoleState(j.state==='failed'||j.output_active&&!['armed','running'].includes(j.state)?'Recovery required':'Job '+j.state, 'This connection supplies basic status. Contextual message, schedule and frequency details are unavailable. RF-off alone does not establish job completion.');
+      consolePut('console-observed',new Date(consoleObservedMs).toISOString().replace('T',' '));
+      consolePut('console-utc',['synchronized','holdover'].includes(snapshot.standalone.clock_state)&&snapshot.standalone.utc_now_ns?WsprryOperations.utc(snapshot.standalone.utc_now_ns)+' · at observation':'Unavailable');
+    }
     observedAt = new Date(observedClockMs).toISOString().slice(11,19) + ' UTC';
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) capabilities = (await api('capabilities')).data;
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); }
@@ -771,7 +855,7 @@ async function refresh(loadConfig = false) {
       updateSetupReceipt();
     }
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
-    $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Settings saved. Use Restart device to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
+    $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Settings saved. Use Reset Pico to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
     if (s.frequency_required) $('recovery').textContent += ' Standalone transmission is blocked: choose and save a WSPR frequency in Schedules and radio pins, then explicitly enable schedules.';
     if (loadConfig) {
       const c = await api('config'); const config=checkedConfig(c);
@@ -790,9 +874,11 @@ async function refresh(loadConfig = false) {
       if (radio) await readPicoPassword();
     }
     if (messageSchedulingSupported()) await readMessageSchedule();
+    if(epoch!==observationEpoch || radio&&!radio.authenticated) return;
+    renderConsole();
     updateProgress(); messagePreview();
-    notice('Connected · Status updated ' + observedAt); controls(true);
-  } catch (e) { markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Session ended. Log in again; your draft is preserved.'; notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
+    if(!quiet) notice('Connected · Status updated ' + observedAt); controls(true);
+  } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Session ended. Log in again; your draft is preserved.'; notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
 }
 async function action(fn) {
   if (busy) return;
@@ -838,6 +924,7 @@ async function readPicoPassword() {
   }
 }
 function picoPasswordSignedOut(message) {
+  ++observationEpoch; ++publicStatusEpoch; clearPrivateStatus();
   radio.clear(); picoPasswordState = null; localAuthenticated = false;
   $('local-login').hidden = false; $('local-logout').hidden = true;
   snapshot = null; requireReadback(); controls(false); markTitleStale();
@@ -895,6 +982,7 @@ $('local-login').onsubmit = event => { event.preventDefault(); return action(asy
       localIdentity = await radio.identity();
       checkReturningDevice(localIdentity.device_id);
       pageIdentity.bind(localIdentity);
+      operationsTarget=null;
       await radio.login(password,localIdentity);
     } else {
       const fresh = await fetch('/local/v1/identity', {cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(5000)});
@@ -955,6 +1043,7 @@ $('local-logout').onclick = () => action(async () => {
   cancelReconnect();
   markTitleStale();
   clearPasswords();
+  ++observationEpoch; ++publicStatusEpoch; clearPrivateStatus();
   await radio.logout(); localAuthenticated = false;
   $('local-login').hidden = false; $('local-logout').hidden = true;
   $('local-status').textContent = 'Signed out. Log in to read or change settings.';
@@ -1026,7 +1115,7 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
   if (!currentConfig || ['callsign','locator','power_dbm'].some(key => config.station[key] !== currentConfig.station[key]))
     await reviewWspr(config.station,'draft-wspr-plan');
   const result = await api(applicationVersion === 2 ? 'config/2' : 'config','PUT',config,revision); const confirmed=checkedConfig(result,false); revision = result.revision; fill(confirmed);
-  await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Restart device to apply network or pin changes.' : 'Settings saved and applied.');
+  await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Reset Pico to apply network or pin changes.' : 'Settings saved and applied.');
 }); };
 async function applyProgressDomain(domain) {
   if (!savedProgress || writeState !== 'ready') throw new Error('Read and review saved progress before applying.');
@@ -1075,14 +1164,21 @@ $('abort').onclick = () => action(async () => { await job('ABORT',{job_id:snapsh
 $('release').onclick = () => action(async () => { await job('RELEASE'); await refresh(); });
 $('restart').onclick = () => action(async () => {
   if (restartSent) return;
-  if (!confirm('Restart using saved settings? This tab keeps your drafts. Sign in again when the Pico returns.')) return;
-  const before = snapshot?.job.boot_id;
+  if($('restart').disabled && !busy) return;
+  if (!snapshot || snapshot.job.owner_id!==null || snapshot.job.output_active!==false || !['empty','complete','aborted','missed'].includes(snapshot.job.state) || operationsSnapshot&&!operationsSnapshot.reset_allowed) throw new Error('Read current idle status before resetting the Pico');
+  const context=snapshot, epoch=observationEpoch, stamp=consoleObservedMs;
+  const current=()=>snapshot===context&&observationEpoch===epoch&&stamp&&Date.now()-stamp<=15000&&(!radio||radio.authenticated);
+  if(!current()) throw new Error('Refresh current idle status before resetting the Pico');
+  if (!confirm('Reset Pico? Saved settings are retained. Enabled schedules can resume after clock and safety checks; consumed occurrences are not replayed. This tab keeps your drafts. Sign in again to confirm the same Pico and a new boot.')) return;
+  if(!current()) throw new Error('Status expired while confirming reset. Refresh, then choose Reset Pico again. No reset was sent.');
+  const before = context.job.boot_id;
   if (!before) throw new Error('Refresh status before restarting');
   const named = await readHostname();
   const saved = await api('config');
+  if(!current()) throw new Error('Status changed during reset readback. Refresh before a new Reset Pico action. No reset was sent.');
   if (named && saved.revision !== named.revision) throw new Error('Saved settings changed. Refresh and review the intended hostname before restarting.');
-  const expected = {device: snapshot.job.device_id || localIdentity?.device_id || named?.target.device_id,
-    boot: before, name: named?.saved || snapshot.network.configured_hostname};
+  const expected = {device: context.target?.device_id || context.job.device_id || localIdentity?.device_id || named?.target.device_id,
+    boot: before, name: named?.saved || context.network.configured_hostname};
   if (!/^[0-9a-f]{32}$/.test(expected.device) || !canonicalHostname(expected.name))
     throw new Error('Read the confirmed device hostname before restarting.');
   returnReceipt = expected;
@@ -1093,9 +1189,10 @@ $('restart').onclick = () => action(async () => {
     if (error.serverResponse) { restartSent = false; throw error; }
     $('restart-status').textContent = 'Restart acknowledgement lost. Checking once; another restart will not be sent.';
   }
-  snapshot = null; controls(false); markTitleStale();
+  ++observationEpoch; snapshot = null; clearConsole('Reset requested or acknowledgement lost. Waiting for the same Pico and a new authenticated boot.'); controls(false); markTitleStale();
   void monitorRestart(expected);
 });
+if($('console-reset')) $('console-reset').onclick=$('restart').onclick;
 $('wifi-off').onclick = () => action(async () => {
   if (!confirm('Disconnect Wi-Fi? Reconnect using USB Console or restart the device.')) return;
   const n = await api('network'); await api('network','PUT',{enabled:false},n.revision);
@@ -1330,8 +1427,10 @@ $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=tr
   }
 }); };
 if (typeof setInterval === 'function') setInterval(() => {
-  if (!busy && ((radio && !radio.authenticated && localIdentity) || (online && (messageScheduleReadback?.data.saved?.enabled || messageScheduleReadback?.data.pause_pending || activePlan && ['armed','running'].includes(snapshot?.job.state))))) action(() => refresh());
+  if (!busy && !reconnectRunning && !restartSent && ((radio && !radio.authenticated && localIdentity) || online || !radio && capabilities)) action(() => refresh(false,true));
 }, 5000);
+if(typeof setInterval==='function') setInterval(consoleTick,1000);
+clearConsole('Waiting for a current device observation.'); consoleTick();
 
 action(async () => { await discoverLocal(); if ((!radio && !localIdentity) || localAuthenticated) await refresh(true); else if (radio) await refreshPublicStatus(); });
 
@@ -1489,6 +1588,7 @@ async function readHostname(token = pageIdentity.request()) {
       $('restart-status').textContent = 'Same Pico and new boot confirmed. Hostname applied: ' + d.active +
         '. Name discovery and browser reachability are reported separately above.';
       returnReceipt = null; restartSent = false;
+      consoleState('Reset confirmed','Authenticated observation confirms the same Pico and a new boot.');
       globalThis.history?.replaceState(null,'',globalThis.location.pathname + globalThis.location.search);
     }
   }
@@ -1497,10 +1597,12 @@ async function readHostname(token = pageIdentity.request()) {
 function cancelReconnect() {
   ++reconnectEpoch;
   reconnectRunning = false;
+  if(restartSent) consoleState('Reset unconfirmed','Connection checks stopped. Sign in and read the same Pico and a new boot to confirm reset.');
   $('restart-cancel').hidden = true;
 }
 async function monitorRestart(expected) {
   cancelReconnect(); const token = reconnectEpoch; reconnectRunning = true;
+  consoleState('Reset unconfirmed · reconnecting','Checking for the same Pico and a new boot. Authentication is required to confirm recovery.');
   $('restart-cancel').hidden = false;
   const deadline = Date.now() + 90000;
   while (token === reconnectEpoch && Date.now() < deadline) {
@@ -1518,7 +1620,7 @@ async function monitorRestart(expected) {
       checkReturningDevice(observed.device_id);
       if (observed.boot_id !== expected.boot) {
         cancelReconnect();
-        if (!radio) { await refresh(false); return; }
+        if (!radio) { operationsTarget=null; capabilitiesBoot=null; capabilities=null; await refresh(false); return; }
         $('restart-status').textContent = 'A new boot was observed. Sign in again to verify the same Pico and applied hostname. Your drafts remain in this tab.';
         return;
       }

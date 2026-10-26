@@ -86,8 +86,8 @@ async function saveDial(f, revision = '"original-revision"') {
     status.offline=false;Object.assign(status.state.standalone,{clock_state:'holdover',sync_age_ns:'100',expires_utc_s:0});
     await status.elements.refresh.onclick();
     assert.match(status.elements['standalone-status'].textContent,/waiting for fresh clock/,'unsupported holdover never looks ready');
-    Object.assign(status.state.standalone,{wspr_pair_pending:true,last_job:'paired-job'});
-    Object.assign(status.state.job,{job_id:'paired-job',state:'complete',owner_id:'standalone-owner'});
+    Object.assign(status.state.standalone,{wspr_pair_pending:true,last_job:'2'.repeat(32)});
+    Object.assign(status.state.job,{job_id:'2'.repeat(32),state:'complete',owner_id:'e'.repeat(32)});
     await status.elements.refresh.onclick();
     assert.match(status.elements['standalone-status'].textContent,/pair is in progress/,'the gap between WSPR frames is not a competing owner');
     console.log('PASS schedule workflow: confirmed-save continuation, preserved checkbox/draft, concurrent revision and boot review, failed readback recovery, observed schedule status');

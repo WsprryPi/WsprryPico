@@ -215,6 +215,42 @@ std::optional<std::uint64_t> Scheduler::next_message_start() const {
         return {};
     return next;
 }
+std::optional<std::uint64_t> Scheduler::next_wspr_start() const {
+    const auto now = service_.clock_snapshot();
+    if (!store_.healthy() || !store_.config() || !store_.config()->enabled || suspended_ ||
+        reboot_required_ || !clock_ready(now, service_.config()) || !idle() || pair_ ||
+        (store_.message_schedule() && store_.message_schedule()->enabled))
+        return {};
+    const auto& c = *store_.config();
+    if (!c.wspr_dial_frequency_hz)
+        return {};
+    const auto plan = encoding::wspr_plan(c.callsign, c.locator, c.power_dbm);
+    if (!plan)
+        return {};
+    auto candidate = std::numeric_limits<std::uint64_t>::max();
+    for (const auto& schedule : c.schedules) {
+        const auto period = std::uint64_t{schedule.period_s} * ns;
+        const auto phase = std::uint64_t{schedule.phase_s} * ns + ns;
+        if (!period)
+            continue;
+        const auto earliest = std::max(now.utc_now_ns + 2 * ns, store_.watermark() + 1);
+        auto slot = (earliest / period) * period + phase;
+        if (slot < earliest)
+            slot += period;
+        candidate = std::min(candidate, slot);
+    }
+    std::uint64_t duration{};
+    if (candidate == std::numeric_limits<std::uint64_t>::max() ||
+        !time::duration_utc_bound(frame_duration, now, duration))
+        return {};
+    const auto tail =
+        (plan->count - 1) * slot_duration + duration + (plan->count == 2 ? ns - 1 : 0);
+    if (candidate >= time::sntp_max_utc_ns || tail > time::sntp_max_utc_ns - candidate ||
+        (c.expires_utc_s &&
+         (candidate >= c.expires_utc_s * ns || tail > c.expires_utc_s * ns - candidate)))
+        return {};
+    return candidate;
+}
 std::string Scheduler::message_status() const {
     const auto& schedule = store_.message_schedule();
     const auto now = service_.clock_snapshot();
@@ -481,8 +517,8 @@ void Scheduler::poll_pair() {
     if (!prepare_frame(pair_->plan.frames[1], slot, pair_->tones))
         pair_.reset();
 }
-std::string Scheduler::status() const {
-    const auto s = service_.status();
+std::string Scheduler::status(const wtp::ServiceStatus* observation) const {
+    const auto s = observation ? *observation : service_.status();
     const auto clock = service_.clock_snapshot();
     std::string station = "null", schedules = "[]";
     if (store_.config()) {

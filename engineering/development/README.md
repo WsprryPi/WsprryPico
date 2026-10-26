@@ -147,6 +147,7 @@ before using the replacement. Disabled defaults in an existing cache are allowed
   and [USB local configuration](usb-local-configuration.md).
 - [Shared application resources](shared-transmitter-application.md) and the
   [member/controller contract](../transmitter-application-contract.md).
+- [Contextual transmitter status and Reset Pico](status-console.md).
 - [Consumer LAN/setup access](consumer-lan-access.md), [management carriers](management-carriers.md),
   [web servicing](web-service.md), [sessions](consumer-sessions.md),
   [session/save recovery](session-recovery.md), [hostname](hostname.md),

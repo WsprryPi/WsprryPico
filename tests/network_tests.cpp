@@ -1,3 +1,4 @@
+#include "encoding/morse.hpp"
 #include "network/assets.hpp"
 #include "network/http.hpp"
 #include "network/identity.hpp"
@@ -465,6 +466,89 @@ void restart_tests() {
     f.api.finish_request(34);
     REQUIRE(resets == 1);
 }
+void operations_tests() {
+    Fixture f;
+    auto get = request("GET", "/api/v1/operations");
+    REQUIRE(f.api.handle(get, "", "127.0.0.1:8443").status == 401);
+    REQUIRE(
+        f.api.handle(get, "cert", "127.0.0.1:8443", 0, network::ManagementCarrier::EngineeringField)
+            .status == 403);
+    auto caps = f.api.handle(request("GET", "/api/v1/capabilities"), "cert", "127.0.0.1:8443", 0,
+                             network::ManagementCarrier::EngineeringField);
+    REQUIRE(caps.body.find("operations_status") == caps.body.npos);
+    auto observed = f.api.handle(get, "cert", "127.0.0.1:8443");
+    REQUIRE(observed.status == 200 && !observed.etag.empty());
+    REQUIRE(observed.body.find("transmitter-operations/1") != observed.body.npos);
+    REQUIRE(observed.body.find("\"accepted\":null") != observed.body.npos);
+    REQUIRE(f.api.public_status().body.find("correction") == std::string::npos);
+    REQUIRE(f.api.public_status().body.find("accepted") == std::string::npos);
+    f.api.restart_control([](void*) { return true; }, nullptr);
+    unsigned seq = 0;
+    auto send = [&](std::string operation, wtp::RequestBody body) {
+        wtp::Request r;
+        r.session_id = std::string(32, '1');
+        r.principal = "test";
+        r.request_id = std::string(30, '0') + std::to_string(10 + ++seq);
+        r.operation = std::move(operation);
+        r.body = std::move(body);
+        r.payload_digest[0] = seq;
+        return f.service.handle(r);
+    };
+    auto full_config = *standalone::parse_config(config);
+    full_config.wspr_dial_frequency_hz = 14095600;
+    full_config.schedules.clear();
+    for (unsigned i = 0; i < 8; ++i)
+        full_config.schedules.push_back({1920, i * 120});
+    REQUIRE(f.store.save(full_config));
+    REQUIRE(send("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
+    REQUIRE(send("CLAIM", wtp::ClaimBody{std::string(32, '1'), 60000}).ok);
+    encoding::MorseMessage m;
+    m.job_id = std::string(32, '2');
+    m.mode = "dfcw";
+    m.text = std::string(32, 'E');
+    m.mark_frequency_nhz = 135505000000000ULL;
+    m.space_frequency_nhz = 135500000000000ULL;
+    m.dot_ns = 3000000000;
+    m.dash_ns = 9000000000;
+    m.intra_gap_ns = 1000000000;
+    m.character_gap_ns = 3000000000;
+    m.word_gap_ns = 7000000000;
+    standalone::MessageSchedule saved;
+    saved.first_start_utc_ns = f.clock.snapshot().utc_now_ns + 2000000000ULL;
+    saved.period_s = 86400;
+    saved.message = m;
+    saved.message.mark_frequency_nhz = 135500000000000ULL;
+    saved.message.space_frequency_nhz = 135505000000000ULL;
+    REQUIRE(f.store.save_message_schedule(saved));
+    auto compiled = encoding::compile_message(m);
+    REQUIRE(compiled.job);
+    REQUIRE(send("LOAD", std::move(*compiled.job)).ok);
+    const auto start = f.clock.snapshot().utc_now_ns + 2000000000ULL;
+    REQUIRE(send("ARM", wtp::ArmBody{m.job_id, start, 1000}).ok);
+    auto reset = request("POST", "/api/v1/restart", "{}");
+    reset.headers["if-match"] = f.api.revision();
+    REQUIRE(f.api.handle(reset, "cert", "127.0.0.1:8443").status == 409);
+    f.clock.now += 2000000000ULL;
+    f.service.poll();
+    REQUIRE(f.service.status().state == wtp::State::Running);
+    REQUIRE(!f.service.status().output_active); // Inhibited RF-off job remains running.
+    const auto watermark = f.store.watermark();
+    const auto revision = f.api.revision();
+    largest_new = 0;
+    bounded_http = true;
+    observed = f.api.handle(get, "cert", "127.0.0.1:8443");
+    bounded_http = false;
+    REQUIRE(largest_new <= 8192);
+    REQUIRE(observed.body.find("\"text\":\"" + m.text + "\"") != observed.body.npos);
+    REQUIRE(observed.body.find("\"frequency_nhz\":\"135505000000000\"") != observed.body.npos);
+    REQUIRE(observed.body.find("\"dash_ns\":\"3000000000\"") != observed.body.npos);
+    REQUIRE(observed.body.find("\"reset_allowed\":false") != observed.body.npos);
+    REQUIRE(observed.body.size() < 6144);
+    REQUIRE(f.store.watermark() == watermark && f.api.revision() == revision);
+    REQUIRE(f.api.handle(reset, "cert", "127.0.0.1:8443").status == 409);
+    std::cout << "Operations running message response bytes: " << observed.body.size() << '\n';
+}
+
 void jobs() {
     Fixture f;
     unsigned seq = 0;
@@ -788,6 +872,7 @@ int main() {
     status_read_admission();
     deferred();
     restart_tests();
+    operations_tests();
     // JSON scratch admission must not silently narrow WTP's body grammar.
     std::string many_keys = "{";
     for (unsigned i = 0; i < 40; ++i)

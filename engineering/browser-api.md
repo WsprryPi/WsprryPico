@@ -151,6 +151,7 @@ session cookie that page script cannot read.
 | PUT `/api/v1/schedules` | Replace only schedules using the same config validator/journal; requires If-Match |
 | GET `/api/v1/network` | Initialized/enabled/link/IP, requested enable state, control availability and SNTP counters; ETag |
 | PUT `/api/v1/network` | `{"enabled":true|false}`; idle-only volatile change with If-Match |
+| GET `/api/v1/operations` | Explicitly negotiated `transmitter-operations/1`; compact authenticated job, scheduler, correction and reset eligibility; see [contextual status](development/status-console.md) |
 | POST `/api/v1/restart` | Empty object `{}`; idle-only, If-Match; returns 202 before deferred restart |
 
 This is the shared handler inventory, not a promise that every carrier admits
@@ -232,7 +233,7 @@ restart through the authenticated endpoint above, without USB access. Restart us
 the same acknowledgement/transaction cancellation rules, consumes its revision
 and blocks other pending management mutations. The application stops local
 scheduling, verifies engine disable and rechecks unowned/inactive/nonfaulted state
-immediately before reset. Browser restart cannot recover a latched RF fault.
+immediately before reset. Browser restart cannot recover a latched RF fault. Pending message-pause persistence and recurring recovery barriers also block it.
 The UI sends one restart request and waits up to 90 seconds for authenticated
 status with a different boot identity. An interrupted or unconfirmed request is
 never automatically repeated. Incorrect Wi-Fi or unreachable time-server settings
