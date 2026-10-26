@@ -21,6 +21,8 @@ Follow [Recover browser access over USB](../../docs/usb.md) on a native Windows 
 
 ## Backlog TODO
 
+### Backend
+
 - **Optional amplifier settling and lead/tail timing.**
 
 ### UI
