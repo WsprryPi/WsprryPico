@@ -27,10 +27,10 @@ Native Windows Chrome Console identity, settings, complete INFO display, success
 ### UI
 
 6. [x] ✅ **WsprryPi-style contextual status console with Reset Pico.** Mode-aware accepted-job and future-schedule context, public read-only status, nominal frequencies, coarse progress, manual correction, clocks and guarded authenticated reset are available. See the maintained [status-console contract](status-console.md). Character-level progression remains unimplemented.
-7. Collapse all sections by default except **Transmitter status**.
-8. Make login and takeover less obtrusive.
-9. Add logically grouped menu links using in-page `#anchors`, with `/wifi-host` as the navigation reference. Selecting a link should scroll to its section and expand it.
-10. Add a **Back to Status** link to each section that collapses all other sections and returns to **Transmitter status**, leaving it expanded.
+7. [ ] **Furl sections by default.** Furl each section except **Transmitter status**, which stays unfurled. Follow the [shared execution prompt](ui-sections-access-navigation-prompt.md). Not started; prompt saved only.
+8. [ ] **Hostname lock control and password modal.** Add a locked/unlocked icon before the hostname. Clicking the locked icon opens a password modal; clicking the unlocked icon locks this browser's controls through logout. Follow the [shared execution prompt](ui-sections-access-navigation-prompt.md). Not started; prompt saved only.
+9. [ ] **Grouped links to furled sections.** Menu `#links` target the sections, unfurl the selected section and its ancestors, and scroll to it. Preserve existing area and save-receipt navigation. Follow the [shared execution prompt](ui-sections-access-navigation-prompt.md). Not started; prompt saved only.
+10. [ ] **Top links.** Add **Top** to each non-status section; it re-furls all non-status sections, keeps **Transmitter status** unfurled and scrolls back to the top/status region. Follow the [shared execution prompt](ui-sections-access-navigation-prompt.md). Not started; prompt saved only.
 
 ## Possible future work
 
