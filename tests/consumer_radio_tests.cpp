@@ -3,7 +3,9 @@
 #include "network/consumer_radio.hpp"
 #include "network_support.hpp"
 #include "provisioning/consumer_profile.hpp"
+#include "rf/stream_engine.hpp"
 #include "wtp/json.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <cassert>
 using namespace wsprrypico;
@@ -11,6 +13,8 @@ using namespace network_test;
 namespace {
 constexpr auto device = "11111111111111111111111111111111";
 constexpr auto boot = "22222222222222222222222222222222";
+std::map<void*, std::size_t> message_pages;
+std::size_t message_page_bytes = 0;
 struct Media : provisioning::Media {
     std::array<std::uint8_t, 16384> data{};
     Media() {
@@ -58,9 +62,19 @@ struct Crypto : network::ConsumerRadioCrypto {
             return {};
         return p.view().substr(28, p.size() - 44);
     }
-    std::optional<network::HttpResponse>
-    seal(wtp::InputView text, const network::ConsumerRadioBinding&, std::uint64_t) override {
-        return network::HttpResponse{200, std::string(text), "application/json", {}};
+    std::optional<network::HttpResponse> seal_parts(std::span<const wtp::InputView> parts,
+                                                    const network::ConsumerRadioBinding&,
+                                                    std::uint64_t) override {
+        std::string text;
+        for (const auto part : parts)
+            text += std::string(part);
+        return network::HttpResponse{200, std::move(text), "application/json", {}};
+    }
+    std::optional<network::HttpResponse> seal_buffer(wtp::OutputBuffer plaintext,
+                                                     const network::ConsumerRadioBinding& binding,
+                                                     std::uint64_t sequence) override {
+        const auto view = plaintext.view();
+        return seal_parts(std::span(&view, 1), binding, sequence);
     }
     void clear() override {}
 };
@@ -98,7 +112,8 @@ struct Test {
         r.headers["origin"] = "http://" + authority;
         return api.handle(r, now, tx, interface);
     }
-    Test(bool network_only = false) {
+    Test(bool network_only = false, wtp::RfEngine* engine = nullptr)
+        : fixture(0, std::string(32, 'a'), engine) {
         provisioning::ConsumerProfile profile;
         profile.device_id = device;
         profile.owner_epoch = 0;
@@ -159,8 +174,116 @@ struct Test {
         return send(request("/api/consumer/v1/request", packet, true), transaction++);
     }
 };
+network::HttpResponse read_public(Test& test) {
+    auto get = request("/api/consumer/v1/status");
+    get.method = "GET";
+    return test.send(std::move(get), test.transaction++);
+}
 } // namespace
 int main() {
+    {
+        Test t;
+        auto response = read_public(t);
+        assert(response.status == 200);
+        const auto value = wtp::json::parse(response.body);
+        assert(value && wtp::json::fields(*value, {"schema", "device_id", "boot_id", "state",
+                                                   "output_active", "owned", "clock_state",
+                                                   "utc_now_ns", "uncertainty_ns", "engine"}));
+        assert(value->get("schema")->string() == "transmitter-public-status/1");
+        assert(value->get("state")->string() == "empty");
+        assert(value->get("output_active")->raw == "false");
+        assert(value->get("owned")->raw == "false");
+        assert(response.body.find("owner_id") == std::string::npos);
+        assert(response.body.find("test-password") == std::string::npos);
+        assert(response.body.find("AA0NT") == std::string::npos);
+        assert(!t.api.active(t.now));
+        auto forged = request("/api/consumer/v1/status");
+        forged.method = "GET";
+        forged.headers["host"] = "evil.example";
+        assert(t.api.handle(forged, t.now, t.transaction++).status == 403);
+        forged.headers["host"] = "192.168.4.1";
+        forged.headers["origin"] = "http://evil.example";
+        assert(t.api.handle(forged, t.now, t.transaction++).status == 403);
+        assert(t.send(request("/api/consumer/v1/status", "{}"), t.transaction++).status != 200);
+        wtp::available_memory = []() -> std::size_t { return 32768; };
+        assert(read_public(t).status == 503);
+        wtp::available_memory = nullptr;
+    }
+    {
+        struct Sink final : rf::BlockSink {
+            bool stop(std::uint64_t) override {
+                return true;
+            }
+            bool submit(std::uint64_t, std::uint64_t, std::span<const std::uint32_t>,
+                        std::uint64_t) override {
+                std::abort();
+            }
+            bool arm(std::uint64_t, std::uint64_t, std::uint64_t, rf::LaunchGuard) override {
+                std::abort();
+            }
+            rf::SinkReport poll(std::uint64_t) override {
+                return {};
+            }
+            bool output_active() const override {
+                return false;
+            }
+        } sink;
+        rf::StreamEngine engine(sink);
+        Test t(false, &engine);
+        t.authority = "192.168.1.53";
+        t.interface = network::ConsumerInterface::Station;
+        t.login();
+        const std::string session(32, '1');
+        unsigned id = 2000;
+        const auto command = [&](std::string op, std::string body) {
+            auto result = t.call("POST", "/api/v1/jobs",
+                                 "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
+                                     std::string(28, '0') + std::to_string(++id) +
+                                     "\",\"operation\":\"" + op + "\",\"body\":" + body + "}");
+            assert(result.status == 200);
+            assert(result.body.find("\"status\":200") != std::string::npos);
+            t.api.finish_request(t.transaction - 1, true);
+            return result.body.size();
+        };
+        command(
+            "HELLO",
+            R"({"versions":["WTP/1"],"client_name":"message regression","client_version":"1"})");
+        command("CLAIM", "{\"owner_id\":\"" + session + "\",\"lease_ms\":60000}");
+        // Model resident request/event/reply pages as real allocations. The
+        // large adjustment JSON leaves room for framing, but not another full
+        // ciphertext allocation alongside the unchanged 32 KiB reserve.
+        const auto allocate = wtp::allocate_input;
+        const auto deallocate = wtp::deallocate_input;
+        wtp::allocate_input = [](std::size_t size) -> void* {
+            auto* memory = std::malloc(size);
+            if (memory) {
+                message_pages[memory] = size;
+                message_page_bytes += size;
+            }
+            return memory;
+        };
+        wtp::deallocate_input = [](void* memory) {
+            if (const auto found = message_pages.find(memory); found != message_pages.end()) {
+                message_page_bytes -= found->second;
+                message_pages.erase(found);
+            }
+            std::free(memory);
+        };
+        wtp::available_memory = []() -> std::size_t { return 70000 - message_page_bytes; };
+        const auto bytes = command(
+            "LOAD_MESSAGE",
+            R"({"job_id":"33333333333333333333333333333333","mode":"fskcw","message":"CQ CQ DE AA0NT EM18 QRSS TEST 73","frequency_nhz":"10140005000000000","space_frequency_nhz":"10140000000000000","timing":{"dot_ns":"3000000000","dash_ns":"9000000000","intra_gap_ns":"3000000000","character_gap_ns":"9000000000","word_gap_ns":"21000000000"},"repeat_count":1,"repeat_gap_ns":"3000000000","allow_frequency_adjustment":true})");
+        wtp::available_memory = nullptr;
+        assert(bytes > wtp::OutputBuffer::page_bytes);
+        assert(t.fixture.service.status().state == wtp::State::Loaded);
+        assert(!t.fixture.service.status().output_active);
+        command("RELEASE", "{}");
+        assert(!t.fixture.service.status().owner_id);
+        t.api.close();
+        assert(message_pages.empty());
+        wtp::allocate_input = allocate;
+        wtp::deallocate_input = deallocate;
+    }
     for (const auto* host : {"192.168.1.53", "wsprrypico-0a60df.local"}) {
         Test t(true);
         t.authority = host;
@@ -342,6 +465,14 @@ int main() {
         t.api.finish_request(t.transaction - 1, true);
         t.api.close(); // Browser loss neither aborts nor releases accepted local execution.
         assert(t.fixture.service.status().state == wtp::State::Running);
+        const auto public_running = read_public(t);
+        assert(public_running.status == 200);
+        const auto view = wtp::json::parse(public_running.body);
+        assert(view->get("state")->string() == "running");
+        // This fixture uses a dry-run engine: running does not assert RF output.
+        assert(view->get("output_active")->raw == "false");
+        assert(view->get("owned")->raw == "true");
+        assert(!view->get("owner_id") && !view->get("job_id"));
         assert(t.fixture.service.status().owner_id == session);
         t.fixture.clock.now += 1'000'000'000ULL;
         t.fixture.service.poll();

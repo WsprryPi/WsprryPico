@@ -60,6 +60,7 @@ bool ResetStorageTargets::operational_erased() const {
             !std::all_of(bytes.begin(), bytes.end(), [](auto b) { return b == 255; }))
             return false;
     }
-    return store_.healthy() && !store_.config() && store_.watermark() == 0;
+    return store_.healthy() && !store_.config() && !store_.message_schedule() &&
+           !store_.message_in_flight() && store_.watermark() == 0;
 }
 } // namespace wsprrypico::provisioning

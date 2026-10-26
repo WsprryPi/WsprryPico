@@ -1,6 +1,7 @@
 #include "network/api.hpp"
 
 #include "application/config_update.hpp"
+#include "application/frequency_policy.hpp"
 #include "application/resources.hpp"
 #include "encoding/wspr.hpp"
 #include "hardware/pins.hpp"
@@ -34,6 +35,109 @@ void append(std::string& output, InputView input) {
     }
 }
 } // namespace
+HttpResponse BrowserApi::public_status() {
+    if (!memory_admitted(4096))
+        return http_error(503, "resource_exhausted");
+    service_.poll();
+    const auto activity = service_.activity();
+    const auto clock = service_.clock_snapshot();
+    const char* clocks[] = {"unsynchronized", "synchronized", "holdover"};
+    return ok("{\"schema\":\"transmitter-public-status/1\",\"device_id\":" + json::quote(device_) +
+              ",\"boot_id\":" + json::quote(service_.status().boot_id) +
+              ",\"state\":" + json::quote(state_name(activity.state)) +
+              ",\"output_active\":" + (activity.output_active ? "true" : "false") +
+              ",\"owned\":" + (activity.owned ? "true" : "false") + ",\"clock_state\":" +
+              json::quote(clocks[static_cast<unsigned>(clock.state)]) + ",\"utc_now_ns\":" +
+              (clock.state == ClockState::Unsynchronized
+                   ? "null"
+                   : json::quote(std::to_string(clock.utc_now_ns))) +
+              ",\"uncertainty_ns\":" + json::quote(std::to_string(clock.uncertainty_ns)) +
+              ",\"engine\":" + json::quote(service_.config().capability_engine) + "}");
+}
+HttpResponse BrowserApi::message_schedule_resource(const HttpRequest& r) {
+    const bool pause = r.path == "/api/v1/message-schedule/pause";
+    const auto readback = [&] {
+        auto body = scheduler_.message_status();
+        auto result =
+            ok("{\"schema\":\"transmitter-message-schedule/1\",\"target\":" +
+               application::target(device_, service_.status().boot_id) +
+               ",\"writable\":" + (scheduler_.idle() && !pending_transaction_ ? "true" : "false") +
+               "," + body.substr(1));
+        result.etag = revision();
+        return result;
+    };
+    if (!store_.healthy())
+        return http_error(503, "storage_fault");
+    if (!memory_admitted(4096))
+        return http_error(503, "resource_exhausted");
+    if (r.method == "GET" && !pause)
+        return readback();
+    if ((!pause && r.method != "PUT") || (pause && r.method != "POST"))
+        return http_error(404, "not_found");
+    if (r.body_view().size() > 2048)
+        return http_error(413, "resource_body_too_large");
+    if (r.header("if-match").empty())
+        return http_error(428, "revision_required");
+    if (r.header("if-match") != revision())
+        return http_error(412, "revision_conflict");
+    if (pending_transaction_)
+        return http_error(409, "network_change_pending");
+    const auto root = json::parse(r.body_view());
+    if (!root)
+        return http_error(400, "invalid_json");
+    const auto envelope = application::validate_envelope(*root, "transmitter-message-schedule/1",
+                                                         pause ? "pause" : "schedule", device_,
+                                                         service_.status().boot_id);
+    if (envelope != application::Envelope::Valid)
+        return http_error(envelope == application::Envelope::TargetMismatch ? 409 : 400,
+                          envelope == application::Envelope::TargetMismatch ? "target_mismatch"
+                                                                            : "invalid_resource");
+    if (pause) {
+        if (root->get("pause")->raw != "true")
+            return http_error(400, "invalid_pause");
+        if (!scheduler_.pause_message())
+            return http_error(503, "message_pause_unconfirmed");
+        ++network_revision_;
+        auto result = readback();
+        if (scheduler_.message_pause_pending())
+            result.status = 202;
+        return result;
+    }
+    if (!scheduler_.idle())
+        return http_error(409, "busy");
+    auto schedule = standalone::parse_message_schedule(*root->get("schedule"));
+    if (!schedule)
+        return http_error(400, "invalid_message_schedule");
+    if (schedule->enabled && store_.config() && store_.config()->enabled)
+        return http_error(409, "wspr_schedule_enabled");
+    if (schedule->enabled && scheduler_.message_recovery_required())
+        return http_error(409, "message_recovery_required");
+    const auto measured = encoding::measure_message(schedule->message, service_.config().max_events,
+                                                    service_.config().max_job_duration_ns);
+    const auto period = std::uint64_t{schedule->period_s} * 1'000'000'000ULL;
+    if (!measured.error.empty() || scheduler_.message_lead_ns() > period ||
+        measured.calculated_duration_ns > period - scheduler_.message_lead_ns())
+        return http_error(400, "repeat_interval_too_short");
+    const auto allowed = [&](std::uint64_t frequency) {
+        const auto& config = store_.config();
+        return frequency >= service_.config().minimum_frequency_nhz &&
+               frequency <= service_.config().maximum_frequency_nhz &&
+               application::frequency_allowed(frequency,
+                                              config && config->allow_unqualified_frequency,
+                                              config && config->allow_non_amateur_frequency);
+    };
+    if (!allowed(schedule->message.mark_frequency_nhz) ||
+        (schedule->message.mode != "qrss" && !allowed(schedule->message.space_frequency_nhz)))
+        return http_error(400, "frequency_not_allowed");
+    if (!store_.message_schedule_fits(schedule))
+        return http_error(413, "saved_settings_too_large");
+    if (!store_.save_message_schedule(schedule))
+        return http_error(503, "message_schedule_unconfirmed");
+    if (!schedule->enabled && !store_.clear_message_flight())
+        return http_error(503, "message_pause_unconfirmed");
+    scheduler_.message_saved(schedule->enabled);
+    return readback();
+}
 std::optional<standalone::Config> BrowserApi::effective_config() const {
     if (!store_.healthy())
         return {};
@@ -630,6 +734,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return http_error(403, "cross_site_request");
     }
     service_.poll();
+    if (r.path == "/api/v1/message-schedule" || r.path == "/api/v1/message-schedule/pause")
+        return message_schedule_resource(r);
     if (local_usb && local_settings_ && r.path == "/api/usb/v1/wifi") {
         if (!local_settings_->healthy())
             return http_error(503, "storage_fault");
@@ -710,6 +816,11 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 ",\"message_jobs\":{\"operation\":\"LOAD_MESSAGE\",\"max_characters\":32,"
                 "\"tail_ns\":\"1000\",\"max_repeat_count\":512,\"modes\":[\"qrss\",\"fskcw\","
                 "\"dfcw\"]}"
+                ",\"message_schedule\":{\"schema\":\"transmitter-message-schedule/1\",\"path\":\"/"
+                "api/v1/message-schedule\",\"pause\":\"/api/v1/message-schedule/"
+                "pause\",\"min_period_s\":60,\"max_period_s\":86400,\"preparation_lead_ns\":" +
+                json::quote(std::to_string(scheduler_.message_lead_ns())) +
+                ",\"max_storage_bytes\":1984}"
                 ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
                 "\"application\":true,\"station\":true,\"hardware\":true,\"consumer_setup_"
                 "identity\":" +
@@ -733,8 +844,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "},"
                 "\"configuration_updates\":" +
                 application::config_update_capabilities() +
-                ",\"management_carriers\":{\"schema\":" +
-                json::quote(management_schema(carrier)) +
+                ",\"management_carriers\":{\"schema\":" + json::quote(management_schema(carrier)) +
                 ",\"path\":\"/api/"
                 "v1/management\"}"
                 ",\"active_job_connections\":" +
@@ -1244,6 +1354,12 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const auto validated = standalone::parse_config(candidate);
     if (!validated)
         return http_error(400, "invalid_config");
+    if (!store_.config_fits(*validated))
+        return http_error(413, "saved_settings_too_large");
+    if (validated->enabled && scheduler_.message_recovery_required())
+        return http_error(409, "message_recovery_required");
+    if (validated->enabled && store_.message_schedule() && store_.message_schedule()->enabled)
+        return http_error(409, "message_schedule_enabled");
     if (validated->enabled && !validated->wspr_dial_frequency_hz)
         return http_error(400, "standalone_frequency_required");
     const auto existing = effective_config();

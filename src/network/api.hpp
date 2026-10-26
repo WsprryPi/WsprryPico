@@ -29,6 +29,9 @@ class BrowserApi {
                         std::string_view authority, std::uint64_t transaction = 0,
                         ManagementCarrier carrier = ManagementCarrier::EngineeringStation);
     std::string revision() const;
+    // Small read-only projection for the admitted consumer page before login.
+    // No job contents, owner identity, settings, history or transport details.
+    HttpResponse public_status();
     void time_source(const time::ControllerTimeArbiter& arbiter) {
         time_arbiter_ = &arbiter;
     }
@@ -65,7 +68,9 @@ class BrowserApi {
         hostname_authority_ = std::move(authority);
     }
     // All calls are serialized by the application owner. Tokens are never reused.
-    bool mutation_pending() const { return pending_transaction_.has_value(); }
+    bool mutation_pending() const {
+        return pending_transaction_.has_value();
+    }
     bool access_change_ready() const {
         return scheduler_.idle() && !mutation_pending();
     }
@@ -107,6 +112,7 @@ class BrowserApi {
     std::uint64_t nominal_sample_hz_ = 0;
     ManagementAvailability management_;
     std::optional<standalone::Config> effective_config() const;
+    HttpResponse message_schedule_resource(const HttpRequest& request);
     HttpResponse config(bool drive = false, bool amplifier = false) const;
     HttpResponse gpio_drive() const;
     HttpResponse ntp_timeout() const;

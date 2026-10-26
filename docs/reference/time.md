@@ -10,7 +10,9 @@ The initial setup suggests **pool.ntp.org** as the time server. Keep that value 
 
 An Internet time server needs Internet access from the Pico. For an isolated network, use a reachable local NTP server or a supported controller-time connection. Opening the Pico's browser page does not by itself set its clock.
 
-Enter every **Start time (UTC)** and **Schedule expiry (UTC)** as UTC, even if the browser uses your usual date format. For example, a desired start of 12:10 UTC is entered as 12:10; do not substitute the time shown by your local clock. The [schedule examples](../configure.md#frequency-and-schedules) show UTC start times.
+**Start time (UTC)** and **Schedule expiry (UTC)** have UTC **Date** and **Time** controls. If either component is empty, opening either picker fills both with the current UTC date and time. Once both are valid, selecting a date preserves the time and selecting a time preserves the date. **Today (UTC)** and **Now (UTC)** also update only their respective component. The pickers use the Pico's most recently observed UTC clock when available, advanced by elapsed browser time; otherwise they use the browser's UTC clock. These defaults do not replace the Pico's clock admission checks.
+
+The text field accepts `YYYY-MM-DD HH:MM:SS`, with a 24-hour clock. Enter a future UTC time for a transmission start; the page rejects a past start before requesting transmitter ownership. Observation timestamps are labelled UTC as well. For example, a desired start of 12:10 UTC is entered as 12:10. The [schedule examples](../configure.md#frequency-and-schedules) show UTC start times.
 
 ## Read the clock status
 

@@ -104,6 +104,16 @@ int main(int argc, char** argv) {
     const auto expected_response = unhex(field(*root, "response_hex"));
     assert(response->body_text() ==
            std::string(expected_response.begin(), expected_response.end()));
+    const auto response_plain = field(*root, "response_plain");
+    const wtp::InputView response_view(response_plain);
+    const std::array<wtp::InputView, 4> parts{
+        response_view.substr(0, 1), {}, response_view.substr(1, 7), response_view.substr(8)};
+    auto segmented = crypto.seal_parts(parts, binding, 1);
+    assert(segmented && segmented->body_text() == response->body_text());
+    wtp::OutputBuffer owned;
+    assert(owned.reserve(response_plain.size()) && owned.append(response_view.at(0)));
+    auto inplace = crypto.seal_buffer(std::move(owned), binding, 1);
+    assert(inplace && inplace->body_text() == response->body_text());
     std::array<std::uint8_t, 32> request_key{};
     assert(network::bootstrap_unhex(field(*root, "request_key_hex"), request_key));
     const auto large_plain = "{\"pad\":\"" + std::string(32714, 'x') + "\"}";
@@ -130,6 +140,20 @@ int main(int argc, char** argv) {
     large.append(large_bytes);
     auto opened = crypto.open(large, binding, 2);
     assert(opened && opened->size() == 32724 && wtp::json::parse(*opened));
+    // A maximum-size paged reply and boundaries inside cipher blocks must
+    // produce exactly the same authenticated bytes as one contiguous value.
+    auto large_response = crypto.seal(large_plain, binding, 2);
+    const std::array<wtp::InputView, 4> large_parts{
+        opened->substr(0, 3), opened->substr(3, 4100), {}, opened->substr(4103)};
+    auto large_segmented = crypto.seal_parts(large_parts, binding, 2);
+    assert(large_response && large_segmented &&
+           large_response->body_text() == large_segmented->body_text());
+    assert(owned.reserve(large_plain.size()));
+    assert(owned.append(wtp::InputView(large_plain).at(0)));
+    inplace = crypto.seal_buffer(std::move(owned), binding, 2);
+    assert(inplace && inplace->body_text() == large_response->body_text());
+    const std::array<wtp::InputView, 2> oversized{*opened, wtp::InputView(" ")};
+    assert(!crypto.seal_parts(oversized, binding, 2));
     auto altered = binding;
     ++altered.generation;
     request = packet(field(*root, "request_hex"));

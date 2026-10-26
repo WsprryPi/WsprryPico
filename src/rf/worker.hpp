@@ -19,6 +19,9 @@ class WorkerEngine final : public wtp::RfEngine {
                  Failure failure, Mask mask, Restore restore);
     // Worker owner only; call continuously, including with no commands.
     void step();
+    std::size_t preparation_memory_bytes(const wtp::Job& job) const override {
+        return engine_.preparation_memory_bytes(job);
+    }
     wtp::PrepareResult prepare(const wtp::Job&) override;
     bool set_frequency_correction_ppb(std::int32_t) override;
     bool schedules_locally() const override {

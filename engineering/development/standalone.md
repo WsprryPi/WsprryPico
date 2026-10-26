@@ -502,3 +502,13 @@ clock, frequency-policy and WSPR-plan tests exercise corruption/interruption,
 rotation, repeated/backward slots, competing ownership, failed reservation and
 preparation, time loss/uncertainty and complete local job behavior. Simulation
 and cross-linking establish neither device timing nor conducted RF performance.
+
+## Saved message recurrence
+
+The standalone Scheduler also dispatches one saved QRSS, FSKCW or DFCW template through the existing JobService. `MessageSchedule` uses a UTC first-start anchor, a whole-minute period of 60–86,400 seconds and optional UTC expiry. The next start is the grid ceiling after current UTC plus preparation lead and after the consumed watermark. The complete immutable job must fit the interval and expiry. Late or occupied occurrences are skipped. The UTC grid and consumed-start rule derive from WsprryPi devel `5bc24e893646140d44f0bf9a20d61115d0eadda9`, `src/wtp_integration/fleet_schedule.cpp`, under MIT; they do not use the older local-time hourly scheduler.
+
+The existing 2 KiB configuration journal stores an internal `standalone-state/3` envelope containing legacy Config or null and the message profile. Legacy Config API views remain unchanged and subsequent Config saves preserve the profile. The combined payload limit is 1,984 bytes. With no profile, legacy storage remains unchanged. A reader that cannot parse the newest envelope fails closed rather than restoring an older enabled record. Preserving downgrade to older firmware is unsupported after a profile is saved.
+
+The existing 256-byte cursor journal accepts legacy decimal watermarks or `standalone-cursor/2`, containing the consumed watermark, last message start and a message-in-flight barrier. The barrier is persisted before LOAD/ARM and cleared only after the matching successful terminal result, inactive output and safe release. Reset, lost outcome or failure retains it and blocks autonomous recurrence until an explicit idle pause acknowledges recovery. No flash regions, WTP authority or job limits change. Enabled autonomous WSPR and message profiles are mutually exclusive.
+
+Pause does not abort or release another owner's work. While a job runs, pause is pending in RAM; once idle, the disabled profile and cleared barrier are saved before confirmation. Power loss before that confirmation can lose the pending pause, while the durable in-flight barrier still prevents replay. USB updates require a confirmed paused profile without recovery or pending state; installer snapshots compare the saved profile after upgrade. Factory operational erasure removes the profile and cursor, while preserving provisioning operations retain them.

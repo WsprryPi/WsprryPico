@@ -181,16 +181,21 @@ std::optional<wtp::InputView> PicoConsumerRadioCrypto::open(wtp::FrameBuffer& pa
         return {};
     return decrypt(packet, binding, sequence, request_key_);
 }
-std::optional<HttpResponse> PicoConsumerRadioCrypto::seal(wtp::InputView plaintext,
-                                                          const ConsumerRadioBinding& binding,
-                                                          std::uint64_t sequence) {
-    if (!authenticated_ ||
-        plaintext.size() > max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes ||
-        transcript_hash_ != consumer_radio_digest(binding))
+std::optional<HttpResponse>
+PicoConsumerRadioCrypto::seal_parts(std::span<const wtp::InputView> plaintext,
+                                    const ConsumerRadioBinding& binding, std::uint64_t sequence) {
+    std::size_t size = 0;
+    for (const auto part : plaintext) {
+        if (part.size() >
+            max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes - size)
+            return {};
+        size += part.size();
+    }
+    if (!authenticated_ || transcript_hash_ != consumer_radio_digest(binding))
         return {};
     HttpResponse response{200, "", "application/octet-stream", {}};
     const auto header = consumer_radio_header(binding.session, sequence);
-    if (!response.buffered_body.reserve(header.size() + plaintext.size() + 16) ||
+    if (!response.buffered_body.reserve(header.size() + size + 16) ||
         !response.buffered_body.append(header))
         return {};
     const auto iv = nonce(sequence);
@@ -202,12 +207,15 @@ std::optional<HttpResponse> PicoConsumerRadioCrypto::seal(wtp::InputView plainte
                  mbedtls_chachapoly_update_aad(&context, associated.data(), associated.size()) == 0;
     std::array<std::uint8_t, 1024> bytes{};
     std::array<std::uint8_t, 16> tag{};
-    for (std::size_t at = 0; valid && at < plaintext.size();) {
-        auto part = plaintext.at(at);
-        part = part.first(std::min(part.size(), bytes.size()));
-        valid = mbedtls_chachapoly_update(&context, part.size(), part.data(), bytes.data()) == 0 &&
+    for (const auto view : plaintext) {
+        for (std::size_t at = 0; valid && at < view.size();) {
+            auto part = view.at(at);
+            part = part.first(std::min(part.size(), bytes.size()));
+            valid =
+                mbedtls_chachapoly_update(&context, part.size(), part.data(), bytes.data()) == 0 &&
                 response.buffered_body.append(std::span(bytes).first(part.size()));
-        at += part.size();
+            at += part.size();
+        }
     }
     valid = valid && mbedtls_chachapoly_finish(&context, tag.data()) == 0 &&
             response.buffered_body.append(tag);
@@ -217,6 +225,38 @@ std::optional<HttpResponse> PicoConsumerRadioCrypto::seal(wtp::InputView plainte
     if (!valid)
         return {};
     return response;
+}
+std::optional<HttpResponse>
+PicoConsumerRadioCrypto::seal_buffer(wtp::OutputBuffer plaintext,
+                                     const ConsumerRadioBinding& binding, std::uint64_t sequence) {
+    const auto size = plaintext.size();
+    if (!authenticated_ ||
+        size > max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes ||
+        transcript_hash_ != consumer_radio_digest(binding))
+        return {};
+    const auto header = consumer_radio_header(binding.session, sequence);
+    if (!plaintext.reserve(header.size() + size + consumer_radio_tag_bytes) ||
+        !plaintext.prepend(header))
+        return {};
+    const auto iv = nonce(sequence);
+    const auto associated = aad(binding, sequence);
+    mbedtls_chachapoly_context context;
+    mbedtls_chachapoly_init(&context);
+    bool valid = mbedtls_chachapoly_setkey(&context, response_key_.data()) == 0 &&
+                 mbedtls_chachapoly_starts(&context, iv.data(), MBEDTLS_CHACHAPOLY_ENCRYPT) == 0 &&
+                 mbedtls_chachapoly_update_aad(&context, associated.data(), associated.size()) == 0;
+    for (std::size_t at = header.size(); valid && at < header.size() + size;) {
+        auto part = plaintext.mutable_at(at);
+        valid = mbedtls_chachapoly_update(&context, part.size(), part.data(), part.data()) == 0;
+        at += part.size();
+    }
+    std::array<std::uint8_t, consumer_radio_tag_bytes> tag{};
+    valid = valid && mbedtls_chachapoly_finish(&context, tag.data()) == 0 && plaintext.append(tag);
+    mbedtls_chachapoly_free(&context);
+    wipe(tag);
+    if (!valid)
+        return {};
+    return HttpResponse{200, "", "application/octet-stream", {}, std::move(plaintext)};
 }
 void PicoConsumerRadioCrypto::clear() {
     if (private_key_) {

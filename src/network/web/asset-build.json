@@ -2,7 +2,7 @@
   "schema": "operator-assets/1",
   "tool": "esbuild/0.28.2",
   "target": "es2020",
-  "recipe_sha256": "fe9ff0df7612cd654800b575d1c27a6267f686fa56e908f7aada8a60514d25a9",
+  "recipe_sha256": "771e031c75d883407ac23b51aa9205faff8bf6121c9460e1e77d818f58402a4e",
   "groups": {
     "app.min.js": {
       "inputs": {
@@ -12,10 +12,12 @@
         "gpio-drive.js": "012c3c98032384077e86525a6bc3aa19a0dfc7d91ed73deb90205eaf8cd6a70f",
         "ntp-timeout.js": "890e4a2d60ac40b4923e80427d8d1e2fef6b5fb2c58f8c22ad3fc6c2759e65a5",
         "saved-progress.js": "eda273462a85879a5060d72d9380c3d7834d50f75c4cdbc9b12c10e7e2232195",
-        "app.js": "cb64b74df377a5fa8a570153ae23b45e4e3d48e6f510667bf7d1bc9536fe1dff"
+        "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
+        "message-schedule.js": "a692a0bd0fcbcfde4f2852c93f3fb6a5290beaea713ec24c2a4023389fd6858e",
+        "app.js": "01e1bb892aeefdbc0764325548db2877a2f14329a417f0b30ba68a7cf4a04eac"
       },
-      "sha256": "4ae1c9d873b32480299b001e61629e23c41cac3c694cd4f0c52e2395a8931167",
-      "bytes": 117392
+      "sha256": "f96eaea457f16e4fa4a5db1f7a21b14177988ad8842b13993945975a03b5ba4d",
+      "bytes": 136378
     },
     "config-validation.min.js": {
       "inputs": {

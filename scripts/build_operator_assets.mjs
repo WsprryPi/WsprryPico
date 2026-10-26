@@ -10,7 +10,7 @@ const require=createRequire(new URL('../src/network/bootstrap_web/package.json',
 const esbuild=require('esbuild');
 if(esbuild.version!=='0.28.2') throw Error('Operator assets require pinned esbuild 0.28.2');
 const groups={
-  'app.min.js':['standalone-frequency.js','rf-calibration.js','amplifier-enable.js','gpio-drive.js','ntp-timeout.js','saved-progress.js','app.js'],
+  'app.min.js':['standalone-frequency.js','rf-calibration.js','amplifier-enable.js','gpio-drive.js','ntp-timeout.js','saved-progress.js','utc-datetime.js','message-schedule.js','app.js'],
   'config-validation.min.js':['config-validation.js'],
   'device-presentation.min.js':['device-presentation.js'],
   'organization.min.js':['organization.js']

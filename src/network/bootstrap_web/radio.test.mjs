@@ -186,3 +186,18 @@ test('nonce RNG failure scrubs generated radio and setup private keys before ret
   }
  } finally {Object.defineProperty(globalThis,'crypto',{configurable:true,value:original});}
 });
+
+test('public transmitter status is a bounded read without authentication or renewal',async()=>{
+  const value={schema:'transmitter-public-status/1',device_id:id.device_id,boot_id:id.boot_id,state:'running',output_active:true,owned:true,clock_state:'synchronized',utc_now_ns:'1793000000000000000',uncertainty_ns:'1000',engine:'pio-dma-gp2'};
+  let result=value, reads=0;
+  const client=new RadioClient(async(path,options)=>{
+    reads++;assert.equal(path,'/api/consumer/v1/status');assert.equal(options.body,undefined);
+    assert.equal(options.credentials,'omit');assert.equal(options.cache,'no-store');
+    return Response.json(result);
+  });
+  assert.deepEqual(await client.publicStatus(),value);assert.equal(client.authenticated,false);
+  for(const patch of [{owner_id:'private'},{state:'unknown'},{owned:'yes'},{uncertainty_ns:'-1'},{utc_now_ns:'18446744073709551616'},{engine:'bad\nengine'},{device_id:'wrong'}]){
+    result={...value,...patch};await assert.rejects(client.publicStatus());
+  }
+  assert.equal(reads,8);
+});

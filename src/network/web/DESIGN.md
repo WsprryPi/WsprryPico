@@ -194,6 +194,12 @@ requires fresh readback and the explicit Use entry for this Pico action before
 saving. A refused or unconfirmed save preserves the entry and requires another
 read; the browser does not repeat the save automatically.
 
+### UTC date and time
+
+Start times and schedule expiry use one UTC text field with adjacent Date and Time buttons. The field accepts an ISO date and a 24-hour time; both spaces and the ISO T separator are accepted. The UTC calendar and time selector replace the operating system's local-time popup. Opening either picker completes both components from current UTC when either is empty, while later selections preserve the other component. Complete invalid drafts remain visible for correction. Calendar navigation, Escape dismissal and focus return stay within the existing native-button and visible-focus treatment.
+
+Calendar arithmetic and Today/Now actions use UTC, including near local midnight and daylight-saving changes. Observation timestamps name UTC, and past start values are rejected before job ownership is requested. The Pico remains the authority for clock readiness and final ARM admission.
+
 ### Finite-message preview
 
 QRSS, FSKCW, and DFCW accept at most 32 characters including spaces. The preview
@@ -273,3 +279,5 @@ The consumer login label is Pico password. Its default is the saved Wi-Fi passwo
 ### NTP update timeout
 
 The timeout control follows the existing native fieldset and read/save/discard pattern in Schedules and radio pins. It uses whole minutes, defaults to 60 minutes, and keeps saved and active values separate. Reads remain available during a transmission; saves require inactive, unowned output and a current target/revision. The help explains restart activation and the independent timing-uncertainty limit. Unconfirmed writes require readback before another save, and changing Pico identity preserves the entry behind explicit review.
+
+Transmission length appears immediately below the message and uses the same exact timing calculation as job submission. It updates before a frequency is entered and includes repeats, gaps and the final tail. Signed-out status uses a bounded public projection with five-second polling; unavailable readings become unknown without granting access to settings or job controls. Initial unauthenticated page load focuses the Pico password only if the user has not already focused another control. Subsequent status updates preserve both focus and password drafts.

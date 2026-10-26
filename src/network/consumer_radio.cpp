@@ -637,10 +637,15 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
     const auto prefix = "{\"status\":" + std::to_string(result.status) + ",\"etag\":" +
                         (result.etag.empty() ? "null" : wtp::json::quote(result.etag)) +
                         ",\"body\":";
-    wtp::FrameBuffer envelope;
     const auto size = prefix.size() + result.body_size() + 1;
+    // BrowserApi returns one JSON value. Validate its existing storage, then
+    // borrow its pages between the small envelope delimiters during sealing.
+    const auto body = !result.buffered_body.empty() ? result.buffered_body.view()
+                      : !result.static_body.empty() ? wtp::InputView(result.static_body)
+                                                    : wtp::InputView(result.body);
     if (size > max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes ||
-        !wtp::memory_admitted(size * 2 + 4096) || !envelope.reserve(size)) {
+        !result.static_parts.empty() || !wtp::json::parse(body) ||
+        !wtp::memory_admitted(result.buffered_body.empty() ? size + 4096 : 8192)) {
         finish_request(transaction, false);
         if (password_saved)
             close();
@@ -648,22 +653,20 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
             close(session);
         return http_error(503, "radio_response_unavailable");
     }
-    envelope.append(wtp::InputView(prefix));
-    for (std::size_t at = 0; at < result.body_size();) {
-        const auto part = result.body_at(at);
-        envelope.append(part);
-        at += part.size();
+    std::optional<HttpResponse> response;
+    if (!result.buffered_body.empty()) {
+        // Grow only the final partial page and framing headroom, then transfer
+        // the JSON pages to the cipher instead of allocating a second reply.
+        auto envelope = std::move(result.buffered_body);
+        if (envelope.reserve(size + consumer_radio_header_bytes + consumer_radio_tag_bytes) &&
+            envelope.prepend(wtp::InputView(prefix).at(0)) &&
+            envelope.append(wtp::InputView("}").at(0)))
+            response = session.crypto->seal_buffer(std::move(envelope), session.binding, sequence);
+    } else {
+        const std::array<wtp::InputView, 3> parts{wtp::InputView(prefix), body,
+                                                  wtp::InputView("}")};
+        response = session.crypto->seal_parts(parts, session.binding, sequence);
     }
-    envelope.append(wtp::InputView("}"));
-    if (!wtp::json::parse(envelope.view())) {
-        finish_request(transaction, false);
-        if (password_saved)
-            close();
-        else
-            close(session);
-        return http_error(503, "radio_response_unavailable");
-    }
-    auto response = session.crypto->seal(envelope.view(), session.binding, sequence);
     if (password_saved) {
         password_sequence_ = password_store_->sequence();
         password_digest_ = password_digest();
@@ -683,6 +686,17 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
         return http_error(409, "consumer_radio_unavailable");
     if (!page_admitted(request, interface))
         return http_error(403, "forbidden");
+    if (request.path == "/api/consumer/v1/status" && request.method == "GET") {
+        auto host = request.header("host");
+        if (host.ends_with(":80"))
+            host.remove_suffix(3);
+        if ((!request.header("origin").empty() &&
+             request.header("origin") != "http://" + std::string(host)) ||
+            (!request.header("sec-fetch-site").empty() &&
+             request.header("sec-fetch-site") != "same-origin"))
+            return http_error(403, "forbidden");
+        return api_.public_status();
+    }
     if (request.path == "/api/consumer/v1/presentation" && request.method == "GET")
         return {200,
                 "{\"schema\":\"device-presentation/1\",\"device_id\":" + wtp::json::quote(device_) +

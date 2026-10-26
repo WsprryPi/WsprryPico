@@ -1,4 +1,5 @@
 #include "standalone/storage.hpp"
+
 #include "standalone/progress.hpp"
 
 #include <algorithm>
@@ -117,30 +118,82 @@ bool Journal::append(std::string_view data) {
     data_ = data;
     return true;
 }
+namespace {
+std::string state_record(const std::optional<Config>& config,
+                         const std::optional<MessageSchedule>& schedule) {
+    const auto c = config ? serialize_config(*config) : "null";
+    if (!schedule)
+        return config ? c : "";
+    return "{\"schema\":\"standalone-state/3\",\"config\":" + c +
+           ",\"message_schedule\":" + serialize_message_schedule(*schedule) + "}";
+}
+} // namespace
 bool Store::load(bool reset_recovery) {
     healthy_ = false;
     current_.reset();
+    message_.reset();
+    message_in_flight_ = false;
     watermark_ = 0;
+    last_message_start_ = 0;
     if (!config_.load(reset_recovery) || !cursor_.load())
         return false;
     if (!config_.data().empty()) {
-        current_ = parse_config(config_.data());
-        if (!current_)
+        const auto root = wtp::json::parse(config_.data());
+        if (!root)
             return false;
+        if (root->get("schema")) {
+            if (!wtp::json::fields(*root, {"schema", "config", "message_schedule"}) ||
+                root->get("schema")->string() != "standalone-state/3")
+                return false;
+            if (root->get("config")->raw != "null") {
+                current_ = parse_config(std::string(root->get("config")->raw));
+                if (!current_)
+                    return false;
+            }
+            message_ = parse_message_schedule(*root->get("message_schedule"));
+            if (!message_ || (current_ && current_->enabled && message_->enabled))
+                return false;
+        } else {
+            current_ = parse_config(config_.data());
+            if (!current_)
+                return false;
+        }
     }
     if (!cursor_.data().empty()) {
         const auto& value = cursor_.data();
-        const auto result = std::from_chars(value.data(), value.data() + value.size(), watermark_);
-        if (result.ec != std::errc{} || result.ptr != value.data() + value.size() ||
-            watermark_ == 0)
-            return false;
+        if (value.starts_with('{')) {
+            const auto cursor = wtp::json::parse(value);
+            if (!cursor ||
+                !wtp::json::fields(*cursor, {"schema", "watermark_ns", "message_in_flight",
+                                             "last_message_start_ns"}) ||
+                cursor->get("schema")->string() != "standalone-cursor/2" ||
+                !wtp::json::decimal(*cursor->get("watermark_ns"), watermark_, true))
+                return false;
+            if (!wtp::json::decimal(*cursor->get("last_message_start_ns"), last_message_start_) ||
+                last_message_start_ > watermark_)
+                return false;
+            const auto flight = cursor->get("message_in_flight")->raw;
+            if (flight != "true" && flight != "false")
+                return false;
+            message_in_flight_ = flight == "true";
+            if (message_in_flight_ && last_message_start_ != watermark_)
+                return false;
+        } else {
+            const auto result =
+                std::from_chars(value.data(), value.data() + value.size(), watermark_);
+            if (result.ec != std::errc{} || result.ptr != value.data() + value.size() ||
+                watermark_ == 0)
+                return false;
+        }
     }
     healthy_ = true;
     return true;
 }
 bool Store::save(const Config& config) {
-    const auto text = serialize_config(config);
-    if (!healthy() || !parse_config(text))
+    const auto legacy = serialize_config(config);
+    const auto text = state_record(config, message_);
+    if (!healthy() || !parse_config(legacy) || text.size() > max_state_bytes ||
+        (config.enabled && message_ && message_->enabled))
         return false;
     if (!config_.append(text)) {
         healthy_ = false;
@@ -149,15 +202,56 @@ bool Store::save(const Config& config) {
     current_ = config;
     return true;
 }
-bool Store::reserve(std::uint64_t utc_ns) {
-    if (!healthy() || utc_ns <= watermark_)
+bool Store::config_fits(const Config& config) const {
+    return state_record(config, message_).size() <= max_state_bytes;
+}
+bool Store::message_schedule_fits(const std::optional<MessageSchedule>& schedule) const {
+    return state_record(current_, schedule).size() <= max_state_bytes;
+}
+bool Store::save_message_schedule(const std::optional<MessageSchedule>& schedule) {
+    if (!healthy() || !message_schedule_fits(schedule) ||
+        (schedule && schedule->enabled && current_ && current_->enabled))
         return false;
-    if (!cursor_.append(std::to_string(utc_ns))) {
+    if (schedule) {
+        const auto encoded = serialize_message_schedule(*schedule);
+        const auto parsed = wtp::json::parse(encoded);
+        if (!parsed || !parse_message_schedule(*parsed))
+            return false;
+    }
+    if (!config_.append(state_record(current_, schedule))) {
+        healthy_ = false;
+        return false;
+    }
+    message_ = schedule;
+    return true;
+}
+bool Store::reserve_cursor(std::uint64_t utc_ns, bool flight) {
+    const auto message_start = flight ? utc_ns : last_message_start_;
+    const auto data =
+        message_ || flight || message_start
+            ? "{\"schema\":\"standalone-cursor/2\",\"watermark_ns\":" +
+                  wtp::json::quote(std::to_string(utc_ns)) +
+                  ",\"message_in_flight\":" + (flight ? "true" : "false") +
+                  ",\"last_message_start_ns\":" + wtp::json::quote(std::to_string(message_start)) +
+                  "}"
+            : std::to_string(utc_ns);
+    if (!cursor_.append(data)) {
         healthy_ = false;
         return false;
     }
     watermark_ = utc_ns;
+    last_message_start_ = message_start;
+    message_in_flight_ = flight;
     return true;
+}
+bool Store::reserve(std::uint64_t utc_ns) {
+    return healthy() && !message_in_flight_ && utc_ns > watermark_ && reserve_cursor(utc_ns, false);
+}
+bool Store::reserve_message(std::uint64_t utc_ns) {
+    return healthy() && !message_in_flight_ && utc_ns > watermark_ && reserve_cursor(utc_ns, true);
+}
+bool Store::clear_message_flight() {
+    return healthy() && (!message_in_flight_ || reserve_cursor(watermark_, false));
 }
 bool Store::healthy() const {
     return healthy_ && (!progress_ || progress_->healthy());

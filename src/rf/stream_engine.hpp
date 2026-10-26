@@ -63,6 +63,7 @@ class StreamEngine final : public wtp::RfEngine {
         return failure_;
     }
     bool set_frequency_correction_ppb(std::int32_t ppb) override;
+    std::size_t preparation_memory_bytes(const wtp::Job& job) const override;
     wtp::PrepareResult prepare(const wtp::Job& job) override;
     [[nodiscard]] bool schedules_locally() const override {
         return sink_.schedules_locally();

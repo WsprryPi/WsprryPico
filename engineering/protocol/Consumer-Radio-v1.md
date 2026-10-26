@@ -59,6 +59,8 @@ The server records the actual interface and Host at successful start. Finish
 and request must match that context. This is server-side session binding;
 it does not add origin bytes to the unchanged cryptographic transcript.
 
+Public GET `/api/consumer/v1/status` returns the closed `transmitter-public-status/1` projection: `schema`, lowercase 32-hex `device_id` and `boot_id`, WTP `state`, Boolean `output_active` and `owned`, `clock_state`, decimal-string `utc_now_ns` (null when unsynchronized), decimal-string `uncertainty_ns`, and `engine`. It follows the same listener, Host, Origin and resource-admission rules as public identity. It does not create or renew a login, claim ownership or alter a job. It exposes no owner ID, job ID, message, settings, credentials or history. Settings, detailed status and mutations still require authenticated encrypted requests. The operator page polls this projection every five seconds while signed out and shows unavailable readings as unknown.
+
 POST `/api/consumer/v1/start`, JSON, exactly:
 `version`, `device_id`, `boot_id`, `generation`, `public_key`, `nonce`.
 The browser supplies an ephemeral X25519 public key (canonical unpadded

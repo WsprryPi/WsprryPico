@@ -58,8 +58,19 @@ class ConsumerRadioCrypto {
     // after the complete AEAD tag has authenticated.
     virtual std::optional<wtp::InputView>
     open(wtp::FrameBuffer& packet, const ConsumerRadioBinding& binding, std::uint64_t sequence) = 0;
-    virtual std::optional<HttpResponse>
-    seal(wtp::InputView plaintext, const ConsumerRadioBinding& binding, std::uint64_t sequence) = 0;
+    std::optional<HttpResponse> seal(wtp::InputView plaintext, const ConsumerRadioBinding& binding,
+                                     std::uint64_t sequence) {
+        return seal_parts(std::span(&plaintext, 1), binding, sequence);
+    }
+    // Encrypt borrowed reply pages without retaining another full plaintext
+    // envelope. Parts form one authenticated message with the same wire format.
+    virtual std::optional<HttpResponse> seal_parts(std::span<const wtp::InputView> plaintext,
+                                                   const ConsumerRadioBinding& binding,
+                                                   std::uint64_t sequence) = 0;
+    // Consume and encrypt an owned paged reply in place.
+    virtual std::optional<HttpResponse> seal_buffer(wtp::OutputBuffer plaintext,
+                                                    const ConsumerRadioBinding& binding,
+                                                    std::uint64_t sequence) = 0;
     virtual void clear() = 0;
 };
 

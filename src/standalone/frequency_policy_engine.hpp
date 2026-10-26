@@ -14,6 +14,9 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
                           std::uint64_t minimum_frequency_nhz, std::uint64_t maximum_frequency_nhz)
         : engine_(engine), store_(store), minimum_(minimum_frequency_nhz),
           maximum_(maximum_frequency_nhz) {}
+    std::size_t preparation_memory_bytes(const wtp::Job& job) const override {
+        return engine_.preparation_memory_bytes(job);
+    }
     wtp::PrepareResult prepare(const wtp::Job& job) override;
     // Sole correction authority; external setters cannot bypass persisted selection.
     bool set_frequency_correction_ppb(std::int32_t) override {

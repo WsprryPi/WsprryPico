@@ -111,6 +111,16 @@ bool StreamEngine::set_frequency_correction_ppb(std::int32_t ppb) {
     return true;
 }
 
+std::size_t StreamEngine::preparation_memory_bytes(const wtp::Job& job) const {
+    const auto marks = std::count_if(job.events.begin(), job.events.end(),
+                                     [](const auto& event) { return event.rf_on; });
+    // Plan segments and one exactly reserved adjustment vector coexist. The
+    // compact retained list may coexist with that vector as well. Fixed slack
+    // covers its shared metadata, allocator bookkeeping and bounded job fields.
+    return 4096 + job.events.size() * sizeof(Segment) +
+           marks * (sizeof(wtp::FrequencyAdjustment) + sizeof(std::uint16_t));
+}
+
 wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
     if (state_ != wtp::EngineState::Idle || output_active()) {
         return {};
@@ -120,6 +130,13 @@ wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
         return {};
     }
     wtp::PrepareResult result{true, {}};
+    const auto adjustments = std::count_if(
+        candidate->segments.begin(), candidate->segments.end(), [&](const auto& segment) {
+            const auto index = &segment - candidate->segments.data();
+            return segment.increment &&
+                   realized_nhz(segment.increment) != *job.events[index].frequency_nhz;
+        });
+    result.adjustments.reserve(adjustments);
     for (std::size_t i = 0; i < candidate->count; ++i) {
         if (candidate->segments[i].increment != 0) {
             const auto realized = realized_nhz(candidate->segments[i].increment);

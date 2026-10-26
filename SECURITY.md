@@ -30,3 +30,5 @@ Ordinary flash storage provides no confidentiality guarantee.
 
 Never publish passwords, access-sector contents, private keys,
 credential-bearing firmware or generated private build headers.
+
+The consumer operator page exposes a read-only public transmitter projection at `/api/consumer/v1/status`: device/boot identity, job state, RF output activity, whether the transmitter is reserved, clock state/time/uncertainty and engine. Owner IDs, job IDs, messages, settings, history and credentials are omitted. Host and same-origin request checks remain enforced; public reads do not authenticate a browser or renew a login.

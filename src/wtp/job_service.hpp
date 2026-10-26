@@ -465,6 +465,12 @@ class RfEngine {
   public:
     static constexpr std::uint64_t maximum_completion_acknowledgement_ns = 100'000;
     virtual ~RfEngine() = default;
+    // Additional heap needed while preparing an already decoded job, including
+    // its adjustment result. Pure sizing only: adapters may call this from the
+    // application core before transferring execution to an RF worker.
+    [[nodiscard]] virtual std::size_t preparation_memory_bytes(const Job&) const {
+        return 32768;
+    }
     virtual PrepareResult prepare(const Job& job) = 0;
     // Application calibration freezes for an ownership lifetime (including pairs).
     virtual void calibration_boundary() {}

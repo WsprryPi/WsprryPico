@@ -816,7 +816,9 @@ int main() {
     };
     static wsprrypico::usb::Maintenance usb_maintenance(
         service, identities.device_id(), service.status().boot_id,
-        [&] { return local_usb_ready() && !bootstrap.setup_pending() && !browser_api.mutation_pending(); },
+        [&] { return local_usb_ready() && !bootstrap.setup_pending() && !browser_api.mutation_pending() &&
+                   (!store.message_schedule() || !store.message_schedule()->enabled) &&
+                   !store.message_in_flight() && !scheduler.message_pause_pending(); },
         [&] { return scheduler.idle() && (!scheduler.suspended() || !store.config()); },
         [&] { return browser_api.revision(); },
         [&] { return std::to_string(store.watermark()); },
@@ -1935,6 +1937,8 @@ int main() {
             const auto update_activity = service.activity();
             const bool update_safe = service.maintenance() && service.verification_safe() && store.healthy() &&
                 progress.healthy() && profile_store.healthy() && (!scheduler.suspended() || !store.config()) &&
+                (!store.message_schedule() || !store.message_schedule()->enabled) &&
+                !store.message_in_flight() && !scheduler.message_pause_pending() &&
                 !bootstrap.setup_pending() && !bootstrap.owner_claim_pending() &&
                 !reset_coordinator.pending() && !browser_api.mutation_pending() &&
                 !update_activity.owned && !update_activity.output_active &&

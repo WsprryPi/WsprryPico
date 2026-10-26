@@ -242,6 +242,22 @@ class InstallerTests(unittest.TestCase):
             changed=copy.deepcopy(snapshot);changed['frequency']['frequency_hz']=wrong
             self.assertNotEqual(before,installer.saved_semantics(changed))
 
+    def test_message_schedule_preservation_and_update_admission(self):
+        snapshot = dict(config={'config':None},progress={'fields':{},'draft_revision':'0'},
+                        hostname={'saved':None},frequency={'frequency_hz':None},calibration={'saved':None},
+                        status={'job':dict(state='empty',output_active=False,owner_id=None),
+                                'standalone':dict(suspended=False,watermark_utc_ns='0')})
+        installer.admit_snapshot(snapshot)  # Legacy firmware has no message profile.
+        legacy = installer.saved_semantics(snapshot)
+        snapshot['message_schedule'] = dict(schema='transmitter-message-schedule/1',state='paused',
+                                           pause_pending=False,saved={'enabled':False,'message':{'message':'E'}})
+        installer.admit_snapshot(snapshot)
+        self.assertNotEqual(legacy,installer.saved_semantics(snapshot))
+        for change in ({'state':'waiting'}, {'pause_pending':True}, {'state':'recovery_required'},
+                       {'saved':{'enabled':True}}, {'schema':'future/2'}):
+            changed=copy.deepcopy(snapshot);changed['message_schedule'].update(change)
+            with self.assertRaises(installer.Refusal):installer.admit_snapshot(changed)
+
     def test_explicit_beta_final_metadata_and_stable_selection_keep_canonical_provenance(self):
         for version in ('1.0.0-beta.1','1.0.0','1.0.0+build.001'):
             for branch in ('main','devel'):

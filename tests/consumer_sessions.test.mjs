@@ -48,6 +48,25 @@ async function run(name,fn) {
   finally {await f.stop();}
 }
 if(import.meta.url===new URL(process.argv[1],'file:').href) {
+await run('recurring message profile uses authenticated encrypted management and survives reboot',async f=>{
+  const a=f.client();await f.login(a);
+  const read=await a.request('message-schedule'),resource=await read.json();
+  assert.equal(resource.schema,'transmitter-message-schedule/1');
+  const saved={enabled:false,first_start_utc_ns:'1793001605000000000',period_s:1200,expires_utc_s:0,
+    message:{mode:'dfcw',message:'CQ AA0NT',frequency_nhz:'10140000000000000',space_frequency_nhz:'10140005000000000',
+      timing:{dot_ns:'1000000000',dash_ns:'3000000000',intra_gap_ns:'1000000000',character_gap_ns:'3000000000',word_gap_ns:'7000000000'},
+      repeat_count:1,repeat_gap_ns:'3000000000',allow_frequency_adjustment:true}};
+  const body={schema:resource.schema,target:resource.target,schedule:saved};
+  assert.equal((await a.request('message-schedule','PUT',body)).status,428);
+  const changed=await a.request('message-schedule','PUT',body,read.headers.get('etag'));
+  assert.equal(changed.status,200);assert.deepEqual((await changed.json()).saved,saved);
+  await f.command({op:'reboot'});await f.time(2000);await f.login(a);
+  const after=await a.request('message-schedule'),observed=await after.json();
+  assert.deepEqual(observed.saved,saved);assert.equal(observed.state,'paused');
+  const pause=await a.request('message-schedule/pause','POST',{schema:observed.schema,target:observed.target,pause:true},after.headers.get('etag'));
+  assert.equal(pause.status,200);assert.equal((await pause.json()).pause_pending,false);
+});
+
 await run('separate Pico password persists, rejects stale saves and retires all browser logins',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   const read=await a.request('consumer/password'),state=await read.json();
@@ -142,8 +161,9 @@ await run('server expires idle and absolute sessions even when a client keeps it
   a.now=()=>1000;
   await f.time(301000);assert.equal(a.authenticated,true);
   await a.identity(); // Public traffic does not renew authenticated idle time.
+  assert.equal((await a.publicStatus()).state,'empty');
   await f.time(1800999);assert.equal((await a.request('status')).status,200);
-  await f.time(3600998);await a.identity();assert.equal(a.authenticated,true);
+  await f.time(3600998);await a.identity();await a.publicStatus();assert.equal(a.authenticated,true);
   await f.time(3600999);await assert.rejects(a.request('status'));
   await f.login(a);
   const started=f.now;

@@ -52,9 +52,60 @@ const radio = globalThis.WsprryPicoConsumerRadio?.createClient();
 let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
+let observedClockMs = 0;
+function utcNowMs() {
+  const value = snapshot?.standalone?.utc_now_ns;
+  if (observedClockMs && ['synchronized','holdover'].includes(snapshot?.standalone?.clock_state) && typeof value === 'string' && /^\d+$/.test(value))
+    return Number(BigInt(value)/1000000n) + Math.max(0,Date.now()-observedClockMs);
+  return Date.now();
+}
+function utcFieldMs(input) {
+  return globalThis.WsprryUtcDateTime ? WsprryUtcDateTime.parse(input.value)?.ms ?? NaN : Date.parse(input.value.replace(' ','T')+'Z');
+}
+function jobStartMs(id) {
+  const value = utcFieldMs($(id));
+  if (!Number.isFinite(value)) throw new Error('Choose a UTC start date and time');
+  if (value <= utcNowMs()) throw new Error('Choose a future UTC start time. Current UTC is ' + new Date(utcNowMs()).toISOString().slice(0,19).replace('T',' '));
+  return value;
+}
+const utcEditors = globalThis.WsprryUtcDateTime ? ['schedule-expiry','message-start','start','message-until']
+  .map(id=>$(id)).filter(input=>input?.closest?.('[data-utc-picker]'))
+  .map(input=>WsprryUtcDateTime.create(input,utcNowMs)) : [];
 let picoPasswordState = null, frequencyRefreshing = false;
 const supportsAmplifier = () => globalThis.WsprryAmplifier?.supported(capabilities?.amplifier_enable) === true;
 let localIdentity = null, localAuthenticated = false;
+let publicStatusEpoch = 0, initialLoginFocus = false;
+function focusInitialLogin() {
+  if (initialLoginFocus || localAuthenticated || !localIdentity) return;
+  initialLoginFocus = true;
+  const active = document.activeElement;
+  if (!active || active === document.body || active === document.documentElement) $('local-password').focus();
+}
+async function refreshPublicStatus() {
+  if (!radio || radio.authenticated) return;
+  const epoch = ++publicStatusEpoch;
+  try {
+    const value = await radio.publicStatus();
+    if (epoch !== publicStatusEpoch || radio.authenticated) return;
+    if (localIdentity && value.device_id !== localIdentity.device_id) throw new Error('Pico identity changed');
+    const observed = new Date(Date.now()).toISOString().slice(11,19) + ' UTC';
+    $('state').textContent = value.state;
+    $('output').textContent = value.output_active ? 'Active' : 'Inactive';
+    $('clock').textContent = `${value.clock_state === 'holdover' ? 'using last time update' : value.clock_state} · ±${(Number(value.uncertainty_ns)/1e6).toFixed(2)} ms`;
+    $('owner').textContent = value.owned ? 'Reserved' : 'Available';
+    $('engine').textContent = value.engine;
+    $('network').textContent = 'Page reachable';
+    $('hostname').textContent = 'Sign in for network details';
+    $('discovery').textContent = 'Not read while signed out';
+    $('discovery-help').textContent = '';
+    if ($('public-status-note')) $('public-status-note').textContent = 'Signed out · Read-only transmitter status · observed ' + observed;
+  } catch (error) {
+    if (epoch !== publicStatusEpoch || radio.authenticated) return;
+    for (const id of ['state','output','clock','owner','engine','network']) $(id).textContent = 'Unknown';
+    if ($('public-status-note')) $('public-status-note').textContent = 'Signed out · Transmitter status unavailable. Check the connection and refresh.';
+  }
+}
+let messageScheduleReadback=null, messageScheduleUncertain=false;
 let engineeringStationDirty = false, engineeringNetworkDirty = false;
 let writeState = 'readback', savedReadback = null, saveAttempt = null, retirementDiscovery = null;
 
@@ -165,6 +216,7 @@ async function readProgress(fillDraft = false) {
     if (Object.hasOwn(v,'enabled')) f.enabled.checked = v.enabled === true;
     if (Object.hasOwn(v,'schedules')) f.schedules.value = Array.isArray(v.schedules) ? v.schedules.map(x=>`${x.period_s} / ${x.phase_s}`).join('\n') : '';
     if (Object.hasOwn(v,'expires_utc_s')) f.expiry.value = v.expires_utc_s ? new Date(v.expires_utc_s*1000).toISOString().slice(0,19) : '';
+    utcEditors.forEach(editor=>editor.sync());
     if (v.pins) fillPins(v.pins);
     if (!radio && Object.hasOwn(v,'ntp_ipv4')) f.ntp_ipv4.value = v.ntp_ipv4 ?? '';
     if (!radio && v.wifi) f.ssid.value = v.wifi.ssid;
@@ -250,7 +302,7 @@ async function saveConfigProgress(domain = 'radio') {
       if (!/^\s*\d+\s*\/\s*\d+\s*$/.test(line)) return line;
       const [period_s,phase_s] = line.split('/').map(v=>progressNumber(v.trim()));return {period_s,phase_s};
     });
-    else if (key === 'expires_utc_s') fields[key] = f.expiry.validity?.badInput ? 'invalid' : f.expiry.value ? progressNumber(String(Date.parse(f.expiry.value+'Z')/1000)) : 0;
+    else if (key === 'expires_utc_s') fields[key] = f.expiry.validity?.badInput ? 'invalid' : f.expiry.value ? progressNumber(String(utcFieldMs(f.expiry)/1000)) : 0;
     else if (key === 'enabled') fields.enabled = f.enabled.checked;
     else if (['callsign','locator','power_dbm','ntp_ipv4'].includes(key)) {
       const text = f[key].value.trim();
@@ -564,7 +616,8 @@ async function discoverLocal() {
       pageIdentity.bind(localIdentity);
       await presentationTitle();
       $('local-status').textContent = 'Signed out. Enter the Pico password to log in.';
-      notice('Log in to read or change radio settings.');
+      notice('Log in to change settings or submit a message. Transmitter status is available below.');
+      focusInitialLogin();
     } catch (error) { notice(error.message + '. Check the Pico address and your Wi-Fi connection, then reload.',true); }
     return true;
   }
@@ -579,7 +632,7 @@ async function discoverLocal() {
     try {
       const state = await local('status');
       if (state.wtp_session) session = state.wtp_session;
-    } catch (_) { notice('Enter the local-access password to authorize this SoftAP browser.'); return true; }
+    } catch (_) { notice('Enter the local-access password to authorize this SoftAP browser.'); focusInitialLogin(); return true; }
     localAuthenticated = true; $('local-login').hidden = true;
     $('local-status').textContent = 'Local session authenticated.';
     if (localIdentity.surface === 'provisioned_preclock') {
@@ -591,6 +644,8 @@ async function discoverLocal() {
 }
 function controls(connected) {
   online = connected;
+  messageSchedulingControls();
+  if ($('public-status-note')) $('public-status-note').hidden = !radio || radio.authenticated;
   calibrationEditor?.setAvailability(!!connected && !busy && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   frequencyEditor?.setAvailability(!!connected && (!busy || frequencyRefreshing) && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   driveEditor?.setAvailability(!!connected && !busy && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
@@ -677,15 +732,23 @@ function fill(c, network = c?.wifi) {
   form.schedules.value = (c?.schedules || [{period_s:120,phase_s:0}]).map(s => `${s.period_s} / ${s.phase_s}`).join('\n');
   fillPins(c?.pins);
   form.expiry.value = c?.expires_utc_s ? new Date(c.expires_utc_s * 1000).toISOString().slice(0,19) : '';
+  utcEditors.forEach(editor=>editor.sync());
 }
 async function refresh(loadConfig = false) {
+  if (radio && !radio.authenticated) {
+    localAuthenticated = false; snapshot = null;
+    $('local-login').hidden = false; $('local-logout').hidden = true;
+    controls(false); await refreshPublicStatus(); return;
+  }
+  ++publicStatusEpoch;
   if (loadConfig) requireReadback();
   const identityRequest = pageIdentity.request();
   // Keep this browser sequential so the other admitted client can progress.
   try {
     if (!capabilities) capabilities = (await api('capabilities')).data;
     if (!pinChoices) { try { pinChoices = (await api('pins')).data.choices; } catch (_) {} }
-    snapshot = (await api('status')).data; expectedPause = false; observedAt = new Date().toLocaleTimeString();
+    snapshot = (await api('status')).data; expectedPause = false; observedClockMs = Date.now();
+    observedAt = new Date(observedClockMs).toISOString().slice(11,19) + ' UTC';
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) capabilities = (await api('capabilities')).data;
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); }
     capabilitiesBoot = snapshot.job.boot_id;
@@ -726,6 +789,7 @@ async function refresh(loadConfig = false) {
       const p = await readProgress(true); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = 'ready'; saveAttempt = null; $('save-reconcile-status').textContent = 'Saved settings reloaded into this browser. Review any new edits before saving.'; showProgress();
       if (radio) await readPicoPassword();
     }
+    if (messageSchedulingSupported()) await readMessageSchedule();
     updateProgress(); messagePreview();
     notice('Connected · Status updated ' + observedAt); controls(true);
   } catch (e) { markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Session ended. Log in again; your draft is preserved.'; notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
@@ -895,6 +959,7 @@ $('local-logout').onclick = () => action(async () => {
   $('local-login').hidden = false; $('local-logout').hidden = true;
   $('local-status').textContent = 'Signed out. Log in to read or change settings.';
   snapshot = null; controls(false); notice('Logged out. Radio job state has not changed.');
+  await refreshPublicStatus();
 });
 $('consumer-power').replaceChildren(new Option('Choose reported power',''),...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60]
   .map(power => new Option(String(power),String(power))));
@@ -950,7 +1015,7 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
     const [period_s,phase_s] = line.split('/').map(Number); return {period_s,phase_s};
   });
   if (!currentConfig) throw new Error('Complete station commissioning before saving schedules and pins');
-  const config = {...currentConfig,enabled:f.enabled.checked,station:{...currentConfig.station},wifi:{...currentConfig.wifi,password:null},schedules,pins:pinChoices ? readPins() : currentConfig.pins,expires_utc_s:f.expiry.value ? Date.parse(f.expiry.value + 'Z') / 1000 : 0};
+  const config = {...currentConfig,enabled:f.enabled.checked,station:{...currentConfig.station},wifi:{...currentConfig.wifi,password:null},schedules,pins:pinChoices ? readPins() : currentConfig.pins,expires_utc_s:f.expiry.value ? utcFieldMs(f.expiry) / 1000 : 0};
   // Advanced opt-ins are managed through CONFIG/API, outside the ordinary form.
   // A station/network edit must preserve the operator's saved choices.
   for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) {
@@ -991,8 +1056,7 @@ $('job').onsubmit = event => { event.preventDefault(); return action(async () =>
   if (!file || file.size > 30000) throw new Error('Choose a job JSON file of at most 30,000 bytes');
   const plan = JSON.parse(await file.text());
   checkPlanLimits(plan);
-  const startMs = Date.parse($('start').value + 'Z');
-  if (!Number.isFinite(startMs)) throw new Error('Choose a UTC start time');
+  const startMs = jobStartMs('start');
   await job('HELLO',{versions:['WTP/1'],client_name:'WsprryPico browser',client_version:'1'});
   await job('CLAIM',{owner_id:session,lease_ms:30000});
   await job('LOAD',plan);
@@ -1062,6 +1126,98 @@ function checkPlanLimits(plan) {
   if (!Array.isArray(plan.events) || !plan.events.length || plan.events.length > capabilities.wtp.max_events) throw new Error('This device allows at most ' + capabilities.wtp.max_events + ' events per job. Reduce the message complexity or repetition');
   return duration;
 }
+function messageSchedulingSupported() {
+  const d=capabilities?.message_schedule;
+  return !!globalThis.WsprryMessageSchedule && d?.schema==='transmitter-message-schedule/1' && d.path==='/api/v1/message-schedule' && d.pause==='/api/v1/message-schedule/pause' && d.min_period_s===60 && d.max_period_s===86400 && typeof d.preparation_lead_ns==='string' && /^\d{1,20}$/.test(d.preparation_lead_ns);
+}
+function messageSchedulingControls() {
+  if (!$('message-scheduling')) return;
+  const supported=messageSchedulingSupported(), recurring=$('message-delivery').value==='recurring';
+  $('message-scheduling').hidden=!supported;
+  $('message-recurrence').hidden=!recurring;
+  $('message-interval').disabled=!recurring;$('message-until').disabled=!recurring;
+  for (const button of $('message-recurrence').querySelectorAll?.('button')||[]) button.disabled=!recurring;
+  $('message-schedule-controls').hidden=!supported;
+  $('message-submit').textContent=recurring?'Save and start schedule':'Load and arm message';
+  $('message-submit').disabled=recurring && (messageScheduleUncertain || !messageScheduleReadback?.data.writable);
+  const authorized=online && !(localIdentity && !localAuthenticated) && !busy;
+  $('message-schedule-read').disabled=!authorized;
+  $('message-schedule-adopt').disabled=!authorized || !messageScheduleReadback?.data.saved;
+  $('message-schedule-pause').disabled=!authorized || messageScheduleUncertain || messageScheduleReadback?.data.pause_pending || !messageScheduleReadback?.data.saved?.enabled && messageScheduleReadback?.data.state!=='recovery_required';
+}
+function describeMessageSchedule() {
+  const value=messageScheduleReadback?.data;
+  if (!value) return;
+  const labels={not_configured:'No saved message schedule.',paused:'Future transmissions are paused.',pausing:'Pause requested. The current transmission will finish before the pause is confirmed as saved. Keep the Pico powered until confirmation.',recovery_required:'Schedule needs review. Check transmitter status; once idle, pause the schedule before saving a new enabled schedule.',waiting:'Schedule enabled.',waiting_for_time:'Waiting for valid transmitter time.',waiting_for_transmitter:'Waiting for the transmitter to become available.',expired:'The schedule end has been reached.',restart_required:'A device restart is required before scheduling.',suspended:'Automatic transmissions are suspended.',armed:'Next scheduled transmission is armed.',running:'Scheduled message is running.',unavailable:'Saved schedule is unavailable.'};
+  const next=value.next_start_utc_ns ? ' Next start: '+new Date(Number(BigInt(value.next_start_utc_ns)/1000000n)).toISOString().slice(0,19).replace('T',' ')+' UTC.' : '';
+  $('message-schedule-status').textContent=(messageScheduleUncertain?'Previous action is unconfirmed. Read saved schedule explicitly before another save. ':'')+(labels[value.state]||'Transmitter state: '+value.state+'.')+next+(value.last_error?' '+value.last_error.code+'.':'');
+}
+function checkedMessageSchedule(result) {
+  if (!result.revision || !WsprryMessageSchedule.valid(result.data,{device_id:localIdentity?.device_id,boot_id:snapshot?.job.boot_id})) throw new Error('Saved message schedule is unconfirmed. Your entries are preserved.');
+  return result;
+}
+async function readMessageSchedule(explicit=false) {
+  if (!messageSchedulingSupported()) return;
+  try {
+    messageScheduleReadback=checkedMessageSchedule(await api('message-schedule'));
+    if (explicit) messageScheduleUncertain=false;
+    describeMessageSchedule();messageSchedulingControls();
+  } catch(error) {
+    messageScheduleReadback=null;
+    $('message-schedule-status').textContent='Saved message schedule unavailable. Your entries are preserved. '+error.message;
+    throw error;
+  }
+}
+async function saveMessageSchedule() {
+  if (!messageSchedulingSupported()) throw new Error('This firmware does not support saved message schedules.');
+  if (messageScheduleUncertain) throw new Error('Read the saved schedule before another save. Your entries are preserved.');
+  if (!messageScheduleReadback) throw new Error('Read the saved schedule first.');
+  const plan=messagePlan(), start=utcFieldMs($('message-start')), until=$('message-until').value?utcFieldMs($('message-until')):0;
+  const minutes=Number($('message-interval').value);
+  if (!Number.isFinite(start) || !Number.isFinite(until)) throw new Error('Choose valid UTC start and end times.');
+  if (!Number.isInteger(minutes)||minutes<1||minutes>1440) throw new Error('Use a repeat interval of 1–1440 whole minutes.');
+  const lead=BigInt(capabilities.message_schedule.preparation_lead_ns);
+  if (plan.duration+lead>BigInt(minutes)*60000000000n) throw new Error('The complete transmission and preparation time must fit the repeat interval. Increase the interval.');
+  if (until && (until<=start || BigInt(until-start)*1000000n<plan.duration)) throw new Error('Schedule end must allow the complete transmission to finish.');
+  const body={schema:'transmitter-message-schedule/1',target:messageScheduleReadback.data.target,schedule:{enabled:true,first_start_utc_ns:(BigInt(start)*1000000n).toString(),period_s:minutes*60,expires_utc_s:until?Math.floor(until/1000):0,message:plan.body}};
+  try {
+    messageScheduleReadback=checkedMessageSchedule(await api('message-schedule','PUT',body,messageScheduleReadback.revision));
+    describeMessageSchedule();$('job-result').textContent='Message schedule saved. It continues with this page closed.';
+  } catch(error) {
+    messageScheduleUncertain=true;
+    $('message-schedule-status').textContent='Schedule save is rejected or unconfirmed. Your entries are preserved. Read saved schedule before sending another save. '+error.message;
+    throw error;
+  } finally {messageSchedulingControls();}
+}
+if ($('message-schedule-read')) $('message-schedule-read').onclick=()=>action(()=>readMessageSchedule(true));
+if ($('message-schedule-pause')) $('message-schedule-pause').onclick=()=>action(async()=>{
+  if (!messageScheduleReadback || messageScheduleUncertain) throw new Error('Read saved schedule before pausing.');
+  try {
+    messageScheduleReadback=checkedMessageSchedule(await api('message-schedule/pause','POST',{schema:'transmitter-message-schedule/1',target:messageScheduleReadback.data.target,pause:true},messageScheduleReadback.revision));
+    describeMessageSchedule();
+  } catch(error) {messageScheduleUncertain=true;$('message-schedule-status').textContent='Pause is rejected or unconfirmed. Read saved schedule before another action. '+error.message;throw error;}
+});
+if ($('message-schedule-adopt')) $('message-schedule-adopt').onclick=()=>{
+  const s=messageScheduleReadback?.data.saved;
+  if (!s || !confirm('Replace the current message draft with the saved schedule?')) return;
+  const m=s.message, decimal=n=>{const x=BigInt(n),f=(x%1000000000n).toString().padStart(9,'0').replace(/0+$/,'');return String(x/1000000000n)+(f?'.'+f:'');};
+  const multipliers={};
+  for (const [field,key] of [['dash','dash_ns'],['intra','intra_gap_ns'],['character','character_gap_ns'],['word','word_gap_ns']]) {
+    const n=BigInt(m.timing[key])*1000000000n,d=BigInt(m.timing.dot_ns);
+    if(n%d) {notice('Saved timing cannot be represented by this editor. Your draft is preserved.',true);return;}
+    multipliers[field]=decimal(n/d);
+  }
+  $('message-delivery').value='recurring';$('message-text').value=m.message;$('message-mode').value=m.mode;
+  const base=BigInt(m.mode==='fskcw'?m.space_frequency_nhz:m.frequency_nhz),top=BigInt(m.mode==='fskcw'?m.frequency_nhz:m.space_frequency_nhz);
+  $('message-frequency').value=decimal(base);$('message-shift').value=m.mode==='qrss'?'5':decimal(top-base);
+  $('message-dot').value=decimal(m.timing.dot_ns);$('message-repeats').value=m.repeat_count;$('message-gap').value=decimal(m.repeat_gap_ns);
+  for (const [field,value] of Object.entries(multipliers)) $('message-'+field).value=value;
+  $('message-start').value=new Date(Number(BigInt(s.first_start_utc_ns)/1000000n)).toISOString().slice(0,19);
+  $('message-until').value=s.expires_utc_s?new Date(s.expires_utc_s*1000).toISOString().slice(0,19):'';
+  $('message-interval').value=s.period_s/60;
+  messageEdited=true;messagePreview();utcEditors.forEach(editor=>editor.sync());
+};
+
 function messageFrequencyFields() {
   const mode = $('message-mode').value;
   $('message-frequency-label').textContent = mode === 'fskcw' ? 'Space frequency (Hz)' : mode === 'dfcw' ? 'Dot frequency (Hz)' : 'Carrier frequency (Hz)';
@@ -1087,11 +1243,11 @@ function messageFrequencies(mode) {
   const hz = n => { const fraction=(n%1000000000n).toString().padStart(9,'0').replace(/0+$/,''); return n/1000000000n + (fraction ? '.'+fraction : '') + ' Hz'; };
   return {frequency:mode === 'fskcw' ? upper : base,second:mode === 'qrss' ? 0n : mode === 'fskcw' ? base : upper,preview:states.map(([name,n])=>name+' '+hz(n)).join(' · ')};
 }
-function messagePlan() {
+function messagePlan(timingOnly = false) {
   const text = $('message-text').value, mode = $('message-mode').value;
   if (!text || text.length > 32) throw new Error('Use 1–32 characters, including spaces. The message has ' + text.length);
   if (!['qrss','fskcw','dfcw'].includes(mode)) throw new Error('Choose QRSS, FSKCW or DFCW');
-  const frequencies = messageFrequencies(mode);
+  const frequencies = timingOnly ? null : messageFrequencies(mode);
   const dot = nanoDecimal($('message-dot').value, 'Dot length');
   const scaled = (id, label) => {
     const product = dot * nanoDecimal($(id).value, label);
@@ -1121,11 +1277,18 @@ function messagePlan() {
   const maximum = capabilities?.wtp?.max_job_duration_ns ? BigInt(capabilities.wtp.max_job_duration_ns) : 3600000000000n;
   if (duration > maximum || duration > 3600000000000n) throw new Error('Calculated duration: ' + durationText(duration) + '. Maximum: ' + durationText(maximum < 3600000000000n ? maximum : 3600000000000n) + '. Shorten the timing or reduce repeats');
   if (events > (capabilities?.wtp?.max_events || 512)) throw new Error(events + ' events exceed the device limit of ' + (capabilities?.wtp?.max_events || 512) + '. Reduce repetition or use a simpler message');
+  if (timingOnly) return {duration,events};
   return {duration,events,frequencies:frequencies.preview,body:{mode,message:text,frequency_nhz:frequencies.frequency.toString(),space_frequency_nhz:frequencies.second.toString(),timing:Object.fromEntries(Object.entries(timing).map(([k,v])=>[k,v.toString()])),repeat_count:repeat,repeat_gap_ns:repeatGap.toString(),allow_frequency_adjustment:true}};
 }
 let messageEdited = false;
 function messagePreview() {
   messageFrequencyFields();
+  messageSchedulingControls();
+  if (!$('message-text').value) $('message-duration').textContent = 'Transmission length: not calculated.';
+  else {
+    try { $('message-duration').textContent = 'Transmission length: ' + durationText(messagePlan(true).duration) + ' · includes repeats and gaps.'; }
+    catch (error) { $('message-duration').textContent = 'Transmission length unavailable: ' + error.message; }
+  }
   for (const id of ['message-frequency','message-shift']) $(id).setAttribute('aria-invalid','false');
   if (!messageEdited && !$('message-text').value) {
     $('message-preview').textContent = 'Enter a message and frequency to calculate its duration.';
@@ -1149,9 +1312,9 @@ messagePreview();
 $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=true; messagePreview(); return action(async () => {
   $('message-result').textContent = ''; $('message-result').classList.toggle('error',false);
   try {
+  if ($('message-delivery')?.value==='recurring') return await saveMessageSchedule();
   if (!capabilities?.message_jobs) throw new Error('This firmware does not support message submission');
-  const plan = messagePlan(), startMs = Date.parse($('message-start').value + 'Z');
-  if (!Number.isFinite(startMs)) throw new Error('Choose a UTC start time');
+  const plan = messagePlan(), startMs = jobStartMs('message-start');
   plan.body.job_id = requestId();
   await job('HELLO',{versions:['WTP/1'],client_name:'WsprryPico browser',client_version:'1'});
   await job('CLAIM',{owner_id:session,lease_ms:30000});
@@ -1167,10 +1330,10 @@ $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=tr
   }
 }); };
 if (typeof setInterval === 'function') setInterval(() => {
-  if (!busy && online && activePlan && ['armed','running'].includes(snapshot?.job.state)) action(() => refresh());
+  if (!busy && ((radio && !radio.authenticated && localIdentity) || (online && (messageScheduleReadback?.data.saved?.enabled || messageScheduleReadback?.data.pause_pending || activePlan && ['armed','running'].includes(snapshot?.job.state))))) action(() => refresh());
 }, 5000);
 
-action(async () => { await discoverLocal(); if ((!radio && !localIdentity) || localAuthenticated) await refresh(true); });
+action(async () => { await discoverLocal(); if ((!radio && !localIdentity) || localAuthenticated) await refresh(true); else if (radio) await refreshPublicStatus(); });
 
 function readPins() {
   const f = $('config').elements;

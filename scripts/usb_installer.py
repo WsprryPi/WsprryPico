@@ -973,10 +973,21 @@ def public_snapshot(device):
         frequency = management.get('/api/v1/standalone-frequency')
         calibration = management.get('/api/v1/rf-calibration')
         observation = management.get('/api/v1/ntp-observations')
+        capabilities = management.get('/api/v1/capabilities')
+        message_schedule = None
+        if 'message_schedule' in capabilities:
+            capability = capabilities['message_schedule']
+            require(capability.get('schema') == 'transmitter-message-schedule/1' and
+                    capability.get('path') == '/api/v1/message-schedule',
+                    'Unknown saved message-schedule contract; leave the device unchanged')
+            message_schedule = management.get('/api/v1/message-schedule')
+            require(message_schedule.get('schema') == 'transmitter-message-schedule/1' and
+                    message_schedule.get('target') == management.hello['target'],
+                    'Saved message schedule identity or schema mismatch')
         return {'serial': device['serial'], 'parent': device['parent'],
                 'target': management.hello['target'], 'firmware': decode(management.hello['body'])['firmware'],
                 'status': status, 'config': config, 'progress': progress, 'hostname': hostname,
-                'frequency': frequency, 'calibration': calibration,
+                'frequency': frequency, 'calibration': calibration, 'message_schedule': message_schedule,
                 'source_revision': observation['source_revision'], 'captured_at': int(time.time()),
                 'revision': management.etags['/api/v1/config/4']}
 
@@ -1760,11 +1771,19 @@ def saved_semantics(snapshot):
             'hostname': snapshot['hostname'].get('saved'),
             'frequency': snapshot['frequency']['frequency_hz'],  # Whole-Hz standalone WSPR dial, unchanged.
             'calibration': snapshot['calibration']['saved'],
+            'message_schedule': (snapshot.get('message_schedule') or {}).get('saved'),
             'watermark_utc_ns': snapshot['status']['standalone']['watermark_utc_ns'],
             'suspended': snapshot['status']['standalone']['suspended']}
 
 
 def admit_snapshot(snapshot):
+    message = snapshot.get('message_schedule')
+    if message is not None:
+        require(message.get('schema') == 'transmitter-message-schedule/1' and
+                message.get('pause_pending') is False and
+                message.get('state') in ('not_configured', 'paused') and
+                (message.get('saved') is None or message['saved'].get('enabled') is False),
+                'Pause the saved message schedule and resolve pending/recovery state before an update')
     job = snapshot['status']['job']
     require(job['state'] == 'empty' and job['output_active'] is False and job['owner_id'] is None,
             'Pico is busy, owned, stopped/faulted, or uncertain; leave its state unchanged')

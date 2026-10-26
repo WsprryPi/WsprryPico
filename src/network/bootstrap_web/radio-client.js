@@ -47,6 +47,20 @@ export class RadioClient {
         !/^[1-9][0-9]{0,19}$/.test(id.generation) || BigInt(id.generation) > 0xffffffffffffffffn) throw new Error('Invalid Pico identity');
     return id;
   }
+  async publicStatus(timeout = 5000) {
+    const response = await this.fetcher('/api/consumer/v1/status', {credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(timeout)});
+    if (!response.ok) throw new Error('Transmitter status is unavailable');
+    const value = await response.json();
+    const decimal = text => typeof text === 'string' && /^(0|[1-9][0-9]{0,19})$/.test(text) && BigInt(text) <= 0xffffffffffffffffn;
+    unhex(value.device_id,16); unhex(value.boot_id,16);
+    if (Object.keys(value).sort().join(',') !== 'boot_id,clock_state,device_id,engine,output_active,owned,schema,state,uncertainty_ns,utc_now_ns' ||
+        value.schema !== 'transmitter-public-status/1' || !['empty','loaded','armed','running','complete','aborted','missed','failed'].includes(value.state) ||
+        typeof value.output_active !== 'boolean' || typeof value.owned !== 'boolean' ||
+        !['unsynchronized','synchronized','holdover'].includes(value.clock_state) ||
+        (value.utc_now_ns !== null && !decimal(value.utc_now_ns)) || !decimal(value.uncertainty_ns) ||
+        typeof value.engine !== 'string' || !/^[\x20-\x7e]{1,80}$/.test(value.engine)) throw new Error('Invalid transmitter status');
+    return value;
+  }
   async login(password, identity) {
     if (this.busy) throw new Error('A radio request is already in progress');
     if (typeof password !== 'string' || !/^[\x20-\x7e]{8,63}$/.test(password)) throw new Error('Use the Pico password, 8–63 ASCII characters');

@@ -553,3 +553,13 @@ Source authority: [BrowserApi dispatch and revisions](../src/network/api.cpp),
 [WSPR tests](../tests/wspr_resource_tests.cpp),
 [drive tests](../tests/gpio_drive_tests.cpp) and the linked acceptance records
 bound these descriptions; no runtime or version change is made here.
+
+## Recurring message schedule
+
+Capabilities advertise `message_schedule` with schema `transmitter-message-schedule/1`, resource `/api/v1/message-schedule`, pause path `/api/v1/message-schedule/pause`, minimum and maximum periods, preparation lead and shared storage budget. This is a separately versioned resource; legacy Config and WTP/1 shapes are unchanged. It is admitted through authenticated browser management and physical USB management.
+
+GET returns closed fields `schema`, member `target`, `writable`, `saved`, `state`, `pause_pending`, `next_start_utc_ns`, `last_start_utc_ns`, `last_job_id`, `last_result` and `last_error`. Nanosecond timestamps are canonical decimal strings or null. A saved profile contains `enabled`, `first_start_utc_ns`, integer `period_s`, integer `expires_utc_s` (zero means no expiry) and the existing compiled-message request template without `job_id`. One finite job receives a new ID for each consumed start. Readback describes retained local observations, not independently measured RF reception.
+
+PUT requires a closed `{schema,target,schedule}` envelope, current If-Match revision, idle transmitter and a body of at most 2,048 bytes. The template retains the 32-character, 512-event and 3,600-second limits, and must fit both period minus preparation lead and optional expiry. Unknown fields, unsupported characters, targets, frequencies and unrepresentable values are refused. A conflicting enabled WSPR schedule returns 409; an oversized combined saved record returns 413 before flash mutation. An uncertain persistence result requires explicit readback, never an implicit retry.
+
+POST to the pause path requires `{schema,target,pause:true}` and current If-Match. A 202 response with `pause_pending:true` means an accepted job is allowed to finish before durable pause; 200 confirms an idle saved pause. Recovery remains blocked until explicit pause can safely clear its barrier. Pause never takes over another owner. Public status remains a bounded read-only projection without message content or saved schedule settings.

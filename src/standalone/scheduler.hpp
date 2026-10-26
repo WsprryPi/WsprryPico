@@ -9,8 +9,28 @@ class Scheduler {
     Scheduler(Store& store, wtp::JobService& service);
     void poll();
     bool idle() const;
+    std::uint64_t message_lead_ns() const;
+    std::optional<std::uint64_t> next_message_start() const;
+    std::string message_status() const;
+    bool pause_message();
+    bool message_pause_pending() const {
+        return message_pause_pending_;
+    }
+    bool message_recovery_required() const {
+        return message_recovery_required_ || (store_.message_in_flight() && !message_job_);
+    }
+    void message_saved(bool resume = false) {
+        message_pause_pending_ = false;
+        message_recovery_required_ = false;
+        message_error_ = wtp::ErrorCode::None;
+        if (resume)
+            suspended_ = false;
+    }
+
     bool reset_permitted() const;
-    bool suspended() const { return suspended_; }
+    bool suspended() const {
+        return suspended_;
+    }
     std::size_t last_load_free_before() const {
         return last_load_free_before_;
     }
@@ -51,6 +71,8 @@ class Scheduler {
     std::string status() const;
 
   private:
+    bool poll_message();
+    bool finish_message_pause();
     bool prepare_frame(const encoding::WsprFrame& frame, std::uint64_t slot,
                        const std::array<std::uint64_t, 4>& tones);
     void cancel_pair(wtp::ErrorCode reason);
@@ -73,6 +95,10 @@ class Scheduler {
     std::uint64_t sequence_ = 0;
     wtp::ErrorCode last_error_ = wtp::ErrorCode::None;
     std::string last_job_;
+    std::optional<std::string> message_job_;
+    std::string last_message_job_, last_message_result_;
+    bool message_pause_pending_ = false, message_recovery_required_ = false;
+    wtp::ErrorCode message_error_ = wtp::ErrorCode::None;
     bool reboot_required_ = false, suspended_ = false, pin_restart_required_ = false;
     bool external_network_restart_required_ = false;
     bool boot_configured_ = false;

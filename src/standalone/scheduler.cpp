@@ -81,8 +81,8 @@ wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody bo
 }
 bool Scheduler::idle() const {
     const auto s = service_.activity();
-    return !service_.maintenance() && !hardware_application_failed_ && !s.owned && !s.output_active &&
-           s.state != wtp::State::Armed && s.state != wtp::State::Running &&
+    return !service_.maintenance() && !hardware_application_failed_ && !s.owned &&
+           !s.output_active && s.state != wtp::State::Armed && s.state != wtp::State::Running &&
            s.state != wtp::State::Failed;
 }
 bool Scheduler::reset_permitted() const {
@@ -102,6 +102,8 @@ void Scheduler::poll() {
     service_.poll();
     if (service_.maintenance())
         return; // No slot/watermark reservation while USB maintenance is pending.
+    if (poll_message())
+        return;
     if (pair_) {
         poll_pair();
         return;
@@ -185,6 +187,203 @@ void Scheduler::poll() {
     if (!prepare_frame(plan->frames[0], candidate, *tones))
         pair_.reset();
 }
+std::uint64_t Scheduler::message_lead_ns() const {
+    const auto minimum = service_.config().minimum_arm_lead_ns;
+    return minimum > UINT64_MAX - ns ? UINT64_MAX : std::max(message_preparation_ns, minimum + ns);
+}
+std::optional<std::uint64_t> Scheduler::next_message_start() const {
+    if (!store_.healthy() || !store_.message_schedule() || !store_.message_schedule()->enabled ||
+        suspended_ || message_pause_pending_ || message_recovery_required() || reboot_required_)
+        return {};
+    const auto now = service_.clock_snapshot();
+    if (!clock_ready(now, service_.config()) || message_lead_ns() > time::sntp_max_utc_ns ||
+        now.utc_now_ns > time::sntp_max_utc_ns - message_lead_ns())
+        return {};
+    const auto& schedule = *store_.message_schedule();
+    const auto next =
+        next_message_slot(schedule, now.utc_now_ns + message_lead_ns(), store_.watermark());
+    if (!next)
+        return {};
+    const auto measured = encoding::measure_message(schedule.message, service_.config().max_events,
+                                                    service_.config().max_job_duration_ns);
+    std::uint64_t duration{};
+    if (!measured.error.empty() ||
+        !time::duration_utc_bound(measured.calculated_duration_ns, now, duration))
+        return {};
+    const auto expiry = schedule.expires_utc_s * ns;
+    if (expiry && (*next >= expiry || duration > expiry - *next))
+        return {};
+    return next;
+}
+std::string Scheduler::message_status() const {
+    const auto& schedule = store_.message_schedule();
+    const auto now = service_.clock_snapshot();
+    auto next = next_message_start();
+    if (message_job_ && service_.activity().state == wtp::State::Armed)
+        next = store_.last_message_start();
+    std::string state = "not_configured";
+    if (!store_.healthy())
+        state = "unavailable";
+    else if (message_recovery_required())
+        state = "recovery_required";
+    else if (message_pause_pending_)
+        state = "pausing";
+    else if (message_job_)
+        state = wtp::state_name(service_.activity().state);
+    else if (schedule) {
+        if (!schedule->enabled)
+            state = "paused";
+        else if (suspended_)
+            state = "suspended";
+        else if (reboot_required_)
+            state = "restart_required";
+        else if (!clock_ready(now, service_.config()))
+            state = "waiting_for_time";
+        else if (!encoding::measure_message(schedule->message, service_.config().max_events,
+                                            service_.config().max_job_duration_ns)
+                      .error.empty())
+            state = "unavailable";
+        else if (!next)
+            state = "expired";
+        else
+            state = idle() ? "waiting" : "waiting_for_transmitter";
+    }
+    return "{\"saved\":" + (schedule ? serialize_message_schedule(*schedule) : "null") +
+           ",\"state\":" + wtp::json::quote(state) +
+           ",\"pause_pending\":" + (message_pause_pending_ ? "true" : "false") +
+           ",\"next_start_utc_ns\":" + (next ? wtp::json::quote(std::to_string(*next)) : "null") +
+           ",\"last_start_utc_ns\":" +
+           (store_.last_message_start()
+                ? wtp::json::quote(std::to_string(store_.last_message_start()))
+                : "null") +
+           ",\"last_job_id\":" +
+           (last_message_job_.empty() ? "null" : wtp::json::quote(last_message_job_)) +
+           ",\"last_result\":" +
+           (last_message_result_.empty() ? "null" : wtp::json::quote(last_message_result_)) +
+           ",\"last_error\":" +
+           (message_error_ == wtp::ErrorCode::None ? "null" : wtp::error_json(message_error_)) +
+           "}";
+}
+bool Scheduler::finish_message_pause() {
+    if (!idle() || message_job_)
+        return true; // Pending, never interrupt an accepted job.
+    if (store_.message_schedule()) {
+        auto paused = *store_.message_schedule();
+        paused.enabled = false;
+        if (!store_.save_message_schedule(paused))
+            return false;
+    }
+    if (!store_.clear_message_flight())
+        return false;
+    message_saved();
+    return true;
+}
+bool Scheduler::pause_message() {
+    if (!store_.message_schedule() && !store_.message_in_flight())
+        return true;
+    message_pause_pending_ = true;
+    return finish_message_pause();
+}
+bool Scheduler::poll_message() {
+    if (message_job_) {
+        auto current = service_.status();
+        const auto terminal =
+            std::find_if(current.terminal_records.begin(), current.terminal_records.end(),
+                         [&](const auto& t) { return t.job_id == *message_job_; });
+        if (terminal == current.terminal_records.end()) {
+            if (current.job_id == message_job_ &&
+                (current.state == wtp::State::Armed || current.state == wtp::State::Running))
+                return true;
+            message_recovery_required_ = true;
+            message_error_ = wtp::ErrorCode::InvalidState;
+            message_job_.reset();
+            return true;
+        }
+        last_message_result_ = wtp::state_name(terminal->state);
+        if (terminal->state != wtp::State::Complete || terminal->output_active ||
+            terminal->error != wtp::ErrorCode::None) {
+            message_recovery_required_ = true;
+            message_error_ = terminal->error == wtp::ErrorCode::None ? wtp::ErrorCode::InvalidState
+                                                                     : terminal->error;
+            message_job_.reset();
+            return true;
+        }
+        if (current.output_active || current.state == wtp::State::Armed ||
+            current.state == wtp::State::Running)
+            return true;
+        if (current.owner_id == local_id && current.job_id == message_job_) {
+            if (!request("RELEASE").ok) {
+                message_recovery_required_ = true;
+                return true;
+            }
+        }
+        if (!idle())
+            return true;
+        if (!store_.clear_message_flight()) {
+            message_recovery_required_ = true;
+            return true;
+        }
+        message_job_.reset();
+        if (message_pause_pending_ && !finish_message_pause())
+            message_recovery_required_ = true;
+        return true;
+    }
+    if (message_pause_pending_) {
+        if (!finish_message_pause())
+            message_recovery_required_ = true;
+        return true;
+    }
+    if (message_recovery_required())
+        return true;
+    if (!store_.message_schedule() || !store_.message_schedule()->enabled)
+        return false;
+    if (pair_ || !idle() || suspended_ || reboot_required_ || !store_.healthy())
+        return true;
+    const auto next = next_message_start();
+    if (!next)
+        return true;
+    const auto now = service_.clock_snapshot();
+    if (*next - now.utc_now_ns > std::max(10 * ns, message_lead_ns() + ns))
+        return true;
+    const auto& schedule = *store_.message_schedule();
+    auto message = schedule.message;
+    message.job_id = "dddddddddddddddd" + id(*next).substr(16);
+    auto compiled = encoding::compile_message(message, service_.config().max_events,
+                                              service_.config().max_job_duration_ns);
+    if (!compiled.job) {
+        message_recovery_required_ = true;
+        message_error_ = wtp::ErrorCode::InvalidMessage;
+        return true;
+    }
+    if (!request("HELLO", wtp::HelloBody{{"WTP/1"}}).ok)
+        return true;
+    const auto claimed = request("CLAIM", wtp::ClaimBody{local_id, 5000});
+    if (!claimed.ok)
+        return true;
+    if (!store_.reserve_message(*next)) {
+        (void)request("RELEASE");
+        message_recovery_required_ = true;
+        return true;
+    }
+    message_job_ = message.job_id;
+    last_message_job_ = message.job_id;
+    last_message_result_.clear();
+    auto response = request("LOAD", std::move(*compiled.job));
+    if (response.ok)
+        response = request("ARM", wtp::ArmBody{message.job_id, *next,
+                                               service_.config().maximum_arm_uncertainty_ns});
+    if (!response.ok) {
+        message_error_ = response.error;
+        message_recovery_required_ = true;
+        const auto current = service_.status();
+        if (current.owner_id == local_id && !current.output_active &&
+            current.state != wtp::State::Armed && current.state != wtp::State::Running &&
+            current.state != wtp::State::Failed)
+            (void)request("RELEASE");
+        message_job_.reset();
+    }
+    return true;
+}
 bool Scheduler::prepare_frame(const encoding::WsprFrame& frame, std::uint64_t slot,
                               const std::array<std::uint64_t, 4>& tones) {
     wtp::Job job{id(slot), "rf-events/1", "wspr", frame_duration, {}, true};
@@ -196,8 +395,7 @@ bool Scheduler::prepare_frame(const encoding::WsprFrame& frame, std::uint64_t sl
     for (unsigned i = 0; i < frame.symbols.size(); ++i) {
         const auto start = (std::uint64_t{i} * 2'048'000'000ULL + 1) / 3;
         const auto end = (std::uint64_t{i + 1} * 2'048'000'000ULL + 1) / 3;
-        if (!job.events.push_back(
-                {start, end - start, true, tones[frame.symbols[i]]})) {
+        if (!job.events.push_back({start, end - start, true, tones[frame.symbols[i]]})) {
             last_error_ = wtp::ErrorCode::InternalError;
             (void)request("RELEASE");
             return false;
@@ -357,11 +555,12 @@ std::string Scheduler::command(std::string_view line) {
         pair_.reset();
         const auto current = service_.status();
         if (current.owner_id) {
-            if (*current.owner_id != local_id || !current.job_id || *current.job_id != last_job_)
+            if (*current.owner_id != local_id || !current.job_id ||
+                (*current.job_id != last_job_ && current.job_id != message_job_))
                 return error("external_owner");
             if (current.state == wtp::State::Armed || current.state == wtp::State::Running ||
                 current.state == wtp::State::Loaded) {
-                const auto result = request("ABORT", wtp::AbortBody{last_job_});
+                const auto result = request("ABORT", wtp::AbortBody{*current.job_id});
                 if (!result.ok)
                     return error("stop_failed");
             }
@@ -390,7 +589,8 @@ std::string Scheduler::command(std::string_view line) {
             config->ntp_timeout_s = store_.config()->ntp_timeout_s;
     }
     if (supplied->get("wspr_dial_frequency_hz") &&
-        (!store_.config() || config->wspr_dial_frequency_hz != store_.config()->wspr_dial_frequency_hz) &&
+        (!store_.config() ||
+         config->wspr_dial_frequency_hz != store_.config()->wspr_dial_frequency_hz) &&
         !wspr_frequency_allowed(*config, service_.config().minimum_frequency_nhz,
                                 service_.config().maximum_frequency_nhz))
         return error("frequency_not_allowed");
@@ -399,6 +599,12 @@ std::string Scheduler::command(std::string_view line) {
         config->enabled = false; // First Console selection also requires deliberate enablement.
     if (config->enabled && !config->wspr_dial_frequency_hz)
         return error("standalone_frequency_required");
+    if (config->enabled && message_recovery_required())
+        return error("message_recovery_required");
+    if (!store_.config_fits(*config))
+        return error("saved_settings_too_large");
+    if (config->enabled && store_.message_schedule() && store_.message_schedule()->enabled)
+        return error("message_schedule_enabled");
     if (!store_.save(*config))
         return error("storage_fault");
     // The scheduler reads station/schedules from Store on each new job. Only

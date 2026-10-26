@@ -1,5 +1,6 @@
 #pragma once
 #include "standalone/config.hpp"
+#include "standalone/message_schedule.hpp"
 
 #include <span>
 
@@ -50,8 +51,25 @@ class Store {
     bool load(bool reset_recovery = false);
     bool save(const Config& config);
     bool reserve(std::uint64_t utc_ns);
+    bool reserve_message(std::uint64_t utc_ns);
+    bool clear_message_flight();
+    bool save_message_schedule(const std::optional<MessageSchedule>& schedule);
+    bool config_fits(const Config& config) const;
+    std::uint64_t last_message_start() const {
+        return last_message_start_;
+    }
+    bool message_schedule_fits(const std::optional<MessageSchedule>& schedule) const;
+    const std::optional<MessageSchedule>& message_schedule() const {
+        return message_;
+    }
+    bool message_in_flight() const {
+        return message_in_flight_;
+    }
+    static constexpr std::size_t max_state_bytes = 1984;
     bool purge_config_history(Flash& flash);
-    void progress(Progress& value) { progress_ = &value; }
+    void progress(Progress& value) {
+        progress_ = &value;
+    }
     bool erase_progress();
     const std::optional<Config>& config() const {
         return current_;
@@ -82,7 +100,10 @@ class Store {
   private:
     Journal config_, cursor_;
     std::optional<Config> current_;
-    std::uint64_t watermark_ = 0;
+    std::uint64_t watermark_ = 0, last_message_start_ = 0;
+    std::optional<MessageSchedule> message_;
+    bool message_in_flight_ = false;
+    bool reserve_cursor(std::uint64_t utc_ns, bool flight);
     bool healthy_ = false;
     Progress* progress_ = nullptr;
 };

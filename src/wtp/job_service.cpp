@@ -393,10 +393,11 @@ Response JobService::dispatch(Request& request) {
             return reject(error);
         }
         // The production adapters transfer the already decoded event pages.
-        // Reserve bounded preparation/adjustment work here; serialization has
-        // its own paged gate and memory_admitted keeps the separate 32 KiB
-        // authority/RF reserve.
-        if (!memory_admitted(32768))
+        // Decoded pages are already resident. Reserve the selected engine's
+        // additional preparation/adjustment work rather than charging every
+        // small job for a maximum plan. Serialization has its own paged gate;
+        // memory_admitted still keeps the separate 32 KiB authority/RF reserve.
+        if (!memory_admitted(engine_.preparation_memory_bytes(*body)))
             return reject(ErrorCode::InternalError);
         const auto accepted_digest = job_digest(*body);
         Job accepted = std::move(*body);

@@ -2,6 +2,7 @@
 #include "network/http.hpp"
 #include "network/identity.hpp"
 #include "network_support.hpp"
+#include "rf/stream_engine.hpp"
 #include "wtp/codec.hpp"
 #include "wtp/endpoint.hpp"
 #include "wtp/frame_parser.hpp"
@@ -198,8 +199,7 @@ void streamed_asset_admission() {
     REQUIRE(expected.find("WsprryPicoPresentation=") < expected.find("pageIdentity="));
     REQUIRE(expected.find("id=\"device-diagnostics\"") < expected.find("id=\"station-area\""));
     const auto presentation = network::web_asset("/device-presentation.js");
-    REQUIRE(presentation &&
-            presentation->body.find("WsprryPicoPresentation=") != expected.npos);
+    REQUIRE(presentation && presentation->body.find("WsprryPicoPresentation=") != expected.npos);
     // The generated asset is immutable static storage. Only bounded transport
     // scratch and the independent authority reserve consume target heap.
     // Static asset requests retain 16 KiB of processing scratch; that is the
@@ -711,8 +711,69 @@ void status_read_admission() {
     REQUIRE(f.api.handle(request("GET", "/api/v1/status"), "cert", "127.0.0.1:8443").status == 503);
     wtp::available_memory = nullptr;
 }
+
+void message_jobs_with_resident_heap_pressure() {
+    // LOAD alone must never submit samples or arm the sink.
+    struct Sink final : rf::BlockSink {
+        bool stop(std::uint64_t) override {
+            return true;
+        }
+        bool submit(std::uint64_t, std::uint64_t, std::span<const std::uint32_t>,
+                    std::uint64_t) override {
+            std::abort();
+        }
+        bool arm(std::uint64_t, std::uint64_t, std::uint64_t, rf::LaunchGuard) override {
+            std::abort();
+        }
+        rf::SinkReport poll(std::uint64_t) override {
+            return {};
+        }
+        bool output_active() const override {
+            return false;
+        }
+    } sink;
+    rf::StreamEngine engine(sink);
+    Fixture f(0, std::string(32, 'a'), &engine);
+    unsigned sequence = 4000;
+    const std::string session(32, '7');
+    const auto send = [&](std::string operation, std::string body) {
+        return f.api.handle(request("POST", "/api/v1/jobs",
+                                    "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
+                                        std::string(28, '0') + std::to_string(++sequence) +
+                                        "\",\"operation\":\"" + operation + "\",\"body\":" + body +
+                                        "}"),
+                            "cert-a", "127.0.0.1:8443");
+    };
+    REQUIRE(send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"message regression\","
+                          "\"client_version\":\"1\"}")
+                .status == 200);
+    for (const auto mode : {"qrss", "fskcw", "dfcw"}) {
+        REQUIRE(send("CLAIM", "{\"owner_id\":\"" + session + "\",\"lease_ms\":60000}").status ==
+                200);
+        const auto body =
+            "{\"job_id\":\"" + std::string(32, '8') + "\",\"mode\":\"" + mode +
+            "\",\"message\":\"CQ CQ DE AA0NT EM18 QRSS TEST 73\","
+            "\"frequency_nhz\":\"10140005000000000\",\"space_frequency_nhz\":\"10140000000000000\","
+            "\"timing\":{\"dot_ns\":\"3000000000\",\"dash_ns\":\"9000000000\","
+            "\"intra_gap_ns\":\"3000000000\",\"character_gap_ns\":\"9000000000\","
+            "\"word_gap_ns\":\"21000000000\"},\"repeat_count\":1,"
+            "\"repeat_gap_ns\":\"3000000000\",\"allow_frequency_adjustment\":true}";
+        // The resident event pages and transport/history allocations leave
+        // less than the old fixed 64 KiB gate, but enough for this actual plan
+        // plus the unchanged independent 32 KiB reserve.
+        wtp::available_memory = []() -> std::size_t { return 60000; };
+        const auto loaded = send("LOAD_MESSAGE", body);
+        wtp::available_memory = nullptr;
+        REQUIRE(loaded.status == 200);
+        REQUIRE(f.service.status().state == wtp::State::Loaded);
+        REQUIRE(!f.service.status().output_active);
+        REQUIRE(send("RELEASE", "{}").status == 200);
+        REQUIRE(!f.service.status().owner_id);
+    }
+}
 } // namespace
 int main() {
+    message_jobs_with_resident_heap_pressure();
     identities();
     framing();
     maximum_http_allocation();

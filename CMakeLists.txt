@@ -45,7 +45,7 @@ endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js
     src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
-    src/network/web/saved-progress.js src/network/web/gpio-drive.js
+    src/network/web/saved-progress.js src/network/web/gpio-drive.js src/network/web/utc-datetime.js src/network/web/message-schedule.js
     src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/standalone-frequency.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
@@ -277,8 +277,12 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(hostname_tests PRIVATE wsprrypico_core)
     target_compile_options(hostname_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME hostname_tests COMMAND hostname_tests)
+    add_executable(message_schedule_tests tests/message_schedule_tests.cpp)
+    target_link_libraries(message_schedule_tests PRIVATE wsprrypico_core wsprrypico_rf)
+    target_compile_options(message_schedule_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME message_schedule_tests COMMAND message_schedule_tests)
     add_executable(network_tests tests/network_tests.cpp)
-    target_link_libraries(network_tests PRIVATE wsprrypico_core)
+    target_link_libraries(network_tests PRIVATE wsprrypico_core wsprrypico_rf)
     target_compile_options(network_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME network_tests COMMAND network_tests)
     add_executable(management_carrier_tests tests/management_carrier_tests.cpp)
@@ -286,7 +290,7 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_options(management_carrier_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME management_carrier_tests COMMAND management_carrier_tests)
     add_executable(consumer_radio_tests tests/consumer_radio_tests.cpp)
-    target_link_libraries(consumer_radio_tests PRIVATE wsprrypico_core)
+    target_link_libraries(consumer_radio_tests PRIVATE wsprrypico_core wsprrypico_rf)
     target_compile_options(consumer_radio_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME consumer_radio_tests COMMAND consumer_radio_tests)
     add_executable(http_response_lifetime_tests tests/http_response_lifetime_tests.cpp)
@@ -321,6 +325,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/tests/schedule_workflow_browser_tests.js)
         add_test(NAME message_frequency_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/message_frequency_browser_tests.js)
+        add_test(NAME utc_datetime_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/utc_datetime_browser_tests.js)
     endif()
     add_executable(firmware_profile_tests tests/firmware_profile_tests.cpp)
     target_link_libraries(firmware_profile_tests PRIVATE wsprrypico_rf)
