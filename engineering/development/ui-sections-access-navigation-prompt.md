@@ -1,6 +1,6 @@
 # UI sections, access and navigation execution prompt
 
-Status: Prompt saved only. Numbered TODO items 7–10 are not started. This is the shared execution prompt linked from those items in the [consolidated backlog](consolidated-backlog.md). Saving, printing, reviewing or committing this prompt does not start implementation. Execute the work below when the user assigns execution of items 7–10.
+Status: Numbered TODO items 7–10 are in progress, as reported by the user. This is the shared execution prompt linked from those items in the [consolidated backlog](consolidated-backlog.md). Saving, printing, reviewing or committing this prompt does not start implementation. Coordinate with existing implementation work when assigned execution of items 7–10.
 
 Implement the four related changes as one coherent WsprryPico interface slice. The full **Wsprry Development Session — Standing Execution Authority** included below is part of the later execution assignment. Use it for necessary investigation, implementation, correction, validation, Git operations and recovery without routine approval gates.
 
