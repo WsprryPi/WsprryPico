@@ -21,6 +21,11 @@ Follow [Recover browser access over USB](../../docs/usb.md) on a native Windows 
 
 ## Backlog TODO
 
+### Combined UI / backend
+
+- [ ] **Syslog over USB.** Implement Pico logging/export, WsprryPi collection, both UIs, stable Pico/host identity, lifecycle handling, documentation and validation as one coordinated feature. See the [USB execution prompt](syslog-proposals.md#usb-syslog-execution-prompt), including its shared standing authority. Not started.
+- [ ] **Syslog over UDP.** Prepare the reviewed proposal for Pico and WsprryPi senders, member-to-collector forwarding, a Pi collector, both UIs, preserved origin/relay identity, loop prevention, duplicate handling, documentation and validation. See the [UDP proposal prompt](syslog-proposals.md#udp-syslog-proposal-prompt), including its shared standing authority. Proposal and implementation not started.
+
 ### Backend
 
 - **Optional amplifier settling and lead/tail timing.**
