@@ -62,6 +62,7 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/genera
     COMMAND_ERROR_IS_FATAL ANY)
 
 add_library(wsprrypico_core
+    src/logging/logger.cpp
     src/application/config_update.cpp
     src/application/resources.cpp
     src/application/frequency_policy.cpp
@@ -190,6 +191,10 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(logging_tests tests/logging_tests.cpp)
+    target_link_libraries(logging_tests PRIVATE wsprrypico_core)
+    target_compile_options(logging_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME logging_tests COMMAND logging_tests)
     add_executable(standalone_frequency_tests tests/standalone_frequency_tests.cpp)
     target_link_libraries(standalone_frequency_tests PRIVATE wsprrypico_core)
     target_compile_options(standalone_frequency_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -323,6 +328,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/tests/operations_browser_tests.js)
         add_test(NAME network_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/network_browser_tests.js)
+        add_test(NAME logging_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/logging_browser_tests.js)
         add_test(NAME ui_access_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/ui_access_browser_tests.js)
         add_test(NAME ui_access_shipped_tests COMMAND ${CMAKE_COMMAND} -E env

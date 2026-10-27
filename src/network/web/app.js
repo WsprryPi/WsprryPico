@@ -53,6 +53,7 @@ let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let observedClockMs = 0;
+let loggingSnapshot = null, loggingRevision = '', loggingBusy = false, loggingEpoch = 0;
 let observationEpoch = 0, operationsSnapshot = null, operationsTarget = null, consoleObservedMs = 0, privateStatusVisible = false;
 const consolePut = (id,text) => { const e=$(id); if(e && e.textContent!==text) e.textContent=text; };
 function consoleState(state,explanation) {
@@ -815,6 +816,7 @@ function controls(connected) {
   }
   renderAccess();
   online = connected;
+  loggingControls();
   messageSchedulingControls();
   if ($('public-status-note')) $('public-status-note').hidden = !radio || radio.authenticated;
   calibrationEditor?.setAvailability(!!connected && (!busy || activeEditor==='calibration') && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
@@ -1840,4 +1842,56 @@ globalThis.addEventListener?.('hashchange',()=>{
     try { checkReturningDevice(localIdentity.device_id); }
     catch (error) { clearPasswords(); controls(false); notice(error.message,true); }
   }
+});
+
+// Logging owns an independent resource. Explicit readback is required after an
+// uncertain save; ordinary status polling never replaces this form's draft.
+function loggingControls() {
+  const available = online && !accessClosing && !(localLocked && localIdentity && !radio) && (!radio || radio.authenticated);
+  if (!available) {
+    loggingSnapshot = null; loggingRevision = ''; ++loggingEpoch;
+    if ($('logging-status')) $('logging-status').textContent = 'Logging state is unconfirmed. Unlock controls and read logging settings before editing.';
+  }
+  const idle = available && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
+  if ($('logging-read')) $('logging-read').disabled = !available || busy || loggingBusy;
+  if ($('logging-settings')) $('logging-settings').disabled = !idle || busy || loggingBusy || !loggingSnapshot;
+}
+async function readLogging() {
+  if (loggingBusy || !online) return;
+  const epoch = loggingEpoch;
+  loggingBusy = true;
+  loggingControls();
+  if ($('logging-settings')) $('logging-settings').disabled = true;
+  try {
+    const result = await api('logging');
+    if (epoch !== loggingEpoch || !online) return;
+    const value = result.data;
+    if (value.schema !== 'transmitter-logging/1' || value.target?.scope !== 'member' ||
+        !/^[0-9a-f]{32}$/.test(value.target?.device_id || '') || !/^[0-9a-f]{32}$/.test(value.target?.boot_id || '') ||
+        typeof value.saved?.enabled !== 'boolean' || !Number.isInteger(value.saved?.maximum_severity) ||
+        value.saved.maximum_severity < 0 || value.saved.maximum_severity > 7 ||
+        typeof value.active?.enabled !== 'boolean' || typeof value.active?.streaming !== 'boolean' ||
+        !/^(0|[1-9][0-9]{0,19})$/.test(value.active?.dropped || '') || !result.revision)
+      throw new Error('This firmware does not support USB logging settings.');
+    loggingSnapshot = result.data; loggingRevision = result.revision;
+    $('logging-enabled').checked = result.data.saved.enabled;
+    $('logging-severity').value = String(result.data.saved.maximum_severity);
+    $('logging-status').textContent = `Saved: ${result.data.saved.enabled ? 'enabled' : 'disabled'}. Active: ${result.data.active.enabled ? 'enabled' : 'disabled'}; Console ${result.data.active.connected ? 'connected' : 'disconnected'}; stream ${result.data.active.streaming ? 'started' : 'stopped'}; ${result.data.active.dropped} dropped events. WsprryPi starts its own collection session.`;
+    $('logging-settings').disabled = false;
+  } catch (error) { loggingSnapshot = null; $('logging-status').textContent = error.message; }
+  finally { loggingBusy = false; loggingControls(); }
+}
+$('logging-read')?.addEventListener('click', readLogging);
+$('logging-form')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (loggingBusy || !loggingSnapshot) return;
+  const expected = loggingSnapshot;
+  loggingSnapshot = null; loggingBusy = true; $('logging-settings').disabled = true;
+  try {
+    await api('logging','PUT',{schema:'transmitter-logging/1',target:expected.target,
+      logging:{enabled:$('logging-enabled').checked,maximum_severity:Number($('logging-severity').value)}},loggingRevision);
+    loggingBusy = false; await readLogging();
+  } catch (error) {
+    $('logging-status').textContent = 'Save unconfirmed. Read logging settings and review saved state before another save. ' + error.message;
+  } finally { loggingBusy = false; loggingControls(); }
 });

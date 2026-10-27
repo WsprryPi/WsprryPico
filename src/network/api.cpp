@@ -677,6 +677,52 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     encoded += '}';
     return {response.ok ? 200U : 409U, std::move(encoded), "application/json", {}};
 }
+HttpResponse BrowserApi::logging_resource(const HttpRequest& r) {
+    if (!logger_)
+        return http_error(404, "unsupported_logging");
+    if (!store_.healthy())
+        return http_error(503, "logging_storage_fault");
+    if (r.method == "PUT") {
+        if (r.body_view().size() > 512)
+            return http_error(413, "body_too_large");
+        if (r.header("if-match").empty())
+            return http_error(428, "revision_required");
+        if (r.header("if-match") != revision())
+            return http_error(412, "revision_conflict");
+        if (!scheduler_.idle() || pending_transaction_)
+            return http_error(409, "busy");
+        const auto root = json::parse(r.body_view());
+        if (!root)
+            return http_error(400, "invalid_json");
+        const auto envelope = application::validate_envelope(
+            *root, "transmitter-logging/1", "logging", device_, service_.status().boot_id);
+        if (envelope != application::Envelope::Valid)
+            return http_error(envelope == application::Envelope::TargetMismatch ? 409 : 400,
+                              "invalid_logging_target_or_resource");
+        const auto settings = *root->get("logging");
+        if (!json::fields(settings, {"enabled", "maximum_severity"}))
+            return http_error(400, "invalid_logging_settings");
+        const auto severity = *settings.get("maximum_severity");
+        if ((settings.get("enabled")->raw != "true" && settings.get("enabled")->raw != "false") ||
+            severity.raw.size() != 1 || severity.type() < '0' || severity.type() > '7')
+            return http_error(400, "invalid_logging_settings");
+        const logging::Settings value{settings.get("enabled")->raw == "true",
+                                      static_cast<unsigned>(severity.integer())};
+        if (!store_.save_logging(value))
+            return http_error(503, "logging_save_unconfirmed");
+        logger_->settings(value);
+    } else if (r.method != "GET")
+        return http_error(405, "method_not_allowed");
+    const auto saved = store_.logging_settings();
+    auto result =
+        ok("{\"schema\":\"transmitter-logging/1\",\"target\":{\"scope\":\"member\",\"device_id\":" +
+           json::quote(device_) + ",\"boot_id\":" + json::quote(service_.status().boot_id) +
+           "},\"saved\":{\"enabled\":" + (saved.enabled ? "true" : "false") +
+           ",\"maximum_severity\":" + std::to_string(saved.maximum_severity) +
+           "},\"active\":" + logger_->status() + "}");
+    result.etag = revision();
+    return result;
+}
 HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal,
                                 std::string_view authority, std::uint64_t transaction,
                                 ManagementCarrier carrier) {
@@ -735,6 +781,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return http_error(403, "cross_site_request");
     }
     service_.poll();
+    if (r.path == "/api/v1/logging")
+        return logging_resource(r);
     if (r.path == "/api/v1/message-schedule" || r.path == "/api/v1/message-schedule/pause")
         return message_schedule_resource(r);
     if (local_usb && local_settings_ && r.path == "/api/usb/v1/wifi") {
@@ -804,6 +852,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                      ? ""
                      : "\"operations_status\":{\"schema\":\"transmitter-operations/1\",\"path\":\"/"
                        "api/v1/operations\"},") +
+                "\"logging\":{\"schema\":\"transmitter-logging/1\",\"path\":\"/api/v1/logging\"},"
                 "\"ntp_observations\":{\"schema\":\"transmitter-ntp-observations/1\","
                 "\"path\":\"/api/v1/ntp-observations\"},"
                 "\"standalone_frequency\":{\"schema\":\"transmitter-standalone-frequency/1\","

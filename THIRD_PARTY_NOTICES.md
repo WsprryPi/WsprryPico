@@ -161,3 +161,5 @@ the linked GNU C++ runtime's GCC Runtime Library Exception and newlib notices.
 Compiler and host tooling are build inputs rather than firmware components.
 The workflow collects their exact applicable license materials with source
 paths and SHA-256s; it does not distribute the compiler or SDK as firmware.
+
+The fixed UTC formatter in `src/logging/logger.cpp` adapts Howard Hinnant's [civil_from_days arithmetic](https://howardhinnant.github.io/date_algorithms.html#civil_from_days), donated to the public domain in the paper's Summary. The adaptation uses nonnegative Unix nanoseconds and fixed output storage.

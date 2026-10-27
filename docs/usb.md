@@ -163,3 +163,13 @@ To close `screen`, press **Ctrl+A**, then **backslash (\\)**, then **y**. Close 
 4. Use **Wi-Fi/Host** to review the saved network and [update its password if needed](maintain.md#change-wi-fi). Station details are optional for browser access. Return your computer or phone to the home network before retrying the Pico's home-network address.
 
 The Console request does not reset the Pico password or bypass browser login. WsprryPi's [USB settings controls](connect.md#usb-access-without-wi-fi) can manage saved Wi-Fi credentials without that login, but changing Wi-Fi does not clear a separate Pico password. If the Pico password is forgotten, retain the diagnostics and review the [reset options and their consequences](maintain.md#recovery-and-reset).
+
+## USB diagnostic logging
+
+The Pico can export diagnostic events to WsprryPi through the Console port. In the Pico browser controls, open **Connection and setup Wi-Fi → USB logging**, read the saved settings, enable export, choose the maximum severity and save. Read back after an uncertain save. Logging works without Pico Wi-Fi or synchronized UTC; without origin UTC, the Pi displays the receipt time.
+
+On WsprryPi, save the Pico in Fleet, then open **Logs**, select that Pico in **Source**, open **Log options** and enable **Collect this Pico's USB logs**. The source selector also offers **All sources** and **Local Pi**. Collection continues when the browser closes. Pause only pauses the view; export saves the records retained by that view.
+
+Turn collection off before opening this Pico's Console in another terminal or browser tool. Close that tool before turning collection on again. WTP transmission control and USB management use their separate ports. Firmware maintenance temporarily releases Console and reconnects collection afterward; changed device identity requires explicit review.
+
+For a manually started stream, send `SYSLOG STOP` to return to ordinary Console output. Logging settings belong to the Pico; the Pi's collection setting belongs to the Pi. Neither grants transmitter ownership or enables schedules. Older firmware without logging support requires an update before export can be enabled.

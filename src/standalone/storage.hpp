@@ -1,4 +1,5 @@
 #pragma once
+#include "logging/logger.hpp"
 #include "standalone/config.hpp"
 #include "standalone/message_schedule.hpp"
 
@@ -50,6 +51,10 @@ class Store {
     explicit Store(Flash& flash) : config_(flash, 0, 2048), cursor_(flash, 8192, 256) {}
     bool load(bool reset_recovery = false);
     bool save(const Config& config);
+    bool save_logging(logging::Settings settings);
+    logging::Settings logging_settings() const {
+        return logging_;
+    }
     bool reserve(std::uint64_t utc_ns);
     bool reserve_message(std::uint64_t utc_ns);
     bool clear_message_flight();
@@ -99,6 +104,7 @@ class Store {
 
   private:
     Journal config_, cursor_;
+    logging::Settings logging_;
     std::optional<Config> current_;
     std::uint64_t watermark_ = 0, last_message_start_ = 0;
     std::optional<MessageSchedule> message_;

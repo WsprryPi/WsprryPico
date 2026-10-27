@@ -120,8 +120,14 @@ bool Journal::append(std::string_view data) {
 }
 namespace {
 std::string state_record(const std::optional<Config>& config,
-                         const std::optional<MessageSchedule>& schedule) {
+                         const std::optional<MessageSchedule>& schedule,
+                         logging::Settings logging = {}) {
     const auto c = config ? serialize_config(*config) : "null";
+    if (logging.enabled || logging.maximum_severity != 6)
+        return "{\"schema\":\"standalone-state/4\",\"config\":" + c + ",\"message_schedule\":" +
+               (schedule ? serialize_message_schedule(*schedule) : "null") +
+               ",\"logging\":{\"enabled\":" + (logging.enabled ? "true" : "false") +
+               ",\"maximum_severity\":" + std::to_string(logging.maximum_severity) + "}}";
     if (!schedule)
         return config ? c : "";
     return "{\"schema\":\"standalone-state/3\",\"config\":" + c +
@@ -131,6 +137,7 @@ std::string state_record(const std::optional<Config>& config,
 bool Store::load(bool reset_recovery) {
     healthy_ = false;
     current_.reset();
+    logging_ = {};
     message_.reset();
     message_in_flight_ = false;
     watermark_ = 0;
@@ -142,16 +149,33 @@ bool Store::load(bool reset_recovery) {
         if (!root)
             return false;
         if (root->get("schema")) {
-            if (!wtp::json::fields(*root, {"schema", "config", "message_schedule"}) ||
-                root->get("schema")->string() != "standalone-state/3")
+            const bool logs = root->get("schema")->string() == "standalone-state/4";
+            if (logs) {
+                if (!wtp::json::fields(*root, {"schema", "config", "message_schedule", "logging"}))
+                    return false;
+                const auto settings = *root->get("logging");
+                const auto severity = settings.get("maximum_severity");
+                if (!wtp::json::fields(settings, {"enabled", "maximum_severity"}) ||
+                    (settings.get("enabled")->raw != "true" &&
+                     settings.get("enabled")->raw != "false") ||
+                    !severity || severity->raw.size() != 1 || severity->integer() < 0 ||
+                    severity->integer() > 7 || severity->type() < '0' || severity->type() > '7')
+                    return false;
+                logging_ = {settings.get("enabled")->raw == "true",
+                            static_cast<unsigned>(severity->integer())};
+            } else if (!wtp::json::fields(*root, {"schema", "config", "message_schedule"}) ||
+                       root->get("schema")->string() != "standalone-state/3")
                 return false;
             if (root->get("config")->raw != "null") {
                 current_ = parse_config(std::string(root->get("config")->raw));
                 if (!current_)
                     return false;
             }
-            message_ = parse_message_schedule(*root->get("message_schedule"));
-            if (!message_ || (current_ && current_->enabled && message_->enabled))
+            if (root->get("message_schedule")->raw != "null") {
+                message_ = parse_message_schedule(*root->get("message_schedule"));
+                if (!message_ || (current_ && current_->enabled && message_->enabled))
+                    return false;
+            } else if (!logs)
                 return false;
         } else {
             current_ = parse_config(config_.data());
@@ -191,7 +215,7 @@ bool Store::load(bool reset_recovery) {
 }
 bool Store::save(const Config& config) {
     const auto legacy = serialize_config(config);
-    const auto text = state_record(config, message_);
+    const auto text = state_record(config, message_, logging_);
     if (!healthy() || !parse_config(legacy) || text.size() > max_state_bytes ||
         (config.enabled && message_ && message_->enabled))
         return false;
@@ -202,11 +226,24 @@ bool Store::save(const Config& config) {
     current_ = config;
     return true;
 }
+bool Store::save_logging(logging::Settings settings) {
+    if (!healthy() || settings.maximum_severity > 7)
+        return false;
+    const auto text = state_record(current_, message_, settings);
+    if (text.size() > max_state_bytes)
+        return false;
+    if (!config_.append(text)) {
+        healthy_ = false;
+        return false;
+    }
+    logging_ = settings;
+    return true;
+}
 bool Store::config_fits(const Config& config) const {
-    return state_record(config, message_).size() <= max_state_bytes;
+    return state_record(config, message_, logging_).size() <= max_state_bytes;
 }
 bool Store::message_schedule_fits(const std::optional<MessageSchedule>& schedule) const {
-    return state_record(current_, schedule).size() <= max_state_bytes;
+    return state_record(current_, schedule, logging_).size() <= max_state_bytes;
 }
 bool Store::save_message_schedule(const std::optional<MessageSchedule>& schedule) {
     if (!healthy() || !message_schedule_fits(schedule) ||
@@ -218,7 +255,7 @@ bool Store::save_message_schedule(const std::optional<MessageSchedule>& schedule
         if (!parsed || !parse_message_schedule(*parsed))
             return false;
     }
-    if (!config_.append(state_record(current_, schedule))) {
+    if (!config_.append(state_record(current_, schedule, logging_))) {
         healthy_ = false;
         return false;
     }
