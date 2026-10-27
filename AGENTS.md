@@ -81,6 +81,7 @@ Changes to advertised capabilities, protocol/API schemas, descriptors, carrier s
 
 ## Validation and hardware
 
+- Deploy ordinary development firmware through `scripts/usb_installer.py` with its generated developer bundle, preserving the installer transaction, same-board image reference and postboot verification. Retain the exact bundle for later upgrades from another host or account. Do not substitute a direct `picotool load` script that leaves the installer reference describing an older image. After low-level programming tests, restore the verified original image or complete a shared-installer deployment before handing the board back to an operator. Reconcile an existing stale reference only with the original bundle and an exact same-board flash comparison through `upgrade --installed-bundle`; never edit identities or delete references to bypass a refusal.
 - Default validation is deterministic and hardware-free. Test behavior and
   failure paths appropriate to each change; avoid tests that merely mirror code.
 - Infer hardware-test authorization from the user's task and setup statements.

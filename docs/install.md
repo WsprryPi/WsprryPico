@@ -112,6 +112,12 @@ curl --fail --silent --show-error --location \
 
 Select the intended Pico when prompted. The installer checks compatibility, backs up flash and verifies retained settings through the same update process described above. Start with the firmware running normally; if the installer requests BOOTSEL, follow its printed continuation command for the same board and USB port. After success, review saved settings and transmit readiness before enabling a schedule.
 
+### Update a Pico with development firmware
+
+If an earlier development deployment or a different installer computer left no matching local-image reference, obtain the original developer bundle from whoever deployed that firmware. Add `--installed-bundle /path/to/original-bundle` to the upgrade command. This identifies the firmware already on the Pico; `--branch devel` still selects the new public firmware. The installer validates the bundle, checks source compatibility, backs up this Pico and compares its application flash with the supplied image before repairing the reference and programming the update. Saved settings receive the same preservation and postboot checks as an ordinary upgrade.
+
+Do not delete the reference, edit its source identity or erase the Pico to get past a refusal. If the original bundle is unavailable or does not match, stop and retain the reported transaction for support. A firmware version or source string alone is insufficient to preserve settings safely.
+
 ## Check an image without programming
 
 ```sh

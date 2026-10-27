@@ -337,6 +337,22 @@ checks still apply, so an unavailable or divergent source comparison refuses. Ge
 from expiring secret backups, with a maximum of 32 boards; retire an unused
 reference explicitly before adding another board.
 
+### Deployment handoff and reference reconciliation
+
+Deploy developer firmware through the shared installer using the generated `--local-bundle`, including for integration and hardware validation. Keep that exact two-file bundle with the deployment evidence so a later operator or another installer host can identify the installed image. The installer records the same-board reference after verified deployment. Direct `picotool load` scripts bypass that handoff and must not be used as a substitute for the installer transaction.
+
+To upgrade an existing local deployment whose compact reference is absent or stale, supply its original bundle independently of the new firmware selector:
+
+```sh
+python3 scripts/usb_installer.py upgrade --branch devel \
+  --installed-bundle /path/to/original-local-bundle \
+  --device SERIAL --board pico2_w --yes --picotool /path/to/picotool
+```
+
+`--installed-bundle` is an explicit baseline import, not a target-image selector or a force option. It is accepted only for an upgrade from local `0.0.0-devel` firmware. The original bundle's source identity must match the running application, and source ancestry checks still apply. The importer copies the validated bundle into private transaction storage before guarded maintenance, then requires the selected board's full flash backup to match the supplied application image exactly. Only after that comparison does it repair the compact reference; no firmware programming is authorized by a version string, receipt or reference edit alone. The normal reserved-flash and saved-semantics checks cover the subsequent upgrade. An incomplete or mismatched bundle refuses without replacing the reference; a flash mismatch after guarded reset retains the backup and recovery transaction without programming firmware.
+
+If only an old build tree remains, regenerate its bundle through the pinned `plan --local-build` procedure above and require the resulting UF2 to match the retained deployed UF2 byte for byte before using it. Do not invent build-input metadata or relabel another image. Without a matching bundle and image, retain the device and its evidence for deliberate recovery.
+
 ## Transaction retention
 
 Completed install/upgrade histories are limited to two transactions, and

@@ -49,7 +49,7 @@ import urllib.request
 import uuid
 import zipfile
 
-INSTALLER_VERSION = '0.2.0'
+INSTALLER_VERSION = '0.2.1'
 REPOSITORY = 'WsprryPi/WsprryPico'
 API = 'https://api.github.com/repos/' + REPOSITORY + '/'
 DOWNLOAD = 'https://github.com/' + REPOSITORY + '/releases/download/'
@@ -575,8 +575,25 @@ def candidate_asset(files, manifest):
             decode(files['ci-publication.json'])['uf2'])
 
 
-def installed_local(root, serial, snapshot, flash=None):
+def verify_linked_identity(tool, filename, manifest):
+    linked = command([tool.path, 'info', '-a', filename])
+    for field, expected in (('name', 'WsprryPico'), ('version', manifest['firmware_version']),
+                            ('description', 'Standalone PIO/DMA RF ' + manifest['source'].get('identity', manifest['source']['revision'][:12])),
+                            ('pico_board', 'pico2_w'), ('target chip', 'RP2350')):
+        require(re.search(r'^ ' + re.escape(field) + r':\s+' + re.escape(expected) + r'$', linked, re.M),
+                'Embedded image identity mismatch: ' + field)
+
+
+def installed_local(root, serial, snapshot, flash=None, *, bundle=None):
     """A local version string alone is not an image identity."""
+    if bundle is not None:
+        files = read_bundle(bundle)
+        manifest, image = verify_local(files)
+        require(manifest['source']['identity'] == snapshot['source_revision'],
+                'Supplied installed bundle does not identify the running local firmware')
+        require(flash is None or flash[:len(image)] == image,
+                'Supplied installed bundle does not match this Pico flash')
+        return files, manifest, image
     matches = []
     reference = root / ('.local-reference-' + serial + '.json')
     if reference.exists():
@@ -592,7 +609,10 @@ def installed_local(root, serial, snapshot, flash=None):
         manifest, image = verify_local(files)
         require(candidate_asset(files, manifest)['sha256'] == identity['uf2_sha256'] and
                 manifest['source']['identity'] == snapshot['source_revision'] and
-                (flash is None or flash[:len(image)] == image), 'Installed local image differs from its same-board reference')
+                (flash is None or flash[:len(image)] == image),
+                'Installed local image differs from its same-board reference. Obtain its original developer bundle '
+                'and retry upgrade with --installed-bundle DIRECTORY; the installer must verify this Pico flash '
+                'before repairing the reference. Do not delete the reference or erase saved settings.')
         return files, manifest, image
     for directory in root.glob(serial + '-*'):
         if directory.is_symlink() or not (directory / 'local-build.json').is_file():
@@ -612,14 +632,15 @@ def installed_local(root, serial, snapshot, flash=None):
                 matches.append((files, manifest, image))
         except (OSError, Refusal, KeyError, ValueError):
             continue
-    require(matches, 'Installed local image has no retained same-board verified transaction; deliberate recovery is required')
+    require(matches, 'Installed local image has no retained same-board verified transaction. Obtain its original '
+            'developer bundle and retry upgrade with --installed-bundle DIRECTORY; a version string alone is insufficient.')
     require(len({candidate_asset(f, m)['sha256'] for f, m, _ in matches}) == 1, 'Ambiguous installed local image')
     return matches[0]
 
 
-def remember_local(directory, record):
+def remember_local(directory, record, *, root=None):
     """Retain generic image identity separately from expiring secret backups."""
-    root, serial = directory.parent, record['serial']
+    root, serial = root if root is not None else directory.parent, record['serial']
     reference = root / ('.local-reference-' + serial + '.json')
     require(reference.exists() or len(list(root.glob('.local-reference-*.json'))) < 32,
             'Local image references are full; retire an unused board reference explicitly')
@@ -1553,7 +1574,10 @@ def transaction(args, files, manifest, image, client=None):
         require(args.board == 'pico2_w', 'Explicit --board pico2_w confirmation is required for BOOTSEL hardware')
         root = private_directory(args.state_dir)
         prune_transactions(root)
-        if 'local-build.json' in files:
+        if 'local-build.json' in files or getattr(args, 'installed_bundle', None) is not None:
+            require(not (root / ('.local-reference-' + serial + '.json')).is_symlink() and
+                    not (root / ('.local-image-' + serial + '.uf2')).is_symlink(),
+                    'Unsafe local reference destination')
             require((root / ('.local-reference-' + serial + '.json')).exists() or
                     len(list(root.glob('.local-reference-*.json'))) < 32,
                     'Local image references are full; retire an unused board before installing another')
@@ -1576,12 +1600,7 @@ def transaction(args, files, manifest, image, client=None):
             for name, data in files.items():
                 save_bytes(directory / name, data)
             candidate = directory / f"WsprryPico-{manifest['firmware_version']}-pico2_w.uf2"
-            linked = command([tool.path, 'info', '-a', candidate])
-            for field, expected in (('name', 'WsprryPico'), ('version', manifest['firmware_version']),
-                                    ('description', 'Standalone PIO/DMA RF ' + manifest['source'].get('identity', manifest['source']['revision'][:12])),
-                                    ('pico_board', 'pico2_w'), ('target chip', 'RP2350')):
-                require(re.search(r'^ ' + re.escape(field) + r':\s+' + re.escape(expected) + r'$', linked, re.M),
-                        'Embedded image identity mismatch: ' + field)
+            verify_linked_identity(tool, candidate, manifest)
             snapshot = None
             if args.operation == 'upgrade':
                 terminal_progress(args, 'Read saved settings and check upgrade compatibility...')
@@ -1593,8 +1612,17 @@ def transaction(args, files, manifest, image, client=None):
                 old_version = snapshot['firmware']
                 require(client, 'Missing provenance resolver')
                 if old_version == '0.0.0-devel':
-                    old_files, old_manifest, old_image = installed_local(root, serial, snapshot)
+                    old_files, old_manifest, old_image = installed_local(
+                        root, serial, snapshot, bundle=getattr(args, 'installed_bundle', None))
+                    if getattr(args, 'installed_bundle', None) is not None:
+                        installed = directory / 'installed'
+                        installed.mkdir(mode=0o700)
+                        for name, data in old_files.items():
+                            save_bytes(installed / name, data)
+                        verify_linked_identity(tool, installed / candidate_asset(old_files, old_manifest)['path'], old_manifest)
                 else:
+                    require(getattr(args, 'installed_bundle', None) is None,
+                            '--installed-bundle is only for an installed local development image')
                     require(version_kind(old_version) in ('ci', 'prerelease', 'stable'),
                             'Unsupported installed firmware; retain backup and recover deliberately')
                     old_files, old_manifest, old_image = ((files, manifest, image) if old_version == manifest['firmware_version'] and
@@ -1670,6 +1698,17 @@ def transaction(args, files, manifest, image, client=None):
                 require(int(old_manifest['update']['application_end'], 16) <= int(manifest['update']['application_end'], 16) or
                         before[PERSISTENT_START:0x3F0000] == b'\xff' * 8192,
                         'Newly reserved storage is not erased; migration is unsupported')
+                if getattr(args, 'installed_bundle', None) is not None:
+                    for suffix, maximum in (('json', 65536), ('uf2', MAX_DOWNLOAD)):
+                        previous = root / (('.local-reference-' if suffix == 'json' else '.local-image-') + serial + '.' + suffix)
+                        if previous.exists():
+                            require(previous.is_file() and not previous.is_symlink() and previous.stat().st_size <= maximum,
+                                    'Unsafe previous local reference')
+                            save_bytes(directory / ('reference-before.' + suffix), previous.read_bytes())
+                    remember_local(directory / 'installed',
+                                   {'serial': serial, 'uf2_sha256': candidate_asset(old_files, old_manifest)['sha256']},
+                                   root=root)
+                    record['installed_reference_repaired'] = True
             record.update(stage='backed_up', program_authorized=True, backup_sha256=sha(before),
                           persistent_sha256=sha(before[PERSISTENT_START:]))
             save_json(path, record)
@@ -1744,6 +1783,10 @@ def verify_application(args, tool, record, path, manifest, snapshot):
         # observations are intentionally separate from durable settings.
         require(saved_semantics(snapshot) == saved_semantics(observed),
                 'Saved semantic state differs after reboot; keep member in maintenance')
+    if (path.parent / 'local-build.json').is_file():
+        # A developer deployment is not handed off until the next installer can
+        # identify it. Keep the verification hold if persisting that identity fails.
+        remember_local(path.parent, record)
     if manifest['update'].get('postboot_verification') == 1:
         record.update(stage='application_verified_maintenance_held', target=observed['target'])
         save_json(path, record)
@@ -1758,8 +1801,6 @@ def verify_application(args, tool, record, path, manifest, snapshot):
     else:
         require(record['operation'] == 'install' and observed['config'].get('config') is None,
                 'Legacy image can only be initially installed with no saved standalone configuration')
-    if 'local-build.json' in {p.name for p in path.parent.iterdir()}:
-        remember_local(path.parent, record)
     record.update(stage='complete', recovery_required=False,
                   target=observed['target'], preserved=True)
     save_json(path, record)
@@ -2120,6 +2161,8 @@ def main(argv=None, schema_bytes=None, *, human=False):
     choice.add_argument('--stable', action='store_true', help='Explicit stable selection; refuses when no compatible stable is published')
     choice.add_argument('--local-build', type=Path, help='Explicit developer source checkout to compile with existing pinned tools')
     choice.add_argument('--local-bundle', type=Path, help='Explicit previously built developer bundle')
+    parser.add_argument('--installed-bundle', type=Path,
+                        help='Original developer bundle for the running local image; upgrade verifies flash before repairing its reference')
     parser.add_argument('--build-dir', type=Path, help='New developer build directory; never reused')
     parser.add_argument('--source-revision', help='Require this exact full local source HEAD')
     parser.add_argument('--allow-dirty', action='store_true', help='Explicitly accept a labelled dirty developer build')
@@ -2161,6 +2204,8 @@ def main(argv=None, schema_bytes=None, *, human=False):
                 '--bundle cannot be combined with another image selector')
         require(not args.replace_unidentified_application or args.operation == 'install',
                 'Replacing unidentified application bytes is an explicit initial-install operation only')
+        require(args.installed_bundle is None or args.operation == 'upgrade',
+                '--installed-bundle is only supported for upgrade')
         if args.operation in ('install', 'upgrade'):
             require(args.yes, 'Programming requires an explicit operation and --yes')
             require(args.board == 'pico2_w', 'Explicit --board pico2_w confirmation is required for BOOTSEL hardware')
