@@ -17,7 +17,7 @@
    ```
 
 5. Reconnect your phone or computer to your home network. Open the Pico's control page at its home-network address as described below. You can enter station details later; they are not needed to connect or sign in.
-6. The default **Pico password** is the **home Wi-Fi password entered during setup**. Enter it in **Pico password** and sign in. You can [set a separate Pico password](maintain.md#change-the-pico-password) under **Wi-Fi/Host → Pico password**. Check the hostname in the page heading and the full device ID under **About this Pico / Diagnostics** against your Pico, then continue to [Configure your station](configure.md) when you are ready to set up transmissions.
+6. The default **Pico password** is the **home Wi-Fi password entered during setup**. Select the lock beside the hostname, enter it in **Pico password**, then choose **Unlock controls**. You can [set a separate Pico password](maintain.md#change-the-pico-password) under **Wi-Fi/Host → Pico password**. Check the hostname in the page heading and the full device ID under **About this Pico / Diagnostics** against your Pico, then continue to [Configure your station](configure.md) when you are ready to set up transmissions.
 
 Setup Wi-Fi stays available while your phone or computer is connected to it. After the last device disconnects, it closes after **ten minutes** without a connection. If nobody joins, the initial setup window also lasts ten minutes. Saving settings that restart the Pico can interrupt the connection; do not assume a lost reply means the save failed. If needed, use [USB recovery](usb.md) or request setup Wi-Fi again with the external button.
 
@@ -28,10 +28,10 @@ Once the Pico has joined your home network, use its **home-network IP address** 
 1. Connect your phone or computer to the same home network as the Pico. A wired computer on that network also works. Avoid a guest network that prevents devices from reaching each other.
 2. Find the Pico in your router's connected-device list, or use the hostname reported by the setup page. A default name looks like `wsprrypico-0a60df.local`; your Pico's suffix will differ.
 3. Type the complete address into the browser's address bar, starting with **http://**. For example, if your router lists the Pico at **192.168.1.123**, open **http://192.168.1.123/**. Replace that example IP with your Pico's actual address. You can also use **http://wsprrypico-0a60df.local/** with your Pico's actual hostname.
-4. The control page should show a **Pico password** login field. Its default is the home Wi-Fi password saved during setup. Use your separate Pico password if you changed it. To change the Pico password without changing Wi-Fi, follow [Change the Pico password](maintain.md#change-the-pico-password).
+4. The control page shows **Transmitter status** without opening a login prompt. Select the lock immediately before the hostname to open **Pico password**, then choose **Unlock controls**. Its default is the home Wi-Fi password saved during setup. Use your separate Pico password if you changed it. To change the Pico password without changing Wi-Fi, follow [Change the Pico password](maintain.md#change-the-pico-password).
 
    ```{image} _static/images/radio-login.jpg
-   :alt: Pico control page with an example hostname, Station/Transmission and Wi-Fi/Host links, and an empty Pico password login field.
+   :alt: Pico control page with the password dialog opened from the lock beside the hostname, an empty Pico password field, Unlock controls and Close.
    ```
 
 The control page uses **HTTP on port 80**. If your browser automatically changes the address to **https://**, allow HTTP for this Pico address and retry. The page can open before the Pico has synchronized its clock; a time-server problem does not by itself prevent browser access.
@@ -40,7 +40,9 @@ If the Pico answers ping but the page does not open, follow [Pico answers ping b
 
 Use a current desktop or mobile browser with JavaScript enabled. The Pico serves its own page.
 
-**Station/Transmission** holds station identity, schedules, radio pins and job controls. **Wi-Fi/Host** holds Wi-Fi, Pico password, time server, hostname and restart controls. The shared status and recovery controls stay available when switching areas. Use the page links to retain current browser drafts.
+**Station/Transmission** holds station identity, schedules, radio pins and job controls. **Wi-Fi/Host** holds Wi-Fi, Pico password, time server, hostname and restart controls. Transmitter status stays open in both areas. Other sections start collapsed; select a heading or use **Sections** to open the required controls. **Saved settings and recovery** and **About this Pico / Diagnostics** are shared sections. **Top** closes all non-status sections in both areas and returns to the status region while keeping your entries and selected job file. Use the page links to retain browser drafts. A direct section bookmark opens its section, and an unresolved save continuation opens recovery instructions.
+
+The unlocked icon locks this browser through logout. It preserves drafts, accepted transmissions and schedules; other logins keep their own access. If logout cannot be confirmed, the page reports local locking and any occupied-login uncertainty. Closing or cancelling the password dialog clears its password fields. The icon describes application access, not transport security or transmitter ownership.
 
 The hostname identifies the running device; a saved rename takes effect only after restart. The **full stable device ID** is the Pico's permanent 32-character hexadecimal identifier. It distinguishes Picos sharing a name and differs from the USB serial used by the installer. An IP address can change after reconnecting to the network. If `.local` fails, use the current IP in your router. After signing in, check the full device ID in **About this Pico / Diagnostics** and record it for later identification.
 

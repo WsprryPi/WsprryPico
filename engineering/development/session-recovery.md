@@ -71,3 +71,5 @@ bootstrap dispatch/delivery gates. Failed results retain correctable drafts;
 successful readback must preserve unrelated edits. Receipt-only origin
 continuations cannot submit. Password changes require an explicit login using
 the password valid for the observed profile. No automatic password guesses.
+
+The hostname lock opens the password dialog; occupied-login recovery is a secondary native disclosure within it. Inspection, exact target selection, current-password proof and explicit confirmation remain separate from replacement login. Cancelling the dialog scrubs both password entries. Locking during an application action gates subsequent dispatches immediately and serializes logout after the current bounded operation; it cannot reverse an accepted save or job. A cancelled late successful login is cleaned up before another login is admitted. Unconfirmed cleanup retains only the existing nonsecret selector for explicit recovery.

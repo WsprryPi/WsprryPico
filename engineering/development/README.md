@@ -97,6 +97,19 @@ inputs and generated-site inputs after documentation changes. Run
 `git diff --check` and inspect untracked text separately; whitespace validation
 alone does not check links or fixtures.
 
+### Browser interface checks
+
+The registered host suite includes `ui_access_browser_tests` and `ui_access_shipped_tests` for cancellation, lock/request serialization, carrier discovery, response epochs and receipt History. Source and generated scripts must agree before firmware compilation.
+
+With retained npm dependencies and a current Chrome/Chromium installation, the opt-in native browser fixture checks disclosures, modal keyboard focus, login capacity and retirement, Top, selected files, hidden validation, responsive layout and the production HTTP/crypto routes:
+
+```sh
+node tests/ui_sections_browser.mjs build-host/consumer_bootstrap_driver build/ui-sections/browser
+node tests/ui_sections_browser.mjs build-host/consumer_bootstrap_driver build/ui-sections/certificate engineering
+```
+
+Set `CHROME_BIN` to the installed browser executable on hosts using another path. The consumer and engineering checks run sequentially because each owns a fixed local fixture port range. They use RAM-backed synthetic configuration, isolated browser profiles and bounded requests; they access no Pico or RF hardware. The certificate fixture supplies an authenticated principal and does not qualify browser certificate selection or TLS admission. The existing organization and session-timeout browser workflows cover setup/save reconciliation and session lifetime separately.
+
 ## Host tools and analysis
 
 `scripts/usb_inventory.py` provides a read-only, explicitly selected USB Console

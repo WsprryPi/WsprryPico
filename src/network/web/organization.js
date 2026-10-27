@@ -1,36 +1,104 @@
 'use strict';
-// Navigation changes only presentation. Paths are reloadable aliases on each
-// admitted carrier; fragments remain exclusively receipt/bookmark context.
+// Fixed section IDs are presentation only; they never select API authority.
 (() => {
   const station = $('station-area'), wifi = $('wifi-host-area');
-  function renderArea() {
-    const deep = location.hash;
-    const hostArea = location.pathname === '/wifi-host' ||
-      ['#consumer-setup','#hostname-form','#wifi-host-area'].includes(deep);
+  const sections = new Map([
+    ['station-identity','station'],['radio-settings','station'],['message-section','station'],
+    ['wifi-settings','wifi-host'],['pico-password-section','wifi-host'],['hostname-section','wifi-host'],
+    ['connection-section','wifi-host'],['saved-settings',null],['device-diagnostics',null]
+  ]);
+  const aliases = new Map([
+    ['consumer-setup','saved-settings'],['hostname-form','hostname-section'],
+    ['engineering-station-form','station-identity'],['consumer-station-form','station-identity'],
+    ['radio-settings-heading','radio-settings'],['job-heading','message-section'],
+    ['station-area','station-identity'],['wifi-host-area','wifi-settings']
+  ]);
+  const receipt = () => /^#(?:save|hostname-return)=/.test(location.hash);
+  const stateKey = 'wsprrypicoPresentation';
+  function fragment() {
+    if (receipt() || location.hash.length > 100) return null;
+    try { const id=decodeURIComponent(location.hash.slice(1)); return sections.has(id) || id==='top' ? id : aliases.get(id) || null; }
+    catch { return null; }
+  }
+  function setArea(area) {
+    const hostArea = area === 'wifi-host';
     station.hidden = hostArea; wifi.hidden = !hostArea;
     $('station-link').setAttribute('aria-current',hostArea ? 'false' : 'page');
     $('wifi-host-link').setAttribute('aria-current',hostArea ? 'page' : 'false');
   }
-  for (const link of document.querySelectorAll('#area-nav a,[data-area-link]')) {
-    link.addEventListener('click',event => {
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  function closePopovers() { utcEditors.forEach(editor=>editor.close()); }
+  function reveal(node, focus = false) {
+    if (!node) return;
+    const area=node.closest?.('[data-task-area]')?.getAttribute('data-task-area');
+    if (area) setArea(area);
+    for (let parent=node; parent; parent=parent.parentElement) if (parent.tagName === 'DETAILS') parent.open=true;
+    if (focus) {
+      const target=node.tagName==='DETAILS' ? node.querySelector('summary') : node;
+      target?.focus({preventScroll:true}); node.scrollIntoView?.({block:'start'});
+    }
+  }
+  function top() {
+    closePopovers();
+    $('status-heading').focus({preventScroll:true});
+    for (const id of sections.keys()) {
+      const section=$(id);
+      for (const child of section.querySelectorAll('details')) child.open=false;
+      section.open=false;
+    }
+    $('section-menu').open=false;
+    $('top').scrollIntoView?.({block:'start'});
+  }
+  function restore(focus=false) {
+    const saved=history.state?.[stateKey];
+    const id=fragment() || (receipt() && (sections.has(saved?.section) || saved?.section==='top') ? saved.section : null);
+    const area=sections.get(id) || (location.pathname==='/wifi-host' ? 'wifi-host' : 'station');
+    setArea(area);
+    if (id==='top') { if(focus) top(); else if(receipt()) reveal($('saved-settings')); }
+    else if (id) reveal($(id),focus);
+    else if (receipt()) reveal($('saved-settings'));
+  }
+  function navigate(id,area,path) {
+    closePopovers();
+    const prior=history.state;
+    const existing=prior && typeof prior==='object' && !Array.isArray(prior) ? prior : prior===null || prior===undefined ? {} : {wsprrypicoPreviousState:prior};
+    const next={...existing,[stateKey]:{section:id,area}};
+    // There is exactly one fragment. Receipt bytes remain verbatim; only a
+    // bounded section choice is stored in namespaced History presentation data.
+    const hash=receipt() ? location.hash : id ? '#'+id : '';
+    history.pushState(next,'',path+location.search+hash);
+    setArea(area);
+    if(id==='top') top();
+    else if(id) reveal($(id),true);
+    else (station.hidden ? wifi : station).scrollIntoView?.({block:'start'});
+  }
+  for (const link of document.querySelectorAll('a[href]')) {
+    const href=link.getAttribute('href');
+    if (!href || !/^(?:\/station|\/wifi-host|#)/.test(href)) continue;
+    const [path,hash]=href.split('#');
+    const id=sections.has(hash) || hash==='top' ? hash : aliases.get(hash);
+    if (hash && !id || path && !['/station','/wifi-host'].includes(path)) continue;
+    link.addEventListener('click',event=>{
+      if(event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
-      // Keep receipt bytes verbatim, including uncertain-save evidence.
-      const receipt = /^#(?:save|hostname-return)=/.test(location.hash) ? location.hash : '';
-      history.pushState(null,'',link.getAttribute('href') + receipt);
-      renderArea();
-      (station.hidden ? wifi : station).scrollIntoView?.({block:'start'});
+      const area=sections.get(id) || (path ? path==='/wifi-host' ? 'wifi-host' : 'station' : station.hidden ? 'wifi-host' : 'station');
+      navigate(id || null,area,path || (area==='wifi-host' ? '/wifi-host' : '/station'));
     });
   }
-  addEventListener('popstate',renderArea);
-  addEventListener('hashchange',renderArea);
-  renderArea();
-  for (const [button,target] of [['jump-identity',null],['jump-settings','radio-settings-heading'],['jump-message','job-heading']]) {
-    $(button).onclick = () => {
-      const id=target || (radio ? 'consumer-station-form' : 'engineering-station-form');
-      $(id).focus({preventScroll:true});$(id).scrollIntoView({block:'start'});
-    };
+  document.addEventListener('invalid',event=>reveal(event.target),true);
+  for(const id of sections.keys()) {
+    const section=$(id);
+    section.addEventListener('toggle',()=>{
+      if (!section.open) {
+        closePopovers();
+        if (section.contains(document.activeElement) && document.activeElement!==section.querySelector('summary')) section.querySelector('summary').focus({preventScroll:true});
+      }
+    });
   }
+  globalThis.WsprryPicoSections={reveal,top,recovery:()=>reveal($('saved-settings'))};
+  addEventListener('popstate',()=>restore(true));
+  addEventListener('hashchange',()=>restore(true));
+  restore(Boolean(fragment()));
+  if(consumerAttempt || returnReceipt) reveal($('saved-settings'));
 
   for (const kind of ['station','network']) {
     const form = $('engineering-' + kind + '-form');

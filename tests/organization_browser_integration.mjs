@@ -62,13 +62,14 @@ class Cdp {
     async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
 }
 async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(Date.now()<end){try{const r=await fn();if(r)return r;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+label+(last?' '+last.message:''));}
-async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
+async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
 async function capture(name,anchor=null){
     if(process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1' && !axeSource)return;
     for(const theme of axeSource ? ['light'] : ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
         await cdp.send('Emulation.setDeviceMetricsOverride',{...view,name:undefined,deviceScaleFactor:1,mobile:view.name==='mobile'});
         await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
+        if(anchor)await cdp.evaluate(`globalThis.WsprryPicoSections?.reveal(document.getElementById(${JSON.stringify(anchor)}))`);
         await cdp.evaluate(anchor ? `document.getElementById(${JSON.stringify(anchor)}).scrollIntoView({block:'start'})` : 'scrollTo(0,0)');
         assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,'horizontal overflow');
         if (axeSource) {
@@ -167,21 +168,22 @@ try {
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy'),'production control document');
     assert.equal(await cdp.evaluate(`!document.getElementById('station-area').hidden && document.getElementById('wifi-host-area').hidden`),true);
-    assert.match(await cdp.evaluate(`document.getElementById('message-availability').textContent`),/Log in/);
+    assert.match(await cdp.evaluate(`document.getElementById('message-availability').textContent`),/unlock controls/);
     await capture('lan-default');
     await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'login');
+    const jumpRequests=requests.length;
+    await cdp.evaluate('document.getElementById("section-menu").open=true');
+    for(const id of ['station-identity','radio-settings','message-section']) {
+      await cdp.evaluate(`document.querySelector('a[href$="#${id}"]').focus()`);
+      await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
+      await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+      await until(()=>cdp.evaluate(`document.activeElement===document.getElementById('${id}').querySelector('summary')`),'keyboard section link '+id);
+    }
+    assert.equal(await cdp.evaluate('location.hash'),'#message-section');assert.equal(requests.length,jumpRequests);
     const messageAX=(await cdp.send('Accessibility.getFullAXTree')).nodes.find(n=>n.role?.value==='textbox' && n.name?.value==='Message');
     assert.ok(messageAX,'message accessible name excludes help prose');
     assert.match(messageAX.description?.value || '',/32-character limit/);
-    const jumpRequests=requests.length, jumpHash=await cdp.evaluate('location.hash');
-    for(const [button,target] of [['jump-identity','consumer-station-form'],['jump-settings','radio-settings-heading'],['jump-message','job-heading']]) {
-      await cdp.evaluate(`document.getElementById('${button}').focus()`);
-      await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
-      await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
-      await until(()=>cdp.evaluate(`document.activeElement.id==='${target}'`),'keyboard section shortcut '+button+' '+await cdp.evaluate(`JSON.stringify({active:document.activeElement.id,hidden:document.getElementById('${target}').hidden,ancestor:!!document.getElementById('${target}').closest('[hidden]')})`));
-    }
-    assert.equal(await cdp.evaluate('location.hash'),jumpHash);assert.equal(requests.length,jumpRequests);
     assert.match(await cdp.evaluate(`document.getElementById('message-preview').textContent`),/Enter a message/);
     assert.equal(await cdp.evaluate(`document.getElementById('message-preview').classList.contains('error')`),false);
     assert.ok(await cdp.evaluate(`document.getElementById('job-heading').getBoundingClientRect().top>=8`),'complete focused outline is visible');
@@ -249,6 +251,7 @@ try {
     await click('wifi-host-link');assert.equal(await cdp.evaluate('location.hash'),stationReceipt);
     await f.time(f.now+3000);await f.command({op:'activate'});await f.time(f.now+1000);
     assert.notEqual((await f.command({op:'stats'})).profile_generation,beforeStation);
+    await click('refresh');await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'observe retired profile session');
     await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'station save relogin');
     await click('consumer-check-save');await until(()=>cdp.evaluate('!busy && !consumerAttempt'),'explicit station receipt reconciliation');

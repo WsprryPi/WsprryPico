@@ -8,8 +8,8 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
 (async()=>{
   const input=element('0.000'),mode=element('manual'),read=element(),save=element(),discard=element(),adopt=element(),status=element();
   let target={scope:'member',device_id:'a'.repeat(32),boot_id:'b'.repeat(32)};
-  let writes=0, fail=false;
-  const editor=create({input,mode,read,save,discard,adopt,status,exchange:async(method,body,match)=>{
+  let writes=0, fail=false, reportedErrors=0;
+  const editor=create({input,mode,read,save,discard,adopt,status,onError:()=>{reportedErrors++;},exchange:async(method,body,match)=>{
     if (method==='PUT') { writes++; assert.equal(match,'revision'); if (fail) throw Error('Lost reply'); }
     return {revision:'revision',data:{schema:'transmitter-rf-calibration/1',target,storage_healthy:true,
       saved:{manual_ppm:body?.calibration.manual_ppm ?? '0.000',mode:body?.calibration.mode ?? 'manual'},
@@ -27,7 +27,7 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
   await save.onclick(); assert.equal(writes,1);
   input.value='20.000'; input.oninput(); fail=true;
   await save.onclick(); assert.equal(input.value,'20.000'); assert.equal(save.disabled,true);
-  assert.match(status.textContent,/Read saved/);
+  assert.match(status.textContent,/Read saved/);assert.equal(reportedErrors,1);
   await read.onclick(); assert.equal(input.value,'20.000'); assert.equal(save.disabled,false);
   target={...target,boot_id:'c'.repeat(32)};
   editor.invalidate(); assert.equal(save.disabled,true);
@@ -40,7 +40,7 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
   const apiSource = app.slice(app.indexOf('async function api('),app.indexOf('async function local('));
   const requests=[];
   const actualApi = vm.runInNewContext(apiSource + '\napi;',{
-    returnReceipt:false,consumerAttempt:false,localIdentity:null,radio:null,
+    returnReceipt:false,consumerAttempt:false,localIdentity:null,radio:null,accessCarrier:'certificate',accessEpoch:0,accessClosing:false,localLocked:false,
     supportsAmplifier:()=>false,AbortSignal,
     frequencyEditor:{observeRevision:value=>assert.equal(value,'actual-revision')},
     fetch:async(path,options)=>{

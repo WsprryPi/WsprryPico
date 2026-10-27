@@ -40,6 +40,7 @@ async function time(ms) {
 async function login() {
     // The shared fixture advances the device by one second on login start.
     now+=1000;
+    await evaluate("document.getElementById('access-toggle').click()");
     await evaluate(`globalThis.sessionTestTime=${now};document.getElementById('local-password').value='test-password';document.getElementById('local-login').requestSubmit()`);
     await until(()=>evaluate('!busy && localAuthenticated && online'),'login');
 }
@@ -48,6 +49,7 @@ async function refresh() {
     await until(()=>evaluate('!busy'),'refresh');
 }
 async function capture(state) {
+    if(process.env.UI_REVIEW_NO_CAPTURE==='1')return;
     for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]) {
         await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name==='mobile'});
         await evaluate("document.getElementById('local-access').scrollIntoView({block:'start'})");
@@ -88,6 +90,8 @@ try {
     await evaluate('document.querySelector("[name=schedules]").dispatchEvent(new Event("input",{bubbles:true}));radio.identity()');
     await time(renewed+1800000);await refresh();
     assert.equal(await evaluate('radio.authenticated'),false);
+    assert.equal(await evaluate('document.getElementById("access-toggle").getAttribute("aria-label")'),'Unlock controls');
+    assert.equal(await evaluate('document.getElementById("local-access").open'),false);
     assert.equal(await evaluate('document.getElementById("local-login").hidden'),false);
     assert.equal(await evaluate('document.getElementById("save-config").disabled'),true);
     assert.equal(await draft(),'240 / 0');
@@ -105,7 +109,7 @@ try {
     assert.equal(await evaluate('document.getElementById("save-config").disabled'),true);
     assert.deepEqual(await evaluate('sessionRequests.filter(request=>!["GET"].includes(request.method))'),[]);
     await capture('absolute-expired');
-    const result={browser:(await send('Browser.getVersion')).product,virtual_time:true,idle_boundary_ms:1800000,absolute_boundary_ms:28800000,public_and_edit_activity_do_not_renew:true,draft_preserved:true,readback_review_required:true,no_mutations:true,screenshots:4};
+    const result={browser:(await send('Browser.getVersion')).product,virtual_time:true,idle_boundary_ms:1800000,absolute_boundary_ms:28800000,public_and_edit_activity_do_not_renew:true,draft_preserved:true,readback_review_required:true,no_mutations:true,screenshots:process.env.UI_REVIEW_NO_CAPTURE==='1'?0:4};
     await writeFile(path.join(output,'results.json'),JSON.stringify(result,null,2)+'\n');
     console.log(JSON.stringify(result));
 } finally {

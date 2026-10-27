@@ -25,3 +25,5 @@ draft, read/review, area/history and one-shot restart behavior stay intact.
 Discovery conflicts do not rename or erase the configured active name. Identity rendering introduces no API,
 protocol, carrier, session crypto, profile, RF, scheduler or JobService authority
 change; there is no new polling or transport task.
+
+The lock button is a sibling of the mutable hostname text node, so observation updates cannot erase it or include icon text in the title. Its native action label and adjacent state describe browser access. Certificate-authenticated engineering pages explain their browser-managed access rather than pretending to revoke a client certificate. See [browser access and sections](browser-pages.md#browser-access).

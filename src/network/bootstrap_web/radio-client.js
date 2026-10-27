@@ -84,6 +84,9 @@ export class RadioClient {
     finally { pending?.secret.fill(0); this.busy = false; }
   }
   async request(path, method = 'GET', body, etag, timeout = 30000) {
+    if(path!=='consumer/logout' && this.requestAllowed && !this.requestAllowed()) {
+      const error=new Error('Controls were locked before this request was submitted'); error.local=true; throw error;
+    }
     if (this.busy) throw new Error('A radio request is already in progress');
     if (!this.authenticated) { const error = new Error('Log in with the Pico password'); error.code='radio_authentication_required'; throw error; }
     // Validate/encode before consuming a sequence or changing authentication.
@@ -106,8 +109,15 @@ export class RadioClient {
     finally { this.busy = false; }
   }
   async logout() {
-    try { if (this.authenticated) await this.request('consumer/logout','POST',{}); }
-    finally { this.clear(); }
+    try {
+      if (this.authenticated) {
+        const result=await this.request('consumer/logout','POST',{});
+        if(!result.ok) throw new Error('Remote logout was refused; this browser has cleared its authority.');
+      }
+    } catch(error) {
+      if(this.state) this.lostSession={selector:retirementSelector(this.identityContext,this.state.session),...this.identityContext};
+      throw error;
+    } finally { this.clear(); }
   }
   get retirementSelector() { return this.state ? retirementSelector(this.identityContext,this.state.session) : this.lostSession?.selector; }
   async recovery() {

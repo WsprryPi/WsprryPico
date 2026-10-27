@@ -2,7 +2,7 @@
   'use strict';
   const minutes = text => /^[1-9][0-9]{0,3}$/.test(text) && Number(text) <= 1440 ? Number(text) : null;
   const duration = seconds => seconds === 3600 ? '1 hour' : seconds === 60 ? '1 minute' : `${seconds / 60} minutes`;
-  function create({input,read,save,discard,adopt,status,exchange,afterSave = ()=>{}}) {
+  function create({input,read,save,discard,adopt,status,exchange,afterSave = ()=>{},onError = ()=>{},run = fn=>fn()}) {
     let readable = false, writable = false, busy = false, observed = null, revision = '', epoch = 0;
     let edited = false, draftTarget = '', review = false;
     const identity = value => JSON.stringify(value.target);
@@ -33,7 +33,7 @@
         if (!edited) { input.value = String(v.saved_timeout_s/60); draftTarget = identity(v); }
         review = edited && draftTarget !== identity(v);
         status.textContent = `Saved: ${duration(v.saved_timeout_s)}. Active: ${duration(v.active_timeout_s)}.${v.pending_restart ? ' Restart the Pico to activate the saved timeout.' : ''}${edited ? ' Your entry is preserved.' : ''}${review ? ' Review the new Pico before using this entry.' : ''}`;
-      } catch (e) { if (ticket === epoch) status.textContent = e.message; }
+      } catch (e) { if (ticket === epoch) { onError(e); status.textContent = e.message; } }
       finally { busy = false; render(); }
     }
     async function commit() {
@@ -50,7 +50,7 @@
         input.value = String(v.saved_timeout_s/60);
         status.textContent = `NTP timeout saved: ${duration(expected)}.${v.pending_restart ? ' Restart the Pico to activate it.' : ' This timeout is active.'}`;
         await afterSave();
-      } catch (e) { if (ticket === epoch) status.textContent = e.message + ' Read saved timeout before another save; your entry is preserved.'; }
+      } catch (e) { if (ticket === epoch) { onError(e); status.textContent = e.message + ' Read saved timeout before another save; your entry is preserved.'; } }
       finally { busy = false; render(); }
     }
     input.oninput = () => { edited = true; if (observed && !review) draftTarget = identity(observed); render(); };
@@ -59,7 +59,7 @@
       input.value = String(observed.saved_timeout_s/60); edited = review = false; draftTarget = identity(observed); render();
     };
     adopt.onclick = () => { if (!adopt.disabled) { draftTarget = identity(observed); review = false; render(); } };
-    read.onclick = load; save.onclick = commit; render();
+    read.onclick = ()=>run(load); save.onclick = ()=>run(commit); render();
     return {setAvailability(canRead,canWrite) { readable = canRead; writable = canWrite; render(); },
       invalidate() { ++epoch; revision = ''; observed = null; render(); }};
   }

@@ -13,7 +13,7 @@
       d.minimum === '-100.000' && d.maximum === '100.000' &&
       d.default_mode === 'manual' && d.activation === 'next_preparation';
   }
-  function create({input,mode,read,save,discard,adopt,status,exchange,afterSave = ()=>{}}) {
+  function create({input,mode,read,save,discard,adopt,status,exchange,afterSave = ()=>{},onError = ()=>{},run = fn=>fn()}) {
     let available = false, busy = false, observed = null, revision = '', epoch = 0, edited = false, draftTarget = '', review = false;
     const identity = value => JSON.stringify(value.target);
     function render() {
@@ -45,7 +45,7 @@
         }
         review = edited && draftTarget !== identity(v);
         status.textContent = `Saved ${v.saved.manual_ppm} ppm (${v.saved.mode}). Next job: ${v.selection?.next_ppb ?? 'unavailable'} ppb. Network time disciplines UTC only.${edited ? ' Your entry is preserved.' : ''}${review ? ' Review the new Pico identity before using this entry.' : ''}`;
-      } catch (e) { if (ticket === epoch) status.textContent = e.message; }
+      } catch (e) { if (ticket === epoch) { onError(e); status.textContent = e.message; } }
       finally { busy = false; render(); }
     }
     async function commit() {
@@ -64,7 +64,7 @@
         input.value = v.saved.manual_ppm; mode.value = v.saved.mode; draftTarget = identity(v);
         status.textContent = 'Manual calibration saved for future jobs.';
         afterSave();
-      } catch (e) { if (ticket === epoch) status.textContent = e.message + ' Read saved calibration before another save; your entry is preserved.'; }
+      } catch (e) { if (ticket === epoch) { onError(e); status.textContent = e.message + ' Read saved calibration before another save; your entry is preserved.'; } }
       finally { busy = false; render(); }
     }
     input.oninput = mode.onchange = () => {
@@ -81,7 +81,7 @@
       if (adopt.disabled) return;
       draftTarget = identity(observed); review = false; render();
     };
-    read.onclick = load; save.onclick = commit;
+    read.onclick = ()=>run(load); save.onclick = ()=>run(commit);
     render();
     return {setAvailability(value) { available = value; render(); },
       invalidate() { ++epoch; revision = ''; observed = null; render(); }};

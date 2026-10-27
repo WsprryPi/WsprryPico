@@ -10,7 +10,7 @@ Disable the Pico's standalone schedule and resolve any pending, owned or active 
 
 1. In **Wi-Fi/Host → Device hostname**, read **Active** and **Saved**. Enter the **Full local hostname**, such as `pico-a.local`: one label of 1–63 ASCII letters, digits or hyphens followed by `.local`, starting and ending with a letter or digit. Spaces, underscores, extra labels, IP addresses and URLs are refused. Letters are stored in lowercase; a final root dot is removed.
 2. Choose **Save hostname**. **Active** belongs to this boot; **Saved** belongs to the next boot. Saving does not restart or immediately change the address. Sign in again if requested and **Refresh** to confirm the saved result.
-3. Copy any unsaved drafts before leaving. Choose **Reset Pico** once and confirm. A lost reply never triggers an automatic second restart.
+3. Copy any unsaved drafts before leaving. Choose **Reset Pico** in Transmitter status or **Wi-Fi/Host → Connection and setup Wi-Fi** once and confirm. A lost reply never triggers an automatic second restart.
 4. Follow **Continue at pico-a.local (sign in again)**, using your chosen name. Sign in and refresh. Success requires the same full device ID, a different boot and the intended name as both **Active** and **Saved**. In **About this Pico / Diagnostics**, the device ID stays the same across restarts; the **boot ID** changes each time the Pico starts.
 
 If a save reply is lost, it may already have succeeded. Read the saved name before considering another save; use **I reviewed the saved hostname; enable a new save** only after review. **Cancel reconnect checks** stops this tab's checks; it does not undo the saved name or cancel a requested restart. Checks end after about 90 seconds. If they time out, open the saved name manually or find the current IP in your router. For a duplicate name, reconnect by IP or [setup Wi-Fi](connect.md#request-setup-wi-fi-with-the-external-button) and choose a unique name; the Pico does not add a suffix automatically. A countdown or returning page alone does not establish restart or readiness.
@@ -39,10 +39,10 @@ If the save result is unconfirmed, try signing in with the new Pico password, th
 
 ### Recover an occupied login
 
-The Pico supports three browser or compatible controller logins at once. Closing or reloading a tab can leave its login occupying a slot until it expires. An active tab's **Log out** button frees its own login immediately. If that tab is unavailable, use login retirement:
+The Pico supports three browser or compatible controller logins at once. Closing or reloading a tab can leave its login occupying a slot until it expires. An active tab's unlocked icon beside the hostname locks that browser and requests logout after any current request finishes. If that tab is unavailable, use login retirement:
 
 1. Open the Pico's control page at the same IP address or hostname used by the affected login.
-2. Open **Recover an occupied login**, then select **Inspect occupied logins**.
+2. Select the lock beside the hostname to open the password dialog. Open **Recover an occupied login**, then select **Inspect occupied logins**.
 3. Choose the login to retire. The listed codes identify occupied logins, but a shared Pico password cannot tell you which operator owns each one. The page identifies a retained login from this tab when available; review the selection before continuing.
 4. Enter the current Pico password, select **Authenticate and retire selected login**, and confirm the selected login may belong to another operator.
 5. After confirmation, sign in again. If a previous save was unconfirmed, read the saved settings and review them against your draft before making another save.

@@ -2,7 +2,7 @@
 
 Station details are needed to configure transmissions. You can connect the Pico to Wi-Fi and sign in to its control page before entering them.
 
-Keep schedules disabled and output inactive while setting up. Sign in, choose **Station/Transmission**, and read the saved settings before changing them.
+Keep schedules disabled and output inactive while setting up. Use the hostname lock to sign in, choose **Station/Transmission**, and open the required section using its heading or **Sections**. Open **Saved settings and recovery** to read saved settings before changing them.
 
 The page has two useful read controls. **Reload saved settings** replaces the browser's entries with values stored on the Pico, discarding unsaved edits after confirmation. **Read saved settings and keep draft** keeps your entries and lets you compare them with the Pico's saved values. A **draft** is an edit or saved work in progress; **applied** settings are the accepted configuration used for operation. Pin changes also need a restart before they become active.
 

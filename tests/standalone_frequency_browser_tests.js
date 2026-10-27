@@ -101,7 +101,7 @@ assert.equal(supported({schema:'transmitter-standalone-frequency/1',path:'/api/v
   // requests hold the shared action lock until their final read has settled.
   const app=fs.readFileSync(require.resolve('../src/network/web/app.js'),'utf8');
   let finishRead, mutations=0;
-  const environment=vm.createContext({busy:false,frequencyRefreshing:false,online:true,
+  const environment=vm.createContext({busy:false,accessClosing:false,frequencyRefreshing:false,online:true,
     controls(){},frequencyEditor:{refresh:()=>new Promise(done=>{finishRead=done;})}});
   vm.runInContext(app.slice(app.indexOf('async function action('),app.indexOf('async function readPicoPassword(')),environment);
   const automatic=environment.action(async()=>{});await new Promise(setImmediate);

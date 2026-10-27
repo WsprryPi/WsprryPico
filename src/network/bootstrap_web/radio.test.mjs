@@ -201,3 +201,20 @@ test('public transmitter status is a bounded read without authentication or rene
   }
   assert.equal(reads,8);
 });
+
+test('local locking refuses undispatched requests but admits logout and retains refused-logout context',async()=>{
+  let calls=0,status=200;
+  const client=new RadioClient(async(path)=>{
+    calls++;assert.equal(path,'/api/consumer/v1/request');
+    return new Response(response(client.state,client.sequence-1n,{status,etag:null,body:status===200?{ok:true}:{error:'busy'}}),{headers:{'Content-Type':'application/octet-stream'}});
+  },()=>1000);
+  function authorize(){client.state=vectorState();client.identityContext=id;client.sequence=1n;client.started=client.seen=1000;}
+  authorize();client.requestAllowed=()=>false;
+  await assert.rejects(client.request('config','PUT',{}),error=>error.local===true);
+  assert.equal(calls,0);assert.equal(client.sequence,1n);assert.equal(client.authenticated,true);
+  await client.logout();assert.equal(calls,1);assert.equal(client.authenticated,false);
+  authorize();status=409;
+  const selector=client.retirementSelector;
+  await assert.rejects(client.logout(),/refused/);
+  assert.equal(client.authenticated,false);assert.equal(client.lostSession.selector,selector);
+});

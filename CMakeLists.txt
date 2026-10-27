@@ -323,6 +323,11 @@ if(WSPRRY_PICO_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/tests/operations_browser_tests.js)
         add_test(NAME network_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/network_browser_tests.js)
+        add_test(NAME ui_access_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/ui_access_browser_tests.js)
+        add_test(NAME ui_access_shipped_tests COMMAND ${CMAKE_COMMAND} -E env
+            WSPRRY_PICO_BROWSER_SHIPPED=1 ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/ui_access_browser_tests.js)
         add_test(NAME schedule_workflow_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/schedule_workflow_browser_tests.js)
         add_test(NAME message_frequency_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}

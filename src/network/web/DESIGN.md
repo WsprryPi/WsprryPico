@@ -3,6 +3,7 @@ name: WsprryPico Station Control
 description: Source-derived conventions for the embedded station control interface.
 colors:
   header-navy: "#263e52"
+  modal-backdrop: "#132331"
   action-blue: "#225e8a"
   canvas: "#f6f7f8"
   field-surface: "white"
@@ -137,7 +138,7 @@ The header keeps its home link and station-control descriptor. A two-link task
 navigation below the page heading selects Station/Transmission or Wi-Fi/Host.
 The current area uses a thicker underline and `aria-current="page"`. Both links
 retain the same document, session and drafts; only an explicit click scrolls to
-the chosen area. Three local section shortcuts focus station identity, schedules/pins or message composition without changing the URL, receipt, session or form values. Shared access, observed transmitter status and save recovery
+the chosen area. A native Sections menu groups stable section links by task area. Links reveal and focus native disclosures while preserving the document, drafts and any receipt fragment. Every non-status section has Top, which closes all managed sections and their nested disclosures in both areas and focuses the persistent status heading. Shared access, observed transmitter status and save recovery
 remain reachable in either area. Native profile-specific forms provide one
 visible editor for each station/network field.
 
@@ -274,14 +275,22 @@ implemented palette tokens.
 
 ### Pico password settings
 
-The consumer login label is Pico password. Its default is the saved Wi-Fi password. Wi-Fi/Host presents a separate Pico password fieldset with current default/custom status, two masked confirmation fields, existing eye controls, inline errors and explicit save/default actions. Fields use two desktop columns and one mobile column. Saving signs out browser sessions and returns keyboard focus to login; no password is placed in a URL, receipt or browser storage.
+The consumer login label is Pico password. Its default is the saved Wi-Fi password. Wi-Fi/Host presents a separate Pico password fieldset with current default/custom status, two masked confirmation fields, existing eye controls, inline errors and explicit save/default actions. Fields use two desktop columns and one mobile column. Saving signs out browser sessions and returns keyboard focus to the hostname lock; no password is placed in a URL, receipt or browser storage.
 
 ### NTP update timeout
 
 The timeout control follows the existing native fieldset and read/save/discard pattern in Schedules and radio pins. It uses whole minutes, defaults to 60 minutes, and keeps saved and active values separate. Reads remain available during a transmission; saves require inactive, unowned output and a current target/revision. The help explains restart activation and the independent timing-uncertainty limit. Unconfirmed writes require readback before another save, and changing Pico identity preserves the entry behind explicit review.
 
-Transmission length appears immediately below the message and uses the same exact timing calculation as job submission. It updates before a frequency is entered and includes repeats, gaps and the final tail. Signed-out status uses a bounded public projection with five-second polling; unavailable readings become unknown without granting access to settings or job controls. Initial unauthenticated page load focuses the Pico password only if the user has not already focused another control. Subsequent status updates preserve both focus and password drafts.
+Transmission length appears immediately below the message and uses the same exact timing calculation as job submission. It updates before a frequency is entered and includes repeats, gaps and the final tail. Signed-out status uses a bounded public projection with five-second polling; unavailable readings become unknown without granting access to settings or job controls. Ordinary entry leaves the password modal closed. Only deliberate lock activation opens it and focuses the password. Subsequent status updates preserve focus and drafts.
 
 ### Contextual status console
 
 The shared status section uses a 1.65rem state heading (1.4rem on narrow screens), one explanation, two-column flat context values and three clock columns. Context and clocks become single-column at 650px. Accepted work and future schedules have separate labels; detailed transmitter/connection observations use a native disclosure. Reset Pico shares one operation and feedback area with Wi-Fi/Host. Status transitions have one polite announcement; clocks and routine observations do not announce ticks. Unavailable status clears live values and disables controls without changing drafts or focus.
+
+### Disclosures and access dialog
+
+The hostname lock is a 44 px native button with local stroked SVG, a visible state description and an action label. It is separate from the mutable hostname text node. Consumer and password SoftAP sessions use their real login/logout adapters; certificate access opens an explanation because the page cannot revoke a client certificate. The icon describes application access rather than HTTPS, ownership or RF safety.
+
+Non-status operator groups use flat, border-separated native details/summary sections, closed by default. Explicit section bookmarks and unresolved save continuations reveal the needed content. Summary headings remain discoverable, and Top links have 44 px targets. The menu uses three columns on desktop and one on narrow screens. Opening and closing retains the same form DOM, file selection and drafts; routine observations preserve disclosure choices.
+
+The native access dialog uses the light canvas, one existing field border and the modal-backdrop color at 55 percent opacity. Section summaries retain the existing 1.25rem heading size; menu group titles use the 1rem body size and semibold weight. It fits the dynamic viewport with internal scrolling for small screens and on-screen keyboards. Enter submits once, Escape or Close cancels and returns focus to the lock, and backdrop clicks leave it open. Errors remain within the dialog; passwords clear after attempts or dismissal. The native modal makes its background inert; an explicit Tab/Shift+Tab cycle keeps document focus among its visible enabled controls. Global mutation/reset warnings stay visible outside collapsed forms.

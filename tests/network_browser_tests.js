@@ -5,8 +5,10 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const scripts = process.env.WSPRRY_PICO_BROWSER_SHIPPED ? ['device-presentation.min.js','config-validation.min.js','app.min.js'] : ['operations.js','device-presentation.js','saved-progress.js','config-validation.js','utc-datetime.js','message-schedule.js','app.js'];
 const source = scripts.map(name=>fs.readFileSync(__dirname + '/../src/network/web/'+name,'utf8')).join('\n');
-async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false) {
+async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false, options = {}) {
     const ids = ['device-name','device-name-state','device-id','device-boot','device-observation','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
+    ids.push('radio-result-reveal');
+    ids.push('access-toggle','access-state','access-shackle','access-close','login-submit','recovery-reveal','top','status-heading','section-menu','station-identity','radio-settings','message-section','wifi-settings','pico-password-section','hostname-section','connection-section','saved-settings','device-diagnostics');
     ids.push('console-state','console-explanation','console-announcement','console-mode','console-frequency','console-message','console-progress','console-next','console-correction','console-local','console-utc','console-observed','console-reset','console-actions');
     ids.push('pico-password-form','pico-password-settings','pico-password-default','pico-password-status','pico-password-help','pico-password-error','pico-new-password','pico-confirm-password','draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
     ids.push('message-frequency-label','message-frequency-help','message-shift-help','message-result');
@@ -60,9 +62,20 @@ async function fixture(activeConnections = true, configured = true, localMode = 
       e.attributes ||= {};e.setAttribute ||= function(k,v){this.attributes[k]=v;};
       e.getAttribute ||= function(k){return this.attributes[k]||null;};
     }
+    elements['local-access'].showModal=function(){this.open=true;};
+    elements['local-access'].close=function(){this.open=false;};
+    const navigationLinks=[];
+    for(const [id,area] of [['station-identity','station'],['radio-settings','station'],['message-section','station'],['wifi-settings','wifi-host'],['pico-password-section','wifi-host'],['hostname-section','wifi-host'],['connection-section','wifi-host'],['saved-settings',null],['device-diagnostics',null]]) {
+      const e=elements[id];e.tagName='DETAILS';e.open=false;e.contains=()=>false;e.querySelectorAll=()=>[];
+      e.parentElement=area ? elements[area==='station'?'station-area':'wifi-host-area'] : null;
+      e.querySelector=()=>({focus:()=>{elements.focused=id+'-summary';}});
+      e.closest=()=>e.parentElement;
+      if(e.parentElement)e.parentElement.getAttribute=()=>area;
+      navigationLinks.push({getAttribute:()=> (area?'/'+area:'')+'#'+id,addEventListener(type,callback){this[type]=callback;}});
+    }
     const calls = [];
     let sequence = 0;
-    const f = {elements,state,calls,config,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512};
+    const f = {elements,state,calls,config,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512,...options};
     class TestDate extends Date { static now() { return f.now; } }
     elements['station-link'].getAttribute=()=>'/station';
     elements['wifi-host-link'].getAttribute=()=>'/wifi-host';
@@ -70,13 +83,15 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     for(const input of Object.values(elements.config.elements)) input.reportValidity=()=>true;
     for(const [id,names] of [['engineering-station-form',['callsign','locator','power_dbm']],['engineering-network-form',['ssid','password','ntp_ipv4']],['config',['schedules','expiry']]])
       elements[id].querySelectorAll=()=>names.map(name=>elements.config.elements[name]);
-    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id],createElement:makeNode,querySelectorAll:selector=>['.field-result','[aria-invalid]'].includes(selector)?[]:[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>{if(f.confirmAdvance)f.now+=f.confirmAdvance;return f.confirm;},
+    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id],createElement:makeNode,addEventListener(){},querySelectorAll:selector=>selector==='a[href]' ? [elements['station-link'],elements['wifi-host-link'],...navigationLinks] : ['.field-result','[aria-invalid]'].includes(selector)?[]:[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>{if(f.confirmAdvance)f.now+=f.confirmAdvance;return f.confirm;},
         fetch:async (path, options) => {
             calls.push({path,options});
             if(f.expireResetRead&&path.endsWith('config')&&options.method==='GET'){f.expireResetRead=false;f.now+=16000;vm.runInContext('consoleTick()',context);}
             if (f.offline) throw new Error('offline');
             let data, status = 200;
-            if (path === '/local/v1/identity') { status = f.localMode ? 200 : 404; data = f.localMode ? {device_id:'1'.repeat(32),surface:'normal'} : {error:{code:'not_found'}}; }
+            if (path === '/local/v1/identity' && f.localDiscoveryFailure) throw new Error('synthetic discovery timeout');
+            if (['/local/v1/logout','/local/v1/login'].includes(path)) data={ok:true};
+            else if (path === '/local/v1/identity') { status = f.localMode ? 200 : 404; data = f.localMode ? {device_id:'1'.repeat(32),surface:'normal'} : {error:{code:'not_found'}}; }
             else if (path === '/local/v1/status') data = {wtp_session:f.mappedSession};
             else if (path.endsWith('hostname')) {
                 if (options.method === 'PUT') { f.savedHostname=JSON.parse(options.body).hostname; f.hostnameGeneration=(f.hostnameGeneration||1)+1; }
@@ -132,11 +147,11 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                     throw new Error('lost ' + request.operation + ' response');
                 }
             } else throw new Error('Unexpected request ' + path);
-            return {ok:status>=200&&status<300,json:async()=>{if(path.endsWith('config') && options.method==='PUT'){if(f.configSaveMode==='json')throw new Error('lost body');if(f.configSaveMode==='empty')return {};if(f.configSaveMode==='wrong')return {config:'wrong'};if(f.configSaveMode==='expiry')return {config:{...data.config,expires_utc_s:'bad'}};if(f.configSaveMode==='pins')return {config:{...data.config,pins:{...data.config.pins,indicator:{}}}};if(f.configSaveMode==='null')return {config:null};}return data;},headers:{get:()=> '"original-revision"'}};
+            return {status,ok:status>=200&&status<300,json:async()=>{if(path.endsWith('config') && options.method==='PUT'){if(f.configSaveMode==='json')throw new Error('lost body');if(f.configSaveMode==='empty')return {};if(f.configSaveMode==='wrong')return {config:'wrong'};if(f.configSaveMode==='expiry')return {config:{...data.config,expires_utc_s:'bad'}};if(f.configSaveMode==='pins')return {config:{...data.config,pins:{...data.config.pins,indicator:{}}}};if(f.configSaveMode==='null')return {config:null};}return data;},headers:{get:()=> '"original-revision"'}};
         }});
     f.events = {}; context.addEventListener=(name,handler)=>{f.events[name]=handler;};
     context.location={href:'http://127.0.0.1/',hash:receipt,pathname:'/',search:''};
-    context.history={replaceState:(_,__,url)=>{context.location.hash=url.includes('#')?url.slice(url.indexOf('#')):'';}};
+    context.history={state:null,replaceState:(value,__,url)=>{context.history.state=value;context.location.hash=url.includes('#')?url.slice(url.indexOf('#')):'';}};
     if (consumerMode) {
         f.radio = {
             authenticated:false,
@@ -158,7 +173,8 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         };
         context.WsprryPicoConsumerRadio={createClient:()=>f.radio};
     }
-    context.history.pushState=(_,__,url)=>{context.location.pathname=url.split('#')[0];context.location.hash=url.includes('#')?url.slice(url.indexOf('#')):'';};
+    f.links=navigationLinks;
+    context.history.pushState=(value,__,url)=>{context.history.state=value;context.location.pathname=url.split('#')[0];context.location.hash=url.includes('#')?url.slice(url.indexOf('#')):'';};
     vm.runInContext(source,context);
     await new Promise(setImmediate);
     if(organizationMode)vm.runInContext(fs.readFileSync(__dirname+'/../src/network/web/organization.js','utf8'),context);
@@ -193,7 +209,8 @@ if (require.main === module) (async () => {
     recurrence.loseScheduleSave=false;await recurrence.elements['message-schedule-read'].onclick();
     await recurrence.elements['message-schedule-pause'].onclick();assert.equal(recurrence.savedMessageSchedule.enabled,false);
     const publicPage=await fixture(true,true,false,true);
-    assert.equal(publicPage.elements.focused,'local-password');
+    assert.equal(publicPage.elements.focused,undefined);
+    publicPage.elements['access-toggle'].onclick();assert.equal(publicPage.elements.focused,'local-password');assert.equal(publicPage.elements['local-access'].open,true);publicPage.elements['access-close'].onclick();
     assert.equal(publicPage.publicReads,1);
     assert.equal(publicPage.calls.filter(c=>c.path.startsWith('/api/v1/')).length,0);
     assert.equal(publicPage.elements.state.textContent,'empty');
@@ -255,7 +272,7 @@ if (require.main === module) (async () => {
     await organized.elements['reload-config'].onclick();
     assert.equal(organized.form.callsign.value,'K1ABC');
     const jumpReceipt=organized.context.location.hash, jumpRequests=organized.calls.length;
-    organized.elements['jump-message'].onclick();assert.equal(organized.elements.focused,'job-heading');
+    organized.links.find(link=>link.getAttribute().endsWith('#message-section')).click(click);assert.equal(organized.elements.focused,'message-section-summary');
     assert.equal(organized.context.location.hash,jumpReceipt);assert.equal(organized.calls.length,jumpRequests);
     assert.match(organized.elements['message-preview'].textContent,/Enter a message/);
     organized.elements['message-form'].oninput();

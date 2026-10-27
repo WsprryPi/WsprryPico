@@ -16,7 +16,7 @@
       [null,'pad_application_failed','output_disable_failed'].includes(v.application_error) &&
       (v.rf_gp === null || Number.isInteger(v.rf_gp) && (v.rf_gp <= 22 || v.rf_gp >= 26) && v.rf_gp >= 0 && v.rf_gp <= 28);
   }
-  function create({select,read,save,discard,status,saveDraft,applyDraft,draftStatus,exchange,afterSave = ()=>{},progressVersion = ()=>2}) {
+  function create({select,read,save,discard,status,saveDraft,applyDraft,draftStatus,exchange,afterSave = ()=>{},onError = ()=>{},run = fn=>fn(),progressVersion = ()=>2}) {
     let progress = null;
     let available = false, busy = false, observed = null, revision = '', draftTarget = '', edited = false, review = false, serial = 0, epoch = 0;
     select.value = '';
@@ -56,13 +56,13 @@
         if (draftStatus) draftStatus.textContent = progress && Object.hasOwn(progress.fields,'gpio_drive_ma') ? `Saved drive progress: ${progress.fields.gpio_drive_ma} mA. Apply saved drive separately; saving progress never programs the pad.` : 'No drive progress saved.';
         if (!edited) { select.value = observed.saved === null ? (progress?.fields.gpio_drive_ma === undefined ? '' : String(progress.fields.gpio_drive_ma)) : String(observed.saved); draftTarget = identity(observed); }
         status.textContent = summary(observed) + (edited ? changed ? ' Your draft belongs to the previous Pico or boot. Discard it before editing this member.' : ' Your draft is preserved; compare it with saved readback before saving.' : '');
-      } catch (e) { if (ticket === epoch) { observed = null; revision = ''; status.textContent = 'GPIO drive unavailable or unconfirmed. ' + e.message + ' Your draft is preserved; read again before saving.'; } }
+      } catch (e) { if (ticket === epoch) { onError(e); observed = null; revision = ''; status.textContent = 'GPIO drive unavailable or unconfirmed. ' + e.message + ' Your draft is preserved; read again before saving.'; } }
       finally { busy = false; render(); }
     }
-    read.addEventListener('click',load);
+    read.addEventListener('click',()=>run(load));
     select.addEventListener('change',()=>{ ++serial; edited = true; review = false; status.textContent = (observed ? summary(observed) : 'Readback unavailable.') + ' Unsaved edit. Save requires an explicit restart to activate.'; render(); });
     discard.addEventListener('click',()=>{ if (!observed || !revision) return; select.value = observed.saved === null ? (progress?.fields.gpio_drive_ma === undefined ? '' : String(progress.fields.gpio_drive_ma)) : String(observed.saved); draftTarget = identity(observed); edited = false; review = false; ++serial; status.textContent = summary(observed); render(); });
-    save.addEventListener('click',async()=>{
+    save.addEventListener('click',()=>run(async()=>{
       if (save.disabled || busy) return;
       if (review && !root.confirm('Review saved drive beside your preserved draft. Send one new explicit save using this revision?')) return;
       const value = Number(select.value), target = observed.target, match = revision, sentSerial = serial, ticket = ++epoch;
@@ -75,9 +75,9 @@
         if (serial === sentSerial) edited = false;
         status.textContent = 'GPIO drive confirmed saved. ' + summary(observed) + (edited ? ' Newer draft preserved.' : ' Use the existing Restart device action to activate.');
         afterSave();
-      } catch (e) { if (ticket === epoch) { revision = ''; status.textContent = 'Save result unconfirmed or rejected. ' + e.message + ' Your draft is preserved. Read and review saved drive before another explicit save.'; } }
+      } catch (e) { if (ticket === epoch) { onError(e); revision = ''; status.textContent = 'Save result unconfirmed or rejected. ' + e.message + ' Your draft is preserved. Read and review saved drive before another explicit save.'; } }
       finally { busy = false; render(); }
-    });
+    }));
     async function progressAction(apply) {
       const button = apply ? applyDraft : saveDraft;
       if (!button || button.disabled || busy || !progress) return;
@@ -96,12 +96,12 @@
         review = false; if (serial === sentSerial) edited = !apply;
         draftStatus.textContent = apply ? 'Saved drive progress applied. Read GPIO drive and explicitly restart to activate changed hardware.' : `Drive progress confirmed saved: ${value} mA. It has not been applied.`;
         afterSave(); refresh = true;
-      } catch(e) { draftStatus.textContent = 'Progress result unconfirmed or rejected. '+e.message+' Your draft is preserved; read and review before another action.'; }
+      } catch(e) { onError(e); draftStatus.textContent = 'Progress result unconfirmed or rejected. '+e.message+' Your draft is preserved; read and review before another action.'; }
       finally {busy = false; render();}
       if (refresh) await load();
     }
-    saveDraft?.addEventListener('click',()=>progressAction(false));
-    applyDraft?.addEventListener('click',()=>progressAction(true));
+    saveDraft?.addEventListener('click',()=>run(()=>progressAction(false)));
+    applyDraft?.addEventListener('click',()=>run(()=>progressAction(true)));
     render();
     return {load,setAvailability(value) { if (!value && available) { ++epoch; revision = ''; review = true; status.textContent = 'Disconnected or target changed. Drive readback unknown; your draft is preserved.'; } available = value; render(); }, invalidate() { ++epoch; revision = ''; review = true; status.textContent = 'Target or saved revision changed. Read GPIO drive again; your original member-bound draft is preserved.'; render(); }};
   }

@@ -35,13 +35,13 @@ const text=(f,id)=>f.elements[id].textContent;
   assert.equal(text(consumer,'device-name'),'old.local');
   release({schema:'device-presentation/1',device_id:id,boot_id:boot,hostname:'late.local'});await late;
   assert.equal(text(consumer,'device-name'),'old.local');
-  assert.match(text(consumer,'local-status'),/authenticated/);
+  assert.match(text(consumer,'local-status'),/unlocked/);
   const statuses=text(consumer,'local-status');
   await run(consumer,'presentationTitle()'); // already-resolved public response still cannot downgrade auth
   assert.equal(text(consumer,'local-status'),statuses);assert.equal(text(consumer,'device-name'),'old.local');
   const mutations=consumer.calls.filter(c=>c.options?.method && c.options.method!=='GET').length;
   await consumer.elements['local-logout'].onclick();
-  assert.match(text(consumer,'local-status'),/Signed out/);assert.match(text(consumer,'device-name-state'),/Last confirmed/);
+  assert.match(text(consumer,'local-status'),/signed out/i);assert.match(text(consumer,'device-name-state'),/Last confirmed/);
   assert.equal(consumer.calls.filter(c=>c.options?.method && c.options.method!=='GET').length,mutations,'presentation causes no request');
 
   for (const metadata of [

@@ -14,7 +14,7 @@
     return d?.schema === 'transmitter-standalone-frequency/1' && d.path === '/api/v1/standalone-frequency' &&
       d.method === 'PUT' && d.units === 'Hz' && d.activation === 'next_job' && d.default === null;
   }
-  function create({input,read,save,discard,adopt,status,exchange,ranges = ()=>undefined,afterSave = ()=>{}, context = ()=>null, stationActions = draft=>draft ? 'Choose Apply saved station settings.' : 'Complete station details, choose Save valid station fields, then Apply saved station settings.', hasProgress = ()=>true, run = fn=>fn()}) {
+  function create({input,read,save,discard,adopt,status,exchange,ranges = ()=>undefined,afterSave = ()=>{},onError = ()=>{}, context = ()=>null, stationActions = draft=>draft ? 'Choose Apply saved station settings.' : 'Complete station details, choose Save valid station fields, then Apply saved station settings.', hasProgress = ()=>true, run = fn=>fn()}) {
     let available = false, busy = false, observed = null, revision = '', epoch = 0, edited = false, draftTarget = '', review = false;
     let ready = false, draftOnly = false, knownRevision = '', hasRead = false, refreshNeeded = false;
     const identity = value => JSON.stringify(value.target);
@@ -76,7 +76,7 @@
         if (!edited) { input.value = v.frequency_hz === null ? '' : String(v.frequency_hz); draftTarget = identity(v); }
         review = edited && draftTarget !== identity(v);
         status.textContent = summary() + `${ready && edited ? ' Your entry is preserved.' : ''}${review ? ' Review the new Pico identity before saving this entry.' : ''}`;
-      } catch (e) { if (ticket === epoch) status.textContent = e.message; }
+      } catch (e) { if (ticket === epoch) { onError(e); status.textContent = e.message; } }
       finally { if (ticket === epoch) busy = false; render(); }
     }
     async function commit() {
@@ -95,6 +95,7 @@
         await afterSave(r);
       } catch (e) {
         if (ticket === epoch) {
+          onError(e);
           if (e.code === 'not_configured') { ready = false; draftOnly = false; status.textContent = prerequisite(); return; }
           const reason = {revision_conflict:'Saved settings changed.',precondition_failed:'Saved revision changed.',
             frequency_not_allowed:'The four WSPR tones are blocked by the engine limits or frequency permissions.',

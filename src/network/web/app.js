@@ -72,9 +72,13 @@ function clearConsole(reason = 'Read a fresh observation before using controls.'
 function clearPrivateStatus() {
   privateStatusVisible=false;
   clearConsole('Signed out. Read-only transmitter status remains available.');
-  for(const id of ['job-result','job-progress','standalone-status','recovery','saved-active-status','saved-wspr-plan','saved-readback','hostname-status','pico-password-status','progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status','message-schedule-status']) consolePut(id,'');
+  for(const id of ['job-result','message-result','job-progress','standalone-status','recovery','saved-active-status','saved-wspr-plan','saved-readback','hostname-status','pico-password-status','progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status','message-schedule-status']) consolePut(id,'');
   if($('saved-readback-details')) $('saved-readback-details').hidden=true;
   hostnameState=null; picoPasswordState=null; messageScheduleReadback=null;
+  calibrationEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); driveEditor?.invalidate(); frequencyEditor?.invalidate();
+  for(const id of ['rf-calibration-status','ntp-timeout-status','gpio-drive-status','gpio-drive-draft-status','standalone-frequency-status']) consolePut(id,'Controls locked. Read this setting again after unlocking; your entry is preserved.');
+  $('draft-comparison').replaceChildren();
+  requireReadback();
 }
 function renderConsole() {
   if (!operationsSnapshot) return;
@@ -110,15 +114,108 @@ function jobStartMs(id) {
 const utcEditors = globalThis.WsprryUtcDateTime ? ['schedule-expiry','message-start','start','message-until']
   .map(id=>$(id)).filter(input=>input?.closest?.('[data-utc-picker]'))
   .map(input=>WsprryUtcDateTime.create(input,utcNowMs)) : [];
-let picoPasswordState = null, frequencyRefreshing = false;
+let picoPasswordState = null, frequencyRefreshing = false, activeEditor=null;
+function radioSettingsError(error) {
+  notice(error.message+' Open Schedules and radio pins to read the result before another save. Your entry is preserved.',true);
+  $('radio-result-reveal').hidden=false;
+}
 const supportsAmplifier = () => globalThis.WsprryAmplifier?.supported(capabilities?.amplifier_enable) === true;
 let localIdentity = null, localAuthenticated = false;
-let publicStatusEpoch = 0, initialLoginFocus = false;
-function focusInitialLogin() {
-  if (initialLoginFocus || localAuthenticated || !localIdentity) return;
-  initialLoginFocus = true;
-  const active = document.activeElement;
-  if (!active || active === document.body || active === document.documentElement) $('local-password').focus();
+let publicStatusEpoch = 0;
+let accessEpoch=0, accessLoginPending=false, accessClosing=false, accessDiscovered=false, localLocked=false;
+let accessInterrupted=false;
+let accessWasAuthenticated=false, accessCarrier=radio ? 'consumer' : 'unknown';
+if(radio) radio.requestAllowed=()=>!accessClosing;
+function renderAccess() {
+  const certificate=accessCarrier==='certificate' && accessDiscovered;
+  const authenticated=!accessClosing && !accessLoginPending && (radio ? localAuthenticated && radio.authenticated : localIdentity ? localAuthenticated && !localLocked : certificate && online);
+  if(accessWasAuthenticated && !authenticated) clearPasswords();
+  accessWasAuthenticated=authenticated;
+  const label=certificate ? 'Certificate access information' : authenticated ? 'Lock controls' : 'Unlock controls';
+  $('access-toggle').setAttribute('aria-label',label);
+  $('access-toggle').title=label;
+  $('access-toggle').disabled=accessClosing || ['unknown','unavailable'].includes(accessCarrier);
+  $('access-shackle').setAttribute('d',authenticated ? 'M7 10V7a5 5 0 0 1 9-3' : 'M7 10V7a5 5 0 0 1 10 0v3');
+  $('access-state').textContent=accessClosing ? 'Locking this browser · waiting for the current request to finish.' :
+    accessLoginPending ? 'Checking this login…' : accessCarrier==='unavailable' ? 'Control access unavailable. Refresh or reload to identify this connection.' : certificate ? 'Client certificate access · managed by your browser.' :
+    authenticated ? 'Controls unlocked in this browser.' : 'Controls locked · use the lock beside the hostname to unlock.';
+  $('login-submit').disabled=busy || accessLoginPending || accessClosing;
+}
+function closeAccess() {
+  if(accessLoginPending) ++accessEpoch;
+  clearPassword('local-password'); clearPassword('retirement-password');
+  if($('local-access').open) $('local-access').close();
+  $('access-toggle').focus({preventScroll:true});
+  renderAccess();
+}
+function openAccess() {
+  if(accessClosing) return;
+  if(!radio && !localIdentity) {
+    $('local-heading').textContent='Certificate access';
+    $('local-description').textContent='This engineering connection uses the client certificate selected by your browser. A page button cannot revoke it. Close this browser context or change its certificate selection to end certificate access.';
+    $('local-login').hidden=true; $('login-recovery').hidden=true;
+  }
+  if(typeof $('local-access').showModal!=='function') {
+    notice('This browser cannot open the access dialog. Use a current browser with modal dialog support.',true); return;
+  }
+  if(!$('local-access').open) $('local-access').showModal();
+  (radio || localIdentity ? $('local-password') : $('access-close')).focus();
+}
+$('access-close').onclick=closeAccess;
+$('local-access').addEventListener('keydown',event=>{
+  if(event.key!=='Tab') return;
+  const targets=[...$('local-access').querySelectorAll('button,input,select,textarea,a[href],summary,[tabindex]')]
+    .filter(node=>{
+      if(node.tabIndex<0 || node.disabled || node.matches(':disabled') || !node.getClientRects().length) return false;
+      // Closed native details may retain layout boxes in Chromium. Their bodies
+      // are not focusable even when getClientRects() is nonempty.
+      for(let parent=node.parentElement;parent && parent!==$('local-access');parent=parent.parentElement)
+        if(parent.tagName==='DETAILS' && !parent.open && node!==parent.querySelector('summary')) return false;
+      return true;
+    });
+  const first=targets[0],last=targets.at(-1),active=document.activeElement;
+  if(!first) {event.preventDefault();return;}
+  if(event.shiftKey && (active===first || !targets.includes(active))) {event.preventDefault();last.focus();}
+  else if(!event.shiftKey && (active===last || !targets.includes(active))) {event.preventDefault();first.focus();}
+});
+$('local-access').addEventListener('cancel',event=>{event.preventDefault();closeAccess();});
+// Backdrop clicks deliberately do not dismiss a password/recovery operation.
+$('local-access').addEventListener('close',()=>{
+  clearPassword('local-password'); clearPassword('retirement-password');
+});
+$('access-toggle').onclick=()=>{
+  if(accessWasAuthenticated && (radio || localIdentity)) return lockAccess();
+  openAccess();
+};
+function beginLocalLock() {
+  ++accessEpoch; ++observationEpoch; ++publicStatusEpoch;
+  localAuthenticated=false; localLocked=true;
+  cancelReconnect(); markTitleStale(); clearPasswords(); clearPrivateStatus();
+  snapshot=null; requireReadback(); controls(false);
+}
+async function finishLock() {
+  if(!accessClosing || busy) return;
+  busy=true; renderAccess();
+  let confirmed=false;
+  try {
+    if(radio) await radio.logout();
+    else await local('logout','POST',{});
+    confirmed=true;
+  } catch(error) {
+    notice('Controls locked in this browser. Remote logout is unconfirmed; an occupied login may remain until expiry or explicit retirement. No job or save was repeated.',true);
+  } finally {
+    radio?.clear(); localAuthenticated=false; accessClosing=false; busy=false;
+    $('local-login').hidden=false; $('local-logout').hidden=true;
+    $('local-status').textContent=confirmed ? 'This browser is signed out. Accepted jobs and saved settings remain.' : 'Locally locked; remote logout unconfirmed.';
+    if(confirmed) notice('This browser is signed out. Logout does not stop accepted jobs or schedules.'+(accessInterrupted ? ' An earlier request may already have been accepted. Read its result before repeating it.' : ''),accessInterrupted);
+    controls(false);
+  }
+  if(radio) await action(refreshPublicStatus);
+}
+async function lockAccess() {
+  if(accessClosing || !radio && !localIdentity) return;
+  accessInterrupted=busy; accessClosing=true; beginLocalLock();
+  await finishLock();
 }
 async function refreshPublicStatus() {
   if (!radio || radio.authenticated) return;
@@ -164,24 +261,31 @@ const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-fr
   hasProgress:()=>supportsProgress(),
   stationActions:draft=>draft ? `Choose ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.` : `Complete Station identity, choose ${$(radio ? 'save-station-progress' : 'save-engineering-station-progress').textContent}, then ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.`,
   exchange:async (method,body,match,resource = 'standalone-frequency')=>{if (!WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency)) throw new Error('Standalone frequency configuration is unsupported.'); return api(resource,method,body,match,30000,true);},
+  onError:radioSettingsError,
   afterSave:result=>reconcileConfirmedSettings(result,result.data.target,'Frequency saved. Schedule settings are ready to edit; saving a frequency does not enable schedules.')
 }) : null;
 if ($('rf-calibration-form')) $('rf-calibration-form').onsubmit = event => event.preventDefault();
 if ($('ntp-timeout-form')) $('ntp-timeout-form').onsubmit = event => event.preventDefault();
 const ntpTimeoutEditor = globalThis.WsprryNtpTimeout && $('ntp-timeout-minutes') ? WsprryNtpTimeout.create({
   input:$('ntp-timeout-minutes'),read:$('ntp-timeout-read'),save:$('ntp-timeout-save'),discard:$('ntp-timeout-discard'),adopt:$('ntp-timeout-adopt'),status:$('ntp-timeout-status'),
+  run:fn=>editorAction('timeout',fn),
   exchange:(method,body,match)=>api('ntp-timeout',method,body,match),
+  onError:radioSettingsError,
   afterSave:()=>refresh()
 }) : null;
 const calibrationEditor = globalThis.WsprryRfCalibration && $('rf-manual-ppm') ? WsprryRfCalibration.create({
   input:$('rf-manual-ppm'),mode:$('rf-calibration-mode'),read:$('rf-calibration-read'),save:$('rf-calibration-save'),discard:$('rf-calibration-discard'),adopt:$('rf-calibration-adopt'),status:$('rf-calibration-status'),
+  run:fn=>editorAction('calibration',fn),
   exchange:async (method,body,match)=>{if (!WsprryRfCalibration.supported(capabilities?.rf_calibration)) throw new Error('Calibration configuration is unsupported.'); return api('rf-calibration',method,body,match);},
+  onError:radioSettingsError,
   afterSave:()=>requireReadback()
 }) : null;
 if ($('gpio-drive-form')) $('gpio-drive-form').onsubmit = event => event.preventDefault();
 const driveEditor = globalThis.WsprryGpioDrive && $('gpio-drive-select') ? WsprryGpioDrive.create({
   select:$('gpio-drive-select'),read:$('gpio-drive-read'),save:$('gpio-drive-save'),discard:$('gpio-drive-discard'),status:$('gpio-drive-status'),saveDraft:$('gpio-drive-save-draft'),applyDraft:$('gpio-drive-apply-draft'),draftStatus:$('gpio-drive-draft-status'),
+  run:fn=>editorAction('drive',fn),
   exchange:async (method,body,match,resource = 'gpio-drive')=>{if (!WsprryGpioDrive.supported(capabilities?.gpio_drive)) throw new Error('This firmware does not advertise supported drive configuration.'); return api(resource,method,body,match);},
+  onError:radioSettingsError,
   afterSave:()=>{requireReadback();}
   ,progressVersion:()=>supportsAmplifier() ? 3 : 2
 }) : null;
@@ -408,6 +512,7 @@ function checkedConfig(result, allowNull = true) {
   return result.data.config;
 }
 function requireReadback() {
+  if(saveAttempt || consumerAttempt || returnReceipt) { globalThis.WsprryPicoSections?.recovery(); $('recovery-reveal').hidden=false; }
   if (saveAttempt) saveAttempt.reviewRequired = true;
   writeState = 'readback'; revision = ''; savedReadback = null;
   $('saved-readback-details').hidden = true;
@@ -556,7 +661,7 @@ function setupReceiptHash() {
 function updateSetupReceipt() {
   const hash = setupReceiptHash();
   if (hash || location.hash.startsWith('#save='))
-    try { history.replaceState(null,'',location.pathname + location.search + hash); } catch (_) {}
+    try { history.replaceState(history.state,'',location.pathname + location.search + hash); } catch (_) {}
   const hostname = snapshot?.network.configured_hostname;
   const usable = typeof hostname === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.local$/.test(hostname);
   $('consumer-resume').hidden = !hash || !usable;
@@ -564,6 +669,9 @@ function updateSetupReceipt() {
 }
 const notice = (text, error = false) => { $('notice').textContent = text; $('notice').classList.toggle('error', error); };
 async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyObservation = false) {
+  if(['unknown','unavailable'].includes(accessCarrier)) throw new Error('Identify this connection with Refresh before using controls');
+  if(accessClosing || localLocked && localIdentity && !radio) throw new Error('Controls are locked in this browser. An earlier request may already have been accepted; read back before repeating it.');
+  const requestEpoch=accessEpoch;
   if ((returnReceipt || consumerAttempt) && localIdentity) checkReturningDevice(localIdentity.device_id);
   const headers = {};
   if (localIdentity) headers['X-WsprryPico-Session'] = session;
@@ -594,6 +702,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
     if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; $('local-status').textContent = 'Session ended or unconfirmed. Log in again; your draft is preserved.'; }
     throw error;
   }
+  if(accessClosing) throw Object.assign(new Error('Controls locked while the request was in flight. Its outcome may require readback; no action was repeated.'),{unconfirmed:true});
   let data;
   try {
     data = await response.json();
@@ -602,6 +711,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
     if (settingWrite) requireReadback();
     error.unconfirmed = true; throw error;
   }
+  if(accessClosing || requestEpoch!==accessEpoch) throw Object.assign(new Error('Controls changed while reading the response. The request outcome needs fresh readback; no action was repeated.'),{unconfirmed:true});
   if (!response.ok || data.ok === false) {
     const code = typeof data.error === 'string' ? data.error : data.error?.code;
     const explanation = {
@@ -627,6 +737,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
       invalid_station:'Check the callsign, locator (A–R fields, two digits, optional A–X subsquare) and exact supported reported WSPR power',
       unsupported_station_encoding:'The Pico cannot encode this complete station. Check affix lengths, brackets and six-character locator requirements. Your draft is preserved'
     };
+    if(localIdentity && !radio && response.status===401) { localAuthenticated=false; localLocked=true; clearPrivateStatus(); clearPasswords(); requireReadback(); controls(false); }
     let message = explanation[code] || code || 'Request rejected';
     if (code === 'message_duration_limit_exceeded') message = 'Calculated duration: ' + durationText(BigInt(data.calculated_duration_ns)) + '. Maximum: ' + durationText(BigInt(data.max_job_duration_ns));
     if (code === 'message_event_limit_exceeded') message = data.calculated_events + ' events exceed the device limit of ' + data.max_events + '. Reduce repetition or use a simpler message';
@@ -637,6 +748,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
   return {data, revision:observedRevision};
 }
 async function local(path, method = 'GET', body, timeout = 30000) {
+  if(accessClosing && path!=='logout') throw new Error('Controls locked before this local request was submitted');
   if (returnReceipt && localIdentity) checkReturningDevice(localIdentity.device_id);
   const headers = {'X-WsprryPico-Session':session};
   if (method !== 'GET') Object.assign(headers, {'Content-Type':'application/json','X-WsprryPico-Request':'1'});
@@ -653,7 +765,7 @@ async function supplyPhoneTime() {
 }
 async function discoverLocal() {
   if (radio) {
-    $('local-access').hidden = false;
+
     $('local-heading').textContent = 'Radio access';
     $('local-password-label').textContent = 'Pico password';
     $('local-description').textContent = 'Enter the Pico password. By default, it is the Wi-Fi password saved on this Pico. Use your separate Pico password if you changed it. Your login stays in this tab and expires after inactivity.';
@@ -664,22 +776,27 @@ async function discoverLocal() {
       await presentationTitle();
       $('local-status').textContent = 'Signed out. Enter the Pico password to log in.';
       notice('Log in to change settings or submit a message. Transmitter status is available below.');
-      focusInitialLogin();
+
     } catch (error) { notice(error.message + '. Check the Pico address and your Wi-Fi connection, then reload.',true); }
     return true;
   }
   try {
     const response = await fetch('/local/v1/identity', {cache:'no-store', signal:AbortSignal.timeout(5000)});
-    if (!response.ok) return false;
+    if (!response.ok) {
+      if(response.status===404) { accessCarrier='certificate'; return false; }
+      throw new Error('Local access discovery was refused');
+    }
     localIdentity = await response.json();
+    if(!/^[0-9a-f]{32}$/.test(localIdentity?.device_id)) throw new Error('Local access identity is malformed');
+    accessCarrier='local';
     checkReturningDevice(localIdentity.device_id);
-    $('local-access').hidden = false;
+
     pageIdentity.bind(localIdentity);
     $('local-status').textContent = 'Local access requires authentication.';
     try {
       const state = await local('status');
       if (state.wtp_session) session = state.wtp_session;
-    } catch (_) { notice('Enter the local-access password to authorize this SoftAP browser.'); focusInitialLogin(); return true; }
+    } catch (_) { notice('Enter the local-access password to authorize this SoftAP browser.'); return true; }
     localAuthenticated = true; $('local-login').hidden = true;
     $('local-status').textContent = 'Local session authenticated.';
     if (localIdentity.surface === 'provisioned_preclock') {
@@ -687,20 +804,23 @@ async function discoverLocal() {
       catch (e) { notice('Local session authorized, but phone time was rejected: ' + e.message + '.', true); }
     }
     return true;
-  } catch (_) { return false; }
+  } catch (error) { accessCarrier='unavailable'; localIdentity=null; notice(error.message+'. Control access could not be identified. Reload the page after checking the connection.',true); return true; }
 }
 function controls(connected) {
+  if(['unknown','unavailable'].includes(accessCarrier)) connected=false;
+  if(accessClosing || localLocked && localIdentity && !radio) connected=false;
   if(radio&&!radio.authenticated) {
     connected=false; snapshot=null; localAuthenticated=false;
     if(privateStatusVisible) { ++publicStatusEpoch; clearPrivateStatus(); }
   }
+  renderAccess();
   online = connected;
   messageSchedulingControls();
   if ($('public-status-note')) $('public-status-note').hidden = !radio || radio.authenticated;
-  calibrationEditor?.setAvailability(!!connected && !busy && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  calibrationEditor?.setAvailability(!!connected && (!busy || activeEditor==='calibration') && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   frequencyEditor?.setAvailability(!!connected && (!busy || frequencyRefreshing) && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
-  driveEditor?.setAvailability(!!connected && !busy && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
-  ntpTimeoutEditor?.setAvailability(!!connected && !busy && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  driveEditor?.setAvailability(!!connected && (!busy || activeEditor==='drive') && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  ntpTimeoutEditor?.setAvailability(!!connected && (!busy || activeEditor==='timeout') && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
   $('reload-config').disabled = busy || !online;
   const idle = online && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
@@ -738,7 +858,7 @@ function controls(connected) {
   $('wifi-off').disabled = busy || !idle || !snapshot.network.enabled;
   $('job-settings').disabled = busy || !idle || snapshot.standalone.reboot_required;
   $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
-  $('message-availability').textContent = !online ? (radio && !localAuthenticated ? 'Log in above to prepare a message.' : 'Connection unavailable. Refresh status before preparing a message; RF output is unknown.') :
+  $('message-availability').textContent = !online ? (radio && !localAuthenticated ? 'Use the lock beside the hostname to unlock controls and prepare a message.' : 'Connection unavailable. Refresh status before preparing a message; RF output is unknown.') :
     busy ? 'Waiting for the current request to finish.' : !idle ? 'The transmitter is occupied or its job/output state does not permit a new job. Check Transmitter status above.' :
     snapshot.standalone.reboot_required ? 'Saved changes require a restart. Use Reset Pico in Wi-Fi/Host before preparing another job.' :
     !capabilities?.message_jobs ? 'This firmware does not advertise message jobs. A supported job file can still be used below.' :
@@ -759,6 +879,7 @@ function controls(connected) {
     writeState === 'review' ? 'Review the comparison in Saved settings and recovery above, then choose I reviewed saved settings; enable a new save. Your checkbox edit is preserved.' :
     'Save valid fields stores your edits as a draft. Apply saved settings makes the saved schedule active. Checking or unchecking the box alone does not change the Pico.';
   for (const id of passwordFields) setPasswordVisible(id,$(id).type === 'text');
+  renderAccess();
 }
 function fill(c, network = c?.wifi) {
   currentConfig = c; dirty = false;
@@ -788,6 +909,7 @@ function fill(c, network = c?.wifi) {
 }
 async function refresh(loadConfig = false, quiet = false) {
   const epoch=++observationEpoch;
+  if(localIdentity && !radio && (!localAuthenticated || localLocked)) { controls(false); return; }
   if (radio && !radio.authenticated) {
     localAuthenticated = false; snapshot = null;
     $('local-login').hidden = false; $('local-logout').hidden = true;
@@ -881,28 +1003,39 @@ async function refresh(loadConfig = false, quiet = false) {
   } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Session ended. Log in again; your draft is preserved.'; notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
 }
 async function action(fn) {
-  if (busy) return;
+  if (busy || accessClosing) return;
   busy = true; controls(online);
   try { await fn(); } catch (e) {
-    if ((e.serverResponse || e.unconfirmed) && (!radio || radio.authenticated)) await refresh();
+    if (!accessClosing && (e.serverResponse || e.unconfirmed) && (!radio || radio.authenticated)) await refresh();
     if (['revision_conflict','precondition_failed'].includes(e.code)) requireReadback();
     if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; requireReadback(); }
     notice(e.message + (e.code ? ' (' + e.code + ')' : '') + (e.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : ''),true);
-    $('local-status').textContent = localAuthenticated ? 'Authenticated. Request rejected; your edits are preserved.' : 'Connection or session unconfirmed. Inspect occupied logins if login cannot proceed; no action was repeated.';
+    if($('local-access').open) $('local-status').textContent=e.message;
+    else $('local-status').textContent = localAuthenticated ? 'Authenticated. Request rejected; your edits are preserved.' : 'Connection or session unconfirmed. Inspect occupied logins if login cannot proceed; no action was repeated.';
   }
   finally {
     // Consumer requests are sequential. Keep other actions locked until this
     // readiness read completes, including after login or station application.
-    frequencyRefreshing = true; controls(online);
-    try { await frequencyEditor?.refresh(); }
-    finally { frequencyRefreshing = false; busy = false; controls(online); }
+    if(!accessClosing) {
+      frequencyRefreshing = true; controls(online);
+      try { await frequencyEditor?.refresh(); }
+      finally { frequencyRefreshing = false; }
+    }
+    busy=false; controls(online);
+    if(accessClosing) await finishLock();
   }
 }
+async function editorAction(name,fn) {
+  if(busy || accessClosing) return;
+  activeEditor=name;
+  try { return await action(fn); }
+  finally { activeEditor=null; controls(online); }
+}
 async function frequencyAction(fn) {
-  if (busy) return;
+  if (busy || accessClosing) return;
   busy = true; frequencyRefreshing = true; controls(online);
   try { await fn(); }
-  finally { frequencyRefreshing = false; busy = false; controls(online); }
+  finally { frequencyRefreshing = false; busy = false; controls(online); if(accessClosing) await finishLock(); }
 }
 async function readPicoPassword() {
   try {
@@ -930,7 +1063,7 @@ function picoPasswordSignedOut(message) {
   snapshot = null; requireReadback(); controls(false); markTitleStale();
   $('pico-password-status').textContent = message;
   $('local-status').textContent = message;
-  $('local-password').focus();
+  $('access-toggle').focus();
 }
 async function savePicoPassword(password) {
   if (!picoPasswordState) throw new Error('Read the Pico password setting before changing it.');
@@ -964,7 +1097,7 @@ $('pico-password-form').onsubmit = event => {
     : password !== confirm ? 'The Pico passwords do not match. Enter the same password twice.' : '';
   $('pico-password-error').textContent = message;
   for (const id of ['pico-new-password','pico-confirm-password']) $(id).setAttribute('aria-invalid',String(Boolean(message)));
-  if (message) { $(!valid ? 'pico-new-password' : 'pico-confirm-password').focus(); return; }
+  if (message) { const field=$(!valid ? 'pico-new-password' : 'pico-confirm-password'); globalThis.WsprryPicoSections?.reveal(field); field.focus(); return; }
   return action(() => savePicoPassword(password));
 };
 for (const id of ['pico-new-password','pico-confirm-password']) $(id).oninput = () => {
@@ -972,39 +1105,63 @@ for (const id of ['pico-new-password','pico-confirm-password']) $(id).oninput = 
   for (const field of ['pico-new-password','pico-confirm-password']) $(field).setAttribute('aria-invalid','false');
 };
 $('pico-password-default').onclick = () => action(() => savePicoPassword(null));
-$('refresh').onclick = () => action(() => refresh());
-$('local-login').onsubmit = event => { event.preventDefault(); return action(async () => {
-  cancelReconnect();
-  const password = $('local-password').value;
-  setPasswordVisible('local-password',false);
-  try {
-    if (radio) {
-      localIdentity = await radio.identity();
-      checkReturningDevice(localIdentity.device_id);
-      pageIdentity.bind(localIdentity);
-      operationsTarget=null;
-      await radio.login(password,localIdentity);
-    } else {
-      const fresh = await fetch('/local/v1/identity', {cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(5000)});
-      if (!fresh.ok) throw new Error('Read the local device identity before signing in.');
-      localIdentity = await fresh.json();
-      checkReturningDevice(localIdentity.device_id);
-      pageIdentity.bind(localIdentity);
-      await local('login','POST',{version:1,device_id:localIdentity.device_id,password});
-    }
-  } finally { clearPassword('local-password'); }
-  localAuthenticated = true; $('local-login').hidden = true;
-  $('local-status').textContent = radio ? 'Radio session authenticated.' : 'Local session authenticated.';
-  if (radio) $('local-logout').hidden = false;
-  if (localIdentity.surface === 'provisioned_preclock') {
-    try { await supplyPhoneTime(); }
-    catch (e) { notice('Local session authorized, but phone time was rejected: ' + e.message + '.', true); return; }
+$('refresh').onclick = () => action(async () => {
+  if(['unknown','unavailable'].includes(accessCarrier)) {
+    await discoverLocal(); accessDiscovered=true; renderAccess();
+    if(['unknown','unavailable'].includes(accessCarrier)) return;
   }
-  if (dirty || writeState !== 'ready' && saveAttempt) { await refresh(); await readSavedKeepingDraft(); }
-  else await refresh(true);
-  if (radio && !picoPasswordState && localAuthenticated) await readPicoPassword();
-  notice(radio ? 'Radio session authorized. Check saved-state review before another save.' : 'Local SoftAP session authorized.');
-}); };
+  await refresh();
+});
+$('local-login').onsubmit = event => {
+  event.preventDefault();
+  if(busy || accessClosing || accessLoginPending || !radio && !localIdentity) { clearPassword('local-password'); return; }
+  const epoch=++accessEpoch, intended=localIdentity ? {...localIdentity} : null;
+  accessLoginPending=true;
+  return action(async () => {
+    cancelReconnect();
+    const password=$('local-password').value;
+    clearPassword('local-password');
+    $('local-status').textContent='Checking this login…';
+    let succeeded=false;
+    try {
+      const identity=radio ? await radio.identity() : await (async()=>{
+        const response=await fetch('/local/v1/identity',{cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(5000)});
+        if(!response.ok) throw new Error('Read the local device identity before signing in.');
+        return response.json();
+      })();
+      if(epoch!==accessEpoch) return;
+      if(intended && (intended.device_id!==identity.device_id || intended.boot_id!==identity.boot_id)) {
+        localIdentity=identity; pageIdentity.bind(identity);
+        throw new Error('The Pico or its boot changed. Review its identity and unlock again explicitly.');
+      }
+      checkReturningDevice(identity.device_id);
+      localIdentity=identity; pageIdentity.bind(identity); operationsTarget=null;
+      if(radio) await radio.login(password,identity);
+      else await local('login','POST',{version:1,device_id:identity.device_id,password});
+      succeeded=true;
+      if(epoch!==accessEpoch) {
+        // No newer login can start while this action owns the serialized client.
+        try { if(radio) await radio.logout(); else await local('logout','POST',{}); }
+        finally { radio?.clear(); }
+        notice('Cancelled login ended. If logout was unconfirmed, inspect the occupied login before another attempt.');
+        return;
+      }
+      localAuthenticated=true; localLocked=false;
+      $('local-login').hidden=true; $('local-logout').hidden=false;
+      $('local-status').textContent='Controls unlocked in this browser.';
+      closeAccess();
+      if(localIdentity.surface==='provisioned_preclock') await supplyPhoneTime();
+      if(dirty || writeState!=='ready' && saveAttempt) { await refresh(); await readSavedKeepingDraft(); }
+      else await refresh(true);
+      if(radio && !picoPasswordState && localAuthenticated) await readPicoPassword();
+      notice('Controls unlocked. Check saved-state review before another save.');
+    } finally {
+      accessLoginPending=false; clearPassword('local-password');
+      if(!succeeded || !localAuthenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; }
+      renderAccess();
+    }
+  });
+};
 $('inspect-logins').onclick = () => action(async () => {
   retirementDiscovery = null;
   const discovery = await radio.recovery();
@@ -1039,17 +1196,7 @@ $('review-saved').onclick = () => action(async () => {
   saveAttempt = null;
   $('save-reconcile-status').textContent = 'Fresh saved revision selected. Your draft is preserved. Save settings sends one new explicit mutation; concurrent changes can still refuse it.';
 });
-$('local-logout').onclick = () => action(async () => {
-  cancelReconnect();
-  markTitleStale();
-  clearPasswords();
-  ++observationEpoch; ++publicStatusEpoch; clearPrivateStatus();
-  await radio.logout(); localAuthenticated = false;
-  $('local-login').hidden = false; $('local-logout').hidden = true;
-  $('local-status').textContent = 'Signed out. Log in to read or change settings.';
-  snapshot = null; controls(false); notice('Logged out. Radio job state has not changed.');
-  await refreshPublicStatus();
-});
+$('local-logout').onclick = lockAccess;
 $('consumer-power').replaceChildren(new Option('Choose reported power',''),...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60]
   .map(power => new Option(String(power),String(power))));
 for (const id of ['consumer-network-form','consumer-station-form']) $(id).oninput = event => { consumerSetupDirty = true; if (id === 'consumer-station-form') editedProgress(event); else consumerNetworkDirty = true; showDraftComparison(); };
@@ -1058,17 +1205,20 @@ async function saveConsumer(kind, savedStation) {
   if (consumerAttempt) throw new Error('Check the previous saved result first');
   const status = $('consumer-save-status');
   status.textContent = 'Preparing your settings…';
+  const epoch=accessEpoch;
   try {
     if (kind === 'station') {
       await readApplication();
       await reviewWspr(savedStation ? {callsign:savedStation.callsign,locator:savedStation.locator,power_dbm:savedStation.power_dbm} : {callsign:$('consumer-callsign').value.trim().toUpperCase(),
         locator:$('consumer-locator').value.trim().toUpperCase(),power_dbm:Number($('consumer-power').value)},'consumer-wspr-plan');
     }
-    consumerAttempt = kind === 'network' ? await radio.prepareNetwork(localIdentity, {
+    const prepared = kind === 'network' ? await radio.prepareNetwork(localIdentity, {
       ssid:$('consumer-ssid').value,password:$('consumer-password').value,time_server:$('consumer-time-server').value.trim()
     }) : await radio.prepareStation(localIdentity, {
       ...(savedStation ? {callsign:savedStation.callsign,locator:savedStation.locator,powerDbm:savedStation.power_dbm,progressRevision:savedProgress.revision} : {callsign:$('consumer-callsign').value.trim().toUpperCase(),locator:$('consumer-locator').value.trim().toUpperCase(),powerDbm:Number($('consumer-power').value)})
     });
+    if(accessClosing || epoch!==accessEpoch) { prepared.submit=null; throw new Error('Controls locked before settings submission. Your draft is preserved; no save was submitted.'); }
+    consumerAttempt=prepared;
     updateSetupReceipt();
     await radio.submitSetup(consumerAttempt);
     status.textContent = 'Settings accepted. The Pico may reconnect and restart. Keep this tab open or use the continuation link after joining the saved network. Log in, then select Check saved result.';
@@ -1427,12 +1577,12 @@ $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=tr
   }
 }); };
 if (typeof setInterval === 'function') setInterval(() => {
-  if (!busy && !reconnectRunning && !restartSent && ((radio && !radio.authenticated && localIdentity) || online || !radio && capabilities)) action(() => refresh(false,true));
+  if (!busy && !accessClosing && !(localLocked && localIdentity && !radio) && !reconnectRunning && !restartSent && ((radio && !radio.authenticated && localIdentity) || online || !radio && capabilities)) action(() => refresh(false,true));
 }, 5000);
 if(typeof setInterval==='function') setInterval(consoleTick,1000);
 clearConsole('Waiting for a current device observation.'); consoleTick();
 
-action(async () => { await discoverLocal(); if ((!radio && !localIdentity) || localAuthenticated) await refresh(true); else if (radio) await refreshPublicStatus(); });
+action(async () => { await discoverLocal(); accessDiscovered=true; renderAccess(); if (accessCarrier==='certificate' || localAuthenticated) await refresh(true); else if (radio) await refreshPublicStatus(); });
 
 function readPins() {
   const f = $('config').elements;
@@ -1589,7 +1739,7 @@ async function readHostname(token = pageIdentity.request()) {
         '. Name discovery and browser reachability are reported separately above.';
       returnReceipt = null; restartSent = false;
       consoleState('Reset confirmed','Authenticated observation confirms the same Pico and a new boot.');
-      globalThis.history?.replaceState(null,'',globalThis.location.pathname + globalThis.location.search);
+      globalThis.history?.replaceState(history.state,'',globalThis.location.pathname + globalThis.location.search);
     }
   }
   return d;
