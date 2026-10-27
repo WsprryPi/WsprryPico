@@ -2,7 +2,7 @@
 // Synthetic time and RAM journals; never evidence of physical RF performance.
 import assert from 'node:assert/strict';
 
-export async function firstWsprTransmission({cdp,click,field,until,control,capture}) {
+export async function firstWsprTransmission({cdp,click,field,login,until,control,capture}) {
   await until(()=>cdp.evaluate('!busy'),'frequency save and settings readback settled');
   assert.equal(await cdp.evaluate(`document.getElementById('save-config').disabled`),false,'confirmed dial save leaves schedule Save usable');
   assert.equal(await cdp.evaluate('writeState'),'ready');
@@ -20,7 +20,7 @@ export async function firstWsprTransmission({cdp,click,field,until,control,captu
     await control({op:'reboot'});
     await control({op:'message_review'}); // Model boot-applied saved configuration and active-job service.
     await cdp.evaluate('refresh()');
-    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await login();
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'restart login');
     await cdp.evaluate(`document.getElementById('station-link').click()`);
     await click('read-saved');await until(()=>cdp.evaluate(`!busy && writeState==='review'`),'restart settings read');

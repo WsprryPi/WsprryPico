@@ -25,8 +25,26 @@ class Cdp {
   async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
 }
 async function until(fn,label,ms=15000){const end=Date.now()+ms;while(Date.now()<end){if(await fn())return;await new Promise(resolve=>setTimeout(resolve,50));}let detail='';try{detail=await cdp.evaluate(`JSON.stringify({feedback:document.getElementById('standalone-frequency-status')?.textContent,active:document.activeElement?.id,writes:globalThis.frequencyWrites,online:typeof online!=='undefined'&&online,busy:typeof busy!=='undefined'&&busy,notice:document.getElementById('notice')?.textContent,readDisabled:document.getElementById('standalone-frequency-read')?.disabled,inputDisabled:document.getElementById('standalone-frequency')?.disabled,adoptHidden:document.getElementById('standalone-frequency-adopt')?.hidden,observations:globalThis.frequencyObservations})`);}catch{}throw Error('Timed out: '+label+' '+detail);}
-async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
-async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
+async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
+async function click(id){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.click();}`);}
+async function login() {
+  await until(()=>cdp.evaluate('!busy'),'access request settled');
+  const priorBoot=await cdp.evaluate('localIdentity?.boot_id');
+  await cdp.evaluate(`document.getElementById('access-toggle').click()`);
+  assert.equal(await cdp.evaluate(`document.getElementById('local-access').open`),true,'deliberate password modal');
+  await field('local-password','test-password');
+  await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+  await until(()=>cdp.evaluate('!busy'),'login response');
+  if(await cdp.evaluate(`document.getElementById('local-status').textContent.startsWith('The Pico or its boot changed.')`)) {
+    assert.notEqual(await cdp.evaluate('localIdentity.boot_id'),priorBoot,'expected synthetic reboot identified');
+    assert.equal(await cdp.evaluate('localAuthenticated || radio.authenticated'),false);
+    assert.equal(await cdp.evaluate(`document.getElementById('local-password').value`),'');
+    // Review the newly observed boot, then make one separate explicit attempt.
+    await field('local-password','test-password');
+    await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await until(()=>cdp.evaluate('!busy'),'reviewed boot login');
+  }
+}
 async function control(command) {
   const r=await fetch(`http://127.0.0.1:${port}/.fixture-control`,{method:'POST',body:JSON.stringify(command)});
   assert.equal(r.status,200);return r.json();
@@ -59,10 +77,10 @@ try {
     await until(()=>cdp.evaluate(`typeof online!=='undefined' && online && !busy`),'engineering page');
   } else {
   await until(()=>cdp.evaluate('typeof localIdentity!=="undefined" && !!localIdentity && !busy'),'consumer page');
-  await field('local-password','test-password');
-  await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+  await login();
   await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'login');
   }
+  await cdp.evaluate(`document.querySelector('a[href="/station#radio-settings"]').click()`);
   await until(()=>cdp.evaluate(`!document.getElementById('standalone-frequency-read').disabled`),'frequency availability');
   await click('standalone-frequency-read');
   await until(()=>cdp.evaluate(`!document.getElementById('standalone-frequency').disabled`),'unset readback');
@@ -118,7 +136,7 @@ try {
       await until(()=>cdp.evaluate(`!busy && consumerAttempt!==null`),'explicit station submit');
       await control({op:'time',ms:'4000'});await control({op:'reboot'});
       await cdp.evaluate('refresh()');
-      await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+      await login();
       await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'post-application login');
       await click('consumer-check-save');
       await until(()=>cdp.evaluate(`!busy && consumerAttempt===null && !document.getElementById('standalone-frequency-adopt').hidden`),'post-application target review');
@@ -140,7 +158,7 @@ try {
     assert.equal((await cdp.evaluate('frequencyWrites')).length,1);
     await capture('first-save');
     if(process.argv[5]==='transmission') {
-      await firstWsprTransmission({cdp,click,field,until,control,capture});
+      await firstWsprTransmission({cdp,click,field,login,until,control,capture});
       accepted=await control({op:'frequency_state'});
     }
     await field('standalone-frequency','7038600');
@@ -152,7 +170,7 @@ try {
     assert.equal((await cdp.evaluate('frequencyWrites')).length,2,'one explicit attempt; no automatic retry');
     await capture('ambiguous-save');
     await control({op:'reboot'});await cdp.evaluate('refresh()');
-    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await login();
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'reboot login');
     assert.equal(await cdp.evaluate(`document.getElementById('standalone-frequency').value`),'7038600');
     assert.equal(await cdp.evaluate(`document.getElementById('standalone-frequency-save').disabled`),true);
@@ -163,7 +181,7 @@ try {
     const writes=await cdp.evaluate('frequencyWrites');
     await cdp.send('Page.reload');
     await until(()=>cdp.evaluate('typeof localIdentity!=="undefined" && !!localIdentity && !busy && !localAuthenticated'),'fresh page');
-    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await login();
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'fresh page login');
     await click('standalone-frequency-read');
     await until(()=>cdp.evaluate(`!document.getElementById('standalone-frequency').disabled`),'fresh persisted read');
@@ -227,7 +245,7 @@ try {
   assert.equal(await cdp.evaluate(`document.getElementById('standalone-frequency').value`),'14095600');
   await capture('target-rejected');
   await control({op:'reboot'}); await cdp.evaluate('refresh()');
-  await field('local-password','test-password'); await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+  await login();
   await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'new boot login');
   await click('standalone-frequency-read');
   await until(()=>cdp.evaluate(`!document.getElementById('standalone-frequency').disabled`),'new identity read');
