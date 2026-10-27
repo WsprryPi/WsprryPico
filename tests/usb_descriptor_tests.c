@@ -25,9 +25,12 @@ int main(void) {
     assert(tud_descriptor_string_cb(255, 0x0409) == NULL);
     const uint8_t* config = tud_descriptor_configuration_cb(0);
     size_t total = config[2] | (config[3] << 8);
-    assert(total == TUD_CONFIG_DESC_LEN + 3 * TUD_CDC_DESC_LEN);
+    assert(total == TUD_CONFIG_DESC_LEN + 4 * TUD_CDC_DESC_LEN);
     assert(config[4] == USB_ITF_COUNT && CFG_TUD_CDC == USB_CDC_COUNT);
     unsigned interfaces = 0, associations = 0, endpoints = 0;
+    // Exact historical endpoint identities followed by the appended Logging role.
+    const unsigned char expected_endpoints[] = {0x81, 0x02, 0x82, 0x83, 0x04, 0x84,
+                                                0x85, 0x06, 0x86, 0x87, 0x08, 0x88};
     unsigned char seen_endpoints[256] = {0};
     for (size_t offset = 0; offset < total;) {
         const uint8_t* d = config + offset;
@@ -39,16 +42,18 @@ int main(void) {
         } else if (d[1] == TUSB_DESC_INTERFACE) {
             assert(d[2] == interfaces++);
             if (d[5] == TUSB_CLASS_CDC) {
-                check_string(d[8], d[2] == USB_ITF_CONSOLE ? "WsprryPico Console"
-                                   : d[2] == USB_ITF_WTP   ? "WsprryPico WTP"
-                                                           : "WsprryPico Management");
+                check_string(d[8], d[2] == USB_ITF_CONSOLE      ? "WsprryPico Console"
+                                   : d[2] == USB_ITF_WTP        ? "WsprryPico WTP"
+                                   : d[2] == USB_ITF_MANAGEMENT ? "WsprryPico Management"
+                                                                : "WsprryPico Logging");
             }
         } else if (d[1] == TUSB_DESC_ENDPOINT) {
             assert(!seen_endpoints[d[2]]++);
-            ++endpoints;
+            assert(endpoints < sizeof(expected_endpoints));
+            assert(d[2] == expected_endpoints[endpoints++]);
         }
         offset += d[0];
     }
-    assert(interfaces == 6 && associations == 3 && endpoints == 9);
+    assert(interfaces == 8 && associations == 4 && endpoints == 12);
     puts("Actual TinyUSB descriptor expansion passed");
 }

@@ -113,6 +113,7 @@ extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 #endif
 #include "logging/logger.hpp"
+#include "logging/usb_session.hpp"
 #include "provisioning/pico/bootsel_sampler.hpp"
 #include "provisioning/rf_setup_gate.hpp"
 #include "runtime/allocation_fault.h"
@@ -689,6 +690,8 @@ int main() {
     browser_api.progress_settings(progress);
     static wsprrypico::logging::Logger logger(identities.device_id(), service.status().boot_id,
                                               local_identity.hostname);
+    static wsprrypico::logging::UsbSession logging_session(logger, identities.device_id(),
+                                                         service.status().boot_id);
     logger.settings(store.logging_settings());
     browser_api.logging_service(logger);
     logger.event(5, "BOOT", "Application started", time_us_64() * 1000ULL);
@@ -980,10 +983,8 @@ int main() {
     auto command = [&](std::string_view text) -> wsprrypico::usb::ConsoleResponse {
         if (reset_coordinator.blocks_admission() || recovery_reset_at)
             return "{\"ok\":false,\"error\":\"reset_pending\"}\n";
-        if (text == "SYSLOG STOP") {
-            logger.stop();
-            return "{\"ok\":true}\n";
-        }
+        if (text == "SYSLOG STOP" || text.starts_with("SYSLOG START "))
+            return "{\"ok\":false,\"error\":\"use_logging_port\"}\n";
         if (text == "SYSLOG STATUS") {
             wsprrypico::network::HttpRequest request;
             request.method = "GET";
@@ -1009,14 +1010,6 @@ int main() {
             request.body = std::string(root->get("resource")->raw);
             const auto response = usb_api.handle(request);
             return response.body + "\n";
-        }
-        if (text.starts_with("SYSLOG START ")) {
-            const auto expected =
-                "SYSLOG START " + identities.device_id() + " " + service.status().boot_id;
-            if (text != expected || !logger.start(identities.device_id(), service.status().boot_id))
-                return "{\"ok\":false,\"error\":\"logging_target_mismatch\"}\n";
-            logger.event(5, "USB_LOG", "Console logging session started", time_us_64() * 1000ULL);
-            return "{\"ok\":true}\n";
         }
         if (text.starts_with("ACTIVITYTRACE ")) {
             auto& trace = wsprrypico::runtime::activity_trace();
@@ -2349,13 +2342,11 @@ int main() {
             maximum(max_usb_us, usb_us);
 #endif
         if (wsprrypico::usb::take_console_reset()) {
-            logger.connected(false);
             length = 0;
             overflow = false;
             console_reply.reset();
             console_input_size = console_input_offset = 0;
         }
-        logger.connected(wsprrypico::usb::console_connected());
         console_reply.poll(wsprrypico::usb::console_write);
         if (!reboot_at && !console_reply.pending() && console_input_offset == console_input_size) {
             console_input_size = wsprrypico::usb::console_transport_read(console_input);
@@ -2415,14 +2406,10 @@ int main() {
             logged_wtp = wsprrypico::usb::wtp_connected();
             logged_management = wsprrypico::usb::management_connected();
         }
-        // Serialize complete replies first. Atomic ring admission prevents logs
-        // appearing inside INFO or any administrative reply.
-        if (!console_reply.pending() && !wsprrypico::usb::console_output_pending() && length == 0 &&
-            console_input_offset == console_input_size) {
-            const auto record = logger.front();
-            if (!record.empty() && wsprrypico::usb::console_write(record))
-                logger.consume();
-        }
+        logging_session.poll(wsprrypico::usb::logging_connected(),
+                             wsprrypico::usb::take_logging_reset(),
+                             wsprrypico::usb::logging_transport_read,
+                             wsprrypico::usb::logging_write, log_mono);
         if (wsprrypico::usb::take_wtp_reset()) {
             offset = size = 0;
             if (wsprrypico::usb::wtp_connected() && runtime_profile_ready() && local_usb_ready())

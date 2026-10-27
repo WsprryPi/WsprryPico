@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: MIT
 #include "logging/logger.hpp"
+#include "logging/usb_session.hpp"
 #include "network/local_usb_api.hpp"
 #include "network_support.hpp"
 #include "wtp/json.hpp"
 
 #include <cassert>
 #include <cstdlib>
+#include <deque>
 #include <limits>
 #include <new>
+#include <vector>
 
 static bool prohibit_allocation = false;
 void* operator new(std::size_t size) {
@@ -69,6 +72,58 @@ int main() {
     prohibit_allocation = false;
     logger.stop();
     assert(logger.front().empty());
+
+    // Exercise the production dedicated carrier independently of Console.
+    logging::Logger wire_logger(std::string(32, 'a'), std::string(32, 'b'), "pico.local");
+    wire_logger.settings({true, 7});
+    logging::UsbSession session(wire_logger, std::string(32, 'a'), std::string(32, 'b'));
+    std::deque<std::uint8_t> rx;
+    std::vector<std::string> tx;
+    bool accepting = true;
+    const auto wire_read = [&](std::span<std::uint8_t> bytes) {
+        const auto count = std::min(bytes.size(), rx.size());
+        for (std::size_t i = 0; i < count; ++i) {
+            bytes[i] = rx.front();
+            rx.pop_front();
+        }
+        return count;
+    };
+    const auto wire_write = [&](std::string_view text) {
+        if (!accepting)
+            return false;
+        tx.emplace_back(text);
+        return true;
+    };
+    auto send = [&](std::string text) {
+        rx.insert(rx.end(), text.begin(), text.end());
+        for (unsigned i = 0; i < 30; ++i)
+            session.poll(true, false, wire_read, wire_write, 1);
+    };
+    send("SYSLOG STATUS\n");
+    assert(tx.size() == 1 && tx.back().find("\"schema\":\"usb-logging/1\"") != std::string::npos);
+    send("SYSLOG START " + std::string(32, 'c') + " " + std::string(32, 'b') + "\n");
+    assert(!wire_logger.streaming() &&
+           tx.back().find("logging_command_refused") != std::string::npos);
+    accepting = false;
+    send("SYSLOG START " + std::string(32, 'a') + " " + std::string(32, 'b') + "\n");
+    assert(wire_logger.streaming() && tx.size() == 2);
+    accepting = true;
+    for (unsigned i = 0; i < 10; ++i)
+        session.poll(true, false, wire_read, wire_write, 1);
+    assert(tx.size() == 4 && tx[2].find("\"streaming\":true") != std::string::npos);
+    assert(tx[3].starts_with("@SYSLOG "));
+    send("INFO\nSYSLOG SAVE {}\nSYS\rLOG STATUS\nSYSLOG STATUS\r\n" + std::string(200, 'x') +
+         "\nSYSLOG STATUS\n");
+    assert(tx.back().find("\"active\":") != std::string::npos);
+    assert(tx.size() == 10); // five refused commands, then successful resynchronization
+    send("SYSLOG STOP\n");
+    assert(!wire_logger.streaming() && tx.back().find("\"streaming\":false") != std::string::npos);
+    send("SYSLOG START " + std::string(32, 'a') + " " + std::string(32, 'b') + "\n");
+    assert(wire_logger.streaming());
+    session.poll(true, true, wire_read, wire_write, 2);
+    assert(!wire_logger.streaming());
+    send("SYSLOG STATUS\n");
+    assert(tx.back().find("\"streaming\":false") != std::string::npos);
 
     network_test::Fixture fixture;
     const auto config = *standalone::parse_config(network_test::config);

@@ -7,6 +7,7 @@ import io
 import json
 import os
 import pty
+import plistlib
 import select
 import shlex
 import shutil
@@ -76,6 +77,56 @@ def fixture(branch='devel', modern=False, version=None):
     checksums['release-manifest.json'] = installer.sha(files['release-manifest.json'])
     files['SHA256SUMS'] = ''.join(f'{digest}  {name}\n' for name, digest in sorted(checksums.items())).encode()
     return files, manifest, proof
+
+
+class UsbRoleDiscoveryTests(unittest.TestCase):
+    def test_darwin_three_and_four_functions_and_bootsel(self):
+        for count in (3, 4):
+            children = []
+            for role in range(0, count * 2, 2):
+                children.extend([
+                    {'bInterfaceNumber': role, 'bInterfaceClass': 2, 'bInterfaceSubClass': 2, 'bInterfaceProtocol': 0},
+                    {'bInterfaceNumber': role + 1, 'bInterfaceClass': 10,
+                     'IORegistryEntryChildren': [{'IOCalloutDevice': '/dev/port-role-' + str(role)}]}])
+            parent = {'idVendor': 0xcafe, 'idProduct': 0x4012, 'USB Serial Number': SERIAL,
+                      'locationID': 123, 'IORegistryEntryChildren': children}
+            with patch.object(installer.subprocess, 'run', return_value=SimpleNamespace(stdout=plistlib.dumps([parent]))):
+                self.assertEqual(installer.discover('Darwin')[0]['ports'],
+                                 {str(r): '/dev/port-role-' + str(r) for r in range(0, count * 2, 2)})
+            children[0]['bInterfaceSubClass'] = 6
+            with patch.object(installer.subprocess, 'run', return_value=SimpleNamespace(stdout=plistlib.dumps([parent]))):
+                self.assertNotIn('0', installer.discover('Darwin')[0]['ports'])
+            parent.update(idVendor=0x2e8a, idProduct=0x000f, IORegistryEntryChildren=[])
+            with patch.object(installer.subprocess, 'run', return_value=SimpleNamespace(stdout=plistlib.dumps([parent]))):
+                found = installer.discover('Darwin')[0]
+                self.assertEqual(found['mode'], 'bootsel')
+                self.assertEqual(found['ports'], {})
+
+    def test_linux_role_metadata_with_arbitrary_tty_numbers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            parent = root / '1-2'
+            parent.mkdir()
+            for name, value in {'idVendor':'cafe','idProduct':'4012','serial':SERIAL}.items():
+                (parent / name).write_text(value)
+            for role in (0, 2, 4, 6):
+                interface = parent / ('1-2:1.' + str(role))
+                (interface / 'tty' / ('ttyACM' + str(90 - role))).mkdir(parents=True)
+                (interface / 'bInterfaceNumber').write_text(format(role, '02x'))
+                for name, value in {'bInterfaceClass':'02','bInterfaceSubClass':'02','bInterfaceProtocol':'00'}.items():
+                    (interface / name).write_text(value)
+            actual_path = installer.Path
+            def selected_path(value):
+                return root if value == '/sys/bus/usb/devices' else actual_path(value)
+            with patch.object(installer, 'Path', side_effect=selected_path):
+                found = installer.discover('Linux')[0]
+                self.assertEqual(found['ports'], {str(r): '/dev/ttyACM' + str(90-r) for r in (0,2,4,6)})
+            (parent / '1-2:1.6' / 'bInterfaceSubClass').write_text('06')
+            with patch.object(installer, 'Path', side_effect=selected_path):
+                self.assertNotIn('6', installer.discover('Linux')[0]['ports'])
+            shutil.rmtree(parent / '1-2:1.6')
+            with patch.object(installer, 'Path', side_effect=selected_path):
+                self.assertEqual(set(installer.discover('Linux')[0]['ports']), {'0','2','4'})
 
 
 class Network:

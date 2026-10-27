@@ -60,15 +60,15 @@ Keep firmware sequence numbers, origin event time, host receipt time and journal
 
 Use [RFC 5424](https://www.rfc-editor.org/rfc/rfc5424.html) message formatting with a documented project-specific USB serial mapping. Do not imply that an ordinary network syslog collector directly accepts USB.
 
-Evaluate the existing Console against a separate CDC interface. Prefer preserving current descriptors and discovery unless evidence justifies changing them. Record the selected design and compatibility consequences.
+Use the dedicated Logging CDC function at control/data interfaces 6/7. Preserve existing Console, WTP and Management identities and discovery; collection must leave Console independently usable. Record compatibility consequences.
 
 Raw logs must never enter WTP or USB management framing. Defined management requests/replies may configure logging and report status through their documented resource semantics.
 
-Define unambiguous framing and coexistence with startup text, INFO and administrative commands. Prevent interleaving within records or replies. Preserve existing Console behavior when streaming is disabled.
+Define unambiguous Logging framing with independent session state. Prevent interleaving within records or replies. Console startup text, INFO and administrative commands remain on Console.
 
 Specify start/stop, connection-local versus persisted state, early-boot behavior, partial/zero writes, DTR transitions, disconnects, reconnects, truncation and resynchronization. Operators must retain a reliable way to return to ordinary Console use.
 
-Identify the intended device and Console role using verified identity and interface metadata, not tty ordering.
+Identify the intended device and Logging role using verified identity and interface metadata, not tty ordering.
 
 ### 4. Implement bounded Pico logging
 
@@ -92,7 +92,7 @@ Select a maintainable ingestion architecture using the existing service/process 
 
 Support multiple attached Picos without mixing their identity, boot, sequence or stream state. Handle replacement devices and re-enumeration without silently trusting a new origin.
 
-Coordinate Console ownership with existing tools, browser Console use, firmware maintenance, bootloader transitions and exclusive USB maintenance. Release and reacquire the correct interfaces without disrupting WTP or management unnecessarily.
+Coordinate Logging ownership with firmware maintenance, bootloader transitions and exclusive USB maintenance. Release and reacquire Logging while leaving Console, WTP and Management independently usable during ordinary collection.
 
 Preserve native WsprryPi logging and its existing debug, journald and timestamp semantics. Map Pico severity explicitly rather than accidentally filtering remote records through unrelated host settings.
 
@@ -104,7 +104,7 @@ Review API normalization, filters, pagination/backlog, SSE reconnection, cursor 
 
 ### 6. Deliver a complete operator workflow
 
-Provide consistent Pico and Pi controls for supported enablement, severity/filter settings and status. Show saved versus active state, unsupported firmware, disconnected/busy Console, overflow and uncertain saves.
+Provide consistent Pico and Pi controls for supported enablement, severity/filter settings and status. Show saved versus active state, unsupported firmware, disconnected/busy Logging, overflow and uncertain saves.
 
 In the Pi Logs UI, distinguish local Pi records and each Pico source. Show source identity and meaningful timestamps without obscuring the message. Include bounded filtering, pause/resume, export and empty/error states where consistent with the existing interface.
 

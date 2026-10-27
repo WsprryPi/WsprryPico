@@ -11,6 +11,9 @@ namespace {
 std::array<char, kConsoleCapacity> console_queue{};
 std::size_t head = 0;
 std::size_t size = 0;
+std::array<char, kLoggingCapacity> logging_queue{};
+std::size_t logging_head = 0, logging_size = 0;
+bool logging_reset = true;
 std::array<bool, USB_CDC_COUNT> connected{};
 bool wtp_reset = true;
 bool console_reset = true;
@@ -26,7 +29,10 @@ void disconnect(std::uint8_t port) {
         size = 0;
     } else if (port == USB_CDC_MANAGEMENT) {
         management_reset = true;
-    } else {
+    } else if (port == USB_CDC_LOGGING) {
+        logging_reset = true;
+        logging_head = logging_size = 0;
+    } else if (port == USB_CDC_WTP) {
         wtp_reset = true;
     }
 }
@@ -47,6 +53,8 @@ void service() {
                 wtp_reset = true;
             else if (port == USB_CDC_MANAGEMENT)
                 management_reset = true;
+            else if (port == USB_CDC_LOGGING)
+                logging_reset = true;
         }
     }
     if (connected[USB_CDC_CONSOLE] && size != 0) {
@@ -55,6 +63,14 @@ void service() {
         head = (head + accepted) % console_queue.size();
         size -= accepted;
     }
+    if (connected[USB_CDC_LOGGING] && logging_size != 0) {
+        const auto count =
+            std::min({logging_size, logging_queue.size() - logging_head, kServiceBytes});
+        const auto accepted =
+            tud_cdc_n_write(USB_CDC_LOGGING, logging_queue.data() + logging_head, count);
+        logging_head = (logging_head + accepted) % logging_queue.size();
+        logging_size -= accepted;
+    }
     for (std::uint8_t port = 0; port < USB_CDC_COUNT; ++port) {
         if (connected[port]) {
             tud_cdc_n_write_flush(port);
@@ -62,6 +78,28 @@ void service() {
     }
 }
 
+bool logging_connected() {
+    return connected[USB_CDC_LOGGING];
+}
+bool take_logging_reset() {
+    const bool result = logging_reset;
+    logging_reset = false;
+    return result;
+}
+bool logging_write(std::string_view text) {
+    if (!logging_connected() || text.size() > logging_queue.size() - logging_size)
+        return false;
+    for (char byte : text) {
+        logging_queue[(logging_head + logging_size) % logging_queue.size()] = byte;
+        ++logging_size;
+    }
+    return true;
+}
+std::size_t logging_transport_read(std::span<std::uint8_t> bytes) {
+    return logging_connected() ? tud_cdc_n_read(USB_CDC_LOGGING, bytes.data(),
+                                                std::min(bytes.size(), kServiceBytes))
+                               : 0;
+}
 bool console_connected() {
     return connected[USB_CDC_CONSOLE];
 }
