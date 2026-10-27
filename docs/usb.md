@@ -130,7 +130,7 @@ The dotted field names above describe fields inside the `network` part of the re
 
 ## Stop output from the Console
 
-Open the identified Console as described above. Send `ABORT` with the same LF/newline ending used for `INFO`. This local USB command stops the current job even when another controller owns it, and suspends the Pico's automatic schedule for this boot. Wait for the reply, then send `STATUS` and check for `"ok":true`, `"output_active":false` and `"suspended":true`. If `STATUS` returns `profile_runtime_unavailable`, retain that error; the command has not confirmed the stop result.
+Open the identified Console as described above. Send `ABORT` with the same LF/newline ending used for `INFO`. This local USB command stops the current job even when another controller owns it, and suspends the Pico's automatic schedule for this boot. Wait for the reply, then send `STATUS` and check for `"ok":true`, `"output_active":false` and `"suspended":true`. `STATUS` remains available for read-only observation when no runtime profile is active, a consumer source is selected or an ownership claim is pending. Profile-dependent control commands remain restricted. A pending reset can still refuse Console commands; reconnect after the reset and obtain fresh status.
 
 Saved schedule enablement is retained, so an enabled schedule can run again after a restart. To keep automatic transmission disabled across restarts, disable the schedule in the browser and save and apply that change. If the stop result is missing or output remains unknown, keep the RF path connected and follow [Status, stop and connection loss](operate.md#status-stop-and-connection-loss).
 

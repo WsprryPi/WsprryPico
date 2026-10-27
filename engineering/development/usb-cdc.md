@@ -203,7 +203,7 @@ The controlled final client disconnect occurred at approximately 21:45:12 UTC. U
 
 After the Windows reboot, native Chrome opened the Pico's reported station address over ecm-mule's existing LAN connection and displayed the Radio access login form. No login, saved-profile change or transmission was performed. The accepted AP retention and expiry observations used wspr5; the earlier Windows Wi-Fi automation did not establish a reliable direct-association result. An earlier temporary Windows DNS override was restored to DHCP, and the operator rebooted Windows after the failed network automation. Following the operator's restriction, no further Windows Wi-Fi, DNS, route, firewall or proxy changes were made. The temporary wspr5 AP profile and disconnect watchdogs were removed or collected; its original adapter and route state was verified.
 
-No firmware was loaded, settings erased or RF job submitted. All sampled USB status objects reported inactive output, disabled scheduling, empty state and no owner. Standalone Console `STATUS` returned `profile_runtime_unavailable` in this `consumer_preclock` setup; this run therefore does not verify the walkthrough's separate ABORT/STATUS procedure or every Console command.
+No firmware was loaded, settings erased or RF job submitted. All sampled USB status objects reported inactive output, disabled scheduling, empty state and no owner. The historical firmware used for this run returned `profile_runtime_unavailable` for standalone Console `STATUS` in its `consumer_preclock` setup (current firmware permits this read-only observation); this run therefore does not verify the walkthrough's separate ABORT/STATUS procedure or every Console command.
 
 ## Dedicated Logging compatibility
 

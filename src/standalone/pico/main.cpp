@@ -1721,6 +1721,9 @@ int main() {
             return ok ? "{\"ok\":true}\n" : "{\"ok\":false,\"error\":\"led_test_refused\"}\n";
         }
 #endif
+        // Observation remains available when profile-dependent control is denied.
+        if (text == "STATUS")
+            return scheduler.status();
         if ((consumer_source_selected() || bootstrap.owner_claim_pending() ||
              !runtime_profile_ready()) &&
             text != "ABORT" && text != "REBOOT" && text != "BOOTSEL" &&
