@@ -37,6 +37,8 @@ If the Pico answers ping but its page will not open, follow the [browser trouble
 
 Start with [Add a WsprryPico in the WsprryPi manual](https://wsprry-pi.readthedocs.io/en/devel/Install/pico.html). In WsprryPi's **Setup → Fleet**, the **Fleet** list identifies available transmitters. Select the Pico for the Pi's jobs or assign it an independent output schedule. USB provides settings, controller time and transmission jobs without Pico Wi-Fi; supported network connections are another option. That manual covers Pi connections, schedules and Pi-managed firmware updates.
 
+One USB cable provides separate Console, WTP, Management and Logging serial ports. Console remains available for interactive commands while WsprryPi collects diagnostic logs through Logging. Earlier firmware without the dedicated Logging port must be updated before collection can start.
+
 Before switching to a Pi-run schedule, disable, save and apply the Pico's WSPR schedule, pause any saved message schedule, then confirm inactive output and released control. The two schedules are separate; stopping one does not disable the other. See [Use with WsprryPi](docs/wsprrypi.md) for the handoff in either direction.
 
 ## Transmission and timing

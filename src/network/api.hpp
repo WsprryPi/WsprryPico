@@ -32,6 +32,9 @@ class BrowserApi {
                         std::string_view authority, std::uint64_t transaction = 0,
                         ManagementCarrier carrier = ManagementCarrier::EngineeringStation);
     std::string revision() const;
+    void logging_service(logging::Logger& logger) {
+        logger_ = &logger;
+    }
     // Small read-only projection for the admitted consumer page before login.
     // No job contents, owner identity, settings, history or transport details.
     HttpResponse public_status();
@@ -115,6 +118,8 @@ class BrowserApi {
     }
 
   private:
+    logging::Logger* logger_ = nullptr;
+    HttpResponse logging_resource(const HttpRequest& request);
     const time::ControllerTimeArbiter* time_arbiter_ = nullptr;
     std::string source_revision_ = "unreported";
     std::uint64_t nominal_sample_hz_ = 0;

@@ -8,7 +8,7 @@ events. No unsolicited diagnostics are emitted on WTP.
 
 USB JSON administration is independently defined by [USB-Management/1](../protocol/USB-Management.md).
 A third management CDC role carries framed shared-API requests and qualified
-UTC observations. Console and WTP roles and byte streams remain unchanged.
+UTC observations. A fourth Logging role carries the independent diagnostic stream. Console and WTP roles and byte streams remain unchanged.
 The [local configuration contract](usb-local-configuration.md) defines no-network
 profiles, hostname and saved Wi-Fi lifecycle. Network authentication is unchanged.
 
@@ -21,18 +21,9 @@ profiles, hostname and saved Wi-Fi lifecycle. Network authentication is unchange
 | WsprryPico Console | 0 | 0 | 1 |
 | WsprryPico WTP | 1 | 2 | 3 |
 | WsprryPico Management | 2 | 4 | 5 |
+| WsprryPico Logging | 3 | 6 | 7 |
 
-`firmware/usb_descriptors.c` retains manufacturer `WsprryPi`, product
-`WsprryPico`, the board-derived USB serial, and development identity
-`cafe:4012`. This is not a production VID/PID allocation. Separate endpoint
-addresses are Console `81/02/82`, WTP `83/04/84` and management `85/06/86`
-(notification/OUT/IN).
-The pinned TinyUSB macro places role strings on the control interfaces;
-association descriptors and data interfaces have no string. Operating systems
-and serial libraries may show only the device product or generated filenames.
-Identify a role using VID/PID, USB serial and control-interface number, consulting
-USB descriptors as needed. Neither tty ordering nor a displayed friendly name
-is a discovery contract. USB serial and the hashed WTP device_id are distinct.
+`firmware/usb_descriptors.c` retains manufacturer `WsprryPi`, product `WsprryPico`, the board-derived USB serial, and development identity `cafe:4012`. This is not a production VID/PID allocation. Separate endpoint addresses are Console `81/02/82`, WTP `83/04/84`, Management `85/06/86` and Logging `87/08/88` (notification/OUT/IN). The pinned TinyUSB macro places role strings on the control interfaces; association descriptors and data interfaces have no string. Operating systems and serial libraries may show only the device product or generated filenames. Identify a role using VID/PID, USB serial and control-interface number, consulting USB descriptors as needed. Neither tty ordering nor a displayed friendly name is a discovery contract. USB serial and the hashed WTP device_id are distinct.
 
 The USB adapter is `src/usb/transport.{hpp,cpp}`. Application code uses
 `console_write`, `wtp_transport_read` and `wtp_transport_write`, without CDC
@@ -67,9 +58,9 @@ the existing portable parser can allocate and perform frame-sized work.
   bounded frame queue. Accepted bytes retain FIFO order while
   the DTR-active USB connection is healthy; no application-level acknowledgment
   or endpoint compliance is implied. TinyUSB disables FIFO overwrite with DTR.
-- All three functions must assert DTR. DTR deassertion aborts that port's stream and
+- All four functions must assert DTR. DTR deassertion aborts that port's stream and
   clears queued software RX/TX; Console also clears its ring. Mount/unmount
-  callbacks reset all three sessions. Reset notifications survive close/open transitions
+  callbacks reset all four sessions. Reset notifications survive close/open transitions
   between main-loop polls, so the parser resets and the Console banner repeats.
   Disconnected RX is discarded. RTS and nominal baud rate do not select behavior;
   1200 baud does not invoke an application reset-to-bootloader handler.
@@ -112,7 +103,7 @@ ctest --preset host-debug
 ```
 
 Use the SDK checkout specified in the firmware-foundation guide. The descriptor
-test checks configuration lengths, four interfaces/two associations, distinct
+test checks configuration lengths, eight interfaces/four associations, distinct
 endpoints, role strings, development VID/PID and the serial callback. Only the
 board-ID function is mocked. It is not a host enumeration test.
 
@@ -135,7 +126,7 @@ udevadm info --attribute-walk --name=/dev/ttyACM0
 
 Repeat `udevadm` for each candidate. `/dev/ttyACM0` is only an example. Match the
 serial and `ID_USB_INTERFACE_NUM` (`00` Console, `02` WTP), or inspect the USB
-parent's `bInterfaceNumber` if that property is unavailable. Confirm two CDC ACM
+parent's `bInterfaceNumber` if that property is unavailable. Confirm four CDC ACM
 functions and the named control interfaces in `lsusb -v`.
 
 After identification, substitute the actual ports and open both concurrently:
@@ -212,4 +203,8 @@ The controlled final client disconnect occurred at approximately 21:45:12 UTC. U
 
 After the Windows reboot, native Chrome opened the Pico's reported station address over ecm-mule's existing LAN connection and displayed the Radio access login form. No login, saved-profile change or transmission was performed. The accepted AP retention and expiry observations used wspr5; the earlier Windows Wi-Fi automation did not establish a reliable direct-association result. An earlier temporary Windows DNS override was restored to DHCP, and the operator rebooted Windows after the failed network automation. Following the operator's restriction, no further Windows Wi-Fi, DNS, route, firewall or proxy changes were made. The temporary wspr5 AP profile and disconnect watchdogs were removed or collected; its original adapter and route state was verified.
 
-No firmware was loaded, settings erased or RF job submitted. All sampled USB status objects reported inactive output, disabled scheduling, empty state and no owner. Standalone Console `STATUS` returned `profile_runtime_unavailable` in this `consumer_preclock` setup; this run therefore does not verify the walkthrough's separate ABORT/STATUS procedure or every Console command.
+No firmware was loaded, settings erased or RF job submitted. All sampled USB status objects reported inactive output, disabled scheduling, empty state and no owner. The historical firmware used for this run returned `profile_runtime_unavailable` for standalone Console `STATUS` in its `consumer_preclock` setup (current firmware permits this read-only observation); this run therefore does not verify the walkthrough's separate ABORT/STATUS procedure or every Console command.
+
+## Dedicated Logging compatibility
+
+Logging is appended at control/data interfaces 6/7 with CDC instance 3. Existing device identity, role strings, interfaces 0 through 5 and endpoint assignments are unchanged. The USB device version remains 1.00; hosts must enumerate the updated configuration after the firmware-update disconnect. Operating-system port names can change and are never role identities. Earlier three-function firmware remains supported by Console, WTP, Management and the installer. Missing Logging is an explicit unsupported capability; the collector never opens Console as a fallback. See [USB logging](usb-logging.md) for the independent USB-Logging/1 handshake and budgets.

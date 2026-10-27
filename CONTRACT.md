@@ -35,11 +35,7 @@ symbol timing nor RF performance.
 
 ## Control and authority
 
-USB CDC is the reference WTP transport. Console diagnostics, WTP framing and
-[USB management/time](engineering/protocol/USB-Management.md) use separate CDC
-interfaces. Logging must not enter either protocol stream. USB management uses
-local physical authority, supports no-network configuration and does not grant
-transmitter ownership. Network callers cannot select USB authority.
+USB CDC is the reference WTP transport. Console diagnostics, WTP framing and [USB management/time](engineering/protocol/USB-Management.md) use separate CDC interfaces. Diagnostic logging has an independent fourth CDC interface; collection leaves Console available. Logging must not enter either protocol stream. USB management uses local physical authority, supports no-network configuration and does not grant transmitter ownership. Network callers cannot select USB authority.
 
 Network WTP/TCP carries the identical WTP/1 stream to the same service.
 The consumer image defaults to Plain LAN on station TCP port 31417 after

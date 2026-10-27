@@ -757,12 +757,13 @@ def discover(system=None):
                 if 'bInterfaceNumber' in node:
                     number = node['bInterfaceNumber']
                     # macOS attaches IOSerialBSDClient under the CDC DATA
-                    # interface (1/3/5), paired with control interface 0/2/4.
+                    # interface (1/3/5/7), paired with control interface 0/2/4/6.
                     control = interfaces.get(number - 1, {})
-                    role = (number - 1 if number in (1, 3, 5) and
-                            node.get('bInterfaceClass') == 10 and control.get('bInterfaceClass') == 2
+                    role = (number - 1 if number in (1, 3, 5, 7) and
+                            node.get('bInterfaceClass') == 10 and control.get('bInterfaceClass') == 2 and
+                            control.get('bInterfaceSubClass') == 2 and control.get('bInterfaceProtocol') == 0
                             else None)
-                if 'IOCalloutDevice' in node and role in (0, 2, 4):
+                if 'IOCalloutDevice' in node and role in (0, 2, 4, 6):
                     require(str(role) not in ports, 'Duplicate USB role')
                     ports[str(role)] = node['IOCalloutDevice']
                 for child in node.get('IORegistryEntryChildren', []):
@@ -785,8 +786,12 @@ def discover(system=None):
                 if not (interface / 'bInterfaceNumber').is_file():
                     continue
                 role = int((interface / 'bInterfaceNumber').read_text().strip(), 16)
+                if any(not (interface / name).is_file() or
+                       int((interface / name).read_text().strip(), 16) != value
+                       for name, value in (('bInterfaceClass', 2), ('bInterfaceSubClass', 2), ('bInterfaceProtocol', 0))):
+                    continue
                 for tty in interface.rglob('ttyACM*'):
-                    if tty.parent.name == 'tty' and role in (0, 2, 4):
+                    if tty.parent.name == 'tty' and role in (0, 2, 4, 6):
                         require(str(role) not in ports, 'Duplicate USB role')
                         ports[str(role)] = '/dev/' + tty.name
             devices.append({'serial': serial, 'mode': 'bootsel' if vendor == 0x2E8A else 'application',

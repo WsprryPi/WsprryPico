@@ -15,11 +15,7 @@ programming, kernel interfaces and DKMS are outside this application.
 
 ## Transports and management
 
-Three CDC functions separate Console diagnostics, canonical USB WTP and
-[USB management/time](protocol/USB-Management.md). The
-[USB adapter](development/usb-cdc.md) bounds servicing and connection state;
-logs never enter protocol streams. The strict [WTP endpoint](development/wtp-endpoint.md)
-validates JSON, dispatches requests and orders responses/events.
+Four CDC functions separate Console diagnostics, canonical USB WTP, [USB management/time](protocol/USB-Management.md), and [Logging](development/usb-logging.md). The [USB adapter](development/usb-cdc.md) bounds servicing and connection state; logs never enter protocol streams. The strict [WTP endpoint](development/wtp-endpoint.md) validates JSON, dispatches requests and orders responses/events.
 
 Network WTP/TCP carries the same WTP/1 stream. Engineering TLS uses ALPN
 `wtp/1` and device-specific certificate principals. Consumer Plain LAN WTP uses

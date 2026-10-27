@@ -72,6 +72,48 @@ int main(){
             self.assertEqual(built.returncode, 0, built.stderr)
             subprocess.run([str(path / 'softap')], check=True, capture_output=True, timeout=10)
 
+    def test_console_status_observation_precedes_profile_control_guard(self):
+        source = (ROOT / 'src/standalone/pico/main.cpp').read_text()
+        start = source.index('        if (text == "STATUS")')
+        end = source.index('        if (text.starts_with("HEAP PROBE "))', start)
+        actual = source[start:end]
+        # Compile the actual target routing and guard, including all combinations
+        # of consumer selection, pending ownership and absent runtime authority.
+        program = r'''
+#include <string>
+#include <string_view>
+#include <stdexcept>
+struct Scheduler { unsigned reads=0; std::string status(){++reads;return "observed";} } scheduler;
+struct Bootstrap { bool pending=false; bool owner_claim_pending(){return pending;} } bootstrap;
+bool consumer=false, ready=false;
+bool consumer_source_selected(){return consumer;}
+bool runtime_profile_ready(){return ready;}
+std::string command(std::string_view text) { ACTUAL return "control"; }
+int main() {
+ for(unsigned flags=0;flags<8;++flags) {
+  consumer=flags&1; bootstrap.pending=flags&2; ready=flags&4;
+  if(command("STATUS")!="observed") return 1;
+  const bool blocked=consumer||bootstrap.pending||!ready;
+  for(auto text:{"STOP","CONFIG {}","WIFI OFF","STATUS extra"}) {
+   const auto result=command(text);
+   if(blocked ? result.find("profile_runtime_unavailable")==std::string::npos : result!="control") return 2;
+  }
+  for(auto text:{"ABORT","REBOOT","BOOTSEL","ACCESS SOFTAP device"})
+   if(command(text)!="control") return 3;
+ }
+ if(scheduler.reads!=8) return 4;
+}
+'''.replace('ACTUAL', actual)
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory)
+            (path / 'status.cpp').write_text(program)
+            subprocess.run(['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
+                            str(path / 'status.cpp'), '-o', str(path / 'status')],
+                           check=True, capture_output=True, timeout=60)
+            subprocess.run([str(path / 'status')], check=True, capture_output=True, timeout=10)
+        command_start = source.index('    auto command =')
+        self.assertLess(source.index('if (reset_coordinator.blocks_admission()', command_start), start)
+
     def test_actual_indicator_poll_selects_transmit_gate_only_for_rf(self):
         main = (ROOT / 'src/standalone/pico/main.cpp').read_text()
         begin, end = block(main, 'const auto poll_indicator =')

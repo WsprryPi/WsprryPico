@@ -112,6 +112,8 @@ extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 #include "standalone/dry_run_engine.hpp"
 static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 #endif
+#include "logging/logger.hpp"
+#include "logging/usb_session.hpp"
 #include "provisioning/pico/bootsel_sampler.hpp"
 #include "provisioning/rf_setup_gate.hpp"
 #include "runtime/allocation_fault.h"
@@ -686,6 +688,18 @@ int main() {
     );
     browser_api.consumer_config(runtime_profile);
     browser_api.progress_settings(progress);
+    static wsprrypico::logging::Logger logger(identities.device_id(), service.status().boot_id,
+                                              local_identity.hostname);
+    static wsprrypico::logging::UsbSession logging_session(logger, identities.device_id(),
+                                                         service.status().boot_id);
+    logger.settings(store.logging_settings());
+    browser_api.logging_service(logger);
+    logger.event(5, "BOOT", "Application started", time_us_64() * 1000ULL);
+    auto logged_activity = service.activity();
+    auto logged_clock = service.clock_snapshot().state;
+    auto logged_config = store.config_sequence();
+    bool logged_wtp = false, logged_management = false;
+
 #ifdef WSPRRY_PICO_STANDALONE_RF
     browser_api.gpio_drive_observer(wsprrypico::rf::gpio_drive_observation);
 #endif
@@ -816,12 +830,14 @@ int main() {
     };
     static wsprrypico::usb::Maintenance usb_maintenance(
         service, identities.device_id(), service.status().boot_id,
-        [&] { return local_usb_ready() && !bootstrap.setup_pending() && !browser_api.mutation_pending() &&
+        [&] {
+            return local_usb_ready() && !bootstrap.setup_pending() &&
+                   !browser_api.mutation_pending() &&
                    (!store.message_schedule() || !store.message_schedule()->enabled) &&
-                   !store.message_in_flight() && !scheduler.message_pause_pending(); },
+                   !store.message_in_flight() && !scheduler.message_pause_pending();
+        },
         [&] { return scheduler.idle() && (!scheduler.suspended() || !store.config()); },
-        [&] { return browser_api.revision(); },
-        [&] { return std::to_string(store.watermark()); },
+        [&] { return browser_api.revision(); }, [&] { return std::to_string(store.watermark()); },
         [&] {
             bootloader = true;
             usb_maintenance_reboot = true;
@@ -967,6 +983,34 @@ int main() {
     auto command = [&](std::string_view text) -> wsprrypico::usb::ConsoleResponse {
         if (reset_coordinator.blocks_admission() || recovery_reset_at)
             return "{\"ok\":false,\"error\":\"reset_pending\"}\n";
+        if (text == "SYSLOG STOP" || text.starts_with("SYSLOG START "))
+            return "{\"ok\":false,\"error\":\"use_logging_port\"}\n";
+        if (text == "SYSLOG STATUS") {
+            wsprrypico::network::HttpRequest request;
+            request.method = "GET";
+            request.path = "/api/v1/logging";
+            auto response = usb_api.handle(request);
+            if (response.status != 200)
+                return response.body + "\n";
+            response.body.pop_back();
+            return response.body + ",\"revision\":" + wsprrypico::wtp::json::quote(response.etag) +
+                   "}\n";
+        }
+        if (text.starts_with("SYSLOG SAVE ")) {
+            if (!local_usb_ready())
+                return "{\"error\":\"usb_control_unavailable\"}\n";
+            const auto root = wsprrypico::wtp::json::parse(text.substr(12));
+            if (!root || !wsprrypico::wtp::json::fields(*root, {"revision", "resource"}) ||
+                root->get("revision")->type() != '"')
+                return "{\"error\":\"invalid_logging_save\"}\n";
+            wsprrypico::network::HttpRequest request;
+            request.method = "PUT";
+            request.path = "/api/v1/logging";
+            request.headers["if-match"] = root->get("revision")->string();
+            request.body = std::string(root->get("resource")->raw);
+            const auto response = usb_api.handle(request);
+            return response.body + "\n";
+        }
         if (text.starts_with("ACTIVITYTRACE ")) {
             auto& trace = wsprrypico::runtime::activity_trace();
             const auto identity_reply = [&]() {
@@ -1677,6 +1721,9 @@ int main() {
             return ok ? "{\"ok\":true}\n" : "{\"ok\":false,\"error\":\"led_test_refused\"}\n";
         }
 #endif
+        // Observation remains available when profile-dependent control is denied.
+        if (text == "STATUS")
+            return scheduler.status();
         if ((consumer_source_selected() || bootstrap.owner_claim_pending() ||
              !runtime_profile_ready()) &&
             text != "ABORT" && text != "REBOOT" && text != "BOOTSEL" &&
@@ -1935,8 +1982,10 @@ int main() {
             // Network ownership can change while the response/USB ACK drains.
             // A new owner cancels reset rather than losing its accepted job.
             const auto update_activity = service.activity();
-            const bool update_safe = service.maintenance() && service.verification_safe() && store.healthy() &&
-                progress.healthy() && profile_store.healthy() && (!scheduler.suspended() || !store.config()) &&
+            const bool update_safe =
+                service.maintenance() && service.verification_safe() && store.healthy() &&
+                progress.healthy() && profile_store.healthy() &&
+                (!scheduler.suspended() || !store.config()) &&
                 (!store.message_schedule() || !store.message_schedule()->enabled) &&
                 !store.message_in_flight() && !scheduler.message_pause_pending() &&
                 !bootstrap.setup_pending() && !bootstrap.owner_claim_pending() &&
@@ -1950,8 +1999,9 @@ int main() {
                 && !gp14_button.fault()
 #endif
                 ;
-            if (!(usb_maintenance_reboot ? update_safe :
-                  (browser_reboot ? scheduler.idle() : scheduler.reset_permitted())) ||
+            if (!(usb_maintenance_reboot
+                      ? update_safe
+                      : (browser_reboot ? scheduler.idle() : scheduler.reset_permitted())) ||
                 !engine.disable(monotonic_now(nullptr) + 100'000'000ULL) ||
                 engine.output_active()) {
                 reboot_at = 0;
@@ -2326,6 +2376,43 @@ int main() {
                     line[length++] = static_cast<char>(b);
             }
         }
+        // Observe the authoritative service on core 0; never format or emit on
+        // the RF core, in an IRQ, or per-symbol paths.
+        const auto log_activity = service.activity();
+        const auto log_clock = service.clock_snapshot();
+        const auto log_mono = time_us_64() * 1000ULL;
+        const auto log_utc = log_clock.state == wsprrypico::wtp::ClockState::Unsynchronized
+                                 ? 0
+                                 : log_clock.utc_now_ns;
+        if (log_activity.state != logged_activity.state ||
+            log_activity.owned != logged_activity.owned ||
+            log_activity.output_active != logged_activity.output_active) {
+            logger.event(log_activity.state == wsprrypico::wtp::State::Failed ? 3 : 6, "JOB_STATE",
+                         wsprrypico::wtp::state_name(log_activity.state), log_mono, log_utc);
+            logged_activity = log_activity;
+        }
+        if (logged_clock != log_clock.state) {
+            logger.event(5, "CLOCK_STATE",
+                         log_clock.state == wsprrypico::wtp::ClockState::Unsynchronized
+                             ? "UTC unavailable"
+                             : "UTC available",
+                         log_mono, log_utc);
+            logged_clock = log_clock.state;
+        }
+        if (logged_config != store.config_sequence()) {
+            logger.event(5, "CONFIG_SAVED", "Settings journal updated", log_mono, log_utc);
+            logged_config = store.config_sequence();
+        }
+        if (logged_wtp != wsprrypico::usb::wtp_connected() ||
+            logged_management != wsprrypico::usb::management_connected()) {
+            logger.event(6, "USB_STATE", "USB control connection changed", log_mono, log_utc);
+            logged_wtp = wsprrypico::usb::wtp_connected();
+            logged_management = wsprrypico::usb::management_connected();
+        }
+        logging_session.poll(wsprrypico::usb::logging_connected(),
+                             wsprrypico::usb::take_logging_reset(),
+                             wsprrypico::usb::logging_transport_read,
+                             wsprrypico::usb::logging_write, log_mono);
         if (wsprrypico::usb::take_wtp_reset()) {
             offset = size = 0;
             if (wsprrypico::usb::wtp_connected() && runtime_profile_ready() && local_usb_ready())

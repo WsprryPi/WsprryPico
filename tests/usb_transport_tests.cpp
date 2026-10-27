@@ -279,12 +279,53 @@ int main() {
     service();
     CHECK(std::string(ports[0].delivered.begin(), ports[0].delivered.end()) ==
           banner + "new session");
-    // USB reconfiguration resets both sessions even if polls miss disconnect.
+    // Four independent streams, including stalled Logging and its own DTR reset.
+    open(USB_CDC_MANAGEMENT);
+    open(USB_CDC_LOGGING);
+    (void)take_wtp_reset();
+    (void)take_console_reset();
+    (void)take_management_reset();
+    (void)take_logging_reset();
+    ports[USB_CDC_LOGGING].capacity = 0;
+    CHECK(logging_write(std::string(kLoggingCapacity, 'l')));
+    CHECK(!logging_write("overflow"));
+    ports[USB_CDC_WTP].capacity = 64;
+    CHECK(wtp_transport_write(binary) == binary.size());
+    CHECK(management_transport_write(binary) == binary.size());
+    CHECK(console_write("Console while Logging is stalled\n"));
+    service();
+    CHECK(ports[USB_CDC_MANAGEMENT].delivered ==
+          std::vector<std::uint8_t>(binary.begin(), binary.end()));
+    CHECK(ports[USB_CDC_LOGGING].delivered.empty());
+    ports[USB_CDC_LOGGING].rx = {'L'};
+    ports[USB_CDC_CONSOLE].rx = {'C'};
+    CHECK(logging_transport_read(input) == 1 && input[0] == 'L');
+    CHECK(console_transport_read(input) == 1 && input[0] == 'C');
+    tud_cdc_line_state_cb(USB_CDC_LOGGING, false, false);
+    CHECK(take_logging_reset());
+    CHECK(!take_wtp_reset() && !take_console_reset() && !take_management_reset());
+    service();
+    CHECK(take_logging_reset() && !take_wtp_reset());
+    CHECK(logging_write("short-write record\n"));
+    ports[USB_CDC_LOGGING].capacity = 3;
+    for (unsigned i = 0; i < 20; ++i)
+        service();
+    CHECK(std::string(ports[USB_CDC_LOGGING].delivered.begin(),
+                      ports[USB_CDC_LOGGING].delivered.end()) == "short-write record\n");
+    tud_cdc_line_state_cb(USB_CDC_CONSOLE, false, false);
+    CHECK(take_console_reset() && !take_logging_reset() && !take_wtp_reset());
+    service();
+    CHECK(logging_write("Console closed\n"));
+    for (unsigned i = 0; i < 20; ++i)
+        service();
+    CHECK(logging_connected() && management_connected() && wtp_connected());
+    // USB reconfiguration resets all sessions even if polls miss disconnect.
     ports[1].rx.push_back(99);
     tud_mount_cb();
     CHECK(take_wtp_reset());
     CHECK(take_console_reset());
     CHECK(ports[1].rx.empty());
+    CHECK(take_logging_reset() && take_management_reset());
     reset();
     CHECK(!wtp_connected());
     CHECK(wtp_transport_read(input) == 0);
