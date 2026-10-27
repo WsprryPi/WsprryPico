@@ -16,7 +16,7 @@ Native Windows Chrome Console identity, settings, complete INFO display, success
 
 ### Combined UI / backend
 
-2. [ ] ⏳ **Syslog over USB.** Implement Pico logging/export, WsprryPi collection, both UIs, stable Pico/host identity, lifecycle handling, documentation and validation as one coordinated feature. See the [USB execution prompt](syslog-proposals.md#usb-syslog-execution-prompt), including its shared standing authority. Implementation in progress; acceptance remains open. See the [USB logging contract](usb-logging.md).
+2. [ ] ⏳ **Syslog over USB.** Implement Pico logging/export, WsprryPi collection, both UIs, stable Pico/host identity, lifecycle handling, documentation and validation as one coordinated feature. See the [USB execution prompt](syslog-proposals.md#usb-syslog-execution-prompt), including its shared standing authority. Implementation is deployed on wspr5 and bounded USB/runtime acceptance passed; final full-CI disposition remains open. See the [USB logging contract and acceptance record](usb-logging.md).
 3. [ ] **Syslog over UDP.** Prepare the reviewed proposal for Pico and WsprryPi senders, member-to-collector forwarding, a Pi collector, both UIs, preserved origin/relay identity, loop prevention, duplicate handling, documentation and validation. See the [UDP proposal prompt](syslog-proposals.md#udp-syslog-proposal-prompt), including its shared standing authority. Proposal and implementation not started.
 4. **LPF/band-selector control**, if economically useful.
 
