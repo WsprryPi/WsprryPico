@@ -1,167 +1,10 @@
 # Syslog prompts and execution authority
 
-These prompts define selected unfinished work in the [consolidated backlog](consolidated-backlog.md#combined-ui--backend). The USB prompt covers coordinated feature implementation. The UDP prompt produces a separate reviewed proposal and implementation plan; UDP implementation remains pending. USB implementation is deployed with bounded acceptance recorded in the [USB logging contract](usb-logging.md); final full-CI disposition remains open. UDP proposal and implementation remain pending. Saving, reviewing, committing or pushing this document does not execute either task or authorize deployment by itself.
+The UDP prompt defines selected unfinished work in the [consolidated backlog](consolidated-backlog.md#combined-ui--backend). USB logging is implemented; its current behavior and bounded validation are recorded in the [USB logging contract](usb-logging.md). The completed USB execution prompt has been consolidated into that contract. UDP proposal and implementation remain pending. Saving, reviewing, committing or pushing this document does not execute the UDP task or authorize deployment by itself.
 
-The [standing execution authority](#wsprry-development-session--standing-execution-authority) is part of both prompts. Include that complete section when copying either prompt for an explicitly assigned execution session. It grants authority within the assigned task and its stated session; it is not a project-wide replacement for future user instructions or technical permission boundaries.
+The [standing execution authority](#wsprry-development-session--standing-execution-authority) is part of the UDP prompt. Include that complete section when copying the prompt for an explicitly assigned execution session. It grants authority within the assigned task and its stated session; it is not a project-wide replacement for future user instructions or technical permission boundaries.
 
 Use **controller/member** for fleet control and **collector/sender** for logging. A Pico or Pi retains its stable origin identity, hostname, boot identity and sequence number; receiving and forwarding Pis add their own identities separately. A logging collector need not be the fleet controller. The UDP proposal includes member Pi to collector Pi forwarding of both native Pi and attached-Pico records.
-
-## USB syslog execution prompt
-
-Implement syslog over USB as one coordinated UI/backend feature across:
-
-- /Users/lbussy/GitHub/WsprryPico
-- /Users/lbussy/GitHub/WsprryPi
-- /Users/lbussy/GitHub/WsprryPi/WsprryPi-UI, the first-party UI submodule
-- /Users/lbussy/GitHub/WsprryPi-Docs
-
-The shared “Wsprry Development Session — Standing Execution Authority” included with this prompt is part of this task. It authorizes necessary companion work, deployment, validation, Git operations and recovery within its boundaries. Do not treat WsprryPi or documentation changes as an unauthorized follow-up.
-
-This prompt is proposed work until explicitly executed. Once executed, continue through investigation, design, implementation, adversarial review, repairs, validation, documentation, commit, push and reporting without routine approval gates.
-
-### 1. Inspect and preserve the baseline
-
-Read each repository’s applicable AGENTS.md and development instructions. For WsprryPico, read README.md, CONTRACT.md, engineering/architecture.md and engineering/development/README.md.
-
-Inspect branches, upstreams, working trees, staged changes and recursive submodule state. Preserve existing user work and unpushed commits. Resolve actual repository locations rather than following stale documentation paths.
-
-Inspect the Pico Console, WTP and USB management adapters; USB descriptors and discovery; configuration journals; shared browser API; current diagnostic tools; and relevant tests.
-
-Inspect WsprryPi’s current logging initialization, USB discovery/management, Fleet integration, device identity, maintenance coordination, configuration lifecycle and service ownership.
-
-Review the existing journald-backed Logs implementation, including WsprryPi-UI/API_syslog.md, data/log_stream.php, data/view_logs.js and the relevant views/styles. Verify actual behavior against the documentation.
-
-Use the mandatory Impeccable workflow for UI design, implementation and rendered review. Preserve the established interface, light/dark themes and mobile behavior. Respect excluded UI files, including data/view_diag_logs.php unless the user explicitly changes that boundary.
-
-### 2. Establish a shared logging identity contract
-
-Use controller/member for fleet control roles and collector/sender for logging roles. A Pi may hold multiple roles. Collecting logs must not grant transmitter ownership or alter recurrence authority.
-
-Define and document a common logical record model that can later support USB, UDP, native Pi events and forwarded events. Select exact field names and versions after inspecting existing contracts.
-
-Every record must retain:
-
-- Origin kind: Pico or Pi.
-- Stable origin device/host identifier.
-- Origin hostname or display name, treated as mutable presentation.
-- Origin boot/session identity.
-- Origin sequence number with documented reset/wrap behavior.
-- Event code, severity, facility and bounded message.
-- Origin UTC timestamp when valid, otherwise explicitly unavailable.
-- Origin monotonic time where available.
-
-A receiving or forwarding Pi must add its own host identity, receipt timestamp, ingress transport and bounded forwarding provenance separately. A Pico record must remain attributable to that Pico after journald ingestion or forwarding.
-
-Reuse established stable Pi/Pico identities where suitable. If a host identity mechanism is missing, define its persistence, cloning, replacement and privacy behavior. Do not silently use hostname as immutable identity or expose unrelated machine identifiers.
-
-Keep firmware sequence numbers, origin event time, host receipt time and journald cursors distinct. Use representations safe for JavaScript and 32-bit PHP. Claimed identity is not proof of authentication.
-
-### 3. Design the USB record carrier
-
-Use [RFC 5424](https://www.rfc-editor.org/rfc/rfc5424.html) message formatting with a documented project-specific USB serial mapping. Do not imply that an ordinary network syslog collector directly accepts USB.
-
-Use the dedicated Logging CDC function at control/data interfaces 6/7. Preserve existing Console, WTP and Management identities and discovery; collection must leave Console independently usable. Record compatibility consequences.
-
-Raw logs must never enter WTP or USB management framing. Defined management requests/replies may configure logging and report status through their documented resource semantics.
-
-Define unambiguous Logging framing with independent session state. Prevent interleaving within records or replies. Console startup text, INFO and administrative commands remain on Console.
-
-Specify start/stop, connection-local versus persisted state, early-boot behavior, partial/zero writes, DTR transitions, disconnects, reconnects, truncation and resynchronization. Operators must retain a reliable way to return to ordinary Console use.
-
-Identify the intended device and Logging role using verified identity and interface metadata, not tty ordering.
-
-### 4. Implement bounded Pico logging
-
-Separate portable records, filtering and formatting from SDK, USB, storage, browser and RF adapters.
-
-Define concrete record, queue, memory, rate, burst and servicing budgets. Justify them against existing resource use. Specify overflow policy, severity handling, dropped counts and disconnected-host behavior.
-
-Formatting and USB I/O must remain outside IRQs, core-1 RF execution and timing-sensitive paths. Transfer necessary events through a bounded mechanism compatible with existing ownership.
-
-Cover useful lifecycle events without per-symbol or per-sample spam: startup/reset, transport transitions, clock-state transitions, configuration outcomes, ownership and job lifecycle/faults.
-
-Exclude secrets, credentials, authentication proofs and complete request/configuration dumps. Protect against terminal-control, newline and HTML injection. Do not invent a private enterprise number for structured data.
-
-USB logging must work without Wi-Fi or synchronized UTC. Logging failures must not block services, recursively generate failures, change clock discipline, enable schedules or alter accepted jobs.
-
-### 5. Implement the WsprryPi collector and management integration
-
-Implement the necessary Pi backend, configuration, lifecycle and UI changes as part of this feature.
-
-Select a maintainable ingestion architecture using the existing service/process model. Define serial ownership, bounded reads, reconnection, parser limits and per-device resource budgets.
-
-Support multiple attached Picos without mixing their identity, boot, sequence or stream state. Handle replacement devices and re-enumeration without silently trusting a new origin.
-
-Coordinate Logging ownership with firmware maintenance, bootloader transitions and exclusive USB maintenance. Release and reacquire Logging while leaving Console, WTP and Management independently usable during ordinary collection.
-
-Preserve native WsprryPi logging and its existing debug, journald and timestamp semantics. Map Pico severity explicitly rather than accidentally filtering remote records through unrelated host settings.
-
-Choose and implement a journald ingestion/projection strategy. Preserve origin metadata without fabricating trusted journald fields.
-
-The existing Logs path filters to wsprrypi.service. Explicitly resolve how imported Pico records become visible while retaining appropriately scoped access. Do not solve visibility by exposing every system unit.
-
-Review API normalization, filters, pagination/backlog, SSE reconnection, cursor storage and journal rotation. Preserve origin metadata end to end. Journal cursors remain journal cursors; firmware sequence numbers must not replace them.
-
-### 6. Deliver a complete operator workflow
-
-Provide consistent Pico and Pi controls for supported enablement, severity/filter settings and status. Show saved versus active state, unsupported firmware, disconnected/busy Logging, overflow and uncertain saves.
-
-In the Pi Logs UI, distinguish local Pi records and each Pico source. Show source identity and meaningful timestamps without obscuring the message. Include bounded filtering, pause/resume, export and empty/error states where consistent with the existing interface.
-
-Scope browser resume state to the selected source/filter context. Reconnecting must not silently resume another device’s history.
-
-Keep settings in the correct authority domain. The Pico owns its logger settings; the Pi owns collection and forwarding policy. Use capability negotiation, independently versioned resources, target/revision checks and authoritative readback. Preserve legacy closed schemas and unrelated fields.
-
-Closing a browser log view must not accidentally stop collection or affect transmitter operation.
-
-### 7. Prepare for member-to-collector forwarding
-
-Design the shared record and collector boundaries so a member Pi can later forward both its native records and attached Pico records through the separate UDP feature.
-
-Preserve origin identity and event identity across forwarding. Identify the required extension points without implementing the UDP feature incidentally.
-
-Specify how future duplicate suppression will handle the same Pico event arriving over USB and UDP. Untrusted UDP claims must not suppress trusted USB records.
-
-### 8. Validate and review adversarially
-
-Run meaningful deterministic tests for formatting, encoding, limits, redaction, injection resistance, saturation, short/zero writes, DTR changes, reconnects, command/reply coexistence and protocol isolation.
-
-Test Pi ingestion, multi-device identity, hotplug/replacement, maintenance exclusion, configuration persistence, journal normalization, source filters, cursor scope, replay and UI failure recovery.
-
-Use verified project commands. Run WsprryPi C++ validation on an identified Linux host, authorized Pi or Linux CI. Perform Impeccable review of applicable desktop/mobile and light/dark states.
-
-Use finite physical USB tests where needed. Record exact host, board, source/image, boot identity and setup. Prefer RF-inhibited validation; perform RF tests only when needed and within the standing authority’s verified conducted-path requirements.
-
-Perform an adversarial assessment of the complete cross-repository result. Challenge compatibility, authority, timing interference, resource bounds, identities, parser recovery, visibility, replay, privacy and operational recovery.
-
-Track findings with severity, evidence, corrective action and closure criteria. Fix actionable issues and rerun affected checks. Perform another fresh adversarial assessment after repairs. Repeat until actionable findings are resolved. Do not count deferral or relabeling as closure. Identify genuine external blockers honestly.
-
-### 9. Save both prompts and maintain combined TODO items
-
-Save both complete USB and UDP prompts, including the shared standing authority, to a durable document such as engineering/development/syslog-proposals.md in WsprryPico. Preserve the reviewed architecture and implementation decisions alongside them.
-
-Add both features to engineering/development/consolidated-backlog.md as combined UI/backend items:
-
-- USB syslog: Pico logging/export, Pi collection, both UIs, identity, lifecycle, documentation and validation.
-- UDP syslog: Pico and Pi senders, Pi collector, forwarding, both UIs, identity, loop/duplicate handling, documentation and validation.
-
-Link each to its durable instructions. Record cross-repository ownership and dependencies. Use existing Pi and documentation work lists for linked deliverables where appropriate, without creating competing feature authorities.
-
-Keep UDP pending. Mark USB complete only when its actual acceptance requirements are satisfied.
-
-### 10. Document, commit, push and report
-
-Update Pico operator/engineering guidance and the appropriate WsprryPi-Docs logging, Fleet, setup, maintenance and troubleshooting material. Explain current capabilities plainly. Keep future UDP behavior clearly proposed.
-
-Build and verify documentation using each repository’s documented environment. Preserve Read the Docs publication.
-
-Review all diffs and stage only task-authored changes. Treat the first-party UI submodule as a separate repository: review/test it, commit and push it first, then commit the reviewed parent pointer. Do not modify dependency submodules incidentally.
-
-Commit and push validated changes in each affected repository to its verified intended remote/branch. Preserve unrelated staged work and unpushed commits. Do not force-push shared history.
-
-Verify remote availability of every referenced submodule commit and report source-pair compatibility and CI results.
-
-Report implemented behavior, important decisions, adversarial findings and closure, actual tests and visual evidence, hardware/deployment identity, documentation impact, commit SHAs, pushed branches, remote parity, remaining limitations and final repository/submodule states. Do not claim unperformed RF, service or release qualification.
 
 ## UDP syslog proposal prompt
 
@@ -290,7 +133,7 @@ Use the authorized hosts and devices where later execution requires them. Prefer
 
 ### 9. Save the prompts and add combined TODO items
 
-Save both full prompts, their shared standing authority, the UDP proposal and the coordinated implementation/validation plan in the durable syslog document. Preserve existing USB material and clearly identify proposed versus implemented behavior.
+Save the UDP prompt, its standing authority, the UDP proposal and the coordinated implementation/validation plan in the durable syslog document. Keep implemented USB behavior in its maintained contract and clearly identify proposed versus implemented behavior.
 
 Ensure the canonical WsprryPico backlog has two combined UI/backend feature items for USB and UDP, each linked to its instructions and carrying cross-repository responsibilities. Maintain linked Pi/documentation deliverables under established conventions without duplicating feature authority.
 
