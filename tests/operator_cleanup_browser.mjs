@@ -7,12 +7,14 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 import {Fixture} from './consumer_sessions.test.mjs';
+import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const driver=process.argv[2];
 if(!driver) throw Error('Usage: node tests/operator_cleanup_browser.mjs DRIVER [SCREENSHOT_DIRECTORY]');
 const output=process.argv[3] && path.resolve(process.argv[3]);
 if(output) fs.mkdirSync(output,{recursive:true});
+const processGroup=process.platform==='linux';
 const f=new Fixture(driver),profile=fs.mkdtempSync(path.join(os.tmpdir(),'pico-operator-cleanup-'));
 let chrome,ws,serial=0,dropPinReply=false;
 const pending=new Map(),errors=[],reads=[];
@@ -99,7 +101,7 @@ try {
   await f.time(1000);await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',[
     '--headless=new','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check',
-    '--remote-debugging-port=0','--user-data-dir='+profile,...(process.platform==='linux'?['--no-sandbox']:[]),'about:blank'],{stdio:'ignore'});
+    '--remote-debugging-port=0','--user-data-dir='+profile,...(process.platform==='linux'?['--no-sandbox']:[]),'about:blank'],{stdio:'ignore',detached:processGroup});
   await until(()=>fs.existsSync(path.join(profile,'DevToolsActivePort')),'Chrome startup');
   const [port]=fs.readFileSync(path.join(profile,'DevToolsActivePort'),'utf8').split('\n');
   const pages=await(await fetch(`http://127.0.0.1:${port}/json`)).json();ws=new WebSocket(pages.find(page=>page.type==='page').webSocketDebuggerUrl);
@@ -179,7 +181,7 @@ try {
   console.error(JSON.stringify({errors,reads:reads.slice(-12),state:ws ? await evaluate('({notice:document.getElementById("notice")?.textContent,online:typeof online!=="undefined"?online:null,busy:typeof busy!=="undefined"?busy:null,settings:typeof settingsLoadedBoot!=="undefined"?settingsLoadedBoot:null})').catch(()=>null):null}));
   throw error;
 } finally {
-  if(ws) ws.close();if(chrome) chrome.kill('SIGTERM');
+  if(ws) {await send('Browser.close').catch(()=>{});ws.close();}
   await new Promise(resolve=>server.close(resolve));await f.stop();
-  fs.rmSync(profile,{recursive:true,force:true});
+  await cleanupUiProcesses([chrome],profile,{processGroup});
 }
