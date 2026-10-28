@@ -6,6 +6,7 @@
 #include <string_view>
 
 namespace wsprrypico::logging {
+class UdpSender;
 struct Settings {
     bool enabled = false;
     unsigned maximum_severity = 6;
@@ -29,6 +30,9 @@ class Logger {
     bool streaming() const {
         return streaming_;
     }
+    void udp_sink(UdpSender& sink) {
+        udp_ = &sink;
+    }
     void event(unsigned severity, std::string_view code, std::string_view message,
                std::uint64_t monotonic_ns, std::uint64_t utc_ns = 0);
     // One complete serialized record. Retain it until an all-or-nothing Logging
@@ -45,13 +49,14 @@ class Logger {
 
   private:
     struct Record {
-        std::uint64_t sequence{}, monotonic{}, utc{};
+        std::uint64_t sequence{}, monotonic{}, utc{}, dropped{};
         unsigned severity{};
         std::array<char, 33> code{};
         std::array<char, message_bytes + 1> message{};
     };
     std::string device_, boot_, hostname_;
     Settings settings_;
+    UdpSender* udp_ = nullptr;
     std::array<Record, capacity> queue_{};
     std::size_t head_ = 0, size_ = 0;
     std::uint64_t sequence_ = 0, dropped_ = 0, window_ = 0;

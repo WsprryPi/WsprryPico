@@ -188,6 +188,22 @@ struct Peer {
                                            ",\"lease_ms\":60000}"))));
     }
 };
+void bounded_ping_pressure() {
+    Peer peer;
+    CHECK(peer.response_ok(peer.send(request(
+        1, "HELLO", R"({"versions":["WTP/1"],"client_name":"capacity","client_version":"1"})"))));
+    forced_pressure = heap_budget - 60000;
+    CHECK(peer.response_ok(peer.send(request(2, "PING", "{}"))));
+    CHECK(!memory_admitted(32768)); // The mutation workspace and reserve still apply.
+    const auto claim = request(
+        3, "CLAIM", "{\"owner_id\":" + json::quote(std::string(32, 'e')) + ",\"lease_ms\":60000}");
+    CHECK(peer.send(claim).empty());
+    CHECK(!peer.service.status().owner_id);
+    forced_pressure = 0;
+    peer.endpoint.poll(2);
+    CHECK(peer.response_ok(peer.drain()));
+    CHECK(peer.service.status().owner_id);
+}
 void capacity(bool escaped) {
     Peer peer;
     peer.hello_claim();
@@ -253,6 +269,10 @@ int main() {
     allocate_input = allocate;
     deallocate_input = release;
     available_memory = available;
+    {
+        bounded_ping_pressure();
+    }
+    CHECK(live_bytes == 0);
     {
         lexical_equivalence();
     }

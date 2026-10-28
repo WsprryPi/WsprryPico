@@ -43,7 +43,7 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
     wsprry_cyw43_tx_overlay()
 endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    src/network/web/index.html src/network/web/style.css src/network/web/app.js
+    src/network/web/index.html src/network/web/style.css src/network/web/app.js src/network/web/udp-logging.js
     src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
     src/network/web/saved-progress.js src/network/web/gpio-drive.js src/network/web/utc-datetime.js src/network/web/message-schedule.js
     src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/standalone-frequency.js
@@ -63,6 +63,8 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/genera
 
 add_library(wsprrypico_core
     src/logging/logger.cpp
+    src/logging/udp_settings.cpp
+    src/network/udp_logging.cpp
     src/application/config_update.cpp
     src/application/resources.cpp
     src/application/frequency_policy.cpp
@@ -191,6 +193,10 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(udp_logging_tests tests/udp_logging_tests.cpp)
+    target_link_libraries(udp_logging_tests PRIVATE wsprrypico_core)
+    target_compile_options(udp_logging_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME udp_logging_tests COMMAND udp_logging_tests)
     add_executable(logging_tests tests/logging_tests.cpp)
     target_link_libraries(logging_tests PRIVATE wsprrypico_core)
     target_compile_options(logging_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)

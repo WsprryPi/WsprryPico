@@ -259,7 +259,7 @@ bool is_small_read_request(Value root) {
         op.raw.size() > 56 || !json::fields(get(root, "body"), {}))
         return false;
     const auto name = op.string();
-    return name == "STATUS" || name == "CAPS" || name == "GET_CLOCK";
+    return name == "STATUS" || name == "CAPS" || name == "GET_CLOCK" || name == "PING";
 }
 bool is_active_load_replay(Value root, std::string_view id) {
     if (id.empty())

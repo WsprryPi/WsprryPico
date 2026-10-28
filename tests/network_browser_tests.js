@@ -175,6 +175,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     }
     f.links=navigationLinks;
     context.history.pushState=(value,__,url)=>{context.history.state=value;context.location.pathname=url.split('#')[0];context.location.hash=url.includes('#')?url.slice(url.indexOf('#')):'';};
+    vm.runInContext(fs.readFileSync(__dirname+'/../src/network/web/udp-logging.js','utf8'),context);
     vm.runInContext(source,context);
     await new Promise(setImmediate);
     if(organizationMode)vm.runInContext(fs.readFileSync(__dirname+'/../src/network/web/organization.js','utf8'),context);

@@ -1,6 +1,8 @@
 // Actual PicoNetwork + pinned lwIP, with a delayed radio boundary. No hardware.
 #include "hardware/structs/watchdog.h"
 #include "lwip/apps/mdns_domain.h"
+#include "lwip/dhcp.h"
+#include "lwip/dns.h"
 #include "lwip/igmp.h"
 #include "lwip/init.h"
 #include "lwip/ip.h"
@@ -8,9 +10,12 @@
 #include "lwip/timeouts.h"
 #include "lwip/udp.h"
 #include "pico/cyw43_arch.h"
+#include "provisioning/pico/captive_dns.h"
+#include "provisioning/pico/dhcp_server.h"
 #include "standalone/pico/adapters.hpp"
 #include "standalone/pico/cyw43_tx_guard.h"
 #include "standalone/pico/mdns_lwip.h"
+#include "standalone/pico/udp_logging.hpp"
 
 #include <array>
 #include <cassert>
@@ -58,6 +63,7 @@ extern "C" u32_t sys_now() {
 static unsigned read16(const unsigned char* p) {
     return (p[0] << 8) | p[1];
 }
+static unsigned station_udp_log_packets = 0, ap_udp_log_packets = 0;
 static bool domain_is(const mdns_domain& actual, std::string_view name) {
     unsigned offset = 0;
     while (!name.empty()) {
@@ -79,6 +85,19 @@ static err_t output(netif* interface, pbuf* packet, const ip4_addr_t*) {
         return ERR_OK;
     const unsigned udp = (bytes[0] & 15) * 4;
     assert(udp >= 20 && udp + 8 <= bytes.size());
+    if (read16(bytes.data() + udp + 2) == 5514) {
+        assert(bytes.size() - udp - 8 <= 480 && read16(bytes.data() + udp + 6) != 0);
+        wsprry::logging::UdpEvent decoded;
+        assert(wsprry::logging::decode_udp(
+            std::string_view(reinterpret_cast<const char*>(bytes.data() + udp + 8),
+                             bytes.size() - udp - 8),
+            decoded));
+        if (interface == &cyw43_state.netif[CYW43_ITF_STA])
+            ++station_udp_log_packets;
+        else
+            ++ap_udp_log_packets;
+        return ERR_OK;
+    }
     if (read16(bytes.data() + udp + 2) == 123) {
         assert((std::array<unsigned char, 4>{bytes[16], bytes[17], bytes[18], bytes[19]} ==
                 std::array<unsigned char, 4>{203, 0, 113, 123}));
@@ -340,6 +359,69 @@ int main(int argc, char** argv) {
     assert(!network.softap_name(true, "wsprrypico-0a60df.local"));
     advance(network, 70'000'000); // Include the unchanged 64-second retry interval.
     assert(station_ntp_packets > ntp_before_ap && ap_ntp_packets == 0);
+    // Real pinned lwIP: station DHCP/DNS, AP DHCP/DNS, mDNS, NTP and UDP.
+    auto& station = cyw43_state.netif[CYW43_ITF_STA];
+    const ip4_addr_t station_ip = *netif_ip4_addr(&station),
+                     station_mask = *netif_ip4_netmask(&station),
+                     station_gateway = *netif_ip4_gw(&station);
+    assert(dhcp_start(&station) == ERR_OK);
+    netif_set_addr(&station, &station_ip, &station_mask, &station_gateway);
+    wsprry_dhcp_server_t ap_dhcp{};
+    wsprry_captive_dns_t ap_dns{};
+    ip_addr_t ap_ip{}, ap_subnet{};
+    IP_ADDR4(&ap_ip, 192, 168, 4, 1);
+    IP_ADDR4(&ap_subnet, 255, 255, 255, 0);
+    assert(wsprry_dhcp_server_init(&ap_dhcp, &cyw43_state.netif[CYW43_ITF_AP], &ap_ip, &ap_subnet,
+                                   true));
+    assert(wsprry_captive_dns_init(&ap_dns, &cyw43_state.netif[CYW43_ITF_AP], &ap_ip));
+    const ip_addr_t previous_dns = *dns_getserver(0);
+    ip_addr_t resolver{}, answer{};
+    IP_ADDR4(&resolver, 192, 0, 2, 53);
+    dns_setserver(0, &resolver);
+    assert(dns_gethostbyname(
+               "udp-budget.example", &answer, [](const char*, const ip_addr_t*, void*) {},
+               nullptr) == ERR_INPROGRESS);
+    wsprrypico::logging::UdpSender udp_sender(std::string(32, 'a'), std::string(32, 'b'),
+                                              "pico.local");
+    wsprrypico::logging::UdpSettings udp_settings;
+    udp_settings.enabled = true;
+    udp_settings.destination_ipv4.assign("192.0.2.200");
+    assert(udp_sender.configure(udp_settings));
+    wsprrypico::standalone::PicoUdpLogging udp_adapter;
+    udp_adapter.poll(udp_sender, now_us * 1000, true, network.udp_generation());
+    assert(lwip_stats.memp[MEMP_UDP_PCB]->used == 7 && udp_new() == nullptr);
+    assert(!network.udp_destination_allowed("192.168.4.1") &&
+           !network.udp_destination_allowed("192.0.2.255") &&
+           network.udp_destination_allowed("192.0.2.200"));
+    udp_sender.event(1, 5, "UDP_TEST", "UDP logging test event", now_us * 1000, 0, 0);
+    udp_adapter.poll(udp_sender, now_us * 1000, true, network.udp_generation());
+    assert(station_udp_log_packets == 1 && ap_udp_log_packets == 0 &&
+           udp_sender.counters().locally_submitted == 1);
+    std::array<pbuf*, PBUF_POOL_SIZE> occupied{};
+    unsigned allocations = 0;
+    while (allocations < occupied.size() &&
+           (occupied[allocations] = pbuf_alloc(PBUF_TRANSPORT, 480, PBUF_POOL)))
+        ++allocations;
+    assert(allocations > 0 && allocations == PBUF_POOL_SIZE);
+    udp_sender.event(2, 5, "UDP_TEST", "UDP logging test event", now_us * 1000, 0, 0);
+    udp_adapter.poll(udp_sender, now_us * 1000, true, network.udp_generation());
+    assert(udp_sender.counters().locally_failed == 1);
+    for (unsigned i = 0; i < allocations; ++i)
+        pbuf_free(occupied[i]);
+    udp_sender.event(3, 5, "UDP_TEST", "UDP logging test event", now_us * 1000, 0, 0);
+    udp_adapter.poll(udp_sender, now_us * 1000, true, network.udp_generation());
+    assert(station_udp_log_packets == 2 && ap_udp_log_packets == 0);
+    udp_sender.event(4, 5, "UDP_TEST", "UDP logging test event", now_us * 1000, 0, 0);
+    udp_adapter.poll(udp_sender, now_us * 1000, true, network.udp_generation() + 1);
+    assert(udp_sender.queued() == 0 && udp_sender.counters().reconfigured_drops == 1);
+    udp_adapter.poll(udp_sender, now_us * 1000, false, network.udp_generation() + 2);
+    assert(udp_sender.state() == wsprrypico::logging::UdpState::AwaitingNetwork &&
+           station_udp_log_packets == 2);
+    wsprry_captive_dns_deinit(&ap_dns);
+    wsprry_dhcp_server_deinit(&ap_dhcp);
+    dhcp_stop(&station);
+    dhcp_cleanup(&station);
+    dns_setserver(0, &previous_dns);
     // Keeping the station default must not redirect traffic for AP clients.
     auto* local_pcb = udp_new();
     auto* local_packet = pbuf_alloc(PBUF_TRANSPORT, 1, PBUF_RAM);

@@ -216,3 +216,5 @@ configuration are outside this scaffold. Its dependencies stay pinned in
 
 The documentation dependencies do not install an SDK or toolchain.
 Current instructional screenshots remain under `docs/_static/images/`.
+
+The [UDP logging implementation candidate](udp-logging.md) defines independent settings, finite test resources, worker packaging and storage contracts under qualification. It supplements the reviewed design without completing the combined backlog.

@@ -92,3 +92,7 @@ Downloaded-tool cleanup keeps firmware backups and pending transactions. An unre
 ## Support information
 
 Record the firmware version and source revision, full stable device ID, connection method (browser, USB or network controller), transmission mode and frequency, exact error, and whether output is inactive or unknown. **About this Pico / Diagnostics** supplies the device and boot IDs. Use the [USB Console `INFO` reply](usb.md#read-the-address-and-web-service-status) or the verified installer result for firmware version and source revision. Use the saved-settings read controls and **Transmitter status → Refresh** for configuration, engine and clock status. Share only the fields needed for the issue through the [project issue tracker](https://github.com/WsprryPi/WsprryPico/issues). Remove passwords, certificates/private keys, transaction backups, private addresses and unsanitized captures before posting. Never post a full flash backup.
+
+## Preserve diagnostic logging settings
+
+[USB logging](usb.md#usb-diagnostic-logging) and [UDP logging](udp.md) have independent saved settings. Ordinary restarts, unrelated saves and compatible USB-installer upgrades preserve both; factory reset clears both. Disable UDP export and read it back before a downgrade. Retain the exact current/recovery bundle, and follow the shared installer's refusal if an older image reaches the UDP reservation. Do not choose erase as an automatic rollback.

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "target",
+        "resource",
+        "request_schema",
+        "event_code",
+        "maximum_rate"
+      ],
+      "properties": {
+        "schema": {
+          "const": "udp-logging-test-capabilities/1"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "device_id",
+            "boot_id"
+          ],
+          "properties": {
+            "scope": {
+              "const": "member"
+            },
+            "device_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "boot_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        },
+        "resource": {
+          "const": "/api/v1/udp-logging/test"
+        },
+        "request_schema": {
+          "const": "udp-logging-test/1"
+        },
+        "event_code": {
+          "const": "UDP_TEST"
+        },
+        "maximum_rate": {
+          "const": 2
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "target",
+        "resource",
+        "request_schema",
+        "event_code",
+        "maximum_rate"
+      ],
+      "properties": {
+        "schema": {
+          "const": "udp-logging-test-capabilities/1"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "scope",
+            "collector_id"
+          ],
+          "properties": {
+            "scope": {
+              "const": "host"
+            },
+            "collector_id": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            }
+          }
+        },
+        "resource": {
+          "const": "/api/v1/host/udp-logging/test"
+        },
+        "request_schema": {
+          "const": "udp-logging-test/1"
+        },
+        "event_code": {
+          "const": "PI_LOG"
+        },
+        "maximum_rate": {
+          "const": 2
+        }
+      }
+    }
+  ]
+}

@@ -88,10 +88,12 @@ FlashResources flash_resources() {
     return flash_counters;
 }
 bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
-    const auto storage_size = region_ == Region::Ntp        ? flash_layout::ntp_size
+    const auto storage_size = region_ == Region::UdpLogging ? flash_layout::udp_logging_size
+                              : region_ == Region::Ntp      ? flash_layout::ntp_size
                               : region_ == Region::Progress ? flash_layout::progress_size
                                                             : flash_layout::standalone_size;
-    const auto flash_base = region_ == Region::Ntp        ? flash_layout::ntp_base
+    const auto flash_base = region_ == Region::UdpLogging ? flash_layout::udp_logging_base
+                            : region_ == Region::Ntp      ? flash_layout::ntp_base
                             : region_ == Region::Progress ? flash_layout::progress_base
                                                           : flash_layout::standalone_base;
     FlashCall call(flash_counters.read_attempts, flash_counters.read_failures,
@@ -103,10 +105,12 @@ bool PicoFlash::read(std::size_t offset, std::span<std::uint8_t> data) {
     return call.finish(true);
 }
 bool PicoFlash::erase(std::size_t offset) {
-    const auto storage_size = region_ == Region::Ntp        ? flash_layout::ntp_size
+    const auto storage_size = region_ == Region::UdpLogging ? flash_layout::udp_logging_size
+                              : region_ == Region::Ntp      ? flash_layout::ntp_size
                               : region_ == Region::Progress ? flash_layout::progress_size
                                                             : flash_layout::standalone_size;
-    const auto flash_base = region_ == Region::Ntp        ? flash_layout::ntp_base
+    const auto flash_base = region_ == Region::UdpLogging ? flash_layout::udp_logging_base
+                            : region_ == Region::Ntp      ? flash_layout::ntp_base
                             : region_ == Region::Progress ? flash_layout::progress_base
                                                           : flash_layout::standalone_base;
     FlashCall call(flash_counters.erase_attempts, flash_counters.erase_failures,
@@ -132,10 +136,12 @@ bool PicoFlash::erase(std::size_t offset) {
         std::all_of(bytes, bytes + FLASH_SECTOR_SIZE, [](auto b) { return b == 255; }));
 }
 bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) {
-    const auto storage_size = region_ == Region::Ntp        ? flash_layout::ntp_size
+    const auto storage_size = region_ == Region::UdpLogging ? flash_layout::udp_logging_size
+                              : region_ == Region::Ntp      ? flash_layout::ntp_size
                               : region_ == Region::Progress ? flash_layout::progress_size
                                                             : flash_layout::standalone_size;
-    const auto flash_base = region_ == Region::Ntp        ? flash_layout::ntp_base
+    const auto flash_base = region_ == Region::UdpLogging ? flash_layout::udp_logging_base
+                            : region_ == Region::Ntp      ? flash_layout::ntp_base
                             : region_ == Region::Progress ? flash_layout::progress_base
                                                           : flash_layout::standalone_base;
     FlashCall call(flash_counters.program_attempts, flash_counters.program_failures,
@@ -461,6 +467,7 @@ bool PicoNetwork::start_network_only(std::string_view ssid, std::string_view pas
     return start_credentials(ssid, password, time_server);
 }
 void PicoNetwork::stop_network_only_trial() {
+    ++udp_generation_;
     for (auto& peer : peers_)
         ntp_.cancel(peer.index);
     ntp_.online(false, activity_now_ns());
@@ -492,6 +499,7 @@ bool PicoNetwork::start_credentials(std::string_view ssid, std::string_view pass
                                     std::string_view time_server) {
     if (pcb_ || !valid_time_server(time_server) || !initialize_radio())
         return false;
+    ++udp_generation_;
     ntp_.reset_peer();
     for (auto& peer : peers_)
         ntp_.remove(peer.index, activity_now_ns());
@@ -759,6 +767,24 @@ bool PicoNetwork::disable_power_save() {
     power_save_ = (observed & 0xf) != CYW43_NO_POWERSAVE_MODE;
     return !*power_save_;
 }
+bool PicoNetwork::udp_destination_allowed(std::string_view value) const {
+    const auto parsed = logging::udp_ipv4(value);
+    if (!parsed)
+        return false;
+    const auto candidate = lwip_htonl(*parsed);
+    for (auto* interface = netif_list; interface; interface = interface->next) {
+        const auto ip = netif_ip4_addr(interface)->addr, mask = netif_ip4_netmask(interface)->addr;
+        if (candidate == ip || (ip && mask && candidate == (ip | ~mask)))
+            return false;
+    }
+    if ((*parsed & 0xffff0000U) == 0xa9fe0000U) {
+        const auto* station = &cyw43_state.netif[CYW43_ITF_STA];
+        const auto ip = netif_ip4_addr(station)->addr, mask = netif_ip4_netmask(station)->addr;
+        if (!ip || !mask || (candidate & mask) != (ip & mask))
+            return false;
+    }
+    return true;
+}
 bool PicoNetwork::set_enabled(bool enabled) {
     if (!initialized_ || !pcb_)
         return false;
@@ -772,6 +798,7 @@ bool PicoNetwork::set_enabled(bool enabled) {
         return true;
     for (auto& peer : peers_)
         ntp_.cancel(peer.index);
+    ++udp_generation_;
     enabled_ = enabled;
     if (enabled) {
         mdns_.retry();

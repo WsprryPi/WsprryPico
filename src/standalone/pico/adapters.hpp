@@ -24,7 +24,7 @@ struct FlashResources {
 FlashResources flash_resources();
 class PicoFlash final : public Flash {
   public:
-    enum class Region { Standalone, Progress, Ntp };
+    enum class Region { Standalone, Progress, Ntp, UdpLogging };
     explicit PicoFlash(bool progress = false)
         : region_(progress ? Region::Progress : Region::Standalone) {}
     explicit PicoFlash(Region region) : region_(region) {}
@@ -64,6 +64,10 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
 #endif
     void poll();
     bool set_enabled(bool enabled) override;
+    bool udp_destination_allowed(std::string_view value) const override;
+    std::uint64_t udp_generation() const {
+        return udp_generation_;
+    }
     bool request_enabled(bool enabled) override;
     void finish_request(bool idle) override;
     std::string status() const override;
@@ -189,6 +193,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     std::string ssid_, password_;
     std::uint64_t next_connect_us_ = 0;
     std::optional<std::uint64_t> reconnect_after_leave_us_;
+    std::uint64_t udp_generation_ = 0;
     bool initialized_ = false, enabled_ = false;
     std::optional<bool> power_save_;
     std::optional<bool> pending_enabled_;

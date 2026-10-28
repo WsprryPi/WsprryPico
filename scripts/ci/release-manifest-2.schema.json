@@ -1,0 +1,654 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/WsprryPi/WsprryPico/firmware-release-manifest/2",
+  "title": "WsprryPico firmware deployment manifest version 2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "product",
+    "firmware_version",
+    "intended_tag",
+    "channel",
+    "repository",
+    "source",
+    "workflow",
+    "deployment_candidate",
+    "firmware",
+    "checks",
+    "build_inputs",
+    "assets",
+    "audit_assets",
+    "update",
+    "qualification",
+    "licenses"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 2
+    },
+    "product": {
+      "const": "WsprryPico"
+    },
+    "firmware_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-((?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\\+([0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*))?$",
+      "maxLength": 128
+    },
+    "intended_tag": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200000
+    },
+    "channel": {
+      "enum": [
+        "ci-testing",
+        "prerelease",
+        "stable"
+      ]
+    },
+    "repository": {
+      "const": "https://github.com/WsprryPi/WsprryPico"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revision",
+        "tree",
+        "clean",
+        "input_digest_sha256"
+      ],
+      "properties": {
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "clean": {
+          "const": true
+        },
+        "input_digest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "revision",
+        "event",
+        "ref",
+        "run_id",
+        "attempt",
+        "url"
+      ],
+      "properties": {
+        "path": {
+          "const": ".github/workflows/software-build.yml"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "event": {
+          "enum": [
+            "push",
+            "pull_request",
+            "workflow_dispatch"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200000
+        },
+        "run_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "attempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://github.com/WsprryPi/WsprryPico/actions/runs/[1-9][0-9]*$"
+        }
+      }
+    },
+    "deployment_candidate": {
+      "type": "boolean"
+    },
+    "firmware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "target",
+        "board",
+        "processor",
+        "family_id",
+        "role",
+        "engine",
+        "clock_hz",
+        "frequency_selected_by_image",
+        "station_selected_by_image",
+        "credentials_in_image",
+        "schedules_enabled_by_image"
+      ],
+      "properties": {
+        "profile": {
+          "const": "consumer"
+        },
+        "target": {
+          "const": "WsprryPico"
+        },
+        "board": {
+          "const": "pico2_w"
+        },
+        "processor": {
+          "const": "RP2350"
+        },
+        "family_id": {
+          "const": "e48bff59"
+        },
+        "role": {
+          "const": "uninhibited"
+        },
+        "engine": {
+          "const": "pio-dma"
+        },
+        "clock_hz": {
+          "const": 138000000
+        },
+        "frequency_selected_by_image": {
+          "const": null
+        },
+        "station_selected_by_image": {
+          "const": false
+        },
+        "credentials_in_image": {
+          "const": false
+        },
+        "schedules_enabled_by_image": {
+          "const": false
+        }
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "registered",
+        "passed",
+        "failed",
+        "skipped",
+        "test_names",
+        "wtp_contract",
+        "browser_npm",
+        "packaging_failure_tests",
+        "consumer_ui",
+        "compatibility_rf",
+        "inhibited_regression",
+        "reproducibility",
+        "historical_evidence_skips"
+      ],
+      "properties": {
+        "registered": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "passed": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "failed": {
+          "const": 0
+        },
+        "skipped": {
+          "const": 0
+        },
+        "test_names": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2000,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_]+$"
+          }
+        },
+        "wtp_contract": {
+          "const": "passed"
+        },
+        "browser_npm": {
+          "const": "passed"
+        },
+        "packaging_failure_tests": {
+          "const": "passed"
+        },
+        "consumer_ui": {
+          "const": "passed"
+        },
+        "compatibility_rf": {
+          "const": "passed"
+        },
+        "inhibited_regression": {
+          "const": "passed"
+        },
+        "reproducibility": {
+          "const": "identical"
+        },
+        "historical_evidence_skips": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "test",
+              "reason"
+            ],
+            "properties": {
+              "test": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200000
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200000
+              }
+            }
+          }
+        }
+      }
+    },
+    "build_inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pins",
+        "toolchain_archive_sha256",
+        "sdk",
+        "picotool",
+        "companion",
+        "harness",
+        "environment",
+        "overlays",
+        "python_lock_sha256",
+        "npm_lock_sha256",
+        "linked_resources"
+      ],
+      "properties": {
+        "pins": {
+          "type": "object"
+        },
+        "toolchain_archive_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "sdk": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "revision",
+            "submodules"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "pattern": "^https://github.com/"
+            },
+            "revision": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "submodules": {
+              "type": "array",
+              "maxItems": 1000,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200000
+              }
+            }
+          }
+        },
+        "picotool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "revision",
+            "submodules"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "pattern": "^https://github.com/"
+            },
+            "revision": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "submodules": {
+              "type": "array",
+              "maxItems": 1000,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200000
+              }
+            }
+          }
+        },
+        "companion": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "revision",
+            "submodules"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "pattern": "^https://github.com/"
+            },
+            "revision": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "submodules": {
+              "type": "array",
+              "maxItems": 1000,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200000
+              }
+            }
+          }
+        },
+        "environment": {
+          "type": "object"
+        },
+        "overlays": {
+          "type": "object"
+        },
+        "python_lock_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "npm_lock_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "linked_resources": {
+          "type": "object",
+          "minProperties": 3,
+          "maxProperties": 3,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "harness": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "repository",
+            "revision",
+            "submodules"
+          ],
+          "properties": {
+            "repository": {
+              "type": "string",
+              "pattern": "^https://github.com/"
+            },
+            "revision": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "submodules": {
+              "type": "array",
+              "maxItems": 1000,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200000
+              }
+            }
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 67108864
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "audit_assets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 67108864
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "application_end",
+        "ordinary_update_erases_settings",
+        "whole_flash_erase_required",
+        "unset_frequency_transmits",
+        "first_frequency_save_enables_schedule",
+        "rollback",
+        "storage_contract"
+      ],
+      "properties": {
+        "application_end": {
+          "const": "103ec000"
+        },
+        "ordinary_update_erases_settings": {
+          "const": false
+        },
+        "usb_maintenance": {
+          "const": 1
+        },
+        "postboot_verification": {
+          "const": 1
+        },
+        "whole_flash_erase_required": {
+          "const": false
+        },
+        "unset_frequency_transmits": {
+          "const": false
+        },
+        "first_frequency_save_enables_schedule": {
+          "const": false
+        },
+        "rollback": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200000
+        },
+        "storage_contract": {
+          "const": 2
+        }
+      }
+    },
+    "qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "software_build_only",
+        "physical_boot_usb_rf_timing"
+      ],
+      "properties": {
+        "software_build_only": {
+          "const": true
+        },
+        "physical_boot_usb_rf_timing": {
+          "const": "not assessed by this run"
+        }
+      }
+    },
+    "licenses": {
+      "const": [
+        "LICENSE.md",
+        "THIRD_PARTY_NOTICES.md",
+        "DEPENDENCY-LICENSES.txt"
+      ]
+    },
+    "testing_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prerelease",
+        "installer_default_eligible",
+        "gpio_drive_ma",
+        "protocols",
+        "api",
+        "storage",
+        "companion",
+        "recipe",
+        "references"
+      ],
+      "properties": {
+        "prerelease": {
+          "const": true
+        },
+        "installer_default_eligible": {
+          "const": false
+        },
+        "gpio_drive_ma": {
+          "const": {
+            "choices": [
+              2,
+              4,
+              8,
+              12
+            ],
+            "default": 4
+          }
+        },
+        "protocols": {
+          "const": [
+            "WTP/1",
+            "USB-Management/1",
+            "Consumer-Radio/1",
+            "Field-GATT/1"
+          ]
+        },
+        "api": {
+          "const": [
+            "transmitter-application/3",
+            "transmitter-hardware/2",
+            "transmitter-progress/2",
+            "transmitter-gpio-drive/1"
+          ]
+        },
+        "storage": {
+          "const": {
+            "configuration": 1,
+            "saved_progress_read": [
+              1,
+              2,
+              3
+            ],
+            "layout": "80 KiB reserved; application ends at 0x103ec000; E10 is SDK workaround only",
+            "policy": "Preserving update; no whole-flash erase. Downgrade preservation unqualified."
+          }
+        },
+        "companion": {
+          "const": {
+            "software_tested_revision": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
+            "historical_drive_acceptance_pico": "d6de1f3cf14dc49266c4401c3bca91b8ce9da688",
+            "historical_drive_acceptance_pi": "fe701cf4c2b05e46cb84927188984084503d1cea",
+            "physical_release_pair_tested": false
+          }
+        },
+        "recipe": {
+          "const": [
+            "Confirm remote devel equals source.revision; dispatch that frozen source with: gh workflow run software-build.yml --repo WsprryPi/WsprryPico --ref devel -f profile=consumer -f testing_version=<firmware_version>",
+            "The following commands run inside that GitHub workflow, which supplies GITHUB_* run/source/event context, CI_WORKFLOW_SHA, CI_EVENT_SHA, CI_STREAM=devel, CI_PROFILE=consumer and CI_TESTING_VERSION=<firmware_version>. DEPENDENCIES and OUTPUT denote fresh private task directories; consumer.log retains the resolved CMake configure/build commands.",
+            "python -m pip install --require-hashes --only-binary=:all: -r scripts/ci/requirements.txt",
+            "python scripts/ci/setup.py \"$DEPENDENCIES\"",
+            "python scripts/ci/run.py build --dependencies \"$DEPENDENCIES\" --output \"$OUTPUT\"",
+            "Ninja; Release; WSPRRY_PICO_BUILD_FIRMWARE=ON; WSPRRY_PICO_BUILD_TESTS=OFF; PICO_BOARD=pico2_w; WSPRRY_PICO_FIRMWARE_VERSION=<firmware_version>; PICOTOOL_NO_LIBUSB=1; PICOTOOL_GIT_REPOSITORY_URL=<verified dependencies>/picotool; PICO_SDK_PATH=<verified dependencies>/sdk; four build jobs"
+          ]
+        },
+        "references": {
+          "type": "array",
+          "minItems": 8,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^https://github.com/WsprryPi/WsprryPico/blob/[0-9a-f]{40}/[A-Za-z0-9_./-]+$"
+          }
+        }
+      }
+    }
+  }
+}

@@ -113,10 +113,12 @@ extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 #endif
 #include "logging/logger.hpp"
+#include "logging/udp_settings.hpp"
 #include "logging/usb_session.hpp"
 #include "provisioning/pico/bootsel_sampler.hpp"
 #include "provisioning/rf_setup_gate.hpp"
 #include "runtime/allocation_fault.h"
+#include "standalone/pico/udp_logging.hpp"
 #include "usb/console_reply.hpp"
 
 #include <array>
@@ -375,6 +377,10 @@ int main() {
     static wsprrypico::standalone::PicoFlash flash;
     static wsprrypico::standalone::Store store(flash);
     static wsprrypico::standalone::PicoFlash progress_flash(true);
+    static wsprrypico::standalone::PicoFlash udp_flash(
+        wsprrypico::standalone::PicoFlash::Region::UdpLogging);
+    static wsprrypico::logging::UdpStore udp_store(udp_flash);
+    (void)udp_store.load();
     static wsprrypico::standalone::Progress progress(progress_flash);
     const bool progress_loaded = progress.load();
     store.progress(progress);
@@ -589,6 +595,7 @@ int main() {
             return static_cast<wsprrypico::provisioning::PicoBondStore*>(p)->erase_reset_storage();
         },
         &bond_store, &ntp_retention);
+    reset_targets.udp_logging(udp_store);
     static wsprrypico::provisioning::ResetCoordinator reset_coordinator(
         access_store, profile_store, reset_targets, local_identity);
 #ifdef WSPRRY_PICO_JOURNAL_FAULT_FIXTURE
@@ -691,9 +698,21 @@ int main() {
     static wsprrypico::logging::Logger logger(identities.device_id(), service.status().boot_id,
                                               local_identity.hostname);
     static wsprrypico::logging::UsbSession logging_session(logger, identities.device_id(),
-                                                         service.status().boot_id);
+                                                           service.status().boot_id);
     logger.settings(store.logging_settings());
     browser_api.logging_service(logger);
+    static wsprrypico::logging::UdpSender udp_sender(
+        identities.device_id(), service.status().boot_id, local_identity.hostname);
+    static_assert(sizeof(wsprrypico::logging::UdpSender) + sizeof(wsprrypico::logging::UdpStore) +
+                          sizeof(wsprrypico::standalone::PicoUdpLogging) +
+                          sizeof(wsprrypico::standalone::PicoFlash) <=
+                      8192,
+                  "UDP objects exceed the selected 8 KiB ceiling");
+    static wsprrypico::standalone::PicoUdpLogging udp_adapter;
+    if (udp_store.healthy())
+        (void)udp_sender.configure(udp_store.settings());
+    logger.udp_sink(udp_sender);
+    browser_api.udp_logging_service(udp_store, udp_sender);
     logger.event(5, "BOOT", "Application started", time_us_64() * 1000ULL);
     auto logged_activity = service.activity();
     auto logged_clock = service.clock_snapshot().state;
@@ -2071,6 +2090,18 @@ int main() {
             (network_state != wsprrypico::wtp::State::Armed &&
              network_state != wsprrypico::wtp::State::Running))
             network.poll();
+        // Persistence faults and factory reset must not leave an old enabled
+        // sink running. This fixed-size comparison never touches the USB sink.
+        if (!udp_store.healthy()) {
+            if (udp_sender.settings().enabled)
+                (void)udp_sender.configure(wsprrypico::logging::UdpSettings{});
+        } else if (!(udp_sender.settings() == udp_store.settings())) {
+            (void)udp_sender.configure(udp_store.settings());
+        }
+        udp_adapter.poll(udp_sender, monotonic_now(nullptr),
+                         !boot_recovery && !reset_coordinator.pending() && udp_store.healthy() &&
+                             network.link_up(),
+                         network.udp_generation());
         const auto cache_now = monotonic_now(nullptr);
         if (!boot_recovery && !recovery_reset_at && !reset_coordinator.pending() && !reboot_at &&
             time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Sntp &&
@@ -2409,10 +2440,9 @@ int main() {
             logged_wtp = wsprrypico::usb::wtp_connected();
             logged_management = wsprrypico::usb::management_connected();
         }
-        logging_session.poll(wsprrypico::usb::logging_connected(),
-                             wsprrypico::usb::take_logging_reset(),
-                             wsprrypico::usb::logging_transport_read,
-                             wsprrypico::usb::logging_write, log_mono);
+        logging_session.poll(
+            wsprrypico::usb::logging_connected(), wsprrypico::usb::take_logging_reset(),
+            wsprrypico::usb::logging_transport_read, wsprrypico::usb::logging_write, log_mono);
         if (wsprrypico::usb::take_wtp_reset()) {
             offset = size = 0;
             if (wsprrypico::usb::wtp_connected() && runtime_profile_ready() && local_usb_ready())

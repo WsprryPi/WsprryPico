@@ -18,16 +18,16 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from check_application_image import validate as validate_engine
 from check_standalone_image import validate_uf2
 from firmware_payload import verify_payload
-from usb_installer import MAX_VERSION, SEMVER, firmware_channel, release_asset_url, version_kind
+from usb_installer import MAX_VERSION, SEMVER, firmware_channel, release_asset_url, version_kind, firmware_schema
 
 PROFILES = {
     'consumer': {'target': 'WsprryPico', 'engine': 'pio-dma', 'role': 'uninhibited'},
     'inhibited-regression': {'target': 'WsprryPico-Inhibited', 'engine': 'simulator', 'role': 'inhibited'},
 }
-APPLICATION_END = 0x103ee000
-SUPPORTED_APPLICATION_ENDS = {APPLICATION_END, 0x103f0000}
+APPLICATION_END = 0x103ec000
+SUPPORTED_APPLICATION_ENDS = {APPLICATION_END, 0x103ee000, 0x103f0000}
 MAX_FILE = 64 * 1024 * 1024
-SCHEMA = Path(__file__).with_name('release-manifest-1.schema.json')
+SCHEMA = Path(__file__).with_name('release-manifest-2.schema.json')
 CONSUMER_OVERLAYS = {'cyw43-tx-overlay/cyw43_ll.c',
                      'mbedtls-alert-overlay/ssl_msg.c', 'mbedtls-alert-overlay/ssl_tls13_generic.c',
                      'mbedtls-alert-overlay/ssl_tls.c'}
@@ -52,7 +52,7 @@ def testing_metadata(source):
         'api': ['transmitter-application/3', 'transmitter-hardware/2',
                 'transmitter-progress/2', 'transmitter-gpio-drive/1'],
         'storage': {'configuration': 1, 'saved_progress_read': [1, 2, 3],
-                    'layout': '72 KiB reserved; application ends at 0x103ee000; E10 is SDK workaround only',
+                    'layout': '80 KiB reserved; application ends at 0x103ec000; E10 is SDK workaround only',
                     'policy': 'Preserving update; no whole-flash erase. Downgrade preservation unqualified.'},
         'companion': {'software_tested_revision': read_json(ROOT / 'scripts/ci/inputs.json')['companion'],
                       'historical_drive_acceptance_pico': 'd6de1f3cf14dc49266c4401c3bca91b8ce9da688',
@@ -307,7 +307,7 @@ def create(deployment, audit, source, version, selected, checks, build_inputs):
     actual_stream, channel, eligible = firmware_channel(version, workflow)
     require(stream == actual_stream, 'Version/workflow stream mismatch')
     manifest = {
-        'schema_version': 1, 'product': 'WsprryPico', 'firmware_version': version,
+        'schema_version': 2, 'product': 'WsprryPico', 'firmware_version': version,
         'intended_tag': 'v' + version, 'channel': channel,
         'repository': 'https://github.com/WsprryPi/WsprryPico',
         'source': {'revision': source, 'tree': capture('git', '-C', ROOT, 'rev-parse', source + '^{tree}'),
@@ -322,7 +322,7 @@ def create(deployment, audit, source, version, selected, checks, build_inputs):
         'checks': checks, 'build_inputs': build_inputs,
         'assets': [descriptor(path, deployment) for path in sorted(deployment.iterdir())],
         'audit_assets': [descriptor(path, audit) for path in sorted(audit.rglob('*')) if path.is_file()],
-        'update': {'application_end': f'{APPLICATION_END:x}', 'ordinary_update_erases_settings': False,
+        'update': {'storage_contract': 2, 'application_end': f'{APPLICATION_END:x}', 'ordinary_update_erases_settings': False,
                    'usb_maintenance': 1, 'postboot_verification': 1,
                    'whole_flash_erase_required': False,
                    'unset_frequency_transmits': False, 'first_frequency_save_enables_schedule': False,
@@ -343,7 +343,7 @@ def verify(deployment, audit, source, version, inspect=True):
     from jsonschema import Draft202012Validator
     deployment, audit = deployment.resolve(), audit.resolve()
     manifest = read_json(deployment / 'release-manifest.json')
-    schema = read_json(SCHEMA)
+    schema = firmware_schema(manifest.get("schema_version"), read_json(SCHEMA))
     Draft202012Validator.check_schema(schema)
     Draft202012Validator(schema).validate(manifest)
     require(re.fullmatch(r'[0-9a-f]{40}', source) and manifest['source']['revision'] == source,
