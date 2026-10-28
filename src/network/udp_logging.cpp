@@ -33,7 +33,7 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
             return http_error(412, "revision_conflict");
         if (!scheduler_.idle() || pending_transaction_)
             return http_error(409, "busy");
-        const auto root = wtp::json::parse(r.body_view());
+        const auto root = wtp::json::parse(r.body_view(), 8);
         if (!root || !wtp::json::fields(*root, {"schema", "target"}) ||
             root->get("schema")->type() != '"' ||
             root->get("schema")->string() != "udp-logging-test/1")
@@ -94,7 +94,7 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
             return http_error(412, "revision_conflict");
         if (!scheduler_.idle() || pending_transaction_)
             return http_error(409, "busy");
-        const auto root = wtp::json::parse(r.body_view());
+        const auto root = wtp::json::parse(r.body_view(), 8);
         if (!root || application::validate_envelope(*root, "transmitter-udp-logging/1", "settings",
                                                     device_, service_.status().boot_id) !=
                          application::Envelope::Valid)

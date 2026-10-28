@@ -22,7 +22,9 @@ struct Value {
     std::vector<Value> elements(std::size_t limit = 512) const;
     std::optional<Value> get(std::string_view key) const;
 };
-std::optional<Value> parse(InputView payload);
+// Historical resources retain sixteen levels; narrower resources can select
+// their own parser budget without changing those existing contracts.
+std::optional<Value> parse(InputView payload, unsigned maximum_depth = 16);
 std::string quote(std::string_view value);
 bool decimal(Value value, std::uint64_t& output, bool nonzero = false);
 bool identifier(Value value);

@@ -87,7 +87,7 @@ bool UdpStore::load() {
     if (!journal_.load())
         return false;
     if (!journal_.data().empty()) {
-        const auto root = wtp::json::parse(journal_.data());
+        const auto root = wtp::json::parse(journal_.data(), 8);
         if (!root || !wtp::json::fields(*root, {"schema", "settings"}) ||
             root->get("schema")->type() != '"' ||
             root->get("schema")->string() != "udp-logging-state/1")

@@ -244,6 +244,22 @@ int main() {
     req.body = envelope(settings);
     req.body.insert(req.body.size() - 1, ",\"extra\":true");
     assert(usb.handle(req).status == 400 && storage.sequence() == seq);
+    // The UDP parser stops at its own depth budget; historical resources keep
+    // their existing budget. Quotes and escaped quotes do not add nesting.
+    const auto nested = [](unsigned levels) {
+        std::string text = R"({"text":"[\"{"})";
+        for (unsigned i = 1; i < levels; ++i)
+            text = "{\"nested\":" + text + "}";
+        return text;
+    };
+    const auto eight = nested(8), nine = nested(9);
+    assert(wsprrypico::wtp::json::parse(eight, 8));
+    assert(!wsprrypico::wtp::json::parse(nine, 8));
+    assert(wsprrypico::wtp::json::parse(nine));
+    assert(!wsprrypico::wtp::json::parse(eight, 0));
+    req.body = envelope(settings);
+    req.body.insert(req.body.size() - 1, ",\"extra\":" + nine);
+    assert(usb.handle(req).status == 400 && storage.sequence() == seq);
     for (const auto& bad : {"null", "[]", "{}", "true", "{\"enabled\":true}"}) {
         const auto document = wsprrypico::wtp::json::parse(bad);
         assert(!document || !parse_udp_settings(*document));
