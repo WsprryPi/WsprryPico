@@ -41,7 +41,7 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
   const requests=[];
   const actualApi = vm.runInNewContext(apiSource + '\napi;',{
     returnReceipt:false,consumerAttempt:false,localIdentity:null,radio:null,accessCarrier:'certificate',accessEpoch:0,accessClosing:false,localLocked:false,
-    supportsAmplifier:()=>false,AbortSignal,
+    supportsAmplifier:()=>false,controlsUnlocked:()=>true,AbortSignal,
     frequencyEditor:{observeRevision:value=>assert.equal(value,'actual-revision')},
     fetch:async(path,options)=>{
       requests.push({path,options});

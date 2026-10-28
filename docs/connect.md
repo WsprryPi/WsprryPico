@@ -28,10 +28,10 @@ Once the Pico has joined your home network, use its **home-network IP address** 
 1. Connect your phone or computer to the same home network as the Pico. A wired computer on that network also works. Avoid a guest network that prevents devices from reaching each other.
 2. Find the Pico in your router's connected-device list, or use the hostname reported by the setup page. A default name looks like `wsprrypico-0a60df.local`; your Pico's suffix will differ.
 3. Type the complete address into the browser's address bar, starting with **http://**. For example, if your router lists the Pico at **192.168.1.123**, open **http://192.168.1.123/**. Replace that example IP with your Pico's actual address. You can also use **http://wsprrypico-0a60df.local/** with your Pico's actual hostname.
-4. The control page shows **Transmitter status** without opening a login prompt. Select the lock immediately before the hostname to open **Pico password**, then choose **Unlock controls**. Its default is the home Wi-Fi password saved during setup. Use your separate Pico password if you changed it. To change the Pico password without changing Wi-Fi, follow [Change the Pico password](maintain.md#change-the-pico-password).
+4. The Station Control view shows **Transmitter status** and loads saved settings without opening a login prompt. Select the lock immediately before the hostname to open **Pico password**, then choose **Unlock controls**. Its default is the home Wi-Fi password saved during setup. Use your separate Pico password if you changed it. To change the Pico password without changing Wi-Fi, follow [Change the Pico password](maintain.md#change-the-pico-password).
 
-   ```{image} _static/images/radio-login.jpg
-   :alt: Pico control page with the password dialog opened from the lock beside the hostname, an empty Pico password field, Unlock controls and Close.
+   ```{image} _static/images/station-control.png
+   :alt: Station Control with header view navigation, the hostname lock and public read-only transmitter observations before unlocking.
    ```
 
 The control page uses **HTTP on port 80**. If your browser automatically changes the address to **https://**, allow HTTP for this Pico address and retry. The page can open before the Pico has synchronized its clock; a time-server problem does not by itself prevent browser access.
@@ -40,7 +40,9 @@ If the Pico answers ping but the page does not open, follow [Pico answers ping b
 
 Use a current desktop or mobile browser with JavaScript enabled. The Pico serves its own page.
 
-**Station/Transmission** holds station identity, schedules, radio pins and job controls. **Wi-Fi/Host** holds Wi-Fi, Pico password, time server, hostname and restart controls. Transmitter status stays open in both areas. Other sections start collapsed; select a heading or use **Sections** to open the required controls. **Saved settings and recovery** and **About this Pico / Diagnostics** are shared sections. **Top** closes all non-status sections in both areas and returns to the status region while keeping your entries and selected job file. Use the page links to retain browser drafts. A direct section bookmark opens its section, and an unresolved save continuation opens recovery instructions.
+Use the header links **Station Control** and **Wi-Fi/Host** to switch views; the active view is underlined. Selecting either opens the page at the top and keeps the same browser session and drafts. Station Control starts with **Transmitter status**, followed by **Station identity**, **WSPR Configuration**, **Radio pins** and **CW Modes**. **Saved settings and recovery** and **About this Pico / Diagnostics** are at the bottom of Station Control. Wi-Fi/Host contains network, Pico password, hostname and **Logging** settings. Open sections by selecting their headings. **Top** closes the settings disclosures and returns to the hostname while preserving entries and the selected job file. Direct section bookmarks and pending-save continuations reveal their target.
+
+Status, accepted job details, schedules, frequencies and saved settings load without signing in. Locked settings stay dimmed and cannot be edited. Saved passwords, keys and certificates are not displayed. Use the hostname lock to authorize saves, job controls or **Reset Pico**; reading settings does not occupy or renew a login.
 
 The unlocked icon locks this browser through logout. It preserves drafts, accepted transmissions and schedules; other logins keep their own access. If logout cannot be confirmed, the page reports local locking and any occupied-login uncertainty. Closing or cancelling the password dialog clears its password fields. The icon describes application access, not transport security or transmitter ownership.
 

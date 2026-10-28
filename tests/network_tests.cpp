@@ -198,7 +198,9 @@ void streamed_asset_admission() {
     REQUIRE(expected.size() > 65536 && expected.find("hostname-form") != expected.npos);
     REQUIRE(expected.find("monitorRestart") != expected.npos);
     REQUIRE(expected.find("WsprryPicoPresentation=") < expected.find("pageIdentity="));
-    REQUIRE(expected.find("id=\"device-diagnostics\"") < expected.find("id=\"station-area\""));
+    REQUIRE(expected.find("id=\"station-area\"") < expected.find("id=\"saved-settings\""));
+    REQUIRE(expected.find("id=\"saved-settings\"") < expected.find("id=\"device-diagnostics\""));
+    REQUIRE(expected.find("id=\"device-diagnostics\"") < expected.find("id=\"wifi-host-area\""));
     const auto presentation = network::web_asset("/device-presentation.js");
     REQUIRE(presentation && presentation->body.find("WsprryPicoPresentation=") != expected.npos);
     // The generated asset is immutable static storage. Only bounded transport

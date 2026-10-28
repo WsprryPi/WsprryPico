@@ -110,6 +110,17 @@ node tests/ui_sections_browser.mjs build-host/consumer_bootstrap_driver build/ui
 
 Set `CHROME_BIN` to the installed browser executable on hosts using another path. The consumer and engineering checks run sequentially because each owns a fixed local fixture port range. They use RAM-backed synthetic configuration, isolated browser profiles and bounded requests; they access no Pico or RF hardware. The certificate fixture supplies an authenticated principal and does not qualify browser certificate selection or TLS admission. The existing organization and session-timeout browser workflows cover setup/save reconciliation and session lifetime separately.
 
+The shipped Station/Wi-Fi controls also have a production HTTP/AEAD fixture for public settings, lock behavior, independent WSPR/pin saves, a committed lost reply, responsive layout and keyboard navigation:
+
+```sh
+cmake -S . -B build-browser -DWSPRRY_PICO_BUILD_FIRMWARE=OFF -DWSPRRY_PICO_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/absolute/path/to/mbedtls
+cmake --build build-browser --target consumer_session_driver --parallel 2
+node tests/consumer_sessions.test.mjs build-browser/consumer_session_driver
+node tests/operator_cleanup_browser.mjs build-browser/consumer_session_driver
+```
+
+Use the selected candidate source and MbedTLS `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20` with recursive dependencies, retained bootstrap npm dependencies and current Chrome. An optional third argument to `operator_cleanup_browser.mjs` captures one desktop/mobile screenshot batch from the actual fixture. It is software evidence with a synthetic board, not physical USB/network, installation, timing or RF acceptance. The Pi network-pair workflow runs these checks in addition to its production Pi client/coordinator, source-selection, routing and UI gates; the independent USB-pair workflow remains required.
+
 ## Host tools and analysis
 
 `scripts/usb_inventory.py` provides a read-only, explicitly selected USB Console

@@ -31,6 +31,6 @@ The value after **±** is the estimated timing uncertainty, in **ms** (milliseco
 
 **PPM** means parts per million. One ppm corresponds to 10 Hz at 10 MHz. **Manual correction (ppm)** compensates for a measured RF frequency error; its default is **0.000 ppm**. Leave it unchanged unless you have a measurement against an independent, trustworthy RF reference. Good network-clock status does not measure the RF carrier's frequency.
 
-In **Station/Transmission → Carrier calibration**, choose **Read saved calibration** before editing **Manual correction (ppm)**. Keep a note of the original value. Enter the measured correction, choose **Save calibration**, then measure the carrier again. The field accepts −100.000 through +100.000 ppm with up to three decimal places. The saved correction applies when future jobs are prepared; it does not retune a job already running. Restore the original value if the adjustment is unsuccessful.
+In **Station Control → Carrier calibration**, choose **Read saved calibration** before editing **Manual correction (ppm)**. Keep a note of the original value. Enter the measured correction, choose **Save calibration**, then measure the carrier again. The field accepts −100.000 through +100.000 ppm with up to three decimal places. The saved correction applies when future jobs are prepared; it does not retune a job already running. Restore the original value if the adjustment is unsuccessful.
 
 RF calibration does not change UTC or remove the normal clock, frequency, pin and output checks.

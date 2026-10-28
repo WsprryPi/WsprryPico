@@ -1,4 +1,5 @@
 #include "network/consumer_radio.hpp"
+#include "network/public_read.hpp"
 
 #include "application/resources.hpp"
 #include "network/bootstrap_codec.hpp"
@@ -686,6 +687,61 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
         return http_error(409, "consumer_radio_unavailable");
     if (!page_admitted(request, interface))
         return http_error(403, "forbidden");
+    if (request.path == "/api/consumer/v1/read" ||
+        request.path.starts_with("/api/consumer/v1/read/")) {
+        if (!wtp::memory_admitted(4096))
+            return http_error(503, "resource_exhausted");
+        if (request.method != "GET")
+            return http_error(405, "method_not_allowed");
+        if (!request.body_view().empty())
+            return http_error(400, "public_read_body_forbidden");
+        auto host = request.header("host");
+        if (host.ends_with(":80"))
+            host.remove_suffix(3);
+        if ((!request.header("origin").empty() &&
+             request.header("origin") != "http://" + std::string(host)) ||
+            (!request.header("sec-fetch-site").empty() &&
+             request.header("sec-fetch-site") != "same-origin"))
+            return http_error(403, "forbidden");
+        if (request.path == "/api/consumer/v1/read") {
+            std::string resources = "[";
+            for (const auto resource : public_read_resources) {
+                if (resources.size() > 1)
+                    resources += ',';
+                resources += wtp::json::quote(resource);
+            }
+            return {200,
+                    "{\"schema\":\"pico-public-read/1\",\"target\":" +
+                        application::target(device_, boot_) +
+                        ",\"prefix\":\"/api/consumer/v1/read/\",\"resources\":" + resources + "]}",
+                    "application/json",
+                    {}};
+        }
+        const auto resource = std::string_view(request.path)
+                                  .substr(std::string_view("/api/consumer/v1/read/").size());
+        if (std::find(public_read_resources.begin(), public_read_resources.end(), resource) ==
+            public_read_resources.end())
+            return http_error(404, "public_read_resource_unavailable");
+        // The public adapter owns a fixed GET allowlist. No caller body,
+        // principal, revision or headers enter the authenticated command path.
+        HttpRequest inner;
+        inner.method = "GET";
+        inner.path = "/api/v1/" + std::string(resource);
+        const std::string authority = "192.168.4.1";
+        inner.headers = {{"host", authority},
+                         {"origin", "https://" + authority},
+                         {"sec-fetch-site", "same-origin"}};
+        if (resource == "consumer/password")
+            return password_resource(inner);
+        if (resource == "consumer/setup/api/owner/v1/public-status" && setup_handler_) {
+            inner.path = "/api/owner/v1/public-status";
+            inner.headers["origin"] = "http://" + authority;
+            const std::array<std::uint8_t, 16> observer{};
+            return setup_handler_(inner, transaction, observer, setup_context_);
+        }
+        return api_.handle(inner, "public-observer", authority, 0,
+                           ManagementCarrier::EngineeringStation);
+    }
     if (request.path == "/api/consumer/v1/status" && request.method == "GET") {
         auto host = request.header("host");
         if (host.ends_with(":80"))

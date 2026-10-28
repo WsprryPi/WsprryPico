@@ -26,7 +26,7 @@ Connect the RF path to **GP2, physical header pin 4**, and its ground to a Pico 
 
 The **onboard LED** is the default transmit indicator. It lights steadily while RF output is active. At other times, it can blink for setup Wi-Fi or device identification. It needs no additional wiring.
 
-For an optional external LED, choose **External GPIO** under **TX indicator** in **Station/Transmission → Schedules and radio pins → Pin assignments**. Select an unused **External indicator pin** and the matching **Indicator polarity**. External polarity defaults to **Active-high**. See [LED and button settings](configure.md#led-and-button-settings) for saving and applying the selection.
+For an optional external LED, choose **External GPIO** under **TX indicator** in **Station Control → Radio pins → Pin assignments**. Select an unused **External indicator pin** and the matching **Indicator polarity**. External polarity defaults to **Active-high**. See [LED and button settings](configure.md#led-and-button-settings) for saving and applying the selection.
 
 For example, with the factory RF and button assignments, **GP15, physical pin 20**, is available. Select **GP15** and **Active-high**. With power disconnected, connect **GP15 → 1 kΩ resistor → LED anode (+)**, then connect the **LED cathode (−) → GND**, such as physical pin **18**. Keep the resistor in series with the LED.
 

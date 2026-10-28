@@ -7,19 +7,19 @@
     "app.min.js": {
       "inputs": {
         "udp-logging.js": "e7604c3b8dbedeb7dfad3dbf68c4b5dd8da636342903e1f81b95dbf1560ea698",
-        "operations.js": "493527dcae54deeee0332002a52cdc24d63aaeb499667a5fb83f4eecdd741500",
-        "standalone-frequency.js": "39e1e0881691309ca8592c8d2bc6ab164109e744491acb97f080192e6b67270c",
-        "rf-calibration.js": "21b9c5fd3ea21fbcaa9bd48bc236a932533ba670e94558293f628feef308433f",
+        "operations.js": "795130d586e40780656977263cb0e0968765f888bf0f1d3d30fac7955cb3fb42",
+        "standalone-frequency.js": "251d3125c2ec13acaf276c119ccd3467b173e0f8d8730d3c8592ebf7d273b2c5",
+        "rf-calibration.js": "6dfa87f6098393dcd995c27ffe1839948007d560b50338fd767701b9c061d6d3",
         "amplifier-enable.js": "4a44353c0dbe15d6992e738d62ff7595d3d15e3a891cf2d571290e6163bbd8ac",
         "gpio-drive.js": "2360062c99137e1608a61e9a51a3cd0734960d6badb11a5c95b27166f91a4875",
-        "ntp-timeout.js": "dd57145f19766c20a96eae8652343d0673c2b2af1f6827d9773c47c4ed06be8a",
+        "ntp-timeout.js": "d4f32cd21087d330169fce2278ad90b5fb72f12bed838d6b80eeae8627c6311e",
         "saved-progress.js": "eda273462a85879a5060d72d9380c3d7834d50f75c4cdbc9b12c10e7e2232195",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "a692a0bd0fcbcfde4f2852c93f3fb6a5290beaea713ec24c2a4023389fd6858e",
-        "app.js": "1a35dab8c0bebc7ea8ad87d592ac06eb6a73536c0924154aed4dc20becd3b2bd"
+        "app.js": "64d561ab4f762d7a739dc73ed4a6bd949bace36e88bcf12f32bd7c22ce3eeafc"
       },
-      "sha256": "0d5a28393110b702de2d29b0c761bf7ecd61e9a6afdc130b1ccca6794fae6f33",
-      "bytes": 183644
+      "sha256": "594d1a29ee1bbb595962a7cb4ac15d4d7cf7ed18fdcb38937964966c30966533",
+      "bytes": 185035
     },
     "config-validation.min.js": {
       "inputs": {
@@ -30,17 +30,17 @@
     },
     "device-presentation.min.js": {
       "inputs": {
-        "device-presentation.js": "3180de1122e80c8069690c9497aaf5a6f954133a22a2ec9efda6c84b234f94bb"
+        "device-presentation.js": "e7848453b1bbcd5de73db0fa5168e24ee345999eb80990990ad910c7b8a8cee0"
       },
-      "sha256": "7c6ab6a5a3a2fa328ac7195bffb5cf1668873a3e1c6079275a79ae4b39e5f073",
-      "bytes": 2499
+      "sha256": "b6f5f5fbf4d2d6046e886051d28d3e7539f41ca7383013f1bd7439762d884c23",
+      "bytes": 2488
     },
     "organization.min.js": {
       "inputs": {
-        "organization.js": "d928cc70baee61f4c5d474b7bce0c1de3ce11bc138f4519c1eefd4a03fe572d9"
+        "organization.js": "ca5722cde169c5d0c5bad3155945f726b402e8153792bd1c0f6a8d2092019cea"
       },
-      "sha256": "ddaf8f7bb96a819a6ac37467d6040322b59691c1de775c89c378076a191e9936",
-      "bytes": 7328
+      "sha256": "f3aab981e30f6e83846416465c4988551f8ed4c17a1ee97999771371c4629bcf",
+      "bytes": 7492
     }
   }
 }

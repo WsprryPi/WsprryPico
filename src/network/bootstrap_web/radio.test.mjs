@@ -218,3 +218,29 @@ test('local locking refuses undispatched requests but admits logout and retains 
   await assert.rejects(client.logout(),/refused/);
   assert.equal(client.authenticated,false);assert.equal(client.lostSession.selector,selector);
 });
+
+test('independent public reads negotiate an exact target and never grant or renew authority',async()=>{
+  const {readFileSync}=await import('node:fs');
+  const resources=JSON.parse(readFileSync(new URL('../../../engineering/protocol/pico-public-read-1.schema.json',import.meta.url))).properties.resources.const;
+  const descriptor={schema:'pico-public-read/1',target:{scope:'member',device_id:id.device_id,boot_id:id.boot_id},prefix:'/api/consumer/v1/read/',resources};
+  let capabilities=descriptor, raw=null, requests=[];
+  const client=new RadioClient(async(path,options)=>{
+    requests.push(path);assert.equal(options.method||'GET','GET');assert.equal(options.body,undefined);assert.equal(options.credentials,'omit');
+    if(path==='/api/consumer/v1/read' && raw!==null) return new Response(raw);
+    return Response.json(path.endsWith('/identity')?id:path==='/api/consumer/v1/read'?capabilities:{config:null});
+  });
+  await client.identity();client.seen=123;
+  assert.deepEqual(await (await client.publicRead('config/4')).json(),{config:null});
+  assert.equal(client.authenticated,false);assert.equal(client.seen,123);assert.equal(client.sequence,undefined);
+  const before=requests.length;await assert.rejects(client.publicRead('jobs'));assert.equal(requests.length,before);
+  for(const patch of [{schema:'pico-public-read/2'},{extra:true},{prefix:'/api/v1/'},{resources:[...resources,'restart']},{resources:[...resources,resources[0]]},{target:{...descriptor.target,boot_id:'ff'.repeat(16)}},{target:{...descriptor.target,device_id:'ff'.repeat(16)}}]) {
+    capabilities={...descriptor,...patch};client.publicReads=null;
+    const before=requests.length;await assert.rejects(client.publicRead('config/4'));assert.equal(requests.length,before+1);
+  }
+  capabilities=descriptor;
+  for(const content of [JSON.stringify(descriptor).replace('"schema":','"schema":"pico-public-read/1","schema":'),JSON.stringify(descriptor).replace('"scope":','"sc\\u006fpe":"member","scope":'),' '.repeat(4097)+JSON.stringify(descriptor),'{"target":{"deep":{"nested":{}}}}']) {
+    raw=content;client.publicReads=null;const before=requests.length;
+    await assert.rejects(client.publicRead('config/4'));assert.equal(requests.length,before+1);
+  }
+
+});

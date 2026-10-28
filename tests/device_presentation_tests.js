@@ -11,7 +11,7 @@ const text=(f,id)=>f.elements[id].textContent;
   assert.equal(text(f,'device-name'),'old.local');
   assert.equal(text(f,'device-id'),id,'engineering ID comes from hostname target, never capabilities');
   assert.equal(text(f,'device-boot'),boot);
-  assert.match(text(f,'device-name-state'),/Active hostname/);
+  assert.equal(text(f,'device-name-state'),'');assert.equal(f.elements['device-name-state'].hidden,true);
   f.context.location.href='http://forged.local/?hostname=lie.local';
   f.elements['hostname-input'].value='draft.local';f.elements['hostname-input'].listeners.input();
   assert.equal(text(f,'device-name'),'old.local');
@@ -41,7 +41,7 @@ const text=(f,id)=>f.elements[id].textContent;
   assert.equal(text(consumer,'local-status'),statuses);assert.equal(text(consumer,'device-name'),'old.local');
   const mutations=consumer.calls.filter(c=>c.options?.method && c.options.method!=='GET').length;
   await consumer.elements['local-logout'].onclick();
-  assert.match(text(consumer,'local-status'),/signed out/i);assert.match(text(consumer,'device-name-state'),/Last confirmed/);
+  assert.match(text(consumer,'local-status'),/signed out/i);assert.equal(text(consumer,'device-name-state'),'');assert.equal(consumer.elements['device-name-state'].hidden,true);
   assert.equal(consumer.calls.filter(c=>c.options?.method && c.options.method!=='GET').length,mutations,'presentation causes no request');
 
   for (const metadata of [
@@ -52,7 +52,7 @@ const text=(f,id)=>f.elements[id].textContent;
     const invalid=await fixture(true,true,false,true);
     invalid.context.fetch=async()=>({ok:true,json:async()=>metadata});
     await run(invalid,'presentationTitle()');
-    assert.equal(text(invalid,'device-name'),'Hostname unavailable');
+    assert.equal(text(invalid,'device-name'),'old.local','malformed metadata cannot replace the public-read observation');
     assert.equal(text(invalid,'device-id'),id);
   }
   const publicOnly=await fixture(true,true,false,true);
@@ -90,7 +90,7 @@ const text=(f,id)=>f.elements[id].textContent;
   renamed.elements['hostname-input'].value='new.local';
   await renamed.elements['hostname-form'].onsubmit({preventDefault(){}});
   assert.match(text(renamed,'local-status'),/authenticated/);
-  assert.match(text(renamed,'device-name-state'),/Active hostname.*rename pending/);
+  assert.match(text(renamed,'device-name-state'),/Rename pending/);
   const local=await fixture(true,true,true);assert.equal(text(local,'device-id'),id);assert.equal(text(local,'device-boot'),boot);
 
   // Pure controller exercises target binding and request ordering separately from the VM.

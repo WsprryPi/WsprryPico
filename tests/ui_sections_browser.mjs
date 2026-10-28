@@ -38,7 +38,7 @@ async function control(value) {
     assert.equal(response.status,200);return response.json();
 }
 async function click(id) {await evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
-async function section(id) {await evaluate(`document.querySelector('a[href$="#${id}"]').click()`);}
+async function section(id) {await evaluate(`(()=>{const node=document.getElementById('${id}'),area=node.closest('[data-task-area]').dataset.taskArea;history.pushState({...history.state,wsprrypicoPresentation:{section:'${id}',area}},'','/'+area+(/^#(?:save|hostname-return)=/.test(location.hash)?location.hash:'#${id}'));dispatchEvent(new PopStateEvent('popstate'));})()`);}
 async function key(key,code=key) {
     await send('Input.dispatchKeyEvent',{type:'keyDown',key,code,text:key==='Enter'?'\r':undefined,windowsVirtualKeyCode:key==='Escape'?27:key==='Enter'?13:9});
     await send('Input.dispatchKeyEvent',{type:'keyUp',key,code,windowsVirtualKeyCode:key==='Escape'?27:key==='Enter'?13:9});
@@ -54,7 +54,10 @@ async function login(password='test-password') {
     await click('access-toggle');
     assert.equal(await evaluate('document.activeElement.id'),'local-password');
     await evaluate(`document.getElementById('local-password').value=${JSON.stringify(password)}`);
-    await key('Enter');await idle();
+    // Polling can briefly disable submission. Submit exactly once when the
+    // native form is available; keyboard Enter is covered by the shipped UI fixture.
+    await until(()=>evaluate('!busy && !document.getElementById("login-submit").disabled && (document.getElementById("local-login").requestSubmit(),true)'),'login submit available');
+    await idle();
 }
 const checks=[];
 function pass(name){checks.push(name);console.log('PASS '+name);}
@@ -111,11 +114,11 @@ try {
         assert.equal(await evaluate(`document.activeElement===document.getElementById('${id}').querySelector('summary')`),true);
         await evaluate(`document.getElementById('${id}').querySelector('[data-top]').click()`);
         assert.equal(await evaluate('document.querySelectorAll("[data-operator-section][open]").length'),0);
-        assert.equal(await evaluate('document.activeElement.id'),'status-heading');
+        assert.equal(await evaluate('document.activeElement.id'),'device-name');
     }
     assert.equal(await evaluate('document.getElementById("message-text").value'),'CQ CQ DE AA0NT EM18 QRSS TEST 73');
     assert.equal(await evaluate('document.getElementById("job-file").files[0]===originalFile'),true);
-    pass('every menu and Top link changes only presentation, preserves message and selected file');
+    pass('section bookmarks and Top links changes only presentation, preserves message and selected file');
     await section('message-section');await section('wifi-settings');
     await evaluate('history.back()');await until(()=>evaluate('!document.getElementById("station-area").hidden'),'Back selects station');
     await evaluate('history.forward()');await until(()=>evaluate('!document.getElementById("wifi-host-area").hidden'),'Forward selects Wi-Fi');
@@ -126,7 +129,7 @@ try {
     await evaluate('document.getElementById("message-section").querySelector("[data-top]").click()');
     assert.equal(await evaluate('location.hash'),receipt);
     await section('wifi-settings');await evaluate('history.back()');
-    await until(()=>evaluate('document.activeElement.id==="status-heading"'),'receipt Top history');
+    await until(()=>evaluate('document.activeElement.id==="device-name"'),'receipt Top history');
     assert.equal(await evaluate('document.querySelectorAll("[data-operator-section][open]").length'),0);
     await evaluate('history.forward()');await until(()=>evaluate('document.getElementById("wifi-settings").open'),'receipt Forward section');
     await send('Page.reload');await until(()=>evaluate('typeof localIdentity!=="undefined" && !!localIdentity && !busy'),'receipt reload');
@@ -177,7 +180,7 @@ try {
     assert.equal(await evaluate('radio.authenticated'),false);assert.equal(await evaluate('requestOrder.at(-1)'),'consumer/logout');
     assert.equal(await evaluate('document.getElementById("message-text").value'),'DRAFT');
     // Exercise the actual registered interval without waiting five wall-clock seconds.
-    await evaluate('globalThis.publicReads=0;const savedPublic=radio.publicStatus.bind(radio);radio.publicStatus=(...args)=>{publicReads++;return savedPublic(...args)}');
+    await evaluate('globalThis.publicReads=0;const savedPublic=radio.publicRead.bind(radio);radio.publicRead=(...args)=>{publicReads++;return savedPublic(...args)}');
     await until(()=>evaluate('publicReads>0'),'public polling continues after logout');
     await evaluate('radio.request=savedRequest');
     pass('lock gates immediately, clears private status, serializes logout and keeps public polling');
@@ -194,7 +197,7 @@ try {
     assert.equal(await evaluate('document.getElementById("local-access").open'),false);
     pass('cancelled late login cannot ghost-unlock and cleans only its serialized session');
     for(const [button,resource] of [['rf-calibration-read','rf-calibration'],['ntp-timeout-read','ntp-timeout'],['gpio-drive-read','gpio-drive']]) {
-      await navigate();await login();await section('radio-settings');
+      await navigate();await login();await section(resource==='gpio-drive'?'radio-pins':'radio-settings');
       await evaluate(`globalThis.editorRequest=radio.request.bind(radio);globalThis.editorOrder=[];radio.request=async(...args)=>{editorOrder.push(args[0]);if(args[0]==='${resource}')await new Promise(resolve=>globalThis.releaseEditor=resolve);return editorRequest(...args)}`);
       await click(button);await until(()=>evaluate('!!globalThis.releaseEditor'),'held editor');
       assert.equal(await evaluate('busy'),true);await click('access-toggle');
@@ -202,7 +205,7 @@ try {
       await evaluate('releaseEditor()');await idle();
       assert.equal(await evaluate('radio.authenticated'),false);
       assert.equal(await evaluate('editorOrder.at(-1)'),'consumer/logout');
-      assert.equal(await evaluate('document.getElementById("rf-calibration-discard").disabled && document.getElementById("ntp-timeout-discard").disabled'),true);
+      assert.equal(await evaluate('document.getElementById("rf-calibration-discard").matches(":disabled") && document.getElementById("ntp-timeout-discard").matches(":disabled")'),true);
     }
     pass('all standalone editors drain before logout and invalidate private readbacks');
     await navigate();await login();
