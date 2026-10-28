@@ -35,7 +35,7 @@ if [[ ! "$installer_revision" =~ ^[0-9a-f]{40}$ ]]; then
     exit 2
 fi
 mkdir -p "$installer_tmp/scripts/ci"
-for installer_file in scripts/usb_installer.py scripts/ci/release-manifest-1.schema.json; do
+for installer_file in scripts/usb_installer.py scripts/ci/release-manifest-2.schema.json; do
     curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
         --connect-timeout 10 --max-time 60 --max-filesize 1048576 \
         "https://raw.githubusercontent.com/WsprryPi/WsprryPico/$installer_revision/$installer_file" \

@@ -295,7 +295,9 @@ print("Retained LOAD/ARM results, terminal LRU and expiry tests passed")
 
 # A competing maximum reply temporarily occupies decoding workspace. Keep the
 # same complete CLAIM request bounded and undispatched until space returns.
-def send_with_decode_pressure(peer, request):
+# Scalar controls require 6 KiB in addition to the unchanged 32 KiB reserve;
+# place pressure below that boundary rather than using the LOAD workspace.
+def send_with_decode_pressure(peer, request, available_bytes=42000):
     # Input admission now reserves temporary workspace too. Model a competing
     # endpoint consuming memory after admission, before the final input byte.
     wire=frame(json.dumps(request,separators=(',', ':')).encode())
@@ -303,13 +305,13 @@ def send_with_decode_pressure(peer, request):
         result=peer.call(action='send',hex=wire[offset:min(offset+1024,len(wire)-1)].hex(),
                          available_bytes=1000000)
         assert not result['closed'] and not result['messages']
-    return peer.call(action='send',hex=wire[-1:].hex(),available_bytes=42000)
+    return peer.call(action='send',hex=wire[-1:].hex(),available_bytes=available_bytes)
 
 for recover in (True, False):
     p=Peer(); ok(p.hello())
     p.call(action="poll",available_bytes=42000)
     request=p.request("CLAIM",{"owner_id":"2"*32,"lease_ms":60000})
-    result=send_with_decode_pressure(p,request)
+    result=send_with_decode_pressure(p,request,available_bytes=38000)
     assert not result["closed"] and not result["messages"] and result["pending"]==0
     result=p.call(action="clock",synchronized=True,now_ns="4999000000")
     assert not result["closed"] and not result["messages"]
@@ -329,7 +331,7 @@ print("Bounded deferred decoding, same-connection recovery and expiry tests pass
 
 # Closing an endpoint discards its deferred mutation; it cannot claim later.
 p=Peer(); ok(p.hello()); p.call(action="poll",available_bytes=42000)
-result=send_with_decode_pressure(p,p.request("CLAIM",{"owner_id":"2"*32,"lease_ms":60000}))
+result=send_with_decode_pressure(p,p.request("CLAIM",{"owner_id":"2"*32,"lease_ms":60000}),available_bytes=38000)
 assert not result["closed"] and not result["messages"]
 p.call(action="disconnect",available_bytes=65536)
 p.reconnect(); ok(p.hello()); ok(p.ask("CLAIM",{"owner_id":"2"*32,"lease_ms":60000}))

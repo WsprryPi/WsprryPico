@@ -251,15 +251,22 @@ std::string caps(const ServiceConfig& c) {
            std::to_string(c.terminal_record_ttl_ns / 1'000'000'000ULL) + '}';
 }
 } // namespace
-bool is_small_read_request(Value root) {
-    const auto op = get(root, "op");
-    // Classify only bounded read envelopes. Full protocol/schema validation
-    // still follows; whitespace padding never requires a second event array.
+bool is_bounded_control_request(Value root) {
+    // Scalar controls never allocate a job/event array. Bound their encoded
+    // body before choosing the existing small workspace; full closed-envelope
+    // and body validation still precedes dispatch. LOAD keeps its full budget.
+    const auto op = get(root, "op"), b = get(root, "body");
     if (get(root, "protocol").raw.size() > 128 || get(root, "type").raw.size() > 44 ||
-        op.raw.size() > 56 || !json::fields(get(root, "body"), {}))
+        op.raw.size() > 56 || b.type() != '{')
         return false;
     const auto name = op.string();
-    return name == "STATUS" || name == "CAPS" || name == "GET_CLOCK";
+    if (json::fields(b, {}) && (name == "STATUS" || name == "CAPS" || name == "GET_CLOCK" ||
+                                name == "PING" || name == "RELEASE"))
+        return true;
+    if (b.raw.size() > 2048)
+        return false;
+    return name == "HELLO" || name == "CLAIM" || name == "RENEW" || name == "ARM" ||
+           name == "ABORT" || name == "PING";
 }
 bool is_active_load_replay(Value root, std::string_view id) {
     if (id.empty())

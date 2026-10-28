@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "logging/logger.hpp"
 
+#include "logging/udp_sender.hpp"
 #include "wtp/json.hpp"
 
 #include <algorithm>
@@ -107,7 +108,7 @@ bool Logger::start(std::string_view device, std::string_view boot) {
 }
 void Logger::stop() {
     streaming_ = false;
-    dropped_ += size_;
+    increment(dropped_, size_);
     head_ = size_ = 0;
 }
 void Logger::event(unsigned severity, std::string_view code, std::string_view message,
@@ -116,6 +117,8 @@ void Logger::event(unsigned severity, std::string_view code, std::string_view me
     if (severity > 7 || sequence_ == std::numeric_limits<std::uint64_t>::max())
         return;
     const auto sequence = ++sequence_;
+    if (udp_)
+        udp_->event(sequence, severity, code, message, monotonic, utc, dropped_);
     if (!settings_.enabled || severity > settings_.maximum_severity)
         return;
     const auto window = monotonic / 1'000'000'000ULL;
@@ -125,7 +128,7 @@ void Logger::event(unsigned severity, std::string_view code, std::string_view me
     }
     // Maximum eight events/second, including faults; no blocking or recursion.
     if (burst_ >= 8 || size_ == capacity) {
-        ++dropped_;
+        increment(dropped_);
         return;
     }
     ++burst_;
@@ -134,6 +137,8 @@ void Logger::event(unsigned severity, std::string_view code, std::string_view me
     record.sequence = sequence;
     record.monotonic = monotonic;
     record.utc = utc;
+    // The origin count belongs to this event, not to a later sink delivery.
+    record.dropped = dropped_;
     record.severity = severity;
     copy_clean(record.code, code, true);
     copy_clean(record.message, message, false);
@@ -176,7 +181,7 @@ std::string_view Logger::front() const {
     record.append(",\"monotonic_ns\":\"");
     record.number(r.monotonic);
     record.append("\",\"dropped\":\"");
-    record.number(dropped_);
+    record.number(r.dropped);
     record.append("\",\"message\":");
     record.quoted(r.message.data());
     record.append("}");

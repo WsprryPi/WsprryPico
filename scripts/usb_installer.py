@@ -49,13 +49,14 @@ import urllib.request
 import uuid
 import zipfile
 
-INSTALLER_VERSION = '0.2.1'
+INSTALLER_VERSION = '0.3.0'
 REPOSITORY = 'WsprryPi/WsprryPico'
 API = 'https://api.github.com/repos/' + REPOSITORY + '/'
 DOWNLOAD = 'https://github.com/' + REPOSITORY + '/releases/download/'
-SCHEMA = Path(__file__).parent / 'ci/release-manifest-1.schema.json'
+FIRMWARE_MANIFEST_SCHEMA = 2
+SCHEMA = Path(__file__).parent / 'ci/release-manifest-2.schema.json'
 SCHEMA_BYTES = None  # A deployed adapter may supply its verified immutable bytes.
-PERSISTENT_START = 0x3EE000  # Preserve the superset, including NTP learning.
+PERSISTENT_START = 0x3EC000  # Preserve the superset, including NTP learning.
 FLASH_SIZE = 0x400000
 PICOTOOL_MIN_VERSION = (2, 3, 0)
 PICOTOOL_OPTIONS = {
@@ -328,7 +329,7 @@ def uf2_blocks(data, application_end):
     this exact absolute-family block. Programming uses that identified reader;
     all persistent sectors, including the final sector, must read back unchanged.
     """
-    require(application_end in (0x103EE000, 0x103F0000), 'Unsupported application/storage layout')
+    require(application_end in (0x103EC000, 0x103EE000, 0x103F0000), 'Unsupported application/storage layout')
     require(data and len(data) % 512 == 0 and len(data) <= MAX_DOWNLOAD, 'Invalid UF2 length')
     count = len(data) // 512
     blocks, workaround = {}, 0
@@ -356,17 +357,40 @@ def uf2_blocks(data, application_end):
     require(addresses == list(range(addresses[0], addresses[-1] + 256, 256)),
             'Sparse UF2 application is unsupported')
     # Page erasure is sector-rounded, including the padded tail of the image.
-    require((addresses[-1] + 256 + 4095) // 4096 * 4096 <= 0x10000000 + PERSISTENT_START,
+    require((addresses[-1] + 256 + 4095) // 4096 * 4096 <= application_end,
             'UF2 erase extent overlaps durable state')
     return b''.join(blocks[a] for a in addresses)
+
+
+def firmware_schema(version, canonical):
+    """Two exact closed manifests; the original schema file remains unchanged."""
+    require(type(version) is int and version in (1, 2), 'Unsupported firmware manifest version')
+    identifier = canonical.get('$id')
+    base = 'https://github.com/WsprryPi/WsprryPico/firmware-release-manifest/'
+    require(identifier in (base+'1', base+'2'), 'Unknown firmware manifest schema')
+    if version == 2:
+        require(identifier == base+'2', 'Installer schema lacks storage contract 2')
+        return canonical
+    if identifier == base+'1':
+        return canonical
+    historical = json.loads(json.dumps(canonical))
+    historical['$id'] = base+'1'
+    historical['title'] = 'WsprryPico firmware deployment manifest version 1'
+    historical['properties']['schema_version'] = {'const': 1}
+    historical['properties']['testing_release']['properties']['storage']['const']['layout'] = '72 KiB reserved; application ends at 0x103ee000; E10 is SDK workaround only'
+    update = historical['properties']['update']
+    update['properties']['application_end'] = {'enum': ['103ee000', '103f0000']}
+    del update['properties']['storage_contract']
+    update['required'].remove('storage_contract')
+    return historical
 
 
 def verify_bundle(files, branch, schema_path=SCHEMA):
     require('release-manifest.json' in files and 'ci-publication.json' in files and
             'SHA256SUMS' in files, 'Incomplete verified bundle')
     manifest = decode(files['release-manifest.json'])
-    schema_check(manifest, decode(SCHEMA_BYTES if schema_path == SCHEMA and SCHEMA_BYTES is not None
-                                 else schema_path.read_bytes()))
+    schema_check(manifest, firmware_schema(manifest.get('schema_version'), decode(
+        SCHEMA_BYTES if schema_path == SCHEMA and SCHEMA_BYTES is not None else schema_path.read_bytes())))
     proof = decode(files['ci-publication.json'])
     source, workflow = manifest['source'], manifest['workflow']
     version = manifest['firmware_version']
@@ -570,6 +594,16 @@ def read_bundle(directory):
     return files
 
 
+def preserved_start(manifest, record=None):
+    # Receipts from the historical installer hashed its NTP-inclusive superset.
+    # New transactions preserve the exact validated layout they are installing.
+    if record is not None and record.get('installer_version') in ('0.2.0', '0.2.1'):
+        return 0x3ee000
+    end = manifest['update']['application_end']
+    require(end in ('103ec000','103ee000','103f0000'), 'Unsupported preserved storage layout')
+    return int(end,16)-0x10000000
+
+
 def candidate_asset(files, manifest):
     return (decode(files['local-build.json'])['uf2'] if 'local-build.json' in files else
             decode(files['ci-publication.json'])['uf2'])
@@ -577,8 +611,9 @@ def candidate_asset(files, manifest):
 
 def verify_linked_identity(tool, filename, manifest):
     linked = command([tool.path, 'info', '-a', filename])
-    for field, expected in (('name', 'WsprryPico'), ('version', manifest['firmware_version']),
-                            ('description', 'Standalone PIO/DMA RF ' + manifest['source'].get('identity', manifest['source']['revision'][:12])),
+    inhibited = manifest.get('developer_variant') == 'inhibited'
+    for field, expected in (('name', 'WsprryPico-Inhibited' if inhibited else 'WsprryPico'), ('version', manifest['firmware_version']),
+                            ('description', ('Standalone RF-inhibited ' if inhibited else 'Standalone PIO/DMA RF ') + manifest['source'].get('identity', manifest['source']['revision'][:12])),
                             ('pico_board', 'pico2_w'), ('target chip', 'RP2350')):
         require(re.search(r'^ ' + re.escape(field) + r':\s+' + re.escape(expected) + r'$', linked, re.M),
                 'Embedded image identity mismatch: ' + field)
@@ -674,10 +709,22 @@ def resolve_installed(client, version):
 
 def verify_local(files):
     """Private developer metadata; never a public release or CI receipt."""
+    require(isinstance(files,dict) and 'local-build.json' in files, 'Missing developer bundle metadata')
     meta = decode(files['local-build.json'])
+    require(isinstance(meta, dict) and meta.get('schema') in ('wsprrypico-local-build/1','wsprrypico-local-build/2'), 'Unsupported developer bundle schema')
+    require(set(meta) == {'schema','board','variant','version','source','usb_update_contract','application_end','uf2'} and
+            isinstance(meta.get('source'),dict) and set(meta['source']) == {'revision','dirty','identity','inputs_sha256'} and
+            isinstance(meta.get('uf2'),dict) and set(meta['uf2']) == {'path','bytes','sha256'}, 'Invalid developer bundle shape')
     source, asset = meta['source'], meta['uf2']
-    require(meta['schema'] == 'wsprrypico-local-build/1' and meta['board'] == 'pico2_w' and
-            meta['variant'] == 'normal' and meta['version'] == '0.0.0-devel' and
+    require(all(isinstance(meta[key],str) for key in ('board','variant','version','application_end')) and
+            type(meta['usb_update_contract']) is int and type(source['dirty']) is bool and
+            all(isinstance(source[key],str) for key in ('revision','identity','inputs_sha256')) and
+            isinstance(asset['path'],str) and isinstance(asset['sha256'],str) and
+            type(asset['bytes']) is int and asset['bytes']>0, 'Invalid developer bundle field types')
+    require(((meta['schema'], meta['usb_update_contract'], meta['application_end']) in
+             (('wsprrypico-local-build/1', 1, '103ee000'), ('wsprrypico-local-build/1', 1, '103f0000'),
+              ('wsprrypico-local-build/2', 2, '103ec000'))) and meta['board'] == 'pico2_w' and
+            (meta['variant'] == 'normal' or (meta['schema'] == 'wsprrypico-local-build/2' and meta['variant'] == 'inhibited')) and meta['version'] == '0.0.0-devel' and
             re.fullmatch(HEX40, source['revision']) and type(source['dirty']) is bool and
             re.fullmatch(HEX64, source['inputs_sha256']) and
             source['identity'] in (source['revision'][:12], source['revision'][:12] + '-dirty') and
@@ -685,12 +732,12 @@ def verify_local(files):
             set(files) == {'local-build.json', asset['path']} and
             asset['bytes'] == len(files[asset['path']]) and asset['sha256'] == sha(files[asset['path']]),
             'Incompatible or changed developer bundle')
-    require(meta['usb_update_contract'] == 1 and meta['application_end'] in ('103ee000', '103f0000'),
+    require(type(meta['usb_update_contract']) is int and meta['usb_update_contract'] in (1, 2),
             'Developer image lacks the supported USB/storage contract')
     image = uf2_blocks(files[asset['path']], int(meta['application_end'], 16))
     require(b'WsprryPico USB maintenance 1 postboot verification 1' in image,
             'Developer image is missing its linked USB update declaration')
-    manifest = {'firmware_version': meta['version'], 'source': source, 'workflow': None,
+    manifest = {'firmware_version': meta['version'], 'source': source, 'workflow': None, 'developer_variant': meta['variant'],
                 'update': {'application_end': meta['application_end'], 'usb_maintenance': 1,
                            'postboot_verification': 1}}
     return manifest, image
@@ -717,11 +764,14 @@ def build_local(args):
     before = inputs.hexdigest()
     require(shutil.disk_usage(output.parent).free >= 768 * 1024 * 1024,
             'Need at least 768 MiB free for a fresh developer build')
+    variant = getattr(args,'local_variant',None) or 'normal'
+    require(variant in ('normal','inhibited'), 'Unsupported developer image variant')
+    target = 'WsprryPico' if variant == 'normal' else 'WsprryPico-Inhibited'
     # Existing helper checks exact SDK/submodule/compiler pins and performs the
     # linked engine/storage/USB checks. No package or SDK acquisition is offered.
     log = output.with_name(output.name + '.installer-build.log')
     with log.open('xb') as stream:
-        result = subprocess.run(['bash', str(source / 'scripts/build_pico.sh'), 'WsprryPico', str(output)],
+        result = subprocess.run(['bash', str(source / 'scripts/build_pico.sh'), target, str(output)],
                                 stdin=subprocess.DEVNULL, stdout=stream, stderr=subprocess.STDOUT, timeout=900)
     require(result.returncode == 0, 'Developer compilation failed; inspect ' + str(log) + '; no alternate image was selected')
     require(command(['git', '-C', source, 'rev-parse', 'HEAD']).strip() == revision and
@@ -742,13 +792,13 @@ def build_local(args):
     identity = (output / 'firmware/generated/firmware_identity.hpp').read_text()
     match = re.search(r'kBuildRevision\[\]\s*=\s*"([0-9a-f]{12}(?:-dirty)?)"', identity)
     require(match and match[1].startswith(revision[:12]), 'Developer linked source identity unavailable')
-    data = (output / 'firmware/WsprryPico.uf2').read_bytes()
-    mapping = (output / 'firmware/WsprryPico.elf.map').read_text()
-    end = re.search(r'^FLASH\s+0x10000000\s+0x003(ee000|f0000)\s+xr$', mapping, re.M)
+    data = (output / ('firmware/' + target + '.uf2')).read_bytes()
+    mapping = (output / ('firmware/' + target + '.elf.map')).read_text()
+    end = re.search(r'^FLASH\s+0x10000000\s+0x003(ec000|ee000|f0000)\s+xr$', mapping, re.M)
     require(end, 'Developer linked storage boundary unavailable')
-    meta = {'schema': 'wsprrypico-local-build/1', 'board': 'pico2_w', 'variant': 'normal',
+    meta = {'schema': 'wsprrypico-local-build/2' if end[1] == 'ec000' else 'wsprrypico-local-build/1', 'board': 'pico2_w', 'variant': variant,
             'version': '0.0.0-devel', 'source': {'revision': revision, 'dirty': bool(status),
-                'identity': match[1], 'inputs_sha256': before}, 'usb_update_contract': 1,
+                'identity': match[1], 'inputs_sha256': before}, 'usb_update_contract': 2 if end[1] == 'ec000' else 1,
             'application_end': '103' + end[1],
             'uf2': {'path': 'WsprryPico-0.0.0-devel-pico2_w.uf2', 'bytes': len(data), 'sha256': sha(data)}}
     files = {'local-build.json': json.dumps(meta, sort_keys=True).encode(), meta['uf2']['path']: data}
@@ -1627,6 +1677,8 @@ def transaction(args, files, manifest, image, client=None):
                             'Unsupported installed firmware; retain backup and recover deliberately')
                     old_files, old_manifest, old_image = ((files, manifest, image) if old_version == manifest['firmware_version'] and
                                                         'local-build.json' not in files else resolve_installed(client, old_version))
+                require(old_manifest['update']['application_end'] != '103ec000' or manifest['update']['application_end'] == '103ec000',
+                        'Rollback would overwrite the UDP journal reservation; a reviewed settings-preserving migration is required')
                 old_source, new_source = old_manifest['source']['revision'], manifest['source']['revision']
                 if old_source != new_source:
                     compare = client.api('compare/' + old_source + '...' + new_source)
@@ -1679,7 +1731,7 @@ def transaction(args, files, manifest, image, client=None):
             with (directory / 'before.bin').open('rb') as backup:
                 os.fsync(backup.fileno())
             record.update(stage='backup_readback_verified', backup_sha256=sha(before),
-                          persistent_sha256=sha(before[PERSISTENT_START:]))
+                          persistent_sha256=sha(before[preserved_start(manifest, record):]))
             save_json(path, record)
             blank = before == b'\xff' * FLASH_SIZE
             if args.operation == 'install':
@@ -1696,7 +1748,9 @@ def transaction(args, files, manifest, image, client=None):
                         snapshot['target']['device_id'] == device_id(serial), 'Preflight belongs to a different board')
                 require(before[:len(old_image)] == old_image, 'Installed firmware does not match its verified identity')
                 require(int(old_manifest['update']['application_end'], 16) <= int(manifest['update']['application_end'], 16) or
-                        before[PERSISTENT_START:0x3F0000] == b'\xff' * 8192,
+                        before[int(manifest['update']['application_end'], 16)-0x10000000:
+                               int(old_manifest['update']['application_end'], 16)-0x10000000] ==
+                        b'\xff' * (int(old_manifest['update']['application_end'], 16)-int(manifest['update']['application_end'], 16)),
                         'Newly reserved storage is not erased; migration is unsupported')
                 if getattr(args, 'installed_bundle', None) is not None:
                     for suffix, maximum in (('json', 65536), ('uf2', MAX_DOWNLOAD)):
@@ -1710,7 +1764,7 @@ def transaction(args, files, manifest, image, client=None):
                                    root=root)
                     record['installed_reference_repaired'] = True
             record.update(stage='backed_up', program_authorized=True, backup_sha256=sha(before),
-                          persistent_sha256=sha(before[PERSISTENT_START:]))
+                          persistent_sha256=sha(before[preserved_start(manifest, record):]))
             save_json(path, record)
             return program_verified(args, tool, record, path, manifest, image, before, snapshot)
         except BaseException as error:
@@ -1740,7 +1794,7 @@ def program_verified(args, tool, record, path, manifest, image, before, snapshot
     terminal_progress(args, 'Verify firmware and preserved flash...')
     tool.run(serial, 'verify', filename, timeout=120)
     after = tool.read_flash(serial, directory / 'after.bin')
-    require(after[:len(image)] == image and after[PERSISTENT_START:] == before[PERSISTENT_START:],
+    require(after[:len(image)] == image and after[preserved_start(manifest, record):] == before[preserved_start(manifest, record):],
             'Program or reserved flash readback mismatch; leave board in BOOTSEL')
     record.update(stage='programmed_and_flash_verified', preserved=True)
     save_json(path, record)
@@ -1859,7 +1913,7 @@ def recover_transaction(args):
             (record['version'] == '0.0.0-devel' or version_kind(record['version']) in ('ci', 'prerelease', 'stable')) and
             record['branch'] in ('main', 'devel') and re.fullmatch(HEX40, record['source']),
             'Incompatible or wrong-board recovery record')
-    names = ({'local-build.json', f"WsprryPico-{record['version']}-pico2_w.uf2"} if (path.parent / 'local-build.json').exists() else
+    names = ({'local-build.json', decode((path.parent / 'local-build.json').read_bytes())['uf2']['path']} if (path.parent / 'local-build.json').exists() else
              {'release-manifest.json', 'SHA256SUMS', 'ci-publication.json', 'LICENSE.md',
              'THIRD_PARTY_NOTICES.md', 'DEPENDENCY-LICENSES.txt', f"WsprryPico-{record['version']}-pico2_w.uf2"})
     files = {}
@@ -1885,7 +1939,7 @@ def recover_transaction(args):
             'No verified backup was completed; firmware was not authorized for programming in this transaction')
     before = backup.read_bytes()
     require(sha(before) == record.get('backup_sha256') and
-            sha(before[PERSISTENT_START:]) == record.get('persistent_sha256'), 'Recovery backup integrity mismatch')
+            sha(before[preserved_start(manifest, record):]) == record.get('persistent_sha256'), 'Recovery backup integrity mismatch')
     snapshot_path = path.parent / 'preflight.json'
     snapshot = decode(snapshot_path.read_bytes()) if record['operation'] == 'upgrade' else None
     tool = Picotool(args.picotool)
@@ -1901,7 +1955,7 @@ def recover_transaction(args):
                         'Programming was ambiguous. Deliberately reconnect this board in BOOTSEL for readback/recovery.')
                 return verify_application(args, tool, record, path, manifest, snapshot)
             current = tool.read_flash(args.device, path.parent / 'recovery-readback.bin')
-            require(current[PERSISTENT_START:] == before[PERSISTENT_START:],
+            require(current[preserved_start(manifest, record):] == before[preserved_start(manifest, record):],
                     'Reserved state differs from backup; do not overwrite it or restore it blindly')
             return program_verified(args, tool, record, path, manifest, image, before, snapshot)
         except BaseException as error:
@@ -1953,10 +2007,12 @@ def continue_migration(args, record, path, manifest, image):
                 os.fsync(backup.fileno())
             require(before[:len(old_image)] == old_image, 'Installed firmware does not match its verified CI image')
             require(int(old_manifest['update']['application_end'], 16) <= int(manifest['update']['application_end'], 16) or
-                    before[PERSISTENT_START:0x3F0000] == b'\xff' * 8192,
+                    before[int(manifest['update']['application_end'], 16)-0x10000000:
+                               int(old_manifest['update']['application_end'], 16)-0x10000000] ==
+                        b'\xff' * (int(old_manifest['update']['application_end'], 16)-int(manifest['update']['application_end'], 16)),
                     'Newly reserved storage is not erased; migration is unsupported')
             record.update(stage='backed_up', program_authorized=True, backup_sha256=sha(before),
-                          persistent_sha256=sha(before[PERSISTENT_START:]), manual_bootsel_required=False)
+                          persistent_sha256=sha(before[preserved_start(manifest, record):]), manual_bootsel_required=False)
             save_json(path, record)
             return program_verified(args, tool, record, path, manifest, image, before, snapshot)
     except BaseException as error:
@@ -2163,6 +2219,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     choice.add_argument('--local-bundle', type=Path, help='Explicit previously built developer bundle')
     parser.add_argument('--installed-bundle', type=Path,
                         help='Original developer bundle for the running local image; upgrade verifies flash before repairing its reference')
+    parser.add_argument('--local-variant', choices=('normal','inhibited'), help='Explicit developer firmware engine; inhibited never drives RF')
     parser.add_argument('--build-dir', type=Path, help='New developer build directory; never reused')
     parser.add_argument('--source-revision', help='Require this exact full local source HEAD')
     parser.add_argument('--allow-dirty', action='store_true', help='Explicitly accept a labelled dirty developer build')
@@ -2200,6 +2257,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
                 'Picotool download/cleanup options are for standalone install, upgrade, erase or recover')
         require(not (args.picotool is not None and args.download_picotool),
                 'Choose an existing --picotool or allow --download-picotool; an explicit tool is never replaced')
+        require(args.local_variant is None or args.local_build is not None, '--local-variant applies only to --local-build; retained bundles select their own verified engine')
         require(not args.bundle or not (args.version or args.stable or args.local_build or args.local_bundle),
                 '--bundle cannot be combined with another image selector')
         require(not args.replace_unidentified_application or args.operation == 'install',

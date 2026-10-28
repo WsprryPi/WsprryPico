@@ -55,9 +55,9 @@ def validate(symbols, disassembly, map_text, uf2):
                      'capture_chip_select_gesture', 'PicoAccessStorage', 'PicoProfileStorage'):
         if any(fragment in name for _, _, name in entries):
             raise ValueError(f"Forbidden diagnostic dependency: {fragment}")
-    if not re.search(r'^FLASH\s+0x10000000\s+0x003ee000\s+xr$', map_text, re.M):
+    if not re.search(r'^FLASH\s+0x10000000\s+0x003ec000\s+xr$', map_text, re.M):
         raise ValueError('Diagnostic scratch/settings reservation absent')
-    validate_uf2(uf2, application_end=0x103ee000)
+    validate_uf2(uf2, application_end=0x103ec000)
 
 
 if __name__ == '__main__':

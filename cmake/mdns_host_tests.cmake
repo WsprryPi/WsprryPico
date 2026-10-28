@@ -48,7 +48,9 @@ if(WSPRRY_PICO_TEST_LWIP_PATH)
     target_compile_options(captive_dns_tests PRIVATE -Wall -Wextra -Werror -UNDEBUG)
     add_test(NAME captive_dns_tests COMMAND captive_dns_tests)
     add_executable(network_adapter_tests tests/network_adapter_tests.cpp
-        src/standalone/pico/adapters.cpp src/standalone/pico/net_trace.cpp)
+        src/standalone/pico/adapters.cpp src/standalone/pico/net_trace.cpp
+        src/standalone/pico/udp_logging.cpp src/provisioning/pico/dhcp_server.c
+        src/provisioning/pico/captive_dns.c)
     target_include_directories(network_adapter_tests BEFORE PRIVATE tests/network_adapter_mock)
     target_link_libraries(network_adapter_tests PRIVATE mdns_test_stack wsprrypico_core)
     target_compile_definitions(network_adapter_tests PRIVATE WSPRRY_PICO_CYW43_TX_GUARD=1)

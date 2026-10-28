@@ -216,3 +216,5 @@ configuration are outside this scaffold. Its dependencies stay pinned in
 
 The documentation dependencies do not install an SDK or toolchain.
 Current instructional screenshots remain under `docs/_static/images/`.
+
+The [UDP logging contract](udp-logging.md) defines independent settings, finite test resources, worker packaging and storage contracts. Its [qualification record](udp-logging-qualification.md) identifies the passed software/physical acceptance, source and image identities, and restored setup. Coordinated publication is tracked in the combined backlog.

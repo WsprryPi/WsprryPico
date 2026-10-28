@@ -124,6 +124,15 @@ int main(int argc, char** argv) {
     standalone::Scheduler scheduler(store, service);
     network_test::Network network;
     network::BrowserApi api(service, store, scheduler, network, device, "test-worker-firmware");
+    network_test::Flash udp_flash;
+    logging::UdpStore udp_store(udp_flash);
+    if (!udp_store.load())
+        return 2;
+    logging::UdpSender udp_sender(device, service.status().boot_id, "pico.local");
+    api.udp_logging_service(udp_store, udp_sender);
+    logging::Logger udp_logger(device, service.status().boot_id, "pico.local");
+    udp_logger.udp_sink(udp_sender);
+    api.logging_service(udp_logger);
     unsigned restarts = 0;
     api.restart_control(
         [](void* context) {
@@ -172,8 +181,7 @@ int main(int argc, char** argv) {
         no_tls.stop();
     }
     const bool plain_with_tls = argc > 3 && std::string_view(argv[3]) == "--plain-with-tls";
-    const bool plain = plain_with_tls ||
-                       (argc > 3 && std::string_view(argv[3]) == "--plain-wtp");
+    const bool plain = plain_with_tls || (argc > 3 && std::string_view(argv[3]) == "--plain-wtp");
     const auto admission = plain && !plain_with_tls ? network::PicoServer::Admission::SoftApOnly
                            : argc > 3 && std::string_view(argv[3]) == "--local-wtp"
                                ? network::PicoServer::Admission::LocalWtp
@@ -274,10 +282,9 @@ int main(int argc, char** argv) {
                 }
                 const auto resources = server.resources();
                 std::cout << "NETWORK " << resources.active_connections << ' '
-                          << resources.pending_connections << ' '
-                          << resources.buffered_rx_bytes << std::endl;
-            }
-            else if (command == "VALIDATE GOOD" || command == "VALIDATE BAD") {
+                          << resources.pending_connections << ' ' << resources.buffered_rx_bytes
+                          << std::endl;
+            } else if (command == "VALIDATE GOOD" || command == "VALIDATE BAD") {
                 provisioning::MbedTlsCredentialValidator validator(device, &service);
                 const auto valid = validator.validate(
                     command == "VALIDATE GOOD" ? credentials : invalid_credentials);

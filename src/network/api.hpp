@@ -1,4 +1,5 @@
 #pragma once
+#include "logging/udp_settings.hpp"
 #include "network/http.hpp"
 #include "network/management.hpp"
 #include "provisioning/hostname.hpp"
@@ -12,6 +13,9 @@ namespace wsprrypico::network {
 class NetworkControl {
   public:
     virtual ~NetworkControl() = default;
+    virtual bool udp_destination_allowed(std::string_view value) const {
+        return logging::udp_ipv4(value).has_value();
+    }
     virtual std::string status() const = 0;
     virtual std::string operations_status() const {
         return status();
@@ -34,6 +38,10 @@ class BrowserApi {
     std::string revision() const;
     void logging_service(logging::Logger& logger) {
         logger_ = &logger;
+    }
+    void udp_logging_service(logging::UdpStore& store, logging::UdpSender& sender) {
+        udp_store_ = &store;
+        udp_sender_ = &sender;
     }
     // Small read-only projection for the admitted consumer page before login.
     // No job contents, owner identity, settings, history or transport details.
@@ -118,6 +126,10 @@ class BrowserApi {
     }
 
   private:
+    logging::UdpStore* udp_store_ = nullptr;
+    std::optional<std::uint64_t> udp_test_at_;
+    logging::UdpSender* udp_sender_ = nullptr;
+    HttpResponse udp_logging_resource(const HttpRequest& request);
     logging::Logger* logger_ = nullptr;
     HttpResponse logging_resource(const HttpRequest& request);
     const time::ControllerTimeArbiter* time_arbiter_ = nullptr;

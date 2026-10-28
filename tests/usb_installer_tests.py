@@ -585,6 +585,43 @@ class InstallerTests(unittest.TestCase):
                 (root/'.git').write_text('fixture')
                 with self.assertRaises(installer.Refusal):installer.private_directory(root/'inside')
 
+    def test_exact_selected_and_historical_receipt_preservation_boundaries(self):
+        for end,boundary in [('103ec000',0x3ec000),('103ee000',0x3ee000),('103f0000',0x3f0000)]:
+            manifest={'update':{'application_end':end}}
+            self.assertEqual(installer.preserved_start(manifest),boundary)
+            if end!='103ec000':self.assertEqual(installer.preserved_start(manifest,{'installer_version':'0.2.1'}),0x3ee000)
+        with self.assertRaises(installer.Refusal):installer.preserved_start({'update':{'application_end':'103ed000'}})
+
+    def test_contract_two_inhibited_bundle_and_closed_shape(self):
+        data=bytearray(uf2());tag=b'WsprryPico USB maintenance 1 postboot verification 1'
+        data[544:800]=tag.ljust(256,b'\0');data=bytes(data)
+        asset={'path':'WsprryPico-0.0.0-devel-pico2_w.uf2','bytes':len(data),'sha256':installer.sha(data)}
+        meta={'schema':'wsprrypico-local-build/2','board':'pico2_w','variant':'inhibited','version':'0.0.0-devel',
+              'source':{'revision':'a'*40,'identity':'a'*12,'dirty':False,'inputs_sha256':'b'*64},
+              'usb_update_contract':2,'application_end':'103ec000','uf2':asset}
+        files={'local-build.json':encoded(meta),asset['path']:data}
+        self.assertEqual(installer.verify_local(files)[0]['update']['application_end'],'103ec000')
+        for key,value in [('schema','wsprrypico-local-build/1'),('usb_update_contract',1),('application_end','103ee000'),('extra',True)]:
+            bad=dict(meta);bad[key]=value
+            with self.assertRaises(installer.Refusal):installer.verify_local({**files,'local-build.json':encoded(bad)})
+
+    def test_developer_metadata_shape_and_types_precede_field_access_for_both_contracts(self):
+        for version,end in ((1,'103f0000'),(2,'103ec000')):
+            meta={'schema':f'wsprrypico-local-build/{version}','board':'pico2_w','variant':'normal','version':'0.0.0-devel',
+                  'source':{'revision':'a'*40,'identity':'a'*12,'dirty':False,'inputs_sha256':'b'*64},
+                  'usb_update_contract':version,'application_end':end,
+                  'uf2':{'path':'WsprryPico-0.0.0-devel-pico2_w.uf2','bytes':512,'sha256':'c'*64}}
+            invalid=[]
+            for key,value in (('source',[]),('uf2',None),('extra',True),('usb_update_contract',True)):
+                bad=copy.deepcopy(meta);bad[key]=value;invalid.append(bad)
+            for key in ('revision','identity','inputs_sha256'):
+                bad=copy.deepcopy(meta);bad['source'][key]=7;invalid.append(bad)
+            bad=copy.deepcopy(meta);del bad['source']['revision'];invalid.append(bad)
+            bad=copy.deepcopy(meta);bad['uf2']['bytes']=True;invalid.append(bad)
+            for bad in invalid:
+                with self.subTest(contract=version,metadata=bad),self.assertRaises(installer.Refusal):
+                    installer.verify_local({'local-build.json':encoded(bad)})
+
     def test_local_identity_outlives_secret_backup_retention(self):
         data=bytearray(uf2());tag=b'WsprryPico USB maintenance 1 postboot verification 1'
         data[544:800]=tag.ljust(256,b'\0');data=bytes(data)
@@ -636,7 +673,8 @@ class InstallerTests(unittest.TestCase):
                 if migration_failure=='backup':raise installer.Refusal('backup failed')
                 data=(b'X'+original[1:]) if migration_failure=='old_image' else original
                 if migration_failure=='reserved' and self.reads>1:
-                    data=data[:installer.PERSISTENT_START]+b'X'+data[installer.PERSISTENT_START+1:]
+                    boundary=installer.preserved_start(manifest)
+                    data=data[:boundary]+b'X'+data[boundary+1:]
                 path.write_bytes(data);return data
         class Management:
             def __init__(self,_):pass
@@ -1661,7 +1699,7 @@ class StandaloneGuidanceTests(unittest.TestCase):
         core = (ROOT / 'scripts/usb_installer.py').read_text().replace(
             "if __name__ == '__main__':\n", "if __name__ == '__main__':\n" + overrides)
         (source / 'usb_installer.py').write_text(core)
-        (source / 'release-manifest-1.schema.json').write_text('{}')
+        (source / 'release-manifest-2.schema.json').write_text('{}')
         curl = tools / 'curl'
         curl.write_text('#!' + sys.executable + '\n' +
             'import json,os,sys\nfrom pathlib import Path\n'

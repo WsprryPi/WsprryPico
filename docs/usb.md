@@ -174,3 +174,5 @@ On WsprryPi, save the Pico in Fleet, then open **Logs**, select that Pico in **S
 Console remains available in another terminal or browser tool while collection runs. WTP transmission control and USB management also retain their separate ports. Firmware maintenance releases Logging and reconnects collection afterward; a whole-device restart or update disconnects all ports. Changed device identity requires explicit review.
 
 For a manually started stream on Logging, send `SYSLOG STOP` to stop that stream. Console does not carry the stream. Logging settings belong to the Pico; the Pi's collection setting belongs to the Pi. Neither grants transmitter ownership or enables schedules. Older firmware without the dedicated Logging port requires an update before collection can start; the collector does not fall back to Console.
+
+USB export and [UDP export](udp.md) use independent controls and queues. A Pi may forward already collected USB events without enabling direct Pico UDP. A USB disconnect cannot clear the UDP queue, and neither logging path grants transmitter ownership.

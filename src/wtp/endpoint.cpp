@@ -214,7 +214,7 @@ void Endpoint::payload(FrameBuffer bytes, std::uint64_t now,
     }
     auto replay_id = service_.active_load_replay_id();
     bool replay = is_active_load_replay(*root, replay_id);
-    pending_input_workspace_ = replay || is_small_read_request(*root) ? 6144 : 32768;
+    pending_input_workspace_ = replay || is_bounded_control_request(*root) ? 6144 : 32768;
     // Preserve the normal fast path. Compact only if optional-adapter reclaim
     // still cannot satisfy the original workspace and authority reserve.
     bool workspace_admitted = authoritative_memory_admitted(pending_input_workspace_);
@@ -246,7 +246,7 @@ void Endpoint::payload(FrameBuffer bytes, std::uint64_t now,
         }
         replay_id = service_.active_load_replay_id();
         replay = is_active_load_replay(*root, replay_id);
-        pending_input_workspace_ = replay || is_small_read_request(*root) ? 6144 : 32768;
+        pending_input_workspace_ = replay || is_bounded_control_request(*root) ? 6144 : 32768;
         workspace_admitted = authoritative_memory_admitted(pending_input_workspace_);
     }
     if (!workspace_admitted) {

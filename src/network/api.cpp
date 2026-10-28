@@ -781,6 +781,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return http_error(403, "cross_site_request");
     }
     service_.poll();
+    if (r.path == "/api/v1/udp-logging" || r.path == "/api/v1/udp-logging/capabilities" || r.path == "/api/v1/udp-logging/test" || r.path == "/api/v1/udp-logging/test/capabilities")
+        return udp_logging_resource(r);
     if (r.path == "/api/v1/logging")
         return logging_resource(r);
     if (r.path == "/api/v1/message-schedule" || r.path == "/api/v1/message-schedule/pause")

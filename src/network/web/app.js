@@ -53,6 +53,7 @@ let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let observedClockMs = 0;
+let udpEditor = null;
 let loggingSnapshot = null, loggingRevision = '', loggingBusy = false, loggingEpoch = 0;
 let observationEpoch = 0, operationsSnapshot = null, operationsTarget = null, consoleObservedMs = 0, privateStatusVisible = false;
 const consolePut = (id,text) => { const e=$(id); if(e && e.textContent!==text) e.textContent=text; };
@@ -706,7 +707,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
   if(accessClosing) throw Object.assign(new Error('Controls locked while the request was in flight. Its outcome may require readback; no action was repeated.'),{unconfirmed:true});
   let data;
   try {
-    data = await response.json();
+    data = path.startsWith('udp-logging') && typeof response.text === 'function' ? WsprryUdp.parseJson(await response.text(),4096) : await response.json();
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid API response');
   } catch (error) {
     if (settingWrite) requireReadback();
@@ -1852,7 +1853,9 @@ function loggingControls() {
     loggingSnapshot = null; loggingRevision = ''; ++loggingEpoch;
     if ($('logging-status')) $('logging-status').textContent = 'Logging state is unconfirmed. Unlock controls and read logging settings before editing.';
   }
+  udpEditor?.setAvailability(available);
   const idle = available && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
+  udpEditor?.setWritable(Boolean(idle && !busy));
   if ($('logging-read')) $('logging-read').disabled = !available || busy || loggingBusy;
   if ($('logging-settings')) $('logging-settings').disabled = !idle || busy || loggingBusy || !loggingSnapshot;
 }
@@ -1876,7 +1879,7 @@ async function readLogging() {
     loggingSnapshot = result.data; loggingRevision = result.revision;
     $('logging-enabled').checked = result.data.saved.enabled;
     $('logging-severity').value = String(result.data.saved.maximum_severity);
-    $('logging-status').textContent = `Saved: ${result.data.saved.enabled ? 'enabled' : 'disabled'}. Active: ${result.data.active.enabled ? 'enabled' : 'disabled'}; Console ${result.data.active.connected ? 'connected' : 'disconnected'}; stream ${result.data.active.streaming ? 'started' : 'stopped'}; ${result.data.active.dropped} dropped events. WsprryPi starts its own collection session.`;
+    $('logging-status').textContent = `Saved: ${result.data.saved.enabled ? 'enabled' : 'disabled'}. Active: ${result.data.active.enabled ? 'enabled' : 'disabled'}; Logging port ${result.data.active.connected ? 'connected' : 'disconnected'}; stream ${result.data.active.streaming ? 'started' : 'stopped'}; ${result.data.active.dropped} dropped events. WsprryPi starts its own collection session.`;
     $('logging-settings').disabled = false;
   } catch (error) { loggingSnapshot = null; $('logging-status').textContent = error.message; }
   finally { loggingBusy = false; loggingControls(); }
@@ -1894,4 +1897,10 @@ $('logging-form')?.addEventListener('submit', async event => {
   } catch (error) {
     $('logging-status').textContent = 'Save unconfirmed. Read logging settings and review saved state before another save. ' + error.message;
   } finally { loggingBusy = false; loggingControls(); }
+});
+
+// UDP settings are independent from USB logging and ordinary configuration saves.
+udpEditor = globalThis.WsprryUdp.mount($('udp-logging-controls'), {
+  exchange: async (path,method='GET',body,etag) => { const r=await api(path,method,body,etag); return {value:r.data,revision:r.revision}; },
+  context: () => accessEpoch
 });
