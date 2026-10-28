@@ -18,11 +18,11 @@ Native Windows Chrome Console identity, settings, complete INFO display, success
 
 2. [x] ✅ **Syslog over USB.** Pico logging/export, Pi collection, both UIs, stable identity and maintenance coordination are implemented. The dedicated fourth Logging channel preserves the existing Console, WTP and Management identities. Physical simultaneous-operation tests and both required production-path integration suites passed for the paired candidate sources; see the [USB logging contract and validation bounds](usb-logging.md#validation-bounds). The implementation and subsequent Console STATUS and logger shutdown fixes are integrated into `devel`.
 3. [x] ✅ **Syslog over UDP.** The [implementation](udp-logging.md) provides Pico/Pi senders, selected USB forwarding, an unprivileged Pi collector, both management UIs, distinct origin/relay provenance, loop prevention and bounded duplicate handling. Both actual production source-pair suites, finite physical USB/network campaign, UI/documentation checks and restoration passed; see [qualification and evidence boundaries](udp-logging-qualification.md). UDP policies default off, and local submission never confirms receipt. The coordinated Pico, Pi/UI and operator-documentation changes carry this feature together; the dated [reviewed proposal](udp-syslog-proposal.md) and [saved execution authority](syslog-proposals.md#wsprry-development-session--standing-execution-authority) record its design inputs.
-4. **LPF/band-selector control**, if economically useful.
+4. **LPF/band-selector control**, if economically useful. See the [saved execution prompt](lpf-band-selector-execution-prompt.md), including its standing authority, usefulness assessment, coordinated implementation and adversarial review requirements. Not started.
 
 ### Backend
 
-5. **Optional amplifier settling and lead/tail timing.**
+5. **Optional amplifier settling and lead/tail timing.** See the [saved execution prompt](amplifier-timing-execution-prompt.md), including its standing authority, coordinated implementation, timing validation and adversarial review requirements. Not started.
 
 ### UI
 
