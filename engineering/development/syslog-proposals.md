@@ -1,6 +1,6 @@
 # Syslog prompts and execution authority
 
-The UDP prompt defines selected unfinished work in the [consolidated backlog](consolidated-backlog.md#combined-ui--backend). USB logging is implemented; its current behavior and bounded validation are recorded in the [USB logging contract](usb-logging.md). The completed USB execution prompt has been consolidated into that contract. UDP proposal and implementation remain pending. Saving, reviewing, committing or pushing this document does not execute the UDP task or authorize deployment by itself.
+The UDP prompt defines selected unfinished work in the [consolidated backlog](consolidated-backlog.md#combined-ui--backend). USB logging is implemented; its current behavior and bounded validation are recorded in the [USB logging contract](usb-logging.md). The completed USB execution prompt has been consolidated into that contract. The [reviewed UDP proposal and coordinated plan](udp-syslog-proposal.md) is complete; feature implementation and runtime acceptance remain pending. Saving, reviewing, committing or pushing this document does not execute the UDP task or authorize deployment by itself.
 
 The [standing execution authority](#wsprry-development-session--standing-execution-authority) is part of the UDP prompt. Include that complete section when copying the prompt for an explicitly assigned execution session. It grants authority within the assigned task and its stated session; it is not a project-wide replacement for future user instructions or technical permission boundaries.
 
