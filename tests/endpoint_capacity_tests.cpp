@@ -188,22 +188,38 @@ struct Peer {
                                            ",\"lease_ms\":60000}"))));
     }
 };
-void bounded_ping_pressure() {
+void bounded_control_pressure() {
     Peer peer;
-    CHECK(peer.response_ok(peer.send(request(
-        1, "HELLO", R"({"versions":["WTP/1"],"client_name":"capacity","client_version":"1"})"))));
     forced_pressure = heap_budget - 60000;
-    CHECK(peer.response_ok(peer.send(request(2, "PING", "{}"))));
-    CHECK(!memory_admitted(32768)); // The mutation workspace and reserve still apply.
-    const auto claim = request(
-        3, "CLAIM", "{\"owner_id\":" + json::quote(std::string(32, 'e')) + ",\"lease_ms\":60000}");
-    CHECK(peer.send(claim).empty());
-    CHECK(!peer.service.status().owner_id);
+    peer.hello_claim();
+    CHECK(peer.response_ok(peer.send(request(3, "PING", "{}"))));
+    CHECK(peer.response_ok(peer.send(
+        request(4, "RENEW",
+                "{\"owner_id\":" + json::quote(std::string(32, 'e')) + ",\"lease_ms\":60000}"))));
+    CHECK(!memory_admitted(32768)); // LOAD keeps its workspace and authority reserve.
+    const auto small_load = request(
+        5, "LOAD",
+        "{\"job_id\":" + json::quote(std::string(32, 'c')) +
+            R"(,"profile":"rf-events/1","mode":"tone","total_duration_ns":"1000000","events":[{"offset_ns":"0","duration_ns":"1000000","rf_on":true,"frequency_nhz":"14097100000000000"}]})");
+    CHECK(peer.send(small_load).empty());
+    CHECK(peer.engine.prepared == 0);
     forced_pressure = 0;
     peer.endpoint.poll(2);
     CHECK(peer.response_ok(peer.drain()));
-    CHECK(peer.service.status().owner_id);
+    CHECK(peer.engine.prepared == 1);
+    forced_pressure = heap_budget - 60000;
+    CHECK(peer.response_ok(
+        peer.send(request(6, "ABORT", "{\"job_id\":" + json::quote(std::string(32, 'c')) + "}"))));
+    CHECK(peer.response_ok(peer.send(request(7, "RELEASE", "{}"))));
+    CHECK(!peer.service.status().owner_id);
+    // Large bodies cannot borrow the scalar-control workspace, even when the
+    // operation name is one of the bounded controls.
+    const auto padded = request(8, "CLAIM", "{\"unexpected\":\"" + std::string(3000, 'x') + "\"}");
+    CHECK(peer.send(padded).empty());
+    CHECK(!peer.service.status().owner_id);
+    forced_pressure = 0;
 }
+
 void capacity(bool escaped) {
     Peer peer;
     peer.hello_claim();
@@ -270,7 +286,7 @@ int main() {
     deallocate_input = release;
     available_memory = available;
     {
-        bounded_ping_pressure();
+        bounded_control_pressure();
     }
     CHECK(live_bytes == 0);
     {
