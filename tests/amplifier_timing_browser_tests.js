@@ -25,6 +25,8 @@ for(const value of ['-1','1.5','1e2','Infinity','NaN','0200','1001',''])assert.e
  fields.tail.value='1001';fields.tail.oninput();assert.equal(fields.save.disabled,true);
  const count=puts;await fields.save.onclick();assert.equal(puts,count);
  let resolve;delayed=new Promise(r=>resolve=r);const pending=editor.load();editor.invalidate();resolve({data:v,revision});await pending;assert.equal(fields.save.disabled,true);
+ assert(!api.valid({...v,target:{...v.target,device_id:[v.target.device_id]}}));
+ assert(!api.valid({...v,pending_restart:false,saved:{lead_ms:999,tail_ms:999}}));
  assert(!api.valid({...v,extra:true}));assert(!api.valid({...v,phase:'lead',output_active:false}));assert(!api.valid({...v,phase:'tail',rf_active:true}));
  console.log('Amplifier timing negotiation, input validation, lost reply, draft identity and stale response checks passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});
