@@ -160,6 +160,7 @@ try {
   await click('apply-progress');await idle();
   assert.deepEqual((await config()).config.schedules,[{period_s:240,phase_s:0}]);
   assert.equal((await config()).config.pins.rf_gp,3,'WSPR apply cannot apply a pin draft');
+  assert.equal(await evaluate('document.getElementById("progress-error-settings-schedules").textContent'),'Saved value applied.');
   assert.equal(await evaluate('document.getElementById("config").elements.rf_gp.value'),'4');
   assert.equal((await config()).config.enabled,false,'no schedules enabled by fixture');
   console.log('PASS independent pin save, WSPR progress save/apply and unrelated draft preservation');

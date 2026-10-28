@@ -1934,6 +1934,10 @@ async function applyWsprProgress() {
   const before=await readApplication();
   if(before.revision!==savedProgress.revision) { requireReadback(); throw new Error('Saved WSPR settings changed. Read and review them again.'); }
   const result=await api('config/update','POST',{schema:'transmitter-config-update/1',target:before.data.target,mode:'merge',config:patch},before.revision);
-  await reconcileConfirmedSettings(result,before.data.target,'Saved WSPR configuration applied. Radio pin drafts are unchanged.');
+  const confirmed=await reconcileConfirmedSettings(result,before.data.target,'Saved WSPR configuration applied. Radio pin drafts are unchanged.');
   await refresh();
+  if(confirmed) for(const key of ['enabled','schedules','expires_utc_s']) {
+    const outcome=$('progress-error-settings-'+key);
+    if(outcome && !progressEdits.has(key)) {outcome.textContent='Saved value applied.';outcome.classList.toggle('error',false);}
+  }
 }

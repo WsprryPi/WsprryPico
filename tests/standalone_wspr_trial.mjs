@@ -15,7 +15,7 @@ export async function firstWsprTransmission({cdp,click,field,login,until,control
   await click('apply-progress');await until(()=>cdp.evaluate(`!busy && writeState==='ready'`),'disabled schedule applied');
   await click('refresh');await until(()=>cdp.evaluate('!busy'),'pre-enable status');
   if(await cdp.evaluate('snapshot.standalone.reboot_required')) {
-    await cdp.evaluate(`document.getElementById('wifi-host-link').click()`);
+    await cdp.evaluate(`document.getElementById('station-link').click()`);
     await click('restart');await until(()=>cdp.evaluate('restartSent && !busy'),'explicit restart requested');
     await control({op:'reboot'});
     await control({op:'message_review'}); // Model boot-applied saved configuration and active-job service.
@@ -38,14 +38,14 @@ export async function firstWsprTransmission({cdp,click,field,login,until,control
   assert.equal(await cdp.evaluate(`document.getElementById('progress-error-settings-enabled').textContent`),'Saved value applied.');
   assert.equal(await cdp.evaluate(`document.getElementById('save-config').disabled`),false,'confirmed Apply leaves later edits usable');
   await click('refresh');await until(()=>cdp.evaluate('!busy'),'enabled status');
-  assert.match(await cdp.evaluate(`document.getElementById('standalone-status').textContent`),/enabled and waiting/);
+  assert.match(await cdp.evaluate(`document.getElementById('console-next').textContent`),/Standalone WSPR enabled/);
   assert.equal(await cdp.evaluate('snapshot.job.state'),'empty');
   const initial=await control({op:'schedule_tick',delta_ns:'0'});
   const now=BigInt(initial.utc_now_ns),period=240000000000n;
   let start=now/period*period+1000000000n;if(start-now<10000000000n)start+=period;
   assert.equal((await control({op:'schedule_tick',delta_ns:String(start-now-5000000000n)})).state,'armed');
   await click('refresh');await until(()=>cdp.evaluate('!busy'),'armed status');
-  assert.match(await cdp.evaluate(`document.getElementById('standalone-status').textContent`),/job is armed/);
+  assert.match(await cdp.evaluate(`document.getElementById('console-state').textContent`),/Job armed/);
   const job=await control({op:'accepted_job',surface:'consumer'});
   assert.equal(job.mode,'wspr');assert.equal(job.events.length,162);
   assert.equal(job.total_duration_ns,'110592000000');
@@ -65,7 +65,7 @@ export async function firstWsprTransmission({cdp,click,field,login,until,control
   await click('apply-progress');await until(()=>cdp.evaluate(`!busy && writeState==='ready'`),'disabled schedule applied');
   assert.equal((await control({op:'frequency_state'})).enabled,false);
   await click('refresh');await until(()=>cdp.evaluate('!busy'),'disabled status');
-  assert.match(await cdp.evaluate(`document.getElementById('standalone-status').textContent`),/is disabled/);
+  assert.match(await cdp.evaluate(`document.getElementById('console-next').textContent`),/Standalone WSPR disabled/);
   await control({op:'schedule_tick',delta_ns:'240000000000'});
   assert.deepEqual(await control({op:'accepted_job',surface:'consumer'}),job,'disabled schedule submits no subsequent job');
   await capture('first-wspr-complete-and-disabled');
