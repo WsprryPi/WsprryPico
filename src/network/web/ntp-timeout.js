@@ -60,7 +60,7 @@
     };
     adopt.onclick = () => { if (!adopt.disabled) { draftTarget = identity(observed); review = false; render(); } };
     read.onclick = ()=>run(load); save.onclick = ()=>run(commit); render();
-    return {setAvailability(canRead,canWrite) { readable = canRead; writable = canWrite; render(); },
+    return {load,setAvailability(canRead,canWrite) { readable = canRead; writable = canWrite; render(); },
       invalidate() { ++epoch; revision = ''; observed = null; render(); }};
   }
   root.WsprryNtpTimeout = {minutes,create};

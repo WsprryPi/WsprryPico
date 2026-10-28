@@ -83,7 +83,7 @@
     };
     read.onclick = ()=>run(load); save.onclick = ()=>run(commit);
     render();
-    return {setAvailability(value) { available = value; render(); },
+    return {load,setAvailability(value) { available = value; render(); },
       invalidate() { ++epoch; revision = ''; observed = null; render(); }};
   }
   root.WsprryRfCalibration = {ppm,supported,create};

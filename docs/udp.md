@@ -6,7 +6,7 @@ The Pico can send diagnostic events over station Wi-Fi to one explicitly configu
 
 ## Configure export
 
-1. In **Connection and setup Wi-Fi**, open **UDP logging** and choose **Read UDP logging settings**. Verify the Pico device and boot identity. On WsprryPi, select the intended member and use **UDP logging on this Pico**, checking its displayed identity and carrier.
+1. In **Wi-Fi/Host → Logging**, open **UDP logging** and choose **Read UDP logging settings**. Verify the Pico device and boot identity. On WsprryPi, select the intended member and use **UDP logging on this Pico**, checking its displayed identity and carrier.
 2. Enable export and enter the collector's dotted-decimal IPv4 address. Choose port **5514** for a WsprryPi collector or the explicitly configured external collector port, including **514**. Hostnames, IPv6, loopback, broadcast, multicast and local interface addresses are refused. Station Wi-Fi is used; setup Wi-Fi does not carry the export.
 3. Choose the maximum severity. Under **Export limits and event filter**, optionally select event codes and the rate/burst limits. An empty event list includes all approved export-safe event classes.
 4. Choose **Save Pico UDP logging** and read back. Saved settings and the active revision are separate. After an uncertain reply or revision conflict, read settings again. Compare **Saved UDP logging settings** with the preserved draft and choose **Confirm review** before another save.

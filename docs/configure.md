@@ -2,7 +2,7 @@
 
 Station details are needed to configure transmissions. You can connect the Pico to Wi-Fi and sign in to its control page before entering them.
 
-Keep schedules disabled and output inactive while setting up. Use the hostname lock to sign in, choose **Station/Transmission**, and open the required section using its heading or **Sections**. Open **Saved settings and recovery** to read saved settings before changing them.
+Keep schedules disabled and output inactive while setting up. Use the hostname lock to sign in, choose **Station Control**, and open the required section using its heading. Open **Saved settings and recovery** to read saved settings before changing them.
 
 The page has two useful read controls. **Reload saved settings** replaces the browser's entries with values stored on the Pico, discarding unsaved edits after confirmation. **Read saved settings and keep draft** keeps your entries and lets you compare them with the Pico's saved values. A **draft** is an edit or saved work in progress; **applied** settings are the accepted configuration used for operation. Pin changes also need a restart before they become active.
 
@@ -13,19 +13,19 @@ The page has two useful read controls. **Reload saved settings** replaces the br
 3. When offered, choose **Apply saved station** to use the saved complete station. Follow any connection-check or reconnect instructions until the Pico confirms the result.
 4. Check the saved **WSPR plan**, which describes the message type and number of frames the Pico will send. A callsign with a prefix or suffix separated by `/` can require two adjacent frames with a six-character locator; see [WSPR operation](operate.md#wspr-schedules).
 
-```{image} _static/images/station-draft.jpg
-:alt: Station identity editor showing an encodable saved draft, separate Save valid station fields and Apply saved station actions, and the standalone frequency section.
+```{image} _static/images/station-settings.png
+:alt: Station identity and WSPR Configuration with separate station save and apply actions and the saved-frequency controls.
 ```
 
 ## Frequency and schedules
 
-**NTP update timeout** controls how long the Pico can continue using its last valid NTP time when updates are missing. The default is **60 minutes (1 hour)**. In **Station/Transmission → Schedules and radio pins**, choose **Read saved timeout**, enter 1–1440 whole minutes, then choose **Save timeout** while transmissions are stopped. Restart the Pico to activate a changed value; readback shows saved and active values separately. This setting does not change the time server. The Pico needs valid time after startup. During a later update gap, increasing estimated timing uncertainty can pause new transmissions before the timeout; an accepted frame finishes. Valid NTP updates resume normal synchronization and scheduling automatically.
+**NTP update timeout** controls how long the Pico can continue using its last valid NTP time when updates are missing. The default is **60 minutes (1 hour)**. In **Station Control → WSPR Configuration**, choose **Read saved timeout**, enter 1–1440 whole minutes, then choose **Save timeout** while transmissions are stopped. Restart the Pico to activate a changed value; readback shows saved and active values separately. This setting does not change the time server. The Pico needs valid time after startup. During a later update gap, increasing estimated timing uncertainty can pause new transmissions before the timeout; an accepted frame finishes. Valid NTP updates resume normal synchronization and scheduling automatically.
 
 For a complete start-to-finish example, follow [Your first WSPR transmission](operate.md#your-first-wspr-transmission).
 
 Complete station details, choose **Save valid station fields**, then explicitly choose **Apply saved station** and confirm its result before saving a dial. A complete saved station draft is still a draft; it does not enable **Save frequency**. The guidance beside the frequency controls identifies the missing step. You can enter a dial while station setup is incomplete; the page retains it when you save and apply the station. After application is confirmed, the frequency controls become ready without reloading the page.
 
-In **Station/Transmission → Schedules and radio pins → Standalone WSPR frequency**, enter a **WSPR dial frequency (Hz)** appropriate for your band, RF setup and operating privileges. **Hz** means hertz; **1 MHz = 1,000,000 Hz**. Enter a whole number without commas or a unit suffix. Choose **Save frequency** while idle, then **Read saved frequency** to confirm it. A fresh installation has no selected WSPR dial frequency, so the field is blank. Standalone WSPR places four tones around a center 1,500 Hz above the dial, without random placement: enter `14095600` for a center of `14097100 Hz`. Both frames of a pair use one saved dial. A first selection leaves schedules disabled; later saves apply to the next job and preserve STOP. Read and Discard do not save a new value. An invalid or rejected save retains your entry for correction. Unsaved frequency text exists only in the current browser tab and is not a committed setting after a reload or reboot. If a reply is uncertain, read the saved frequency and review it before another explicit save; the page does not retry the write automatically. Individual message jobs have their own frequency field.
+In **Station Control → WSPR Configuration**, enter a **WSPR dial frequency (Hz)** appropriate for your band, RF setup and operating privileges. **Hz** means hertz; **1 MHz = 1,000,000 Hz**. Enter a whole number without commas or a unit suffix. Choose **Save frequency** while idle, then **Read saved frequency** to confirm it. A fresh installation has no selected WSPR dial frequency, so the field is blank. Standalone WSPR places four tones around a center 1,500 Hz above the dial, without random placement: enter `14095600` for a center of `14097100 Hz`. Both frames of a pair use one saved dial. A first selection leaves schedules disabled; later saves apply to the next job and preserve STOP. Read and Discard do not save a new value. An invalid or rejected save retains your entry for correction. Unsaved frequency text exists only in the current browser tab and is not a committed setting after a reload or reboot. If a reply is uncertain, read the saved frequency and review it before another explicit save; the page does not retry the write automatically. Individual message jobs have their own frequency field.
 
 **Schedule period / phase (seconds)** controls when automatic WSPR jobs start. The **period** is the time between starts. The **phase** is an offset within that repeating period, measured from UTC midnight. **UTC** is the worldwide time standard; these settings do not use your computer's local time zone. The Pico starts transmission one second after the selected two-minute window begins.
 
@@ -44,7 +44,7 @@ Enter one pair per line. Periods must be multiples of 120 seconds from 120 throu
 To save and start automatic WSPR:
 
 1. Leave **Enable standalone schedules** unchecked while entering and reviewing station details, frequency and schedule times.
-2. Choose **Save valid fields** or **Save schedules and pins**, read the result, and use **Apply saved settings** when offered. Check that the saved values match your intended setup. Complete any requested restart before enabling output.
+2. Choose **Save WSPR configuration**, read the result, and use **Apply WSPR configuration** when offered. Check that the saved values match your intended setup. Complete any requested restart before enabling output.
 3. When you are ready to transmit, check **Enable standalone schedules**, save and apply again, then **Refresh** the transmitter status and confirm standalone WSPR is enabled. The Pico waits for the next eligible window and an acceptable clock; see [Operate](operate.md#wspr-schedules).
 
 A confirmed frequency save or settings application refreshes the settings revision while preserving browser edits. If Save or Apply is disabled, read the guidance beside the schedule buttons. A required saved-state review uses **Read saved settings and keep draft**, followed by **I reviewed saved settings; enable a new save** in **Saved settings and recovery**; **Read saved frequency** and transmitter-status **Refresh** do not complete that review.
@@ -53,21 +53,21 @@ To prevent later automatic starts, uncheck **Enable standalone schedules**, save
 
 ## Pins and drive
 
-Assign each GPIO one role. Check physical wiring before changing **Schedules and radio pins**. The optional amplifier-enable pin has a selected active polarity; it stays active for a complete job, including keyed gaps, and returns inactive after stop, completion, abort or fault.
+Assign each GPIO one role. Check physical wiring before changing **Radio pins**. The optional amplifier-enable pin has a selected active polarity; it stays active for a complete job, including keyed gaps, and returns inactive after stop, completion, abort or fault.
 
 **Amplifier enable** is disabled by default. When configured, it is a logic control signal for suitable amplifier control circuitry; it does not supply amplifier power or carry the RF signal. **Active-high** means the output is high, about 3.3 V, when active and low when inactive. **Active-low** reverses those levels. The same polarity terms apply to an external LED. Match the selection to the wiring. The [hardware preparation guide](start.md#hardware-connections) lists available GPIOs and factory assignments.
 
 Direct RF drive offers **2, 4, 8 or 12 mA**, with **4 mA** as the default. This controls the GPIO's electrical drive strength; it does not specify RF power. Check physical output with suitable measurement equipment when changing the drive setting or RF setup.
 
-Pin or drive changes require an **explicit restart** in **Wi-Fi/Host** before transmitting. Saving does not program the running pad. Changing a value back does not clear the restart requirement. Read saved and active settings separately.
+Pin or drive changes require an **explicit restart** in **Station Control → Transmitter status** before transmitting. Saving does not program the running pad. Changing a value back does not clear the restart requirement. Read saved and active settings separately.
 
 ### LED and button settings
 
-Open **Station/Transmission → Schedules and radio pins → Pin assignments** to inspect or change the transmit indicator and external button. The [hardware preparation guide](start.md#hardware-connections) lists the defaults, available GPIOs and example wiring. GPIO menus use **GP numbers**, not physical header pin numbers. Each GPIO can serve only one role; pins assigned to another role are unavailable.
+Open **Station Control → Radio pins → Pin assignments** to inspect or change the transmit indicator and external button. The [hardware preparation guide](start.md#hardware-connections) lists the defaults, available GPIOs and example wiring. GPIO menus use **GP numbers**, not physical header pin numbers. Each GPIO can serve only one role; pins assigned to another role are unavailable.
 
 1. Under **TX indicator**, keep **Onboard LED** for the built-in indicator, choose **External GPIO** for an external LED, or choose **Disabled**. For an external LED, select its **External indicator pin** and **Indicator polarity**. Available external pins are **GP0–GP22** and **GP26–GP28**, excluding pins already in use. The default indicator is **Onboard LED**; external polarity defaults to **Active-high**.
 2. Under **Switch input**, read the saved button pin. The factory default is **GP14**, physical pin **19**. Choose an unused GPIO from the same ranges or **Disabled**. Wire a normally open push button between the selected GPIO and GND; the input uses an internal pull-up.
-3. Save with **Save valid fields** or **Save schedules and pins**, read the result, and choose **Apply saved settings** when offered. Use **Wi-Fi/Host → Reset Pico** to activate changed pin settings. Read the saved and active assignments again after restart and confirm that they match the wiring before transmitting.
+3. Choose **Save radio pins** and read the result. Use **Station Control → Transmitter status → Reset Pico** to activate changed pin settings. Read the saved and active assignments again after restart and confirm that they match the wiring before transmitting.
 
 ## Understand what was saved
 
@@ -82,7 +82,7 @@ Open **Station/Transmission → Schedules and radio pins → Pin assignments** t
 
 On firmware offering **Save valid station fields**, a callsign, locator or reported power can be saved independently. An invalid edited field stays in the browser as **Not saved** while other valid fields can be retained. Fields you do not edit keep their saved values. Clearing a callsign or locator and saving clears that draft field; it does not substitute the previous applied value. **0 dBm** is valid reported power; a blank choice is missing power.
 
-Schedules save as one complete set, and radio pins as one complete allocation. An invalid schedule set or conflicting pin plan remains unsaved as a unit while unrelated valid edits can be retained. Consumer Wi-Fi and hostname changes use their own complete save workflows in [Wi-Fi/Host](maintain.md#rename-or-change-wi-fi).
+Schedules save as one complete set through **Save WSPR configuration**; **Apply WSPR configuration** applies only saved schedule enablement, periods and expiry. **Save radio pins** saves one complete pin allocation independently and requires a restart to activate it. Neither action applies drafts from the other section. A pin save can succeed while a schedule draft is invalid. Conflicting pin assignments remain unsaved. Consumer Wi-Fi and hostname changes use their own complete save workflows in [Wi-Fi/Host](maintain.md#rename-or-change-wi-fi).
 
 After Wi-Fi setup, **Set your station details** can also retain incomplete progress with **Save valid fields**. Complete and save the missing values, then choose **Apply saved station settings** and check the setup result. Saved progress survives a page reload, a new login and a restart. Unsaved browser text does not; copy it before leaving a tab.
 

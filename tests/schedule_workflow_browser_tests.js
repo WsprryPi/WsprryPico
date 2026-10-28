@@ -73,22 +73,7 @@ async function saveDial(f, revision = '"original-revision"') {
     await unavailable.elements.refresh.onclick();
     await unavailable.elements['read-saved'].onclick();await unavailable.elements['review-saved'].onclick();
     assert.equal(unavailable.elements['save-config'].disabled,false);
-    const status=await fixture();
-    Object.assign(status.state.standalone,{configured:true,enabled:true,utc_now_ns:'1800000000000000000',schedules:[{period_s:120,phase_s:0}],last_error:null});
-    await status.elements.refresh.onclick();
-    assert.match(status.elements['standalone-status'].textContent,/enabled and waiting/);
-    for (const [patch,expected] of [[{enabled:false},/is disabled/],[{enabled:true,suspended:true},/suspended by STOP/],[{suspended:false,reboot_required:true},/waiting for a restart/],[{reboot_required:false,clock_state:'unsynchronized'},/waiting for clock synchronization/],[{clock_state:'synchronized',expires_utc_s:1790000000},/has expired/]]) {
-        Object.assign(status.state.standalone,patch);await status.elements.refresh.onclick();
-        assert.match(status.elements['standalone-status'].textContent,expected);
-    }
-    status.offline=true;await status.elements.refresh.onclick();
-    assert.match(status.elements['standalone-status'].textContent,/unknown/,'failed observations never retain enabled status');
-    status.offline=false;Object.assign(status.state.standalone,{clock_state:'holdover',sync_age_ns:'100',expires_utc_s:0});
-    await status.elements.refresh.onclick();
-    assert.match(status.elements['standalone-status'].textContent,/waiting for fresh clock/,'unsupported holdover never looks ready');
-    Object.assign(status.state.standalone,{wspr_pair_pending:true,last_job:'2'.repeat(32)});
-    Object.assign(status.state.job,{job_id:'2'.repeat(32),state:'complete',owner_id:'e'.repeat(32)});
-    await status.elements.refresh.onclick();
-    assert.match(status.elements['standalone-status'].textContent,/pair is in progress/,'the gap between WSPR frames is not a competing owner');
-    console.log('PASS schedule workflow: confirmed-save continuation, preserved checkbox/draft, concurrent revision and boot review, failed readback recovery, observed schedule status');
+    const html=require('node:fs').readFileSync(require.resolve('../src/network/web/index.html'),'utf8');
+    assert.doesNotMatch(html,/id="standalone-status"/,'schedule observations belong to the contextual status console');
+    console.log('PASS schedule workflow: confirmed-save continuation, preserved checkbox/draft, concurrent revision and boot review, failed readback recovery, unified status surface');
 })().catch(error=>{console.error(error);process.exitCode=1;});

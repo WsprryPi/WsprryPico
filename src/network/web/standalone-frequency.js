@@ -124,7 +124,7 @@
       if (hasRead) status.textContent = observed && !ready ? prerequisite() : 'Station readiness needs fresh readback. Read saved frequency before saving; your entry is preserved.';
       ++epoch; revision = ''; observed = null; ready = false; busy = false; refreshNeeded = true; render();
     };
-    return {setAvailability(value) { if (available && !value) invalidate(); available = value; render(); }, invalidate,
+    return {load,setAvailability(value) { if (available && !value) invalidate(); available = value; render(); }, invalidate,
       observeRevision(value) { if (knownRevision && value !== knownRevision) invalidate(); knownRevision = value; },
       async refresh() { if (hasRead && refreshNeeded && available && !busy) await load(); }
     };

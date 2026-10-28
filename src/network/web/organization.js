@@ -3,9 +3,9 @@
 (() => {
   const station = $('station-area'), wifi = $('wifi-host-area');
   const sections = new Map([
-    ['station-identity','station'],['radio-settings','station'],['message-section','station'],
+    ['station-identity','station'],['radio-settings','station'],['radio-pins','station'],['message-section','station'],
     ['wifi-settings','wifi-host'],['pico-password-section','wifi-host'],['hostname-section','wifi-host'],
-    ['connection-section','wifi-host'],['saved-settings',null],['device-diagnostics',null]
+    ['connection-section','wifi-host'],['saved-settings','station'],['device-diagnostics','station']
   ]);
   const aliases = new Map([
     ['consumer-setup','saved-settings'],['hostname-form','hostname-section'],
@@ -39,23 +39,23 @@
   }
   function top() {
     closePopovers();
-    $('status-heading').focus({preventScroll:true});
+    $('device-name').focus({preventScroll:true});
     for (const id of sections.keys()) {
       const section=$(id);
       for (const child of section.querySelectorAll('details')) child.open=false;
       section.open=false;
     }
-    $('section-menu').open=false;
-    $('top').scrollIntoView?.({block:'start'});
+    globalThis.scrollTo?.({top:0,left:0,behavior:'auto'});
   }
   function restore(focus=false) {
     const saved=history.state?.[stateKey];
     const id=fragment() || (receipt() && (sections.has(saved?.section) || saved?.section==='top') ? saved.section : null);
-    const area=sections.get(id) || (location.pathname==='/wifi-host' ? 'wifi-host' : 'station');
+    const savedArea=['station','wifi-host'].includes(saved?.area)?saved.area:null;
+    const area=sections.get(id) || savedArea || (location.pathname==='/wifi-host' ? 'wifi-host' : 'station');
     setArea(area);
     if (id==='top') { if(focus) top(); else if(receipt()) reveal($('saved-settings')); }
     else if (id) reveal($(id),focus);
-    else if (receipt()) reveal($('saved-settings'));
+    else if (receipt() && !savedArea) reveal($('saved-settings'));
   }
   function navigate(id,area,path) {
     closePopovers();
@@ -69,7 +69,10 @@
     setArea(area);
     if(id==='top') top();
     else if(id) reveal($(id),true);
-    else (station.hidden ? wifi : station).scrollIntoView?.({block:'start'});
+    else {
+      $(area==='wifi-host'?'wifi-host-link':'station-link').focus({preventScroll:true});
+      globalThis.scrollTo?.({top:0,left:0,behavior:'auto'});
+    }
   }
   for (const link of document.querySelectorAll('a[href]')) {
     const href=link.getAttribute('href');

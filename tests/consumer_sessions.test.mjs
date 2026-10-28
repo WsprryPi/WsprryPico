@@ -48,6 +48,20 @@ async function run(name,fn) {
   finally {await f.stop();}
 }
 if(import.meta.url===new URL(process.argv[1],'file:').href) {
+await run('public settings and full observations are read-only without occupying or renewing a login',async f=>{
+  for(const [host,ap] of [['192.168.1.53',false],['192.168.4.1',true]]) {
+    const client=f.client(host,ap);await client.identity();
+    const before=await f.command({op:'stats'});
+    const config=await client.publicRead('config/4');assert.equal(config.status,200);
+    const data=await config.json();assert.equal(data.config.station.callsign,'AA0NT');assert.equal(data.config.wifi.password,null);
+    const observed=await (await client.publicRead('operations')).json();assert.equal(observed.schema,'transmitter-operations/1');assert.equal(observed.job.state,'empty');
+    assert.equal((await client.publicRead('logging')).status,200);assert.equal((await client.publicRead('udp-logging')).status,200);
+    for(const method of ['POST','PUT','DELETE']) assert.equal((await f.fetch(host,ap,'/api/consumer/v1/read/config',{method,body:'{}'})).status,method==='DELETE'?400:405);
+    assert.equal((await f.fetch(host,ap,'/api/consumer/v1/read/jobs')).status,404);
+    assert.equal(client.authenticated,false);assert.equal((await f.command({op:'stats'})).config_sequence,before.config_sequence);
+    await assert.rejects(client.request('config','PUT',{}),/Log in/);
+  }
+});
 await run('recurring message profile uses authenticated encrypted management and survives reboot',async f=>{
   const a=f.client();await f.login(a);
   const read=await a.request('message-schedule'),resource=await read.json();

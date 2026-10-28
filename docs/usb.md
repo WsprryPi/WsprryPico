@@ -167,7 +167,7 @@ The Console request does not reset the Pico password or bypass browser login. Ws
 
 ## USB diagnostic logging
 
-The Pico can export diagnostic events to WsprryPi through its dedicated Logging port. In the Pico browser controls, open **Connection and setup Wi-Fi → USB logging**, read the saved settings, enable export, choose the maximum severity and save. Read back after an uncertain save. Logging works without Pico Wi-Fi or synchronized UTC; without origin UTC, the Pi displays the receipt time.
+The Pico can export diagnostic events to WsprryPi through its dedicated Logging port. In the Pico browser controls, open **Wi-Fi/Host → Logging → USB logging**, read the saved settings, enable export, choose the maximum severity and save. Read back after an uncertain save. Logging works without Pico Wi-Fi or synchronized UTC; without origin UTC, the Pi displays the receipt time.
 
 On WsprryPi, save the Pico in Fleet, then open **Logs**, select that Pico in **Source**, open **Log options** and enable **Collect this Pico's USB logs**. The source selector also offers **All sources** and **Local Pi**. Collection continues when the browser closes. Pause only pauses the view; export saves the records retained by that view.
 

@@ -7,11 +7,9 @@ freshness. Each request captures an epoch; a new request, identity bind, logout
 or failure invalidates superseded observations. Consumer public metadata uses an
 exact schema/key set and exact current device/boot pair. A different full device
 cannot replace a retained target. A new observed consumer boot clears the old
-name until fresh readback. Authenticated names supersede public metadata; a late
-public failure cannot mark a newer authenticated observation stale.
+name until fresh readback. Authenticated names supersede unsolicited public metadata; a late public failure cannot mark a newer authenticated observation stale. An explicit fresh public-read observation after logout can replace that state only for the same bound device and boot, and is labelled Public observation.
 
-The one H1 and native About this Pico / Diagnostics disclosure are shared outside
-both area-hidden containers. Opening/selecting text requires no login, permission,
+The one H1 stays above both views. About this Pico / Diagnostics is last in Station Control, after Saved settings and recovery. Opening/selecting text requires no login, permission,
 clipboard API or request. Stable ID is all 32 lowercase hexadecimal characters;
 boot ID is separately labelled. Native focus, 44 px summary targets, light palette
 and wrapping are retained. Heading/Diagnostics are ordinary text, without polling
@@ -26,4 +24,4 @@ Discovery conflicts do not rename or erase the configured active name. Identity 
 protocol, carrier, session crypto, profile, RF, scheduler or JobService authority
 change; there is no new polling or transport task.
 
-The lock button is a sibling of the mutable hostname text node, so observation updates cannot erase it or include icon text in the title. Its native action label and adjacent state describe browser access. Certificate-authenticated engineering pages explain their browser-managed access rather than pretending to revoke a client certificate. See [browser access and sections](browser-pages.md#browser-access).
+The lock button is a sibling of the mutable hostname text node, so observation updates cannot erase it or include icon text in the title. Its native action label and visually hidden state describe browser access without a repeated helper line. Certificate-authenticated engineering pages explain their browser-managed access rather than pretending to revoke a client certificate. See [browser access and sections](browser-pages.md#browser-access).

@@ -1,6 +1,7 @@
 #include "application/resources.hpp"
 #include "network/bootstrap_codec.hpp"
 #include "network/consumer_radio.hpp"
+#include "network/public_read.hpp"
 #include "network_support.hpp"
 #include "provisioning/consumer_profile.hpp"
 #include "rf/stream_engine.hpp"
@@ -181,6 +182,42 @@ network::HttpResponse read_public(Test& test) {
 }
 } // namespace
 int main() {
+    {
+        Test t;
+        auto read = [&](std::string path, std::string method = "GET", std::string body = {}) {
+            auto r = request(std::move(path), std::move(body));
+            r.method = std::move(method);
+            return t.send(std::move(r), t.transaction++);
+        };
+        const auto revision = t.fixture.store.config_sequence();
+        const auto caps = read("/api/consumer/v1/read");
+        const auto root = wtp::json::parse(caps.body);
+        assert(caps.status == 200 && root &&
+               wtp::json::fields(*root, {"schema", "target", "prefix", "resources"}));
+        assert(root->get("schema")->string() == "pico-public-read/1");
+        assert(root->get("resources")->elements().size() == network::public_read_resources.size());
+        const auto config_read = read("/api/consumer/v1/read/config/4");
+        assert(config_read.status == 200 && config_read.body.find("AA0NT") != std::string::npos);
+        assert(config_read.body.find("test-password") == std::string::npos);
+        const auto operations = read("/api/consumer/v1/read/operations");
+        assert(operations.status == 200 &&
+               operations.body.find("transmitter-operations/1") != std::string::npos);
+        for (const auto resource : network::public_read_resources) {
+            const auto path = "/api/consumer/v1/read/" + std::string(resource);
+            for (const auto method : {"POST", "PUT", "DELETE"})
+                assert(read(path, method, "{\"enabled\":true}").status == 405);
+        }
+        for (const auto suffix :
+             {"jobs", "restart", "progress/apply", "pins/validate", "config/update", "../jobs"})
+            assert(read("/api/consumer/v1/read/" + std::string(suffix)).status == 404);
+        assert(read("/api/consumer/v1/read/config", "GET", "{}").status == 400);
+        auto cross_site = request("/api/consumer/v1/read/config");
+        cross_site.method = "GET";
+        cross_site.headers["origin"] = "http://other.example";
+        assert(t.api.handle(cross_site, t.now, t.transaction++).status == 403);
+        assert(!t.api.active(t.now) && t.fixture.store.config_sequence() == revision);
+        assert(t.fixture.service.status().state == wtp::State::Empty);
+    }
     {
         Test t;
         auto response = read_public(t);

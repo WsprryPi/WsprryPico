@@ -1,6 +1,33 @@
 import {begin,authenticate,seal,open,clear,unhex,retirementSelector} from './radio-crypto.js';
 import {prepareNetwork,prepareStation,submitSetup,checkSetup} from './radio-setup.js';
 
+const publicReadResources = ["capabilities","pins","pins/2","operations","status","config","config/2","config/3","config/4","application","application/2","application/3","application/4","station","station/2","hardware","hardware/2","hardware/3","progress","progress/2","progress/3","rf-calibration","standalone-frequency","gpio-drive","ntp-timeout","hostname","logging","udp-logging","udp-logging/capabilities","udp-logging/test/capabilities","message-schedule","consumer/password","consumer/setup/api/owner/v1/public-status"];
+
+function publicDiscovery(text) {
+  if(text.length>4096) throw new Error('Public read discovery exceeds its bound');
+  const value=JSON.parse(text), stack=[];
+  // JSON.parse validates grammar but discards duplicate keys. Inspect original
+  // string tokens, including escaped key spellings, before trusting the shape.
+  for(let at=0;at<text.length;at++) {
+    const c=text[at];
+    if(c==='{' || c==='[') {
+      stack.push(c==='{'?new Set():null);
+      if(stack.length>3) throw new Error('Public read discovery is too deeply nested');
+    } else if(c==='}' || c===']') stack.pop();
+    else if(c==='"') {
+      const start=at++;
+      while(at<text.length && text[at]!=='"') {if(text[at]==='\\') at++;at++;}
+      let next=at+1;while(/\s/.test(text[next]||'') && next<text.length) next++;
+      if(text[next]===':') {
+        const key=JSON.parse(text.slice(start,at+1)),keys=stack.at(-1);
+        if(!keys || keys.has(key)) throw new Error('Duplicate public read discovery field');
+        keys.add(key);
+      }
+    }
+  }
+  return value;
+}
+
 const idleMs = 30 * 60 * 1000, absoluteMs = 8 * 60 * 60 * 1000;
 
 export class RadioClient {
@@ -45,6 +72,8 @@ export class RadioClient {
     if (Object.keys(id).sort().join(',') !== 'authentication,boot_id,device_id,generation,version' ||
         id.version !== 1 || !['saved_wifi_passphrase','pico_password'].includes(id.authentication) || typeof id.generation !== 'string' ||
         !/^[1-9][0-9]{0,19}$/.test(id.generation) || BigInt(id.generation) > 0xffffffffffffffffn) throw new Error('Invalid Pico identity');
+    this.publicIdentity = id;
+    this.publicReads = null;
     return id;
   }
   async publicStatus(timeout = 5000) {
@@ -60,6 +89,24 @@ export class RadioClient {
         (value.utc_now_ns !== null && !decimal(value.utc_now_ns)) || !decimal(value.uncertainty_ns) ||
         typeof value.engine !== 'string' || !/^[\x20-\x7e]{1,80}$/.test(value.engine)) throw new Error('Invalid transmitter status');
     return value;
+  }
+  async publicRead(path, timeout = 5000) {
+    if (!publicReadResources.includes(path)) throw new Error('This resource has no public read authority');
+    const options = {method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(timeout)};
+    if (!this.publicReads) {
+      const reply = await this.fetcher('/api/consumer/v1/read',options);
+      if (!reply.ok) throw new Error('Public settings reads are unavailable on this firmware');
+      const value = publicDiscovery(await reply.text()), target = value?.target;
+      if (Object.keys(value || {}).sort().join(',') !== 'prefix,resources,schema,target' ||
+          value.schema !== 'pico-public-read/1' || value.prefix !== '/api/consumer/v1/read/' ||
+          Object.keys(target || {}).sort().join(',') !== 'boot_id,device_id,scope' || target.scope !== 'member' ||
+          !this.publicIdentity || target.device_id !== this.publicIdentity.device_id || target.boot_id !== this.publicIdentity.boot_id ||
+          JSON.stringify(value.resources) !== JSON.stringify(publicReadResources))
+        throw new Error('Public read discovery does not match this Pico or supported contract');
+      this.publicReads = value;
+    }
+    // No login, ownership, sequence consumption or session lifetime renewal.
+    return this.fetcher(this.publicReads.prefix + path,{...options,signal:AbortSignal.timeout(timeout)});
   }
   async login(password, identity) {
     if (this.busy) throw new Error('A radio request is already in progress');

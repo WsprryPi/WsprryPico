@@ -14,10 +14,11 @@
     function render() {
       put('device-name',name || 'Hostname unavailable');
       const state = !fresh ? name ? 'Last confirmed' : 'Connection unknown' :
-        authenticated ? 'Active hostname' : 'Reported hostname · sign in to authorize access';
-      put('device-name-state',state + (pending ? ' · rename pending' : '') +
+        pending ? 'Rename pending' : '';
+      put('device-name-state',state +
         (pending && saved ? '. Saved for restart: ' + saved : '') +
         (!name ? '. Use the current IP address or setup Wi-Fi.' : ''));
+      document.getElementById('device-name-state').hidden = fresh && !pending;
       put('device-id',device || 'Unavailable');
       put('device-boot',boot || 'Unavailable on this connection');
       put('device-observation',fresh ? authenticated ? 'Authenticated observation' : 'Public observation; access is not authenticated' : 'Last observation; current connection unconfirmed');
@@ -40,7 +41,7 @@
       if (!current(token)) return false;
       if (!validId(target?.device_id) || !validId(target.boot_id) ||
           canonicalHostname(active) !== active || device && target.device_id !== device ||
-          !options.authenticated && (authenticated || target.device_id !== device || target.boot_id !== boot)) return false;
+          !options.authenticated && (authenticated && !options.publicRead || target.device_id !== device || target.boot_id !== boot)) return false;
       if (options.pending && canonicalHostname(options.saved) !== options.saved) return false;
       device=target.device_id; boot=target.boot_id; name=active; saved=options.saved || null;
       pending=!!options.pending; fresh=true; authenticated=!!options.authenticated; render(); return true;

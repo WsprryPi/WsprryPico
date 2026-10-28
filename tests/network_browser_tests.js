@@ -7,7 +7,7 @@ const scripts = process.env.WSPRRY_PICO_BROWSER_SHIPPED ? ['device-presentation.
 const source = scripts.map(name=>fs.readFileSync(__dirname + '/../src/network/web/'+name,'utf8')).join('\n');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false, options = {}) {
     const ids = ['device-name','device-name-state','device-id','device-boot','device-observation','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','engine','network','hostname','discovery','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
-    ids.push('radio-result-reveal');
+    ids.push('radio-result-reveal','radio-pins','save-pins','pins-status','station-settings-lock','wifi-settings-lock');
     ids.push('access-toggle','access-state','access-shackle','access-close','login-submit','recovery-reveal','top','status-heading','section-menu','station-identity','radio-settings','message-section','wifi-settings','pico-password-section','hostname-section','connection-section','saved-settings','device-diagnostics');
     ids.push('console-state','console-explanation','console-announcement','console-mode','console-frequency','console-message','console-progress','console-next','console-correction','console-local','console-utc','console-observed','console-reset','console-actions');
     ids.push('pico-password-form','pico-password-settings','pico-password-default','pico-password-status','pico-password-help','pico-password-error','pico-new-password','pico-confirm-password','draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
@@ -98,6 +98,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                 data = {schema:'transmitter-hostname/1',target:{scope:'member',device_id:f.hostnameDevice||'1'.repeat(32),boot_id:state.job.boot_id},
                     saved:f.savedHostname||state.network.configured_hostname,active:state.network.configured_hostname,default:'default.local',writable:true,pending_restart:!!f.savedHostname&&f.savedHostname!==state.network.configured_hostname,reason:'',generation:String(f.hostnameGeneration||1),storage_healthy:true};
             }
+            else if (path.endsWith('hardware')) data={schema:'transmitter-hardware/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},saved:config.pins||null,saved_generation:'1',active:null,active_revision:null,pending_restart:false,application_error:null,execution_engine:'simulated',storage_healthy:true};
             else if (path.endsWith('message-schedule')||path.endsWith('message-schedule/pause')) {
                 if (options.method==='PUT') {
                     f.scheduleSaves=(f.scheduleSaves||0)+1;f.savedMessageSchedule=JSON.parse(options.body).schedule;
@@ -155,6 +156,11 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     if (consumerMode) {
         f.radio = {
             authenticated:false,
+            publicRead:async(path)=>{
+                f.publicReads=(f.publicReads||0)+1;
+                if(f.publicStatusFailure) throw Error('status unavailable');
+                return context.fetch('/api/v1/'+path,{method:'GET'});
+            },
             publicStatus:async()=>{
                 f.publicReads=(f.publicReads||0)+1;
                 if (f.publicStatusFailure) throw Error('status unavailable');
@@ -212,8 +218,11 @@ if (require.main === module) (async () => {
     const publicPage=await fixture(true,true,false,true);
     assert.equal(publicPage.elements.focused,undefined);
     publicPage.elements['access-toggle'].onclick();assert.equal(publicPage.elements.focused,'local-password');assert.equal(publicPage.elements['local-access'].open,true);publicPage.elements['access-close'].onclick();
-    assert.equal(publicPage.publicReads,1);
-    assert.equal(publicPage.calls.filter(c=>c.path.startsWith('/api/v1/')).length,0);
+    assert(publicPage.publicReads>1);
+    assert.equal(publicPage.form.callsign.value,'AA0NT');
+    assert.equal(publicPage.elements['station-settings-lock'].disabled,true);
+    assert.equal(publicPage.elements['wifi-settings-lock'].disabled,true);
+    assert(publicPage.calls.every(c=>!c.path.startsWith('/api/v1/') || c.options.method==='GET'));
     assert.equal(publicPage.elements.state.textContent,'empty');
     assert.equal(publicPage.elements.output.textContent,'Inactive');
     assert.equal(publicPage.elements['message-settings'].disabled,true);
@@ -227,7 +236,7 @@ if (require.main === module) (async () => {
     assert.equal(publicPage.elements['local-password'].value,'unsent draft');
     publicPage.publicStatusFailure=true;await publicPage.elements.refresh.onclick();
     assert.equal(publicPage.elements.output.textContent,'Unknown');
-    assert.match(publicPage.elements['public-status-note'].textContent,/unavailable/);
+    assert.equal(publicPage.elements['public-status-note'].hidden,true);
     publicPage.publicStatusFailure=false;await publicPage.elements.refresh.onclick();
     assert.equal(publicPage.elements.output.textContent,'Active');
     const durationPage=await fixture();

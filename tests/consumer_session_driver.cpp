@@ -4,6 +4,8 @@
 #include "network/pico/consumer_radio_crypto.hpp"
 #include "network/pico/http_server.hpp"
 #include "network_support.hpp"
+#include "logging/logger.hpp"
+#include "logging/udp_settings.hpp"
 #include "provisioning/consumer_profile.hpp"
 #include "standalone/frequency_policy_engine.hpp"
 #include "wtp/json.hpp"
@@ -238,6 +240,10 @@ struct Driver {
     standalone::Progress engineering_progress{engineering_progress_flash};
     network_test::Flash progress_flash;
     standalone::Progress progress{progress_flash};
+    network_test::Flash udp_flash;
+    logging::UdpStore udp_store{udp_flash};
+    logging::Logger logger{device, f.service.status().boot_id, "wsprrypico-0a60df.local"};
+    logging::UdpSender udp_sender{device, f.service.status().boot_id, "wsprrypico-0a60df.local"};
     Media media;
     provisioning::ProfileStore profiles{media};
     provisioning::RuntimeProfile runtime;
@@ -356,6 +362,10 @@ struct Driver {
                                   provisioning::serialize_consumer_profile(p)));
         check(runtime.load(profiles, p.device_id, provisioning::BuildBundleState::Absent));
         f.api.consumer_config(runtime);
+        check(udp_store.load());
+        logger.udp_sink(udp_sender);
+        f.api.logging_service(logger);
+        f.api.udp_logging_service(udp_store, udp_sender);
         if (saved_progress)
             progress_flash = *saved_progress;
         check(progress.load());
