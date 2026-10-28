@@ -1085,7 +1085,7 @@ void amplifier_lifecycle() {
     CHECK(!disabled.output_active_or_unknown());
     for (unsigned failure = 0; failure < 9; ++failure) {
         Output out;
-        rf::AmplifierEnable enable(&out);
+        rf::AmplifierEnable enable(&out, {0, 0});
         CHECK(!enable.activate() && out.trace.empty());
         out.fail_init = failure == 8;
         CHECK(enable.initialize() == !out.fail_init);
@@ -1171,7 +1171,7 @@ void amplifier_lifecycle() {
     // terminal paths rather than a second per-producer enable state machine.
     for (unsigned action = 0; action < 7; ++action) {
         Output out;
-        rf::AmplifierEnable enable(&out);
+        rf::AmplifierEnable enable(&out, {0, 0});
         CHECK(enable.initialize());
         Hardware hw;
         hw.time = 2'000'000'000;
@@ -1237,6 +1237,174 @@ void amplifier_lifecycle() {
         CHECK(out.trace == cleaned && !out.on);
     }
 }
+void amplifier_timing_lifecycle() {
+    class Output final : public rf::EnableOutput {
+      public:
+        bool on = false, fail_on = false, fail_off = false, fail_read = false;
+        unsigned assertions = 0;
+        bool verify_active() const override {
+            return on && !fail_read;
+        }
+        bool initialize_inactive() override {
+            on = false;
+            return true;
+        }
+        bool write(bool active) override {
+            on = active;
+            if (active)
+                ++assertions;
+            return !(active ? fail_on : fail_off);
+        }
+    };
+    CHECK(rf::AmplifierTiming{}.lead_ms == 200 && rf::AmplifierTiming{}.tail_ms == 200);
+    for (unsigned action = 0; action < 12; ++action) {
+        Output out;
+        rf::AmplifierEnable enable(&out);
+        CHECK(enable.initialize());
+        Hardware hw;
+        hw.time = 2'000'000'000;
+        Clock clock(hw);
+        Identity identity;
+        rf::PioDmaSink sink(hw, nullptr, &enable);
+        rf::StreamEngine engine(sink);
+        wtp::JobService service(clock, engine, identity);
+        CHECK(service.config().minimum_arm_lead_ns == 202'000'000);
+        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+        CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+        const auto payload = job(2 * rf::block_samples);
+        CHECK(service.handle(request("LOAD", payload, 'c')).ok);
+        CHECK(!out.on);
+        auto start = hw.time + (action == 10 ? 6'000'000'000 : 1'000'000'000);
+        if (action == 1)
+            start = hw.time + 200'000'000;
+        const auto armed =
+            service.handle(request("ARM", wtp::ArmBody{payload.job_id, start, 1'000'000}, 'd'));
+        if (action == 1) {
+            CHECK(!armed.ok && armed.error == wtp::ErrorCode::ArmTooLate && out.assertions == 0);
+            continue;
+        }
+        CHECK(armed.ok && !out.on);
+        hw.alarm_event(0); // Old generation cannot activate.
+        hw.alarm_event(1); // Early current callback must reschedule without output.
+        CHECK(!out.on && !hw.enabled);
+        hw.time = start - 201'000'000;
+        if (action == 2)
+            hw.time = start - 199'999'000;
+        if (action == 3)
+            clock.synchronized = false;
+        if (action == 4)
+            out.fail_on = true;
+        hw.alarm_event(1);
+        service.poll();
+        if (action == 2 || action == 3 || action == 4) {
+            CHECK(hw.launches == 0 && !out.on && !hw.enabled);
+            CHECK(service.status().state ==
+                  (action == 4 ? wtp::State::Failed : wtp::State::Missed));
+            continue;
+        }
+        CHECK(out.on && !hw.enabled && service.status().state == wtp::State::Armed);
+        CHECK(service.rf_chain_observation().chain_phase == wtp::ChainPhase::Lead);
+        if (action == 5) {
+            CHECK(service.handle(request("ABORT", wtp::AbortBody{payload.job_id}, 'e')).ok);
+            CHECK(!out.on);
+            hw.time = start;
+            hw.alarm_event(1);
+            CHECK(!out.on && hw.launches == 0);
+            continue;
+        }
+        if (action == 6)
+            clock.utc_offset = 2'000'000; // Earlier target shortens settling.
+        if (action == 11)
+            out.fail_read = true;
+        hw.time = start - (action == 6 ? 3'000'000 : 200'000);
+        hw.alarm_event(1);
+        service.poll();
+        if (action == 6 || action == 11) {
+            CHECK(!out.on && hw.launches == 0 && service.status().state == wtp::State::Missed);
+            continue;
+        }
+        CHECK(hw.enabled && out.on && hw.last_launch_target == start && out.assertions == 1);
+        hw.complete();
+        hw.complete();
+        hw.time = start + ((ns_at(2 * rf::block_samples) + 999) / 1000) * 1000;
+        hw.stop_tail_before_irq();
+        service.poll();
+        CHECK(!hw.enabled && out.on && service.status().state == wtp::State::Running);
+        CHECK(service.rf_chain_observation().chain_phase == wtp::ChainPhase::Tail);
+        const auto end = hw.time;
+        hw.deliver_completion_irq(); // Delayed IRQ must not restart/extend the dwell.
+        if (action == 7) {
+            CHECK(service.local_inhibit_output() && !out.on);
+            hw.time += 200'000'000;
+            hw.alarm_event(1);
+            CHECK(!out.on && !hw.enabled);
+            continue;
+        }
+        hw.time = end + 199'999'000;
+        service.poll();
+        CHECK(out.on && service.status().state == wtp::State::Running);
+        if (action == 8)
+            out.fail_off = true;
+        if (action == 9)
+            hw.fail_halt = true;
+        hw.time = end + 200'000'000;
+        hw.alarm_event(1);
+        service.poll();
+        CHECK(!out.on && !hw.enabled);
+        const auto observation = sink.timing_observation();
+        CHECK(observation.configured && observation.epoch == 1 && observation.normal_rf_completion);
+        CHECK(observation.enable_ns == start - 201'000'000 && observation.rf_start_ns == start);
+        CHECK(observation.rf_off_ns == end);
+        CHECK(observation.disable_ns == (action == 8 ? 0 : end + 200'000'000));
+        CHECK(service.status().state ==
+              (action == 8 || action == 9 ? wtp::State::Failed : wtp::State::Complete));
+        out.fail_off = hw.fail_halt = false;
+        CHECK(engine.disable(hw.time));
+    }
+    for (const auto timing :
+         {rf::AmplifierTiming{0, 0}, {1, 1}, {1000, 1000}, {0, 200}, {200, 0}}) {
+        Hardware hw;
+        Output out;
+        rf::AmplifierEnable enable(&out, timing);
+        CHECK(enable.initialize());
+        rf::PioDmaSink sink(hw, nullptr, &enable);
+        std::array<std::uint32_t, 1> words{0x55555555};
+        CHECK(sink.submit(1, 0, words, 32));
+        const auto start = hw.time + 2'000'000'000;
+        CHECK(sink.arm(1, start, 32));
+        if (timing.lead_ms) {
+            hw.time = hw.last_alarm;
+            hw.alarm_event(1);
+            CHECK(out.on && !hw.enabled);
+        }
+        hw.time = start;
+        hw.alarm_event(1);
+        CHECK(out.on && hw.enabled && hw.last_launch_target == start);
+        hw.complete();
+        hw.time = start + 1'000;
+        hw.stop_tail_before_irq();
+        const auto report = sink.poll(hw.time);
+        CHECK(!hw.enabled && out.on == (timing.tail_ms != 0));
+        if (timing.tail_ms) {
+            CHECK(report.chain_phase == wtp::ChainPhase::Tail);
+            hw.time += timing.tail_ns();
+            hw.alarm_event(1);
+        }
+        CHECK(!out.on && sink.poll(hw.time).state == wtp::EngineState::Complete);
+        const auto observation = sink.timing_observation();
+        CHECK(observation.enable_ns && observation.rf_start_ns == start &&
+              observation.rf_off_ns == start + 1'000);
+        CHECK(observation.rf_start_ns - observation.enable_ns >= timing.lead_ns());
+        CHECK(observation.disable_ns - observation.rf_off_ns == timing.tail_ns());
+        CHECK(sink.stop(hw.time));
+        CHECK(sink.timing_observation().disable_ns == observation.disable_ns);
+    }
+    // Disabled output ignores timing and makes no hardware enable observation.
+    Hardware hw;
+    rf::AmplifierEnable disabled(nullptr, {1000, 1000});
+    rf::PioDmaSink sink(hw, nullptr, &disabled);
+    CHECK(sink.amplifier_lead_ns() == 0 && sink.amplifier_tail_ns() == 0);
+}
 } // namespace
 int main() {
     try {
@@ -1261,6 +1429,7 @@ int main() {
         early_alarm_retry_race();
         indicator_modes_and_tail();
         amplifier_lifecycle();
+        amplifier_timing_lifecycle();
         std::cout << "PIO/DMA checks passed\n";
     } catch (const std::exception& e) {
         std::cerr << e.what() << '\n';

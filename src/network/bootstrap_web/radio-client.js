@@ -74,6 +74,7 @@ export class RadioClient {
         !/^[1-9][0-9]{0,19}$/.test(id.generation) || BigInt(id.generation) > 0xffffffffffffffffn) throw new Error('Invalid Pico identity');
     this.publicIdentity = id;
     this.publicReads = null;
+    this.publicTimingReads = null;
     return id;
   }
   async publicStatus(timeout = 5000) {
@@ -91,22 +92,23 @@ export class RadioClient {
     return value;
   }
   async publicRead(path, timeout = 5000) {
-    if (!publicReadResources.includes(path)) throw new Error('This resource has no public read authority');
+    const extended=path==='amplifier-timing',resources=extended?['amplifier-timing']:publicReadResources,cache=extended?'publicTimingReads':'publicReads';
+    if (!resources.includes(path)) throw new Error('This resource has no public read authority');
     const options = {method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(timeout)};
-    if (!this.publicReads) {
-      const reply = await this.fetcher('/api/consumer/v1/read',options);
+    if (!this[cache]) {
+      const reply = await this.fetcher(extended?'/api/consumer/v1/read/2':'/api/consumer/v1/read',options);
       if (!reply.ok) throw new Error('Public settings reads are unavailable on this firmware');
       const value = publicDiscovery(await reply.text()), target = value?.target;
       if (Object.keys(value || {}).sort().join(',') !== 'prefix,resources,schema,target' ||
-          value.schema !== 'pico-public-read/1' || value.prefix !== '/api/consumer/v1/read/' ||
+          value.schema !== (extended?'pico-public-read/2':'pico-public-read/1') || value.prefix !== (extended?'/api/consumer/v1/read/2/':'/api/consumer/v1/read/') ||
           Object.keys(target || {}).sort().join(',') !== 'boot_id,device_id,scope' || target.scope !== 'member' ||
           !this.publicIdentity || target.device_id !== this.publicIdentity.device_id || target.boot_id !== this.publicIdentity.boot_id ||
-          JSON.stringify(value.resources) !== JSON.stringify(publicReadResources))
+          JSON.stringify(value.resources) !== JSON.stringify(resources))
         throw new Error('Public read discovery does not match this Pico or supported contract');
-      this.publicReads = value;
+      this[cache] = value;
     }
     // No login, ownership, sequence consumption or session lifetime renewal.
-    return this.fetcher(this.publicReads.prefix + path,{...options,signal:AbortSignal.timeout(timeout)});
+    return this.fetcher(this[cache].prefix + path,{...options,signal:AbortSignal.timeout(timeout)});
   }
   async login(password, identity) {
     if (this.busy) throw new Error('A radio request is already in progress');

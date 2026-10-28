@@ -703,24 +703,28 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
             (!request.header("sec-fetch-site").empty() &&
              request.header("sec-fetch-site") != "same-origin"))
             return http_error(403, "forbidden");
-        if (request.path == "/api/consumer/v1/read") {
+        const bool extended = request.path == "/api/consumer/v1/read/2" ||
+                              request.path.starts_with("/api/consumer/v1/read/2/");
+        const auto allowed = extended ? std::span<const std::string_view>(public_read_resources_v2)
+                                      : std::span<const std::string_view>(public_read_resources);
+        const std::string prefix = extended ? "/api/consumer/v1/read/2/" : "/api/consumer/v1/read/";
+        if (request.path == "/api/consumer/v1/read" || request.path == "/api/consumer/v1/read/2") {
             std::string resources = "[";
-            for (const auto resource : public_read_resources) {
+            for (const auto resource : allowed) {
                 if (resources.size() > 1)
                     resources += ',';
                 resources += wtp::json::quote(resource);
             }
             return {200,
-                    "{\"schema\":\"pico-public-read/1\",\"target\":" +
-                        application::target(device_, boot_) +
-                        ",\"prefix\":\"/api/consumer/v1/read/\",\"resources\":" + resources + "]}",
+                    "{\"schema\":" +
+                        wtp::json::quote(extended ? "pico-public-read/2" : "pico-public-read/1") +
+                        ",\"target\":" + application::target(device_, boot_) + ",\"prefix\":" +
+                        wtp::json::quote(prefix) + ",\"resources\":" + resources + "]}",
                     "application/json",
                     {}};
         }
-        const auto resource = std::string_view(request.path)
-                                  .substr(std::string_view("/api/consumer/v1/read/").size());
-        if (std::find(public_read_resources.begin(), public_read_resources.end(), resource) ==
-            public_read_resources.end())
+        const auto resource = std::string_view(request.path).substr(prefix.size());
+        if (std::find(allowed.begin(), allowed.end(), resource) == allowed.end())
             return http_error(404, "public_read_resource_unavailable");
         // The public adapter owns a fixed GET allowlist. No caller body,
         // principal, revision or headers enter the authenticated command path.

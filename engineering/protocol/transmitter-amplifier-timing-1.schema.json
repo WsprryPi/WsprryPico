@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:wsprry:transmitter-amplifier-timing:1",
+  "title": "Amplifier lead and tail timing descriptor",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "path",
+    "method",
+    "units",
+    "minimum",
+    "maximum",
+    "default_lead_ms",
+    "default_tail_ms",
+    "activation",
+    "scope"
+  ],
+  "properties": {
+    "schema": {
+      "const": "transmitter-amplifier-timing/1"
+    },
+    "path": {
+      "const": "/api/v1/amplifier-timing"
+    },
+    "method": {
+      "const": "PUT"
+    },
+    "units": {
+      "const": "ms"
+    },
+    "minimum": {
+      "const": 0
+    },
+    "maximum": {
+      "const": 1000
+    },
+    "default_lead_ms": {
+      "const": 200
+    },
+    "default_tail_ms": {
+      "const": 200
+    },
+    "activation": {
+      "const": "restart"
+    },
+    "scope": {
+      "const": "complete_job"
+    }
+  }
+}

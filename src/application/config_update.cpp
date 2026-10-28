@@ -139,6 +139,10 @@ std::optional<std::string> config_candidate(Value supplied,
         member(result, "wspr_dial_frequency_hz", std::to_string(*current->wspr_dial_frequency_hz));
     if (current && current->ntp_timeout_s != standalone::default_ntp_timeout_s)
         member(result, "ntp_timeout_s", std::to_string(current->ntp_timeout_s));
+    if (current && current->amplifier_timing != rf::AmplifierTiming{})
+        member(result, "amplifier_timing",
+               "{\"lead_ms\":" + std::to_string(current->amplifier_timing.lead_ms) +
+                   ",\"tail_ms\":" + std::to_string(current->amplifier_timing.tail_ms) + "}");
     result += '}';
     if (result.size() > standalone::max_config_bytes)
         return {};

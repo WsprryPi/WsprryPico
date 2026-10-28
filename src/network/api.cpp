@@ -360,6 +360,7 @@ HttpResponse BrowserApi::config(bool drive, bool amplifier) const {
         redacted.ntp_rf_calibration = false;
         redacted.wspr_dial_frequency_hz.reset();
         redacted.ntp_timeout_s = standalone::default_ntp_timeout_s;
+        redacted.amplifier_timing = {};
         if (!drive)
             redacted.gpio_drive_ma = 4;
         body = standalone::serialize_config(redacted, amplifier);
@@ -435,6 +436,48 @@ HttpResponse BrowserApi::ntp_timeout() const {
                      ",\"active_timeout_s\":" + std::to_string(active) +
                      ",\"pending_restart\":" + (saved != active ? "true" : "false") +
                      ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
+    result.etag = revision();
+    return result;
+}
+HttpResponse BrowserApi::amplifier_timing() const {
+    const auto config = effective_config();
+    const auto values = [](rf::AmplifierTiming t) {
+        return "{\"lead_ms\":" + std::to_string(t.lead_ms) +
+               ",\"tail_ms\":" + std::to_string(t.tail_ms) + "}";
+    };
+    const auto observation = service_.rf_chain_observation();
+    const char* phase = "inactive";
+    switch (observation.chain_phase) {
+    case wtp::ChainPhase::Waiting:
+        phase = "waiting";
+        break;
+    case wtp::ChainPhase::Lead:
+        phase = "lead";
+        break;
+    case wtp::ChainPhase::Rf:
+        phase = "rf";
+        break;
+    case wtp::ChainPhase::Tail:
+        phase = "tail";
+        break;
+    case wtp::ChainPhase::Fault:
+        phase = "fault";
+        break;
+    default:
+        if (observation.output_active || observation.state == wtp::EngineState::Failed)
+            phase = "fault";
+        break;
+    }
+    auto result =
+        ok("{\"schema\":\"transmitter-amplifier-timing/1\",\"target\":" +
+           application::target(device_, service_.status().boot_id) + ",\"saved\":" +
+           (config ? values(config->amplifier_timing) : "null") + ",\"boot_active\":" +
+           (store_.healthy() ? values(scheduler_.active_amplifier_timing()) : "null") +
+           ",\"pending_restart\":" + (scheduler_.hardware_restart_required() ? "true" : "false") +
+           ",\"phase\":" + json::quote(phase) +
+           ",\"output_active\":" + (observation.output_active ? "true" : "false") +
+           ",\"rf_active\":" + (observation.chain_phase == wtp::ChainPhase::Rf ? "true" : "false") +
+           ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
     result.etag = revision();
     return result;
 }
@@ -865,7 +908,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "\"units\":\"ppm\",\"precision\":3,\"minimum\":\"-100.000\","
                 "\"maximum\":\"100.000\",\"default_mode\":\"manual\",\"activation\":\"next_"
                 "preparation\"},"
-                "\"amplifier_enable\":" +
+                "\"amplifier_timing\":" +
+                application::amplifier_timing_capabilities() + ",\"amplifier_enable\":" +
                 application::amplifier_capabilities(service_.config().capability_engine ==
                                                     "pio-dma-gp2") +
                 ",\"gpio_drive\":" + application::gpio_drive_capabilities() +
@@ -958,6 +1002,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return rf_calibration();
         if (r.path == "/api/v1/standalone-frequency")
             return standalone_frequency();
+        if (r.path == "/api/v1/amplifier-timing")
+            return amplifier_timing();
         if (r.path == "/api/v1/gpio-drive")
             return gpio_drive();
         if (r.path == "/api/v1/ntp-timeout")
@@ -1077,6 +1123,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         compatible.ntp_rf_calibration = false;
         compatible.wspr_dial_frequency_hz.reset();
         compatible.ntp_timeout_s = standalone::default_ntp_timeout_s;
+        compatible.amplifier_timing = {};
         // Legacy apply has no drive authority. Omit the extension on its old
         // config route; ordinary candidate merge preserves the saved value and
         // the response retains its original closed configuration shape.
@@ -1143,6 +1190,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         amplifier_config || r.path == "/api/v1/config/3" || r.path == "/api/v1/config/update/3";
     const bool calibration_resource = r.path == "/api/v1/rf-calibration";
     const bool frequency_resource = r.path == "/api/v1/standalone-frequency";
+    const bool timing_resource = r.path == "/api/v1/amplifier-timing";
     const bool drive_resource = r.path == "/api/v1/gpio-drive";
     const bool ntp_resource = r.path == "/api/v1/ntp-timeout";
     const bool extended_config =
@@ -1161,11 +1209,11 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         (r.method != "PUT" ||
          (r.path != "/api/v1/config" && r.path != "/api/v1/config/2" &&
           r.path != "/api/v1/config/3" && r.path != "/api/v1/config/4" && !drive_resource &&
-          !calibration_resource && !frequency_resource && !ntp_resource &&
+          !timing_resource && !calibration_resource && !frequency_resource && !ntp_resource &&
           r.path != "/api/v1/schedules" && r.path != "/api/v1/network" && !scoped_resource)))
         return http_error(404, "not_found");
-    if ((scoped_resource || drive_resource || calibration_resource || frequency_resource ||
-         ntp_resource) &&
+    if ((scoped_resource || timing_resource || drive_resource || calibration_resource ||
+         frequency_resource || ntp_resource) &&
         r.body_view().size() > application::max_update_bytes)
         return http_error(413, "resource_body_too_large");
     if (config_update && r.body_view().size() > application::max_config_update_bytes)
@@ -1297,6 +1345,32 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         candidate.pop_back();
         candidate +=
             ",\"manual_correction_ppb\":" + std::to_string(*ppb) + ",\"ntp_rf_calibration\":false}";
+    } else if (timing_resource) {
+        const auto checked = application::validate_envelope(
+            *root, "transmitter-amplifier-timing/1", "timing", device_, service_.status().boot_id);
+        if (checked != application::Envelope::Valid)
+            return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
+                              "invalid_amplifier_timing_resource");
+        const auto value = *root->get("timing");
+        if (!json::fields(value, {"lead_ms", "tail_ms"}))
+            return http_error(400, "invalid_amplifier_timing");
+        for (const auto key : {"lead_ms", "tail_ms"}) {
+            const auto v = *value.get(key);
+            if (v.type() < '0' || v.type() > '9' || v.raw.size() > 4 ||
+                std::to_string(v.integer()) != v.raw ||
+                v.integer() > int(rf::AmplifierTiming::maximum_ms))
+                return http_error(400, "invalid_amplifier_timing");
+        }
+        if (!effective_config())
+            return http_error(409, "not_configured");
+        auto updated = *effective_config();
+        updated.amplifier_timing = {unsigned(value.get("lead_ms")->integer()),
+                                    unsigned(value.get("tail_ms")->integer())};
+        candidate = standalone::serialize_config(updated);
+        if (updated.amplifier_timing == rf::AmplifierTiming{}) {
+            candidate.pop_back();
+            candidate += ",\"amplifier_timing\":{\"lead_ms\":200,\"tail_ms\":200}}";
+        }
     } else if (ntp_resource) {
         const auto checked = application::validate_envelope(
             *root, "transmitter-ntp-timeout/1", "timeout_s", device_, service_.status().boot_id);
@@ -1499,6 +1573,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return rf_calibration();
     if (frequency_resource)
         return standalone_frequency();
+    if (timing_resource)
+        return amplifier_timing();
     if (drive_resource)
         return gpio_drive();
     if (ntp_resource)

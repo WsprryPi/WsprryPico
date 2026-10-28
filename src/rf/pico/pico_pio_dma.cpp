@@ -378,6 +378,9 @@ bool PicoPioDma::stalled() const {
 bool PicoPioDma::active() const {
     return pio_ && (pio_->ctrl & (1U << sm_));
 }
+bool PicoPioDma::rf_inactive_verified() const {
+    return pio_ && !active() && !gpio_get(rf_pin);
+}
 
 void PicoPioDma::dma_irq() {
     auto* self = instance_;

@@ -59,7 +59,7 @@
     if (!s.storage_healthy || j.state==='failed' || j.output_active&&!['armed','running'].includes(j.state)) {state='Recovery required';explanation='Output or storage authority needs recovery. Check Transmitter status; RF-off alone does not clear a fault.';}
     else if (occupied) {
       state=j.state==='running'?'Job running':j.state==='armed'?'Job armed':'Job loaded';
-      explanation=j.state==='running'?(j.output_active?'The accepted job is running with RF active.':'The accepted job is still running. RF is off at this observation, including possible keyed gaps.'):
+      explanation=j.state==='running'?(j.output_active?'The accepted job is running or completing amplifier tail. RF and amplifier activity are reported separately in Radio pins.':'The accepted job is still running. RF is off at this observation, including possible keyed gaps.'):
         j.state==='armed'?'The Pico holds an accepted job for its scheduled UTC start.':'A complete job is loaded; it has not started.';
     } else if (m.state==='recovery_required') {state='Schedule recovery required';explanation='A recurring occurrence has an unresolved recovery barrier. It will not replay automatically.';}
     else if (m.pause_pending) {state='Pause awaiting save';explanation='Future message occurrences are paused in memory. Keep the Pico powered until durable confirmation.';}

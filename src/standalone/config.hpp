@@ -1,5 +1,6 @@
 #pragma once
 #include "hardware/pins.hpp"
+#include "rf/amplifier_timing.hpp"
 #include "wtp/json.hpp"
 
 #include <array>
@@ -21,6 +22,7 @@ struct Schedule {
 };
 struct Config {
     hardware::PinPlan pins;
+    rf::AmplifierTiming amplifier_timing;
     unsigned gpio_drive_ma = 4; // Nominal direct RF pad current, never WSPR power.
     std::int32_t manual_correction_ppb = 0;
     bool ntp_rf_calibration =

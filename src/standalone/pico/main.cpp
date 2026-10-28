@@ -1,3 +1,4 @@
+#include "application/resources.hpp"
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
@@ -441,7 +442,9 @@ int main() {
     // inhibited image initializes inactive too, but never gives it to a job.
     static wsprrypico::hardware::PicoAmplifierOutput amplifier_output(boot_pins);
     static wsprrypico::rf::AmplifierEnable amplifier_enable(
-        store_loaded && store.healthy() && boot_pins.amplifier ? &amplifier_output : nullptr);
+        store_loaded && store.healthy() && boot_pins.amplifier ? &amplifier_output : nullptr,
+        store_loaded && store.config() ? store.config()->amplifier_timing
+                                       : wsprrypico::rf::AmplifierTiming{});
     const bool amplifier_boot_safe = amplifier_enable.initialize();
     // Ownership transfers to the RF core before any service/job call.
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -1501,6 +1504,8 @@ int main() {
                       std::to_string(server.metrics().last_wtp_tls_result);
 #ifdef WSPRRY_PICO_STANDALONE_RF
             const auto metrics = engine.metrics();
+            result += ",\"amplifier_timing_readback\":" +
+                      wsprrypico::application::amplifier_observation(metrics.amplifier);
 #ifdef WSPRRY_PICO_RF_RENDER_IN_RAM
             result += ",\"rf_render_in_ram\":true";
 #else

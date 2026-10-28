@@ -196,6 +196,16 @@ int main() {
                wtp::json::fields(*root, {"schema", "target", "prefix", "resources"}));
         assert(root->get("schema")->string() == "pico-public-read/1");
         assert(root->get("resources")->elements().size() == network::public_read_resources.size());
+        const auto timing_caps = read("/api/consumer/v1/read/2");
+        const auto timing_descriptor = wtp::json::parse(timing_caps.body);
+        assert(timing_caps.status == 200 && timing_descriptor &&
+               timing_descriptor->get("schema")->string() == "pico-public-read/2" &&
+               timing_descriptor->get("resources")->raw == "[\"amplifier-timing\"]");
+        assert(read("/api/consumer/v1/read/amplifier-timing").status == 404);
+        assert(read("/api/consumer/v1/read/2/config").status == 404);
+        assert(read("/api/consumer/v1/read/3/amplifier-timing").status == 404);
+        assert(read("/api/consumer/v1/read/2/amplifier-timing").status == 200);
+        assert(read("/api/consumer/v1/read/2/amplifier-timing", "PUT", "{}").status == 405);
         const auto config_read = read("/api/consumer/v1/read/config/4");
         assert(config_read.status == 200 && config_read.body.find("AA0NT") != std::string::npos);
         assert(config_read.body.find("test-password") == std::string::npos);

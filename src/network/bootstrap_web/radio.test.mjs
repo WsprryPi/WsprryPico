@@ -244,3 +244,19 @@ test('independent public reads negotiate an exact target and never grant or rene
   }
 
 });
+
+
+test('timing public reads select their closed independent version and reject malformed peers',async()=>{
+  const descriptor={schema:'pico-public-read/2',target:{scope:'member',device_id:id.device_id,boot_id:id.boot_id},prefix:'/api/consumer/v1/read/2/',resources:['amplifier-timing']};
+  let advertised=descriptor,reads=[];
+  const client=new RadioClient(async(path,options)=>{
+    reads.push(path);assert.equal(options.credentials,'omit');
+    return Response.json(path.endsWith('/identity')?id:path==='/api/consumer/v1/read/2'?advertised:{saved:{lead_ms:200,tail_ms:200}});
+  });
+  await client.identity();await client.publicRead('amplifier-timing');
+  assert.deepEqual(reads.slice(-2),['/api/consumer/v1/read/2','/api/consumer/v1/read/2/amplifier-timing']);
+  for(const patch of [{schema:'pico-public-read/1'},{schema:'pico-public-read/3'},{resources:['amplifier-timing','config']},{prefix:'/api/consumer/v1/read/'},{extra:0},{target:{...descriptor.target,boot_id:'f'.repeat(32)}}]){
+    advertised={...descriptor,...patch};client.publicTimingReads=null;const count=reads.length;
+    await assert.rejects(client.publicRead('amplifier-timing'));assert.equal(reads.length,count+1);
+  }
+});

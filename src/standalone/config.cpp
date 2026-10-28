@@ -145,7 +145,8 @@ std::optional<Config> parse_config(std::string_view text) {
         !fields(*root, {"version", "enabled", "station", "wifi", "schedules"},
                 {"expires_utc_s", "pins", "allow_unqualified_frequency",
                  "allow_non_amateur_frequency", "gpio_drive_ma", "manual_correction_ppb",
-                 "ntp_rf_calibration", "wspr_dial_frequency_hz", "ntp_timeout_s"}) ||
+                 "ntp_rf_calibration", "wspr_dial_frequency_hz", "ntp_timeout_s",
+                 "amplifier_timing"}) ||
         root->get("version")->raw != "1" ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
@@ -161,6 +162,16 @@ std::optional<Config> parse_config(std::string_view text) {
         if (wifi.get(name)->type() != '"')
             return {};
     Config c;
+    if (const auto timing = root->get("amplifier_timing")) {
+        std::uint32_t lead = 0, tail = 0;
+        if (!fields(*timing, {"lead_ms", "tail_ms"}) || !integer(*timing->get("lead_ms"), lead) ||
+            !integer(*timing->get("tail_ms"), tail) ||
+            std::to_string(lead) != timing->get("lead_ms")->raw ||
+            std::to_string(tail) != timing->get("tail_ms")->raw ||
+            lead > rf::AmplifierTiming::maximum_ms || tail > rf::AmplifierTiming::maximum_ms)
+            return {};
+        c.amplifier_timing = {lead, tail};
+    }
     if (const auto timeout = root->get("ntp_timeout_s")) {
         if (!valid_ntp_timeout_token(*timeout))
             return {};
@@ -289,6 +300,10 @@ std::string serialize_config(const Config& c, bool amplifier_view) {
         result += ",\"wspr_dial_frequency_hz\":" + std::to_string(*c.wspr_dial_frequency_hz);
     if (c.ntp_timeout_s != default_ntp_timeout_s)
         result += ",\"ntp_timeout_s\":" + std::to_string(c.ntp_timeout_s);
+    if (c.amplifier_timing != rf::AmplifierTiming{})
+        result +=
+            ",\"amplifier_timing\":{\"lead_ms\":" + std::to_string(c.amplifier_timing.lead_ms) +
+            ",\"tail_ms\":" + std::to_string(c.amplifier_timing.tail_ms) + "}";
     return result + "}";
 }
 } // namespace wsprrypico::standalone

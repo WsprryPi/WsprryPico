@@ -44,6 +44,9 @@ class Scheduler {
     const hardware::PinPlan& active_pins() const {
         return active_pins_;
     }
+    rf::AmplifierTiming active_amplifier_timing() const {
+        return active_amplifier_timing_;
+    }
     unsigned active_gpio_drive_ma() const {
         return active_gpio_drive_ma_;
     }
@@ -106,6 +109,7 @@ class Scheduler {
     bool hardware_application_failed_ = false;
     std::optional<wtp::PayloadDigest> active_network_;
     hardware::PinPlan active_pins_;
+    rf::AmplifierTiming active_amplifier_timing_;
     unsigned active_gpio_drive_ma_ = 4;
     unsigned active_ntp_timeout_s_ = default_ntp_timeout_s;
 };

@@ -38,4 +38,5 @@ inline constexpr std::array<std::string_view, 33> public_read_resources = {
     "consumer/password",
     "consumer/setup/api/owner/v1/public-status",
 };
+inline constexpr std::array<std::string_view, 1> public_read_resources_v2 = {"amplifier-timing"};
 } // namespace wsprrypico::network

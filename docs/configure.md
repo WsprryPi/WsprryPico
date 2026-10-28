@@ -53,13 +53,19 @@ To prevent later automatic starts, uncheck **Enable standalone schedules**, save
 
 ## Pins and drive
 
-Assign each GPIO one role. Check physical wiring before changing **Radio pins**. The optional amplifier-enable pin has a selected active polarity; it stays active for a complete job, including keyed gaps, and returns inactive after stop, completion, abort or fault.
+Assign each GPIO one role. Check physical wiring before changing **Radio pins**. The optional amplifier-enable pin has a selected active polarity; it stays active for a complete job, including keyed gaps, with configurable lead before RF and tail after normal completion. Stop, abort and faults bypass the tail.
 
 **Amplifier enable** is disabled by default. When configured, it is a logic control signal for suitable amplifier control circuitry; it does not supply amplifier power or carry the RF signal. **Active-high** means the output is high, about 3.3 V, when active and low when inactive. **Active-low** reverses those levels. The same polarity terms apply to an external LED. Match the selection to the wiring. The [hardware preparation guide](start.md#hardware-connections) lists available GPIOs and factory assignments.
 
 Direct RF drive offers **2, 4, 8 or 12 mA**, with **4 mA** as the default. This controls the GPIO's electrical drive strength; it does not specify RF power. Check physical output with suitable measurement equipment when changing the drive setting or RF setup.
 
 Pin or drive changes require an **explicit restart** in **Station Control → Transmitter status** before transmitting. Saving does not program the running pad. Changing a value back does not clear the restart requirement. Read saved and active settings separately.
+
+### Amplifier lead and tail
+
+Open **Station Control → Radio pins**, beside the amplifier-enable pin and polarity settings. Choose **Read saved timing**, set **Enable before RF (ms)** and **Disable after RF (ms)**, then choose **Save amplifier timing** while the Pico is idle and unowned. Both values default to **200 ms** and accept **0–1000 whole milliseconds**. Restart the Pico to activate changes; saved and active values are shown separately. Changing timing requires a restart even if the amplifier pin is disabled.
+
+Lead lets the amplifier settle before the scheduled RF start. Tail holds it enabled after normal RF completion. These intervals surround the transmission window and do not change the message duration or shift its scheduled RF start. Zero removes the corresponding interval; a disabled amplifier pin uses neither interval. A job submitted too late to provide its lead is refused. Stop and fault cleanup do not wait for tail. Settings readback shows the phase observed at the last read; it does not measure amplifier readiness or RF power.
 
 ### LED and button settings
 

@@ -11,6 +11,7 @@ class PicoAmplifierOutput final : public rf::EnableOutput {
           valid_(operational(pins)) {}
     bool initialize_inactive() override;
     bool write(bool active) override;
+    bool verify_active() const override;
 
   private:
     std::optional<unsigned> pin_;

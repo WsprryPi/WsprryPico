@@ -176,7 +176,8 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
     if (state_ != wtp::EngineState::Idle || !job_ || *job_ != wtp::job_digest(job) ||
         epoch_ == std::numeric_limits<std::uint64_t>::max() ||
         start_monotonic_ns > std::numeric_limits<std::uint64_t>::max() -
-                                 std::max(job.total_duration_ns, realized_duration_ns)) {
+                                 std::max(job.total_duration_ns, realized_duration_ns) -
+                                 amplifier_tail_ns() - maximum_completion_acknowledgement_ns) {
         return false;
     }
     if (!sink_.stop(start_monotonic_ns) || output_active()) {
@@ -249,10 +250,11 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     // An alarm may be serviced late within the accepted second. A finite
     // waveform's duration is measured only once its launch is observed.
     if (report.state == wtp::EngineState::Armed && start_conditions_.clock &&
-        report.consumed_samples == 0 && report.completed_blocks == 0 && !active) {
+        report.consumed_samples == 0 && report.completed_blocks == 0 &&
+        (!active || report.chain_phase == wtp::ChainPhase::Lead)) {
         last_poll_ns_ = now_ns;
         if (now_ns < launch_deadline_ns_)
-            return {wtp::EngineState::Armed, false};
+            return {wtp::EngineState::Armed, active, {}, report.chain_phase};
         if (!sink_.stop(now_ns) || output_active())
             return fail(now_ns, "missed_disable_failed");
         state_ = wtp::EngineState::Missed;
@@ -287,6 +289,16 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         state_ = wtp::EngineState::Complete;
         return {state_, false, launch_ns_};
     }
+    if (report.chain_phase == wtp::ChainPhase::Tail && report.state == wtp::EngineState::Running &&
+        launch_ns_ && now_ns >= end_ns_ &&
+        now_ns - end_ns_ <= amplifier_tail_ns() + maximum_completion_acknowledgement_ns &&
+        report.consumed_samples == plan_.total_samples && report.completed_blocks == submitted_ &&
+        waveform_.position() == plan_.total_samples && active) {
+        state_ = wtp::EngineState::Running;
+        completed_ = report.completed_blocks;
+        consumed_ = report.consumed_samples;
+        return {state_, true, launch_ns_, wtp::ChainPhase::Tail};
+    }
     // Final data and zero-tail IRQ acknowledgements can both lag the hardware.
     // Allow only the final submitted block to be unacknowledged, for at most
     // 100 us after the nominal end. This does not generate extra RF samples.
@@ -311,7 +323,7 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     completed_ = report.completed_blocks;
     consumed_ = report.consumed_samples;
     state_ = report.state;
-    return {state_, active, launch_ns_};
+    return {state_, active, launch_ns_, report.chain_phase};
 }
 
 bool StreamEngine::disable(std::uint64_t deadline_monotonic_ns) {

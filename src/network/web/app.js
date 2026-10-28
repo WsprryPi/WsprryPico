@@ -78,7 +78,7 @@ function clearPrivateStatus() {
   for(const id of ['job-result','message-result','job-progress','standalone-status','recovery','saved-active-status','saved-wspr-plan','saved-readback','hostname-status','pico-password-status','progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status','message-schedule-status']) consolePut(id,'');
   if($('saved-readback-details')) $('saved-readback-details').hidden=true;
   hostnameState=null; picoPasswordState=null; messageScheduleReadback=null;
-  calibrationEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); driveEditor?.invalidate(); frequencyEditor?.invalidate();
+  timingEditor?.invalidate(); calibrationEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); driveEditor?.invalidate(); frequencyEditor?.invalidate();
   for(const id of ['rf-calibration-status','ntp-timeout-status','gpio-drive-status','gpio-drive-draft-status','standalone-frequency-status']) consolePut(id,'Controls locked. Read this setting again after unlocking; your entry is preserved.');
   $('draft-comparison').replaceChildren();
   requireReadback();
@@ -255,6 +255,13 @@ const calibrationEditor = globalThis.WsprryRfCalibration && $('rf-manual-ppm') ?
   exchange:async (method,body,match)=>{if (!WsprryRfCalibration.supported(capabilities?.rf_calibration)) throw new Error('Calibration configuration is unsupported.'); return api('rf-calibration',method,body,match);},
   onError:radioSettingsError,
   afterSave:()=>requireReadback()
+}) : null;
+const timingEditor = globalThis.WsprryAmplifierTiming && $('amplifier-lead-ms') ? WsprryAmplifierTiming.create({
+  lead:$('amplifier-lead-ms'),tail:$('amplifier-tail-ms'),read:$('amplifier-timing-read'),save:$('amplifier-timing-save'),discard:$('amplifier-timing-discard'),adopt:$('amplifier-timing-adopt'),status:$('amplifier-timing-status'),
+  run:fn=>editorAction('amplifier-timing',fn),
+  expectedTarget:()=>({scope:'member',device_id:localIdentity?.device_id || operationsTarget?.device_id,boot_id:snapshot?.job.boot_id}),
+  exchange:async(method,body,match)=>{if(!WsprryAmplifierTiming.supported(capabilities?.amplifier_timing))throw Error('Amplifier timing is unsupported by this firmware.');return api('amplifier-timing',method,body,match);},
+  afterSave:()=>refresh()
 }) : null;
 if ($('gpio-drive-form')) $('gpio-drive-form').onsubmit = event => event.preventDefault();
 const driveEditor = globalThis.WsprryGpioDrive && $('gpio-drive-select') ? WsprryGpioDrive.create({
@@ -782,6 +789,7 @@ function controls(connected) {
   calibrationEditor?.setAvailability(!!connected && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
   frequencyEditor?.setAvailability(!!connected && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
   driveEditor?.setAvailability(!!connected && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
+  timingEditor?.setAvailability(!!connected && !!snapshot, !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   ntpTimeoutEditor?.setAvailability(!!connected && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
   $('reload-config').disabled = busy || !online;
@@ -925,7 +933,7 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
     }
     observedAt = new Date(observedClockMs).toISOString().slice(11,19) + ' UTC';
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) capabilities = (await api('capabilities')).data;
-    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); }
+    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); timingEditor?.invalidate(); calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); }
     capabilitiesBoot = snapshot.job.boot_id;
     const s = snapshot.standalone, n = snapshot.network;
     $('state').textContent = snapshot.job.state;
@@ -1874,7 +1882,7 @@ async function loadAllSettings() {
   loadingSettings=true;
   try {
     controls(true);
-    for(const [editor,field] of [[frequencyEditor,'standalone-frequency-status'],[calibrationEditor,'rf-calibration-status'],[ntpTimeoutEditor,'ntp-timeout-status'],[driveEditor,'gpio-drive-status']]) {
+    for(const [editor,field] of [[timingEditor,'amplifier-timing-status'],[frequencyEditor,'standalone-frequency-status'],[calibrationEditor,'rf-calibration-status'],[ntpTimeoutEditor,'ntp-timeout-status'],[driveEditor,'gpio-drive-status']]) {
       try { await editor?.load(); } catch(error) { consolePut(field,error.message); }
     }
     try { const h=await api(supportsAmplifier()?'hardware/3':'hardware'); const value=checkedHardware(h); if(value.saved && !progressEdits.has('pins')) fillPins(value.saved); } catch(error) { consolePut('pins-status',error.message); }

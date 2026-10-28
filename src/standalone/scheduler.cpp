@@ -44,6 +44,7 @@ Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), se
         active_network_ = network_digest(*store_.config());
         active_pins_ = store_.config()->pins;
         active_gpio_drive_ma_ = store_.config()->gpio_drive_ma;
+        active_amplifier_timing_ = store_.config()->amplifier_timing;
         active_ntp_timeout_s_ = store_.config()->ntp_timeout_s;
         boot_configured_ = store_.healthy();
     }
@@ -621,6 +622,8 @@ std::string Scheduler::command(std::string_view line) {
             config->ntp_rf_calibration = store_.config()->ntp_rf_calibration;
         if (!supplied->get("wspr_dial_frequency_hz"))
             config->wspr_dial_frequency_hz = store_.config()->wspr_dial_frequency_hz;
+        if (!supplied->get("amplifier_timing"))
+            config->amplifier_timing = store_.config()->amplifier_timing;
         if (!supplied->get("ntp_timeout_s"))
             config->ntp_timeout_s = store_.config()->ntp_timeout_s;
     }
@@ -646,7 +649,8 @@ std::string Scheduler::command(std::string_view line) {
     // The scheduler reads station/schedules from Store on each new job. Only
     // network and pin settings are boot-initialized. Compare with the active boot, not
     // the previous save: a later station edit cannot conceal a pending change.
-    if (active_pins_ != config->pins || active_gpio_drive_ma_ != config->gpio_drive_ma) {
+    if (active_pins_ != config->pins || active_gpio_drive_ma_ != config->gpio_drive_ma ||
+        active_amplifier_timing_ != config->amplifier_timing) {
         pin_restart_required_ = true;
         reboot_required_ = true;
         if (!service_.local_inhibit_output()) {

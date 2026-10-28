@@ -47,6 +47,60 @@ struct Member {
                     envelope("transmitter-hardware/3", "pins", hardware::serialize_plan(p, true)));
     }
 };
+void timing_management() {
+    Member m;
+    const auto path = "/api/v1/amplifier-timing";
+    const auto initial = m.call("GET", path);
+    auto read = parse(initial.body);
+    REQUIRE(read && read->get("saved")->get("lead_ms")->raw == "200");
+    REQUIRE(read->get("saved")->get("tail_ms")->raw == "200");
+    const auto sequence = m.f.store.config_sequence();
+    for (const auto bad :
+         {"-1", "0.1", "1e2", "null", "true", "\"200\"", "1001", "4294967296", "{}", "[]"}) {
+        REQUIRE(m.call("PUT", path,
+                       m.envelope("transmitter-amplifier-timing/1", "timing",
+                                  "{\"lead_ms\":" + std::string(bad) + ",\"tail_ms\":200}"))
+                    .status == 400);
+        REQUIRE(m.f.store.config_sequence() == sequence);
+    }
+    REQUIRE(m.call("PUT", path,
+                   m.envelope("transmitter-amplifier-timing/2", "timing",
+                              "{\"lead_ms\":0,\"tail_ms\":0}"))
+                .status == 400);
+    for (const auto payload :
+         {"{}", "{\"lead_ms\":0}", "{\"lead_ms\":0,\"tail_ms\":0,\"extra\":0}"})
+        REQUIRE(m.call("PUT", path, m.envelope("transmitter-amplifier-timing/1", "timing", payload))
+                    .status == 400);
+    const auto body =
+        m.envelope("transmitter-amplifier-timing/1", "timing", "{\"lead_ms\":0,\"tail_ms\":1000}");
+    auto stale = request("PUT", path, body);
+    stale.headers["if-match"] = "\"stale\"";
+    REQUIRE(m.api.handle(stale, "test", "127.0.0.1:8443").status == 412);
+    auto wrong = body;
+    wrong.replace(wrong.find(std::string(32, 'a')), 32, std::string(32, 'b'));
+    REQUIRE(m.call("PUT", path, wrong).status == 409);
+    REQUIRE(m.f.store.config_sequence() == sequence);
+    REQUIRE(m.call("PUT", path, body).status == 200);
+    REQUIRE(m.f.store.config()->amplifier_timing == (rf::AmplifierTiming{0, 1000}));
+    REQUIRE(m.scheduler.hardware_restart_required() && m.f.service.output_inhibited());
+    REQUIRE(m.scheduler.active_amplifier_timing() == rf::AmplifierTiming{});
+    REQUIRE(m.call("GET", "/api/v1/config/4").body.find("amplifier_timing") == std::string::npos);
+    auto previous = m.f.store.config();
+    for (const auto mode : {application::ConfigWrite::Merge, application::ConfigWrite::Replace}) {
+        const auto input =
+            mode == application::ConfigWrite::Merge ? "{\"enabled\":false}" : network_test::config;
+        auto candidate = application::config_candidate(*parse(input), previous, mode, true, true);
+        REQUIRE(candidate && standalone::parse_config(*candidate)->amplifier_timing ==
+                                 previous->amplifier_timing);
+    }
+    standalone::Store rebooted(m.f.flash);
+    REQUIRE(rebooted.load() && rebooted.config()->amplifier_timing == previous->amplifier_timing);
+    REQUIRE(m.call("PUT", path,
+                   m.envelope("transmitter-amplifier-timing/1", "timing",
+                              "{\"lead_ms\":200,\"tail_ms\":200}"))
+                .status == 200);
+    REQUIRE(m.scheduler.hardware_restart_required()); // A/B/A cannot clear the latch.
+}
 void pins_and_adapter() {
     hardware::PinPlan p;
     const auto canonical = hardware::serialize_plan(p);
@@ -70,6 +124,12 @@ void pins_and_adapter() {
                                           std::string("put 18 ") + (high ? "0" : "1")}));
         REQUIRE(levels[18] == !high);
         REQUIRE(output.write(true) && levels[18] == high);
+        const auto writes = gpio_calls;
+        REQUIRE(output.verify_active() && gpio_calls == writes);
+        wrong_function = true;
+        REQUIRE(!output.verify_active() && gpio_calls == writes);
+        wrong_function = false;
+
         mismatch = true;
         REQUIRE(!output.write(false));
         mismatch = false;
@@ -288,6 +348,16 @@ bool gpio_is_dir_out(unsigned gp) {
     return directions[gp];
 }
 int main(int argc, char** argv) {
+    if (argc == 2 && std::string_view(argv[1]) == "--timing-samples") {
+        Member m;
+        std::cout << application::amplifier_timing_capabilities() << '\n';
+        std::cout << m.call("GET", "/api/v1/amplifier-timing").body << '\n';
+        std::cout << m.envelope("transmitter-amplifier-timing/1", "timing",
+                                "{\"lead_ms\":200,\"tail_ms\":200}")
+                  << '\n';
+        std::cout << application::amplifier_observation(rf::AmplifierObservation{}) << '\n';
+        return 0;
+    }
     if (argc == 2 && std::string_view(argv[1]) == "--samples") {
         Member m;
         auto p = m.scheduler.active_pins();
@@ -309,6 +379,7 @@ int main(int argc, char** argv) {
         std::cout << std::string(parse(capability.body)->get("amplifier_enable")->raw) << '\n';
         return 0;
     }
+    timing_management();
     pins_and_adapter();
     management();
     atomic_failures_and_progress();

@@ -325,10 +325,12 @@ struct LocalStartConditions {
     std::uint64_t start_adjustment_ns = 0;
 };
 
+enum class ChainPhase { Unspecified, Inactive, Waiting, Lead, Rf, Tail, Fault };
 struct EngineReport {
     EngineState state = EngineState::Idle;
     bool output_active = false;
     std::optional<std::uint64_t> launch_monotonic_ns = {};
+    ChainPhase chain_phase = ChainPhase::Unspecified;
 };
 
 struct FrequencyAdjustment {
@@ -475,6 +477,12 @@ class RfEngine {
   public:
     static constexpr std::uint64_t maximum_completion_acknowledgement_ns = 100'000;
     virtual ~RfEngine() = default;
+    virtual std::uint64_t amplifier_lead_ns() const {
+        return 0;
+    }
+    virtual std::uint64_t amplifier_tail_ns() const {
+        return 0;
+    }
     // Additional heap needed while preparing an already decoded job, including
     // its adjustment result. Pure sizing only: adapters may call this from the
     // application core before transferring execution to an RF worker.
@@ -517,6 +525,9 @@ class RfEngine {
     virtual bool begin(const Job& job, std::uint64_t start_monotonic_ns) = 0;
     [[nodiscard]] virtual EngineReport poll(std::uint64_t monotonic_now_ns) = 0;
     virtual bool disable(std::uint64_t deadline_monotonic_ns) = 0;
+    virtual bool execution_started() const {
+        return output_active();
+    }
     [[nodiscard]] virtual bool output_active() const = 0;
 };
 
@@ -663,6 +674,9 @@ struct ServiceConfig {
 
 class JobService {
   public:
+    EngineReport rf_chain_observation() const {
+        return engine_.poll(clock_.snapshot().monotonic_now_ns);
+    }
     JobService(Clock& clock, RfEngine& engine, IdentitySource& identities,
                ServiceConfig config = {});
 

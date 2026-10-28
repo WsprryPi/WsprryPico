@@ -140,6 +140,7 @@ class BrowserApi {
     HttpResponse message_schedule_resource(const HttpRequest& request);
     HttpResponse config(bool drive = false, bool amplifier = false) const;
     HttpResponse gpio_drive() const;
+    HttpResponse amplifier_timing() const;
     HttpResponse ntp_timeout() const;
     HttpResponse rf_calibration() const;
     HttpResponse standalone_frequency() const;

@@ -3,6 +3,10 @@
 #include "hardware/gpio.h"
 
 namespace wsprrypico::hardware {
+bool PicoAmplifierOutput::verify_active() const {
+    return valid_ && pin_ && initialized_ && gpio_get_function(*pin_) == GPIO_FUNC_SIO &&
+           gpio_is_dir_out(*pin_) && gpio_get(*pin_) == active_high_;
+}
 bool PicoAmplifierOutput::initialize_inactive() {
     if (!valid_)
         return false;

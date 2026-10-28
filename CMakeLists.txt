@@ -46,7 +46,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js src/network/web/udp-logging.js
     src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
     src/network/web/saved-progress.js src/network/web/gpio-drive.js src/network/web/utc-datetime.js src/network/web/message-schedule.js
-    src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/standalone-frequency.js
+    src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/amplifier-timing.js src/network/web/standalone-frequency.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
     src/network/bootstrap_web/radio-bundle.js
@@ -478,9 +478,13 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(amplifier_enable_tests PRIVATE wsprrypico_core)
     target_compile_options(amplifier_enable_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME amplifier_enable COMMAND amplifier_enable_tests)
+    add_test(NAME amplifier_timing_schema COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/amplifier_timing_schema_tests.py $<TARGET_FILE:amplifier_enable_tests>)
     add_test(NAME amplifier_enable_schema COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/amplifier_enable_schema_tests.py $<TARGET_FILE:amplifier_enable_tests>)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME amplifier_timing_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/amplifier_timing_browser_tests.js)
         add_test(NAME amplifier_enable_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/amplifier_enable_browser_tests.js $<TARGET_FILE:amplifier_enable_tests>)
     endif()

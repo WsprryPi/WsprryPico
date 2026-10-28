@@ -36,6 +36,12 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     bool schedules_locally() const override {
         return engine_.schedules_locally();
     }
+    std::uint64_t amplifier_lead_ns() const override {
+        return engine_.amplifier_lead_ns();
+    }
+    std::uint64_t amplifier_tail_ns() const override {
+        return engine_.amplifier_tail_ns();
+    }
     bool owns_execution_plan() const override {
         return engine_.owns_execution_plan();
     }
@@ -59,6 +65,9 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     }
     bool disable(std::uint64_t deadline) override {
         return engine_.disable(deadline);
+    }
+    bool execution_started() const override {
+        return engine_.execution_started();
     }
     bool output_active() const override {
         return engine_.output_active();

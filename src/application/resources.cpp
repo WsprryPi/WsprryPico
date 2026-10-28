@@ -39,6 +39,24 @@ std::string amplifier_capabilities(bool physical) {
                R"({"schema":"transmitter-amplifier-enable/1","pins":"/api/v1/pins/2","validate":"/api/v1/pins/validate/2","config":"/api/v1/config/4","update":"/api/v1/config/update/4","update_schema":"transmitter-config-update/3","hardware":"/api/v1/hardware/3","application":"/api/v1/application/4","progress":"/api/v1/progress/3","progress_schema":"transmitter-progress/3","default_pin":null,"default_active_high":true,"activation":"restart","execution":)") +
            wtp::json::quote(physical ? "local_job" : "inhibited_inactive_only") + "}";
 }
+std::string amplifier_timing_capabilities() {
+    return R"({"schema":"transmitter-amplifier-timing/1","path":"/api/v1/amplifier-timing","method":"PUT","units":"ms","minimum":0,"maximum":1000,"default_lead_ms":200,"default_tail_ms":200,"activation":"restart","scope":"complete_job"})";
+}
+std::string amplifier_observation(const rf::AmplifierObservation& o) {
+    const auto time = [](std::uint64_t n) {
+        return n ? wtp::json::quote(std::to_string(n)) : "null";
+    };
+    return "{\"schema\":\"amplifier-readback/1\",\"epoch\":" +
+           wtp::json::quote(std::to_string(o.epoch)) +
+           ",\"configured\":" + (o.configured ? "true" : "false") +
+           ",\"lead_ms\":" + std::to_string(o.lead_ms) +
+           ",\"tail_ms\":" + std::to_string(o.tail_ms) +
+           ",\"enable_verified_ns\":" + time(o.enable_ns) +
+           ",\"rf_launch_ns\":" + time(o.rf_start_ns) +
+           ",\"rf_inactive_verified_ns\":" + time(o.rf_off_ns) +
+           ",\"disable_verified_ns\":" + time(o.disable_ns) +
+           ",\"normal_rf_completion\":" + (o.normal_rf_completion ? "true}" : "false}");
+}
 std::string capabilities(bool usb_management) {
     return "{\"management_carrier\":" +
            wtp::json::quote(usb_management ? "usb_physical" : "authenticated_https") +

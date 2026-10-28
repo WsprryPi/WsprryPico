@@ -1,5 +1,7 @@
 #pragma once
 
+#include "rf/amplifier_timing.hpp"
+
 #include <cstdint>
 
 namespace wsprrypico::rf {
@@ -10,15 +12,27 @@ class EnableOutput {
     virtual ~EnableOutput() = default;
     virtual bool initialize_inactive() = 0;
     virtual bool write(bool active) = 0;
+    // Nonmutating launch check after a lead interval. Unsupported adapters
+    // refuse rather than reasserting a changed output without settling.
+    virtual bool verify_active() const {
+        return false;
+    }
 };
 
 // Owned by the RF core. No allocation, transport, delay or cross-core handshake.
 // A null adapter is disabled and causes no output access or acknowledgement.
 class AmplifierEnable {
   public:
-    explicit AmplifierEnable(EnableOutput* output = nullptr) : output_(output) {}
+    explicit AmplifierEnable(EnableOutput* output = nullptr, AmplifierTiming timing = {})
+        : output_(output), timing_(timing) {}
+    bool enabled() const {
+        return output_ != nullptr;
+    }
+    const AmplifierTiming& timing() const {
+        return timing_;
+    }
     bool initialize() {
-        known_inactive_ = !output_ || output_->initialize_inactive();
+        known_inactive_ = timing_.valid() && (!output_ || output_->initialize_inactive());
         initialized_ = known_inactive_;
         return known_inactive_;
     }
@@ -41,16 +55,27 @@ class AmplifierEnable {
     bool output_active_or_unknown() const {
         return output_ && !known_inactive_;
     }
+    bool verify_active() const {
+        return output_ && initialized_ && !known_inactive_ && output_->verify_active();
+    }
 
   private:
     EnableOutput* output_;
+    const AmplifierTiming timing_;
     bool initialized_ = false, known_inactive_ = false;
 };
 
 struct LaunchEnable {
     AmplifierEnable* amplifier = nullptr;
+    bool already_active = false;
+    void (*verified)(void*) = nullptr;
+    void* context = nullptr;
     bool activate() const {
-        return !amplifier || amplifier->activate();
+        const bool accepted =
+            !amplifier || (already_active ? amplifier->verify_active() : amplifier->activate());
+        if (accepted && amplifier && amplifier->enabled() && !already_active && verified)
+            verified(context);
+        return accepted;
     }
 };
 } // namespace wsprrypico::rf

@@ -148,7 +148,8 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
             request.path == "/api/v1/application/2" || request.path == "/api/v1/station/2" ||
             request.path == "/api/v1/station" || request.path == "/api/v1/hardware" ||
             request.path == "/api/v1/pins" || request.path == "/api/v1/management" ||
-            request.path == "/api/v1/progress" || request.path == "/api/v1/gpio-drive" ||
+            request.path == "/api/v1/progress" ||
+            (request.path == "/api/v1/gpio-drive" || request.path == "/api/v1/amplifier-timing") ||
             request.path == "/api/v1/rf-calibration" || request.path == "/api/v1/config/3" ||
             request.path == "/api/v1/hardware/2" || request.path == "/api/v1/application/3" ||
             request.path == "/api/v1/progress/2" || request.path == "/api/v1/config/4" ||
@@ -191,7 +192,8 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
          (request.path == "/api/v1/config" || request.path == "/api/v1/schedules" ||
           request.path == "/api/v1/config/2" || request.path == "/api/v1/station/2" ||
           request.path == "/api/v1/network" || request.path == "/api/v1/station" ||
-          request.path == "/api/v1/hardware" || request.path == "/api/v1/gpio-drive" ||
+          request.path == "/api/v1/hardware" ||
+          (request.path == "/api/v1/gpio-drive" || request.path == "/api/v1/amplifier-timing") ||
           request.path == "/api/v1/rf-calibration" || request.path == "/api/v1/config/3" ||
           request.path == "/api/v1/config/4" || request.path == "/api/v1/hardware/3")) ||
         (request.method == "POST" &&

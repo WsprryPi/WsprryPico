@@ -1,4 +1,5 @@
 #pragma once
+#include "rf/amplifier_timing.hpp"
 #include "rf/refill_metrics.hpp"
 #include "time/utc_discipline.hpp"
 
@@ -27,6 +28,12 @@ class WorkerEngine final : public wtp::RfEngine {
     bool schedules_locally() const override {
         return true;
     }
+    std::uint64_t amplifier_lead_ns() const override {
+        return engine_.amplifier_lead_ns();
+    }
+    std::uint64_t amplifier_tail_ns() const override {
+        return engine_.amplifier_tail_ns();
+    }
     bool owns_execution_plan() const override {
         return owns_execution_plan_;
     }
@@ -43,10 +50,12 @@ class WorkerEngine final : public wtp::RfEngine {
     wtp::EngineReport poll(std::uint64_t) override;
     bool disable(std::uint64_t) override;
     bool output_active() const override;
+    bool execution_started() const override;
     std::string_view diagnostic() const override {
         return diagnostic_;
     }
     struct Metrics {
+        AmplifierObservation amplifier;
         // Start-to-start gap already includes preceding poll and command/probe work.
         std::uint64_t commands = 0, max_service_gap_ns = 0, max_poll_ns = 0;
         std::uint64_t max_roundtrip_ns = 0;

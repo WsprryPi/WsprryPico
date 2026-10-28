@@ -109,8 +109,7 @@ A/B/A saves; a save does not program hardware or prove RF power.
 asserts after local launch admission and before RF, and deasserts before
 fallible DMA cleanup. Fault recovery retains inhibition and clamps validated
 pins before watchdog recovery. One interval covers a complete finite job,
-including keyed gaps. No lead/tail interval, LPF adapter or Si5351 engine is
-implemented.
+including keyed gaps, with independently configured RF-off lead and normal tail (200 ms defaults). LPF and Si5351 adapters are unavailable.
 
 ## Storage and time
 

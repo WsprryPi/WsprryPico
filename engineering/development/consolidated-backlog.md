@@ -22,7 +22,7 @@ Native Windows Chrome Console identity, settings, complete INFO display, success
 
 ### Backend
 
-5. **Optional amplifier settling and lead/tail timing.** See the [saved execution prompt](amplifier-timing-execution-prompt.md), including its standing authority, coordinated implementation, timing validation and adversarial review requirements. Not started.
+5. ⏳ **Optional amplifier settling and lead/tail timing.** Configurable 200 ms lead and tail implementation and coordinated source-pair validation are in progress under the [execution prompt](amplifier-timing-execution-prompt.md). Physical GPIO/RF timing acceptance remains required.
 
 ### UI
 

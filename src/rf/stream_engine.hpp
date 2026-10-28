@@ -27,6 +27,7 @@ struct SinkReport {
     std::optional<std::uint64_t> observed_monotonic_ns = {};
     std::optional<bool> observed_output_active = {};
     std::optional<std::uint64_t> launch_monotonic_ns = {};
+    wtp::ChainPhase chain_phase = wtp::ChainPhase::Unspecified;
 };
 
 // stop() must release all submitted spans
@@ -36,6 +37,12 @@ struct SinkReport {
 class BlockSink {
   public:
     virtual ~BlockSink() = default;
+    virtual std::uint64_t amplifier_lead_ns() const {
+        return 0;
+    }
+    virtual std::uint64_t amplifier_tail_ns() const {
+        return 0;
+    }
     [[nodiscard]] virtual std::string_view diagnostic() const {
         return {};
     }
@@ -51,6 +58,9 @@ class BlockSink {
     virtual bool arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t total_samples,
                      LaunchGuard guard = {}) = 0;
     virtual SinkReport poll(std::uint64_t now_ns) = 0;
+    virtual bool execution_started() const {
+        return output_active();
+    }
     [[nodiscard]] virtual bool output_active() const = 0;
 };
 
@@ -59,6 +69,12 @@ class StreamEngine final : public wtp::RfEngine {
     explicit StreamEngine(BlockSink& sink) : sink_(sink) {}
     StreamEngine(const StreamEngine&) = delete;
     StreamEngine& operator=(const StreamEngine&) = delete;
+    std::uint64_t amplifier_lead_ns() const override {
+        return sink_.amplifier_lead_ns();
+    }
+    std::uint64_t amplifier_tail_ns() const override {
+        return sink_.amplifier_tail_ns();
+    }
     std::string_view diagnostic() const override {
         return failure_;
     }
@@ -82,6 +98,9 @@ class StreamEngine final : public wtp::RfEngine {
     bool begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) override;
     wtp::EngineReport poll(std::uint64_t monotonic_now_ns) override;
     bool disable(std::uint64_t deadline_monotonic_ns) override;
+    bool execution_started() const override {
+        return sink_.execution_started();
+    }
     [[nodiscard]] bool output_active() const override {
         return sink_.output_active();
     }

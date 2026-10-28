@@ -111,6 +111,7 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
             result.safety_input_fault = safety.fault();
 #endif
             const auto driver = static_cast<PicoPioDma*>(context)->metrics();
+            result.amplifier = sink.timing_observation();
             result.dma_irqs = driver.dma_irqs;
             result.max_irq_ns = driver.max_irq_ns;
             result.launch_ns = driver.launch_ns;

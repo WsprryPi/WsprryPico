@@ -37,6 +37,12 @@ class PioDmaHardware {
     [[nodiscard]] virtual std::uint64_t now_ns() const = 0;
     [[nodiscard]] virtual bool stalled() const = 0;
     [[nodiscard]] virtual bool active() const = 0;
+    virtual bool inhibited() const {
+        return false;
+    }
+    virtual bool rf_inactive_verified() const {
+        return !active();
+    }
 };
 
 class PioDmaSink final : public BlockSink {
@@ -46,6 +52,12 @@ class PioDmaSink final : public BlockSink {
         : hw_(hardware), indicator_(indicator), amplifier_(amplifier) {}
     PioDmaSink(const PioDmaSink&) = delete;
     PioDmaSink& operator=(const PioDmaSink&) = delete;
+    std::uint64_t amplifier_lead_ns() const override {
+        return amplifier_ && amplifier_->enabled() ? amplifier_->timing().lead_ns() : 0;
+    }
+    std::uint64_t amplifier_tail_ns() const override {
+        return amplifier_ && amplifier_->enabled() ? amplifier_->timing().tail_ns() : 0;
+    }
     [[nodiscard]] std::string_view diagnostic() const override {
         return failure_;
     }
@@ -61,6 +73,13 @@ class PioDmaSink final : public BlockSink {
     bool arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t total_samples,
              LaunchGuard guard = {}) override;
     SinkReport poll(std::uint64_t now_ns) override;
+    AmplifierObservation timing_observation() {
+        Guard lock(hw_);
+        return observation_;
+    }
+    bool execution_started() const override {
+        return launch_ns_.has_value();
+    }
     [[nodiscard]] bool output_active() const override {
         return hw_.active() || (amplifier_ && amplifier_->output_active_or_unknown());
     }
@@ -83,6 +102,8 @@ class PioDmaSink final : public BlockSink {
     void event(DriverEvent event);
     bool queue_tail();
     bool halt_output(std::uint64_t deadline_ns);
+    void complete_rf();
+    void finish_tail();
     void fault(const char* reason);
     PioDmaHardware& hw_;
     IndicatorGate* indicator_;
@@ -96,6 +117,8 @@ class PioDmaSink final : public BlockSink {
     std::uint64_t dma_blocks_ = 0, dma_samples_ = 0, total_ = 0, start_ = 0;
     std::uint32_t zero_ = 0;
     std::optional<std::uint64_t> launch_ns_ = {};
+    std::optional<std::uint64_t> enable_ns_, tail_deadline_ns_;
+    AmplifierObservation observation_;
     const char* failure_ = "";
 };
 

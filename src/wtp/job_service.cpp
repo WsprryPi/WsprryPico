@@ -93,6 +93,11 @@ JobService::JobService(Clock& clock, RfEngine& engine, IdentitySource& identitie
                        ServiceConfig config)
     : clock_(clock), engine_(engine), identities_(identities), config_(config),
       boot_id_(identities_.new_boot_id()) {
+    // CAPS and admission share the same immutable boot-local preparation bound.
+    // Companion schedulers already consume this WTP capability.
+    if (const auto lead = engine_.amplifier_lead_ns())
+        config_.minimum_arm_lead_ns =
+            std::max(config_.minimum_arm_lead_ns, saturating_add(lead, 2'000'000));
     const bool configuration_valid =
         capability_text(config_.capability_engine) && !config_.supported_modes.empty() &&
         unique(config_.supported_modes) &&
@@ -610,7 +615,8 @@ void JobService::poll() {
     if (state_ == State::Armed && arm_ && job_ && arm_->scheduled_locally) {
         const auto report = engine_.poll(now.monotonic_now_ns);
         local_report = report;
-        if (report.state == EngineState::Armed && !report.output_active) {
+        if (report.state == EngineState::Armed &&
+            (!report.output_active || report.chain_phase == ChainPhase::Lead)) {
             return;
         }
         // The local engine has launched, missed, or failed. Process its terminal
@@ -709,9 +715,11 @@ void JobService::poll() {
                    saturating_add(arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns),
                                   job_->total_duration_ns)) {
         const auto acknowledgement_ns =
-            arm_->scheduled_locally ? std::min(engine_.completion_acknowledgement_ns(),
-                                               RfEngine::maximum_completion_acknowledgement_ns)
-                                    : 0;
+            arm_->scheduled_locally
+                ? saturating_add(std::min(engine_.completion_acknowledgement_ns(),
+                                          RfEngine::maximum_completion_acknowledgement_ns),
+                                 engine_.amplifier_tail_ns())
+                : 0;
         const auto nominal_end = saturating_add(
             arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns), job_->total_duration_ns);
         if (report.state == EngineState::Running && acknowledgement_ns &&
@@ -763,7 +771,8 @@ ServiceActivity JobService::activity() const {
     // terminal transitions still require poll() and verified engine shutdown.
     if (result.state == State::Armed && result.output_active && job_ && arm_ &&
         arm_->scheduled_locally)
-        result.state = State::Running;
+        if (engine_.execution_started())
+            result.state = State::Running;
     return result;
 }
 

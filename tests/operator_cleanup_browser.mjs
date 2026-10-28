@@ -149,6 +149,21 @@ try {
   await click('access-toggle');await evaluate('document.getElementById("local-password").value="test-password"');await key('Enter');
   await until(()=>evaluate('!busy && online && localAuthenticated && writeState==="ready"'),'authenticated settings read');
   await capture('unlocked');
+  await evaluate('document.getElementById("radio-pins").open=true');
+  await click('amplifier-timing-read');await idle();
+  await until(()=>evaluate('document.getElementById("amplifier-lead-ms").value==="200"'),'amplifier timing default');
+  assert.equal(await evaluate('document.getElementById("amplifier-tail-ms").value'),'200');
+  assert.equal(await evaluate('document.getElementById("radio-pins").contains(document.getElementById("amplifier-lead-ms"))'),true);
+  if(output) for(const [width,height,name] of [[1280,1100,'desktop'],[390,1100,'mobile']]) {
+    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
+    await evaluate('document.querySelectorAll("[data-operator-section]").forEach(e=>e.open=e.id==="radio-pins");scrollTo(0,0)');
+    assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
+    const layout=await send('Page.getLayoutMetrics');
+    const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip:{x:0,y:0,width,height:layout.cssContentSize.height,scale:1}});
+    fs.writeFileSync(path.join(output,'amplifier-timing-'+name+'.png'),Buffer.from(shot.data,'base64'));
+  }
+  await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+
   await click('station-link');await evaluate('document.getElementById("radio-settings").open=true;document.getElementById("radio-pins").open=true');
   const original=(await config()).config;
   await edit('schedules','invalid unsaved WSPR draft');await edit('rf_gp','3',true);await click('save-pins');await idle();

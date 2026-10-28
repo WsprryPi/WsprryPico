@@ -1,10 +1,10 @@
 # Item 5 execution prompt — Optional amplifier settling and lead/tail timing
 
-Status: saved execution prompt; implementation not started. Saving, reviewing or committing this document does not execute it. Execute only when explicitly assigned. The complete standing execution authority below applies to that assigned session.
+Status: execution assigned 2026-10-28; implementation and validation in progress. The assigned requirement overrides the original zero defaults: lead and tail each default to 200 ms, are configurable, and surround the scheduled RF window without changing its encoded duration. Physical acceptance is still required before retirement. The complete standing execution authority below applies to this assigned session.
 
 ## Objective and scope
 
-Implement optional, bounded amplifier settling and lead/tail timing around complete RF jobs, using the existing amplifier-enable output and member-local execution authority. Deliver coordinated configuration, persistence, capability negotiation, companion management, accurate status, tests and documentation. Defaults must preserve existing immediate amplifier-enable behavior.
+Implement optional, bounded amplifier settling and lead/tail timing around complete RF jobs, using the existing amplifier-enable output and member-local execution authority. Deliver coordinated configuration, persistence, capability negotiation, companion management, accurate status, tests and documentation. Lead and tail each default to 200 ms as explicitly assigned; zero selects the immediate boundary for that interval.
 
 This is item 5 in the [consolidated backlog](consolidated-backlog.md). LPF/band-selector control is item 4; Si5351, envelope shaping, RF warmup, amplifier drive regulation, new RF engines and PCB design remain separate work. Integrate with filter sequencing if it exists when execution begins, but do not require item 4 to be implemented or execute its prompt. No delay setting may introduce an unannounced RF interval or authorize a transmission.
 
@@ -16,7 +16,7 @@ The baseline asserts enable immediately before physical RF, holds it through one
 
 Specify what settling, lead and tail mean before implementing fields. Prefer a small model where lead is the guaranteed amplifier-enabled, RF-off interval before RF onset and satisfies the amplifier's declared minimum settling requirement. If settling is separately configurable, define its exact relationship to lead, reject insufficient lead and avoid accidentally adding the same delay twice. Tail is the optional amplifier-enabled, RF-off dwell after confirmed normal RF completion. Do not use modulation gaps as individual lead/tail boundaries.
 
-Choose and justify explicit finite ranges, integer units, resolution, rounding and timer error bounds from actual hardware requirements and current lifecycle budgets. Zero defaults reproduce the existing ordering. Reject negative, fractional where unsupported, nonfinite, overflowing and out-of-range values; avoid implicit signed/unsigned conversions. Do not invent measured amplifier readiness or numeric guarantees without evidence. Resolve ordinary engineering choices autonomously and document them.
+Choose and justify explicit finite ranges, integer units, resolution, rounding and timer error bounds from actual hardware requirements and current lifecycle budgets. Explicit zero values reproduce the existing ordering. Reject negative, fractional where unsupported, nonfinite, overflowing and out-of-range values; avoid implicit signed/unsigned conversions. Do not invent measured amplifier readiness or numeric guarantees without evidence. Resolve ordinary engineering choices autonomously and document them.
 
 ## 2. Implement bounded member-local execution
 
