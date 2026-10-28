@@ -779,10 +779,10 @@ function controls(connected) {
   loggingControls();
   messageSchedulingControls();
   if ($('public-status-note')) $('public-status-note').hidden = true;
-  calibrationEditor?.setAvailability(!!connected && (!busy || loadingSettings || activeEditor==='calibration') && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
-  frequencyEditor?.setAvailability(!!connected && (!busy || loadingSettings || frequencyRefreshing) && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
-  driveEditor?.setAvailability(!!connected && (!busy || loadingSettings || activeEditor==='drive') && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
-  ntpTimeoutEditor?.setAvailability(!!connected && (!busy || loadingSettings || activeEditor==='timeout') && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  calibrationEditor?.setAvailability(!!connected && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
+  frequencyEditor?.setAvailability(!!connected && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
+  driveEditor?.setAvailability(!!connected && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
+  ntpTimeoutEditor?.setAvailability(!!connected && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
   $('reload-config').disabled = busy || !online;
   const idle = online && unlocked && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
@@ -819,7 +819,7 @@ function controls(connected) {
   if($('save-pins')) $('save-pins').disabled = busy || !idle || writeState !== 'ready' || !currentConfig;
   $('job-settings').disabled = busy || !idle || snapshot.standalone.reboot_required;
   $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
-  $('message-availability').textContent = !online ? (radio && !localAuthenticated ? 'Use the lock beside the hostname to unlock controls and prepare a message.' : 'Connection unavailable. Refresh status before preparing a message; RF output is unknown.') :
+  $('message-availability').textContent = !unlocked ? '' : !online ? (radio && !localAuthenticated ? 'Use the lock beside the hostname to unlock controls and prepare a message.' : 'Connection unavailable. Refresh status before preparing a message; RF output is unknown.') :
     busy ? 'Waiting for the current request to finish.' : !idle ? 'The transmitter is occupied or its job/output state does not permit a new job. Check Transmitter status above.' :
     snapshot.standalone.reboot_required ? 'Saved changes require a restart. Use Reset Pico in Transmitter status before preparing another job.' :
     !capabilities?.message_jobs ? 'This firmware does not advertise message jobs. A supported job file can still be used below.' :
@@ -834,7 +834,7 @@ function controls(connected) {
     $('consumer-station-settings').disabled ||= writeState !== 'ready';
   }
 
-  if ($('schedule-save-help')) $('schedule-save-help').textContent = !online ? 'Sign in and refresh status before changing schedules.' :
+  if ($('schedule-save-help')) $('schedule-save-help').textContent = !unlocked ? '' : !online ? 'Sign in and refresh status before changing schedules.' :
     busy ? 'Waiting for the current request to finish.' : !idle ? 'Wait for inactive output and released control before saving schedules.' :
     writeState === 'readback' ? 'Before another save, choose Read saved settings and keep draft in Saved settings and recovery below. Your checkbox edit is preserved.' :
     writeState === 'review' ? 'Review the comparison in Saved settings and recovery below, then choose I reviewed saved settings; enable a new save. Your checkbox edit is preserved.' :
@@ -972,7 +972,7 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
     renderConsole();
     updateProgress(); messagePreview();
     if(!quiet) notice(''); controls(true);
-  } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Session ended. Log in again; your draft is preserved.'; notice('Radio session ended. Log in again, then check status before repeating an interrupted action. Your edits are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
+  } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Controls locked. Public readback is unavailable.'; notice('Read-only status or settings could not be read: '+e.message+'. Check the connection and refresh. Your drafts are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
 }
 async function action(fn) {
   if (busy || accessClosing) return;

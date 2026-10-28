@@ -38,7 +38,7 @@ async function control(value) {
     assert.equal(response.status,200);return response.json();
 }
 async function click(id) {await evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
-async function section(id) {await evaluate(`const node=document.getElementById('${id}'),area=node.closest('[data-task-area]').dataset.taskArea;history.pushState({...history.state,wsprrypicoPresentation:{section:'${id}',area}},'','/'+area+(/^#(?:save|hostname-return)=/.test(location.hash)?location.hash:'#${id}'));dispatchEvent(new PopStateEvent('popstate'))`);}
+async function section(id) {await evaluate(`(()=>{const node=document.getElementById('${id}'),area=node.closest('[data-task-area]').dataset.taskArea;history.pushState({...history.state,wsprrypicoPresentation:{section:'${id}',area}},'','/'+area+(/^#(?:save|hostname-return)=/.test(location.hash)?location.hash:'#${id}'));dispatchEvent(new PopStateEvent('popstate'));})()`);}
 async function key(key,code=key) {
     await send('Input.dispatchKeyEvent',{type:'keyDown',key,code,text:key==='Enter'?'\r':undefined,windowsVirtualKeyCode:key==='Escape'?27:key==='Enter'?13:9});
     await send('Input.dispatchKeyEvent',{type:'keyUp',key,code,windowsVirtualKeyCode:key==='Escape'?27:key==='Enter'?13:9});
