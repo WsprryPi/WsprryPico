@@ -239,13 +239,22 @@ class BundleTests(unittest.TestCase):
             for p in sorted(self.deploy.iterdir()) if p.name != 'SHA256SUMS'))
 
     def test_layout_is_bound_to_frozen_source(self):
-        self.assertEqual(self.created_boundary, '103ee000')
+        self.assertEqual(self.created_boundary, '103ec000')
+        manifest = bundle.read_json(self.deploy / 'release-manifest.json')
+        self.assertEqual(manifest['schema_version'], 2)
+        self.assertEqual(manifest['update']['storage_contract'], 2)
         self.verify()
-        wrong = 0x103f0000 if bundle.source_application_end(self.source) == 0x103ee000 else 0x103ee000
-        self.mutate_manifest(lambda v: v['update'].update(application_end=f'{wrong:x}'))
-        self.reseal()
-        with self.assertRaisesRegex(ValueError, 'Flash reservation differs'):
-            self.verify()
+        # A schema-valid contract-2 manifest must still match its frozen source.
+        with patch.object(bundle, 'source_application_end', return_value=0x103ee000):
+            with self.assertRaisesRegex(ValueError, 'Flash reservation differs'):
+                self.verify()
+        # Contract 2 cannot borrow either historical contract-1 reservation.
+        from jsonschema import ValidationError
+        for wrong in (0x103ee000, 0x103f0000):
+            self.mutate_manifest(lambda v: v['update'].update(application_end=f'{wrong:x}'))
+            self.reseal()
+            with self.assertRaises(ValidationError):
+                self.verify()
 
     def test_valid_inventory_and_distinct_archive_identity(self):
         result = self.verify()
