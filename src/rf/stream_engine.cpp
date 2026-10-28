@@ -290,14 +290,15 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         return {state_, false, launch_ns_};
     }
     if (report.chain_phase == wtp::ChainPhase::Tail && report.state == wtp::EngineState::Running &&
-        launch_ns_ && now_ns >= end_ns_ &&
-        now_ns - end_ns_ <= amplifier_tail_ns() + maximum_completion_acknowledgement_ns &&
+        launch_ns_ && now_ns >= end_ns_ && report.tail_deadline_monotonic_ns &&
+        *report.tail_deadline_monotonic_ns > now_ns &&
+        *report.tail_deadline_monotonic_ns - now_ns <= amplifier_tail_ns() &&
         report.consumed_samples == plan_.total_samples && report.completed_blocks == submitted_ &&
         waveform_.position() == plan_.total_samples && active) {
         state_ = wtp::EngineState::Running;
         completed_ = report.completed_blocks;
         consumed_ = report.consumed_samples;
-        return {state_, true, launch_ns_, wtp::ChainPhase::Tail};
+        return {state_, true, launch_ns_, wtp::ChainPhase::Tail, report.tail_deadline_monotonic_ns};
     }
     // Final data and zero-tail IRQ acknowledgements can both lag the hardware.
     // Allow only the final submitted block to be unacknowledged, for at most

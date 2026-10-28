@@ -1257,7 +1257,7 @@ void amplifier_timing_lifecycle() {
         }
     };
     CHECK(rf::AmplifierTiming{}.lead_ms == 200 && rf::AmplifierTiming{}.tail_ms == 200);
-    for (unsigned action = 0; action < 12; ++action) {
+    for (unsigned action = 0; action < 13; ++action) {
         Output out;
         rf::AmplifierEnable enable(&out);
         CHECK(enable.initialize());
@@ -1326,7 +1326,8 @@ void amplifier_timing_lifecycle() {
         CHECK(hw.enabled && out.on && hw.last_launch_target == start && out.assertions == 1);
         hw.complete();
         hw.complete();
-        hw.time = start + ((ns_at(2 * rf::block_samples) + 999) / 1000) * 1000;
+        hw.time = start + ((ns_at(2 * rf::block_samples) + 999) / 1000) * 1000 +
+                  (action == 12 ? 167'000 : 0); // Board-observed late RF-off acknowledgement.
         hw.stop_tail_before_irq();
         service.poll();
         CHECK(!hw.enabled && out.on && service.status().state == wtp::State::Running);

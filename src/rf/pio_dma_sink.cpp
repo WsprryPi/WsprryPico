@@ -363,7 +363,7 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
     }
     if (tail_deadline_ns_ && state_ == wtp::EngineState::Running) {
         return {state_, epoch_,          submitted_, total_,
-                now_ns, output_active(), launch_ns_, wtp::ChainPhase::Tail};
+                now_ns, output_active(), launch_ns_, wtp::ChainPhase::Tail, tail_deadline_ns_};
     }
     if (state_ != wtp::EngineState::Running) {
         return {state_,

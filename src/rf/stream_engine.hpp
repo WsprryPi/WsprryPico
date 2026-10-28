@@ -28,6 +28,7 @@ struct SinkReport {
     std::optional<bool> observed_output_active = {};
     std::optional<std::uint64_t> launch_monotonic_ns = {};
     wtp::ChainPhase chain_phase = wtp::ChainPhase::Unspecified;
+    std::optional<std::uint64_t> tail_deadline_monotonic_ns = {};
 };
 
 // stop() must release all submitted spans

@@ -331,6 +331,9 @@ struct EngineReport {
     bool output_active = false;
     std::optional<std::uint64_t> launch_monotonic_ns = {};
     ChainPhase chain_phase = ChainPhase::Unspecified;
+    // Normal tail starts at the adapter's confirmed RF-off observation, which
+    // may follow nominal waveform completion. This is local execution evidence.
+    std::optional<std::uint64_t> tail_deadline_monotonic_ns = {};
 };
 
 struct FrequencyAdjustment {

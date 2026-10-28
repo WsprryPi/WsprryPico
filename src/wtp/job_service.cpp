@@ -714,14 +714,22 @@ void JobService::poll() {
                now.monotonic_now_ns >=
                    saturating_add(arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns),
                                   job_->total_duration_ns)) {
-        const auto acknowledgement_ns =
-            arm_->scheduled_locally
-                ? saturating_add(std::min(engine_.completion_acknowledgement_ns(),
-                                          RfEngine::maximum_completion_acknowledgement_ns),
-                                 engine_.amplifier_tail_ns())
-                : 0;
         const auto nominal_end = saturating_add(
             arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns), job_->total_duration_ns);
+        const auto acknowledgement_ns =
+            arm_->scheduled_locally ? std::min(engine_.completion_acknowledgement_ns(),
+                                               RfEngine::maximum_completion_acknowledgement_ns)
+                                    : 0;
+        if (arm_->scheduled_locally && report.state == EngineState::Running &&
+            report.chain_phase == ChainPhase::Tail && report.tail_deadline_monotonic_ns &&
+            engine_.amplifier_tail_ns()) {
+            const auto deadline = *report.tail_deadline_monotonic_ns;
+            const auto observed_now = clock_.snapshot().monotonic_now_ns;
+            if (deadline >= nominal_end &&
+                deadline <= saturating_add(observed_now, engine_.amplifier_tail_ns()) &&
+                now.monotonic_now_ns <= saturating_add(deadline, acknowledgement_ns))
+                return; // RF is verified off; bound tail from that observation.
+        }
         if (report.state == EngineState::Running && acknowledgement_ns &&
             now.monotonic_now_ns <= saturating_add(nominal_end, acknowledgement_ns)) {
             return; // Keep authority/state until the bounded final acknowledgement.
