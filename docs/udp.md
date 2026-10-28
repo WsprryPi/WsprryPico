@@ -14,11 +14,17 @@ The Pico can send diagnostic events over station Wi-Fi to one explicitly configu
 
 A WsprryPi collector is configured under **Logs → Logging on this Pi → Receive network logs on this Pi**. Explicitly admit the Pico's observed station address as a peer. A Pi can also forward this Pico's already collected USB logs; that selection does not enable direct Pico UDP or USB collection implicitly. See the [Pi Logs guide](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Logs/index.html). External collectors receive an RFC 5424 message containing the compact project record. The Pi collector initially accepts this project profile rather than arbitrary syslog traffic.
 
+For USB forwarding alone, leave this Pico's UDP export disabled. Enable its separate USB logging export, enable collection on the attached Pi, and select that saved Pico under the Pi's UDP forwarding controls. Admit the forwarding Pi's IPv4 address at the collector. The forwarded record retains the Pico's origin and adds one Pi relay observation. Enabling forwarding begins at the current journal tail; it does not replay old USB history.
+
 ## Interpret state and history
 
 **Ready** means the sender is locally configured. **Awaiting network**, invalid destination, unavailable resources and local submission failure require separate attention. A successful UDP submission has receipt **unknown**. Queues are bounded and volatile; a link or profile change clears old-generation queued records, and records expire after five seconds. Filtering, queue loss and restarts create sequence gaps that cannot measure total network loss. Diagnostic text can be shortened to fit a datagram while identity and time fields remain intact.
 
 Origin time, monotonic time and collector receipt remain distinct. Without origin UTC, the collector shows receipt time. Renaming a Pico changes its presentation but retains its device ID. Direct UDP, USB-forwarded UDP and physically checked USB are separate arrival scopes. UDP peer addresses and origin/relay IDs are claims, not authentication. Bounded duplicate suppression reduces repeated noise and is not an audit or reliable-delivery guarantee.
+
+Compare the stable device ID, boot ID and sequence to relate copies received over different paths, then check the peer and relay observations. Restarting retains the device ID but starts a new boot identity and sequence. USB reconnection selects the saved physical device rather than whichever tty number appears first. Disconnecting USB leaves direct UDP available only if the Pico remains powered and connected to station Wi-Fi; removing its only power source stops both feeds. A stored source in Logs does not prove that the Pico is currently connected.
+
+Logging checks require no radio transmission. Read back the settings, admit a finite test event when direct export is enabled and its filter permits it, and compare the collector's actual journal and Logs records. Check USB forwarding with finite startup or management-connection events. Keep local submission counts separate from observed receipt; UDP can lose an individual copy even when another arrival path succeeds.
 
 ## Preserve settings and stop export
 

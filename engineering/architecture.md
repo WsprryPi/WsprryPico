@@ -124,7 +124,7 @@ Saved drafts require explicit application and never establish readiness.
 
 The physical layout is defined in
 [flash_layout.hpp](../src/standalone/pico/flash_layout.hpp). The current working
-layout reserves NTP retention at `0x3ee000`, saved progress at `0x3f0000`,
+layout reserves independent UDP logging settings at `0x3ec000`, NTP retention at `0x3ee000`, saved progress at `0x3f0000`,
 diagnostic scratch at `0x3f2000`, access at `0x3f3000`, BTstack at `0x3f5000`,
 profiles at `0x3f7000`, standalone state at `0x3fb000` and E10 at `0x3ff000`.
 Image/linker checks enforce region separation. Record versions determine

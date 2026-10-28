@@ -1,6 +1,6 @@
-# UDP logging implementation candidate
+# UDP logging
 
-UDP logging is under qualification. This engineering contract accompanies the [reviewed design](udp-syslog-proposal.md); it is not runtime acceptance or operator support evidence. The combined backlog remains unfinished until all coordinated acceptance gates pass.
+This engineering contract describes implemented UDP logging and accompanies the [reviewed design](udp-syslog-proposal.md). The [qualification record](udp-logging-qualification.md) records successful software and finite physical acceptance, exact source/image identities and restoration. Coordinated publication is tracked in the combined backlog.
 
 The implementation retains independent `wsprry-udp/1`, `transmitter-udp-logging/1`, `host-udp-logging/1` and `udp-logging-capabilities/1` resources. Existing USB logging, management descriptors, Consumer-Radio sessions and WTP command contracts retain their historical meanings. The shared portable codec and fixed event policy are mirrored in Pi and Pico source; their fixtures exercise the actual selected sources.
 
@@ -26,4 +26,4 @@ New transactions preserve the selected layout's reserved region. Historical inst
 
 Hardware-free codec, persistence, API, UI and actual production source-pair results are software evidence. Target image fit, stack/pool pressure, installer/service operation, physical USB/network transport, restoration and RF isolation require their own recorded results. The finite runtime campaign in the reviewed design remains mandatory. Failed, timed-out or skipped checks remain unresolved.
 
-Current candidate results and unfinished physical/restoration gates are recorded in the [qualification record](udp-logging-qualification.md).
+Actual software, finite physical campaign, UI, documentation and restoration results are recorded in the [qualification record](udp-logging-qualification.md). UDP receipt remains unknown until independently observed; acceptance does not establish RF performance or lossless delivery.
