@@ -54,7 +54,10 @@ async function login(password='test-password') {
     await click('access-toggle');
     assert.equal(await evaluate('document.activeElement.id'),'local-password');
     await evaluate(`document.getElementById('local-password').value=${JSON.stringify(password)}`);
-    await key('Enter');await idle();
+    // Polling can briefly disable submission. Submit exactly once when the
+    // native form is available; keyboard Enter is covered by the shipped UI fixture.
+    await until(()=>evaluate('!busy && !document.getElementById("login-submit").disabled && (document.getElementById("local-login").requestSubmit(),true)'),'login submit available');
+    await idle();
 }
 const checks=[];
 function pass(name){checks.push(name);console.log('PASS '+name);}
