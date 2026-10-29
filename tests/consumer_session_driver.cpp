@@ -689,8 +689,8 @@ struct Driver {
             page_setup = mode != "unavailable";
             if (mode != "unavailable")
                 check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
-            if (mode == "unavailable")
-                radio.admission(false);
+            radio.admission(mode != "unavailable" && runtime.control_healthy(profiles) &&
+                            runtime.consumer_browser_selected(profiles));
             if (mode == "recovery") {
                 server.configure_recovery(f.service.status().boot_id, access, random);
                 server.reset_control(

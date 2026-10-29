@@ -71,12 +71,14 @@ The shipped Station/Wi-Fi controls also have a production HTTP/AEAD fixture for 
 
 ```sh
 cmake -S . -B build-browser -DWSPRRY_PICO_BUILD_FIRMWARE=OFF -DWSPRRY_PICO_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug -DWSPRRY_PICO_TEST_MBEDTLS_PATH=/absolute/path/to/mbedtls
-cmake --build build-browser --target consumer_session_driver --parallel 2
+cmake --build build-browser --target consumer_session_driver consumer_bootstrap_driver --parallel 2
 node tests/consumer_sessions.test.mjs build-browser/consumer_session_driver
 node tests/operator_cleanup_browser.mjs build-browser/consumer_session_driver
+PROGRESS_BROWSER_NO_CAPTURE=1 node tests/progress_browser_integration.mjs build-browser/consumer_bootstrap_driver
+node tests/consumer_recovery_browser.mjs build-browser/consumer_bootstrap_driver
 ```
 
-Use the selected candidate source and MbedTLS `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20` with recursive dependencies, retained bootstrap npm dependencies and current Chrome. An optional third argument to `operator_cleanup_browser.mjs` captures one desktop/mobile screenshot batch from the actual fixture. It is software evidence with a synthetic board, not physical USB/network, installation, timing or RF acceptance. The Pi network-pair workflow runs these checks in addition to its production Pi client/coordinator, source-selection, routing and UI gates; the independent USB-pair workflow remains required.
+Use the selected candidate source and MbedTLS `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20` with recursive dependencies, retained bootstrap npm dependencies and current Chrome. Progress checks cover partial saves, independent drafts, interrupted replies, late edits and explicit application on consumer and engineering pages. Recovery checks use independent browser contexts for conflicts, capacity, keyboard access and selective retirement, including lost self-retirement replies. Both run in the host CI lane and the Pi network-pair workflow. An optional third argument to `operator_cleanup_browser.mjs` or `consumer_recovery_browser.mjs` captures one desktop/mobile screenshot batch from the actual fixture. It is software evidence with a synthetic board, not physical USB/network, installation, timing or RF acceptance. The Pi network-pair workflow runs these checks in addition to its production Pi client/coordinator, source-selection, routing and UI gates; the independent USB-pair workflow remains required.
 
 The [LPF/band selector contract](lpf-band-selector.md) defines optional GPIO selection, coverage, settling, cleanup and validation applicability. Focused registered tests are `filter_selector`, `filter_selector_schema` and `filter_selector_browser`; both companion production network and USB suites remain required for management changes. The existing opt-in browser fixture accepts `--filter-ui-only` after its driver and output-directory arguments to select the shipped selector editor.
 
