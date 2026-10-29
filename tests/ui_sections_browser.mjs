@@ -132,7 +132,8 @@ try {
     await until(()=>evaluate('document.activeElement.id==="device-name"'),'receipt Top history');
     assert.equal(await evaluate('document.querySelectorAll("[data-operator-section][open]").length'),0);
     await evaluate('history.forward()');await until(()=>evaluate('document.getElementById("wifi-settings").open'),'receipt Forward section');
-    await send('Page.reload');await until(()=>evaluate('typeof localIdentity!=="undefined" && !!localIdentity && !busy'),'receipt reload');
+    await evaluate('globalThis.sectionReloadMarker=true');await send('Page.reload');
+    await until(()=>evaluate('!globalThis.sectionReloadMarker && typeof localIdentity!=="undefined" && !!localIdentity && !busy').catch(()=>false),'new document receipt reload');
     assert.equal(await evaluate('document.getElementById("saved-settings").open'),true);
     assert.equal(await evaluate('location.hash'),receipt);
     pass('receipt bytes and unrelated History data survive section/Top, reload exposes recovery');

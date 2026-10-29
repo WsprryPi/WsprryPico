@@ -234,8 +234,8 @@ try {
     // Bookmark selection survives observation; explicit navigation can override it.
     await cdp.evaluate(`location.hash='hostname-form'`);await click('station-link');
     assert.equal(await cdp.evaluate(`document.getElementById('station-area').hidden`),false);
-    await click('wifi-host-link');await cdp.send('Page.reload');
-    await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !localAuthenticated'),'reload requires explicit login');
+    await click('wifi-host-link');await cdp.evaluate('globalThis.organizationReloadMarker=true');await cdp.send('Page.reload');
+    await until(()=>cdp.evaluate('!globalThis.organizationReloadMarker && typeof radio!=="undefined" && !!localIdentity && !localAuthenticated && !busy'),'new document reload requires explicit login');
     assert.equal(await cdp.evaluate(`document.getElementById('wifi-host-area').hidden`),false);
     assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,starts);
     // AP root uses the actual accepted interface to select Wi-Fi/Host.
@@ -328,7 +328,8 @@ try {
     await cdp.evaluate(`document.getElementById('reset-form').requestSubmit()`);
     await until(()=>cdp.evaluate(`document.getElementById('notice').textContent.includes('Reset accepted')`),'encrypted reset callback admitted');
     assert.equal((await f.command({op:'stats'})).recovery_requests,1);
-    await cdp.send('Page.reload');await until(()=>cdp.evaluate(`document.getElementById('notice').textContent.includes('already in progress')`),'pending reset reload');
+    await cdp.evaluate('globalThis.organizationReloadMarker=true');await cdp.send('Page.reload');
+    await until(()=>cdp.evaluate(`!globalThis.organizationReloadMarker && document.getElementById('notice').textContent.includes('already in progress')`),'new document pending reset reload');
     assert.equal((await f.command({op:'stats'})).recovery_requests,1,'no destructive replay');
     const noCrypto=await cdp.send('Page.addScriptToEvaluateOnNewDocument',{source:"Object.defineProperty(globalThis,'crypto',{value:undefined})"});
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
