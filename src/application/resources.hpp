@@ -4,6 +4,7 @@
 
 namespace wsprrypico::application {
 inline constexpr std::size_t max_update_bytes = 1024;
+inline constexpr std::size_t max_capabilities_bytes = 8192;
 inline constexpr std::string_view application_schema = "transmitter-application/1";
 inline constexpr std::string_view station_schema = "transmitter-station/1";
 inline constexpr std::string_view hardware_schema = "transmitter-hardware/1";

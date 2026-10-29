@@ -1,4 +1,5 @@
 #pragma once
+#include "hardware/filter_settings.hpp"
 #include "logging/logger.hpp"
 #include "standalone/config.hpp"
 #include "standalone/message_schedule.hpp"
@@ -51,6 +52,10 @@ class Store {
     explicit Store(Flash& flash) : config_(flash, 0, 2048), cursor_(flash, 8192, 256) {}
     bool load(bool reset_recovery = false);
     bool save(const Config& config);
+    bool save_filters(const hardware::FilterSettings& settings);
+    const hardware::FilterSettings& filters() const {
+        return filters_;
+    }
     bool save_logging(logging::Settings settings);
     logging::Settings logging_settings() const {
         return logging_;
@@ -105,6 +110,7 @@ class Store {
   private:
     Journal config_, cursor_;
     logging::Settings logging_;
+    hardware::FilterSettings filters_;
     std::optional<Config> current_;
     std::uint64_t watermark_ = 0, last_message_start_ = 0;
     std::optional<MessageSchedule> message_;

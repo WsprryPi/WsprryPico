@@ -66,7 +66,7 @@ std::string capabilities(bool usb_management) {
            "\"hardware_activation\":\"restart\",\"station_encoding\":\"wspr_type1\","
            "\"station_power_meaning\":\"reported_wspr_dbm\","
            "\"recurrence_authorities\":[\"member\"],\"autonomous_modes\":[\"wspr\"],"
-           "\"unavailable\":[\"recurrence_transfer\",\"si5351\",\"amplifier\",\"lpf\","
+           "\"unavailable\":[\"recurrence_transfer\",\"si5351\",\"amplifier\","
            "\"drive\",\"reference_calibration\",\"waveform_preferences\"," +
            (usb_management ? "" : "\"usb_json_management\",") +
            "\"plain_lan_json_management\",\"ble_json_management\"]}";

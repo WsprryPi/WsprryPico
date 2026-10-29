@@ -1,7 +1,7 @@
 #include "rf/pico/worker.hpp"
 
-#include "hardware/structs/watchdog.h"
 #include "hardware/gpio.h"
+#include "hardware/structs/watchdog.h"
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
 #include "provisioning/button_safety.hpp"
 #endif
@@ -21,6 +21,9 @@ WorkerEngine* worker = nullptr;
 std::atomic<unsigned> ready{0};
 std::optional<unsigned> emergency_rf, emergency_amplifier;
 bool emergency_amplifier_high = true;
+std::array<std::pair<unsigned, bool>, hardware::FilterSettings::maximum_outputs>
+    emergency_filters{};
+unsigned emergency_filter_count = 0;
 std::uint64_t now() {
     return time_us_64() * 1000ULL;
 }
@@ -43,6 +46,9 @@ void wait() {
     if (emergency_amplifier)
         gpio_set_outover(*emergency_amplifier,
                          emergency_amplifier_high ? GPIO_OVERRIDE_LOW : GPIO_OVERRIDE_HIGH);
+    for (unsigned i = 0; i < emergency_filter_count; ++i)
+        gpio_set_outover(emergency_filters[i].first,
+                         emergency_filters[i].second ? GPIO_OVERRIDE_LOW : GPIO_OVERRIDE_HIGH);
     watchdog_hw->scratch[2] = 0x52464331; // RFC1: missing RF-core acknowledgement.
     while (true)
         tight_loop_contents(); // Existing watchdog enters inhibited recovery.
@@ -65,13 +71,13 @@ int gpio_drive_observation() {
 }
 WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& pins,
                            bool storage_healthy, IndicatorGate& indicator, unsigned drive_ma,
-                           AmplifierEnable* amplifier) {
+                           AmplifierEnable* amplifier, FilterSelector* filters) {
     if (!hardware::operational(pins))
         failure();
     static PicoPioDma hardware(*pins.rf, drive_ma);
     drive_hardware = &hardware;
-    static PioDmaSink sink(hardware, &indicator, amplifier);
-    static StreamEngine engine(sink);
+    static PioDmaSink sink(hardware, &indicator, amplifier, filters);
+    static StreamEngine engine(sink, filters);
     static WorkerEngine proxy(engine, clock, now, wait, failure, save_and_disable_interrupts,
                               restore_interrupts);
     if (worker)
@@ -80,9 +86,17 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
         emergency_rf = pins.rf;
         emergency_amplifier = pins.amplifier;
         emergency_amplifier_high = pins.amplifier_active_high;
+        if (filters) {
+            emergency_filter_count = filters->settings().output_count;
+            for (unsigned i = 0; i < emergency_filter_count; ++i) {
+                const auto& output = filters->settings().outputs[i];
+                emergency_filters[i] = {output.gp, output.active_high};
+            }
+        }
     }
-    static const bool boot_safe =
-        storage_healthy && (!amplifier || !amplifier->output_active_or_unknown());
+    static const bool boot_safe = storage_healthy &&
+                                  (!amplifier || !amplifier->output_active_or_unknown()) &&
+                                  (!filters || !filters->output_active_or_unknown());
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
     static const auto button = pins.button;
     if (button) {

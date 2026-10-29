@@ -325,7 +325,7 @@ struct LocalStartConditions {
     std::uint64_t start_adjustment_ns = 0;
 };
 
-enum class ChainPhase { Unspecified, Inactive, Waiting, Lead, Rf, Tail, Fault };
+enum class ChainPhase { Unspecified, Inactive, Waiting, Lead, Rf, Tail, Fault, Selecting };
 struct EngineReport {
     EngineState state = EngineState::Idle;
     bool output_active = false;
@@ -334,6 +334,7 @@ struct EngineReport {
     // Normal tail starts at the adapter's confirmed RF-off observation, which
     // may follow nominal waveform completion. This is local execution evidence.
     std::optional<std::uint64_t> tail_deadline_monotonic_ns = {};
+    int filter_selector = -1; // -1 inactive, -2 unknown; snapshot with RF state.
 };
 
 struct FrequencyAdjustment {
@@ -480,6 +481,9 @@ class RfEngine {
   public:
     static constexpr std::uint64_t maximum_completion_acknowledgement_ns = 100'000;
     virtual ~RfEngine() = default;
+    virtual std::uint64_t filter_preparation_ns() const {
+        return 0;
+    }
     virtual std::uint64_t amplifier_lead_ns() const {
         return 0;
     }
@@ -679,6 +683,9 @@ class JobService {
   public:
     EngineReport rf_chain_observation() const {
         return engine_.poll(clock_.snapshot().monotonic_now_ns);
+    }
+    std::string_view engine_diagnostic() const {
+        return engine_.diagnostic();
     }
     JobService(Clock& clock, RfEngine& engine, IdentitySource& identities,
                ServiceConfig config = {});

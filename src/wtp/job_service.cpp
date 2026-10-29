@@ -98,6 +98,10 @@ JobService::JobService(Clock& clock, RfEngine& engine, IdentitySource& identitie
     if (const auto lead = engine_.amplifier_lead_ns())
         config_.minimum_arm_lead_ns =
             std::max(config_.minimum_arm_lead_ns, saturating_add(lead, 2'000'000));
+    if (const auto filters = engine_.filter_preparation_ns())
+        config_.minimum_arm_lead_ns = std::max(
+            config_.minimum_arm_lead_ns,
+            saturating_add(saturating_add(filters, engine_.amplifier_lead_ns()), 3'000'000));
     const bool configuration_valid =
         capability_text(config_.capability_engine) && !config_.supported_modes.empty() &&
         unique(config_.supported_modes) &&
@@ -616,7 +620,8 @@ void JobService::poll() {
         const auto report = engine_.poll(now.monotonic_now_ns);
         local_report = report;
         if (report.state == EngineState::Armed &&
-            (!report.output_active || report.chain_phase == ChainPhase::Lead)) {
+            (!report.output_active || report.chain_phase == ChainPhase::Lead ||
+             report.chain_phase == ChainPhase::Selecting)) {
             return;
         }
         // The local engine has launched, missed, or failed. Process its terminal

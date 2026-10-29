@@ -47,6 +47,10 @@ class Scheduler {
     rf::AmplifierTiming active_amplifier_timing() const {
         return active_amplifier_timing_;
     }
+    const hardware::FilterSettings& active_filters() const {
+        return active_filters_;
+    }
+    std::string save_filters(const hardware::FilterSettings&);
     unsigned active_gpio_drive_ma() const {
         return active_gpio_drive_ma_;
     }
@@ -110,6 +114,7 @@ class Scheduler {
     std::optional<wtp::PayloadDigest> active_network_;
     hardware::PinPlan active_pins_;
     rf::AmplifierTiming active_amplifier_timing_;
+    hardware::FilterSettings active_filters_;
     unsigned active_gpio_drive_ma_ = 4;
     unsigned active_ntp_timeout_s_ = default_ntp_timeout_s;
 };

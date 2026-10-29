@@ -65,6 +65,7 @@
         "standalone-frequency",
         "gpio-drive",
         "ntp-timeout",
+        "filter-selector",
         "hostname",
         "logging",
         "udp-logging",

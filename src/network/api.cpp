@@ -279,6 +279,7 @@ HttpResponse BrowserApi::save_progress(const HttpRequest& r, bool station_only, 
         // Pins/polarity form one atomic unit. Malformed amplifier data must
         // never advance a journal or save otherwise-valid sibling fields.
         if (!plan || !hardware::operational(*plan) ||
+            !hardware::validate_filters(store_.filters(), *plan).empty() ||
             (!amplifier &&
              (pins->get("amplifier_active_high") || hardware::requires_amplifier_view(*plan))))
             return http_error(400, "invalid_pin_plan");
@@ -449,6 +450,7 @@ HttpResponse BrowserApi::amplifier_timing() const {
     const char* phase = "inactive";
     switch (observation.chain_phase) {
     case wtp::ChainPhase::Waiting:
+    case wtp::ChainPhase::Selecting:
         phase = "waiting";
         break;
     case wtp::ChainPhase::Lead:
@@ -478,6 +480,40 @@ HttpResponse BrowserApi::amplifier_timing() const {
            ",\"output_active\":" + (observation.output_active ? "true" : "false") +
            ",\"rf_active\":" + (observation.chain_phase == wtp::ChainPhase::Rf ? "true" : "false") +
            ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
+    result.etag = revision();
+    return result;
+}
+HttpResponse BrowserApi::filter_selector() const {
+    const auto observation = service_.rf_chain_observation();
+    const auto selected = observation.filter_selector;
+    const auto config = effective_config();
+    const auto pins = config ? config->pins : hardware::PinPlan{};
+    const auto owners = hardware::validate(pins).owners;
+    std::string reserved = "[";
+    for (unsigned gp = 0; gp < owners.size(); ++gp) {
+        if (owners[gp].empty())
+            continue;
+        if (reserved.size() > 1)
+            reserved += ',';
+        reserved += "{\"gp\":" + std::to_string(gp) + ",\"role\":" + json::quote(owners[gp]) + "}";
+    }
+    reserved += ']';
+    auto result = ok(
+        "{\"schema\":\"transmitter-filter-selector/1\",\"target\":" +
+        application::target(device_, service_.status().boot_id) + ",\"saved\":" +
+        (store_.healthy() ? hardware::serialize_filters(store_.filters()) : "null") +
+        ",\"boot_active\":" +
+        (store_.healthy() ? hardware::serialize_filters(scheduler_.active_filters()) : "null") +
+        ",\"pending_restart\":" + (scheduler_.hardware_restart_required() ? "true" : "false") +
+        ",\"selected_id\":" + (selected > 0 ? std::to_string(selected) : "null") +
+        ",\"selection_known\":" + (store_.healthy() && selected != -2 ? "true" : "false") +
+        ",\"admission_error\":" +
+        (service_.engine_diagnostic() == "filter_coverage_required" ? "\"filter_coverage_required\""
+                                                                    : "null") +
+        ",\"output_active\":" + (observation.output_active ? "true" : "false") +
+        ",\"rf_active\":" + (observation.chain_phase == wtp::ChainPhase::Rf ? "true" : "false") +
+        ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") +
+        ",\"reserved\":" + reserved + "}");
     result.etag = revision();
     return result;
 }
@@ -824,7 +860,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return http_error(403, "cross_site_request");
     }
     service_.poll();
-    if (r.path == "/api/v1/udp-logging" || r.path == "/api/v1/udp-logging/capabilities" || r.path == "/api/v1/udp-logging/test" || r.path == "/api/v1/udp-logging/test/capabilities")
+    if (r.path == "/api/v1/udp-logging" || r.path == "/api/v1/udp-logging/capabilities" ||
+        r.path == "/api/v1/udp-logging/test" || r.path == "/api/v1/udp-logging/test/capabilities")
         return udp_logging_resource(r);
     if (r.path == "/api/v1/logging")
         return logging_resource(r);
@@ -884,6 +921,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return ok(
                 management_contract(management_, carrier, device_, service_.status().boot_id));
         if (r.path == "/api/v1/capabilities") {
+            if (!memory_admitted(application::max_capabilities_bytes))
+                return http_error(503, "resource_exhausted");
             Request request;
             request.operation = "CAPS";
             Response response;
@@ -891,7 +930,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             const auto caps =
                 encode_response(request, response, service_.config(), device_, firmware_);
             auto value = json::parse(caps);
-            return ok(
+            auto result = ok(
                 std::string("{") +
                 (carrier == ManagementCarrier::EngineeringField
                      ? ""
@@ -908,7 +947,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                 "\"units\":\"ppm\",\"precision\":3,\"minimum\":\"-100.000\","
                 "\"maximum\":\"100.000\",\"default_mode\":\"manual\",\"activation\":\"next_"
                 "preparation\"},"
-                "\"amplifier_timing\":" +
+                "\"filter_selector\":" +
+                hardware::filter_capabilities() + ",\"amplifier_timing\":" +
                 application::amplifier_timing_capabilities() + ",\"amplifier_enable\":" +
                 application::amplifier_capabilities(service_.config().capability_engine ==
                                                     "pio-dma-gp2") +
@@ -956,6 +996,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
                            : "") +
                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
                 "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}");
+            if (result.body.size() > application::max_capabilities_bytes)
+                return http_error(503, "capabilities_too_large");
+            return result;
         }
         if (r.path == "/api/v1/operations") {
             if (carrier == ManagementCarrier::EngineeringField)
@@ -1004,6 +1047,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return standalone_frequency();
         if (r.path == "/api/v1/amplifier-timing")
             return amplifier_timing();
+        if (r.path == "/api/v1/filter-selector")
+            return filter_selector();
         if (r.path == "/api/v1/gpio-drive")
             return gpio_drive();
         if (r.path == "/api/v1/ntp-timeout")
@@ -1191,6 +1236,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const bool calibration_resource = r.path == "/api/v1/rf-calibration";
     const bool frequency_resource = r.path == "/api/v1/standalone-frequency";
     const bool timing_resource = r.path == "/api/v1/amplifier-timing";
+    const bool filter_resource = r.path == "/api/v1/filter-selector";
     const bool drive_resource = r.path == "/api/v1/gpio-drive";
     const bool ntp_resource = r.path == "/api/v1/ntp-timeout";
     const bool extended_config =
@@ -1209,8 +1255,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         (r.method != "PUT" ||
          (r.path != "/api/v1/config" && r.path != "/api/v1/config/2" &&
           r.path != "/api/v1/config/3" && r.path != "/api/v1/config/4" && !drive_resource &&
-          !timing_resource && !calibration_resource && !frequency_resource && !ntp_resource &&
-          r.path != "/api/v1/schedules" && r.path != "/api/v1/network" && !scoped_resource)))
+          !timing_resource && !filter_resource && !calibration_resource && !frequency_resource &&
+          !ntp_resource && r.path != "/api/v1/schedules" && r.path != "/api/v1/network" &&
+          !scoped_resource)))
         return http_error(404, "not_found");
     if ((scoped_resource || timing_resource || drive_resource || calibration_resource ||
          frequency_resource || ntp_resource) &&
@@ -1233,6 +1280,24 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         return http_error(400, "invalid_json");
     if (pending_transaction_)
         return http_error(409, "network_change_pending");
+    if (filter_resource) {
+        if (r.body_view().size() > hardware::FilterSettings::maximum_bytes + 256)
+            return http_error(413, "resource_body_too_large");
+        const auto envelope = application::validate_envelope(
+            *root, "transmitter-filter-selector/1", "settings", device_, service_.status().boot_id);
+        if (envelope != application::Envelope::Valid)
+            return http_error(envelope == application::Envelope::TargetMismatch ? 409 : 400,
+                              "invalid_filter_resource");
+        const auto settings = hardware::parse_filters(std::string(root->get("settings")->raw));
+        if (!settings)
+            return http_error(400, "invalid_filter_settings");
+        if (const auto error = scheduler_.save_filters(*settings); !error.empty())
+            return http_error(error == "storage_fault" || error == "output_disable_failed" ? 503
+                              : error == "busy"                                            ? 409
+                                                                                           : 400,
+                              error);
+        return filter_selector();
+    }
     if (hostname) {
         if (!hostname_settings_)
             return http_error(404, "not_found");
@@ -1505,6 +1570,9 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const auto validated = standalone::parse_config(candidate);
     if (!validated)
         return http_error(400, "invalid_config");
+    if (const auto conflict = hardware::validate_filters(store_.filters(), validated->pins);
+        !conflict.empty())
+        return http_error(400, conflict);
     if (!store_.config_fits(*validated))
         return http_error(413, "saved_settings_too_large");
     if (validated->enabled && scheduler_.message_recovery_required())

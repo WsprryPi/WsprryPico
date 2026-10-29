@@ -47,7 +47,7 @@ struct Member {
 void advertised_contract_and_individual_omissions() {
     Member m;
     const auto response = m.call(request("GET", "/api/v1/capabilities"));
-    REQUIRE(response.status == 200 && response.body.size() <= 4096);
+    REQUIRE(response.status == 200 && response.body.size() <= application::max_capabilities_bytes);
     const auto capabilities = wtp::json::parse(response.body);
     REQUIRE(capabilities);
     const auto updates = capabilities->get("configuration_updates");

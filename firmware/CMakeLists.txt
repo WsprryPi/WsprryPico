@@ -35,6 +35,7 @@ foreach(image IN LISTS wsprry_application_images)
         ../src/standalone/pico/main.cpp ../src/standalone/pico/adapters.cpp
         ../src/standalone/pico/net_trace.cpp
         ../src/hardware/pico/amplifier_output.cpp
+        ../src/hardware/pico/filter_outputs.cpp
         pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp)
     target_include_directories(${image} PRIVATE
         ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated

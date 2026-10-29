@@ -1,7 +1,7 @@
 import {begin,authenticate,seal,open,clear,unhex,retirementSelector} from './radio-crypto.js';
 import {prepareNetwork,prepareStation,submitSetup,checkSetup} from './radio-setup.js';
 
-const publicReadResources = ["capabilities","pins","pins/2","operations","status","config","config/2","config/3","config/4","application","application/2","application/3","application/4","station","station/2","hardware","hardware/2","hardware/3","progress","progress/2","progress/3","rf-calibration","standalone-frequency","gpio-drive","ntp-timeout","hostname","logging","udp-logging","udp-logging/capabilities","udp-logging/test/capabilities","message-schedule","consumer/password","consumer/setup/api/owner/v1/public-status"];
+const publicReadResources = ["capabilities","pins","pins/2","operations","status","config","config/2","config/3","config/4","application","application/2","application/3","application/4","station","station/2","hardware","hardware/2","hardware/3","progress","progress/2","progress/3","rf-calibration","standalone-frequency","gpio-drive","ntp-timeout","filter-selector","hostname","logging","udp-logging","udp-logging/capabilities","udp-logging/test/capabilities","message-schedule","consumer/password","consumer/setup/api/owner/v1/public-status"];
 
 function publicDiscovery(text) {
   if(text.length>4096) throw new Error('Public read discovery exceeds its bound');
@@ -93,14 +93,15 @@ export class RadioClient {
   }
   async publicRead(path, timeout = 5000) {
     const extended=path==='amplifier-timing',resources=extended?['amplifier-timing']:publicReadResources,cache=extended?'publicTimingReads':'publicReads';
+    const discovery=extended?'/api/consumer/v1/read/2':'/api/consumer/v1/read';
     if (!resources.includes(path)) throw new Error('This resource has no public read authority');
     const options = {method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(timeout)};
     if (!this[cache]) {
-      const reply = await this.fetcher(extended?'/api/consumer/v1/read/2':'/api/consumer/v1/read',options);
+      const reply = await this.fetcher(discovery,options);
       if (!reply.ok) throw new Error('Public settings reads are unavailable on this firmware');
       const value = publicDiscovery(await reply.text()), target = value?.target;
       if (Object.keys(value || {}).sort().join(',') !== 'prefix,resources,schema,target' ||
-          value.schema !== (extended?'pico-public-read/2':'pico-public-read/1') || value.prefix !== (extended?'/api/consumer/v1/read/2/':'/api/consumer/v1/read/') ||
+          value.schema !== (extended?'pico-public-read/2':'pico-public-read/1') || value.prefix !== discovery+'/' ||
           Object.keys(target || {}).sort().join(',') !== 'boot_id,device_id,scope' || target.scope !== 'member' ||
           !this.publicIdentity || target.device_id !== this.publicIdentity.device_id || target.boot_id !== this.publicIdentity.boot_id ||
           JSON.stringify(value.resources) !== JSON.stringify(resources))

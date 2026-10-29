@@ -40,6 +40,7 @@ bool clock_ready(const wtp::ClockSnapshot& now, const wtp::ServiceConfig& config
 }
 } // namespace
 Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), service_(service) {
+    active_filters_ = store_.filters();
     if (store_.config()) {
         active_network_ = network_digest(*store_.config());
         active_pins_ = store_.config()->pins;
@@ -640,6 +641,9 @@ std::string Scheduler::command(std::string_view line) {
         return error("standalone_frequency_required");
     if (config->enabled && message_recovery_required())
         return error("message_recovery_required");
+    if (const auto conflict = hardware::validate_filters(store_.filters(), config->pins);
+        !conflict.empty())
+        return error(conflict);
     if (!store_.config_fits(*config))
         return error("saved_settings_too_large");
     if (config->enabled && store_.message_schedule() && store_.message_schedule()->enabled)
@@ -662,5 +666,23 @@ std::string Scheduler::command(std::string_view line) {
                        active_ntp_timeout_s_ != config->ntp_timeout_s || !active_network_ ||
                        *active_network_ != network_digest(*config);
     return status();
+}
+std::string Scheduler::save_filters(const hardware::FilterSettings& settings) {
+    if (!idle())
+        return "busy";
+    if (const auto error = hardware::validate_filters(
+            settings, store_.config() ? store_.config()->pins : hardware::PinPlan{});
+        !error.empty())
+        return error;
+    if (!store_.save_filters(settings))
+        return store_.healthy() ? "saved_settings_too_large" : "storage_fault";
+    if (active_filters_ != settings) {
+        pin_restart_required_ = reboot_required_ = true;
+        if (!service_.local_inhibit_output()) {
+            hardware_application_failed_ = true;
+            return "output_disable_failed";
+        }
+    }
+    return {};
 }
 } // namespace wsprrypico::standalone

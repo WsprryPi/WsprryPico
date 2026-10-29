@@ -67,6 +67,20 @@ Open **Station Control → Radio pins**, beside the amplifier-enable pin and pol
 
 Lead lets the amplifier settle before the scheduled RF start. Tail holds it enabled after normal RF completion. These intervals surround the transmission window and do not change the message duration or shift its scheduled RF start. Zero removes the corresponding interval; a disabled amplifier pin uses neither interval. A job submitted too late to provide its lead is refused. Stop and fault cleanup do not wait for tail. Settings readback shows the phase observed at the last read; it does not measure amplifier readiness or RF power.
 
+### LPF and band selector
+
+An optional **LPF / band selector** controls an external low-pass filter bank. Leave **Selection policy** at **Fixed / manual filtering** if you use a fixed filter or switch it yourself. **Require a declared filter for every job** refuses a transmission unless one selector covers every RF frequency in the whole job, including modulation and frequency correction. Empty required mappings refuse every job.
+
+Open **Station Control → Radio pins → LPF / band selector** and choose **Read saved selectors**. Add a named selector, choose an unused **Pico GPIO** and its **Active-high** or **Active-low** polarity. Add named frequency ranges referring to that selector, with whole-Hz **From** and **Through** values. Several ranges may use the same selector. Different selectors cannot have overlapping ranges. Use the filter's usable RF coverage, allowing margin for all transmitted tones and correction; a WSPR dial is below the emitted tones.
+
+Up to five selector outputs and ten ranges are supported. Names accept 1–16 letters, numbers, spaces, `/`, `_` or `-`. **Release before selection (ms)** and **Settle after selection (ms)** each accept 0–250 whole milliseconds and default to 20 ms. Set them for the actual driver and filter bank. Read the saved pin owners before choosing a GP; each pin serves one role. Large settings may exceed available saved space; shorten names or remove unused ranges if the save reports that limit.
+
+Choose **Save selectors** while idle and unowned, then explicitly **Reset Pico** and read again. Saving changes requires restart even if you change a value back. Readback separates saved settings, active settings for this boot and the selector observed at the last read. Reads and failed saves keep your entries; **Discard entries** restores the last-read values. After a lost reply, read saved selectors and review them before another deliberate save. A save never exercises the outputs or starts a transmission.
+
+The selected filter settles before amplifier enable. It stays selected through message gaps and amplifier tail, then releases after amplifier disable. A job submitted too late for filter and amplifier preparation is refused. Stop and fault cleanup immediately attempt RF off, amplifier off and selectors off.
+
+Connect GPIO only to suitable **3.3 V logic drivers** with external bias that holds the bank inactive during reset or loss of Pico power. Never drive relay coils directly from GPIO. Declaring a range does not measure filter response, power handling or RF emissions. Verify the actual RF path before operating.
+
 ### LED and button settings
 
 Open **Station Control → Radio pins → Pin assignments** to inspect or change the transmit indicator and external button. The [hardware preparation guide](start.md#hardware-connections) lists the defaults, available GPIOs and example wiring. GPIO menus use **GP numbers**, not physical header pin numbers. Each GPIO can serve only one role; pins assigned to another role are unavailable.

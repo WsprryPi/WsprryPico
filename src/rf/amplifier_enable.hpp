@@ -70,7 +70,10 @@ struct LaunchEnable {
     bool already_active = false;
     void (*verified)(void*) = nullptr;
     void* context = nullptr;
+    bool (*chain_verified)(void*) = nullptr;
     bool activate() const {
+        if (chain_verified && !chain_verified(context))
+            return false;
         const bool accepted =
             !amplifier || (already_active ? amplifier->verify_active() : amplifier->activate());
         if (accepted && amplifier && amplifier->enabled() && !already_active && verified)

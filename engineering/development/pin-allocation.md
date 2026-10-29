@@ -3,7 +3,7 @@
 The [selected contract](../pin-assignment-contract.md) defines hardware
 eligibility. This implementation adds pin-plan validation and boot-applied
 assignments for direct PIO RF, active-low switch input, the shared indicator and
-optional amplifier enable with independent polarity. LPF and Si5351 execution
+optional amplifier enable with independent polarity. Si5351 execution
 remain unavailable. These checks do not qualify RF performance on newly selected
 pins. The [amplifier record](amplifier-enable.md) documents its immediate
 launch/cleanup policy and evidence limits.
@@ -63,7 +63,7 @@ active hardware/pin views refuse a configured amplifier with
 `amplifier_view_required`; ordinary legacy Config pin edits preserve its GPIO
 and polarity. Unsupported clients cannot change it through legacy pin routes.
 Legacy Config readback retains its closed shape and is not an amplifier polarity
-or activation view. LPF and I²C remain rejected on every operational route.
+or activation view. Bare `lpf_gps` and I²C RF remain rejected on operational pin routes. The [LPF/band selector](lpf-band-selector.md) separately owns complete named resources, coverage, polarity and settling; its pins participate in exclusive allocation.
 
 The current input adapter supports active-low/pull-up operation only. Its pin is
 configurable, but its reset/stop/setup gesture and debounce policy are preserved.

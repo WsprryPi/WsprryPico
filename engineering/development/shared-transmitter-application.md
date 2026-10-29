@@ -130,8 +130,7 @@ GP numbers, fixed pair IDs and exclusive ownership rules; no second pin model
 or peripheral authority is introduced.
 
 Only direct PIO assignments, supported active-low button assignments and the
-shared onboard/external/disabled indicator can be saved. Amplifier, LPF and
-Si5351/I2C execution remain unavailable. Candidate eligibility does not authorize
+shared onboard/external/disabled indicator can be saved through the foundation routes. Current firmware also supports amplifier enable/timing and the separate [LPF/band selector](lpf-band-selector.md). Si5351/I2C execution remains unavailable. Candidate eligibility does not authorize
 operation. Drive remains unavailable within this frozen hardware/1 object;
 the independently negotiated current gpio-drive resource supports 2/4/8/12 mA,
 default 4. Reference calibration and waveform fields remain unavailable;

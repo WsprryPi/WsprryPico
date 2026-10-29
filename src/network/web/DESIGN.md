@@ -166,6 +166,16 @@ splitting it into jobs.
 
 The message form has adjacent availability guidance derived from the existing connectivity, ownership, restart and capability gates. It introduces no second authority for job admission.
 
+### LPF / band selector
+
+The selector editor sits in Radio pins after amplifier timing and before GPIO drive. It uses the existing native fieldset, full-width inputs and selects, flat headings, buttons and Active settings for this boot disclosure. Selection policy and release/settling fields use the three-column field grid, stacking at 650px; selector outputs and named frequency ranges repeat the same form pattern. Each selector names a Pico GPIO and polarity, while each range names a selector and inclusive whole-Hz limits. Add and remove actions stay beside their own group and return focus to the relevant entry or add button.
+
+Read saved selectors, Save selectors and Discard selector entries remain separate actions. Reads preserve edited entries; discard restores the last read saved settings. Supported readback, a current device/boot identity and revision, writable availability, healthy storage and valid edited entries gate saving. A changed Pico or boot preserves the draft behind fresh readback and the explicit Use entries for this Pico action. A refused or unconfirmed save retains the entries and requires another read before saving again.
+
+Validation uses one uniquely identified polite summary, with aria-invalid on the affected fields and aria-describedby connecting each invalid field to that explanation. Shared conflicts identify every affected field; editing clears stale invalid state. Help remains associated with valid fields. Observed status separately identifies saved policy, restart need, boot-active settings and current selection, including an unknown selection.
+
+Adjacent help explains fixed / manual filtering and required automatic selection, release/settling units and bounds, and activation after restart. Saving never switches a relay or starts a job. Declared frequency coverage, GPIO observations and an active selector do not establish relay position or measured filtering.
+
 ### Standalone frequency
 
 The standalone WSPR frequency form precedes the schedule-enable checkbox in

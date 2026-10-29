@@ -141,6 +141,7 @@ class BrowserApi {
     HttpResponse config(bool drive = false, bool amplifier = false) const;
     HttpResponse gpio_drive() const;
     HttpResponse amplifier_timing() const;
+    HttpResponse filter_selector() const;
     HttpResponse ntp_timeout() const;
     HttpResponse rf_calibration() const;
     HttpResponse standalone_frequency() const;

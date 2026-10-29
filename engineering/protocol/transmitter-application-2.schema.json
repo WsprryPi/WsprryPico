@@ -571,7 +571,6 @@
             "recurrence_transfer",
             "si5351",
             "amplifier",
-            "lpf",
             "drive",
             "reference_calibration",
             "waveform_preferences",

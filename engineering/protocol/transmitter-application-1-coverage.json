@@ -88,9 +88,9 @@
     },
     {
       "source_setting": "Band GPIO per-band Enabled, GPIO, Active High",
-      "disposition": "unavailable",
-      "resource_field": null,
-      "notes": "Future engine/control/waveform adapter; rejected by the closed current resource."
+      "disposition": "partial_pico_adapter",
+      "resource_field": "filter-selector.settings",
+      "notes": "Member-local named selectors use Pico GP numbers and declared frequency ranges; existing Pi Band GPIO remains Pi-local and is not copied onto a Pico."
     },
     {
       "source_setting": "Frequency-entry @GPIO[H|L]",

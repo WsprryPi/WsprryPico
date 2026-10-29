@@ -121,6 +121,8 @@ node tests/operator_cleanup_browser.mjs build-browser/consumer_session_driver
 
 Use the selected candidate source and MbedTLS `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20` with recursive dependencies, retained bootstrap npm dependencies and current Chrome. An optional third argument to `operator_cleanup_browser.mjs` captures one desktop/mobile screenshot batch from the actual fixture. It is software evidence with a synthetic board, not physical USB/network, installation, timing or RF acceptance. The Pi network-pair workflow runs these checks in addition to its production Pi client/coordinator, source-selection, routing and UI gates; the independent USB-pair workflow remains required.
 
+The [LPF/band selector contract](lpf-band-selector.md) defines optional GPIO selection, coverage, settling and cleanup. Its [validation record](filter-selector-validation.md) records production source-pair and firmware checks. Focused registered tests are `filter_selector`, `filter_selector_schema` and `filter_selector_browser`; both companion production network and USB suites remain required for management changes.
+
 ## Host tools and analysis
 
 `scripts/usb_inventory.py` provides a read-only, explicitly selected USB Console

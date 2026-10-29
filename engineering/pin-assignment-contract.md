@@ -1,6 +1,6 @@
 # Pico 2 W pin-assignment contract
 
-Status: selected design contract, agreed 2026-10-01; implemented subset below. The [pin allocation feature](development/pin-allocation.md) implements boot-applied direct RF, active-low switch and indicator selection plus candidate allocation validation. Optional amplifier-enable execution and independent polarity are implemented in the [amplifier slice](development/amplifier-enable.md). LPF adapters and Pico Si5351 support remain unimplemented. Hardware eligibility is not RF qualification.
+Status: selected design contract, agreed 2026-10-01; implemented subset below. The [pin allocation feature](development/pin-allocation.md) implements boot-applied direct RF, active-low switch and indicator selection plus candidate allocation validation. Optional amplifier-enable execution and independent polarity are implemented in the [amplifier slice](development/amplifier-enable.md). Named [LPF/band selection](development/lpf-band-selector.md) has separate settings, complete-job coverage and local settling. Pico Si5351 support remains unimplemented. Hardware eligibility is not RF qualification.
 
 ## Target and numbering
 

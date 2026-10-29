@@ -121,8 +121,15 @@ bool Journal::append(std::string_view data) {
 namespace {
 std::string state_record(const std::optional<Config>& config,
                          const std::optional<MessageSchedule>& schedule,
-                         logging::Settings logging = {}) {
+                         logging::Settings logging = {},
+                         const hardware::FilterSettings& filters = {}) {
     const auto c = config ? serialize_config(*config) : "null";
+    if (filters != hardware::FilterSettings{})
+        return "{\"schema\":\"standalone-state/4\",\"config\":" + c + ",\"message_schedule\":" +
+               (schedule ? serialize_message_schedule(*schedule) : "null") +
+               ",\"logging\":{\"enabled\":" + (logging.enabled ? "true" : "false") +
+               ",\"maximum_severity\":" + std::to_string(logging.maximum_severity) +
+               "},\"filter_selector\":" + hardware::serialize_filters(filters) + "}";
     if (logging.enabled || logging.maximum_severity != 6)
         return "{\"schema\":\"standalone-state/4\",\"config\":" + c + ",\"message_schedule\":" +
                (schedule ? serialize_message_schedule(*schedule) : "null") +
@@ -138,6 +145,7 @@ bool Store::load(bool reset_recovery) {
     healthy_ = false;
     current_.reset();
     logging_ = {};
+    filters_ = {};
     message_.reset();
     message_in_flight_ = false;
     watermark_ = 0;
@@ -149,10 +157,19 @@ bool Store::load(bool reset_recovery) {
         if (!root)
             return false;
         if (root->get("schema")) {
+            const bool filters = root->get("filter_selector").has_value();
             const bool logs = root->get("schema")->string() == "standalone-state/4";
             if (logs) {
-                if (!wtp::json::fields(*root, {"schema", "config", "message_schedule", "logging"}))
+                if (!wtp::json::fields(*root, {"schema", "config", "message_schedule", "logging"},
+                                       {"filter_selector"}))
                     return false;
+                if (filters) {
+                    const auto selected =
+                        hardware::parse_filters(std::string(root->get("filter_selector")->raw));
+                    if (!selected)
+                        return false;
+                    filters_ = *selected;
+                }
                 const auto settings = *root->get("logging");
                 const auto severity = settings.get("maximum_severity");
                 if (!wtp::json::fields(settings, {"enabled", "maximum_severity"}) ||
@@ -171,6 +188,10 @@ bool Store::load(bool reset_recovery) {
                 if (!current_)
                     return false;
             }
+            if (!hardware::validate_filters(filters_,
+                                            current_ ? current_->pins : hardware::PinPlan{})
+                     .empty())
+                return false;
             if (root->get("message_schedule")->raw != "null") {
                 message_ = parse_message_schedule(*root->get("message_schedule"));
                 if (!message_ || (current_ && current_->enabled && message_->enabled))
@@ -215,8 +236,9 @@ bool Store::load(bool reset_recovery) {
 }
 bool Store::save(const Config& config) {
     const auto legacy = serialize_config(config);
-    const auto text = state_record(config, message_, logging_);
+    const auto text = state_record(config, message_, logging_, filters_);
     if (!healthy() || !parse_config(legacy) || text.size() > max_state_bytes ||
+        !hardware::validate_filters(filters_, config.pins).empty() ||
         (config.enabled && message_ && message_->enabled))
         return false;
     if (!config_.append(text)) {
@@ -229,7 +251,7 @@ bool Store::save(const Config& config) {
 bool Store::save_logging(logging::Settings settings) {
     if (!healthy() || settings.maximum_severity > 7)
         return false;
-    const auto text = state_record(current_, message_, settings);
+    const auto text = state_record(current_, message_, settings, filters_);
     if (text.size() > max_state_bytes)
         return false;
     if (!config_.append(text)) {
@@ -240,10 +262,10 @@ bool Store::save_logging(logging::Settings settings) {
     return true;
 }
 bool Store::config_fits(const Config& config) const {
-    return state_record(config, message_, logging_).size() <= max_state_bytes;
+    return state_record(config, message_, logging_, filters_).size() <= max_state_bytes;
 }
 bool Store::message_schedule_fits(const std::optional<MessageSchedule>& schedule) const {
-    return state_record(current_, schedule, logging_).size() <= max_state_bytes;
+    return state_record(current_, schedule, logging_, filters_).size() <= max_state_bytes;
 }
 bool Store::save_message_schedule(const std::optional<MessageSchedule>& schedule) {
     if (!healthy() || !message_schedule_fits(schedule) ||
@@ -255,11 +277,27 @@ bool Store::save_message_schedule(const std::optional<MessageSchedule>& schedule
         if (!parsed || !parse_message_schedule(*parsed))
             return false;
     }
-    if (!config_.append(state_record(current_, schedule, logging_))) {
+    if (!config_.append(state_record(current_, schedule, logging_, filters_))) {
         healthy_ = false;
         return false;
     }
     message_ = schedule;
+    return true;
+}
+bool Store::save_filters(const hardware::FilterSettings& settings) {
+    if (!healthy() ||
+        !hardware::validate_filters(settings, current_ ? current_->pins : hardware::PinPlan{})
+             .empty() ||
+        hardware::serialize_filters(settings).size() > hardware::FilterSettings::maximum_bytes)
+        return false;
+    const auto text = state_record(current_, message_, logging_, settings);
+    if (text.size() > max_state_bytes)
+        return false;
+    if (!config_.append(text)) {
+        healthy_ = false;
+        return false;
+    }
+    filters_ = settings;
     return true;
 }
 bool Store::reserve_cursor(std::uint64_t utc_ns, bool flight) {

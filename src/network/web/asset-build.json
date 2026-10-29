@@ -2,7 +2,7 @@
   "schema": "operator-assets/1",
   "tool": "esbuild/0.28.2",
   "target": "es2020",
-  "recipe_sha256": "ebf5319d1c0b443acaa052aeafe7a2177c59d77aadd3ad333dc1a71d116ec289",
+  "recipe_sha256": "9155eddd9fa060d65facab1f8e5b8e403edc86133894f3e37d9cf623324e009b",
   "groups": {
     "app.min.js": {
       "inputs": {
@@ -12,15 +12,16 @@
         "rf-calibration.js": "6dfa87f6098393dcd995c27ffe1839948007d560b50338fd767701b9c061d6d3",
         "amplifier-enable.js": "4a44353c0dbe15d6992e738d62ff7595d3d15e3a891cf2d571290e6163bbd8ac",
         "amplifier-timing.js": "e4683ffbcc4cc67b96dfa5d3acdd0ce7380fd5da8c2734360b63c15d666bf859",
+        "filter-selector.js": "e81afa281453757531e440d8aa1186e73c7aa21804a18719371704a2780209ce",
         "gpio-drive.js": "2360062c99137e1608a61e9a51a3cd0734960d6badb11a5c95b27166f91a4875",
         "ntp-timeout.js": "d4f32cd21087d330169fce2278ad90b5fb72f12bed838d6b80eeae8627c6311e",
         "saved-progress.js": "eda273462a85879a5060d72d9380c3d7834d50f75c4cdbc9b12c10e7e2232195",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "a692a0bd0fcbcfde4f2852c93f3fb6a5290beaea713ec24c2a4023389fd6858e",
-        "app.js": "b1a56e7bb8c5f020d16e872c85dbb50e38a4243cf2c2173143c359c689313ce3"
+        "app.js": "64a01b6dde81c0fa95cb3660366197737467bd9faa542c83738f9a7538ddff74"
       },
-      "sha256": "d75cf5491d41f41857664f0651988277ce1a60ab2cb4d053780c7a76e1d41196",
-      "bytes": 190127
+      "sha256": "9be0b079720ee1efda2c2e4944e102449a19e35595c9207dbe6466b79e28a00a",
+      "bytes": 206039
     },
     "config-validation.min.js": {
       "inputs": {

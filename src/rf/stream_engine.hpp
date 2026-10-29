@@ -3,6 +3,7 @@
 #include "rf/waveform.hpp"
 
 namespace wsprrypico::rf {
+class FilterSelector;
 
 struct LaunchTarget {
     bool admissible = false;
@@ -29,6 +30,7 @@ struct SinkReport {
     std::optional<std::uint64_t> launch_monotonic_ns = {};
     wtp::ChainPhase chain_phase = wtp::ChainPhase::Unspecified;
     std::optional<std::uint64_t> tail_deadline_monotonic_ns = {};
+    int filter_selector = -1;
 };
 
 // stop() must release all submitted spans
@@ -67,7 +69,8 @@ class BlockSink {
 
 class StreamEngine final : public wtp::RfEngine {
   public:
-    explicit StreamEngine(BlockSink& sink) : sink_(sink) {}
+    explicit StreamEngine(BlockSink& sink, FilterSelector* filters = nullptr)
+        : sink_(sink), filters_(filters) {}
     StreamEngine(const StreamEngine&) = delete;
     StreamEngine& operator=(const StreamEngine&) = delete;
     std::uint64_t amplifier_lead_ns() const override {
@@ -76,6 +79,7 @@ class StreamEngine final : public wtp::RfEngine {
     std::uint64_t amplifier_tail_ns() const override {
         return sink_.amplifier_tail_ns();
     }
+    std::uint64_t filter_preparation_ns() const override;
     std::string_view diagnostic() const override {
         return failure_;
     }
@@ -107,6 +111,7 @@ class StreamEngine final : public wtp::RfEngine {
     }
 
   private:
+    wtp::EngineReport poll_impl(std::uint64_t now_ns);
     static LaunchTarget project_clock(void* context);
     wtp::LocalStartConditions start_conditions_{};
     bool submit_next(std::size_t slot);
@@ -114,6 +119,8 @@ class StreamEngine final : public wtp::RfEngine {
     std::int32_t correction_ppb_ = 0;
     const char* failure_ = "";
     BlockSink& sink_;
+    FilterSelector* filters_;
+    int filter_observation_ = -1;
     Plan plan_{};
     Waveform waveform_;
     std::optional<wtp::PayloadDigest> job_;

@@ -28,6 +28,9 @@ class WorkerEngine final : public wtp::RfEngine {
     bool schedules_locally() const override {
         return true;
     }
+    std::uint64_t filter_preparation_ns() const override {
+        return engine_.filter_preparation_ns();
+    }
     std::uint64_t amplifier_lead_ns() const override {
         return engine_.amplifier_lead_ns();
     }

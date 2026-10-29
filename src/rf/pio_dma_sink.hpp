@@ -1,6 +1,7 @@
 #pragma once
 
 #include "rf/amplifier_enable.hpp"
+#include "rf/filter_selector.hpp"
 #include "rf/indicator_gate.hpp"
 #include "rf/stream_engine.hpp"
 
@@ -48,8 +49,8 @@ class PioDmaHardware {
 class PioDmaSink final : public BlockSink {
   public:
     explicit PioDmaSink(PioDmaHardware& hardware, IndicatorGate* indicator = nullptr,
-                        AmplifierEnable* amplifier = nullptr)
-        : hw_(hardware), indicator_(indicator), amplifier_(amplifier) {}
+                        AmplifierEnable* amplifier = nullptr, FilterSelector* filters = nullptr)
+        : hw_(hardware), indicator_(indicator), amplifier_(amplifier), filters_(filters) {}
     PioDmaSink(const PioDmaSink&) = delete;
     PioDmaSink& operator=(const PioDmaSink&) = delete;
     std::uint64_t amplifier_lead_ns() const override {
@@ -81,7 +82,8 @@ class PioDmaSink final : public BlockSink {
         return launch_ns_.has_value();
     }
     [[nodiscard]] bool output_active() const override {
-        return hw_.active() || (amplifier_ && amplifier_->output_active_or_unknown());
+        return hw_.active() || (amplifier_ && amplifier_->output_active_or_unknown()) ||
+               (filters_ && filters_->output_active_or_unknown());
     }
 
   private:
@@ -108,6 +110,7 @@ class PioDmaSink final : public BlockSink {
     PioDmaHardware& hw_;
     IndicatorGate* indicator_;
     AmplifierEnable* amplifier_;
+    FilterSelector* filters_;
     std::array<Block, 2> queue_{};
     std::size_t head_ = 0, queued_ = 0;
     bool opened_ = false, tail_ = false, tail_submitted_ = false;
@@ -118,6 +121,8 @@ class PioDmaSink final : public BlockSink {
     std::uint32_t zero_ = 0;
     std::optional<std::uint64_t> launch_ns_ = {};
     std::optional<std::uint64_t> enable_ns_, tail_deadline_ns_;
+    std::optional<std::uint64_t> break_ns_, selected_ns_;
+    bool filters_ready_ = false;
     AmplifierObservation observation_;
     const char* failure_ = "";
 };

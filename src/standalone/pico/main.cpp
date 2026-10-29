@@ -20,6 +20,7 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "firmware_identity.hpp"
 #include "hardware/clocks.h"
 #include "hardware/pico/amplifier_output.hpp"
+#include "hardware/pico/filter_outputs.hpp"
 #include "hardware/structs/clocks.h"
 #include "hardware/structs/pll.h"
 #include "hardware/structs/powman.h"
@@ -440,6 +441,12 @@ int main() {
 #endif
     // Only a healthy validated boot plan may touch an auxiliary output. The
     // inhibited image initializes inactive too, but never gives it to a job.
+    static const auto boot_filters =
+        store_loaded && store.healthy() ? store.filters() : wsprrypico::hardware::FilterSettings{};
+    static wsprrypico::hardware::PicoFilterOutputs filter_outputs(boot_filters, boot_pins);
+    static wsprrypico::rf::FilterSelector filter_selector(
+        boot_filters, store_loaded && store.healthy() ? &filter_outputs : nullptr);
+    const bool filters_boot_safe = filter_selector.initialize();
     static wsprrypico::hardware::PicoAmplifierOutput amplifier_output(boot_pins);
     static wsprrypico::rf::AmplifierEnable amplifier_enable(
         store_loaded && store.healthy() && boot_pins.amplifier ? &amplifier_output : nullptr,
@@ -450,9 +457,9 @@ int main() {
 #ifdef WSPRRY_PICO_STANDALONE_RF
     static wsprrypico::rf::IndicatorGate tx_indicator_gate(
         boot_pins.indicator != wsprrypico::hardware::PinPlan::Indicator::Disabled);
-    auto& engine =
-        wsprrypico::rf::start_worker(clock, boot_pins, store_loaded && store.healthy(),
-                                     tx_indicator_gate, boot_gpio_drive_ma, &amplifier_enable);
+    auto& engine = wsprrypico::rf::start_worker(clock, boot_pins, store_loaded && store.healthy(),
+                                                tx_indicator_gate, boot_gpio_drive_ma,
+                                                &amplifier_enable, &filter_selector);
 #else
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
@@ -486,7 +493,7 @@ int main() {
     static wsprrypico::wtp::JobService service(clock, policy_engine, identities, config);
     if (usb_update_boot)
         service.hold_update_verification();
-    if (!amplifier_boot_safe)
+    if (!amplifier_boot_safe || !filters_boot_safe)
         (void)service.local_inhibit_output();
     static wsprrypico::wtp::Endpoint endpoint(service, identities.device_id(),
                                               wsprrypico::firmware::kFirmwareVersion);

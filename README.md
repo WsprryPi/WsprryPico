@@ -45,6 +45,8 @@ Before switching to a Pi-run schedule, disable, save and apply the Pico's WSPR s
 
 The RF output is **unfiltered** and needs filtering, attenuation, a suitable load and any amplifier appropriate for the chosen frequency and signal level. **Reported WSPR power** is the power value sent in the beacon message, expressed in **dBm** (decibels relative to one milliwatt); it does not set or measure physical RF power. Check the [output and band limits](docs/reference/output.md) before choosing a frequency or antenna connection.
 
+Optional [LPF / band selector controls](docs/configure.md#lpf-and-band-selector) select an external filter before amplifier enable and release it after amplifier disable. A job must fit one declared filter across all of its RF frequencies. Fixed/manual filtering remains the default.
+
 Timed starts use **UTC**, Coordinated Universal Time. A reachable network time server or a supported controller-time connection supplies the clock. Radio-frequency correction is a separate adjustment: a synchronized clock does not measure carrier-frequency accuracy. See [Time and frequency correction](docs/reference/time.md).
 
 Only one controller can hold the transmitter at a time; that controller is the job's **owner**. Closing a browser or disconnecting a controller does not stop an accepted job. Use the [stop controls](docs/operate.md#status-stop-and-connection-loss) and confirm inactive output; disable and apply standalone schedules separately to prevent later automatic starts. Use a trusted local network and read the [access and security guidance](docs/reference/security.md).

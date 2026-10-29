@@ -410,8 +410,7 @@ The current Pico has a standalone application, browser API and common JobService
 At pin baseline `251ed992245f3b95611de767cc732f3cb1bbb34d`, direct RF, active-low
 button and indicator plans have supported boot-applied adapters; GP2 is the
 default RF assignment. The foundation exposes these through shared member
-resources. Its configuration remains narrower than Pi's. Amplifier/LPF, drive,
-reference calibration and Si5351 remain unavailable Pico adapters. The Pi has
+resources. Current adapters also support amplifier enable/timing, GPIO drive, manual correction and [LPF/band selection](development/lpf-band-selector.md). Si5351 remains unavailable. Configuration remains narrower than Pi's. The Pi has
 controller-owned per-output fleet schedules and an inbound
 WTP endpoint using its native Si5351 backend; these are separate from complete
 shared application/configuration parity.

@@ -21,6 +21,8 @@ The RF output is **unfiltered**. It contains the wanted signal and unwanted freq
 
 The optional **amplifier-enable** output is a separate logic control signal. It stays active for an entire job, including message gaps, and becomes inactive when the job stops. It does not supply amplifier power. Check its [pin and polarity settings](../configure.md#pins-and-drive) before connecting amplifier control circuitry.
 
+The optional [LPF / band selector](../configure.md#lpf-and-band-selector) chooses one external filter for each complete job. Its output settles before amplifier enable and remains selected until after amplifier disable. Required selection checks every nominal and programmed RF frequency against declared ranges. Fixed/manual filtering leaves selector outputs inactive. These controls do not measure or certify the external filter.
+
 Experimental frequency permissions are advanced configuration settings; the ordinary browser form does not edit them. They do not expand the generator's limits or bypass time, control ownership, pin or output checks. Permission in firmware is not a statement of RF performance or local operating authority.
 
 The engineering [conducted support record](https://github.com/WsprryPi/WsprryPico/blob/devel/engineering/development/band-support.md) identifies the exact boards, firmware, clocks, modes, frequencies and measurement connections used for its results. Those measurements do not establish performance for every installation or frequency.

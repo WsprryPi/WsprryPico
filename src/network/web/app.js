@@ -50,7 +50,7 @@ const requestId = () => typeof crypto.randomUUID === 'function' ? crypto.randomU
   [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2,'0')).join('');
 const radio = globalThis.WsprryPicoConsumerRadio?.createClient();
 let session = requestId();
-let activePlan = null, capabilitiesBoot = null, pinChoices = null;
+let activePlan = null, capabilitiesBoot = null, pinChoices = null, filterSaved = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let observedClockMs = 0;
 let udpEditor = null;
@@ -78,7 +78,7 @@ function clearPrivateStatus() {
   for(const id of ['job-result','message-result','job-progress','standalone-status','recovery','saved-active-status','saved-wspr-plan','saved-readback','hostname-status','pico-password-status','progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status','message-schedule-status']) consolePut(id,'');
   if($('saved-readback-details')) $('saved-readback-details').hidden=true;
   hostnameState=null; picoPasswordState=null; messageScheduleReadback=null;
-  timingEditor?.invalidate(); calibrationEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); driveEditor?.invalidate(); frequencyEditor?.invalidate();
+  timingEditor?.invalidate(); filterEditor?.invalidate(); filterSaved=null; calibrationEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); driveEditor?.invalidate(); frequencyEditor?.invalidate();
   for(const id of ['rf-calibration-status','ntp-timeout-status','gpio-drive-status','gpio-drive-draft-status','standalone-frequency-status']) consolePut(id,'Controls locked. Read this setting again after unlocking; your entry is preserved.');
   $('draft-comparison').replaceChildren();
   requireReadback();
@@ -262,6 +262,13 @@ const timingEditor = globalThis.WsprryAmplifierTiming && $('amplifier-lead-ms') 
   expectedTarget:()=>({scope:'member',device_id:localIdentity?.device_id || operationsTarget?.device_id,boot_id:snapshot?.job.boot_id}),
   exchange:async(method,body,match)=>{if(!WsprryAmplifierTiming.supported(capabilities?.amplifier_timing))throw Error('Amplifier timing is unsupported by this firmware.');return api('amplifier-timing',method,body,match);},
   afterSave:()=>refresh()
+}) : null;
+const filterEditor = globalThis.WsprryFilters ? WsprryFilters.mount($('filter-selector-controls'), {
+  run:fn=>editorAction('filter-selector',fn),
+  expectedTarget:()=>({scope:'member',device_id:localIdentity?.device_id || operationsTarget?.device_id,boot_id:snapshot?.job.boot_id}),
+  exchange:async(method,body,match)=>{if(!WsprryFilters.supported(capabilities?.filter_selector))throw Error('Automatic filter selectors are unavailable on this firmware.');return api('filter-selector',method,body,match);},
+  onRead:value=>{filterSaved=value.saved;lockPins();},
+  afterSave:async result=>{await reconcileConfirmedSettings(result,result.data.target,'Selectors saved. Restart explicitly to activate them.');await refresh();}
 }) : null;
 if ($('gpio-drive-form')) $('gpio-drive-form').onsubmit = event => event.preventDefault();
 const driveEditor = globalThis.WsprryGpioDrive && $('gpio-drive-select') ? WsprryGpioDrive.create({
@@ -684,7 +691,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
       standalone_frequency_required:'Choose and save a standalone WSPR frequency before enabling schedules',
       invalid_wspr_frequency:'Enter a whole WSPR dial frequency in Hz, without commas or decimals',
       frequency_not_allowed:'The WSPR tones fall outside the engine limits or saved frequency permissions. Choose an allowed frequency',
-      FREQUENCY_REJECTED:'A requested RF frequency is outside the engine limits or saved frequency permissions. Review the requested frequencies',
+      FREQUENCY_REJECTED:'A requested RF frequency or complete-job filter selection was refused. Review engine limits, frequency permissions and the declared selector ranges',
       revision_conflict:'Saved settings changed. Your edits are preserved. Read current saved settings and review them before a new save',
       precondition_failed:'Saved revision changed. Your edits are preserved. Read and review current saved settings',
       pin_conflict:`GP${data.gp} is already assigned to ${data.owner}; choose a different pin for ${data.role}`,
@@ -789,6 +796,7 @@ function controls(connected) {
   calibrationEditor?.setAvailability(!!connected && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
   frequencyEditor?.setAvailability(!!connected && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
   driveEditor?.setAvailability(!!connected && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
+  filterEditor?.setAvailability(!!connected && !!snapshot && WsprryFilters.supported(capabilities?.filter_selector), !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   timingEditor?.setAvailability(!!connected && !!snapshot, !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   ntpTimeoutEditor?.setAvailability(!!connected && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
@@ -933,7 +941,7 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
     }
     observedAt = new Date(observedClockMs).toISOString().slice(11,19) + ' UTC';
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) capabilities = (await api('capabilities')).data;
-    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); timingEditor?.invalidate(); calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); }
+    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); timingEditor?.invalidate(); filterEditor?.invalidate(); filterSaved=null; calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); }
     capabilitiesBoot = snapshot.job.boot_id;
     const s = snapshot.standalone, n = snapshot.network;
     $('state').textContent = snapshot.job.state;
@@ -1575,11 +1583,16 @@ function pinOptions(select, role, nullable) {
   const owners = pinOwners(readPins(), role);
   const options = nullable ? [new Option('Disabled','')] : [];
   for (const gp of pinChoices?.eligible_gps || []) {
-    const owner = owners.get(gp);
+    const filterOwner=filterSaved?.selectors.find(o=>o.gp===gp);
+    const owner = owners.get(gp) || (filterOwner ? 'selector '+filterOwner.name : '');
     const option = new Option('GP' + gp + (owner ? ' — used by ' + owner : ''),String(gp));
     option.disabled = Boolean(owner); options.push(option);
   }
   select.replaceChildren(...options); select.value = selected;
+  if (select.selectedOptions[0]?.disabled && filterSaved?.selectors.some(o=>String(o.gp)===selected)) {
+    select.setAttribute('aria-invalid','true');
+    return; // Preserve a conflicting pin draft for explicit correction.
+  }
   if (!select.value || select.selectedOptions[0]?.disabled) {
     const available = options.find(option => !option.disabled);
     if (available) select.value = available.value;
@@ -1882,7 +1895,7 @@ async function loadAllSettings() {
   loadingSettings=true;
   try {
     controls(true);
-    for(const [editor,field] of [[timingEditor,'amplifier-timing-status'],[frequencyEditor,'standalone-frequency-status'],[calibrationEditor,'rf-calibration-status'],[ntpTimeoutEditor,'ntp-timeout-status'],[driveEditor,'gpio-drive-status']]) {
+    for(const [editor,field] of [[filterEditor,'filter-selector-controls'],[timingEditor,'amplifier-timing-status'],[frequencyEditor,'standalone-frequency-status'],[calibrationEditor,'rf-calibration-status'],[ntpTimeoutEditor,'ntp-timeout-status'],[driveEditor,'gpio-drive-status']]) {
       try { await editor?.load(); } catch(error) { consolePut(field,error.message); }
     }
     try { const h=await api(supportsAmplifier()?'hardware/3':'hardware'); const value=checkedHardware(h); if(value.saved && !progressEdits.has('pins')) fillPins(value.saved); } catch(error) { consolePut('pins-status',error.message); }

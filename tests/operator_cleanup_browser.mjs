@@ -13,6 +13,7 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const driver=process.argv[2];
 if(!driver) throw Error('Usage: node tests/operator_cleanup_browser.mjs DRIVER [SCREENSHOT_DIRECTORY]');
 const output=process.argv[3] && path.resolve(process.argv[3]);
+const filterOnly=process.argv.includes('--filter-ui-only') || process.env.WSPRRY_PICO_FILTER_UI_ONLY==='1';
 if(output) fs.mkdirSync(output,{recursive:true});
 const processGroup=process.platform==='linux';
 const f=new Fixture(driver),profile=fs.mkdtempSync(path.join(os.tmpdir(),'pico-operator-cleanup-'));
@@ -73,6 +74,7 @@ async function key(key,code=key) {
   await send('Input.dispatchKeyEvent',{type:'keyUp',key,code,windowsVirtualKeyCode});
 }
 async function capture(state) {
+  if(filterOnly)return;
   for(const [width,height] of [[1280,900],[360,800],[390,844]]) for(const area of ['station','wifi-host']) {
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
     await click(area==='station'?'station-link':'wifi-host-link');
@@ -154,7 +156,7 @@ try {
   await until(()=>evaluate('document.getElementById("amplifier-lead-ms").value==="200"'),'amplifier timing default');
   assert.equal(await evaluate('document.getElementById("amplifier-tail-ms").value'),'200');
   assert.equal(await evaluate('document.getElementById("radio-pins").contains(document.getElementById("amplifier-lead-ms"))'),true);
-  if(output) for(const [width,height,name] of [[1280,1100,'desktop'],[390,1100,'mobile']]) {
+  if(output && !filterOnly) for(const [width,height,name] of [[1280,1100,'desktop'],[390,1100,'mobile']]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
     await evaluate('document.querySelectorAll("[data-operator-section]").forEach(e=>e.open=e.id==="radio-pins");scrollTo(0,0)');
     assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
@@ -162,6 +164,26 @@ try {
     const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip:{x:0,y:0,width,height:layout.cssContentSize.height,scale:1}});
     fs.writeFileSync(path.join(output,'amplifier-timing-'+name+'.png'),Buffer.from(shot.data,'base64'));
   }
+  await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+  const selectorButton=text=>evaluate(`Array.from(document.querySelectorAll('#filter-selector-controls button')).find(b=>b.textContent===${JSON.stringify(text)}).click()`);
+  const selectorField=(label,value)=>evaluate(`(()=>{const l=Array.from(document.querySelectorAll('#filter-selector-controls label')).find(l=>l.firstChild?.textContent===${JSON.stringify(label)});const input=l.querySelector('input,select');input.value=${JSON.stringify(String(value))};input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+  await selectorButton('Read saved selectors');await idle();
+  await selectorButton('Add selector');await selectorField('Selector name','HF filters');await selectorField('Pico GPIO',6);await selectorField('Polarity','false');
+  await selectorButton('Add frequency range');await selectorField('Range name','40m');await selectorField('Selector',1);await selectorField('From (Hz)',7000000);await selectorField('Through (Hz)',7300000);await selectorField('Selection policy','required');
+  assert.equal(await evaluate(`Array.from(document.querySelectorAll('#filter-selector-controls button')).find(b=>b.textContent==='Save selectors').disabled`),false);
+  await selectorField('Through (Hz)',6000000);assert.equal(await evaluate(`Array.from(document.querySelectorAll('#filter-selector-controls button')).find(b=>b.textContent==='Save selectors').disabled`),true);await selectorField('Through (Hz)',7300000);
+  if(output)for(const [width,height,name] of [[1280,1000,'desktop'],[390,1000,'mobile']]){
+    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
+    await evaluate('document.getElementById("radio-pins").open=true;document.getElementById("filter-selector-controls").scrollIntoView()');
+    assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'selector '+name);
+    const clip=await evaluate('(()=>{const r=document.getElementById("filter-selector-controls").getBoundingClientRect();return {x:0,y:r.top+scrollY,width:innerWidth,height:r.height,scale:1};})()');
+    const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip});fs.writeFileSync(path.join(output,'filter-pico-'+name+'.png'),Buffer.from(shot.data,'base64'));
+  }
+  await selectorButton('Save selectors');await idle();
+  assert.match(await evaluate('document.getElementById("filter-selector-controls").innerText'),/Selectors saved/);
+  const settingsClient=f.client();await settingsClient.identity();const selectorSaved=await (await settingsClient.publicRead('filter-selector')).json();assert.equal(selectorSaved.saved.selectors[0].gp,6);assert.equal(selectorSaved.saved.selectors[0].active_high,false);assert.equal(selectorSaved.pending_restart,true);
+  await selectorButton('Read saved selectors');await idle();await selectorField('Selection policy','fixed_manual');await selectorButton('Remove range');await selectorButton('Remove selector 1');await selectorButton('Save selectors');await idle();
+  console.log('PASS selector editor -> production HTTP/crypto, declared coverage validation, GPIO/polarity save, restart and default restoration');
   await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
 
   await click('station-link');await evaluate('document.getElementById("radio-settings").open=true;document.getElementById("radio-pins").open=true');
@@ -191,7 +213,7 @@ try {
   assert.equal((await config()).config.pins.rf_gp,4);
   assert.deepEqual(errors,[]);
   console.log('PASS lost pin reply commits once, preserves drafts through public refresh, blocks another save');
-  console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,api:'production HTTP/crypto',hardware:false,screenshots:output?12:0}));
+  console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,api:'production HTTP/crypto',hardware:false,screenshots:output?(filterOnly?2:17):0}));
 } catch(error) {
   console.error(JSON.stringify({errors,reads:reads.slice(-12),state:ws ? await evaluate('({notice:document.getElementById("notice")?.textContent,online:typeof online!=="undefined"?online:null,busy:typeof busy!=="undefined"?busy:null,settings:typeof settingsLoadedBoot!=="undefined"?settingsLoadedBoot:null})').catch(()=>null):null}));
   throw error;

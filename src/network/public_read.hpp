@@ -3,7 +3,7 @@
 #include <array>
 #include <string_view>
 namespace wsprrypico::network {
-inline constexpr std::array<std::string_view, 33> public_read_resources = {
+inline constexpr std::array<std::string_view, 34> public_read_resources = {
     "capabilities",
     "pins",
     "pins/2",
@@ -29,6 +29,7 @@ inline constexpr std::array<std::string_view, 33> public_read_resources = {
     "standalone-frequency",
     "gpio-drive",
     "ntp-timeout",
+    "filter-selector",
     "hostname",
     "logging",
     "udp-logging",

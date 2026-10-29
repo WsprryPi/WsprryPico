@@ -1,11 +1,15 @@
 #include "rf/stream_engine.hpp"
 
+#include "rf/filter_selector.hpp"
 #include "time/mapping.hpp"
 
 #include <algorithm>
 #include <limits>
 
 namespace wsprrypico::rf {
+std::uint64_t StreamEngine::filter_preparation_ns() const {
+    return filters_ && filters_->required() ? filters_->preparation_ns() + 1 : 0;
+}
 
 bool StreamEngine::schedule(const wtp::Job& job, std::uint64_t start_ns,
                             const wtp::LocalStartConditions& conditions) {
@@ -129,6 +133,10 @@ wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
     if (!candidate) {
         return {};
     }
+    if (filters_ && !filters_->prepare(job, *candidate)) {
+        failure_ = "filter_coverage_required";
+        return {};
+    }
     wtp::PrepareResult result{true, {}};
     const auto adjustments = std::count_if(
         candidate->segments.begin(), candidate->segments.end(), [&](const auto& segment) {
@@ -182,6 +190,7 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
     }
     if (!sink_.stop(start_monotonic_ns) || output_active()) {
         state_ = wtp::EngineState::Failed;
+        filter_observation_ = -2;
         return false;
     }
     ++epoch_;
@@ -205,15 +214,21 @@ wtp::EngineReport StreamEngine::fail(std::uint64_t now_ns, const char* reason) {
     failure_ = reason;
     state_ = wtp::EngineState::Failed;
     // Even when stop fails, never recycle buffers or restart without successful disable.
-    (void)sink_.stop(now_ns);
+    filter_observation_ = sink_.stop(now_ns) ? -1 : -2;
     return {state_, output_active()};
 }
 
 wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
+    auto result = poll_impl(now_ns);
+    result.filter_selector = filter_observation_;
+    return result;
+}
+wtp::EngineReport StreamEngine::poll_impl(std::uint64_t now_ns) {
     if (state_ != wtp::EngineState::Armed && state_ != wtp::EngineState::Running) {
         return {state_, output_active()};
     }
     const auto report = sink_.poll(now_ns);
+    filter_observation_ = report.filter_selector;
     if (report.observed_monotonic_ns) {
         if (*report.observed_monotonic_ns < now_ns) {
             return fail(now_ns, "invalid_progress");
@@ -251,7 +266,8 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     // waveform's duration is measured only once its launch is observed.
     if (report.state == wtp::EngineState::Armed && start_conditions_.clock &&
         report.consumed_samples == 0 && report.completed_blocks == 0 &&
-        (!active || report.chain_phase == wtp::ChainPhase::Lead)) {
+        (!active || report.chain_phase == wtp::ChainPhase::Lead ||
+         report.chain_phase == wtp::ChainPhase::Selecting)) {
         last_poll_ns_ = now_ns;
         if (now_ns < launch_deadline_ns_)
             return {wtp::EngineState::Armed, active, {}, report.chain_phase};
@@ -330,9 +346,11 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
 bool StreamEngine::disable(std::uint64_t deadline_monotonic_ns) {
     if (!sink_.stop(deadline_monotonic_ns) || output_active()) {
         state_ = wtp::EngineState::Failed;
+        filter_observation_ = -2;
         return false;
     }
     state_ = wtp::EngineState::Idle;
+    filter_observation_ = -1;
     job_.reset();
     plan_ = {};
     start_conditions_ = {};

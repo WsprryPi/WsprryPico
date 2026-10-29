@@ -576,7 +576,6 @@
               "const": [
                 "recurrence_transfer",
                 "si5351",
-                "lpf",
                 "drive",
                 "reference_calibration",
                 "waveform_preferences",
@@ -658,7 +657,6 @@
               "const": [
                 "recurrence_transfer",
                 "si5351",
-                "lpf",
                 "drive",
                 "reference_calibration",
                 "waveform_preferences",
