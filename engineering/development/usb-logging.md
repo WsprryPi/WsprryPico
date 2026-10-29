@@ -6,21 +6,7 @@ The Pico exports diagnostic events on its dedicated Logging CDC interface (insta
 
 `wsprry-log/1` is the common logical origin record. Pico serial messages use [RFC 5424](https://www.rfc-editor.org/rfc/rfc5424.html), facility `local7` (23), version 1, the current boot's hostname, application `WsprryPico`, NILVALUE PROCID, an event-code MSGID and NILVALUE structured data. The MSG is one ASCII JSON object. Project fields do not invent an enterprise number or an unregistered structured-data identifier.
 
-| JSON field | Meaning |
-| --- | --- |
-| `schema` | `wsprry-log/1` |
-| `origin_kind` | `pico` or `pi` |
-| `origin_id` | Stable 32-character device identity; never the hostname |
-| `origin_name` | Mutable display hostname, at most 63 ASCII characters on Pico |
-| `boot_id` | 32-character origin boot/process identity |
-| `sequence` | Decimal-string unsigned 64-bit origin sequence |
-| `event` | Bounded event code, at most 32 characters |
-| `severity` | Syslog severity 0–7; lower numbers are more severe |
-| `facility` | 23 |
-| `utc_ns` | Decimal-string UTC nanoseconds, or JSON null when unavailable |
-| `monotonic_ns` | Decimal-string origin uptime nanoseconds |
-| `dropped` | Decimal-string cumulative dropped-event count for this boot |
-| `message` | Fixed diagnostic text, at most 192 ASCII characters on Pico |
+| JSON field | Meaning | | --- | --- | | `schema` | `wsprry-log/1` | | `origin_kind` | `pico` or `pi` | | `origin_id` | Stable 32-character device identity; never the hostname | | `origin_name` | Mutable display hostname, at most 63 ASCII characters on Pico | | `boot_id` | 32-character origin boot/process identity | | `sequence` | Decimal-string unsigned 64-bit origin sequence | | `event` | Bounded event code, at most 32 characters | | `severity` | Syslog severity 0–7; lower numbers are more severe | | `facility` | 23 | | `utc_ns` | Decimal-string UTC nanoseconds, or JSON null when unavailable | | `monotonic_ns` | Decimal-string origin uptime nanoseconds | | `dropped` | Decimal-string cumulative dropped-event count for this boot | | `message` | Fixed diagnostic text, at most 192 ASCII characters on Pico |
 
 Pico identity reuses the WTP device ID. Boot identity and sequence survive Logging reconnects; sequence starts with the first event of a boot, advances even for filtered events, and stops admission at unsigned 64-bit exhaustion rather than wrapping. Gaps do not by themselves identify a delivery failure. Queue/rate drops are reported separately. Sequence is never a journald cursor or a timestamp.
 
@@ -74,19 +60,11 @@ Descriptor expansion tests check exact old and new endpoint identities. Transpor
 
 ## Validation bounds
 
-Original USB-channel qualification used WsprryPico `73e879b380b3ef62d66a8423a9f09e1923616686` and WsprryPi `bcc6f501047c441d7031fd4333a4ea59e0d50c2a`, with operator documentation `575ff6b85178caf795e451443257079e04cd627f` in WsprryPi-Docs. The implementation and subsequent Console STATUS and logger shutdown fixes are integrated into `devel`; the completed feature branches are retired after merging. The evidence below remains bound to its recorded source pair and does not imply a release or RF qualification.
+The bounded USB-channel scope uses Pico `73e879b380b3ef62d66a8423a9f09e1923616686`, Pi `bcc6f501047c441d7031fd4333a4ea59e0d50c2a` and normal UF2 SHA-256 `f008279dfa5369df10565e1a24e15817d8f59aa109ba9fcc9b34d07032e2ded3`. Source-pair software receipts are the [Pico workflow](https://github.com/WsprryPi/WsprryPico/actions/runs/40551111013) and [Pi workflow](https://github.com/WsprryPi/WsprryPi/actions/runs/40551129506), including both actual network and USB management pairs. Host/descriptor/session fixtures remain software evidence.
 
-The [Pico firmware/software workflow](https://github.com/WsprryPi/WsprryPico/actions/runs/40551111013) passed for that Pico revision. The [Pi non-hardware workflow](https://github.com/WsprryPi/WsprryPi/actions/runs/40551129506) passed all seven jobs for that exact source pair, including `wtp-network-loopback` and `wtp-usb-management-pair`. The workflow records the pinned SDK, TLS dependencies and actual selected Pico revision. Linux host testing passed all 133 Pico tests; the separate actual Pi network-runtime fixture passed 910 checks. Firmware and inhibited-firmware builds and target audits passed. The linked ARM Logging session occupies 284 bytes and the logger 5,616 bytes; these are separate from the ring and USB buffers described above.
+Physical simultaneous operation covers three Pico 2 W devices on Linux host wspr5, serials `1545B6EFBF78028C`, `0BF4B4AEC9FFB344` and `CDDBF8767C506C07`, running that source/image with the `pio-dma-gp2` engine and 138 MHz system clock, inactive output and no active RF mode. Console INFO, read-only WTP operations and Management remain usable while the production Pi collector holds the independent Logging functions and writes origin-scoped records to its service journal. The first device also covers DTR/reconnect, Console isolation, maintenance release, malformed input, stalled-reader pressure and BOOTSEL re-enumeration. The deployed Pi binary SHA-256 is `3c2cc2439fdf2c914bb5564ac2901d7bab57d6cfd3d3a938860b91135fc06305`.
 
-Physical USB testing on wspr5 used the production Pi collector and three Pico 2 W devices with serials `1545B6EFBF78028C`, `0BF4B4AEC9FFB344` and `CDDBF8767C506C07`. Each ran the clean Pico revision above with `pio-dma-gp2`, a 138 MHz system clock, no active mode and output inactive. The programmed UF2 SHA-256 is `f008279dfa5369df10565e1a24e15817d8f59aa109ba9fcc9b34d07032e2ded3`. Serial and physical USB-parent identity were verified before programming; full flash recovery images were retained privately and settings/persistent data were preserved. No RF jobs were submitted.
-
-The Pi collector simultaneously held Logging handles for all three Picos without holding their Console handles. On every board, Console INFO, five actual read-only WTP operations and Management reads succeeded during collection, and origin-scoped records reached the real service journal. The first device additionally passed nine lifecycle/stress checks: four-function concurrency, Console reopen and command isolation, Logging DTR restart with the collector descriptor held, maintenance handle/lease release, malformed/overlong input, stalled-reader pressure, guarded BOOTSEL re-enumeration, post-reboot Console use and journal identity projection. The final pressure run admitted 26 valid records and reported 57 dropped events while Console remained responsive; this demonstrates bounded loss, not lossless delivery.
-
-The deployed Pi binary SHA-256 is `3c2cc2439fdf2c914bb5564ac2901d7bab57d6cfd3d3a938860b91135fc06305`. Its original `rpi-gpio,rp1-gpclk,si5351,simulated,wtp` backends and ancillary GPIO support were preserved. The service remained active; native INI, Fleet catalog/assignments and collector policy were preserved byte-for-byte. Private deployment, flash and test evidence is retained under `/home/pi/usb-channel-20261027/private` on wspr5; it is not included in source control.
-
-Repeated adversarial assessments identified and closed a stopped-stream recovery error, missing discovery cases and command-framing/documentation inconsistencies. The affected checks were rerun; final review found no remaining material implementation issue. Browser regression checks covered desktop/mobile and light/dark states; strict documentation builds and local-link checks passed.
-
-Validation limits remain explicit. Physical four-function enumeration was tested on Linux, not Windows or macOS. A macOS `event_storage_tests` assertion was reproduced on the untouched baseline; the other 131 selected macOS tests passed, and Linux passed the complete suite. The original source pair returned `profile_runtime_unavailable` for Console STATUS on this saved setup and could retain the Pi `--version` process during logger exit. Follow-up fixes permit read-only Console STATUS before profile-dependent control admission and synchronize the logger shutdown predicate with both worker mutexes. The original run used bounded probes that were killed and reaped; its active service validation passed. Timing, RF output, Windows/macOS physical USB, and release installation are not qualified by these tests.
+The pressure scope includes admitted and dropped records while Console remains responsive; it establishes bounded loss rather than lossless delivery. Physical four-function operation on Windows/macOS, release installation, timing and RF are unqualified by these checks. Current Console STATUS and logger-shutdown fixes have their own regression coverage; the original image's results do not qualify later fixes automatically. Exact recovery images and saved-state restoration inputs remain protected until their present duty is checked.
 
 ## UTC state events
 

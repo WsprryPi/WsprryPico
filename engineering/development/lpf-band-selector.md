@@ -1,6 +1,6 @@
 # LPF and band selector
 
-Optional direct GPIO selection lets a member choose an external filter for each complete job. It is useful for unattended changes between declared frequency ranges; a fixed-frequency station can retain fixed/manual filtering without allocating a GPIO. The implementation reuses the existing pin validation, journal, management carriers and local RF authority. It adds no expander or relay framework. No selector bank is currently installed, so there is no quoted parts cost or measured filter response. The operator selected implementation and accepted the established GPIO switching evidence for this slice; a new physical bank or timing-instrument campaign is not a completion gate for this software change.
+Optional direct GPIO selection lets a member choose an external filter for each complete job. It is useful for unattended changes between declared frequency ranges; a fixed-frequency station can retain fixed/manual filtering without allocating a GPIO. The implementation reuses the existing pin validation, journal, management carriers and local RF authority. It adds no expander or relay framework. Software support does not establish a physical bank's switching time, cost or filter response.
 
 ## Settings and ownership
 
@@ -44,4 +44,8 @@ Use suitable external drivers with 3.3 V logic inputs and external bias that kee
 
 Use **LPF / band selector** under Pico **Station Control → Radio pins**, or the selected member's hardware controls in WsprryPi Fleet. Read saved selectors, name each output, choose its GP and polarity, then map measured usable frequency intervals to it. Set release and settling for the actual driver/bank, choose the required policy, save while idle, explicitly restart and read saved/active state again. Keep fixed/manual filtering when automatic selection is unnecessary. Declared coverage does not verify attenuation, insertion loss, power handling, emissions or suitability for an antenna.
 
-The [validation record](filter-selector-validation.md) records source-pair software tests, review corrections, builds and evidence limits.
+## Validation and applicability
+
+Registered `filter_selector`, `filter_selector_schema` and `filter_selector_browser` tests cover closed settings, pin ownership, shared selectors, complete-job nominal/programmed coverage, boot-frozen state, journal failure, identity/revision refusals, A/B/A inhibition and cleanup under multiple failures. Both production network and USB source-pair suites cover readback, changed limits, malformed documents and preservation through ordinary saves. The opt-in `operator_cleanup_browser.mjs --filter-ui-only` workflow exercises the shipped editor through the production HTTP/crypto fixture; its driver and output arguments are documented in the [development guide](README.md).
+
+Recorded software acceptance uses candidate changes over Pico `e2fa85e55193e2ce051629ac1787f69600620666` plus documentation revision `d8eec8167c88279835d7d9b61c03055483f42593`, and Pi `e8d10e11c155cfbb4f441e39ae2e42f5f7e08915`, with MbedTLS `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`. These are edited candidate sources, not clean baseline-revision results. Normal and inhibited Pico 2 W images cross-link with the pinned SDK/toolchain and existing flash, stack, heap and USB audits. No selector bank, relay timing, filter response or additional GPIO/RF campaign is qualified by those checks. Physical applicability requires the actual driver, bank and assembled RF path; amplifier GPIO observations do not establish selector contact timing.
