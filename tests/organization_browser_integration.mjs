@@ -67,6 +67,8 @@ class Cdp {
 }
 async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(Date.now()<end){try{const r=await fn();if(r)return r;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+label+(last?' '+last.message:''));}
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
+// Submit once the production form admits it; discovery/polling can briefly disable login.
+async function submitLogin(){await until(()=>cdp.evaluate(`!busy && !document.getElementById('login-submit').disabled && (document.getElementById('local-login').requestSubmit(),true)`),'login form available');}
 async function click(id){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.click();}`);}
 async function capture(name,anchor=null){
     for(const theme of axeSource ? ['light'] : ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
@@ -115,7 +117,7 @@ try {
     await f.command({op:'reboot'});await f.time(7000);
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy && !document.getElementById("local-login").hidden'),'Wi-Fi-only LAN login');
-    await field('local-password','test-password');await cdp.evaluate('document.getElementById("local-login").requestSubmit()');
+    await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate('typeof online !== "undefined" && online && !busy'),'Wi-Fi-only authenticated controls');
     assert.equal(await cdp.evaluate('document.getElementById("consumer-callsign").value'),'');
     assert.equal(await cdp.evaluate('document.getElementById("consumer-ssid").value'),'Home Net');
@@ -134,7 +136,7 @@ try {
     await until(()=>cdp.evaluate('!localAuthenticated && !busy && document.getElementById("local-status").textContent.includes("Pico password saved")'),'Pico password saved and browser signed out');
     assert.equal(await cdp.evaluate('document.getElementById("pico-new-password").value+document.getElementById("pico-confirm-password").value'),'');
     await f.time(f.now+1000);await field('local-password','separate-browser-password');
-    await cdp.evaluate('document.getElementById("local-login").requestSubmit()');
+    await submitLogin();
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'separate Pico password login');
     assert.equal(await cdp.evaluate('picoPasswordState.data.wifi_default'),false);
     assert.equal(await cdp.evaluate('document.getElementById("consumer-ssid").value'),'Home Net');
@@ -143,11 +145,11 @@ try {
     await f.command({op:'reboot'});await f.time(f.now+1000);
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/wifi-host'});
     await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy'),'Pico password persisted across reboot');
-    await field('local-password','separate-browser-password');await cdp.evaluate('document.getElementById("local-login").requestSubmit()');
+    await field('local-password','separate-browser-password');await submitLogin();
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'persisted Pico password authenticated');
     await click('pico-password-default');
     await until(()=>cdp.evaluate('!localAuthenticated && !busy'),'Wi-Fi password restored as default');
-    await f.time(f.now+1000);await field('local-password','test-password');await cdp.evaluate('document.getElementById("local-login").requestSubmit()');
+    await f.time(f.now+1000);await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'restored default Pico password login');
     assert.equal(await cdp.evaluate('picoPasswordState.data.wifi_default'),true);
     await click('station-link');
@@ -161,7 +163,7 @@ try {
     await f.command({op:'reboot'});await f.time(f.now+1000);
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy'),'optional station reboot login');
-    await field('local-password','test-password');await cdp.evaluate('document.getElementById("local-login").requestSubmit()');
+    await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'optional station authenticated readback');
     assert.equal(await cdp.evaluate('currentConfig.station.callsign'),'K1ABC');
     assert.equal(await cdp.evaluate('currentConfig.wifi.ssid'),'Home Net');
@@ -174,7 +176,7 @@ try {
     assert.match(await cdp.evaluate(`document.getElementById('access-toggle').getAttribute('aria-label')`),/Unlock controls/);
     assert.equal(await cdp.evaluate(`document.getElementById('message-settings').disabled`),true,'locked controls cannot submit a message');
     await capture('lan-default');
-    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'login');
     const jumpRequests=requests.length;
     const initialHash=await cdp.evaluate('location.hash');
@@ -241,7 +243,7 @@ try {
     await until(()=>cdp.evaluate('location.pathname==="/wifi-host" && typeof radio!=="undefined" && !!localIdentity'),'AP Wi-Fi/Host landing');
     await capture('ap-default');
     // A real station save must not validate unrelated empty message inputs.
-    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'AP login');
     const beforeStation=(await f.command({op:'stats'})).profile_generation;
     await click('station-link');await field('consumer-callsign','K1ABC');await field('consumer-locator','FN42');
@@ -256,7 +258,7 @@ try {
     await f.time(f.now+3000);await f.command({op:'activate'});await f.time(f.now+1000);
     assert.notEqual((await f.command({op:'stats'})).profile_generation,beforeStation);
     await click('refresh');await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'observe retired profile session');
-    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'station save relogin');
     await click('consumer-check-save');await until(()=>cdp.evaluate('!busy && !consumerAttempt'),'explicit station receipt reconciliation');
     const afterStation=await f.command({op:'stats'});

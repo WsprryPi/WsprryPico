@@ -55,6 +55,8 @@ class Cdp {
 }
 async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(Date.now()<end){try{const r=await fn();if(r)return r;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+label+(last?' '+last.message:''));}
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
+// Submit once the production form admits it; discovery/polling can briefly disable login.
+async function submitLogin(){await until(()=>cdp.evaluate(`!busy && !document.getElementById('login-submit').disabled && (document.getElementById('local-login').requestSubmit(),true)`),'login form available');}
 async function click(id){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.click();}`);}
 async function capture(name){
     for(const theme of ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
@@ -76,7 +78,7 @@ try {
     cdp=new Cdp(page.webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
     await until(()=>cdp.evaluate(`typeof radio !== 'undefined' && !!document.getElementById('local-password')`),'shipped radio page');
     await until(()=>cdp.evaluate(`!busy && !!localIdentity`),'discovery complete before login');
-    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate(`localAuthenticated && !busy`),'actual browser login');
     await click('read-saved');
     await until(()=>cdp.evaluate(`applicationVersion===2 && writeState==='review' && !busy`),'versioned saved-state readback');
@@ -121,7 +123,7 @@ try {
     await f.stop();f=new Fixture(process.argv[2]);await f.time(1000);
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate(`typeof localIdentity!=='undefined' && localIdentity && !busy`),'fresh consumer discovery');
-    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate(`localAuthenticated && !busy`),'fresh consumer login');
     await field('consumer-callsign','<AA0NT>');await field('consumer-locator','EM18IG');
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);

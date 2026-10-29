@@ -10,7 +10,7 @@ const driver=process.argv[2], output=path.resolve(process.argv[3] || 'build/mess
 if (!driver) throw Error('Usage: node message_frequency_ui_integration.mjs DRIVER [OUTPUT]');
 await mkdir(output,{recursive:true});
 const profile=await mkdtemp(path.join(os.tmpdir(),'wsprrypico-cw-browser-'));
-const processGroup=process.platform!=='win32';
+const processGroup=process.platform==='linux';
 let fixture, chrome, cdp, fixturePort=19039;
 class Cdp {
   constructor(url) {
@@ -23,6 +23,8 @@ class Cdp {
 }
 async function until(fn,label,ms=15000){const end=Date.now()+ms;while(Date.now()<end){if(await fn())return;await new Promise(resolve=>setTimeout(resolve,50));}let detail='';try{detail=await cdp.evaluate(`JSON.stringify({feedback:document.getElementById('message-result')?.textContent,notice:document.getElementById('notice')?.textContent,active:document.activeElement?.id,writes:globalThis.cwRequests?.slice(-5)})`);}catch{}throw Error('Timed out: '+label+' '+detail);}
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
+// Submit once the production form admits it; discovery/polling can briefly disable login.
+async function submitLogin(){await until(()=>cdp.evaluate(`!busy && !document.getElementById('login-submit').disabled && (document.getElementById('local-login').requestSubmit(),true)`),'login form available');}
 async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
 async function control(command) {
   const r=await fetch('http://127.0.0.1:'+fixturePort+'/.fixture-control',{method:'POST',body:JSON.stringify(command)});
@@ -75,7 +77,7 @@ try {
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     if(surface==='consumer') {
       await until(()=>cdp.evaluate('typeof localIdentity!=="undefined" && !!localIdentity && !busy'),'consumer page');
-      await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+      await field('local-password','test-password');await submitLogin();
     }
     await until(()=>cdp.evaluate('typeof online!=="undefined" && online && !busy'),'ready page');
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Carrier frequency (Hz)');
@@ -160,7 +162,7 @@ try {
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Space frequency (Hz)');
     await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await cdp.evaluate('refresh()');
     if(surface==='consumer' && !await cdp.evaluate('localAuthenticated')) {
-      await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+      await field('local-password','test-password');await submitLogin();
     }
     await until(()=>cdp.evaluate(`online && !busy && !document.getElementById('message-settings').disabled`),'reconnected message editor');
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Space frequency (Hz)');

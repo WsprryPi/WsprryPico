@@ -65,6 +65,8 @@ class Cdp {
 }
 async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(Date.now()<end){try{const r=await fn();if(r)return r;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+label+(last?' '+last.message:''));}
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
+// Submit once the production form admits it; discovery/polling can briefly disable login.
+async function submitLogin(){await until(()=>cdp.evaluate(`!busy && !document.getElementById('login-submit').disabled && (document.getElementById('local-login').requestSubmit(),true)`),'login form available');}
 async function click(id){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.click();}`);}
 async function capture(name,target){
     if(process.env.HOSTNAME_BROWSER_CAPTURE_PREFIX && !name.startsWith(process.env.HOSTNAME_BROWSER_CAPTURE_PREFIX))return;
@@ -91,7 +93,7 @@ try {
     async function login() {
         await until(()=>cdp.evaluate('!busy && !!localIdentity'),'identity read complete before login');
         await field('local-password','test-password');
-        await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+        await submitLogin();
         await until(()=>cdp.evaluate(`localAuthenticated && !busy && online`),'login and hostname readback');
     }
     await until(()=>cdp.evaluate('!busy && !!localIdentity'),'unknown metadata state');
@@ -125,7 +127,7 @@ try {
     for(const key of ['config_sequence','profile_generation','profile_programs','api_restarts'])
         assert.equal(diagnosticsAfter[key],diagnosticsBefore[key],key+' unchanged by diagnostics/navigation');
     assert.equal(requests.length,diagnosticsRequests,'Diagnostics/navigation emit no requests, including session/job mutations');
-    await field('local-password','wrong-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await field('local-password','wrong-password');await submitLogin();
     await until(()=>cdp.evaluate('!busy'),'rejected login');
     assert.equal(await cdp.evaluate('localAuthenticated'),false);await identity('wsprrypico-0a60df.local');
     assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/failed|rejected|password|authentication/);
@@ -238,7 +240,7 @@ try {
     await f.command({op:'reboot'});await f.time(5000);
     await click('refresh');await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'old-boot session withdrawn before unlock');
     await field('local-password','test-password');
-    await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await submitLogin();
     await until(()=>cdp.evaluate('!busy'),'new-boot identity review');
     assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/boot changed.*unlock again/);
     await login();
@@ -285,7 +287,7 @@ try {
     await cdp.send('Page.navigate',{url:'http://pico-a.local/'+wrong});
     await until(()=>cdp.evaluate(`document.getElementById('notice')?.textContent.includes('different Pico')`),'wrong return identity');
     const starts=requests.filter(r=>r.path.endsWith('/start')).length;
-    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate('!busy'),'wrong-device explicit login refused');
     assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,starts);
     assert.equal((await f.command({op:'stats'})).profile_generation,'3');
