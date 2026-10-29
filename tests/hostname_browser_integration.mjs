@@ -86,6 +86,7 @@ try {
     await until(()=>cdp.evaluate(`typeof radio !== 'undefined' && !!document.getElementById('local-password')`),'shipped radio page');
 
     async function login() {
+        await until(()=>cdp.evaluate('!busy && !!localIdentity'),'identity read complete before login');
         await field('local-password','test-password');
         await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
         await until(()=>cdp.evaluate(`localAuthenticated && !busy && online`),'login and hostname readback');
@@ -171,6 +172,12 @@ try {
         await click('refresh');await until(()=>cdp.evaluate('!busy'),'running operations');
         assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Job running');
         assert.match(await cdp.evaluate(`document.getElementById('console-frequency').textContent`),mode==='qrss'?/Carrier/:mode==='fskcw'?/Space.*\nMark/:mode==='dfcw'?/Dot 135505 Hz\nDash 135500 Hz/:/Nominal RF/);
+        for(const width of [1280,390]) {
+            await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});
+            const typography=await cdp.evaluate(`Array.from(document.querySelectorAll('#transmitter-status dd')).map(e=>{const s=getComputedStyle(e);return [s.fontFamily,s.fontSize,s.fontWeight,s.lineHeight].join('|')})`);
+            assert.equal(new Set(typography).size,1,`${mode} multiline accepted-job and device-state values share typography at ${width}px`);
+            assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,`${mode} status wraps at ${width}px`);
+        }
         if(mode==='dfcw') await capture('operations-running-dfcw','operations-console');
         assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'PRESERVE LOCAL DRAFT');
         await radioJob('ABORT',{job_id:jobId});await radioJob('RELEASE');

@@ -33,6 +33,14 @@ typography:
     fontSize: "1.25rem"
     fontWeight: 600
     lineHeight: 1.5
+  status-value:
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.5
+  status-label:
+    fontSize: "0.85rem"
+    fontWeight: 400
+    lineHeight: 1.5
   status-heading:
     fontSize: "1.65rem"
     fontWeight: 700
@@ -115,7 +123,7 @@ Color alone does not express validation or RF output state.
 
 ## Typography
 
-Body text and controls use the system stack recorded above, with controls inheriting the surrounding font. Labels and status values are semibold; help text is smaller and normal weight. All peer operator disclosure labels use the section-heading role, including semantic headings nested inside summary and About this Pico / Diagnostics. Their family, size, semibold weight and line height stay identical in locked, unlocked, narrow and zoomed views. Page and active-status headings retain their distinct hierarchy. No additional font assets are loaded.
+Body text and controls use the system stack recorded above, with controls inheriting the surrounding font. Form labels and default definition values are semibold; saved-setting comparisons and Transmitter status use regular-weight values. Help text is smaller and normal weight. Every definition value in Transmitter status uses the same status-value role: one system family at 1rem, regular weight 400 and line height 1.5, including accepted-job details, the next transmission, RF correction and device state. The status-label role uses smaller, muted, regular-weight text to distinguish labels from values; multiline details retain line breaks and wrap within their column. All peer operator disclosure labels use the section-heading role, including semantic headings nested inside summary and About this Pico / Diagnostics. Their family, size, semibold weight and line height stay identical in locked, unlocked, narrow and zoomed views. Page and active-status headings retain their distinct hierarchy. No additional font assets are loaded.
 
 Message previews and progress use tabular numerals. Keep units attached to
 values and retain significant subsecond digits; do not round away a finite-job

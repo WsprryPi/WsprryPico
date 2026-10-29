@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-29T16:58:41.678938+00:00",
+  "generatedAt": "2026-10-29T17:28:56.245959+00:00",
   "title": "Design System: WsprryPico Station Control",
   "extensions": {
     "colorMeta": {
@@ -251,6 +251,14 @@
       "help": {
         "displayName": "Help",
         "purpose": "Secondary inline guidance."
+      },
+      "status-value": {
+        "displayName": "Transmitter status value",
+        "purpose": "One system-font regular-weight role for all accepted-job, next-transmission, RF correction and device-state values; identical in both status grids and across locked, unlocked and responsive views."
+      },
+      "status-label": {
+        "displayName": "Transmitter status label",
+        "purpose": "Compact muted regular text naming each status value; the smaller size preserves hierarchy in the dense operational panel."
       }
     }
   },
@@ -328,6 +336,13 @@
       "description": "Peer section headings use the same system face, semibold weight, size and line height while preserving semantic h2 labels and native disclosure behavior.",
       "html": "<details class=\"ds-operator-section\"><summary><h2>Station identity</h2></summary><p>Confirmed station settings.</p></details><details class=\"ds-operator-section\"><summary><h2>About this Pico / Diagnostics</h2></summary><p>Device identity and diagnostics.</p></details>",
       "css": ".ds-operator-section{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#25313d;border-top:1px solid #c8d1d9;margin:1.5rem 0 0;padding:.5rem 0}.ds-operator-section>summary{font-size:1.25rem;font-weight:600;line-height:1.5;cursor:pointer;padding:.65rem 0;min-height:44px}.ds-operator-section>summary h2{display:inline;font:inherit;margin:0}.ds-operator-section>summary:focus-visible{outline:3px solid #b37617;outline-offset:3px}"
+    },
+    {
+      "name": "Transmitter status typography",
+      "kind": "custom",
+      "description": "Illustrative accepted-job and device-state values share one regular-weight role; smaller muted labels identify each value.",
+      "html": "<dl class=\"ds-status\"><div><dt>Mode and source</dt><dd>No accepted job</dd></div><div><dt>RF chain output</dt><dd>Inactive</dd></div><div><dt>Manual RF correction (ppm)</dt><dd>0.000</dd></div></dl>",
+      "css": ".ds-status{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#25313d;line-height:1.5;display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));gap:1.5rem}.ds-status dt{font-size:.85rem;font-weight:400;color:#536574}.ds-status dd{font-size:1rem;font-weight:400;margin:.25rem 0 0;white-space:pre-line;overflow-wrap:anywhere}"
     }
   ],
   "narrative": {
@@ -353,6 +368,11 @@
       {
         "name": "The Peer Heading Rule",
         "body": "Every operator disclosure label, including a nested semantic heading, inherits the same section-heading typography in locked, unlocked and responsive views.",
+        "section": "typography"
+      },
+      {
+        "name": "The Peer Status Value Rule",
+        "body": "All definition values in Transmitter status share the status-value role. Distinguish labels using size and muted color, retaining multiline wrapping and the existing heading hierarchy.",
         "section": "typography"
       }
     ],

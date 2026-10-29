@@ -69,6 +69,16 @@ async function evaluate(expression) {
 }
 const click=id=>evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);
 const idle=()=>until(()=>evaluate('typeof busy!=="undefined" && !busy'),'request completion');
+async function checkStatusTypography(context) {
+  const type=await evaluate(`(()=>{const root=getComputedStyle(document.documentElement);return {family:root.fontFamily,size:parseFloat(root.fontSize),values:Array.from(document.querySelectorAll('#transmitter-status dd')).map(e=>{const s=getComputedStyle(e);return {id:e.id,family:s.fontFamily,size:parseFloat(s.fontSize),weight:s.fontWeight,lineHeight:parseFloat(s.lineHeight)}})}})()`);
+  assert.equal(type.values.length,11,'both status grids and the conditional next value are covered');
+  for(const value of type.values) {
+    assert.equal(value.family,type.family,`${context} ${value.id} system font`);
+    assert.equal(value.size,type.size,`${context} ${value.id} body-sized value`);
+    assert.equal(value.weight,'400',`${context} ${value.id} consistent regular value`);
+    assert.equal(value.lineHeight,type.size*1.5,`${context} ${value.id} readable value leading`);
+  }
+}
 const config=async()=>{const c=f.client();await c.identity();return (await c.publicRead('config/4')).json();};
 async function edit(name,value,pins=false) {
   await evaluate(`document.getElementById('config').elements[${JSON.stringify(name)}].value=${JSON.stringify(value)};document.getElementById('config').elements[${JSON.stringify(name)}].dispatchEvent(new Event('input',{bubbles:true}));${pins?"document.getElementById('config').elements["+JSON.stringify(name)+"].dispatchEvent(new Event('change',{bubbles:true}));":''}`);
@@ -98,6 +108,7 @@ async function capture(state) {
         assert.equal(parseFloat(heading.lineHeight),type.size*1.5,'all peer labels share the disclosure line height');
       }
       if(area==='station') {
+        await checkStatusTypography(`${state} ${width} ${theme}`);
         const buttons=await evaluate(`['restart','abort','release'].map(id=>{const e=document.getElementById(id),r=e.getBoundingClientRect();return {top:r.top,left:r.left,right:r.right,height:r.height}})`);
         assert.ok(buttons.every(b=>b.height>=44),'transmitter actions retain touch targets');
         if(width>=650) assert.equal(new Set(buttons.map(b=>b.top)).size,1,'transmitter actions share a row when space permits');
@@ -128,6 +139,7 @@ async function capture(state) {
   assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'200% zoom');
   for(const area of ['station','wifi-host']) {
     await click(area==='station'?'station-link':'wifi-host-link');
+    if(area==='station') await checkStatusTypography(`${state} 200% zoom`);
     const types=await evaluate(`Array.from(document.querySelectorAll('#${area}-area [data-operator-section]>summary')).map(e=>{const s=getComputedStyle(e.querySelector(':scope>h2')||e);return [s.fontFamily,s.fontSize,s.fontWeight,s.lineHeight].join('|')})`);
     assert.equal(new Set(types).size,1,`${area} disclosure typography stays consistent at 200% zoom`);
   }
