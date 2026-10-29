@@ -38,7 +38,8 @@ export async function firstWsprTransmission({cdp,click,field,login,until,control
   assert.equal(await cdp.evaluate(`document.getElementById('progress-error-settings-enabled').textContent`),'Saved value applied.');
   assert.equal(await cdp.evaluate(`document.getElementById('save-config').disabled`),false,'confirmed Apply leaves later edits usable');
   await click('refresh');await until(()=>cdp.evaluate('!busy'),'enabled status');
-  assert.match(await cdp.evaluate(`document.getElementById('console-next').textContent`),/Standalone WSPR enabled/);
+  assert.equal(await cdp.evaluate(`document.getElementById('console-next').textContent`),'WSPR');
+  assert.equal(await cdp.evaluate(`document.getElementById('console-next-item').hidden`),false);
   assert.equal(await cdp.evaluate('snapshot.job.state'),'empty');
   const initial=await control({op:'schedule_tick',delta_ns:'0'});
   const now=BigInt(initial.utc_now_ns),period=240000000000n;
@@ -65,7 +66,8 @@ export async function firstWsprTransmission({cdp,click,field,login,until,control
   await click('apply-progress');await until(()=>cdp.evaluate(`!busy && writeState==='ready'`),'disabled schedule applied');
   assert.equal((await control({op:'frequency_state'})).enabled,false);
   await click('refresh');await until(()=>cdp.evaluate('!busy'),'disabled status');
-  assert.match(await cdp.evaluate(`document.getElementById('console-next').textContent`),/Standalone WSPR disabled/);
+  assert.equal(await cdp.evaluate(`document.getElementById('console-next').textContent`),'');
+  assert.equal(await cdp.evaluate(`document.getElementById('console-next-item').hidden`),true);
   await control({op:'schedule_tick',delta_ns:'240000000000'});
   assert.deepEqual(await control({op:'accepted_job',surface:'consumer'}),job,'disabled schedule submits no subsequent job');
   await capture('first-wspr-complete-and-disabled');
