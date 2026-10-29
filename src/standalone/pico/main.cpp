@@ -114,6 +114,7 @@ extern "C" char __HeapLimit, __end__, __StackLimit, __StackTop;
 #include "standalone/dry_run_engine.hpp"
 static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 #endif
+#include "logging/clock_state.hpp"
 #include "logging/logger.hpp"
 #include "logging/udp_settings.hpp"
 #include "logging/usb_session.hpp"
@@ -725,7 +726,7 @@ int main() {
     browser_api.udp_logging_service(udp_store, udp_sender);
     logger.event(5, "BOOT", "Application started", time_us_64() * 1000ULL);
     auto logged_activity = service.activity();
-    auto logged_clock = service.clock_snapshot().state;
+    wsprrypico::logging::ClockStateLogger clock_logger;
     auto logged_config = store.config_sequence();
     bool logged_wtp = false, logged_management = false;
 
@@ -2434,14 +2435,7 @@ int main() {
                          wsprrypico::wtp::state_name(log_activity.state), log_mono, log_utc);
             logged_activity = log_activity;
         }
-        if (logged_clock != log_clock.state) {
-            logger.event(5, "CLOCK_STATE",
-                         log_clock.state == wsprrypico::wtp::ClockState::Unsynchronized
-                             ? "UTC unavailable"
-                             : "UTC available",
-                         log_mono, log_utc);
-            logged_clock = log_clock.state;
-        }
+        clock_logger.observe(logger, log_clock, log_mono);
         if (logged_config != store.config_sequence()) {
             logger.event(5, "CONFIG_SAVED", "Settings journal updated", log_mono, log_utc);
             logged_config = store.config_sequence();

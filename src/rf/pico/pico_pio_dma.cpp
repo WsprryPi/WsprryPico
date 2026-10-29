@@ -133,6 +133,17 @@ bool PicoPioDma::open(Handler handler, void* context) {
 }
 
 void PicoPioDma::force_inactive() {
+    if (!pio_) {
+        // Cold stop precedes lazy PIO/DMA allocation. Establish and read back
+        // a real inactive pad rather than treating an unopened engine as proof.
+        // gpio_init disables OE before selecting SIO; clamp low before OE.
+        if (gpio_get_function(rf_pin) != GPIO_FUNC_SIO)
+            gpio_init(rf_pin);
+        gpio_set_outover(rf_pin, GPIO_OVERRIDE_LOW);
+        gpio_put(rf_pin, false);
+        gpio_set_dir(rf_pin, GPIO_OUT);
+        return;
+    }
     if (pio_ && get_core_num() == core_) {
         hardware_alarm_cancel(static_cast<unsigned>(alarm_));
         gpio_set_outover(rf_pin, GPIO_OVERRIDE_LOW);
@@ -379,7 +390,9 @@ bool PicoPioDma::active() const {
     return pio_ && (pio_->ctrl & (1U << sm_));
 }
 bool PicoPioDma::rf_inactive_verified() const {
-    return pio_ && !active() && !gpio_get(rf_pin);
+    return !active() && !gpio_get(rf_pin) &&
+           (pio_ || (gpio_get_function(rf_pin) == GPIO_FUNC_SIO && gpio_is_dir_out(rf_pin) &&
+                     !gpio_get_out_level(rf_pin)));
 }
 
 void PicoPioDma::dma_irq() {
