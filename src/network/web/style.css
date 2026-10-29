@@ -47,4 +47,6 @@ summary{font-weight:600;cursor:pointer;padding:.65rem 0;min-height:44px}details{
 }
 .udp-logging-controls button { justify-self: start; max-width: 100%; }
 
-header #area-nav{margin:0;gap:.25rem 1.25rem}header #area-nav a{color:#fff;text-decoration:none;border-bottom:3px solid transparent;padding:.35rem 0}header #area-nav a[aria-current=page]{border-bottom-color:currentColor;font-weight:700}.access-settings{margin:0}.access-settings:disabled fieldset:disabled{opacity:1}#notice:empty{display:none}#transmitter-status{margin-top:1.5rem}#device-name{scroll-margin-top:1rem}
+header #area-nav{margin:0;gap:.25rem 1.25rem}header #area-nav a{color:#fff;text-decoration:none;border-bottom:3px solid transparent;padding:.35rem 0}header #area-nav a[aria-current=page]{border-bottom-color:currentColor;font-weight:700}.access-settings{margin:0}.access-settings:disabled{opacity:1;cursor:auto}.access-settings:disabled fieldset:disabled{opacity:1}#notice:empty{display:none}#transmitter-status{margin-top:1.5rem}#device-name{scroll-margin-top:1rem}
+
+.transmitter-actions{display:flex;flex-wrap:wrap;gap:.5rem}.transmitter-actions>button{margin:0}#recovery:empty{display:none}

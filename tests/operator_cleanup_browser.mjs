@@ -18,6 +18,11 @@ if(output) fs.mkdirSync(output,{recursive:true});
 const processGroup=process.platform==='linux';
 const f=new Fixture(driver),profile=fs.mkdtempSync(path.join(os.tmpdir(),'pico-operator-cleanup-'));
 let chrome,ws,serial=0,dropPinReply=false;
+let screenshotCount=0;
+function saveScreenshot(name,shot) {
+  fs.writeFileSync(path.join(output,name),Buffer.from(shot.data,'base64'));
+  ++screenshotCount;
+}
 const pending=new Map(),errors=[],reads=[];
 const server=http.createServer(async(req,res)=>{
   try {
@@ -75,24 +80,42 @@ async function key(key,code=key) {
 }
 async function capture(state) {
   if(filterOnly)return;
-  for(const [width,height] of [[1280,900],[360,800],[390,844]]) for(const area of ['station','wifi-host']) {
+  for(const [width,height] of [[1280,900],[650,900],[360,800],[390,844]]) for(const area of ['station','wifi-host']) {
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
     await click(area==='station'?'station-link':'wifi-host-link');
     for(const theme of ['light','dark']) {
       await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
       assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,`${width} ${area} ${theme}`);
+      const headings=await evaluate(`Array.from(document.querySelectorAll('#${area}-area [data-operator-section]>summary')).map(e=>{let opacity=1;for(let p=e;p;p=p.parentElement)opacity*=Number(getComputedStyle(p).opacity);return {opacity,color:getComputedStyle(e).color}})`);
+      assert.ok(headings.length>0);
+      for(const heading of headings) {
+        assert.equal(heading.opacity,1,`${state} ${area} disclosure remains readable`);
+        assert.equal(heading.color,'rgb(37, 49, 61)',`${state} ${area} disclosure uses body text color`);
+      }
+      if(area==='station') {
+        const buttons=await evaluate(`['restart','abort','release'].map(id=>{const e=document.getElementById(id),r=e.getBoundingClientRect();return {top:r.top,left:r.left,right:r.right,height:r.height}})`);
+        assert.ok(buttons.every(b=>b.height>=44),'transmitter actions retain touch targets');
+        if(width>=650) assert.equal(new Set(buttons.map(b=>b.top)).size,1,'transmitter actions share a row when space permits');
+        else assert.ok(new Set(buttons.map(b=>b.top)).size>1,'transmitter actions wrap on narrow screens');
+      }
     }
     // Inspect both layouts in one batched round; this UI deliberately keeps its light palette.
     if(output) {
+      if(state==='locked' && area==='station' && [1280,390].includes(width)) {
+        await evaluate('document.querySelectorAll("#station-area [data-operator-section]").forEach(e=>e.open=false);document.getElementById("station-identity").scrollIntoView()');
+        const headings=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
+        saveScreenshot(`${state}-headings-${width}.png`,headings);
+        await evaluate('scrollTo(0,0)');
+      }
       await evaluate(`document.querySelectorAll('#${area}-area [data-operator-section]').forEach(e=>e.open=true)`);
       const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
-      fs.writeFileSync(path.join(output,`${state}-${area}-${width}.png`),Buffer.from(shot.data,'base64'));
+      saveScreenshot(`${state}-${area}-${width}.png`,shot);
     }
   }
   await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
   if(output && state==='unlocked') {
     await click('station-link');await evaluate('const e=document.getElementById("station-identity");e.open=true;e.scrollIntoView()');
-    const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(output,'station-settings.png'),Buffer.from(shot.data,'base64'));
+    const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});saveScreenshot('station-settings.png',shot);
     await evaluate('scrollTo(0,0)');
   }
   await evaluate('document.documentElement.style.zoom="2"');
@@ -171,7 +194,7 @@ try {
     assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
     const layout=await send('Page.getLayoutMetrics');
     const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip:{x:0,y:0,width,height:layout.cssContentSize.height,scale:1}});
-    fs.writeFileSync(path.join(output,'amplifier-timing-'+name+'.png'),Buffer.from(shot.data,'base64'));
+    saveScreenshot('amplifier-timing-'+name+'.png',shot);
   }
   await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
   const selectorButton=text=>evaluate(`Array.from(document.querySelectorAll('#filter-selector-controls button')).find(b=>b.textContent===${JSON.stringify(text)}).click()`);
@@ -186,7 +209,7 @@ try {
     await evaluate('document.getElementById("radio-pins").open=true;document.getElementById("filter-selector-controls").scrollIntoView()');
     assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'selector '+name);
     const clip=await evaluate('(()=>{const r=document.getElementById("filter-selector-controls").getBoundingClientRect();return {x:0,y:r.top+scrollY,width:innerWidth,height:r.height,scale:1};})()');
-    const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip});fs.writeFileSync(path.join(output,'filter-pico-'+name+'.png'),Buffer.from(shot.data,'base64'));
+    const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip});saveScreenshot('filter-pico-'+name+'.png',shot);
   }
   await selectorButton('Save selectors');await idle();
   assert.match(await evaluate('document.getElementById("filter-selector-controls").innerText'),/Selectors saved/);
@@ -222,7 +245,7 @@ try {
   assert.equal((await config()).config.pins.rf_gp,4);
   assert.deepEqual(errors,[]);
   console.log('PASS lost pin reply commits once, preserves drafts through public refresh, blocks another save');
-  console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,api:'production HTTP/crypto',hardware:false,screenshots:output?(filterOnly?2:17):0}));
+  console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,api:'production HTTP/crypto',hardware:false,screenshots:screenshotCount}));
 } catch(error) {
   console.error(JSON.stringify({errors,reads:reads.slice(-12),state:ws ? await evaluate('({notice:document.getElementById("notice")?.textContent,online:typeof online!=="undefined"?online:null,busy:typeof busy!=="undefined"?busy:null,settings:typeof settingsLoadedBoot!=="undefined"?settingsLoadedBoot:null})').catch(()=>null):null}));
   throw error;
