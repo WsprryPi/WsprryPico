@@ -1,6 +1,6 @@
 # Item 4 execution prompt — LPF/band-selector control
 
-Status: saved execution prompt; implementation not started. Saving, reviewing or committing this prompt does not execute it. Execute only when explicitly assigned. Item 4 remains conditional on economic usefulness.
+Status: assigned for execution on 2026-10-28; the [usefulness assessment](lpf-band-selector-assessment.md) recommends deferral for the presently documented fixed-frequency use. Implementation and acceptance are not started. This prompt remains the authority for the unfinished feature; reassess its usefulness against a concrete unattended multiband requirement before implementation. Saving, reviewing or committing this prompt alone does not execute it. Item 4 remains conditional on economic usefulness.
 
 ## Objective and scope
 
