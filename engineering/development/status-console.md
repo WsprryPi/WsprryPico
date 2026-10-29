@@ -1,6 +1,6 @@
 # Contextual transmitter status
 
-The Station Control Transmitter status section presents the current accepted job separately from future standalone work. It uses native controls, system fonts and the embedded page's flat section design. The section leads Station Control and includes the unique output, owner, clock, engine and connection observations. Reset Pico is available there once unlocked; Wi-Fi/Host has no status or reset section.
+The Station Control Transmitter status section presents the current accepted job separately from future standalone work. It uses native controls, system fonts and the embedded page's flat section design. The section leads Station Control and includes output, owner, clock, Wi-Fi and active hostname observations. Reset Pico is available there once unlocked; Wi-Fi/Host has no status or reset section.
 
 ## Observations and disclosure
 
@@ -14,17 +14,17 @@ Engineering station HTTPS, authenticated Consumer-Radio station/AP and physical 
 
 The page uses one serialized five-second polling loop, at most one application action in flight, existing transport deadlines, request epochs and exact device/boot validation. New-boot engineering observations rebind only after authenticated same-device hostname readback, invalidate old job estimates and require saved-state review; a consumer rebind requires a new login. Failed or malformed reads clear live console values. After 15 seconds without a confirmed observation, the page marks state/output unavailable and disables controls. Session loss clears privileged rendered readbacks while preserving form drafts. Polling never copies observed data into edited forms, writes journals, claims ownership or submits jobs.
 
-Browser-local time includes its locale and timezone. Pico UTC is explicitly the time at observation, and is unavailable when the device clock is unsynchronized. Observation time is labelled separately. The browser clock is never substituted for synchronized device UTC. Only headline transitions use the console live announcement; clock ticks are ordinary text.
+The panel omits browser-local time, Pico UTC, observation timestamps and the engine identifier. Device UTC and the browser observation timestamp remain internal inputs to scheduling, progress and freshness checks. Routine state explanations are omitted; recovery guidance is visible when required, and headline transitions retain the accessible live announcement. Hostname displays confirmed active readback rather than discovery state or a saved name awaiting restart. Discovery conflict and failure guidance remains visible only when actionable.
 
 ## State interpretation
 
 Output/storage faults take headline precedence. Accepted loaded, armed or running work follows, independently of incomplete standalone configuration or future-schedule blockers. Running RF-off observations remain active jobs, including keyed gaps. Future context distinguishes recovery barriers, pending durable pause, reset requirements, suspension, paused/expired schedules, clock admission, incomplete WSPR configuration, reserved ownership and an eligible future occurrence. A disabled saved message schedule does not mask enabled WSPR.
 
-The displayed WSPR candidate is derived without mutation from current UTC, configured schedules, consumed-start watermark, clock admission, complete plan duration and expiry. It is an eligibility prediction, not an accepted job or promised launch. Busy or blocked states report no eligible candidate. Standalone USB dial and nominal RF center are separate: 14095600 Hz maps to center 14097100 Hz, with four tones spaced by 1.46484375 Hz. The console never adds that offset to an externally accepted absolute-frequency job.
+Next transmission shows only the mode and available saved message for an eligible enabled automatic occurrence. The item is hidden when schedules are disabled or no next occurrence is confirmed. It consumes the existing device-computed candidate without predicting new slots in the browser. An enabled recurring message schedule owns recurrence authority and suppresses standalone WSPR, regardless of their saved start order. A blocked message schedule does not expose WSPR as a fallback. Accepted jobs retain their separate presentation and lifecycle when future schedules are disabled. WSPR is labelled by mode because this projection does not provide its encoded message.
 
 QRSS labels Carrier, FSKCW labels Space and Mark, and DFCW labels Dot and Dash using accepted compiler values. Saved recurring message context is explicitly labelled separately from accepted work. Message copies and their gap belong to one finite job; recurrence interval, first UTC anchor, optional expiry and next eligible occurrence describe separate jobs. Generic externally loaded jobs report nominal RF events and unavailable original text. WSPR frame counters appear only for the matching scheduler job.
 
-Elapsed duration and percentages use the device UTC at observation and the accepted start/duration. They are estimates, including at 100 percent, and never replace a running state with completion. Character progression remains an unimplemented enhancement; an authoritative event cursor is unavailable. Selected manual correction applies at the next preparation; accepted-job correction comes only from the engine's frozen preparation selection. Missing values remain unavailable. μChrony disciplines UTC and supplies no RF calibration measurement.
+Elapsed duration and percentages use the device UTC at observation and the accepted start/duration. They are estimates, including at 100 percent, and never replace a running state with completion. Character progression remains an unimplemented enhancement; an authoritative event cursor is unavailable. The panel shows only the selected manual correction for the next preparation, as a number with three decimal places under Manual RF correction (ppm). The underlying accepted-job correction remains the engine's frozen preparation selection. Missing values remain unavailable. μChrony disciplines UTC and supplies no RF calibration measurement.
 
 ## Reset Pico
 
@@ -41,11 +41,11 @@ The information hierarchy follows WsprryPi devel `5bc24e893646140d44f0bf9a20d611
 | Pi behavior | Pico presentation |
 | --- | --- |
 | Prominent runtime state and explanation | Accepted job, actual output observation and separate future blockers |
-| Mode/frequency panels | Accepted compiler semantics or nominal RF-event values; standalone dial/center labelled separately |
+| Mode/frequency panels | Accepted compiler semantics or nominal RF-event values; next enabled automatic mode/message shown separately |
 | WSPR plan and message progress | Matching frame counters and estimated accepted-job duration; no invented character cursor |
 | Transmit/stop controls | Existing save/apply, recurring pause, owner-scoped Abort and Release |
-| Local/UTC clocks | Browser-local time, Pico UTC at observation and observation timestamp |
-| Candidate/committed correction | Manual selection versus frozen preparation; no NTP RF estimate |
+| Clock readiness | Synchronization state and uncertainty; timestamps remain internal |
+| Manual correction | Numeric selection for next preparation in ppm; no NTP RF estimate |
 | Reboot policy and shutdown | Existing restart semantics and guarded Reset Pico; Pi policy choices/shutdown unavailable |
 
 Deterministic coverage is in `operations_browser_tests.js`, source/shipped `network_browser_tests.js`, `network_tests.cpp`, consumer session/crypto tests and the existing reset/hostname browser fixture. The production adapter, memory/stack/flash and image-integrity checks remain enabled. Browser fixtures are software evidence; they do not qualify physical RF timing, decoding or emissions.

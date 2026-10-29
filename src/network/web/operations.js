@@ -55,6 +55,9 @@
   function model(v,caps,session) {
     const j=v.job,s=v.standalone,m=v.message_schedule,a=v.accepted;
     const occupied=['loaded','armed','running'].includes(j.state);
+    const clockReady=s.clock_state!=='unsynchronized' &&
+      !(s.clock_state==='holdover'&&(!caps?.wtp?.maximum_holdover_age_ns||BigInt(caps.wtp.maximum_holdover_age_ns)===0n||BigInt(s.sync_age_ns)>BigInt(caps.wtp.maximum_holdover_age_ns))) &&
+      !(caps?.wtp?.maximum_arm_uncertainty_ns&&BigInt(s.uncertainty_ns)>BigInt(caps.wtp.maximum_arm_uncertainty_ns));
     let state='Idle', explanation='No accepted job is active. Review future transmissions below.';
     if (!s.storage_healthy || j.state==='failed' || j.output_active&&!['armed','running'].includes(j.state)) {state='Recovery required';explanation='Output or storage authority needs recovery. Check Transmitter status; RF-off alone does not clear a fault.';}
     else if (occupied) {
@@ -68,19 +71,26 @@
     else if (m.saved && !m.saved.enabled && !s.enabled) {state='Message schedule paused';explanation='The saved message schedule is disabled. Any accepted job keeps its own lifecycle.';}
     else if (m.state==='expired' || s.enabled && s.expires_utc_s && BigInt(s.utc_now_ns)>=BigInt(s.expires_utc_s)*1000000000n) {state='Schedule expired';explanation='No further occurrence can start within the saved UTC schedule.';}
     else if (s.enabled || m.saved?.enabled) {
-      if (s.clock_state==='unsynchronized'||s.clock_state==='holdover'&&(!caps?.wtp?.maximum_holdover_age_ns||BigInt(caps.wtp.maximum_holdover_age_ns)===0n||BigInt(s.sync_age_ns)>BigInt(caps.wtp.maximum_holdover_age_ns))||caps?.wtp?.maximum_arm_uncertainty_ns&&BigInt(s.uncertainty_ns)>BigInt(caps.wtp.maximum_arm_uncertainty_ns)) {state='Waiting for time';explanation='The clock does not currently meet admission limits. An accepted job retains its own lifecycle.';}
+      if (!clockReady) {state='Waiting for time';explanation='The clock does not currently meet admission limits. An accepted job retains its own lifecycle.';}
       else if (s.enabled&&(!s.configured||s.frequency_required)) {state='Standalone setup required';explanation='Complete station settings and save a WSPR dial frequency before standalone operation.';}
       else if (j.owner_id) {state='Transmitter reserved';explanation='A controller holds the transmitter. Reading this page grants no ownership.';}
       else {state='Waiting for next occurrence';explanation='The saved schedule is enabled. The Pico prepares and checks each future job locally.';}
     } else if (['complete','aborted','missed'].includes(j.state)) {state='Job '+j.state;explanation='The Pico confirmed this job’s terminal state. Future schedules are shown separately.';}
     else if (j.owner_id) {state='Transmitter reserved';explanation='A controller holds the transmitter. Reading this page grants no ownership.';}
     else {state=s.configured?'Schedules disabled':'Standalone not configured';explanation='No standalone schedule is enabled. External controllers can submit complete jobs through their own authority.';}
-    let next='Standalone WSPR '+(s.enabled?'enabled':'disabled');
-    if (s.enabled) next+=' · '+(v.next_wspr_start_utc_ns?utc(v.next_wspr_start_utc_ns):'next eligible start unavailable');
-    if (s.schedule_dial_frequency_nhz) next+='\nSaved USB dial '+hz(s.schedule_dial_frequency_nhz)+' · nominal RF center '+hz(BigInt(s.schedule_dial_frequency_nhz)+1500000000000n);
-    if (s.enabled&&s.schedules.length) next+='\nUTC period / phase '+s.schedules.map(x=>x.period_s+' / '+x.phase_s+' s').join(', ');
-    if (s.expires_utc_s) next+=' · expires '+utc(String(BigInt(s.expires_utc_s)*1000000000n));
-    if (m.saved) next+='\nMessage schedule: '+m.state.replaceAll('_',' ')+(m.pause_pending?' · pause not yet durable':'')+'\n'+m.saved.message.mode.toUpperCase()+': '+m.saved.message.message+'\n'+frequencies(m.saved.message.mode,m.saved.message)+'\nFirst start '+utc(m.saved.first_start_utc_ns)+' · every '+m.saved.period_s+' s'+(m.saved.expires_utc_s?' · expires '+utc(String(BigInt(m.saved.expires_utc_s)*1000000000n)):' · no expiry')+'\nNext eligible: '+utc(m.next_start_utc_ns);
+    let next='';
+    const future=(start,expiry)=>start!==null && BigInt(start)>BigInt(s.utc_now_ns) &&
+      (!expiry || BigInt(start)<BigInt(expiry)*1000000000n);
+    // The scheduler reserves recurrence authority for an enabled message schedule,
+    // even when its next slot is later than a saved WSPR slot or is blocked.
+    if (clockReady && s.storage_healthy && !s.reboot_required && !s.suspended && j.state!=='failed' &&
+        !m.pause_pending && m.state!=='recovery_required') {
+      if (m.saved?.enabled) {
+        if (['waiting','armed'].includes(m.state) && future(m.next_start_utc_ns,m.saved.expires_utc_s))
+          next=m.saved.message.mode.toUpperCase()+': '+m.saved.message.message;
+      } else if (s.enabled && s.configured && !s.frequency_required && !occupied && !j.owner_id &&
+          !j.output_active && !s.wspr_pair_pending && future(v.next_wspr_start_utc_ns,s.expires_utc_s)) next='WSPR';
+    }
     let progress=a?'Job '+j.job_id+' · '+j.state+'\n'+a.event_count+' events · duration '+seconds(a.duration_ns)+(a.start_utc_ns?'\nStart '+utc(a.start_utc_ns):' · start not armed'):'No accepted job';
     if(a&&j.state==='running'&&a.start_utc_ns&&s.clock_state!=='unsynchronized') {
       let elapsed=BigInt(s.utc_now_ns)-BigInt(a.start_utc_ns), duration=BigInt(a.duration_ns);
@@ -89,12 +99,12 @@
     }
     if(j.job_id&&s.last_job===j.job_id&&s.wspr_frame) progress+='\nStandalone WSPR frame '+s.wspr_frame+' of '+s.wspr_frames+(s.wspr_pair_pending?' · pair in progress':'');
     const correction=v.correction;
-    const ppm=n=>Number.isInteger(n)?(n/1000).toFixed(3)+' ppm':'Unavailable';
+    const ppm=n=>Number.isInteger(n)?(n/1000).toFixed(3):'Unavailable';
     return {state,explanation:explanation+(occupied&&(!s.storage_healthy||m.pause_pending||m.state==='recovery_required')?' Accepted job: '+j.state+'. Future-schedule blockers do not declare completion.':''),
       mode:a?(a.mode.toUpperCase()||'RF events')+' · accepted job':m.saved?.enabled?m.saved.message.mode.toUpperCase()+' · saved recurrence':s.enabled?'WSPR · standalone schedule':'No accepted job',
       frequency:a?frequencies(a.mode,a.message,a.frequencies_nhz,a.frequencies_truncated):'No accepted job',
       message:a?.message?a.message.text+'\nDot '+seconds(a.message.dot_ns)+' · '+(a.mode==='dfcw'?'Dash element ':'Dash ')+seconds(a.message.dash_ns)+'\n'+a.message.repeat_count+(a.message.repeat_count===1?' message copy · between-copy gap ':' message copies · between-copy gap ')+seconds(a.message.repeat_gap_ns):a?'Original message and character position unavailable for this RF-event job':'No accepted message',
-      progress,next,correction:'Selected for next preparation: '+ppm(correction?.next_ppb)+'\nAccepted job: '+(a?ppm(correction?.prepared_ppb):'No accepted job')+'\nManual RF correction only. Network time disciplines UTC.',
+      progress,next,correction:ppm(correction?.next_ppb),
       reset:v.reset_allowed&&!occupied&&!j.owner_id&&j.output_active===false,
       actions:j.owner_id===session?'This browser owns the job; its eligible Abort and Release controls are below.':j.owner_id?'Another controller or the Pico scheduler owns the transmitter. This browser cannot abort or take over.':'No job owner. Reset requires a current authenticated idle observation.'};
   }

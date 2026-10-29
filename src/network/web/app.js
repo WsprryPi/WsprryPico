@@ -61,15 +61,20 @@ const consolePut = (id,text) => { const e=$(id); if(e && e.textContent!==text) e
 function consoleState(state,explanation) {
   if ($('console-state')) $('console-state').hidden = /^(?:Transmitter |Job )?empty$/i.test(state);
   if ($('console-state')?.textContent!==state) consolePut('console-announcement',state+'. '+explanation);
-  consolePut('console-state',state); consolePut('console-explanation',explanation);
+  consolePut('console-state',state);
+  // Routine state explanations stay out of the panel; recovery guidance remains visible.
+  const warning=/recovery required|pause awaiting save|reset required|status unavailable|reset unconfirmed/i.test(state);
+  consolePut('console-warning',warning?explanation:'');
+  $('console-warning').hidden=!warning;
 }
 function clearConsole(reason = 'Read a fresh observation before using controls.') {
   operationsSnapshot=null; consoleObservedMs=0;
   consoleState(reconnectRunning ? 'Reset unconfirmed · reconnecting' : restartSent ? 'Reset unconfirmed' : 'Status unavailable',reason);
-  for(const id of ['state','output','clock','owner','engine','network','hostname','discovery']) consolePut(id,'Unknown');
+  for(const id of ['state','output','clock','owner','network','hostname']) consolePut(id,'Unknown');
   consolePut('job-progress','Progress unavailable · status unknown');
   consolePut('discovery-help','');
-  for(const field of ['mode','frequency','message','progress','next','correction','utc','observed']) consolePut('console-'+field,'Unavailable');
+  for(const field of ['mode','frequency','message','progress','correction']) consolePut('console-'+field,'Unavailable');
+  consolePut('console-next',''); $('console-next-item').hidden=true;
   consolePut('console-actions','');
 }
 function clearPrivateStatus() {
@@ -90,11 +95,9 @@ function renderConsole() {
   consoleState(view.state,view.explanation);
   if($('console-state')) $('console-state').hidden=operationsSnapshot.job.state==='empty' && view.state!=='Recovery required';
   for(const field of ['mode','frequency','message','progress','next','correction','actions']) consolePut('console-'+field,view[field]);
-  consolePut('console-observed',new Date(consoleObservedMs).toISOString().replace('T',' ').replace('.000Z',' UTC'));
-  consolePut('console-utc',operationsSnapshot.standalone.clock_state==='unsynchronized'?'Unavailable · Pico clock unsynchronized':WsprryOperations.utc(operationsSnapshot.standalone.utc_now_ns)+' · at observation');
+  $('console-next-item').hidden=!view.next;
 }
 function consoleTick() {
-  consolePut('console-local',new Date(Date.now()).toLocaleString(undefined,{timeZoneName:'short'}));
   if(consoleObservedMs && Date.now()-consoleObservedMs>15000) {
     ++observationEpoch; snapshot=null; markTitleStale(); clearConsole('The observation is over 15 seconds old. RF output and current job state are unknown.'); controls(false);
   }
@@ -930,14 +933,13 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
     } else {
       if(!WsprryOperations.basicValid(observation,localIdentity?.boot_id||operationsTarget?.boot_id||capabilitiesBoot)) throw new Error('Basic status is malformed or belongs to a different boot');
       operationsSnapshot=null;
-      for(const field of ['mode','frequency','message','progress','next','correction']) consolePut('console-'+field,'Unavailable on this connection');
+      for(const field of ['mode','frequency','message','progress','correction']) consolePut('console-'+field,'Unavailable on this connection');
+      consolePut('console-next',''); $('console-next-item').hidden=true;
     }
     privateStatusVisible=true; snapshot=observation; consoleObservedMs=Date.now(); expectedPause = false; observedClockMs = Date.now();
     if(!enhanced) {
       const j=snapshot.job;
       consoleState(j.state==='failed'||j.output_active&&!['armed','running'].includes(j.state)?'Recovery required':'Job '+j.state, (j.output_active && !['armed','running'].includes(j.state)?'RF is reported active outside an accepted running job. ':j.state==='running'?'The accepted job is still running; RF may be off during keyed gaps. ':'')+'This connection supplies basic status. Contextual message, schedule and frequency details are unavailable. RF-off alone does not establish job completion.');
-      consolePut('console-observed',new Date(consoleObservedMs).toISOString().replace('T',' '));
-      consolePut('console-utc',['synchronized','holdover'].includes(snapshot.standalone.clock_state)&&snapshot.standalone.utc_now_ns?WsprryOperations.utc(snapshot.standalone.utc_now_ns)+' · at observation':'Unavailable');
     }
     observedAt = new Date(observedClockMs).toISOString().slice(11,19) + ' UTC';
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) capabilities = (await api('capabilities')).data;
@@ -950,13 +952,12 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
     $('output').textContent = snapshot.job.output_active === true ? 'Active' : snapshot.job.output_active === false ? 'Inactive' : 'Unknown';
     $('clock').textContent = `${s.clock_state === 'holdover' ? 'using last time update' : s.clock_state} · ±${(Number(s.uncertainty_ns)/1e6).toFixed(2)} ms`;
     $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id === 'e'.repeat(32) ? 'Pico schedule' : snapshot.job.owner_id || 'Available';
-    $('engine').textContent = s.engine;
     $('network').textContent = `${n.link_status === 3 ? 'Connected' : 'Disconnected'} · ${n.ipv4 || 'No address'}`;
-    $('hostname').textContent = n.configured_hostname || 'IP-only deployment';
-    await readHostname(identityRequest);
-    const discovery = {unconfigured:'Not configured',waiting_address:'Waiting for Wi-Fi address',probing:'Checking hostname',active:'Advertised',conflict:'Hostname conflict',failed:'Unavailable'};
-    $('discovery').textContent = discovery[n.mdns_state] || 'Unavailable';
-    $('discovery-help').textContent = n.mdns_state === 'conflict' ? 'Another device is using this hostname. Resolve the duplicate, then retry with USB Console WIFI OFF and WIFI ON while idle. The device will not rename itself.' : n.mdns_reason === 'device_identity_mismatch' ? 'Credentials belong to a different device. Rebuild with this device’s certificate bundle and recover through USB Console.' : n.mdns_state === 'failed' ? 'Name discovery failed. Use the current IP address and check USB Console INFO.' : n.mdns_state === 'active' ? (radio ? 'Use this hostname or the current IP address on your local network.' : 'Use this hostname after DHCP address changes. An IP URL needs a matching certificate IP address.') : '';
+    const named=await readHostname(identityRequest);
+    if(epoch!==observationEpoch) return;
+    const activeHostname=named?.active ?? n.configured_hostname;
+    $('hostname').textContent = canonicalHostname(activeHostname)===activeHostname ? activeHostname : 'Unavailable';
+    $('discovery-help').textContent = n.mdns_state === 'conflict' ? 'Another device is using this hostname. Resolve the duplicate, then retry with USB Console WIFI OFF and WIFI ON while idle. The device will not rename itself.' : n.mdns_reason === 'device_identity_mismatch' ? 'Credentials belong to a different device. Rebuild with this device’s certificate bundle and recover through USB Console.' : n.mdns_state === 'failed' ? 'Name discovery failed. Use the current IP address and check USB Console INFO.' : '';
     if (radio) {
       $('consumer-return').textContent = `On your normal Wi-Fi, open http://${n.configured_hostname || n.ipv4}/ or http://${n.ipv4}/. The Pico’s setup Wi-Fi is normally off while this connection is healthy.`;
       updateSetupReceipt();
@@ -988,7 +989,7 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
     renderConsole();
     updateProgress(); messagePreview();
     if(!quiet) notice(''); controls(true);
-  } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname','discovery']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Controls locked. Public readback is unavailable.'; notice('Read-only status or settings could not be read: '+e.message+'. Check the connection and refresh. Your drafts are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
+  } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Controls locked. Public readback is unavailable.'; notice('Read-only status or settings could not be read: '+e.message+'. Check the connection and refresh. Your drafts are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
 }
 async function action(fn) {
   if (busy || accessClosing) return;
@@ -1725,7 +1726,7 @@ async function readHostname(token = pageIdentity.request()) {
       $('restart-status').textContent = 'A new boot was observed, but the intended hostname is not applied. Check saved settings.';
     else {
       $('restart-status').textContent = 'Same Pico and new boot confirmed. Hostname applied: ' + d.active +
-        '. Name discovery and browser reachability are reported separately above.';
+        '.';
       returnReceipt = null; restartSent = false;
       consoleState('Reset confirmed','Authenticated observation confirms the same Pico and a new boot.');
       globalThis.history?.replaceState(history.state,'',globalThis.location.pathname + globalThis.location.search);

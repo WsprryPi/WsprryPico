@@ -65,6 +65,7 @@ async function field(id,value){await cdp.evaluate(`{const e=document.getElementB
 async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
 async function capture(name,target){
     if(process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1')return;
+    if(process.env.HOSTNAME_BROWSER_CAPTURE_PREFIX && !name.startsWith(process.env.HOSTNAME_BROWSER_CAPTURE_PREFIX))return;
     for(const theme of ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
         await cdp.send('Emulation.setDeviceMetricsOverride',{...view,name:undefined,deviceScaleFactor:1,mobile:view.name==='mobile'});
         await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
@@ -90,13 +91,16 @@ try {
         await until(()=>cdp.evaluate(`localAuthenticated && !busy && online`),'login and hostname readback');
     }
     await until(()=>cdp.evaluate('!busy && !!localIdentity'),'unknown metadata state');
-    assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),'Hostname unavailable');
+    // Detailed public readback can confirm the active name even when the optional
+    // lightweight presentation endpoint is unavailable.
+    assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),'wsprrypico-0a60df.local');
     assert.equal(await cdp.evaluate(`document.getElementById('device-id').textContent`),'1'.repeat(32));
     assert.equal(await cdp.evaluate(`document.querySelectorAll('h1').length`),1);
     await capture('unknown-name');
     blockPresentation=false;
+    await cdp.evaluate('globalThis.hostnameReloadMarker=true');
     await cdp.send('Page.reload');
-    await until(()=>cdp.evaluate(`document.title==='wsprrypico-0a60df.local - Station control' && !busy`),'IP initial tab title');
+    await until(()=>cdp.evaluate(`!globalThis.hostnameReloadMarker && typeof busy!=='undefined' && !busy && document.getElementById('device-name').textContent==='wsprrypico-0a60df.local'`),'IP initial hostname readback');
     async function identity(name,device='1'.repeat(32)) {
         assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),name);
         assert.equal(await cdp.evaluate(`document.getElementById('device-id').textContent`),device);
@@ -128,6 +132,23 @@ try {
     // Shipped console observes genuine accepted jobs through encrypted HTTP.
     assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Schedules disabled');
     const other=f.client();await f.time(f.now+1000);await f.login(other);let operationSequence=0;
+    const scheduleRead=await other.request('message-schedule'),schedule=await scheduleRead.json();
+    const scheduleNow=await (await other.request('operations')).json();
+    const recurring={enabled:true,first_start_utc_ns:(BigInt(scheduleNow.standalone.utc_now_ns)+600000000000n).toString(),period_s:1200,expires_utc_s:0,
+        message:{mode:'qrss',message:'CQ AA0NT',frequency_nhz:'135500000000000',space_frequency_nhz:'0',
+            timing:{dot_ns:'1000000000',dash_ns:'3000000000',intra_gap_ns:'1000000000',character_gap_ns:'3000000000',word_gap_ns:'7000000000'},
+            repeat_count:1,repeat_gap_ns:'0',allow_frequency_adjustment:true}};
+    const scheduled=await other.request('message-schedule','PUT',{schema:schedule.schema,target:schedule.target,schedule:recurring},scheduleRead.headers.get('etag'));
+    assert.equal(scheduled.status,200);
+    await click('refresh');await until(()=>cdp.evaluate('!busy'),'enabled recurrence');
+    assert.equal(await cdp.evaluate(`document.getElementById('console-next').textContent`),'QRSS: CQ AA0NT');
+    assert.equal(await cdp.evaluate(`document.getElementById('console-next-item').hidden`),false);
+    await capture('operations-next-message','operations-console');
+    const paused=await other.request('message-schedule/pause','POST',{schema:schedule.schema,target:schedule.target,pause:true},scheduled.headers.get('etag'));
+    assert.equal(paused.status,200);
+    await click('refresh');await until(()=>cdp.evaluate('!busy'),'paused recurrence');
+    assert.equal(await cdp.evaluate(`document.getElementById('console-next-item').hidden`),true);
+    assert.equal(await cdp.evaluate(`document.getElementById('console-next').textContent`),'');
     const logicalOwner='8'.repeat(32);
     async function radioJob(operation,body={}) {
         const response=await other.request('jobs','POST',{session_id:logicalOwner,request_id:(++operationSequence).toString(16).padStart(32,'0'),operation,body});
@@ -145,7 +166,7 @@ try {
         await radioJob('ARM',{job_id:jobId,start_utc_ns:start,max_start_uncertainty_ns:'1000'});
         await click('refresh');await until(()=>cdp.evaluate('!busy'),'armed operations');
         assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Job armed');
-        assert.equal(await cdp.evaluate(`document.getElementById('console-reset').disabled`),true);
+        assert.equal(await cdp.evaluate(`document.getElementById('restart').disabled`),true);
         await f.command({op:'schedule_tick',delta_ns:'2000000000'});
         await click('refresh');await until(()=>cdp.evaluate('!busy'),'running operations');
         assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Job running');
@@ -156,17 +177,19 @@ try {
     }
     await other.logout();await click('refresh');await until(()=>cdp.evaluate('!busy'),'operations released');
     await capture('operations-idle','operations-console');
+    await cdp.evaluate('document.getElementById("message-section").open=true');
     await cdp.evaluate(`document.getElementById('message-text').focus()`);
-    const picoUtc=await cdp.evaluate(`document.getElementById('console-utc').textContent`);
+    const picoUtc=await cdp.evaluate('snapshot.standalone.utc_now_ns');
     for(const timezoneId of ['Asia/Tokyo','America/New_York','UTC']) {
         await cdp.send('Emulation.setTimezoneOverride',{timezoneId});await cdp.evaluate('consoleTick()');
         assert.equal(await cdp.evaluate('Intl.DateTimeFormat().resolvedOptions().timeZone'),timezoneId);
-        assert.equal(await cdp.evaluate(`document.getElementById('console-utc').textContent`),picoUtc,'local timezone cannot change Pico UTC');
+        assert.equal(await cdp.evaluate('snapshot.standalone.utc_now_ns'),picoUtc,'local timezone cannot change device time used for scheduling');
         assert.equal(await cdp.evaluate(`document.activeElement.id`),'message-text','clock ticks retain focus');
     }
     await cdp.send('Emulation.setTimezoneOverride',{timezoneId:'America/Chicago'});
 
     await click('wifi-host-link');
+    await cdp.evaluate('document.getElementById("hostname-section").open=true');
     assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
     await field('hostname-input','K.local');
     await cdp.evaluate(`document.getElementById('hostname-form').dispatchEvent(new Event('submit',{cancelable:true}))`);
@@ -189,6 +212,7 @@ try {
     assert.equal((await f.command({op:'stats'})).profile_generation,'2');
     await login();
     assert.equal(await cdp.evaluate('hostnameState.saved'),'pico-a.local');
+    assert.equal(await cdp.evaluate(`document.getElementById('hostname').textContent`),'wsprrypico-0a60df.local');
     assert.equal(await cdp.evaluate('document.title'),'wsprrypico-0a60df.local - Station control (rename pending)');
     assert.equal(await cdp.evaluate(`document.getElementById('hostname-save').disabled`),true);
     await click('hostname-review');
@@ -202,8 +226,13 @@ try {
     await new Promise(r=>setTimeout(r,2200));
     assert.equal((await f.command({op:'stats'})).api_restarts,attempts);
     await f.command({op:'reboot'});await f.time(5000);
+    await field('local-password','test-password');
+    await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await until(()=>cdp.evaluate('!busy'),'new-boot identity review');
+    assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/boot changed.*unlock again/);
     await login();
     assert.equal(await cdp.evaluate('document.title'),'pico-a.local - Station control');
+    assert.equal(await cdp.evaluate(`document.getElementById('hostname').textContent`),'pico-a.local');
     assert.match(await cdp.evaluate(`document.getElementById('restart-status').textContent`),/Same Pico and new boot confirmed/);
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'KEEP DRAFT');
     assert.equal((await f.command({op:'stats'})).config_sequence,before.config_sequence);
@@ -264,18 +293,18 @@ try {
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:640,height:450,deviceScaleFactor:1,mobile:false});
     await cdp.evaluate(`document.body.style.zoom='2';scrollTo(0,0)`);
     assert.equal(await cdp.evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'long identity at 200% zoom');
-    if(process.env.HOSTNAME_BROWSER_NO_CAPTURE!=='1') {++captures;const zoom=await cdp.send('Page.captureScreenshot',{format:'png'});await writeFile(path.join(output,'long-name-zoom-200.png'),Buffer.from(zoom.data,'base64'));}
+    if(process.env.HOSTNAME_BROWSER_NO_CAPTURE!=='1' && !process.env.HOSTNAME_BROWSER_CAPTURE_PREFIX) {++captures;const zoom=await cdp.send('Page.captureScreenshot',{format:'png'});await writeFile(path.join(output,'long-name-zoom-200.png'),Buffer.from(zoom.data,'base64'));}
     await cdp.evaluate(`document.body.style.zoom=''`);
     const idleLimit=await cdp.evaluate('(async()=> (await api("management")).data.limits.idle_ms)()');
     await f.time(f.now+idleLimit+1);await click('refresh');
     await until(()=>cdp.evaluate('!busy && !localAuthenticated && !radio.authenticated'),'session expiry');
-    assert.match(await cdp.evaluate(`document.getElementById('local-status').textContent`),/Session ended/);
+    assert.match(await cdp.evaluate(`document.getElementById('local-status').textContent`),/Controls locked/);
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Last confirmed/);
     await capture('session-expired');await login();
     failRadioRequests=true;await click('refresh');await until(()=>cdp.evaluate('!busy && !online'),'connection failure');
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Last confirmed/);
     assert.match(await cdp.evaluate('document.title'),/last confirmed/);await capture('disconnected-last-confirmed');
-    console.log(JSON.stringify({identity_heading:true,full_id_diagnostics:true,keyboard_disclosure:true,no_diagnostics_effects:true,unknown_name:true,long_active_name:true,stale_agreement:true,browser:(await cdp.send('Browser.getVersion')).product,served_assets:true,real_crypto:true,
+    console.log(JSON.stringify({identity_heading:true,full_id_diagnostics:true,keyboard_disclosure:true,no_diagnostics_effects:true,public_hostname_without_presentation:true,long_active_name:true,stale_agreement:true,browser:(await cdp.send('Browser.getVersion')).product,served_assets:true,real_crypto:true,
         initial_title:true,hostname_origin:true,canonical_validation:true,generation_save:true,new_boot_readback:true,
         lost_reply_no_replay:true,wrong_device_no_login:true,draft_preserved:true,cancel_countdown:true,screenshots:captures,two_device_tabs:true,zoom_200:true}));
 } catch(error) {

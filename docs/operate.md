@@ -108,7 +108,10 @@ Use **Transmitter status → Refresh** to read the Pico's current report:
 | RF output | **Active**, **Inactive** or **Unknown** is the Pico's reported output state; a browser error leaves it unknown |
 | Clock | Time synchronization state and the estimated timing error shown after `±`; see [clock status](reference/time.md#read-the-clock-status) |
 | Owner | **Available** means no controller holds the transmitter; **This browser** identifies this tab's control; another identifier belongs to another controller |
-| Engine | The firmware's RF signal generator; it is separate from the Wi-Fi connection and clock state |
+| Next transmission | Shows the mode and available message for the next eligible enabled automatic transmission; hidden when no next transmission is available |
+| Manual RF correction (ppm) | The saved manual frequency correction selected for the next job preparation |
+| Wi-Fi | Connection state and current IP address |
+| Hostname | The active full `.local` hostname; a saved name awaiting restart is shown in Wi-Fi/Host |
 
 A successful login alone does not mean the Pico is ready to transmit. A connection failure makes observations stale or unknown. Complete jobs execute locally; closing a browser or unplugging a controller does not stop them.
 
@@ -120,4 +123,4 @@ After an abort, fault or restart, read current state before trying again. Resolv
 
 A shutdown/STOP suspension survives configuration saves. To resume standalone operation, first review the saved schedule and frequency, confirm output is inactive and the Pico is idle, then explicitly **Reset Pico** in **Wi-Fi/Host**. Restart clears STOP; an enabled saved schedule can then run at the next eligible slot after time and other readiness checks pass. Leave it disabled before restart if automatic output is not intended.
 
-The signed-out operator page shows read-only transmitter state, RF output, clock, availability and engine, refreshed every five seconds. Unavailable readings show unknown. The Pico password field receives initial focus; signing in is required to change settings or submit a job.
+The signed-out operator page shows read-only transmitter state, RF output, clock, availability, Wi-Fi and active hostname, refreshed every five seconds. Unavailable readings show unknown. The Pico password field receives initial focus; signing in is required to change settings or submit a job.

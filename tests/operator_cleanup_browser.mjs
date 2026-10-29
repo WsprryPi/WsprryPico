@@ -132,6 +132,15 @@ try {
   assert.equal(await evaluate('document.getElementById("station-area").firstElementChild.id'),'transmitter-status');
   assert.equal(await evaluate('[...document.querySelectorAll("#station-area [data-operator-section]")].slice(-2).map(e=>e.id).join(",")'),'saved-settings,device-diagnostics');
   assert.equal(await evaluate('document.getElementById("console-state").hidden'),true);
+  if(await evaluate('snapshot.standalone.reboot_required'))
+    assert.match(await evaluate('document.getElementById("console-warning").textContent'),/restart/);
+  else assert.equal(await evaluate('document.getElementById("console-warning").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("console-next-item").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("console-next").textContent'),'');
+  assert.match(await evaluate('document.getElementById("console-correction").textContent'),/^(?:-?\d+\.\d{3}|Unavailable)$/);
+  assert.equal(await evaluate('document.getElementById("hostname").textContent'),await evaluate('hostnameState.active'));
+  for(const id of ['console-explanation','console-local','console-utc','console-observed','engine','discovery'])
+    assert.equal(await evaluate(`document.getElementById('${id}')`),null);
   assert.equal(await evaluate('document.getElementById("notice").hidden'),true);
   assert.equal(await evaluate('document.getElementById("section-menu")'),null);
   assert.equal(await evaluate('document.getElementById("local-access").open'),false);
