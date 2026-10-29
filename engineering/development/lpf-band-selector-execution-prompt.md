@@ -6,7 +6,7 @@ Status: saved execution prompt; implementation not started. Saving, reviewing or
 
 Assess and, if justified, implement optional LPF/band-selector control as a coordinated WsprryPico, WsprryPi and operator-documentation feature. Deliver safe member-local selection, configuration, persistence, both management interfaces, compatibility and meaningful validation. Use the complete standing execution authority below for that assigned session.
 
-Preserve the existing Pico 2 W/RP2350 architecture and Pi behavior. Item 5 amplifier lead/tail timing, item 11 Si5351, new RF engines, PCB design and filter construction are separate work. Necessary filter settling belongs to this slice; it must not silently introduce amplifier lead/tail controls. Software selector control and declared coverage do not establish physical filter response, RF power or antenna-ready emissions.
+Preserve the existing Pico 2 W/RP2350 architecture and Pi behavior. Existing amplifier lead/tail policy remains independent of filter settling. Item 11 Si5351, new RF engines, PCB design and filter construction are separate work. Necessary filter settling belongs to this slice; it must preserve the configured amplifier intervals. Software selector control and declared coverage do not establish physical filter response, RF power or antenna-ready emissions.
 
 ## 1. Inspect the baseline and determine usefulness
 

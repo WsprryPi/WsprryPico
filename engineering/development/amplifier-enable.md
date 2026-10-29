@@ -29,11 +29,7 @@ are unchanged. This is a firmware rollback boundary, not automatic migration.
 | POST `config/update/4` | `transmitter-config-update/3`, merge or deliberate replacement |
 | GET `progress/3`, POST `progress/update/3`, POST `progress/apply/3` | `transmitter-progress/3`, independent draft with existing drive domain and explicit application |
 
-All routes use `/api/v1/`. Engineering station, authenticated field,
-Consumer-Radio and physically bound USB use existing carrier authority. New
-field routes retain Configure classification and preclock refusal. Schemas
-cover network and USB management projections and bracketed Type 3 callsigns.
-WTP/1, Field-GATT and USB management framing are unchanged. The timing extension is coordinated with the production WsprryPi USB and network clients.
+All routes use `/api/v1/`. Engineering station, authenticated field, Consumer-Radio and physically bound USB use existing carrier authority. New field routes retain Configure classification and preclock refusal. Schemas cover network and USB management projections and bracketed Type 3 callsigns. WTP/1, Field-GATT and USB management framing are unchanged. The timing extension is coordinated with the production WsprryPi USB and network clients.
 
 Ordinary omitted plans preserve amplifier GPIO/polarity; an ordinary complete
 pin save with omitted polarity preserves its saved value. Legacy Config pin
@@ -71,25 +67,11 @@ SIO; the adapter preloads the declared inactive level before setting output
 direction. Both polarities are checked. External bias remains responsible for
 reset, boot ROM, unpowered periods and states software cannot control.
 
-Every job producer enters the same JobService, StreamEngine and PIO/DMA sink.
-LOAD renders/prepares without asserting enable. The admitted ARM wait keeps it inactive until the configured lead interval. The final driver launch checks clock/epoch/ownership admission,
-safety, indicator acknowledgement, FIFO, deadline and RF drive, then asserts
-enable before RF: a configured nonzero lead uses its own local alarm, while zero lead asserts immediately before enabling physical RF. The driver rechecks deadline
-and safety after the write and safety after enabling PIO. The IRQ path does no
-network/CYW43, allocation, logging, storage or waiting for another core. Existing
-local timer bounds and the renderer/refill authority remain unchanged.
+Every job producer enters the same JobService, StreamEngine and PIO/DMA sink. LOAD renders/prepares without asserting enable. The admitted ARM wait keeps it inactive until the configured lead interval. The final driver launch checks clock/epoch/ownership admission, safety, indicator acknowledgement, FIFO, deadline and RF drive, then asserts enable before RF: a configured nonzero lead uses its own local alarm, while zero lead asserts immediately before enabling physical RF. The driver rechecks deadline and safety after the write and safety after enabling PIO. The IRQ path does no network/CYW43, allocation, logging, storage or waiting for another core. Existing local timer bounds and the renderer/refill authority remain unchanged.
 
-One interval covers a finite job including its keyed gaps. Separate jobs,
-including each frame of a Type 2/3 pair, deassert between them. Configurable RF-off lead and tail surround each job. Drive regulation and RF warmup remain unavailable.
+One interval covers a finite job including its keyed gaps. Separate jobs, including each frame of a Type 2/3 pair, deassert between them. Configurable RF-off lead and tail surround each job. Drive regulation and RF warmup remain unavailable.
 
-Emergency cleanup clamps RF, attempts enable deassertion, then enters fallible DMA halt waits. Normal completion may retain enable through its bounded RF-off tail before the same cleanup. It covers normal hardware tail completion, delayed tail IRQ, stop/abort,
-lease-driven actual termination, missed/rejected launch, partial/no-open state,
-DMA faults and repeated disable/rearm. Neither a halt failure nor an early
-resource failure can skip the enable attempt. Register/pad mismatch leaves
-output active-or-unknown, retains failed state/ownership and blocks admission.
-An issued command alone does not prove success. Armed/running lease expiry
-continues its finite job until terminal state, as before; transport disconnect
-does not add an independent cancellation policy.
+Emergency cleanup clamps RF, attempts enable deassertion, then enters fallible DMA halt waits. Normal completion may retain enable through its bounded RF-off tail before the same cleanup. It covers normal hardware tail completion, delayed tail IRQ, stop/abort, lease-driven actual termination, missed/rejected launch, partial/no-open state, DMA faults and repeated disable/rearm. Neither a halt failure nor an early resource failure can skip the enable attempt. Register/pad mismatch leaves output active-or-unknown, retains failed state/ownership and blocks admission. An issued command alone does not prove success. Armed/running lease expiry continues its finite job until terminal state, as before; transport disconnect does not add an independent cancellation policy.
 
 Missing-worker/nonreturning fault recovery first latches inhibition, forces RF
 OUTOVER low and OEOVER disabled, then forces amplifier OUTOVER inactive before
@@ -100,7 +82,7 @@ never passes the output to its simulator and links no physical RF worker.
 
 ## Lead and tail timing
 
-Lead is the minimum amplifier-enabled, RF-off settling interval before a job's scheduled RF onset. Tail is an amplifier-enabled, RF-off interval after the zero-data DMA stop has confirmed normal RF completion. Both default to **200 ms** and accept **0–1000 whole milliseconds**, independently. Zero removes that interval. There is no separate settling value to add twice. The maximum bounds RF-chain reservation to two extra seconds and fits the existing minimum two-second standalone WSPR preparation interval; it is a software policy bound, not a measured amplifier requirement. Disabled amplifier configuration uses neither delay and performs no enable GPIO access.
+Lead is the minimum amplifier-enabled, RF-off settling interval before a job's scheduled RF onset. Tail is an amplifier-enabled, RF-off interval after the zero-data DMA stop has confirmed normal RF completion. Both default to **200 ms** and accept **0–1000 whole milliseconds**, independently. Zero removes that interval. There is no separate settling value to add twice. The two configured intervals total at most two seconds; the activation margin and timer/worker latency also occupy the RF chain. The 1000 ms lead ceiling fits the existing minimum two-second standalone WSPR preparation interval. It is a software policy bound, not a measured amplifier requirement. Disabled amplifier configuration uses neither delay and performs no enable GPIO access.
 
 The Pico's Radio pins section places timing beside the amplifier pin/polarity controls. WsprryPi's selected-member hardware section places timing beside supported pin settings; amplifier pin/polarity editing remains on the Pico's Radio pins page. Both editors retain existing form styling and native number controls, with explicit read, save and discard actions. Reads, failed saves and target changes preserve unsaved entries; using preserved entries for a different Pico or boot requires the explicit “Use entries for this Pico” action. Discard restores the last-read saved values. Readback separates saved timing, active timing for this boot, phase at readback and pending restart. Saving never toggles an output. Timing uses the existing idle, unowned, inactive, nonfaulted, revision-checked Config transaction. Timing, pin and drive changes all require restart and latch inhibition through A/B/A saves. Saved values, immutable boot timing and a job's accepted timing remain distinct. Unrepresented timing survives all historical Config, station, pin and progress saves, including legacy replacement. Explicit timing saves set both values; reset domains follow the existing Config reset authority.
 
@@ -117,3 +99,5 @@ Hardware deadlines use the monotonic microsecond timer, with nanosecond arithmet
 During lead the job remains armed; during normal tail it retains running/ownership and reports RF inactive. Completion becomes terminal only after verified amplifier deassertion and cleanup. The unchanged 100 µs RF completion acknowledgement allowance applies while RF completion is unconfirmed. A verified normal tail carries its own monotonic deadline from the actual RF-off observation through the sink, worker and service; a late IRQ observation cannot consume that dwell or trigger a nominal-end watchdog fault. The service bounds the reported deadline to the immutable tail policy and retains ownership through checked deassertion. Complete-job ceilings still bound only the unchanged encoded waveform. Separate jobs, including Type 2/3 frames, always deactivate between intervals; insufficient preparation or ownership time rejects/skips the next job rather than combining intervals. STOP, ABORT, reset, shutdown, maintenance, inhibition, rejected launch and faults cancel all pending intervals and immediately attempt safe output before fallible DMA cleanup. Transport loss retains the existing armed/running finite-job lease extension.
 
 LPF adapters remain unavailable, so timing introduces no filter dependency. Console INFO exposes the last admitted job as the independently versioned `amplifier-readback/1` object: epoch, effective policy, configured state, normal-completion flag and nullable monotonic timestamps for checked enable, RF launch, checked RF-inactive and checked disable. Values are sampled after GPIO/function/direction readback or the physical PIO launch boundary, retain the last job after RELEASE and reset on a newly admitted ARM or boot. Disabled configuration produces no enable/disable timestamps. This board readback establishes commanded GPIO state and local timing; it does not establish external amplifier readiness, power or independently measured RF silence. Host and source-pair fixtures remain software evidence only.
+
+The [validation record](amplifier-timing-validation.md) identifies the tested source pair, measured GPIO intervals, corrected completion-deadline finding, resource changes and final restored installation.

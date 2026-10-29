@@ -1,12 +1,6 @@
 # Pico 2 W pin-assignment contract
 
-Status: selected design contract, agreed 2026-10-01; implemented subset below.
-The [pin allocation feature](development/pin-allocation.md) implements boot-applied
-direct RF, active-low switch and indicator selection plus candidate allocation
-validation. Optional amplifier-enable execution and independent polarity
-are implemented in the [amplifier slice](development/amplifier-enable.md).
-LPF adapters and Pico Si5351 support remain unimplemented. Hardware eligibility
-is not RF qualification.
+Status: selected design contract, agreed 2026-10-01; implemented subset below. The [pin allocation feature](development/pin-allocation.md) implements boot-applied direct RF, active-low switch and indicator selection plus candidate allocation validation. Optional amplifier-enable execution and independent polarity are implemented in the [amplifier slice](development/amplifier-enable.md). LPF adapters and Pico Si5351 support remain unimplemented. Hardware eligibility is not RF qualification.
 
 ## Target and numbering
 
@@ -147,13 +141,7 @@ suitable buffering, level conversion or relay drivers. External bias establishes
 required startup/reset/unpowered states; software does not guarantee driven
 levels throughout those conditions. I²C requires compatible pull-ups and voltage.
 
-Assignments may change only while the member is idle, unowned, RF-inactive and
-nonfaulted, with configuration revision validation. The member owns the complete
-local RF chain. The implemented subset initializes the amplifier inactive,
-prepares the engine, completes the saved amplifier lead before scheduled physical RF activation, executes one finite job including keyed gaps, stops RF and completes a normal RF-off tail before deasserting enable. Lead and tail each default to 200 ms and are independently configurable from 0 to 1000 ms. Separate jobs deassert between them, including a Type 2/3 pair.
-Filter selection/settling is unavailable. Emergency cleanup bypasses amplifier tail.
-Completion, cancellation and faults use the same cleanup authority. Unconfirmed
-cleanup blocks another transmission. Pin assignment does not authorize output.
+Assignments may change only while the member is idle, unowned, RF-inactive and nonfaulted, with configuration revision validation. The member owns the complete local RF chain. The implemented subset initializes the amplifier inactive, prepares the engine, completes the saved amplifier lead before scheduled physical RF activation, executes one finite job including keyed gaps, stops RF and completes a normal RF-off tail before deasserting enable. Lead and tail each default to 200 ms and are independently configurable from 0 to 1000 ms. Separate jobs deassert between them, including a Type 2/3 pair. Filter selection/settling is unavailable. Emergency cleanup bypasses amplifier tail. Completion, cancellation and faults use the same cleanup authority. Unconfirmed cleanup blocks another transmission. Pin assignment does not authorize output.
 
 ## Implementation and validation boundary
 
