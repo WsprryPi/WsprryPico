@@ -62,11 +62,11 @@ async function login(password='test-password') {
 const checks=[];
 function pass(name){checks.push(name);console.log('PASS '+name);}
 async function capture(state,dialog=false) {
-    if(process.env.UI_REVIEW_NO_CAPTURE==='1')return;
     for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844},{name:'landscape',width:740,height:360}]) {
         await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name!=='desktop'});
         if(!dialog)await evaluate('scrollTo(0,0)');
         assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'no horizontal overflow');
+        if(process.env.UI_REVIEW_NO_CAPTURE==='1')continue;
         const shot=await send('Page.captureScreenshot',{format:'png'});
         await writeFile(path.join(output,state+'-'+view.name+'.png'),Buffer.from(shot.data,'base64'));
     }

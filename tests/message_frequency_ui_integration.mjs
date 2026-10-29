@@ -22,7 +22,7 @@ class Cdp {
   async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
 }
 async function until(fn,label,ms=15000){const end=Date.now()+ms;while(Date.now()<end){if(await fn())return;await new Promise(resolve=>setTimeout(resolve,50));}let detail='';try{detail=await cdp.evaluate(`JSON.stringify({feedback:document.getElementById('message-result')?.textContent,notice:document.getElementById('notice')?.textContent,active:document.activeElement?.id,writes:globalThis.cwRequests?.slice(-5)})`);}catch{}throw Error('Timed out: '+label+' '+detail);}
-async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
+async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
 async function control(command) {
   const r=await fetch('http://127.0.0.1:'+fixturePort+'/.fixture-control',{method:'POST',body:JSON.stringify(command)});
@@ -33,6 +33,7 @@ async function capture(name){
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name==='mobile'});
     await cdp.evaluate(`document.getElementById('job-heading').scrollIntoView({block:'start'})`);
     assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,'horizontal overflow');
+    if(process.env.PICO_BROWSER_NO_CAPTURE==='1')continue;
     const png=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
     await writeFile(path.join(output,`${name}-${view.name}.png`),Buffer.from(png.data,'base64'));
     if(view.name==='mobile') {
@@ -147,7 +148,7 @@ try {
     await field('message-frequency','1000000');
     await cdp.evaluate(`document.getElementById('message-form').requestSubmit()`);
     await until(()=>cdp.evaluate(`!busy && document.getElementById('message-result').textContent.includes('preserved')`),'server refusal');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-result').closest('fieldset')`),null,'action feedback remains outside disabled controls');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-result').closest('fieldset:disabled')`),null,'action feedback remains outside disabled controls');
     assert.equal(await cdp.evaluate(`getComputedStyle(document.getElementById('message-result')).opacity`),'1');
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency').value`),'1000000');
     assert.equal(await cdp.evaluate(`document.getElementById('message-shift').value`),'5');await capture(surface+'-server-refusal');

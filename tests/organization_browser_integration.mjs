@@ -7,9 +7,13 @@ import {mkdtemp, readFile, writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {Fixture} from './consumer_sessions.test.mjs';
+import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
 import {scanAccessibility} from './ui_review_accessibility.mjs';
 
 if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; Node 20 needs --experimental-websocket');
+if (!process.argv[2]) throw Error('Usage: node tests/organization_browser_integration.mjs CONSUMER_BOOTSTRAP_DRIVER [OUTPUT_DIRECTORY]');
+const processGroup=process.platform==='linux';
+const noCapture=process.env.PICO_BROWSER_NO_CAPTURE==='1' || process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1';
 const output=path.resolve(process.argv[3] || 'build/organization-browser-integration');
 await mkdir(output,{recursive:true});
 const axeSource=process.env.UI_REVIEW_AXE_PATH ? await readFile(process.env.UI_REVIEW_AXE_PATH,'utf8') : null;
@@ -63,9 +67,8 @@ class Cdp {
 }
 async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(Date.now()<end){try{const r=await fn();if(r)return r;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+label+(last?' '+last.message:''));}
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
-async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
+async function click(id){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.click();}`);}
 async function capture(name,anchor=null){
-    if(process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1' && !axeSource)return;
     for(const theme of axeSource ? ['light'] : ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
         await cdp.send('Emulation.setDeviceMetricsOverride',{...view,name:undefined,deviceScaleFactor:1,mobile:view.name==='mobile'});
         await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
@@ -79,7 +82,7 @@ async function capture(name,anchor=null){
           assert.equal(accessibility.at(-1).violations.length,0,'axe violations: '+name+' '+view.name);
           assert.equal(accessibility.at(-1).incomplete.length,0,'axe manual review required: '+name+' '+view.name);
         }
-        if(process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1')continue;
+        if(noCapture)continue;
         const image=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
         await writeFile(path.join(output,`${name}-${view.name}-${theme}.png`),Buffer.from(image.data,'base64'));
         if(name==='pico-password-default' && view.name==='desktop' && theme==='light') {
@@ -92,7 +95,7 @@ async function capture(name,anchor=null){
 try {
     chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
-         '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore'});
+         '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore',detached:processGroup});
     const debugPort=await until(async()=>Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]),'Chrome startup',60000);
     const page=await until(async()=>(await(await fetch(`http://127.0.0.1:${debugPort}/json`)).json()).find(p=>p.type==='page'),'page');
     cdp=new Cdp(page.webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
@@ -168,19 +171,20 @@ try {
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy'),'production control document');
     assert.equal(await cdp.evaluate(`!document.getElementById('station-area').hidden && document.getElementById('wifi-host-area').hidden`),true);
-    assert.match(await cdp.evaluate(`document.getElementById('message-availability').textContent`),/unlock controls/);
+    assert.match(await cdp.evaluate(`document.getElementById('access-toggle').getAttribute('aria-label')`),/Unlock controls/);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-settings').disabled`),true,'locked controls cannot submit a message');
     await capture('lan-default');
     await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'login');
     const jumpRequests=requests.length;
-    await cdp.evaluate('document.getElementById("section-menu").open=true');
+    const initialHash=await cdp.evaluate('location.hash');
     for(const id of ['station-identity','radio-settings','message-section']) {
-      await cdp.evaluate(`document.querySelector('a[href$="#${id}"]').focus()`);
+      await cdp.evaluate(`{const section=document.getElementById('${id}');section.open=false;const summary=section.querySelector('summary');summary.scrollIntoView({block:'center'});summary.focus();}`);
       await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
       await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
-      await until(()=>cdp.evaluate(`document.activeElement===document.getElementById('${id}').querySelector('summary')`),'keyboard section link '+id);
+      await until(()=>cdp.evaluate(`document.getElementById('${id}').open && document.activeElement===document.getElementById('${id}').querySelector('summary')`),'keyboard native section '+id);
     }
-    assert.equal(await cdp.evaluate('location.hash'),'#message-section');assert.equal(requests.length,jumpRequests);
+    assert.equal(await cdp.evaluate('location.hash'),initialHash,'native disclosures preserve navigation history');assert.equal(requests.length,jumpRequests);
     const messageAX=(await cdp.send('Accessibility.getFullAXTree')).nodes.find(n=>n.role?.value==='textbox' && n.name?.value==='Message');
     assert.ok(messageAX,'message accessible name excludes help prose');
     assert.match(messageAX.description?.value || '',/32-character limit/);
@@ -223,7 +227,7 @@ try {
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:640,height:450,deviceScaleFactor:1,mobile:false});
     await cdp.evaluate(`document.body.style.zoom='2'`);
     assert.equal(await cdp.evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'200 percent zoom');
-    const zoom=await cdp.send('Page.captureScreenshot',{format:'png'});await writeFile(path.join(output,'organization-zoom.png'),Buffer.from(zoom.data,'base64'));
+    if(!noCapture){const zoom=await cdp.send('Page.captureScreenshot',{format:'png'});await writeFile(path.join(output,'organization-zoom.png'),Buffer.from(zoom.data,'base64'));}
     await cdp.evaluate(`document.body.style.zoom=''`);
     // Bookmark selection survives observation; explicit navigation can override it.
     await cdp.evaluate(`location.hash='hostname-form'`);await click('station-link');
@@ -341,4 +345,13 @@ try {
       wifi_only_lan_after_reboot:true,optional_station_from_wifi_only:true,defaults:true,reciprocal_navigation:true,drafts:true,back_forward_reload:true,no_session_churn:true,no_navigation_mutations:true,station_save_without_message:true,receipt_reconciliation:true,zoom_200:true,section_keyboard_focus:true,accessible_message_name:true,inline_wifi_errors:true,transition_focus:true,recovery_cancel_origin:true}));
 } catch(error) {
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate('({url:location.href,text:document.body?.innerText.slice(0,1000)})').catch(e=>e.message):null}));throw error;
-} finally {cdp?.ws.close();chrome?.kill();proxy.close();await f.stop();await fB.stop();}
+} finally {
+    cdpB?.ws.close();cdp?.ws.close();
+    try {await cleanupUiProcesses([chrome],profile,{processGroup});}
+    finally {
+        proxy.closeAllConnections();await new Promise(resolve=>proxy.close(resolve));await proxyQueue;
+        const stopped=await Promise.allSettled([f.stop(),fB.stop()]);
+        const errors=stopped.filter(result=>result.status==='rejected').map(result=>result.reason);
+        if(errors.length)throw new AggregateError(errors,'Fixture shutdown failed');
+    }
+}

@@ -158,6 +158,14 @@ def host_checks(deps, audit):
     execute(log, 'env', 'PROGRESS_BROWSER_NO_CAPTURE=1', 'node', ROOT / 'tests/progress_browser_integration.mjs',
             host / 'consumer_bootstrap_driver', audit / 'progress-ui')
     execute(log, 'node', ROOT / 'tests/consumer_recovery_browser.mjs', host / 'consumer_bootstrap_driver')
+    for suite in ('hostname_browser_integration', 'organization_browser_integration',
+                  'wspr_browser_integration', 'message_frequency_ui_integration'):
+        execute(log, 'env', 'PICO_BROWSER_NO_CAPTURE=1', 'node', ROOT / f'tests/{suite}.mjs',
+                host / 'consumer_bootstrap_driver', audit / suite)
+    execute(log, 'node', ROOT / 'tests/operator_cleanup_browser.mjs', host / 'consumer_session_driver')
+    for carrier in ('consumer', 'engineering'):
+        execute(log, 'env', 'UI_REVIEW_NO_CAPTURE=1', 'node', ROOT / 'tests/ui_sections_browser.mjs',
+                host / 'consumer_bootstrap_driver', audit / f'sections-{carrier}', carrier)
     return {'registered': len(names), 'passed': len(cases), 'failed': 0, 'skipped': 0,
             'test_names': sorted(names), 'wtp_contract': 'passed', 'browser_npm': 'passed',
             'packaging_failure_tests': 'passed', 'consumer_ui': 'passed',

@@ -745,6 +745,9 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME radio_capture_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/radio_capture_tests.py)
     if(WSPRRY_PICO_HARNESS_PYTHON)
+        add_test(NAME wspr_type23_decode_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}
+            ${CMAKE_SOURCE_DIR}/tests/wspr_type23_decode_tests.py)
+        set_tests_properties(wspr_type23_decode_tests PROPERTIES TIMEOUT 30)
         add_test(NAME rf_analysis_jobs_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}
             ${CMAKE_SOURCE_DIR}/tests/rf_analysis_jobs_tests.py)
         add_test(NAME rf_abort_analysis_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}
