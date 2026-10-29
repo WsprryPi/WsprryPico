@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-29T11:49:15.698886+00:00",
+  "generatedAt": "2026-10-29T16:58:41.678938+00:00",
   "title": "Design System: WsprryPico Station Control",
   "extensions": {
     "colorMeta": {
@@ -218,7 +218,41 @@
         "name": "stacked-forms",
         "value": "650px"
       }
-    ]
+    ],
+    "typographyMeta": {
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default operator text and inherited native control font."
+      },
+      "page-title": {
+        "displayName": "Page title",
+        "purpose": "The active Pico hostname above both views."
+      },
+      "section-heading": {
+        "displayName": "Operator disclosure heading",
+        "purpose": "One system-font semibold role for every peer section summary, including nested semantic headings and Diagnostics; identical in locked, unlocked and responsive views."
+      },
+      "status-heading": {
+        "displayName": "Active status heading",
+        "purpose": "Accepted-job state or recovery headline."
+      },
+      "status-heading-narrow": {
+        "displayName": "Compact active status heading",
+        "purpose": "Active status headline at 650px and below."
+      },
+      "comparison-heading": {
+        "displayName": "Comparison heading",
+        "purpose": "Group titles in saved-setting comparisons."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Form labels and legends."
+      },
+      "help": {
+        "displayName": "Help",
+        "purpose": "Secondary inline guidance."
+      }
+    }
   },
   "components": [
     {
@@ -278,7 +312,7 @@
       "name": "Exact preview",
       "kind": "custom",
       "description": "Illustrative preview content; exact fractional duration and numerical capacity remain visible.",
-      "html": "<p class=\"ds-preview\" role=\"status\">3.000001 s \u00b7 2 / 512 events \u00b7 1 / 32 characters</p>",
+      "html": "<p class=\"ds-preview\" role=\"status\">3.000001 s · 2 / 512 events · 1 / 32 characters</p>",
       "css": ".ds-preview{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;font-size:1rem;line-height:1.5;color:#25313d;font-variant-numeric:tabular-nums}.ds-preview.ds-error{color:#882b19}"
     },
     {
@@ -287,6 +321,13 @@
       "description": "Member-local selector and declared-coverage editor with explicit read/save/discard actions, preserved drafts and separate boot-active observations. Preview values illustrate layout only.",
       "html": "<fieldset class=\"ds-filter\"><legend>LPF / band selector</legend><p class=\"ds-filter-help\" id=\"ds-filter-help\">Declare the usable frequency range of each physical filter path. Declared coverage and GPIO readback do not measure filtering or relay position. Save, then restart to activate. Saving never switches a relay.</p><div class=\"ds-filter-fields\"><label class=\"ds-filter-label\">Selection policy<select class=\"ds-filter-control\" aria-describedby=\"ds-filter-help\" id=\"ds-filter-policy\"><option>Fixed / manual filtering</option><option>Require an automatic selection</option></select></label><label class=\"ds-filter-label\">Release old selection (ms)<input class=\"ds-filter-control\" type=\"number\" value=\"20\" id=\"ds-filter-release\" aria-describedby=\"ds-filter-help\"></label><label class=\"ds-filter-label\">Settle new selection (ms)<input class=\"ds-filter-control\" type=\"number\" value=\"20\" id=\"ds-filter-settle\" aria-describedby=\"ds-filter-help\"></label></div><h4>Selector outputs</h4><fieldset class=\"ds-filter-row\"><legend>Selector 1</legend><div class=\"ds-filter-fields\"><label class=\"ds-filter-label\">Selector name<input class=\"ds-filter-control\" value=\"40m LPF\" id=\"ds-filter-name\" aria-describedby=\"ds-filter-help\"></label><label class=\"ds-filter-label\">Pico GPIO<select class=\"ds-filter-control\" aria-describedby=\"ds-filter-help\" id=\"ds-filter-gpio\"><option>GP10</option></select></label><label class=\"ds-filter-label\">Polarity<select class=\"ds-filter-control\" aria-describedby=\"ds-filter-help\" id=\"ds-filter-polarity\"><option>Active-high</option><option>Active-low</option></select></label></div><button class=\"ds-filter-button\" type=\"button\">Remove selector 1</button></fieldset><button class=\"ds-filter-button\" type=\"button\">Add selector</button><h4>Declared frequency ranges</h4><fieldset class=\"ds-filter-row\"><legend>Frequency range</legend><div class=\"ds-filter-fields\"><label class=\"ds-filter-label\">Range name<input class=\"ds-filter-control\" value=\"40m\" id=\"ds-filter-range\" aria-describedby=\"ds-filter-help\"></label><label class=\"ds-filter-label\">Selector<select class=\"ds-filter-control\" aria-describedby=\"ds-filter-help\" id=\"ds-filter-mapping\"><option>40m LPF</option></select></label><label class=\"ds-filter-label\">From (Hz)<input class=\"ds-filter-control\" type=\"number\" value=\"7000000\" id=\"ds-filter-low\" aria-describedby=\"ds-filter-help\"></label><label class=\"ds-filter-label\">Through (Hz)<input class=\"ds-filter-control\" type=\"number\" value=\"7300000\" id=\"ds-filter-high\" aria-describedby=\"ds-filter-help\"></label></div><button class=\"ds-filter-button\" type=\"button\">Remove range</button></fieldset><button class=\"ds-filter-button\" type=\"button\">Add frequency range</button><p class=\"ds-filter-help\" role=\"status\" aria-live=\"polite\">Saved: fixed / manual filtering. Active settings match this boot. No selector currently active. GPIO observation is not a relay-position or RF measurement.</p><details><summary>Active settings for this boot</summary><p>Fixed / manual filtering</p></details><div class=\"ds-filter-actions\"><button class=\"ds-filter-button\" type=\"button\">Read saved selectors</button><button class=\"ds-filter-button ds-filter-primary\" type=\"button\" disabled>Save selectors</button><button class=\"ds-filter-button\" type=\"button\">Discard selector entries</button></div></fieldset>",
       "css": ".ds-filter{font:400 1rem/1.5 system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#25313d;border:0;padding:0;min-width:0}.ds-filter legend{font-weight:600;margin:1rem 0}.ds-filter h4{margin:1.33rem 0}.ds-filter-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}.ds-filter-label{display:flex;flex-direction:column;gap:.4rem;margin:0 0 1rem;min-width:0;font-weight:600}.ds-filter-control{box-sizing:border-box;width:100%;padding:.6rem;font:inherit;color:#25313d;background:white;border:1px solid #687e90;border-radius:4px}.ds-filter-row{border:0;padding:0;min-width:0}.ds-filter-button{min-height:44px;padding:.5rem .9rem;margin:.25rem .35rem .25rem 0;font:inherit;color:#203a50;background:white;border:1px solid #687e90;border-radius:4px;cursor:pointer}.ds-filter-primary{color:white;background:#225e8a;border-color:#225e8a}.ds-filter-button:hover:enabled{filter:brightness(.93)}.ds-filter-button:disabled{opacity:.6;cursor:default}.ds-filter-control:focus-visible,.ds-filter-button:focus-visible,.ds-filter summary:focus-visible{outline:3px solid #b37617;outline-offset:3px}.ds-filter details{margin:.5rem 0 1rem}.ds-filter summary{font-weight:600;cursor:pointer;padding:.65rem 0;min-height:44px}.ds-filter p{max-width:75ch}@media(max-width:650px){.ds-filter-fields{grid-template-columns:1fr}.ds-filter-button{max-width:100%}}"
+    },
+    {
+      "name": "Operator disclosure headings",
+      "kind": "custom",
+      "description": "Peer section headings use the same system face, semibold weight, size and line height while preserving semantic h2 labels and native disclosure behavior.",
+      "html": "<details class=\"ds-operator-section\"><summary><h2>Station identity</h2></summary><p>Confirmed station settings.</p></details><details class=\"ds-operator-section\"><summary><h2>About this Pico / Diagnostics</h2></summary><p>Device identity and diagnostics.</p></details>",
+      "css": ".ds-operator-section{font-family:system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;color:#25313d;border-top:1px solid #c8d1d9;margin:1.5rem 0 0;padding:.5rem 0}.ds-operator-section>summary{font-size:1.25rem;font-weight:600;line-height:1.5;cursor:pointer;padding:.65rem 0;min-height:44px}.ds-operator-section>summary h2{display:inline;font:inherit;margin:0}.ds-operator-section>summary:focus-visible{outline:3px solid #b37617;outline-offset:3px}"
     }
   ],
   "narrative": {
@@ -308,6 +349,11 @@
         "name": "The Confirmed State Rule",
         "body": "Estimated elapsed time may describe a matching running job, but never replace its last confirmed state or turn a completed estimate into confirmed completion.",
         "section": "components"
+      },
+      {
+        "name": "The Peer Heading Rule",
+        "body": "Every operator disclosure label, including a nested semantic heading, inherits the same section-heading typography in locked, unlocked and responsive views.",
+        "section": "typography"
       }
     ],
     "dos": [

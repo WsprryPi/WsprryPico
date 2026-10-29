@@ -86,11 +86,16 @@ async function capture(state) {
     for(const theme of ['light','dark']) {
       await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
       assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,`${width} ${area} ${theme}`);
-      const headings=await evaluate(`Array.from(document.querySelectorAll('#${area}-area [data-operator-section]>summary')).map(e=>{let opacity=1;for(let p=e;p;p=p.parentElement)opacity*=Number(getComputedStyle(p).opacity);return {opacity,color:getComputedStyle(e).color}})`);
+      const headings=await evaluate(`Array.from(document.querySelectorAll('#${area}-area [data-operator-section]>summary')).map(e=>{const label=e.querySelector(':scope>h2')||e,style=getComputedStyle(label);let opacity=1;for(let p=label;p;p=p.parentElement)opacity*=Number(getComputedStyle(p).opacity);return {opacity,color:style.color,family:style.fontFamily,size:style.fontSize,weight:style.fontWeight,lineHeight:style.lineHeight}})`);
+      const type=await evaluate('({family:getComputedStyle(document.documentElement).fontFamily,size:parseFloat(getComputedStyle(document.documentElement).fontSize)*1.25})');
       assert.ok(headings.length>0);
       for(const heading of headings) {
         assert.equal(heading.opacity,1,`${state} ${area} disclosure remains readable`);
         assert.equal(heading.color,'rgb(37, 49, 61)',`${state} ${area} disclosure uses body text color`);
+        assert.equal(heading.family,type.family,'all peer labels use the established system font');
+        assert.equal(parseFloat(heading.size),type.size,'all peer labels share the disclosure size');
+        assert.equal(heading.weight,'600','rendered h2 labels inherit the disclosure weight');
+        assert.equal(parseFloat(heading.lineHeight),type.size*1.5,'all peer labels share the disclosure line height');
       }
       if(area==='station') {
         const buttons=await evaluate(`['restart','abort','release'].map(id=>{const e=document.getElementById(id),r=e.getBoundingClientRect();return {top:r.top,left:r.left,right:r.right,height:r.height}})`);
@@ -118,9 +123,16 @@ async function capture(state) {
     const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});saveScreenshot('station-settings.png',shot);
     await evaluate('scrollTo(0,0)');
   }
+  const zoomArea=await evaluate('document.getElementById("station-area").hidden ? "wifi-host" : "station"');
   await evaluate('document.documentElement.style.zoom="2"');
   assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'200% zoom');
+  for(const area of ['station','wifi-host']) {
+    await click(area==='station'?'station-link':'wifi-host-link');
+    const types=await evaluate(`Array.from(document.querySelectorAll('#${area}-area [data-operator-section]>summary')).map(e=>{const s=getComputedStyle(e.querySelector(':scope>h2')||e);return [s.fontFamily,s.fontSize,s.fontWeight,s.lineHeight].join('|')})`);
+    assert.equal(new Set(types).size,1,`${area} disclosure typography stays consistent at 200% zoom`);
+  }
   await evaluate('document.documentElement.style.zoom=""');
+  await click(zoomArea==='station'?'station-link':'wifi-host-link');
 }
 try {
   await f.time(1000);await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));

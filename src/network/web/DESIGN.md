@@ -22,8 +22,31 @@ colors:
 typography:
   body:
     fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.5
+  page-title:
+    fontSize: "2rem"
+    fontWeight: 700
+    lineHeight: 1.2
+  section-heading:
+    fontSize: "1.25rem"
+    fontWeight: 600
+    lineHeight: 1.5
+  status-heading:
+    fontSize: "1.65rem"
+    fontWeight: 700
+    lineHeight: 1.25
+  status-heading-narrow:
+    fontSize: "1.4rem"
+    fontWeight: 700
+    lineHeight: 1.25
+  comparison-heading:
+    fontSize: "1.125rem"
+    fontWeight: 700
     lineHeight: 1.5
   label:
+    fontSize: "1rem"
     fontWeight: 600
   help:
     fontSize: "0.875rem"
@@ -92,11 +115,7 @@ Color alone does not express validation or RF output state.
 
 ## Typography
 
-Body text and controls use the system stack recorded above, with controls
-inheriting the surrounding font. Labels and status values are semibold; help
-text is smaller and normal weight. The current page heading is `2rem` with
-`1.2` line height; section headings and header identity are `1.25rem`. These
-heading sizes describe the existing surface, not a new display-font identity.
+Body text and controls use the system stack recorded above, with controls inheriting the surrounding font. Labels and status values are semibold; help text is smaller and normal weight. All peer operator disclosure labels use the section-heading role, including semantic headings nested inside summary and About this Pico / Diagnostics. Their family, size, semibold weight and line height stay identical in locked, unlocked, narrow and zoomed views. Page and active-status headings retain their distinct hierarchy. No additional font assets are loaded.
 
 Message previews and progress use tabular numerals. Keep units attached to
 values and retain significant subsecond digits; do not round away a finite-job
@@ -131,8 +150,7 @@ their recognizable control geometry.
 ### Buttons and navigation
 
 Primary buttons submit settings or load and arm a complete job. Secondary
-buttons use white surfaces with dark text and a one-pixel border. Enabled hover
-uses `brightness(.93)`; disabled buttons and fieldsets use `.6` opacity.
+buttons use white surfaces with dark text and a one-pixel border. Enabled hover uses `brightness(.93)`; disabled buttons retain `.6` opacity. Locked settings wrappers and their nested fieldsets retain full opacity so disclosure labels and read-only content remain legible; native disabled controls continue to enforce access.
 Keyboard focus has a three-pixel amber outline with a three-pixel offset. Programmatic section targets retain a one-rem scroll margin so the outline stays visible.
 The navy header contains the home link and two view links, Station Control and Wi-Fi/Host. Active navigation uses a 3px underline and aria-current. Selecting a view scrolls to window top while retaining the document, session and drafts. Native section summaries replace the body menu. Top closes managed and nested disclosures and focuses the hostname. Station starts with merged Transmitter status; Saved settings and recovery sits immediately above the final About this Pico / Diagnostics section. Wi-Fi/Host contains network, Pico password, hostname and Logging. WSPR Configuration and Radio pins have separate save/apply ownership; one cannot apply the other's drafts.
 
@@ -284,11 +302,11 @@ The consumer login label is Pico password. Its default is the saved Wi-Fi passwo
 
 The timeout control follows the existing native fieldset and read/save/discard pattern in WSPR Configuration. It uses whole minutes, defaults to 60 minutes, and keeps saved and active values separate. Reads remain available during a transmission; saves require inactive, unowned output and a current target/revision. The help explains restart activation and the independent timing-uncertainty limit. Unconfirmed writes require readback before another save, and changing Pico identity preserves the entry behind explicit review.
 
-Transmission length appears immediately below the message and uses the same exact timing calculation as job submission. It updates before a frequency is entered and includes repeats, gaps and the final tail. Signed-out status uses a bounded public projection with five-second polling; unavailable readings become unknown with saved settings visible in dimmed disabled fields; mutations and job controls remain locked. Ordinary entry leaves the password modal closed. Only deliberate lock activation opens it and focuses the password. Subsequent status updates preserve focus and drafts.
+Transmission length appears immediately below the message and uses the same exact timing calculation as job submission. It updates before a frequency is entered and includes repeats, gaps and the final tail. Signed-out status uses a bounded public projection with five-second polling; unavailable readings become unknown with saved settings visible in full-opacity locked sections; mutations and job controls remain locked. Ordinary entry leaves the password modal closed. Only deliberate lock activation opens it and focuses the password. Subsequent status updates preserve focus and drafts.
 
 ### Contextual status console
 
-Station status uses a 1.65rem state heading (1.4rem on narrow screens) for accepted work or recovery; the empty-job headline is hidden. It uses one explanation, two-column flat context values and three clock columns. Context and clocks become single-column at 650px. Accepted work and future schedules have separate labels; unique transmitter/connection observations follow in the same section. Reset Pico and its feedback belong to Station status. Status transitions have one polite announcement; clocks and routine observations do not announce ticks. Unavailable status clears live values and disables controls without changing drafts or focus.
+Station status uses the status-heading role for accepted work or recovery and its compact variant on narrow screens; the empty-job headline is hidden. Context values use two flat columns and become single-column at 650px. Accepted work and Next transmission have separate labels; unique transmitter and connection observations follow in the same section. Routine explanations and the three timestamp fields are omitted. Recovery guidance remains visible when needed. Reset Pico and its feedback belong to Station status. Status transitions have one polite announcement; routine observations do not announce ticks. Unavailable status clears live values and disables controls without changing drafts or focus.
 
 ### Disclosures and access dialog
 
@@ -296,7 +314,7 @@ The hostname lock is a 44 px native button with local stroked SVG, a visually hi
 
 Non-status operator groups use flat, border-separated native details/summary sections, closed by default. Explicit section bookmarks and unresolved save continuations reveal the needed content. Summary headings remain discoverable, and Top links have 44 px targets. Header view links wrap within the existing inset on narrow screens. Opening and closing retains the same form DOM, file selection and drafts; routine observations preserve disclosure choices.
 
-The native access dialog uses the light canvas, one existing field border and the modal-backdrop color at 55 percent opacity. Section summaries retain the existing 1.25rem heading size; view links retain the native header typography. It fits the dynamic viewport with internal scrolling for small screens and on-screen keyboards. Enter submits once, Escape or Close cancels and returns focus to the lock, and backdrop clicks leave it open. Errors remain within the dialog; passwords clear after attempts or dismissal. The native modal makes its background inert; an explicit Tab/Shift+Tab cycle keeps document focus among its visible enabled controls. Global mutation/reset warnings stay visible outside collapsed forms.
+The native access dialog uses the light canvas, one existing field border and the modal-backdrop color at 55 percent opacity. Section summaries and their nested headings share the section-heading role; view links retain the native header typography. It fits the dynamic viewport with internal scrolling for small screens and on-screen keyboards. Enter submits once, Escape or Close cancels and returns focus to the lock, and backdrop clicks leave it open. Errors remain within the dialog; passwords clear after attempts or dismissal. The native modal makes its background inert; an explicit Tab/Shift+Tab cycle keeps document focus among its visible enabled controls. Global mutation/reset warnings stay visible outside collapsed forms.
 
 The Transmitter status panel keeps accepted jobs separate from Next transmission, which shows one eligible enabled automatic mode/message and is hidden when unavailable. Routine explanations, the three observation clocks and the engine identifier are omitted. Recovery guidance remains conditional and accessible. Manual RF correction (ppm) uses one three-decimal number, Wi-Fi retains connection/address, and Hostname shows the confirmed active full name.
 
