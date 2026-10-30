@@ -24,7 +24,10 @@ import run as ci_run
 class TestingInputTests(unittest.TestCase):
     def test_documentation_version_uses_actual_build_stream(self):
         for ref, expected in [('refs/heads/main', 'main'), ('refs/heads/devel', 'devel'),
+                              ('refs/tags/v1.0.0-alpha.1', 'devel'),
                               ('refs/tags/v1.0.0-beta.1', 'devel'),
+                              ('refs/tags/v1.0.0-rc.1', 'main'),
+                              ('refs/tags/v1.0.0-RC.2+build.1', 'main'),
                               ('refs/tags/v1.0.0', 'main')]:
             with self.subTest(ref=ref), patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': ref}, clear=True):
                 self.assertEqual(ci_run.documentation_version(), expected)

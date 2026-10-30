@@ -179,7 +179,10 @@ def documentation_version():
     stream = bundle.build_stream(os.environ.get('GITHUB_EVENT_NAME'), os.environ.get('GITHUB_REF'))
     if stream == 'release':
         release_version = os.environ['GITHUB_REF'].removeprefix('refs/tags/v')
-        return 'main' if bundle.version_kind(release_version) == 'stable' else 'devel'
+        if bundle.version_kind(release_version) == 'stable':
+            return 'main'
+        stage = release_version.split('+', 1)[0].split('-', 1)[1].split('.', 1)[0].lower()
+        return 'main' if stage == 'rc' else 'devel'
     return 'main' if stream == 'main' else 'devel'
 
 
