@@ -117,6 +117,7 @@ static_assert(WSPRRY_PICO_RF_OUTPUT_DISABLED == 1);
 #include "logging/clock_state.hpp"
 #include "logging/logger.hpp"
 #include "logging/udp_settings.hpp"
+#include "logging/usb_control_state.hpp"
 #include "logging/usb_session.hpp"
 #include "provisioning/pico/bootsel_sampler.hpp"
 #include "provisioning/rf_setup_gate.hpp"
@@ -728,7 +729,7 @@ int main() {
     auto logged_activity = service.activity();
     wsprrypico::logging::ClockStateLogger clock_logger;
     auto logged_config = store.config_sequence();
-    bool logged_wtp = false, logged_management = false;
+    wsprrypico::logging::UsbControlStateLogger usb_control_logger;
 
 #ifdef WSPRRY_PICO_STANDALONE_RF
     browser_api.gpio_drive_observer(wsprrypico::rf::gpio_drive_observation);
@@ -2440,12 +2441,8 @@ int main() {
             logger.event(5, "CONFIG_SAVED", "Settings journal updated", log_mono, log_utc);
             logged_config = store.config_sequence();
         }
-        if (logged_wtp != wsprrypico::usb::wtp_connected() ||
-            logged_management != wsprrypico::usb::management_connected()) {
-            logger.event(6, "USB_STATE", "USB control connection changed", log_mono, log_utc);
-            logged_wtp = wsprrypico::usb::wtp_connected();
-            logged_management = wsprrypico::usb::management_connected();
-        }
+        usb_control_logger.observe(logger, wsprrypico::usb::wtp_connected(),
+                                   wsprrypico::usb::management_connected(), log_mono, log_utc);
         logging_session.poll(
             wsprrypico::usb::logging_connected(), wsprrypico::usb::take_logging_reset(),
             wsprrypico::usb::logging_transport_read, wsprrypico::usb::logging_write, log_mono);

@@ -169,6 +169,8 @@ The Console request does not reset the Pico password or bypass browser login. Ws
 
 The Pico can export diagnostic events to WsprryPi through its dedicated Logging port. In the Pico browser controls, open **Wi-Fi/Host → Logging → USB logging**, read the saved settings, enable export, choose the maximum severity and save. Read back after an uncertain save. Logging works without Pico Wi-Fi or synchronized UTC; without origin UTC, the Pi displays the receipt time.
 
+Routine WTP and Management port openings and closings appear only at **Debug** severity, with the port named in each message. These messages describe host control-port activity; they do not by themselves indicate a loose cable or a Pico restart. Earlier firmware reports the same activity at Info severity as **USB control connection changed**.
+
 On WsprryPi, save the Pico in Fleet, then open **Logs**, select that Pico in **Source**, open **Log options** and enable **Collect this Pico's USB logs**. The source selector also offers **All sources** and **Local Pi**. Collection continues when the browser closes. Pause only pauses the view; export saves the records retained by that view.
 
 Console remains available in another terminal or browser tool while collection runs. WTP transmission control and USB management also retain their separate ports. Firmware maintenance releases Logging and reconnects collection afterward; a whole-device restart or update disconnects all ports. Changed device identity requires explicit review.
