@@ -40,7 +40,15 @@ HOSTNAME = "wsprrypico-" + "a" * 32 + ".local"
 def connect(ctx=None, hostname="127.0.0.1"):
     return (ctx or context()).wrap_socket(socket.create_connection(('127.0.0.1', 18443), timeout=5), server_hostname=hostname)
 
-def http_on(stream, path='/api/v1/status', method='GET', body=None, headers=None, fragment=False, padding=0):
+def config_update(config):
+    return {'schema':'config-update','target':target,'mode':'merge',
+            'config':{key:value for key,value in config.items() if key != 'version'}}
+
+def control_body(body):
+    return None if body is None else {**body, 'contract':'Wsprry-Control/1'}
+
+def http_on(stream, path='/api/control/v1/status', method='GET', body=None, headers=None, fragment=False, padding=0):
+    body = control_body(body)
     text = '' if body is None else json.dumps(body, separators=(',', ':'))
     text += ' ' * max(0, padding - len(text))
     fields = {'Host':'127.0.0.1:18443'}
@@ -69,7 +77,7 @@ def http_on(stream, path='/api/v1/status', method='GET', body=None, headers=None
     assert int(response_headers['Content-Length']) == len(payload)
     return status, response_headers, payload
 
-def http(path='/api/v1/status', method='GET', body=None, headers=None, fragment=False, identity="client", padding=0):
+def http(path='/api/control/v1/status', method='GET', body=None, headers=None, fragment=False, identity="client", padding=0):
     with connect(context(identity)) as stream:
         return http_on(stream, path, method, body, headers, fragment, padding)
 
@@ -107,7 +115,7 @@ try:
     assert process.stdout.readline().strip() == 'PSA 1 2'
     # Real DNS SAN verification over an explicit loopback destination; no NSS/mDNS claim.
     with connect(hostname=HOSTNAME) as named:
-        named.sendall(f'GET /api/v1/status HTTP/1.1\r\nHost: {HOSTNAME}:18443\r\n\r\n'.encode())
+        named.sendall(f'GET /api/control/v1/status HTTP/1.1\r\nHost: {HOSTNAME}:18443\r\n\r\n'.encode())
         assert b' 200 ' in named.recv(4096)
     for mismatch in ('wrong.local', '127.0.0.2'):
         try:
@@ -122,7 +130,8 @@ try:
     assert http(headers={'Host': authority, 'Origin': 'https://127.0.0.1:18443'})[0] == 403
     assert http(headers={'Host': '127.0.0.1:18443', 'Origin': 'https://' + authority})[0] == 403
     assert http(headers={'Origin': 'https://evil.local:18443'})[0] == 403
-    caps = json.loads(http('/api/v1/capabilities')[2])
+    caps = json.loads(http('/api/control/v1/capabilities')[2])
+    target = json.loads(http('/api/control/v1/application')[2])['target']
     assert caps['active_job_connections'] and caps['max_network_connections'] == 2
     assert caps['max_wtp_connections'] == 1
     for fragmented in (False, True):
@@ -133,7 +142,7 @@ try:
                                  ('expired', 'SSLV3_ALERT_CERTIFICATE_EXPIRED')]:
             try:
                 with connect(context(identity)) as stream:
-                    stream.sendall(b'GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n\r\n')
+                    stream.sendall(b'GET /api/control/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n\r\n')
                     stream.recv(1024)
                 raise AssertionError(f'{identity}: expected a certificate alert')
             except ssl.SSLError as error:
@@ -169,31 +178,32 @@ try:
                                       ('client', ('http/1.1',), True)]:
         try:
             with connect(context(identity, protocols, tls12)) as stream:
-                stream.sendall(b'GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n\r\n')
+                stream.sendall(b'GET /api/control/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n\r\n')
                 assert not stream.recv(1024), 'Untrusted TLS client received application data'
         except (ssl.SSLError, ConnectionError):
             pass
         time.sleep(.03)
         assert http()[0] == 200, 'Server failed to recover after rejected TLS connection'
     assert http(headers={'Host':'evil.test'})[0] == 403
-    status, headers, body = http('/api/v1/config')
+    status, headers, body = http('/api/control/v1/config')
     assert status == 200 and json.loads(body)['config'] is None
     config = {'version':1,'enabled':False,'station':{'callsign':'AA0NT','locator':'EM18','power_dbm':37},
               'wifi':{'ssid':'test','password':'never-echo-me','ntp_ipv4':'192.0.2.1'},'schedules':[{'period_s':120,'phase_s':0}]}
-    assert http('/api/v1/config','PUT',config,{'If-Match':headers['ETag'],'Origin':'https://evil.test'})[0] == 403
-    status, saved, body = http('/api/v1/config','PUT',config,{'If-Match':headers['ETag']},fragment=True)
+    assert http('/api/control/v1/config/update','POST',config_update(config),{'If-Match':headers['ETag'],'Origin':'https://evil.test'})[0] == 403
+    status, saved, body = http('/api/control/v1/config/update','POST',config_update(config),{'If-Match':headers['ETag']},fragment=True)
     assert status == 200, body
     assert b'never-echo-me' not in body and json.loads(body)['config']['wifi']['password'] is None
-    assert http('/api/v1/config','PUT',config,{'If-Match':headers['ETag']})[0] == 412
+    assert http('/api/control/v1/config/update','POST',config_update(config),{'If-Match':headers['ETag']})[0] == 412
     # A restart is dispatched only after its own complete response is acknowledged.
     assert caps['features']['restart']
     for expected, outcome in enumerate(('disconnect', 'apply', 'fin', 'reset')):
-        revision = http('/api/v1/config')[1]['ETag']
+        revision = http('/api/control/v1/config')[1]['ETag']
         with connect() as management:
             control('ACK HOLD')
-            management.sendall((f'POST /api/v1/restart HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n'
+            payload = json.dumps(control_body({})).encode()
+            management.sendall((f'POST /api/control/v1/restart HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n'
                 f'Origin: https://127.0.0.1:18443\r\nContent-Type: application/json\r\n'
-                f'X-WsprryPico-Request: 1\r\nIf-Match: {revision}\r\nContent-Length: 2\r\n\r\n{{}}').encode())
+                f'X-WsprryPico-Request: 1\r\nIf-Match: {revision}\r\nContent-Length: {len(payload)}\r\n\r\n').encode()+payload)
             response = b''
             while chunk := management.recv(4096): response += chunk
             assert response.startswith(b'HTTP/1.1 202'), response
@@ -205,7 +215,7 @@ try:
         time.sleep(.03)
         control('RESTART COUNT')
         assert process.stdout.readline().strip() == f'RESTARTS {expected}'
-        assert http('/api/v1/restart', 'POST', {}, {'If-Match':revision})[0] == 412
+        assert http('/api/control/v1/restart', 'POST', {}, {'If-Match':revision})[0] == 412
     # The generated inline assets must match the browser-enforced CSP hashes.
     status, root_headers, document = http('/')
     for tag in ('style', 'script'):
@@ -214,7 +224,7 @@ try:
         assert "'sha256-" + digest + "'" in root_headers['Content-Security-Policy']
     # A browser may start its next TLS connection before the previous response closes.
     with connect() as first:
-        first.sendall(b'GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n')
+        first.sendall(b'GET /api/control/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n')
         with concurrent.futures.ThreadPoolExecutor() as pool:
             waiting = pool.submit(http)
             time.sleep(.05)
@@ -294,7 +304,7 @@ try:
         # The same bounded USB-reply grace also pauses an established HTTP
         # request/response, while the established WTP owner remains responsive.
         with connect(context('other')) as paused_http:
-            paused_http.sendall(b'GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n')
+            paused_http.sendall(b'GET /api/control/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n')
             control('HTTP PAUSE')
             paused_http.sendall(b'\r\n')
             paused_http.settimeout(.1)
@@ -314,12 +324,12 @@ try:
             assert http(identity='other')[0] == 200
             assert ask('PING',{'token':'owner-retained'})['ok']
         with concurrent.futures.ThreadPoolExecutor() as pool:
-            maximum = pool.submit(http, '/api/v1/jobs', 'POST', {}, None, True, 'other', 32768)
+            maximum = pool.submit(http, '/api/control/v1/jobs', 'POST', {}, None, True, 'other', 32768)
             assert ask('PING',{'token':'maximum-size-frame'},padded=True)['ok']
             assert maximum.result()[0] == 400
         # Independent stalled HTTP must not prevent the established owner from progressing.
         with connect(context('other')) as slow:
-            slow.sendall(b'GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n')
+            slow.sendall(b'GET /api/control/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n')
             with socket.create_connection(('127.0.0.1',18443),timeout=3) as pending:
                 time.sleep(.03)
                 with socket.create_connection(('127.0.0.1',18443),timeout=3) as extra:
@@ -328,10 +338,10 @@ try:
                 assert ask('PING')['ok']
         time.sleep(.03)
         # Idle admission does not authorize a config change completed after CLAIM.
-        revision = http('/api/v1/config')[1]['ETag']
+        revision = http('/api/control/v1/config')[1]['ETag']
         with connect(context('other')) as management:
-            payload = json.dumps(config).encode()
-            header = (f'PUT /api/v1/config HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n'
+            payload = json.dumps(control_body(config_update(config))).encode()
+            header = (f'POST /api/control/v1/config/update HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n'
                       f'Origin: https://127.0.0.1:18443\r\nContent-Type: application/json\r\n'
                       f'X-WsprryPico-Request: 1\r\nIf-Match: {revision}\r\nContent-Length: {len(payload)}\r\n\r\n').encode()
             management.sendall(header + payload[:1])
@@ -354,7 +364,7 @@ try:
             global sequence
             sequence += 1
             session = session or ('4' if identity == 'client' else '6')*32
-            return http('/api/v1/jobs','POST',{'session_id':session,'request_id':f'{sequence:032x}',
+            return http('/api/control/v1/jobs','POST',{'session_id':session,'request_id':f'{sequence:032x}',
                         'operation':op,'body':body},identity=identity)
         for identity in ('client','other'):
             assert browser('HELLO',{'versions':['WTP/1'],'client_name':'observer','client_version':'1'},identity)[0] == 200
@@ -391,37 +401,37 @@ try:
         assert browser('ABORT',{'job_id':'5'*32})[0] == 200
     assert browser('RELEASE',{})[0] == 200
     # Concurrent revisions admit exactly one distinct update.
-    revision = http('/api/v1/config')[1]['ETag']
+    revision = http('/api/control/v1/config')[1]['ETag']
     # Establish both admitted TLS sessions before releasing concurrent requests.
     # This tests the config revision race itself without racing the deliberately
     # single pending-handshake slot in the host socket adapter.
     with connect(context()) as first, connect(context()) as second, concurrent.futures.ThreadPoolExecutor() as pool:
         configs = [{**config,'station':{**config['station'],'power_dbm':p}} for p in (20,30)]
-        replies = list(pool.map(lambda pair:http_on(pair[0],'/api/v1/config','PUT',pair[1],{'If-Match':revision}),
+        replies = list(pool.map(lambda pair:http_on(pair[0],'/api/control/v1/config/update','POST',config_update(pair[1]),{'If-Match':revision}),
                                 zip((first,second),configs)))
     assert sorted(r[0] for r in replies) == [200,412]
     # Delay the initiating PCB's ACK callback after its complete TLS response.
     # Unrelated closes cannot apply it; failure cancels; completion rechecks idle.
     for outcome in ('disconnect', 'claim', 'apply'):
-        revision = http('/api/v1/network')[1]['ETag']
+        revision = http('/api/control/v1/network')[1]['ETag']
         with connect() as management:
             control('ACK HOLD')
-            payload = json.dumps({'enabled':outcome == 'apply'}).encode()
-            header = (f'PUT /api/v1/network HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n'
+            payload = json.dumps(control_body({'enabled':outcome == 'apply'})).encode()
+            header = (f'PUT /api/control/v1/network HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n'
                       f'Origin: https://127.0.0.1:18443\r\nContent-Type: application/json\r\n'
                       f'X-WsprryPico-Request: 1\r\nIf-Match: {revision}\r\nContent-Length: {len(payload)}\r\n\r\n').encode()
             management.sendall(header + payload)
             response = b''
             while chunk := management.recv(4096): response += chunk
             assert response.startswith(b'HTTP/1.1 200'), response
-            pending = json.loads(http('/api/v1/network')[2])
+            pending = json.loads(http('/api/control/v1/network')[2])
             assert pending['enabled'] and pending['test_pending'] and pending['test_applied'] == 0
             if outcome == 'claim':
                 assert browser('CLAIM',{'owner_id':'6'*32,'lease_ms':60000})[0] == 200
             if outcome != 'disconnect':
                 control('ACK RELEASE')
         time.sleep(.03)
-        state = json.loads(http('/api/v1/network')[2])
+        state = json.loads(http('/api/control/v1/network')[2])
         assert state['enabled'] and not state['test_pending'], state
         assert state['test_applied'] == (1 if outcome == 'apply' else 0), state
         if outcome == 'claim':

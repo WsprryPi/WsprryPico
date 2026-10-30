@@ -38,9 +38,9 @@ async function authenticated() {
   const editor=run(locking,'editorAction("calibration",held)');await new Promise(setImmediate);
   await locking.elements['access-toggle'].onclick();assert.equal(logout,0);
   assert.equal(locking.elements['save-config'].disabled,true);release();await editor;assert.equal(logout,1);
-  const lateBody=await authenticated();let releaseBody;
+  const lateBody=await authenticated();let releaseBody,holdBody=true;
   const previousFetch=lateBody.context.fetch;
-  lateBody.context.fetch=async(...args)=>{const response=await previousFetch(...args);if(args[0].endsWith('/status')) {const json=response.json;response.json=()=>new Promise(resolve=>releaseBody=async()=>resolve(await json()));}return response;};
+  lateBody.context.fetch=async(...args)=>{const response=await previousFetch(...args);if(holdBody&&args[0].endsWith('/status')) {holdBody=false;const json=response.json;response.json=()=>new Promise(resolve=>releaseBody=async()=>resolve(await json()));}return response;};
   const pendingBody=run(lateBody,'action(async()=>{await api("status");globalThis.staleRendered=true;})');await new Promise(setImmediate);
   lateBody.elements['message-result'].textContent='PRIVATE accepted duration';
   await lateBody.elements['access-toggle'].onclick();releaseBody();await pendingBody;
@@ -77,6 +77,9 @@ async function authenticated() {
   unavailable.localDiscoveryFailure=false;await unavailable.elements.refresh.onclick();
   assert.equal(run(unavailable,'accessCarrier'),'certificate');assert.equal(run(unavailable,'online'),true);
   const history=await fixture(true,true,false,true,'#save=opaque',true);
+  // Startup discards this deliberately invalid receipt. History handling below
+  // exercises opaque fragment preservation independently of receipt parsing.
+  history.context.location.hash='#save=opaque';
   history.elements['message-section'].open=true;
   history.context.history.state={retained:'other',wsprrypicoPresentation:{section:'top',area:'station'}};
   history.events.popstate();

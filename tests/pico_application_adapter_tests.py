@@ -334,6 +334,7 @@ struct HttpResponse {
 using Response=HttpResponse;
 Response http_error(unsigned n,std::string_view s){return {n,std::string(s)};}
 Response json(std::string s){return {200,std::move(s)};}
+Response control_response(Response response){return response;}
 unsigned time_us_64(){return 1;}
 bool owner_public_get_admitted(const Request&,const std::string&){return true;}
 Response bootstrap_http_response(const Request&,const std::string&,const std::string&,bool setup,bool,bool){return {200,setup?"setup":"identity"};}
@@ -364,7 +365,7 @@ struct Radio {
  }
 };
 struct Commit {bool allowed=true;bool cancellation_allowed()const{return allowed;}};
-struct Progress {Response progress_readback(bool){return {200,"progress"};}};
+struct Progress {Response progress_readback(bool,bool,bool){return {200,"progress"};}};
 struct PicoBootstrapServer {
 DEFAULT
  bool setup_admitted_=default_setup_admission,active_=true,mutation_safe_=true;

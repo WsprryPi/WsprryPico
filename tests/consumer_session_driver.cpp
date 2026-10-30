@@ -299,6 +299,10 @@ struct Driver {
                                +[](const tcp_pcb* p, void*) { return p->interface == 1; }, this};
     bool page_setup = true;
     void poll_server() {
+        // Match the firmware loop: a profile save can change generation without
+        // rebooting or using the fixture's explicit activate command.
+        f.api.management_availability(
+            {ManagementProfile::Consumer, runtime.generation(), true, false, false, true, true});
         server.poll(true, true, page_setup, true, true);
     }
     unsigned connections() const {

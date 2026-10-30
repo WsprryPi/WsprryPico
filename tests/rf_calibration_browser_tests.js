@@ -40,7 +40,7 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
   const apiSource = app.slice(app.indexOf('async function api('),app.indexOf('async function local('));
   const requests=[];
   const actualApi = vm.runInNewContext(fs.readFileSync(require.resolve('../src/network/web/control-contract.js'),'utf8') + '\n' + apiSource + '\napi;',{
-    returnReceipt:false,consumerAttempt:false,localIdentity:null,radio:null,accessCarrier:'certificate',accessEpoch:0,accessClosing:false,localLocked:false,
+    returnReceipt:false,consumerAttempt:false,localIdentity:null,radio:null,accessCarrier:'certificate',accessEpoch:0,accessClosing:false,localLocked:false,stopRequested:false,
     supportsAmplifier:()=>false,controlsUnlocked:()=>true,AbortSignal,
     frequencyEditor:{observeRevision:value=>assert.equal(value,'actual-revision')},
     fetch:async(path,options)=>{

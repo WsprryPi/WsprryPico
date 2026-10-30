@@ -14,6 +14,10 @@ colors:
   field-border: "#687e90"
   button-border: "#687e90"
   focus-amber: "#b37617"
+  busy-backdrop: "rgb(15 28 40 / 48%)"
+  busy-dark-surface: "#243746"
+  busy-dark-border: "#96adbd"
+  busy-dark-backdrop: "rgb(0 8 16 / 62%)"
   notice-surface: "#e7eef4"
   notice-border: "#b6c6d3"
   error-surface: "#fff0ed"
@@ -331,3 +335,7 @@ The Transmitter status panel keeps accepted jobs separate from Next transmission
 Locked settings wrappers retain full-opacity disclosure headings and read-only content; native disabled form controls continue to enforce access. Reset Pico, Abort my job and Release control share one flex row in DOM order, wrapping naturally when the available width cannot fit their touch targets.
 
 Station identity is grouped inside WSPR Configuration with its independent save/apply actions. Message type appears in the saved station draft summary, without provisional plan callouts. The schedule field uses interval/offset labels with UTC examples. Legacy station section bookmarks reveal WSPR Configuration. Raw boot-selector JSON is omitted from operator controls; restart and observed-selection status remain visible.
+
+## Submission feedback
+
+A native modal in the top layer dims the whole viewport, including an open access dialog. The foreground uses the existing compact corners, system type and 44 px buttons. Its operation text is a polite live status outside the busy main region. A dark color preference selects the navy foreground surface and light text; the underlying product keeps its established appearance. The backdrop uses 48% navy in light preference and 62% near-black in dark preference. There is no animation, spinner, flashing or motion. Cancel login, Lock controls and Abort this browser’s job are contextual actions in the foreground.

@@ -158,6 +158,8 @@ def host_checks(deps, audit):
     execute(log, 'env', 'PROGRESS_BROWSER_NO_CAPTURE=1', 'node', ROOT / 'tests/progress_browser_integration.mjs',
             host / 'consumer_bootstrap_driver', audit / 'progress-ui')
     execute(log, 'node', ROOT / 'tests/consumer_recovery_browser.mjs', host / 'consumer_bootstrap_driver')
+    execute(log, 'env', 'UI_REVIEW_NO_CAPTURE=1', 'node', ROOT / 'tests/submission_ui_browser.mjs',
+            host / 'consumer_bootstrap_driver', audit / 'submission-ui')
     for suite in ('hostname_browser_integration', 'organization_browser_integration',
                   'wspr_browser_integration', 'message_frequency_ui_integration'):
         execute(log, 'env', 'PICO_BROWSER_NO_CAPTURE=1', 'node', ROOT / f'tests/{suite}.mjs',

@@ -1,5 +1,7 @@
 # Operate
 
+When a submitted action is in progress, the page dims and shows a request message. Wait for the result before choosing another action. **Cancel login**, **Lock controls** and **Abort this browser’s job** remain available when applicable. Abort waits for the current request and checks ownership before stopping this browser's job. It does not disable automatic schedules. If the result is unconfirmed, follow the saved-result or saved-settings review instructions; closing or refreshing the page does not cancel an accepted save or transmission.
+
 ## Before transmitting
 
 Open the Pico's [control page](connect.md#open-the-control-page), sign in and choose **Station Control**. In **Transmitter status**, choose **Refresh**. Check the device identity, saved station and frequency, active pins, RF load/filter and clock. Resolve any restart or output-inhibit message before starting. **Output inhibit** means the Pico is blocking another transmission until the reported condition is resolved.

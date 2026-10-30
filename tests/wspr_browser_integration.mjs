@@ -81,7 +81,7 @@ try {
     await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate(`localAuthenticated && !busy`),'actual browser login');
     await click('read-saved');
-    await until(()=>cdp.evaluate(`applicationVersion===2 && writeState==='review' && !busy`),'versioned saved-state readback');
+    await until(()=>cdp.evaluate(`writeState==='review' && !busy`),'current saved-state readback');
     await click('review-saved');
     await until(()=>cdp.evaluate(`writeState==='ready' && !busy && !document.getElementById('consumer-station-settings').disabled`),'review enables editing');
     await field('consumer-callsign','AA0NT/12');await field('consumer-locator','EM18');
@@ -129,16 +129,16 @@ try {
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
     await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && savedProgress.data.fields.callsign==='<AA0NT>'`),'saved Type 3 draft');
     const unsupportedBefore=await f.command({op:'stats'});
-    // Double only the unavailable versioned view. The legacy view, crypto,
-    // save/apply handlers and journals still run through production code.
-    await cdp.evaluate(`globalThis.versionedApplicationReads=0;const actualRequest=radio.request.bind(radio);radio.request=(resource,...args)=>{
-      if(['application','application'].includes(resource)){++versionedApplicationReads;return Promise.reject(Object.assign(new Error('Unsupported application view'),{code:'not_found'}));}
+    // Refuse the one current application resource. No historical view or
+    // downgrade may authorize station application; crypto and journals stay real.
+    await cdp.evaluate(`globalThis.currentApplicationReads=0;const actualRequest=radio.request.bind(radio);radio.request=(resource,...args)=>{
+      if(resource==='application'){++currentApplicationReads;return Promise.reject(Object.assign(new Error('Unsupported application view'),{code:'not_found'}));}
       return actualRequest(resource,...args);
     };`);
     await click('apply-station-progress');
-    await until(()=>cdp.evaluate(`!busy && document.getElementById('notice').textContent.includes('has not confirmed Type 2/3')`),'unconfirmed application-view refusal');
-    assert.ok(await cdp.evaluate('versionedApplicationReads>0'));
-    assert.equal(await cdp.evaluate('applicationVersion'),1,'production legacy view selected for explicit review');
+    await until(()=>cdp.evaluate(`!busy && document.getElementById('notice').textContent.includes('Unsupported application view')`),'unconfirmed application-view refusal');
+    assert.ok(await cdp.evaluate('currentApplicationReads>0'));
+    assert.equal(await cdp.evaluate('currentApplicationReads'),1,'one current view attempted; no fallback');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-callsign').value`),'<AA0NT>');
     assert.equal((await f.command({op:'stats'})).profile_programs,unsupportedBefore.profile_programs);
     assert.equal((await f.command({op:'stats'})).config_sequence,unsupportedBefore.config_sequence);

@@ -2,12 +2,13 @@
   "schema": "operator-assets/1",
   "tool": "esbuild/0.28.2",
   "target": "es2020",
-  "recipe_sha256": "e9b822926547ff4c91dfb8fe75ac7f093e59b80aed5b0f19267fa09f10e4dfea",
+  "recipe_sha256": "c4d5fbde318c0cf8bc77777540b2364d9ce066e0ba281a44e96318003b9ebb14",
   "groups": {
     "app.min.js": {
       "inputs": {
+        "submission.js": "6119ce1314b0ea7626242259173c2b54c0d97c1dae4434cc9360a3b18e4ac392",
         "control-contract.js": "08c5411081e6f908cd934816d3b7bb3cf849d32e94c13808319814d4249d7950",
-        "udp-logging.js": "672806b3f7981b737eb1b888230ebc586d4dbb1655fd8b3383b37b63ede43bb5",
+        "udp-logging.js": "c75a07a806f16007424d530f8983beaff6a77d14dfbe440cdd159b1f28ceae0b",
         "operations.js": "433eab38e68e6df0e7e42ea7892779ee97349a2afd3194f270d8afbc2065a438",
         "standalone-frequency.js": "4b2bc20293537f467253c9eba045cade68ae3cb7787e1e96a0d4cc77f1f5942d",
         "rf-calibration.js": "4d874739cfd33b25af459146c115f86cf777ab3823a00fb368441de4b52d8729",
@@ -19,10 +20,10 @@
         "saved-progress.js": "163cefe569b39d6f54c8174cdac4022d0b507e790f53b28ca8c1b2dd9c739e90",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "80f5d4aaf7d722b916a52fbe3ecdeb2b7ee955b662c990fe51cf3373d3cf9743",
-        "app.js": "14cb07a02415d1b4b1daf267f9c4d53bc61921c3859384a7447c62e4058ad3a6"
+        "app.js": "e6f6f4c3f5dda6d85f05ef2ea275bec993ba0fe443e570ec7b72f8e11e005915"
       },
-      "sha256": "5e553b923a924ff214f946be4ebcd556dc537bab61ccfdf9833766225a673c26",
-      "bytes": 216666
+      "sha256": "248d2cdf405d5bda652362df1b6566696b2809e034db2df5d69698c4d72f77c7",
+      "bytes": 223073
     },
     "config-validation.min.js": {
       "inputs": {
