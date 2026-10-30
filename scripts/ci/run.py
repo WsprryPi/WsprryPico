@@ -174,6 +174,11 @@ def host_checks(deps, audit):
             'historical_evidence_skips': json.loads((audit / 'evidence-skips.json').read_text())}
 
 
+def documentation_version():
+    stream = bundle.build_stream(os.environ.get('GITHUB_EVENT_NAME'), os.environ.get('GITHUB_REF'))
+    return 'main' if stream in ('main', 'release') else 'devel'
+
+
 def firmware(deps, audit, identifier, version):
     profile = bundle.PROFILES[identifier]
     target = profile['target']
@@ -186,7 +191,8 @@ def firmware(deps, audit, identifier, version):
             '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w',
             '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DPICOTOOL_NO_LIBUSB=1',
             f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
-            f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}')
+            f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
+            f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
     execute(log, 'cmake', '--build', build, '--target', target, '--parallel', '4')
     directory = audit / identifier
     directory.mkdir()
@@ -274,7 +280,8 @@ def build(deps, output):
                 '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
                 '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w', '-DPICOTOOL_NO_LIBUSB=1',
                 f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
-                f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}')
+                f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
+                f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
         execute(audit / 'reproducibility.log', 'cmake', '--build', fresh,
                 '--target', 'WsprryPico', '--parallel', '4')
         checks['reproducibility'] = 'identical' if bundle.sha(original / 'firmware/WsprryPico.uf2') == bundle.sha(fresh / 'firmware/WsprryPico.uf2') else 'different'

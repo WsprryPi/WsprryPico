@@ -2,6 +2,7 @@
 
 ## Rename or change Wi-Fi
 
+(change-the-hostname)=
 ### Change the hostname
 
 A **hostname** is the Pico's network name, such as `pico-a.local`. Choose a different name for each Pico on the same network. Changing this name does not change the permanent device ID.
@@ -21,6 +22,7 @@ If the controls say **Complete station setup first**, complete and apply the [st
 
 If WsprryPi connects over the network, follow its [connection-profile update procedure](https://wsprry-pi.readthedocs.io/en/devel/Advanced_Operations/ini_configuration/transmitter_backends.html#after-a-pico-hostname-change) after verifying the rename. Renaming a Fleet profile changes only its label.
 
+(change-the-pico-password)=
 ### Change the Pico password
 
 The default **Pico password** is the home Wi-Fi password saved during setup. Set a separate Pico password in the browser without changing the network password:
@@ -37,6 +39,7 @@ To return to the default, select **Use Wi-Fi password as Pico password** in the 
 
 If the save result is unconfirmed, try signing in with the new Pico password, then the previous password if the new one is refused. If neither password works, restart the Pico and try again. Read the password setting after signing in; do not automatically repeat a password save. If the current Pico password is forgotten, see [Recovery and reset](#recovery-and-reset); changing Wi-Fi credentials over USB does not clear a separate Pico password.
 
+(recover-an-occupied-login)=
 ### Recover an occupied login
 
 The Pico supports three browser or compatible controller logins at once. Closing or reloading a tab can leave its login occupying a slot until it expires. An active tab's unlocked icon beside the hostname locks that browser and requests logout after any current request finishes. If that tab is unavailable, use login retirement:
@@ -49,6 +52,7 @@ The Pico supports three browser or compatible controller logins at once. Closing
 
 Retirement ends only the selected login. It does not stop an accepted transmission or undo saved settings. If retirement is unconfirmed, keep the same selection for an explicit check; do not repeat an unconfirmed settings save. Inspection and retirement apply to the address and Wi-Fi interface currently in use.
 
+(change-wi-fi)=
 ### Change Wi-Fi
 
 Wi-Fi credentials let the Pico join your network. The browser uses them as its default Pico password until you [set a separate Pico password](#change-the-pico-password). To update the Pico after changing your router's password, or to move it to another network:
@@ -60,6 +64,7 @@ Wi-Fi credentials let the Pico join your network. The browser uses them as its d
 
 WsprryPi's [USB settings controls](connect.md#usb-access-without-wi-fi) can update saved network credentials without a Pico browser login. USB can save, replace or explicitly delete the Wi-Fi connection without joining it; changes require the supported restart step. Deleting Wi-Fi retains station details, pins, schedules, hostname, a separate Pico password, any shutdown suspension and the record of WSPR slots already used. **Disconnect Wi-Fi** disconnects the current network connection; it does not delete the saved credentials.
 
+(recovery-and-reset)=
 ## Recovery and reset
 
 Read saved settings and try reconnecting before resetting. If the Pico password is forgotten, request setup Wi-Fi with the [external button](connect.md#request-setup-wi-fi-with-the-external-button) or [USB Console](usb.md#request-setup-wi-fi-from-the-console), join it, then open **http://192.168.4.1/recovery.html**. The recovery page does not require the forgotten password. Reset choices remove different data; read the device's confirmation carefully:
@@ -89,10 +94,12 @@ If an update is incomplete, keep the selected Pico connected and use the exact s
 
 Downloaded-tool cleanup keeps firmware backups and pending transactions. An unresolved operation retains its managed picotool so the continuation remains usable. Success requires a verified final result and the expected running firmware identity; preparation or a successful USB command alone is incomplete.
 
+(support-information)=
 ## Support information
 
 Record the firmware version and source revision, full stable device ID, connection method (browser, USB or network controller), transmission mode and frequency, exact error, and whether output is inactive or unknown. **About this Pico / Diagnostics** supplies the device and boot IDs. Use the [USB Console `INFO` reply](usb.md#read-the-address-and-web-service-status) or the verified installer result for firmware version and source revision. Use the saved-settings read controls for configuration, the USB Console `INFO` reply for the engine, and **Transmitter status → Refresh** for output and clock status. Share only the fields needed for the issue through the [project issue tracker](https://github.com/WsprryPi/WsprryPico/issues). Remove passwords, certificates/private keys, transaction backups, private addresses and unsanitized captures before posting. Never post a full flash backup.
 
+(preserve-diagnostic-logging-settings)=
 ## Preserve diagnostic logging settings
 
 [USB logging](usb.md#usb-diagnostic-logging) and [UDP logging](udp.md) have independent saved settings. Ordinary restarts, unrelated saves and compatible USB-installer upgrades preserve both; factory reset clears both. Disable UDP export and read it back before a downgrade. Retain the exact current/recovery bundle, and follow the shared installer's refusal if an older image reaches the UDP reservation. Do not choose erase as an automatic rollback.

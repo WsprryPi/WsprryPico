@@ -94,3 +94,48 @@ The foreground preserves Cancel login, Lock controls and Abort this browser’s 
 Browser serialization is local to one document. Firmware target/revision checks, sent-once commissioning, delivery receipts, replay protection and JobService ownership remain authoritative across tabs, controllers and carriers. The AP station progress read and acknowledgement use the complete current control representation while retaining station-only mutation authority. Saved-field validation therefore accepts the same current shape as the control page.
 
 Deterministic tests demonstrate overlapping-intent refusal, cleanup-error recovery, uncertain committed replies and preemption of an undispatched ARM. They identify browser action-lifecycle hazards; they do not establish the cause of an unobserved physical-controller lockup, RF responsiveness or availability under competing network traffic. Pi member management and firmware/disconnect paths retain their separate coordinator and device-selection authority; this Pico presentation layer grants them no new bypass. The separate engineering Bluefy provisioning surface retains its existing device-bound active-operation and cancellation rules.
+
+## Contextual operator documentation
+
+Native documentation anchors open a new tab with `noopener noreferrer` and an
+explicit no-referrer policy. The asset generator resolves the single fixed
+`HELP_BASE` to the RTD manual: main builds use `/en/main/`, development builds
+use `/en/devel/`. `WSPRRY_PICO_DOCUMENTATION_VERSION` accepts only `main` or
+`devel`, or `auto` for local builds; local CMake defaults main checkouts to main and other development
+checkouts to devel. Canonical CI selects the actual validated stream explicitly,
+including detached main sources; tagged releases use main. Device
+input, firmware versions and control majors do not select URLs. No runtime help
+loader, remote requests on page load, or shared component interface is involved.
+CSP and control admission remain unchanged. Links inside native summaries are
+independent of disclosure activation and remain usable inside disabled fieldsets.
+
+| Surface / operator question | Manual destination |
+| --- | --- |
+| Manual, equipment, setup, Pi control | `index.html`, `start.html`, `wsprrypi.html` |
+| Status, stop, ownership, reset | `operate.html#read-the-status-console`, `operate.html#status-stop-and-connection-loss`, `maintain.html#recovery-and-reset` |
+| WSPR, identity/message plan, dial, schedules | `configure.html#wspr-configuration`, `#station-identity`, `#frequency-and-schedules` |
+| Time, NTP timeout/uncertainty, manual ppm | `configure.html#time-and-calibration`, `reference/time.html#read-the-clock-status`, `#manual-frequency-correction` |
+| Pins, LED/button, amplifier, LPF, drive/power | `configure.html#pins-and-drive`, `#led-and-button-settings`, `#amplifier-lead-and-tail`, `#lpf-and-band-selector`, `reference/output.html` |
+| CW modes, timing, recurring schedule, prepared files | `operate.html#send-qrss-fskcw-or-dfcw`, `#cw-timing`, `#repeat-a-message-on-a-schedule`, `#prepared-job-files` |
+| Saved drafts, comparison and uncertain writes | `configure.html#understand-what-was-saved`, `#recover-an-uncertain-save` |
+| Diagnostics | `maintain.html#support-information` |
+| Wi-Fi, Pico password, hostname | `maintain.html#change-wi-fi`, `#change-the-pico-password`, `#change-the-hostname` |
+| Logging overview, dynamic UDP editor, USB logging | `maintain.html#preserve-diagnostic-logging-settings`, `udp.html#configure-export`, `usb.html#usb-diagnostic-logging` |
+| Access dialog, occupied-login recovery | `reference/security.html`, `maintain.html#recover-an-occupied-login` |
+| Wi-Fi setup, optional station commissioning, reset page | `connect.html#first-wi-fi-connection`, `configure.html#station-identity`, `maintain.html#recovery-and-reset` |
+
+Simple inputs share group help rather than repeating links for each field. UTC
+pickers use the owning schedule/job instructions. Raw diagnostic disclosures,
+intermediate setup results, saved-drive progress and in-flight submission dialogs
+retain local guidance and their enclosing topic; no separate remote explanation
+is needed for each transient state. LPF and UDP help lives beside their mount
+points so dynamic rerendering cannot remove it; Pi shared editors are unchanged.
+
+After independently building the manual, `scripts/check_documentation.py` checks
+emitted firmware URLs against its actual page IDs. `tests/contextual_help_tests.py`
+also verifies missing/renamed targets and unsafe URLs fail. Run
+`python3 scripts/check_contextual_help.py --live` after RTD publication to check
+public redirects, pages and fragments. The two `ui_sections_browser.mjs` carriers
+exercise native pointer/keyboard help activation, locked and collapsed controls,
+draft/file/History preservation, and absence of application requests. Their
+loopback proxy refuses public traffic, including help popups.

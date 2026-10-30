@@ -14,6 +14,7 @@ An Internet time server needs Internet access from the Pico. For an isolated net
 
 The text field accepts `YYYY-MM-DD HH:MM:SS`, with a 24-hour clock. Enter a future UTC time for a transmission start; the page rejects a past start before requesting transmitter ownership. Observation timestamps are labelled UTC as well. For example, a desired start of 12:10 UTC is entered as 12:10. The [schedule examples](../configure.md#frequency-and-schedules) show UTC start times.
 
+(read-the-clock-status)=
 ## Read the clock status
 
 In **Transmitter status**, choose **Refresh** and read **Clock**:
@@ -27,6 +28,7 @@ In **Transmitter status**, choose **Refresh** and read **Clock**:
 
 The value after **±** is the estimated timing uncertainty, in **ms** (milliseconds), not a countdown. With a finite NTP timeout, excessive uncertainty blocks new timed starts. Set the timeout in **Time and calibration**; **0** removes the Pico's NTP age and uncertainty cutoffs while keeping the uncertainty visible. An external controller can still request a stricter timing limit. After a restart it needs fresh time observations; saved clock-rate estimates do not preserve the current date and time.
 
+(manual-frequency-correction)=
 ## Manual frequency correction
 
 **PPM** means parts per million. One ppm corresponds to 10 Hz at 10 MHz. **Manual correction (ppm)** compensates for a measured RF frequency error; its default is **0.000 ppm**. Leave it unchanged unless you have a measurement against an independent, trustworthy RF reference. Good network-clock status does not measure the RF carrier's frequency.

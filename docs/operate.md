@@ -10,6 +10,7 @@ A **job** is one complete transmission, including its repeats and gaps. Its **ow
 
 The **Owner** field identifies current control: **Pico schedule** for the Pico's local scheduler, **This browser** for this tab, and **Available** when no controller holds it. Other controllers may appear as session identifiers.
 
+(read-the-status-console)=
 ## Read the status console
 
 The prominent state and explanation describe the accepted job. **Future transmissions** describes saved schedules separately: enabled, paused, expired, waiting for time, or awaiting recovery. A pause can let the current job finish; when it is awaiting a durable save, keep the Pico powered until confirmation. A saved schedule does not by itself mean a job is active.
@@ -67,6 +68,7 @@ Standalone WSPR uses the saved whole-Hz USB dial frequency. Its four tones lie a
 
 A pair starts its second frame 120 seconds after the first. The Pico reserves both windows and keeps control between frames. Other scheduled occurrences that would overlap the pair are skipped. STOP, restart, changed settings, lost clock or control, or a failure can prevent the second frame; the Pico does not later resume the pair or automatically retry it. If output cannot be confirmed inactive, resolve that condition before another transmission.
 
+(send-qrss-fskcw-or-dfcw)=
 ## Send QRSS, FSKCW or DFCW
 
 1. Under **Station Control → CW Modes**, select the mode and enter your **Message**. Letters, numbers, spaces and `/ ? . , - + =` are supported. Spaces count toward the **32-character** limit.
@@ -81,10 +83,23 @@ For an entered frequency of `14096900 Hz` and shift of `5 Hz`, QRSS uses carrier
 
 Switching modes keeps the raw frequency, shift, message and timing entries while immediately changing their labels and preview. Reviewing a preview or changing modes does not submit a job or save settings. Correct invalid entries beside the form before submitting. A rejected or unconfirmed request keeps your entries and reports its result beside **Load and arm message**; refresh status before deliberately trying again.
 
-Under **Timing settings**, **Dash length**, **Within a character**, **Between characters** and **Between words** are multiples of the dot length. With a three-second dot and the default values, a QRSS or FSKCW dash lasts nine seconds, gaps within a character last three seconds, gaps between characters last nine seconds and gaps between words last 21 seconds. DFCW keeps dots and dashes equally long. The separate **Gap between repeats** field remains in seconds.
+For a finite test tone from WsprryPi, choose **Mode → Finite tone** in a supported [Fleet output schedule](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Setup/index.html#assign-an-output-schedule). Its continuous **Test Tone** control is unavailable for the Pico WTP backend.
 
-For a finite test tone from WsprryPi, choose **Mode → Finite tone** in a supported [Fleet output schedule](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Setup/index.html#assign-an-output-schedule). Its continuous **Test Tone** control is unavailable for the Pico WTP backend. For an already prepared job, open **Load a job file**, select its **Job JSON file**, enter **Start time (UTC)** and choose **Load and arm job**. JSON is a structured text file; this route requires a complete `rf-events/1` job, at most 30,000 bytes, produced by compatible software. It does not accept an ordinary message text file. Use **CW Modes** for the built-in Morse editor. All jobs use the same clock, frequency and control checks.
+(cw-timing)=
+### Timing settings
 
+**Dot length (seconds)** sets the basic mark duration. **Dash length**, **Within a character**, **Between characters** and **Between words** in **Timing settings** are multipliers of that dot length, not seconds. Defaults are 3, 1, 3 and 7 respectively. DFCW uses one dot length for both dots and dashes; its dash multiplier does not lengthen marks. QRSS switches RF off during gaps; FSKCW shifts down during gaps within a message; DFCW places dashes above the entered dot frequency by the selected shift. The frequency guidance changes when the mode changes. With a three-second dot and the default multipliers, a QRSS or FSKCW dash lasts nine seconds; gaps within a character, between characters and between words last three, nine and 21 seconds respectively.
+
+**Repeat count** is the number of message copies within one complete job (1–512). **Gap between repeats (seconds)** is a duration in seconds, separate from the timing multipliers; it must be positive when sending more than one copy. Read the calculated preview after editing. The complete job, including repeats and gaps, must fit the reported duration and event limits. Invalid entries remain in the editor for correction; no job is submitted until **Load and arm message** succeeds. A recurring schedule repeats this whole job at its start-to-start interval; it does not replace these message repeats.
+
+(prepared-job-files)=
+### Load a job file
+
+**Load a job file** accepts a prepared `rf-events/1` JSON transmission of at most **30,000 bytes**. JSON is a structured text format. This file contains a complete job prepared by compatible software; ordinary message text files and station-settings backups cannot be used here. Use **CW Modes** for the built-in Morse editor. Use a file prepared for this Pico's supported modes and output limits. The Pico validates its events, frequencies, duration and clock requirements before accepting it. All event timing runs locally after acceptance; the browser does not stream individual symbols.
+
+Choose **Job JSON file**, enter a future **Start time (UTC)** and select **Load and arm job** only after checking the RF path and current status. The control page needs an unlocked connection, available control and an acceptable clock. Read the result and refresh **Transmitter status**. A rejected job does not establish a transmission; correct the reported problem before submitting again. If the reply is lost, inspect status before attempting another submission. Closing the page does not stop an accepted job; use the [stop controls](#status-stop-and-connection-loss). Opening Help keeps the selected file and start-time entry in this tab.
+
+(repeat-a-message-on-a-schedule)=
 ### Repeat a message on a schedule
 
 Choose **Repeat on a schedule** in **Delivery** to save the complete message for automatic transmission with the browser closed. Set **Start time (UTC)** as the first start and **Repeat interval (minutes)** from 1 to 1440. The interval is measured from one planned start to the next, including across midnight; it is not a delay after completion. For example, a first start of 12:05 UTC and a 20-minute interval gives 12:05, 12:25 and 12:45 UTC. **Repeat count** still controls copies inside each complete transmission.
@@ -98,6 +113,7 @@ Choose **Pause schedule** to prevent later message starts while allowing an acce
 A failed or lost save reply can mean the profile was already saved. **Read saved schedule** appears after a failed read or when a save or pause needs recovery. Choose it and review the result before another explicit save or pause; an ordinary **Refresh** does not clear an unconfirmed action. Your form entries remain available. Before firmware updates, pause message scheduling and resolve any pending or recovery state. Updating preserves a confirmed saved profile; older firmware does not understand the new stored profile and is not a preserving downgrade path.
 
 
+(status-stop-and-connection-loss)=
 ## Status, stop and connection loss
 
 Use **Transmitter status → Refresh** to read the Pico's current report:

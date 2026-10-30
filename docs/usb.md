@@ -165,6 +165,7 @@ To close `screen`, press **Ctrl+A**, then **backslash (\\)**, then **y**. Close 
 
 The Console request does not reset the Pico password or bypass browser login. WsprryPi's [USB settings controls](connect.md#usb-access-without-wi-fi) can manage saved Wi-Fi credentials without that login, but changing Wi-Fi does not clear a separate Pico password. If the Pico password is forgotten, retain the diagnostics and review the [reset options and their consequences](maintain.md#recovery-and-reset).
 
+(usb-diagnostic-logging)=
 ## USB diagnostic logging
 
 The Pico can export diagnostic events to WsprryPi through its dedicated Logging port. In the Pico browser controls, open **Wi-Fi/Host → Logging → USB logging**, read the saved settings, enable export, choose the maximum severity and save. Read back after an uncertain save. Logging works without Pico Wi-Fi or synchronized UTC; without origin UTC, the Pi displays the receipt time.

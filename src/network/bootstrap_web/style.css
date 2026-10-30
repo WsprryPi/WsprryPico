@@ -32,3 +32,8 @@ summary{cursor:pointer;min-height:44px;padding:.65rem 0;font-weight:600}summary:
 .submission-actions button{margin:0;min-height:44px;max-width:100%}
 .submission-busy:focus-visible,.submission-busy p:focus-visible{outline:3px solid #b37617;outline-offset:3px}
 @media(prefers-color-scheme:dark){.submission-busy{background:#243746;color:#f1f5f8;border-color:#96adbd}.submission-busy::backdrop{background:rgb(0 8 16 / 62%)}.submission-busy button{background:#243746;color:#f1f5f8;border-color:#96adbd}}
+
+/* Native links remain usable inside locked fieldsets and collapsed summaries. */
+.documentation-help{display:inline-flex;align-items:center;min-width:44px;min-height:44px;padding:.5rem .25rem;color:#225e8a;font-size:.875rem;font-weight:400;text-underline-offset:.2em;vertical-align:middle;max-width:100%;overflow-wrap:anywhere}
+summary>.documentation-help{margin-inline-start:.75rem}
+.documentation-note{font-size:.875rem;color:#52616e}

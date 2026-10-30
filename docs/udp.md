@@ -4,6 +4,7 @@ The Pico can send diagnostic events over station Wi-Fi to one explicitly configu
 
 **UDP logs are sent in plaintext without authentication. Use a deliberately configured managed network. A successful send does not confirm receipt.** Wi-Fi encryption does not authenticate the collector or protect every network hop.
 
+(configure-export)=
 ## Configure export
 
 1. In **Wi-Fi/Host → Logging**, open **UDP logging** and choose **Read UDP logging settings**. Verify the Pico device and boot identity. On WsprryPi, select the intended member and use **UDP logging on this Pico**, checking its displayed identity and carrier.

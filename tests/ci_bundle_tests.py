@@ -22,6 +22,15 @@ import run as ci_run
 
 
 class TestingInputTests(unittest.TestCase):
+    def test_documentation_version_uses_actual_build_stream(self):
+        for ref, expected in [('refs/heads/main', 'main'), ('refs/heads/devel', 'devel'),
+                              ('refs/tags/v1.0.0-beta.1', 'main')]:
+            with self.subTest(ref=ref), patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': ref}, clear=True):
+                self.assertEqual(ci_run.documentation_version(), expected)
+        with patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': 'refs/heads/arbitrary'}, clear=True):
+            with self.assertRaises(ValueError):
+                ci_run.documentation_version()
+
     def test_semver_policy_matches_schema_and_rejects_unsafe_or_reserved_versions(self):
         schema = bundle.read_json(bundle.SCHEMA)['properties']['firmware_version']
         self.assertEqual(schema['pattern'], '^' + bundle.SEMVER + '$')

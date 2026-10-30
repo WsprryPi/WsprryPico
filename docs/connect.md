@@ -1,5 +1,6 @@
 # Connect to your Pico
 
+(first-wi-fi-connection)=
 ## First Wi-Fi connection
 
 1. Power the Pico. Without saved Wi-Fi it starts a temporary **open** setup network named **WsprryPico-** followed by six hexadecimal characters. It needs no Wi-Fi join password. Select the intended Pico's network and keep that connection if your phone or computer reports no Internet.
@@ -20,6 +21,12 @@
 6. The default **Pico password** is the **home Wi-Fi password entered during setup**. Select the lock beside the hostname, enter it in **Pico password**, then choose **Unlock controls**. You can [set a separate Pico password](maintain.md#change-the-pico-password) under **Wi-Fi/Host → Pico password**. Check the hostname in the page heading and the full device ID under **About this Pico / Diagnostics** against your Pico, then continue to [Configure your station](configure.md) when you are ready to set up transmissions.
 
 Setup Wi-Fi stays available while your phone or computer is connected to it. After the last device disconnects, it closes after **ten minutes** without a connection. If nobody joins, the initial setup window also lasts ten minutes. Saving settings that restart the Pico can interrupt the connection; do not assume a lost reply means the save failed. If needed, use [USB recovery](usb.md) or request setup Wi-Fi again with the external button.
+
+## Online help from the control page
+
+**Manual** and **Getting started** open the operator manual. **Help** beside a section heading or group opens the relevant instructions in a separate tab. Help is available while controls are locked and section headings are collapsed. It does not save settings, unlock controls or stop transmissions. Keep the Pico tab open to retain unsaved entries and selected files.
+
+Main firmware links to the **main** manual; development firmware links to **devel**. Online help needs Internet access; the setup Wi-Fi network may not provide it. Opening the Pico page, setup and normal operation do not require access to the documentation site. Reconnect to an Internet-connected network or use another device to read the manual if necessary.
 
 ## Open the control page
 

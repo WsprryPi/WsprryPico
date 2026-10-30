@@ -108,6 +108,7 @@ try {
     await f.stop();f=new Fixture(process.argv[2],['1'.repeat(32),'--blank']);await f.time(1000);
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
     await until(()=>cdp.evaluate('document.getElementById("submit") && !document.getElementById("submit").disabled'),'first Wi-Fi form');
+    assert.equal(await cdp.evaluate(`document.querySelector('a[data-help="First Wi-Fi connection"]').href`),'https://wsprrypico.readthedocs.io/en/devel/connect.html#first-wi-fi-connection');
     await field('ssid','Home Net');await field('password','test-password');await click('submit');
     await until(()=>cdp.evaluate('!document.getElementById("accepted").hidden'),'first Wi-Fi accepted');
     await f.command({op:'bench_network',linked:true,safe:true});
@@ -285,6 +286,7 @@ try {
       await capture(mode+'-wifi-first');
       await cdp.send('Page.navigate',{url:'http://192.168.4.1/station'});
       await until(()=>cdp.evaluate(`!!document.getElementById('owner-form') && document.title.includes('Station setup')`),'station commissioning '+mode);
+      assert.equal(await cdp.evaluate(`document.querySelector('a[data-help="Station commissioning"]').href`),'https://wsprrypico.readthedocs.io/en/devel/configure.html#station-identity');
       assert.equal(await cdp.evaluate(`!!document.getElementById('message-form')`),false);
       await until(()=>cdp.evaluate(`!document.getElementById('owner-wifi-first').hidden`),'ready station commissioning '+mode);
       await capture(mode+'-station-setup');
@@ -325,6 +327,7 @@ try {
     await f.command({op:'page_profile',mode:'recovery'});console.log('Recovery boundary: profile ready');
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/recovery.html'});
     await until(()=>cdp.evaluate(`!!document.getElementById('provisioning') && !document.getElementById('provisioning').disabled`),'admitted recovery page');
+    assert.equal(await cdp.evaluate(`document.querySelector('a[data-help="Reset and recovery"]').href`),'https://wsprrypico.readthedocs.io/en/devel/maintain.html#recovery-and-reset');
     await click('provisioning');
     assert.equal(await cdp.evaluate(`document.activeElement.id`),'operation');
     await field('phrase','wrong phrase');assert.equal(await cdp.evaluate(`document.getElementById('execute').disabled`),true);

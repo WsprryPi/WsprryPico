@@ -1,5 +1,6 @@
 // Shipped page/bundle -> Chrome -> production HTTP/AEAD; time and board are synthetic.
 import assert from 'node:assert/strict';
+import {checkContextualHelp} from './contextual_help_browser.mjs';
 import {spawn} from 'node:child_process';
 import {mkdtemp,readFile,writeFile,mkdir} from 'node:fs/promises';
 import os from 'node:os';
@@ -59,12 +60,14 @@ async function login(password='test-password') {
     await until(()=>evaluate('!busy && !document.getElementById("login-submit").disabled && (document.getElementById("local-login").requestSubmit(),true)'),'login submit available');
     await idle();
 }
+const helpWindows=[];
 const checks=[];
 function pass(name){checks.push(name);console.log('PASS '+name);}
 async function capture(state,dialog=false) {
     for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844},{name:'landscape',width:740,height:360}]) {
         await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name!=='desktop'});
-        if(!dialog)await evaluate('scrollTo(0,0)');
+        if(state==='contextual-help')await evaluate('document.getElementById("radio-settings").scrollIntoView({block:"start"})');
+        else if(!dialog)await evaluate('scrollTo(0,0)');
         assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'no horizontal overflow');
         if(process.env.UI_REVIEW_NO_CAPTURE==='1')continue;
         const shot=await send('Page.captureScreenshot',{format:'png'});
@@ -84,10 +87,13 @@ try {
     await until(async()=>{try{debugPort=Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]);return !!debugPort;}catch{return false;}},'Chrome startup');
     const pages=await(await fetch('http://127.0.0.1:'+debugPort+'/json')).json();
     ws=new WebSocket(pages.find(page=>page.type==='page').webSocketDebuggerUrl);
-    ws.onmessage=event=>{const value=JSON.parse(event.data);if(value.method==='Page.javascriptDialogOpening'){void send('Page.handleJavaScriptDialog',{accept:true});return;}const request=pending.get(value.id);if(request){pending.delete(value.id);value.error?request.reject(Error(value.error.message)):request.resolve(value.result);}};
+    ws.onmessage=event=>{const value=JSON.parse(event.data);if(value.method==='Page.windowOpen'){helpWindows.push(value.params);return;}if(value.method==='Page.javascriptDialogOpening'){void send('Page.handleJavaScriptDialog',{accept:true});return;}const request=pending.get(value.id);if(request){pending.delete(value.id);value.error?request.reject(Error(value.error.message)):request.resolve(value.result);}};
     await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});await send('Page.enable');
     await until(()=>evaluate('!!document.documentElement').catch(()=>false),'active Chrome page');
     await navigate();
+    await checkContextualHelp({evaluate,send,key,section,helpWindows});
+    pass('native contextual help: collapsed/locked, pointer/keyboard, drafts/files/History, no application requests');
+    await capture('contextual-help');
     if(carrier==='engineering') {
       assert.equal(await evaluate('accessCarrier'),'certificate');
       assert.equal(await evaluate('document.getElementById("access-toggle").getAttribute("aria-label")'),'Certificate access information');

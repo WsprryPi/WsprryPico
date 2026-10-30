@@ -6,8 +6,10 @@ Keep schedules disabled and output inactive while setting up. Use the hostname l
 
 **Discard edits and reload** replaces the browser’s entries with device-saved values after confirming the loss of unsaved edits. When a save needs reconciliation, **Review saved settings** preserves your entries and shows a comparison with the Pico’s saved values. A **draft** is an edit or saved work in progress; **applied** settings are the accepted configuration used for operation. Pin changes also need a restart before they become active.
 
+(wspr-configuration)=
 ## WSPR configuration
 
+(station-identity)=
 ### Station identity
 
 1. Enter your **Callsign**, four- or six-character **Grid locator**, and **Reported WSPR power (dBm)**. The locator is the Maidenhead position code for your transmitting location, such as `EM18` or `EM18ab`; use your own location. Reported power is the value broadcast in the WSPR message. The unit **dBm** expresses power relative to one milliwatt; for example, 30 dBm means one watt. Enter an appropriate value for your actual RF setup; this field does not set or measure physical power.
@@ -19,6 +21,7 @@ Keep schedules disabled and output inactive while setting up. Use the hostname l
 :alt: WSPR Configuration containing station identity, the saved message type and the frequency controls.
 ```
 
+(frequency-and-schedules)=
 ### Frequency and schedules
 
 For a complete start-to-finish example, follow [Your first WSPR transmission](operate.md#your-first-wspr-transmission).
@@ -51,6 +54,7 @@ A confirmed frequency save or settings application refreshes the settings revisi
 
 To prevent later automatic starts, uncheck **Enable standalone schedules**, save and apply, then confirm it is disabled. This is separate from aborting a job that is already accepted or running.
 
+(time-and-calibration)=
 ## Time and calibration
 
 These settings apply to WSPR, Morse modes and test tones. Open **Station Control → Time and calibration**. Saved values load automatically; a read button appears only if recovery needs a fresh observation.
@@ -59,6 +63,7 @@ These settings apply to WSPR, Morse modes and test tones. Open **Station Control
 
 **Carrier calibration** corrects RF frequency in every mode. Edit **Manual correction (ppm)** and choose **Save calibration**; the saved correction applies when the next job is prepared. Network time disciplines UTC separately. See [Time and frequency correction](reference/time.md#manual-frequency-correction) for measuring the correction.
 
+(pins-and-drive)=
 ## Pins and drive
 
 Assign each GPIO one role. Check physical wiring before changing **Radio pins**. The optional amplifier-enable pin has a selected active polarity; it stays active for a complete job, including keyed gaps, with configurable lead before RF and tail after normal completion. Stop, abort and faults bypass the tail.
@@ -69,12 +74,14 @@ Direct RF drive offers **2, 4, 8 or 12 mA**, with **4 mA** as the default. This 
 
 Pin or drive changes require an **explicit restart** in **Station Control → Transmitter status** before transmitting. Saving does not program the running pad. Changing a value back does not clear the restart requirement. Read saved and active settings separately.
 
+(amplifier-lead-and-tail)=
 ### Amplifier lead and tail
 
 Open **Station Control → Radio pins → Amplifier control**. Saved values load automatically. Set **Amplifier enable**, **Pin polarity**, **Enable before RF (ms)** and **Disable after RF (ms)**, then choose **Save amplifier config** while the Pico is idle and unowned. This saves amplifier pin, polarity and timing edits while preserving other radio-pin drafts. Both values default to **200 ms** and accept **0–1000 whole milliseconds**. Restart the Pico to activate changes; saved and active values are shown separately. Changing timing requires a restart even if the amplifier pin is disabled.
 
 Lead lets the amplifier settle before the scheduled RF start. Tail holds it enabled after normal RF completion. These intervals surround the transmission window and do not change the message duration or shift its scheduled RF start. Zero removes the corresponding interval; a disabled amplifier pin uses neither interval. A job submitted too late to provide its lead is refused. Stop and fault cleanup do not wait for tail. Settings readback shows the phase observed at the last read; it does not measure amplifier readiness or RF power.
 
+(lpf-and-band-selector)=
 ### LPF and band selector
 
 An optional **LPF / band selector** controls an external low-pass filter bank. Leave **Selection policy** at **Fixed / manual filtering** if you use a fixed filter or switch it yourself. **Require a declared filter for every job** refuses a transmission unless one selector covers every RF frequency in the whole job, including modulation and frequency correction. Empty required mappings refuse every job.
@@ -89,6 +96,7 @@ The selected filter settles before amplifier enable. It stays selected through m
 
 Connect GPIO only to suitable **3.3 V logic drivers** with external bias that holds the bank inactive during reset or loss of Pico power. Never drive relay coils directly from GPIO. Declaring a range does not measure filter response, power handling or RF emissions. Verify the actual RF path before operating.
 
+(led-and-button-settings)=
 ### LED and button settings
 
 Open **Station Control → Radio pins** to inspect or change the transmit indicator and external button. The [hardware preparation guide](start.md#hardware-connections) lists the defaults, available GPIOs and example wiring. GPIO menus use **GP numbers**, not physical header pin numbers. Each GPIO can serve only one role; pins assigned to another role are unavailable.
@@ -97,6 +105,7 @@ Open **Station Control → Radio pins** to inspect or change the transmit indica
 2. Under **Button**, read the saved button pin. The factory default is **GP14**, physical pin **19**. Choose an unused GPIO from the same ranges or **Disabled**. Wire a normally open push button between the selected GPIO and GND; the input uses an internal pull-up.
 3. Choose **Save radio pins** and read the result. Use **Station Control → Transmitter status → Reset Pico** to activate changed pin settings. Read the saved and active assignments again after restart and confirm that they match the wiring before transmitting.
 
+(understand-what-was-saved)=
 ## Understand what was saved
 
 | Observation | Meaning |
@@ -122,6 +131,7 @@ A draft save does not arm a job. Explicitly saving/applying **Enable standalone 
 
 An already enabled schedule continues with its applied settings while you save progress. Saving an unchecked enable box alone does not disable that schedule; apply the change and confirm readback. Saving progress also leaves STOP and fault state intact. Completing a draft, logging in, refreshing or restarting never applies that draft automatically.
 
+(recover-an-uncertain-save)=
 ### Recover an uncertain save
 
 If a save reply is lost or settings change elsewhere, keep the tab open and unlock controls if needed. Follow the **Review saved settings** link; this recovery panel appears when review is needed. Compare the readback, then choose **I reviewed these settings; enable saving** only after review. During setup, draft recovery uses **Read saved progress; keep edits** followed by **I reviewed saved progress; enable a new save**. For an uncertain Wi-Fi or station setup application, **Check saved result** and any reconnection instructions appear beside that save. They remain available while the request needs confirmation.

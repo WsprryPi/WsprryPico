@@ -2,6 +2,24 @@ cmake_minimum_required(VERSION 3.24)
 
 option(WSPRRY_PICO_BUILD_FIRMWARE "Build Pico 2 W firmware" OFF)
 set(WSPRRY_PICO_FIRMWARE_VERSION "0.0.0-devel" CACHE STRING "Firmware identity")
+# Local main checkouts use the main manual. Other local development checkouts
+# use devel; canonical CI supplies this choice explicitly for detached sources.
+execute_process(COMMAND git symbolic-ref --quiet --short HEAD
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" OUTPUT_VARIABLE WSPRRY_PICO_SOURCE_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+set(WSPRRY_PICO_DOCUMENTATION_DEFAULT devel)
+if(WSPRRY_PICO_SOURCE_BRANCH STREQUAL "main")
+    set(WSPRRY_PICO_DOCUMENTATION_DEFAULT main)
+endif()
+set(WSPRRY_PICO_DOCUMENTATION_VERSION auto CACHE STRING "Operator manual version (auto, main or devel)")
+set_property(CACHE WSPRRY_PICO_DOCUMENTATION_VERSION PROPERTY STRINGS auto main devel)
+set(WSPRRY_PICO_DOCUMENTATION_SELECTED "${WSPRRY_PICO_DOCUMENTATION_VERSION}")
+if(WSPRRY_PICO_DOCUMENTATION_SELECTED STREQUAL "auto")
+    set(WSPRRY_PICO_DOCUMENTATION_SELECTED "${WSPRRY_PICO_DOCUMENTATION_DEFAULT}")
+endif()
+if(NOT WSPRRY_PICO_DOCUMENTATION_SELECTED MATCHES "^(main|devel)$")
+    message(FATAL_ERROR "Operator manual version must be auto, main or devel")
+endif()
 
 if(WSPRRY_PICO_BUILD_FIRMWARE)
     set(PICO_BOARD pico2_w CACHE STRING "Pico SDK board" FORCE)
@@ -65,7 +83,7 @@ execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_
     COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_web_assets.py
     ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
-    "${WSPRRY_PICO_FIRMWARE_VERSION}"
+    "${WSPRRY_PICO_FIRMWARE_VERSION}" "${WSPRRY_PICO_DOCUMENTATION_SELECTED}"
     COMMAND_ERROR_IS_FATAL ANY)
 
 add_library(wsprrypico_core

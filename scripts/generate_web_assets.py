@@ -6,6 +6,7 @@ import hashlib
 import html as html_escape
 import json
 import pathlib
+import re
 import sys
 
 root, output = map(pathlib.Path, sys.argv[1:3])
@@ -32,7 +33,16 @@ for output_name, inputs in groups.items():
     if (entry.get('inputs') != expected or entry.get('bytes') != len(output_bytes) or
             entry.get('sha256') != hashlib.sha256(output_bytes).hexdigest()):
         raise ValueError('Stale operator assets; run npm --prefix src/network/bootstrap_web run build')
-html, css = [(web / name).read_text() for name in ('index.html', 'style.css')]
+# Only maintained manual versions are admitted, independently of firmware
+# versions, control majors and runtime device input. CMake/CI select the stream.
+help_version = sys.argv[4] if len(sys.argv) > 4 else 'devel'
+if help_version not in ('main', 'devel'):
+    raise ValueError('Operator manual version must be main or devel')
+HELP_BASE = f'https://wsprrypico.readthedocs.io/en/{help_version}/'
+def document_text(path):
+    return path.read_text().replace('@WSPRRY_PICO_HELP_BASE@', HELP_BASE)
+
+html, css = [document_text(web / name) for name in ('index.html', 'style.css')]
 html = html.replace('@WSPRRY_PICO_FIRMWARE_VERSION@', html_escape.escape(firmware_version))
 js = (web / 'app.min.js').read_text()
 organization = (web / 'organization.min.js').read_text()
@@ -42,20 +52,20 @@ bootstrap_web = root / 'src/network/bootstrap_web'
 radio_js = (bootstrap_web / 'radio-bundle.js').read_text()
 radio_html = html.replace('<link rel="stylesheet" href="/style.css">', '<style>' + css + '</style>')
 bootstrap_html, bootstrap_css, bootstrap_js = [
-    (bootstrap_web / name).read_text()
+    document_text(bootstrap_web / name)
     for name in ('index.html', 'style.css', 'bundle.js')
 ]
 bootstrap_html = bootstrap_html.replace(
     '<link rel="stylesheet" href="./style.css">',
     '<style>' + bootstrap_css + '</style>')
 owner_html, owner_js, owner_key_js = [
-    (bootstrap_web / name).read_text()
+    document_text(bootstrap_web / name)
     for name in ('owner.html', 'owner-bundle.js', 'owner-key-bundle.js')
 ]
 owner_html = owner_html.replace(
     '<link rel="stylesheet" href="./style.css">',
     '<style>' + bootstrap_css + '</style>')
-recovery_html, recovery_js = [(bootstrap_web / name).read_text()
+recovery_html, recovery_js = [document_text(bootstrap_web / name)
     for name in ('recovery.html', 'recovery-bundle.js')]
 recovery_html = recovery_html.replace('<link rel="stylesheet" href="./style.css">',
     '<style>' + bootstrap_css + '</style>')
@@ -155,8 +165,7 @@ constexpr std::string_view radio_parts[] = {
 
 '''
 for name, identifiers in literal_names.items():
-    if name.endswith('_js') or name == 'js':
-        documents = documents.replace(', ' + name + ',', ', ' + ', '.join(identifiers) + ',')
+    documents = re.sub(r'\b' + re.escape(name) + r'\b(?=,)', ', '.join(identifiers), documents)
 source += documents
 source += '''
 std::string_view consumer_radio_csp() { return radio_policy; }
@@ -187,6 +196,10 @@ std::optional<WebAsset> bootstrap_asset(std::string_view path) {
 }
 }
 '''
+# The body fallback names the first literal; parts carry the full document.
+for name, identifiers in literal_names.items():
+    if len(identifiers) > 1:
+        source = source.replace('WebAsset{' + name + ',', 'WebAsset{' + identifiers[0] + ',')
 output.parent.mkdir(parents=True, exist_ok=True)
 if not output.exists() or output.read_text() != source:
     output.write_text(source)
