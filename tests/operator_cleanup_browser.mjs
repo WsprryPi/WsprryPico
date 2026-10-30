@@ -79,7 +79,7 @@ async function checkStatusTypography(context) {
     assert.equal(value.lineHeight,type.size*1.5,`${context} ${value.id} readable value leading`);
   }
 }
-const config=async()=>{const c=f.client();await c.identity();return (await c.publicRead('config/4')).json();};
+const config=async()=>{const c=f.client();await c.identity();return (await c.publicRead('config')).json();};
 async function edit(name,value,pins=false) {
   await evaluate(`document.getElementById('config').elements[${JSON.stringify(name)}].value=${JSON.stringify(value)};document.getElementById('config').elements[${JSON.stringify(name)}].dispatchEvent(new Event('input',{bubbles:true}));${pins?"document.getElementById('config').elements["+JSON.stringify(name)+"].dispatchEvent(new Event('change',{bubbles:true}));":''}`);
 }
@@ -333,8 +333,8 @@ try {
   }
   await f.time(f.now+1000);
   const concurrent=f.client();await f.login(concurrent);
-  const hardware=await concurrent.request('hardware/3'),hw=await hardware.json();
-  assert.equal((await concurrent.request('hardware/3','PUT',{schema:hw.schema,target:hw.target,pins:{...hw.saved,button_gp:13}},hardware.headers.get('etag'))).status,200);
+  const hardware=await concurrent.request('hardware'),hw=await hardware.json();
+  assert.equal((await concurrent.request('hardware','PUT',{schema:hw.schema,target:hw.target,pins:{...hw.saved,button_gp:13}},hardware.headers.get('etag'))).status,200);
   const afterConcurrent=(await f.command({op:'stats'})).config_sequence;
   await click('review-saved');await idle();
   assert.equal(await evaluate('writeState'),'readback');
@@ -348,7 +348,7 @@ try {
   assert.equal(await evaluate('document.activeElement.id'),'device-name');
   assert.equal((await f.command({op:'stats'})).config_sequence,afterConcurrent,'review and approval never replay a save');
   console.log('PASS contextual recovery, reload refusal, explicit review and concurrent-revision invalidation through production HTTP/crypto');
-  // Independently versioned timeout writes and public loading survive a boot.
+  // Current timeout writes and public loading survive a boot.
   await evaluate('{const e=document.getElementById("ntp-timeout-minutes");e.value="0";e.dispatchEvent(new Event("input",{bubbles:true}));}');
   await click('ntp-timeout-save');await idle();
   if(!await evaluate('document.getElementById("ntp-timeout-status").textContent.startsWith("NTP timeout saved:")')) {
@@ -364,7 +364,8 @@ try {
   assert.equal(await evaluate('document.getElementById("ntp-timeout-read").hidden'),true);
   assert.equal(await evaluate('document.getElementById("rf-calibration-read").hidden'),true);
   assert.equal(await evaluate('document.getElementById("amplifier-timing-read").hidden'),true);
-  assert.equal(await evaluate('(async()=> (await radio.publicRead("ntp-timeout")).status)()'),409,'historical read cannot misrepresent zero');
+  assert.equal(await evaluate('(async()=> (await radio.publicRead("ntp-timeout")).status)()'),200,'the canonical resource represents zero after reboot');
+  assert.equal((await f.fetch('192.168.1.53',false,'/api/consumer/v1/read/3/ntp-timeout/2')).status,404,'obsolete public catalog routes are absent');
   console.log('PASS zero timeout save, stale-revision recovery, reboot persistence, automatic public load and historical-version refusal');
 
   console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,api:'production HTTP/crypto',hardware:false,screenshots:screenshotCount}));

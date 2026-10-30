@@ -1,3 +1,4 @@
+#include "network/control_contract.hpp"
 // SPDX-License-Identifier: MIT
 #include "hardware/filter_settings.hpp"
 
@@ -131,6 +132,6 @@ std::string serialize_filters(const FilterSettings& s) {
     return out + "]}";
 }
 std::string filter_capabilities() {
-    return R"({"schema":"transmitter-filter-selector/1","path":"/api/v1/filter-selector"})";
+    return std::string(network::control_descriptor("filter_selector"));
 }
 } // namespace wsprrypico::hardware

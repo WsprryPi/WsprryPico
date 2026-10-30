@@ -1,7 +1,7 @@
 # Standalone configuration and timing
 
 Persistent carrier calibration uses the independently advertised
-`/api/v1/rf-calibration` resource. Saved manual correction is signed ppb with
+`/api/control/v1/rf-calibration` resource. Saved manual correction is signed ppb with
 zero/manual default and decimal ppm presentation; saves take effect only at
 future preparation. RF correction uses manual PPM only; μChrony controls UTC.
 The [UTC/RF contract](clock-discipline.md) defines manual-only RF
@@ -26,13 +26,13 @@ applied. The inhibited image initializes a configured output inactive and never
 asserts it for a simulated job. Pin/polarity saves require explicit restart and
 retain the existing sticky hardware inhibition, including A/B/A saves.
 
-Explicit `WsprryPico-Inhibited` selects the local lifecycle simulator. It never enables RF output, reports `inhibited-standalone-simulator`, and its linked image is checked for absence of the physical engine/worker. Simulated starts and completions do not establish physical timing. Both variants expose finite `wspr`, `tone`, `qrss`, `fskcw` and `dfcw` jobs with the existing 512-event, 3600-second capacity, 100 kHz through one Hz below half the selected sample rate. See [build commands and target selection](firmware-foundation.md). Autonomous WSPR schedules use an explicitly saved whole-Hz WSPR USB dial frequency, configured through the consumer settings page or `/api/v1/standalone-frequency`. The persisted member is `wspr_dial_frequency_hz`; the resource's `frequency_hz` is the same whole-Hz dial. A fresh configuration has no selected frequency. A first frequency save leaves schedules disabled; enabling them remains deliberate. Later changes activate at the next job, without restart, ownership acquisition or clearing STOP. Both frames of a Type 2/3 pair retain one exact nominal tone snapshot alongside the existing calibration freeze.
+Explicit `WsprryPico-Inhibited` selects the local lifecycle simulator. It never enables RF output, reports `inhibited-standalone-simulator`, and its linked image is checked for absence of the physical engine/worker. Simulated starts and completions do not establish physical timing. Both variants expose finite `wspr`, `tone`, `qrss`, `fskcw` and `dfcw` jobs with the existing 512-event, 3600-second capacity, 100 kHz through one Hz below half the selected sample rate. See [build commands and target selection](firmware-foundation.md). Autonomous WSPR schedules use an explicitly saved whole-Hz WSPR USB dial frequency, configured through the consumer settings page or `/api/control/v1/standalone-frequency`. The persisted member is `wspr_dial_frequency_hz`; the resource's `frequency_hz` is the same whole-Hz dial. A fresh configuration has no selected frequency. A first frequency save leaves schedules disabled; enabling them remains deliberate. Later changes activate at the next job, without restart, ownership acquisition or clearing STOP. Both frames of a Type 2/3 pair retain one exact nominal tone snapshot alongside the existing calibration freeze.
 
 For dial `D`, the nominal RF center is `C = D + 1500 Hz` and tone `k` is `C + (k - 1.5) × 1.46484375 Hz`, for `k = 0, 1, 2, 3`. No random placement applies. Preparation uses integer nHz: audio offset `1500000000000`, spacing `1464843750`, center-to-tone-0 offset `2197265625`. Dial `14095600` produces center `14097100 Hz` and exact tone targets `14097097802734375`, `14097099267578125`, `14097100732421875`, `14097102197265625` nHz. These are nominal requested targets; manual correction and NCO quantization remain subsequent engine responsibilities.
 
 Every emitted tone must pass the selected engine limits and saved frequency permissions. The dial reference itself is not emitted. For a 138 MHz engine's RF range of 100000–68999999 Hz, pure engine dial bounds are 98503–68998496 Hz; 132 MHz and 150 MHz engines have upper dial bounds 65998496 and 74998496 Hz. Policy may narrow those ranges. The schema's 98503–74998496 integer domain spans the supported engines; API admission applies the actual selected engine. Strict JSON tokens reject fractions, exponent notation and suffixes independently of JSON Schema's numeric integer domain.
 
-`STATUS` reports `schedule_dial_frequency_nhz` as an exact decimal string, or null when unset, together with `frequency_required`. Application views 1 through 4 use the same member and the nontransmitting string sentinel `"0"` when unset. Generic configuration resources redact the independently owned setting; complete PUT, merge, replace, partial resources and Console CONFIG omission preserve it. Explicit Console `CONFIG` supplies `wspr_dial_frequency_hz` in whole Hz. Unknown saved members follow ordinary strict configuration rejection. A rejected latest journal record does not resurrect older enabled settings.
+`STATUS` reports `schedule_dial_frequency_nhz` as an exact decimal string, or null when unset, together with `frequency_required`. The current application resource uses the same member and the nontransmitting string sentinel `"0"` when unset. The configuration projection omits the independently owned setting; configuration merges, scoped resources and Console CONFIG omission preserve it. Explicit Console `CONFIG` supplies `wspr_dial_frequency_hz` in whole Hz. Unknown saved members follow ordinary strict configuration rejection. A rejected latest journal record does not resurrect older enabled settings.
 
 The offline `scripts/decode_wspr_type23_pair.py --dial-hz <whole-Hz dial>` input is checked against the captured `schedule_dial_frequency_nhz`. It derives WSPR center as dial + 1500 Hz for capture translation and audio conversion; receiver tuning center remains independent. Synthetic analysis tests do not establish RF decoding or timing qualification.
 
@@ -61,7 +61,7 @@ Console `INFO` reports the last native LOAD's `load_free_before` and `load_free_
 
 ## Configuration
 
-Config version 1 retains positive whole-minute NTP timeouts. The explicit unlimited selection is stored as Config version 2 with `ntp_timeout_s:0`; all other fields retain their validation. Historical public Config views remain version 1 and preserve the independent timeout. See [clock discipline](clock-discipline.md) for the separately versioned timeout resource, restart behavior and compatibility.
+Config version 1 retains positive whole-minute NTP timeouts. The explicit unlimited selection is stored as Config version 2 with `ntp_timeout_s:0`; all other fields retain their validation. The current control configuration projection omits the independent timeout and its internal storage version. See [clock discipline](clock-discipline.md) for the current timeout resource, restart behavior and storage compatibility.
 
 Engineering Console configuration uses its own CDC interface, separate from
 WTP. Current [USB management](usb-local-configuration.md) also configures shared
@@ -117,26 +117,25 @@ Two optional top-level JSON booleans match WsprryPi's advanced settings:
 | `allow_non_amateur_frequency` | `false` | Together with `allow_unqualified_frequency:true`, permit frequencies outside the recognized amateur-band correlation ranges. |
 
 Set these with a complete engineering `CONFIG` document where the saved profile
-permits Console configuration, or authenticated
-`PUT /api/v1/config`, for example by adding
-`"allow_unqualified_frequency": true` to the sanitized document above. For a
-non-amateur experiment, also add `"allow_non_amateur_frequency": true`.
-Initial configuration, Console CONFIG and explicit API replacement default
-omitted flags to false. Ordinary API PUT preserves saved omitted flags; send
-explicit false to revoke them. Strings, numbers, null and duplicate fields reject.
-False settings are omitted from canonical storage/readback to preserve legacy
-default configuration bytes. `STATUS` reports both effective booleans. A full
-configuration replacement that omits a flag revokes that opt-in. Ordinary
-browser form saves, station-only, hardware-only and schedule-only updates
-preserve saved opt-ins. These advanced settings are outside the ordinary form.
-See the [configuration-update contract](configuration-updates.md) for atomic
-merge/replacement, preserved optionals and the explicit compatibility migration.
+permits Console configuration, or through authenticated
+`POST /api/control/v1/config/update`. The control request contains
+`contract:"Wsprry-Control/1"`, `schema:"config-update"`, the current member target,
+`mode:"merge"` and a `config` patch, with the current `If-Match` revision. For
+example, patch `allow_unqualified_frequency:true`; a non-amateur experiment also
+requires `allow_non_amateur_frequency:true`. Send explicit false to revoke an
+opt-in. Ordinary omitted fields preserve saved values. Strings, numbers, null and
+duplicate fields reject. Initial configuration and Console CONFIG default omitted
+flags to false; full Console configuration replaces those optional selections.
+False flags are omitted from canonical storage/readback to retain default journal
+bytes. `STATUS` reports both effective booleans. Browser form, station, hardware
+and schedule saves preserve unrelated opt-ins. These advanced settings are outside
+the ordinary form. See the [configuration-update contract](configuration-updates.md)
+for atomic merge semantics and scoped resource ownership.
 
 The optional `gpio_drive_ma` selects 2, 4, 8 or 12 mA on the direct RF pin,
 with explicit 4 mA default. It is independent of reported WSPR dBm and measured
-RF power. Legacy API saves preserve omission; drive-aware config/3 and update/3
-accept explicit values. Console CONFIG, initial creation and deliberate
-replacement default omission to 4. Saved, immutable boot and nullable cached
+RF power. Current configuration merges preserve omission; the `config` readback reports drive and the `config/update` merge accepts explicit
+values. Console CONFIG and initial creation default omission to 4. Saved, immutable boot and nullable cached
 pad verification are separate; saving never programs a pad. See
 [GPIO drive](gpio-drive.md) for restart, progress and downgrade semantics.
 
@@ -509,7 +508,7 @@ and cross-linking establish neither device timing nor conducted RF performance.
 
 The standalone Scheduler also dispatches one saved QRSS, FSKCW or DFCW template through the existing JobService. `MessageSchedule` uses a UTC first-start anchor, a whole-minute period of 60–86,400 seconds and optional UTC expiry. The next start is the grid ceiling after current UTC plus preparation lead and after the consumed watermark. The complete immutable job must fit the interval and expiry. Late or occupied occurrences are skipped. The UTC grid and consumed-start rule derive from WsprryPi devel `5bc24e893646140d44f0bf9a20d61115d0eadda9`, `src/wtp_integration/fleet_schedule.cpp`, under MIT; they do not use the older local-time hourly scheduler.
 
-The existing 2 KiB configuration journal stores an internal `standalone-state/3` envelope containing legacy Config or null and the message profile. Legacy Config API views remain unchanged and subsequent Config saves preserve the profile. The combined payload limit is 1,984 bytes. With no profile, legacy storage remains unchanged. A reader that cannot parse the newest envelope fails closed rather than restoring an older enabled record. Preserving downgrade to older firmware is unsupported after a profile is saved.
+The existing 2 KiB configuration journal stores an internal `standalone-state/3` envelope containing legacy Config or null and the message profile. The current control configuration projection omits internal journal envelopes, and subsequent configuration merges preserve the profile. The combined payload limit is 1,984 bytes. With no profile, legacy storage remains unchanged. A reader that cannot parse the newest envelope fails closed rather than restoring an older enabled record. Preserving downgrade to older firmware is unsupported after a profile is saved.
 
 The existing 256-byte cursor journal accepts legacy decimal watermarks or `standalone-cursor/2`, containing the consumed watermark, last message start and a message-in-flight barrier. The barrier is persisted before LOAD/ARM and cleared only after the matching successful terminal result, inactive output and safe release. Reset, lost outcome or failure retains it and blocks autonomous recurrence until an explicit idle pause acknowledges recovery. No flash regions, WTP authority or job limits change. Enabled autonomous WSPR and message profiles are mutually exclusive.
 

@@ -69,10 +69,10 @@ async function authenticated() {
   const unavailable=await fixture(true,true,false,false,'',false,{localDiscoveryFailure:true});
   assert.equal(run(unavailable,'accessCarrier'),'unavailable');
   assert.equal(unavailable.elements['access-toggle'].disabled,true);
-  assert.equal(unavailable.calls.some(c=>c.path.startsWith('/api/v1/')),false);
+  assert.equal(unavailable.calls.some(c=>c.path.startsWith('/api/control/v1/')),false);
   assert.doesNotMatch(unavailable.elements['access-state'].textContent,/certificate/);
   await unavailable.elements.refresh.onclick();
-  assert.equal(unavailable.calls.some(c=>c.path.startsWith('/api/v1/')),false);
+  assert.equal(unavailable.calls.some(c=>c.path.startsWith('/api/control/v1/')),false);
   assert.equal(unavailable.elements['message-settings'].disabled,true);
   unavailable.localDiscoveryFailure=false;await unavailable.elements.refresh.onclick();
   assert.equal(run(unavailable,'accessCarrier'),'certificate');assert.equal(run(unavailable,'online'),true);

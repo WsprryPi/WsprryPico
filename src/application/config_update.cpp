@@ -1,4 +1,5 @@
 #include "application/config_update.hpp"
+#include "network/control_contract.hpp"
 
 namespace wsprrypico::application {
 namespace {
@@ -11,11 +12,11 @@ bool config_fields(Value value, bool partial, bool drive) {
         return false;
     if (partial)
         return fields(value, {},
-                      {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s",
+                      {"enabled", "station", "wifi", "schedules", "expires_utc_s",
                        "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency",
                        "gpio_drive_ma"}) &&
                !fields(value, {});
-    return fields(value, {"version", "enabled", "station", "wifi", "schedules"},
+    return fields(value, {"enabled", "station", "wifi", "schedules"},
                   {"expires_utc_s", "pins", "allow_unqualified_frequency",
                    "allow_non_amateur_frequency", "gpio_drive_ma"});
 }
@@ -33,14 +34,14 @@ Envelope validate_config_update(Value root, std::string_view device, std::string
         return Envelope::Invalid;
     const auto schema = *root.get("schema"), target = *root.get("target"), mode = *root.get("mode");
     if (schema.type() != '"' || mode.type() != '"' ||
-        (mode.string() != "merge" && mode.string() != "replace") ||
+        mode.string() != "merge" ||
         !fields(target, {"scope", "device_id", "boot_id"}))
         return Envelope::Invalid;
     for (const auto name : {"scope", "device_id", "boot_id"})
         if (target.get(name)->type() != '"')
             return Envelope::Invalid;
-    if (schema.string() != (amplifier ? "transmitter-config-update/3"
-                            : drive   ? "transmitter-config-update/2"
+    if (schema.string() != (amplifier ? "config-update"
+                            : drive   ? "config-update"
                                       : config_update_schema))
         return Envelope::UnsupportedSchema;
     if (target.get("scope")->string() != "member" || target.get("device_id")->string() != device ||
@@ -57,17 +58,6 @@ std::optional<std::string> config_candidate(Value supplied,
         return {};
     if (!config_fields(supplied, partial, drive) || (partial && !current))
         return {};
-    if (const auto version = supplied.get("version"); version && version->raw != "1")
-        return {}; // Historical public configuration views remain version 1.
-    // Legacy closed pin plans never gain authority over amplifier settings.
-    // Omitted plans still preserve the complete saved plan below.
-    if (!amplifier) {
-        if (const auto pins = supplied.get("pins")) {
-            const auto p = hardware::parse_plan(std::string(pins->raw));
-            if (!p || pins->get("amplifier_active_high") || hardware::requires_amplifier_view(*p))
-                return {};
-        }
-    }
     const auto station = supplied.get("station"), wifi = supplied.get("wifi");
     if (partial && station &&
         (!fields(*station, {}, {"callsign", "locator", "power_dbm"}) || fields(*station, {})))
@@ -156,9 +146,6 @@ std::optional<std::string> config_candidate(Value supplied,
 }
 
 std::string config_update_capabilities() {
-    return "{\"schema\":\"transmitter-config-update/1\","
-           "\"path\":\"/api/v1/config/update\",\"method\":\"POST\","
-           "\"modes\":[\"merge\",\"replace\"],\"max_update_bytes\":2048,"
-           "\"max_config_bytes\":1800,\"legacy_put_omission\":\"preserve_optional\"}";
+    return std::string(network::control_descriptor("configuration_updates"));
 }
 } // namespace wsprrypico::application

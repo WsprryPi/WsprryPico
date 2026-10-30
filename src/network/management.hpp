@@ -12,11 +12,8 @@ enum class ManagementCarrier {
     UsbPhysical
 };
 enum class ManagementProfile { Unavailable, Blank, Recovery, Engineering, Consumer };
-// Versions 1/2/3 retain their historical session limits. Version 4 is the
-// longer-session network projection; version 5 retains the USB carrier row.
-inline constexpr std::string_view management_schema(ManagementCarrier carrier) {
-    return carrier == ManagementCarrier::UsbPhysical ? "transmitter-management/5"
-                                                     : "transmitter-management/4";
+inline constexpr std::string_view management_schema(ManagementCarrier) {
+    return "management";
 }
 struct ManagementAvailability {
     ManagementProfile profile = ManagementProfile::Unavailable;

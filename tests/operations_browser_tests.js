@@ -5,7 +5,7 @@ const ops=require('../src/network/web/operations.js');
 const {fixture}=require('./network_browser_tests.js');
 function observation() {
   const boot='a'.repeat(32),job={boot_id:boot,state:'empty',owner_id:null,output_active:false,job_id:null,terminal_records:[]};
-  return {schema:'transmitter-operations/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:boot},job,accepted:null,
+  return {schema:'operations',target:{scope:'member',device_id:'1'.repeat(32),boot_id:boot},job,accepted:null,
     standalone:{...job,configured:true,enabled:false,storage_healthy:true,reboot_required:false,suspended:false,frequency_required:false,wspr_pair_pending:false,
       utc_now_ns:'1800000000000000000',uncertainty_ns:'1000',sync_age_ns:'100000000000',clock_state:'holdover',schedules:[{period_s:120,phase_s:0}],expires_utc_s:0,schedule_dial_frequency_nhz:'14095600000000000',engine:'test'},
     message_schedule:{saved:null,state:'not_configured',pause_pending:false,next_start_utc_ns:null,last_start_utc_ns:null,last_job_id:null,last_result:null,last_error:null},

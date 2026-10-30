@@ -41,8 +41,8 @@ void manual() {
     const auto target = application::target(std::string(32, 'a'), f.service.status().boot_id);
     auto request = [&](std::string ppm, std::string mode = "manual") {
         network::HttpRequest r{"PUT",
-                               "/api/v1/rf-calibration",
-                               "{\"schema\":\"transmitter-rf-calibration/1\",\"target\":" + target +
+                               "/api/control/v1/rf-calibration",
+                               "{\"schema\":\"rf-calibration\",\"target\":" + target +
                                    ",\"calibration\":{\"manual_ppm\":" + wtp::json::quote(ppm) +
                                    ",\"mode\":" + wtp::json::quote(mode) + "}}",
                                {{"host", "127.0.0.1:8443"},
@@ -50,7 +50,7 @@ void manual() {
                                 {"content-type", "application/json"},
                                 {"x-wsprrypico-request", "1"},
                                 {"if-match", f.api.revision()}}};
-        return f.api.handle(r, "test", "127.0.0.1:8443");
+        return f.api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     };
     REQUIRE(request("10.125").status == 200);
     REQUIRE(f.store.config()->manual_correction_ppb == 10125);
@@ -67,17 +67,13 @@ void manual() {
     auto extended = *old;
     extended.manual_correction_ppb = -10125;
     extended.ntp_rf_calibration = true;
-    const auto supplied = wtp::json::parse(network_test::config);
+    const auto supplied = wtp::json::parse(R"({"enabled":false})");
     const auto legacy =
-        application::config_candidate(*supplied, extended, application::ConfigWrite::Legacy);
+        application::config_candidate(*supplied, extended, application::ConfigWrite::Merge);
     REQUIRE(standalone::parse_config(*legacy)->manual_correction_ppb == -10125);
-    const auto replaced =
-        application::config_candidate(*supplied, extended, application::ConfigWrite::Replace);
-    REQUIRE(standalone::parse_config(*replaced)->manual_correction_ppb == 0);
-    REQUIRE(!standalone::parse_config(*replaced)->ntp_rf_calibration);
     REQUIRE(f.store.save(extended));
     const auto legacy_view =
-        f.api.handle({"GET", "/api/v1/rf-calibration", {}, {{"host", "127.0.0.1:8443"}}}, "test",
+        f.api.handle(network_test::control_request({"GET", "/api/control/v1/rf-calibration", {}, {{"host", "127.0.0.1:8443"}}}), "test",
                      "127.0.0.1:8443");
     REQUIRE(legacy_view.status == 200 &&
             legacy_view.body.find("\"mode\":\"manual\"") != std::string::npos);
@@ -109,8 +105,8 @@ void manual() {
             REQUIRE(!recovered.load());
     }
     // Closed old config views never leak new fields to strict old clients.
-    network::HttpRequest get{"GET", "/api/v1/config", {}, {{"host", "127.0.0.1:8443"}}};
-    REQUIRE(f.api.handle(get, "test", "127.0.0.1:8443").body.find("correction") ==
+    network::HttpRequest get{"GET", "/api/control/v1/config", {}, {{"host", "127.0.0.1:8443"}}};
+    REQUIRE(f.api.handle(network_test::control_request(get), "test", "127.0.0.1:8443").body.find("correction") ==
             std::string::npos);
 }
 std::array<std::uint8_t, 48> ntp_reply(const std::array<std::uint8_t, 48>& request,

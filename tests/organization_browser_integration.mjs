@@ -23,7 +23,7 @@ let f=new Fixture(process.argv[2]);await f.time(1000);
 let dropNext=false, dropBootstrap=false, chrome, cdp, cdpB;
 const fB=new Fixture(process.argv[2],['2'.repeat(32)]);await fB.time(1000);
 const bClient=fB.client();await fB.login(bClient);const bResource=await bClient.request('hostname');const bName=await bResource.json();
-await bClient.request('hostname','PUT',{schema:'transmitter-hostname/1',target:bName.target,hostname:'pico-b.local'},bResource.headers.get('etag'));
+await bClient.request('hostname','PUT',{schema:'hostname',target:bName.target,hostname:'pico-b.local'},bResource.headers.get('etag'));
 await fB.command({op:'reboot'});await fB.time(3000); const requests=[];
 let proxyQueue=Promise.resolve();
 const proxy=http.createServer((req,res)=>{

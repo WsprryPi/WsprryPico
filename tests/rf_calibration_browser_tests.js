@@ -11,7 +11,7 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
   let writes=0, fail=false, reportedErrors=0;
   const editor=create({input,mode,read,save,discard,adopt,status,onError:()=>{reportedErrors++;},exchange:async(method,body,match)=>{
     if (method==='PUT') { writes++; assert.equal(match,'revision'); if (fail) throw Error('Lost reply'); }
-    return {revision:'revision',data:{schema:'transmitter-rf-calibration/1',target,storage_healthy:true,
+    return {revision:'revision',data:{schema:'rf-calibration',target,storage_healthy:true,
       saved:{manual_ppm:body?.calibration.manual_ppm ?? '0.000',mode:body?.calibration.mode ?? 'manual'},
       selection:{next_ppb:0,reason:'manual_mode'}}};
   }});
@@ -39,7 +39,7 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
   const app = fs.readFileSync(require.resolve('../src/network/web/app.js'),'utf8');
   const apiSource = app.slice(app.indexOf('async function api('),app.indexOf('async function local('));
   const requests=[];
-  const actualApi = vm.runInNewContext(apiSource + '\napi;',{
+  const actualApi = vm.runInNewContext(fs.readFileSync(require.resolve('../src/network/web/control-contract.js'),'utf8') + '\n' + apiSource + '\napi;',{
     returnReceipt:false,consumerAttempt:false,localIdentity:null,radio:null,accessCarrier:'certificate',accessEpoch:0,accessClosing:false,localLocked:false,
     supportsAmplifier:()=>false,controlsUnlocked:()=>true,AbortSignal,
     frequencyEditor:{observeRevision:value=>assert.equal(value,'actual-revision')},
@@ -47,7 +47,7 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
       requests.push({path,options});
       const body=options.body ? JSON.parse(options.body) : null;
       return {ok:true,headers:{get:name=>name==='ETag' ? 'actual-revision' : null},
-        json:async()=>({schema:'transmitter-rf-calibration/1',target,storage_healthy:true,
+        json:async()=>({contract:'Wsprry-Control/1',schema:'rf-calibration',target,storage_healthy:true,
           saved:{manual_ppm:body?.calibration.manual_ppm ?? '0.000',mode:'manual'}})};
     }
   });

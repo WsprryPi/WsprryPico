@@ -2,12 +2,14 @@
 // Shared member-local editor. A save never tests GPIOs or starts a job.
 (function(root) {
   'use strict';
-  const descriptor={schema:'transmitter-filter-selector/1',path:'/api/v1/filter-selector'};
+  const control = root.WsprryControl || (typeof module !== 'undefined' && module.exports ? require('./control-contract.js') : null);
+  if (!control) throw new Error('The control definitions could not be loaded. Reload the Pico page.');
+  const descriptor = control.descriptors.filter_selector;
   const keys=(v,names)=>v && typeof v==='object' && !Array.isArray(v) && Object.keys(v).sort().join(',')===names.split(',').sort().join(',');
   const gp=n=>Number.isInteger(n) && (n>=0 && n<=22 || n>=26 && n<=28);
   const integer=(n,low,high)=>Number.isInteger(n) && n>=low && n<=high;
   const named=s=>typeof s==='string' && /^[A-Za-z0-9_/-](?:[A-Za-z0-9 _/-]{0,14}[A-Za-z0-9_/-])?$/.test(s);
-  const supported=v=>keys(v,Object.keys(descriptor).join(',')) && Object.entries(descriptor).every(([k,x])=>v[k]===x);
+  const supported=value=>control.supported('filter_selector',value);
   function validation(s,reserved=[]) {
     const bad=(message,fields=[])=>({message,fields});
     if(!keys(s,'policy,release_ms,settle_ms,selectors,ranges') || !Array.isArray(s.selectors) || s.selectors.length>5 || !Array.isArray(s.ranges) || s.ranges.length>10) return bad('Use at most five selectors and ten frequency ranges.');

@@ -36,7 +36,7 @@ await test('lost durable-write reply retains exact public selector; one dispatch
  const rev=(await a.request('config')).headers.get('etag'),target=(await (await a.request('application')).json()).target;
  const old=a.retirementSelector,transport=a.fetcher;let mutations=0;
  a.fetcher=async(p,o)=>{const r=await transport(p,o);if(p.endsWith('/request')){mutations++;throw new Error('lost after durable commit');}return r;};
- await assert.rejects(a.request('config/update','POST',{schema:'transmitter-config-update/1',target,mode:'merge',config:{allow_unqualified_frequency:true}},rev));
+ await assert.rejects(a.request('config/update','POST',{schema:'config-update',target,mode:'merge',config:{allow_unqualified_frequency:true}},rev));
  assert.equal(mutations,1);assert.equal(a.authenticated,false);assert.equal(a.lostSession.selector,old);
  assert.equal((await (await b.request('config')).json()).config.allow_unqualified_frequency,true);
  a.fetcher=transport;const d=await a.recovery();await a.retire('test-password',d,old);await f.time(4000);await f.login(a);

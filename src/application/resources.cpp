@@ -1,4 +1,5 @@
 #include "application/resources.hpp"
+#include "network/control_contract.hpp"
 
 #include "encoding/wspr.hpp"
 
@@ -32,21 +33,22 @@ std::string station(const standalone::Config& c) {
            ",\"power_dbm\":" + std::to_string(c.power_dbm) + "}";
 }
 std::string gpio_drive_capabilities() {
-    return R"({"schema":"transmitter-gpio-drive/1","read":"/api/v1/gpio-drive","write":"/api/v1/gpio-drive","method":"PUT","values":[2,4,8,12],"default":4,"units":"mA","engine":"pio","activation":"restart","config":"/api/v1/config/3","update":"/api/v1/config/update/3","update_schema":"transmitter-config-update/2","hardware":"/api/v1/hardware/2","application":"/api/v1/application/3","progress":"/api/v1/progress/2","progress_schema":"transmitter-progress/2"})";
+    return std::string(network::control_descriptor("gpio_drive"));
 }
 std::string amplifier_capabilities(bool physical) {
-    return std::string(
-               R"({"schema":"transmitter-amplifier-enable/1","pins":"/api/v1/pins/2","validate":"/api/v1/pins/validate/2","config":"/api/v1/config/4","update":"/api/v1/config/update/4","update_schema":"transmitter-config-update/3","hardware":"/api/v1/hardware/3","application":"/api/v1/application/4","progress":"/api/v1/progress/3","progress_schema":"transmitter-progress/3","default_pin":null,"default_active_high":true,"activation":"restart","execution":)") +
-           wtp::json::quote(physical ? "local_job" : "inhibited_inactive_only") + "}";
+    auto descriptor = std::string(network::control_descriptor("amplifier_enable"));
+    descriptor.pop_back();
+    return descriptor + ",\"execution\":" +
+        wtp::json::quote(physical ? "local_job" : "inhibited_inactive_only") + "}";
 }
 std::string amplifier_timing_capabilities() {
-    return R"({"schema":"transmitter-amplifier-timing/1","path":"/api/v1/amplifier-timing","method":"PUT","units":"ms","minimum":0,"maximum":1000,"default_lead_ms":200,"default_tail_ms":200,"activation":"restart","scope":"complete_job"})";
+    return std::string(network::control_descriptor("amplifier_timing"));
 }
 std::string amplifier_observation(const rf::AmplifierObservation& o) {
     const auto time = [](std::uint64_t n) {
         return n ? wtp::json::quote(std::to_string(n)) : "null";
     };
-    return "{\"schema\":\"amplifier-readback/1\",\"epoch\":" +
+    return "{\"schema\":\"amplifier-readback\",\"epoch\":" +
            wtp::json::quote(std::to_string(o.epoch)) +
            ",\"configured\":" + (o.configured ? "true" : "false") +
            ",\"lead_ms\":" + std::to_string(o.lead_ms) +
@@ -57,18 +59,14 @@ std::string amplifier_observation(const rf::AmplifierObservation& o) {
            ",\"disable_verified_ns\":" + time(o.disable_ns) +
            ",\"normal_rf_completion\":" + (o.normal_rf_completion ? "true}" : "false}");
 }
-std::string capabilities(bool usb_management) {
-    return "{\"management_carrier\":" +
-           wtp::json::quote(usb_management ? "usb_physical" : "authenticated_https") +
-           ","
-           "\"application_read\":true,\"station_write\":true,\"hardware_write\":true,"
+std::string capabilities() {
+    return "{\"application_read\":true,\"station_write\":true,\"hardware_write\":true,"
            "\"max_update_bytes\":1024,\"max_config_bytes\":1800,"
-           "\"hardware_activation\":\"restart\",\"station_encoding\":\"wspr_type1\","
+           "\"hardware_activation\":\"restart\",\"station_encoding\":\"wspr_type123_auto\","
            "\"station_power_meaning\":\"reported_wspr_dbm\","
            "\"recurrence_authorities\":[\"member\"],\"autonomous_modes\":[\"wspr\"],"
-           "\"unavailable\":[\"recurrence_transfer\",\"si5351\",\"amplifier\","
-           "\"drive\",\"reference_calibration\",\"waveform_preferences\"," +
-           (usb_management ? "" : "\"usb_json_management\",") +
+           "\"unavailable\":[\"recurrence_transfer\",\"si5351\","
+           "\"reference_calibration\",\"waveform_preferences\","
            "\"plain_lan_json_management\",\"ble_json_management\"]}";
 }
 std::string wspr_plan(const standalone::Config& config) {
@@ -101,7 +99,7 @@ std::string wspr_plan(const standalone::Config& config) {
         rationale += " Type 2 is ambiguous with " + std::string(alternate) +
                      "; receivers may choose either. The saved call and Type 3 hash retain the "
                      "requested identity.";
-    return "{\"schema\":\"wspr-plan/1\",\"supported\":" + std::string(plan ? "true" : "false") +
+    return "{\"schema\":\"wspr-plan\",\"supported\":" + std::string(plan ? "true" : "false") +
            ",\"type2_ambiguous\":" + (plan && plan->type2_ambiguous ? "true" : "false") +
            ",\"alternate_callsign\":" + (alternate.empty() ? "null" : wtp::json::quote(alternate)) +
            ",\"frame_types\":" + types + ",\"frames\":" + std::to_string(plan ? plan->count : 0) +

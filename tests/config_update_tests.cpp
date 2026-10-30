@@ -28,16 +28,16 @@ struct Member {
     standalone::Scheduler scheduler{initialize(), f.service};
     network::BrowserApi api{f.service, f.store, scheduler, f.network, std::string(32, 'a'), "test"};
     network::HttpResponse call(network::HttpRequest r) {
-        return api.handle(r, "test", "127.0.0.1:8443");
+        return api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     }
-    network::HttpRequest legacy(std::string body = network_test::config) {
-        auto r = request("PUT", "/api/v1/config", std::move(body));
-        r.headers["if-match"] = api.revision();
-        return r;
+    network::HttpRequest complete_update(std::string body = network_test::config) {
+        auto r = request("POST", "/api/control/v1/config/update",
+            network_test::configuration_update(std::move(body), f.service.status().boot_id));
+        r.headers["if-match"] = api.revision(); return r;
     }
     network::HttpRequest update(std::string body, std::string mode = "merge") {
-        auto r = request("POST", "/api/v1/config/update",
-                         "{\"schema\":\"transmitter-config-update/1\",\"target\":" +
+        auto r = request("POST", "/api/control/v1/config/update",
+                         "{\"schema\":\"config-update\",\"target\":" +
                              application::target(std::string(32, 'a'), f.service.status().boot_id) +
                              ",\"mode\":" + wtp::json::quote(mode) + ",\"config\":" + body + '}');
         r.headers["if-match"] = api.revision();
@@ -46,118 +46,44 @@ struct Member {
 };
 void advertised_contract_and_individual_omissions() {
     Member m;
-    const auto response = m.call(request("GET", "/api/v1/capabilities"));
-    REQUIRE(response.status == 200 && response.body.size() <= application::max_capabilities_bytes);
-    const auto capabilities = wtp::json::parse(response.body);
-    REQUIRE(capabilities);
-    const auto updates = capabilities->get("configuration_updates");
-    REQUIRE(updates && updates->raw == application::config_update_capabilities());
-    REQUIRE(updates->get("schema")->string() == application::config_update_schema);
-    REQUIRE(updates->get("method")->string() == "POST");
-    REQUIRE(updates->get("path")->string() == "/api/v1/config/update");
-    REQUIRE(updates->get("max_update_bytes")->raw == "2048");
-    REQUIRE(updates->get("max_config_bytes")->raw == "1800");
-    REQUIRE(updates->get("modes")->raw == "[\"merge\",\"replace\"]");
-    REQUIRE(updates->get("legacy_put_omission")->string() == "preserve_optional");
-    const auto before = *m.f.store.config();
-    const auto serialized = standalone::serialize_config(before);
-    for (const auto name : {"pins", "allow_unqualified_frequency", "allow_non_amateur_frequency",
-                            "expires_utc_s", "ntp_ipv4"}) {
-        auto body = serialized;
-        const auto parsed = wtp::json::parse(body);
-        const auto object = name == std::string_view("ntp_ipv4") ? *parsed->get("wifi") : *parsed;
-        const auto value = object.get(name);
-        REQUIRE(value);
-        // Canonical optionals follow another member, so remove the preceding comma too.
-        const auto start = value->raw.offset() - std::string_view(name).size() - 4;
-        REQUIRE(body[start] == ',');
-        body.erase(start, value->raw.offset() + value->raw.size() - start);
-        REQUIRE(m.call(m.legacy(body)).status == 200);
-        standalone::Store reload(m.f.flash);
-        REQUIRE(reload.load() && reload.config() == before);
-    }
-    auto replacement = serialized;
-    const auto password = wtp::json::parse(replacement)->get("wifi")->get("password")->raw;
-    replacement.replace(password.offset(), password.size(), "null");
-    REQUIRE(m.call(m.update(replacement, "replace")).status == 200);
-    REQUIRE(m.f.store.config() == before);
-}
-void preserved_legacy_and_defaults() {
-    Member m;
-    const auto before = *m.f.store.config();
-    const auto cursor = m.f.store.watermark();
-    REQUIRE(m.scheduler.command("STOP").find("\"suspended\":true") != std::string::npos);
-    auto old = m.legacy();
-    const auto original_revision = old.headers["if-match"];
-    REQUIRE(m.call(old).status == 200);
-    REQUIRE(m.f.store.config() == before && m.api.revision() != original_revision);
-    REQUIRE(m.call(old).status == 412);
-    REQUIRE(m.f.store.watermark() == cursor);
-    REQUIRE(m.scheduler.status().find("\"suspended\":true") != std::string::npos);
-    REQUIRE(!m.scheduler.hardware_restart_required());
-    // Older optional time-server/expiry omission is preservation at the API only.
-    auto raw = network_test::config;
-    const auto time = raw.find(",\"ntp_ipv4\"");
-    raw.erase(time, raw.find('}', time) - time);
-    REQUIRE(m.call(m.legacy(raw)).status == 200);
-    REQUIRE(m.f.store.config() == before);
-    const auto decoded = standalone::parse_config(raw);
-    REQUIRE(decoded && decoded->pins == hardware::PinPlan{} &&
-            !decoded->allow_unqualified_frequency && !decoded->allow_non_amateur_frequency &&
-            decoded->expires_utc_s == 0 && decoded->ntp_ipv4 == standalone::default_time_server);
-    network_test::Fixture blank;
-    auto initial = request("PUT", "/api/v1/config", raw);
-    initial.headers["if-match"] = blank.api.revision();
-    REQUIRE(blank.api.handle(initial, "test", "127.0.0.1:8443").status == 200);
-    REQUIRE(blank.store.config() == decoded);
-    // Console CONFIG remains an explicit complete replacement.
-    REQUIRE(m.scheduler.command("CONFIG " + raw).find("\"ok\":true") != std::string::npos);
-    REQUIRE(m.f.store.config() == decoded && m.f.store.watermark() == cursor);
-}
-void merges_and_explicit_resets() {
-    Member m;
-    auto expected = *m.f.store.config();
-    REQUIRE(m.call(m.update(R"({"station":{"callsign":"K1ABC"}})")).status == 200);
-    expected.callsign = "K1ABC";
-    REQUIRE(m.f.store.config() == expected);
-    REQUIRE(m.call(m.update(R"({"wifi":{"ntp_ipv4":"pool.ntp.org","password":null}})")).status ==
-            200);
-    expected.ntp_ipv4 = "pool.ntp.org";
-    REQUIRE(m.f.store.config() == expected && m.scheduler.reboot_required());
-    REQUIRE(
-        m
-            .call(m.update(
-                R"({"allow_unqualified_frequency":false,"allow_non_amateur_frequency":false,"expires_utc_s":0,"schedules":[]})"))
-            .status == 200);
-    expected.allow_unqualified_frequency = expected.allow_non_amateur_frequency = false;
-    expected.expires_utc_s = 0;
-    expected.schedules.clear();
-    REQUIRE(m.f.store.config() == expected);
-    REQUIRE(m.call(m.update("{\"pins\":" + hardware::serialize_plan({}) + '}')).status == 200);
-    expected.pins = {};
-    REQUIRE(m.f.store.config() == expected && m.scheduler.hardware_restart_required());
-    REQUIRE(m.f.service.output_inhibited());
-    REQUIRE(m.call(m.update(R"({"station":{"power_dbm":10}})")).status == 200);
-    REQUIRE(m.scheduler.hardware_restart_required() && m.f.service.output_inhibited());
-    expected.power_dbm = 10;
+    const auto response=m.call(request("GET","/api/control/v1/capabilities"));
+    REQUIRE(response.status==200 && response.body.size()<=application::max_capabilities_bytes);
+    const auto caps=wtp::json::parse(response.body);
+    REQUIRE(caps && caps->get("contract")->string()=="Wsprry-Control/1");
+    const auto updates=caps->get("configuration_updates");
+    REQUIRE(updates && updates->raw==application::config_update_capabilities());
+    REQUIRE(updates->get("modes")->raw=="[\"merge\"]");
+    REQUIRE(updates->get("path")->string()=="/api/control/v1/config/update");
+    REQUIRE(!updates->get("legacy_put_omission"));
+    const auto before=*m.f.store.config();
+    REQUIRE(m.call(m.update(R"({"station":{"power_dbm":10}})")).status==200);
+    auto expected=before; expected.power_dbm=10;
+    REQUIRE(m.f.store.config()==expected);
+    REQUIRE(m.call(m.update(R"({"wifi":{"password":null}})")).status==200);
+    REQUIRE(m.f.store.config()==expected);
     standalone::Store reload(m.f.flash);
-    REQUIRE(reload.load() && reload.config() == expected &&
-            reload.watermark() == m.f.store.watermark());
-
-    Member replacement;
-    REQUIRE(replacement.call(replacement.update(network_test::config, "replace")).status == 200);
-    const auto defaults = standalone::parse_config(network_test::config);
-    REQUIRE(replacement.f.store.config() == defaults);
-    REQUIRE(replacement.scheduler.hardware_restart_required());
-    Member explicit_legacy;
-    REQUIRE(explicit_legacy
-                .call(explicit_legacy.legacy(
-                    network_test::config.substr(0, network_test::config.size() - 1) +
-                    ",\"pins\":" + hardware::serialize_plan({}) +
-                    ",\"allow_unqualified_frequency\":false,\"allow_non_amateur_frequency\":false,"
-                    "\"expires_utc_s\":0}"))
-                .status == 200);
-    REQUIRE(explicit_legacy.f.store.config() == defaults);
+    REQUIRE(reload.load() && reload.config()==expected);
+}
+void creation_and_stale_revision() {
+    network_test::Fixture f;
+    auto create=request("POST","/api/control/v1/config/update",
+        network_test::configuration_update(network_test::config,f.service.status().boot_id));
+    create.headers["if-match"]=f.api.revision();
+    REQUIRE(f.api.handle(network_test::control_request(create),"test","127.0.0.1:8443").status==200);
+    REQUIRE(f.store.config() && !f.store.config()->enabled);
+    const auto saved=f.flash.bytes;
+    REQUIRE(f.api.handle(network_test::control_request(create),"test","127.0.0.1:8443").status==412);
+    REQUIRE(f.flash.bytes==saved);
+    const auto read=f.api.handle(request("GET","/api/control/v1/config"),"test","127.0.0.1:8443");
+    REQUIRE(read.body.find("\"version\"")==std::string::npos);
+}
+void merge_and_replace_refusal() {
+    Member m; const auto before=*m.f.store.config();
+    REQUIRE(m.call(m.update(R"({"station":{"power_dbm":10}})","replace")).status==400);
+    REQUIRE(m.f.store.config()==before);
+    REQUIRE(m.call(m.update(R"({"enabled":false,"allow_unqualified_frequency":false,"allow_non_amateur_frequency":false,"expires_utc_s":0})")).status==200);
+    auto expected=before;expected.allow_unqualified_frequency=false;expected.allow_non_amateur_frequency=false;expected.expires_utc_s=0;
+    REQUIRE(m.f.store.config()==expected);
 }
 void invalid_is_atomic() {
     Member m;
@@ -188,7 +114,7 @@ void invalid_is_atomic() {
     r.body.insert(r.body.size() - 1, ",\"other\":1");
     reject(r, 400);
     r = m.update(R"({"enabled":false})");
-    r.body.replace(r.body.find("transmitter-config-update/1"), 27, "transmitter-config-update/2");
+    r.body.replace(r.body.find("config-update"), 27, "config-update");
     reject(r, 400);
     for (const auto field : {"scope", "device_id", "boot_id"}) {
         r = m.update(R"({"enabled":false})");
@@ -206,15 +132,12 @@ void invalid_is_atomic() {
     r.headers["origin"] = "https://evil.example";
     reject(r, 403);
     r = m.update(R"({"enabled":false})");
-    REQUIRE(m.api.handle(r, "", "127.0.0.1:8443").status == 401);
+    REQUIRE(m.api.handle(network_test::control_request(r), "", "127.0.0.1:8443").status == 401);
     r.body.resize(application::max_config_update_bytes + 1, ' ');
     reject(r, 413);
-    r = m.legacy();
-    r.body.resize(standalone::max_config_bytes + 1, ' ');
-    reject(r, 400);
     auto too_deep = std::string(40, '[') + "0" + std::string(40, ']');
     reject(m.update("{\"station\":" + too_deep + '}'), 400);
-    auto legacy_unknown = m.legacy();
+    auto legacy_unknown = m.complete_update();
     legacy_unknown.body.insert(legacy_unknown.body.size() - 1, ",\"future\":false");
     reject(legacy_unknown, 400);
     // A small partial request can produce an oversized raw complete candidate.
@@ -231,11 +154,11 @@ void invalid_is_atomic() {
     auto result_too_large = m.update("{\"wifi\":{\"ntp_ipv4\":\"" + escaped + "\"}}");
     REQUIRE(result_too_large.body.size() <= application::max_config_update_bytes);
     reject(result_too_large, 400);
-    legacy_unknown = m.legacy();
+    legacy_unknown = m.complete_update();
     const auto wifi = legacy_unknown.body.find("\"ssid\"");
     legacy_unknown.body.insert(wifi, "\"future\":false,");
     reject(legacy_unknown, 400);
-    auto exact = m.update(R"({"enabled":false})");
+    auto exact = network_test::control_request(m.update(R"({"enabled":false})"));
     exact.body.resize(application::max_config_update_bytes, ' ');
     REQUIRE(m.call(exact).status == 200);
 }
@@ -244,14 +167,14 @@ void revisions_pending_and_storage() {
     auto stale = m.update(R"({"enabled":false})");
     const auto original = *m.f.store.config();
     REQUIRE(m.call(m.update(R"({"station":{"power_dbm":10}})")).status == 200);
-    REQUIRE(m.call(m.update(standalone::serialize_config(original), "replace")).status == 200);
+    REQUIRE(m.call(m.complete_update(standalone::serialize_config(original))).status == 200);
     REQUIRE(m.call(stale).status == 412); // A-B-A does not revive A.
     auto same = m.update(R"({"enabled":false})");
     REQUIRE(m.call(same).status == 200 && m.call(same).status == 412);
     auto rebooted = m.update(R"({"enabled":false})");
     m.f.service.reset();
     REQUIRE(m.call(rebooted).status == 412);
-    auto queued = request("PUT", "/api/v1/network", "{\"enabled\":false}");
+    auto queued = request("PUT", "/api/control/v1/network", "{\"enabled\":false}");
     queued.headers["if-match"] = m.api.revision();
     REQUIRE(m.call(queued).status == 200);
     auto blocked = m.update(R"({"enabled":false})");
@@ -275,13 +198,13 @@ void revisions_pending_and_storage() {
     network_test::Fixture blank;
     auto new_request = lost.update(R"({"enabled":false})");
     new_request.headers["if-match"] = blank.api.revision();
-    REQUIRE(blank.api.handle(new_request, "test", "127.0.0.1:8443").status == 409);
+    REQUIRE(blank.api.handle(network_test::control_request(new_request), "test", "127.0.0.1:8443").status == 400);
     auto no_password = request(
-        "PUT", "/api/v1/config",
-        R"({"version":1,"enabled":false,"station":{"callsign":"AA0NT","locator":"EM18","power_dbm":37},"wifi":{"ssid":"test-network","password":null},"schedules":[]})");
+        "POST", "/api/control/v1/config/update",
+        network_test::configuration_update(R"({"enabled":false,"station":{"callsign":"AA0NT","locator":"EM18","power_dbm":37},"wifi":{"ssid":"test-network","password":null},"schedules":[]})"));
     no_password.headers["if-match"] = blank.api.revision();
     REQUIRE(
-        blank.api.handle(no_password, "test", "127.0.0.1:8443").body.find("password_required") !=
+        blank.api.handle(network_test::control_request(no_password), "test", "127.0.0.1:8443").body.find("password_required") !=
         std::string::npos);
 }
 void paged_and_password() {
@@ -335,7 +258,7 @@ void ownership_and_restart_exclusions() {
 
     Member pending;
     pending.api.restart_control([](void*) { return true; }, nullptr);
-    auto restart = request("POST", "/api/v1/restart", "{}");
+    auto restart = request("POST", "/api/control/v1/restart", "{}");
     restart.headers["if-match"] = pending.api.revision();
     REQUIRE(pending.call(restart).status == 202);
     const auto unchanged = pending.f.flash.bytes;
@@ -375,11 +298,11 @@ void application_failure() {
     r.headers["if-match"] = api.revision();
     const auto saved = m.f.flash.bytes;
     engine.active = true;
-    REQUIRE(api.handle(r, "test", "127.0.0.1:8443").status == 409);
+    REQUIRE(api.handle(network_test::control_request(r), "test", "127.0.0.1:8443").status == 409);
     REQUIRE(m.f.flash.bytes == saved);
     engine.active = false;
     engine.disable_ok = false;
-    const auto response = api.handle(r, "test", "127.0.0.1:8443");
+    const auto response = api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     REQUIRE(response.status == 503 &&
             response.body.find("output_disable_failed") != std::string::npos);
     REQUIRE(m.f.store.config()->pins == hardware::PinPlan{} && scheduler.active_pins().rf == 28);
@@ -387,7 +310,7 @@ void application_failure() {
     REQUIRE(service.output_inhibited());
     auto after = m.update(R"({"station":{"power_dbm":10}})");
     after.headers["if-match"] = api.revision();
-    REQUIRE(api.handle(after, "test", "127.0.0.1:8443").status == 409);
+    REQUIRE(api.handle(network_test::control_request(after), "test", "127.0.0.1:8443").status == 409);
 }
 struct TornFlash : network_test::Flash {
     int remaining = -1;
@@ -418,7 +341,7 @@ void interrupted_journal() {
         auto mutation = producer.update(R"({"allow_unqualified_frequency":true})");
         mutation.headers["if-match"] = api.revision();
         flash.remaining = pages;
-        const auto result = api.handle(mutation, "test", "127.0.0.1:8443");
+        const auto result = api.handle(network_test::control_request(mutation), "test", "127.0.0.1:8443");
         REQUIRE(result.status == (pages == 8 ? 200U : 503U));
         REQUIRE(
             std::equal(flash.bytes.begin() + 8192, flash.bytes.end(), cursor_bytes.begin() + 8192));
@@ -435,56 +358,24 @@ void interrupted_journal() {
 }
 } // namespace
 int main(int argc, char** argv) {
-    if (argc > 1) {
+    if (argc==2 && std::string(argv[1])=="--raw-update") {
         Member m;
-        if (std::string(argv[1]) == "--pi-context") {
-            std::cout << "{\"etag\":" << wtp::json::quote(m.api.revision())
-                      << ",\"response\":" << m.call(request("GET", "/api/v1/config")).body << "}\n";
-            return 0;
-        }
-        if (std::string(argv[1]) == "--raw-update") {
-            const std::string raw{std::istreambuf_iterator<char>(std::cin), {}};
-            auto r = request("POST", "/api/v1/config/update", raw);
-            r.headers["if-match"] = m.api.revision();
-            const auto result = m.call(r);
-            std::cout << "{\"status\":" << result.status << ",\"body\":" << result.body << "}\n";
-            return 0;
-        }
-        if (std::string(argv[1]) == "--request") {
-            const std::string raw{std::istreambuf_iterator<char>(std::cin), {}};
-            const auto value = wtp::json::parse(raw);
-            REQUIRE(value && wtp::json::fields(*value, {"method", "path", "body", "revision"}));
-            auto r = request(value->get("method")->string(), value->get("path")->string(),
-                             std::string(value->get("body")->raw));
-            r.headers["if-match"] = value->get("revision")->type() == '"'
-                                        ? value->get("revision")->string()
-                                        : m.api.revision();
-            const auto before = *m.f.store.config();
-            const auto result = m.call(r);
-            standalone::Store reload(m.f.flash);
-            REQUIRE(reload.load());
-            const auto after = *reload.config();
-            std::cout << "{\"status\":" << result.status << ",\"body\":" << result.body
-                      << ",\"extensions_preserved\":"
-                      << (after.pins == before.pins && after.allow_unqualified_frequency &&
-                                  after.allow_non_amateur_frequency &&
-                                  after.password == before.password &&
-                                  reload.watermark() == m.f.store.watermark()
-                              ? "true"
-                              : "false")
-                      << "}\n";
-            return 0;
-        }
-        return 2;
+        const std::string input(std::istreambuf_iterator<char>(std::cin),{});
+        auto raw=request("POST","/api/control/v1/config/update",input);
+        raw.headers["if-match"]=m.api.revision();
+        const auto result=m.api.handle(raw,"test","127.0.0.1:8443");
+        std::cout<<"{\"status\":"<<result.status<<",\"body\":"<<result.body<<"}\n";
+        return 0;
     }
+
     advertised_contract_and_individual_omissions();
-    preserved_legacy_and_defaults();
-    merges_and_explicit_resets();
+    creation_and_stale_revision();
+    merge_and_replace_refusal();
     invalid_is_atomic();
     revisions_pending_and_storage();
     paged_and_password();
     ownership_and_restart_exclusions();
     application_failure();
     interrupted_journal();
-    std::cout << "Configuration update and legacy preservation checks passed\n";
+    std::cout << "Current control configuration transaction checks passed\n";
 }

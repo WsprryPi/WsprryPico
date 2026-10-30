@@ -254,7 +254,7 @@ if ($('ntp-timeout-form')) $('ntp-timeout-form').onsubmit = event => event.preve
 const ntpTimeoutEditor = globalThis.WsprryNtpTimeout && $('ntp-timeout-minutes') ? WsprryNtpTimeout.create({
   input:$('ntp-timeout-minutes'),read:$('ntp-timeout-read'),save:$('ntp-timeout-save'),discard:$('ntp-timeout-discard'),adopt:$('ntp-timeout-adopt'),status:$('ntp-timeout-status'),
   run:fn=>editorAction('timeout',fn),
-  exchange:(method,body,match)=>api('ntp-timeout/2',method,body,match),
+  exchange:(method,body,match)=>api('ntp-timeout',method,body,match),
   expectedTarget:()=>({device_id:localIdentity?.device_id || operationsTarget?.device_id || hostnameState?.target.device_id,boot_id:snapshot?.job.boot_id}),
   onError:error=>radioSettingsError(error,'timeout'),
   afterSave:()=>refresh()
@@ -291,7 +291,7 @@ const driveEditor = globalThis.WsprryGpioDrive && $('gpio-drive-select') ? Wsprr
   exchange:async (method,body,match,resource = 'gpio-drive')=>{if (!WsprryGpioDrive.supported(capabilities?.gpio_drive)) throw new Error('This firmware does not advertise supported drive configuration.'); return api(resource,method,body,match);},
   onError:error=>radioSettingsError(error,'drive'),
   afterSave:()=>{requireReadback();}
-  ,progressVersion:()=>supportsAmplifier() ? 3 : 2
+
 }) : null;
 let savedProgress = null, progressEpoch = 0, progressEditSerial = 0;
 const progressEdits = new Map();
@@ -299,9 +299,7 @@ const progressUI = globalThis.WsprryPicoSavedProgress;
 function supportsProgress() {
   const d = capabilities?.saved_progress;
   if (d === undefined) return false;
-  if (!d || Object.keys(d).sort().join(',') !== 'apply,max_bytes,read,save,schema' ||
-      d.schema !== 'transmitter-progress/1' || d.read !== '/api/v1/progress' ||
-      d.save !== '/api/v1/progress/update' || d.apply !== '/api/v1/progress/apply' || d.max_bytes !== 2048 || !progressUI)
+  if (!WsprryControl.supported('saved_progress',d) || !progressUI)
     throw new Error('Unknown saved-progress support. Your edits are preserved.');
   return true;
 }
@@ -396,7 +394,7 @@ async function saveProgressFields(fields,station = false,output) {
   if (!Object.keys(fields).length) throw new Error('Edit a field before saving progress.');
   if (!savedProgress || writeState !== 'ready' || savedProgress.revision !== revision) throw new Error('Read and review saved settings before saving progress.');
   const edits = new Map(progressEdits), target = savedProgress.data.target;
-  const body = {schema:'transmitter-progress/1',target,request_id:requestId(),fields};
+  const body = {schema:'progress',target,request_id:requestId(),fields};
   const epoch = ++progressEpoch;
   const result = checkedProgress(await api('progress/update','POST',body,revision),true);
   if (epoch !== progressEpoch || !progressUI.confirms(result.data,body)) {
@@ -467,7 +465,7 @@ async function saveConfigProgress(domain = 'radio') {
 
 function validWsprPlan(p) {
   if (!p || Object.keys(p).sort().join(',') !== 'alternate_callsign,frame_types,frames,rationale,schema,slot_separation_s,supported,type2_ambiguous' ||
-      p.schema !== 'wspr-plan/1' || typeof p.supported !== 'boolean' || typeof p.type2_ambiguous !== 'boolean' ||
+      p.schema !== 'wspr-plan' || typeof p.supported !== 'boolean' || typeof p.type2_ambiguous !== 'boolean' ||
       !Array.isArray(p.frame_types) || !Number.isInteger(p.frames) || p.frames !== p.frame_types.length ||
       p.slot_separation_s !== 120 || typeof p.rationale !== 'string' || p.rationale.length < 1 || p.rationale.length > 512) return false;
   if (p.supported ? !['type1','type2','type3','type2,type3'].includes(p.frame_types.join(',')) : p.frames !== 0) return false;
@@ -477,33 +475,20 @@ function validWsprPlan(p) {
 let hostnameState = null, hostnameDraft = false, hostnameUncertain = false, hostnameReviewReady = false;
 let reconnectEpoch = 0, reconnectRunning = false, restartSent = false;
 let returnReceipt = null;
-let applicationVersion = 1;
 async function readApplication() {
-  try {
-    const result = await api('application/2');
-    if (Object.keys(result.data).sort().join(',') !== 'capabilities,hardware,reboot_required,recurrence,schema,station,target,wspr_plan' ||
-        result.data.schema !== (supportsAmplifier() ? 'transmitter-application/4' : 'transmitter-application/2') ||
-        (result.data.wspr_plan !== null && !validWsprPlan(result.data.wspr_plan)) ||
-        result.data.capabilities?.station_encoding !== 'wspr_type123_auto')
-      throw new Error('Unknown WSPR application support. Your draft is preserved.');
-    applicationVersion = 2;
-    return result;
-  } catch (error) {
-    if (error.code !== 'not_found') throw error;
-    applicationVersion = 1;
-    return api('application');
-  }
+  if (!WsprryControl.supported('application_resources',capabilities?.application_resources)) throw new Error('The Pico application resources are unsupported. Your draft is preserved.');
+  const result = await api('application');
+  if (Object.keys(result.data).sort().join(',') !== 'capabilities,hardware,reboot_required,recurrence,schema,station,target,wspr_plan' ||
+      result.data.schema !== 'application' ||
+      (result.data.wspr_plan !== null && !validWsprPlan(result.data.wspr_plan)) ||
+      result.data.capabilities?.station_encoding !== 'wspr_type123_auto')
+    throw new Error('The Pico control contract is unsupported. Update both applications; your draft is preserved.');
+  return result;
 }
 async function reviewWspr(station) {
-  if (applicationVersion !== 2) {
-    if (/[<>/]/.test(station.callsign))
-      throw new Error('This firmware has not confirmed Type 2/3 support. Your station draft is preserved.');
-    return;
-  }
   const result = await api('wspr-plan','POST',station);
   const plan = result.data;
-  if (!validWsprPlan(plan))
-    throw new Error('The Pico did not confirm the WSPR plan. Your draft is preserved.');
+  if (!validWsprPlan(plan)) throw new Error('The Pico did not confirm the WSPR plan. Your draft is preserved.');
   if (!plan.supported) throw new Error(plan.rationale);
 }
 function checkedConfig(result, allowNull = true) {
@@ -701,6 +686,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
   if(['unknown','unavailable'].includes(accessCarrier)) throw new Error('Identify this connection with Refresh before using controls');
   if(accessClosing || localLocked && localIdentity && !radio) throw new Error('Controls are locked in this browser. An earlier request may already have been accepted; read back before repeating it.');
   if (method !== 'GET' && !controlsUnlocked()) { const e=new Error('Unlock controls before changing the Pico.'); e.local=true; throw e; }
+  if (method !== 'GET') body = {...(body || {}),contract:WsprryControl.contract};
   const requestEpoch=accessEpoch;
   if ((returnReceipt || consumerAttempt) && localIdentity) checkReturningDevice(localIdentity.device_id);
   const headers = {};
@@ -708,7 +694,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
   if (method !== 'GET') Object.assign(headers, {'Content-Type':'application/json','X-WsprryPico-Request':'1'});
   if (etag) headers['If-Match'] = etag;
   let response;
-  const settingWrite = method !== 'GET' && ['config','config/2','config/update','config/update/2','schedules','station','station/2','hardware','hardware/3','progress/update','progress/apply'].includes(path);
+  const settingWrite = method !== 'GET' && ['config/update','schedules','station','hardware','progress/update','progress/apply'].includes(path);
   if (settingWrite) {
     frequencyEditor?.invalidate();
     if (writeState !== 'ready' || !revision) throw new Error('Read and review saved settings before a new save');
@@ -718,9 +704,9 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
     saveAttempt = {target:localIdentity ? {...localIdentity} : snapshot?.job.boot_id,path,revision:etag,intended,sent:true};
   }
   try {
-    const selected = supportsAmplifier() ? WsprryAmplifier.select(path,body) : {path,body};
+    const selected = {path,body};
     response = radio ? await (method==='GET' && !radio.authenticated ? radio.publicRead(selected.path,timeout) : radio.request(selected.path,method,selected.body,etag,timeout)) :
-      await fetch('/api/v1/' + selected.path, {method, headers, body: selected.body === undefined ? undefined : JSON.stringify(selected.body), signal: AbortSignal.timeout(timeout), cache:'no-store'});
+      await fetch(WsprryControl.prefix + selected.path, {method, headers, body: selected.body === undefined ? undefined : JSON.stringify(selected.body), signal: AbortSignal.timeout(timeout), cache:'no-store'});
   } catch (error) {
     if (error.local) { if (saveAttempt) saveAttempt.sent=false; throw error; }
     error.unconfirmed = true;
@@ -737,6 +723,11 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
   try {
     data = path.startsWith('udp-logging') && typeof response.text === 'function' ? WsprryUdp.parseJson(await response.text(),4096) : await response.json();
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid API response');
+    if (response.ok) {
+      if (data.contract !== WsprryControl.contract) throw new Error('The Pico control contract is unsupported. Update both applications; your draft is preserved.');
+      if (path==='capabilities' && !WsprryControl.validCapabilities(data)) throw new Error('The Pico capabilities are malformed or unsupported. Your draft is preserved.');
+      delete data.contract;
+    }
   } catch (error) {
     if (settingWrite) requireReadback();
     error.unconfirmed = true; throw error;
@@ -854,8 +845,10 @@ function controls(connected) {
   if ($('public-status-note')) $('public-status-note').hidden = true;
   calibrationEditor?.setAvailability(!!connected && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
   frequencyEditor?.setAvailability(!!connected && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
+  driveEditor?.setPolicy(capabilities?.gpio_drive);
   driveEditor?.setAvailability(!!connected && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
   filterEditor?.setAvailability(!!connected && !!snapshot && WsprryFilters.supported(capabilities?.filter_selector), !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  timingEditor?.setPolicy(capabilities?.amplifier_timing);
   timingEditor?.setAvailability(!!connected && !!snapshot, !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   ntpTimeoutEditor?.setAvailability(!!connected && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
@@ -976,7 +969,7 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
       snapshot=null; clearConsole('A different boot was observed. Checking the authenticated device identity.'); controls(false);
       const identity=(await api('hostname')).data;
       if(epoch!==observationEpoch) return;
-      if(!device||identity.schema!=='transmitter-hostname/1'||identity.target?.scope!=='member'||
+      if(!device||identity.schema!=='hostname'||identity.target?.scope!=='member'||
          identity.target.device_id!==device||identity.target.boot_id!==observation.job?.boot_id||
          !/^[0-9a-f]{32}$/.test(identity.target.boot_id)||canonicalHostname(identity.active)!==identity.active)
         throw new Error('The new boot could not be bound to the same authenticated Pico');
@@ -1088,7 +1081,7 @@ async function frequencyAction(fn) {
 async function readPicoPassword() {
   try {
     const result = await api('consumer/password');
-    if (result.data.schema !== 'pico-password/1' || !result.revision ||
+    if (result.data.schema !== 'pico-password' || !result.revision ||
         result.data.target?.device_id !== localIdentity.device_id ||
         result.data.target?.boot_id !== localIdentity.boot_id ||
         typeof result.data.wifi_default !== 'boolean' || result.data.saved !== true)
@@ -1117,9 +1110,9 @@ async function savePicoPassword(password) {
   if (!picoPasswordState) throw new Error('Read the Pico password setting before changing it.');
   try {
     const result = await api('consumer/password','PUT',{
-      schema:'pico-password/1',target:picoPasswordState.data.target,password
+      schema:'pico-password',target:picoPasswordState.data.target,password
     },picoPasswordState.revision);
-    if (result.data.schema !== 'pico-password/1' || result.data.saved !== true ||
+    if (result.data.schema !== 'pico-password' || result.data.saved !== true ||
         result.data.wifi_default !== (password === null) ||
         result.data.target?.device_id !== localIdentity.device_id ||
         result.data.target?.boot_id !== localIdentity.boot_id)
@@ -1184,7 +1177,7 @@ $('local-login').onsubmit = event => {
       }
       checkReturningDevice(identity.device_id);
       localIdentity=identity; pageIdentity.bind(identity); operationsTarget=null;
-      if(radio) await radio.login(password,identity);
+      if(radio) { await radio.login(password,identity); await radio.readPolicy(); }
       else await local('login','POST',{version:1,device_id:identity.device_id,password});
       succeeded=true;
       if(epoch!==accessEpoch) {
@@ -1306,24 +1299,19 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
     const [period_s,phase_s] = line.split('/').map(Number); return {period_s,phase_s};
   });
   if (!currentConfig) throw new Error('Complete station commissioning before saving WSPR configuration');
-  const config = {...currentConfig,enabled:f.enabled.checked,station:{...currentConfig.station},wifi:{...currentConfig.wifi,password:null},schedules,pins:currentConfig.pins,expires_utc_s:f.expiry.value ? utcFieldMs(f.expiry) / 1000 : 0};
-  // Advanced opt-ins are managed through CONFIG/API, outside the ordinary form.
-  // A station/network edit must preserve the operator's saved choices.
-  for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) {
-    if (currentConfig?.[name] === true) config[name] = true;
-  }
-  // Broad legacy identities remain readable/preservable even when they cannot
-  // transmit. Validate a changed identity; an unrelated save keeps its bytes.
-  if (!currentConfig || ['callsign','locator','power_dbm'].some(key => config.station[key] !== currentConfig.station[key]))
-    await reviewWspr(config.station);
-  const result = await api(applicationVersion === 2 ? 'config/2' : 'config','PUT',config,revision); const confirmed=checkedConfig(result,false); revision = result.revision; fill(confirmed);
+  const intended = {enabled:f.enabled.checked,schedules,expires_utc_s:f.expiry.value ? utcFieldMs(f.expiry) / 1000 : 0};
+  const patch = Object.fromEntries(Object.entries(intended).filter(([key,value]) =>
+    JSON.stringify(value) !== JSON.stringify(currentConfig[key] ?? (key === 'expires_utc_s' ? 0 : undefined))));
+  if (!Object.keys(patch).length) { notice('WSPR configuration already matches saved settings.'); return; }
+  const application = await readApplication();
+  const result = await api('config/update','POST',{schema:'config-update',target:application.data.target,mode:'merge',config:patch},revision); const confirmed=checkedConfig(result,false); revision = result.revision; fill(confirmed);
   await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Reset Pico to apply network or pin changes.' : 'Settings saved and applied.');
 }); };
 async function applyProgressDomain(domain) {
   if(domain==='radio') return applyWsprProgress();
   if (!savedProgress || writeState !== 'ready') throw new Error('Read and review saved progress before applying.');
   const target = savedProgress.data.target;
-  const result = await api('progress/apply','POST',{schema:'transmitter-progress/1',target:savedProgress.data.target,application:{draft_revision:savedProgress.data.draft_revision,domain}},savedProgress.revision);
+  const result = await api('progress/apply','POST',{schema:'progress',target:savedProgress.data.target,application:{draft_revision:savedProgress.data.draft_revision,domain}},savedProgress.revision);
   currentConfig = checkedConfig(result,false); revision = result.revision;
   await refresh();
   const reconciled = await reconcileConfirmedSettings(result,target,'Saved settings applied and read back. New edits can be saved; check Transmitter status for standalone WSPR operation.');
@@ -1422,7 +1410,7 @@ function checkPlanLimits(plan) {
 }
 function messageSchedulingSupported() {
   const d=capabilities?.message_schedule;
-  return !!globalThis.WsprryMessageSchedule && d?.schema==='transmitter-message-schedule/1' && d.path==='/api/v1/message-schedule' && d.pause==='/api/v1/message-schedule/pause' && d.min_period_s===60 && d.max_period_s===86400 && typeof d.preparation_lead_ns==='string' && /^\d{1,20}$/.test(d.preparation_lead_ns);
+  return !!globalThis.WsprryMessageSchedule && WsprryControl.supported('message_schedule',d);
 }
 function messageSchedulingControls() {
   if (!$('message-scheduling')) return;
@@ -1487,7 +1475,7 @@ async function saveMessageSchedule() {
   const lead=BigInt(capabilities.message_schedule.preparation_lead_ns);
   if (plan.duration+lead>BigInt(minutes)*60000000000n) throw new Error('The complete transmission and preparation time must fit the repeat interval. Increase the interval.');
   if (until && (until<=start || BigInt(until-start)*1000000n<plan.duration)) throw new Error('Schedule end must allow the complete transmission to finish.');
-  const body={schema:'transmitter-message-schedule/1',target:messageScheduleReadback.data.target,schedule:{enabled:true,first_start_utc_ns:(BigInt(start)*1000000n).toString(),period_s:minutes*60,expires_utc_s:until?Math.floor(until/1000):0,message:plan.body}};
+  const body={schema:'message-schedule',target:messageScheduleReadback.data.target,schedule:{enabled:true,first_start_utc_ns:(BigInt(start)*1000000n).toString(),period_s:minutes*60,expires_utc_s:until?Math.floor(until/1000):0,message:plan.body}};
   try {
     messageScheduleReadback=checkedMessageSchedule(await api('message-schedule','PUT',body,messageScheduleReadback.revision));
     describeMessageSchedule();$('job-result').textContent='Message schedule saved. It continues with this page closed.';
@@ -1501,7 +1489,7 @@ if ($('message-schedule-read')) $('message-schedule-read').onclick=()=>action(()
 if ($('message-schedule-pause')) $('message-schedule-pause').onclick=()=>action(async()=>{
   if (!messageScheduleReadback || messageScheduleUncertain) throw new Error('Read saved schedule before pausing.');
   try {
-    messageScheduleReadback=checkedMessageSchedule(await api('message-schedule/pause','POST',{schema:'transmitter-message-schedule/1',target:messageScheduleReadback.data.target,pause:true},messageScheduleReadback.revision));
+    messageScheduleReadback=checkedMessageSchedule(await api('message-schedule/pause','POST',{schema:'message-schedule',target:messageScheduleReadback.data.target,pause:true},messageScheduleReadback.revision));
     describeMessageSchedule();
   } catch(error) {messageScheduleUncertain=true;$('message-schedule-status').textContent='Pause is rejected or unconfirmed. Read saved schedule before another action. '+error.message;throw error;}
 });
@@ -1762,7 +1750,7 @@ async function readHostname(token = pageIdentity.request()) {
   }
   if (!pageIdentity.current(token)) return null;
   const d = result.data;
-  if (d.schema !== 'transmitter-hostname/1' || !/^[0-9a-f]{32}$/.test(d.target?.device_id) ||
+  if (d.schema !== 'hostname' || !/^[0-9a-f]{32}$/.test(d.target?.device_id) ||
       d.target.boot_id !== context?.job.boot_id ||
       radio && d.target.boot_id !== localIdentity?.boot_id ||
       localIdentity && d.target.device_id !== localIdentity.device_id ||
@@ -1848,7 +1836,7 @@ $('hostname-form').onsubmit = event => { event.preventDefault(); return action(a
   const expected = hostnameState;
   hostnameUncertain = true;
   try {
-    const result = await api('hostname','PUT',{schema:'transmitter-hostname/1',target:expected.target,hostname:name},expected.revision);
+    const result = await api('hostname','PUT',{schema:'hostname',target:expected.target,hostname:name},expected.revision);
     if (result.data.generation === expected.generation) { hostnameUncertain=false; hostnameDraft=false; await readHostname(); return; }
     hostnameDraft = false;
     $('hostname-status').textContent = 'Hostname save accepted as ' + name + '. Active for this boot: ' + expected.active + '. Restart is required. Log in again to read the saved result before restarting.';
@@ -1921,7 +1909,7 @@ async function readLogging() {
     const result = await api('logging');
     if (epoch !== loggingEpoch || !online) return;
     const value = result.data;
-    if (value.schema !== 'transmitter-logging/1' || value.target?.scope !== 'member' ||
+    if (value.schema !== 'logging' || value.target?.scope !== 'member' ||
         !/^[0-9a-f]{32}$/.test(value.target?.device_id || '') || !/^[0-9a-f]{32}$/.test(value.target?.boot_id || '') ||
         typeof value.saved?.enabled !== 'boolean' || !Number.isInteger(value.saved?.maximum_severity) ||
         value.saved.maximum_severity < 0 || value.saved.maximum_severity > 7 ||
@@ -1943,7 +1931,7 @@ $('logging-form')?.addEventListener('submit', async event => {
   const expected = loggingSnapshot;
   loggingSnapshot = null; loggingBusy = true; $('logging-settings').disabled = true;
   try {
-    await api('logging','PUT',{schema:'transmitter-logging/1',target:expected.target,
+    await api('logging','PUT',{schema:'logging',target:expected.target,
       logging:{enabled:$('logging-enabled').checked,maximum_severity:Number($('logging-severity').value)}},loggingRevision);
     loggingEdited = false; loggingBusy = false; await readLogging();
   } catch (error) {
@@ -1964,9 +1952,9 @@ async function loadAllSettings() {
     for(const [editor,field] of [[filterEditor,'filter-selector-controls'],[timingEditor,'amplifier-timing-status'],[frequencyEditor,'standalone-frequency-status'],[calibrationEditor,'rf-calibration-status'],[ntpTimeoutEditor,'ntp-timeout-status'],[driveEditor,'gpio-drive-status']]) {
       try { await editor?.load(); } catch(error) { consolePut(field,error.message); }
     }
-    try { const h=await api(supportsAmplifier()?'hardware/3':'hardware'); const value=checkedHardware(h); if(value.saved && !progressEdits.has('pins')) fillPins(value.saved); } catch(error) { consolePut('pins-status',error.message); }
+    try { const h=await api('hardware'); const value=checkedHardware(h); if(value.saved && !progressEdits.has('pins')) fillPins(value.saved); } catch(error) { consolePut('pins-status',error.message); }
     if(!messageEdited && messageScheduleReadback?.data.saved) adoptMessageSchedule(false);
-    if(capabilities?.logging?.schema==='transmitter-logging/1') await readLogging();
+    if(WsprryControl.supported('logging',capabilities?.logging)) await readLogging();
     try { await udpEditor?.read(); } catch(error) { notice(error.message,true); }
     settingsLoadedBoot=snapshot?.job.boot_id || null;
   } finally { loadingSettings=false; controls(online); }
@@ -1982,7 +1970,7 @@ function checkedHardware(result) {
     ['onboard_led','external','disabled'].includes(value.indicator) && (value.indicator_gp===null || gp(value.indicator_gp)) && typeof value.indicator_active_high==='boolean' &&
     (!amplifier || typeof value.amplifier_active_high==='boolean');
   if(!keys(v,'schema,target,saved,saved_generation,active,active_revision,pending_restart,application_error,execution_engine,storage_healthy'+(amplifier?',gpio_drive':'')) ||
-    v.schema!==(amplifier?'transmitter-hardware/3':'transmitter-hardware/1') || !keys(v.target,'scope,device_id,boot_id') ||
+    v.schema!==(amplifier?'hardware':'hardware') || !keys(v.target,'scope,device_id,boot_id') ||
     v.target.scope!=='member' || v.target.device_id!==(localIdentity?.device_id || operationsTarget?.device_id) || v.target.boot_id!==snapshot?.job.boot_id ||
     !pins(v.saved) || !pins(v.active) || !(v.saved_generation===null || decimal(v.saved_generation)) ||
     !(v.active_revision===null || typeof v.active_revision==='string' && /^[0-9a-f]{64}$/.test(v.active_revision)) ||
@@ -2001,7 +1989,7 @@ function amplifierPinsChanged() {
 for (const id of ['pin-settings','amplifier-pin-settings']) $(id).addEventListener('input',event=>{dirty=true;editedProgress(event);showDraftComparison();timingEditor?.notify();});
 async function saveRadioPins(amplifierOnly=false) {
   if(writeState!=='ready') throw new Error('Read and review saved settings before saving pins.');
-  const path=supportsAmplifier()?'hardware/3':'hardware';
+  const path='hardware';
   const before=await api(path);
   if(before.revision!==revision) { requireReadback(); throw new Error('Saved settings changed. Read and review them before saving pins.'); }
   checkedHardware(before);
@@ -2030,7 +2018,7 @@ async function applyWsprProgress() {
   if(!Object.keys(patch).length) throw new Error('No saved WSPR changes to apply.');
   const before=await readApplication();
   if(before.revision!==savedProgress.revision) { requireReadback(); throw new Error('Saved WSPR settings changed. Read and review them again.'); }
-  const result=await api('config/update','POST',{schema:'transmitter-config-update/1',target:before.data.target,mode:'merge',config:patch},before.revision);
+  const result=await api('config/update','POST',{schema:'config-update',target:before.data.target,mode:'merge',config:patch},before.revision);
   const confirmed=await reconcileConfirmedSettings(result,before.data.target,'Saved WSPR configuration applied. Radio pin drafts are unchanged.');
   await refresh();
   if(confirmed) for(const key of ['enabled','schedules','expires_utc_s']) {

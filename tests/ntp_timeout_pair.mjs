@@ -23,11 +23,11 @@ function start(command,args=[]) {
 }
 const config={version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:20},wifi:{ssid:'synthetic-network',password:'synthetic-password',ntp_ipv4:'pool.ntp.org'},schedules:[{period_s:120,phase_s:0}]};
 const protectedSave=async (call,fields,revision)=>{
-  const current=await call({method:'GET',path:'/api/v1/member/configuration'});
+  const current=await call({method:'GET',path:'/api/control/v1/member/configuration'});
   assert.equal(current.status,200,JSON.stringify(current));
   assert.equal(current.body.config.version,1,'historical public Config remains version 1');
   const body={schema:'wsprrypi-pico-settings/1',target:current.body.target,operation:'save',config:fields};
-  return call({method:'POST',path:'/api/v1/member/configuration',revision:revision||current.etag,body:JSON.stringify(body)});
+  return call({method:'POST',path:'/api/control/v1/member/configuration',revision:revision||current.etag,body:JSON.stringify(body)});
 };
 try {
   if(carrier==='network') {
@@ -42,7 +42,7 @@ try {
     const call=async request=>JSON.parse(await client.send(JSON.stringify(request)));
     const firstSave=await protectedSave(call,{station:{callsign:'W1AW'}});assert.equal(firstSave.status,200,JSON.stringify(firstSave));
     let saved=await dump();assert.equal(saved.config.ntp_timeout_s,0);assert.equal(saved.config.station.callsign,'W1AW');
-    const context=await call({method:'GET',path:'/api/v1/member/configuration'});
+    const context=await call({method:'GET',path:'/api/control/v1/member/configuration'});
     const next=await protectedSave(call,{schedules:[{period_s:240,phase_s:0}],wifi:{ntp_ipv4:'192.0.2.1'}});
     assert.equal(next.status,200,JSON.stringify(next));saved=await dump();
     assert.equal(saved.config.ntp_timeout_s,0);assert.equal(saved.config.version,2);
@@ -57,25 +57,25 @@ try {
     const call=async request=>JSON.parse(await client.send(JSON.stringify(request)));
     const raw=async(resource,method='GET',body,revision)=>call({raw_resource:resource,method,body:body===undefined?'':JSON.stringify(body),revision:revision||''});
     const wifi=await raw('/api/usb/v1/wifi');assert.equal(wifi.status,200,JSON.stringify(wifi));
-    const joined=await raw('/api/usb/v1/wifi','PUT',{schema:'transmitter-wifi/1',target:wifi.body.target,
+    const joined=await raw('/api/usb/v1/wifi','PUT',{schema:'wifi',target:wifi.body.target,
       wifi:{ssid:config.wifi.ssid,password:config.wifi.password,time_server:config.wifi.ntp_ipv4}},wifi.etag);
     assert.equal(joined.status,200,JSON.stringify(joined));
-    let read=await raw('/api/v1/ntp-timeout/2');assert.equal(read.status,200,JSON.stringify(read));
-    const complete=await raw('/api/v1/config','PUT',config,read.etag);assert.equal(complete.status,200,JSON.stringify(complete));
-    read=await raw('/api/v1/ntp-timeout/2');
-    const write={schema:'transmitter-ntp-timeout/2',target:read.body.target,timeout_s:0};
-    const saved=await raw('/api/v1/ntp-timeout/2','PUT',write,read.etag);assert.equal(saved.status,200,JSON.stringify(saved));
+    let read=await raw('/api/control/v1/ntp-timeout');assert.equal(read.status,200,JSON.stringify(read));
+    const complete=await raw('/api/control/v1/config','PUT',config,read.etag);assert.equal(complete.status,200,JSON.stringify(complete));
+    read=await raw('/api/control/v1/ntp-timeout');
+    const write={schema:'ntp-timeout',target:read.body.target,timeout_s:0};
+    const saved=await raw('/api/control/v1/ntp-timeout','PUT',write,read.etag);assert.equal(saved.status,200,JSON.stringify(saved));
     assert.equal(saved.body.saved_timeout_s,0);assert.equal(saved.body.pending_restart,true);
-    assert.equal((await raw('/api/v1/ntp-timeout')).status,409);
-    for(const patch of [{schema:'transmitter-ntp-timeout/1'},{schema:'transmitter-ntp-timeout/3'},{timeout_s:1},{timeout_s:true},{extra:1},{target:[]},{target:{...write.target,device_id:'b'.repeat(32)}}]) {
-      const bad=await raw('/api/v1/ntp-timeout/2','PUT',{...write,...patch},saved.etag);
+    assert.equal((await raw('/api/control/v1/ntp-timeout')).status,409);
+    for(const patch of [{schema:'ntp-timeout'},{schema:'ntp-timeout'},{timeout_s:1},{timeout_s:true},{extra:1},{target:[]},{target:{...write.target,device_id:'b'.repeat(32)}}]) {
+      const bad=await raw('/api/control/v1/ntp-timeout','PUT',{...write,...patch},saved.etag);
       assert.equal(bad.status,patch.target&&!Array.isArray(patch.target)?409:400,JSON.stringify(bad));
-      const current=await raw('/api/v1/ntp-timeout/2');assert.equal(current.etag,saved.etag);assert.equal(current.body.saved_timeout_s,0);
+      const current=await raw('/api/control/v1/ntp-timeout');assert.equal(current.etag,saved.etag);assert.equal(current.body.saved_timeout_s,0);
     }
     const next=await protectedSave(call,{station:{callsign:'W1AW'}});assert.equal(next.status,200,JSON.stringify(next));
-    read=await raw('/api/v1/ntp-timeout/2');assert.equal(read.body.saved_timeout_s,0);
-    const refusal=await raw('/api/v1/ntp-timeout/2','PUT',{...write,timeout_s:60},saved.etag);assert.equal(refusal.status,412);
-    assert.equal((await raw('/api/v1/ntp-timeout/2')).etag,read.etag);
+    read=await raw('/api/control/v1/ntp-timeout');assert.equal(read.body.saved_timeout_s,0);
+    const refusal=await raw('/api/control/v1/ntp-timeout','PUT',{...write,timeout_s:60},saved.etag);assert.equal(refusal.status,412);
+    assert.equal((await raw('/api/control/v1/ntp-timeout')).etag,read.etag);
     console.log('PASS actual production UMP/ACK Pi/Pico pair: zero timeout, exact version/target/revision/type refusal and legacy scoped-save preservation');
   }
 } finally {

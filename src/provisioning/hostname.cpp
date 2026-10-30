@@ -44,7 +44,7 @@ std::string HostnameSettings::readback(std::string_view boot, bool local_usb) co
                             ? "complete_station_setup_first"
                             : "credential_bound_deployment";
     auto result =
-        "{\"schema\":\"transmitter-hostname/1\",\"target\":" + application::target(device_, boot) +
+        "{\"schema\":\"hostname\",\"target\":" + application::target(device_, boot) +
         ",\"saved\":" + wtp::json::quote(saved) + ",\"active\":" + wtp::json::quote(active_) +
         ",\"default\":" + wtp::json::quote(default_) +
         ",\"source\":" + wtp::json::quote(consumer ? "consumer_profile" : "deployment") +

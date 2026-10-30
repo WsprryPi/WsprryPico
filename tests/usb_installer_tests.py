@@ -652,7 +652,7 @@ class InstallerTests(unittest.TestCase):
         for offset in range(installer.PERSISTENT_START,installer.FLASH_SIZE,4096):before[offset+17]=71
         original=bytes(before); commands=[]; phase=['application','verification']; snapshots=[0]
         board=lambda:dict(serial=SERIAL,parent='changed' if migration_failure=='wrong_port' and phase[0]=='bootsel' else 'fixed',mode=phase[0],ports={'4':'fixture'})
-        def snapshot(_):
+        def snapshot(_, *, pre_reset_upgrade=False):
             snapshots[0]+=1
             return dict(serial=SERIAL,parent='fixed',target=dict(scope='member',device_id=installer.device_id(SERIAL),boot_id='b'*32),
                 revision='"4"',firmware=('0.1.0-ci.2.1' if old_network_failure else old_manifest['firmware_version']) if snapshots[0]==1 else manifest['firmware_version'],source_revision=manifest['source']['revision'][:12],
@@ -857,7 +857,7 @@ class InstalledBundleHandoffTests(unittest.TestCase):
         def board(*args, **kwargs):
             return {'serial': SERIAL, 'parent': 'fixed', 'mode': phase[0], 'ports': {'4': 'fixture'}}
 
-        def snapshot(_):
+        def snapshot(_, *, pre_reset_upgrade=False):
             new = phase[0] == 'verified'
             return {'serial': SERIAL, 'parent': 'fixed', 'target': {'scope': 'member',
                     'device_id': installer.device_id(SERIAL), 'boot_id': 'b'*32}, 'revision': '"1"',
@@ -1867,6 +1867,69 @@ class StandaloneGuidanceTests(unittest.TestCase):
             self.assertFalse((root / 'curl.log').exists())
             self.assertFalse((root / 'INJECTED').exists())
             self.assertEqual(list(downloads.iterdir()), [])
+
+
+class ControlSnapshotTransitionTests(unittest.TestCase):
+    def capture(self, *, old=False, upgrade=False, wrong=False, malformed=None):
+        calls = []
+        class Management:
+            hello = {'target': {'device_id': 'a' * 32, 'boot_id': 'b' * 32},
+                     'body': json.dumps({'firmware': '0.0.0-devel'})}
+            etags = {}
+            def __init__(self, device): pass
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def get(self, path, *, absent_ok=False):
+                calls.append(path)
+                if malformed and path.endswith('/' + malformed): return []
+                if old and path == '/api/control/v1/capabilities':
+                    if absent_ok: return installer.CONTROL_RESOURCE_ABSENT
+                    raise installer.Refusal('Required current control resource unavailable')
+                self.etags[path] = 'revision'
+                return {'contract': 'unknown' if wrong else 'Wsprry-Control/1',
+                        'source_revision': 'c' * 12}
+        with patch.object(installer, 'Management', Management):
+            value = installer.public_snapshot({'serial': SERIAL, 'parent': 'physical-parent'},
+                                              pre_reset_upgrade=upgrade)
+        return value, calls
+
+    def test_reset_preserves_settings_despite_removed_wire_storage_version(self):
+        old = {'config': {'config': {'version': 1, 'enabled': False, 'gpio_drive_ma': 8}},
+               'progress': {'fields': {}, 'draft_revision': '1'}, 'hostname': {'saved': None},
+               'frequency': {'frequency_hz': None}, 'calibration': {'saved': None},
+               'status': {'standalone': {'watermark_utc_ns': '0', 'suspended': False}}}
+        current = copy.deepcopy(old)
+        current['config']['contract'] = 'Wsprry-Control/1'
+        del current['config']['config']['version']
+        self.assertEqual(installer.saved_semantics(old), installer.saved_semantics(current))
+        current['config']['config']['gpio_drive_ma'] = 12
+        self.assertNotEqual(installer.saved_semantics(old), installer.saved_semantics(current))
+        old['config']['config']['version'] = 2
+        self.assertEqual(installer.saved_semantics(old)['config']['gpio_drive_ma'],8)
+        old['config']['config']['version'] = 99
+        with self.assertRaises(installer.Refusal): installer.saved_semantics(old)
+
+    def test_malformed_current_documents_do_not_select_legacy_capture(self):
+        for resource in ('capabilities','status','config','progress'):
+            with self.subTest(resource=resource), self.assertRaisesRegex(installer.Refusal, 'Malformed'):
+                self.capture(upgrade=True, malformed=resource)
+
+    def test_current_snapshot_never_uses_old_namespace(self):
+        value, calls = self.capture()
+        self.assertTrue(all(path.startswith('/api/control/v1/') for path in calls))
+        self.assertEqual(value['revision'], 'revision')
+        self.assertIn('/api/control/v1/progress', calls)
+
+    def test_only_explicit_pre_reset_upgrade_can_capture_old_settings(self):
+        with self.assertRaises(installer.Refusal): self.capture(old=True)
+        value, calls = self.capture(old=True, upgrade=True)
+        self.assertEqual(calls[0], '/api/control/v1/capabilities')
+        self.assertIn('/api/v1/config/4', calls)
+        self.assertEqual(value['source_revision'], 'c' * 12)
+
+    def test_unknown_contract_refuses_without_legacy_capture(self):
+        with self.assertRaisesRegex(installer.Refusal, 'Unknown control contract'):
+            self.capture(upgrade=True, wrong=True)
 
 
 if __name__ == '__main__':

@@ -1,3 +1,4 @@
+#include "network/control.hpp"
 #include "application/resources.hpp"
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE
 #include "hardware/gpio.h"
@@ -887,11 +888,14 @@ int main() {
             if (request.path.starts_with("/api/usb/v1/time/"))
                 return usb_time.handle(request, transaction);
             if (request.path == "/api/usb/v1/ap") {
-                const auto root = wtp::json::parse(request.body_view());
+                auto payload = network::control_payload(request.body_view());
+                std::string payload_bytes = payload ? std::move(*payload) : std::string{};
+                network::ControlStringWiper wipe_payload(payload_bytes);
+                const auto root = payload ? wtp::json::parse(payload_bytes) : std::nullopt;
                 if (request.method != "POST" || !root ||
                     !wtp::json::fields(*root, {"schema", "target"}) ||
                     root->get("schema")->type() != '\"' ||
-                    root->get("schema")->string() != "transmitter-ap-request/1" ||
+                    root->get("schema")->string() != "ap-request" ||
                     !wtp::json::fields(*root->get("target"), {"scope", "device_id", "boot_id"}) ||
                     root->get("target")->get("scope")->string() != "member" ||
                     root->get("target")->get("device_id")->string() != identities.device_id() ||
@@ -904,8 +908,8 @@ int main() {
                     activity.state == wtp::State::Failed || !radio_identity_ok)
                     return network::http_error(409, "ap_unavailable");
                 usb_ap_transaction = transaction;
-                return network::HttpResponse{202, "{\"requested\":true}", "application/json",
-                                             browser_api.revision()};
+                return network::control_response(network::HttpResponse{202, "{\"requested\":true}", "application/json",
+                                             browser_api.revision()});
             }
             return usb_api.handle(request, transaction);
         },
@@ -1019,7 +1023,7 @@ int main() {
         if (text == "SYSLOG STATUS") {
             wsprrypico::network::HttpRequest request;
             request.method = "GET";
-            request.path = "/api/v1/logging";
+            request.path = "/api/control/v1/logging";
             auto response = usb_api.handle(request);
             if (response.status != 200)
                 return response.body + "\n";
@@ -1036,7 +1040,7 @@ int main() {
                 return "{\"error\":\"invalid_logging_save\"}\n";
             wsprrypico::network::HttpRequest request;
             request.method = "PUT";
-            request.path = "/api/v1/logging";
+            request.path = "/api/control/v1/logging";
             request.headers["if-match"] = root->get("revision")->string();
             request.body = std::string(root->get("resource")->raw);
             const auto response = usb_api.handle(request);

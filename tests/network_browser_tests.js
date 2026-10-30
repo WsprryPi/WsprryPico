@@ -3,6 +3,8 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
+const currentCapabilities=JSON.parse(fs.readFileSync(__dirname+'/fixtures/control-capabilities.json','utf8')).capabilities;
+const capabilityKeys=JSON.parse(fs.readFileSync(__dirname+'/../engineering/protocol/control-1.schema.json','utf8')).$defs.capabilities.required;
 const scripts = process.env.WSPRRY_PICO_BROWSER_SHIPPED ? ['device-presentation.min.js','config-validation.min.js','app.min.js'] : ['operations.js','device-presentation.js','saved-progress.js','config-validation.js','utc-datetime.js','message-schedule.js','app.js'];
 const source = scripts.map(name=>fs.readFileSync(__dirname + '/../src/network/web/'+name,'utf8')).join('\n');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false, options = {}) {
@@ -43,7 +45,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
       append(...nodes){this.children.push(...nodes);},replaceChildren(...nodes){this.ownText='';this.children=nodes;},
       setAttribute(key,value){this.attributes[key]=value;},getAttribute(key){return this.attributes[key]||null;}});
     elements['draft-comparison']=makeNode('div');
-    const config = {version:1,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
+    const config = {gpio_drive_ma:4,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
     const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1',configured_hostname:'old.local'}};
     elements['config-password'] = elements.config.elements.password;
     elements['local-password-label'].textContent = 'Local-access password';
@@ -95,10 +97,10 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             else if (path === '/local/v1/status') data = {wtp_session:f.mappedSession};
             else if (path.endsWith('hostname')) {
                 if (options.method === 'PUT') { f.savedHostname=JSON.parse(options.body).hostname; f.hostnameGeneration=(f.hostnameGeneration||1)+1; }
-                data = {schema:'transmitter-hostname/1',target:{scope:'member',device_id:f.hostnameDevice||'1'.repeat(32),boot_id:state.job.boot_id},
+                data = {schema:'hostname',target:{scope:'member',device_id:f.hostnameDevice||'1'.repeat(32),boot_id:state.job.boot_id},
                     saved:f.savedHostname||state.network.configured_hostname,active:state.network.configured_hostname,default:'default.local',writable:true,pending_restart:!!f.savedHostname&&f.savedHostname!==state.network.configured_hostname,reason:'',generation:String(f.hostnameGeneration||1),storage_healthy:true};
             }
-            else if (path.endsWith('hardware')) data={schema:'transmitter-hardware/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},saved:config.pins||null,saved_generation:'1',active:null,active_revision:null,pending_restart:false,application_error:null,execution_engine:'simulated',storage_healthy:true};
+            else if (path.endsWith('hardware')) data={schema:'hardware',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},saved:config.pins||null,saved_generation:'1',active:null,active_revision:null,pending_restart:false,application_error:null,execution_engine:'simulated',storage_healthy:true};
             else if (path.endsWith('message-schedule')||path.endsWith('message-schedule/pause')) {
                 if (options.method==='GET' && f.scheduleReadFailure) throw new Error('schedule read unavailable');
                 if (options.method==='PUT') {
@@ -109,24 +111,32 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                     if(f.savedMessageSchedule && !f.schedulePausePending)f.savedMessageSchedule.enabled=false;
                     if(f.loseSchedulePause)throw new Error('reply lost after pause');
                 }
-                data={schema:'transmitter-message-schedule/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},saved:f.savedMessageSchedule||null,writable:true,state:f.scheduleState||(f.savedMessageSchedule?(f.savedMessageSchedule.enabled?'waiting':'paused'):'not_configured'),pause_pending:!!f.schedulePausePending,next_start_utc_ns:null,last_start_utc_ns:null,last_job_id:null,last_result:null,last_error:null};
+                data={schema:'message-schedule',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},saved:f.savedMessageSchedule||null,writable:true,state:f.scheduleState||(f.savedMessageSchedule?(f.savedMessageSchedule.enabled?'waiting':'paused'):'not_configured'),pause_pending:!!f.schedulePausePending,next_start_utc_ns:null,last_start_utc_ns:null,last_job_id:null,last_result:null,last_error:null};
             }
             else if (path.endsWith('pins')) data = {choices:{eligible_gps:[...Array(23).keys(),26,27,28],i2c_pairs:[{controller:0,sda_gp:4,scl_gp:5}]}};
-            else if (path.endsWith('application/2')) { if(f.appV2) data=f.appV2; else {status=404; data={error:{code:'not_found'}};} }
-            else if (path.endsWith('application')) data = {target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},hardware:f.appHardware || {saved:config.pins || null,active:null,pending_restart:true,application_error:null}};
-            else if (path.endsWith('capabilities')) data = {...(f.operations?{operations_status:{schema:'transmitter-operations/1',path:'/api/v1/operations'}}:{}),...(f.scheduleSupport?{message_schedule:{schema:'transmitter-message-schedule/1',path:'/api/v1/message-schedule',pause:'/api/v1/message-schedule/pause',min_period_s:60,max_period_s:86400,preparation_lead_ns:'2000000000',max_storage_bytes:1984}}:{}),configuration_updates:{schema:'transmitter-config-update/1',path:'/api/v1/config/update',method:'POST',modes:['merge','replace']},features:{restart:true},active_job_connections:activeConnections,message_jobs:{max_characters:32},wtp:{maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
+            else if (path.endsWith('application')) data = f.appV2 || {
+                schema:'application',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},
+                station:{saved:structuredClone(config.station)},hardware:f.appHardware || {saved:config.pins || null,active:null,pending_restart:true,application_error:null},
+                recurrence:{},capabilities:{station_encoding:'wspr_type123_auto'},reboot_required:false,wspr_plan:null};
+            else if (path.endsWith('wspr-plan')) data={schema:'wspr-plan',supported:true,frame_types:['type1'],frames:1,slot_separation_s:120,rationale:'Type 1',type2_ambiguous:false,alternate_callsign:null};
+            else if (path.endsWith('capabilities')) data = {...Object.fromEntries(capabilityKeys.map(key=>[key,structuredClone(currentCapabilities[key])])),...(f.operations?{operations_status:{schema:'operations',path:'/api/control/v1/operations'}}:{}),...(f.scheduleSupport?{message_schedule:{schema:'message-schedule',path:'/api/control/v1/message-schedule',pause:'/api/control/v1/message-schedule/pause',min_period_s:60,max_period_s:86400,preparation_lead_ns:'2000000000',max_storage_bytes:1984}}:{}),configuration_updates:{schema:'config-update',path:'/api/control/v1/config/update',method:'POST',modes:['merge'],max_update_bytes:2048,max_config_bytes:1800},features:{...currentCapabilities.features,restart:true},active_job_connections:activeConnections,message_jobs:{...currentCapabilities.message_jobs,max_characters:32},wtp:{...structuredClone(currentCapabilities.wtp),maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
             else if (path.endsWith('restart')) {
                 if (f.restartMode === 'lost') throw new Error('lost restart response');
                 if (f.restartMode === 'success') { state.job.boot_id = 'b'.repeat(32); if(f.operations) f.operations.target.boot_id=f.operations.job.boot_id=f.operations.standalone.boot_id=state.job.boot_id; }
                 status = 202; data = {restart_requested:true};
-            } else if (path.endsWith('consumer/password')) data = {schema:'pico-password/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:'a'.repeat(32)},wifi_default:true,saved:true};
+            } else if (path.endsWith('consumer/password')) data = {schema:'pico-password',target:{scope:'member',device_id:'1'.repeat(32),boot_id:'a'.repeat(32)},wifi_default:true,saved:true};
             else if(path.endsWith('operations')) { if(f.delayObservation) await f.delayObservation; data=structuredClone(f.operations); }
             else if (path.endsWith('status')) data = structuredClone(state);
             else if (path.endsWith('config/update')) {
+                if(f.configSaveMode==='before') throw new Error('lost before dispatch');
                 const patch=JSON.parse(options.body).config;
+                f.configCommits=(f.configCommits||0)+1;
+                for(const [key,value] of Object.entries(patch)) if(!['station','wifi'].includes(key)) config[key]=structuredClone(value);
                 if(patch.station)Object.assign(config.station,patch.station);
                 if(patch.wifi)Object.assign(config.wifi,patch.wifi,{password:null});
-                data={config:structuredClone(config)};
+                if(f.configSaveMode==='lost') throw new Error('lost after commit');
+                if(f.failConfig){status=412;data={error:{code:'revision_conflict'}};}
+                else data={config:structuredClone(config)};
             }
             else if (path.endsWith('config')) {
                 if (options.method === 'PUT' && f.configSaveMode) {
@@ -152,7 +162,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                     throw new Error('lost ' + request.operation + ' response');
                 }
             } else throw new Error('Unexpected request ' + path);
-            return {status,ok:status>=200&&status<300,json:async()=>{if(path.endsWith('config') && options.method==='PUT'){if(f.configSaveMode==='json')throw new Error('lost body');if(f.configSaveMode==='empty')return {};if(f.configSaveMode==='wrong')return {config:'wrong'};if(f.configSaveMode==='expiry')return {config:{...data.config,expires_utc_s:'bad'}};if(f.configSaveMode==='pins')return {config:{...data.config,pins:{...data.config.pins,indicator:{}}}};if(f.configSaveMode==='null')return {config:null};}return data;},headers:{get:()=> f.savedRevision || '"original-revision"'}};
+            return {status,ok:status>=200&&status<300,json:async()=>{if(path.endsWith('config/update') && options.method==='POST'){if(f.configSaveMode==='json')throw new Error('lost body');if(f.configSaveMode==='empty')return {};if(f.configSaveMode==='wrong')return {config:'wrong'};if(f.configSaveMode==='expiry')return {config:{...data.config,expires_utc_s:'bad'}};if(f.configSaveMode==='pins')return {config:{...data.config,pins:{...data.config.pins,indicator:{}}}};if(f.configSaveMode==='null')return {config:null};}return path.startsWith('/api/control/v1/') ? {contract:'Wsprry-Control/1',...data} : data;},headers:{get:()=> f.savedRevision || '"original-revision"'}};
         }});
     f.events = {}; context.addEventListener=(name,handler)=>{f.events[name]=handler;};
     context.location={href:'http://127.0.0.1/',hash:receipt,pathname:'/',search:''};
@@ -163,18 +173,19 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             publicRead:async(path)=>{
                 f.publicReads=(f.publicReads||0)+1;
                 if(f.publicStatusFailure) throw Error('status unavailable');
-                return context.fetch('/api/v1/'+path,{method:'GET'});
+                return context.fetch('/api/control/v1/'+path,{method:'GET'});
             },
             publicStatus:async()=>{
                 f.publicReads=(f.publicReads||0)+1;
                 if (f.publicStatusFailure) throw Error('status unavailable');
-                return {schema:'transmitter-public-status/1',device_id:'1'.repeat(32),boot_id:state.job.boot_id,state:state.job.state,output_active:state.job.output_active,owned:state.job.owner_id!==null,clock_state:state.standalone.clock_state,utc_now_ns:state.standalone.utc_now_ns||String(BigInt(f.now)*1000000n),uncertainty_ns:state.standalone.uncertainty_ns,engine:state.standalone.engine};
+                return {schema:'public-status',device_id:'1'.repeat(32),boot_id:state.job.boot_id,state:state.job.state,output_active:state.job.output_active,owned:state.job.owner_id!==null,clock_state:state.standalone.clock_state,utc_now_ns:state.standalone.utc_now_ns||String(BigInt(f.now)*1000000n),uncertainty_ns:state.standalone.uncertainty_ns,engine:state.standalone.engine};
             },
             identity:async()=>({device_id:'1'.repeat(32),boot_id:'a'.repeat(32),generation:'3'}),
             login:async()=>{ f.radio.authenticated=true; },
+            readPolicy:async()=>{ f.policyReads=(f.policyReads||0)+1; },
             request:async(path,method='GET',body)=>{
                 if (!f.radio.authenticated) throw new Error('Log in again');
-                return context.fetch('/api/v1/'+path,{method,body:body===undefined?undefined:JSON.stringify(body)});
+                return context.fetch('/api/control/v1/'+path,{method,body:body===undefined?undefined:JSON.stringify(body)});
             },
             prepareNetwork:async()=>({kind:'network',device:'1'.repeat(32),generation:'4',digest:'a'.repeat(64),submit:{secret:'must-not-survive'}}),
             submitSetup:async()=>{ f.setupSubmits=(f.setupSubmits||0)+1; f.radio.authenticated=false; throw new Error('reply lost'); },
@@ -185,6 +196,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     }
     f.links=navigationLinks;
     context.history.pushState=(value,__,url)=>{context.history.state=value;context.location.pathname=url.split('#')[0];context.location.hash=url.includes('#')?url.slice(url.indexOf('#')):'';};
+    vm.runInContext(fs.readFileSync(__dirname+'/../src/network/web/control-contract.js','utf8'),context);
     vm.runInContext(fs.readFileSync(__dirname+'/../src/network/web/udp-logging.js','utf8'),context);
     vm.runInContext(source,context);
     await new Promise(setImmediate);
@@ -272,7 +284,7 @@ if (require.main === module) (async () => {
     assert.equal(publicPage.form.callsign.value,'AA0NT');
     assert.equal(publicPage.elements['station-settings-lock'].disabled,true);
     assert.equal(publicPage.elements['wifi-settings-lock'].disabled,true);
-    assert(publicPage.calls.every(c=>!c.path.startsWith('/api/v1/') || c.options.method==='GET'));
+    assert(publicPage.calls.every(c=>!c.path.startsWith('/api/control/v1/') || c.options.method==='GET'));
     assert.equal(publicPage.elements.state.textContent,'empty');
     assert.equal(publicPage.elements.output.textContent,'Inactive');
     assert.equal(publicPage.elements['message-settings'].disabled,true);
@@ -364,8 +376,8 @@ if (require.main === module) (async () => {
     Object.assign(initial.form.callsign,{value:'K1ABC'});initial.form.locator.value='FN42';initial.form.power_dbm.value='30';
     initial.form.ssid.value='first-network';initial.form.password.value='first-password';initial.form.ntp_ipv4.value='pool.ntp.org';
     await initial.elements['initial-config'].onclick();
-    assert.equal(initial.calls.filter(c=>c.path.endsWith('config')&&c.options.method==='PUT').length,1);
-    const initialBody=JSON.parse(initial.calls.find(c=>c.path.endsWith('config')&&c.options.method==='PUT').options.body);
+    assert.equal(initial.calls.filter(c=>c.path.endsWith('config/update')&&c.options.method==='POST').length,1);
+    const initialBody=JSON.parse(initial.calls.find(c=>c.path.endsWith('config/update')&&c.options.method==='POST').options.body).config;
     assert.equal(initialBody.station.callsign,'K1ABC');assert.equal(initialBody.wifi.ssid,'first-network');
     const bookmark=await fixture(true,true,false,true,'#hostname-form',true);
     await bookmark.elements['local-login'].onsubmit({preventDefault(){}});
@@ -471,10 +483,13 @@ if (require.main === module) (async () => {
     experimental.config.allow_non_amateur_frequency = true;
     await experimental.elements['reload-config'].onclick();
     experimental.form.locator.value = 'FN42';
+    experimental.form.schedules.value = '240 / 0';
     await experimental.elements.config.onsubmit({preventDefault(){}});
-    const experimentalSave = JSON.parse(experimental.calls.find(c=>c.path.endsWith('config') && c.options.method==='PUT').options.body);
-    assert.equal(experimentalSave.allow_unqualified_frequency,true);
-    assert.equal(experimentalSave.allow_non_amateur_frequency,true);
+    const experimentalSave = JSON.parse(experimental.calls.find(c=>c.path.endsWith('config/update') && c.options.method==='POST').options.body);
+    assert.equal(Object.hasOwn(experimentalSave.config,'allow_unqualified_frequency'),false);
+    assert.equal(Object.hasOwn(experimentalSave.config,'allow_non_amateur_frequency'),false);
+    assert.equal(experimental.config.allow_unqualified_frequency,true);
+    assert.equal(experimental.config.allow_non_amateur_frequency,true);
     const localPage = await fixture(true, true, true);
     assert.equal(vm.runInContext('session',localPage.context),localPage.mappedSession);
     assert.ok(localPage.calls.filter(c=>c.path.startsWith('/api/')).every(c=>c.options.headers['X-WsprryPico-Session']===localPage.mappedSession));
@@ -583,6 +598,7 @@ if (require.main === module) (async () => {
     f.confirm = false; await f.elements['reload-config'].onclick(); assert.equal(f.form.callsign.value,'N0NEW');
     f.elements['config-password-toggle'].onclick();
     assert.equal(f.form.password.type,'text');
+    f.form.schedules.value = '240 / 0';
     f.failConfig = true; await f.elements.config.onsubmit({preventDefault(){}});
     assert.match(f.elements.notice.textContent,/edits are preserved/); assert.equal(f.form.password.value,'unsaved-test-password'); assert.equal(f.form.password.type,'password'); assert.equal(f.elements['config-password-toggle'].attributes['aria-pressed'],'false'); assert.equal(f.configReads(),1);
     f.state.network.configured_hostname = 'wsprrypico-' + 'a'.repeat(32) + '.local';
@@ -700,15 +716,16 @@ if (require.main === module) (async () => {
     await legacyIdentity.elements['reload-config'].onclick();
     legacyIdentity.form.schedules.value='240 / 0';legacyIdentity.elements.config.oninput();
     await legacyIdentity.elements.config.onsubmit({preventDefault(){}});
-    const legacySaves=()=>legacyIdentity.calls.filter(c=>c.path.endsWith('config')&&c.options.method==='PUT');
+    const legacySaves=()=>legacyIdentity.calls.filter(c=>c.path.endsWith('config/update')&&c.options.method==='POST');
     assert.equal(legacySaves().length,1);
-    assert.equal(JSON.parse(legacySaves()[0].options.body).station.callsign,'AA0NT/P/M');
+    assert.equal(Object.hasOwn(JSON.parse(legacySaves()[0].options.body).config,'station'),false);
+    assert.equal(legacyIdentity.config.station.callsign,'AA0NT/P/M');
     legacyIdentity.form.callsign.value='AA0NT/P';legacyIdentity.elements.config.oninput();
     await legacyIdentity.elements.config.onsubmit({preventDefault(){}});
-    assert.equal(legacySaves().length,2); // Schedule save preserves saved identity, ignoring an unrelated station draft.
-    assert.equal(JSON.parse(legacySaves()[1].options.body).station.callsign,'AA0NT/P/M');
+    assert.equal(legacySaves().length,1); // Unchanged schedule sends no mutation; station draft stays independent.
+    assert.equal(legacyIdentity.config.station.callsign,'AA0NT/P/M');
     const emptyV2=await fixture(true,false);
-    emptyV2.appV2={schema:'transmitter-application/2',target:{scope:'member',device_id:'1'.repeat(32),boot_id:emptyV2.state.job.boot_id},
+    emptyV2.appV2={schema:'application',target:{scope:'member',device_id:'1'.repeat(32),boot_id:emptyV2.state.job.boot_id},
       station:{station:null},hardware:{saved:null,active:null,pending_restart:false,application_error:null},recurrence:{},
       capabilities:{station_encoding:'wspr_type123_auto'},reboot_required:false,wspr_plan:null};
     await emptyV2.elements['read-saved'].onclick();
@@ -717,8 +734,9 @@ if (require.main === module) (async () => {
     const changed=await fixture(true,true,false,true);changed.elements['local-password'].value='test-password';await changed.elements['local-login'].onsubmit({preventDefault(){}});
     changed.form.schedules.value='240 / 0';changed.elements.config.oninput();changed.config.station={callsign:'K1ABC',locator:'FN42',power_dbm:30};changed.config.wifi={ssid:'new-network',password:null,ntp_ipv4:'pool.ntp.org'};
     await changed.elements['read-saved'].onclick();await changed.elements['review-saved'].onclick();await changed.elements.config.onsubmit({preventDefault(){}});
-    const outgoing=JSON.parse(changed.calls.filter(c=>c.path.endsWith('config')&&c.options.method==='PUT').at(-1).options.body);
-    assert.equal(outgoing.station.callsign,'K1ABC');assert.equal(outgoing.wifi.ssid,'new-network');assert.equal(outgoing.schedules[0].period_s,240);
+    const outgoing=JSON.parse(changed.calls.filter(c=>c.path.endsWith('config/update')&&c.options.method==='POST').at(-1).options.body);
+    assert.equal(Object.hasOwn(outgoing.config,'station'),false);assert.equal(Object.hasOwn(outgoing.config,'wifi'),false);assert.equal(outgoing.config.schedules[0].period_s,240);
+    assert.equal(changed.config.station.callsign,'K1ABC');assert.equal(changed.config.wifi.ssid,'new-network');
     const numeric=await fixture();
     vm.runInContext("saveProgressFields=async fields=>{globalThis.numericFields=fields;return {};}",numeric.context);
     numeric.form.callsign.value='BB1BB';numeric.form.power_dbm.value='2147483648';

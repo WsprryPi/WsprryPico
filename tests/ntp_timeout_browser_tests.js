@@ -9,11 +9,11 @@ async function main() {
   const target=()=>({scope:'member',device_id:'a'.repeat(32),boot_id:boot});
   const exchange=async (method,body,match)=>{
     if (method==='PUT') {
-      ++puts; assert.equal(body.schema,'transmitter-ntp-timeout/2'); assert.ok(match); assert.deepEqual(body.target,target());
+      ++puts; assert.equal(body.schema,'ntp-timeout'); assert.ok(match); assert.deepEqual(body.target,target());
       if(fail) throw Error('Response lost');
       saved=body.timeout_s;
     }
-    return {revision:'r'+saved,data:{schema:'transmitter-ntp-timeout/2',target:target(),saved_timeout_s:saved,
+    return {revision:'r'+saved,data:{schema:'ntp-timeout',target:target(),saved_timeout_s:saved,
       active_timeout_s:3600,pending_restart:saved!==3600,storage_healthy:true}};
   };
   const editor=create({...nodes,exchange});
@@ -34,12 +34,12 @@ async function main() {
   nodes.discard.onclick(); assert.equal(nodes.input.value,'90');
   nodes.input.value='0';nodes.input.oninput();await nodes.save.onclick();assert.equal(saved,0);assert.match(nodes.status.textContent,/never expire/);
   const expected={scope:'member',device_id:'a'.repeat(32),boot_id:'b'.repeat(32)};
-  for (const patch of [{schema:'transmitter-ntp-timeout/1'},{schema:'transmitter-ntp-timeout/3'},{extra:0},{target:{...expected,device_id:'c'.repeat(32)}},{target:[]},{saved_timeout_s:1},{active_timeout_s:'0'},{pending_restart:false},{storage_healthy:'true'}]) {
+  for (const patch of [{schema:'ntp-timeout/1'},{schema:'ntp-timeout/99'},{extra:0},{target:{...expected,device_id:'c'.repeat(32)}},{target:[]},{saved_timeout_s:1},{active_timeout_s:'0'},{pending_restart:false},{storage_healthy:'true'}]) {
     const ui=Object.fromEntries(['input','read','save','discard','adopt','status'].map(k=>[k,element()]));
     let writes=0;
     const guarded=create({...ui,expectedTarget:()=>expected,exchange:async method=>{
       if(method!=='GET')++writes;
-      return {revision:'r',data:{schema:'transmitter-ntp-timeout/2',target:expected,saved_timeout_s:0,active_timeout_s:3600,pending_restart:true,storage_healthy:true,...patch}};
+      return {revision:'r',data:{schema:'ntp-timeout',target:expected,saved_timeout_s:0,active_timeout_s:3600,pending_restart:true,storage_healthy:true,...patch}};
     }});
     guarded.setAvailability(true,true);ui.input.value='12';ui.input.oninput();await guarded.load();
     assert.equal(ui.save.disabled,true);assert.equal(ui.input.value,'12');await ui.save.onclick();assert.equal(writes,0);

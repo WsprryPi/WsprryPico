@@ -133,21 +133,21 @@ int main() {
     network::LocalUsbApi api(fixture.api);
     network::HttpRequest request;
     request.method = "GET";
-    request.path = "/api/v1/logging";
-    auto read = api.handle(request);
+    request.path = "/api/control/v1/logging";
+    auto read = api.handle(network_test::control_request(request));
     assert(read.status == 200 && !read.etag.empty());
     const auto body =
-        "{\"schema\":\"transmitter-logging/1\",\"target\":{\"scope\":\"member\",\"device_id\":" +
+        "{\"schema\":\"logging\",\"target\":{\"scope\":\"member\",\"device_id\":" +
         wtp::json::quote(std::string(32, 'a')) +
         ",\"boot_id\":" + wtp::json::quote(fixture.service.status().boot_id) +
         "},\"logging\":{\"enabled\":true,\"maximum_severity\":4}}";
     request.method = "PUT";
     request.body = body;
-    assert(api.handle(request).status == 428);
+    assert(api.handle(network_test::control_request(request)).status == 428);
     request.headers["if-match"] = "stale";
-    assert(api.handle(request).status == 412);
+    assert(api.handle(network_test::control_request(request)).status == 412);
     request.headers["if-match"] = read.etag;
-    assert(api.handle(request).status == 200);
+    assert(api.handle(network_test::control_request(request)).status == 200);
     assert(resource.settings() == (logging::Settings{true, 4}));
     standalone::Store reloaded(fixture.flash);
     assert(reloaded.load() && reloaded.logging_settings() == resource.settings());
@@ -160,9 +160,9 @@ int main() {
     standalone::Store defaults(fixture.flash);
     assert(defaults.load() && !defaults.logging_settings().enabled);
     request.method = "GET";
-    read = api.handle(request);
+    read = api.handle(network_test::control_request(request));
     request.method = "PUT";
     request.headers["if-match"] = read.etag;
     fixture.flash.fail = true;
-    assert(api.handle(request).status == 503);
+    assert(api.handle(network_test::control_request(request)).status == 503);
 }

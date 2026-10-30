@@ -21,10 +21,6 @@ on:
         type: choice
         options: [consumer]
         default: consumer
-      testing_version:
-        description: Reviewed testing candidate (0.1.0-testing.N); leaves publication manual
-        type: string
-        default: ''
 
 permissions:
   contents: read
@@ -35,7 +31,6 @@ jobs:
     timeout-minutes: 60
     env:
       CI_PROFILE: ${{ inputs.profile || 'consumer' }}
-      CI_TESTING_VERSION: ${{ inputs.testing_version || '' }}
       CI_PUBLISH: ${{ inputs.publish && 'true' || 'false' }}
       CI_MAKE_LATEST: ${{ inputs.make_latest && 'true' || 'false' }}
       CI_STREAM: ${{ startsWith(github.ref, 'refs/tags/') && 'release' || github.event_name == 'pull_request' && 'pull-request' || github.ref_name }}
@@ -89,7 +84,7 @@ jobs:
 
   publish:
     needs: verify
-    if: github.repository == 'WsprryPi/WsprryPico' && github.event_name == 'workflow_dispatch' && inputs.publish && !inputs.testing_version && (github.ref == 'refs/heads/devel' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.repository == 'WsprryPi/WsprryPico' && github.event_name == 'workflow_dispatch' && inputs.publish && (github.ref == 'refs/heads/devel' || github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

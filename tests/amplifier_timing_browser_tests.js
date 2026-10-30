@@ -1,9 +1,9 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),api=require('../src/network/web/amplifier-timing.js');
-const schema=JSON.parse(fs.readFileSync(require('node:path').join(__dirname,'../engineering/protocol/transmitter-amplifier-timing-1.schema.json'),'utf8'));
-const descriptor=Object.fromEntries(Object.entries(schema.properties).map(([k,v])=>[k,v.const]));
+const schema=JSON.parse(fs.readFileSync(require('node:path').join(__dirname,'../engineering/protocol/control-1.schema.json'),'utf8')).$defs['amplifier-timing'];
+const descriptor=Object.fromEntries(Object.entries(schema.properties).filter(([k])=>k!=='contract').map(([k,v])=>[k,v.const]));
 assert(api.supported(descriptor));
-for(const change of [{maximum:1001},{schema:'transmitter-amplifier-timing/2'},{extra:0},{activation:'next_job'}])assert(!api.supported({...descriptor,...change}));
+for(const change of [{maximum:1001},{schema:'amplifier-timing/99'},{extra:0},{activation:'next_job'}])assert(!api.supported({...descriptor,...change}));
 for(const value of ['-1','1.5','1e2','Infinity','NaN','0200','1001',''])assert.equal(api.number(value),null);
 (async()=>{
  const node=()=>({value:'',textContent:'',disabled:false,hidden:false,setAttribute(){}});

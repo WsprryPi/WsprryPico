@@ -1,5 +1,6 @@
 #include "application/resources.hpp"
 #include "network/softap_api.hpp"
+#include "network/control.hpp"
 #include "network_support.hpp"
 #include "provisioning/access.hpp"
 #include "provisioning/local_access.hpp"
@@ -113,6 +114,8 @@ network::HttpRequest request(std::string method, std::string path, std::string b
     network::HttpRequest result;
     result.method = std::move(method);
     result.path = std::move(path);
+    if (result.method != "GET" && result.path.starts_with("/api/control/v1/") && !body.empty() && body.front() == '{' && body.find("\"contract\":") == std::string::npos)
+        body.insert(1, "\"contract\":\"Wsprry-Control/1\",");
     result.body = std::move(body);
     result.headers = {{"host", std::string(hostname)},
                       {"origin", "https://" + std::string(hostname)},
@@ -128,16 +131,16 @@ void policy() {
     auto identity = request("GET", "/local/v1/identity");
     identity.headers.erase("origin");
     REQUIRE(
-        f.api.handle(identity, provisioning::SoftApSurface::BlankReadOnly, hostname, 0, 1).status ==
+        f.api.handle(network_test::control_request(identity), provisioning::SoftApSurface::BlankReadOnly, hostname, 0, 1).status ==
         200);
     auto login = request("POST", "/local/v1/login",
                          "{\"version\":1,\"device_id\":\"" + std::string(device) +
                              "\",\"password\":\"wspr-0a60df\"}");
     REQUIRE(
-        f.api.handle(login, provisioning::SoftApSurface::BlankReadOnly, hostname, 0, 2).status ==
+        f.api.handle(network_test::control_request(login), provisioning::SoftApSurface::BlankReadOnly, hostname, 0, 2).status ==
         401);
     auto admitted =
-        f.api.handle(login, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 1, 3);
+        f.api.handle(network_test::control_request(login), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 1, 3);
     REQUIRE(admitted.status == 200);
     REQUIRE(admitted.set_cookie.starts_with("__Host-wsprrypico="));
     REQUIRE(admitted.wire_headers().find("Set-Cookie: __Host-wsprrypico=") != std::string::npos);
@@ -146,10 +149,10 @@ void policy() {
 
     auto status = request("GET", "/local/v1/status");
     status.headers.erase("origin");
-    REQUIRE(f.api.handle(status, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 2, 4)
+    REQUIRE(f.api.handle(network_test::control_request(status), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 2, 4)
                 .status == 401);
     status.headers["cookie"] = cookie;
-    REQUIRE(f.api.handle(status, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 2, 5)
+    REQUIRE(f.api.handle(network_test::control_request(status), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 2, 5)
                 .status == 200);
     auto unbound_status = status;
     unbound_status.headers["x-wsprrypico-session"] = std::string(32, '8');
@@ -157,21 +160,21 @@ void policy() {
                 .handle(unbound_status, provisioning::SoftApSurface::ProvisionedPreClock, hostname,
                         2, 16)
                 .status == 200);
-    auto config = request("GET", "/api/v1/config");
+    auto config = request("GET", "/api/control/v1/config");
     config.headers.erase("origin");
     config.headers["cookie"] = cookie;
-    REQUIRE(f.api.handle(config, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 3, 6)
+    REQUIRE(f.api.handle(network_test::control_request(config), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 3, 6)
                 .status == 401);
     for (const auto path :
-         {"/api/v1/application", "/api/v1/station", "/api/v1/application/2", "/api/v1/station/2",
-          "/api/v1/hardware", "/api/v1/pins", "/api/v1/gpio-drive", "/api/v1/rf-calibration",
-          "/api/v1/ntp-observations", "/api/v1/config/3", "/api/v1/config/4", "/api/v1/hardware/3",
-          "/api/v1/application/4", "/api/v1/pins/2", "/api/v1/application/3",
-          "/api/v1/hardware/2"}) {
+         {"/api/control/v1/application", "/api/control/v1/station", "/api/control/v1/application", "/api/control/v1/station",
+          "/api/control/v1/hardware", "/api/control/v1/pins", "/api/control/v1/gpio-drive", "/api/control/v1/rf-calibration",
+          "/api/control/v1/ntp-observations", "/api/control/v1/config", "/api/control/v1/config", "/api/control/v1/hardware",
+          "/api/control/v1/application", "/api/control/v1/pins", "/api/control/v1/application",
+          "/api/control/v1/hardware"}) {
         auto resource = config;
         resource.path = path;
         REQUIRE(
-            f.api.handle(resource, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 3, 6)
+            f.api.handle(network_test::control_request(resource), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 3, 6)
                 .status == 401);
     }
 
@@ -181,7 +184,7 @@ void policy() {
     auto challenge = request("POST", "/local/v1/time/challenge", time_body);
     challenge.headers["cookie"] = cookie;
     const auto first_challenge =
-        f.api.handle(challenge, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 4, 7);
+        f.api.handle(network_test::control_request(challenge), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 4, 7);
     REQUIRE(first_challenge.status == 200);
     REQUIRE(first_challenge.keep_alive);
     REQUIRE(first_challenge.wire_headers().find("Connection: keep-alive\r\n") != std::string::npos);
@@ -190,135 +193,143 @@ void policy() {
         request("POST", "/local/v1/time/submit",
                 time_body.substr(0, time_body.size() - 1) + ",\"utc_ns\":\"1800000000000000000\"}");
     submit.headers["cookie"] = cookie;
-    REQUIRE(f.api.handle(submit, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 5, 8)
+    REQUIRE(f.api.handle(network_test::control_request(submit), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 5, 8)
                 .status == 409);
 
     challenge.body.replace(challenge.body.find(std::string(32, '2')), 32, std::string(32, '3'));
     REQUIRE(
-        f.api.handle(challenge, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 6, 9)
+        f.api.handle(network_test::control_request(challenge), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 6, 9)
             .status == 200);
     f.api.finish_request(9, true);
     submit.body.replace(submit.body.find(std::string(32, '2')), 32, std::string(32, '3'));
     f.now += 10'000'000ULL;
-    REQUIRE(f.api.handle(submit, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 7, 10)
+    REQUIRE(f.api.handle(network_test::control_request(submit), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 7, 10)
                 .status == 200);
     REQUIRE(f.clock.snapshot().state == wtp::ClockState::Synchronized);
 
-    auto caps = request("GET", "/api/v1/capabilities");
+    auto caps = request("GET", "/api/control/v1/capabilities");
     caps.headers.erase("origin");
     caps.headers["cookie"] = cookie;
     const auto capabilities =
-        f.api.handle(caps, provisioning::SoftApSurface::Normal, hostname, 8, 11);
+        f.api.handle(network_test::control_request(caps), provisioning::SoftApSurface::Normal, hostname, 8, 11);
     REQUIRE(capabilities.status == 200);
     REQUIRE(capabilities.body.find("\"softap\":true") != std::string::npos);
     REQUIRE(capabilities.body.find("\"ble\":true") != std::string::npos);
     REQUIRE(capabilities.body.find("\"application\":true") != std::string::npos);
     for (const auto path :
-         {"/api/v1/application", "/api/v1/station", "/api/v1/application/2", "/api/v1/station/2",
-          "/api/v1/hardware", "/api/v1/pins", "/api/v1/gpio-drive", "/api/v1/rf-calibration",
-          "/api/v1/ntp-observations", "/api/v1/config/3", "/api/v1/config/4", "/api/v1/hardware/3",
-          "/api/v1/application/4", "/api/v1/pins/2", "/api/v1/application/3",
-          "/api/v1/hardware/2"}) {
+         {"/api/control/v1/application", "/api/control/v1/station", "/api/control/v1/application", "/api/control/v1/station",
+          "/api/control/v1/hardware", "/api/control/v1/pins", "/api/control/v1/gpio-drive", "/api/control/v1/rf-calibration",
+          "/api/control/v1/ntp-observations", "/api/control/v1/config", "/api/control/v1/config", "/api/control/v1/hardware",
+          "/api/control/v1/application", "/api/control/v1/pins", "/api/control/v1/application",
+          "/api/control/v1/hardware"}) {
         auto resource = config;
         resource.path = path;
         REQUIRE(
-            f.api.handle(resource, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+            f.api.handle(network_test::control_request(resource), provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
             200);
         resource.headers.erase("cookie");
         REQUIRE(
-            f.api.handle(resource, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+            f.api.handle(network_test::control_request(resource), provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
             401);
     }
     const auto standalone_config = standalone::parse_config(network_test::config);
     REQUIRE(standalone_config && f.store.save(*standalone_config));
     auto station =
-        request("PUT", "/api/v1/station",
-                "{\"schema\":\"transmitter-station/1\",\"target\":" +
+        request("PUT", "/api/control/v1/station",
+                "{\"contract\":\"Wsprry-Control/1\",\"schema\":\"station\",\"target\":" +
                     application::target(device, f.service.status().boot_id) +
                     ",\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42\",\"power_dbm\":10}}");
     station.headers["cookie"] = cookie;
     station.headers["if-match"] = f.browser.revision();
-    REQUIRE(f.api.handle(station, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
+    REQUIRE(f.api.handle(network_test::control_request(station), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
                 .status == 401);
-    REQUIRE(f.api.handle(station, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+    REQUIRE(f.api.handle(network_test::control_request(station), provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
             200);
     REQUIRE(f.store.config()->callsign == "K1ABC");
 
     auto extended = station;
-    extended.path = "/api/v1/station/2";
+    extended.path = "/api/control/v1/station";
     extended.body =
-        "{\"schema\":\"transmitter-station/2\",\"target\":" +
+        "{\"contract\":\"Wsprry-Control/1\",\"schema\":\"station\",\"target\":" +
         application::target(device, f.service.status().boot_id) +
         ",\"station\":{\"callsign\":\"AA0NT/09\",\"locator\":\"EM18IG\",\"power_dbm\":20}}";
     extended.headers["if-match"] = f.browser.revision();
     REQUIRE(
-        f.api.handle(extended, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
+        f.api.handle(network_test::control_request(extended), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
             .status == 401);
-    REQUIRE(f.api.handle(extended, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+    REQUIRE(f.api.handle(network_test::control_request(extended), provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
             200);
     REQUIRE(f.store.config()->callsign == "AA0NT/09");
     station.headers["if-match"] = f.browser.revision();
-    REQUIRE(f.api.handle(station, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+    REQUIRE(f.api.handle(network_test::control_request(station), provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
             200);
 
-    auto preview = request("POST", "/api/v1/wspr-plan",
+    auto preview = request("POST", "/api/control/v1/wspr-plan",
                            R"({"callsign":"<AA0NT>","locator":"EM18IG","power_dbm":20})");
     preview.headers["cookie"] = cookie;
     const auto generation = f.store.config_sequence();
-    REQUIRE(f.api.handle(preview, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
+    REQUIRE(f.api.handle(network_test::control_request(preview), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
                 .status == 401);
-    REQUIRE(f.api.handle(preview, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+    REQUIRE(f.api.handle(network_test::control_request(preview), provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
             200);
     REQUIRE(f.store.config_sequence() == generation);
 
     auto partial =
-        request("POST", "/api/v1/config/update",
-                "{\"schema\":\"transmitter-config-update/1\",\"target\":" +
+        request("POST", "/api/control/v1/config/update",
+                "{\"schema\":\"config-update\",\"target\":" +
                     application::target(device, f.service.status().boot_id) +
                     ",\"mode\":\"merge\",\"config\":{\"allow_unqualified_frequency\":true}}");
     partial.headers["cookie"] = cookie;
     partial.headers["if-match"] = f.browser.revision();
     REQUIRE(
-        f.api.handle(partial, provisioning::SoftApSurface::BlankReadOnly, hostname, 8, 11).status ==
+        f.api.handle(network_test::control_request(partial), provisioning::SoftApSurface::BlankReadOnly, hostname, 8, 11).status ==
         401);
-    REQUIRE(f.api.handle(partial, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
+    REQUIRE(f.api.handle(network_test::control_request(partial), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 8, 11)
                 .status == 401);
-    REQUIRE(f.api.handle(partial, provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
+    REQUIRE(f.api.handle(network_test::control_request(partial), provisioning::SoftApSurface::Normal, hostname, 8, 11).status ==
             200);
     REQUIRE(f.store.config()->allow_unqualified_frequency && f.store.config()->callsign == "K1ABC");
 
-    auto hello = request("POST", "/api/v1/jobs",
+    auto hello = request("POST", "/api/control/v1/jobs",
                          "{\"session_id\":\"" + std::string(session) +
                              "\",\"request_id\":\"44444444444444444444444444444444\","
                              "\"operation\":\"HELLO\",\"body\":{\"versions\":[\"WTP/1\"],"
                              "\"client_name\":\"softap-test\",\"client_version\":\"1\"}}");
     hello.headers["cookie"] = cookie;
-    REQUIRE(f.api.handle(hello, provisioning::SoftApSurface::Normal, hostname, 9, 12).status ==
+    REQUIRE(f.api.handle(network_test::control_request(hello), provisioning::SoftApSurface::Normal, hostname, 9, 12).status ==
             200);
+    auto malformed_hello = hello;
+    const auto stripped = network::control_payload(wtp::InputView(hello.body));
+    REQUIRE(stripped);
+    malformed_hello.body = *stripped;
+    REQUIRE(f.api.handle(malformed_hello, provisioning::SoftApSurface::Normal, hostname, 9, 19).status == 400);
+    malformed_hello = hello;
+    malformed_hello.body.replace(malformed_hello.body.find("Wsprry-Control/1"), 15, "Wsprry-Control/2");
+    REQUIRE(f.api.handle(malformed_hello, provisioning::SoftApSurface::Normal, hostname, 9, 20).status == 400);
     auto refreshed_status = status;
     refreshed_status.headers["x-wsprrypico-session"] = std::string(32, '8');
     const auto refreshed =
-        f.api.handle(refreshed_status, provisioning::SoftApSurface::Normal, hostname, 10, 17);
+        f.api.handle(network_test::control_request(refreshed_status), provisioning::SoftApSurface::Normal, hostname, 10, 17);
     REQUIRE(refreshed.status == 200);
     REQUIRE(refreshed.body.find("\"wtp_session\":\"" + std::string(session) + "\"") !=
             std::string::npos);
-    auto conflicting_status = request("GET", "/api/v1/status");
+    auto conflicting_status = request("GET", "/api/control/v1/status");
     conflicting_status.headers.erase("origin");
     conflicting_status.headers["cookie"] = cookie;
     conflicting_status.headers["x-wsprrypico-session"] = std::string(32, '8');
-    REQUIRE(f.api.handle(conflicting_status, provisioning::SoftApSurface::Normal, hostname, 10, 18)
+    REQUIRE(f.api.handle(network_test::control_request(conflicting_status), provisioning::SoftApSurface::Normal, hostname, 10, 18)
                 .status == 409);
     hello.headers["x-wsprrypico-session"] = std::string(32, '9');
-    REQUIRE(f.api.handle(hello, provisioning::SoftApSurface::Normal, hostname, 10, 13).status ==
+    REQUIRE(f.api.handle(network_test::control_request(hello), provisioning::SoftApSurface::Normal, hostname, 10, 13).status ==
             400);
 
     auto logout = request("POST", "/local/v1/logout", "{}");
     logout.headers["cookie"] = cookie;
     const auto logged_out =
-        f.api.handle(logout, provisioning::SoftApSurface::Normal, hostname, 11, 14);
+        f.api.handle(network_test::control_request(logout), provisioning::SoftApSurface::Normal, hostname, 11, 14);
     REQUIRE(logged_out.status == 200);
     REQUIRE(logged_out.set_cookie.find("Max-Age=0") != std::string::npos);
-    REQUIRE(f.api.handle(status, provisioning::SoftApSurface::Normal, hostname, 12, 15).status ==
+    REQUIRE(f.api.handle(network_test::control_request(status), provisioning::SoftApSurface::Normal, hostname, 12, 15).status ==
             401);
 
     network::HttpResponse injected;
@@ -332,7 +343,7 @@ void expired_challenge_bookkeeping_is_reused() {
                          "{\"version\":1,\"device_id\":\"" + std::string(device) +
                              "\",\"password\":\"wspr-0a60df\"}");
     auto admitted =
-        f.api.handle(login, provisioning::SoftApSurface::ProvisionedPreClock, hostname, 1, 1);
+        f.api.handle(network_test::control_request(login), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 1, 1);
     REQUIRE(admitted.status == 200);
     const auto cookie = admitted.set_cookie.substr(0, admitted.set_cookie.find(';'));
 
@@ -358,15 +369,15 @@ int main() {
         Fixture f;
         for (const auto surface : {provisioning::SoftApSurface::ProvisionedPreClock,
                                    provisioning::SoftApSurface::Normal}) {
-            const auto root = f.api.handle(request("GET", "/"), surface, hostname, 0, 1);
+            const auto root = f.api.handle(network_test::control_request(request("GET", "/")), surface, hostname, 0, 1);
             REQUIRE(root.status == 302 && root.location == "/wifi-host");
             for (const auto path : {"/station", "/wifi-host", "/radio", "/owner.html"}) {
-                const auto page = f.api.handle(request("GET", path), surface, hostname, 0, 2);
+                const auto page = f.api.handle(network_test::control_request(request("GET", path)), surface, hostname, 0, 2);
                 REQUIRE(page.status == 200 && !page.static_parts.empty());
                 REQUIRE(page.static_body.find("id=\"area-nav\"") != std::string_view::npos);
             }
         }
-        const auto blank = f.api.handle(request("GET", "/"),
+        const auto blank = f.api.handle(network_test::control_request(request("GET", "/")),
                                         provisioning::SoftApSurface::BlankReadOnly, hostname, 0, 3);
         REQUIRE(blank.status == 200 && blank.body_text().find("<form") == std::string::npos);
     }

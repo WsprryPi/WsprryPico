@@ -21,6 +21,11 @@ struct HttpRequest {
     // An authenticated transport envelope may lend its inner JSON body while
     // buffered_body keeps the complete decrypted input alive.
     std::optional<wtp::InputView> selected_body{};
+    // Trusted control adapter only: original logical bytes for exact save receipts.
+    // No HTTP header or client field populates this view. The adapter owns the
+    // view on its stack; this request and any copies are consumed synchronously
+    // before that scope returns. Never retain this borrowed pointer.
+    const wtp::InputView* control_wire_body = nullptr;
     wtp::InputView body_view() const {
         if (selected_body)
             return *selected_body;

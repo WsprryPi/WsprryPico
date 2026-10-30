@@ -115,7 +115,7 @@ try {
     await f.time(f.now+2000);await f.command({op:'activate'});await f.time(f.now+1000);
     const a=f.client();await f.login(a);const saved=await (await a.request('config')).json();
     assert.equal(saved.config.station.callsign,'AA0NT/09');assert.equal(saved.config.station.locator,'EM18IG');
-    const application=await (await a.request('application/2')).json();assert.equal(application.wspr_plan.type2_ambiguous,true);assert.equal(application.wspr_plan.alternate_callsign,'AA0NT/Z');
+    const application=await (await a.request('application')).json();assert.equal(application.wspr_plan.type2_ambiguous,true);assert.equal(application.wspr_plan.alternate_callsign,'AA0NT/Z');
     assert.ok((await f.command({op:'stats'})).profile_programs>before.profile_programs);
     await a.logout();
     await cdp.send('Page.navigate',{url:'about:blank'});
@@ -132,7 +132,7 @@ try {
     // Double only the unavailable versioned view. The legacy view, crypto,
     // save/apply handlers and journals still run through production code.
     await cdp.evaluate(`globalThis.versionedApplicationReads=0;const actualRequest=radio.request.bind(radio);radio.request=(resource,...args)=>{
-      if(['application/2','application/4'].includes(resource)){++versionedApplicationReads;return Promise.reject(Object.assign(new Error('Unsupported application view'),{code:'not_found'}));}
+      if(['application','application'].includes(resource)){++versionedApplicationReads;return Promise.reject(Object.assign(new Error('Unsupported application view'),{code:'not_found'}));}
       return actualRequest(resource,...args);
     };`);
     await click('apply-station-progress');

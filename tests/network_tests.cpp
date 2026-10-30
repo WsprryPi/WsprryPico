@@ -47,7 +47,7 @@ network::HttpRequest request(std::string method, std::string path, std::string b
              {"content-type", "application/json"}}};
 }
 void framing() {
-    const std::string wire = "PUT /api/v1/network HTTP/1.1\r\nHost: "
+    const std::string wire = "PUT /api/control/v1/network HTTP/1.1\r\nHost: "
                              "127.0.0.1:8443\r\nContent-Length: 16\r\n\r\n{\"enabled\":true}";
     for (std::size_t split = 0; split <= wire.size(); ++split) {
         network::HttpParser parser;
@@ -90,8 +90,9 @@ void maximum_http_allocation() {
                        std::string(32, '1') +
                        "\",\"operation\":\"HELLO\",\"body\":{\"versions\":[\"WTP/"
                        "1\"],\"client_name\":\"test\",\"client_version\":\"1\"}}";
+    body = network_test::control_request(request("POST", "/api/control/v1/jobs", body)).body;
     body.resize(network::max_http_body, ' ');
-    const std::string wire = "POST /api/v1/jobs HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n"
+    const std::string wire = "POST /api/control/v1/jobs HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n"
                              "Origin: https://127.0.0.1:8443\r\nX-WsprryPico-Request: 1\r\n"
                              "Content-Type: application/json\r\nContent-Length: 32768\r\n\r\n" +
                              body;
@@ -135,7 +136,7 @@ void http_body_failure_and_lifetime() {
         std::free(page);
     };
     const std::string header =
-        "POST /api/v1/jobs HTTP/1.1\r\nHost: x\r\nContent-Length: 32768\r\n\r\n";
+        "POST /api/control/v1/jobs HTTP/1.1\r\nHost: x\r\nContent-Length: 32768\r\n\r\n";
     std::string body(network::max_http_body, ' ');
     body.replace(4093, 11, "{\"value\":1}"); // Deliberately crosses a page boundary.
     for (unsigned failure = 1; failure <= 8; ++failure) {
@@ -216,7 +217,7 @@ void streamed_asset_admission() {
         return std::malloc(size);
     };
     {
-        const auto response = f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443");
+        const auto response = f.api.handle(network_test::control_request(request("GET", "/")), "cert", "127.0.0.1:8443");
         REQUIRE(response.status == 200 && response.body_size() == expected.size());
         REQUIRE(response.static_body.data() == asset->body.data());
         REQUIRE(response.buffered_body.empty() && response.body.empty());
@@ -233,13 +234,13 @@ void streamed_asset_admission() {
     }
     REQUIRE(asset_allocation_calls == 0);
     --available_asset_memory;
-    REQUIRE(f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443").status == 503);
+    REQUIRE(f.api.handle(network_test::control_request(request("GET", "/")), "cert", "127.0.0.1:8443").status == 503);
     ++available_asset_memory;
-    const auto direct = f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443");
+    const auto direct = f.api.handle(network_test::control_request(request("GET", "/")), "cert", "127.0.0.1:8443");
     REQUIRE(direct.status == 200 && direct.static_body == asset->body);
     REQUIRE(asset_allocation_calls == 0);
     wtp::allocate_input = allocator;
-    REQUIRE(f.api.handle(request("GET", "/"), "cert", "127.0.0.1:8443").body_text() == expected);
+    REQUIRE(f.api.handle(network_test::control_request(request("GET", "/")), "cert", "127.0.0.1:8443").body_text() == expected);
     REQUIRE(f.service.status().state == wtp::State::Empty && !f.service.status().output_active);
     wtp::available_memory = nullptr;
 }
@@ -270,8 +271,8 @@ void identities() {
         REQUIRE(!canonical_local_hostname(bad));
     Fixture f;
     f.api.hostname_authority("pico-a.local:8443");
-    auto r = request("GET", "/api/v1/status");
-    const auto call = [&] { return f.api.handle(r, "cert", "127.0.0.1:8443").status; };
+    auto r = request("GET", "/api/control/v1/status");
+    const auto call = [&] { return f.api.handle(network_test::control_request(r), "cert", "127.0.0.1:8443").status; };
     for (const auto* host : {"pico-a.local:8443", "PICO-A.LOCAL.:8443", "127.0.0.1:8443"}) {
         r.headers["host"] = host;
         r.headers["origin"] = "https://" + std::string(host);
@@ -294,27 +295,28 @@ void identities() {
     r.headers.erase("origin");
     REQUIRE(call() == 200);
     r.method = "PUT";
+    r.body = "{}";
     REQUIRE(call() == 403);
     r.headers["origin"] = "https://PICO-A.LOCAL.:8443";
-    r.path = "/api/v1/network";
+    r.path = "/api/control/v1/network";
     r.body = "{\"enabled\":true}";
     REQUIRE(call() == 428); // Passed authority, revision still required.
     r.headers["host"] = "127.0.0.1:8443";
     REQUIRE(call() == 403); // Both aliases allowed independently, never mixed.
-    REQUIRE(f.api.handle(request("GET", "/api/v1/status"), "cert", "127.0.0.2:8443").status == 403);
+    REQUIRE(f.api.handle(network_test::control_request(request("GET", "/api/control/v1/status")), "cert", "127.0.0.2:8443").status == 403);
     REQUIRE(network::canonical_authority("PICO-A.LOCAL.") == "pico-a.local");
     REQUIRE(!network::canonical_authority("pico-a.local:443"));
 }
 void api_checks() {
     Fixture f;
     const auto call = [&](network::HttpRequest r, std::string principal = "cert-a") {
-        return f.api.handle(r, principal, "127.0.0.1:8443");
+        return f.api.handle(network_test::control_request(r), principal, "127.0.0.1:8443");
     };
-    auto r = request("GET", "/api/v1/config");
+    auto r = request("GET", "/api/control/v1/config");
     REQUIRE(call(r, "").status == 401);
     r.headers["host"] = "evil.test";
     REQUIRE(call(r).status == 403);
-    r = request("PUT", "/api/v1/config", config);
+    r = request("POST", "/api/control/v1/config/update", network_test::configuration_update(config));
     const auto initial = f.api.revision();
     REQUIRE(call(r).status == 428);
     r.headers["if-match"] = "stale";
@@ -339,14 +341,14 @@ void api_checks() {
     REQUIRE(value);
     REQUIRE(value->get("config")->get("wifi")->get("password")->raw == "null");
     REQUIRE(call(r).status == 412);
-    for (auto path : {"/api/v1/status", "/api/v1/jobs", "/api/v1/network", "/api/v1/schedules",
-                      "/api/v1/capabilities"}) {
+    for (auto path : {"/api/control/v1/status", "/api/control/v1/jobs", "/api/control/v1/network", "/api/control/v1/schedules",
+                      "/api/control/v1/capabilities"}) {
         auto result = call(request("GET", path));
         REQUIRE(result.status == 200);
         REQUIRE(wtp::json::parse(result.body));
         REQUIRE(result.body.find("test-password") == result.body.npos);
     }
-    auto preserved = request("PUT", "/api/v1/config", std::string(value->get("config")->raw));
+    auto preserved = request("POST", "/api/control/v1/config/update", network_test::configuration_update(std::string(value->get("config")->raw)));
     // Redacted password offsets retain the original leading whitespace when
     // a paged configuration is materialized within the existing config limit.
     preserved.body.insert(0, 50, ' ');
@@ -359,14 +361,14 @@ void api_checks() {
     REQUIRE(call(preserved).status == 200);
     REQUIRE(f.store.config()->password == "test-password");
     auto schedules =
-        request("PUT", "/api/v1/schedules", R"({"schedules":[{"period_s":240,"phase_s":0}]})");
+        request("PUT", "/api/control/v1/schedules", R"({"schedules":[{"period_s":240,"phase_s":0}]})");
     schedules.headers["if-match"] = f.api.revision();
     REQUIRE(call(schedules).status == 200);
     REQUIRE(f.store.config()->schedules[0].period_s == 240);
     schedules.headers["if-match"] = f.api.revision();
     schedules.body = R"({"schedules":[{"period_s":120,"phase_s":0},{"period_s":240,"phase_s":0}]})";
     REQUIRE(call(schedules).status == 400);
-    auto off = request("PUT", "/api/v1/network", "{\"enabled\":false}");
+    auto off = request("PUT", "/api/control/v1/network", "{\"enabled\":false}");
     off.headers["if-match"] = f.api.revision();
     REQUIRE(call(off).status == 200);
     REQUIRE(f.network.enabled);
@@ -380,16 +382,16 @@ void api_checks() {
 }
 void deferred() {
     Fixture f;
-    auto off = request("PUT", "/api/v1/network", "{\"enabled\":false}");
+    auto off = request("PUT", "/api/control/v1/network", "{\"enabled\":false}");
     off.headers["if-match"] = f.api.revision();
-    REQUIRE(f.api.handle(off, "cert-a", "127.0.0.1:8443", 17).status == 200);
+    REQUIRE(f.api.handle(network_test::control_request(off), "cert-a", "127.0.0.1:8443", 17).status == 200);
     f.api.finish_request(18); // Unrelated response, close and reused slot.
     f.api.finish_request(16, false);
     REQUIRE(f.network.enabled && f.network.pending && f.network.applied == 0);
     f.api.finish_request(17, false); // Initiating link loss cancels, never applies.
     REQUIRE(f.network.enabled && !f.network.pending);
     off.headers["if-match"] = f.api.revision();
-    REQUIRE(f.api.handle(off, "cert-a", "127.0.0.1:8443", 19).status == 200);
+    REQUIRE(f.api.handle(network_test::control_request(off), "cert-a", "127.0.0.1:8443", 19).status == 200);
     // USB and browser share authority; claim arriving before ACK cancels change.
     wtp::Request hello;
     hello.principal = "usb-physical";
@@ -421,7 +423,7 @@ void deferred() {
     f.api.finish_request(19);
     REQUIRE(f.network.enabled && !f.network.pending && f.network.applied == 0);
     off.headers["if-match"] = f.api.revision();
-    REQUIRE(f.api.handle(off, "cert-a", "127.0.0.1:8443", 20).status == 409);
+    REQUIRE(f.api.handle(network_test::control_request(off), "cert-a", "127.0.0.1:8443", 20).status == 409);
 }
 void restart_tests() {
     Fixture f;
@@ -432,27 +434,27 @@ void restart_tests() {
             return true;
         },
         &resets);
-    auto restart = request("POST", "/api/v1/restart", "{}");
-    REQUIRE(f.api.handle(restart, "cert-a", "127.0.0.1:8443", 31).status == 428);
+    auto restart = request("POST", "/api/control/v1/restart", "{}");
+    REQUIRE(f.api.handle(network_test::control_request(restart), "cert-a", "127.0.0.1:8443", 31).status == 428);
     restart.headers["if-match"] = f.api.revision();
-    REQUIRE(f.api.handle(restart, "", "127.0.0.1:8443", 31).status == 401);
-    REQUIRE(f.api.handle(restart, "cert-a", "127.0.0.1:8443", 31).status == 202);
+    REQUIRE(f.api.handle(network_test::control_request(restart), "", "127.0.0.1:8443", 31).status == 401);
+    REQUIRE(f.api.handle(network_test::control_request(restart), "cert-a", "127.0.0.1:8443", 31).status == 202);
     REQUIRE(resets == 0);
     f.api.finish_request(32);
     REQUIRE(resets == 0);
-    auto changed = request("PUT", "/api/v1/config", config);
+    auto changed = request("POST", "/api/control/v1/config/update", network_test::configuration_update(config));
     changed.headers["if-match"] = f.api.revision();
-    REQUIRE(f.api.handle(changed, "cert-a", "127.0.0.1:8443", 32).status == 409);
+    REQUIRE(f.api.handle(network_test::control_request(changed), "cert-a", "127.0.0.1:8443", 32).status == 409);
     f.api.finish_request(31, false);
     REQUIRE(resets == 0);
-    REQUIRE(f.api.handle(restart, "cert-a", "127.0.0.1:8443", 33).status == 412);
+    REQUIRE(f.api.handle(network_test::control_request(restart), "cert-a", "127.0.0.1:8443", 33).status == 412);
     restart.headers["if-match"] = f.api.revision();
-    REQUIRE(f.api.handle(restart, "cert-a", "127.0.0.1:8443", 33).status == 202);
+    REQUIRE(f.api.handle(network_test::control_request(restart), "cert-a", "127.0.0.1:8443", 33).status == 202);
     f.api.finish_request(33);
     f.api.finish_request(33);
     REQUIRE(resets == 1);
     restart.headers["if-match"] = f.api.revision();
-    REQUIRE(f.api.handle(restart, "cert-a", "127.0.0.1:8443", 34).status == 202);
+    REQUIRE(f.api.handle(network_test::control_request(restart), "cert-a", "127.0.0.1:8443", 34).status == 202);
     wtp::Request r;
     r.payload_digest[0] = 1;
     r.principal = "usb-physical";
@@ -470,17 +472,17 @@ void restart_tests() {
 }
 void operations_tests() {
     Fixture f;
-    auto get = request("GET", "/api/v1/operations");
-    REQUIRE(f.api.handle(get, "", "127.0.0.1:8443").status == 401);
+    auto get = request("GET", "/api/control/v1/operations");
+    REQUIRE(f.api.handle(network_test::control_request(get), "", "127.0.0.1:8443").status == 401);
     REQUIRE(
-        f.api.handle(get, "cert", "127.0.0.1:8443", 0, network::ManagementCarrier::EngineeringField)
+        f.api.handle(network_test::control_request(get), "cert", "127.0.0.1:8443", 0, network::ManagementCarrier::EngineeringField)
             .status == 403);
-    auto caps = f.api.handle(request("GET", "/api/v1/capabilities"), "cert", "127.0.0.1:8443", 0,
+    auto caps = f.api.handle(network_test::control_request(request("GET", "/api/control/v1/capabilities")), "cert", "127.0.0.1:8443", 0,
                              network::ManagementCarrier::EngineeringField);
     REQUIRE(caps.body.find("operations_status") == caps.body.npos);
-    auto observed = f.api.handle(get, "cert", "127.0.0.1:8443");
+    auto observed = f.api.handle(network_test::control_request(get), "cert", "127.0.0.1:8443");
     REQUIRE(observed.status == 200 && !observed.etag.empty());
-    REQUIRE(observed.body.find("transmitter-operations/1") != observed.body.npos);
+    REQUIRE(observed.body.find("operations") != observed.body.npos);
     REQUIRE(observed.body.find("\"accepted\":null") != observed.body.npos);
     REQUIRE(f.api.public_status().body.find("correction") == std::string::npos);
     REQUIRE(f.api.public_status().body.find("accepted") == std::string::npos);
@@ -527,9 +529,9 @@ void operations_tests() {
     REQUIRE(send("LOAD", std::move(*compiled.job)).ok);
     const auto start = f.clock.snapshot().utc_now_ns + 2000000000ULL;
     REQUIRE(send("ARM", wtp::ArmBody{m.job_id, start, 1000}).ok);
-    auto reset = request("POST", "/api/v1/restart", "{}");
+    auto reset = request("POST", "/api/control/v1/restart", "{}");
     reset.headers["if-match"] = f.api.revision();
-    REQUIRE(f.api.handle(reset, "cert", "127.0.0.1:8443").status == 409);
+    REQUIRE(f.api.handle(network_test::control_request(reset), "cert", "127.0.0.1:8443").status == 409);
     f.clock.now += 2000000000ULL;
     f.service.poll();
     REQUIRE(f.service.status().state == wtp::State::Running);
@@ -538,7 +540,7 @@ void operations_tests() {
     const auto revision = f.api.revision();
     largest_new = 0;
     bounded_http = true;
-    observed = f.api.handle(get, "cert", "127.0.0.1:8443");
+    observed = f.api.handle(network_test::control_request(get), "cert", "127.0.0.1:8443");
     bounded_http = false;
     REQUIRE(largest_new <= 8192);
     REQUIRE(observed.body.find("\"text\":\"" + m.text + "\"") != observed.body.npos);
@@ -547,7 +549,7 @@ void operations_tests() {
     REQUIRE(observed.body.find("\"reset_allowed\":false") != observed.body.npos);
     REQUIRE(observed.body.size() < 6144);
     REQUIRE(f.store.watermark() == watermark && f.api.revision() == revision);
-    REQUIRE(f.api.handle(reset, "cert", "127.0.0.1:8443").status == 409);
+    REQUIRE(f.api.handle(network_test::control_request(reset), "cert", "127.0.0.1:8443").status == 409);
     std::cout << "Operations running message response bytes: " << observed.body.size() << '\n';
 }
 
@@ -556,19 +558,19 @@ void jobs() {
     unsigned seq = 0;
     const std::string session(32, '1'), job_id(32, '2');
     auto send = [&](std::string op, std::string body, std::string principal = "cert-a") {
-        auto r = request("POST", "/api/v1/jobs",
+        auto r = request("POST", "/api/control/v1/jobs",
                          " {\"session_id\":\"" + session + "\",\"request_id\":\"" +
                              std::string(28, '0') + std::to_string(1000 + ++seq) +
                              "\",\"operation\":\"" + op + "\",\"body\":" + body + "} ");
-        return f.api.handle(r, principal, "127.0.0.1:8443");
+        return f.api.handle(network_test::control_request(r), principal, "127.0.0.1:8443");
     };
     REQUIRE(send("HELLO",
                  "{\"versions\":[\"WTP/1\"],\"client_name\":\"test\",\"client_version\":\"1\"}")
                 .status == 200);
     REQUIRE(send("CLAIM", "{\"owner_id\":\"" + session + "\",\"lease_ms\":5000}").status == 200);
-    auto mutation = request("PUT", "/api/v1/config", config);
+    auto mutation = request("POST", "/api/control/v1/config/update", network_test::configuration_update(config));
     mutation.headers["if-match"] = f.api.revision();
-    REQUIRE(f.api.handle(mutation, "cert-b", "127.0.0.1:8443").status == 409);
+    REQUIRE(f.api.handle(network_test::control_request(mutation), "cert-b", "127.0.0.1:8443").status == 409);
     const auto plan = "{\"job_id\":\"" + job_id +
                       "\",\"profile\":\"rf-events/1\",\"mode\":\"tone\","
                       "\"total_duration_ns\":\"1000000000\",\"events\":[{\"offset_ns\":\"0\","
@@ -596,16 +598,18 @@ void maximum_http_job() {
                        std::string(32, '6') +
                        "\",\"operation\":\"HELLO\",\"body\":{\"versions\":[\"WTP/1\"],"
                        "\"client_name\":\"maximum\",\"client_version\":\"1\"}}";
+    body = network_test::control_request(request("POST", "/api/control/v1/jobs", body)).body;
     {
         Fixture padded;
         auto outer_padding = body;
+        outer_padding = network_test::control_request(request("POST", "/api/control/v1/jobs", outer_padding)).body;
         outer_padding.append(network::max_http_body - outer_padding.size(), ' ');
         wtp::available_memory = []() -> std::size_t { return 90000; };
         // The HTTP parser already owns these bytes. Trailing JSON whitespace
         // needs no second large envelope or decoded-field allocation.
         REQUIRE(
             padded.api
-                .handle(request("POST", "/api/v1/jobs", outer_padding), "cert-a", "127.0.0.1:8443")
+                .handle(network_test::control_request(request("POST", "/api/control/v1/jobs", outer_padding)), "cert-a", "127.0.0.1:8443")
                 .status == 200);
         REQUIRE(padded.service.status().state == wtp::State::Empty);
         wtp::available_memory = nullptr;
@@ -614,7 +618,7 @@ void maximum_http_job() {
     body.insert(body.size() - 2, network::max_http_body - body.size(), ' ');
     REQUIRE(body.size() == 32768);
     const auto header = [&](std::size_t size) {
-        return "POST /api/v1/jobs HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n"
+        return "POST /api/control/v1/jobs HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n"
                "Origin: https://127.0.0.1:8443\r\nX-WsprryPico-Request: 1\r\n"
                "Content-Type: application/json\r\nContent-Length: " +
                std::to_string(size) + "\r\n\r\n";
@@ -634,7 +638,7 @@ void maximum_http_job() {
     REQUIRE(oversized.failed() && !oversized.ready());
     body.insert(body.size() - 2, 1, ' ');
     REQUIRE(
-        f.api.handle(request("POST", "/api/v1/jobs", body), "cert-a", "127.0.0.1:8443").status ==
+        f.api.handle(network_test::control_request(request("POST", "/api/control/v1/jobs", body)), "cert-a", "127.0.0.1:8443").status ==
         413);
     REQUIRE(f.service.status().state == wtp::State::Empty);
 }
@@ -643,11 +647,11 @@ void fragmented_raw_browser_load() {
     unsigned sequence = 0;
     const std::string session(32, '7'), job_id(32, '8');
     const auto send = [&](std::string operation, std::string body) {
-        auto value = request("POST", "/api/v1/jobs",
+        auto value = request("POST", "/api/control/v1/jobs",
                              "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
                                  std::string(28, '0') + std::to_string(1000 + ++sequence) +
                                  "\",\"operation\":\"" + operation + "\",\"body\":" + body + "}");
-        return f.api.handle(value, "cert-a", "127.0.0.1:8443");
+        return f.api.handle(network_test::control_request(value), "cert-a", "127.0.0.1:8443");
     };
     REQUIRE(send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"browser\","
                           "\"client_version\":\"1\"}")
@@ -667,7 +671,7 @@ void fragmented_raw_browser_load() {
                       ",\"total_duration_ns\":\"110591999892\",\"allow_frequency_adjustment\":true,"
                       "\"job_id\":\"" +
                       job_id + "\"}";
-    auto value = request("POST", "/api/v1/jobs",
+    auto value = request("POST", "/api/control/v1/jobs",
                          "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
                              std::string(28, '0') + std::to_string(1000 + ++sequence) +
                              "\",\"operation\":\"LOAD\",\"body\":" + plan + "}");
@@ -677,6 +681,7 @@ void fragmented_raw_browser_load() {
     // allocation followed by a failed 33,335-byte geometric temporary.  Model
     // that fragmented heap: the one necessary envelope fits, a doubled copy
     // does not.
+    value = network_test::control_request(std::move(value));
     largest_new = 0;
     bounded_http_limit = 20000;
     bounded_http = true;
@@ -701,7 +706,7 @@ void message_jobs() {
     auto send = [&](std::string op, std::string body, unsigned id = 0, bool paged = false) {
         if (!id)
             id = ++sequence;
-        auto r = request("POST", "/api/v1/jobs",
+        auto r = request("POST", "/api/control/v1/jobs",
                          std::string(4093, ' ') + "{\"session_id\":\"" + session +
                              "\",\"request_id\":\"" + std::string(28, '0') + std::to_string(id) +
                              "\",\"operation\":\"" + op + "\",\"body\":" + body + "}");
@@ -712,7 +717,7 @@ void message_jobs() {
             r.buffered_body = std::move(storage);
             r.body.clear();
         }
-        return f.api.handle(r, "cert-a", "127.0.0.1:8443");
+        return f.api.handle(network_test::control_request(r), "cert-a", "127.0.0.1:8443");
     };
     auto body = [&](std::string message) {
         return "{\"job_id\":\"" + std::string(32, '4') +
@@ -758,11 +763,11 @@ void compact_message_actual_admission() {
     unsigned sequence = 3000;
     const std::string session(32, '5'), job_id(32, '6');
     const auto send = [&](std::string operation, std::string body) {
-        auto r = request("POST", "/api/v1/jobs",
+        auto r = request("POST", "/api/control/v1/jobs",
                          "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
                              std::string(28, '0') + std::to_string(++sequence) +
                              "\",\"operation\":\"" + operation + "\",\"body\":" + body + "}");
-        return f.api.handle(r, "cert-a", "127.0.0.1:8443");
+        return f.api.handle(network_test::control_request(r), "cert-a", "127.0.0.1:8443");
     };
     REQUIRE(send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"measured\","
                           "\"client_version\":\"1\"}")
@@ -792,9 +797,9 @@ void compact_message_actual_admission() {
 void status_read_admission() {
     Fixture f;
     wtp::available_memory = []() -> std::size_t { return 32768 + 8192; };
-    REQUIRE(f.api.handle(request("GET", "/api/v1/status"), "cert", "127.0.0.1:8443").status == 200);
+    REQUIRE(f.api.handle(network_test::control_request(request("GET", "/api/control/v1/status")), "cert", "127.0.0.1:8443").status == 200);
     wtp::available_memory = []() -> std::size_t { return 32768 + 8192 - 1; };
-    REQUIRE(f.api.handle(request("GET", "/api/v1/status"), "cert", "127.0.0.1:8443").status == 503);
+    REQUIRE(f.api.handle(network_test::control_request(request("GET", "/api/control/v1/status")), "cert", "127.0.0.1:8443").status == 503);
     wtp::available_memory = nullptr;
 }
 
@@ -823,11 +828,11 @@ void message_jobs_with_resident_heap_pressure() {
     unsigned sequence = 4000;
     const std::string session(32, '7');
     const auto send = [&](std::string operation, std::string body) {
-        return f.api.handle(request("POST", "/api/v1/jobs",
+        return f.api.handle(network_test::control_request(request("POST", "/api/control/v1/jobs",
                                     "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
                                         std::string(28, '0') + std::to_string(++sequence) +
                                         "\",\"operation\":\"" + operation + "\",\"body\":" + body +
-                                        "}"),
+                                        "}")),
                             "cert-a", "127.0.0.1:8443");
     };
     REQUIRE(send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"message regression\","
@@ -936,7 +941,7 @@ int main() {
     frame.feed(bytes("W"), 0);
     REQUIRE(frame.closed());
     Fixture f;
-    REQUIRE(f.api.handle(request("GET", "/api/v1/status"), "cert", "127.0.0.1:8443").status == 503);
+    REQUIRE(f.api.handle(network_test::control_request(request("GET", "/api/control/v1/status")), "cert", "127.0.0.1:8443").status == 503);
     wtp::available_memory = nullptr;
     std::cout << "HTTP/API adversarial behavior checks passed\n";
 }

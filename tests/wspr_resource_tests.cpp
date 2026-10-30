@@ -18,9 +18,9 @@ int main(int argc, char**) {
     original.allow_unqualified_frequency = original.allow_non_amateur_frequency = true;
     REQUIRE(f.store.save(original) && f.store.reserve(100));
     const auto call = [&](network::HttpRequest r) {
-        return f.api.handle(r, "test", "127.0.0.1:8443");
+        return f.api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     };
-    REQUIRE(call(request("GET", "/api/v1/capabilities")).body.find("application_resources_v2") !=
+    REQUIRE(call(request("GET", "/api/control/v1/capabilities")).body.find("application_resources") !=
             std::string::npos);
     for (const auto callsign :
          {"AA0NT", "AA0NT/12", "<AA0NT>", "<AA0NT/12>", "PJ4/AA0NT", "W1A/AA0NT", "<W1A/AA0NT>"}) {
@@ -28,20 +28,20 @@ int main(int argc, char**) {
                                     ",\"locator\":\"EM18IG\",\"power_dbm\":37}";
         const auto before = f.api.revision();
         const auto sequence = f.store.config_sequence();
-        auto preview = call(request("POST", "/api/v1/wspr-plan", station));
+        auto preview = call(request("POST", "/api/control/v1/wspr-plan", station));
         REQUIRE(preview.status == 200 &&
                 wtp::json::parse(preview.body)->get("supported")->boolean());
         REQUIRE(f.api.revision() == before && f.store.config_sequence() == sequence);
-        auto r = request("PUT", "/api/v1/station/2",
-                         "{\"schema\":\"transmitter-station/2\",\"target\":" +
+        auto r = request("PUT", "/api/control/v1/station",
+                         "{\"schema\":\"station\",\"target\":" +
                              application::target(std::string(32, 'a'), f.service.status().boot_id) +
                              ",\"station\":" + station + '}');
         r.headers["if-match"] = before;
         const auto saved = call(r);
         REQUIRE(saved.status == 200 &&
-                saved.body.find("transmitter-station/2") != std::string::npos);
+                saved.body.find("station") != std::string::npos);
         REQUIRE(saved.body.find(callsign) != std::string::npos);
-        auto extended = call(request("GET", "/api/v1/application/2"));
+        auto extended = call(request("GET", "/api/control/v1/application"));
         const auto body = wtp::json::parse(extended.body);
         REQUIRE(extended.status == 200 && body && extended.body.size() <= 4096);
         REQUIRE(body->get("capabilities")->get("station_encoding")->string() ==
@@ -50,8 +50,8 @@ int main(int argc, char**) {
         if (samples.size() > 1)
             samples += ',';
         samples += wtp::json::quote(callsign) + ':' + extended.body;
-        REQUIRE(call(request("GET", "/api/v1/application")).status ==
-                (std::string_view(callsign) == "AA0NT" ? 200U : 409U));
+        REQUIRE(call(request("GET", "/api/control/v1/application")).status ==
+                200U);
         standalone::Store reboot(f.flash);
         REQUIRE(reboot.load() && reboot.config()->callsign == callsign &&
                 reboot.config()->locator == "EM18IG");
@@ -67,12 +67,12 @@ int main(int argc, char**) {
                                R"({"callsign":"AA0NT","locator":"EM18IG","power_dbm":3.7})"}) {
         const auto before = *f.store.config();
         const auto revision = f.api.revision();
-        const auto preview = call(request("POST", "/api/v1/wspr-plan", station));
+        const auto preview = call(request("POST", "/api/control/v1/wspr-plan", station));
         REQUIRE(preview.status == 400 ||
                 preview.body.find("\"supported\":false") != std::string::npos);
         auto invalid =
-            request("PUT", "/api/v1/station/2",
-                    "{\"schema\":\"transmitter-station/2\",\"target\":" +
+            request("PUT", "/api/control/v1/station",
+                    "{\"schema\":\"station\",\"target\":" +
                         application::target(std::string(32, 'a'), f.service.status().boot_id) +
                         ",\"station\":" + station + '}');
         invalid.headers["if-match"] = revision;

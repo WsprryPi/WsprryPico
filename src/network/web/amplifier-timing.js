@@ -1,9 +1,11 @@
 // MIT. Shared Pico/member editor; saving never operates an output.
 (function(root) {
   'use strict';
-  const descriptor={schema:'transmitter-amplifier-timing/1',path:'/api/v1/amplifier-timing',method:'PUT',units:'ms',minimum:0,maximum:1000,default_lead_ms:200,default_tail_ms:200,activation:'restart',scope:'complete_job'};
+  const control = root.WsprryControl || (typeof module !== 'undefined' && module.exports ? require('./control-contract.js') : null);
+  if (!control) throw new Error('The control definitions could not be loaded. Reload the Pico page.');
+  const descriptor = control.descriptors.amplifier_timing;
   const keys=(v,names)=>v && typeof v==='object' && !Array.isArray(v) && Object.keys(v).sort().join(',')===names.split(',').sort().join(',');
-  const supported=v=>keys(v,Object.keys(descriptor).join(',')) && Object.entries(descriptor).every(([k,n])=>v[k]===n);
+  const supported=value=>control.supported('amplifier_timing',value);
   const number=text=>/^(0|[1-9][0-9]{0,3})$/.test(text) && Number(text)<=1000 ? Number(text) : null;
   const timing=v=>keys(v,'lead_ms,tail_ms') && ['lead_ms','tail_ms'].every(k=>Number.isInteger(v[k]) && v[k]>=0 && v[k]<=1000);
   const valid=v=>keys(v,'schema,target,saved,boot_active,pending_restart,phase,output_active,rf_active,storage_healthy') &&
@@ -16,15 +18,17 @@
     (!v.saved || !v.boot_active || v.pending_restart || v.saved.lead_ms===v.boot_active.lead_ms && v.saved.tail_ms===v.boot_active.tail_ms);
   function create({lead,tail,read,save,discard,adopt,status,exchange,afterSave=()=>{},run=fn=>fn(),expectedTarget=()=>null,configuration=null}) {
     let readable=false,writable=false,busy=false,observed=null,revision='',epoch=0,edited=false,draftTarget='',review=false;
+    let minimum=0,maximum=1000;
+    const parse=text=>{const value=number(text);return value!==null && value>=minimum && value<=maximum?value:null;};
     const identity=v=>JSON.stringify([v.target.scope,v.target.device_id,v.target.boot_id]);
     function render() {
       read.hidden = !readable || Boolean(observed && revision);
       read.disabled=busy || !readable;
       lead.disabled=tail.disabled=busy || !readable || !observed || !revision;
-      save.disabled=lead.disabled || !writable || (!edited && !configuration?.changed()) || (configuration?.changed() && !configuration.ready()) || review || !observed?.saved || !observed.storage_healthy || number(lead.value)===null || number(tail.value)===null;
+      save.disabled=lead.disabled || !writable || (!edited && !configuration?.changed()) || (configuration?.changed() && !configuration.ready()) || review || !observed?.saved || !observed.storage_healthy || parse(lead.value)===null || parse(tail.value)===null;
       discard.disabled=busy || !observed?.saved || !revision;
       adopt.hidden=!review; adopt.disabled=discard.disabled;
-      for(const input of [lead,tail]) input.setAttribute('aria-invalid',String(edited && number(input.value)===null));
+      for(const input of [lead,tail]) input.setAttribute('aria-invalid',String(edited && parse(input.value)===null));
     }
     function checked(r) {
       const expected=expectedTarget();
@@ -51,7 +55,7 @@
     }
     async function commit() {
       if(save.disabled) return;
-      const target=observed.target,value={lead_ms:number(lead.value),tail_ms:number(tail.value)},ticket=++epoch;
+      const target=observed.target,value={lead_ms:parse(lead.value),tail_ms:parse(tail.value)},ticket=++epoch;
       let match=revision;
       const timingEdited=edited;
       busy=true;revision='';render();
@@ -84,7 +88,11 @@
     discard.onclick=()=>{if(discard.disabled)return;lead.value=String(observed.saved.lead_ms);tail.value=String(observed.saved.tail_ms);edited=review=false;draftTarget=identity(observed);render();};
     adopt.onclick=()=>{if(adopt.disabled)return;draftTarget=identity(observed);review=false;render();};
     read.onclick=()=>run(load);save.onclick=()=>run(commit);render();
-    return {load,notify:render,setAvailability(canRead,canWrite=canRead){readable=canRead;writable=canWrite;render();},invalidate(){++epoch;revision='';observed=null;busy=false;render();}};
+    return {load,notify:render,setPolicy(value) {
+      if(supported(value)){minimum=value.minimum;maximum=value.maximum;}else{minimum=1;maximum=0;}
+      for(const input of [lead,tail]){input.min=String(minimum);input.max=String(maximum);}
+      render();
+    },setAvailability(canRead,canWrite=canRead){readable=canRead;writable=canWrite;render();},invalidate(){++epoch;revision='';observed=null;busy=false;render();}};
   }
   root.WsprryAmplifierTiming={supported,valid,number,create};
   if(typeof module!=='undefined')module.exports=root.WsprryAmplifierTiming;

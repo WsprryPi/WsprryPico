@@ -131,14 +131,13 @@
       const application = await readApplication();
       if (kind === 'station') await reviewWspr(patch.station);
       const descriptor = capabilities?.configuration_updates;
-      if (descriptor?.schema !== 'transmitter-config-update/1' || descriptor.path !== '/api/v1/config/update' ||
-          descriptor.method !== 'POST' || !descriptor.modes?.includes('merge'))
+      if (!WsprryControl.supported('configuration_updates',descriptor))
         throw new Error('This firmware has not advertised scoped configuration saves. Your draft is preserved');
       // Do not silently rebase an edit onto another client's configuration.
       if (application.revision !== revision) { requireReadback(); throw new Error('Saved settings changed. Read and review them before saving'); }
       try {
-        const result = await api(applicationVersion === 2 ? 'config/update/2' : 'config/update','POST',
-          {schema:'transmitter-config-update/1',target:application.data.target,mode:'merge',config:patch},revision);
+        const result = await api('config/update','POST',
+          {schema:'config-update',target:application.data.target,mode:'merge',config:patch},revision);
         currentConfig = checkedConfig(result,false); revision = result.revision;
         if (kind === 'station') engineeringStationDirty = false;
         else engineeringNetworkDirty = false;
@@ -168,7 +167,9 @@
       wifi:{ssid:f.ssid.value,password:f.password.value,ntp_ipv4:f.ntp_ipv4.value.trim()},schedules,
       pins:pinChoices ? readPins() : undefined,expires_utc_s:f.expiry.value ? Date.parse(f.expiry.value + 'Z')/1000 : 0};
     try {
-      const result = await api(applicationVersion === 2 ? 'config/2' : 'config','PUT',config,revision);
+      const {version:_storageVersion,...patch} = config;
+      const application = await readApplication();
+      const result = await api('config/update','POST',{schema:'config-update',target:application.data.target,mode:'merge',config:patch},revision);
       const confirmed = checkedConfig(result,false); revision = result.revision;
       engineeringStationDirty = false; engineeringNetworkDirty = false; fill(confirmed);
       await refresh(); notice('Initial complete configuration saved. Restart applies network and pin settings.');

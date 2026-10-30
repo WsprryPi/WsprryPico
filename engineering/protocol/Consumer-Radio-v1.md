@@ -59,20 +59,35 @@ The server records the actual interface and Host at successful start. Finish
 and request must match that context. This is server-side session binding;
 it does not add origin bytes to the unchanged cryptographic transcript.
 
-Public GET `/api/consumer/v1/status` returns the closed `transmitter-public-status/1` projection: `schema`, lowercase 32-hex `device_id` and `boot_id`, WTP `state`, Boolean `output_active` and `owned`, `clock_state`, decimal-string `utc_now_ns` (null when unsynchronized), decimal-string `uncertainty_ns`, and `engine`. It follows the same listener, Host, Origin and resource-admission rules as public identity. It does not create or renew a login, claim ownership or alter a job. It exposes no owner ID, job ID, message, settings, credentials or history. This historical projection remains unchanged. Detailed public observations use the independent discovery below; mutations still require authenticated encrypted requests.
+Public GET `/api/consumer/v1/status` returns the closed `public-status` projection: `schema`, lowercase 32-hex `device_id` and `boot_id`, WTP `state`, Boolean `output_active` and `owned`, `clock_state`, decimal-string `utc_now_ns` (null when unsynchronized), decimal-string `uncertainty_ns`, and `engine`. It follows the same listener, Host, Origin and resource-admission rules as public identity. It does not create or renew a login, claim ownership or alter a job. It exposes no owner ID, job ID, message, settings, credentials or history. This bounded projection grants no mutation authority. Detailed public observations use the independent discovery below; mutations still require authenticated encrypted requests.
 
-### Independent public settings discovery
+### Public settings discovery
 
-GET `/api/consumer/v1/read` returns the closed [`pico-public-read/1` descriptor](pico-public-read-1.schema.json): exactly `schema`, `target`, `prefix` and `resources`. Target is exactly `{scope:"member",device_id,boot_id}` with the current device and boot. Prefix is exactly `/api/consumer/v1/read/`; resources is the exact ordered list in that schema, not a pattern or extensible route prefix. The browser validates the complete shape, version, list and target against its fresh identity before reading any resource. Missing, extra, duplicate, unknown or reordered resources and wrong device/boot bindings refuse discovery; no guessed authenticated or older public fallback is selected.
+GET `/api/consumer/v1/read` returns the current `public-read` resource under
+`Wsprry-Control/1`, defined in [the canonical schema](control-1.schema.json).
+It binds the exact member device/boot, fixed public prefix and a bounded unique
+catalog of permitted resource identifiers. Catalog order has no authority.
+Unknown optional identifiers are left unused; malformed known entries,
+duplicates, unsupported contracts and incorrect target bindings refuse.
 
-GET of an allowlisted suffix returns the existing resource's redacted read body and ETag, preserving its independently versioned shape and supported-view refusals. This includes current operations, station, config/progress, hardware, frequency, calibration, timeout, hostname, USB/UDP logging and saved CW schedule observations. The Pico-password resource exposes only default/custom status; setup public status exposes redacted saved network context. Passwords, keys, certificate material and raw configuration bodies containing secrets are excluded. Accepted message text, job and owner IDs, frequencies, schedules, SSID, time server, logging destinations and device metadata are deliberately public observations. An inner `writable` flag describes the underlying resource, not public mutation authority.
+Only explicitly permitted redacted GET resources are dispatched. The adapter
+forwards no caller principal, mutation body or revision to the internal handler.
+Non-GET methods, nonempty GET bodies and unregistered suffixes refuse before
+mutation. Resource existence or an inner writable flag grants no public write
+permission. Credentials, keys and certificates remain excluded. Public reads
+retain exact Host/interface and Origin/fetch-metadata admission, create or renew
+no login, grant no job ownership and change no stored state.
 
-This adapter fixes the method to GET and forwards no caller body, principal, revision or other headers to its internal read handler. Nonempty GET bodies are refused. Non-GET methods and every suffix outside the fixed list are refused before mutation; HTTP parser refusals remain independently authoritative. Jobs, restart, validators, updates, progress application and test-event submission are absent. It retains consumer listener/interface, exact Host, same-origin Origin/fetch metadata and bounded resource-admission checks. It creates or renews no login, claims no transmitter ownership, changes no saved revision and invokes no RF operation. No CORS access is granted. Discovery/read observations authenticate neither the page nor the claimed device.
+The operator page uses these reads while locked and authenticated encrypted
+control after login. Known logical resources share `/api/control/v1` and the
+Control/1 contract; no historical public catalogs or per-resource generation
+is selected. NTP timeout (including explicit zero) and amplifier timing are
+members of this current catalog. Locking preserves browser drafts; uncertain
+writes require authoritative saved-state readback and explicit review.
 
-The operator page uses these reads while signed out and the existing encrypted reads after login. Saved values populate disabled, dimmed controls; passwords stay empty. Five-second public status polling retains unknown/stale handling and does not renew idle time. Writes are rejected by both the browser access gate and the server's independent authenticated resources. Locking or losing a session preserves drafts and requires readback/review for an uncertain save. Consumer-Radio/1 framing/crypto, historical public status, management descriptors and both carrier policies are unchanged.
-
-
-Public NTP timeout v2 uses the separate closed [pico-public-read/3 descriptor](pico-public-read-3.schema.json), discovered at `/api/consumer/v1/read/3`, with prefix `/api/consumer/v1/read/3/` and exactly one resource: `ntp-timeout/2`. Its read document follows [transmitter-ntp-timeout/2](transmitter-ntp-timeout-2.schema.json). The historical /1 resource list and amplifier-only /2 descriptor remain unchanged. Unknown versions, extra resources, incorrect target/boot bindings and mutations are refused; the client has no downgrade fallback.
+Consumer-Radio/1 framing, authentication transcript, sequence and encryption
+semantics remain independent. Fixed cryptographic vectors exercise those bytes;
+their sample plaintext does not authorize an obsolete logical control route.
 
 POST `/api/consumer/v1/start`, JSON, exactly:
 `version`, `device_id`, `boot_id`, `generation`, `public_key`, `nonce`.
@@ -89,8 +104,9 @@ These refusals neither evict a client nor authorize a retry of a mutation.
 An abandoned client can occupy a slot until its own idle/absolute expiry.
 Session IDs include a nonreused boot-local serial and random bytes; ID lookup
 alone grants no authority. RNG failure and serial exhaustion fail closed.
-[Management/2](../development/consumer-sessions.md) advertises these bounds;
-management/1 remains frozen for historical one-session firmware.
+The current shared `management` resource advertises bounded policy values; see
+[consumer sessions](../development/consumer-sessions.md). Historical control
+management generations are unsupported.
 
 Transcript bytes, in order:
 
@@ -121,7 +137,7 @@ The saved passphrase is never sent as a plaintext or encrypted login payload.
 POST `/api/consumer/v1/request` uses the request key and consecutive sequences
 starting at one. Authenticated plaintext is exactly the JSON object
 `{method,path,if_match,body}`. Methods are GET/POST/PUT. Path is an existing
-`/api/v1/` route; GET body is null, other bodies are objects. `if_match` is null
+`/api/control/v1/` route; GET body is null, other bodies are objects. `if_match` is null
 or the existing quoted revision string. The adapter supplies the authenticated
 principal and invokes the same BrowserApi/JobService, preserving revision,
 ownership, idle, time, frequency, event, duration and RF safety checks.
@@ -132,7 +148,7 @@ is 32,768 bytes, leaving 32,724 bytes for plaintext. Input pages are decrypted
 in place only with exclusive ownership; no application parse occurs until the
 entire tag verifies. Response envelopes and ciphertext use bounded pages.
 
-POST logical `/api/v1/consumer/logout`, body `{}`, closes the volatile session after constructing its encrypted acknowledgement. It does not abort or release a job. Sessions expire after thirty idle minutes or eight total hours and close on profile generation changes, reboot, admission loss or invalid tags. Logout, expiry, invalid tags and sequence exhaustion affect only the addressed session; every session has its own keys, context, timers and exact sequence. Ordinary configuration journal revisions do not expire other logins. Idle time renews only after an authenticated request; public reads, page visibility and form editing do not renew it. The absolute deadline starts at successful authentication and never renews. Management discovery /4 (network) and /5 (USB) advertise `idle_ms:1800000` and `absolute_ms:28800000`; historical /1, /2 and /3 retain five-minute idle and fifteen-minute absolute limits. Consumer-Radio/1 handshake bytes and cryptographic vectors are unchanged. No automatic mutation retry occurs. On a lost response the page clears its keys, preserves edits, and blocks saves until authentication, authoritative saved-state readback and explicit review establish a fresh revision. Status or login alone cannot unlock saving. [Consumer-Recovery/1](Consumer-Recovery-v1.md) adds a separately versioned, password-authenticated retirement proof usable at full ordinary capacity. It lists one-way retirement aliases, never raw traffic IDs, and requires explicit target selection. It creates no replacement session and replays no application request. Deferred restart/network-disable actions execute only after the complete reply has been acknowledged on the matching transport transaction. A lost/partial reply or session expiry cancels only that transaction's still-pending deferred action. A normally acknowledged HTTP connection close leaves the login usable. Already committed settings or accepted WTP operations can remain effective after a lost reply.
+POST logical `/api/control/v1/consumer/logout`, body `{}`, closes the volatile session after constructing its encrypted acknowledgement. It does not abort or release a job. Sessions expire after thirty idle minutes or eight total hours and close on profile generation changes, reboot, admission loss or invalid tags. Logout, expiry, invalid tags and sequence exhaustion affect only the addressed session; every session has its own keys, context, timers and exact sequence. Ordinary configuration journal revisions do not expire other logins. Idle time renews only after an authenticated request; public reads, page visibility and form editing do not renew it. The absolute deadline starts at successful authentication and never renews. Current management discovery advertises typed `idle_ms:1800000` and `absolute_ms:28800000` policies within the shared contract bounds; historical management views are unsupported. Consumer-Radio/1 handshake bytes and cryptographic vectors are unchanged. No automatic mutation retry occurs. On a lost response the page clears its keys, preserves edits, and blocks saves until authentication, authoritative saved-state readback and explicit review establish a fresh revision. Status or login alone cannot unlock saving. [Consumer-Recovery/1](Consumer-Recovery-v1.md) adds a separately versioned, password-authenticated retirement proof usable at full ordinary capacity. It lists one-way retirement aliases, never raw traffic IDs, and requires explicit target selection. It creates no replacement session and replays no application request. Deferred restart/network-disable actions execute only after the complete reply has been acknowledged on the matching transport transaction. A lost/partial reply or session expiry cancels only that transaction's still-pending deferred action. A normally acknowledged HTTP connection close leaves the login usable. Already committed settings or accepted WTP operations can remain effective after a lost reply.
 
 DHCP/link/hostname changes close station sessions and cancel pending deferred
 actions. AP withdrawal closes AP sessions without closing a healthy LAN session.
@@ -141,9 +157,9 @@ again at the intended origin. Session closure never releases or aborts a job.
 
 ## Authenticated commissioning routes
 
-The additive logical `/api/v1/consumer/setup/` prefix reuses the same envelope,
+The additive logical `/api/control/v1/consumer/setup/` prefix reuses the same envelope,
 sequence, authentication and response rules. The suffix is an existing setup
-path, for example `/api/v1/consumer/setup/api/bootstrap/v1/start`. Only these
+path, for example `/api/control/v1/consumer/setup/api/bootstrap/v1/start`. Only these
 method/path pairs are forwarded after the complete outer AEAD authenticates:
 
 - GET `/api/bootstrap/v1/status`, `/api/owner/v1/public-status`,
@@ -191,7 +207,7 @@ execution but does not authenticate a unique device before emitting that proof.
 
 ## Pico password settings
 
-Inside an authenticated Consumer-Radio envelope, `GET /api/v1/consumer/password` returns schema `pico-password/1`, the member target `{scope, device_id, boot_id}`, Boolean `wifi_default`, and `saved:true`, with an ETag. It returns no password or verifier. The independent public read surface exposes this same redacted GET only. The ordinary API, public setup interface, engineering transport and Plain LAN WTP do not expose its mutation route.
+Inside an authenticated Consumer-Radio envelope, `GET /api/control/v1/consumer/password` returns schema `pico-password/1`, the member target `{scope, device_id, boot_id}`, Boolean `wifi_default`, and `saved:true`, with an ETag. It returns no password or verifier. The independent public read surface exposes this same redacted GET only. The ordinary API, public setup interface, engineering transport and Plain LAN WTP do not expose its mutation route.
 
 `PUT` on the same logical route requires `If-Match` from that read and exactly `{schema, target, password}`. The schema and exact member device/boot must match. A password is 8–63 printable ASCII characters; JSON null explicitly selects the saved Wi-Fi default and is refused when no Wi-Fi password exists. The caller must be authenticated, the transmitter idle and unowned, and no setup/configuration mutation may be pending. There is no implicit retry. Responses use `428 revision_required`, `412 revision_conflict`, `400 invalid_password`, `409 busy`, `409 setup_pending`, `409 wifi_password_unavailable` or `503 password_save_unconfirmed` as applicable.
 

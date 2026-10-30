@@ -16,10 +16,10 @@ async function saveDial(f, revision = '"original-revision"') {
         await vm.runInContext("reconcileConfirmedSettings(ack,ack.data.target,'Confirmed frequency; schedule settings are ready.')",f.context);
         vm.runInContext('controls(online)',f.context);
     },exchange:async(method,body,match,resource)=>{
-        if (resource === 'station/2') return {revision,data:{schema:'transmitter-station/2',target,station,storage_healthy:true}};
-        if (resource === 'progress') return {revision,data:{schema:'transmitter-progress/1',target,applied_station:station,station_complete:true}};
+        if (resource === 'station') return {revision,data:{schema:'station',target,station,storage_healthy:true}};
+        if (resource === 'progress') return {revision,data:{schema:'progress',target,applied_station:station,station_complete:true}};
         if (method === 'PUT') {dial=body.frequency_hz;++writes;}
-        return {revision,data:{schema:'transmitter-standalone-frequency/1',target,frequency_hz:dial,allowed:dial!==null,storage_healthy:true}};
+        return {revision,data:{schema:'standalone-frequency',target,frequency_hz:dial,allowed:dial!==null,storage_healthy:true}};
     }});
     editor.setAvailability(true);await ui.read.onclick();
     ui.input.value='14095600';ui.input.oninput();await ui.save.onclick();

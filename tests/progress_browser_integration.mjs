@@ -31,7 +31,7 @@ async function serve(req,res){
           const result=await f.command({op:'engineering_request',path:u.pathname,method:req.method,b64:Buffer.concat(chunks).toString('base64url'),match:req.headers['if-match']||''});
           let wire=Buffer.from(result.wire,'hex');
           if(/^\/api\/v1\/progress\/update(?:\/[23])?$/.test(u.pathname)) {
-            if(engineeringFault==='future') {engineeringFault=null;const split=wire.indexOf('\r\n\r\n');const body=JSON.parse(wire.subarray(split+4));body.schema='transmitter-progress/99';wire=Buffer.concat([wire.subarray(0,split+4),Buffer.from(JSON.stringify(body))]);}
+            if(engineeringFault==='future') {engineeringFault=null;const split=wire.indexOf('\r\n\r\n');const body=JSON.parse(wire.subarray(split+4));body.schema='progress9';wire=Buffer.concat([wire.subarray(0,split+4),Buffer.from(JSON.stringify(body))]);}
             if(engineeringFault==='hold') {engineeringFault=null;heldReply=true;await new Promise(resolve=>releaseReply=resolve);heldReply=false;}
           }
           const end=wire.indexOf('\r\n\r\n');
@@ -111,7 +111,7 @@ try {
     await until(()=>cdp.evaluate(`applicationVersion===2 && writeState==='review' && !busy`),'versioned saved-state readback');
     await click('review-saved');
     await until(()=>cdp.evaluate(`writeState==='ready' && !busy && !document.getElementById('consumer-station-settings').disabled`),'review enables editing');
-    assert.equal(await cdp.evaluate(`savedProgress.data.schema`),'transmitter-progress/3');
+    assert.equal(await cdp.evaluate(`savedProgress.data.schema`),'progress');
     const before = await f.command({op:'stats'});
     await field('consumer-callsign','AA0NT/09');await field('consumer-locator','');await field('message-text','');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-station-form').noValidate`),true,'partial saves bypass native completeness checks');
@@ -191,7 +191,7 @@ try {
     assert.equal(lost.fields.callsign,'CC2CC');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-callsign').value`),'CC2CC');
     // Independent peer edits must be shown by explicit readback without claiming the interrupted save.
-    const changed=await peer.request('progress/update','POST',{schema:'transmitter-progress/1',target:lost.target,request_id:'b'.repeat(32),fields:{callsign:'BB1BB'}},lostResponse.headers.get('etag'));
+    const changed=await peer.request('progress/update','POST',{schema:'progress',target:lost.target,request_id:'b'.repeat(32),fields:{callsign:'BB1BB'}},lostResponse.headers.get('etag'));
     assert.equal(changed.status,200);
     await field('consumer-callsign','DD3DD');await f.time(f.now+1000);
     await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);

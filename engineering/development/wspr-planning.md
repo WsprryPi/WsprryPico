@@ -68,21 +68,21 @@ The exact additive `application_resources_v2` descriptor advertises:
 
 | Method | Path | Meaning |
 | --- | --- | --- |
-| GET | `/api/v1/application/2` | `transmitter-application/2`, station/2, `wspr_type123_auto`, plan |
-| GET/PUT | `/api/v1/station/2` | Complete versioned station resource |
-| PUT | `/api/v1/config/2` | Config v1 content with explicit new-format admission |
-| POST | `/api/v1/config/update/2` | Existing config-update/1 envelope/omission semantics |
-| POST | `/api/v1/wspr-plan` | Authenticated, bounded, pure authoritative preview |
+| GET | `/api/control/v1/application` | `application`, station/2, `wspr_type123_auto`, plan |
+| GET/PUT | `/api/control/v1/station` | Complete versioned station resource |
+| PUT | `/api/control/v1/config` | Config v1 content with explicit new-format admission |
+| POST | `/api/control/v1/config/update` | Existing config-update/1 envelope/omission semantics |
+| POST | `/api/control/v1/wspr-plan` | Authenticated, bounded, pure authoritative preview |
 
-The descriptor retains `/api/v1/hardware` and authenticated carrier policy.
-`wspr-plan/1` contains supported state, known frame types/count, 120-second slot
-separation, bounded rationale and explicit ambiguity/alternate call. Old full
-config paths may preserve an unchanged new identity during unrelated edits but
-cannot introduce a changed new format. ETags, target/boot binding, idle/storage
-checks, password-null preservation, flags, pins, schedules and watermark remain.
-`engineering/protocol/transmitter-application-2.schema.json` validates actual responses;
-legacy schemas are untouched. WTP/1, management/1 and /2, Consumer-Radio/1 and
-Consumer-Recovery/1 are unchanged.
+The descriptor retains `/api/control/v1/hardware` and authenticated carrier policy.
+The stable `wspr-plan` type within `Wsprry-Control/1` contains supported state,
+known frame types/count, 120-second slot separation, bounded rationale and explicit
+ambiguity/alternate call. Current station, hardware and application resources
+represent all supported identities. Mutations require the root contract and retain
+ETags, target/boot binding, idle/storage checks, credential preservation and unrelated
+flags, pins, schedules and watermarks. The current
+`engineering/protocol/control-1.schema.json` validates actual responses. WTP/1,
+Consumer-Radio/1 and Consumer-Recovery/1 retain independent formats.
 
 Profile-owned station writes remain transactional setup, not ordinary resource
 mutation. Existing owner wire/plaintext broad decoding remains readable; the

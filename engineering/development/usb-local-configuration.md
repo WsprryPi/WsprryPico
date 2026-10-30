@@ -8,7 +8,7 @@ only an identified healthy device without reset intent or unsafe ownership;
 configuration mutations require the same idle transmitter as existing writes.
 USB administrative authority does not grant transmitter ownership.
 
-`network::LocalUsbApi::handle(request, transaction)` routes supported `/api/v1/`
+`network::LocalUsbApi::handle(request, transaction)` routes supported `/api/control/v1/`
 application resources and the explicit USB Wi-Fi resource. Its
 `finish(transaction, delivered)` applies or cancels only that transaction's
 pending restart/network effects. The UMP1 owner supplies physical connection,
@@ -18,7 +18,7 @@ reconciled through authoritative readback before another mutation.
 
 ## Hostname and display
 
-GET/PUT `/api/v1/hostname` retains `transmitter-hostname/1`. The PUT envelope is
+GET/PUT `/api/control/v1/hostname` retains `hostname`. The PUT envelope is
 `{schema,target,hostname}`; `hostname` is a canonical `.local` name or `null` to
 select the existing device default. Readback separates saved, active and
 default names, writable status and pending restart. An unconfigured USB device
@@ -34,7 +34,7 @@ from the existing network-commissioning SNTP qualification.
 
 ## Explicit Wi-Fi lifecycle
 
-GET `/api/usb/v1/wifi` returns `transmitter-wifi/1`, the exact member target,
+GET `/api/usb/v1/wifi` returns `wifi`, the exact member target,
 `wifi`, profile `generation`, `pending_restart` and `storage_healthy`. `wifi` is
 `null` for no saved connection, otherwise `{ssid,password:null,time_server}`.
 No response returns a password.
@@ -54,7 +54,7 @@ profile save latches the scheduler's existing restart-required state, so
 application, configuration and standalone-status projections agree. Later
 Config saves cannot clear that profile restart latch; STOP and pin latches are
 preserved. Existing
-`/api/v1/network` requests control runtime enabled state separately.
+`/api/control/v1/network` requests control runtime enabled state separately.
 
 Deletion is not disablement, omitted fields, password preservation or factory
 reset. It preserves station, pins, schedules, hostname, STOP, transmitter
@@ -123,16 +123,17 @@ stdin/stdout with volatile flash and no network/Pico SDK. It establishes wire
 interoperability, not physical USB, flash endurance, network association,
 restart/re-enumeration or transmitter RF qualification.
 
-Current USB discovery is `transmitter-management/5` (the /3 carrier shape with thirty-minute idle/eight-hour absolute consumer limits), with five carrier rows and selected `usb_physical`. The network /2 projection remains unchanged, including its legacy closed USB exclusion. Neither that projection nor USB WTP connectivity is the authority for USB JSON support; negotiate UMP1 and read its capabilities.
+USB and network discovery use the same current `management` shape within `Wsprry-Control/1`, with five carrier rows and the actual selected carrier. Physical USB selects `usb_physical`. Root control documents carry `contract:"Wsprry-Control/1"`, required on mutations. USB WTP connectivity grants no USB JSON authority; negotiate UMP1 and read its capabilities.
 
-The independent [GPIO-drive descriptor](gpio-drive.md) selects config/3,
-update/3 with `transmitter-config-update/2`, application/3, hardware/2 and
-progress/2. Legacy resource shapes remain closed. Ordinary omitted drive saves
-preserve it; explicit replacement/reset defaults to 4 mA. Draft saving does
-not apply drive, while explicit progress domain `drive` does so through complete
-Config validation and the sticky restart/output-inhibit latch. No save programs
-the physical pad; nullable pad readback is a cached ARM-initialization register
-verification, distinct from saved and immutable boot selection.
+The [GPIO-drive descriptor](gpio-drive.md) identifies the current `gpio-drive`,
+`application`, `hardware`, `config-update` and `progress` resources under
+`/api/control/v1/`. Ordinary omitted drive fields preserve their saved value.
+Draft saving does not apply drive; explicit progress domain `drive` applies it
+through complete Config validation and the sticky restart/output-inhibit latch.
+No save programs the physical pad. Nullable pad readback is a cached
+ARM-initialization register verification, distinct from saved and immutable boot
+selection. Amplifier GPIO and polarity use the same complete hardware and progress
+representations; amplifier timing retains its dedicated resource.
 
 Source: [local settings/profile lifecycle](../../src/provisioning/local_settings.cpp),
 [local dispatch](../../src/network/local_usb_api.hpp),

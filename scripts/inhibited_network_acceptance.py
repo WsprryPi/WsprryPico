@@ -197,8 +197,8 @@ def browser(args, evidence, method="GET", body=None):
     stream = connect(args, context(args, True), "http/1.1", evidence)
     try:
         authority = https_authority(args)
-        path = "/api/v1/jobs" if body else "/api/v1/status"
-        payload = json.dumps(body, separators=(",", ":")).encode() if body else b""
+        path = "/api/control/v1/jobs" if body else "/api/control/v1/status"
+        payload = json.dumps(dict(body, contract="Wsprry-Control/1"), separators=(",", ":")).encode() if body else b""
         headers = (f"{method} {path} HTTP/1.1\r\nHost: {authority}\r\n"
                    f"Origin: https://{authority}\r\nContent-Type: application/json\r\n"
                    "X-WsprryPico-Request: 1\r\nConnection: close\r\n"

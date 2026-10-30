@@ -1,4 +1,5 @@
 #include "network/softap_api.hpp"
+#include "network/control.hpp"
 
 #include "network/assets.hpp"
 #include "wtp/json.hpp"
@@ -139,31 +140,23 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
                                      bool& valid) {
     valid = true;
     if (request.method == "GET") {
-        if (request.path == "/api/v1/status" || request.path == "/api/v1/jobs")
+        if (request.path == "/api/control/v1/status" || request.path == "/api/control/v1/jobs")
             return SoftApOperation::Status;
-        if (request.path == "/api/v1/capabilities")
+        if (request.path == "/api/control/v1/capabilities")
             return SoftApOperation::Hello;
-        if (request.path == "/api/v1/config" || request.path == "/api/v1/schedules" ||
-            request.path == "/api/v1/network" || request.path == "/api/v1/application" ||
-            request.path == "/api/v1/application/2" || request.path == "/api/v1/station/2" ||
-            request.path == "/api/v1/station" || request.path == "/api/v1/hardware" ||
-            request.path == "/api/v1/pins" || request.path == "/api/v1/management" ||
-            request.path == "/api/v1/progress" ||
-            (request.path == "/api/v1/gpio-drive" || request.path == "/api/v1/amplifier-timing" ||
-             request.path == "/api/v1/filter-selector") ||
-            request.path == "/api/v1/rf-calibration" || request.path == "/api/v1/config/3" ||
-            request.path == "/api/v1/hardware/2" || request.path == "/api/v1/application/3" ||
-            request.path == "/api/v1/progress/2" || request.path == "/api/v1/config/4" ||
-            request.path == "/api/v1/hardware/3" || request.path == "/api/v1/application/4" ||
-            request.path == "/api/v1/progress/3" || request.path == "/api/v1/pins/2" ||
-            request.path == "/api/v1/ntp-observations")
+        if (request.path.starts_with(control_prefix) &&
+            !request.path.substr(control_prefix.size()).starts_with("consumer/") &&
+            control_route(request.path.substr(control_prefix.size()), request.method))
             return SoftApOperation::Configure;
         valid = false;
         return SoftApOperation::Status;
     }
     if (request.method == "POST" &&
-        (request.path == "/api/v1/jobs" || request.path.starts_with("/api/v1/jobs/"))) {
-        const auto root = wtp::json::parse(request.body_view());
+        (request.path == "/api/control/v1/jobs" || request.path.starts_with("/api/control/v1/jobs/"))) {
+        // Classify the domain payload while retaining original authenticated
+        // bytes for request-bound step-up verification below.
+        const auto payload = control_payload(request.body_view());
+        const auto root = payload ? wtp::json::parse(*payload) : std::nullopt;
         if (!root || !exact_fields(*root, {"session_id", "request_id", "operation", "body"})) {
             valid = false;
             return SoftApOperation::Status;
@@ -189,25 +182,9 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
         valid = false;
         return SoftApOperation::Status;
     }
-    if ((request.method == "PUT" &&
-         (request.path == "/api/v1/config" || request.path == "/api/v1/schedules" ||
-          request.path == "/api/v1/config/2" || request.path == "/api/v1/station/2" ||
-          request.path == "/api/v1/network" || request.path == "/api/v1/station" ||
-          request.path == "/api/v1/hardware" ||
-          (request.path == "/api/v1/gpio-drive" || request.path == "/api/v1/amplifier-timing" ||
-           request.path == "/api/v1/filter-selector") ||
-          request.path == "/api/v1/rf-calibration" || request.path == "/api/v1/config/3" ||
-          request.path == "/api/v1/config/4" || request.path == "/api/v1/hardware/3")) ||
-        (request.method == "POST" &&
-         (request.path == "/api/v1/restart" || request.path == "/api/v1/pins/validate" ||
-          request.path == "/api/v1/wspr-plan" || request.path == "/api/v1/config/update/2" ||
-          request.path == "/api/v1/config/update" || request.path == "/api/v1/progress/update" ||
-          request.path == "/api/v1/progress/apply" || request.path == "/api/v1/config/update/3" ||
-          request.path == "/api/v1/progress/update/2" ||
-          request.path == "/api/v1/progress/apply/2" ||
-          request.path == "/api/v1/progress/update/3" ||
-          request.path == "/api/v1/progress/apply/3" || request.path == "/api/v1/config/update/4" ||
-          request.path == "/api/v1/pins/validate/2")))
+    if (request.path.starts_with(control_prefix) &&
+        !request.path.substr(control_prefix.size()).starts_with("consumer/") &&
+        control_route(request.path.substr(control_prefix.size()), request.method))
         return SoftApOperation::Configure;
     valid = false;
     return SoftApOperation::Status;
@@ -348,7 +325,7 @@ HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface
         selected = SoftApOperation::Status;
     else if (request.path == "/local/v1/time/challenge" || request.path == "/local/v1/time/submit")
         selected = SoftApOperation::Time;
-    else if (request.path.starts_with("/api/v1/")) {
+    else if (request.path.starts_with("/api/control/v1/")) {
         selected = operation(request, body_session, valid);
         if (!valid || (!body_session.empty() && body_session != session))
             return http_error(400, "invalid_request");

@@ -52,9 +52,9 @@ await run('public settings and full observations are read-only without occupying
   for(const [host,ap] of [['192.168.1.53',false],['192.168.4.1',true]]) {
     const client=f.client(host,ap);await client.identity();
     const before=await f.command({op:'stats'});
-    const config=await client.publicRead('config/4');assert.equal(config.status,200);
+    const config=await client.publicRead('config');assert.equal(config.status,200);
     const data=await config.json();assert.equal(data.config.station.callsign,'AA0NT');assert.equal(data.config.wifi.password,null);
-    const observed=await (await client.publicRead('operations')).json();assert.equal(observed.schema,'transmitter-operations/1');assert.equal(observed.job.state,'empty');
+    const observed=await (await client.publicRead('operations')).json();assert.equal(observed.schema,'operations');assert.equal(observed.job.state,'empty');
     assert.equal((await client.publicRead('logging')).status,200);assert.equal((await client.publicRead('udp-logging')).status,200);
     for(const method of ['POST','PUT','DELETE']) assert.equal((await f.fetch(host,ap,'/api/consumer/v1/read/config',{method,body:'{}'})).status,method==='DELETE'?400:405);
     assert.equal((await f.fetch(host,ap,'/api/consumer/v1/read/jobs')).status,404);
@@ -65,7 +65,7 @@ await run('public settings and full observations are read-only without occupying
 await run('recurring message profile uses authenticated encrypted management and survives reboot',async f=>{
   const a=f.client();await f.login(a);
   const read=await a.request('message-schedule'),resource=await read.json();
-  assert.equal(resource.schema,'transmitter-message-schedule/1');
+  assert.equal(resource.schema,'message-schedule');
   const saved={enabled:false,first_start_utc_ns:'1793001605000000000',period_s:1200,expires_utc_s:0,
     message:{mode:'dfcw',message:'CQ AA0NT',frequency_nhz:'10140000000000000',space_frequency_nhz:'10140005000000000',
       timing:{dot_ns:'1000000000',dash_ns:'3000000000',intra_gap_ns:'1000000000',character_gap_ns:'3000000000',word_gap_ns:'7000000000'},
@@ -112,7 +112,7 @@ await run('three real independent station/hostname sessions, quotas, logout and 
   assert.notDeepEqual(a.state.keys,b.state.keys);assert.notDeepEqual(a.state.session,b.state.session);
   for(let i=0;i<3;i++)for(const client of [a,b,c])assert.equal((await client.request('status')).status,200);
   const other=f.client();await f.time(4000);await assert.rejects(f.login(other),/session|request/i);
-  const packet=seal(a.state,a.sequence,{method:'GET',path:'/api/v1/status',if_match:null,body:null});
+  const packet=seal(a.state,a.sequence,{method:'GET',path:'/api/control/v1/status',if_match:null,body:null});
   const raw=await f.fetch(a.host,false,'/api/consumer/v1/request',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:packet});
   const reply=new Uint8Array(await raw.arrayBuffer());assert.throws(()=>open(b.state,a.sequence,reply));
   open(a.state,a.sequence++,reply);
@@ -143,7 +143,7 @@ await run('pending proof, bad password, RNG and allocation failure preserve acti
 await run('unknown IDs, wrong sequence, wrong origin and invalid tag isolate addressed slot',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   const call=async(packet,host=a.host)=>f.fetch(host,false,'/api/consumer/v1/request',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:packet});
-  const envelope={method:'GET',path:'/api/v1/status',if_match:null,body:null};
+  const envelope={method:'GET',path:'/api/control/v1/status',if_match:null,body:null};
   let p=seal(a.state,a.sequence,envelope);p[4]^=1;assert.equal((await call(p)).status,401);
   assert.equal((await a.request('status')).status,200);
   p=seal(a.state,a.sequence+1n,envelope);assert.equal((await call(p)).status,401);
@@ -199,7 +199,7 @@ await run('stale concurrent edits share one journal and keep both logins',async 
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   const ra=await a.request('config'),rb=await b.request('config');assert.equal(ra.headers.get('etag'),rb.headers.get('etag'));
   const app=await (await a.request('application')).json();
-  const update={schema:'transmitter-config-update/1',target:app.target,mode:'merge',config:{allow_unqualified_frequency:true}};
+  const update={schema:'config-update',target:app.target,mode:'merge',config:{allow_unqualified_frequency:true}};
   assert.equal((await a.request('config/update','POST',update,ra.headers.get('etag'))).status,200);
   assert.equal((await b.request('config/update','POST',update,rb.headers.get('etag'))).status,412);
   assert.ok(a.authenticated&&b.authenticated);
@@ -282,7 +282,7 @@ await run('distinct sessions retain one transmitter owner after logout',async f=
 await run('failed save and lost reply retain bounded abandoned session without mutation replay',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   let original=await a.request('config');const app=await (await a.request('application')).json();
-  const update={schema:'transmitter-config-update/1',target:app.target,mode:'merge',config:{station:{callsign:'K1ABC'}}};
+  const update={schema:'config-update',target:app.target,mode:'merge',config:{station:{callsign:'K1ABC'}}};
   assert.equal((await a.request('config/update','POST',update,original.headers.get('etag'))).status,409);
   assert.ok(a.authenticated);assert.equal((await b.request('status')).status,200);
   update.config={allow_unqualified_frequency:true};const fetcher=a.fetcher;let sent=0;
@@ -296,7 +296,7 @@ await run('failed save and lost reply retain bounded abandoned session without m
 
 await run('slow genuine encrypted upload permits another login and two large exchanges reclaim pages',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);
-  const value={method:'POST',path:'/api/v1/jobs',if_match:null,body:{pad:''}};
+  const value={method:'POST',path:'/api/control/v1/jobs',if_match:null,body:{pad:''}};
   value.body.pad='x'.repeat(32724-JSON.stringify(value).length);
   const packet=seal(a.state,a.sequence++,value);assert.equal(packet.length,32768);
   const upload=await f.command({op:'request',host:a.host,ap:false,path:'/api/consumer/v1/request',method:'POST',type:'application/octet-stream',hex:Buffer.from(packet).toString('hex'),hold:false,cut:'500'});

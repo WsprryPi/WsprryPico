@@ -196,12 +196,12 @@ int main() {
     wsprrypico::network::LocalUsbApi usb(f.api);
     wsprrypico::network::HttpRequest req;
     req.method = "GET";
-    req.path = "/api/v1/udp-logging/capabilities";
-    const auto caps = usb.handle(req);
+    req.path = "/api/control/v1/udp-logging/capabilities";
+    const auto caps = usb.handle(network_test::control_request(req));
     assert(caps.status == 200 &&
-           caps.body_text().find("udp-logging-capabilities/1") != std::string::npos);
-    req.path = "/api/v1/udp-logging";
-    auto read = usb.handle(req);
+           caps.body_text().find("udp-logging-capabilities") != std::string::npos);
+    req.path = "/api/control/v1/udp-logging";
+    auto read = usb.handle(network_test::control_request(req));
     assert(read.status == 200);
     const auto read_body = read.body_text();
     const auto root = wsprrypico::wtp::json::parse(read_body);
@@ -210,40 +210,40 @@ int main() {
     req.method = "PUT";
     req.headers["if-match"] = read.etag;
     const auto envelope = [&](const UdpSettings& config) {
-        return "{\"schema\":\"transmitter-udp-logging/1\",\"target\":" +
+        return "{\"schema\":\"udp-logging\",\"target\":" +
                std::string(root->get("target")->raw) +
                ",\"settings\":" + udp_settings_json(config) + "}";
     };
     req.body = envelope(settings);
-    assert(usb.handle(req).status == 200 && storage.settings().enabled);
-    assert(usb.handle(req).status == 412); // stale revision refuses before writes
+    assert(usb.handle(network_test::control_request(req)).status == 200 && storage.settings().enabled);
+    assert(usb.handle(network_test::control_request(req)).status == 412); // stale revision refuses before writes
     UdpStore reboot(udp_flash);
     assert(reboot.load() && reboot.settings() == settings);
     const auto seq = storage.sequence();
     req.method = "GET";
-    read = usb.handle(req);
-    req.path = "/api/v1/udp-logging/test/capabilities";
-    assert(usb.handle(req).status == 200);
-    req.path = "/api/v1/udp-logging/test";
+    read = usb.handle(network_test::control_request(req));
+    req.path = "/api/control/v1/udp-logging/test/capabilities";
+    assert(usb.handle(network_test::control_request(req)).status == 200);
+    req.path = "/api/control/v1/udp-logging/test";
     req.method = "POST";
     req.headers["if-match"] = read.etag;
     req.body =
-        "{\"schema\":\"udp-logging-test/1\",\"target\":" + std::string(root->get("target")->raw) +
+        "{\"schema\":\"udp-logging-test\",\"target\":" + std::string(root->get("target")->raw) +
         "}";
-    assert(usb.handle(req).status == 200 && managed.queued() == 1 && storage.sequence() == seq);
-    assert(usb.handle(req).status == 429 && managed.queued() == 1);
+    assert(usb.handle(network_test::control_request(req)).status == 200 && managed.queued() == 1 && storage.sequence() == seq);
+    assert(usb.handle(network_test::control_request(req)).status == 429 && managed.queued() == 1);
     f.clock.now += 500'000'000;
     req.body.insert(req.body.size() - 1, ",\"extra\":true");
-    assert(usb.handle(req).status == 400 && managed.queued() == 1 && storage.sequence() == seq);
-    req.path = "/api/v1/udp-logging";
+    assert(usb.handle(network_test::control_request(req)).status == 400 && managed.queued() == 1 && storage.sequence() == seq);
+    req.path = "/api/control/v1/udp-logging";
 
     req.method = "GET";
-    read = usb.handle(req);
+    read = usb.handle(network_test::control_request(req));
     req.method = "PUT";
     req.headers["if-match"] = read.etag;
     req.body = envelope(settings);
     req.body.insert(req.body.size() - 1, ",\"extra\":true");
-    assert(usb.handle(req).status == 400 && storage.sequence() == seq);
+    assert(usb.handle(network_test::control_request(req)).status == 400 && storage.sequence() == seq);
     // The UDP parser stops at its own depth budget; historical resources keep
     // their existing budget. Quotes and escaped quotes do not add nesting.
     const auto nested = [](unsigned levels) {
@@ -259,7 +259,7 @@ int main() {
     assert(!wsprrypico::wtp::json::parse(eight, 0));
     req.body = envelope(settings);
     req.body.insert(req.body.size() - 1, ",\"extra\":" + nine);
-    assert(usb.handle(req).status == 400 && storage.sequence() == seq);
+    assert(usb.handle(network_test::control_request(req)).status == 400 && storage.sequence() == seq);
     for (const auto& bad : {"null", "[]", "{}", "true", "{\"enabled\":true}"}) {
         const auto document = wsprrypico::wtp::json::parse(bad);
         assert(!document || !parse_udp_settings(*document));
@@ -277,7 +277,7 @@ int main() {
     assert(denied_usb.handle(req).status == 400 && storage.sequence() == seq);
     udp_flash.fail = true;
     req.body = envelope(settings);
-    assert(usb.handle(req).status == 503 && !managed.settings().enabled && managed.queued() == 0);
+    assert(usb.handle(network_test::control_request(req)).status == 503 && !managed.settings().enabled && managed.queued() == 0);
     udp_flash.bytes[2048] = 0; // emulate an interrupted second record
     UdpStore damaged(udp_flash);
     assert(!damaged.load());

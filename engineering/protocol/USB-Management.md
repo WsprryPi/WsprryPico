@@ -58,7 +58,7 @@ Every response has exactly:
 
 ## Shared resources and delivery
 
-A resource request has exactly `schema,id,operation,session,target,method,path, body,if_match`, with operation `request`. Body is a JSON string or an empty string for no body. Method, path and If-Match strings are bounded to 8, 128 and 256 bytes respectively. Resource bodies retain their smaller independent limits; the outer JSON string encoding must also fit the envelope maximum. The adapter dispatches typed requests to the shared application handlers under the internal `usb-physical` principal. Mutations retain target/revision checks, idle/safety admission, validators and journals. See [local configuration](../development/usb-local-configuration.md) for hostname, Wi-Fi, profile versions and migration. Ordinary `/api/v1/` resources retain their independently versioned schemas and semantics. USB-selected application/capability views identify `usb_physical`, remove USB JSON from the unavailable list and select `transmitter-management/5` discovery. Historical /3 retains its five-minute idle/fifteen-minute absolute consumer policy; /5 advertises thirty minutes idle/eight hours absolute with the same USB shape. The shared base-operation inventory is not an exhaustive list of USB-specific resources; the explicit resources and their independent contracts below apply. Network projections and their previous carrier schema versions are unchanged.
+A resource request has exactly `schema,id,operation,session,target,method,path, body,if_match`, with operation `request`. Body is a JSON string or an empty string for no body. Method, path and If-Match strings are bounded to 8, 128 and 256 bytes respectively. Resource bodies retain their smaller independent limits; the outer JSON string encoding must also fit the envelope maximum. The adapter dispatches typed requests to the shared application handlers under the internal `usb-physical` principal. Mutations retain target/revision checks, idle/safety admission, validators and journals. See [local configuration](../development/usb-local-configuration.md) for hostname, Wi-Fi, profile versions and migration. Ordinary `/api/control/v1/` resources retain their independently versioned schemas and semantics. USB-selected application/capability views identify `usb_physical`, remove USB JSON from the unavailable list and select `management` discovery. Historical /3 retains its five-minute idle/fifteen-minute absolute consumer policy; /5 advertises thirty minutes idle/eight hours absolute with the same USB shape. The shared base-operation inventory is not an exhaustive list of USB-specific resources; the explicit resources and their independent contracts below apply. Network projections and their previous carrier schema versions are unchanged.
 
 Every resource response requires ACK, including errors. ACK has exactly
 `schema,id,operation,session,target`, operation `ack`. The adapter accepts ACK
@@ -73,7 +73,7 @@ USB transaction tokens occupy a namespace disjoint from the HTTP task tokens.
 AP withdrawal closes only AP HTTP clients and their matching delivery tokens;
 it does not close station clients or USB transactions.
 
-POST `/api/usb/v1/ap` uses `{schema:"transmitter-ap-request/1",target}` and the
+POST `/api/usb/v1/ap` uses `{schema:"ap-request",target}` and the
 current If-Match. It requests a new bounded manual AP window after ACK, subject
 to existing idle/output/radio availability checks. It never renews an active
 window or a continuously held button. A Wi-Fi client association retains the AP, and the final disconnect starts a ten-minute inactivity interval. With no associated clients, this initial manual window expires after ten minutes; the separate Console join request initially allows 120 seconds. Repeated unchanged conditions do not reopen an expired AP. New deliberate requests or a new outage after stable station recovery can rearm it. USB stays usable with AP off.
@@ -132,7 +132,7 @@ independent qualification boundaries.
 Current shared resources include the independently negotiated
 [GPIO-drive extension](../development/gpio-drive.md), Type 1/2/3 admission,
 hostname and saved progress. Their descriptors and exact method/path inventory
-are in the [browser API](../browser-api.md#resources). Config remains version 1;
+are in the [browser API](../browser-api.md). Config remains version 1;
 the URL namespace does not set every resource schema version. An accepted
 progress save creates only a draft, not a complete or applied configuration.
 
@@ -145,7 +145,7 @@ Source: [UMP1 endpoint](../../src/usb/management_endpoint.cpp),
 ## USB-local firmware maintenance
 
 Supporting normal images expose `GET /api/usb/v1/maintenance` with schema
-`transmitter-usb-maintenance/1` and phase `idle`, `pending` or `verification`.
+`usb-maintenance` and phase `idle`, `pending` or `verification`.
 `POST /api/usb/v1/maintenance` requests an idle, unowned, revision/watermark-bound
 BOOTSEL transition; `POST /api/usb/v1/maintenance/finish` releases a FLASH_UPDATE
 boot verification hold. Both use a closed body with `schema`, exact member

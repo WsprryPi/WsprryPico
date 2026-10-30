@@ -1,8 +1,8 @@
 # Shared transmitter application and fleet contract
 
 The [Pico foundation](development/shared-transmitter-application.md) implements
-bounded versioned application/station/hardware projections through its existing
-configuration authority. The compatible Pi adapter is independently maintained;
+current application, station and hardware resources through its existing
+configuration authority. The Pi adapter consumes the same control contract;
 full application parity and physical/fleet qualification are not claimed.
 
 Recorded: 2026-09-30. Foundation update: 2026-10-03.
@@ -165,7 +165,7 @@ does not select exact JSON member names or implement new Pico hardware drivers.
 | `Operation.Transmit Backend` | Device RF engine selection; the controller's `wtp` adapter is a separate connection choice. |
 | `GPIO.Transmit Pin` | RF output assignment with explicit device pin numbering and engine/board validation. |
 | `GPIO.Power Level` | Preserve the legacy 0–7 driver setting as implementation-specific drive configuration. |
-| `GPIO.RP1 Drive mA` | Optional pad-drive setting; Pi RP1 choices are 2/4/8/12 mA. Pico advertises its own choices only after implementation. |
+| `GPIO.RP1 Drive mA` | Optional pad-drive setting; Pi RP1 choices are 2/4/8/12 mA. Pico advertises its supported 2/4/8/12 mA choices and independent saved/boot state. |
 | `GPIO.Use System Clock Frequency Estimate` | Optional supported frequency-estimate provider selection. Linux/Chrony semantics remain Pi-specific. |
 | `GPIO.Frequency Residual PPM` | Residual correction associated with an eligible provider estimate. |
 | `GPIO.Manual PPM` | Fixed GPIO reference correction and defined fallback semantics. |
@@ -260,65 +260,18 @@ further admission and requires local recovery.
 
 ## JSON API compatibility and configuration transactions
 
-The Pico foundation freezes `GET /api/v1/application`, `GET/PUT /api/v1/station`
-and `GET/PUT /api/v1/hardware` with independently versioned resource identifiers,
-explicit member/device/boot targets, closed
-[schemas](protocol/transmitter-application-1.schema.json),
-[vectors](protocol/transmitter-application-1-vectors.json) and an
-[inventory coverage map](protocol/transmitter-application-1-coverage.json).
-These bounded projections reuse the existing configuration coordinator and
-journal. Expanded message/schedule resources and Pi compatibility mapping remain
-implementation gates. Existing routes retain their meanings except the explicitly selected
-[configuration-preservation policy](development/configuration-updates.md):
-ordinary legacy API PUT preserves omitted optional settings, while a new
-versioned POST distinguishes merge from deliberate replacement. Durable-record
-parsing, initial defaults and Console CONFIG replacement remain unchanged.
+The shared logical API uses `Wsprry-Control/1` under `/api/control/v1`, with
+one current application, station, hardware, progress and settings-update
+representation. [The canonical schema](protocol/control-1.schema.json) and
+[current control contract](browser-api.md) define types, bounds and authority.
+Historical views and fallback save strategies are unsupported. Pi consumes the
+same current hardware model, including amplifier enable and polarity.
 
-In particular, current Pico `/api/v1/config` is its standalone version-1
-configuration. The Pi adapter's `/api/v1/config` projects that remote Pico
-resource, while `/api/v1/host/config` manages Pi application and transport
-settings. A new local/remote projection must identify its target and scope;
-the route must not silently switch between Pi and Pico configuration.
-
-The current Pico parser rejects unknown fields and limits its stored document
-to 1,800 bytes. The pin branch explicitly extends Config v1 with optional `pins`:
-default plans retain legacy canonical output; older firmware rejects documents
-containing nondefault plans. The new resources add no stored fields or journal
-regions. Scoped updates are limited to 1,024 UTF-8 bytes and emitted resources
-are checked against a 4,096-byte response budget. Later hardware/application
-fields still require explicit schemas and migration/storage/parser/body budgets.
-
-New hardware mutations must meet all of the following requirements:
-
-- Verify the intended member identity and the applicable revision using
-  `ETag`/`If-Match`; boot/recovery changes invalidate stale application contexts.
-- Atomically require an unowned, inactive, nonfaulted service with no pending
-  admission, preparation or cleanup. A loaded externally owned job blocks the
-  change; a configuration request never aborts or steals it implicitly.
-- Serialize mutation with local scheduling, CLAIM/LOAD/ARM and all other writers.
-  Validate the entire resulting configuration and dependent schedules before
-  changing storage or active hardware.
-- Commit and verify persistence before reporting a successful save. Preserve a
-  recoverable configuration through interruption; invalid recovery inhibits
-  admissions rather than selecting an unsafe fallback.
-- Report saved revision, active revision, pending application/restart and errors
-  separately. Unsupported values are rejected rather than approximated or
-  silently replaced.
-- Keep hardware saves separate from transmit/schedule enablement. A configuration
-  write does not clear a fault, unsuspend STOP, renew a lease or grant RF authority.
-
-Where hardware is inactive pending restart, job admission uses the active
-configuration or remains inhibited as explicitly specified; it must not pretend
-the saved hardware is active. Related documents/resources need a common validated
-generation or equivalent dependency checks. Independent ETags alone cannot make
-conflicting hardware and schedule writes safe. Changes to a filter, RF range or
-engine must invalidate or revalidate dependent work before it can be enabled.
-
-A controller passes the member's revision through unchanged. On an ambiguous
-save it reads authoritative saved/active state before retrying. Management
-must not create a second connection or authority that bypasses owned work.
-Credentials remain redacted, and controller-local TLS paths are never installed
-as Pico paths.
+Exact device/boot/profile bindings, If-Match, strict closed validation and
+verified journal selection remain mandatory. Ordinary updates preserve omitted
+settings; drafts require explicit application. Aggregate readback does not merge
+independent storage/profile transactions into one atomic write. WTP/1 ownership
+and local execution remain separate from settings authority.
 
 ## Transport and capability boundaries
 
@@ -332,16 +285,17 @@ USB CDC remains the canonical/reference WTP carrier; network WTP/TCP is also
 first-class. An implemented WTP carrier does not imply a configuration carrier.
 The [carrier/access contract](development/management-carriers.md)
 selects engineering mTLS HTTPS plus explicit authenticated consumer station/AP
-Consumer-Radio/1 management independently of job transport. USB JSON management uses the separately framed UMP1 physical carrier and
-management/3 discovery without Wi-Fi. JSON over Plain LAN WTP, TLS-WTP and
-BLE is unavailable. Legacy network discovery retains its closed USB exclusion.
-Existing normal engineering field HTTPS keeps its cookie/session Configure
-policy, without a selected Pi field client; blank/preclock field configuration
-remains denied. Consumer HTTP forwards only authenticated encrypted envelopes,
-with profile-owned Wi-Fi/station setup authority preserved. Discovery extends
-capabilities outside old closed application objects; their legacy
-`authenticated_https` metadata remains for compatibility. No authentication
-downgrade or automatic carrier fallback is allowed.
+Consumer-Radio/1 management independently of job transport. USB JSON management
+uses the separately framed UMP1 physical carrier without a Wi-Fi prerequisite.
+Every admitted carrier uses the same `management` resource within
+`Wsprry-Control/1`, including five carrier rows and the actual selected carrier.
+JSON over Plain LAN WTP, TLS-WTP and BLE is unavailable. Engineering field HTTPS
+retains its cookie/session Configure policy without a selected Pi field client;
+blank/preclock field configuration remains denied. Consumer HTTP forwards only
+authenticated encrypted envelopes, with profile-owned Wi-Fi/station setup authority
+preserved. The root `contract:"Wsprry-Control/1"` is required on control mutations;
+capabilities, selected carrier and device/boot/profile bindings are validated
+before writes. No authentication downgrade or automatic carrier fallback is allowed.
 
 Discovery locates candidates. Device identity, security binding, boot identity,
 current CAPS and status determine selection and admission. Plain LAN identity
@@ -380,9 +334,9 @@ bounded campaign results remain bound to their original configurations.
 
 ## Extension constraints
 
-The foundation's resource identifiers, paths and bounded shapes are frozen in
-the linked schemas; unsupported additions require a separately specified
-version. Supported management carriers and the explicit USB decision are frozen
+Current resource identifiers, paths and closed shapes belong to the shared control
+major. Incompatible control semantics require a new control major; optional features
+use defined extension points and bounded policy data. Supported management carriers are defined
 in the [carrier contract](development/management-carriers.md).
 Additional carriers or expanded field clients cannot be assumed supported.
 

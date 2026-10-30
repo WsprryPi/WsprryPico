@@ -58,6 +58,11 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/device-presentation.min.js src/network/web/organization.min.js
     src/network/web/asset-build.json scripts/build_operator_assets.mjs
     scripts/generate_web_assets.py)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    engineering/protocol/control-policy.json engineering/protocol/control-1.schema.json
+    scripts/check_control_policy.py)
+execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_control_policy.py
+    COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_web_assets.py
     ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
     "${WSPRRY_PICO_FIRMWARE_VERSION}"
@@ -406,6 +411,13 @@ if(WSPRRY_PICO_BUILD_TESTS)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
         add_test(NAME gpio_drive_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/gpio_drive_browser_tests.js)
     endif()
+    add_executable(control_contract_tests tests/control_contract_tests.cpp)
+    target_link_libraries(control_contract_tests PRIVATE wsprrypico_core)
+    target_compile_options(control_contract_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME control_contract COMMAND control_contract_tests)
+    add_test(NAME control_policy COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_control_policy.py)
+    add_test(NAME control_policy_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/control_policy_tests.py)
+    add_test(NAME control_contract_generated COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_control_contract.py --check)
     add_executable(application_resource_tests tests/application_resource_tests.cpp)
     target_link_libraries(application_resource_tests PRIVATE wsprrypico_core)
     target_compile_options(application_resource_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -416,12 +428,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME config_updates COMMAND config_update_tests)
     add_test(NAME config_update_schema COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/config_update_schema_tests.py $<TARGET_FILE:config_update_tests>)
-    set_tests_properties(config_update_schema PROPERTIES SKIP_RETURN_CODE 77)
-    if(WSPRRY_PICO_NODE_EXECUTABLE)
-        add_test(NAME config_update_legacy_pi COMMAND ${Python3_EXECUTABLE}
-            ${CMAKE_SOURCE_DIR}/tests/config_update_legacy_pi_test.py
-            $<TARGET_FILE:config_update_tests> ${WSPRRY_PICO_NODE_EXECUTABLE})
-    endif()
+    add_test(NAME control_jsonschema COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/control_jsonschema_tests.py $<TARGET_FILE:control_contract_tests>
+        $<TARGET_FILE:application_resource_tests> $<TARGET_FILE:amplifier_enable_tests>
+        $<TARGET_FILE:filter_selector_tests> $<TARGET_FILE:wspr_resource_tests>)
     add_test(NAME application_schema COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/application_schema_tests.py $<TARGET_FILE:application_resource_tests>)
 

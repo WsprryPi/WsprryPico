@@ -9,7 +9,7 @@ class LocalUsbApi {
   public:
     explicit LocalUsbApi(BrowserApi& api) : api_(api) {}
     HttpResponse handle(const HttpRequest& request, std::uint64_t transaction = 0) {
-        if (!request.path.starts_with("/api/v1/") && !request.path.starts_with("/api/usb/v1/"))
+        if (!request.path.starts_with("/api/control/v1/") && !request.path.starts_with("/api/usb/v1/"))
             return http_error(404, "not_found");
         return api_.handle(request, "usb-physical", "", transaction,
                            ManagementCarrier::UsbPhysical);

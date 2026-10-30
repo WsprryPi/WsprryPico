@@ -3,8 +3,8 @@
 ## Selected design
 
 WsprryPico leads; WsprryPi adopts the same separately versioned
-Consumer-Recovery/1 extension. Consumer-Radio/1 traffic, its fixed vectors and
-the frozen management/1 and management/2 discovery documents stay unchanged.
+Consumer-Recovery/1 extension. Consumer-Radio/1 traffic and its fixed vectors
+remain independent from the current `Wsprry-Control/1` management resource.
 
 Recovery retires one explicitly selected login and never creates a replacement
 session or repeats an application request. The operator supplies the current

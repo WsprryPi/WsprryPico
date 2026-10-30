@@ -13,7 +13,7 @@ try {
  const read=async client=>{const r=await client.request('progress');equal(r.status,200);const data=await r.json();samples.push(data);return {data,revision:r.headers.get('etag')};};
  const initial=await read(a),before=await f.command({op:'stats'});
  let serial=0;
- const save=(client,fields,saved)=>client.request('progress/update','POST',{schema:'transmitter-progress/1',target:saved.data.target,request_id:(++serial).toString(16).padStart(32,'0'),fields},saved.revision);
+ const save=(client,fields,saved)=>client.request('progress/update','POST',{schema:'progress',target:saved.data.target,request_id:(++serial).toString(16).padStart(32,'0'),fields},saved.revision);
  let r=await save(a,{callsign:'AA0NT/09',power_dbm:'2147483648'},initial);equal(r.status,200);
  const ack=await r.json();samples.push(ack);equal(ack.outcomes,{callsign:'saved',power_dbm:'invalid'});
  equal((await save(b,{locator:'EM18IG'},initial)).status,412);

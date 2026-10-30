@@ -93,7 +93,7 @@ std::string LocalSettings::wifi_readback(std::string_view boot) const {
         ssid = factory_->ssid;
         server = factory_->time_server;
     }
-    return "{\"schema\":\"transmitter-wifi/1\",\"target\":" + application::target(device_, boot) +
+    return "{\"schema\":\"wifi\",\"target\":" + application::target(device_, boot) +
            ",\"wifi\":" +
            (ssid.empty()
                 ? std::string("null")

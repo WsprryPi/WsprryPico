@@ -1,4 +1,5 @@
 #include "network/management.hpp"
+#include "network/control_contract.hpp"
 
 #include "application/resources.hpp"
 #include "network/consumer_radio.hpp"
@@ -14,7 +15,7 @@ std::string management_contract(const ManagementAvailability& state, ManagementC
                               state.consumer_station, state.consumer_ap, true};
     const char* profiles[] = {"unavailable", "blank", "recovery", "engineering", "consumer"};
     std::string rows;
-    for (unsigned i = 0; i < (selected == ManagementCarrier::UsbPhysical ? 5U : 4U); ++i) {
+    for (unsigned i = 0; i < 5U; ++i) {
         if (i)
             rows += ',';
         rows += "{\"carrier\":" + wtp::json::quote(names[i]) +
@@ -27,13 +28,9 @@ std::string management_contract(const ManagementAvailability& state, ManagementC
            (state.generation ? wtp::json::quote(std::to_string(state.generation)) : "null") +
            ",\"selected\":" + wtp::json::quote(names[static_cast<unsigned>(selected)]) +
            ",\"carriers\":[" + rows +
-           (selected == ManagementCarrier::UsbPhysical
-                ? "],\"unsupported\":[\"plain_wtp_json\",\"tls_wtp_json\",\"ble_json\"],"
-                : "],\"unsupported\":[\"usb_json\",\"plain_wtp_json\",\"tls_wtp_json\",\"ble_"
-                  "json\"],") +
-           "\"operations\":{\"GET\":[\"capabilities\",\"status\",\"config\",\"schedules\","
-           "\"network\",\"application\",\"management\"],\"PUT\":[\"config\",\"schedules\","
-           "\"network\"],\"POST\":[\"config/update\"]},\"limits\":{\"http_body\":32768,"
+           "],\"unsupported\":[\"plain_wtp_json\",\"tls_wtp_json\",\"ble_json\"]," +
+           "\"operations\":" + std::string(control_operations) +
+           ",\"limits\":{\"http_body\":32768,"
            "\"consumer_plaintext\":32724,\"config\":1800,\"update\":2048,\"login_ms\":" +
            std::to_string(ConsumerRadioApi::login_ms) +
            ",\"idle_ms\":" + std::to_string(ConsumerRadioApi::idle_ms) +

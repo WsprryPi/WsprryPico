@@ -50,10 +50,7 @@ certificate authentication. Full fleet interoperability is not qualified.
 
 The browser uses the shared, independently versioned
 [JSON API](engineering/browser-api.md). Firmware supplies lightweight HTTP handlers
-and static assets. It does not host Apache or PHP. Resource schema versions
-are independent of the `/api/v1/` namespace. Legacy closed views, explicit
-capability negotiation, omission preservation and atomic replacement remain
-part of the configuration contract. Saved drafts do not establish complete
+and static assets. It does not host Apache or PHP. The current `Wsprry-Control/1` contract uses `/api/control/v1`, with one complete current representation per resource. Explicit capability admission, omission preservation and authoritative transaction boundaries apply; historical settings views are unsupported. Saved drafts do not establish complete
 configuration, applied hardware or transmit readiness.
 
 Consumer control is available at the station IP/hostname and an available AP's

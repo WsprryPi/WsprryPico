@@ -11,16 +11,16 @@ for (const upper of ['65999999000000000','68999999000000000','74999999000000000'
   const max=Number(BigInt(upper)/1000000000n-1503n);
   assert.equal(frequency(String(max),ranges),max);assert.equal(frequency(String(max+1),ranges),null);
 }
-assert.equal(supported({schema:'transmitter-standalone-frequency/1',path:'/api/v1/standalone-frequency',method:'PUT',units:'Hz',activation:'next_job',default:null}),true);
+assert.equal(supported({schema:'standalone-frequency',path:'/api/control/v1/standalone-frequency',method:'PUT',units:'Hz',reference:'wspr_usb_dial',activation:'next_job',default:null}),true);
 (async()=>{
   const ui = {input:element(''),read:element(),save:element(),discard:element(),adopt:element(),status:element()};
   let saved = null, writes = 0, failure = false, target = {scope:'member',device_id:'a'.repeat(32),boot_id:'b'.repeat(32)};
   const editor = create({...ui,exchange:async(method,body,match,resource)=>{
     const station={callsign:'AA0NT',locator:'EM18',power_dbm:37};
-    if(resource === 'station/2') return {revision:'r1',data:{schema:'transmitter-station/2',target,station,storage_healthy:true}};
-    if(resource === 'progress') return {revision:'r1',data:{schema:'transmitter-progress/1',target,applied_station:station,station_complete:true}};
+    if(resource === 'station') return {revision:'r1',data:{schema:'station',target,station,storage_healthy:true}};
+    if(resource === 'progress') return {revision:'r1',data:{schema:'progress',target,applied_station:station,station_complete:true}};
     if (method === 'PUT') { ++writes; assert.equal(match,'r1'); if (failure) throw Error('Lost reply'); saved = body.frequency_hz; }
-    return {revision:'r1',data:{schema:'transmitter-standalone-frequency/1',target,
+    return {revision:'r1',data:{schema:'standalone-frequency',target,
       frequency_hz:saved,configured:saved!==null,allowed:saved!==null,storage_healthy:true}};
   }});
   editor.setAvailability(true);
@@ -51,7 +51,7 @@ assert.equal(supported({schema:'transmitter-standalone-frequency/1',path:'/api/v
   const pendingUI = {input:element(''),read:element(),save:element(),discard:element(),adopt:element(),status:element()};
   const pending = create({...pendingUI,exchange:()=>new Promise(done=>{resolve=done;})});
   pending.setAvailability(true); const loading = pendingUI.read.onclick(); pending.setAvailability(false);
-  resolve({revision:'r1',data:{schema:'transmitter-standalone-frequency/1',target,
+  resolve({revision:'r1',data:{schema:'standalone-frequency',target,
     frequency_hz:14095600,allowed:true,storage_healthy:true}});
   await loading;
   assert.equal(pendingUI.input.disabled,true); assert.equal(pendingUI.save.disabled,true);
@@ -64,9 +64,9 @@ assert.equal(supported({schema:'transmitter-standalone-frequency/1',path:'/api/v
     calls.push([method,resource]);
     if(method === 'PUT') { const e=Error(failCode);e.code=failCode;throw e; }
     const base = {target};
-    if(resource === 'station/2') return {revision:rev,data:{...base,schema:'transmitter-station/2',station:applied?station:null,storage_healthy:true,saved_generation:'0'}};
-    if(resource === 'progress') return {revision:mismatch?'old':rev,data:{...base,schema:'transmitter-progress/3',applied_station:applied?station:null,station_complete:complete}};
-    return {revision:rev,data:{...base,schema:'transmitter-standalone-frequency/1',frequency_hz:null,allowed:false,storage_healthy:true}};
+    if(resource === 'station') return {revision:rev,data:{...base,schema:'station',station:applied?station:null,storage_healthy:true,saved_generation:'0'}};
+    if(resource === 'progress') return {revision:mismatch?'old':rev,data:{...base,schema:'progress',applied_station:applied?station:null,station_complete:complete}};
+    return {revision:rev,data:{...base,schema:'standalone-frequency',frequency_hz:null,allowed:false,storage_healthy:true}};
   }});
   firstEditor.setAvailability(true);await first.read.onclick();
   first.input.value='14095600';first.input.oninput();
@@ -94,7 +94,7 @@ assert.equal(supported({schema:'transmitter-standalone-frequency/1',path:'/api/v
   let release;
   const prior = create({...pendingUI,exchange:()=>new Promise(done=>{release=done;})});
   prior.setAvailability(true);const late=pendingUI.read.onclick();prior.invalidate();
-  release({revision:'r4',data:{schema:'transmitter-station/2',target,station,storage_healthy:true}});
+  release({revision:'r4',data:{schema:'station',target,station,storage_healthy:true}});
   await late;
   assert.equal(pendingUI.save.disabled,true);
   // Execute the production app lifecycle: readiness refresh and explicit editor

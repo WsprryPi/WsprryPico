@@ -1,3 +1,4 @@
+#include "network/control.hpp"
 #include "network/pico/bootstrap_server.hpp"
 
 #include "encoding/wspr.hpp"
@@ -249,7 +250,7 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
         auto admission = request;
         admission.path = "/api/owner/v1/public-status";
         response_ = owner_claimable() && owner_public_get_admitted(admission, admission.path)
-                        ? progress_api_->progress_readback(true)
+                        ? control_response(progress_api_->progress_readback(true))
                         : http_error(403, "unavailable");
     } else if (request.path.starts_with("/api/owner/v1/progress/") && progress_api_)
         response_ = owner_mutation(request);
@@ -1002,15 +1003,20 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& incoming) {
                 return http_error(400, "invalid_progress_ciphertext");
             }
             HttpRequest save = request;
+            ControlStringWiper wipe_save(save.body);
             save.method = "POST";
-            save.path = "/api/v1/progress/update";
-            save.body = std::move(plaintext);
+            save.path = "/api/control/v1/progress/update";
+            auto payload = control_payload(wtp::InputView(plaintext));
+            if (!payload) { cancel_owner_slot(false); return http_error(400, "unsupported_control_contract"); }
+            save.body = std::move(*payload);
+            const wtp::InputView control_wire_body(plaintext);
+            save.control_wire_body = &control_wire_body;
             save.buffered_body.reset();
             save.selected_body.reset();
             save.headers["if-match"] = progress_expected_revision_;
             auto result = progress_api_->save_progress(save, true);
             cancel_owner_slot(false);
-            return result;
+            return control_response(std::move(result));
         }
         if (!decoded || !owner_crypto_.open(fields, nonce, ciphertext, tag, owner_trial_) ||
             !encoding::wspr_plan(owner_trial_.callsign, owner_trial_.locator,

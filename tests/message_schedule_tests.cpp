@@ -38,13 +38,13 @@ network::HttpResponse call(network_test::Fixture& f, std::string method, std::st
                  {"content-type", "application/json"}};
     if (!revision.empty())
         r.headers["if-match"] = revision;
-    auto result = f.api.handle(r, "peer", "127.0.0.1:8443");
-    if (result.status >= 400 && r.path == "/api/v1/jobs")
+    auto result = f.api.handle(network_test::control_request(r), "peer", "127.0.0.1:8443");
+    if (result.status >= 400 && r.path == "/api/control/v1/jobs")
         std::cerr << result.status << ": " << result.body << std::endl;
     return result;
 }
 std::string envelope(network_test::Fixture& f, const standalone::MessageSchedule& s) {
-    return "{\"schema\":\"transmitter-message-schedule/1\",\"target\":" +
+    return "{\"schema\":\"message-schedule\",\"target\":" +
            application::target(std::string(32, 'a'), f.service.status().boot_id) +
            ",\"schedule\":" + standalone::serialize_message_schedule(s) + "}";
 }
@@ -220,12 +220,12 @@ int main() {
         auto s = schedule(f.clock.snapshot().utc_now_ns + 60 * ns);
         assert(f.store.save_message_schedule(s));
         const auto session = std::string(32, 'b');
-        assert(call(f, "POST", "/api/v1/jobs",
+        assert(call(f, "POST", "/api/control/v1/jobs",
                     "{\"session_id\":\"" + session + "\",\"request_id\":\"" + std::string(32, 'c') +
                         "\",\"operation\":\"HELLO\",\"body\":{\"versions\":[\"WTP/"
                         "1\"],\"client_name\":\"test\",\"client_version\":\"1\"}}")
                    .status == 200);
-        assert(call(f, "POST", "/api/v1/jobs",
+        assert(call(f, "POST", "/api/control/v1/jobs",
                     "{\"session_id\":\"" + session + "\",\"request_id\":\"" + std::string(32, 'd') +
                         "\",\"operation\":\"CLAIM\",\"body\":{\"owner_id\":\"" + session +
                         "\",\"lease_ms\":60000}}")
@@ -245,38 +245,38 @@ int main() {
     }
     {
         network_test::Fixture f;
-        auto read = call(f, "GET", "/api/v1/message-schedule");
+        auto read = call(f, "GET", "/api/control/v1/message-schedule");
         assert(read.status == 200);
         auto s = schedule(f.clock.snapshot().utc_now_ns + 60 * ns);
         const auto body = envelope(f, s);
-        assert(call(f, "PUT", "/api/v1/message-schedule", body).status == 428);
-        assert(call(f, "PUT", "/api/v1/message-schedule", body, "\"wrong\"").status == 412);
+        assert(call(f, "PUT", "/api/control/v1/message-schedule", body).status == 428);
+        assert(call(f, "PUT", "/api/control/v1/message-schedule", body, "\"wrong\"").status == 412);
         auto wrong = body;
         wrong.replace(wrong.find(std::string(32, 'a')), 32, std::string(32, 'b'));
-        assert(call(f, "PUT", "/api/v1/message-schedule", wrong, read.etag).status == 409);
+        assert(call(f, "PUT", "/api/control/v1/message-schedule", wrong, read.etag).status == 409);
         auto unknown = body;
         unknown.insert(1, "\"unknown\":true,");
-        assert(call(f, "PUT", "/api/v1/message-schedule", unknown, read.etag).status == 400);
+        assert(call(f, "PUT", "/api/control/v1/message-schedule", unknown, read.etag).status == 400);
         assert(
-            call(f, "PUT", "/api/v1/message-schedule", std::string(2049, 'x'), read.etag).status ==
+            call(f, "PUT", "/api/control/v1/message-schedule", std::string(2049, 'x'), read.etag).status ==
             413);
         network::LocalUsbApi usb(f.api);
         network::HttpRequest request;
-        request.path = "/api/v1/message-schedule";
+        request.path = "/api/control/v1/message-schedule";
         request.method = "GET";
-        assert(usb.handle(request).status == 200);
-        const auto accepted = call(f, "PUT", "/api/v1/message-schedule", body, read.etag);
+        assert(usb.handle(network_test::control_request(request)).status == 200);
+        const auto accepted = call(f, "PUT", "/api/control/v1/message-schedule", body, read.etag);
         assert(accepted.status == 200);
         assert(accepted.etag != read.etag);
-        assert(call(f, "PUT", "/api/v1/message-schedule", body, read.etag).status == 412);
+        assert(call(f, "PUT", "/api/control/v1/message-schedule", body, read.etag).status == 412);
         network::HttpRequest anonymous;
         anonymous.method = "GET";
-        anonymous.path = "/api/v1/message-schedule";
-        assert(f.api.handle(anonymous, "", "127.0.0.1:8443").status != 200);
-        const auto pause = "{\"schema\":\"transmitter-message-schedule/1\",\"target\":" +
+        anonymous.path = "/api/control/v1/message-schedule";
+        assert(f.api.handle(network_test::control_request(anonymous), "", "127.0.0.1:8443").status != 200);
+        const auto pause = "{\"schema\":\"message-schedule\",\"target\":" +
                            application::target(std::string(32, 'a'), f.service.status().boot_id) +
                            ",\"pause\":true}";
-        assert(call(f, "POST", "/api/v1/message-schedule/pause", pause, accepted.etag).status ==
+        assert(call(f, "POST", "/api/control/v1/message-schedule/pause", pause, accepted.etag).status ==
                200);
         assert(!f.store.message_schedule()->enabled);
     }

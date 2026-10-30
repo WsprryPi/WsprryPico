@@ -29,9 +29,13 @@ Publication is a separate deliberate manual dispatch at that tag with `-f publis
 
 Main/devel CI publication uses a manual dispatch on that branch with `-f publish=true`. The [installer client](usb-installer.md#installer-source-distribution) uses verified immutable source and needs no separate release. A successful build alone does not authorize firmware publication.
 
-An explicit manual `devel` dispatch may select `testing_version` with the strict form `0.1.0-testing.N` (positive N, at most six digits). That dispatch runs the same complete checks and fresh builds, but skips the automatic publication job. Publication requires independent review, a new annotated tag at the checked source, a complete verified draft and a public download audit. The version must be unused; an interrupted candidate never permits moving a tag or replacing published assets. Pushes, pull requests and main cannot select this override. Ordinary generated CI identities remain unchanged.
-
-Testing candidates include the `testing_release` extension of manifest schema 1: nominal drive, protocol/API/storage compatibility, exact software-tested Pi revision, historical drive-acceptance pair, reproducible recipe and pinned references. They explicitly set `deployment_candidate:false` and installer default eligibility false. Existing installer CI receipt/version checks refuse this manual testing series. Normal main/devel CI images remain eligible through their independently verified branch bookmarks; publication of a testing version does not update either bookmark or create a stable release.
+Control/1 builds use generated CI identities or semantic beta/stable tags.
+The historical `0.1.0-testing.N` producer and workflow override are unsupported.
+Frozen deployment-manifest versions retain their exact historical decoding and
+verification rules for retained bundles; their historical API/evidence metadata
+is not emitted as the current control contract. Ordinary CI publication remains
+an explicit separate operation and a successful build grants no publication
+authority.
 
 The actual checked-out full source SHA is recorded. PR head, synthetic merge commit and trusted branch commits are distinct identities. PR artifacts are test outputs and cannot be selected as the trusted consumer deployment candidate.
 

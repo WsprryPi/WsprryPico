@@ -197,7 +197,7 @@ std::string describe(const PinPlan& p) {
            ",\"applied\":false}";
 }
 std::string choices(bool amplifier_view) {
-    std::string out = std::string("{\"version\":") + (amplifier_view ? "2" : "1") +
+    std::string out = std::string("{\"schema\":\"pins\"") +
                       ",\"numbering\":\"pico_gp\",\"eligible_gps\":[";
     bool comma = false;
     for (unsigned gp = 0; gp <= 28; ++gp) {

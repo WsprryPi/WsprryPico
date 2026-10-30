@@ -9,7 +9,7 @@ for (const mode of ['network','network-backing','usb','overlay']) {
     await f.command({op:'first_use_profile',mode});await f.time(1000);
     const a=f.client();await f.login(a);
     const read=async resource=>{const r=await a.request(resource);assert.equal(r.status,200);return {data:await r.json(),revision:r.headers.get('etag')};};
-    let station=await read('station/2'),frequency=await read('standalone-frequency');
+    let station=await read('station'),frequency=await read('standalone-frequency');
     assert.equal(station.data.station!==null,mode==='overlay');
     assert.equal(frequency.data.frequency_hz,null);assert.equal(frequency.data.storage_healthy,true);
     const initial=await f.command({op:'frequency_state'});
@@ -23,7 +23,7 @@ for (const mode of ['network','network-backing','usb','overlay']) {
       const draft=await a.request('progress/update','POST',{schema:p.data.schema,target:p.data.target,request_id:'d'.repeat(32),fields:{callsign:'AA0NT',locator:'EM18',power_dbm:37}},p.revision);
       assert.equal(draft.status,200);const saved=await draft.json();
       assert.equal(saved.station_complete,true);assert.equal(saved.applied_station,null);
-      assert.equal((await read('station/2')).data.station,null);
+      assert.equal((await read('station')).data.station,null);
       frequency=await read('standalone-frequency');
       assert.equal((await a.request('standalone-frequency','PUT',body,frequency.revision)).status,409);
       assert.deepEqual(await f.command({op:'frequency_state'}),initial);
@@ -31,7 +31,7 @@ for (const mode of ['network','network-backing','usb','overlay']) {
       await a.submitSetup(attempt);await f.time(3000);await f.command({op:'reboot'});await f.time(4000);await f.login(a);
       assert.equal(await a.checkSetup(attempt),'saved');
     }
-    station=await read('station/2');assert.equal(station.data.station.callsign,'AA0NT');
+    station=await read('station');assert.equal(station.data.station.callsign,'AA0NT');
     frequency=await read('standalone-frequency');assert.equal(frequency.data.frequency_hz,null);
     const selected=await a.request('standalone-frequency','PUT',{schema:frequency.data.schema,target:frequency.data.target,frequency_hz:14095600},frequency.revision);
     const body=await selected.json();assert.equal(selected.status,200,JSON.stringify(body));assert.equal(body.frequency_hz,14095600);

@@ -19,7 +19,7 @@
     function valid(r) {
       const v = r.data;
       if (!keys(v,'schema,target,saved_timeout_s,active_timeout_s,pending_restart,storage_healthy') ||
-          v.schema !== 'transmitter-ntp-timeout/2' || !r.revision || v.storage_healthy !== true ||
+          v.schema !== 'ntp-timeout' || !r.revision || v.storage_healthy !== true ||
           !keys(v.target,'scope,device_id,boot_id') || v.target.scope !== 'member' || !/^[0-9a-f]{32}$/.test(v.target.device_id) ||
           !/^[0-9a-f]{32}$/.test(v.target.boot_id) || typeof v.pending_restart !== 'boolean' ||
           v.pending_restart !== (v.saved_timeout_s !== v.active_timeout_s) ||
@@ -48,7 +48,7 @@
       const target = observed.target, expected = minutes(input.value) * 60;
       const ticket = ++epoch, match = revision; busy = true; revision = ''; render();
       try {
-        const r = await exchange('PUT',{schema:'transmitter-ntp-timeout/2',target,timeout_s:expected},match);
+        const r = await exchange('PUT',{schema:'ntp-timeout',target,timeout_s:expected},match);
         const v = valid(r);
         if (ticket !== epoch) return;
         if (identity(v) !== JSON.stringify(target) || v.saved_timeout_s !== expected)

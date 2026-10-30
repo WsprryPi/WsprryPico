@@ -1083,7 +1083,7 @@ void softap_http_policy() {
     const auto separator = response.set_cookie.find(';');
     network::HttpRequest request;
     request.method = "GET";
-    request.path = "/api/v1/status";
+    request.path = "/api/control/v1/status";
     request.headers = {{"host", f.identity.hostname},
                        {"cookie", response.set_cookie.substr(0, separator)},
                        {"sec-fetch-site", "same-origin"}};

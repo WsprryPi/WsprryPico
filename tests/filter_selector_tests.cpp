@@ -32,12 +32,12 @@ struct Member {
     standalone::Scheduler scheduler{initialize(), f.service};
     network::BrowserApi api{f.service, f.store, scheduler, f.network, std::string(32, 'a'), "test"};
     network::HttpResponse call(std::string method, std::string body = {},
-                               std::string version = "transmitter-filter-selector/1",
+                               std::string version = "filter-selector",
                                bool stale = false, bool wrong = false) {
         const auto target =
             application::target(std::string(32, wrong ? 'b' : 'a'), f.service.status().boot_id);
         network::HttpRequest r{method,
-                               "/api/v1/filter-selector",
+                               "/api/control/v1/filter-selector",
                                body.empty()
                                    ? ""
                                    : "{\"schema\":" + wtp::json::quote(version) +
@@ -47,7 +47,7 @@ struct Member {
                                 {"content-type", "application/json"},
                                 {"x-wsprrypico-request", "1"},
                                 {"if-match", stale ? "\"stale\"" : api.revision()}}};
-        return api.handle(r, "test", "127.0.0.1:8443");
+        return api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     }
 };
 void management_storage() {
@@ -64,10 +64,10 @@ void management_storage() {
         REQUIRE(m.call("PUT", bad).status == 400);
         REQUIRE(m.f.store.config_sequence() == sequence);
     }
-    for (const auto version : {"transmitter-filter-selector/0", "transmitter-filter-selector/2"})
+    for (const auto version : {"filter-selector/0", "filter-selector/future"})
         REQUIRE(m.call("PUT", json, version).status == 400);
-    REQUIRE(m.call("PUT", json, "transmitter-filter-selector/1", true).status == 412);
-    REQUIRE(m.call("PUT", json, "transmitter-filter-selector/1", false, true).status == 409);
+    REQUIRE(m.call("PUT", json, "filter-selector", true).status == 412);
+    REQUIRE(m.call("PUT", json, "filter-selector", false, true).status == 409);
     for (unsigned gp : {2U, 14U, 23U, 25U, 29U}) {
         auto bad = s;
         bad.outputs[0].gp = gp;
@@ -431,18 +431,18 @@ int main(int argc, char** argv) {
     if (argc == 2 && std::string_view(argv[1]) == "--capabilities") {
         Member m;
         network::HttpRequest r{"GET",
-                               "/api/v1/capabilities",
+                               "/api/control/v1/capabilities",
                                {},
                                {{"host", "127.0.0.1:8443"},
                                 {"origin", "https://127.0.0.1:8443"},
                                 {"x-wsprrypico-request", "1"}}};
-        std::cout << m.api.handle(r, "test", "127.0.0.1:8443").body;
+        std::cout << m.api.handle(network_test::control_request(r), "test", "127.0.0.1:8443").body;
         return 0;
     }
     if (argc == 2 && std::string_view(argv[1]) == "--documents") {
         Member m;
         std::cout << hardware::filter_capabilities() << '\n' << m.call("GET").body << '\n';
-        std::cout << "{\"schema\":\"transmitter-filter-selector/1\",\"target\":"
+        std::cout << "{\"schema\":\"filter-selector\",\"target\":"
                   << application::target(std::string(32, 'a'), m.f.service.status().boot_id)
                   << ",\"settings\":" << hardware::serialize_filters(selected()) << "}\n";
         std::cout << m.call("PUT", hardware::serialize_filters(selected())).body << '\n';

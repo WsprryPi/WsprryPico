@@ -1,7 +1,8 @@
+import '../web/control-contract.js';
 import {begin,authenticate,seal,open,clear,unhex,retirementSelector} from './radio-crypto.js';
 import {prepareNetwork,prepareStation,submitSetup,checkSetup} from './radio-setup.js';
 
-const publicReadResources = ["capabilities","pins","pins/2","operations","status","config","config/2","config/3","config/4","application","application/2","application/3","application/4","station","station/2","hardware","hardware/2","hardware/3","progress","progress/2","progress/3","rf-calibration","standalone-frequency","gpio-drive","ntp-timeout","filter-selector","hostname","logging","udp-logging","udp-logging/capabilities","udp-logging/test/capabilities","message-schedule","consumer/password","consumer/setup/api/owner/v1/public-status"];
+const publicReadResources = globalThis.WsprryControl.publicResources;
 
 function publicDiscovery(text) {
   if(text.length>4096) throw new Error('Public read discovery exceeds its bound');
@@ -33,11 +34,12 @@ const idleMs = 30 * 60 * 1000, absoluteMs = 8 * 60 * 60 * 1000;
 export class RadioClient {
   constructor(fetcher = globalThis.fetch?.bind(globalThis), now = () => Date.now(), context) {
     this.fetcher = fetcher; this.now = now; this.state = null; this.busy = false; this.lostSession = null;
+    this.idleMs=idleMs;this.absoluteMs=absoluteMs;
     this.context = context || (globalThis.location?.host ? {authority:globalThis.location.host,interface:globalThis.location.hostname === '192.168.4.1' ? 'ap' : 'station'} : null);
   }
   clear() { clear(this.state); this.state = null; }
   get authenticated() {
-    if (this.state && (this.now() < this.seen || this.now()-this.started >= absoluteMs || this.now()-this.seen >= idleMs)) this.clear();
+    if (this.state && (this.now() < this.seen || this.now()-this.started >= this.absoluteMs || this.now()-this.seen >= this.idleMs)) this.clear();
     return Boolean(this.state);
   }
   async post(path, body, binary, timeout) {
@@ -74,8 +76,6 @@ export class RadioClient {
         !/^[1-9][0-9]{0,19}$/.test(id.generation) || BigInt(id.generation) > 0xffffffffffffffffn) throw new Error('Invalid Pico identity');
     this.publicIdentity = id;
     this.publicReads = null;
-    this.publicTimingReads = null;
-    this.publicTimeoutReads = null;
     return id;
   }
   async publicStatus(timeout = 5000) {
@@ -85,7 +85,7 @@ export class RadioClient {
     const decimal = text => typeof text === 'string' && /^(0|[1-9][0-9]{0,19})$/.test(text) && BigInt(text) <= 0xffffffffffffffffn;
     unhex(value.device_id,16); unhex(value.boot_id,16);
     if (Object.keys(value).sort().join(',') !== 'boot_id,clock_state,device_id,engine,output_active,owned,schema,state,uncertainty_ns,utc_now_ns' ||
-        value.schema !== 'transmitter-public-status/1' || !['empty','loaded','armed','running','complete','aborted','missed','failed'].includes(value.state) ||
+        value.schema !== 'public-status' || !['empty','loaded','armed','running','complete','aborted','missed','failed'].includes(value.state) ||
         typeof value.output_active !== 'boolean' || typeof value.owned !== 'boolean' ||
         !['unsynchronized','synchronized','holdover'].includes(value.clock_state) ||
         (value.utc_now_ns !== null && !decimal(value.utc_now_ns)) || !decimal(value.uncertainty_ns) ||
@@ -93,26 +93,26 @@ export class RadioClient {
     return value;
   }
   async publicRead(path, timeout = 5000) {
-    const version=path==='amplifier-timing'?2:path==='ntp-timeout/2'?3:1;
-    const resources=version===2?['amplifier-timing']:version===3?['ntp-timeout/2']:publicReadResources;
-    const cache=version===2?'publicTimingReads':version===3?'publicTimeoutReads':'publicReads';
-    const discovery='/api/consumer/v1/read'+(version===1?'':'/'+version);
-    if (!resources.includes(path)) throw new Error('This resource has no public read authority');
+    const discovery=globalThis.WsprryControl.publicPrefix.replace(/\/$/,'');
+    if (!publicReadResources.includes(path)) throw new Error('This resource has no public read authority');
     const options = {method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(timeout)};
-    if (!this[cache]) {
+    if (!this.publicReads) {
       const reply = await this.fetcher(discovery,options);
       if (!reply.ok) throw new Error('Public settings reads are unavailable on this firmware');
       const value = publicDiscovery(await reply.text()), target = value?.target;
-      if (Object.keys(value || {}).sort().join(',') !== 'prefix,resources,schema,target' ||
-          value.schema !== 'pico-public-read/'+version || value.prefix !== discovery+'/' ||
+      if (Object.keys(value || {}).sort().join(',') !== 'contract,prefix,resources,schema,target' ||
+          value.contract !== globalThis.WsprryControl.contract || value.schema !== 'public-read' || value.prefix !== discovery+'/' ||
           Object.keys(target || {}).sort().join(',') !== 'boot_id,device_id,scope' || target.scope !== 'member' ||
           !this.publicIdentity || target.device_id !== this.publicIdentity.device_id || target.boot_id !== this.publicIdentity.boot_id ||
-          JSON.stringify(value.resources) !== JSON.stringify(resources))
+          !Array.isArray(value.resources) || value.resources.length > 64 ||
+          value.resources.some(v=>typeof v !== 'string' || v.length > 128 || !/^[a-z0-9][a-z0-9/-]*$/.test(v)) ||
+          new Set(value.resources).size !== value.resources.length || !value.resources.includes(path))
         throw new Error('Public read discovery does not match this Pico or supported contract');
-      this[cache] = value;
+      this.publicReads = value;
     }
+    if (!this.publicReads.resources.includes(path)) throw new Error('This Pico has not advertised public read authority for this resource');
     // No login, ownership, sequence consumption or session lifetime renewal.
-    return this.fetcher(this[cache].prefix + path,{...options,signal:AbortSignal.timeout(timeout)});
+    return this.fetcher(this.publicReads.prefix + path,{...options,signal:AbortSignal.timeout(timeout)});
   }
   async login(password, identity) {
     if (this.busy) throw new Error('A radio request is already in progress');
@@ -136,8 +136,39 @@ export class RadioClient {
     } catch (error) { clear(state); throw error; }
     finally { pending?.secret.fill(0); this.busy = false; }
   }
+  async readPolicy() {
+    try {
+      const result=await this.request('management'),value=await result.json();
+      const identity=this.identityContext,target=value?.target,limits=value?.limits;
+      const maximum={http_body:32768,consumer_plaintext:32724,config:1800,update:2048,login_ms:60000,idle_ms:86400000,absolute_ms:86400000,consumer_sessions:16,consumer_pending_logins:16};
+      const selected=value.selected;
+      const knownCarriers=['engineering_mtls','engineering_field','consumer_station','consumer_ap','usb_physical'];
+      if(!result.ok || value.contract!==globalThis.WsprryControl.contract || value.schema!=='management' ||
+          Object.keys(value).sort().join(',')!=='carriers,contract,limits,operations,preclock,profile,profile_generation,schema,selected,target,unsupported' ||
+          !target || Object.keys(target).sort().join(',')!=='boot_id,device_id,scope' || target.scope!=='member' ||
+          target.device_id!==identity.device_id || target.boot_id!==identity.boot_id || value.profile_generation!==identity.generation ||
+          value.profile!=='consumer' || typeof value.preclock!=='boolean' || !['consumer_station','consumer_ap'].includes(selected) ||
+          !limits || Object.keys(limits).sort().join(',')!==Object.keys(maximum).sort().join(',') ||
+          Object.entries(maximum).some(([key,max])=>!Number.isSafeInteger(limits[key]) || limits[key]<1 || limits[key]>max) ||
+          limits.consumer_pending_logins>limits.consumer_sessions || limits.idle_ms>limits.absolute_ms || limits.update>limits.consumer_plaintext || limits.consumer_plaintext>=limits.http_body ||
+          !Array.isArray(value.carriers) || value.carriers.length!==knownCarriers.length || new Set(value.carriers.map(v=>v?.carrier)).size!==knownCarriers.length ||
+          !value.carriers.some(v=>v.carrier===selected && v.built_in===true && v.available===true) ||
+          value.carriers.some(v=>!v || Object.keys(v).sort().join(',')!=='available,built_in,carrier' || !knownCarriers.includes(v.carrier) || typeof v.built_in!=='boolean' || typeof v.available!=='boolean' || v.available && !v.built_in) ||
+          !value.operations || Object.keys(value.operations).sort().join(',')!=='GET,POST,PUT' ||
+          Object.values(value.operations).some(v=>!Array.isArray(v) || v.length>64 || new Set(v).size!==v.length || v.some(path=>typeof path!=='string' || path.length>128 || !(path==='jobs/{id}/abort' || /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/.test(path)))) ||
+          !Array.isArray(value.unsupported) || value.unsupported.length>16 || new Set(value.unsupported).size!==value.unsupported.length || value.unsupported.some(v=>typeof v!=='string' || v.length>64))
+        throw new Error('Authenticated control policy is unsupported. Update both applications before changing settings.');
+      this.idleMs=limits.idle_ms;this.absoluteMs=limits.absolute_ms;
+      // This is the authenticated interface of the existing session, never a
+      // request to select or fall back to another transport.
+      if(this.context)this.context={...this.context,interface:selected==='consumer_ap'?'ap':'station'};
+    } catch(error) {
+      if(this.state)this.lostSession={selector:retirementSelector(this.identityContext,this.state.session),...this.identityContext};
+      this.clear();throw error;
+    }
+  }
   async request(path, method = 'GET', body, etag, timeout = 30000) {
-    if(path!=='consumer/logout' && this.requestAllowed && !this.requestAllowed()) {
+    if(path!=='consumer/logout' && !(path==='management' && method==='GET') && this.requestAllowed && !this.requestAllowed()) {
       const error=new Error('Controls were locked before this request was submitted'); error.local=true; throw error;
     }
     if (this.busy) throw new Error('A radio request is already in progress');
@@ -145,7 +176,8 @@ export class RadioClient {
     // Validate/encode before consuming a sequence or changing authentication.
     const sequence = this.sequence;
     let packet;
-    try {packet = seal(this.state,sequence,{method,path:'/api/v1/' + path,if_match:etag || null,body:body === undefined ? null : body});}
+    if (method !== 'GET') body = {...(body || {}),contract:globalThis.WsprryControl.contract};
+    try {packet = seal(this.state,sequence,{method,path:globalThis.WsprryControl.prefix + path,if_match:etag || null,body:body === undefined ? null : body});}
     catch (e) {e.local=true;throw e;}
     this.busy = true;
     try {

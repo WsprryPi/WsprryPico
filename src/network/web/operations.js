@@ -6,7 +6,8 @@
   const keys=(v,k)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join(',')===k.split(',').sort().join(',');
   const states=['empty','loaded','armed','running','complete','aborted','missed','failed'];
   const clocks=['synchronized','holdover','unsynchronized'];
-  const supported=c=>c?.schema==='transmitter-operations/1'&&c.path==='/api/v1/operations';
+  const control=root.WsprryControl || (typeof module!=='undefined' && module.exports ? require('./control-contract.js') : null);
+  const supported=value=>!!control && control.supported('operations_status',value);
   function basicValid(v,boot) {
     const j=v?.job,s=v?.standalone,n=v?.network;
     return !!j&&states.includes(j.state)&&id(j.boot_id)&&(!boot||j.boot_id===boot)&&
@@ -15,7 +16,7 @@
       typeof s.engine==='string'&&s.engine.length<=64&&!!n&&typeof n.enabled==='boolean';
   }
   function valid(v,expected) {
-    if (!keys(v,'schema,target,job,accepted,standalone,message_schedule,next_wspr_start_utc_ns,correction,reset_allowed,network,transport') || v.schema!=='transmitter-operations/1' ||
+    if (!keys(v,'schema,target,job,accepted,standalone,message_schedule,next_wspr_start_utc_ns,correction,reset_allowed,network,transport') || v.schema!=='operations' ||
         !keys(v.target,'scope,device_id,boot_id') || v.target.scope!=='member' || !id(v.target.device_id) || !id(v.target.boot_id) ||
         expected && (v.target.device_id!==expected.device_id || v.target.boot_id!==expected.boot_id) ||
         v.job?.boot_id!==v.target.boot_id || !states.includes(v.job.state) || typeof v.job.output_active!=='boolean' ||
@@ -29,7 +30,7 @@
         !['configured','enabled','storage_healthy','reboot_required','suspended','frequency_required','wspr_pair_pending'].every(k=>typeof s[k]==='boolean') ||
         !Array.isArray(s.schedules)||s.schedules.length>8 || !s.schedules.every(x=>Number.isInteger(x.period_s)&&x.period_s>0&&Number.isInteger(x.phase_s)&&x.phase_s>=0&&x.phase_s<x.period_s) ||
         !Number.isSafeInteger(s.expires_utc_s)||s.expires_utc_s<0 || !(s.schedule_dial_frequency_nhz===null||decimal(s.schedule_dial_frequency_nhz)) ||
-        !root.WsprryMessageSchedule?.valid({schema:'transmitter-message-schedule/1',target:v.target,writable:false,...m},v.target) ||
+        !root.WsprryMessageSchedule?.valid({schema:'message-schedule',target:v.target,writable:false,...m},v.target) ||
         !(v.next_wspr_start_utc_ns===null||decimal(v.next_wspr_start_utc_ns))) return false;
     if (a===null) return v.job.job_id===null;
     if (!v.job.job_id || !keys(a,'mode,duration_ns,start_utc_ns,event_count,frequencies_nhz,frequencies_truncated,message') || typeof a.mode!=='string'||a.mode.length>32||

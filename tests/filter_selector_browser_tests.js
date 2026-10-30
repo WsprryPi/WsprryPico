@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),filters=require('../src/network/web/f
 const settings={policy:'fixed_manual',release_ms:20,settle_ms:20,selectors:[],ranges:[]};
 let value={schema:filters.descriptor.schema,target:{scope:'member',device_id:'a'.repeat(32),boot_id:'b'.repeat(32)},saved:structuredClone(settings),boot_active:structuredClone(settings),pending_restart:false,selected_id:null,selection_known:true,admission_error:null,output_active:false,rf_active:false,storage_healthy:true,reserved:[{gp:2,role:'rf'},{gp:14,role:'button'}]};
 (async()=>{
- assert(filters.supported(filters.descriptor));for(const change of [{maximum_ranges:11},{extra:0},{schema:'transmitter-filter-selector/2'}])assert(!filters.supported({...filters.descriptor,...change}));
+ assert(filters.supported(filters.descriptor));for(const change of [{maximum_ranges:11},{extra:0},{schema:'filter-selector/99'}])assert(!filters.supported({...filters.descriptor,...change}));
  const b=dom();let rev='1'.repeat(64),puts=0,fail=false,wait=null;
  const editor=filters.mount(b.host,{exchange:async(method,body)=>{if(method==='PUT'){puts++;if(fail)throw Error('Lost reply');value={...value,saved:body.settings,pending_restart:true};rev='2'.repeat(64);}if(wait)await wait;return {data:structuredClone(value),revision:'"'+rev+'"'};}});
  editor.setAvailability(true,false);await editor.load();assert(b.button('Save selectors').disabled);assert(b.button('Add selector').disabled);

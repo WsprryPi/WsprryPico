@@ -1,5 +1,7 @@
 (function (root) {
   'use strict';
+  const control = root.WsprryControl || (typeof module !== 'undefined' && module.exports ? require('./control-contract.js') : null);
+  if (!control) throw new Error('The control definitions could not be loaded. Reload the Pico page.');
   function ppm(text) {
     if (!/^[+-]?[0-9]{1,3}(\.[0-9]{1,3})?$/.test(text)) return null;
     const sign = text.startsWith('-') ? -1 : 1;
@@ -7,12 +9,7 @@
     const value = sign * (Number(whole)*1000 + Number(fraction.padEnd(3,'0')));
     return Math.abs(value) <= 100000 ? value : null;
   }
-  function supported(d) {
-    return d?.schema === 'transmitter-rf-calibration/1' && d.path === '/api/v1/rf-calibration' &&
-      d.method === 'PUT' && d.precision === 3 && d.units === 'ppm' &&
-      d.minimum === '-100.000' && d.maximum === '100.000' &&
-      d.default_mode === 'manual' && d.activation === 'next_preparation';
-  }
+  function supported(value) { return control.supported('rf_calibration',value); }
   function create({input,mode,read,save,discard,adopt,status,exchange,afterSave = ()=>{},onError = ()=>{},run = fn=>fn()}) {
     let available = false, busy = false, observed = null, revision = '', epoch = 0, edited = false, draftTarget = '', review = false;
     const identity = value => JSON.stringify(value.target);
@@ -27,7 +24,7 @@
     }
     function valid(r) {
       const v = r.data;
-      if (!v || v.schema !== 'transmitter-rf-calibration/1' || !r.revision ||
+      if (!v || v.schema !== 'rf-calibration' || !r.revision ||
           v.target?.scope !== 'member' || !/^[0-9a-f]{32}$/.test(v.target.device_id) ||
           !/^[0-9a-f]{32}$/.test(v.target.boot_id) || !v.storage_healthy ||
           typeof v.saved?.manual_ppm !== 'string' || ppm(v.saved.manual_ppm) === null ||
@@ -54,7 +51,7 @@
       const target = observed.target, expected = ppm(input.value), selectedMode = mode.value;
       const ticket = ++epoch, match = revision; busy = true; revision = ''; render();
       try {
-        const r = await exchange('PUT',{schema:'transmitter-rf-calibration/1',target,
+        const r = await exchange('PUT',{schema:'rf-calibration',target,
           calibration:{manual_ppm:input.value,mode:selectedMode}},match);
         const v = valid(r);
         if (ticket !== epoch) return;

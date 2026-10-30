@@ -50,6 +50,7 @@ import uuid
 import zipfile
 
 INSTALLER_VERSION = '0.3.0'
+CONTROL_RESOURCE_ABSENT = object()  # Explicit acknowledged 404, never JSON null.
 REPOSITORY = 'WsprryPi/WsprryPico'
 API = 'https://api.github.com/repos/' + REPOSITORY + '/'
 DOWNLOAD = 'https://github.com/' + REPOSITORY + '/releases/download/'
@@ -990,12 +991,14 @@ class Management:
                     return response
         raise Refusal('USB management deadline; delivery is unconfirmed and a requested maintenance change may have occurred')
 
-    def get(self, path):
+    def get(self, path, *, absent_ok=False):
         response = self.exchange(dict(operation='request', method='GET', path=path, body='', if_match=''))
         require(response['delivery_required'] is True, 'Missing USB delivery acknowledgement')
         ack = self.exchange(dict(operation='ack'), repeat=True)
         require(ack['status'] == 200 and ack['delivery_required'] is False and
                 decode(ack['body']) == {'acknowledged': True}, 'USB ACK failed')
+        if absent_ok and response['status'] == 404:
+            return CONTROL_RESOURCE_ABSENT
         require(response['status'] == 200, 'Required USB resource unavailable: ' + path)
         self.etags[path] = response['etag']
         return decode(response['body'])
@@ -1040,24 +1043,45 @@ class Management:
                 'Maintenance release is unconfirmed; keep the Pi member paused')
 
 
-def public_snapshot(device):
+def public_snapshot(device, *, pre_reset_upgrade=False):
     with Management(device) as management:
-        status = management.get('/api/v1/status')
-        config = management.get('/api/v1/config/4')
-        progress = management.get('/api/v1/progress/3')
-        hostname = management.get('/api/v1/hostname')
-        frequency = management.get('/api/v1/standalone-frequency')
-        calibration = management.get('/api/v1/rf-calibration')
-        observation = management.get('/api/v1/ntp-observations')
-        capabilities = management.get('/api/v1/capabilities')
+        prefix = '/api/control/v1/'
+        capabilities = management.get(prefix + 'capabilities', absent_ok=pre_reset_upgrade)
+        # One-way installer transition only: capture the installed pre-reset
+        # firmware before flash. Postboot and ordinary control never downgrade.
+        legacy = capabilities is CONTROL_RESOURCE_ABSENT
+        if legacy:
+            require(pre_reset_upgrade, 'The installed firmware lacks Control/1')
+            prefix = '/api/v1/'
+            capabilities = management.get(prefix + 'capabilities')
+            require(isinstance(capabilities, dict), 'Malformed installed capabilities')
+        else:
+            require(isinstance(capabilities, dict), 'Malformed control capabilities')
+            require(capabilities.get('contract') == 'Wsprry-Control/1', 'Unknown control contract')
+        def read(resource):
+            value = management.get(prefix + resource)
+            require(isinstance(value, dict), 'Malformed control readback: ' + resource)
+            if not legacy:
+                require(value.get('contract') == 'Wsprry-Control/1', 'Control readback contract mismatch')
+            return value
+        status = read('status')
+        config_path = 'config/4' if legacy else 'config'
+        config = read(config_path)
+        progress = read('progress/3' if legacy else 'progress')
+        hostname = read('hostname')
+        frequency = read('standalone-frequency')
+        calibration = read('rf-calibration')
+        observation = read('ntp-observations')
         message_schedule = None
         if 'message_schedule' in capabilities:
             capability = capabilities['message_schedule']
-            require(capability.get('schema') == 'transmitter-message-schedule/1' and
-                    capability.get('path') == '/api/v1/message-schedule',
+            require(isinstance(capability, dict), 'Malformed message-schedule capability')
+            expected_schema = 'transmitter-message-schedule/1' if legacy else 'message-schedule'
+            require(capability.get('schema') == expected_schema and
+                    capability.get('path') == prefix + 'message-schedule',
                     'Unknown saved message-schedule contract; leave the device unchanged')
-            message_schedule = management.get('/api/v1/message-schedule')
-            require(message_schedule.get('schema') == 'transmitter-message-schedule/1' and
+            message_schedule = read('message-schedule')
+            require(message_schedule.get('schema') == expected_schema and
                     message_schedule.get('target') == management.hello['target'],
                     'Saved message schedule identity or schema mismatch')
         return {'serial': device['serial'], 'parent': device['parent'],
@@ -1065,7 +1089,7 @@ def public_snapshot(device):
                 'status': status, 'config': config, 'progress': progress, 'hostname': hostname,
                 'frequency': frequency, 'calibration': calibration, 'message_schedule': message_schedule,
                 'source_revision': observation['source_revision'], 'captured_at': int(time.time()),
-                'revision': management.etags['/api/v1/config/4']}
+                'revision': management.etags[prefix + config_path]}
 
 
 class Picotool:
@@ -1656,7 +1680,7 @@ def transaction(args, files, manifest, image, client=None):
                 terminal_progress(args, 'Read saved settings and check upgrade compatibility...')
                 require(board['mode'] == 'application',
                         'An ordinary upgrade starts in the running application and requires guarded USB maintenance')
-                snapshot = public_snapshot(board)
+                snapshot = public_snapshot(board, pre_reset_upgrade=True)
                 admit_snapshot(snapshot)
                 save_json(directory / 'preflight.json', snapshot)
                 old_version = snapshot['firmware']
@@ -1865,7 +1889,14 @@ def verify_application(args, tool, record, path, manifest, snapshot):
 def saved_semantics(snapshot):
     # Deliberately small and explicit: byte equality before boot covers all
     # banks. Public saved fields independently verify their loaded meaning.
-    return {'config': snapshot['config'].get('config'),
+    config = snapshot['config'].get('config')
+    if config is not None:
+        config = dict(config)
+        if 'version' in config:
+            require(snapshot['config'].get('contract') is None and type(config['version']) is int and
+                    config['version'] in (1, 2), 'Unknown stored configuration projection version')
+            del config['version']
+    return {'config': config,
             'progress_fields': snapshot['progress']['fields'],
             'draft_revision': snapshot['progress']['draft_revision'],
             'hostname': snapshot['hostname'].get('saved'),
@@ -1879,7 +1910,8 @@ def saved_semantics(snapshot):
 def admit_snapshot(snapshot):
     message = snapshot.get('message_schedule')
     if message is not None:
-        require(message.get('schema') == 'transmitter-message-schedule/1' and
+        require((message.get('schema') == 'transmitter-message-schedule/1' or
+                 message.get('schema') == 'message-schedule' and message.get('contract') == 'Wsprry-Control/1') and
                 message.get('pause_pending') is False and
                 message.get('state') in ('not_configured', 'paused') and
                 (message.get('saved') is None or message['saved'].get('enabled') is False),

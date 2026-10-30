@@ -24,7 +24,7 @@ const target=(t,host)=>host?keys(t,['scope','collector_id'])&&t.scope==='host'&&
 const equalTarget=(a,b)=>keys(a,Object.keys(b))&&Object.keys(b).every(k=>a[k]===b[k]);
 const collector=v=>keys(v,['enabled','bind_ipv4','interface','port','peers'])&&typeof v.enabled==='boolean'&&(v.bind_ipv4===null||ip(v.bind_ipv4))&&(v.interface===null||iface(v.interface))&&(!v.enabled||(v.bind_ipv4!==null&&v.interface!==null))&&integer(v.port,1,65535)&&Array.isArray(v.peers)&&v.peers.length<=32&&v.peers.every(p=>keys(p,['slot','ipv4'])&&typeof p.slot==='string'&&/^[A-Za-z0-9_-]{1,32}$/.test(p.slot)&&ip(p.ipv4))&&new Set(v.peers.map(p=>p.slot)).size===v.peers.length&&new Set(v.peers.map(p=>p.ipv4)).size===v.peers.length;
 function capabilities(c,host=false){
- if(!keys(c,['schema','target','resource','settings_schema','wire_schema','limits'])||c.schema!=='udp-logging-capabilities/1'||!target(c.target,host)||c.resource!==(host?'/api/v1/host/udp-logging':'/api/v1/udp-logging')||c.settings_schema!==(host?'host-udp-logging/1':'transmitter-udp-logging/1')||c.wire_schema!=='wsprry-udp/1')return false;
+ if(!keys(c,['schema','target','resource','settings_schema','wire_schema','limits'])||c.schema!=='udp-logging-capabilities'||!target(c.target,host)||c.resource!==(host?'/api/control/v1/host/udp-logging':'/api/control/v1/udp-logging')||c.settings_schema!==(host?'host-udp-logging/1':'udp-logging')||c.wire_schema!=='wsprry-udp/1')return false;
  const limits={payload_bytes:480,queue_records:host?256:16,maximum_sources:host?8:0,maximum_peers:host?32:0,maximum_rate:host?64:8,maximum_burst:host?128:16,address_family:'ipv4'};
  return keys(c.limits,Object.keys(limits))&&Object.keys(limits).every(k=>c.limits[k]===limits[k]);
 }
@@ -35,7 +35,7 @@ function readback(v,c,host=false){
  const a=v.active;
  return keys(v.saved,['sender','collector'])&&settings(v.saved.sender,true)&&collector(v.saved.collector)&&keys(a,['applied_revision','sender','collector'])&&(a.applied_revision===null||printable(a.applied_revision,128))&&senderActive(a.sender,true)&&keys(a.collector,['state','bind_ipv4','port','counters','peers'])&&['disabled','awaiting_network','ready','bind_failed','unavailable','policy_invalid'].includes(a.collector.state)&&(a.collector.bind_ipv4===null||ip(a.collector.bind_ipv4))&&(a.collector.port===null||integer(a.collector.port,1,65535))&&counters(a.collector.counters,collectorKeys)&&Array.isArray(a.collector.peers)&&a.collector.peers.length<=32&&a.collector.peers.every(p=>keys(p,['slot','received','last_receipt_us'])&&printable(p.slot,32)&&v.saved.collector.peers.some(saved=>saved.slot===p.slot)&&decimal(p.received)&&(p.last_receipt_us===null||decimal(p.last_receipt_us)))&&new Set(a.collector.peers.map(p=>p.slot)).size===a.collector.peers.length;
 }
-function testCapabilities(v,c,host=false){return capabilities(c,host)&&keys(v,['schema','target','resource','request_schema','event_code','maximum_rate'])&&v.schema==='udp-logging-test-capabilities/1'&&equalTarget(v.target,c.target)&&v.resource===c.resource+'/test'&&v.request_schema==='udp-logging-test/1'&&v.event_code===(host?'PI_LOG':'UDP_TEST')&&v.maximum_rate===2;}
+function testCapabilities(v,c,host=false){return capabilities(c,host)&&keys(v,['schema','target','resource','request_schema','event_code','maximum_rate'])&&v.schema==='udp-logging-test-capabilities'&&equalTarget(v.target,c.target)&&v.resource===c.resource+'/test'&&v.request_schema==='udp-logging-test'&&v.event_code===(host?'PI_LOG':'UDP_TEST')&&v.maximum_rate===2;}
 let serial=0;
 function mount(element,options){
  if(!element||!root.document)return null;
@@ -152,9 +152,9 @@ function mount(element,options){
   if(test.disabled)return;
   const current=epoch,context=options.context?.(),expected=snapshot;busy=true;show();
   try {
-   const r=(await options.exchange((options.resourcePath||'udp-logging')+'/test','POST',{schema:'udp-logging-test/1',target:expected.target},revision)).value;
+   const r=(await options.exchange((options.resourcePath||'udp-logging')+'/test','POST',{schema:'udp-logging-test',target:expected.target},revision)).value;
    if(current!==epoch||context!==options.context?.())return;
-   if(!keys(r,['schema','target','accepted','receipt'])||r.schema!=='udp-logging-test/1'||!equalTarget(r.target,expected.target)||typeof r.accepted!=='boolean'||r.receipt!=='unknown')throw Error('Inconsistent test reply');
+   if(!keys(r,['schema','target','accepted','receipt'])||r.schema!=='udp-logging-test'||!equalTarget(r.target,expected.target)||typeof r.accepted!=='boolean'||r.receipt!=='unknown')throw Error('Inconsistent test reply');
    busy=false;await perform(false);
    status.textContent+=(r.accepted?' One test event was admitted locally.':' The test event was dropped locally.')+' Collector receipt is unknown.';
   }catch(error){snapshot=null;revision='';status.textContent='Test result unconfirmed. Read settings before another test or save. '+error.message;}

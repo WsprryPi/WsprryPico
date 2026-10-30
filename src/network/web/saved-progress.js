@@ -1,4 +1,4 @@
-// Shared validation/presentation for the independently versioned draft resource.
+// Shared validation/presentation for the current control-contract draft resource.
 // No persistence, networking, job control or secret storage in this helper.
 (() => {
   const names = ['callsign','locator','power_dbm','enabled','schedules','expires_utc_s','pins','frequency_policy','wifi','ntp_ipv4'];
@@ -18,7 +18,7 @@
   const outcomes = (x,amplifier = false) => object(x) && Object.keys(x).length <= names.length + (amplifier ? 1 : 0) && Object.entries(x).every(([k,v]) => (names.includes(k) || amplifier && k==='gpio_drive_ma') && ['saved','cleared','invalid'].includes(v));
   function validPlan(p) {
     if (!keys(p,['alternate_callsign','frame_types','frames','rationale','schema','slot_separation_s','supported','type2_ambiguous']) ||
-        p.schema !== 'wspr-plan/1' || typeof p.supported !== 'boolean' || typeof p.type2_ambiguous !== 'boolean' ||
+        p.schema !== 'wspr-plan' || typeof p.supported !== 'boolean' || typeof p.type2_ambiguous !== 'boolean' ||
         !Array.isArray(p.frame_types) || !Number.isInteger(p.frames) || p.frames !== p.frame_types.length ||
         p.slot_separation_s !== 120 || !ascii(p.rationale,1,512)) return false;
     if (p.supported ? !['type1','type2','type3','type2,type3'].includes(p.frame_types.join(',')) : p.frames !== 0) return false;
@@ -37,11 +37,11 @@
   const gp = x => Number.isInteger(x) && (x>=0 && x<=22 || x>=26 && x<=28);
   function pins(x,amplifier = false) {
     const members = ['engine','rf_gp','i2c_pair','button_gp','amplifier_gp','lpf_gps','indicator','indicator_gp','indicator_active_high'];
-    if (amplifier && Object.hasOwn(x,'amplifier_active_high')) members.push('amplifier_active_high');
+    members.push('amplifier_active_high');
     if (!keys(x,members) ||
         x.engine!=='direct' || !gp(x.rf_gp) || x.i2c_pair!==null || !(x.button_gp===null || gp(x.button_gp)) ||
         !(x.amplifier_gp===null || amplifier && gp(x.amplifier_gp)) || !Array.isArray(x.lpf_gps) || x.lpf_gps.length ||
-        x.amplifier_active_high!==undefined && typeof x.amplifier_active_high!=='boolean' ||
+        typeof x.amplifier_active_high!=='boolean' ||
         !['onboard_led','external','disabled'].includes(x.indicator) || typeof x.indicator_active_high!=='boolean' ||
         (x.indicator==='external' ? !gp(x.indicator_gp) : x.indicator_gp!==null)) return false;
     const assigned=[x.rf_gp,x.button_gp,x.amplifier_gp,x.indicator==='external'?x.indicator_gp:null].filter(v=>v!==null);
@@ -72,11 +72,11 @@
     return false;
   }
   function valid(x, acknowledgement = false) {
-    const amplifier = x?.schema === 'transmitter-progress/3';
+    const amplifier = true;
     const allowed = amplifier ? [...names,'gpio_drive_ma'] : names;
     const required = ['schema','target','draft_revision','config_revision','profile_revision','fields','last_receipt','last_outcomes','applied_station','station','station_complete','complete','apply_domains','wspr_plan','schedule_enabled','schedule_suspended','matches_applied'];
     if (acknowledgement) required.push('outcomes','request_id');
-    if (!keys(x,required) || !['transmitter-progress/1','transmitter-progress/3'].includes(x.schema) ||
+    if (!keys(x,required) || x.schema !== 'progress' ||
         !keys(x.target,['scope','device_id','boot_id']) || x.target.scope !== 'member' ||
         !ascii(x.target.device_id,32,32) || !/^[0-9a-f]{32}$/.test(x.target.device_id) ||
         !ascii(x.target.boot_id,32,32) || !/^[0-9a-f]{32}$/.test(x.target.boot_id) ||

@@ -207,7 +207,7 @@ try {
     assert.equal(await evaluate('radio.authenticated || localAuthenticated'),false);assert.equal(await evaluate('cancelLogoutCount'),1);
     assert.equal(await evaluate('document.getElementById("local-access").open'),false);
     pass('cancelled late login cannot ghost-unlock and cleans only its serialized session');
-    for(const [button,resource,editor] of [['rf-calibration-read','rf-calibration','calibrationEditor'],['ntp-timeout-read','ntp-timeout/2','ntpTimeoutEditor'],['gpio-drive-read','gpio-drive','driveEditor']]) {
+    for(const [button,resource,editor] of [['rf-calibration-read','rf-calibration','calibrationEditor'],['ntp-timeout-read','ntp-timeout','ntpTimeoutEditor'],['gpio-drive-read','gpio-drive','driveEditor']]) {
       await navigate();await login();await section(resource==='gpio-drive'?'radio-pins':'time-calibration');
       await evaluate(`${editor}.invalidate();controls(online)`);
       await evaluate(`globalThis.editorRequest=radio.request.bind(radio);globalThis.editorOrder=[];radio.request=async(...args)=>{editorOrder.push(args[0]);if(args[0]==='${resource}')await new Promise(resolve=>globalThis.releaseEditor=resolve);return editorRequest(...args)}`);

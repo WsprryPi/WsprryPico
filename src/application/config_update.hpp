@@ -3,7 +3,7 @@
 
 namespace wsprrypico::application {
 inline constexpr std::size_t max_config_update_bytes = 2048;
-inline constexpr std::string_view config_update_schema = "transmitter-config-update/1";
+inline constexpr std::string_view config_update_schema = "config-update";
 enum class ConfigWrite { Legacy, Merge, Replace };
 
 Envelope validate_config_update(wtp::json::Value root, std::string_view device,

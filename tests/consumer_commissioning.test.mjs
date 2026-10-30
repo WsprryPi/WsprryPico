@@ -24,7 +24,7 @@ await run('Wi-Fi-only setup survives reboot and admits LAN login without station
    assert.equal(bytes.length,expected);assert.match(bytes.toString(),/id="local-login"/);
    const a=f.client(host);await f.login(a);
    assert.equal((await(await a.request('config')).json()).config,null);
-   assert.equal((await(await a.request('station/2')).json()).station,null);
+   assert.equal((await(await a.request('station')).json()).station,null);
    assert.equal((await(await a.request('capabilities')).json()).features.consumer_setup_identity,true);
    const status=await(await a.request('status')).json();assert.equal(status.job.output_active,false);
    assert.equal((await f.command({op:'stats'})).config_sequence,'0');
@@ -41,12 +41,12 @@ await run('Wi-Fi-only setup survives reboot and admits LAN login without station
  await f.command({op:'reboot'});await f.time(f.now+1000);
  await assert.rejects(f.login(a,'changed-wifi-password'),/password/i);
  await f.time(f.now+1000);await f.login(a,'independent-pico-password');
- assert.equal((await(await a.request('station/2')).json()).station,null);
+ assert.equal((await(await a.request('station')).json()).station,null);
  const station=await a.prepareStation(await a.identity(),{callsign:'K1ABC',locator:'FN42',powerDbm:30});
  await a.submitSetup(station);await f.time(f.now+2000);
  assert.equal((await f.command({op:'stats'})).profile_generation,station.generation);
  await f.command({op:'reboot'});await f.time(f.now+1000);await f.login(a,'independent-pico-password');
- assert.equal((await(await a.request('station/2')).json()).station.callsign,'K1ABC');
+ assert.equal((await(await a.request('station')).json()).station.callsign,'K1ABC');
 },['1'.repeat(32),'--blank']);
 await run('real network submit cancelled by authenticated retirement before delivery, stale ACK cannot start trial',async f=>{
  const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
@@ -132,10 +132,10 @@ for (const [callsign,locator,types] of [
  assert.equal(await a.checkSetup(attempt),'saved');await assert.rejects(a.submitSetup(attempt),/already sent/);
  const saved=(await (await a.request('config')).json()).config;
  assert.deepEqual(saved.station,{callsign,locator,power_dbm:30});assert.deepEqual(saved.wifi,before.wifi);assert.deepEqual(saved.pins,before.pins);assert.deepEqual(saved.schedules,before.schedules);
- const app=(await (await a.request('application/2')).json());
- assert.equal(app.schema,'transmitter-application/2');assert.deepEqual(app.wspr_plan.frame_types,types);
+ const app=(await (await a.request('application')).json());
+ assert.equal(app.schema,'application');assert.deepEqual(app.wspr_plan.frame_types,types);
  assert.equal((await a.request('application')).status,409);
  const programs=(await f.command({op:'stats'})).profile_programs;
- const refused=await a.request('station/2','PUT',{schema:'transmitter-station/2',target:app.target,station:{callsign:'K1ABC',locator:'FN42',power_dbm:30}},(await a.request('config')).headers.get('ETag'));
+ const refused=await a.request('station','PUT',{schema:'station',target:app.target,station:{callsign:'K1ABC',locator:'FN42',power_dbm:30}},(await a.request('config')).headers.get('ETag'));
  assert.equal(refused.status,409);assert.equal((await f.command({op:'stats'})).profile_programs,programs);
 });

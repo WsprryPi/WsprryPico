@@ -3,7 +3,7 @@
 This additive extension retires one explicitly selected Consumer-Radio/1 login.
 It never creates an active session, repeats an application request, changes a
 saved profile, resets Wi-Fi, or controls a job. Consumer-Radio/1 bytes and the
-closed transmitter-management/1 and /2 documents remain unchanged.
+closed management and /2 documents remain unchanged.
 
 ## Admission and discovery
 

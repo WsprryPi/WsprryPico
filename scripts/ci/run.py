@@ -14,6 +14,8 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts/ci'))
 import bundle
+sys.path.insert(0, str(ROOT / 'scripts'))
+from check_control_policy import check_files as check_control_policy
 
 
 def capture(*args):
@@ -48,12 +50,10 @@ def inputs():
     version = (os.environ['GITHUB_REF'].removeprefix('refs/tags/v') if tagged else
                os.environ.get('CI_TESTING_VERSION', '') or f'0.1.0-ci.{run_id}.{attempt}')
     if os.environ.get('CI_TESTING_VERSION'):
-        bundle.require(bundle.is_testing_version(version) and
-                       os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch' and
-                       os.environ.get('GITHUB_REF') == 'refs/heads/devel',
-                       'Testing versions require a manual devel dispatch and 0.1.0-testing.N')
+        raise ValueError('The historical 0.1.0-testing.N producer is unsupported for Control/1; use a CI build or a semantic beta/stable release')
     bundle.firmware_channel(version, dict(event=os.environ['GITHUB_EVENT_NAME'],
                             ref=os.environ['GITHUB_REF'], run_id=int(run_id), attempt=int(attempt)))
+    check_control_policy(stable_release=bundle.version_kind(version) == 'stable')
     publish = os.environ.get('CI_PUBLISH', 'false')
     latest = os.environ.get('CI_MAKE_LATEST', 'false')
     bundle.require(publish in ('true', 'false') and latest in ('true', 'false') and

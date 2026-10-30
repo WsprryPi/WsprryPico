@@ -118,7 +118,7 @@ int main() {
         send(
             endpoint,
             bound(id, "request") +
-                ",\"method\":\"GET\",\"path\":\"/api/v1/status\",\"body\":\"\",\"if_match\":\"\"}");
+                ",\"method\":\"GET\",\"path\":\"/api/control/v1/status\",\"body\":\"\",\"if_match\":\"\"}");
     };
     hello();
     request(2);

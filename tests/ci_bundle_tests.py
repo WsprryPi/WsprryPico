@@ -47,10 +47,12 @@ class TestingInputTests(unittest.TestCase):
                 def capture(*args):
                     return 'a'*40 if args[:2] == ('git', 'rev-parse') else ''
                 with self.subTest(version=version,event=event), patch.dict(os.environ,env,clear=True), \
+                     patch.object(ci_run,'check_control_policy') as control_policy, \
                      patch.object(ci_run,'capture',side_effect=capture), \
                      patch.object(ci_run.Path,'exists',return_value=False), \
                      patch.object(ci_run.subprocess,'run',return_value=SimpleNamespace(returncode=0)):
                     self.assertEqual(ci_run.inputs()[1], version)
+                    control_policy.assert_called_once_with(stable_release=bundle.version_kind(version) == 'stable')
                     with patch.object(ci_run.subprocess,'run',return_value=SimpleNamespace(returncode=1)):
                         with self.assertRaisesRegex(ValueError,'maintained'):
                             ci_run.inputs()
@@ -64,7 +66,35 @@ class TestingInputTests(unittest.TestCase):
                         with self.assertRaises(ValueError):
                             ci_run.inputs()
 
-    def test_testing_identity_is_manual_devel_only(self):
+    def test_first_stable_control_release_is_guarded_before_build(self):
+        env = dict(CI_PROFILE='consumer', CI_STREAM='release', GITHUB_RUN_ID='123',
+                   GITHUB_RUN_ATTEMPT='1', GITHUB_EVENT_NAME='push',
+                   GITHUB_REF='refs/tags/v1.0.0', GITHUB_REPOSITORY='WsprryPi/WsprryPico')
+        from check_control_policy import check_files, validate
+        policy, schema = check_files()
+        policy.update(phase='prerelease', first_release=None, schema_sha256=None)
+        def guard(stable_release):
+            validate(policy, schema, stable_release)
+        with patch.dict(os.environ, env, clear=True), patch.object(ci_run, 'check_control_policy', side_effect=guard):
+            with self.assertRaisesRegex(ValueError, 'First stable release requires'):
+                ci_run.inputs()
+
+    def test_stable_publication_refuses_prerelease_control_before_download(self):
+        from check_control_policy import check_files, validate
+        policy, schema = check_files()
+        policy.update(phase='prerelease', first_release=None, schema_sha256=None)
+        env = dict(GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REF='refs/tags/v1.0.0',
+                   GITHUB_RUN_ID='123', GITHUB_RUN_ATTEMPT='1', GITHUB_SHA='a'*40)
+        def guard(stable_release):
+            validate(policy, schema, stable_release)
+        with patch.dict(os.environ, env, clear=True), patch.object(sys, 'argv', ['publish.py', '--destination', '/unused']), \
+             patch.object(publish, 'require_authorization'), patch.object(publish, 'check_control_policy', side_effect=guard), \
+             patch.object(publish.download, 'retrieve') as retrieve:
+            with self.assertRaisesRegex(ValueError, 'First stable release requires'):
+                publish.main()
+            retrieve.assert_not_called()
+
+    def test_obsolete_testing_producer_refuses_before_build(self):
         env = dict(CI_PROFILE='consumer', CI_STREAM='devel', GITHUB_RUN_ID='123',
                    GITHUB_RUN_ATTEMPT='1', GITHUB_EVENT_NAME='workflow_dispatch',
                    GITHUB_REF='refs/heads/devel', CI_EVENT_SHA='a'*40,
@@ -73,7 +103,8 @@ class TestingInputTests(unittest.TestCase):
             return 'a'*40 if args[:2] == ('git', 'rev-parse') else ''
         with patch.dict(os.environ, env, clear=True), patch.object(ci_run, 'capture', side_effect=capture), \
              patch.object(ci_run.Path, 'exists', return_value=False):
-            self.assertEqual(ci_run.inputs()[1], '0.1.0-testing.1')
+            with self.assertRaisesRegex(ValueError, 'unsupported for Control/1'):
+                ci_run.inputs()
             for field, value in [('GITHUB_EVENT_NAME','push'), ('GITHUB_REF','refs/heads/main'),
                                  ('CI_TESTING_VERSION','0.1.0-testing.0'),
                                  ('CI_TESTING_VERSION','0.1.0-testing.1;bad'),
@@ -159,9 +190,8 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(workflow['on']['workflow_dispatch']['inputs']['publish']['default'], 'false')
         self.assertEqual(workflow['on']['workflow_dispatch']['inputs']['make_latest']['default'], 'false')
         self.assertIn("github.repository == 'WsprryPi/WsprryPico'", publisher['if'])
-        self.assertIn('!inputs.testing_version', publisher['if'])
-        self.assertEqual(workflow['jobs']['verify']['env']['CI_TESTING_VERSION'],
-                         "${{ inputs.testing_version || '' }}")
+        self.assertNotIn('testing_version', workflow['on']['workflow_dispatch']['inputs'])
+        self.assertNotIn('CI_TESTING_VERSION', workflow['jobs']['verify']['env'])
         self.assertEqual(publisher['permissions'], {'contents':'write','actions':'read'})
         self.assertEqual(publisher['concurrency']['group'], 'firmware-publication-${{ github.ref }}')
         self.assertEqual(publisher['concurrency']['queue'], 'max')

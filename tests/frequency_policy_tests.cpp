@@ -121,7 +121,7 @@ struct Fixture {
         REQUIRE(send("CLAIM", wtp::ClaimBody{std::string(32, 'a'), 30000}).ok);
     }
     network::HttpResponse call(std::string method, std::string path, std::string body = {}) {
-        network::HttpRequest request{std::move(method),
+            network::HttpRequest request{std::move(method),
                                      std::move(path),
                                      std::move(body),
                                      {{"host", "127.0.0.1:8443"},
@@ -129,7 +129,7 @@ struct Fixture {
                                       {"content-type", "application/json"},
                                       {"x-wsprrypico-request", "1"},
                                       {"if-match", api.revision()}}};
-        return api.handle(request, "cert", "127.0.0.1:8443");
+        return api.handle(network_test::control_request(request), "cert", "127.0.0.1:8443");
     }
     void fail_progress_write() {
         const auto applied = *store.config();
@@ -137,8 +137,8 @@ struct Fixture {
         const auto watermark = store.watermark();
         progress_flash.fail = true;
         const auto response =
-            call("POST", "/api/v1/progress/update",
-                 "{\"schema\":\"transmitter-progress/1\",\"target\":" +
+            call("POST", "/api/control/v1/progress/update",
+                 "{\"schema\":\"progress\",\"target\":" +
                      application::target(std::string(32, 'b'), service.status().boot_id) +
                      ",\"request_id\":\"" + id() + "\",\"fields\":{\"callsign\":\"BB1BB\"}}");
         REQUIRE(response.status == 503 && response.body.find("storage_fault") != std::string::npos);
@@ -181,7 +181,7 @@ void config_and_storage() {
     standalone::Store reloaded(f.flash);
     REQUIRE(reloaded.load() && reloaded.config()->allow_unqualified_frequency &&
             reloaded.config()->allow_non_amateur_frequency && reloaded.watermark() == watermark);
-    auto reading = f.call("GET", "/api/v1/config");
+    auto reading = f.call("GET", "/api/control/v1/config");
     REQUIRE(reading.body.find("test-password") == reading.body.npos);
     REQUIRE(wtp::json::parse(reading.body)
                 ->get("config")
@@ -191,10 +191,10 @@ void config_and_storage() {
         "{\"schema\":" + wtp::json::quote(application::station_schema) +
         ",\"target\":" + application::target(std::string(32, 'b'), f.service.status().boot_id) +
         ",\"station\":{\"callsign\":\"K1ABC\",\"locator\":\"FN42\",\"power_dbm\":20}}";
-    REQUIRE(f.call("PUT", "/api/v1/station", station).status == 200);
+    REQUIRE(f.call("PUT", "/api/control/v1/station", station).status == 200);
     REQUIRE(f.store.config()->allow_unqualified_frequency &&
             f.store.config()->allow_non_amateur_frequency);
-    REQUIRE(f.call("PUT", "/api/v1/schedules", R"({"schedules":[{"period_s":240,"phase_s":0}]})")
+    REQUIRE(f.call("PUT", "/api/control/v1/schedules", R"({"schedules":[{"period_s":240,"phase_s":0}]})")
                 .status == 200);
     REQUIRE(f.store.config()->allow_unqualified_frequency &&
             f.store.config()->allow_non_amateur_frequency);
@@ -277,7 +277,7 @@ void admission_and_revocation() {
         REQUIRE(f.raw.preparations == 0 && f.service.status().state == wtp::State::Empty);
         auto c = *f.store.config();
         c.allow_unqualified_frequency = true;
-        REQUIRE(f.call("PUT", "/api/v1/config", standalone::serialize_config(c)).status == 409);
+        REQUIRE(f.call("POST", "/api/control/v1/config/update", network_test::configuration_update(standalone::serialize_config(c))).status == 409);
         REQUIRE(!f.store.config()->allow_unqualified_frequency);
         REQUIRE(f.send("RELEASE").ok);
         f.flags(true, false);
@@ -319,7 +319,7 @@ void admission_and_revocation() {
     f.flags(false, false);
     f.claim();
     auto browser =
-        f.call("POST", "/api/v1/jobs",
+        f.call("POST", "/api/control/v1/jobs",
                "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" + f.id() +
                    "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact + '}');
     REQUIRE(browser.status == 409 && browser.body.find("FREQUENCY_REJECTED") != browser.body.npos);
@@ -327,7 +327,7 @@ void admission_and_revocation() {
     REQUIRE(f.send("RELEASE").ok);
     f.flags(true, false);
     f.claim();
-    browser = f.call("POST", "/api/v1/jobs",
+    browser = f.call("POST", "/api/control/v1/jobs",
                      "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" + f.id() +
                          "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact + '}');
     REQUIRE(browser.status == 200 && f.service.status().state == wtp::State::Loaded);
@@ -384,7 +384,7 @@ void message_frequency_policy() {
             Fixture f;
             const auto compact = body(mode, first, second);
             const auto send = [&] {
-                return f.call("POST", "/api/v1/jobs",
+                return f.call("POST", "/api/control/v1/jobs",
                               "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" +
                                   f.id() + "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact +
                                   '}');
@@ -403,7 +403,7 @@ void message_frequency_policy() {
     f.flags(true, true);
     f.claim();
     const auto compact = body("dfcw", 100000 * hz, 200000 * hz);
-    REQUIRE(f.call("POST", "/api/v1/jobs",
+    REQUIRE(f.call("POST", "/api/control/v1/jobs",
                    "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" + f.id() +
                        "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact + '}')
                 .status == 200);

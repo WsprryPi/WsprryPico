@@ -27,10 +27,9 @@ DNS-SD remains a destination hint; it supplies neither identity nor trust.
 
 ## Durable transaction, trust and boot
 
-`GET/PUT /api/v1/hostname` implements `transmitter-hostname/1`. Existing Config,
-application, capabilities and consumer identity v1 shapes are unchanged. Ordinary
-legacy/configuration saves omit this separate profile authority and preserve it.
-The strict PUT contains exactly `schema`, a full member/device/boot `target`,
+`GET/PUT /api/control/v1/hostname` implements stable schema `hostname` within
+`Wsprry-Control/1`. Ordinary configuration merges omit this separate profile
+authority and preserve it. The strict PUT contains exactly `contract`, `schema`, a full member/device/boot `target`,
 and `hostname` (full name or `null` for the hardware-derived default). It requires
 a current `If-Match` revision and the existing authenticated same-origin carrier.
 There is no hostname reset inferred from omission. Canonical no-ops consume
@@ -40,10 +39,10 @@ generation; A/B/A never revives an old revision.
 The PUT body is limited to 512 bytes. Example (use the actual target and ETag):
 
 ```json
-{"schema":"transmitter-hostname/1","target":{"scope":"member","device_id":"11111111111111111111111111111111","boot_id":"00000000000000000000000000000001"},"hostname":"pico-a.local"}
+{"contract":"Wsprry-Control/1","schema":"hostname","target":{"scope":"member","device_id":"11111111111111111111111111111111","boot_id":"00000000000000000000000000000001"},"hostname":"pico-a.local"}
 ```
 
-Readback contains exactly `schema`, `target`, `saved`, `active`, `default`,
+Readback contains exactly `contract`, `schema`, `target`, `saved`, `active`, `default`,
 `source`, `writable`, `reason`, `pending_restart`, decimal-string `generation`
 and `storage_healthy`; the ETag is the existing application revision extended
 with current profile sequence/health. Names are canonical strings; failed

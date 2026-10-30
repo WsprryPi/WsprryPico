@@ -10,17 +10,16 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
         return "\"udp-" + service_.status().boot_id + "-" + std::to_string(udp_store_->sequence()) +
                "\"";
     };
-    if (r.path == "/api/v1/udp-logging/test/capabilities") {
+    if (r.path == "/api/control/v1/udp-logging/test/capabilities") {
         if (r.method != "GET")
             return http_error(405, "method_not_allowed");
         HttpResponse out;
         out.body =
-            "{\"schema\":\"udp-logging-test-capabilities/1\",\"target\":" + target +
-            ",\"resource\":\"/api/v1/udp-logging/test\",\"request_schema\":\"udp-logging-test/"
-            "1\",\"event_code\":\"UDP_TEST\",\"maximum_rate\":2}";
+            "{\"schema\":\"udp-logging-test-capabilities\",\"target\":" + target +
+            ",\"resource\":\"/api/control/v1/udp-logging/test\",\"request_schema\":\"udp-logging-test\",\"event_code\":\"UDP_TEST\",\"maximum_rate\":2}";
         return out;
     }
-    if (r.path == "/api/v1/udp-logging/test") {
+    if (r.path == "/api/control/v1/udp-logging/test") {
         if (r.body_view().size() > 2048)
             return http_error(413, "body_too_large");
         if (r.method != "POST")
@@ -36,7 +35,7 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
         const auto root = wtp::json::parse(r.body_view(), 8);
         if (!root || !wtp::json::fields(*root, {"schema", "target"}) ||
             root->get("schema")->type() != '"' ||
-            root->get("schema")->string() != "udp-logging-test/1")
+            root->get("schema")->string() != "udp-logging-test")
             return http_error(400, "invalid_udp_test");
         const auto t = *root->get("target");
         if (!wtp::json::fields(t, {"scope", "device_id", "boot_id"}) ||
@@ -60,7 +59,7 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
         logger_->event(5, "UDP_TEST", "UDP logging test event", clock.monotonic_now_ns,
                        clock.state == wtp::ClockState::Unsynchronized ? 0 : clock.utc_now_ns);
         HttpResponse out;
-        out.body = "{\"schema\":\"udp-logging-test/1\",\"target\":" + target +
+        out.body = "{\"schema\":\"udp-logging-test\",\"target\":" + target +
                    ",\"accepted\":" + (udp_sender_->queued() > before ? "true" : "false") +
                    ",\"receipt\":\"unknown\"}";
         return out;
@@ -70,10 +69,9 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
             return http_error(405, "method_not_allowed");
         HttpResponse result;
         result.body =
-            "{\"schema\":\"udp-logging-capabilities/1\",\"target\":" + target +
-            ",\"resource\":\"/api/v1/"
-            "udp-logging\",\"settings_schema\":\"transmitter-udp-logging/"
-            "1\",\"wire_schema\":\"wsprry-udp/1\","
+            "{\"schema\":\"udp-logging-capabilities\",\"target\":" + target +
+            ",\"resource\":\"/api/control/v1/"
+            "udp-logging\",\"settings_schema\":\"udp-logging\",\"wire_schema\":\"wsprry-udp/1\","
             "\"limits\":{\"payload_bytes\":480,\"queue_records\":16,\"maximum_sources\":0,"
             "\"maximum_peers\":0,\"maximum_rate\":8,\"maximum_burst\":16,\"address_"
             "family\":\"ipv4\"}}";
@@ -95,7 +93,7 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
         if (!scheduler_.idle() || pending_transaction_)
             return http_error(409, "busy");
         const auto root = wtp::json::parse(r.body_view(), 8);
-        if (!root || application::validate_envelope(*root, "transmitter-udp-logging/1", "settings",
+        if (!root || application::validate_envelope(*root, "udp-logging", "settings",
                                                     device_, service_.status().boot_id) !=
                          application::Envelope::Valid)
             return http_error(400, "invalid_udp_logging_target_or_resource");
@@ -118,7 +116,7 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
     result.status = 200;
     result.type = "application/json";
     result.etag = tag();
-    result.body = "{\"schema\":\"transmitter-udp-logging/1\",\"target\":" + target +
+    result.body = "{\"schema\":\"udp-logging\",\"target\":" + target +
                   ",\"saved\":" + logging::udp_settings_json(udp_store_->settings()) +
                   ",\"active\":" + logging::udp_active_json(*udp_sender_, tag()) + "}";
     return result;

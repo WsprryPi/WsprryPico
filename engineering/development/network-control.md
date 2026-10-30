@@ -12,7 +12,7 @@ general physical network/RF or fleet interoperability.
 | Carrier | Authentication and availability | Operation boundary |
 | --- | --- | --- |
 | Engineering station HTTPS | TLS 1.3, client certificate fingerprint principal, certified Host/Origin, configured listener and usable UTC | Shared JSON resources; same target, revisions, validators and idle/safety gates |
-| Engineering field HTTPS | AP-scoped server TLS, password-issued Secure/HttpOnly cookie and session; existing access health/clock policy | Blank/preclock Configure denied; closed field allowlist currently excludes hostname and GET config/2 |
+| Engineering field HTTPS | AP-scoped server TLS, password-issued Secure/HttpOnly cookie and session; existing access health/clock policy | Blank/preclock Configure denied; closed field allowlist currently excludes hostname and GET config |
 | Consumer station / AP | Saved Wi-Fi passphrase, volatile Consumer-Radio/1 encrypted session bound to actual interface, Host, device/boot and profile generation | Shared JSON through encrypted wrappers only; station/Wi-Fi edits use authenticated transactional setup. HTTP page delivery remains unauthenticated |
 | USB physical management | Separate UMP1 CDC, internal physical principal; no Pico Wi-Fi/UTC prerequisite for negotiation and ordinary saves | Shared JSON plus explicit USB Wi-Fi/AP/time operations; boot/session/target binding, exact revisions, matching response ACK and finite deadline |
 
@@ -23,7 +23,7 @@ WTP, TLS-WTP and BLE WTP carry jobs without acquiring JSON administration.
 Console line commands, WTP binary frames and UMP1 frames have separate roles.
 Physical USB identity is not cryptographic device authentication.
 
-Network views advertise `transmitter-management/4`; USB selects `/5` with the additional physical carrier. The legacy `/1` discovery and legacy network projections remain closed. See [API discovery](../browser-api.md#management-carrier-discovery), [USB framing/delivery](../protocol/USB-Management.md) and [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md). HTTP effects wait for the matching complete-response acknowledgement; UMP1 effects wait for the matching resource ACK. Lost delivery cancels undelivered deferred effects, not durable saves or accepted jobs. Read authoritative saved/active state and review before another explicit mutation; never replay an uncertain write automatically.
+Every admitted network and USB carrier advertises the same `management` shape within `Wsprry-Control/1`, including five carrier rows and the actual selected carrier. Root control documents carry `contract:"Wsprry-Control/1"`; mutations require it before domain validation. Historical management generations and control views are unsupported. See [API discovery](../browser-api.md), [USB framing/delivery](../protocol/USB-Management.md) and [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md). HTTP effects wait for the matching complete-response acknowledgement; UMP1 effects wait for the matching resource ACK. Lost delivery cancels undelivered deferred effects, not durable saves or accepted jobs. Read authoritative saved/active state and review before another explicit mutation; never replay an uncertain write automatically.
 
 Source: [carrier projections](../../src/network/management.cpp),
 [TLS/interface admission](../../src/network/pico/server.cpp),

@@ -70,15 +70,15 @@ struct Member {
                                       {"content-type", "application/json"},
                                       {"x-wsprrypico-request", "1"},
                                       {"if-match", match.empty() ? api.revision() : match}}};
-        return api.handle(request, "test", "127.0.0.1:8443");
+        return api.handle(network_test::control_request(request), "test", "127.0.0.1:8443");
     }
     std::string envelope(std::string value) {
-        return "{\"schema\":\"transmitter-standalone-frequency/1\",\"target\":" +
+        return "{\"schema\":\"standalone-frequency\",\"target\":" +
                application::target(std::string(32, 'a'), service.status().boot_id) +
                ",\"frequency_hz\":" + value + "}";
     }
     network::HttpResponse frequency(std::string value) {
-        return request("PUT", "/api/v1/standalone-frequency", envelope(value));
+        return request("PUT", "/api/control/v1/standalone-frequency", envelope(value));
     }
 };
 // Independent production guard/persistence coverage; no browser gating involved.
@@ -89,44 +89,44 @@ void first_use_requires_explicit_station_application() {
     REQUIRE(progress.load());
     f.api.progress_settings(progress);
     auto request = [&](std::string method, std::string path, std::string body = "") {
-        return f.api.handle({method,
+        return f.api.handle(network_test::control_request({method,
                              path,
                              body,
                              {{"host", "127.0.0.1:8443"},
                               {"origin", "https://127.0.0.1:8443"},
                               {"content-type", "application/json"},
                               {"x-wsprrypico-request", "1"},
-                              {"if-match", f.api.revision()}}},
+                              {"if-match", f.api.revision()}}}),
                             "test", "127.0.0.1:8443");
     };
     const auto target = application::target(std::string(32, 'a'), f.service.status().boot_id);
     const auto frequency =
-        "{\"schema\":\"transmitter-standalone-frequency/1\",\"target\":" + target +
+        "{\"schema\":\"standalone-frequency\",\"target\":" + target +
         ",\"frequency_hz\":14095600}";
     REQUIRE(!f.store.config() && f.store.healthy());
-    REQUIRE(request("GET", "/api/v1/standalone-frequency").body.find("\"frequency_hz\":null") !=
+    REQUIRE(request("GET", "/api/control/v1/standalone-frequency").body.find("\"frequency_hz\":null") !=
             std::string::npos);
-    REQUIRE(request("PUT", "/api/v1/standalone-frequency", frequency).status == 409);
+    REQUIRE(request("PUT", "/api/control/v1/standalone-frequency", frequency).status == 409);
     REQUIRE(f.store.config_sequence() == 0 && !f.store.config());
     const auto draft = request(
-        "POST", "/api/v1/progress/update",
-        "{\"schema\":\"transmitter-progress/1\",\"target\":" + target + ",\"request_id\":\"" +
+        "POST", "/api/control/v1/progress/update",
+        "{\"schema\":\"progress\",\"target\":" + target + ",\"request_id\":\"" +
             std::string(32, 'd') +
             "\",\"fields\":{\"callsign\":\"AA0NT\",\"locator\":\"EM18\",\"power_dbm\":37}}");
     REQUIRE(draft.status == 200 &&
             draft.body.find("\"station_complete\":true") != std::string::npos);
     REQUIRE(draft.body.find("\"applied_station\":null") != std::string::npos);
-    const auto refused = request("PUT", "/api/v1/standalone-frequency", frequency);
+    const auto refused = request("PUT", "/api/control/v1/standalone-frequency", frequency);
     REQUIRE(refused.status == 409 && refused.body.find("not_configured") != std::string::npos);
     REQUIRE(f.store.config_sequence() == 0 && !f.store.config());
     const auto applied =
-        request("POST", "/api/v1/progress/apply",
-                "{\"schema\":\"transmitter-progress/1\",\"target\":" + target +
+        request("POST", "/api/control/v1/progress/apply",
+                "{\"schema\":\"progress\",\"target\":" + target +
                     ",\"application\":{\"draft_revision\":\"" +
                     std::to_string(progress.sequence()) + "\",\"domain\":\"station\"}}");
     REQUIRE(applied.status == 200 && f.store.config() && !f.store.config()->enabled);
     REQUIRE(!f.store.config()->wspr_dial_frequency_hz);
-    REQUIRE(request("PUT", "/api/v1/standalone-frequency", frequency).status == 200);
+    REQUIRE(request("PUT", "/api/control/v1/standalone-frequency", frequency).status == 200);
     standalone::Store reboot(f.flash);
     REQUIRE(reboot.load() && reboot.config()->wspr_dial_frequency_hz == 14095600);
     REQUIRE(!reboot.config()->enabled && !f.service.activity().owned && !f.engine.output_active());
@@ -139,12 +139,12 @@ void identity_atomicity_and_old_journal() {
     const auto boot = m.service.status().boot_id;
     wrong.replace(wrong.find(boot), boot.size(), std::string(32,'f'));
     const auto committed = *m.store.config();
-    REQUIRE(m.request("PUT", "/api/v1/standalone-frequency", wrong).status == 409);
+    REQUIRE(m.request("PUT", "/api/control/v1/standalone-frequency", wrong).status == 409);
     REQUIRE(*m.store.config() == committed);
     REQUIRE(m.frequency("14095600").status == 200);
     REQUIRE(m.frequency("3568737").status == 200);
     REQUIRE(m.api.revision() != first_revision);
-    REQUIRE(m.request("PUT", "/api/v1/standalone-frequency",m.envelope("14095600"),first_revision).status == 412);
+    REQUIRE(m.request("PUT", "/api/control/v1/standalone-frequency",m.envelope("14095600"),first_revision).status == 412);
     // The latest valid-CRC record with an unknown old member fails ordinary
     // strict parsing; the loader must not resurrect a prior enabled record.
     network_test::Flash flash;
@@ -176,15 +176,14 @@ void blocked_dial_survives_unrelated_updates() {
     config.allow_unqualified_frequency = config.allow_non_amateur_frequency = true;
     REQUIRE(m.store.save(config));
     REQUIRE(m.frequency("1000000").status == 200);
-    // Explicit replace resets the permission domain but retains the independent
-    // dial. Readback can report it blocked without erasing that saved setting.
-    const auto envelope = "{\"schema\":\"transmitter-config-update/1\",\"target\":" +
+    // Explicit false values revoke permissions without erasing the saved dial.
+    const auto envelope = "{\"schema\":\"config-update\",\"target\":" +
         application::target(std::string(32,'a'),m.service.status().boot_id) +
-        ",\"mode\":\"replace\",\"config\":" + network_test::config + "}";
-    REQUIRE(m.request("POST","/api/v1/config/update",envelope).status == 200);
+        ",\"mode\":\"merge\",\"config\":{\"allow_unqualified_frequency\":false,\"allow_non_amateur_frequency\":false}}";
+    REQUIRE(m.request("POST","/api/control/v1/config/update",envelope).status == 200);
     REQUIRE(m.store.config()->wspr_dial_frequency_hz == 1000000);
     REQUIRE(!m.store.config()->allow_unqualified_frequency && !m.store.config()->allow_non_amateur_frequency);
-    REQUIRE(m.request("GET","/api/v1/standalone-frequency").body.find("\"allowed\":false") != std::string::npos);
+    REQUIRE(m.request("GET","/api/control/v1/standalone-frequency").body.find("\"allowed\":false") != std::string::npos);
     REQUIRE(m.scheduler.command("CONFIG " + network_test::config).find("\"ok\":true") != std::string::npos);
     REQUIRE(m.store.config()->wspr_dial_frequency_hz == 1000000);
     auto changed = *m.store.config(); changed.wspr_dial_frequency_hz = 1000001;
@@ -272,14 +271,14 @@ void single_frame_and_closed_views() {
     Member m;
     REQUIRE(m.frequency("3568737").status == 200);
     const auto saved = *m.store.config();
-    for (const auto path : {"/api/v1/application", "/api/v1/application/2",
-                            "/api/v1/application/3", "/api/v1/application/4"}) {
+    for (const auto path : {"/api/control/v1/application", "/api/control/v1/application",
+                            "/api/control/v1/application", "/api/control/v1/application"}) {
         const auto r = m.request("GET", path);
         REQUIRE(r.status == 200);
         REQUIRE(r.body.find("\"schedule_dial_frequency_nhz\":\"3568737000000000\"") != std::string::npos);
         REQUIRE(r.body.find("schedule_base_frequency_nhz") == std::string::npos);
     }
-    for (const auto path : {"/api/v1/config", "/api/v1/config/2", "/api/v1/config/3", "/api/v1/config/4"}) {
+    for (const auto path : {"/api/control/v1/config", "/api/control/v1/config", "/api/control/v1/config", "/api/control/v1/config"}) {
         const auto r = m.request("GET", path);
         REQUIRE(r.status == 200 && r.body.find("wspr_dial_frequency_hz") == std::string::npos);
     }
@@ -327,12 +326,12 @@ void unset_is_nontransmitting() {
         m.scheduler.poll();
     }
     REQUIRE(m.engine.jobs.empty() && !m.store.watermark() && !m.service.activity().owned);
-    const auto read = m.request("GET", "/api/v1/standalone-frequency");
+    const auto read = m.request("GET", "/api/control/v1/standalone-frequency");
     const auto value = parse(read.body);
     REQUIRE(read.status == 200 && value->get("frequency_hz")->raw == "null");
     REQUIRE(value->get("configured")->raw == "false" && value->get("allowed")->raw == "false");
     REQUIRE(m.scheduler.status().find("\"frequency_required\":true") != std::string::npos);
-    REQUIRE(m.request("GET", "/api/v1/application/4")
+    REQUIRE(m.request("GET", "/api/control/v1/application")
                 .body.find("\"schedule_dial_frequency_nhz\":\"0\"") != std::string::npos);
     // First selection is explicit and cannot resume the inherited enabled flag.
     REQUIRE(m.frequency("14095600").status == 200);
@@ -354,24 +353,24 @@ void validation_and_preservation() {
         REQUIRE(m.frequency(std::to_string(frequency)).status == 200);
         standalone::Store reboot(m.flash);
         REQUIRE(reboot.load() && reboot.config()->wspr_dial_frequency_hz == unsigned(frequency));
-        REQUIRE(m.request("GET", "/api/v1/config/4").body.find("wspr_dial_frequency_hz") ==
+        REQUIRE(m.request("GET", "/api/control/v1/config").body.find("wspr_dial_frequency_hz") ==
                 std::string::npos);
-        REQUIRE(m.request("PUT", "/api/v1/config", network_test::config).status == 200);
+        REQUIRE(m.request("POST", "/api/control/v1/config/update", network_test::configuration_update(network_test::config)).status == 200);
         REQUIRE(m.store.config()->wspr_dial_frequency_hz == unsigned(frequency));
         REQUIRE(m.scheduler.command("CONFIG " + network_test::config).find("\"ok\":true") !=
                 std::string::npos);
         REQUIRE(m.store.config()->wspr_dial_frequency_hz == unsigned(frequency));
-        const auto supplied = parse(network_test::config);
+        const auto supplied = parse(R"({"enabled":false})");
         auto candidate = application::config_candidate(*supplied, m.store.config(),
-                                                       application::ConfigWrite::Replace);
+                                                       application::ConfigWrite::Merge);
         REQUIRE(candidate && standalone::parse_config(*candidate)->wspr_dial_frequency_hz ==
                                  unsigned(frequency));
     }
     auto wrong = m.envelope("14095600");
     wrong.replace(wrong.find(std::string(32, 'a')), 32, std::string(32, 'c'));
-    REQUIRE(m.request("PUT", "/api/v1/standalone-frequency", wrong).status == 409);
+    REQUIRE(m.request("PUT", "/api/control/v1/standalone-frequency", wrong).status == 409);
     REQUIRE(
-        m.request("PUT", "/api/v1/standalone-frequency", m.envelope("14095600"), "stale").status ==
+        m.request("PUT", "/api/control/v1/standalone-frequency", m.envelope("14095600"), "stale").status ==
         412);
     auto proposed = *m.store.config();
     proposed.wspr_dial_frequency_hz = 68'998'497;
@@ -432,7 +431,7 @@ void pair_uses_selected_frequency() {
 int main(int argc, char** argv) {
     if (argc == 2 && std::string_view(argv[1]) == "--samples") {
         Member m;
-        const auto unset = m.request("GET", "/api/v1/standalone-frequency");
+        const auto unset = m.request("GET", "/api/control/v1/standalone-frequency");
         const auto selected = m.frequency("14095600");
         std::cout << '[' << unset.body << ',' << selected.body << "]\n";
         return 0;

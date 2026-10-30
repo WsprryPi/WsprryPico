@@ -64,6 +64,8 @@ async function readOwnerProgress(fill = false) {
   const response = await fetch(host + '/api/owner/v1/progress',{cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(8000)});
   if (response.status === 404 && !ownerProgress) return false;
   const data = await response.json(), revision = response.headers.get('ETag');
+  if (data.contract !== 'Wsprry-Control/1') throw new Error('Update the Pico application before saving station settings. Your edits are preserved.');
+  delete data.contract;
   if (!response.ok || !revision || !progressUI.valid(data) || data.target.device_id !== deviceId || data.target.boot_id !== status.boot_id || epoch !== progressReadEpoch)
     throw new Error('Saved progress could not be verified. Your edits are preserved.');
   ownerProgress = {data,revision};
@@ -97,7 +99,7 @@ async function saveOwnerProgress() {
         started.browser_nonce !== browserNonce || started.browser_public_key !== b64u(pair.publicKey) ||
         started.owner_key_sha256 !== hex(sha256(ownerPublic))) throw new Error('Progress target changed.');
     const requestId = hex(random(16)), nonce = random(12);
-    const body = {schema:'transmitter-progress/1',target:ownerProgress.data.target,request_id:requestId,fields};
+    const body = {contract:'Wsprry-Control/1',schema:'progress',target:ownerProgress.data.target,request_id:requestId,fields};
     const envelope = sealSavedProgress({origin:host,deviceId,bootId:started.boot_id,slotId:started.slot_id,
       ownerPublicKey:ownerPublic,browserPublicKey:pair.publicKey,picoPublicKey:fromB64u(started.pico_public_key,32),
       browserNonce,requestId,source:status.profile_source,generation:status.generation},secret,nonce,body);
@@ -105,6 +107,8 @@ async function saveOwnerProgress() {
     sent = true; progressState = 'readback';
     const result = await request('/api/owner/v1/progress/submit',{version:1,device_id:deviceId,boot_id:started.boot_id,
       slot_id:started.slot_id,request_id:requestId,aead_nonce:b64u(nonce),...envelope});
+    if (result.contract !== 'Wsprry-Control/1') throw new Error('Save acknowledgement uses an unsupported control contract.');
+    delete result.contract;
     if (!progressUI.confirms(result,body)) throw new Error('Save acknowledgement is malformed.');
     // A separate read establishes the new common revision, never request attribution.
     const accepted = result.outcomes;
