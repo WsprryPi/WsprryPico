@@ -119,6 +119,19 @@ await run('accepted restart keeps a committed network setup blocked until actual
  assert.equal(response.status,409);const after=await f.command({op:'stats'});assert.equal(after.network_slot,0);assert.equal(after.profile_programs,committed.profile_programs);
 });
 
+await run('retained consumer profile and authenticated management policy agree after reboot',async f=>{
+ await f.command({op:'generation'});
+ const before=(await f.command({op:'stats'})).profile_generation;
+ assert.ok(BigInt(before)>1n);
+ await f.command({op:'reboot'});await f.time(2000);
+ const client=f.client();await f.login(client);await client.readPolicy();
+ assert.equal(client.authenticated,true);
+ const policy=await (await client.request('management')).json();
+ assert.equal(policy.profile_generation,client.identityContext.generation);
+ assert.equal(policy.profile_generation,before);
+ assert.equal(policy.target.boot_id,client.identityContext.boot_id);
+});
+
 for (const [callsign,locator,types] of [
   ['AA0NT/12','EM18',['type2']],['<AA0NT>','EM18IG',['type3']],
   ['PJ4/AA0NT','EM18IG',['type2','type3']],['W1A/AA0NT','EM18IG',['type2','type3']],['<W1A/AA0NT>','EM18IG',['type3']],['<AA0NT/12>','EM18IG',['type3']]

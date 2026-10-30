@@ -299,6 +299,10 @@ struct Driver {
                                +[](const tcp_pcb* p, void*) { return p->interface == 1; }, this};
     bool page_setup = true;
     void poll_server() {
+        // Match the firmware loop: profile writes and reboot reloads must be
+        // reflected in the authenticated descriptor before the next request.
+        f.api.management_availability(
+            {ManagementProfile::Consumer, runtime.generation(), true, false, false, true, true});
         server.poll(true, true, page_setup, true, true);
     }
     unsigned connections() const {
@@ -310,6 +314,10 @@ struct Driver {
 #else
     PicoHttpServer server{this, classify, handle, finish};
     void poll_server() {
+        // Match the firmware loop: profile writes and reboot reloads must be
+        // reflected in the authenticated descriptor before the next request.
+        f.api.management_availability(
+            {ManagementProfile::Consumer, runtime.generation(), true, false, false, true, true});
         server.poll();
     }
     unsigned connections() const {
@@ -396,7 +404,7 @@ struct Driver {
                         runtime.consumer_browser_selected(profiles));
         radio.listeners(true, "192.168.1.53", hostname);
         f.api.management_availability(
-            {ManagementProfile::Consumer, 1, true, false, false, true, true});
+            {ManagementProfile::Consumer, runtime.generation(), true, false, false, true, true});
         for (auto& pcb : sockets)
             pcb.closed = true;
         if (saved_access)
