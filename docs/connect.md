@@ -26,7 +26,7 @@ Setup Wi-Fi stays available while your phone or computer is connected to it. Aft
 
 **Manual** and **Getting started** open the operator manual. **Help** beside a section heading or group opens the relevant instructions in a separate tab. Help is available while controls are locked and section headings are collapsed. It does not save settings, unlock controls or stop transmissions. Keep the Pico tab open to retain unsaved entries and selected files.
 
-Main firmware links to the **main** manual; development firmware links to **devel**. Online help needs Internet access; the setup Wi-Fi network may not provide it. Opening the Pico page, setup and normal operation do not require access to the documentation site. Reconnect to an Internet-connected network or use another device to read the manual if necessary.
+Main firmware and final releases link to the **main** manual; development firmware and prereleases link to **devel**. Online help needs Internet access; the setup Wi-Fi network may not provide it. Opening the Pico page, setup and normal operation do not require access to the documentation site. Reconnect to an Internet-connected network or use another device to read the manual if necessary.
 
 ## Open the control page
 

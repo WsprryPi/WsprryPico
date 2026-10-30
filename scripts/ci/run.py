@@ -177,7 +177,10 @@ def host_checks(deps, audit):
 
 def documentation_version():
     stream = bundle.build_stream(os.environ.get('GITHUB_EVENT_NAME'), os.environ.get('GITHUB_REF'))
-    return 'main' if stream in ('main', 'release') else 'devel'
+    if stream == 'release':
+        release_version = os.environ['GITHUB_REF'].removeprefix('refs/tags/v')
+        return 'main' if bundle.version_kind(release_version) == 'stable' else 'devel'
+    return 'main' if stream == 'main' else 'devel'
 
 
 def firmware(deps, audit, identifier, version):

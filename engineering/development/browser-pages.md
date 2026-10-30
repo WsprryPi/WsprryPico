@@ -103,7 +103,8 @@ explicit no-referrer policy. The asset generator resolves the single fixed
 use `/en/devel/`. `WSPRRY_PICO_DOCUMENTATION_VERSION` accepts only `main` or
 `devel`, or `auto` for local builds; local CMake defaults main checkouts to main and other development
 checkouts to devel. Canonical CI selects the actual validated stream explicitly,
-including detached main sources; tagged releases use main. Device
+including detached main sources; prerelease tags use devel and final release
+tags use main. Device
 input, firmware versions and control majors do not select URLs. No runtime help
 loader, remote requests on page load, or shared component interface is involved.
 CSP and control admission remain unchanged. Links inside native summaries are
