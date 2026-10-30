@@ -110,6 +110,7 @@ def host_checks(deps, audit):
     options = {
         'CMAKE_BUILD_TYPE': 'Debug', 'WSPRRY_PICO_BUILD_TESTS': 'ON',
         'WSPRRY_PICO_BUILD_FIRMWARE': 'OFF',
+        'WSPRRY_PICO_DOCUMENTATION_VERSION': documentation_version(),
         'WSPRRY_PICO_TEST_MBEDTLS_PATH': deps / 'sdk/lib/mbedtls',
         'WSPRRY_PICO_TEST_LWIP_PATH': deps / 'sdk/lib/lwip',
         'WSPRRY_PICO_TEST_CYW43_PATH': deps / 'sdk/lib/cyw43-driver',

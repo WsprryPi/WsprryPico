@@ -22,7 +22,9 @@ export async function checkContextualHelp({evaluate,send,key,section,helpWindows
       await key('Enter');
     }
     assert.equal(helpWindows.length,before+1,activation+' opens native popup');
-    assert.equal(helpWindows.at(-1).url,'https://wsprrypico.readthedocs.io/en/devel/configure.html#wspr-configuration');
+    assert.match(helpWindows.at(-1).url,/^https:\/\/wsprrypico\.readthedocs\.io\/en\/(main|devel)\/configure\.html#wspr-configuration$/);
+    const version=new URL(helpWindows.at(-1).url).pathname.split('/')[2];
+    assert.equal(await evaluate(`[...document.querySelectorAll('a.documentation-help')].every(a=>new URL(a.href).pathname.startsWith('/en/${version}/'))`),true,'one maintained manual version across the shipped page');
     const targets=await send('Target.getTargets');
     for(const target of targets.targetInfos) if(target.openerId)await send('Target.closeTarget',{targetId:target.targetId});
     assert.equal(await evaluate(`JSON.stringify({hash:location.hash,state:history.state,area:document.getElementById('station-area').hidden,open:[...document.querySelectorAll('details')].map(e=>e.open)})===helpSnapshot && document.getElementById('message-frequency').value==='invalid raw draft' && document.getElementById('job-file').files[0]===helpFile`),true,'native help preserves drafts, selected file, History and collapsed state');
