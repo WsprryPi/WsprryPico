@@ -602,10 +602,7 @@
         },
         "api": {
           "const": [
-            "transmitter-application/3",
-            "transmitter-hardware/2",
-            "transmitter-progress/2",
-            "transmitter-gpio-drive/1"
+            "Wsprry-Control/1"
           ]
         },
         "storage": {
@@ -621,11 +618,28 @@
           }
         },
         "companion": {
-          "const": {
-            "software_tested_revision": "c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf",
-            "historical_drive_acceptance_pico": "d6de1f3cf14dc49266c4401c3bca91b8ce9da688",
-            "historical_drive_acceptance_pi": "fe701cf4c2b05e46cb84927188984084503d1cea",
-            "physical_release_pair_tested": false
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "software_tested_revision",
+            "historical_drive_acceptance_pico",
+            "historical_drive_acceptance_pi",
+            "physical_release_pair_tested"
+          ],
+          "properties": {
+            "software_tested_revision": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "historical_drive_acceptance_pico": {
+              "const": "d6de1f3cf14dc49266c4401c3bca91b8ce9da688"
+            },
+            "historical_drive_acceptance_pi": {
+              "const": "fe701cf4c2b05e46cb84927188984084503d1cea"
+            },
+            "physical_release_pair_tested": {
+              "const": false
+            }
           }
         },
         "recipe": {

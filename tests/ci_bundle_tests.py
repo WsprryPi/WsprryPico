@@ -499,6 +499,21 @@ class BundleTests(unittest.TestCase):
         manifest_path.write_text(json.dumps(manifest))
         self.reseal()
 
+    def test_testing_metadata_uses_current_control_and_bound_companion(self):
+        from jsonschema import Draft202012Validator
+        metadata = bundle.testing_metadata(self.source)
+        self.assertEqual(metadata['api'], ['Wsprry-Control/1'])
+        schema = json.loads(bundle.SCHEMA.read_text())['properties']['testing_release']
+        Draft202012Validator(schema).validate(metadata)
+        # The schema checks a closed SHA-shaped record; source-aware verification
+        # binds that revision to the exact pinned companion rather than a stale
+        # schema literal. A well-shaped foreign revision must still fail.
+        self.testing_fixture()
+        self.mutate_manifest(lambda m: m['testing_release']['companion'].update(
+            software_tested_revision='f' * 40))
+        with self.assertRaisesRegex(ValueError, 'Testing release metadata mismatch'):
+            self.verify()
+
     def test_testing_manifest_requires_exact_metadata_and_manual_devel(self):
         from jsonschema import ValidationError
         self.testing_fixture()
