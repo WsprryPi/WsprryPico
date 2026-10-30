@@ -30,7 +30,7 @@ async function serve(req,res){
           const chunks=[];for await(const b of req)chunks.push(b);
           const result=await f.command({op:'engineering_request',path:u.pathname,method:req.method,b64:Buffer.concat(chunks).toString('base64url'),match:req.headers['if-match']||''});
           let wire=Buffer.from(result.wire,'hex');
-          if(/^\/api\/v1\/progress\/update(?:\/[23])?$/.test(u.pathname)) {
+          if(/^\/api\/control\/v1\/progress\/update$/.test(u.pathname)) {
             if(engineeringFault==='future') {engineeringFault=null;const split=wire.indexOf('\r\n\r\n');const body=JSON.parse(wire.subarray(split+4));body.schema='progress9';wire=Buffer.concat([wire.subarray(0,split+4),Buffer.from(JSON.stringify(body))]);}
             if(engineeringFault==='hold') {engineeringFault=null;heldReply=true;await new Promise(resolve=>releaseReply=resolve);heldReply=false;}
           }
@@ -108,7 +108,7 @@ try {
     await until(()=>cdp.evaluate(`localAuthenticated && !busy`),'actual browser login');
     await cdp.evaluate('WsprryPicoSections.recovery()');
     await click('read-saved');
-    await until(()=>cdp.evaluate(`applicationVersion===2 && writeState==='review' && !busy`),'versioned saved-state readback');
+    await until(()=>cdp.evaluate(`savedReadback?.application?.schema==='application' && savedReadback?.progress?.schema==='progress' && writeState==='review' && !busy`),'canonical application and progress saved-state readback');
     await click('review-saved');
     await until(()=>cdp.evaluate(`writeState==='ready' && !busy && !document.getElementById('consumer-station-settings').disabled`),'review enables editing');
     assert.equal(await cdp.evaluate(`savedProgress.data.schema`),'progress');

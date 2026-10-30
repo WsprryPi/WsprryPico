@@ -84,7 +84,7 @@ await run('recurring message profile uses authenticated encrypted management and
 await run('separate Pico password persists, rejects stale saves and retires all browser logins',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   const read=await a.request('consumer/password'),state=await read.json();
-  assert.equal(state.schema,'pico-password/1');assert.equal(state.wifi_default,true);
+  assert.equal(state.contract,'Wsprry-Control/1');assert.equal(state.schema,'pico-password');assert.equal(state.wifi_default,true);
   const etag=read.headers.get('etag'),body={schema:state.schema,target:state.target,password:'private-pico-password'};
   assert.equal((await a.request('consumer/password','PUT',body)).status,428);
   assert.equal((await a.request('consumer/password','PUT',body,'"stale"')).status,412);
