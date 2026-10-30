@@ -291,6 +291,28 @@ void standalone_request_lifetime_admission(bool retained_history = false) {
     TestIdentity identity;
     JobService service(clock, engine, identity);
     standalone::Scheduler scheduler(store, service);
+    const auto complete_occurrence = [&] {
+        clock.now += 5'000'000'000ULL;
+        scheduler.poll();
+        assert(service.status().state == State::Complete && !service.status().owner_id);
+        clock.now += 115'000'000'000ULL;
+    };
+    const unsigned warmup = retained_history ? 16 : 0;
+    // Prime the host library's deque storage before measuring retained payloads.
+    // libc++ allocates larger blocks lazily, unlike libstdc++'s initial storage.
+    // Expire every warmup record so all measured history payloads still consume
+    // the fixed 4 KiB allowance; no measured occurrence resets the capacity.
+    for (unsigned occurrence = 0; occurrence != warmup; ++occurrence) {
+        scheduler.poll();
+        assert(service.status().state == State::Armed);
+        assert(engine.preparations == occurrence + 1);
+        complete_occurrence();
+    }
+    if (warmup) {
+        clock.now += service.config().terminal_record_ttl_ns;
+        service.poll();
+        assert(service.status().state == State::Empty && service.status().terminal_records.empty());
+    }
     admission_origin = std::numeric_limits<std::size_t>::max();
     admission_extra = retained_history ? 4096 : 0;
     for (unsigned occurrence = 0; occurrence != (retained_history ? 16 : 2); ++occurrence) {
@@ -304,13 +326,10 @@ void standalone_request_lifetime_admission(bool retained_history = false) {
                       << scheduler.last_load_stage() << ", free "
                       << scheduler.last_load_free_after() << '\n';
         assert(service.status().state == State::Armed);
-        assert(engine.preparations == occurrence + 1);
-        clock.now += 5'000'000'000ULL;
-        scheduler.poll();
-        assert(service.status().state == State::Complete && !service.status().owner_id);
+        assert(engine.preparations == warmup + occurrence + 1);
+        complete_occurrence();
         assert(service.status().terminal_records.size() ==
                std::min<std::size_t>(occurrence + 1, service.config().terminal_record_entries));
-        clock.now += 115'000'000'000ULL;
     }
 }
 } // namespace
@@ -355,8 +374,7 @@ int main() {
         // request may prune sessions and hide a missing idle-poll cleanup.
         watch_principal = true;
         const auto allocations_before_poll = heap_calls;
-        quiet_clock.monotonic_ns =
-            admitted_at + quiet_service.config().response_cache_ttl_ns - 1;
+        quiet_clock.monotonic_ns = admitted_at + quiet_service.config().response_cache_ttl_ns - 1;
         quiet_service.poll();
         assert(expired_principal_frees == 0 && heap_calls == allocations_before_poll);
         ++quiet_clock.monotonic_ns;
