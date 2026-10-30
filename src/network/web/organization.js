@@ -8,16 +8,18 @@
     ['connection-section','wifi-host'],['saved-settings','station'],['device-diagnostics','station']
   ]);
   const aliases = new Map([
-    ['consumer-setup','saved-settings'],['hostname-form','hostname-section'],
+    ['hostname-form','hostname-section'],
     ['engineering-station-form','station-identity'],['consumer-station-form','station-identity'],
     ['radio-settings-heading','radio-settings'],['job-heading','message-section'],
     ['station-area','station-identity'],['wifi-host-area','wifi-settings']
   ]);
+  const setupSection = () => (consumerAttempt?.kind || setupResultKind) === 'network' ? 'wifi-settings' : 'station-identity';
+  const pendingSection = () => consumerAttempt ? setupSection() : returnReceipt ? 'hostname-section' : 'saved-settings';
   const receipt = () => /^#(?:save|hostname-return)=/.test(location.hash);
   const stateKey = 'wsprrypicoPresentation';
   function fragment() {
     if (receipt() || location.hash.length > 100) return null;
-    try { const id=decodeURIComponent(location.hash.slice(1)); return sections.has(id) || id==='top' ? id : aliases.get(id) || null; }
+    try { const id=decodeURIComponent(location.hash.slice(1)); return sections.has(id) || id==='top' ? id : id==='consumer-setup' ? setupSection() : aliases.get(id) || null; }
     catch { return null; }
   }
   function setArea(area) {
@@ -29,6 +31,7 @@
   function closePopovers() { utcEditors.forEach(editor=>editor.close()); }
   function reveal(node, focus = false) {
     if (!node) return;
+    if (node === $('saved-settings')) showSettingsRecovery();
     const area=node.closest?.('[data-task-area]')?.getAttribute('data-task-area');
     if (area) setArea(area);
     for (let parent=node; parent; parent=parent.parentElement) if (parent.tagName === 'DETAILS') parent.open=true;
@@ -38,6 +41,7 @@
     }
   }
   function top() {
+    settingsReviewRequested = false; renderSettingsRecovery();
     closePopovers();
     $('device-name').focus({preventScroll:true});
     for (const id of sections.keys()) {
@@ -51,11 +55,11 @@
     const saved=history.state?.[stateKey];
     const id=fragment() || (receipt() && (sections.has(saved?.section) || saved?.section==='top') ? saved.section : null);
     const savedArea=['station','wifi-host'].includes(saved?.area)?saved.area:null;
-    const area=sections.get(id) || savedArea || (location.pathname==='/wifi-host' ? 'wifi-host' : 'station');
+    const area=sections.get(id) || (receipt() && !savedArea ? sections.get(pendingSection()) : savedArea) || (location.pathname==='/wifi-host' ? 'wifi-host' : 'station');
     setArea(area);
-    if (id==='top') { if(focus) top(); else if(receipt()) reveal($('saved-settings')); }
+    if (id==='top') { if(focus) top(); else if(receipt()) reveal($(pendingSection())); }
     else if (id) reveal($(id),focus);
-    else if (receipt() && !savedArea) reveal($('saved-settings'));
+    else if (receipt() && !savedArea) reveal($(pendingSection()));
   }
   function navigate(id,area,path) {
     closePopovers();
@@ -75,13 +79,13 @@
     }
   }
   for (const link of document.querySelectorAll('a[href]')) {
-    const href=link.getAttribute('href');
-    if (!href || !/^(?:\/station|\/wifi-host|#)/.test(href)) continue;
-    const [path,hash]=href.split('#');
-    const id=sections.has(hash) || hash==='top' ? hash : aliases.get(hash);
-    if (hash && !id || path && !['/station','/wifi-host'].includes(path)) continue;
+    if (!/^(?:\/station|\/wifi-host|#)/.test(link.getAttribute('href') || '')) continue;
     link.addEventListener('click',event=>{
       if(event.button!==0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      // Pending result links can move between station and Wi-Fi after load.
+      const [path,hash]=(link.getAttribute('href') || '').split('#');
+      const id=sections.has(hash) || hash==='top' ? hash : hash==='consumer-setup' ? setupSection() : aliases.get(hash);
+      if (hash && !id || path && !['/station','/wifi-host'].includes(path)) return;
       event.preventDefault();
       const area=sections.get(id) || (path ? path==='/wifi-host' ? 'wifi-host' : 'station' : station.hidden ? 'wifi-host' : 'station');
       navigate(id || null,area,path || (area==='wifi-host' ? '/wifi-host' : '/station'));
@@ -97,11 +101,11 @@
       }
     });
   }
-  globalThis.WsprryPicoSections={reveal,top,recovery:()=>reveal($('saved-settings'))};
+  globalThis.WsprryPicoSections={reveal,top,recovery:()=>reveal($('saved-settings')),setup:()=>reveal($(pendingSection()))};
   addEventListener('popstate',()=>restore(true));
   addEventListener('hashchange',()=>restore(true));
   restore(Boolean(fragment()));
-  if(consumerAttempt || returnReceipt) reveal($('saved-settings'));
+  if(consumerAttempt || returnReceipt) reveal($(pendingSection()));
 
   for (const kind of ['station','network']) {
     const form = $('engineering-' + kind + '-form');

@@ -86,7 +86,7 @@ function clearPrivateStatus() {
   timingEditor?.invalidate(); filterEditor?.invalidate(); filterSaved=null; calibrationEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); driveEditor?.invalidate(); frequencyEditor?.invalidate();
   for(const id of ['rf-calibration-status','ntp-timeout-status','gpio-drive-status','gpio-drive-draft-status','standalone-frequency-status']) consolePut(id,'Controls locked. Read this setting again after unlocking; your entry is preserved.');
   $('draft-comparison').replaceChildren();
-  requireReadback();
+  requireReadback(Boolean(saveAttempt));
 }
 function renderConsole() {
   if (!operationsSnapshot) return;
@@ -199,7 +199,7 @@ function beginLocalLock() {
   ++accessEpoch; ++observationEpoch; ++publicStatusEpoch;
   localAuthenticated=false; localLocked=true;
   cancelReconnect(); markTitleStale(); clearPasswords(); clearPrivateStatus();
-  snapshot=null; requireReadback(); controls(false);
+  snapshot=null; requireReadback(Boolean(saveAttempt)); controls(false);
 }
 async function finishLock() {
   if(!accessClosing || busy) return;
@@ -231,6 +231,7 @@ async function refreshPublicStatus() {
 let messageScheduleReadback=null, messageScheduleUncertain=false;
 let engineeringStationDirty = false, engineeringNetworkDirty = false;
 let writeState = 'readback', savedReadback = null, saveAttempt = null, retirementDiscovery = null;
+let settingsRecoveryNeeded = false, settingsReviewRequested = false;
 
 if ($('standalone-frequency-form')) $('standalone-frequency-form').onsubmit = event => event.preventDefault();
 const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-frequency') ? WsprryStandaloneFrequency.create({
@@ -509,13 +510,36 @@ function checkedConfig(result, allowNull = true) {
   }
   return result.data.config;
 }
-function requireReadback() {
-  if(saveAttempt || consumerAttempt || returnReceipt) { globalThis.WsprryPicoSections?.recovery(); $('recovery-reveal').hidden=false; }
+function renderSettingsRecovery() {
+  const visible = settingsRecoveryNeeded || settingsReviewRequested;
+  $('saved-settings').hidden = !visible;
+  $('recovery-reveal').hidden = !visible;
+  $('settings-recovery-access').hidden = !visible || controlsUnlocked();
+  $('review-saved').hidden = writeState !== 'review' || !savedReadback;
+  $('saved-readback-details').hidden = writeState !== 'review' || !savedReadback;
+  $('read-saved').textContent = writeState === 'review' ? 'Read saved settings again' : 'Review saved settings';
+  $('read-saved').classList.toggle('primary',writeState !== 'review');
+  $('review-saved').classList.toggle('primary',true);
+}
+function showSettingsRecovery(required = false) {
+  if (required) settingsRecoveryNeeded = true;
+  settingsReviewRequested = true;
+  if (required && savedReadback && writeState === 'review') $('saved-readback-details').open = true;
+  if (!$('save-reconcile-status').textContent)
+    $('save-reconcile-status').textContent = 'Read the Pico’s saved settings to compare them with your entries. Reading does not save or discard edits.';
+  renderSettingsRecovery();
+}
+function requireReadback(showRecovery = true, reveal = showRecovery) {
   if (saveAttempt) saveAttempt.reviewRequired = true;
   writeState = 'readback'; revision = ''; savedReadback = null;
   $('saved-readback-details').hidden = true;
-  $('saved-active-status').textContent = 'Saved and active observations need fresh readback.';
-  $('save-reconcile-status').textContent = 'Saved-state readback required. Your draft is preserved. A status refresh or login cannot confirm an interrupted save.';
+  $('saved-active-status').textContent = '';
+  if (showRecovery) settingsRecoveryNeeded = true;
+  if (settingsRecoveryNeeded)
+    $('save-reconcile-status').textContent = 'Review saved settings before another save. Your browser edits are preserved; no save has been repeated.';
+  else $('save-reconcile-status').textContent = '';
+  renderSettingsRecovery();
+  if (showRecovery && reveal) globalThis.WsprryPicoSections?.recovery();
 }
 function showDraftComparison() {
   const output = $('draft-comparison');
@@ -569,8 +593,8 @@ function showDraftComparison() {
     output.append(node('p','A new Wi-Fi password is entered in this browser. Password values are hidden from this comparison.'));
   output.append(node('p',(p ? 'Omitted progress fields use the complete saved settings; cleared fields remain distinct.' : 'Saved progress was not observed.') + ' GPIO drive, carrier calibration and the NTP timeout have separate readback controls.'));
 }
-async function readSavedKeepingDraft() {
-  requireReadback();
+async function readSavedKeepingDraft(showRecovery = true, reveal = showRecovery) {
+  requireReadback(showRecovery,reveal);
   const before = await readApplication();
   const saved = await api('config');
   const progress = await readProgress();
@@ -587,35 +611,40 @@ async function readSavedKeepingDraft() {
   $('saved-readback').textContent = JSON.stringify({saved_config:config,saved_progress:progress?.data || null,application_at_last_read:after.data},null,2);
   $('saved-readback').hidden = false; writeState = 'review';
   $('saved-readback-details').hidden = false;
+  if (showRecovery) $('saved-readback-details').open = true;
   const h = after.data.hardware;
   const pins = p => p === null || !p ? 'Unknown / unavailable' : `RF GP${p.rf_gp}; switch ${p.button_gp === null ? 'disabled' : 'GP' + p.button_gp}; indicator ${p.indicator}; amplifier ${p.amplifier_gp === null ? 'disabled' : 'GP' + p.amplifier_gp + (p.amplifier_active_high === false ? ' active-low' : ' active-high')}`;
   $('saved-active-status').textContent = `Saved pins: ${pins(h?.saved)}. Active pins: ${pins(h?.active)}. ` +
     (h?.pending_restart === true ? 'Saved pins require restart. ' : h?.pending_restart === false ? 'No pin restart is pending. ' : 'Restart requirement is unconfirmed. ') +
     (h?.storage_healthy === false ? 'Storage fault. ' : '') + (h?.application_error ? `Application fault: ${h.application_error}. ` : '') +
     (after.data.station?.storage_healthy === false ? 'Station storage fault.' : '');
-  $('save-reconcile-status').textContent = 'Current saved settings are shown below. Your draft is unchanged. Review differences before enabling a new explicit save. Matching values do not prove which earlier request saved them.';
+  $('save-reconcile-status').textContent = 'Compare your entries with the saved values below, then confirm your review. Reading these settings has not saved your edits.';
+  renderSettingsRecovery();
 }
 async function reconcileConfirmedSettings(result,target,message) {
   // Only adopt the exact revision acknowledged by this explicit save. A later
   // writer or changed boot still needs the operator's saved-state review.
   const earlierReviewRequired = saveAttempt?.reviewRequired === true;
   try {
-    await readSavedKeepingDraft();
+    await readSavedKeepingDraft(false);
     if (earlierReviewRequired) {
+      showSettingsRecovery(true);
       $('save-reconcile-status').textContent = 'The save succeeded. An earlier settings save still needs review; review the current saved settings before another save. Your edits are preserved.';
       return false;
     }
     if (savedReadback.revision !== result.revision || JSON.stringify(savedReadback.target) !== JSON.stringify(target)) {
+      showSettingsRecovery(true);
       $('save-reconcile-status').textContent = 'The save succeeded, but the Pico or its saved settings changed afterward. Review the current saved settings before another save. Your edits are preserved.';
       return false;
     }
     revision = savedReadback.revision; currentConfig = savedReadback.config; writeState = 'ready';
-    saveAttempt = null;
-    $('save-reconcile-status').textContent = message;
+    saveAttempt = null; settingsRecoveryNeeded = settingsReviewRequested = false;
+    $('save-reconcile-status').textContent = '';
+    renderSettingsRecovery();
     return true;
   } catch (_) {
     requireReadback();
-    $('save-reconcile-status').textContent = 'The save succeeded, but current settings could not be read back. Choose Read saved settings and keep draft, then review them before another save. Your edits are preserved.';
+    $('save-reconcile-status').textContent = 'The save succeeded, but current settings could not be read back. Choose Review saved settings, then confirm your review before another save. Your edits are preserved.';
     return false;
   }
 }
@@ -631,6 +660,29 @@ function readSetupReceipt(hash) {
   } catch (_) { return null; }
 }
 let consumerAttempt = radio ? readSetupReceipt(globalThis.location?.hash) : null, consumerSetupDirty = false, consumerNetworkDirty = false;
+let setupResultKind = consumerAttempt?.kind || null;
+function renderSetupResult() {
+  const kind = consumerAttempt?.kind || setupResultKind;
+  const pending = Boolean(consumerAttempt);
+  const panel = $('consumer-setup');
+  panel.hidden = !radio || !kind;
+  if (kind) {
+    const host = $(kind === 'network' ? 'network-save-result' : 'station-save-result');
+    if (panel.parentElement !== host) host.append?.(panel);
+  }
+  $('consumer-save-recovery').hidden = !pending;
+  $('setup-recovery-access').hidden = !pending || controlsUnlocked();
+  $('setup-result-reveal').hidden = !pending;
+  $('setup-result-reveal').href = kind === 'network' ? '/wifi-host#wifi-settings' : '/station#station-identity';
+  $('setup-result-reveal').textContent = kind === 'network' ? 'Check Wi-Fi save' : 'Check station save';
+  const n = snapshot?.network;
+  $('consumer-return').hidden = !pending || kind !== 'network';
+  if (pending && kind === 'network')
+    $('consumer-return').textContent = n?.ipv4 && n.ipv4 !== '0.0.0.0'
+      ? 'If the Pico reconnected, open http://' + (n.configured_hostname || n.ipv4) + '/ or http://' + n.ipv4 + '/ on the saved Wi-Fi, then unlock controls to check the save.'
+      : 'Reconnect to the saved Wi-Fi and open the Pico’s current address, then unlock controls to check the save.';
+}
+
 function setupReceiptHash() {
   if (!consumerAttempt) return '';
   const {kind,device,generation,digest} = consumerAttempt;
@@ -644,6 +696,7 @@ function updateSetupReceipt() {
   const usable = typeof hostname === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.local$/.test(hostname);
   $('consumer-resume').hidden = !hash || !usable;
   if (hash && usable) $('consumer-resume').href = 'http://' + hostname + '/' + hash;
+  renderSetupResult();
 }
 const notice = (text, error = false) => { $('notice').hidden = !text; $('notice').textContent = text; $('notice').classList.toggle('error', error); };
 async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyObservation = false) {
@@ -716,7 +769,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
       invalid_station:'Check the callsign, locator (A–R fields, two digits, optional A–X subsquare) and exact supported reported WSPR power',
       unsupported_station_encoding:'The Pico cannot encode this complete station. Check affix lengths, brackets and six-character locator requirements. Your draft is preserved'
     };
-    if(localIdentity && !radio && response.status===401) { localAuthenticated=false; localLocked=true; clearPrivateStatus(); clearPasswords(); requireReadback(); controls(false); }
+    if(localIdentity && !radio && response.status===401) { localAuthenticated=false; localLocked=true; clearPrivateStatus(); clearPasswords(); requireReadback(Boolean(saveAttempt)); controls(false); }
     let message = explanation[code] || code || 'Request rejected';
     if (code === 'message_duration_limit_exceeded') message = 'Calculated duration: ' + durationText(BigInt(data.calculated_duration_ns)) + '. Maximum: ' + durationText(BigInt(data.max_job_duration_ns));
     if (code === 'message_event_limit_exceeded') message = data.calculated_events + ' events exceed the device limit of ' + data.max_events + '. Reduce repetition or use a simpler message';
@@ -808,7 +861,8 @@ function controls(connected) {
   timingEditor?.setAvailability(!!connected && !!snapshot, !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   ntpTimeoutEditor?.setAvailability(!!connected && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = busy;
-  $('reload-config').disabled = busy || !online;
+  $('settings-actions').hidden = !unlocked;
+  $('reload-config').disabled = busy || !online || !unlocked;
   const idle = online && unlocked && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
   $('settings').disabled = busy || !idle;
   for (const area of ['station','network']) {
@@ -824,7 +878,7 @@ function controls(connected) {
   $('login-recovery').hidden = !radio;
   $('inspect-logins').disabled = busy;
   $('retire-login').disabled = busy || !retirementDiscovery || !$('retirement-target').value;
-  $('consumer-setup').hidden = !radio;
+  renderSetupResult();
   $('consumer-network-settings').disabled = busy || !idle || !localAuthenticated || Boolean(consumerAttempt);
   $('consumer-station-settings').disabled = $('consumer-network-settings').disabled;
   $('consumer-check-save').disabled = busy || !localAuthenticated || !consumerAttempt;
@@ -860,11 +914,11 @@ function controls(connected) {
 
   if ($('schedule-save-help')) $('schedule-save-help').textContent = !unlocked ? '' : !online ? 'Sign in and refresh status before changing schedules.' :
     busy ? 'Waiting for the current request to finish.' : !idle ? 'Wait for inactive output and released control before saving schedules.' :
-    writeState === 'readback' ? 'Before another save, choose Read saved settings and keep draft in Saved settings and recovery below. Your checkbox edit is preserved.' :
-    writeState === 'review' ? 'Review the comparison in Saved settings and recovery below, then choose I reviewed saved settings; enable a new save. Your checkbox edit is preserved.' :
+    writeState === 'readback' ? 'Before another save, choose Review saved settings. Your checkbox edit is preserved.' :
+    writeState === 'review' ? 'Review the comparison, then choose I reviewed these settings; enable saving. Your checkbox edit is preserved.' :
     'Save WSPR configuration stores your edits as a draft. Apply WSPR configuration makes the saved schedule active. Checking or unchecking the box alone does not change the Pico.';
   for (const id of passwordFields) setPasswordVisible(id,$(id).type === 'text');
-  renderAccess();
+  renderAccess(); renderSettingsRecovery();
 }
 function fill(c, network = c?.wifi) {
   currentConfig = c; dirty = false;
@@ -909,7 +963,7 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
     if(!settingsLoadedBoot) loadConfig=true;
   }
   ++publicStatusEpoch;
-  if (loadConfig) requireReadback();
+  if (loadConfig) requireReadback(false);
   const identityRequest = pageIdentity.request();
   // Keep this browser sequential so the other admitted client can progress.
   try {
@@ -964,7 +1018,6 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
     $('hostname').textContent = canonicalHostname(activeHostname)===activeHostname ? activeHostname : 'Unavailable';
     $('discovery-help').textContent = n.mdns_state === 'conflict' ? 'Another device is using this hostname. Resolve the duplicate, then retry with USB Console WIFI OFF and WIFI ON while idle. The device will not rename itself.' : n.mdns_reason === 'device_identity_mismatch' ? 'Credentials belong to a different device. Rebuild with this device’s certificate bundle and recover through USB Console.' : n.mdns_state === 'failed' ? 'Name discovery failed. Use the current IP address and check USB Console INFO.' : '';
     if (radio) {
-      $('consumer-return').textContent = `On your normal Wi-Fi, open http://${n.configured_hostname || n.ipv4}/ or http://${n.ipv4}/. The Pico’s setup Wi-Fi is normally off while this connection is healthy.`;
       updateSetupReceipt();
     }
     $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
@@ -985,7 +1038,11 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
       const preserveDraft=!discardDraft && (dirty || engineeringStationDirty || engineeringNetworkDirty || consumerSetupDirty || progressEdits.size>0 || Boolean(saveAttempt));
       revision = c.revision;
       if(preserveDraft) currentConfig=config; else fill(config,network);
-      const p = await readProgress(!preserveDraft); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload'); writeState = accessAuthenticated() ? 'ready' : 'readback'; if(accessAuthenticated()) saveAttempt = null; $('save-reconcile-status').textContent = preserveDraft ? 'Saved settings read. Browser drafts are preserved; review before saving.' : discardDraft ? 'Saved settings reloaded.' : 'Saved settings loaded.'; showProgress();
+      const p = await readProgress(!preserveDraft); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload');
+      writeState = accessAuthenticated() && !settingsRecoveryNeeded ? 'ready' : 'readback';
+      if(accessAuthenticated() && !settingsRecoveryNeeded) saveAttempt = null;
+      if (!settingsRecoveryNeeded) $('save-reconcile-status').textContent = '';
+      showProgress();
       if (radio) await readPicoPassword();
     }
     if (messageSchedulingSupported()) await readMessageSchedule();
@@ -1002,7 +1059,7 @@ async function action(fn) {
   try { await fn(); } catch (e) {
     if (!accessClosing && (e.serverResponse || e.unconfirmed) && (!radio || radio.authenticated)) await refresh();
     if (['revision_conflict','precondition_failed'].includes(e.code)) requireReadback();
-    if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; requireReadback(); }
+    if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; requireReadback(Boolean(saveAttempt)); }
     notice(e.message + (e.code ? ' (' + e.code + ')' : '') + (e.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : ''),true);
     if($('local-access').open) $('local-status').textContent=e.message;
     else $('local-status').textContent = localAuthenticated ? 'Authenticated. Request rejected; your edits are preserved.' : 'Connection or session unconfirmed. Inspect occupied logins if login cannot proceed; no action was repeated.';
@@ -1050,11 +1107,11 @@ async function readPicoPassword() {
     if (error.code !== 'not_found') throw error;
   }
 }
-function picoPasswordSignedOut(message) {
+function picoPasswordSignedOut(message, uncertain = false) {
   ++observationEpoch; ++publicStatusEpoch; clearPrivateStatus();
   radio.clear(); picoPasswordState = null; localAuthenticated = false;
   $('local-login').hidden = false; $('local-logout').hidden = true;
-  snapshot = null; requireReadback(); controls(false); markTitleStale();
+  snapshot = null; requireReadback(uncertain || Boolean(saveAttempt)); controls(false); markTitleStale();
   $('pico-password-status').textContent = message;
   $('local-status').textContent = message;
   $('access-toggle').focus();
@@ -1075,7 +1132,7 @@ async function savePicoPassword(password) {
     picoPasswordSignedOut(message); notice(message);
   } catch (error) {
     if (error.unconfirmed || error.code === 'password_save_unconfirmed') {
-      picoPasswordSignedOut('Password change unconfirmed. Try signing in with the new password, then the previous password if refused. If neither works, restart the Pico and try again. Do not repeat the save automatically.');
+      picoPasswordSignedOut('Password change unconfirmed. Try signing in with the new password, then the previous password if refused. If neither works, restart the Pico and try again. Do not repeat the save automatically.',true);
       error.message = $('local-status').textContent;
     }
     throw error;
@@ -1183,11 +1240,13 @@ $('retire-login').onclick = () => action(async () => {
 $('read-saved').onclick = () => action(readSavedKeepingDraft);
 $('review-saved').onclick = () => action(async () => {
   if (writeState !== 'review' || !savedReadback) return;
-  const target = (await readApplication()).data.target;
-  if (JSON.stringify(target) !== JSON.stringify(savedReadback.target)) {requireReadback();throw new Error('Pico changed; read saved settings again');}
+  const current = await readApplication();
+  if (JSON.stringify(current.data.target) !== JSON.stringify(savedReadback.target) || current.revision !== savedReadback.revision) {requireReadback();throw new Error('The Pico or its saved settings changed. Review saved settings again.');}
   revision = savedReadback.revision; currentConfig = savedReadback.config; writeState='ready';
-  saveAttempt = null;
-  $('save-reconcile-status').textContent = 'Fresh saved revision selected. Your draft is preserved. Save settings sends one new explicit mutation; concurrent changes can still refuse it.';
+  saveAttempt = null; settingsRecoveryNeeded = settingsReviewRequested = false;
+  $('save-reconcile-status').textContent = '';
+  renderSettingsRecovery();
+  $('device-name').focus({preventScroll:true});
 });
 $('local-logout').onclick = lockAccess;
 $('consumer-power').replaceChildren(new Option('Choose reported power',''),...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60]
@@ -1196,6 +1255,7 @@ for (const id of ['consumer-network-form','consumer-station-form']) $(id).oninpu
 async function saveConsumer(kind, savedStation) {
   setPasswordVisible('consumer-password',false);
   if (consumerAttempt) throw new Error('Check the previous saved result first');
+  setupResultKind = kind; renderSetupResult();
   const status = $('consumer-save-status');
   status.textContent = 'Preparing your settings…';
   const epoch=accessEpoch;
@@ -1213,6 +1273,7 @@ async function saveConsumer(kind, savedStation) {
     if(accessClosing || epoch!==accessEpoch) { prepared.submit=null; throw new Error('Controls locked before settings submission. Your draft is preserved; no save was submitted.'); }
     consumerAttempt=prepared;
     updateSetupReceipt();
+    globalThis.WsprryPicoSections?.setup();
     await radio.submitSetup(consumerAttempt);
     status.textContent = 'Settings accepted. The Pico may reconnect and restart. Keep this tab open or use the continuation link after joining the saved network. Log in, then select Check saved result.';
   } catch (error) {
@@ -1227,12 +1288,13 @@ $('consumer-check-save').onclick = () => action(async () => {
   $('consumer-save-status').textContent = result === 'saved' ? 'Your settings were saved and verified.' :
     result === 'failed' ? 'These settings were not saved. You can correct them and try again.' :
     'The result is still unconfirmed. Wait for the Pico to return, log in and check again. No save has been repeated.';
-  if (result !== 'unconfirmed') { consumerAttempt = null; updateSetupReceipt(); await refresh(); await readSavedKeepingDraft(); }
+  if (result !== 'unconfirmed') { consumerAttempt = null; updateSetupReceipt(); await refresh(); await readSavedKeepingDraft(true,false); }
 });
-if (consumerAttempt) $('consumer-save-status').textContent = 'A pending save receipt was recovered. Log in, then select Check saved result. No save has been repeated.';
+if (consumerAttempt) $('consumer-save-status').textContent = 'A save needs confirmation. Unlock controls, then select Check saved result. No save has been repeated.';
 $('config').oninput = event => { dirty = true; editedProgress(event); showDraftComparison(); };
 $('reload-config').onclick = () => action(async () => {
   if ((dirty || engineeringStationDirty || engineeringNetworkDirty || consumerSetupDirty || progressEdits.size) && !confirm('Discard your unsaved changes and reload saved settings?')) return;
+  if (!consumerAttempt) { setupResultKind = null; $('consumer-save-status').textContent = ''; renderSetupResult(); }
   progressEdits.clear(); dirty=false;
   engineeringStationDirty=false; engineeringNetworkDirty=false; consumerSetupDirty=false; consumerNetworkDirty=false;
   for (const result of document.querySelectorAll?.('.field-result') || []) {result.textContent = '';result.classList.toggle('error',false);}
@@ -1830,7 +1892,7 @@ $('hostname-review').onclick = () => { if (online && hostnameReviewReady && !bus
 globalThis.addEventListener?.('hashchange',()=>{
   cancelReconnect(); returnReceipt=null; parseReturnReceipt();
   const receipt = readSetupReceipt(globalThis.location?.hash);
-  if (receipt) { consumerAttempt=receipt; requireReadback(); }
+  if (receipt) { consumerAttempt=receipt; setupResultKind=receipt.kind; updateSetupReceipt(); globalThis.WsprryPicoSections?.setup(); }
   if ((returnReceipt || consumerAttempt) && localIdentity) {
     try { checkReturningDevice(localIdentity.device_id); }
     catch (error) { clearPasswords(); controls(false); notice(error.message,true); }

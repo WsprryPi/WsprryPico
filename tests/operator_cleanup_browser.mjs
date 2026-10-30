@@ -194,6 +194,9 @@ try {
   assert.ok(reads.filter(r=>r.path.startsWith('/api/consumer/v1/read')).length>20);
   assert.equal(reads.every(r=>r.method==='GET'),true);
   assert.equal((await f.command({op:'stats'})).config_sequence,'1');
+  assert.equal(await evaluate('document.getElementById("saved-settings").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("consumer-setup").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("saved-active-status").textContent'),'');
   console.log('PASS locked public settings, detailed status, redaction, layout and no writes');
   for(const area of ['wifi-host','station']) {
     await evaluate('scrollTo(0,document.body.scrollHeight)');await click(area==='station'?'station-link':'wifi-host-link');
@@ -211,6 +214,9 @@ try {
   await until(()=>evaluate('!busy && online && localAuthenticated && writeState==="ready"'),'authenticated settings read');
   assert.equal(await evaluate('getComputedStyle(document.getElementById("access-toggle")).borderTopColor'),'rgb(40, 116, 65)');
   assert.equal(await evaluate('document.getElementById("notice").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("saved-settings").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("consumer-save-recovery").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("reload-config").textContent'),'Discard edits and reload');
   await capture('unlocked');
   await evaluate('document.getElementById("radio-pins").open=true');
   await click('amplifier-timing-read');await idle();
@@ -297,6 +303,40 @@ try {
   assert.equal((await config()).config.pins.rf_gp,4);
   assert.deepEqual(errors,[]);
   console.log('PASS lost pin reply commits once, preserves drafts through public refresh, blocks another save');
+  assert.equal(await evaluate('document.getElementById("saved-settings").hidden'),false);
+  await f.time(f.now+1000);
+  await click('access-toggle');await evaluate('document.getElementById("local-password").value="test-password"');
+  await until(()=>evaluate('!busy && !document.getElementById("login-submit").disabled && (document.getElementById("local-login").requestSubmit(),true)'),'login available');
+  await until(()=>evaluate('!busy && localAuthenticated && writeState==="review"'),'uncertain save login readback');
+  await click('reload-config');await idle();
+  assert.equal(await evaluate('writeState'),'readback','reload must not acknowledge an uncertain save');
+  assert.equal(await evaluate('document.getElementById("save-pins").disabled'),true);
+  await click('read-saved');await idle();
+  assert.equal(await evaluate('writeState'),'review');
+  if(output && !filterOnly) for(const [width,height,name] of [[1280,1000,'desktop'],[390,844,'mobile']]) {
+    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
+    await evaluate('document.getElementById("saved-settings").open=true;document.getElementById("saved-settings").scrollIntoView()');
+    assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
+    const clip=await evaluate('(()=>{const r=document.getElementById("saved-settings").getBoundingClientRect();return {x:0,y:r.top+scrollY,width:innerWidth,height:r.height,scale:1}})()');
+    saveScreenshot('contextual-recovery-'+name+'.png',await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip}));
+  }
+  await f.time(f.now+1000);
+  const concurrent=f.client();await f.login(concurrent);
+  const hardware=await concurrent.request('hardware/3'),hw=await hardware.json();
+  assert.equal((await concurrent.request('hardware/3','PUT',{schema:hw.schema,target:hw.target,pins:{...hw.saved,button_gp:13}},hardware.headers.get('etag'))).status,200);
+  const afterConcurrent=(await f.command({op:'stats'})).config_sequence;
+  await click('review-saved');await idle();
+  assert.equal(await evaluate('writeState'),'readback');
+  assert.equal(await evaluate('document.getElementById("save-pins").disabled'),true);
+  assert.equal(await evaluate('document.getElementById("config").elements.button_gp.value'),'14');
+  assert.equal((await f.command({op:'stats'})).config_sequence,afterConcurrent,'stale comparison approval writes nothing');
+  await click('read-saved');await idle();await click('review-saved');await idle();
+  assert.equal(await evaluate('writeState'),'ready');
+  assert.equal(await evaluate('document.getElementById("saved-settings").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("recovery-reveal").hidden'),true);
+  assert.equal(await evaluate('document.activeElement.id'),'device-name');
+  assert.equal((await f.command({op:'stats'})).config_sequence,afterConcurrent,'review and approval never replay a save');
+  console.log('PASS contextual recovery, reload refusal, explicit review and concurrent-revision invalidation through production HTTP/crypto');
   console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,api:'production HTTP/crypto',hardware:false,screenshots:screenshotCount}));
 } catch(error) {
   console.error(JSON.stringify({errors,reads:reads.slice(-12),state:ws ? await evaluate('({notice:document.getElementById("notice")?.textContent,online:typeof online!=="undefined"?online:null,busy:typeof busy!=="undefined"?busy:null,settings:typeof settingsLoadedBoot!=="undefined"?settingsLoadedBoot:null})').catch(()=>null):null}));

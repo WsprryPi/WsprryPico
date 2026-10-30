@@ -7,7 +7,7 @@ const scripts = process.env.WSPRRY_PICO_BROWSER_SHIPPED ? ['device-presentation.
 const source = scripts.map(name=>fs.readFileSync(__dirname + '/../src/network/web/'+name,'utf8')).join('\n');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false, options = {}) {
     const ids = ['device-name','device-name-state','device-id','device-boot','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-wspr-plan','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','network','hostname','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','i2c-choices'];
-    ids.push('amplifier-pin-settings','radio-result-reveal','radio-pins','save-pins','pins-status','station-settings-lock','wifi-settings-lock');
+    ids.push('settings-actions','setup-result-reveal','settings-recovery-access','network-save-result','station-save-result','consumer-save-recovery','setup-recovery-access','amplifier-pin-settings','radio-result-reveal','radio-pins','save-pins','pins-status','station-settings-lock','wifi-settings-lock');
     ids.push('access-toggle','access-state','access-shackle','access-close','login-submit','recovery-reveal','top','status-heading','section-menu','station-identity','radio-settings','message-section','wifi-settings','pico-password-section','hostname-section','connection-section','saved-settings','device-diagnostics');
     ids.push('console-state','console-warning','console-announcement','console-mode','console-frequency','console-message','console-progress','console-next','console-next-item','console-correction','console-reset','console-actions');
     ids.push('pico-password-form','pico-password-settings','pico-password-default','pico-password-status','pico-password-help','pico-password-error','pico-new-password','pico-confirm-password','draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
@@ -148,7 +148,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                     throw new Error('lost ' + request.operation + ' response');
                 }
             } else throw new Error('Unexpected request ' + path);
-            return {status,ok:status>=200&&status<300,json:async()=>{if(path.endsWith('config') && options.method==='PUT'){if(f.configSaveMode==='json')throw new Error('lost body');if(f.configSaveMode==='empty')return {};if(f.configSaveMode==='wrong')return {config:'wrong'};if(f.configSaveMode==='expiry')return {config:{...data.config,expires_utc_s:'bad'}};if(f.configSaveMode==='pins')return {config:{...data.config,pins:{...data.config.pins,indicator:{}}}};if(f.configSaveMode==='null')return {config:null};}return data;},headers:{get:()=> '"original-revision"'}};
+            return {status,ok:status>=200&&status<300,json:async()=>{if(path.endsWith('config') && options.method==='PUT'){if(f.configSaveMode==='json')throw new Error('lost body');if(f.configSaveMode==='empty')return {};if(f.configSaveMode==='wrong')return {config:'wrong'};if(f.configSaveMode==='expiry')return {config:{...data.config,expires_utc_s:'bad'}};if(f.configSaveMode==='pins')return {config:{...data.config,pins:{...data.config.pins,indicator:{}}}};if(f.configSaveMode==='null')return {config:null};}return data;},headers:{get:()=> f.savedRevision || '"original-revision"'}};
         }});
     f.events = {}; context.addEventListener=(name,handler)=>{f.events[name]=handler;};
     context.location={href:'http://127.0.0.1/',hash:receipt,pathname:'/',search:''};
@@ -401,7 +401,7 @@ if (require.main === module) (async () => {
     assert.doesNotMatch(decodeURIComponent(receipt),/test-password|must-not-survive|submit/);
     const resumed = await fixture(true,true,false,true,receipt);
     assert.equal(resumed.setupSubmits,undefined);
-    assert.match(resumed.elements['consumer-save-status'].textContent,/receipt was recovered/);
+    assert.match(resumed.elements['consumer-save-status'].textContent,/save needs confirmation/);
     await resumed.elements['local-login'].onsubmit({preventDefault(){}});
     assert.equal(resumed.elements['consumer-network-settings'].disabled,true);
     await resumed.elements['consumer-check-save'].onclick();
@@ -594,6 +594,32 @@ if (require.main === module) (async () => {
 
     const localInvalid = await fixture();localInvalid.form.schedules.value='invalid';const localCount=localInvalid.calls.length;
     await localInvalid.elements.config.onsubmit({preventDefault(){}});assert.equal(localInvalid.calls.length,localCount);
+    const ordinary=await fixture();
+    assert.equal(ordinary.elements['saved-settings'].hidden,true);
+    assert.equal(ordinary.elements['consumer-setup'].hidden,true);
+    assert.equal(ordinary.elements['consumer-save-recovery'].hidden,true);
+    assert.equal(ordinary.elements['setup-result-reveal'].hidden,true);
+    assert.equal(ordinary.elements['saved-active-status'].textContent,'');
+    ordinary.form.schedules.value='480 / 0';ordinary.elements.config.oninput();ordinary.confirm=false;
+    const ordinaryReads=ordinary.calls.length;await ordinary.elements['reload-config'].onclick();
+    assert.equal(ordinary.form.schedules.value,'480 / 0');assert.equal(ordinary.calls.length,ordinaryReads);
+    ordinary.confirm=true;await ordinary.elements['reload-config'].onclick();
+    assert.equal(ordinary.form.schedules.value,'120 / 0');assert.equal(ordinary.elements['saved-settings'].hidden,true);
+    const newer=await fixture();newer.form.schedules.value='240 / 0';newer.elements.config.oninput();
+    await newer.elements['read-saved'].onclick();newer.savedRevision='"newer-revision"';
+    const writesBefore=newer.calls.filter(c=>c.options.method!=='GET').length;
+    await newer.elements['review-saved'].onclick();
+    assert.equal(vm.runInContext('writeState',newer.context),'readback');assert.equal(newer.elements['save-config'].disabled,true);
+    assert.equal(newer.form.schedules.value,'240 / 0');assert.equal(newer.elements['saved-settings'].hidden,false);
+    assert.equal(newer.calls.filter(c=>c.options.method!=='GET').length,writesBefore);
+    await newer.elements['read-saved'].onclick();await newer.elements['review-saved'].onclick();
+    assert.equal(newer.elements['saved-settings'].hidden,true);assert.equal(newer.elements['save-config'].disabled,false);
+    const reloadUncertain=await fixture();reloadUncertain.form.schedules.value='240 / 0';reloadUncertain.elements.config.oninput();
+    reloadUncertain.configSaveMode='lost';await reloadUncertain.elements.config.onsubmit({preventDefault(){}});
+    reloadUncertain.configSaveMode=null;const committed=reloadUncertain.configCommits;
+    await reloadUncertain.elements['reload-config'].onclick();
+    assert.equal(reloadUncertain.elements['save-config'].disabled,true);assert.equal(reloadUncertain.elements['saved-settings'].hidden,false);
+    assert.equal(reloadUncertain.configCommits,committed,'discard/reload never repeats or clears an uncertain save');
     for (const mode of ['before','lost','json','empty','wrong','expiry','pins','null']) {
         const uncertain=await fixture();uncertain.form.schedules.value='240 / 0';uncertain.elements.config.oninput();uncertain.configSaveMode=mode;
         await uncertain.elements.config.onsubmit({preventDefault(){}});
@@ -610,7 +636,8 @@ if (require.main === module) (async () => {
         await uncertain.elements['reload-config'].onclick();
         assert.equal(uncertain.elements['saved-readback-details'].hidden,true);
         assert.equal(vm.runInContext('savedReadback',uncertain.context),null);
-        assert.match(uncertain.elements['save-reconcile-status'].textContent,/Saved settings reloaded/);
+        assert.equal(uncertain.elements['save-reconcile-status'].textContent,'');
+        assert.equal(uncertain.elements['saved-settings'].hidden,true);
         await uncertain.elements['read-saved'].onclick();
         if(mode==='before') assert.ok(!uncertain.elements['draft-comparison'].textContent.match(/Browser draft:\s+240 \/ 0/));
     }

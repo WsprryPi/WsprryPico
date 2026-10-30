@@ -9,7 +9,7 @@ exact schema/key set and exact current device/boot pair. A different full device
 cannot replace a retained target. A new observed consumer boot clears the old
 name until fresh readback. Authenticated names supersede unsolicited public metadata; a late public failure cannot mark a newer authenticated observation stale. An explicit fresh public-read observation after logout can replace that state only for the same bound device and boot.
 
-The one H1 stays above both views. About this Pico / Diagnostics is last in Station Control, after Saved settings and recovery. Opening/selecting text requires no login, permission,
+The one H1 stays above both views. About this Pico / Diagnostics is last in Station Control, after any required saved-settings review. Opening/selecting text requires no login, permission,
 clipboard API or request. Stable ID is all 32 lowercase hexadecimal characters;
 boot ID is separately labelled. Native focus, 44 px summary targets, light palette
 and wrapping are retained. Heading/Diagnostics are ordinary text, without polling

@@ -13,7 +13,7 @@ authority. Existing identity/presentation and cryptographic schemas stay frozen.
 
 | Area / shared region | Fields, observations and actions | Save authority |
 | --- | --- | --- |
-| Shared access; Station recovery | Login/logout, password visibility, occupied login inspection/explicit retirement, notices, reload/read/review, saved configuration comparison, pending setup receipt/check/continuation | Existing session and readback adapters; no navigation login |
+| Shared access; contextual recovery | Login/logout, password visibility, occupied login inspection/explicit retirement, notices, discard/reload, review and saved configuration comparison; pending setup receipt/check/continuation beside its form | Existing session and readback adapters; no navigation login |
 | Station status | [Contextual job/schedule console](status-console.md), mode/frequency/progress/correction, clocks, Reset Pico, detailed output/owner/connection observations and existing Abort/Release | Read-only observations; explicit existing job controls |
 | Station Control | Callsign, four/six-character locator, WSPR power and saved/draft plans | One visible profile-appropriate editor: consumer transactional setup or engineering configuration |
 | Station Control | WSPR enable, period/phase pairs and expiry; independent Radio pins section with RF/button/LED GPIO, amplifier control, LPF/I²C help and drive | WSPR progress save/scoped apply excludes pins; independent hardware PUT preserves schedules; saved pins require restart |
@@ -24,7 +24,7 @@ authority. Existing identity/presentation and cryptographic schemas stay frozen.
 
 Amplifier control groups enable GPIO, polarity, lead and tail. Save amplifier config uses the existing hardware and timing resources in sequence, verifies pin readback before timing, and refreshes the shared settings revision after confirmation. It preserves unrelated pin drafts. An interrupted or partial save retains readback/review requirements; the two resources do not form an atomic transaction. The footer embeds the selected firmware build version for both views. Password access uses a red lock border while locked and green while unlocked; certificate access retains its separate information state.
 
-Status summaries can repeat saved values but are visibly observations. Recovery and receipt/readback controls are at the bottom of Station, immediately above About this Pico / Diagnostics. Abort/Release and Reset Pico belong to Station status. Wi-Fi/Host contains no transmitter status, reset, Wi-Fi-disconnect or temporary-setup panel. Passwords
+Status summaries can repeat saved values but are visibly observations. The conditional Review saved settings comparison is at the bottom of Station, immediately above About this Pico / Diagnostics. Discard edits and reload is a shared signed-in action above the task areas. Pending setup checks and reconnection instructions are mounted beside the matching Wi-Fi or station form. Abort/Release and Reset Pico belong to Station status. Wi-Fi/Host contains no transmitter status, reset, Wi-Fi-disconnect or temporary-setup panel. Passwords
 stay volatile and retain existing clearing boundaries. Save never arms a job.
 Engineering area saves preserve unrelated saved values and drafts; independent incomplete fields use the separate saved-progress contract.
 
@@ -45,7 +45,7 @@ Transmitter status leads Station Control and is hidden with that view on Wi-Fi/H
 | Label | Stable section ID | Area / visibility | Default | Menu group / Top |
 | --- | --- | --- | --- | --- |
 | About this Pico / Diagnostics | `device-diagnostics` | Shared, all admitted control pages | Closed | Shared / `top` |
-| Saved settings and recovery | `saved-settings` | Shared; consumer receipt tools conditional | Closed, except a save continuation | Shared / `top` |
+| Review saved settings | `saved-settings` | Station; hidden until review is needed or explicitly bookmarked | Hidden; revealed on recovery | Shared / `top` |
 | Station identity | `station-identity` | Station; one consumer or engineering editor | Closed | Station Control / `top` |
 | WSPR Configuration | `radio-settings` | Station; capability-gated editors | Closed | Station Control / `top` |
 | Radio pins | `radio-pins` | Station; independent hardware save and drive settings | Closed | Station Control / `top` |
@@ -59,7 +59,7 @@ A valid explicit bookmark reveals its target on entry. Legacy form, area and hea
 
 Every managed section has a Top link. Deliberate activation closes UTC popovers, focuses the persistent hostname heading, closes all managed sections and their nested technical disclosures in both areas, then scrolls to `top`. Status details are merged into the single flat Station status section. Top preserves authentication, drafts, selected files, mutation state and uncertain-save evidence. Scrolling is immediate and does not add motion.
 
-Navigation preserves `#save=...` and `#hostname-return=...` byte-for-byte. While a receipt occupies the fragment, only an allowlisted section/area is stored under `history.state.wsprrypicoPresentation`; existing History fields are preserved; a prior primitive or array is retained under `wsprrypicoPreviousState`. Same-document Back/Forward restores section or Top intent. Reload additionally exposes pending recovery, including after Top. Modified clicks or copied ordinary section links open a fresh page at that section without transferring the current tab's receipt or authority. No credentials, proofs or session keys enter History or storage. Receipt navigation never confirms a save.
+Navigation preserves `#save=...` and `#hostname-return=...` byte-for-byte. While a receipt occupies the fragment, only an allowlisted section/area is stored under `history.state.wsprrypicoPresentation`; existing History fields are preserved; a prior primitive or array is retained under `wsprrypicoPreviousState`. Same-document Back/Forward restores section or Top intent. Reload exposes a pending setup receipt beside its Wi-Fi or station form, and a hostname return receipt at Device hostname, including after Top. Receipt fragments and unrelated History data remain intact. Modified clicks or copied ordinary section links open a fresh page at that section without transferring the current tab's receipt or authority. No credentials, proofs or session keys enter History or storage. Receipt navigation never confirms a save.
 
 ## Browser access
 
@@ -70,3 +70,9 @@ Consumer station/AP uses the existing Consumer-Radio login/logout; password Soft
 Lock gates privileged controls immediately, invalidates observation epochs, invalidates in-flight observations and clears passwords, and waits for the current bounded application action before logout. Editor operations share that action authority. Chained setup requests are refused once locking starts; an unsubmitted preparation is discarded without creating a save receipt. Accepted jobs and durable writes survive. Lost logout clears local authority and reports remote uncertainty; explicit selected-session recovery remains available. Consumer public observations and redacted settings reload without a login through the independently versioned [public read descriptor](../protocol/Consumer-Radio-v1.md#independent-public-settings-discovery). All editable settings remain disabled and dimmed while locked. Password SoftAP cannot read private status while locally locked.
 
 Engineering certificate HTTPS instead offers Certificate access information with the observed certificate authority retained. The page cannot revoke the browser's client certificate, so it provides no cosmetic password lock or unsupported logout. TLS admission remains independently tested; the browser fixture supplies the authenticated principal.
+
+## Contextual saved-state review
+
+Normal public settings reads and confirmed saves show no recovery panel or stale-readback placeholder. A required comparison exposes one Review saved settings workflow and a persistent reveal link. Reading preserves edits and remains distinct from explicit confirmation. Confirmation rechecks both device/boot target and the exact reviewed revision; concurrent changes invalidate the comparison without a write. Normal refresh, login and Discard edits and reload cannot acknowledge an uncertain save. Confirmed saves close the panel only after the existing exact-revision/target reconciliation succeeds. Saved/active pin details stay inside the comparison disclosure. Top can close disclosures while preserving required review and its reveal link.
+
+Setup receipt controls appear only for a pending request, beside the matching form. A completed result can retain a brief inline status, while Check saved result and reconnection instructions disappear. Receipt checking never resubmits the request. Moving the presentation nodes changes no API, crypto, profile, carrier or journal contract.

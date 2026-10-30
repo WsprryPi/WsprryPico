@@ -106,6 +106,7 @@ try {
     await until(()=>cdp.evaluate(`!busy && !!localIdentity`),'radio discovery complete');
     await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
     await until(()=>cdp.evaluate(`localAuthenticated && !busy`),'actual browser login');
+    await cdp.evaluate('WsprryPicoSections.recovery()');
     await click('read-saved');
     await until(()=>cdp.evaluate(`applicationVersion===2 && writeState==='review' && !busy`),'versioned saved-state readback');
     await click('review-saved');

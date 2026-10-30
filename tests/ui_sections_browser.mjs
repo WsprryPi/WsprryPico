@@ -134,9 +134,19 @@ try {
     await evaluate('history.forward()');await until(()=>evaluate('document.getElementById("wifi-settings").open'),'receipt Forward section');
     await evaluate('globalThis.sectionReloadMarker=true');await send('Page.reload');
     await until(()=>evaluate('!globalThis.sectionReloadMarker && typeof localIdentity!=="undefined" && !!localIdentity && !busy').catch(()=>false),'new document receipt reload');
-    assert.equal(await evaluate('document.getElementById("saved-settings").open'),true);
+    assert.equal(await evaluate('document.getElementById("station-identity").open'),true);
+    assert.equal(await evaluate('document.getElementById("consumer-setup").closest("#station-identity")!==null'),true);
     assert.equal(await evaluate('location.hash'),receipt);
     pass('receipt bytes and unrelated History data survive section/Top, reload exposes recovery');
+    if (carrier !== 'engineering') {
+      const networkReceipt='#save='+encodeURIComponent(JSON.stringify({kind:'network',device:'1'.repeat(32),generation:'1',digest:'b'.repeat(64)}));
+      await navigate(networkReceipt);
+      assert.equal(await evaluate('document.getElementById("consumer-setup").closest("#wifi-settings")!==null && document.getElementById("wifi-settings").open'),true,'network receipt belongs beside Wi-Fi');
+      assert.equal(await evaluate('document.getElementById("consumer-return").hidden'),false);
+      await click('station-link');await click('setup-result-reveal');
+      assert.equal(await evaluate('document.getElementById("wifi-host-area").hidden'),false,'pending network link returns to Wi-Fi');
+      assert.equal(await evaluate('location.hash'),networkReceipt);
+    }
     await navigate('#hostname-form');assert.equal(await evaluate('document.getElementById("hostname-section").open'),true);
     assert.equal(await evaluate('document.getElementById("wifi-host-area").hidden'),false);
     await navigate('#%ZZ');assert.equal(await evaluate('document.querySelectorAll("[data-operator-section][open]").length'),0);

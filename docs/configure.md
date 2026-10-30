@@ -2,9 +2,9 @@
 
 Station details are needed to configure transmissions. You can connect the Pico to Wi-Fi and sign in to its control page before entering them.
 
-Keep schedules disabled and output inactive while setting up. Use the hostname lock to sign in, choose **Station Control**, and open the required section using its heading. Open **Saved settings and recovery** to read saved settings before changing them.
+Keep schedules disabled and output inactive while setting up. Use the hostname lock to sign in, choose **Station Control**, and open the required section using its heading. Saved values load automatically. If a save needs recovery, follow the **Review saved settings** link.
 
-The page has two useful read controls. **Reload saved settings** replaces the browser's entries with values stored on the Pico, discarding unsaved edits after confirmation. **Read saved settings and keep draft** keeps your entries and lets you compare them with the Pico's saved values. A **draft** is an edit or saved work in progress; **applied** settings are the accepted configuration used for operation. Pin changes also need a restart before they become active.
+**Discard edits and reload** replaces the browser’s entries with device-saved values after confirming the loss of unsaved edits. When a save needs reconciliation, **Review saved settings** preserves your entries and shows a comparison with the Pico’s saved values. A **draft** is an edit or saved work in progress; **applied** settings are the accepted configuration used for operation. Pin changes also need a restart before they become active.
 
 ## Station identity
 
@@ -47,7 +47,7 @@ To save and start automatic WSPR:
 2. Choose **Save WSPR configuration**, read the result, and use **Apply WSPR configuration** when offered. Check that the saved values match your intended setup. Complete any requested restart before enabling output.
 3. When you are ready to transmit, check **Enable standalone schedules**, save and apply again, then **Refresh** the transmitter status and confirm standalone WSPR is enabled. The Pico waits for the next eligible window and an acceptable clock; see [Operate](operate.md#wspr-schedules).
 
-A confirmed frequency save or settings application refreshes the settings revision while preserving browser edits. If Save or Apply is disabled, read the guidance beside the schedule buttons. A required saved-state review uses **Read saved settings and keep draft**, followed by **I reviewed saved settings; enable a new save** in **Saved settings and recovery**; **Read saved frequency** and transmitter-status **Refresh** do not complete that review.
+A confirmed frequency save or settings application refreshes the settings revision while preserving browser edits. If Save or Apply is disabled, read the guidance beside the schedule buttons. When a saved-state review is required, the **Review saved settings** panel appears. Read and compare the values, then choose **I reviewed these settings; enable saving**. **Read saved frequency** and transmitter-status **Refresh** do not complete that review.
 
 To prevent later automatic starts, uncheck **Enable standalone schedules**, save and apply, then confirm it is disabled. This is separate from aborting a job that is already accepted or running.
 
@@ -116,6 +116,6 @@ An already enabled schedule continues with its applied settings while you save p
 
 ### Recover an uncertain save
 
-If a save reply is lost, keep the tab open, sign in again if needed and use **Read saved settings and keep draft**. Compare the readback, then choose **I reviewed saved settings; enable a new save** only after review. During setup, draft recovery uses **Read saved progress; keep edits** followed by **I reviewed saved progress; enable a new save**. Use **Check saved result** and its continuation for an uncertain setup application.
+If a save reply is lost or settings change elsewhere, keep the tab open and unlock controls if needed. Follow the **Review saved settings** link; this recovery panel appears when review is needed. Compare the readback, then choose **I reviewed these settings; enable saving** only after review. During setup, draft recovery uses **Read saved progress; keep edits** followed by **I reviewed saved progress; enable a new save**. For an uncertain Wi-Fi or station setup application, **Check saved result** and any reconnection instructions appear beside that save. They remain available while the request needs confirmation.
 
-The change may already be stored. Matching values do not identify which interrupted request committed. Follow the reported continuation without automatically repeating Save or Apply. **Reload saved settings** discards unsaved edits and adopts device-saved progress. Provisioning and full resets remove saved progress; read the [reset consequences](maintain.md#recovery-and-reset) before using them.
+The change may already be stored. Matching values do not identify which interrupted request committed. Follow the reported continuation without automatically repeating Save or Apply. **Discard edits and reload** discards unsaved edits and adopts device-saved progress. It does not acknowledge an uncertain save; the readback and explicit review are still required. A change made elsewhere after comparison requires another readback before review can be confirmed. Provisioning and full resets remove saved progress; read the [reset consequences](maintain.md#recovery-and-reset) before using them.
