@@ -1430,22 +1430,29 @@ function messageSchedulingSupported() {
 function messageSchedulingControls() {
   if (!$('message-scheduling')) return;
   const supported=messageSchedulingSupported(), recurring=$('message-delivery').value==='recurring';
+  const value=messageScheduleReadback?.data, needsRead=messageScheduleUncertain || !value || value.state==='unavailable';
+  const recovery=value?.state==='recovery_required';
   $('message-scheduling').hidden=!supported;
   $('message-recurrence').hidden=!recurring;
   $('message-interval').disabled=!recurring;$('message-until').disabled=!recurring;
   for (const button of $('message-recurrence').querySelectorAll?.('button')||[]) button.disabled=!recurring;
-  $('message-schedule-controls').hidden=!supported;
+  $('message-schedule-controls').hidden=!supported || !(recurring || value?.saved || recovery || needsRead);
   $('message-submit').textContent=recurring?'Save and start schedule':'Load and arm message';
   $('message-submit').disabled=recurring && (messageScheduleUncertain || !messageScheduleReadback?.data.writable);
   const authorized=online && !(localIdentity && !localAuthenticated) && !busy;
+  $('message-schedule-read').hidden=!needsRead;
   $('message-schedule-read').disabled=!authorized;
-  $('message-schedule-adopt').disabled=!authorized || !messageScheduleReadback?.data.saved;
-  $('message-schedule-pause').disabled=!authorized || messageScheduleUncertain || messageScheduleReadback?.data.pause_pending || !messageScheduleReadback?.data.saved?.enabled && messageScheduleReadback?.data.state!=='recovery_required';
+  $('message-schedule-adopt').hidden=!value?.saved || needsRead;
+  $('message-schedule-adopt').disabled=!authorized || !value?.saved || needsRead;
+  $('message-schedule-pause').hidden=needsRead || value?.pause_pending || !(value?.saved?.enabled || recovery);
+  $('message-schedule-pause').disabled=!authorized || needsRead || value?.pause_pending || !(value?.saved?.enabled || recovery);
+  $('message-schedule-pause').textContent=recovery?'Acknowledge interrupted schedule':'Pause schedule';
+  $('message-schedule-help').hidden=needsRead || value?.pause_pending || recovery || !value?.saved?.enabled;
 }
 function describeMessageSchedule() {
   const value=messageScheduleReadback?.data;
   if (!value) return;
-  const labels={not_configured:'No saved message schedule.',paused:'Future transmissions are paused.',pausing:'Pause requested. The current transmission will finish before the pause is confirmed as saved. Keep the Pico powered until confirmation.',recovery_required:'Schedule needs review. Check transmitter status; once idle, pause the schedule before saving a new enabled schedule.',waiting:'Schedule enabled.',waiting_for_time:'Waiting for valid transmitter time.',waiting_for_transmitter:'Waiting for the transmitter to become available.',expired:'The schedule end has been reached.',restart_required:'A device restart is required before scheduling.',suspended:'Automatic transmissions are suspended.',armed:'Next scheduled transmission is armed.',running:'Scheduled message is running.',unavailable:'Saved schedule is unavailable.'};
+  const labels={not_configured:'No saved message schedule.',paused:'Message schedule paused. To resume, select Repeat on a schedule, review the entries, then choose Save and start schedule.',pausing:'Pause requested. The current transmission will finish before the pause is confirmed as saved. Keep the Pico powered until confirmation.',recovery_required:'Schedule needs review. Check transmitter status; once idle, choose Acknowledge interrupted schedule before saving a new enabled schedule.',waiting:'Message schedule enabled.',waiting_for_time:'Waiting for valid transmitter time.',waiting_for_transmitter:'Waiting for the transmitter to become available.',expired:'The schedule end has been reached.',restart_required:'A device restart is required before scheduling.',suspended:'Automatic transmissions are suspended.',armed:'Next scheduled transmission is armed.',running:'Scheduled message is running.',unavailable:'Saved schedule is unavailable.'};
   const next=value.next_start_utc_ns ? ' Next start: '+new Date(Number(BigInt(value.next_start_utc_ns)/1000000n)).toISOString().slice(0,19).replace('T',' ')+' UTC.' : '';
   $('message-schedule-status').textContent=(messageScheduleUncertain?'Previous action is unconfirmed. Read saved schedule explicitly before another save. ':'')+(labels[value.state]||'Transmitter state: '+value.state+'.')+next+(value.last_error?' '+value.last_error.code+'.':'');
 }
@@ -1457,11 +1464,18 @@ async function readMessageSchedule(explicit=false) {
   if (!messageSchedulingSupported()) return;
   try {
     messageScheduleReadback=checkedMessageSchedule(await api('message-schedule'));
-    if (explicit) messageScheduleUncertain=false;
+    if (explicit) {
+      if (messageScheduleUncertain) {
+        $('message-result').textContent='';
+        $('message-result').classList.toggle('error',false);
+      }
+      messageScheduleUncertain=false;
+    }
     describeMessageSchedule();messageSchedulingControls();
   } catch(error) {
     messageScheduleReadback=null;
     $('message-schedule-status').textContent='Saved message schedule unavailable. Your entries are preserved. '+error.message;
+    messageSchedulingControls();
     throw error;
   }
 }

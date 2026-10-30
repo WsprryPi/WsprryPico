@@ -13,7 +13,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     ids.push('pico-password-form','pico-password-settings','pico-password-default','pico-password-status','pico-password-help','pico-password-error','pico-new-password','pico-confirm-password','draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
     ids.push('message-frequency-label','message-frequency-help','message-shift-help','message-result');
     ids.push('schedule-save-help','standalone-status');
-    ids.push('public-status-note','message-duration','message-scheduling','message-delivery','message-recurrence','message-interval','message-until','message-submit','message-schedule-controls','message-schedule-status','message-schedule-read','message-schedule-adopt','message-schedule-pause');
+    ids.push('public-status-note','message-duration','message-scheduling','message-delivery','message-recurrence','message-interval','message-until','message-submit','message-schedule-controls','message-schedule-status','message-schedule-read','message-schedule-adopt','message-schedule-pause','message-schedule-help');
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     elements['message-delivery'].value='once';elements['message-interval'].value='20';
     elements['message-mode'].value='qrss'; // Native select initially selects its first option.
@@ -100,12 +100,16 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             }
             else if (path.endsWith('hardware')) data={schema:'transmitter-hardware/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},saved:config.pins||null,saved_generation:'1',active:null,active_revision:null,pending_restart:false,application_error:null,execution_engine:'simulated',storage_healthy:true};
             else if (path.endsWith('message-schedule')||path.endsWith('message-schedule/pause')) {
+                if (options.method==='GET' && f.scheduleReadFailure) throw new Error('schedule read unavailable');
                 if (options.method==='PUT') {
                     f.scheduleSaves=(f.scheduleSaves||0)+1;f.savedMessageSchedule=JSON.parse(options.body).schedule;
                     if (f.loseScheduleSave) throw new Error('reply lost after save');
                 }
-                if (path.endsWith('/pause')&&f.savedMessageSchedule)f.savedMessageSchedule.enabled=false;
-                data={schema:'transmitter-message-schedule/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},saved:f.savedMessageSchedule||null,writable:true,state:f.savedMessageSchedule?(f.savedMessageSchedule.enabled?'waiting':'paused'):'not_configured',pause_pending:false,next_start_utc_ns:null,last_start_utc_ns:null,last_job_id:null,last_result:null,last_error:null};
+                if (path.endsWith('/pause')) {
+                    if(f.savedMessageSchedule && !f.schedulePausePending)f.savedMessageSchedule.enabled=false;
+                    if(f.loseSchedulePause)throw new Error('reply lost after pause');
+                }
+                data={schema:'transmitter-message-schedule/1',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},saved:f.savedMessageSchedule||null,writable:true,state:f.scheduleState||(f.savedMessageSchedule?(f.savedMessageSchedule.enabled?'waiting':'paused'):'not_configured'),pause_pending:!!f.schedulePausePending,next_start_utc_ns:null,last_start_utc_ns:null,last_job_id:null,last_result:null,last_error:null};
             }
             else if (path.endsWith('pins')) data = {choices:{eligible_gps:[...Array(23).keys(),26,27,28],i2c_pairs:[{controller:0,sda_gp:4,scl_gp:5}]}};
             else if (path.endsWith('application/2')) { if(f.appV2) data=f.appV2; else {status=404; data={error:{code:'not_found'}};} }
@@ -202,19 +206,65 @@ module.exports={fixture};
 if (require.main === module) (async () => {
     const recurrence=await fixture();recurrence.scheduleSupport=true;
     vm.runInContext('capabilities=null',recurrence.context);await recurrence.elements.refresh.onclick();
+    assert.equal(recurrence.elements['message-schedule-controls'].hidden,true,'no saved schedule clutter for Send once');
     recurrence.prepareMessage('qrss','CQ CQ DE AA0NT EM18 QRSS TEST 73');recurrence.elements['message-delivery'].value='recurring';
+    recurrence.elements['message-form'].oninput();
+    assert.equal(recurrence.elements['message-schedule-controls'].hidden,false);
+    assert.equal(recurrence.elements['message-schedule-read'].hidden,true);
+    assert.equal(recurrence.elements['message-schedule-adopt'].hidden,true);
+    assert.equal(recurrence.elements['message-schedule-pause'].hidden,true);
     await recurrence.elements['message-form'].onsubmit({preventDefault(){}});
     assert.equal(recurrence.scheduleSaves,1);assert.equal(recurrence.savedMessageSchedule.period_s,1200);
     assert.equal(recurrence.calls.filter(c=>c.path.endsWith('jobs')).length,0);
-    recurrence.elements['message-text'].value='UNSAVED';await recurrence.elements.refresh.onclick();
+    assert.equal(recurrence.elements['message-schedule-pause'].hidden,false);
+    recurrence.elements['message-text'].value='UNSAVED';recurrence.elements['message-delivery'].value='once';
+    recurrence.elements['message-form'].oninput();await recurrence.elements.refresh.onclick();
     assert.equal(recurrence.elements['message-text'].value,'UNSAVED');
+    assert.equal(recurrence.elements['message-delivery'].value,'once');
+    assert.equal(recurrence.elements['message-schedule-controls'].hidden,false,'existing schedule remains accessible during Send once');
+    assert.equal(recurrence.elements['message-schedule-adopt'].hidden,false);
+    const beforeRestore=recurrence.calls.length;
+    recurrence.context.confirm=()=>false;recurrence.elements['message-schedule-adopt'].onclick();
+    assert.equal(recurrence.elements['message-text'].value,'UNSAVED');
+    assert.equal(recurrence.elements['message-delivery'].value,'once');
+    recurrence.context.confirm=()=>true;
     recurrence.elements['message-schedule-adopt'].onclick();assert.equal(recurrence.elements['message-text'].value,'CQ CQ DE AA0NT EM18 QRSS TEST 73');
+    assert.equal(recurrence.elements['message-delivery'].value,'recurring');
+    assert.equal(recurrence.calls.length,beforeRestore,'restore changes the editor without network requests');
     recurrence.loseScheduleSave=true;await recurrence.elements['message-form'].onsubmit({preventDefault(){}});
     assert.equal(recurrence.scheduleSaves,2);
     await recurrence.elements['message-form'].onsubmit({preventDefault(){}});assert.equal(recurrence.scheduleSaves,2);
     assert.match(recurrence.elements['message-schedule-status'].textContent,/unconfirmed/);
+    await recurrence.elements.refresh.onclick();
+    assert.equal(recurrence.elements['message-schedule-read'].hidden,false);
+    assert.equal(recurrence.elements['message-schedule-adopt'].hidden,true);
+    assert.equal(recurrence.elements['message-submit'].disabled,true,'ordinary refresh does not clear recovery');
     recurrence.loseScheduleSave=false;await recurrence.elements['message-schedule-read'].onclick();
-    await recurrence.elements['message-schedule-pause'].onclick();assert.equal(recurrence.savedMessageSchedule.enabled,false);
+    assert.equal(recurrence.elements['message-schedule-read'].hidden,true);
+    assert.equal(recurrence.elements['message-result'].textContent,'','confirmed read clears the resolved save error');
+    recurrence.schedulePausePending=true;recurrence.scheduleState='pausing';
+    await recurrence.elements['message-schedule-pause'].onclick();
+    assert.equal(recurrence.elements['message-schedule-pause'].hidden,true,'pending pause cannot be repeated');
+    assert.match(recurrence.elements['message-schedule-status'].textContent,/Keep the Pico powered/);
+    recurrence.schedulePausePending=false;recurrence.scheduleState=null;recurrence.savedMessageSchedule.enabled=false;
+    await recurrence.elements.refresh.onclick();
+    assert.equal(recurrence.elements['message-schedule-pause'].hidden,true,'already paused action is omitted');
+    assert.equal(recurrence.elements['message-schedule-help'].hidden,true);
+    assert.match(recurrence.elements['message-schedule-status'].textContent,/Save and start schedule/);
+    recurrence.scheduleState='recovery_required';await recurrence.elements.refresh.onclick();
+    assert.equal(recurrence.elements['message-schedule-pause'].hidden,false,'recovery is actionable even for a disabled saved schedule');
+    assert.equal(recurrence.elements['message-schedule-pause'].textContent,'Acknowledge interrupted schedule');
+    recurrence.scheduleState=null;recurrence.loseSchedulePause=true;
+    await recurrence.elements['message-schedule-pause'].onclick();
+    assert.equal(recurrence.elements['message-schedule-read'].hidden,false);
+    await recurrence.elements.refresh.onclick();
+    assert.equal(recurrence.elements['message-submit'].disabled,true,'lost pause needs explicit readback');
+    recurrence.loseSchedulePause=false;await recurrence.elements['message-schedule-read'].onclick();
+    recurrence.scheduleReadFailure=true;await recurrence.elements.refresh.onclick();
+    assert.equal(recurrence.elements['message-schedule-controls'].hidden,false);
+    assert.equal(recurrence.elements['message-schedule-read'].hidden,false,'failed reads retain a recovery action');
+    recurrence.scheduleReadFailure=false;await recurrence.elements['message-schedule-read'].onclick();
+    assert.equal(recurrence.elements['message-schedule-read'].hidden,true);
     const publicPage=await fixture(true,true,false,true);
     assert.equal(publicPage.elements.focused,undefined);
     publicPage.elements['access-toggle'].onclick();assert.equal(publicPage.elements.focused,'local-password');assert.equal(publicPage.elements['local-access'].open,true);publicPage.elements['access-close'].onclick();

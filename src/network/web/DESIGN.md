@@ -192,6 +192,8 @@ splitting it into jobs.
 
 The message form has adjacent availability guidance derived from the existing connectivity, ownership, restart and capability gates. It introduces no second authority for job admission.
 
+Saved CW schedule controls share one status region. Ordinary Refresh reads the schedule without replacing the draft; explicit Read saved schedule appears only for unavailable state or action recovery and alone clears an unconfirmed action. Restore saved schedule confirms replacement of the complete editor and selects recurring delivery without transmitting. Existing schedules remain accessible while preparing Send once. Pause schedule appears only for an enabled schedule; pending pauses retain their durable-save guidance, and interrupted schedules expose Acknowledge interrupted schedule through the same pause endpoint. An already paused schedule explains the explicit save-and-start path to resume.
+
 ### LPF / band selector
 
 The selector editor sits in Radio pins after amplifier timing and before GPIO drive. It uses the existing native fieldset, full-width inputs and selects, flat headings, buttons and Active settings for this boot disclosure. Selection policy and release/settling fields use the three-column field grid, stacking at 650px; selector outputs and named frequency ranges repeat the same form pattern. Each selector names a Pico GPIO and polarity, while each range names a selector and inclusive whole-Hz limits. Add and remove actions stay beside their own group and return focus to the relevant entry or add button.

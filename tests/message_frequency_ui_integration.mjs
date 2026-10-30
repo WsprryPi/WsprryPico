@@ -30,15 +30,15 @@ async function control(command) {
   const r=await fetch('http://127.0.0.1:'+fixturePort+'/.fixture-control',{method:'POST',body:JSON.stringify(command)});
   assert.equal(r.status,200);return r.json();
 }
-async function capture(name){
+async function capture(name,target='job-heading'){
   for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name==='mobile'});
-    await cdp.evaluate(`document.getElementById('job-heading').scrollIntoView({block:'start'})`);
+    await cdp.evaluate(`document.getElementById(${JSON.stringify(target)}).scrollIntoView({block:'start'})`);
     assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,'horizontal overflow');
     if(process.env.PICO_BROWSER_NO_CAPTURE==='1')continue;
     const png=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
     await writeFile(path.join(output,`${name}-${view.name}.png`),Buffer.from(png.data,'base64'));
-    if(view.name==='mobile') {
+    if(view.name==='mobile' && target==='job-heading') {
       await cdp.evaluate(`document.getElementById('message-preview').scrollIntoView({block:'center'})`);
       const tail=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       await writeFile(path.join(output,`${name}-preview-mobile.png`),Buffer.from(tail.data,'base64'));
@@ -80,6 +80,7 @@ try {
       await field('local-password','test-password');await submitLogin();
     }
     await until(()=>cdp.evaluate('typeof online!=="undefined" && online && !busy'),'ready page');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-controls').hidden`),true,'Send once without a saved schedule');
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Carrier frequency (Hz)');
     assert.equal(await cdp.evaluate(`document.getElementById('message-shift').disabled`),true);
     await cdp.evaluate(`globalThis.cwRequests=[];const originalJob=job;job=async(operation,body={})=>{cwRequests.push({operation,body:structuredClone(body)});return originalJob(operation,body);};`);
@@ -168,9 +169,48 @@ try {
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Space frequency (Hz)');
     assert.equal(await cdp.evaluate(`document.getElementById('message-shift').disabled`),false);
     assert.equal(await cdp.evaluate(`JSON.stringify(['message-frequency','message-shift','message-text','message-dot','message-dash'].map(id=>document.getElementById(id).value))`),saved);
+    assert.deepEqual(await control({op:'frequency_state'}),beforeState,'message preparation never persists standalone settings');
+    // Production schedule saves and readback preserve one-time drafts and the
+    // explicit recovery barrier after a committed save loses its UI reply.
+    for(const [id,value] of Object.entries({mode:'qrss',text:'E',frequency:'14096900',delivery:'recurring',interval:'20'}))await field('message-'+id,value);
+    await cdp.evaluate(`document.getElementById('message-start').value=new Date(Number(BigInt(snapshot.standalone.utc_now_ns)/1000000n)+60000).toISOString().slice(0,19);document.getElementById('message-form').requestSubmit()`);
+    await until(()=>cdp.evaluate(`!busy && messageScheduleReadback?.data.saved?.enabled`),'saved message schedule');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-read').hidden`),true);
+    await field('message-delivery','once');await field('message-text','ONE TIME');await click('refresh');
+    await until(()=>cdp.evaluate('!busy'),'schedule refresh');
+    assert.deepEqual(await cdp.evaluate(`['message-delivery','message-text'].map(id=>document.getElementById(id).value)`),['once','ONE TIME']);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-controls').hidden`),false);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').hidden`),false);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-adopt').textContent`),'Restore saved schedule');
+    await capture(surface+'-schedule-during-send-once','message-schedule-controls');
+    let restoreDialog;
+    const acceptRestore=event=>{const r=JSON.parse(event.data);if(r.method==='Page.javascriptDialogOpening'){restoreDialog=r.params;void cdp.send('Page.handleJavaScriptDialog',{accept:true});}};
+    cdp.ws.addEventListener('message',acceptRestore);
+    try{await click('message-schedule-adopt');}finally{cdp.ws.removeEventListener('message',acceptRestore);}
+    assert.match(restoreDialog?.message||'',/Replace the current message draft/);
+    assert.deepEqual(await cdp.evaluate(`['message-delivery','message-text'].map(id=>document.getElementById(id).value)`),['recurring','E']);
+    await cdp.evaluate(`{const original=api;api=async(...args)=>{const response=await original(...args);if(args[0]==='message-schedule'&&args[1]==='PUT'){api=original;throw Error('Saved schedule reply lost');}return response;};document.getElementById('message-form').requestSubmit();}`);
+    await until(()=>cdp.evaluate('!busy && messageScheduleUncertain'),'unconfirmed committed schedule save');
+    await click('refresh');await until(()=>cdp.evaluate('!busy'),'ordinary refresh during schedule recovery');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-submit').disabled`),true);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-read').hidden`),false);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-adopt').hidden`),true);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').hidden`),true);
+    await capture(surface+'-schedule-recovery','message-schedule-controls');
+    await click('message-schedule-read');await until(()=>cdp.evaluate('!busy && !messageScheduleUncertain'),'explicit schedule readback');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-read').hidden`),true);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-result').textContent`),'');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').textContent`),'Pause schedule');
+    await click('message-schedule-pause');await until(()=>cdp.evaluate(`!busy && messageScheduleReadback?.data.saved?.enabled===false`),'confirmed schedule pause');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').hidden`),true);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-help').hidden`),true);
+    assert.match(await cdp.evaluate(`document.getElementById('message-schedule-status').textContent`),/Save and start schedule/);
+    await capture(surface+'-schedule-paused','message-schedule-controls');
     await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});assert.equal(await cdp.evaluate('getComputedStyle(document.documentElement).colorScheme'),'light');
     await cdp.evaluate(`document.documentElement.style.fontSize='200%'`);await capture(surface+'-text-200-percent');
-    assert.deepEqual(await control({op:'frequency_state'}),beforeState,'message preparation never persists standalone settings');
+    const afterSchedule=await control({op:'frequency_state'});
+    assert.equal(afterSchedule.saved_dial_hz,beforeState.saved_dial_hz,'message schedule leaves the WSPR dial unchanged');
+    assert.equal(afterSchedule.enabled,beforeState.enabled,'message schedule leaves WSPR enablement unchanged');
     cdp.ws.close();cdp=null;await cleanupUiProcesses([chrome],profile,{processGroup});chrome=null;
     console.log('PASS '+surface+' shipped CW requests, compiled events, explicit API, keyboard, errors, drafts and views');
   }
