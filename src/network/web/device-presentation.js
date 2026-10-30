@@ -21,7 +21,6 @@
       document.getElementById('device-name-state').hidden = fresh && !pending;
       put('device-id',device || 'Unavailable');
       put('device-boot',boot || 'Unavailable on this connection');
-      put('device-observation',fresh ? authenticated ? 'Authenticated observation' : 'Public observation; access is not authenticated' : 'Last observation; current connection unconfirmed');
       document.title = (name || 'WsprryPico') + ' - Station control' +
         (!fresh ? name ? ' (last confirmed)' : ' (connection unknown)' : '') +
         (pending ? ' (rename pending)' : '');

@@ -32,10 +32,10 @@
     },
     "device-presentation.min.js": {
       "inputs": {
-        "device-presentation.js": "e7848453b1bbcd5de73db0fa5168e24ee345999eb80990990ad910c7b8a8cee0"
+        "device-presentation.js": "fed90cc36b12d3ceb1d08f308b494f6cff6a3020d7277c3c16e37d251a37b139"
       },
-      "sha256": "b6f5f5fbf4d2d6046e886051d28d3e7539f41ca7383013f1bd7439762d884c23",
-      "bytes": 2488
+      "sha256": "683c0dff6112b78352117ceb37584a2252e2e949926328f848d165e0e0fb983b",
+      "bytes": 2331
     },
     "organization.min.js": {
       "inputs": {
