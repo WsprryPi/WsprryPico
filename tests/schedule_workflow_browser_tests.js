@@ -45,7 +45,7 @@ async function saveDial(f, revision = '"original-revision"') {
     await saveDial(concurrent,'"earlier-revision"');
     assert.equal(vm.runInContext('writeState',concurrent.context),'review');
     assert.equal(concurrent.elements['save-config'].disabled,true);
-    assert.match(concurrent.elements['schedule-save-help'].textContent,/I reviewed saved settings/);
+    assert.match(concurrent.elements['schedule-save-help'].textContent,/I reviewed these settings; enable saving/);
     assert.equal(concurrent.form.enabled.checked,true);
     assert.match(concurrent.elements['save-reconcile-status'].textContent,/changed afterward/);
     await concurrent.elements['review-saved'].onclick();
