@@ -80,7 +80,7 @@ try {
   await login();
   await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'login');
   }
-  await cdp.evaluate(`document.querySelector('a[href="/station#radio-settings"]').click()`);
+  await cdp.evaluate(`document.getElementById('station-link').click();const section=document.getElementById('radio-settings');if(!section.open)section.querySelector('summary').click();`);
   await until(()=>cdp.evaluate(`!document.getElementById('standalone-frequency-read').disabled`),'frequency availability');
   await click('standalone-frequency-read');
   await until(()=>cdp.evaluate(`!document.getElementById('standalone-frequency').disabled`),'unset readback');
@@ -89,7 +89,7 @@ try {
   assert.match(await cdp.evaluate(`document.getElementById('standalone-frequency-status').textContent`),firstUse && !['overlay','refusal'].includes(firstUse) ? /No applied station/ : /No WSPR dial frequency/);
   const ax=(await cdp.send('Accessibility.getFullAXTree')).nodes.find(node=>node.role?.value==='textbox' && node.name?.value==='WSPR dial frequency (Hz)');
   assert.ok(ax,'frequency has an explicit accessible label');
-  assert.match(ax.description?.value || '',/No WSPR dial frequency is preselected/);
+  assert.match(ax.description?.value || '',/Enter whole Hz without commas or decimals\. Standalone WSPR places four tones around a center 1,500 Hz above the dial\./);
   await capture('unset');
   if(firstUse==='refusal') {
     await field('standalone-frequency','14095600');
