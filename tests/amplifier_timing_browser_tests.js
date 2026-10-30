@@ -28,5 +28,19 @@ for(const value of ['-1','1.5','1e2','Infinity','NaN','0200','1001',''])assert.e
  assert(!api.valid({...v,target:{...v.target,device_id:[v.target.device_id]}}));
  assert(!api.valid({...v,pending_restart:false,saved:{lead_ms:999,tail_ms:999}}));
  assert(!api.valid({...v,extra:true}));assert(!api.valid({...v,phase:'lead',output_active:false}));assert(!api.valid({...v,phase:'tail',rf_active:true}));
+ // A failed pin save must stop the combined action before timing writes.
+ const combinedFields=Object.fromEntries(['lead','tail','read','save','discard','adopt','status'].map(k=>[k,node()]));
+ let pinDirty=true,pinFail=true,pinWrites=0,timingWrites=0;
+ const combined=api.create({...combinedFields,configuration:{changed:()=>pinDirty,ready:()=>true,save:async()=>{++pinWrites;if(pinFail)throw Error('Pin save unconfirmed');pinDirty=false;}},exchange:async(method,body)=>{
+   if(method==='PUT'){++timingWrites;v={...v,saved:body.timing};}
+   return {data:structuredClone(v),revision:'"combined"'};
+ }});
+ combined.setAvailability(true);await combined.load();
+ assert.equal(combinedFields.save.disabled,false,'pin-only changes enable combined save');
+ combinedFields.lead.value='250';combinedFields.lead.oninput();
+ await combinedFields.save.onclick();assert.equal(pinWrites,1);assert.equal(timingWrites,0);assert.equal(combinedFields.save.disabled,true);
+ pinFail=false;await combined.load();await combinedFields.save.onclick();
+ assert.equal(timingWrites,1);assert.equal(pinDirty,false);assert.equal(v.saved.lead_ms,250);
+ pinDirty=true;combined.notify();await combinedFields.save.onclick();assert.equal(timingWrites,1,'pin-only save does not rewrite timing');
  console.log('Amplifier timing negotiation, input validation, lost reply, draft identity and stale response checks passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});

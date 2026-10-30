@@ -63,7 +63,7 @@ Pin or drive changes require an **explicit restart** in **Station Control → Tr
 
 ### Amplifier lead and tail
 
-Open **Station Control → Radio pins**, beside the amplifier-enable pin and polarity settings. Choose **Read saved timing**, set **Enable before RF (ms)** and **Disable after RF (ms)**, then choose **Save amplifier timing** while the Pico is idle and unowned. Both values default to **200 ms** and accept **0–1000 whole milliseconds**. Restart the Pico to activate changes; saved and active values are shown separately. Changing timing requires a restart even if the amplifier pin is disabled.
+Open **Station Control → Radio pins → Amplifier control**. Choose **Read saved timing**, set **Amplifier enable**, **Amplifier polarity**, **Enable before RF (ms)** and **Disable after RF (ms)**, then choose **Save amplifier config** while the Pico is idle and unowned. This saves amplifier pin, polarity and timing edits while preserving other radio-pin drafts. Both values default to **200 ms** and accept **0–1000 whole milliseconds**. Restart the Pico to activate changes; saved and active values are shown separately. Changing timing requires a restart even if the amplifier pin is disabled.
 
 Lead lets the amplifier settle before the scheduled RF start. Tail holds it enabled after normal RF completion. These intervals surround the transmission window and do not change the message duration or shift its scheduled RF start. Zero removes the corresponding interval; a disabled amplifier pin uses neither interval. A job submitted too late to provide its lead is refused. Stop and fault cleanup do not wait for tail. Settings readback shows the phase observed at the last read; it does not measure amplifier readiness or RF power.
 
@@ -85,8 +85,8 @@ Connect GPIO only to suitable **3.3 V logic drivers** with external bias that ho
 
 Open **Station Control → Radio pins → Pin assignments** to inspect or change the transmit indicator and external button. The [hardware preparation guide](start.md#hardware-connections) lists the defaults, available GPIOs and example wiring. GPIO menus use **GP numbers**, not physical header pin numbers. Each GPIO can serve only one role; pins assigned to another role are unavailable.
 
-1. Under **TX indicator**, keep **Onboard LED** for the built-in indicator, choose **External GPIO** for an external LED, or choose **Disabled**. For an external LED, select its **External indicator pin** and **Indicator polarity**. Available external pins are **GP0–GP22** and **GP26–GP28**, excluding pins already in use. The default indicator is **Onboard LED**; external polarity defaults to **Active-high**.
-2. Under **Switch input**, read the saved button pin. The factory default is **GP14**, physical pin **19**. Choose an unused GPIO from the same ranges or **Disabled**. Wire a normally open push button between the selected GPIO and GND; the input uses an internal pull-up.
+1. Under **TX LED**, keep **Onboard LED** for the built-in indicator, choose **External GPIO** for an external LED, or choose **Disabled**. For an external LED, select its **External LED Pin** and **LED Polarity**. Available external pins are **GP0–GP22** and **GP26–GP28**, excluding pins already in use. The default indicator is **Onboard LED**; external polarity defaults to **Active-high**.
+2. Under **Button**, read the saved button pin. The factory default is **GP14**, physical pin **19**. Choose an unused GPIO from the same ranges or **Disabled**. Wire a normally open push button between the selected GPIO and GND; the input uses an internal pull-up.
 3. Choose **Save radio pins** and read the result. Use **Station Control → Transmitter status → Reset Pico** to activate changed pin settings. Read the saved and active assignments again after restart and confirm that they match the wiring before transmitting.
 
 ## Understand what was saved

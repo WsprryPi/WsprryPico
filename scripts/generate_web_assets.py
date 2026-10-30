@@ -3,11 +3,13 @@
 import base64
 import gzip
 import hashlib
+import html as html_escape
 import json
 import pathlib
 import sys
 
-root, output = map(pathlib.Path, sys.argv[1:])
+root, output = map(pathlib.Path, sys.argv[1:3])
+firmware_version = sys.argv[3] if len(sys.argv) > 3 else "0.0.0-devel"
 web = root / 'src/network/web'
 # Minified artifacts are maintained by the existing pinned npm build. Verify
 # exact source/output identity here so ordinary CMake remains Python-only.
@@ -31,6 +33,7 @@ for output_name, inputs in groups.items():
             entry.get('sha256') != hashlib.sha256(output_bytes).hexdigest()):
         raise ValueError('Stale operator assets; run npm --prefix src/network/bootstrap_web run build')
 html, css = [(web / name).read_text() for name in ('index.html', 'style.css')]
+html = html.replace('@WSPRRY_PICO_FIRMWARE_VERSION@', html_escape.escape(firmware_version))
 js = (web / 'app.min.js').read_text()
 organization = (web / 'organization.min.js').read_text()
 presentation = (web / 'device-presentation.min.js').read_text()

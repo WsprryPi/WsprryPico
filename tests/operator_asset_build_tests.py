@@ -23,16 +23,29 @@ class OperatorAssets(unittest.TestCase):
                 if source.is_file():
                     shutil.copy2(source, target / source.name)
 
-    def generate(self):
+    def generate(self, version=None):
         return subprocess.run(
             [sys.executable, str(ROOT / 'scripts/generate_web_assets.py'),
-             str(self.root), str(self.root / 'assets.cpp')],
+             str(self.root), str(self.root / 'assets.cpp')] + ([] if version is None else [version]),
             text=True, capture_output=True, check=False)
 
     def test_fresh_assets_embed(self):
         result = self.generate()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('radio_parts', (self.root / 'assets.cpp').read_text())
+
+    def test_footer_embeds_selected_firmware_version(self):
+        result = self.generate('0.2.0-beta.7')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        generated = (self.root / 'assets.cpp').read_text()
+        self.assertIn('id="firmware-version">0.2.0-beta.7</span>', generated)
+        self.assertNotIn('@WSPRRY_PICO_FIRMWARE_VERSION@', generated)
+
+    def test_firmware_version_is_html_escaped(self):
+        result = self.generate('<script>alert("version")</script>')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        generated = (self.root / 'assets.cpp').read_text()
+        self.assertIn('&lt;script&gt;alert(&quot;version&quot;)&lt;/script&gt;', generated)
 
     def test_source_edit_requires_regeneration(self):
         source = self.root / 'src/network/web/app.js'

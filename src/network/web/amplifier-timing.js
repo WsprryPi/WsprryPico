@@ -14,13 +14,13 @@
     ['inactive','waiting','lead','rf','tail','fault'].includes(v.phase) &&
     v.rf_active===(v.phase==='rf') && (!['lead','rf','tail'].includes(v.phase) || v.output_active) &&
     (!v.saved || !v.boot_active || v.pending_restart || v.saved.lead_ms===v.boot_active.lead_ms && v.saved.tail_ms===v.boot_active.tail_ms);
-  function create({lead,tail,read,save,discard,adopt,status,exchange,afterSave=()=>{},run=fn=>fn(),expectedTarget=()=>null}) {
+  function create({lead,tail,read,save,discard,adopt,status,exchange,afterSave=()=>{},run=fn=>fn(),expectedTarget=()=>null,configuration=null}) {
     let readable=false,writable=false,busy=false,observed=null,revision='',epoch=0,edited=false,draftTarget='',review=false;
     const identity=v=>JSON.stringify([v.target.scope,v.target.device_id,v.target.boot_id]);
     function render() {
       read.disabled=busy || !readable;
       lead.disabled=tail.disabled=busy || !readable || !observed || !revision;
-      save.disabled=lead.disabled || !writable || !edited || review || !observed?.saved || !observed.storage_healthy || number(lead.value)===null || number(tail.value)===null;
+      save.disabled=lead.disabled || !writable || (!edited && !configuration?.changed()) || (configuration?.changed() && !configuration.ready()) || review || !observed?.saved || !observed.storage_healthy || number(lead.value)===null || number(tail.value)===null;
       discard.disabled=busy || !observed?.saved || !revision;
       adopt.hidden=!review; adopt.disabled=discard.disabled;
       for(const input of [lead,tail]) input.setAttribute('aria-invalid',String(edited && number(input.value)===null));
@@ -50,9 +50,23 @@
     }
     async function commit() {
       if(save.disabled) return;
-      const target=observed.target,value={lead_ms:number(lead.value),tail_ms:number(tail.value)},match=revision,ticket=++epoch;
+      const target=observed.target,value={lead_ms:number(lead.value),tail_ms:number(tail.value)},ticket=++epoch;
+      let match=revision;
+      const timingEdited=edited;
       busy=true;revision='';render();
       try {
+        if(configuration?.changed()) {
+          await configuration.save();
+          const fresh=await exchange('GET'),v=checked(fresh);
+          if(ticket!==epoch) return;
+          if(identity(v)!==identity(observed) || ['lead_ms','tail_ms'].some(key=>v.saved?.[key]!==observed.saved?.[key]))
+            throw Error('Amplifier timing changed while saving the pin settings.');
+          observed=v;match=fresh.revision;
+        }
+        if(!timingEdited) {
+          revision=match;status.textContent='Amplifier config saved. '+message(observed);
+          await afterSave();return;
+        }
         const result=await exchange('PUT',{schema:descriptor.schema,target,timing:value},match),v=checked(result);
         const confirmed=await exchange('GET'),after=checked(confirmed);
         if(ticket!==epoch) return;
@@ -60,7 +74,7 @@
            !timing(v.saved) || !timing(after.saved) || [v.saved,after.saved].some(t=>t.lead_ms!==value.lead_ms || t.tail_ms!==value.tail_ms))
           throw Error('Saved timing did not confirm the entries.');
         observed=after;revision=confirmed.revision;edited=review=false;draftTarget=identity(after);
-        status.textContent='Amplifier timing saved. '+message(after);
+        status.textContent=(configuration?'Amplifier config saved. ':'Amplifier timing saved. ')+message(after);
         await afterSave(confirmed);
       } catch(e) {if(ticket===epoch)status.textContent=e.message+' Read saved timing before another save; your entries are preserved.';}
       finally {if(ticket===epoch){busy=false;render();}}
@@ -69,7 +83,7 @@
     discard.onclick=()=>{if(discard.disabled)return;lead.value=String(observed.saved.lead_ms);tail.value=String(observed.saved.tail_ms);edited=review=false;draftTarget=identity(observed);render();};
     adopt.onclick=()=>{if(adopt.disabled)return;draftTarget=identity(observed);review=false;render();};
     read.onclick=()=>run(load);save.onclick=()=>run(commit);render();
-    return {load,setAvailability(canRead,canWrite=canRead){readable=canRead;writable=canWrite;render();},invalidate(){++epoch;revision='';observed=null;busy=false;render();}};
+    return {load,notify:render,setAvailability(canRead,canWrite=canRead){readable=canRead;writable=canWrite;render();},invalidate(){++epoch;revision='';observed=null;busy=false;render();}};
   }
   root.WsprryAmplifierTiming={supported,valid,number,create};
   if(typeof module!=='undefined')module.exports=root.WsprryAmplifierTiming;

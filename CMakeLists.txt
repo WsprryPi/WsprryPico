@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 option(WSPRRY_PICO_BUILD_FIRMWARE "Build Pico 2 W firmware" OFF)
+set(WSPRRY_PICO_FIRMWARE_VERSION "0.0.0-devel" CACHE STRING "Firmware identity")
 
 if(WSPRRY_PICO_BUILD_FIRMWARE)
     set(PICO_BOARD pico2_w CACHE STRING "Pico SDK board" FORCE)
@@ -59,6 +60,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     scripts/generate_web_assets.py)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_web_assets.py
     ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
+    "${WSPRRY_PICO_FIRMWARE_VERSION}"
     COMMAND_ERROR_IS_FATAL ANY)
 
 add_library(wsprrypico_core

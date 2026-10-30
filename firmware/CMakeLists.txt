@@ -1,5 +1,3 @@
-set(WSPRRY_PICO_FIRMWARE_VERSION "0.0.0-devel" CACHE STRING "Firmware identity")
-
 execute_process(
     COMMAND git -C "${CMAKE_CURRENT_LIST_DIR}/.." rev-parse --short=12 HEAD
     OUTPUT_VARIABLE WSPRRY_PICO_GIT_REVISION

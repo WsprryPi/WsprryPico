@@ -26,7 +26,7 @@ Connect the RF path to **GP2, physical header pin 4**, and its ground to a Pico 
 
 The **onboard LED** is the default transmit indicator. It lights steadily while RF output is active. At other times, it can blink for setup Wi-Fi or device identification. It needs no additional wiring.
 
-For an optional external LED, choose **External GPIO** under **TX indicator** in **Station Control → Radio pins → Pin assignments**. Select an unused **External indicator pin** and the matching **Indicator polarity**. External polarity defaults to **Active-high**. See [LED and button settings](configure.md#led-and-button-settings) for saving and applying the selection.
+For an optional external LED, choose **External GPIO** under **TX LED** in **Station Control → Radio pins → Pin assignments**. Select an unused **External LED Pin** and the matching **LED Polarity**. External polarity defaults to **Active-high**. See [LED and button settings](configure.md#led-and-button-settings) for saving and applying the selection.
 
 For example, with the factory RF and button assignments, **GP15, physical pin 20**, is available. Select **GP15** and **Active-high**. With power disconnected, connect **GP15 → 1 kΩ resistor → LED anode (+)**, then connect the **LED cathode (−) → GND**, such as physical pin **18**. Keep the resistor in series with the LED.
 
@@ -38,7 +38,7 @@ The **runtime button input** is for an optional **normally open momentary push b
 
 A **brief click** resets the Pico, **holding briefly** requests transmission shutdown, and **holding for over 10 seconds** requests setup Wi-Fi after shutdown is confirmed. See [button gestures and exact timings](connect.md#request-setup-wi-fi-with-the-external-button). The onboard **BOOTSEL** button is used when loading firmware; use the fitted external button for these runtime controls.
 
-The **Switch input** setting in **Pin assignments** selects the button's GPIO. Its default is **GP14**; choose another unused GPIO in the listed ranges or **Disabled**. A saved selection takes precedence over the factory wiring. Browser and [USB controls](usb.md) are available without an external button.
+The **Button** setting in **Pin assignments** selects the button's GPIO. Its default is **GP14**; choose another unused GPIO in the listed ranges or **Disabled**. A saved selection takes precedence over the factory wiring. Browser and [USB controls](usb.md) are available without an external button.
 
 ## Choose how to operate
 

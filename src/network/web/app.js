@@ -141,6 +141,7 @@ function renderAccess() {
   const label=certificate ? 'Certificate access information' : authenticated ? 'Lock controls' : 'Unlock controls';
   $('access-toggle').setAttribute('aria-label',label);
   $('access-toggle').title=label;
+  $('access-toggle').setAttribute('data-access',certificate ? 'certificate' : authenticated ? 'unlocked' : 'locked');
   $('access-toggle').disabled=accessClosing || ['unknown','unavailable'].includes(accessCarrier);
   $('access-shackle').setAttribute('d',authenticated ? 'M7 10V7a5 5 0 0 1 9-3' : 'M7 10V7a5 5 0 0 1 10 0v3');
   $('access-state').textContent=accessClosing ? 'Locking this browser · waiting for the current request to finish.' :
@@ -264,7 +265,11 @@ const timingEditor = globalThis.WsprryAmplifierTiming && $('amplifier-lead-ms') 
   run:fn=>editorAction('amplifier-timing',fn),
   expectedTarget:()=>({scope:'member',device_id:localIdentity?.device_id || operationsTarget?.device_id,boot_id:snapshot?.job.boot_id}),
   exchange:async(method,body,match)=>{if(!WsprryAmplifierTiming.supported(capabilities?.amplifier_timing))throw Error('Amplifier timing is unsupported by this firmware.');return api('amplifier-timing',method,body,match);},
-  afterSave:()=>refresh()
+  afterSave:async result=>{
+    if(result) await reconcileConfirmedSettings(result,result.data.target,'Amplifier config saved. Restart the Pico to activate it.');
+    await refresh();
+  },
+  configuration:{changed:amplifierPinsChanged,ready:()=>writeState==='ready' && !!currentConfig,save:()=>saveRadioPins(true)}
 }) : null;
 const filterEditor = globalThis.WsprryFilters ? WsprryFilters.mount($('filter-selector-controls'), {
   run:fn=>editorAction('filter-selector',fn),
@@ -537,7 +542,7 @@ function showDraftComparison() {
   row('Schedules and pins','Standalone schedule enabled',f.enabled.checked,progress('enabled',c?.enabled),c?.enabled);
   row('Schedules and pins','Schedules (period / phase, seconds)',f.schedules.value,schedules(progress('schedules',c?.schedules)),schedules(c?.schedules));
   row('Schedules and pins','Schedule expiry (UTC)',f.expiry.value,expiry(progress('expires_utc_s',c?.expires_utc_s)),expiry(c?.expires_utc_s));
-  for (const [key,label] of [['rf_gp','RF GPIO'],['button_gp','Switch GPIO'],['amplifier_gp','Amplifier GPIO'],['amplifier_active_high','Amplifier active-high'],['indicator','TX indicator'],['indicator_gp','Indicator GPIO'],['indicator_active_high','Indicator active-high']]) {
+  for (const [key,label] of [['rf_gp','RF GPIO'],['button_gp','Button GPIO'],['amplifier_gp','Amplifier GPIO'],['amplifier_active_high','Amplifier active-high'],['indicator','TX LED'],['indicator_gp','External LED Pin'],['indicator_active_high','LED active-high']]) {
     if (key === 'amplifier_active_high' && !supportsAmplifier()) continue;
     row('Schedules and pins',label,member(draftPins,key),member(progress('pins',c?.pins),key),c?.pins?.[key]);
   }
@@ -1143,7 +1148,6 @@ $('local-login').onsubmit = event => {
       if(dirty || writeState!=='ready' && saveAttempt) { await refresh(); await readSavedKeepingDraft(); }
       else await refresh(true);
       if(radio && !picoPasswordState && localAuthenticated) await readPicoPassword();
-      notice('Controls unlocked. Check saved-state review before another save.');
     } finally {
       accessLoginPending=false; clearPassword('local-password');
       if(!succeeded || !localAuthenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; }
@@ -1625,6 +1629,7 @@ function fillPins(plan) {
   f.indicator_active_high.value = String(p.indicator_active_high ?? true);
   f.amplifier_active_high.value = String(p.amplifier_active_high ?? true);
   $('pin-settings').disabled = !pinChoices;
+  $('amplifier-pin-settings').disabled = !pinChoices;
   $('i2c-choices').textContent = pinChoices ? pinChoices.i2c_pairs.map(p=>`I²C${p.controller}: GP${p.sda_gp} SDA / GP${p.scl_gp} SCL`).join(' · ') : 'Pin selection is unavailable on this firmware.';
   lockPins();
 }
@@ -1928,26 +1933,36 @@ function checkedHardware(result) {
   return v;
 }
 
-$('pin-settings').addEventListener('input',event=>{dirty=true;editedProgress(event);showDraftComparison();});
-$('save-pins').onclick=()=>action(async()=>{
+function amplifierPinsChanged() {
+  if(!supportsAmplifier() || !currentConfig?.pins) return false;
+  const pins=readPins();
+  return ['amplifier_gp','amplifier_active_high'].some(key=>pins[key]!==currentConfig.pins[key]);
+}
+for (const id of ['pin-settings','amplifier-pin-settings']) $(id).addEventListener('input',event=>{dirty=true;editedProgress(event);showDraftComparison();timingEditor?.notify();});
+async function saveRadioPins(amplifierOnly=false) {
   if(writeState!=='ready') throw new Error('Read and review saved settings before saving pins.');
   const path=supportsAmplifier()?'hardware/3':'hardware';
   const before=await api(path);
   if(before.revision!==revision) { requireReadback(); throw new Error('Saved settings changed. Read and review them before saving pins.'); }
   checkedHardware(before);
-  const pins=readPins();
+  const draft=readPins();
+  const pins=amplifierOnly ? {...before.data.saved,amplifier_gp:draft.amplifier_gp,amplifier_active_high:draft.amplifier_active_high} : draft;
+  if(amplifierOnly && !before.data.saved) throw new Error('Read complete saved pins before saving amplifier config.');
   try {
     const result=await api(path,'PUT',{schema:before.data.schema,target:before.data.target,pins},before.revision);
     checkedHardware(result);
     if(result.data.schema!==before.data.schema || JSON.stringify(result.data.target)!==JSON.stringify(before.data.target) ||
        Object.keys(result.data.saved || {}).sort().join(',')!==Object.keys(pins).sort().join(',') ||
        Object.keys(pins).some(key=>JSON.stringify(result.data.saved[key])!==JSON.stringify(pins[key]))) throw new Error('Pin readback did not confirm the saved draft.');
-    currentConfig={...currentConfig,pins}; progressEdits.delete('pins');
-    await reconcileConfirmedSettings(result,before.data.target,'Radio pins saved. Reset Pico explicitly to activate them.');
+    currentConfig={...currentConfig,pins};
+    if(Object.keys(draft).every(key=>JSON.stringify(draft[key])===JSON.stringify(pins[key]))) progressEdits.delete('pins');
+    const confirmed=await reconcileConfirmedSettings(result,before.data.target,'Radio pins saved. Reset Pico explicitly to activate them.');
     consolePut('pins-status','Radio pins saved. Reset Pico explicitly to activate them.');
-    await refresh();
+    if(amplifierOnly && !confirmed) throw new Error('Amplifier pin save needs saved-state review before saving timing.');
+    if(!amplifierOnly) await refresh();
   } catch(error) { requireReadback(); consolePut('pins-status','Read saved settings and review the pin result before another save. '+error.message); throw error; }
-});
+}
+$('save-pins').onclick=()=>action(()=>saveRadioPins());
 async function applyWsprProgress() {
   if(!savedProgress || writeState!=='ready' || !currentConfig) throw new Error('Read and review saved WSPR settings before applying.');
   const fields=savedProgress.data.fields, patch={};

@@ -36,7 +36,7 @@ const server=http.createServer(async(req,res)=>{
     }
     let name=req.url.split('?')[0].slice(1);
     if(['','station','wifi-host'].includes(name)) {
-      let html=fs.readFileSync(path.join(root,'src/network/web/index.html'),'utf8');
+      let html=fs.readFileSync(path.join(root,'src/network/web/index.html'),'utf8').replace('@WSPRRY_PICO_FIRMWARE_VERSION@','test-firmware');
       // The production entry embeds this bundle and supplies the actual carrier context.
       const bundle=fs.readFileSync(path.join(root,'src/network/bootstrap_web/radio-bundle.js'),'utf8');
       html=html.replace('<script src="/config-validation.js"',()=>`<script>${bundle}</script><script>const factory=globalThis.WsprryPicoConsumerRadio;globalThis.WsprryPicoConsumerRadio=Object.freeze({createClient:()=>factory.createClient(undefined,()=>Date.now(),{authority:'192.168.1.53',interface:'station'})});</script><script src="/config-validation.js"`);
@@ -202,10 +202,15 @@ try {
   }
   await click('access-toggle');assert.equal(await evaluate('document.activeElement.id'),'local-password');
   await key('Escape');assert.equal(await evaluate('document.activeElement.id'),'access-toggle');
+  assert.equal(await evaluate('document.getElementById("access-toggle").getAttribute("data-access")'),'locked');
+  assert.equal(await evaluate('getComputedStyle(document.getElementById("access-toggle")).borderTopColor'),'rgb(177, 61, 50)');
+  assert.equal(await evaluate('document.getElementById("firmware-version").textContent'),'test-firmware');
   await capture('locked');
   console.log('PASS top navigation, active view, modal keyboard, mobile, color preferences and zoom');
   await click('access-toggle');await evaluate('document.getElementById("local-password").value="test-password"');await key('Enter');
   await until(()=>evaluate('!busy && online && localAuthenticated && writeState==="ready"'),'authenticated settings read');
+  assert.equal(await evaluate('getComputedStyle(document.getElementById("access-toggle")).borderTopColor'),'rgb(40, 116, 65)');
+  assert.equal(await evaluate('document.getElementById("notice").hidden'),true);
   await capture('unlocked');
   await evaluate('document.getElementById("radio-pins").open=true');
   await click('amplifier-timing-read');await idle();
@@ -221,6 +226,29 @@ try {
     saveScreenshot('amplifier-timing-'+name+'.png',shot);
   }
   await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+  assert.equal(await evaluate('document.getElementById("amplifier-timing-settings").contains(document.querySelector("[name=amplifier_gp]"))'),true);
+  for(const width of [1280,650,390,360]) {
+    await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});
+    const row=await evaluate('Array.from(document.querySelectorAll(".led-fields select")).map(e=>e.getBoundingClientRect().top)');
+    assert.equal(new Set(row).size,1,'LED controls share a row at '+width);
+    assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
+  }
+  await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+  await edit('rf_gp','3',true);
+  await edit('amplifier_gp','20',true);await edit('amplifier_active_high','false',true);
+  await evaluate('document.getElementById("amplifier-lead-ms").value="350";document.getElementById("amplifier-lead-ms").dispatchEvent(new Event("input",{bubbles:true}))');
+  await click('amplifier-timing-save');await idle();
+  assert.match(await evaluate('document.getElementById("amplifier-timing-status").textContent'),/Amplifier config saved/);
+  const ampConfig=await config();
+  assert.equal(ampConfig.config.pins.amplifier_gp,20);assert.equal(ampConfig.config.pins.amplifier_active_high,false);
+  assert.equal(ampConfig.config.pins.rf_gp,2);assert.equal(await evaluate('document.getElementById("config").elements.rf_gp.value'),'3');
+  const ampClient=f.client();await ampClient.identity();
+  assert.equal((await (await ampClient.publicRead('amplifier-timing')).json()).saved.lead_ms,350);
+  await edit('rf_gp','2',true);await edit('amplifier_gp','',true);await edit('amplifier_active_high','true',true);
+  await evaluate('document.getElementById("amplifier-lead-ms").value="200";document.getElementById("amplifier-lead-ms").dispatchEvent(new Event("input",{bubbles:true}))');
+  await click('amplifier-timing-save');await idle();
+  assert.match(await evaluate('document.getElementById("amplifier-timing-status").textContent'),/Amplifier config saved/);
+  console.log('PASS lock borders, quiet unlock, footer version, LED row and amplifier config save preserving unrelated drafts');
   const selectorButton=text=>evaluate(`Array.from(document.querySelectorAll('#filter-selector-controls button')).find(b=>b.textContent===${JSON.stringify(text)}).click()`);
   const selectorField=(label,value)=>evaluate(`(()=>{const l=Array.from(document.querySelectorAll('#filter-selector-controls label')).find(l=>l.firstChild?.textContent===${JSON.stringify(label)});const input=l.querySelector('input,select');input.value=${JSON.stringify(String(value))};input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
   await selectorButton('Read saved selectors');await idle();
