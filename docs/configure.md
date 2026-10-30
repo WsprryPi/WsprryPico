@@ -27,9 +27,9 @@ Complete station details, choose **Save valid station fields**, then explicitly 
 
 In **Station Control → WSPR Configuration**, enter a **WSPR dial frequency (Hz)** appropriate for your band, RF setup and operating privileges. **Hz** means hertz; **1 MHz = 1,000,000 Hz**. Enter a whole number without commas or a unit suffix. Choose **Save frequency** while idle, then **Read saved frequency** to confirm it. A fresh installation has no selected WSPR dial frequency, so the field is blank. Standalone WSPR places four tones around a center 1,500 Hz above the dial, without random placement: enter `14095600` for a center of `14097100 Hz`. Both frames of a pair use one saved dial. A first selection leaves schedules disabled; later saves apply to the next job and preserve STOP. Read and Discard do not save a new value. An invalid or rejected save retains your entry for correction. Unsaved frequency text exists only in the current browser tab and is not a committed setting after a reload or reboot. If a reply is uncertain, read the saved frequency and review it before another explicit save; the page does not retry the write automatically. Individual message jobs have their own frequency field.
 
-**Schedule period / phase (seconds)** controls when automatic WSPR jobs start. The **period** is the time between starts. The **phase** is an offset within that repeating period, measured from UTC midnight. **UTC** is the worldwide time standard; these settings do not use your computer's local time zone. The Pico starts transmission one second after the selected two-minute window begins.
+**Schedule interval / offset (seconds)** controls when automatic WSPR jobs start. The **interval** is the time between starts. The **offset** selects the start within that repeating interval, measured from UTC midnight. **UTC** is the worldwide time standard; these settings do not use your computer's local time zone. The Pico starts transmission one second after the selected two-minute window begins.
 
-Choose one of these alternative examples, or enter your own `period / phase` pair:
+Choose one of these alternative examples, or enter your own `interval / offset` pair:
 
 | Entry | Repetition | Example start times in UTC |
 | --- | --- | --- |
@@ -37,7 +37,7 @@ Choose one of these alternative examples, or enter your own `period / phase` pai
 | `600 / 0` | Every ten minutes | 12:00:01, 12:10:01, 12:20:01 |
 | `600 / 120` | Every ten minutes, offset by two minutes | 12:02:01, 12:12:01, 12:22:01 |
 
-Enter one pair per line. Periods must be multiples of 120 seconds from 120 through 86,400 that divide evenly into one day. Phases must be multiples of 120, from zero up to less than the period. Up to eight schedules are supported, and their start windows must not overlap. A [two-frame WSPR plan](operate.md#automatic-wspr-plan) also occupies the following two-minute window; the Pico skips competing occurrences.
+Enter one pair per line. Intervals must be multiples of 120 seconds from 120 through 86,400 that divide evenly into one day. Offsets must be multiples of 120, from zero up to less than the interval. Up to eight schedules are supported, and their start windows must not overlap. A [two-frame WSPR plan](operate.md#automatic-wspr-plan) also occupies the following two-minute window; the Pico skips competing occurrences.
 
 **Schedule expiry (UTC)** is an optional end date and time. Leave it blank to keep the schedule available indefinitely. The Pico starts only transmissions that can finish before expiry.
 
@@ -91,7 +91,7 @@ Connect GPIO only to suitable **3.3 V logic drivers** with external bias that ho
 
 ### LED and button settings
 
-Open **Station Control → Radio pins → Pin assignments** to inspect or change the transmit indicator and external button. The [hardware preparation guide](start.md#hardware-connections) lists the defaults, available GPIOs and example wiring. GPIO menus use **GP numbers**, not physical header pin numbers. Each GPIO can serve only one role; pins assigned to another role are unavailable.
+Open **Station Control → Radio pins** to inspect or change the transmit indicator and external button. The [hardware preparation guide](start.md#hardware-connections) lists the defaults, available GPIOs and example wiring. GPIO menus use **GP numbers**, not physical header pin numbers. Each GPIO can serve only one role; pins assigned to another role are unavailable.
 
 1. Under **TX LED**, keep **Onboard LED** for the built-in indicator, choose **External GPIO** for an external LED, or choose **Disabled**. For an external LED, select its **External LED Pin** and **LED Polarity**. Available external pins are **GP0–GP22** and **GP26–GP28**, excluding pins already in use. The default indicator is **Onboard LED**; external polarity defaults to **Active-high**.
 2. Under **Button**, read the saved button pin. The factory default is **GP14**, physical pin **19**. Choose an unused GPIO from the same ranges or **Disabled**. Wire a normally open push button between the selected GPIO and GND; the input uses an internal pull-up.
