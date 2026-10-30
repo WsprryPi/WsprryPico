@@ -22,15 +22,15 @@ In **Transmitter status**, choose **Refresh** and read **Clock**:
 | --- | --- |
 | `unsynchronized` | The Pico has no currently usable UTC estimate. Check its network and time server, or the controller-time connection, and allow fresh synchronization. |
 | `synchronized` | The Pico has an accepted time source. A timed job must still pass its clock-age and uncertainty checks. |
-| `holdover` | Fresh time observations have stopped. The Pico is estimating time from its previously synchronized clock; new starts are allowed only while its age and uncertainty remain within limits. Restore the time source. |
+| `using last time update` | Fresh time observations have stopped. The Pico estimates UTC from its last accepted time. A finite NTP timeout retains age and uncertainty limits; a zero timeout allows indefinite NTP holdover. Restore the time source when available. |
 | **Unknown** or **Unavailable** | The browser has no current clock report. Restore the connection and refresh before relying on it. |
 
-The value after **±** is the estimated timing uncertainty, in **ms** (milliseconds), not a countdown. If that error estimate grows too large, the Pico refuses new timed starts. After a restart it needs fresh time observations; saved clock-rate estimates do not preserve the current date and time.
+The value after **±** is the estimated timing uncertainty, in **ms** (milliseconds), not a countdown. With a finite NTP timeout, excessive uncertainty blocks new timed starts. Set the timeout in **Time and calibration**; **0** removes the Pico's NTP age and uncertainty cutoffs while keeping the uncertainty visible. An external controller can still request a stricter timing limit. After a restart it needs fresh time observations; saved clock-rate estimates do not preserve the current date and time.
 
 ## Manual frequency correction
 
 **PPM** means parts per million. One ppm corresponds to 10 Hz at 10 MHz. **Manual correction (ppm)** compensates for a measured RF frequency error; its default is **0.000 ppm**. Leave it unchanged unless you have a measurement against an independent, trustworthy RF reference. Good network-clock status does not measure the RF carrier's frequency.
 
-In **Station Control → Carrier calibration**, choose **Read saved calibration** before editing **Manual correction (ppm)**. Keep a note of the original value. Enter the measured correction, choose **Save calibration**, then measure the carrier again. The field accepts −100.000 through +100.000 ppm with up to three decimal places. The saved correction applies when future jobs are prepared; it does not retune a job already running. Restore the original value if the adjustment is unsuccessful.
+In **Station Control → Time and calibration → Carrier calibration**, the saved value loads automatically. Edit **Manual correction (ppm)**. Keep a note of the original value. Enter the measured correction, choose **Save calibration**, then measure the carrier again. The field accepts −100.000 through +100.000 ppm with up to three decimal places. The saved correction applies when future jobs are prepared; it does not retune a job already running. Restore the original value if the adjustment is unsuccessful.
 
 RF calibration does not change UTC or remove the normal clock, frequency, pin and output checks.

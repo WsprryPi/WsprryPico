@@ -180,7 +180,7 @@ try {
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'login');
     const jumpRequests=requests.length;
     const initialHash=await cdp.evaluate('location.hash');
-    for(const id of ['station-identity','radio-settings','message-section']) {
+    for(const id of ['radio-settings','time-calibration','message-section']) {
       await cdp.evaluate(`{const section=document.getElementById('${id}');section.open=false;const summary=section.querySelector('summary');summary.scrollIntoView({block:'center'});summary.focus();}`);
       await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
       await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
@@ -261,7 +261,7 @@ try {
     const stationReceipt=await cdp.evaluate('location.hash');assert.ok(stationReceipt.startsWith('#save='));
     await click('wifi-host-link');assert.equal(await cdp.evaluate('location.hash'),stationReceipt);
     await click('setup-result-reveal');
-    assert.equal(await cdp.evaluate('!document.getElementById("station-area").hidden && document.getElementById("station-identity").open'),true,'pending link follows the current station save');
+    assert.equal(await cdp.evaluate('!document.getElementById("station-area").hidden && document.getElementById("radio-settings").open'),true,'pending link follows the current station save');
     assert.equal(await cdp.evaluate('location.hash'),stationReceipt,'result navigation preserves the exact receipt');
     await f.time(f.now+3000);await f.command({op:'activate'});await f.time(f.now+1000);
     assert.notEqual((await f.command({op:'stats'})).profile_generation,beforeStation);

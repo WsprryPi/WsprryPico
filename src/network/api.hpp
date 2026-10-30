@@ -142,7 +142,7 @@ class BrowserApi {
     HttpResponse gpio_drive() const;
     HttpResponse amplifier_timing() const;
     HttpResponse filter_selector() const;
-    HttpResponse ntp_timeout() const;
+    HttpResponse ntp_timeout(bool unlimited = false) const;
     HttpResponse rf_calibration() const;
     HttpResponse standalone_frequency() const;
     HttpResponse station_config(bool extended = false) const;

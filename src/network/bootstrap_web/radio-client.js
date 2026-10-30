@@ -75,6 +75,7 @@ export class RadioClient {
     this.publicIdentity = id;
     this.publicReads = null;
     this.publicTimingReads = null;
+    this.publicTimeoutReads = null;
     return id;
   }
   async publicStatus(timeout = 5000) {
@@ -92,8 +93,10 @@ export class RadioClient {
     return value;
   }
   async publicRead(path, timeout = 5000) {
-    const extended=path==='amplifier-timing',resources=extended?['amplifier-timing']:publicReadResources,cache=extended?'publicTimingReads':'publicReads';
-    const discovery=extended?'/api/consumer/v1/read/2':'/api/consumer/v1/read';
+    const version=path==='amplifier-timing'?2:path==='ntp-timeout/2'?3:1;
+    const resources=version===2?['amplifier-timing']:version===3?['ntp-timeout/2']:publicReadResources;
+    const cache=version===2?'publicTimingReads':version===3?'publicTimeoutReads':'publicReads';
+    const discovery='/api/consumer/v1/read'+(version===1?'':'/'+version);
     if (!resources.includes(path)) throw new Error('This resource has no public read authority');
     const options = {method:'GET',credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(timeout)};
     if (!this[cache]) {
@@ -101,7 +104,7 @@ export class RadioClient {
       if (!reply.ok) throw new Error('Public settings reads are unavailable on this firmware');
       const value = publicDiscovery(await reply.text()), target = value?.target;
       if (Object.keys(value || {}).sort().join(',') !== 'prefix,resources,schema,target' ||
-          value.schema !== (extended?'pico-public-read/2':'pico-public-read/1') || value.prefix !== discovery+'/' ||
+          value.schema !== 'pico-public-read/'+version || value.prefix !== discovery+'/' ||
           Object.keys(target || {}).sort().join(',') !== 'boot_id,device_id,scope' || target.scope !== 'member' ||
           !this.publicIdentity || target.device_id !== this.publicIdentity.device_id || target.boot_id !== this.publicIdentity.boot_id ||
           JSON.stringify(value.resources) !== JSON.stringify(resources))

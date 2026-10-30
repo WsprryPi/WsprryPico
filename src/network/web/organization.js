@@ -3,17 +3,17 @@
 (() => {
   const station = $('station-area'), wifi = $('wifi-host-area');
   const sections = new Map([
-    ['station-identity','station'],['radio-settings','station'],['radio-pins','station'],['message-section','station'],
+    ['radio-settings','station'],['time-calibration','station'],['radio-pins','station'],['message-section','station'],
     ['wifi-settings','wifi-host'],['pico-password-section','wifi-host'],['hostname-section','wifi-host'],
     ['connection-section','wifi-host'],['saved-settings','station'],['device-diagnostics','station']
   ]);
   const aliases = new Map([
-    ['hostname-form','hostname-section'],
-    ['engineering-station-form','station-identity'],['consumer-station-form','station-identity'],
+    ['hostname-form','hostname-section'],['station-identity','radio-settings'],
+    ['engineering-station-form','radio-settings'],['consumer-station-form','radio-settings'],
     ['radio-settings-heading','radio-settings'],['job-heading','message-section'],
-    ['station-area','station-identity'],['wifi-host-area','wifi-settings']
+    ['station-area','radio-settings'],['wifi-host-area','wifi-settings']
   ]);
-  const setupSection = () => (consumerAttempt?.kind || setupResultKind) === 'network' ? 'wifi-settings' : 'station-identity';
+  const setupSection = () => (consumerAttempt?.kind || setupResultKind) === 'network' ? 'wifi-settings' : 'radio-settings';
   const pendingSection = () => consumerAttempt ? setupSection() : returnReceipt ? 'hostname-section' : 'saved-settings';
   const receipt = () => /^#(?:save|hostname-return)=/.test(location.hash);
   const stateKey = 'wsprrypicoPresentation';
@@ -129,7 +129,7 @@
         locator:f.locator.value.trim().toUpperCase(),power_dbm:Number(f.power_dbm.value)}} :
         {wifi:{ssid:f.ssid.value,password:f.password.value || null,ntp_ipv4:f.ntp_ipv4.value.trim()}};
       const application = await readApplication();
-      if (kind === 'station') await reviewWspr(patch.station,'draft-wspr-plan');
+      if (kind === 'station') await reviewWspr(patch.station);
       const descriptor = capabilities?.configuration_updates;
       if (descriptor?.schema !== 'transmitter-config-update/1' || descriptor.path !== '/api/v1/config/update' ||
           descriptor.method !== 'POST' || !descriptor.modes?.includes('merge'))
@@ -163,7 +163,7 @@
     }) : [];
     await readApplication();
     const station = {callsign:f.callsign.value.trim().toUpperCase(),locator:f.locator.value.trim().toUpperCase(),power_dbm:Number(f.power_dbm.value)};
-    await reviewWspr(station,'draft-wspr-plan');
+    await reviewWspr(station);
     const config = {version:1,enabled:f.enabled.checked,station,
       wifi:{ssid:f.ssid.value,password:f.password.value,ntp_ipv4:f.ntp_ipv4.value.trim()},schedules,
       pins:pinChoices ? readPins() : undefined,expires_utc_s:f.expiry.value ? Date.parse(f.expiry.value + 'Z')/1000 : 0};

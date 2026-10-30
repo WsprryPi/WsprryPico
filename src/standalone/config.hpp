@@ -45,7 +45,7 @@ std::optional<Config> parse_config(std::string_view text);
 std::string serialize_config(const Config& config, bool amplifier_view = false);
 bool valid_gpio_drive(unsigned ma);
 bool valid_gpio_drive_token(wtp::json::Value value);
-bool valid_ntp_timeout_token(wtp::json::Value value);
+bool valid_ntp_timeout_token(wtp::json::Value value, bool unlimited = false);
 bool valid_time_server(std::string_view value);
 // Standalone USB dial to nominal RF targets. Calibration and NCO realization
 // belong to the engine, after these exact requested targets are constructed.

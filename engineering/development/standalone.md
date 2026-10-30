@@ -61,6 +61,8 @@ Console `INFO` reports the last native LOAD's `load_free_before` and `load_free_
 
 ## Configuration
 
+Config version 1 retains positive whole-minute NTP timeouts. The explicit unlimited selection is stored as Config version 2 with `ntp_timeout_s:0`; all other fields retain their validation. Historical public Config views remain version 1 and preserve the independent timeout. See [clock discipline](clock-discipline.md) for the separately versioned timeout resource, restart behavior and compatibility.
+
 Engineering Console configuration uses its own CDC interface, separate from
 WTP. Current [USB management](usb-local-configuration.md) also configures shared
 resources without Wi-Fi, while consumer network identity/Wi-Fi changes use

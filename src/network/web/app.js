@@ -80,7 +80,7 @@ function clearConsole(reason = 'Read a fresh observation before using controls.'
 function clearPrivateStatus() {
   privateStatusVisible=false; settingsLoadedBoot=null;
   clearConsole('Signed out. Read-only transmitter status remains available.');
-  for(const id of ['job-result','message-result','job-progress','standalone-status','recovery','saved-active-status','saved-wspr-plan','saved-readback','hostname-status','pico-password-status','progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status','message-schedule-status']) consolePut(id,'');
+  for(const id of ['job-result','message-result','job-progress','standalone-status','recovery','saved-active-status','saved-readback','hostname-status','pico-password-status','progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status','message-schedule-status']) consolePut(id,'');
   if($('saved-readback-details')) $('saved-readback-details').hidden=true;
   hostnameState=null; picoPasswordState=null; messageScheduleReadback=null;
   timingEditor?.invalidate(); filterEditor?.invalidate(); filterSaved=null; calibrationEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); driveEditor?.invalidate(); frequencyEditor?.invalidate();
@@ -122,8 +122,12 @@ const utcEditors = globalThis.WsprryUtcDateTime ? ['schedule-expiry','message-st
   .map(id=>$(id)).filter(input=>input?.closest?.('[data-utc-picker]'))
   .map(input=>WsprryUtcDateTime.create(input,utcNowMs)) : [];
 let picoPasswordState = null, frequencyRefreshing = false, activeEditor=null;
-function radioSettingsError(error) {
-  notice(error.message+' Open WSPR Configuration to read the result before another save. Your entry is preserved.',true);
+function radioSettingsError(error, editor = activeEditor) {
+  const [section,label] = ['timeout','calibration'].includes(editor) ? ['time-calibration','Time and calibration'] :
+    editor==='drive' ? ['radio-pins','Radio pins'] : ['radio-settings','WSPR Configuration'];
+  notice(error.message+' Open '+label+' to read the result before another save. Your entry is preserved.',true);
+  $('radio-result-reveal').href='/station#'+section;
+  $('radio-result-reveal').textContent='Review '+label+' result';
   $('radio-result-reveal').hidden=false;
 }
 const supportsAmplifier = () => globalThis.WsprryAmplifier?.supported(capabilities?.amplifier_enable) === true;
@@ -240,9 +244,9 @@ const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-fr
   run:frequencyAction,
   context:()=>({device_id:localIdentity?.device_id,boot_id:snapshot?.job.boot_id}),
   hasProgress:()=>supportsProgress(),
-  stationActions:draft=>draft ? `Choose ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.` : `Complete Station identity, choose ${$(radio ? 'save-station-progress' : 'save-engineering-station-progress').textContent}, then ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.`,
+  stationActions:draft=>draft ? `Choose ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.` : `Complete the station fields in WSPR Configuration, choose ${$(radio ? 'save-station-progress' : 'save-engineering-station-progress').textContent}, then ${$(radio ? 'apply-station-progress' : 'apply-engineering-station-progress').textContent}.`,
   exchange:async (method,body,match,resource = 'standalone-frequency')=>{if (!WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency)) throw new Error('Standalone frequency configuration is unsupported.'); return api(resource,method,body,match,30000,true);},
-  onError:radioSettingsError,
+  onError:error=>radioSettingsError(error,'frequency'),
   afterSave:result=>reconcileConfirmedSettings(result,result.data.target,'Frequency saved. Schedule settings are ready to edit; saving a frequency does not enable schedules.')
 }) : null;
 if ($('rf-calibration-form')) $('rf-calibration-form').onsubmit = event => event.preventDefault();
@@ -250,15 +254,16 @@ if ($('ntp-timeout-form')) $('ntp-timeout-form').onsubmit = event => event.preve
 const ntpTimeoutEditor = globalThis.WsprryNtpTimeout && $('ntp-timeout-minutes') ? WsprryNtpTimeout.create({
   input:$('ntp-timeout-minutes'),read:$('ntp-timeout-read'),save:$('ntp-timeout-save'),discard:$('ntp-timeout-discard'),adopt:$('ntp-timeout-adopt'),status:$('ntp-timeout-status'),
   run:fn=>editorAction('timeout',fn),
-  exchange:(method,body,match)=>api('ntp-timeout',method,body,match),
-  onError:radioSettingsError,
+  exchange:(method,body,match)=>api('ntp-timeout/2',method,body,match),
+  expectedTarget:()=>({device_id:localIdentity?.device_id || operationsTarget?.device_id || hostnameState?.target.device_id,boot_id:snapshot?.job.boot_id}),
+  onError:error=>radioSettingsError(error,'timeout'),
   afterSave:()=>refresh()
 }) : null;
 const calibrationEditor = globalThis.WsprryRfCalibration && $('rf-manual-ppm') ? WsprryRfCalibration.create({
   input:$('rf-manual-ppm'),mode:$('rf-calibration-mode'),read:$('rf-calibration-read'),save:$('rf-calibration-save'),discard:$('rf-calibration-discard'),adopt:$('rf-calibration-adopt'),status:$('rf-calibration-status'),
   run:fn=>editorAction('calibration',fn),
   exchange:async (method,body,match)=>{if (!WsprryRfCalibration.supported(capabilities?.rf_calibration)) throw new Error('Calibration configuration is unsupported.'); return api('rf-calibration',method,body,match);},
-  onError:radioSettingsError,
+  onError:error=>radioSettingsError(error,'calibration'),
   afterSave:()=>requireReadback()
 }) : null;
 const timingEditor = globalThis.WsprryAmplifierTiming && $('amplifier-lead-ms') ? WsprryAmplifierTiming.create({
@@ -284,7 +289,7 @@ const driveEditor = globalThis.WsprryGpioDrive && $('gpio-drive-select') ? Wsprr
   select:$('gpio-drive-select'),read:$('gpio-drive-read'),save:$('gpio-drive-save'),discard:$('gpio-drive-discard'),status:$('gpio-drive-status'),saveDraft:$('gpio-drive-save-draft'),applyDraft:$('gpio-drive-apply-draft'),draftStatus:$('gpio-drive-draft-status'),
   run:fn=>editorAction('drive',fn),
   exchange:async (method,body,match,resource = 'gpio-drive')=>{if (!WsprryGpioDrive.supported(capabilities?.gpio_drive)) throw new Error('This firmware does not advertise supported drive configuration.'); return api(resource,method,body,match);},
-  onError:radioSettingsError,
+  onError:error=>radioSettingsError(error,'drive'),
   afterSave:()=>{requireReadback();}
   ,progressVersion:()=>supportsAmplifier() ? 3 : 2
 }) : null;
@@ -335,7 +340,7 @@ function checkedProgress(result, acknowledgement = false) {
 function showProgress() {
   if (!savedProgress) return;
   const text = progressUI.summary(savedProgress.data);
-  for (const id of ['progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status']) if ($(id)) $(id).textContent = text;
+  for (const id of ['progress-station-status','progress-engineering-station-status']) if ($(id)) $(id).textContent = text;
   $('save-config').textContent = 'Save WSPR configuration';
   if ($('save-station-progress')) $('save-station-progress').textContent = 'Save valid station fields';
   $('apply-progress').hidden = false;
@@ -369,8 +374,6 @@ async function readProgress(fillDraft = false) {
     // Pin fields use their independent hardware readback, never a radio draft.
     if (!radio && Object.hasOwn(v,'ntp_ipv4')) f.ntp_ipv4.value = v.ntp_ipv4 ?? '';
     if (!radio && v.wifi) f.ssid.value = v.wifi.ssid;
-    wsprDraftFeedback(f.callsign.value,f.locator.value,'draft-wspr-plan');
-    if (radio) wsprDraftFeedback(f.callsign.value,f.locator.value,'consumer-wspr-plan');
   }
   showProgress(); return result;
 }
@@ -491,7 +494,7 @@ async function readApplication() {
     return api('application');
   }
 }
-async function reviewWspr(station, output) {
+async function reviewWspr(station) {
   if (applicationVersion !== 2) {
     if (/[<>/]/.test(station.callsign))
       throw new Error('This firmware has not confirmed Type 2/3 support. Your station draft is preserved.');
@@ -501,7 +504,6 @@ async function reviewWspr(station, output) {
   const plan = result.data;
   if (!validWsprPlan(plan))
     throw new Error('The Pico did not confirm the WSPR plan. Your draft is preserved.');
-  if ($(output)) $(output).textContent = 'Draft plan: ' + plan.frame_types.join(' → ') + '. ' + plan.rationale;
   if (!plan.supported) throw new Error(plan.rationale);
 }
 function checkedConfig(result, allowNull = true) {
@@ -564,7 +566,7 @@ function showDraftComparison() {
   row('Wi-Fi','Wi-Fi network',radio ? $('consumer-ssid').value : f.ssid.value,member(progress('wifi',c?.wifi),'ssid'),c?.wifi?.ssid);
   row('Wi-Fi','Time server',radio ? $('consumer-time-server').value : f.ntp_ipv4.value,progress('ntp_ipv4',c?.wifi?.ntp_ipv4),c?.wifi?.ntp_ipv4);
   row('Schedules and pins','Standalone schedule enabled',f.enabled.checked,progress('enabled',c?.enabled),c?.enabled);
-  row('Schedules and pins','Schedules (period / phase, seconds)',f.schedules.value,schedules(progress('schedules',c?.schedules)),schedules(c?.schedules));
+  row('Schedules and pins','Schedules (interval / offset, seconds)',f.schedules.value,schedules(progress('schedules',c?.schedules)),schedules(c?.schedules));
   row('Schedules and pins','Schedule expiry (UTC)',f.expiry.value,expiry(progress('expires_utc_s',c?.expires_utc_s)),expiry(c?.expires_utc_s));
   for (const [key,label] of [['rf_gp','RF GPIO'],['button_gp','Button GPIO'],['amplifier_gp','Amplifier GPIO'],['amplifier_active_high','Amplifier active-high'],['indicator','TX LED'],['indicator_gp','External LED Pin'],['indicator_active_high','LED active-high']]) {
     if (key === 'amplifier_active_high' && !supportsAmplifier()) continue;
@@ -604,10 +606,6 @@ async function readSavedKeepingDraft(showRecovery = true, reveal = showRecovery)
       before.revision !== saved.revision || after.revision !== saved.revision) throw new Error('Pico context or saved revision changed during readback');
   savedReadback = {target:after.data.target,revision:saved.revision,config,progress:progress?.data || null,application:after.data};
   showDraftComparison();
-  if ($('saved-wspr-plan')) $('saved-wspr-plan').textContent = after.data.wspr_plan
-    ? 'Saved plan: ' + after.data.wspr_plan.frame_types.join(' → ') + '. ' + after.data.wspr_plan.rationale
-    : applicationVersion === 2 ? 'Saved plan: no station identity is configured.'
-    : 'Saved plan: this firmware supports Type 1 only.';
   $('saved-readback').textContent = JSON.stringify({saved_config:config,saved_progress:progress?.data || null,application_at_last_read:after.data},null,2);
   $('saved-readback').hidden = false; writeState = 'review';
   $('saved-readback-details').hidden = false;
@@ -929,7 +927,6 @@ function fill(c, network = c?.wifi) {
     form.ntp_ipv4.value = network?.ntp_ipv4 ?? 'pool.ntp.org';
   }
   if (radio) {
-    $('consumer-identity-help').hidden = false;
     for (const name of ['callsign','locator','power_dbm','ssid','password','ntp_ipv4']) form[name].readOnly = true;
     if (!consumerSetupDirty) {
       $('consumer-ssid').value = network?.ssid ?? '';
@@ -1263,7 +1260,7 @@ async function saveConsumer(kind, savedStation) {
     if (kind === 'station') {
       await readApplication();
       await reviewWspr(savedStation ? {callsign:savedStation.callsign,locator:savedStation.locator,power_dbm:savedStation.power_dbm} : {callsign:$('consumer-callsign').value.trim().toUpperCase(),
-        locator:$('consumer-locator').value.trim().toUpperCase(),power_dbm:Number($('consumer-power').value)},'consumer-wspr-plan');
+        locator:$('consumer-locator').value.trim().toUpperCase(),power_dbm:Number($('consumer-power').value)});
     }
     const prepared = kind === 'network' ? await radio.prepareNetwork(localIdentity, {
       ssid:$('consumer-ssid').value,password:$('consumer-password').value,time_server:$('consumer-time-server').value.trim()
@@ -1305,7 +1302,7 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
   if (supportsProgress()) return saveConfigProgress();
   const f = $('config').elements;
   const schedules = f.schedules.value.trim().split('\n').map(line => {
-    if (!/^\s*\d+\s*\/\s*\d+\s*$/.test(line)) throw new Error('Use period / phase for each schedule');
+    if (!/^\s*\d+\s*\/\s*\d+\s*$/.test(line)) throw new Error('Use interval / offset in seconds for each schedule');
     const [period_s,phase_s] = line.split('/').map(Number); return {period_s,phase_s};
   });
   if (!currentConfig) throw new Error('Complete station commissioning before saving WSPR configuration');
@@ -1318,7 +1315,7 @@ $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('co
   // Broad legacy identities remain readable/preservable even when they cannot
   // transmit. Validate a changed identity; an unrelated save keeps its bytes.
   if (!currentConfig || ['callsign','locator','power_dbm'].some(key => config.station[key] !== currentConfig.station[key]))
-    await reviewWspr(config.station,'draft-wspr-plan');
+    await reviewWspr(config.station);
   const result = await api(applicationVersion === 2 ? 'config/2' : 'config','PUT',config,revision); const confirmed=checkedConfig(result,false); revision = result.revision; fill(confirmed);
   await refresh(); notice(result.data.reboot_required ? 'Settings saved. Use Reset Pico to apply network or pin changes.' : 'Settings saved and applied.');
 }); };
@@ -1430,7 +1427,7 @@ function messageSchedulingSupported() {
 function messageSchedulingControls() {
   if (!$('message-scheduling')) return;
   const supported=messageSchedulingSupported(), recurring=$('message-delivery').value==='recurring';
-  const value=messageScheduleReadback?.data, needsRead=messageScheduleUncertain || !value || value.state==='unavailable';
+  const value=messageScheduleReadback?.data, needsRead=messageScheduleUncertain || !value;
   const recovery=value?.state==='recovery_required';
   $('message-scheduling').hidden=!supported;
   $('message-recurrence').hidden=!recurring;
@@ -1706,22 +1703,9 @@ function fillPins(plan) {
   f.amplifier_active_high.value = String(p.amplifier_active_high ?? true);
   $('pin-settings').disabled = !pinChoices;
   $('amplifier-pin-settings').disabled = !pinChoices;
-  $('i2c-choices').textContent = pinChoices ? pinChoices.i2c_pairs.map(p=>`I²C${p.controller}: GP${p.sda_gp} SDA / GP${p.scl_gp} SCL`).join(' · ') : 'Pin selection is unavailable on this firmware.';
   lockPins();
 }
 for (const key of ['rf_gp','button_gp','amplifier_gp','indicator','indicator_gp']) $('config').elements[key].addEventListener('change',lockPins);
-
-function wsprDraftFeedback(call,locator,id) {
-  const output = $(id); if (!output) return;
-  if (locator && !/^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(locator)) { output.textContent = 'Use a locator such as EM18 or EM18IG: fields A–R, two digits, then optional A–X subsquare. ' + (savedProgress ? 'Valid independent fields can still be saved.' : 'Your draft has not been saved.'); return; }
-  if (call.startsWith('<') && locator.length !== 6) { output.textContent = 'A bracketed callsign needs a six-character locator. ' + (savedProgress ? 'Valid independent fields can still be saved.' : 'Your draft has not been saved.'); return; }
-  const description = call.startsWith('<') ? 'Type 3 · one hash frame; receiver context is needed.' : call.includes('/') ?
-    locator.length === 6 ? 'Type 2 then Type 3 · two frames in adjacent even-minute windows, 230.592 seconds total. Receiver hash context may be needed.' : 'Type 2 · one frame, without a locator.' :
-    'Type 1 · one frame; first four locator characters on air, all six retained in settings.';
-  output.textContent = 'Draft: ' + description + (/\/(?:[Q-Z]|0[0-9])$/.test(call) ? ' This Type 2 suffix has an ambiguous letter/numeric interpretation; receivers may choose either. Your requested call is retained.' : '') + (savedProgress ? ' The Pico validates encoding before applying saved station settings.' : ' The Pico validates encoding before saving.');
-}
-$('config').addEventListener('input', () => { const f=$('config').elements; wsprDraftFeedback(f.callsign.value.trim().toUpperCase(),f.locator.value.trim().toUpperCase(),'draft-wspr-plan'); });
-$('consumer-station-form').addEventListener('input', () => wsprDraftFeedback($('consumer-callsign').value.trim().toUpperCase(),$('consumer-locator').value.trim().toUpperCase(),'consumer-wspr-plan'));
 
 // P15.10: metadata never derives from the address bar, draft or browser storage.
 function markTitleStale() { pageIdentity.stale(); }

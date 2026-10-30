@@ -18,6 +18,7 @@
     let readable=false,writable=false,busy=false,observed=null,revision='',epoch=0,edited=false,draftTarget='',review=false;
     const identity=v=>JSON.stringify([v.target.scope,v.target.device_id,v.target.boot_id]);
     function render() {
+      read.hidden = !readable || Boolean(observed && revision);
       read.disabled=busy || !readable;
       lead.disabled=tail.disabled=busy || !readable || !observed || !revision;
       save.disabled=lead.disabled || !writable || (!edited && !configuration?.changed()) || (configuration?.changed() && !configuration.ready()) || review || !observed?.saved || !observed.storage_healthy || number(lead.value)===null || number(tail.value)===null;

@@ -57,6 +57,8 @@ std::optional<std::string> config_candidate(Value supplied,
         return {};
     if (!config_fields(supplied, partial, drive) || (partial && !current))
         return {};
+    if (const auto version = supplied.get("version"); version && version->raw != "1")
+        return {}; // Historical public configuration views remain version 1.
     // Legacy closed pin plans never gain authority over amplifier settings.
     // Omitted plans still preserve the complete saved plan below.
     if (!amplifier) {
@@ -83,6 +85,10 @@ std::optional<std::string> config_candidate(Value supplied,
     for (const auto name : {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s",
                             "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency",
                             "gpio_drive_ma", "manual_correction_ppb", "ntp_rf_calibration"}) {
+        if (name == std::string_view("version")) {
+            member(result, name, current && current->ntp_timeout_s == 0 ? "2" : "1");
+            continue;
+        }
         const auto input = supplied.get(name), prior = previous->get(name);
         if (input && ((partial && name == std::string_view("station")) ||
                       name == std::string_view("wifi"))) {

@@ -134,7 +134,7 @@ try {
     await evaluate('history.forward()');await until(()=>evaluate('document.getElementById("wifi-settings").open'),'receipt Forward section');
     await evaluate('globalThis.sectionReloadMarker=true');await send('Page.reload');
     await until(()=>evaluate('!globalThis.sectionReloadMarker && typeof localIdentity!=="undefined" && !!localIdentity && !busy').catch(()=>false),'new document receipt reload');
-    assert.equal(await evaluate('document.getElementById("station-identity").open'),true);
+    assert.equal(await evaluate('document.getElementById("radio-settings").open'),true);
     assert.equal(await evaluate('document.getElementById("consumer-setup").closest("#station-identity")!==null'),true);
     assert.equal(await evaluate('location.hash'),receipt);
     pass('receipt bytes and unrelated History data survive section/Top, reload exposes recovery');
@@ -207,8 +207,9 @@ try {
     assert.equal(await evaluate('radio.authenticated || localAuthenticated'),false);assert.equal(await evaluate('cancelLogoutCount'),1);
     assert.equal(await evaluate('document.getElementById("local-access").open'),false);
     pass('cancelled late login cannot ghost-unlock and cleans only its serialized session');
-    for(const [button,resource] of [['rf-calibration-read','rf-calibration'],['ntp-timeout-read','ntp-timeout'],['gpio-drive-read','gpio-drive']]) {
-      await navigate();await login();await section(resource==='gpio-drive'?'radio-pins':'radio-settings');
+    for(const [button,resource,editor] of [['rf-calibration-read','rf-calibration','calibrationEditor'],['ntp-timeout-read','ntp-timeout/2','ntpTimeoutEditor'],['gpio-drive-read','gpio-drive','driveEditor']]) {
+      await navigate();await login();await section(resource==='gpio-drive'?'radio-pins':'time-calibration');
+      await evaluate(`${editor}.invalidate();controls(online)`);
       await evaluate(`globalThis.editorRequest=radio.request.bind(radio);globalThis.editorOrder=[];radio.request=async(...args)=>{editorOrder.push(args[0]);if(args[0]==='${resource}')await new Promise(resolve=>globalThis.releaseEditor=resolve);return editorRequest(...args)}`);
       await click(button);await until(()=>evaluate('!!globalThis.releaseEditor'),'held editor');
       assert.equal(await evaluate('busy'),true);await click('access-toggle');
@@ -221,15 +222,15 @@ try {
     pass('all standalone editors drain before logout and invalidate private readbacks');
     await navigate();await login();
     await control({op:'message_review'});await click('refresh');await idle();
-    await section('radio-settings');await click('rf-calibration-read');await idle();
+    await section('time-calibration');await idle();
     await evaluate('document.getElementById("rf-manual-ppm").value="1.000";document.getElementById("rf-manual-ppm").dispatchEvent(new Event("input"));globalThis.mutationRequest=radio.request.bind(radio);radio.request=async(...args)=>{if(args[0]==="rf-calibration"&&args[1]==="PUT"){await new Promise(resolve=>globalThis.releaseMutation=resolve);const response=await mutationRequest(...args);const value=await response.json();return {...response,json:async()=>({...value,saved:{mode:"manual",manual_ppm:"2.000"}})}}return mutationRequest(...args)}');
     await click('rf-calibration-save');await until(()=>evaluate('!!globalThis.releaseMutation'),'held settings mutation');
-    await evaluate('document.getElementById("radio-settings").querySelector("[data-top]").click()');
+    await evaluate('document.getElementById("time-calibration").querySelector("[data-top]").click()');
     await evaluate('releaseMutation()');await idle();
-    assert.equal(await evaluate('document.getElementById("radio-settings").open'),false);
+    assert.equal(await evaluate('document.getElementById("time-calibration").open'),false);
     assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),false);
     assert.equal(await evaluate('document.getElementById("notice").classList.contains("error")'),true);
-    await click('radio-result-reveal');assert.equal(await evaluate('document.getElementById("radio-settings").open'),true);
+    await click('radio-result-reveal');assert.equal(await evaluate('document.getElementById("time-calibration").open'),true);
     assert.equal(await evaluate('document.getElementById("rf-manual-ppm").value'),'1.000');
     await evaluate('radio.request=mutationRequest');
     pass('Top cannot hide a failed mutation; global error/reveal preserves the entry');

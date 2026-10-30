@@ -260,3 +260,19 @@ test('timing public reads select their closed independent version and reject mal
     await assert.rejects(client.publicRead('amplifier-timing'));assert.equal(reads.length,count+1);
   }
 });
+
+test('timeout public reads negotiate independent v3 without changing historical discovery',async()=>{
+  const descriptor={schema:'pico-public-read/3',target:{scope:'member',device_id:id.device_id,boot_id:id.boot_id},prefix:'/api/consumer/v1/read/3/',resources:['ntp-timeout/2']};
+  let advertised=descriptor,reads=[];
+  const client=new RadioClient(async(path,options)=>{
+    reads.push(path);assert.equal(options.credentials,'omit');
+    return Response.json(path.endsWith('/identity')?id:path==='/api/consumer/v1/read/3'?advertised:{schema:'transmitter-ntp-timeout/2',saved_timeout_s:0});
+  });
+  await client.identity();await client.publicRead('ntp-timeout/2');
+  assert.deepEqual(reads.slice(-2),['/api/consumer/v1/read/3','/api/consumer/v1/read/3/ntp-timeout/2']);
+  for(const patch of [{schema:'pico-public-read/1'},{schema:'pico-public-read/2'},{schema:'pico-public-read/4'},{resources:['ntp-timeout/2','ntp-timeout']},{prefix:'/api/consumer/v1/read/'},{extra:0},{target:{...descriptor.target,device_id:'f'.repeat(32)}}]) {
+    advertised={...descriptor,...patch};client.publicTimeoutReads=null;const count=reads.length;
+    await assert.rejects(client.publicRead('ntp-timeout/2'));assert.equal(reads.length,count+1);
+  }
+  const count=reads.length;await assert.rejects(client.publicRead('ntp-timeout/3'));assert.equal(reads.length,count);
+});

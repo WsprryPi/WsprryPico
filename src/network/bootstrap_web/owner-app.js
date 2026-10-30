@@ -3,7 +3,7 @@ import {titleFromDevice} from './presentation.js';
 import {x25519} from '@noble/curves/ed25519.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {available} from './crypto.js';
-import {claimPlaintext, sealOwnerClaim, sealSavedProgress, stationPlanHint} from './owner-claim.js';
+import {claimPlaintext, sealOwnerClaim, sealSavedProgress, validateStationIdentity} from './owner-claim.js';
 
 const host = 'http://192.168.4.1';
 const p256 = globalThis.WsprryPicoOwnerKey;
@@ -335,7 +335,7 @@ async function submit(event) {
       submitted || complete || retryVisible) return;
   if (ownerProgress && progressState !== 'ready') return;
   const proposed = ownerProgress ? {ssid:'',password:'',callsign:ownerProgress.data.station.callsign,locator:ownerProgress.data.station.locator,powerDbm:ownerProgress.data.station.power_dbm} : settings();
-  try { claimPlaintext(proposed).fill(0); stationPlanHint(proposed.callsign, proposed.locator); }
+  try { claimPlaintext(proposed).fill(0); validateStationIdentity(proposed.callsign, proposed.locator); }
   catch (error) {
     notice(error.message || 'Check the callsign, locator and reported WSPR power.', true);
     return;
@@ -472,10 +472,6 @@ async function boot() {
     update();
   });
   $('owner-form').addEventListener('submit', submit);
-  $('owner-form').addEventListener('input', () => {
-    try { const s = settings(); $('owner-wspr-plan').textContent = 'Draft: ' + stationPlanHint(s.callsign,s.locator) + ' The Pico validates encoding before applying station settings.'; }
-    catch (error) { $('owner-wspr-plan').textContent = error.message; }
-  });
   if (location.origin !== host || !available() || !p256 ||
       typeof AbortController !== 'function') {
     show('owner-browser');

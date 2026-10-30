@@ -118,7 +118,7 @@ async function capture(state) {
     // Inspect both layouts in one batched round; this UI deliberately keeps its light palette.
     if(output) {
       if(state==='locked' && area==='station' && [1280,390].includes(width)) {
-        await evaluate('document.querySelectorAll("#station-area [data-operator-section]").forEach(e=>e.open=false);document.getElementById("station-identity").scrollIntoView()');
+        await evaluate('document.querySelectorAll("#station-area [data-operator-section]").forEach(e=>e.open=false);document.getElementById("radio-settings").scrollIntoView()');
         const headings=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
         saveScreenshot(`${state}-headings-${width}.png`,headings);
         await evaluate('scrollTo(0,0)');
@@ -130,8 +130,19 @@ async function capture(state) {
   }
   await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
   if(output && state==='unlocked') {
-    await click('station-link');await evaluate('const e=document.getElementById("station-identity");e.open=true;e.scrollIntoView()');
+    await click('station-link');await evaluate('const e=document.getElementById("radio-settings");e.open=true;e.scrollIntoView()');
     const shot=await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});saveScreenshot('station-settings.png',shot);
+
+    for(const [width,height,name] of [[1280,1000,'desktop'],[390,844,'mobile']]) {
+      await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
+      for(const id of ['radio-settings','time-calibration']) {
+        await evaluate(`document.getElementById('${id}').open=true;document.getElementById('${id}').scrollIntoView()`);
+        assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true);
+        const clip=await evaluate(`(()=>{const r=document.getElementById('${id}').getBoundingClientRect();return {x:0,y:r.top+scrollY,width:innerWidth,height:r.height,scale:1}})()`);
+        saveScreenshot(id+'-'+name+'.png',await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip}));
+      }
+    }
+    await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
     await evaluate('scrollTo(0,0)');
   }
   const zoomArea=await evaluate('document.getElementById("station-area").hidden ? "wifi-host" : "station"');
@@ -337,6 +348,25 @@ try {
   assert.equal(await evaluate('document.activeElement.id'),'device-name');
   assert.equal((await f.command({op:'stats'})).config_sequence,afterConcurrent,'review and approval never replay a save');
   console.log('PASS contextual recovery, reload refusal, explicit review and concurrent-revision invalidation through production HTTP/crypto');
+  // Independently versioned timeout writes and public loading survive a boot.
+  await evaluate('{const e=document.getElementById("ntp-timeout-minutes");e.value="0";e.dispatchEvent(new Event("input",{bubbles:true}));}');
+  await click('ntp-timeout-save');await idle();
+  if(!await evaluate('document.getElementById("ntp-timeout-status").textContent.startsWith("NTP timeout saved:")')) {
+    assert.equal(await evaluate('document.getElementById("ntp-timeout-read").hidden'),false,'stale revision exposes a readback action');
+    await click('ntp-timeout-read');await idle();await click('ntp-timeout-save');await idle();
+  }
+  assert.match(await evaluate('document.getElementById("ntp-timeout-status").textContent'),/saved: never expire/i);
+  assert.equal(await evaluate('document.getElementById("ntp-timeout-read").hidden'),true);
+  await f.command({op:'reboot'});await f.time(f.now+1000);
+  await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/station`});
+  await until(()=>evaluate('typeof localIdentity!=="undefined" && !!localIdentity && typeof settingsLoadedBoot!=="undefined" && settingsLoadedBoot===localIdentity.boot_id && !busy'),'zero timeout automatic postboot read');
+  assert.equal(await evaluate('document.getElementById("ntp-timeout-minutes").value'),'0');
+  assert.equal(await evaluate('document.getElementById("ntp-timeout-read").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("rf-calibration-read").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("amplifier-timing-read").hidden'),true);
+  assert.equal(await evaluate('(async()=> (await radio.publicRead("ntp-timeout")).status)()'),409,'historical read cannot misrepresent zero');
+  console.log('PASS zero timeout save, stale-revision recovery, reboot persistence, automatic public load and historical-version refusal');
+
   console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,api:'production HTTP/crypto',hardware:false,screenshots:screenshotCount}));
 } catch(error) {
   console.error(JSON.stringify({errors,reads:reads.slice(-12),state:ws ? await evaluate('({notice:document.getElementById("notice")?.textContent,online:typeof online!=="undefined"?online:null,busy:typeof busy!=="undefined"?busy:null,settings:typeof settingsLoadedBoot!=="undefined"?settingsLoadedBoot:null})').catch(()=>null):null}));

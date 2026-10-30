@@ -84,10 +84,10 @@
     const outputList=node('div'),rangeList=node('div'),addOutput=button('Add selector'),addRange=button('Add frequency range');
     const outputTitle=node('h4','Selector outputs'),rangeTitle=node('h4','Declared frequency ranges');
     const read=button('Read saved selectors'),save=button('Save selectors',true),discard=button('Discard selector entries'),adopt=button('Use entries for this Pico');adopt.hidden=true;
-    const summary=node('p'),boot=node('details'),bootTitle=node('summary','Active settings for this boot'),bootText=node('pre');boot.append(bootTitle,bootText);
+    const summary=node('p');
     summary.id=host.id+'-validation';summary.setAttribute('role','status');summary.setAttribute('aria-live','polite');summary.setAttribute('aria-atomic','true');
     const actions=node('div');if(pi){actions.className='d-flex flex-wrap gap-2 mt-3';addOutput.className+=' mb-3';addRange.className+=' mb-3';rangeTitle.className='mt-4';}actions.append(read,save,discard,adopt);
-    settings.append(help,fields,timingHelp,outputTitle,outputList,addOutput,rangeTitle,rangeList,addRange,summary,boot,actions);
+    settings.append(help,fields,timingHelp,outputTitle,outputList,addOutput,rangeTitle,rangeList,addRange,summary,actions);
     host.replaceChildren(status,settings);
     let outputs=[],ranges=[],readable=false,writable=false,busy=false,edited=false,review=false,epoch=0,observed=null,revision='',draftTarget='',unavailable=false;
     const number=input=>/^(0|[1-9][0-9]{0,9})$/.test(input.value)?Number(input.value):NaN;
@@ -162,14 +162,14 @@
       if(read.disabled)return;busy=true;revision='';const ticket=++epoch;render();
       try {const r=await exchange('GET'),v=checked(r);if(ticket!==epoch)return;observed=v;revision=r.revision;
         if(!edited && v.saved){fill(v.saved);draftTarget=targetKey(v.target);}review=edited && draftTarget!==targetKey(v.target);
-        bootText.textContent=v.boot_active?JSON.stringify(v.boot_active,null,2):'Unavailable';status.textContent=observedMessage(v)+(edited?' Entries preserved.':'')+(review?' Review this Pico, then use the entries explicitly.':'');onRead(v);
+        status.textContent=observedMessage(v)+(edited?' Entries preserved.':'')+(review?' Review this Pico, then use the entries explicitly.':'');onRead(v);
       }catch(e){if(ticket===epoch){if(e.code==='filter_selector_unavailable'){unavailable=true;readable=false;}status.textContent=e.message;}}finally{if(ticket===epoch){busy=false;render();}}
     }
     async function commit() {
       if(save.disabled)return;const value=draft(),target=observed.target,match=revision,ticket=++epoch;busy=true;revision='';render();
       try {const result=await exchange('PUT',{schema:descriptor.schema,target,settings:value},match),v=checked(result),reply=await exchange('GET'),after=checked(reply);if(ticket!==epoch)return;
         if(targetKey(v.target)!==targetKey(target) || targetKey(after.target)!==targetKey(target) || result.revision!==reply.revision || [v.saved,after.saved].some(s=>!same(s,value)))throw Error('Saved selectors did not confirm the entries.');
-        observed=after;revision=reply.revision;edited=review=false;draftTarget=targetKey(after.target);bootText.textContent=JSON.stringify(after.boot_active,null,2);status.textContent='Selectors saved. '+observedMessage(after);onRead(after);await afterSave(reply);
+        observed=after;revision=reply.revision;edited=review=false;draftTarget=targetKey(after.target);status.textContent='Selectors saved. '+observedMessage(after);onRead(after);await afterSave(reply);
       }catch(e){if(ticket===epoch)status.textContent=e.message+' Read saved selectors before another save; entries are preserved.';}finally{if(ticket===epoch){busy=false;render();}}
     }
     addOutput.onclick=()=>{const focus=addSelector();changed();focus?.focus();};addRange.onclick=()=>{const focus=addMapping();changed();focus?.focus();};

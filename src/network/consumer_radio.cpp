@@ -1,9 +1,9 @@
 #include "network/consumer_radio.hpp"
-#include "network/public_read.hpp"
 
 #include "application/resources.hpp"
 #include "network/bootstrap_codec.hpp"
 #include "network/identity.hpp"
+#include "network/public_read.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 #include "wtp/sha256.hpp"
@@ -705,10 +705,17 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
             return http_error(403, "forbidden");
         const bool extended = request.path == "/api/consumer/v1/read/2" ||
                               request.path.starts_with("/api/consumer/v1/read/2/");
-        const auto allowed = extended ? std::span<const std::string_view>(public_read_resources_v2)
-                                      : std::span<const std::string_view>(public_read_resources);
-        const std::string prefix = extended ? "/api/consumer/v1/read/2/" : "/api/consumer/v1/read/";
-        if (request.path == "/api/consumer/v1/read" || request.path == "/api/consumer/v1/read/2") {
+        const bool timeout = request.path == "/api/consumer/v1/read/3" ||
+                             request.path.starts_with("/api/consumer/v1/read/3/");
+        const auto allowed = timeout ? std::span<const std::string_view>(public_read_resources_v3)
+                             : extended
+                                 ? std::span<const std::string_view>(public_read_resources_v2)
+                                 : std::span<const std::string_view>(public_read_resources);
+        const std::string prefix = timeout    ? "/api/consumer/v1/read/3/"
+                                   : extended ? "/api/consumer/v1/read/2/"
+                                              : "/api/consumer/v1/read/";
+        if (request.path == "/api/consumer/v1/read" || request.path == "/api/consumer/v1/read/2" ||
+            request.path == "/api/consumer/v1/read/3") {
             std::string resources = "[";
             for (const auto resource : allowed) {
                 if (resources.size() > 1)
@@ -717,7 +724,9 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
             }
             return {200,
                     "{\"schema\":" +
-                        wtp::json::quote(extended ? "pico-public-read/2" : "pico-public-read/1") +
+                        wtp::json::quote(timeout    ? "pico-public-read/3"
+                                         : extended ? "pico-public-read/2"
+                                                    : "pico-public-read/1") +
                         ",\"target\":" + application::target(device_, boot_) + ",\"prefix\":" +
                         wtp::json::quote(prefix) + ",\"resources\":" + resources + "]}",
                     "application/json",

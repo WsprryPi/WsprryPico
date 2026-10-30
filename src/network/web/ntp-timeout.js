@@ -1,12 +1,14 @@
 (function (root) {
   'use strict';
-  const minutes = text => /^[1-9][0-9]{0,3}$/.test(text) && Number(text) <= 1440 ? Number(text) : null;
-  const duration = seconds => seconds === 3600 ? '1 hour' : seconds === 60 ? '1 minute' : `${seconds / 60} minutes`;
-  function create({input,read,save,discard,adopt,status,exchange,afterSave = ()=>{},onError = ()=>{},run = fn=>fn()}) {
+  const minutes = text => /^(0|[1-9][0-9]{0,3})$/.test(text) && Number(text) <= 1440 ? Number(text) : null;
+  const duration = seconds => seconds === 0 ? 'never expire' : seconds === 3600 ? '1 hour' : seconds === 60 ? '1 minute' : `${seconds / 60} minutes`;
+  const keys = (v,names) => v && typeof v==='object' && !Array.isArray(v) && Object.keys(v).sort().join(',')===names.split(',').sort().join(',');
+  function create({input,read,save,discard,adopt,status,exchange,expectedTarget = ()=>null,afterSave = ()=>{},onError = ()=>{},run = fn=>fn()}) {
     let readable = false, writable = false, busy = false, observed = null, revision = '', epoch = 0;
     let edited = false, draftTarget = '', review = false;
     const identity = value => JSON.stringify(value.target);
     function render() {
+      read.hidden = !readable || Boolean(observed && revision);
       read.disabled = busy || !readable;
       input.disabled = busy || !readable || !observed || !revision;
       save.disabled = input.disabled || !writable || !edited || review || minutes(input.value) === null;
@@ -16,11 +18,16 @@
     }
     function valid(r) {
       const v = r.data;
-      if (v?.schema !== 'transmitter-ntp-timeout/1' || !r.revision || !v.storage_healthy ||
-          v.target?.scope !== 'member' || !/^[0-9a-f]{32}$/.test(v.target.device_id) ||
+      if (!keys(v,'schema,target,saved_timeout_s,active_timeout_s,pending_restart,storage_healthy') ||
+          v.schema !== 'transmitter-ntp-timeout/2' || !r.revision || v.storage_healthy !== true ||
+          !keys(v.target,'scope,device_id,boot_id') || v.target.scope !== 'member' || !/^[0-9a-f]{32}$/.test(v.target.device_id) ||
           !/^[0-9a-f]{32}$/.test(v.target.boot_id) || typeof v.pending_restart !== 'boolean' ||
+          v.pending_restart !== (v.saved_timeout_s !== v.active_timeout_s) ||
           !['saved_timeout_s','active_timeout_s'].every(k => Number.isInteger(v[k]) && v[k] % 60 === 0 && minutes(String(v[k]/60)) !== null))
         throw new Error('NTP timeout readback is unavailable or unsupported by this firmware.');
+      const expected=expectedTarget();
+      if (expected && (v.target.device_id !== expected.device_id || v.target.boot_id !== expected.boot_id))
+        throw new Error('NTP timeout belongs to a different Pico or boot.');
       return v;
     }
     async function load() {
@@ -41,7 +48,7 @@
       const target = observed.target, expected = minutes(input.value) * 60;
       const ticket = ++epoch, match = revision; busy = true; revision = ''; render();
       try {
-        const r = await exchange('PUT',{schema:'transmitter-ntp-timeout/1',target,timeout_s:expected},match);
+        const r = await exchange('PUT',{schema:'transmitter-ntp-timeout/2',target,timeout_s:expected},match);
         const v = valid(r);
         if (ticket !== epoch) return;
         if (identity(v) !== JSON.stringify(target) || v.saved_timeout_s !== expected)

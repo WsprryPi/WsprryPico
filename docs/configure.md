@@ -6,7 +6,9 @@ Keep schedules disabled and output inactive while setting up. Use the hostname l
 
 **Discard edits and reload** replaces the browser’s entries with device-saved values after confirming the loss of unsaved edits. When a save needs reconciliation, **Review saved settings** preserves your entries and shows a comparison with the Pico’s saved values. A **draft** is an edit or saved work in progress; **applied** settings are the accepted configuration used for operation. Pin changes also need a restart before they become active.
 
-## Station identity
+## WSPR configuration
+
+### Station identity
 
 1. Enter your **Callsign**, four- or six-character **Grid locator**, and **Reported WSPR power (dBm)**. The locator is the Maidenhead position code for your transmitting location, such as `EM18` or `EM18ab`; use your own location. Reported power is the value broadcast in the WSPR message. The unit **dBm** expresses power relative to one milliwatt; for example, 30 dBm means one watt. Enter an appropriate value for your actual RF setup; this field does not set or measure physical power.
 2. Choose **Save valid station fields**, or **Save station identity** if the page uses that label. Read the result for each field. Valid entries can be saved even when another field still needs correction.
@@ -14,12 +16,10 @@ Keep schedules disabled and output inactive while setting up. Use the hostname l
 4. Check the saved **WSPR plan**, which describes the message type and number of frames the Pico will send. A callsign with a prefix or suffix separated by `/` can require two adjacent frames with a six-character locator; see [WSPR operation](operate.md#wspr-schedules).
 
 ```{image} _static/images/station-settings.png
-:alt: Station identity and WSPR Configuration with separate station save and apply actions and the saved-frequency controls.
+:alt: WSPR Configuration containing station identity, the saved message type and the frequency controls.
 ```
 
-## Frequency and schedules
-
-**NTP update timeout** controls how long the Pico can continue using its last valid NTP time when updates are missing. The default is **60 minutes (1 hour)**. In **Station Control → WSPR Configuration**, choose **Read saved timeout**, enter 1–1440 whole minutes, then choose **Save timeout** while transmissions are stopped. Restart the Pico to activate a changed value; readback shows saved and active values separately. This setting does not change the time server. The Pico needs valid time after startup. During a later update gap, increasing estimated timing uncertainty can pause new transmissions before the timeout; an accepted frame finishes. Valid NTP updates resume normal synchronization and scheduling automatically.
+### Frequency and schedules
 
 For a complete start-to-finish example, follow [Your first WSPR transmission](operate.md#your-first-wspr-transmission).
 
@@ -51,6 +51,14 @@ A confirmed frequency save or settings application refreshes the settings revisi
 
 To prevent later automatic starts, uncheck **Enable standalone schedules**, save and apply, then confirm it is disabled. This is separate from aborting a job that is already accepted or running.
 
+## Time and calibration
+
+These settings apply to WSPR, Morse modes and test tones. Open **Station Control → Time and calibration**. Saved values load automatically; a read button appears only if recovery needs a fresh observation.
+
+**NTP update timeout** sets how long previously synchronized NTP time remains usable without a new valid update. The default is **60 minutes**. Enter **1–1440 whole minutes**, or **0** to keep using the last synchronized time indefinitely. Zero removes the Pico's NTP age and uncertainty cutoffs; uncertainty remains visible and time can drift. A valid initial time is still required after startup, and an external controller's stricter per-job timing limit still applies. Choose **Save timeout** while idle, then restart the Pico to activate the change. With a finite timeout, increasing uncertainty can pause new transmissions sooner; an accepted transmission finishes.
+
+**Carrier calibration** corrects RF frequency in every mode. Edit **Manual correction (ppm)** and choose **Save calibration**; the saved correction applies when the next job is prepared. Network time disciplines UTC separately. See [Time and frequency correction](reference/time.md#manual-frequency-correction) for measuring the correction.
+
 ## Pins and drive
 
 Assign each GPIO one role. Check physical wiring before changing **Radio pins**. The optional amplifier-enable pin has a selected active polarity; it stays active for a complete job, including keyed gaps, with configurable lead before RF and tail after normal completion. Stop, abort and faults bypass the tail.
@@ -63,7 +71,7 @@ Pin or drive changes require an **explicit restart** in **Station Control → Tr
 
 ### Amplifier lead and tail
 
-Open **Station Control → Radio pins → Amplifier control**. Choose **Read saved timing**, set **Amplifier enable**, **Amplifier polarity**, **Enable before RF (ms)** and **Disable after RF (ms)**, then choose **Save amplifier config** while the Pico is idle and unowned. This saves amplifier pin, polarity and timing edits while preserving other radio-pin drafts. Both values default to **200 ms** and accept **0–1000 whole milliseconds**. Restart the Pico to activate changes; saved and active values are shown separately. Changing timing requires a restart even if the amplifier pin is disabled.
+Open **Station Control → Radio pins → Amplifier control**. Saved values load automatically. Set **Amplifier enable**, **Pin polarity**, **Enable before RF (ms)** and **Disable after RF (ms)**, then choose **Save amplifier config** while the Pico is idle and unowned. This saves amplifier pin, polarity and timing edits while preserving other radio-pin drafts. Both values default to **200 ms** and accept **0–1000 whole milliseconds**. Restart the Pico to activate changes; saved and active values are shown separately. Changing timing requires a restart even if the amplifier pin is disabled.
 
 Lead lets the amplifier settle before the scheduled RF start. Tail holds it enabled after normal RF completion. These intervals surround the transmission window and do not change the message duration or shift its scheduled RF start. Zero removes the corresponding interval; a disabled amplifier pin uses neither interval. A job submitted too late to provide its lead is refused. Stop and fault cleanup do not wait for tail. Settings readback shows the phase observed at the last read; it does not measure amplifier readiness or RF power.
 

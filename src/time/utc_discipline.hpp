@@ -13,6 +13,7 @@ struct DisciplineConfig {
     std::uint64_t oscillator_drift_ppb = 50'000;
     std::uint64_t max_rate_observation_age_ns = 0; // Zero inherits the ordinary observation limit.
     std::uint64_t non_ntp_holdover_for_ns = 0;     // Zero inherits the general holdover limit.
+    bool unlimited_ntp_holdover = false; // Retain an accepted NTP anchor without age expiry.
 };
 
 class UtcDiscipline final : public wtp::Clock, public ObservationSink {

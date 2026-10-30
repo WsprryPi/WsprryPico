@@ -141,6 +141,7 @@ session cookie that page script cannot read.
 | POST `/api/v1/pins/validate` | Nonmutating complete candidate pin-plan review |
 | GET/PUT `/api/v1/gpio-drive` | `transmitter-gpio-drive/1`; separate saved/boot/pad observations and idle-only saved drive update |
 | GET/PUT `/api/v1/ntp-timeout` | `transmitter-ntp-timeout/1`; saved and boot-active maximum NTP source age, in seconds; default 3600, whole minutes 60–86400; changes require restart |
+| GET/PUT `/api/v1/ntp-timeout/2` | `transmitter-ntp-timeout/2`; same closed fields plus zero for indefinite NTP holdover after initial synchronization; uncertainty remains reported; changes require restart |
 | GET/PUT `/api/v1/hostname` | `transmitter-hostname/1`; profile-owned saved/active/default names; save applies on explicit restart |
 | GET `/api/v1/progress`, `/api/v1/progress/2` | `transmitter-progress/1` or drive-aware `/2`; independent saved draft |
 | POST `/api/v1/progress/update`, `/api/v1/progress/update/2` | Matching progress schema; save valid units with per-field outcomes, without applying them |
@@ -569,6 +570,10 @@ POST to the pause path requires `{schema,target,pause:true}` and current If-Matc
 The independent `transmitter-amplifier-timing/1` resource at GET/PUT `/api/v1/amplifier-timing` configures complete-job lead and tail in whole milliseconds, 0–1000 with 200 ms defaults. Its exact descriptor is `capabilities.amplifier_timing`; the existing amplifier-enable/1 descriptor and historical Config/hardware resources retain their closed shapes. Timing survives unrepresented legacy saves. Both fields are required on an explicit timing PUT, under device/boot target, revision and idle/unowned/inactive/nonfaulted admission. Restart activates timing and latches inhibition through A/B/A saves. See [amplifier timing semantics](development/amplifier-enable.md#lead-and-tail-timing).
 
 Public timing readback explicitly selects `/api/consumer/v1/read/2` and the closed `pico-public-read/2` descriptor, containing only `amplifier-timing` at prefix `/api/consumer/v1/read/2/`. Historical `/api/consumer/v1/read` remains exactly `pico-public-read/1`. Unsupported versions, carriers, shapes, numeric limits and identity/revision bindings refuse before writes.
+
+## NTP timeout versions
+
+The timeout v1 view returns `409 ntp_timeout_version_required` when a zero saved or boot-active value cannot be represented. V1 writes still reject zero and refuse before mutation if the boot-active value is zero. V2 accepts only zero or canonical whole-minute values through 86400 seconds, with the same exact target, revision and idle checks. Unknown versions and extra fields are rejected. Zero has an explicit Config version-2 stored representation; historical public Config views remain version 1 and preserve it as an independently owned setting. See [clock discipline](development/clock-discipline.md).
 
 ## LPF and band selector
 

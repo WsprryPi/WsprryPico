@@ -427,12 +427,14 @@ HttpResponse BrowserApi::rf_calibration() const {
     result.etag = revision();
     return result;
 }
-HttpResponse BrowserApi::ntp_timeout() const {
+HttpResponse BrowserApi::ntp_timeout(bool unlimited) const {
     const auto config = effective_config();
     const auto saved = config ? config->ntp_timeout_s : standalone::default_ntp_timeout_s;
     const auto active = scheduler_.active_ntp_timeout_s();
-    auto result = ok("{\"schema\":\"transmitter-ntp-timeout/1\",\"target\":" +
-                     application::target(device_, service_.status().boot_id) +
+    if (!unlimited && (saved == 0 || active == 0))
+        return http_error(409, "ntp_timeout_version_required");
+    auto result = ok("{\"schema\":\"transmitter-ntp-timeout/" + std::string(unlimited ? "2" : "1") +
+                     "\",\"target\":" + application::target(device_, service_.status().boot_id) +
                      ",\"saved_timeout_s\":" + std::to_string(saved) +
                      ",\"active_timeout_s\":" + std::to_string(active) +
                      ",\"pending_restart\":" + (saved != active ? "true" : "false") +
@@ -1053,6 +1055,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
             return gpio_drive();
         if (r.path == "/api/v1/ntp-timeout")
             return ntp_timeout();
+        if (r.path == "/api/v1/ntp-timeout/2")
+            return ntp_timeout(true);
         if (r.path == "/api/v1/config/4")
             return config(true, true);
         if (r.path == "/api/v1/hardware/3")
@@ -1238,7 +1242,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     const bool timing_resource = r.path == "/api/v1/amplifier-timing";
     const bool filter_resource = r.path == "/api/v1/filter-selector";
     const bool drive_resource = r.path == "/api/v1/gpio-drive";
-    const bool ntp_resource = r.path == "/api/v1/ntp-timeout";
+    const bool unlimited_ntp_resource = r.path == "/api/v1/ntp-timeout/2";
+    const bool ntp_resource = r.path == "/api/v1/ntp-timeout" || unlimited_ntp_resource;
     const bool extended_config =
         drive_config || r.path == "/api/v1/config/2" || r.path == "/api/v1/config/update/2";
     const bool config_update =
@@ -1438,12 +1443,16 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
         }
     } else if (ntp_resource) {
         const auto checked = application::validate_envelope(
-            *root, "transmitter-ntp-timeout/1", "timeout_s", device_, service_.status().boot_id);
+            *root,
+            unlimited_ntp_resource ? "transmitter-ntp-timeout/2" : "transmitter-ntp-timeout/1",
+            "timeout_s", device_, service_.status().boot_id);
         if (checked != application::Envelope::Valid)
             return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
                               "invalid_ntp_timeout_resource");
-        if (!standalone::valid_ntp_timeout_token(*root->get("timeout_s")))
+        if (!standalone::valid_ntp_timeout_token(*root->get("timeout_s"), unlimited_ntp_resource))
             return http_error(400, "invalid_ntp_timeout");
+        if (!unlimited_ntp_resource && scheduler_.active_ntp_timeout_s() == 0)
+            return http_error(409, "ntp_timeout_version_required");
         if (!effective_config())
             return http_error(409, "not_configured");
         auto updated = *effective_config();
@@ -1646,7 +1655,7 @@ HttpResponse BrowserApi::handle(const HttpRequest& r, std::string_view principal
     if (drive_resource)
         return gpio_drive();
     if (ntp_resource)
-        return ntp_timeout();
+        return ntp_timeout(unlimited_ntp_resource);
     if (station_resource)
         return station_config(extended_station);
     if (hardware_resource)

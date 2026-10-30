@@ -47,7 +47,7 @@ The RF output is **unfiltered** and needs filtering, attenuation, a suitable loa
 
 Optional [LPF / band selector controls](docs/configure.md#lpf-and-band-selector) select an external filter before amplifier enable and release it after amplifier disable. A job must fit one declared filter across all of its RF frequencies. Fixed/manual filtering remains the default.
 
-Timed starts use **UTC**, Coordinated Universal Time. A reachable network time server or a supported controller-time connection supplies the clock. Radio-frequency correction is a separate adjustment: a synchronized clock does not measure carrier-frequency accuracy. See [Time and frequency correction](docs/reference/time.md).
+Timed starts use **UTC**, Coordinated Universal Time. A reachable network time server or a supported controller-time connection supplies the clock. Radio-frequency correction is a separate adjustment: a synchronized clock does not measure carrier-frequency accuracy. **Time and calibration** applies to every mode. A zero NTP timeout keeps using previously synchronized time indefinitely; startup still needs an initial valid time. See [Time and frequency correction](docs/reference/time.md).
 
 Only one controller can hold the transmitter at a time; that controller is the job's **owner**. Closing a browser or disconnecting a controller does not stop an accepted job. Use the [stop controls](docs/operate.md#status-stop-and-connection-loss) and confirm inactive output; disable and apply standalone schedules separately to prevent later automatic starts. Use a trusted local network and read the [access and security guidance](docs/reference/security.md).
 

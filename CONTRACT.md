@@ -30,7 +30,10 @@ messages before LOAD/ARM; WTP carries complete encoded jobs. See
 PPM value. NTP-derived RF calibration and Pico-to-Pi GPIO timing pulses are not
 supported. GPS/PPS input is future work in the consolidated backlog. Job launch
 retains clock uncertainty, age, ownership, frequency, hardware and output
-inhibition checks. A compile or simulated job establishes neither physical
+inhibition checks. The explicit zero NTP-timeout setting retains the last accepted
+NTP clock without age or server uncertainty expiry; initial synchronization,
+leap checks and a caller's stricter job uncertainty budget still apply.
+A compile or simulated job establishes neither physical
 symbol timing nor RF performance.
 
 ## Control and authority

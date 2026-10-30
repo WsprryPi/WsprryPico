@@ -3,7 +3,7 @@
 (() => {
   const names = ['callsign','locator','power_dbm','enabled','schedules','expires_utc_s','pins','frequency_policy','wifi','ntp_ipv4'];
   const labels = {callsign:'Callsign',locator:'Grid locator',power_dbm:'Reported power',enabled:'Schedule enablement',schedules:'Schedules',expires_utc_s:'Schedule expiry',pins:'Pin plan',frequency_policy:'Frequency permissions',wifi:'Wi-Fi credentials',ntp_ipv4:'Time server'};
-  const errors = {callsign:'use a valid 3–12 character station callsign',locator:'use a valid four- or six-character grid locator',power_dbm:'choose an exact supported power; zero dBm is valid',enabled:'choose enabled or disabled',schedules:'use a complete non-overlapping schedule array',expires_utc_s:'use a valid UTC expiry',pins:'use a complete supported pin plan with no conflicts',frequency_policy:'review both frequency permissions together',wifi:'provide a complete valid network name and password pair',ntp_ipv4:'use a valid hostname or IPv4 address'};
+  const errors = {callsign:'use a valid 3–12 character station callsign',locator:'use a valid four- or six-character grid locator',power_dbm:'choose an exact supported power; zero dBm is valid',enabled:'choose enabled or disabled',schedules:'use interval / offset pairs in seconds without overlapping transmissions',expires_utc_s:'use a valid UTC expiry',pins:'use a complete supported pin plan with no conflicts',frequency_policy:'review both frequency permissions together',wifi:'provide a complete valid network name and password pair',ntp_ipv4:'use a valid hostname or IPv4 address'};
   const object = x => x !== null && typeof x === 'object' && !Array.isArray(x);
   const keys = (x, expected) => object(x) && Object.keys(x).sort().join(',') === [...expected].sort().join(',');
   const sequence = x => typeof x === 'string' && /^(0|[1-9][0-9]{0,19})$/.test(x) && BigInt(x) <= 0xffffffffffffffffn;
@@ -122,7 +122,7 @@
       '; grid locator ' + (x.station.locator ?? 'missing') + '; reported power ' +
       (x.station.power_dbm === null ? 'missing' : x.station.power_dbm + ' dBm') + '. ';
     text += missing.length ? 'WSPR station draft is incomplete. ' :
-      x.wspr_plan?.supported ? 'WSPR draft is encodable. ' : 'WSPR draft cannot be encoded: ' + (x.wspr_plan?.rationale || 'read current station planning') + '. ';
+      x.wspr_plan?.supported ? 'WSPR Type ' + x.wspr_plan.frame_types.map(t=>t.slice(4)).join(' + Type ') + ': ' + (x.wspr_plan.frame_types.length === 1 ? 'one frame. ' : 'two frames in adjacent even-minute windows. ') : 'WSPR draft cannot be encoded: ' + (x.wspr_plan?.rationale || 'read current station planning') + '. ';
     text += 'Saving progress does not apply settings or establish transmit readiness. ';
     if (x.schedule_enabled === true) text += x.schedule_suspended === true
       ? 'The enabled schedule remains suspended and retains the previously applied settings.'

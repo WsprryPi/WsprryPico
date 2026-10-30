@@ -206,6 +206,18 @@ int main() {
         assert(read("/api/consumer/v1/read/3/amplifier-timing").status == 404);
         assert(read("/api/consumer/v1/read/2/amplifier-timing").status == 200);
         assert(read("/api/consumer/v1/read/2/amplifier-timing", "PUT", "{}").status == 405);
+        const auto timeout_caps = read("/api/consumer/v1/read/3");
+        const auto timeout_descriptor = wtp::json::parse(timeout_caps.body);
+        assert(timeout_caps.status == 200 && timeout_descriptor &&
+               timeout_descriptor->get("schema")->string() == "pico-public-read/3" &&
+               timeout_descriptor->get("resources")->raw == "[\"ntp-timeout/2\"]");
+        const auto timeout = read("/api/consumer/v1/read/3/ntp-timeout/2");
+        assert(timeout.status == 200 && wtp::json::parse(timeout.body)->get("schema")->string() ==
+                                            "transmitter-ntp-timeout/2");
+        assert(read("/api/consumer/v1/read/ntp-timeout/2").status == 404);
+        assert(read("/api/consumer/v1/read/3/ntp-timeout").status == 404);
+        assert(read("/api/consumer/v1/read/4").status == 404);
+        assert(read("/api/consumer/v1/read/3/ntp-timeout/2", "PUT", "{}").status == 405);
         const auto config_read = read("/api/consumer/v1/read/config/4");
         assert(config_read.status == 200 && config_read.body.find("AA0NT") != std::string::npos);
         assert(config_read.body.find("test-password") == std::string::npos);

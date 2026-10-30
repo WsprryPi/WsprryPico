@@ -148,7 +148,7 @@ try {
     await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-locator').getAttribute('aria-invalid')==='true'`),'invalid locator result');
     await click('reload-config');await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-locator').value==='EM18IG'`),'explicit reload adopts saved valid locator');
     assert.notEqual(await cdp.evaluate(`document.getElementById('consumer-locator').getAttribute('aria-invalid')`),'true');
-    assert.match(await cdp.evaluate(`document.getElementById('consumer-wspr-plan').textContent`),/Type 2 then Type 3/);
+    assert.match(await cdp.evaluate(`document.getElementById('progress-station-status').textContent`),/WSPR Type 2 \+ Type 3/);
     // Native selection exposes an explicit clear without coercing blank to zero.
     assert.equal(await cdp.evaluate(`Array.from(document.getElementById('consumer-power').options).some(o=>o.value==='')`),true,'native empty power option');
     const beforeClear=await f.command({op:'stats'});
@@ -214,7 +214,7 @@ try {
     await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && savedProgress.data.station.power_dbm===0`),'network-only complete draft');
     await capture('network-complete-draft');
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
-    await cdp.evaluate(`document.documentElement.style.zoom='2';document.getElementById('station-identity').open=true;document.getElementById('progress-station-status').scrollIntoView()`);
+    await cdp.evaluate(`document.documentElement.style.zoom='2';document.getElementById('radio-settings').open=true;document.getElementById('progress-station-status').scrollIntoView()`);
     assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,'200% zoom horizontal overflow');
     await cdp.evaluate(`document.documentElement.style.zoom=''`);
     await click('apply-station-progress');

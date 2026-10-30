@@ -22,4 +22,5 @@ class HostTestEndpoint {
     virtual std::size_t receive(std::span<const std::uint8_t>) = 0;
     virtual std::size_t read(std::span<std::uint8_t>) = 0;
 };
-std::unique_ptr<HostTestEndpoint> host_test_endpoint(bool physical_planner = false);
+std::unique_ptr<HostTestEndpoint> host_test_endpoint(bool physical_planner = false,
+                                                     unsigned ntp_timeout_s = 3600);

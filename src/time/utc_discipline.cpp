@@ -177,7 +177,8 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
             : config_.holdover_for_ns;
     if (age <= std::min(config_.synchronized_for_ns, maximum_age))
         state = wtp::ClockState::Synchronized;
-    else if (age <= maximum_age)
+    else if (age <= maximum_age ||
+             (config_.unlimited_ntp_holdover && observation_source_ == ObservationSource::Sntp))
         state = wtp::ClockState::Holdover;
     auto result = wtp::ClockSnapshot{state,
                                      utc,

@@ -15,9 +15,9 @@ for(const value of ['-1','1.5','1e2','Infinity','NaN','0200','1001',''])assert.e
    if(delayed)return delayed;
    return {data:structuredClone(v),revision};
  }});
- editor.setAvailability(true);await editor.load();assert.equal(fields.lead.value,'200');
+ editor.setAvailability(true);await editor.load();assert.equal(fields.lead.value,'200');assert.equal(fields.read.hidden,true,'automatic read removes redundant read action');
  fields.lead.value='350';fields.lead.oninput();assert.equal(fields.save.disabled,false);
- fail=true;await fields.save.onclick();assert.equal(fields.lead.value,'350');assert.equal(fields.save.disabled,true);assert.match(fields.status.textContent,/Read saved timing/);
+ fail=true;await fields.save.onclick();assert.equal(fields.lead.value,'350');assert.equal(fields.save.disabled,true);assert.match(fields.status.textContent,/Read saved timing/);assert.equal(fields.read.hidden,false,'uncertain save exposes explicit readback');
  fail=false;await editor.load();assert.equal(fields.lead.value,'350');assert.equal(fields.save.disabled,false);
  await fields.save.onclick();assert.deepEqual(v.saved,{lead_ms:350,tail_ms:200});assert.match(fields.status.textContent,/Amplifier timing saved/);
  fields.tail.value='400';fields.tail.oninput();v.target.boot_id='c'.repeat(32);await editor.load();assert.equal(fields.tail.value,'400');assert.equal(fields.save.disabled,true);assert.equal(fields.adopt.hidden,false);

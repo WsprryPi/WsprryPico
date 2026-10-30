@@ -46,8 +46,8 @@ Transmitter status leads Station Control and is hidden with that view on Wi-Fi/H
 | --- | --- | --- | --- | --- |
 | About this Pico / Diagnostics | `device-diagnostics` | Shared, all admitted control pages | Closed | Shared / `top` |
 | Review saved settings | `saved-settings` | Station; hidden until review is needed or explicitly bookmarked | Hidden; revealed on recovery | Shared / `top` |
-| Station identity | `station-identity` | Station; one consumer or engineering editor | Closed | Station Control / `top` |
-| WSPR Configuration | `radio-settings` | Station; capability-gated editors | Closed | Station Control / `top` |
+| Time and calibration | `time-calibration` | Station; NTP timeout and RF correction for every mode | Closed | Station Control / `top` |
+| WSPR Configuration | `radio-settings` | Station; identity, saved message type, frequency and schedules | Closed | Station Control / `top` |
 | Radio pins | `radio-pins` | Station; independent hardware save and drive settings | Closed | Station Control / `top` |
 | CW Modes | `message-section` | Station; capability-gated message/file controls | Closed | Station Control / `top` |
 | Wi-Fi network | `wifi-settings` | Wi-Fi/Host; one profile-appropriate editor | Closed | Wi-Fi/Host / `top` |
@@ -76,3 +76,5 @@ Engineering certificate HTTPS instead offers Certificate access information with
 Normal public settings reads and confirmed saves show no recovery panel or stale-readback placeholder. A required comparison exposes one Review saved settings workflow and a persistent reveal link. Reading preserves edits and remains distinct from explicit confirmation. Confirmation rechecks both device/boot target and the exact reviewed revision; concurrent changes invalidate the comparison without a write. Normal refresh, login and Discard edits and reload cannot acknowledge an uncertain save. Confirmed saves close the panel only after the existing exact-revision/target reconciliation succeeds. Saved/active pin details stay inside the comparison disclosure. Top can close disclosures while preserving required review and its reveal link.
 
 Setup receipt controls appear only for a pending request, beside the matching form. A completed result can retain a brief inline status, while Check saved result and reconnection instructions disappear. Receipt checking never resubmits the request. Moving the presentation nodes changes no API, crypto, profile, carrier or journal contract.
+
+Station identity is inside WSPR Configuration; its legacy bookmark remains an alias. The saved draft summary carries the authoritative Type 1/2/3 plan. Time and calibration is a separate managed section. Timeout, calibration and amplifier timing load with the page; their read actions are conditional recovery controls. Selector readback keeps its concise saved/active status and omits raw boot JSON.

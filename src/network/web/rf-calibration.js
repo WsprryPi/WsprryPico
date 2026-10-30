@@ -17,6 +17,7 @@
     let available = false, busy = false, observed = null, revision = '', epoch = 0, edited = false, draftTarget = '', review = false;
     const identity = value => JSON.stringify(value.target);
     function render() {
+      read.hidden = !available || Boolean(observed && revision);
       read.disabled = busy || !available;
       input.disabled = mode.disabled = busy || !available || !observed || !revision;
       save.disabled = input.disabled || review || !edited || ppm(input.value) === null || mode.value !== 'manual';
