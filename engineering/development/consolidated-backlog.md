@@ -26,6 +26,7 @@ Selected work is listed below, with completed items marked explicitly. Current p
 9. [x] ✅ **Grouped links to furled sections.** See [sections and navigation](browser-pages.md#sections-and-navigation).
 10. [x] ✅ **Top links.** Close settings disclosures and return to status while preserving drafts; see [browser sections](browser-pages.md#sections-and-navigation).
 
+11. [ ] ▧ **Page-wide submission feedback and concurrency recovery.** Dim/dither the page after accepted submissions, optionally show a spinner, prevent overlapping actions and investigate reported controller lockups. Preserve emergency control and uncertain-save recovery. See the [saved research and execution prompt](submission-busy-state-execution-prompt.md), including the standing authority, adversarial review and commit/push/report requirements. Not started.
 12. [ ] ▧ **Contextual Read the Docs help in the UI.** Link every major browser section and selected subsections or fields to thorough operator explanations of the feature, prerequisites and use. Cover setup and recovery, preserve drafts and locked access, and validate published pages and anchors. See the [saved execution prompt](contextual-documentation-help-execution-prompt.md), including the standing authority, adversarial review and commit/push/report requirements. Not started.
 
 ## Possible future work
