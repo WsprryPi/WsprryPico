@@ -1,3 +1,4 @@
+import '../web/submission.js';
 import '../web/saved-progress.js';
 import {titleFromDevice} from './presentation.js';
 import {x25519} from '@noble/curves/ed25519.js';
@@ -32,15 +33,16 @@ const random = (size) => {
   return bytes;
 };
 const show = (selected, moveFocus = false) => {
-  const focused=document.activeElement;
+  const focused=submissions.origin || document.activeElement;
   for (const name of sections) $(name).hidden = name !== selected;
   if ($('station-intro')) $('station-intro').hidden = selected === 'owner-wifi-first';
-  if (moveFocus || focused?.closest('[hidden]')) $('owner-title').focus();
+  if (moveFocus || focused?.closest('[hidden]')) submissions.focus($('owner-title'));
 };
 const notice = (message, error = false) => {
   $('notice').textContent = message;
   $('notice').classList.toggle('error', error);
 };
+const submissions = WsprrySubmission.create(document,{refuse:text=>notice(text,true)});
 let deviceId, status, submitted, polling = false, saving = false;
 let complete = false, retryVisible = false;
 let formEdited = false, filledGeneration;
@@ -77,7 +79,10 @@ async function readOwnerProgress(fill = false) {
   $('owner-progress-status').textContent = progressUI.summary(data);
   progressState = fill ? 'ready' : 'review'; progressControls(); return true;
 }
-async function saveOwnerProgress() {
+function saveOwnerProgress() {
+  return submissions.run(saveOwnerProgressWork,{message:'Saving valid station fields.'});
+}
+async function saveOwnerProgressWork() {
   if (!ownerProgress || progressState !== 'ready' || progressBusy || saving || submitted) return;
   const fields = {}, edits = new Map(progressEdits);
   for (const key of edits.keys()) {
@@ -150,6 +155,7 @@ function showPending() {
 }
 
 async function request(path, body, bootstrap = false, timeoutMs = 8000) {
+  if (submissions.suspended) throw new Error('This page was left before the next request. Check the saved result before another save.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const options = {cache: 'no-store', credentials: 'omit', redirect: 'error',
@@ -242,10 +248,11 @@ async function update() {
   polling = true;
   const pending = submitted;
   try {
+    if (submissions.pending) return;
     const current = await request('/api/owner/v1/claim/status');
     if (!validStatus(current)) throw new Error('wrong Pico status');
     // A poll issued before this POST cannot decide the new attempt's outcome.
-    if (saving || pending !== submitted) return;
+    if (saving || submissions.pending || pending !== submitted) return;
     const wasClaimAvailable = status?.claim_available === true;
     status = current;
     if (complete || retryVisible) return;
@@ -310,14 +317,17 @@ async function update() {
   } catch {
     if (submitted && !saving && pending === submitted) showPending();
   } finally {
-    if (!saving && !submitted) await hintTime();
+    if (!saving && !submitted && !submissions.pending) await hintTime();
     polling = false;
     progressControls();
     setTimeout(update, 1000);
   }
 }
 
-async function identify() {
+function identify() {
+  return submissions.run(identifyWork,{message:'Identifying the Pico with its LED.'});
+}
+async function identifyWork() {
   if (!status?.claim_available || saving || submitted || complete) return;
   $('owner-identify').disabled = true;
   try {
@@ -333,7 +343,11 @@ async function identify() {
   }
 }
 
-async function submit(event) {
+function submit(event) {
+  event.preventDefault();
+  return submissions.run(()=>submitWork(event),{message:'Applying saved station settings.'});
+}
+async function submitWork(event) {
   event.preventDefault();
   if (!status?.claim_available || status.source === 'unprovisioned' || saving ||
       submitted || complete || retryVisible) return;
@@ -443,13 +457,13 @@ async function submit(event) {
 async function boot() {
   globalThis.addEventListener?.('beforeunload',event=>{if(progressEdits.size || submitted){event.preventDefault();event.returnValue='';}});
   $('owner-save-progress').onclick = saveOwnerProgress;
-  $('owner-read-progress').onclick = async () => {
+  $('owner-read-progress').onclick = () => submissions.run(async () => {
     if (progressBusy || saving || submitted) return;
     progressBusy=true;progressControls();
     try {await readOwnerProgress(false);notice('Review saved progress. Matching values do not identify which earlier request committed.');}
     catch(error) {progressState='readback';notice(error.message,true);}
     finally {progressBusy=false;progressControls();}
-  };
+  },{message:'Reading saved station fields.'});
   $('owner-review-progress').onclick = () => {if(progressState==='review'){progressState='ready';progressControls();}};
   $('owner-form').addEventListener('input', event => {
     const key = {'owner-callsign':'callsign','owner-locator':'locator','owner-power':'power_dbm'}[event.target.id];
@@ -465,6 +479,7 @@ async function boot() {
   }
   $('owner-identify').addEventListener('click', identify);
   $('owner-retry-button').addEventListener('click', () => {
+    if (submissions.pending) { notice('Wait for the current Pico request to finish. No additional action was sent.',true); return; }
     clearTransaction();
     retryVisible = false;
     // Recheck the slot before permitting a new POST; the old status may predate rejection.
@@ -528,3 +543,6 @@ boot();
 globalThis.addEventListener?.('beforeunload', event => {
   if (formEdited) { event.preventDefault(); event.returnValue = ''; }
 });
+
+globalThis.addEventListener?.('pagehide',()=>submissions.suspend());
+globalThis.addEventListener?.('pageshow',()=>submissions.resume());

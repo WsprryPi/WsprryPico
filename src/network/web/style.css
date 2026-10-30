@@ -55,3 +55,12 @@ header #area-nav{margin:0;gap:.25rem 1.25rem}header #area-nav a{color:#fff;text-
 .led-fields{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1fr)}.led-fields label{min-width:0}.led-fields select{min-width:0}@media(max-width:650px){.led-fields{gap:.5rem}.led-fields label{font-size:.875rem}}
 
 .context-link{display:block;width:fit-content;min-height:44px;padding:.6rem 0;color:#225e8a;text-underline-offset:.25em}
+
+/* The native top layer covers headers, scrolled content and access dialogs. */
+.submission-busy{position:fixed;inset:0;margin:auto;width:min(32rem,calc(100vw - 2rem));max-height:calc(100dvh - 2rem);overflow:auto;padding:1.25rem;border:1px solid #687e90;border-radius:4px;background:#fff;color:#25313d;box-sizing:border-box}
+.submission-busy::backdrop{background:rgb(15 28 40 / 48%)}
+.submission-busy p{margin:0 0 1rem;overflow-wrap:anywhere;font-weight:600}
+.submission-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+.submission-actions button{margin:0;min-height:44px;max-width:100%}
+.submission-busy:focus-visible,.submission-busy p:focus-visible{outline:3px solid #b37617;outline-offset:3px}
+@media(prefers-color-scheme:dark){.submission-busy{background:#243746;color:#f1f5f8;border-color:#96adbd}.submission-busy::backdrop{background:rgb(0 8 16 / 62%)}.submission-busy button{background:#243746;color:#f1f5f8;border-color:#96adbd}}

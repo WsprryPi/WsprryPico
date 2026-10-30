@@ -1014,7 +1014,7 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& incoming) {
             save.buffered_body.reset();
             save.selected_body.reset();
             save.headers["if-match"] = progress_expected_revision_;
-            auto result = progress_api_->save_progress(save, true);
+            auto result = progress_api_->save_progress(save, true, true, true);
             cancel_owner_slot(false);
             return control_response(std::move(result));
         }

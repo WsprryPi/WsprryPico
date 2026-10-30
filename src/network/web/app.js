@@ -52,6 +52,21 @@ const radio = globalThis.WsprryPicoConsumerRadio?.createClient();
 let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null, filterSaved = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
+let stopRequested = false, stopping = false;
+const submissions = WsprrySubmission.create(document, {
+  refuse: text => notice(text,true),
+  controls: () => {
+    const choices = [];
+    if (accessLoginPending) choices.push({id:'cancel',label:'Cancel login',run:closeAccess});
+    if (controlsUnlocked() && (radio || localIdentity)) choices.push({id:'lock',label:'Lock controls',run:lockAccess});
+    if (controlsUnlocked())
+      choices.push({id:'abort',label:'Abort this browser’s job',run:requestAbort});
+    return choices;
+  }
+});
+// A foreground intent owns presentation immediately while an earlier polling
+// exchange drains. Background reads never disable explicit operator controls.
+const uiBusy = () => submissions.pending ? !submissions.token.background : busy;
 let observedClockMs = 0;
 let udpEditor = null;
 let loggingSnapshot = null, loggingRevision = '', loggingBusy = false, loggingEpoch = 0, loggingEdited = false;
@@ -136,7 +151,7 @@ let publicStatusEpoch = 0;
 let accessEpoch=0, accessLoginPending=false, accessClosing=false, accessDiscovered=false, localLocked=false;
 let accessInterrupted=false;
 let accessWasAuthenticated=false, accessCarrier=radio ? 'consumer' : 'unknown';
-if(radio) radio.requestAllowed=()=>!accessClosing;
+if(radio) radio.requestAllowed=()=>!accessClosing && (!stopRequested || stopping);
 function renderAccess() {
   const certificate=accessCarrier==='certificate' && accessDiscovered;
   const authenticated=!accessClosing && !accessLoginPending && (radio ? localAuthenticated && radio.authenticated : localIdentity ? localAuthenticated && !localLocked : certificate && online);
@@ -151,13 +166,13 @@ function renderAccess() {
   $('access-state').textContent=accessClosing ? 'Locking this browser · waiting for the current request to finish.' :
     accessLoginPending ? 'Checking this login…' : accessCarrier==='unavailable' ? 'Control access unavailable. Refresh or reload to identify this connection.' : certificate ? 'Client certificate access · managed by your browser.' :
     authenticated ? 'Controls unlocked in this browser.' : 'Controls locked.';
-  $('login-submit').disabled=busy || accessLoginPending || accessClosing;
+  $('login-submit').disabled=uiBusy() || accessLoginPending || accessClosing;
 }
 function closeAccess() {
   if(accessLoginPending) ++accessEpoch;
   clearPassword('local-password'); clearPassword('retirement-password');
   if($('local-access').open) $('local-access').close();
-  $('access-toggle').focus({preventScroll:true});
+  submissions.focus($('access-toggle'));
   renderAccess();
 }
 function openAccess() {
@@ -207,25 +222,30 @@ function beginLocalLock() {
 }
 async function finishLock() {
   if(!accessClosing || busy) return;
-  busy=true; renderAccess();
-  let confirmed=false;
-  try {
-    if(radio) await radio.logout();
-    else await local('logout','POST',{});
-    confirmed=true;
-  } catch(error) {
-    notice('Controls locked in this browser. Remote logout is unconfirmed; an occupied login may remain until expiry or explicit retirement. No job or save was repeated.',true);
-  } finally {
-    radio?.clear(); localAuthenticated=false; accessClosing=false; busy=false;
-    $('local-login').hidden=false; $('local-logout').hidden=true;
-    $('local-status').textContent=confirmed ? 'This browser is signed out. Accepted jobs and saved settings remain.' : 'Locally locked; remote logout unconfirmed.';
-    if(confirmed) notice('This browser is signed out. Logout does not stop accepted jobs or schedules.'+(accessInterrupted ? ' An earlier request may already have been accepted. Read its result before repeating it.' : ''),accessInterrupted);
-    controls(false);
-  }
-  if(radio) await action(refreshPublicStatus);
+  await submissions.run(async () => {
+    busy=true; renderAccess();
+    let confirmed=false;
+    try {
+      if(radio) await radio.logout();
+      else await local('logout','POST',{});
+      confirmed=true;
+    } catch(error) {
+      notice('Controls locked in this browser. Remote logout is unconfirmed; an occupied login may remain until expiry or explicit retirement. No job or save was repeated.',true);
+    } finally {
+      radio?.clear(); localAuthenticated=false; accessClosing=false; busy=false;
+      $('local-login').hidden=false; $('local-logout').hidden=true;
+      $('local-status').textContent=confirmed ? 'This browser is signed out. Accepted jobs and saved settings remain.' : 'Locally locked; remote logout unconfirmed.';
+      if(confirmed) notice('This browser is signed out. Logout does not stop accepted jobs or schedules.'+(accessInterrupted ? ' An earlier request may already have been accepted. Read its result before repeating it.' : ''),accessInterrupted);
+      if(stopRequested) { stopRequested=false; notice('Controls locked. Abort was not confirmed; use USB Console ABORT if required. Accepted jobs and automatic schedules may remain.',true); }
+      controls(false);
+    }
+  },{message:'Locking this browser.'});
+  controls(false);
+  if(radio) await action(refreshPublicStatus,{background:true});
 }
 async function lockAccess() {
   if(accessClosing || !radio && !localIdentity) return;
+  submissions.describe('Locking this browser. Waiting for the current bounded request; an accepted save or job remains.');
   accessInterrupted=busy; accessClosing=true; beginLocalLock();
   await finishLock();
 }
@@ -683,6 +703,7 @@ function updateSetupReceipt() {
 }
 const notice = (text, error = false) => { $('notice').hidden = !text; $('notice').textContent = text; $('notice').classList.toggle('error', error); };
 async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyObservation = false) {
+  if(stopRequested && !stopping) throw Object.assign(new Error('Abort requested. The earlier operation will not submit another step; its dispatched result still needs checking.'),{local:true});
   if(['unknown','unavailable'].includes(accessCarrier)) throw new Error('Identify this connection with Refresh before using controls');
   if(accessClosing || localLocked && localIdentity && !radio) throw new Error('Controls are locked in this browser. An earlier request may already have been accepted; read back before repeating it.');
   if (method !== 'GET' && !controlsUnlocked()) { const e=new Error('Unlock controls before changing the Pico.'); e.local=true; throw e; }
@@ -718,7 +739,10 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
     if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; $('local-status').textContent = 'Session ended or unconfirmed. Log in again; your draft is preserved.'; }
     throw error;
   }
-  if(accessClosing) throw Object.assign(new Error('Controls locked while the request was in flight. Its outcome may require readback; no action was repeated.'),{unconfirmed:true});
+  if(accessClosing) {
+    if(settingWrite) requireReadback();
+    throw Object.assign(new Error('Controls locked while the request was in flight. Its outcome may require readback; no action was repeated.'),{unconfirmed:true});
+  }
   let data;
   try {
     data = path.startsWith('udp-logging') && typeof response.text === 'function' ? WsprryUdp.parseJson(await response.text(),4096) : await response.json();
@@ -732,7 +756,10 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
     if (settingWrite) requireReadback();
     error.unconfirmed = true; throw error;
   }
-  if(accessClosing || requestEpoch!==accessEpoch) throw Object.assign(new Error('Controls changed while reading the response. The request outcome needs fresh readback; no action was repeated.'),{unconfirmed:true});
+  if(accessClosing || requestEpoch!==accessEpoch) {
+    if(settingWrite) requireReadback();
+    throw Object.assign(new Error('Controls changed while reading the response. The request outcome needs fresh readback; no action was repeated.'),{unconfirmed:true});
+  }
   if (!response.ok || data.ok === false) {
     const code = typeof data.error === 'string' ? data.error : data.error?.code;
     const explanation = {
@@ -839,7 +866,7 @@ function controls(connected) {
   renderAccess();
   online = connected;
   const unlocked=controlsUnlocked();
-  for (const id of ['station-settings-lock','wifi-settings-lock']) if($(id)) $(id).disabled=!unlocked || busy;
+  for (const id of ['station-settings-lock','wifi-settings-lock']) if($(id)) $(id).disabled=!unlocked || uiBusy();
   loggingControls();
   messageSchedulingControls();
   if ($('public-status-note')) $('public-status-note').hidden = true;
@@ -851,60 +878,61 @@ function controls(connected) {
   timingEditor?.setPolicy(capabilities?.amplifier_timing);
   timingEditor?.setAvailability(!!connected && !!snapshot, !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   ntpTimeoutEditor?.setAvailability(!!connected && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
-  $('refresh').disabled = busy;
+  $('refresh').disabled = uiBusy();
   $('settings-actions').hidden = !unlocked;
-  $('reload-config').disabled = busy || !online || !unlocked;
+  $('reload-config').disabled = uiBusy() || !online || !unlocked;
   const idle = online && unlocked && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
-  $('settings').disabled = busy || !idle;
+  $('settings').disabled = uiBusy() || !idle;
   for (const area of ['station','network']) {
     $('engineering-' + area + '-form').hidden = Boolean(radio);
-    $('engineering-' + area + '-settings').disabled = Boolean(radio) || busy || !idle || writeState !== 'ready';
+    $('engineering-' + area + '-settings').disabled = Boolean(radio) || uiBusy() || !idle || writeState !== 'ready';
     $('consumer-' + area + '-form').hidden = !radio;
   }
-  $('save-config').disabled = busy || !idle || writeState !== 'ready';
+  $('save-config').disabled = uiBusy() || !idle || writeState !== 'ready';
   $('initial-config').hidden = true;
-  $('initial-config').disabled = busy || !idle || writeState !== 'ready';
-  $('read-saved').disabled = busy || !online || Boolean(localIdentity && !localAuthenticated);
-  $('review-saved').disabled = busy || !online || writeState !== 'review';
+  $('initial-config').disabled = uiBusy() || !idle || writeState !== 'ready';
+  $('read-saved').disabled = uiBusy() || !online || Boolean(localIdentity && !localAuthenticated);
+  $('review-saved').disabled = uiBusy() || !online || writeState !== 'review';
   $('login-recovery').hidden = !radio;
-  $('inspect-logins').disabled = busy;
-  $('retire-login').disabled = busy || !retirementDiscovery || !$('retirement-target').value;
+  $('inspect-logins').disabled = uiBusy();
+  $('retire-login').disabled = uiBusy() || !retirementDiscovery || !$('retirement-target').value;
   renderSetupResult();
-  $('consumer-network-settings').disabled = busy || !idle || !localAuthenticated || Boolean(consumerAttempt);
+  $('consumer-network-settings').disabled = uiBusy() || !idle || !localAuthenticated || Boolean(consumerAttempt);
   $('consumer-station-settings').disabled = $('consumer-network-settings').disabled;
-  $('consumer-check-save').disabled = busy || !localAuthenticated || !consumerAttempt;
-  $('pico-password-settings').disabled = busy || !idle || !localAuthenticated || !picoPasswordState || Boolean(consumerAttempt);
+  $('consumer-check-save').disabled = uiBusy() || !localAuthenticated || !consumerAttempt;
+  $('pico-password-settings').disabled = uiBusy() || !idle || !localAuthenticated || !picoPasswordState || Boolean(consumerAttempt);
   $('pico-password-default').disabled = $('pico-password-settings').disabled || picoPasswordState?.data.wifi_default !== false || !currentConfig?.wifi?.ssid && !$('consumer-ssid').value;
-  $('hostname-settings').disabled = busy || !idle || !hostnameState?.writable;
-  $('hostname-save').disabled = busy || !idle || !hostnameState?.writable || hostnameUncertain;
+  $('hostname-settings').disabled = uiBusy() || !idle || !hostnameState?.writable;
+  $('hostname-save').disabled = uiBusy() || !idle || !hostnameState?.writable || hostnameUncertain;
   $('hostname-default').disabled = $('hostname-save').disabled;
   $('hostname-review').hidden = !hostnameReviewReady;
-  $('hostname-review').disabled = busy || !idle;
-  $('restart').disabled = busy || !idle || snapshot?.job.state==='loaded' || !capabilities?.features?.restart || restartSent || Boolean(operationsSnapshot&&!operationsSnapshot.reset_allowed) || !consoleObservedMs || Date.now()-consoleObservedMs>15000;
+  $('hostname-review').disabled = uiBusy() || !idle;
+  $('restart').disabled = uiBusy() || !idle || snapshot?.job.state==='loaded' || !capabilities?.features?.restart || restartSent || Boolean(operationsSnapshot&&!operationsSnapshot.reset_allowed) || !consoleObservedMs || Date.now()-consoleObservedMs>15000;
   if (hostnameState?.pending_restart) {
     $('consumer-network-settings').disabled = true;
     $('consumer-station-settings').disabled = true;
   }
-  if($('save-pins')) $('save-pins').disabled = busy || !idle || writeState !== 'ready' || !currentConfig;
-  $('job-settings').disabled = busy || !idle || snapshot.standalone.reboot_required;
+  if($('save-pins')) $('save-pins').disabled = uiBusy() || !idle || writeState !== 'ready' || !currentConfig;
+  $('job-settings').disabled = uiBusy() || !idle || snapshot.standalone.reboot_required;
   $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
   $('message-availability').textContent = !unlocked ? '' : !online ? (radio && !localAuthenticated ? 'Use the lock beside the hostname to unlock controls and prepare a message.' : 'Connection unavailable. Refresh status before preparing a message; RF output is unknown.') :
-    busy ? 'Waiting for the current request to finish.' : !idle ? 'The transmitter is occupied or its job/output state does not permit a new job. Check Transmitter status above.' :
+    uiBusy() ? 'Waiting for the current request to finish.' : !idle ? 'The transmitter is occupied or its job/output state does not permit a new job. Check Transmitter status above.' :
     snapshot.standalone.reboot_required ? 'Saved changes require a restart. Use Reset Pico in Transmitter status before preparing another job.' :
     !capabilities?.message_jobs ? 'This firmware does not advertise message jobs. A supported job file can still be used below.' :
     'Prepare a complete message below. Load and arm sends one explicit job; the Pico validates its timing and frequency.';
-  $('abort').disabled = busy || !unlocked || !online || snapshot?.job.owner_id !== session || !['loaded','armed','running'].includes(snapshot.job.state);
-  $('release').disabled = busy || !unlocked || !online || snapshot?.job.owner_id !== session || snapshot.job.output_active !== false || ['armed','running','failed'].includes(snapshot.job.state);
+  // A polling read can drain before ABORT; it must not hide the stop intent.
+  $('abort').disabled = !unlocked || !online || snapshot?.job.owner_id !== session || !['loaded','armed','running'].includes(snapshot.job.state);
+  $('release').disabled = uiBusy() || !unlocked || !online || snapshot?.job.owner_id !== session || snapshot.job.output_active !== false || ['armed','running','failed'].includes(snapshot.job.state);
   if (savedProgress) {
-    $('initial-config').disabled = busy || !idle || writeState !== 'ready' || !savedProgress.data.complete;
-    $('apply-progress').disabled = busy || !idle || writeState !== 'ready' || !currentConfig || !['enabled','schedules','expires_utc_s'].some(key=>Object.hasOwn(savedProgress.data.fields,key));
-    for (const domain of ['station','network']) $('apply-engineering-' + domain + '-progress').disabled = busy || !idle || writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.apply_domains[domain];
-    $('apply-station-progress').disabled = busy || !idle || writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.station_complete || !savedProgress.data.wspr_plan?.supported || Boolean(consumerAttempt);
+    $('initial-config').disabled = uiBusy() || !idle || writeState !== 'ready' || !savedProgress.data.complete;
+    $('apply-progress').disabled = uiBusy() || !idle || writeState !== 'ready' || !currentConfig || !['enabled','schedules','expires_utc_s'].some(key=>Object.hasOwn(savedProgress.data.fields,key));
+    for (const domain of ['station','network']) $('apply-engineering-' + domain + '-progress').disabled = uiBusy() || !idle || writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.apply_domains[domain];
+    $('apply-station-progress').disabled = uiBusy() || !idle || writeState !== 'ready' || savedProgress.data.draft_revision === '0' || !savedProgress.data.station_complete || !savedProgress.data.wspr_plan?.supported || Boolean(consumerAttempt);
     $('consumer-station-settings').disabled ||= writeState !== 'ready';
   }
 
   if ($('schedule-save-help')) $('schedule-save-help').textContent = !unlocked ? '' : !online ? 'Sign in and refresh status before changing schedules.' :
-    busy ? 'Waiting for the current request to finish.' : !idle ? 'Wait for inactive output and released control before saving schedules.' :
+    uiBusy() ? 'Waiting for the current request to finish.' : !idle ? 'Wait for inactive output and released control before saving schedules.' :
     writeState === 'readback' ? 'Before another save, choose Review saved settings. Your checkbox edit is preserved.' :
     writeState === 'review' ? 'Review the comparison, then choose I reviewed these settings; enable saving. Your checkbox edit is preserved.' :
     'Save WSPR configuration stores your edits as a draft. Apply WSPR configuration makes the saved schedule active. Checking or unchecking the box alone does not change the Pico.';
@@ -1043,40 +1071,48 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
     if(!quiet) notice(''); controls(true);
   } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Controls locked. Public readback is unavailable.'; notice('Read-only status or settings could not be read: '+e.message+'. Check the connection and refresh. Your drafts are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
 }
-async function action(fn) {
-  if (busy || accessClosing) return;
-  busy = true; controls(online);
-  try { await fn(); } catch (e) {
-    if (!accessClosing && (e.serverResponse || e.unconfirmed) && (!radio || radio.authenticated)) await refresh();
-    if (['revision_conflict','precondition_failed'].includes(e.code)) requireReadback();
-    if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; requireReadback(Boolean(saveAttempt)); }
-    notice(e.message + (e.code ? ' (' + e.code + ')' : '') + (e.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : ''),true);
-    if($('local-access').open) $('local-status').textContent=e.message;
-    else $('local-status').textContent = localAuthenticated ? 'Authenticated. Request rejected; your edits are preserved.' : 'Connection or session unconfirmed. Inspect occupied logins if login cannot proceed; no action was repeated.';
-  }
-  finally {
-    // Consumer requests are sequential. Keep other actions locked until this
-    // readiness read completes, including after login or station application.
-    if(!accessClosing) {
-      frequencyRefreshing = true; controls(online);
-      try { await frequencyEditor?.refresh(); }
-      finally { frequencyRefreshing = false; }
+async function action(fn, options = {}) {
+  if (accessClosing || stopRequested && !options.emergency) return;
+  return submissions.run(async token => {
+    busy = true;
+    try {
+      controls(online);
+      if(!accessClosing && (!stopRequested || options.emergency)) await fn();
+    } catch (e) {
+      if (!accessClosing && !stopRequested && (e.serverResponse || e.unconfirmed) && (!radio || radio.authenticated)) await refresh();
+      if (['revision_conflict','precondition_failed'].includes(e.code)) requireReadback();
+      if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; requireReadback(Boolean(saveAttempt)); }
+      notice(e.message + (e.code ? ' (' + e.code + ')' : '') + (e.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : ''),true);
+      if($('local-access').open) $('local-status').textContent=e.message;
+      else $('local-status').textContent = localAuthenticated ? 'Authenticated. Request rejected; your edits are preserved.' : 'Connection or session unconfirmed. Inspect occupied logins if login cannot proceed; no action was repeated.';
     }
-    busy=false; controls(online);
+    finally {
+      // Consumer requests are sequential. Keep other actions locked until this
+      // readiness read completes, including after login or station application.
+      try { if(!accessClosing && !stopRequested && options.refreshFrequency!==false && (!options.background || submissions.token===token)) {
+        frequencyRefreshing = true; controls(online);
+        try { await frequencyEditor?.refresh(); }
+        finally { frequencyRefreshing = false; }
+      } } catch(error) { requireReadback(); notice('Readiness could not be confirmed. Read saved settings before another save. '+error.message,true); }
+      finally { busy=false; controls(online); }
+    }
+  },{...options,drain:()=>{++observationEpoch;},message:options.message || 'Processing your Pico request.'}).finally(async () => {
+    controls(online);
     if(accessClosing) await finishLock();
-  }
+    else if(stopRequested && !stopping) await finishAbort();
+  });
 }
 async function editorAction(name,fn) {
-  if(busy || accessClosing) return;
+  if(uiBusy() || accessClosing) { if(uiBusy()) notice('Wait for the current Pico request to finish. No additional action was sent.',true); return; }
   activeEditor=name;
-  try { return await action(fn); }
+  try { return await action(fn,{message:'Reading or saving '+name.replaceAll('-',' ')+' settings.'}); }
   finally { activeEditor=null; controls(online); }
 }
 async function frequencyAction(fn) {
-  if (busy || accessClosing) return;
-  busy = true; frequencyRefreshing = true; controls(online);
-  try { await fn(); }
-  finally { frequencyRefreshing = false; busy = false; controls(online); if(accessClosing) await finishLock(); }
+  return action(async () => {
+    frequencyRefreshing = true;
+    try { await fn(); } finally { frequencyRefreshing = false; }
+  },{message:'Reading or saving the WSPR frequency.',refreshFrequency:false});
 }
 async function readPicoPassword() {
   try {
@@ -1104,7 +1140,7 @@ function picoPasswordSignedOut(message, uncertain = false) {
   snapshot = null; requireReadback(uncertain || Boolean(saveAttempt)); controls(false); markTitleStale();
   $('pico-password-status').textContent = message;
   $('local-status').textContent = message;
-  $('access-toggle').focus();
+  submissions.focus($('access-toggle'));
 }
 async function savePicoPassword(password) {
   if (!picoPasswordState) throw new Error('Read the Pico password setting before changing it.');
@@ -1155,7 +1191,7 @@ $('refresh').onclick = () => action(async () => {
 });
 $('local-login').onsubmit = event => {
   event.preventDefault();
-  if(busy || accessClosing || accessLoginPending || !radio && !localIdentity) { clearPassword('local-password'); return; }
+  if(uiBusy() || accessClosing || accessLoginPending || !radio && !localIdentity) { clearPassword('local-password'); return; }
   const epoch=++accessEpoch, intended=localIdentity ? {...localIdentity} : null;
   accessLoginPending=true;
   return action(async () => {
@@ -1200,7 +1236,7 @@ $('local-login').onsubmit = event => {
       if(!succeeded || !localAuthenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; }
       renderAccess();
     }
-  });
+  },{message:'Checking the Pico password and unlocking controls.',cancel:closeAccess});
 };
 $('inspect-logins').onclick = () => action(async () => {
   retirementDiscovery = null;
@@ -1236,7 +1272,7 @@ $('review-saved').onclick = () => action(async () => {
   saveAttempt = null; settingsRecoveryNeeded = settingsReviewRequested = false;
   $('save-reconcile-status').textContent = '';
   renderSettingsRecovery();
-  $('device-name').focus({preventScroll:true});
+  submissions.focus($('device-name'));
 });
 $('local-logout').onclick = lockAccess;
 $('consumer-power').replaceChildren(new Option('Choose reported power',''),...[0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60]
@@ -1351,7 +1387,30 @@ async function observeAfterArm() {
     notice('Job armed. New network connections pause during RF execution. Use USB Console ABORT to stop the job, or refresh after completion.');
   } else await refresh();
 }
-$('abort').onclick = () => action(async () => { await job('ABORT',{job_id:snapshot.job.job_id}); await refresh(); });
+function requestAbort() {
+  if(stopRequested || accessClosing || !controlsUnlocked()) return;
+  stopRequested=true; ++accessEpoch; ++observationEpoch;
+  submissions.describe('Abort requested. Waiting for the current bounded request, then checking this browser’s job. Use USB Console ABORT if the connection is unavailable.');
+  notice('Abort requested. Waiting for the current bounded request, then checking this browser’s job. No further load or arm step will be sent.');
+  if(!busy) return finishAbort();
+}
+async function finishAbort() {
+  stopping=true;
+  try {
+    await action(async () => {
+      if(!controlsUnlocked()) throw new Error('Abort is unconfirmed because this browser’s login ended. Use USB Console ABORT if needed. Log in and read current ownership before another action.');
+      await refresh();
+      if(!snapshot) throw new Error('Abort is unconfirmed because status is unavailable. Use USB Console ABORT if needed.');
+      const recovery=settingsRecoveryNeeded ? ' An earlier save remains unconfirmed. Review saved settings before another save.' : '';
+      if(snapshot.job.owner_id===session && ['loaded','armed','running'].includes(snapshot.job.state)) {
+        await job('ABORT',{job_id:snapshot.job.job_id}); await refresh();
+        if(!snapshot || snapshot.job.output_active || ['loaded','armed','running'].includes(snapshot.job.state)) throw new Error('Abort could not be confirmed. Use USB Console ABORT if needed.');
+        notice('This browser’s job was aborted. Automatic schedules are separate.'+recovery);
+      } else notice('No active job owned by this browser was observed. Automatic schedules are separate.'+recovery);
+    },{emergency:true,message:'Checking and aborting this browser’s job.',refreshFrequency:false});
+  } finally { stopRequested=false; stopping=false; controls(online); }
+}
+$('abort').onclick = requestAbort;
 $('release').onclick = () => action(async () => { await job('RELEASE'); await refresh(); });
 $('restart').onclick = () => action(async () => {
   if (restartSent) return;
@@ -1424,7 +1483,7 @@ function messageSchedulingControls() {
   $('message-schedule-controls').hidden=!supported || !(recurring || value?.saved || recovery || needsRead);
   $('message-submit').textContent=recurring?'Save and start schedule':'Load and arm message';
   $('message-submit').disabled=recurring && (messageScheduleUncertain || !messageScheduleReadback?.data.writable);
-  const authorized=online && !(localIdentity && !localAuthenticated) && !busy;
+  const authorized=online && !(localIdentity && !localAuthenticated) && !uiBusy();
   $('message-schedule-read').hidden=!needsRead;
   $('message-schedule-read').disabled=!authorized;
   $('message-schedule-adopt').hidden=!value?.saved || needsRead;
@@ -1627,12 +1686,12 @@ $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=tr
   }
 }); };
 if (typeof setInterval === 'function') setInterval(() => {
-  if (!busy && !accessClosing && !(localLocked && localIdentity && !radio) && !reconnectRunning && !restartSent && ((radio && !radio.authenticated && localIdentity) || online || !radio && capabilities)) action(() => refresh(false,true));
+  if (!busy && !accessClosing && !(localLocked && localIdentity && !radio) && !reconnectRunning && !restartSent && ((radio && !radio.authenticated && localIdentity) || online || !radio && capabilities)) action(() => refresh(false,true),{background:true});
 }, 5000);
 if(typeof setInterval==='function') setInterval(consoleTick,1000);
 clearConsole('Waiting for a current device observation.'); consoleTick();
 
-action(async () => { await discoverLocal(); accessDiscovered=true; renderAccess(); if (accessCarrier==='certificate' || localAuthenticated) await refresh(true); else if (radio) await refresh(true); });
+action(async () => { await discoverLocal(); accessDiscovered=true; renderAccess(); if (accessCarrier==='certificate' || localAuthenticated) await refresh(true); else if (radio) await refresh(true); },{background:true});
 
 function readPins() {
   const f = $('config').elements;
@@ -1870,7 +1929,14 @@ $('hostname-continue').onclick = event => {
       !confirm('Continue to the new address? Unsaved drafts stay in this tab if you cancel. Continuing will discard them; copy anything you need first.')) event.preventDefault();
   else cancelReconnect();
 };
-globalThis.addEventListener?.('pagehide',()=>{clearPasswords();cancelReconnect();});
+globalThis.addEventListener?.('pagehide',()=>{
+  submissions.suspend(); clearPasswords(); cancelReconnect();
+  if(busy) { accessInterrupted=true; accessClosing=true; beginLocalLock(); }
+});
+globalThis.addEventListener?.('pageshow',()=>{
+  submissions.resume();
+  if(accessClosing && !busy) void finishLock();
+});
 parseReturnReceipt();
 
 $('hostname-review').onclick = () => { if (online && hostnameReviewReady && !busy) { hostnameUncertain=false; hostnameReviewReady=false; controls(online); } };
@@ -1895,9 +1961,11 @@ function loggingControls() {
   }
   udpEditor?.setAvailability(available);
   const idle = available && controlsUnlocked() && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
-  udpEditor?.setWritable(Boolean(idle && !busy));
-  if ($('logging-read')) $('logging-read').disabled = !available || busy || loggingBusy;
-  if ($('logging-settings')) $('logging-settings').disabled = !idle || busy || loggingBusy || !loggingSnapshot;
+  // The outer action owns admission. Retain resource eligibility so its nested
+  // save can start after the coordinator marks the page busy.
+  udpEditor?.setWritable(Boolean(idle));
+  if ($('logging-read')) $('logging-read').disabled = !available || uiBusy() || loggingBusy;
+  if ($('logging-settings')) $('logging-settings').disabled = !idle || uiBusy() || loggingBusy || !loggingSnapshot;
 }
 async function readLogging() {
   if (loggingBusy || !online) return;
@@ -1923,10 +1991,11 @@ async function readLogging() {
   } catch (error) { loggingSnapshot = null; $('logging-status').textContent = error.message; }
   finally { loggingBusy = false; loggingControls(); }
 }
-$('logging-read')?.addEventListener('click', readLogging);
+$('logging-read')?.addEventListener('click', () => action(readLogging,{message:'Reading USB logging settings.'}));
 $('logging-settings')?.addEventListener('input',()=>{loggingEdited=true;});
-$('logging-form')?.addEventListener('submit', async event => {
+$('logging-form')?.addEventListener('submit', event => {
   event.preventDefault();
+  return action(async () => {
   if (loggingBusy || !loggingSnapshot) return;
   const expected = loggingSnapshot;
   loggingSnapshot = null; loggingBusy = true; $('logging-settings').disabled = true;
@@ -1937,10 +2006,12 @@ $('logging-form')?.addEventListener('submit', async event => {
   } catch (error) {
     $('logging-status').textContent = 'Save unconfirmed. Read logging settings and review saved state before another save. ' + error.message;
   } finally { loggingBusy = false; loggingControls(); }
+  },{message:'Saving USB logging settings.'});
 });
 
 // UDP settings are independent from USB logging and ordinary configuration saves.
 udpEditor = globalThis.WsprryUdp.mount($('udp-logging-controls'), {
+  run: fn => action(fn,{message:'Reading or updating UDP logging.'}),
   exchange: async (path,method='GET',body,etag) => { const r=await api(path,method,body,etag); return {value:r.data,revision:r.revision}; },
   context: () => accessEpoch
 });

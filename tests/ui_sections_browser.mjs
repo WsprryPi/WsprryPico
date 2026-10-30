@@ -183,7 +183,7 @@ try {
     await section('message-section');
     await evaluate('document.getElementById("message-text").value="DRAFT";document.getElementById("message-form").dispatchEvent(new Event("input",{bubbles:true}));globalThis.savedRequest=radio.request.bind(radio);globalThis.requestOrder=[];radio.request=async(...args)=>{requestOrder.push(args[0]);if(args[0]==="operations")await new Promise(resolve=>globalThis.releaseRead=resolve);return savedRequest(...args)};document.getElementById("refresh").click()');
     await until(()=>evaluate('!!globalThis.releaseRead'),'held current request');
-    await click('access-toggle');assert.equal(await evaluate('document.getElementById("save-config").disabled'),true);
+    await click('submission-lock');assert.equal(await evaluate('document.getElementById("save-config").disabled'),true);
     assert.equal(await evaluate('localAuthenticated'),false);
     assert.equal(await evaluate('document.getElementById("console-message").textContent'),'Unavailable');
     assert.equal(await evaluate('requestOrder.includes("consumer/logout")'),false);
@@ -203,7 +203,7 @@ try {
     await evaluate('globalThis.originalLogin=radio.login.bind(radio);globalThis.originalLogout=radio.logout.bind(radio);globalThis.cancelLogoutCount=0;radio.logout=async()=>{cancelLogoutCount++;return originalLogout()};radio.login=async(...args)=>{await originalLogin(...args);await new Promise(resolve=>globalThis.releaseLogin=resolve)}');
     await click('access-toggle');await evaluate('document.getElementById("local-password").value="test-password";document.getElementById("local-login").requestSubmit()');
     await until(()=>evaluate('!!globalThis.releaseLogin'),'late successful login');
-    await click('access-close');await evaluate('releaseLogin()');await idle();
+    await click('submission-cancel');await evaluate('releaseLogin()');await idle();
     assert.equal(await evaluate('radio.authenticated || localAuthenticated'),false);assert.equal(await evaluate('cancelLogoutCount'),1);
     assert.equal(await evaluate('document.getElementById("local-access").open'),false);
     pass('cancelled late login cannot ghost-unlock and cleans only its serialized session');
@@ -212,7 +212,7 @@ try {
       await evaluate(`${editor}.invalidate();controls(online)`);
       await evaluate(`globalThis.editorRequest=radio.request.bind(radio);globalThis.editorOrder=[];radio.request=async(...args)=>{editorOrder.push(args[0]);if(args[0]==='${resource}')await new Promise(resolve=>globalThis.releaseEditor=resolve);return editorRequest(...args)}`);
       await click(button);await until(()=>evaluate('!!globalThis.releaseEditor'),'held editor');
-      assert.equal(await evaluate('busy'),true);await click('access-toggle');
+      assert.equal(await evaluate('busy'),true);await click('submission-lock');
       assert.equal(await evaluate('editorOrder.includes("consumer/logout")'),false);
       await evaluate('releaseEditor()');await idle();
       assert.equal(await evaluate('radio.authenticated'),false);
@@ -226,7 +226,9 @@ try {
     await evaluate('document.getElementById("rf-manual-ppm").value="1.000";document.getElementById("rf-manual-ppm").dispatchEvent(new Event("input"));globalThis.mutationRequest=radio.request.bind(radio);radio.request=async(...args)=>{if(args[0]==="rf-calibration"&&args[1]==="PUT"){await new Promise(resolve=>globalThis.releaseMutation=resolve);const response=await mutationRequest(...args);const value=await response.json();return {...response,json:async()=>({...value,saved:{mode:"manual",manual_ppm:"2.000"}})}}return mutationRequest(...args)}');
     await click('rf-calibration-save');await until(()=>evaluate('!!globalThis.releaseMutation'),'held settings mutation');
     await evaluate('document.getElementById("time-calibration").querySelector("[data-top]").click()');
+    assert.equal(await evaluate('document.getElementById("time-calibration").open'),true,'busy modal blocks underlying navigation');
     await evaluate('releaseMutation()');await idle();
+    await evaluate('document.getElementById("time-calibration").querySelector("[data-top]").click()');
     assert.equal(await evaluate('document.getElementById("time-calibration").open'),false);
     assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),false);
     assert.equal(await evaluate('document.getElementById("notice").classList.contains("error")'),true);

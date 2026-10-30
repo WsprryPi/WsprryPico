@@ -146,9 +146,10 @@ function mount(element,options){
   }catch(error){snapshot=null;revision='';dirty=dirty||saveRequested;reviewRequired=dirty;comparison.hidden=true;status.textContent=`${saveRequested?'Save unconfirmed. ':''}${error.message||'UDP logging unavailable.'} Read settings and review saved state before another save. Your draft is preserved.`;}
   finally{busy=false;show();}
  }
- form.addEventListener('input',()=>{dirty=true;show();});form.addEventListener('submit',e=>{e.preventDefault();perform(true);});read.addEventListener('click',()=>perform(false));
+ const run=options.run||((fn)=>fn());
+ form.addEventListener('input',()=>{dirty=true;show();});form.addEventListener('submit',e=>{e.preventDefault();return run(()=>perform(true));});read.addEventListener('click',()=>run(()=>perform(false)));
  review.addEventListener('click',()=>{if(!snapshot||busy||!writable)return;reviewRequired=false;status.textContent='Saved settings reviewed. Your draft is unchanged. Save explicitly to apply it.';show();});
- test.addEventListener('click',async()=>{
+ test.addEventListener('click',()=>run(async()=>{
   if(test.disabled)return;
   const current=epoch,context=options.context?.(),expected=snapshot;busy=true;show();
   try {
@@ -159,7 +160,7 @@ function mount(element,options){
    status.textContent+=(r.accepted?' One test event was admitted locally.':' The test event was dropped locally.')+' Collector receipt is unknown.';
   }catch(error){snapshot=null;revision='';status.textContent='Test result unconfirmed. Read settings before another test or save. '+error.message;}
   finally{busy=false;show();}
- });show();
+ }));show();
  return {invalidate,setAvailability(value){if(available!==value){available=value;if(!value)invalidate();}show();},setWritable(value){writable=value;show();},read:()=>perform(false)};
 }
 function parseJson(text,limit=16384){

@@ -23,3 +23,12 @@ select{font:inherit;display:block;width:100%;max-width:34rem;min-height:44px;pad
 summary{cursor:pointer;min-height:44px;padding:.65rem 0;font-weight:600}summary:focus-visible{outline:3px solid #b37617;outline-offset:3px}
 
 .field-error{display:block;color:#882b19;font-size:.875rem;margin:.35rem 0 .75rem}.field-error:empty{display:none}[tabindex="-1"]:focus-visible{outline:3px solid #b37617;outline-offset:3px}
+
+/* The native top layer covers headers, scrolled content and access dialogs. */
+.submission-busy{position:fixed;inset:0;margin:auto;width:min(32rem,calc(100vw - 2rem));max-height:calc(100dvh - 2rem);overflow:auto;padding:1.25rem;border:1px solid #687e90;border-radius:4px;background:#fff;color:#25313d;box-sizing:border-box}
+.submission-busy::backdrop{background:rgb(15 28 40 / 48%)}
+.submission-busy p{margin:0 0 1rem;overflow-wrap:anywhere;font-weight:600}
+.submission-actions{display:flex;flex-wrap:wrap;gap:.5rem}
+.submission-actions button{margin:0;min-height:44px;max-width:100%}
+.submission-busy:focus-visible,.submission-busy p:focus-visible{outline:3px solid #b37617;outline-offset:3px}
+@media(prefers-color-scheme:dark){.submission-busy{background:#243746;color:#f1f5f8;border-color:#96adbd}.submission-busy::backdrop{background:rgb(0 8 16 / 62%)}.submission-busy button{background:#243746;color:#f1f5f8;border-color:#96adbd}}
