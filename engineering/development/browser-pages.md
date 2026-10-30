@@ -131,7 +131,8 @@ retain local guidance and their enclosing topic; no separate remote explanation
 is needed for each transient state. LPF and UDP help lives beside their mount
 points so dynamic rerendering cannot remove it; Pi shared editors are unchanged.
 
-After independently building the manual, `scripts/check_documentation.py` checks
+Every Sphinx HTML build, including RTD publication, checks emitted help URLs
+against its generated page IDs. After building, `scripts/check_documentation.py` also checks
 emitted firmware URLs against its actual page IDs. `tests/contextual_help_tests.py`
 also verifies missing/renamed targets and unsafe URLs fail. Run
 `python3 scripts/check_contextual_help.py --live` after RTD publication to check

@@ -17,7 +17,9 @@ export async function checkContextualHelp({evaluate,send,key,section,helpWindows
       await send('Input.dispatchMouseEvent',{type:'mousePressed',...point,button:'left',clickCount:1});
       await send('Input.dispatchMouseEvent',{type:'mouseReleased',...point,button:'left',clickCount:1});
     } else {
-      await evaluate(`document.querySelector('${selector}').focus()`);await key('Enter');
+      await evaluate(`document.querySelector('#radio-settings>summary').focus()`);await key('Tab');
+      assert.equal(await evaluate(`document.activeElement===document.querySelector('${selector}')`),true,'native Tab reaches help in locked fieldset');
+      await key('Enter');
     }
     assert.equal(helpWindows.length,before+1,activation+' opens native popup');
     assert.equal(helpWindows.at(-1).url,'https://wsprrypico.readthedocs.io/en/devel/configure.html#wspr-configuration');

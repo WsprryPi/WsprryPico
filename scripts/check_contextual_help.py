@@ -92,4 +92,5 @@ if __name__ == '__main__':
         print('Published pages and fragments verified')
     else:
         validate(links, args.site, args.version)
-    print(f'Validated {len(links)} emitted help links against {args.site}')
+    destination = f'published /en/{args.version}/' if args.live else args.site
+    print(f'Validated {len(links)} emitted help links against {destination}')

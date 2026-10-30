@@ -27,7 +27,7 @@ Selected work is listed below, with completed items marked explicitly. Current p
 10. [x] ✅ **Top links.** Close settings disclosures and return to status while preserving drafts; see [browser sections](browser-pages.md#sections-and-navigation).
 
 11. [x] ✅ **Page-wide submission feedback and concurrency recovery.** Accepted submissions dim the page, conflicting actions are refused and foreground actions take priority over polling. Login cancellation, locking, owner-only abort and uncertain-save recovery remain available; see [submission authority and feedback](browser-pages.md#submission-authority-and-feedback). Browser failure paths are covered by production-handler regressions; a physical-controller lockup was not reproduced.
-12. [ ] ▧ **Contextual Read the Docs help in the UI.** Link every major browser section and selected subsections or fields to thorough operator explanations of the feature, prerequisites and use. Cover setup and recovery, preserve drafts and locked access, and validate published pages and anchors. See the [saved execution prompt](contextual-documentation-help-execution-prompt.md), including the standing authority, adversarial review and commit/push/report requirements. Not started.
+12. [x] **Contextual Read the Docs help in the UI.** Major sections, selected groups, setup and recovery link to operator explanations. Main builds use `/en/main/`; development builds use `/en/devel/`. Native links preserve drafts and locked access. Sphinx checks emitted destinations against generated HTML; see [browser documentation coverage](browser-pages.md#contextual-operator-documentation).
 
 ## Possible future work
 
