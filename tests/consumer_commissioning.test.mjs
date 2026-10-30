@@ -134,7 +134,8 @@ for (const [callsign,locator,types] of [
  assert.deepEqual(saved.station,{callsign,locator,power_dbm:30});assert.deepEqual(saved.wifi,before.wifi);assert.deepEqual(saved.pins,before.pins);assert.deepEqual(saved.schedules,before.schedules);
  const app=(await (await a.request('application')).json());
  assert.equal(app.schema,'application');assert.deepEqual(app.wspr_plan.frame_types,types);
- assert.equal((await a.request('application')).status,409);
+ // Superseded per-resource views are refused; the current view above preserves Type 2/3 planning.
+ assert.equal((await a.request('application/1')).status,404);
  const programs=(await f.command({op:'stats'})).profile_programs;
  const refused=await a.request('station','PUT',{schema:'station',target:app.target,station:{callsign:'K1ABC',locator:'FN42',power_dbm:30}},(await a.request('config')).headers.get('ETag'));
  assert.equal(refused.status,409);assert.equal((await f.command({op:'stats'})).profile_programs,programs);

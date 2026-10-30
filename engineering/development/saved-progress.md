@@ -27,5 +27,8 @@ profile authority. Independent journals are not presented as one atomic write.
 
 Readback distinguishes draft revision, applied configuration/profile revision,
 field outcomes, complete station, application domains and current recurrence.
+The AP owner-commissioning read uses the same current progress shape, including
+the drive domain, while exposing only station draft fields and a null receipt.
+It does not expose private network or hardware draft values.
 The [control contract](../browser-api.md) and
 [current schema](../protocol/control-1.schema.json) define bounded closed shapes.
