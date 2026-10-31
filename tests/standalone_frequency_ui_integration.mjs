@@ -83,14 +83,14 @@ try {
   await cdp.evaluate(`document.getElementById('station-link').click();const section=document.getElementById('radio-settings');if(!section.open)section.querySelector('summary').click();`);
   await until(()=>cdp.evaluate(`!document.getElementById('standalone-frequency-read').disabled`),'frequency availability');
   await click('standalone-frequency-read');
-  await until(()=>cdp.evaluate(`!document.getElementById('standalone-frequency').disabled`),'unset readback');
-  assert.equal(await cdp.evaluate(`document.getElementById('standalone-frequency').value`),'');
+  await until(()=>cdp.evaluate(`!document.getElementById('standalone-frequency').disabled`),'initial readback');
+  assert.equal(await cdp.evaluate(`document.getElementById('standalone-frequency').value`),firstUse==='refusal' ? '' : '14095600');
   assert.equal(await cdp.evaluate(`document.getElementById('standalone-frequency-save').disabled`),true);
-  assert.match(await cdp.evaluate(`document.getElementById('standalone-frequency-status').textContent`),firstUse && !['overlay','refusal'].includes(firstUse) ? /No applied station/ : /No WSPR dial frequency/);
+  assert.match(await cdp.evaluate(`document.getElementById('standalone-frequency-status').textContent`),firstUse && !['overlay','refusal'].includes(firstUse) ? /No applied station/ : firstUse==='refusal' ? /No WSPR dial frequency/ : /Saved WSPR dial 14,095,600 Hz/);
   const ax=(await cdp.send('Accessibility.getFullAXTree')).nodes.find(node=>node.role?.value==='textbox' && node.name?.value==='WSPR dial frequency (Hz)');
   assert.ok(ax,'frequency has an explicit accessible label');
   assert.match(ax.description?.value || '',/Enter whole Hz without commas or decimals\. Standalone WSPR places four tones around a center 1,500 Hz above the dial\./);
-  await capture('unset');
+  await capture('initial-readback');
   if(firstUse==='refusal') {
     await field('standalone-frequency','14095600');
     assert.equal(await cdp.evaluate(`document.getElementById('standalone-frequency-save').disabled`),false);
@@ -276,8 +276,8 @@ try {
   assert.equal(writes[0].frequency_hz,14095600);
   assert(writes.every(w=>Number.isInteger(w.frequency_hz) && Object.keys(w).sort().join(',')==='frequency_hz,schema,target'));
   await writeFile(path.join(output,'frequency-writes.json'),JSON.stringify(writes,null,2)+'\n');
-  await writeFile(path.join(output,'result.json'),JSON.stringify({passed:true,frequency_initial:null,frequency_saved_hz:3568737,policy_rejection:true,stale_recovery:true,target_rejection:true,identity_review:true,storage_fault:true,keyboard_save:true,text_zoom:200,themes:['light'],schedule_enabled:false,views:['desktop','mobile'],physical_qualification:false},null,2)+'\n');
-  console.log('Consumer frequency UI: unset, explicit save, disabled schedules, desktop/mobile and accessible label passed');
+  await writeFile(path.join(output,'result.json'),JSON.stringify({passed:true,frequency_initial:14095600,frequency_saved_hz:3568737,policy_rejection:true,stale_recovery:true,target_rejection:true,identity_review:true,storage_fault:true,keyboard_save:true,text_zoom:200,themes:['light'],schedule_enabled:false,views:['desktop','mobile'],physical_qualification:false},null,2)+'\n');
+  console.log('Consumer frequency UI: factory dial, explicit save, disabled schedules, desktop/mobile and accessible label passed');
   }
 } finally {
   cdp?.ws.close();

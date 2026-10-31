@@ -200,7 +200,7 @@ try {
   assert.equal(await evaluate('document.getElementById("config").elements.ssid.value'),'test-network');
   assert.equal(await evaluate('document.getElementById("config").elements.password.value'),'');
   assert.equal(await evaluate('document.getElementById("logging-status").textContent.includes("Saved:")'),true);
-  assert.match(await evaluate('document.getElementById("gpio-drive-status").textContent'),/Saved: 4 mA/);
+  assert.match(await evaluate('document.getElementById("gpio-drive-status").textContent'),/Saved: 12 mA/);
   assert.doesNotMatch(await evaluate('document.getElementById("gpio-drive-status").textContent'),/Disconnected|target changed/);
   assert.match(await evaluate('document.getElementById("rf-calibration-status").textContent'),/Saved/);
   assert.match(await evaluate('document.getElementById("ntp-timeout-status").textContent'),/Saved/);

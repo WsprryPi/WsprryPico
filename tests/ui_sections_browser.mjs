@@ -188,7 +188,7 @@ try {
     assert.equal(await evaluate('document.activeElement.id'),'access-toggle');
     pass('native modal focus, Escape, password refusal, scrub and authenticated success');
     await section('message-section');
-    await evaluate('document.getElementById("message-text").value="DRAFT";document.getElementById("message-form").dispatchEvent(new Event("input",{bubbles:true}));globalThis.savedRequest=radio.request.bind(radio);globalThis.requestOrder=[];radio.request=async(...args)=>{requestOrder.push(args[0]);if(args[0]==="operations")await new Promise(resolve=>globalThis.releaseRead=resolve);return savedRequest(...args)};document.getElementById("refresh").click()');
+    await evaluate('document.getElementById("message-text").value="DRAFT";document.getElementById("message-text").dispatchEvent(new Event("input",{bubbles:true}));globalThis.savedRequest=radio.request.bind(radio);globalThis.requestOrder=[];radio.request=async(...args)=>{requestOrder.push(args[0]);if(args[0]==="operations")await new Promise(resolve=>globalThis.releaseRead=resolve);return savedRequest(...args)};document.getElementById("refresh").click()');
     await until(()=>evaluate('!!globalThis.releaseRead'),'held current request');
     await click('submission-lock');assert.equal(await evaluate('document.getElementById("save-config").disabled'),true);
     assert.equal(await evaluate('localAuthenticated'),false);
