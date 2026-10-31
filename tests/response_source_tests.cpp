@@ -17,7 +17,7 @@ std::string text(const wtp::ResponseSource& source, std::size_t chunk) {
     return result;
 }
 void load_equivalence() {
-    for (const std::size_t count : {0, 1, 162, 256, 512}) {
+    for (const std::size_t count : {0, 1, 16, 32, 33, 162, 256, 512}) {
         wtp::Request request;
         request.operation = "LOAD";
         request.request_id = std::string(32, 'a');
@@ -32,6 +32,10 @@ void load_equivalence() {
         network::HttpResponse original{200, {}, "application/json", {}, std::move(expected)};
         auto adapted = network::control_response(std::move(original));
         const auto expected_text = adapted.body_text();
+        auto selected =
+            network::control_response(network::browser_load_response(request, response));
+        assert(selected.status == 200 && selected.body_text() == expected_text);
+        assert(bool(selected.generated_body) == (count > 32));
         for (const auto chunk : {1, 17, 1024}) {
             network::HttpResponse streamed{200, {}, "application/json", {}};
             auto producer = response;
@@ -53,6 +57,24 @@ void load_equivalence() {
             assert(wire == quoted.substr(1, quoted.size() - 2));
         }
     }
+}
+void incomplete_output() {
+    struct TruncatedSource final : wtp::ResponseSource {
+        std::size_t size() const override {
+            return 2048;
+        }
+        std::size_t copy(std::size_t offset, std::span<std::uint8_t> out) const override {
+            if (offset >= 1024)
+                return 0;
+            const auto count = std::min<std::size_t>(out.size(), 1024 - offset);
+            std::fill_n(out.begin(), count, 'x');
+            return count;
+        }
+    };
+    network::HttpResponse response{200, {}, "application/json", {}};
+    response.generated_body = wtp::make_response_source<TruncatedSource>();
+    assert(response.body_text().empty()); // No partial logical document escapes.
+    assert(response.wire().empty());      // No header + truncated body masquerades as complete.
 }
 void escaping() {
     const std::string input = std::string("\"\\\n\r\t\0", 6) + "\xc3\xa9" + std::string(2050, 'x');
@@ -120,6 +142,7 @@ void allocation_failure() {
 } // namespace
 int main() {
     load_equivalence();
+    incomplete_output();
     escaping();
     allocation_failure();
 }

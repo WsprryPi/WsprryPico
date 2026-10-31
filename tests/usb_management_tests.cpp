@@ -1,8 +1,8 @@
 #include "standalone/wtp_profile.hpp"
 #include "usb/management_endpoint.hpp"
 #include "usb/time_exchange.hpp"
-#include "wtp/memory_budget.hpp"
 #include "wtp/codec.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -88,44 +88,117 @@ network::HttpRequest time_request(std::string method, std::string path, std::str
     r.body = std::move(body);
     return r;
 }
+void escaped_frame_limits() {
+    std::string payload;
+    unsigned finishes = 0;
+    bool delivered = false;
+    usb::ManagementEndpoint endpoint(
+        device, boot, "test",
+        [&](const network::HttpRequest&, std::uint64_t) {
+            network::HttpResponse response{200, {}, "application/json", {}};
+            response.generated_body = wtp::make_response_source<wtp::TextResponseSource>(payload);
+            return response;
+        },
+        [&](std::uint64_t, bool success) {
+            ++finishes;
+            delivered = success;
+        });
+    const auto request =
+        bound(2, "request") +
+        ",\"method\":\"GET\",\"path\":\"/api/control/v1/config\",\"body\":\"\",\"if_match\":\"\"}";
+    const auto start = [&] {
+        endpoint.connect(session);
+        send(endpoint, common(1, "hello") + "}");
+        (void)drain(endpoint);
+        send(endpoint, request);
+    };
+    const auto prepare = [&] {
+        for (unsigned i = 0; i < 65 && endpoint.output().empty() && !endpoint.closed(); ++i)
+            endpoint.poll(1);
+    };
+    start();
+    prepare();
+    const auto overhead = drain(endpoint).size();
+    endpoint.disconnect();
+    for (const auto length : {65536U, 65537U}) {
+        const auto body_bytes = length - overhead;
+        payload.assign(body_bytes / 6, '\0');
+        payload.append(body_bytes % 6, 'x');
+        const auto before = finishes;
+        start();
+        CHECK(endpoint.output().empty()); // Never publish a speculative length.
+        prepare();
+        if (length == 65536) {
+            CHECK(!endpoint.closed());
+            const auto wire = drain(endpoint);
+            CHECK(wire.size() == length);
+            CHECK(wtp::json::parse(wire)->get("body")->string() == payload);
+            CHECK(finishes == before);
+            send(endpoint, bound(2, "ack") + "}");
+            (void)drain(endpoint);
+            CHECK(finishes == before + 1 && delivered);
+        } else {
+            CHECK(endpoint.closed() && endpoint.output().empty());
+            CHECK(finishes == before + 1 && !delivered);
+        }
+    }
+}
 void generated_frames() {
-    wtp::Request request; request.operation = "LOAD"; request.request_id = std::string(32, '1');
-    wtp::Response response; response.ok = true; response.job_id = std::string(32, '2');
+    wtp::Request request;
+    request.operation = "LOAD";
+    request.request_id = std::string(32, '1');
+    wtp::Response response;
+    response.ok = true;
+    response.job_id = std::string(32, '2');
     std::vector<wtp::FrequencyAdjustment> adjustments;
-    for (unsigned i = 0; i < 256; ++i) adjustments.push_back({i, 14097100000000000ULL, 14097100000000001ULL});
+    for (unsigned i = 0; i < 256; ++i)
+        adjustments.push_back({i, 14097100000000000ULL, 14097100000000001ULL});
     response.adjustments = std::move(adjustments);
     const auto expected = wtp::encode_load_response_buffer(request, response, true);
-    unsigned finishes = 0; bool delivered = false;
-    usb::ManagementEndpoint endpoint(device, boot, "test",
+    unsigned finishes = 0;
+    bool delivered = false;
+    usb::ManagementEndpoint endpoint(
+        device, boot, "test",
         [&](const network::HttpRequest&, std::uint64_t) {
             network::HttpResponse result{200, {}, "application/json", {}};
             result.generated_body = wtp::load_response_source(request, response);
             return result;
-        }, [&](std::uint64_t, bool success) { ++finishes; delivered = success; });
+        },
+        [&](std::uint64_t, bool success) {
+            ++finishes;
+            delivered = success;
+        });
     endpoint.connect(session);
-    send(endpoint, common(1, "hello") + "}"); (void)drain(endpoint);
-    const auto command = bound(2, "request") + ",\"method\":\"GET\",\"path\":\"/api/control/v1/config\",\"body\":\"\",\"if_match\":\"\"}";
+    send(endpoint, common(1, "hello") + "}");
+    (void)drain(endpoint);
+    const auto command =
+        bound(2, "request") +
+        ",\"method\":\"GET\",\"path\":\"/api/control/v1/config\",\"body\":\"\",\"if_match\":\"\"}";
     send(endpoint, command);
     CHECK(endpoint.busy() && endpoint.output().empty());
     const auto allocator = wtp::allocate_input;
     wtp::allocate_input = [](std::size_t) -> void* { return nullptr; };
     unsigned steps = 0;
-    while (endpoint.output().empty() && steps++ < 64) endpoint.poll(1);
+    while (endpoint.output().empty() && steps++ < 64)
+        endpoint.poll(1);
     CHECK(steps > 1 && steps <= 64 && !endpoint.closed());
     const auto wire = drain(endpoint);
     wtp::allocate_input = allocator;
     const auto value = wtp::json::parse(wire);
     CHECK(value && value->get("body")->string() == std::string(expected.view()));
     CHECK(finishes == 0); // Sending the last byte still does not supply USB ACK authority.
-    send(endpoint, bound(2, "ack") + "}"); (void)drain(endpoint);
+    send(endpoint, bound(2, "ack") + "}");
+    (void)drain(endpoint);
     CHECK(finishes == 1 && delivered);
-    send(endpoint, bound(3, "request") + ",\"method\":\"GET\",\"path\":\"/api/control/v1/config\",\"body\":\"\",\"if_match\":\"\"}");
+    send(endpoint, bound(3, "request") + ",\"method\":\"GET\",\"path\":\"/api/control/v1/"
+                                         "config\",\"body\":\"\",\"if_match\":\"\"}");
     CHECK(endpoint.output().empty());
     endpoint.poll(10001);
     CHECK(endpoint.closed() && endpoint.output().empty() && finishes == 2 && !delivered);
 }
 } // namespace
 int main() {
+    escaped_frame_limits();
     generated_frames();
     unsigned handled = 0, delivered = 0, cancelled = 0;
     std::uint64_t last_transaction = 0;
@@ -153,10 +226,8 @@ int main() {
         CHECK(reply.find("usb-management-discovery/1") != std::string::npos);
     };
     const auto request = [&](unsigned id) {
-        send(
-            endpoint,
-            bound(id, "request") +
-                ",\"method\":\"GET\",\"path\":\"/api/control/v1/status\",\"body\":\"\",\"if_match\":\"\"}");
+        send(endpoint, bound(id, "request") + ",\"method\":\"GET\",\"path\":\"/api/control/v1/"
+                                              "status\",\"body\":\"\",\"if_match\":\"\"}");
     };
     hello();
     request(2);

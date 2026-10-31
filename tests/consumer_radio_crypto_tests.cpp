@@ -170,6 +170,10 @@ int main(int argc, char** argv) {
     }
     wtp::allocate_input = allocator;
     assert(actual_stream == expected_stream);
+    // A forward-only packet cannot be replayed after its first window is gone.
+    // Convenience serializers must return failure instead of spinning forever.
+    assert(streamed->body_text().empty());
+    assert(streamed->wire().empty());
     login();
     const std::array<wtp::InputView, 2> oversized{*opened, wtp::InputView(" ")};
     assert(!crypto.seal_parts(oversized, binding, 2));

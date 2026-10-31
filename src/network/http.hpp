@@ -11,6 +11,10 @@
 #include <string>
 #include <string_view>
 
+namespace wsprrypico::wtp {
+struct Request;
+struct Response;
+} // namespace wsprrypico::wtp
 namespace wsprrypico::network {
 inline constexpr std::size_t max_http_headers = 2048, max_http_body = 32768;
 struct HttpRequest {
@@ -148,6 +152,9 @@ class HttpParser {
     bool exhausted_ = false;
     bool headers_done_ = false, ready_ = false, failed_ = false;
 };
+// Preserve the materialized path for small LOAD replies; large immutable
+// adjustment lists use a bounded generator instead of a complete JSON body.
+HttpResponse browser_load_response(const wtp::Request&, const wtp::Response&);
 wtp::ResponseSourcePtr response_source(HttpResponse response);
 HttpResponse http_error(unsigned status, std::string_view code);
 } // namespace wsprrypico::network

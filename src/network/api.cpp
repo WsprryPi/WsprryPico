@@ -740,14 +740,8 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     std::string{}.swap(payload);
     auto response = service_.handle(std::move(*request));
     request->body = std::monostate{};
-    if (response.ok && request->operation == "LOAD") {
-        auto encoded = load_response_source(*request, response);
-        if (!encoded)
-            return http_error(503, "resource_exhausted");
-        HttpResponse result{200, {}, "application/json", {}};
-        result.generated_body = std::move(encoded);
-        return result;
-    }
+    if (response.ok && request->operation == "LOAD")
+        return browser_load_response(*request, response);
 
     auto encoded = encode_response(*request, response, service_.config(), device_, firmware_);
     const auto result = json::parse(encoded);

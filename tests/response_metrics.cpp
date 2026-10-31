@@ -52,7 +52,7 @@ int main() {
             }
         }
     }
-    for (const std::size_t n : {162, 256, 512}) {
+    for (const std::size_t n : {0, 1, 16, 17, 32, 33, 162, 256, 512}) {
         wtp::Request q;
         q.operation = "LOAD";
         q.request_id = std::string(32, '1');
@@ -72,7 +72,7 @@ int main() {
         {
             network::HttpResponse r{200, {}, "application/json", {}};
 #if __has_include("wtp/response_source.hpp")
-            r.generated_body = wtp::load_response_source(q, s);
+            r = network::browser_load_response(q, s);
 #else
             r.buffered_body = wtp::encode_load_response_buffer(q, s, true);
 #endif
@@ -99,8 +99,10 @@ int main() {
         std::size_t size;
         bool generated;
     };
-    for (const auto fixture : {UsbCase{512, false}, UsbCase{18000, false}, UsbCase{28000, false},
-                               UsbCase{162, true}, UsbCase{256, true}, UsbCase{512, true}}) {
+    for (const auto fixture :
+         {UsbCase{512, false}, UsbCase{18000, false}, UsbCase{28000, false}, UsbCase{0, true},
+          UsbCase{1, true}, UsbCase{16, true}, UsbCase{17, true}, UsbCase{32, true},
+          UsbCase{33, true}, UsbCase{162, true}, UsbCase{256, true}, UsbCase{512, true}}) {
         const auto size = fixture.size;
         const bool generated = fixture.generated;
         wtp::Request job_request;
@@ -125,7 +127,7 @@ int main() {
                     return network::HttpResponse{200, payload, "application/json", {}};
                 network::HttpResponse result{200, {}, "application/json", {}};
 #if __has_include("wtp/response_source.hpp")
-                result.generated_body = wtp::load_response_source(job_request, job_response);
+                result = network::browser_load_response(job_request, job_response);
 #else
                 result.buffered_body =
                     wtp::encode_load_response_buffer(job_request, job_response, true);

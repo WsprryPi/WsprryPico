@@ -12,7 +12,9 @@ fragments before allocating their final pages. The writer includes the current
 control contract once, with the same field order and bytes as the string writer.
 Application subdocuments are released before computing the final revision.
 
-A generated LOAD reply captures its quoted identifiers and shares the immutable
+LOAD replies with up to 32 adjustments retain the original materialized path,
+avoiding fixed generator overhead for short and empty adjustment lists. Larger
+replies use bounded generation. A generated LOAD reply captures its quoted identifiers and shares the immutable
 `AdjustmentList`; it does not retain a request, parser, application callback or
 live configuration reference. A fixed 513-entry offset index bounds lookup for
 at most 512 adjustments. Integer formatting uses checked `to_chars` operations
@@ -44,7 +46,10 @@ connection lifetime. Flash assets retain their borrowed-storage path.
 Generated consumer replies use a response-owned ChaCha20-Poly1305 context. The
 existing header, associated data, nonce, sequence and final tag are unchanged.
 The cipher advances once per plaintext byte; retries retain the existing
-ciphertext window. Cipher output is explicitly non-replayable. Its initialized
+ciphertext window. Cipher output is explicitly non-replayable. The host `wire` and `body_text`
+helpers return an empty result if a source stops before its advertised length,
+including a replay that needs discarded ciphertext. They never return
+a partial document or spin on zero progress. Its initialized
 context remains independent of session key cleanup and is securely destroyed
 with the response. Plaintext scratch and released output windows are wiped.
 

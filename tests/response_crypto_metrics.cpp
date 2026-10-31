@@ -89,7 +89,7 @@ int main(int argc, char** argv) {
     assert(crypto.begin_for_test(private_key));
     auto login = packet(field(*root, "login_hex"));
     assert(crypto.authenticate(login, binding, password));
-    for (std::size_t count : {162, 256}) {
+    for (std::size_t count : {0, 1, 16, 17, 32, 33, 162, 256}) {
         wtp::Request request;
         request.operation = "LOAD";
         request.request_id = std::string(32, 'a');
@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
         {
             network::HttpResponse response{200, {}, "application/json", {}};
 #if __has_include("wtp/response_source.hpp")
-            response.generated_body = wtp::load_response_source(request, result);
+            response = network::browser_load_response(request, result);
 #else
             response.buffered_body = wtp::encode_load_response_buffer(request, result, true);
 #endif
@@ -115,16 +115,21 @@ int main(int argc, char** argv) {
             const std::string prefix = "{\"status\":200,\"etag\":null,\"body\":";
             std::optional<network::HttpResponse> sealed;
 #if __has_include("wtp/response_source.hpp")
-            auto source = wtp::make_response_source<wtp::JoinedResponseSource>(
-                prefix, network::response_source(std::move(response)), "}", true);
-            sealed = crypto.seal_source(std::move(source), binding, count);
-#else
-            auto envelope = std::move(response.buffered_body);
-            const auto size = prefix.size() + envelope.size() + 1;
-            assert(envelope.reserve(size + 44));
-            assert(envelope.prepend(wtp::InputView(prefix).at(0)));
-            assert(envelope.append(wtp::InputView("}").at(0)));
-            sealed = crypto.seal_buffer(std::move(envelope), binding, count);
+            if (response.generated_body) {
+                auto source = wtp::make_response_source<wtp::JoinedResponseSource>(
+                    prefix, network::response_source(std::move(response)), "}", true);
+                sealed = crypto.seal_source(std::move(source), binding, count);
+            } else {
+#endif
+
+                auto envelope = std::move(response.buffered_body);
+                const auto size = prefix.size() + envelope.size() + 1;
+                assert(envelope.reserve(size + 44));
+                assert(envelope.prepend(wtp::InputView(prefix).at(0)));
+                assert(envelope.append(wtp::InputView("}").at(0)));
+                sealed = crypto.seal_buffer(std::move(envelope), binding, count);
+#if __has_include("wtp/response_source.hpp")
+            }
 #endif
             assert(sealed);
             probe::step(probe::started);

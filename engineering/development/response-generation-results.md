@@ -5,8 +5,8 @@ Measured 2026-10-31. Bounded generation removes complete LOAD response copies fr
 ## Sources and method
 
 - Pico baseline: `408c0865db7d543ba9ffdc3ac4db45b3c97053b5`.
-- Pico candidate: the implementation accompanying this report on `codex/bounded-response-generation`, tested as uncommitted changes over that baseline. The raw measurement file records the candidate input SHA-256.
-- Pi baseline: `25c55133bf6cf80c563b16497acadd90007651ff`, plus the accompanying 16-line production-crypto test-adapter update on the matching feature branch. No production Pi implementation changed.
+- Pico candidate: the implementation accompanying this report on `codex/bounded-response-generation`, tested with the adversarial-review fixes over `11c086a27a4ca00d9e3857614f4aa45afc628ba2` (whose base is the baseline above). The raw measurement file records the candidate input SHA-256.
+- Pi baseline: `25c55133bf6cf80c563b16497acadd90007651ff`, plus `f31aebc835ecf7eedb101d654cc7b9faab354ab2` and the accompanying browser-fixture and logging-status corrections on the matching feature branch. The Pi protocol/client implementations are unchanged; logging status feedback now preserves warnings across asynchronous refreshes.
 - Host: AppleClang 21.0.0, macOS ARM64, Debug libraries; identical candidate probe sources compiled against each version. Each reported number is the median of 21 separate process runs after warmup.
 - TLS dependency: Mbed TLS `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20` with its pinned framework submodule.
 
@@ -22,11 +22,23 @@ All figures are bytes. Generated rows identify the number of adjustments. USB fi
 | --- | ---: | ---: | ---: | ---: |
 | `capabilities` | 10,008 | 7,407 | 2,601 | 26.0% |
 | `application` | 8,024 | 6,795 | 1,229 | 15.3% |
+| `http-load-0` | 388 | 388 | 0 | 0.0% |
+| `http-load-1` | 784 | 784 | 0 | 0.0% |
+| `http-load-32` | 4,185 | 4,185 | 0 | 0.0% |
+| `http-load-33` | 4,295 | 3,360 | 935 | 21.8% |
 | `http-load-162` | 18,547 | 3,360 | 15,187 | 81.9% |
 | `http-load-256` | 28,981 | 3,360 | 25,621 | 88.4% |
 | `http-load-512` | 57,397 | 3,360 | 54,037 | 94.1% |
+| `encrypted-http-load-0` | 476 | 476 | 0 | 0.0% |
+| `encrypted-http-load-1` | 784 | 784 | 0 | 0.0% |
+| `encrypted-http-load-32` | 7,494 | 7,494 | 0 | 0.0% |
+| `encrypted-http-load-33` | 7,714 | 4,184 | 3,530 | 45.8% |
 | `encrypted-http-load-162` | 19,834 | 4,184 | 15,650 | 78.9% |
 | `encrypted-http-load-256` | 32,510 | 4,184 | 28,326 | 87.1% |
+| `usb-load-0` | 1,389 | 1,389 | 0 | 0.0% |
+| `usb-load-1` | 1,615 | 1,615 | 0 | 0.0% |
+| `usb-load-32` | 8,727 | 8,727 | 0 | 0.0% |
+| `usb-load-33` | 8,957 | 5,664 | 3,293 | 36.8% |
 | `usb-load-162` | 38,751 | 5,664 | 33,087 | 85.4% |
 | `usb-load-256` | 60,559 | 5,664 | 54,895 | 90.6% |
 | `usb-load-512` | 119,951 | 5,664 | 114,287 | 95.3% |
@@ -34,7 +46,7 @@ All figures are bytes. Generated rows identify the number of adjustments. USB fi
 | `usb-18000` | 37,106 | 37,106 | 0 | 0.0% |
 | `usb-28000` | 57,106 | 57,106 | 0 | 0.0% |
 
-Progress, hardware, status, operations, config, station, pins and filter-selector fixtures had identical allocation counts and peaks before and after. Already materialized USB replies retain their existing frame buffer; no constant-memory claim applies to them. Capability/application documents use counted fragments, while large LOAD replies use the owned generator.
+Progress, hardware, status, operations, config, station, pins and filter-selector fixtures had identical allocation counts and peaks before and after. Already materialized USB replies retain their existing frame buffer; no constant-memory claim applies to them. Capability/application documents use counted fragments, while LOAD replies above 32 adjustments use the owned generator. Smaller LOAD replies preserve the original materialized path; their allocation peaks remain unchanged in the expanded fixtures.
 
 ## Retention and allocation pressure
 
@@ -54,13 +66,13 @@ Microseconds on the host; these are observations rather than real-time guarantee
 
 | Fixture | Total before → after (µs) | Longest call before → after (µs) |
 | --- | ---: | ---: |
-| `http-load-162` | 148.1 → 199.9 | 100.2 → 11.0 |
-| `http-load-256` | 224.5 → 307.9 | 147.4 → 12.5 |
-| `encrypted-http-load-162` | 458.1 → 543.7 | 411.5 → 35.2 |
-| `encrypted-http-load-256` | 670.4 → 826.6 | 598.5 → 33.8 |
-| `usb-load-162` | 1084.6 → 1177.3 | 965.8 → 107.6 |
-| `usb-load-256` | 1631.0 → 1784.0 | 1446.1 → 112.8 |
-| `usb-load-512` | 3164.6 → 3525.8 | 2790.8 → 123.2 |
+| `http-load-162` | 146.7 → 212.7 | 97.9 → 11.2 |
+| `http-load-256` | 225.7 → 349.8 | 148.6 → 17.0 |
+| `encrypted-http-load-162` | 440.2 → 586.5 | 389.3 → 35.9 |
+| `encrypted-http-load-256` | 688.5 → 902.8 | 614.7 → 45.7 |
+| `usb-load-162` | 1101.8 → 1327.4 | 982.2 → 117.3 |
+| `usb-load-256` | 1721.3 → 1978.1 | 1510.7 → 138.3 |
+| `usb-load-512` | 3326.9 → 3871.1 | 2960.6 → 153.4 |
 
 The generated paths trade repeated integer formatting and checkpoint lookup for lower memory retention and shorter foreground steps. USB still traverses the source to count escaped bytes and again to emit them. Counting advances by at most 1,024 raw bytes per poll, using exactly the emission escaping rules. No frame header is visible until the exact escaped length is admitted. This work does not establish higher throughput or measured physical USB responsiveness.
 
@@ -70,12 +82,16 @@ Normal 138 MHz Pico 2 W cross-builds used Pico SDK `079c6f39023649b154152db30f1d
 
 | ELF accounting | Before | After | Change |
 | --- | ---: | ---: | ---: |
-| text | 2,914,024 | 2,925,472 | +11,448 bytes |
+| text | 2,914,024 | 2,926,736 | +12,712 bytes |
 | data | 0 | 0 | 0 |
 | bss | 383,992 | 384,032 | +40 bytes |
 | Linker heap capacity | 91,432 | 91,392 | −40 bytes |
 | Core 0 reserved stack | 32,768 | 32,768 | 0 |
 | Core 1 reserved stack | 16,384 | 16,384 | 0 |
+
+The reviewed small-response selector has a 592-byte compiler-reported frame;
+the materialized LOAD encoder has a 768-byte frame. These are individual static
+frame reports, not aggregate call-chain use or measured stack high-water.
 
 The baseline archive has unknown Git metadata and the candidate identifies a dirty source tree; linked-image deltas therefore include differing provenance strings. Heap capacity is a linker reservation, not measured free heap or peak use. Fixed scratch arrays and cipher state also use stack/owned storage. Compiler frame reports and linker guards do not establish runtime stack high-water.
 
@@ -109,7 +125,7 @@ python3 scripts/measure_responses.py \
   --baseline-build "$BASELINE_BUILD" \
   --candidate-build "$CANDIDATE_BUILD" \
   --mbedtls-source "$MBEDTLS_SOURCE" --runs 21 \
-  --output build/response-generation-evidence/metrics.json
+  --output build/response-generation-evidence/review-metrics.json
 ```
 
 The ignored evidence directory retains raw samples, digests and a compact summary. The checked-in probes make the comparison reproducible; timing varies by host and load.
@@ -150,7 +166,7 @@ The isolated wspr5 harness uses the Pi and Pico revisions above with their state
 uncommitted changes and the pinned Mbed TLS source. SHA-256 comparison confirmed
 all 384 candidate production/build files matched the local isolated worktree.
 The measurement input manifest is
-`8b6d73ea8c55c08c9709ebe19927d54d0214f508b1e8c5fba746ef8c0076537f`.
+`8f362454faa34b03f9290d4af6d1df9ebeb87bce1715a6aeae5db5a41b2479f0`.
 
 Commands use the checked-in Pi `debian-non-hardware.yml` recipes with explicit
 candidate source selection:
@@ -199,10 +215,10 @@ Both required actual production-carrier suites completed successfully.
 
 Source-selection verification passed: both client and TLS fixtures executed an
 edited production-source marker, and missing source/compiler errors failed
-closed. Its initial attempt collided with the still-running TLS suite's fixed
-port; the sequential retry passed. Supplemental logging-browser checks passed
-on retry after the competing builds/browser work subsided. Initial failures
-and successful retries are retained separately in the evidence directory.
+closed. The reviewed candidate passed this check in a temporary loopback-only
+namespace, avoiding the fixed-port collision seen during initial implementation.
+The refreshed workflow exposed the logging warning race described below; it is
+covered by a deterministic regression rather than relying on a successful retry.
 
 ### Documentation impact
 
@@ -211,19 +227,25 @@ reference links the shared generation paths and states the static task bound
 without a stale host-specific size. Operator instructions and protocol schemas
 remain unchanged because resource bytes, limits, authentication, job semantics
 and delivery authority are preserved. Pi operator documentation needs no change
-for its test-adapter-only update. No documentation follow-up is required for the
-implemented behavior.
+for corrected fixture navigation and the existing logging status warning
+remaining visible through refreshes. No documentation follow-up is required
+for the implemented behavior.
 
-### Supplemental browser limitation
+### Supplemental browser startup correction
 
-The unchanged Pi rendered USB-profile fixture
-`wtp_usb_ui_integration_test.js` timed out on wspr5 waiting for application
-scripts. A temporary diagnostic showed it had selected `about:blank`, with no
-scripts or application document loaded. Retrying the direct Chromium binary
-produced the same timeout. The preceding USB Logs browser fixture passed. The
-later mocked network/fleet/recovery browser steps were not reached in that
-supplemental sequence. A native macOS attempt could not start PHP because PHP
-is unavailable there. No application assertions were weakened and no additional
-Pi UI changes were made. The complete GitHub workflow job is therefore not
-claimed green; the required actual network and USB source-pair suites, ten Pico
-native browser suites and 170-test host suite did pass as recorded above.
+The prior blank-tab blocker is resolved. The four Pi USB/network/Fleet/recovery
+browser fixtures now deliberately start on `about:blank`, attach to their owned
+target, then explicitly navigate to the isolated PHP fixture URL. Navigation
+has a bounded 60-second startup allowance; ordinary CDP commands are bounded to
+15 seconds, and the existing application assertion deadlines remain unchanged.
+All four full fixtures passed on wspr5 with Chromium 156.0.8078.47. No rendered
+UI or validation assertion was bypassed. The refreshed logging sequence exposed
+separate overflow/duplicate-warning races, now covered by deterministic
+readback-order and collector/peer-lifecycle regressions.
+The status retains its existing wording and polite announcement while using the
+established body-text color for legibility. Logging controls, UDP Logs and
+real-stream USB Logs checks are included in the review evidence.
+These local workflow-recipe results do not represent a GitHub Actions run.
+
+The [adversarial assessment](response-generation-review.md) records the review
+findings, their fixes and the repeated validation for the revised candidate.
