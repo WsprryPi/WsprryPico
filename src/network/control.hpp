@@ -69,17 +69,30 @@ inline std::optional<std::string> control_payload(wtp::InputView bytes) {
     return {};
 }
 inline HttpResponse control_response(HttpResponse response) {
+    if (response.control_wrapped)
+        return response;
     constexpr std::string_view member = "\"contract\":\"Wsprry-Control/1\",";
-    if (!response.buffered_body.empty()) {
+    if (response.generated_body) {
+        if (!response.generated_body->json_document()) return http_error(503, "resource_exhausted");
+        auto body = wtp::make_response_source<wtp::SlicedResponseSource>(
+            std::move(response.generated_body), 1);
+        if (!body)
+            return http_error(503, "resource_exhausted");
+        response.generated_body = wtp::make_response_source<wtp::JoinedResponseSource>(
+            "{" + std::string(member) + " ", std::move(body), "", true);
+        if (!response.generated_body)
+            return http_error(503, "resource_exhausted");
+    } else if (!response.buffered_body.empty()) {
         const auto size = response.buffered_body.size();
         if (response.buffered_body.view()[0] != '{' ||
-            !response.buffered_body.reserve(size + member.size()) )
+            !response.buffered_body.reserve(size + member.size()))
             return http_error(503, "resource_exhausted");
         // Reserve and prepend preserve paged output instead of flattening it.
         response.buffered_body.mutable_at(0)[0] = ' ';
         const std::string prefix = "{" + std::string(member);
         if (!response.buffered_body.reserve(size + prefix.size()) ||
-            !response.buffered_body.prepend(std::span(reinterpret_cast<const std::uint8_t*>(prefix.data()), prefix.size())))
+            !response.buffered_body.prepend(
+                std::span(reinterpret_cast<const std::uint8_t*>(prefix.data()), prefix.size())))
             return http_error(503, "resource_exhausted");
     } else if (!response.body.empty() && response.body.front() == '{') {
         response.body.insert(1, member);

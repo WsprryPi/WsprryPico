@@ -51,7 +51,7 @@ void timing_management() {
     Member m;
     const auto path = "/api/control/v1/amplifier-timing";
     const auto initial = m.call("GET", path);
-    auto read = parse(initial.body);
+    auto read = parse(initial.body_view());
     REQUIRE(read && read->get("saved")->get("lead_ms")->raw == "200");
     REQUIRE(read->get("saved")->get("tail_ms")->raw == "200");
     const auto sequence = m.f.store.config_sequence();
@@ -84,7 +84,7 @@ void timing_management() {
     REQUIRE(m.f.store.config()->amplifier_timing == (rf::AmplifierTiming{0, 1000}));
     REQUIRE(m.scheduler.hardware_restart_required() && m.f.service.output_inhibited());
     REQUIRE(m.scheduler.active_amplifier_timing() == rf::AmplifierTiming{});
-    REQUIRE(m.call("GET", "/api/control/v1/config").body.find("amplifier_timing") == std::string::npos);
+    REQUIRE(m.call("GET", "/api/control/v1/config").body_text().find("amplifier_timing") == std::string::npos);
     auto previous = m.f.store.config();
     for (const auto mode : {application::ConfigWrite::Merge}) {
         const auto input =
@@ -164,14 +164,14 @@ void management() {
         REQUIRE(m.scheduler.active_pins() == boot && m.scheduler.hardware_restart_required());
         REQUIRE(m.f.store.config()->pins == p);
         const auto read = m.call("GET", "/api/control/v1/hardware");
-        const auto value = parse(read.body);
+        const auto value = parse(read.body_view());
         REQUIRE(value->get("schema")->string() == "hardware");
         REQUIRE(value->get("saved")->get("amplifier_active_high")->boolean() == high);
         REQUIRE(value->get("active")->get("amplifier_gp")->raw == "null");
-        REQUIRE(m.call("GET", "/api/control/v1/config").body.find("amplifier_active_high") != std::string::npos);
-        REQUIRE(m.call("GET", "/api/control/v1/application").body.find("hardware") != std::string::npos);
-        REQUIRE(m.call("GET", "/api/control/v1/capabilities").body.find("inhibited_inactive_only") != std::string::npos);
-        REQUIRE(m.call("GET", "/api/control/v1/pins").body.find("\"amplifier\":true") != std::string::npos);
+        REQUIRE(m.call("GET", "/api/control/v1/config").body_text().find("amplifier_active_high") != std::string::npos);
+        REQUIRE(m.call("GET", "/api/control/v1/application").body_text().find("hardware") != std::string::npos);
+        REQUIRE(m.call("GET", "/api/control/v1/capabilities").body_text().find("inhibited_inactive_only") != std::string::npos);
+        REQUIRE(m.call("GET", "/api/control/v1/pins").body_text().find("\"amplifier\":true") != std::string::npos);
         REQUIRE(m.call("POST", "/api/control/v1/pins/validate", hardware::serialize_plan(p)).status == 200);
         auto update = m.envelope("config-update", "config", "{\"enabled\":false}");
         update.insert(update.size() - 1, ",\"mode\":\"merge\"");
@@ -269,7 +269,7 @@ void atomic_failures_and_progress() {
     batch.insert(batch.size() - 1, ",\"request_id\":\"" + std::string(32, 'e') + "\"");
     auto saved = m.call("POST", "/api/control/v1/progress/update", batch);
     REQUIRE(saved.status == 200);
-    REQUIRE(parse(saved.body)->get("fields")->get("pins")->get("amplifier_active_high")->boolean());
+    REQUIRE(parse(saved.body_view())->get("fields")->get("pins")->get("amplifier_active_high")->boolean());
     apply = m.envelope("progress", "application",
                        "{\"draft_revision\":" + quote(std::to_string(m.progress.sequence())) +
                            ",\"domain\":\"radio\"}");
@@ -346,15 +346,15 @@ int main(int argc, char** argv) {
              {"/api/control/v1/application", "/api/control/v1/hardware", "/api/control/v1/progress"}) {
             auto result = m.call("GET", route);
             REQUIRE(result.status == 200);
-            std::cout << result.body << '\n';
+            std::cout << result.body_text() << '\n';
         }
         auto usb = request("GET", "/api/control/v1/application");
         const auto usb_result =
             m.api.handle(network_test::control_request(usb), "usb-physical", "", 0, network::ManagementCarrier::UsbPhysical);
         REQUIRE(usb_result.status == 200);
-        std::cout << usb_result.body << '\n';
+        std::cout << usb_result.body_text() << '\n';
         const auto capability = m.call("GET", "/api/control/v1/capabilities");
-        std::cout << std::string(parse(capability.body)->get("amplifier_enable")->raw) << '\n';
+        std::cout << std::string(parse(capability.body_view())->get("amplifier_enable")->raw) << '\n';
         return 0;
     }
     timing_management();

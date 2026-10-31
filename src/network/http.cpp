@@ -21,6 +21,41 @@ std::string_view HttpRequest::header(std::string_view name) const {
     auto it = headers.find(std::string(name));
     return it == headers.end() ? std::string_view{} : it->second;
 }
+namespace {
+class OwnedHttpSource final : public wtp::ResponseSource {
+  public:
+    explicit OwnedHttpSource(HttpResponse response) : response_(std::move(response)) {}
+    ~OwnedHttpSource() override {
+        volatile char* bytes = response_.body.data();
+        for (std::size_t i = 0; i < response_.body.size(); ++i)
+            bytes[i] = 0;
+    }
+    std::size_t size() const override {
+        return response_.body_size();
+    }
+    std::size_t copy(std::size_t offset, std::span<std::uint8_t> out) const override {
+        std::size_t done = 0;
+        while (done < out.size() && offset < size()) {
+            const auto part = response_.body_at(offset);
+            const auto count = std::min(part.size(), out.size() - done);
+            if (!count)
+                break;
+            std::copy_n(part.begin(), count, out.begin() + done);
+            offset += count;
+            done += count;
+        }
+        return done;
+    }
+
+  private:
+    HttpResponse response_;
+};
+} // namespace
+wtp::ResponseSourcePtr response_source(HttpResponse response) {
+    if (response.generated_body)
+        return std::move(response.generated_body);
+    return wtp::make_response_source<OwnedHttpSource>(std::move(response));
+}
 HttpResponse http_error(unsigned status, std::string_view code) {
     return {
         status, "{\"error\":{\"code\":" + wtp::json::quote(code) + "}}", "application/json", {}};

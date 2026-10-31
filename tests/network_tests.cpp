@@ -109,7 +109,7 @@ void maximum_http_allocation() {
     REQUIRE(largest_new <= 4096);
     const auto response = f.api.handle(parser.request(), "cert", "127.0.0.1:8443");
     REQUIRE(response.status == 200);
-    REQUIRE(response.body.find("\"ok\":true") != std::string::npos);
+    REQUIRE(response.body_text().find("\"ok\":true") != std::string::npos);
     // HELLO creates the existing bounded session/replay table (7424 host bytes).
     REQUIRE(largest_new <= 8192);
     bounded_http = false;
@@ -336,8 +336,8 @@ void api_checks() {
     auto saved = call(r);
     REQUIRE(saved.status == 200 && saved.etag != initial);
     REQUIRE(f.store.config()->password == "test-password");
-    REQUIRE(saved.body.find("test-password") == saved.body.npos);
-    auto value = wtp::json::parse(saved.body);
+    REQUIRE(saved.body_text().find("test-password") == saved.body_text().npos);
+    auto value = wtp::json::parse(saved.body_view());
     REQUIRE(value);
     REQUIRE(value->get("config")->get("wifi")->get("password")->raw == "null");
     REQUIRE(call(r).status == 412);
@@ -345,8 +345,8 @@ void api_checks() {
                       "/api/control/v1/capabilities"}) {
         auto result = call(request("GET", path));
         REQUIRE(result.status == 200);
-        REQUIRE(wtp::json::parse(result.body));
-        REQUIRE(result.body.find("test-password") == result.body.npos);
+        REQUIRE(wtp::json::parse(result.body_view()));
+        REQUIRE(result.body_text().find("test-password") == result.body_text().npos);
     }
     auto preserved = request("POST", "/api/control/v1/config/update", network_test::configuration_update(std::string(value->get("config")->raw)));
     // Redacted password offsets retain the original leading whitespace when
@@ -479,13 +479,13 @@ void operations_tests() {
             .status == 403);
     auto caps = f.api.handle(network_test::control_request(request("GET", "/api/control/v1/capabilities")), "cert", "127.0.0.1:8443", 0,
                              network::ManagementCarrier::EngineeringField);
-    REQUIRE(caps.body.find("operations_status") == caps.body.npos);
+    REQUIRE(caps.body_text().find("operations_status") == caps.body_text().npos);
     auto observed = f.api.handle(network_test::control_request(get), "cert", "127.0.0.1:8443");
     REQUIRE(observed.status == 200 && !observed.etag.empty());
-    REQUIRE(observed.body.find("operations") != observed.body.npos);
-    REQUIRE(observed.body.find("\"accepted\":null") != observed.body.npos);
-    REQUIRE(f.api.public_status().body.find("correction") == std::string::npos);
-    REQUIRE(f.api.public_status().body.find("accepted") == std::string::npos);
+    REQUIRE(observed.body_text().find("operations") != observed.body_text().npos);
+    REQUIRE(observed.body_text().find("\"accepted\":null") != observed.body_text().npos);
+    REQUIRE(f.api.public_status().body_text().find("correction") == std::string::npos);
+    REQUIRE(f.api.public_status().body_text().find("accepted") == std::string::npos);
     f.api.restart_control([](void*) { return true; }, nullptr);
     unsigned seq = 0;
     auto send = [&](std::string operation, wtp::RequestBody body) {
@@ -543,10 +543,10 @@ void operations_tests() {
     observed = f.api.handle(network_test::control_request(get), "cert", "127.0.0.1:8443");
     bounded_http = false;
     REQUIRE(largest_new <= 8192);
-    REQUIRE(observed.body.find("\"text\":\"" + m.text + "\"") != observed.body.npos);
-    REQUIRE(observed.body.find("\"frequency_nhz\":\"135505000000000\"") != observed.body.npos);
-    REQUIRE(observed.body.find("\"dash_ns\":\"3000000000\"") != observed.body.npos);
-    REQUIRE(observed.body.find("\"reset_allowed\":false") != observed.body.npos);
+    REQUIRE(observed.body_text().find("\"text\":\"" + m.text + "\"") != observed.body_text().npos);
+    REQUIRE(observed.body_text().find("\"frequency_nhz\":\"135505000000000\"") != observed.body_text().npos);
+    REQUIRE(observed.body_text().find("\"dash_ns\":\"3000000000\"") != observed.body_text().npos);
+    REQUIRE(observed.body_text().find("\"reset_allowed\":false") != observed.body_text().npos);
     REQUIRE(observed.body.size() < 6144);
     REQUIRE(f.store.watermark() == watermark && f.api.revision() == revision);
     REQUIRE(f.api.handle(network_test::control_request(reset), "cert", "127.0.0.1:8443").status == 409);

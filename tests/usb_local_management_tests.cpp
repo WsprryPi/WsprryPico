@@ -111,7 +111,7 @@ void blank_usb_workflow() {
     Test t;
     auto hostname = t.request("GET", "/api/control/v1/hostname");
     REQUIRE(hostname.status == 200 &&
-            hostname.body.find("\"writable\":true") != hostname.body.npos);
+            hostname.body_text().find("\"writable\":true") != hostname.body_text().npos);
     auto response = t.request("PUT", "/api/control/v1/hostname",
                               t.envelope("hostname", "hostname", "\"bad\""));
     REQUIRE(response.status == 400 && t.profiles.sequence() == 0);
@@ -123,17 +123,17 @@ void blank_usb_workflow() {
     REQUIRE(t.runtime.consumer_profile()->callsign.empty());
     const auto blank_app = t.request("GET", "/api/control/v1/application");
     REQUIRE(blank_app.status == 200);
-    const auto blank_json = wtp::json::parse(blank_app.body);
+    const auto blank_json = wtp::json::parse(blank_app.body_view());
     REQUIRE(blank_json && blank_json->get("station")->get("station")->raw == "null");
     REQUIRE(!blank_json->get("capabilities")->get("management_carrier"));
     REQUIRE(std::string(blank_json->get("capabilities")->get("unavailable")->raw)
                 .find("usb_json_management") == std::string::npos);
     const auto usb_caps = t.request("GET", "/api/control/v1/capabilities");
-    const auto usb_caps_json = wtp::json::parse(usb_caps.body);
+    const auto usb_caps_json = wtp::json::parse(usb_caps.body_view());
     REQUIRE(usb_caps_json &&
             !usb_caps_json->get("application_resources")->get("management_carrier"));
     const auto management = t.request("GET", "/api/control/v1/management");
-    const auto management_json = wtp::json::parse(management.body);
+    const auto management_json = wtp::json::parse(management.body_view());
     REQUIRE(management_json && usb_caps_json->get("management_carriers")->get("schema")->string() ==
                                    management_json->get("schema")->string());
     REQUIRE(management_json->get("limits")->get("idle_ms")->raw == "1800000");
@@ -149,14 +149,14 @@ void blank_usb_workflow() {
     no_wifi.ntp_ipv4 = standalone::default_time_server;
     response = t.request("POST", "/api/control/v1/config/update", network_test::configuration_update(standalone::serialize_config(no_wifi)));
     if (response.status != 200)
-        std::cerr << response.status << " " << response.body << "\n";
+        std::cerr << response.status << " " << response.body_text() << "\n";
     REQUIRE(response.status == 200);
     REQUIRE(t.f.store.config() && t.f.store.config()->ssid.empty());
     REQUIRE(t.runtime.consumer_profile()->callsign.empty());
     REQUIRE(t.runtime.overlay(*t.f.store.config())->callsign == "AA0NT");
-    REQUIRE(t.request("GET", "/api/control/v1/config").body.find("\"password\":null") !=
+    REQUIRE(t.request("GET", "/api/control/v1/config").body_text().find("\"password\":null") !=
             std::string::npos);
-    REQUIRE(t.request("GET", "/api/control/v1/management").body.find("management") !=
+    REQUIRE(t.request("GET", "/api/control/v1/management").body_text().find("management") !=
             std::string::npos);
     REQUIRE(t.wifi(network1).status == 200);
     const auto first = t.f.api.revision();
@@ -174,7 +174,7 @@ void blank_usb_workflow() {
     REQUIRE(t.wifi(network2).status == 200);
     REQUIRE(t.wifi("null").status == 200);
     REQUIRE(t.f.store.config()->ssid.empty() && t.runtime.consumer_profile()->ssid.empty());
-    REQUIRE(t.request("GET", "/api/usb/v1/wifi").body.find("\"wifi\":null") != std::string::npos);
+    REQUIRE(t.request("GET", "/api/usb/v1/wifi").body_text().find("\"wifi\":null") != std::string::npos);
     const auto fields = t.progress.fields(false);
     REQUIRE(fields.find("test-password") == std::string::npos &&
             fields.find("new-password") == std::string::npos);
@@ -200,10 +200,10 @@ void preserves_state_and_network_policy() {
     REQUIRE(t.wifi("null").status == 200);
     REQUIRE(t.f.scheduler.reboot_required());
     const auto shared_app = t.request("GET", "/api/control/v1/application");
-    const auto app_json = wtp::json::parse(shared_app.body);
+    const auto app_json = wtp::json::parse(shared_app.body_view());
     REQUIRE(app_json && app_json->get("reboot_required")->raw == "true");
     const auto shared_status = t.request("GET", "/api/control/v1/status");
-    const auto status_json = wtp::json::parse(shared_status.body);
+    const auto status_json = wtp::json::parse(shared_status.body_view());
     REQUIRE(status_json && status_json->get("standalone")->get("reboot_required")->raw == "true");
     REQUIRE(t.request("POST", "/api/control/v1/config/update", network_test::configuration_update(standalone::serialize_config(*t.f.store.config())))
                 .status == 200);
@@ -317,7 +317,7 @@ void saved_progress_explicit_usb_application() {
     REQUIRE(save(R"({"callsign":"AA0NT"})").status == 200);
     REQUIRE(!t.f.store.config());
     const auto incomplete = t.request("GET", "/api/control/v1/progress");
-    const auto incomplete_json = wtp::json::parse(incomplete.body);
+    const auto incomplete_json = wtp::json::parse(incomplete.body_view());
     REQUIRE(incomplete_json && incomplete_json->get("station_complete")->raw == "false");
     REQUIRE(incomplete_json->get("applied_station")->raw == "null");
     REQUIRE(save(R"({"locator":"EM18","power_dbm":20})").status == 200);
@@ -330,7 +330,7 @@ void saved_progress_explicit_usb_application() {
     const auto observed = t.f.api.handle(network_test::control_request(read), "network-consumer", "127.0.0.1", 99,
                                          network::ManagementCarrier::ConsumerStation);
     REQUIRE(observed.status == 200);
-    const auto observed_json = wtp::json::parse(observed.body);
+    const auto observed_json = wtp::json::parse(observed.body_view());
     REQUIRE(observed_json && observed_json->get("station_complete")->raw == "true");
     REQUIRE(observed_json->get("applied_station")->raw == "null");
     t.f.scheduler.poll();

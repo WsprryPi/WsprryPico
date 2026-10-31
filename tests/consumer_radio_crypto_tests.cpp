@@ -152,6 +152,25 @@ int main(int argc, char** argv) {
     assert(owned.append(wtp::InputView(large_plain).at(0)));
     inplace = crypto.seal_buffer(std::move(owned), binding, 2);
     assert(inplace && inplace->body_text() == large_response->body_text());
+    // The streaming cipher owns its state across session retirement and emits
+    // exactly the existing packet, including partial writes inside cipher blocks.
+    auto streamed = crypto.seal_source(
+        wtp::make_response_source<wtp::TextResponseSource>(large_plain), binding, 2);
+    assert(streamed && streamed->body_size() == large_response->body_size());
+    const auto expected_stream = large_response->body_text();
+    crypto.clear();
+    std::string actual_stream;
+    const auto allocator = wtp::allocate_input;
+    wtp::allocate_input = [](std::size_t) -> void* { return nullptr; };
+    while (actual_stream.size() < streamed->body_size()) {
+        const auto part = streamed->body_at(actual_stream.size());
+        assert(!part.empty() && part.size() <= 1024);
+        assert(streamed->body_at(actual_stream.size()).data() == part.data());
+        actual_stream.push_back(static_cast<char>(part.front()));
+    }
+    wtp::allocate_input = allocator;
+    assert(actual_stream == expected_stream);
+    login();
     const std::array<wtp::InputView, 2> oversized{*opened, wtp::InputView(" ")};
     assert(!crypto.seal_parts(oversized, binding, 2));
     auto altered = binding;

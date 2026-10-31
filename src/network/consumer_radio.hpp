@@ -71,6 +71,9 @@ class ConsumerRadioCrypto {
     virtual std::optional<HttpResponse> seal_buffer(wtp::OutputBuffer plaintext,
                                                     const ConsumerRadioBinding& binding,
                                                     std::uint64_t sequence) = 0;
+    virtual std::optional<HttpResponse> seal_source(wtp::ResponseSourcePtr plaintext,
+                                                    const ConsumerRadioBinding& binding,
+                                                    std::uint64_t sequence) = 0;
     virtual void clear() = 0;
 };
 

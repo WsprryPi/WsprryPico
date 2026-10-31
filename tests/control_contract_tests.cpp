@@ -78,7 +78,7 @@ void current_hardware_and_refusals() {
     REQUIRE(call(request("GET", "/api/control/v1/application/4")).status == 404);
     const auto app = call(request("GET", "/api/control/v1/application"));
     REQUIRE(app.status == 200);
-    const auto document = wtp::json::parse(app.body);
+    const auto document = wtp::json::parse(app.body_view());
     REQUIRE(document && document->get("contract")->string() == network::control_contract);
     REQUIRE(document->get("schema")->string() == "application");
     REQUIRE(document->get("hardware")->get("schema")->string() == "hardware");
@@ -122,7 +122,7 @@ int main(int argc, char**) {
         for (const auto resource : {"capabilities", "config", "status", "management"}) {
             const auto response = api.handle(request("GET", std::string(network::control_prefix) + resource), "test", "127.0.0.1:8443");
             REQUIRE(response.status == 200);
-            std::cout << response.body << '\n';
+            std::cout << response.body_text() << '\n';
         }
     }
 }

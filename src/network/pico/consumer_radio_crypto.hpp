@@ -27,6 +27,9 @@ class PicoConsumerRadioCrypto final : public ConsumerRadioCrypto {
     std::optional<HttpResponse> seal_buffer(wtp::OutputBuffer plaintext,
                                             const ConsumerRadioBinding& binding,
                                             std::uint64_t sequence) override;
+    std::optional<HttpResponse> seal_source(wtp::ResponseSourcePtr plaintext,
+                                            const ConsumerRadioBinding& binding,
+                                            std::uint64_t sequence) override;
     void clear() override;
 
   private:

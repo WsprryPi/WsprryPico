@@ -47,8 +47,8 @@ struct Member {
 void advertised_contract_and_individual_omissions() {
     Member m;
     const auto response=m.call(request("GET","/api/control/v1/capabilities"));
-    REQUIRE(response.status==200 && response.body.size()<=application::max_capabilities_bytes);
-    const auto caps=wtp::json::parse(response.body);
+    REQUIRE(response.status==200 && response.body_size()<=application::max_capabilities_bytes);
+    const auto caps=wtp::json::parse(response.body_view());
     REQUIRE(caps && caps->get("contract")->string()=="Wsprry-Control/1");
     const auto updates=caps->get("configuration_updates");
     REQUIRE(updates && updates->raw==application::config_update_capabilities());
@@ -75,7 +75,7 @@ void creation_and_stale_revision() {
     REQUIRE(f.api.handle(network_test::control_request(create),"test","127.0.0.1:8443").status==412);
     REQUIRE(f.flash.bytes==saved);
     const auto read=f.api.handle(request("GET","/api/control/v1/config"),"test","127.0.0.1:8443");
-    REQUIRE(read.body.find("\"version\"")==std::string::npos);
+    REQUIRE(read.body_text().find("\"version\"")==std::string::npos);
 }
 void merge_and_replace_refusal() {
     Member m; const auto before=*m.f.store.config();
@@ -93,9 +93,9 @@ void invalid_is_atomic() {
         const auto response = m.call(std::move(r));
         if (response.status != status)
             std::cerr << "Expected HTTP " << status << ", got " << response.status << ": "
-                      << response.body << '\n';
+                      << response.body_text() << '\n';
         REQUIRE(response.status == status);
-        REQUIRE(response.body.find("test-password") == std::string::npos);
+        REQUIRE(response.body_text().find("test-password") == std::string::npos);
         REQUIRE(m.f.flash.bytes == original && m.api.revision() == revision);
     };
     for (const auto body :
@@ -114,11 +114,11 @@ void invalid_is_atomic() {
     r.body.insert(r.body.size() - 1, ",\"other\":1");
     reject(r, 400);
     r = m.update(R"({"enabled":false})");
-    r.body.replace(r.body.find("config-update"), 27, "config-update");
+    r.body.replace(r.body_text().find("config-update"), 27, "config-update");
     reject(r, 400);
     for (const auto field : {"scope", "device_id", "boot_id"}) {
         r = m.update(R"({"enabled":false})");
-        const auto root = wtp::json::parse(r.body);
+        const auto root = wtp::json::parse(r.body_view());
         const auto raw = root->get("target")->get(field)->raw;
         r.body.replace(raw.offset(), raw.size(), "\"wrong\"");
         reject(r, 409);
@@ -155,7 +155,7 @@ void invalid_is_atomic() {
     REQUIRE(result_too_large.body.size() <= application::max_config_update_bytes);
     reject(result_too_large, 400);
     legacy_unknown = m.complete_update();
-    const auto wifi = legacy_unknown.body.find("\"ssid\"");
+    const auto wifi = legacy_unknown.body_text().find("\"ssid\"");
     legacy_unknown.body.insert(wifi, "\"future\":false,");
     reject(legacy_unknown, 400);
     auto exact = network_test::control_request(m.update(R"({"enabled":false})"));
@@ -204,7 +204,7 @@ void revisions_pending_and_storage() {
         network_test::configuration_update(R"({"enabled":false,"station":{"callsign":"AA0NT","locator":"EM18","power_dbm":37},"wifi":{"ssid":"test-network","password":null},"schedules":[]})"));
     no_password.headers["if-match"] = blank.api.revision();
     REQUIRE(
-        blank.api.handle(network_test::control_request(no_password), "test", "127.0.0.1:8443").body.find("password_required") !=
+        blank.api.handle(network_test::control_request(no_password), "test", "127.0.0.1:8443").body_text().find("password_required") !=
         std::string::npos);
 }
 void paged_and_password() {
@@ -218,8 +218,8 @@ void paged_and_password() {
     r.buffered_body = std::move(pages);
     r.body.clear();
     const auto result = m.call(r);
-    REQUIRE(result.status == 200 && result.body.size() < 4096);
-    REQUIRE(result.body.find("test-password") == std::string::npos);
+    REQUIRE(result.status == 200 && result.body_size() < 4096);
+    REQUIRE(result.body_text().find("test-password") == std::string::npos);
     REQUIRE(m.f.store.config()->password == "test-password");
     REQUIRE(m.call(m.update(R"({"wifi":{"password":"new-password"}})")).status == 200);
     REQUIRE(m.f.store.config()->password == "new-password");
@@ -304,7 +304,7 @@ void application_failure() {
     engine.disable_ok = false;
     const auto response = api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     REQUIRE(response.status == 503 &&
-            response.body.find("output_disable_failed") != std::string::npos);
+            response.body_text().find("output_disable_failed") != std::string::npos);
     REQUIRE(m.f.store.config()->pins == hardware::PinPlan{} && scheduler.active_pins().rf == 28);
     REQUIRE(scheduler.hardware_application_failed() && scheduler.hardware_restart_required());
     REQUIRE(service.output_inhibited());
@@ -364,7 +364,7 @@ int main(int argc, char** argv) {
         auto raw=request("POST","/api/control/v1/config/update",input);
         raw.headers["if-match"]=m.api.revision();
         const auto result=m.api.handle(raw,"test","127.0.0.1:8443");
-        std::cout<<"{\"status\":"<<result.status<<",\"body\":"<<result.body<<"}\n";
+        std::cout<<"{\"status\":"<<result.status<<",\"body\":"<< result.body_text()<<"}\n";
         return 0;
     }
 
