@@ -481,7 +481,10 @@ int main() {
                 args = ['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
                         '-I' + str(ROOT / 'src/microchrony'),
                         '-I' + str(ROOT / 'src'), str(path / 'adapter.cpp'),
-                        str(ROOT / 'src/wtp/json.cpp'), str(ROOT / 'src/network/http.cpp'),
+                        str(ROOT / 'src/wtp/json.cpp'), str(ROOT / 'src/wtp/codec.cpp'),
+                        str(ROOT / 'src/wtp/job_service.cpp'), str(ROOT / 'src/wtp/sha256.cpp'),
+                        str(ROOT / 'src/wtp/frame_parser.cpp'),
+                        str(ROOT / 'src/network/http.cpp'),
                         '-o', str(path / 'adapter')]
                 if rf:
                     args.append('-DWSPRRY_PICO_STANDALONE_RF=1')
