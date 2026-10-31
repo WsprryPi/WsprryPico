@@ -50,7 +50,7 @@ with tempfile.TemporaryDirectory() as temporary:
     assert len(info) == 3 and all(not item['renew_within_30_days'] for item in info)
     assert all('PRIVATE KEY' not in item['certificate'] for item in info)
     identifier = 'a' * 32
-    selected = 'wsprrypico-000001.local'
+    selected = 'wpico-0001.local'
     dns_ca, dns_renewed, migrated = root/'dns-device', root/'dns-renewed', root/'migrated'
     run('init', '--directory', dns_ca, '--device-id', identifier.upper(),
         '--mac-address', '02:AA:BB:00:00:01')

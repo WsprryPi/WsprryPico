@@ -546,7 +546,8 @@ std::string Scheduler::status(const wtp::ServiceStatus* observation) const {
            ",\"allow_non_amateur_frequency\":" +
            (store_.config() && store_.config()->allow_non_amateur_frequency ? "true" : "false") +
            ",\"gpio_drive_ma\":" +
-           std::to_string(store_.config() ? store_.config()->gpio_drive_ma : 4) +
+           std::to_string(store_.config() ? store_.config()->gpio_drive_ma
+                                          : factory_config().gpio_drive_ma) +
            ",\"boot_gpio_drive_ma\":" + std::to_string(active_gpio_drive_ma_) +
            ",\"suspended\":" + (suspended_ ? "true" : "false") + ",\"expires_utc_s\":" +
            std::to_string(store_.config() ? store_.config()->expires_utc_s : 0) +
@@ -618,6 +619,17 @@ std::string Scheduler::command(std::string_view line) {
     if (!config)
         return error("invalid_config");
     const auto supplied = wtp::json::parse(line.substr(7));
+    if (!store_.config() && supplied) {
+        const auto defaults = factory_config();
+        if (!supplied->get("gpio_drive_ma"))
+            config->gpio_drive_ma = defaults.gpio_drive_ma;
+        if (!supplied->get("pins"))
+            config->pins = defaults.pins;
+        else if (!supplied->get("pins")->get("amplifier_active_high"))
+            config->pins.amplifier_active_high = defaults.pins.amplifier_active_high;
+        if (!supplied->get("wspr_dial_frequency_hz"))
+            config->wspr_dial_frequency_hz = defaults.wspr_dial_frequency_hz;
+    }
     if (store_.config() && supplied) {
         if (!supplied->get("manual_correction_ppb"))
             config->manual_correction_ppb = store_.config()->manual_correction_ppb;

@@ -120,7 +120,10 @@ try {
     await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy && !document.getElementById("local-login").hidden'),'Wi-Fi-only LAN login');
     await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate('typeof online !== "undefined" && online && !busy'),'Wi-Fi-only authenticated controls');
-    assert.equal(await cdp.evaluate('document.getElementById("consumer-callsign").value'),'');
+    assert.equal(await cdp.evaluate('document.getElementById("consumer-callsign").value'),'N0CALL');
+    assert.equal(await cdp.evaluate('document.getElementById("consumer-locator").value'),'ZZ99');
+    assert.equal(await cdp.evaluate('document.getElementById("consumer-power").value'),'0');
+    assert.equal(await cdp.evaluate('document.getElementById("standalone-frequency").value'),'14095600');
     assert.equal(await cdp.evaluate('document.getElementById("consumer-ssid").value'),'Home Net');
     assert.equal((await f.command({op:'stats'})).config_sequence,'0');
     await capture('wifi-only-lan-control','station-area');
@@ -191,7 +194,7 @@ try {
     const messageAX=(await cdp.send('Accessibility.getFullAXTree')).nodes.find(n=>n.role?.value==='textbox' && n.name?.value==='Message');
     assert.ok(messageAX,'message accessible name excludes help prose');
     assert.match(messageAX.description?.value || '',/32-character limit/);
-    assert.match(await cdp.evaluate(`document.getElementById('message-preview').textContent`),/Enter a message/);
+    assert.match(await cdp.evaluate(`document.getElementById('message-preview').textContent`),/Enter a carrier frequency/);
     assert.equal(await cdp.evaluate(`document.getElementById('message-preview').classList.contains('error')`),false);
     assert.ok(await cdp.evaluate(`document.getElementById('job-heading').getBoundingClientRect().top>=8`),'complete focused outline is visible');
     await capture('message-shortcut','job-heading');
@@ -250,6 +253,7 @@ try {
     await until(()=>cdp.evaluate('localAuthenticated && online && !busy'),'AP login');
     const beforeStation=(await f.command({op:'stats'})).profile_generation;
     await click('station-link');await field('consumer-callsign','K1ABC');await field('consumer-locator','FN42');
+    await field('message-text',''); // Station saves must work with an incomplete CW draft.
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'');
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
     await until(()=>cdp.evaluate('!busy && savedProgress?.data.station.callsign==="K1ABC"'),'station progress with empty message');

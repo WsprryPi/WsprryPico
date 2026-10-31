@@ -17,7 +17,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     ids.push('schedule-save-help','standalone-status');
     ids.push('public-status-note','message-duration','message-scheduling','message-delivery','message-recurrence','message-interval','message-until','message-submit','message-schedule-controls','message-schedule-status','message-schedule-read','message-schedule-adopt','message-schedule-pause','message-schedule-help');
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
-    elements['message-delivery'].value='once';elements['message-interval'].value='20';
+    elements['message-delivery'].value='recurring';elements['message-interval'].value='10';
     elements['message-mode'].value='qrss'; // Native select initially selects its first option.
     for (const id of ['consumer-setup','consumer-network-settings','consumer-station-settings',
       'consumer-check-save','consumer-network-form','consumer-station-form','consumer-ssid',
@@ -212,17 +212,17 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         elements.start.value = new Date(Date.now()+60000).toISOString().slice(0,19);
     };
     f.prepareMessage = (mode='qrss',text='E') => {
-        const values = {text,mode,frequency:'135500',shift:'5',dot:'3',repeats:'1',gap:'1',dash:'3',intra:'1',character:'3',word:'7',start:new Date(f.now+60000).toISOString().slice(0,19)};
+        const values = {text,mode,delivery:'once',frequency:'135500',shift:'5',dot:'3',repeats:'1',gap:'1',dash:'3',intra:'1',character:'3',word:'7',start:new Date(f.now+60000).toISOString().slice(0,19)};
         for (const [key,value] of Object.entries(values)) elements['message-'+key].value=value;
     };
     return f;
 }
 module.exports={fixture};
 if (require.main === module) (async () => {
-    const recurrence=await fixture();recurrence.scheduleSupport=true;
+    const recurrence=await fixture();recurrence.scheduleSupport=true;recurrence.elements['message-delivery'].value='once';
     vm.runInContext('capabilities=null',recurrence.context);await recurrence.elements.refresh.onclick();
     assert.equal(recurrence.elements['message-schedule-controls'].hidden,true,'no saved schedule clutter for Send once');
-    recurrence.prepareMessage('qrss','CQ CQ DE AA0NT EM18 QRSS TEST 73');recurrence.elements['message-delivery'].value='recurring';
+    recurrence.prepareMessage('qrss','CQ CQ DE AA0NT EM18 QRSS TEST 73');recurrence.elements['message-interval'].value='20';recurrence.elements['message-delivery'].value='recurring';
     recurrence.elements['message-form'].oninput();
     assert.equal(recurrence.elements['message-schedule-controls'].hidden,false);
     assert.equal(recurrence.elements['message-schedule-read'].hidden,true);
@@ -349,7 +349,8 @@ if (require.main === module) (async () => {
     const jumpReceipt=organized.context.location.hash, jumpRequests=organized.calls.length;
     organized.links.find(link=>link.getAttribute().endsWith('#message-section')).click(click);assert.equal(organized.elements.focused,'message-section-summary');
     assert.equal(organized.context.location.hash,jumpReceipt);assert.equal(organized.calls.length,jumpRequests);
-    assert.match(organized.elements['message-preview'].textContent,/Enter a message/);
+    assert.equal(organized.elements['message-text'].value,'73 DE AA0NT');
+    organized.elements['message-text'].value='';
     organized.elements['message-form'].oninput();
     assert.match(organized.elements['message-preview'].textContent,/message has 0/);
     const compact=await fixture();

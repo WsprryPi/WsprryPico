@@ -18,7 +18,7 @@ bool ResetStorageTargets::preserve_operational(const ProfileStore& profiles) {
         if (!consumer)
             return false;
         if (!config)
-            config = standalone::Config{};
+            config = standalone::factory_config();
         config->callsign = consumer->callsign;
         config->locator = consumer->locator;
         config->power_dbm = consumer->power_dbm;

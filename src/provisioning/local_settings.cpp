@@ -147,7 +147,7 @@ std::string LocalSettings::wifi_save(wtp::json::Value wifi) {
         return "storage_fault";
     const auto* previous_consumer = runtime_.consumer_profile();
     if (store_.config() || (remove && previous_consumer && !previous_consumer->usb_managed)) {
-        const auto previous = store_.config().value_or(standalone::Config{});
+        const auto previous = (store_.config() ? *store_.config() : standalone::factory_config());
         auto config = previous_consumer ? runtime_.overlay(previous).value_or(previous) : previous;
         config.ssid = ssid;
         config.password = password;
@@ -199,7 +199,7 @@ std::string LocalSettings::station_save(const standalone::Config&) {
     // Transfer station authority without changing the effective configuration.
     // The caller's requested complete Config is committed afterwards through
     // the one standalone journal, so a torn save cannot mix station and radio.
-    const auto effective = runtime_.overlay(store_.config().value_or(standalone::Config{}));
+    const auto effective = runtime_.overlay((store_.config() ? *store_.config() : standalone::factory_config()));
     if (!effective || !store_.save(*effective))
         return "storage_fault";
     ConsumerProposal proposal{*runtime_.consumer_profile()};

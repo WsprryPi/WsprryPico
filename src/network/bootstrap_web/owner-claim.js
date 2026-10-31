@@ -43,6 +43,8 @@ const sourceAndGeneration = (source, generation) => {
 
 // Local syntax checks complement the firmware's authoritative encoding check.
 export function validateStationIdentity(callsign, locator) {
+  if (callsign === 'N0CALL' || callsign === '<N0CALL>')
+    throw new Error('Replace the N0CALL placeholder with your station callsign.');
   if (typeof callsign !== 'string' || callsign.length < 3 || callsign.length > 12 ||
       !/^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(callsign))
     throw new Error('Use 3–12 uppercase characters, including any slash or angle brackets.');
@@ -69,7 +71,7 @@ export function claimPlaintext({ssid, password, callsign, locator, powerDbm}) {
   const network = ascii(ssid, savedNetwork ? 0 : 1, 32);
   const secret = ascii(password, savedNetwork ? 0 : 8, 63);
   try {
-    if (typeof callsign !== 'string' || callsign.length < 3 || callsign.length > 12 ||
+    if (callsign === 'N0CALL' || callsign === '<N0CALL>' || typeof callsign !== 'string' || callsign.length < 3 || callsign.length > 12 ||
         !/^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(callsign) ||
         !/[A-Z]/.test(callsign) ||
         !/[0-9]/.test(callsign) ||

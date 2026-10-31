@@ -246,6 +246,9 @@ void legacy_station_migration() {
                               provisioning::serialize_consumer_profile(profile)));
     REQUIRE(t.runtime.load(t.profiles, device, provisioning::BuildBundleState::Absent));
     auto candidate = *standalone::parse_config(config);
+    candidate.wspr_dial_frequency_hz = 14'095'600;
+    candidate.gpio_drive_ma = 12;
+    candidate.pins.amplifier_active_high = false;
     candidate.callsign = "AB1CD";
     candidate.locator = "EM19";
     candidate.schedules = {{240, 120}};
@@ -348,7 +351,7 @@ void saved_progress_explicit_usb_application() {
                 .status == 200);
     REQUIRE(t.f.store.config() && t.f.store.config()->callsign == "AA0NT");
     REQUIRE(t.f.store.config()->ssid.empty() && t.f.store.config()->password.empty());
-    REQUIRE(!t.f.store.config()->enabled && t.f.store.config()->schedules.empty());
+    REQUIRE(!t.f.store.config()->enabled && t.f.store.config()->schedules == std::vector<standalone::Schedule>({{600, 0}}));
     REQUIRE(t.runtime.consumer_profile()->usb_managed);
     // Network observers cannot turn a draft into a consumer station-identity
     // edit. The USB carrier can explicitly apply the same reviewed draft.

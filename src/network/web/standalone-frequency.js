@@ -72,7 +72,7 @@
         ready = a.station !== null; draftOnly = !ready && progress?.data.station_complete === true;
         knownRevision = r.revision;
         observed = v; revision = r.revision;
-        if (!edited) { input.value = v.frequency_hz === null ? '' : String(v.frequency_hz); draftTarget = identity(v); }
+        if (!edited) { input.value = v.frequency_hz === null ? (ready ? '' : String(control.descriptors.standalone_frequency.default)) : String(v.frequency_hz); draftTarget = identity(v); }
         review = edited && draftTarget !== identity(v);
         status.textContent = summary() + `${ready && edited ? ' Your entry is preserved.' : ''}${review ? ' Review the new Pico identity before saving this entry.' : ''}`;
       } catch (e) { if (ticket === epoch) { onError(e); status.textContent = e.message; } }
@@ -114,7 +114,7 @@
     };
     discard.onclick = () => {
       if (discard.disabled) return;
-      input.value = observed.frequency_hz === null ? '' : String(observed.frequency_hz); edited = false; review = false; draftTarget = identity(observed); render();
+      input.value = observed.frequency_hz === null ? (ready ? '' : String(control.descriptors.standalone_frequency.default)) : String(observed.frequency_hz); edited = false; review = false; draftTarget = identity(observed); render();
       status.textContent = summary() + ' Your frequency draft was discarded.';
     };
     adopt.onclick = () => { if (!adopt.disabled) { draftTarget = identity(observed); review = false; status.textContent = ready ? 'Station settings are applied. Your entry now addresses this Pico. Save frequency to validate and apply it.' : prerequisite(); render(); } };

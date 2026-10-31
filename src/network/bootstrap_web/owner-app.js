@@ -72,9 +72,11 @@ async function readOwnerProgress(fill = false) {
     throw new Error('Saved progress could not be verified. Your edits are preserved.');
   ownerProgress = {data,revision};
   if (fill && !formEdited && !progressEdits.size) {
-    $('owner-callsign').value = data.station.callsign ?? '';
-    $('owner-locator').value = data.station.locator ?? '';
-    $('owner-power').value = data.station.power_dbm ?? '';
+    const initial = {callsign:'N0CALL',locator:'ZZ99',power_dbm:0};
+    const entry = key => data.station[key] ?? (Object.hasOwn(data.fields,key) || data.applied_station ? '' : initial[key]);
+    $('owner-callsign').value = entry('callsign');
+    $('owner-locator').value = entry('locator');
+    $('owner-power').value = entry('power_dbm');
   }
   $('owner-progress-status').textContent = progressUI.summary(data);
   progressState = fill ? 'ready' : 'review'; progressControls(); return true;

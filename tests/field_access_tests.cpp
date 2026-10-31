@@ -252,7 +252,7 @@ void identity_and_journal() {
     const auto identity = provisioning::derive_local_identity(device, "02:11:22:0A:60:DF");
     CHECK(identity);
     CHECK(identity->suffix == "0a60df");
-    CHECK(identity->hostname == "wsprrypico-0a60df.local");
+    CHECK(identity->hostname == "wpico-60df.local");
     CHECK(identity->advertising_name == "WsprryPico-0a60df");
     CHECK(identity->softap_ssid == "WsprryPico-0a60df");
     CHECK(identity->default_password == "wspr-0a60df");
