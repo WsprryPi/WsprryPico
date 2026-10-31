@@ -67,4 +67,23 @@ header #area-nav{margin:0;gap:.25rem 1.25rem}header #area-nav a{color:#fff;text-
 
 /* Native links remain usable inside locked fieldsets and collapsed summaries. */
 .documentation-help{display:inline-flex;align-items:center;min-width:44px;min-height:44px;padding:.5rem .25rem;color:#225e8a;font-size:.875rem;font-weight:400;text-underline-offset:.2em;vertical-align:middle;max-width:100%;overflow-wrap:anywhere}
-summary>.documentation-help{margin-inline-start:.75rem}
+summary>.help-heading{display:inline-flex;vertical-align:middle;max-width:calc(100% - 1.5rem)}
+[data-operator-section]>summary h2.help-heading{display:inline-flex}
+
+/* The small glyph has a full pointer target and stays beside its subject. */
+.documentation-help:has(svg){justify-content:center;flex:0 0 44px;width:44px;height:44px;padding:0;color:#52616e;text-decoration:none}
+.documentation-help:has(svg):hover{color:#225e8a}
+.documentation-help svg{display:block;flex:none;width:16px;height:16px;pointer-events:none}
+.help-heading{display:flex;align-items:center;gap:.125rem;width:fit-content;max-width:100%}
+.help-heading>h1,.help-heading>h2,.help-heading>label{min-width:0;margin:0}
+legend>.documentation-help{margin-inline-start:.125rem}
+summary .help-heading>span{min-width:0}
+
+/* Header navigation and manual help share the page content's right edge. */
+header{padding-inline:max(1.25rem,calc((100vw - 920px)/2))}
+.header-actions{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;min-width:0}
+header .documentation-help:has(svg){color:#dbe5ed}
+header .documentation-help:has(svg):hover{color:#fff}
+@media(max-width:650px){.header-actions{align-self:stretch;justify-content:space-between;gap:.5rem}header #area-nav{gap:.25rem 1rem;min-width:0}header #area-nav a{font-size:1rem}}
+
+.transmitter-actions .help-heading>button{margin:0}

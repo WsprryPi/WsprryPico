@@ -91,6 +91,7 @@ try {
     await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});await send('Page.enable');
     await until(()=>evaluate('!!document.documentElement').catch(()=>false),'active Chrome page');
     await navigate();
+    await capture('help-status');
     await checkContextualHelp({evaluate,send,key,section,helpWindows});
     pass('native contextual help: collapsed/locked, pointer/keyboard, drafts/files/History, no application requests');
     await capture('contextual-help');

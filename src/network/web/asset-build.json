@@ -41,10 +41,10 @@
     },
     "organization.min.js": {
       "inputs": {
-        "organization.js": "441e0cb3e88858505d83faf823bb126b3c9da7deedf8c92bc7b634ac0d224bff"
+        "organization.js": "f6ab338e5b9511f365359c006a23e84b60ced05f0257a891a65f85bf81bff271"
       },
-      "sha256": "62143e93785a6930653f6de2e312873d5531deeabeab4b7d0182b85ea0e382f4",
-      "bytes": 7613
+      "sha256": "1c25e5077184e247d406dda4c35c806eb3baf29d6ffe450d6864242f8204970b",
+      "bytes": 8089
     }
   }
 }

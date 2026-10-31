@@ -339,3 +339,7 @@ Station identity is grouped inside WSPR Configuration with its independent save/
 ## Submission feedback
 
 A native modal in the top layer dims the whole viewport, including an open access dialog. The foreground uses the existing compact corners, system type and 44 px buttons. Its operation text is a polite live status outside the busy main region. A dark color preference selects the navy foreground surface and light text; the underlying product keeps its established appearance. The backdrop uses 48% navy in light preference and 62% near-black in dark preference. There is no animation, spinner, flashing or motion. Cancel login, Lock controls and Abort this browser’s job are contextual actions in the foreground.
+
+Contextual help uses original 16 px circle-question inline SVGs in help-text gray, with 44 px targets and existing amber keyboard focus. Icons sit beside their headings, disclosure titles, legends, labels or actions. Manual navigation retains its text.
+The header places a light manual-home help icon after Station Control and Wi-Fi/Host navigation, aligned with the page content’s right edge on desktop and narrow screens.
+Every disclosure and section has contextual help, including nested pin roles, saved progress, raw readback, dynamically mounted UDP controls and setup-result sections; more specific subheading help remains available.
