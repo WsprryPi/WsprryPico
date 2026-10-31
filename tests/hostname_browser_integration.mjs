@@ -162,10 +162,10 @@ try {
     }
     await radioJob('HELLO',{versions:['WTP/1'],client_name:'console fixture',client_version:'1'});
     await field('message-text','PRESERVE LOCAL DRAFT');
-    for(const mode of ['qrss','fskcw','dfcw','tone']) {
+    for(const mode of ['qrss','fskcw','dfcw','tone','cw','wspr']) {
         await radioJob('CLAIM',{owner_id:logicalOwner,lease_ms:60000});
         const jobId=(100+operationSequence).toString(16).padStart(32,'0');
-        if(mode==='tone') await radioJob('LOAD',{job_id:jobId,profile:'rf-events/1',mode,total_duration_ns:'10000000000',allow_frequency_adjustment:false,events:[{offset_ns:'0',duration_ns:'10000000000',rf_on:true,frequency_nhz:'135500000000000'}]});
+        if(['tone','cw','wspr'].includes(mode)) await radioJob('LOAD',{job_id:jobId,profile:'rf-events/1',mode,total_duration_ns:'10000000000',allow_frequency_adjustment:false,events:[{offset_ns:'0',duration_ns:'10000000000',rf_on:true,frequency_nhz:'135500000000000'}]});
         else await radioJob('LOAD_MESSAGE',{job_id:jobId,mode,message:'TE',frequency_nhz:mode==='dfcw'?'135505000000000':'135500000000000',space_frequency_nhz:mode==='qrss'?'0':mode==='dfcw'?'135500000000000':'135495000000000',timing:{dot_ns:'3000000000',dash_ns:'9000000000',intra_gap_ns:'1000000000',character_gap_ns:'3000000000',word_gap_ns:'7000000000'},repeat_count:1,repeat_gap_ns:'0',allow_frequency_adjustment:true});
         const before=await (await other.request('operations')).json();
         const start=(BigInt(before.standalone.utc_now_ns)+2000000000n).toString();
@@ -176,11 +176,16 @@ try {
         await f.command({op:'schedule_tick',delta_ns:'2000000000'});
         await click('refresh');await until(()=>cdp.evaluate('!busy'),'running operations');
         assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Job running');
-        assert.match(await cdp.evaluate(`document.getElementById('console-frequency').textContent`),mode==='qrss'?/Carrier/:mode==='fskcw'?/Space.*\nMark/:mode==='dfcw'?/Dot 135505 Hz\nDash 135500 Hz/:/Nominal RF/);
+        assert.equal(await cdp.evaluate(`document.getElementById('console-frequency').textContent`),mode==='fskcw'?'135.495/135.500 kHz':mode==='dfcw'?'135.505/135.500 kHz':mode==='wspr'?'Unavailable':'135.5 kHz');
+        assert.equal(await cdp.evaluate(`document.getElementById('console-frequency-label').textContent`),({qrss:'Carrier',fskcw:'Space/Mark',dfcw:'Dot/Dash',wspr:'Dial frequency'}[mode]||'Frequency'));
+        assert.equal(await cdp.evaluate(`document.getElementById('console-message').textContent`),mode==='wspr'?'Encoded WSPR frame':mode==='cw'?'Text unavailable':mode==='tone'?'—':'TE');
+        assert.equal(await cdp.evaluate(`document.getElementById('owner').textContent`),'Other controller');
+        assert.match(await cdp.evaluate(`document.getElementById('console-progress').textContent`),/^Running · ~\d+%$/);
+        assert.equal(await cdp.evaluate(`document.getElementById('hostname')`),null);
         for(const width of [1280,390]) {
             await cdp.send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});
             const typography=await cdp.evaluate(`Array.from(document.querySelectorAll('#transmitter-status dd')).map(e=>{const s=getComputedStyle(e);return [s.fontFamily,s.fontSize,s.fontWeight,s.lineHeight].join('|')})`);
-            assert.equal(new Set(typography).size,1,`${mode} multiline accepted-job and device-state values share typography at ${width}px`);
+            assert.equal(new Set(typography).size,1,`${mode} compact accepted-job and device-state values share typography at ${width}px`);
             assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,`${mode} status wraps at ${width}px`);
         }
         if(mode==='dfcw') await capture('operations-running-dfcw','operations-console');
@@ -224,7 +229,7 @@ try {
     assert.equal((await f.command({op:'stats'})).profile_generation,'2');
     await login();
     assert.equal(await cdp.evaluate('hostnameState.saved'),'pico-a.local');
-    assert.equal(await cdp.evaluate(`document.getElementById('hostname').textContent`),'wsprrypico-0a60df.local');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),'wsprrypico-0a60df.local');
     assert.equal(await cdp.evaluate('document.title'),'wsprrypico-0a60df.local - Station control (rename pending)');
     assert.equal(await cdp.evaluate(`document.getElementById('hostname-save').disabled`),true);
     await click('hostname-review');
@@ -245,7 +250,7 @@ try {
     assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/boot changed.*unlock again/);
     await login();
     assert.equal(await cdp.evaluate('document.title'),'pico-a.local - Station control');
-    assert.equal(await cdp.evaluate(`document.getElementById('hostname').textContent`),'pico-a.local');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),'pico-a.local');
     assert.match(await cdp.evaluate(`document.getElementById('restart-status').textContent`),/Same Pico and new boot confirmed/);
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'KEEP DRAFT');
     assert.equal((await f.command({op:'stats'})).config_sequence,before.config_sequence);
