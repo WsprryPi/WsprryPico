@@ -241,7 +241,7 @@ std::optional<Config> Progress::candidate(const std::optional<Config>& applied,
         return {};
     if (!applied && domain != "station" && domain != "all")
         return {};
-    Config c = applied.value_or(Config{});
+    Config c = (applied ? *applied : factory_config());
     const auto value = [&](std::size_t i) -> std::optional<wtp::json::Value> {
         return values_[i] ? std::optional{wtp::json::Value{*values_[i]}} : std::nullopt;
     };
@@ -334,7 +334,7 @@ std::optional<Config> Progress::station_candidate(const std::optional<Config>& a
     for (const auto name : {"callsign", "locator", "power_dbm"})
         if (station->get(name)->raw == "null")
             return {};
-    Config c = applied.value_or(Config{});
+    Config c = (applied ? *applied : factory_config());
     c.callsign = station->get("callsign")->string();
     c.locator = station->get("locator")->string();
     c.power_dbm = unsigned(station->get("power_dbm")->integer());

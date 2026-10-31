@@ -41,6 +41,16 @@ struct Config {
     unsigned ntp_timeout_s = default_ntp_timeout_s;
     bool operator==(const Config&) const = default;
 };
+// Fresh-install defaults are separate from legacy record omission semantics.
+// Keep Config's storage defaults unchanged so upgrades never migrate saved data.
+inline Config factory_config() {
+    Config config;
+    config.gpio_drive_ma = 12;
+    config.pins.amplifier_active_high = false;
+    config.wspr_dial_frequency_hz = 14'095'600;
+    config.schedules = {{600, 0}};
+    return config;
+}
 std::optional<Config> parse_config(std::string_view text);
 std::string serialize_config(const Config& config, bool amplifier_view = false);
 bool valid_gpio_drive(unsigned ma);

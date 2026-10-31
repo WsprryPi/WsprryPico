@@ -247,8 +247,8 @@ void streamed_asset_admission() {
 void identities() {
     using network::canonical_local_hostname;
     const auto name = network::default_hostname("88:A2:9E:0A:60:DF");
-    REQUIRE(name == "wsprrypico-0a60df.local");
-    REQUIRE(network::default_hostname("02:00:00:00:00:01") == "wsprrypico-000001.local");
+    REQUIRE(name == "wpico-60df.local");
+    REQUIRE(network::default_hostname("02:00:00:00:00:01") == "wpico-0001.local");
     // A suffix collision must not collapse independent full WTP identities.
     REQUIRE(network::default_hostname("02:00:00:0a:60:df") == name);
     REQUIRE(network::deployment_identity_matches(std::string(32, 'a'), std::string(32, 'a'), name));

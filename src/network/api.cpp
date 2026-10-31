@@ -149,7 +149,7 @@ std::optional<standalone::Config> BrowserApi::effective_config() const {
         // station exists. Do not manufacture an empty station or generation 0.
         if (consumer_runtime_->consumer_profile()->usb_managed && !store_.config())
             return {};
-        return consumer_runtime_->overlay(store_.config().value_or(standalone::Config{}));
+        return consumer_runtime_->overlay((store_.config() ? *store_.config() : standalone::factory_config()));
     }
     return store_.config();
 }

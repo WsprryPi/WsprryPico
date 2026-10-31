@@ -2,7 +2,7 @@
 
 ## Configuration and compatible management
 
-`PinPlan.amplifier` reuses `amplifier_gp`: null disables it, and eligible pins remain GP0–GP22/GP26–GP28 with exclusive ownership across RF, button, indicator, LPF and both I²C pins. `amplifier_active_high` is a separate boolean with true default. It never derives from indicator polarity. I²C RF remains operationally unavailable; optional [LPF selection](lpf-band-selector.md) has its own complete settings resource. No pin is hard-coded or selected by fallback.
+`PinPlan.amplifier` reuses `amplifier_gp`: null disables it, and eligible pins remain GP0–GP22/GP26–GP28 with exclusive ownership across RF, button, indicator, LPF and both I²C pins. `amplifier_active_high` is a separate boolean with a false (active-low) fresh-install default. Saved records omitting polarity retain the legacy true value. It never derives from indicator polarity. I²C RF remains operationally unavailable; optional [LPF selection](lpf-band-selector.md) has its own complete settings resource. No pin is hard-coded or selected by fallback.
 
 Default Config bytes and legacy pin serialization remain unchanged. Nondefault active-low storage includes `amplifier_active_high:false`; configured amplifier pins and nondefault polarity require supporting firmware. Invalid/unsupported saved records fail closed without resurrecting earlier records or enabling a default route. An older image must not be loaded over these settings without first restoring a compatible complete default plan and removing incompatible progress with supported reset/recovery. Flash addresses and journal capacities are unchanged. This is a firmware rollback boundary, not automatic migration.
 

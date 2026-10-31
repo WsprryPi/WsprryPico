@@ -45,4 +45,4 @@ The **Button** setting in **Radio pins** selects the button's GPIO. Its default 
 - **Standalone:** Save your station, frequency and WSPR schedule on the Pico, or send individual messages from its browser page. A network time server supplies UTC when connected.
 - **WsprryPi member:** Follow [Add a WsprryPico in the WsprryPi manual](https://wsprry-pi.readthedocs.io/en/devel/Install/pico.html) to connect, identify and schedule the device from the Pi. USB supports configuration, controller time and jobs without Wi-Fi; you do not need to set up the Pico's Wi-Fi for that route.
 
-Install the [firmware](install.md) next. A new installation has no selected transmit frequency. Enter and apply the [station and schedule settings](configure.md) before enabling automatic transmissions.
+Install the [firmware](install.md) next. New station settings default to a 14,095,600 Hz WSPR dial, with automatic schedules disabled. Enter and apply the [station and schedule settings](configure.md) before enabling automatic transmissions.

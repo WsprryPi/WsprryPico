@@ -1,7 +1,7 @@
 # GPIO drive strength
 
 The selected member's direct RF output supports **2, 4, 8 and 12 mA**, default
-**4 mA**. This is nominal electrical RF-pin drive; actual RF power depends on
+**12 mA** for new installations. This is nominal electrical RF-pin drive; actual RF power depends on
 load and frequency. Reported WSPR power is independent and never adjusted.
 Auxiliary pins and Pi local BCM/RP1/Si5351 settings are unaffected.
 
@@ -14,7 +14,7 @@ never infer support from firmware labels or WTP CAPS. The current contract adver
 `saved`, `boot_active`, `pad_readback` (mA or null), `rf_gp`, `execution_engine`,
 `pending_restart`, `application_error` and `storage_healthy`. Null saved means no
 complete configuration; boot-active is this boot's validated selection, including
-4 for a healthy unconfigured boot. It is not a physical observation. Inhibited
+12 for a healthy unconfigured boot. It is not a physical observation. Inhibited
 firmware leaves pad readback null. `rf_gp` identifies the boot-active route; the
 saved pin remains in `hardware.saved`. RF firmware reports a verified SDK observation
 only after its adapter has initialized during ARM, before local scheduled

@@ -62,6 +62,15 @@ inline MorseResult measure_message(const MorseMessage& input, std::size_t event_
     };
     if (input.text.empty() || input.text.size() > max_message_characters)
         return fail("message_length_limit_32");
+    // Refuse the commissioning callsign placeholder on every message carrier.
+    std::string upper = input.text;
+    for (auto& c : upper)
+        if (c >= 'a' && c <= 'z')
+            c -= 'a' - 'A';
+    const auto alnum = [](char c) { return (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'); };
+    for (auto at = upper.find("N0CALL"); at != std::string::npos; at = upper.find("N0CALL", at + 1))
+        if ((!at || !alnum(upper[at - 1])) && (at + 6 == upper.size() || !alnum(upper[at + 6])))
+            return fail("replace_placeholder_callsign");
     if (input.mode != "qrss" && input.mode != "fskcw" && input.mode != "dfcw")
         return fail("unsupported_message_mode");
     if (!input.mark_frequency_nhz ||

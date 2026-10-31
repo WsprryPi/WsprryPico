@@ -39,6 +39,12 @@ inline std::string configuration_update(std::string config,
         const auto end = config.find(',', at);
         if (end != std::string::npos) config.erase(at,end-at+1);
     }
+    // The frequency resource owns this field independently of configuration.
+    if (const auto at = config.find("\"wspr_dial_frequency_hz\""); at != std::string::npos) {
+        const auto end = config.find(',', at);
+        if (end != std::string::npos) config.erase(at, end - at + 1);
+        else config.erase(at - 1, config.size() - at);
+    }
     return "{\"schema\":\"config-update\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":" +
         wtp::json::quote(boot) + "},\"mode\":\"merge\",\"config\":" + config + "}";
 }

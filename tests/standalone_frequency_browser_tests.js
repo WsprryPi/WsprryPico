@@ -11,7 +11,7 @@ for (const upper of ['65999999000000000','68999999000000000','74999999000000000'
   const max=Number(BigInt(upper)/1000000000n-1503n);
   assert.equal(frequency(String(max),ranges),max);assert.equal(frequency(String(max+1),ranges),null);
 }
-assert.equal(supported({schema:'standalone-frequency',path:'/api/control/v1/standalone-frequency',method:'PUT',units:'Hz',reference:'wspr_usb_dial',activation:'next_job',default:null}),true);
+assert.equal(supported({schema:'standalone-frequency',path:'/api/control/v1/standalone-frequency',method:'PUT',units:'Hz',reference:'wspr_usb_dial',activation:'next_job',default:14095600}),true);
 (async()=>{
   const ui = {input:element(''),read:element(),save:element(),discard:element(),adopt:element(),status:element()};
   let saved = null, writes = 0, failure = false, target = {scope:'member',device_id:'a'.repeat(32),boot_id:'b'.repeat(32)};
@@ -69,6 +69,7 @@ assert.equal(supported({schema:'standalone-frequency',path:'/api/control/v1/stan
     return {revision:rev,data:{...base,schema:'standalone-frequency',frequency_hz:null,allowed:false,storage_healthy:true}};
   }});
   firstEditor.setAvailability(true);await first.read.onclick();
+  assert.equal(first.input.value,'14095600','fresh station receives the selected dial prefill without a write');
   first.input.value='14095600';first.input.oninput();
   assert.equal(first.input['aria-invalid'],'false');assert.equal(first.save.disabled,true);
   assert.match(first.status.textContent,/No applied station.*Save valid station fields.*Apply/);

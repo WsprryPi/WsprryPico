@@ -30,11 +30,11 @@ Main firmware, release candidates (RC) and final releases link to the **main** m
 
 ## Open the control page
 
-Once the Pico has joined your home network, use its **home-network IP address** or its reported **`.local` hostname**. An IP address is a numeric network address such as `192.168.1.123`; a hostname is a name such as `wsprrypico-0a60df.local`. The setup address **192.168.4.1** works only while you are connected to the Pico's own setup Wi-Fi.
+Once the Pico has joined your home network, use its **home-network IP address** or its reported **`.local` hostname**. An IP address is a numeric network address such as `192.168.1.123`; a hostname is a name such as `wpico-60df.local`. The setup address **192.168.4.1** works only while you are connected to the Pico's own setup Wi-Fi.
 
 1. Connect your phone or computer to the same home network as the Pico. A wired computer on that network also works. Avoid a guest network that prevents devices from reaching each other.
-2. Find the Pico in your router's connected-device list, or use the hostname reported by the setup page. A default name looks like `wsprrypico-0a60df.local`; your Pico's suffix will differ.
-3. Type the complete address into the browser's address bar, starting with **http://**. For example, if your router lists the Pico at **192.168.1.123**, open **http://192.168.1.123/**. Replace that example IP with your Pico's actual address. You can also use **http://wsprrypico-0a60df.local/** with your Pico's actual hostname.
+2. Find the Pico in your router's connected-device list, or use the hostname reported by the setup page. A default name looks like `wpico-60df.local`; your Pico's suffix will differ.
+3. Type the complete address into the browser's address bar, starting with **http://**. For example, if your router lists the Pico at **192.168.1.123**, open **http://192.168.1.123/**. Replace that example IP with your Pico's actual address. You can also use **http://wpico-60df.local/** with your Pico's actual hostname.
 4. The Station Control view shows **Transmitter status** and loads saved settings without opening a login prompt. Select the lock immediately before the hostname to open **Pico password**, then choose **Unlock controls**. Its default is the home Wi-Fi password saved during setup. Use your separate Pico password if you changed it. To change the Pico password without changing Wi-Fi, follow [Change the Pico password](maintain.md#change-the-pico-password).
 
    ```{image} _static/images/station-control.png

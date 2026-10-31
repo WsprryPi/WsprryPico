@@ -427,8 +427,8 @@ int main() {
         (access_store.record() && access_store.record()->reset.pending());
     const bool boot_recovery = recovery || access_recovery;
     [[maybe_unused]] const unsigned boot_gpio_drive_ma =
-        store.config() ? store.config()->gpio_drive_ma : 4;
-    auto boot_pins = store.config() ? store.config()->pins : wsprrypico::hardware::PinPlan{};
+        store.config() ? store.config()->gpio_drive_ma : wsprrypico::standalone::factory_config().gpio_drive_ma;
+    auto boot_pins = store.config() ? store.config()->pins : wsprrypico::standalone::factory_config().pins;
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE
     // Only the selected indicator differs; all pin ownership checks still apply.
     boot_pins.indicator_gp.reset();
@@ -583,7 +583,7 @@ int main() {
     // USB remains usable when the radio cannot initialize. Keep this fallback
     // independent of WLAN credentials; a persisted configured name wins below.
     if (local_identity.hostname.empty())
-        local_identity.hostname = "wsprrypico-" + identities.device_id().substr(26) + ".local";
+        local_identity.hostname = "wpico-" + identities.device_id().substr(28) + ".local";
     const std::string deployment_hostname = tls_credentials.hostname.empty()
                                                 ? local_identity.hostname
                                                 : std::string(tls_credentials.hostname);
@@ -840,7 +840,7 @@ int main() {
         profile_store, runtime_profile, store, progress, identities.device_id(),
         local_identity.hostname);
     if (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Factory) {
-        const auto config = store.config().value_or(wsprrypico::standalone::Config{});
+        const auto config = (store.config() ? *store.config() : wsprrypico::standalone::factory_config());
         local_settings.factory_profile({identities.device_id(), config.ssid, config.password,
                                         config.ntp_ipv4, std::string(tls_credentials.hostname),
                                         tls_credentials.port,

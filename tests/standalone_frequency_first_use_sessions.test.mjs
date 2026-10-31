@@ -11,7 +11,7 @@ for (const mode of ['network','network-backing','usb','overlay']) {
     const read=async resource=>{const r=await a.request(resource);assert.equal(r.status,200);return {data:await r.json(),revision:r.headers.get('etag')};};
     let station=await read('station'),frequency=await read('standalone-frequency');
     assert.equal(station.data.station!==null,mode==='overlay');
-    assert.equal(frequency.data.frequency_hz,null);assert.equal(frequency.data.storage_healthy,true);
+    assert.equal(frequency.data.frequency_hz,mode==='overlay'?14095600:null);assert.equal(frequency.data.storage_healthy,true);
     const initial=await f.command({op:'frequency_state'});
     if(mode==='overlay') assert.equal(initial.sequence,'0','overlay readiness needs no standalone journal');
     else {
@@ -32,7 +32,7 @@ for (const mode of ['network','network-backing','usb','overlay']) {
       assert.equal(await a.checkSetup(attempt),'saved');
     }
     station=await read('station');assert.equal(station.data.station.callsign,'AA0NT');
-    frequency=await read('standalone-frequency');assert.equal(frequency.data.frequency_hz,null);
+    frequency=await read('standalone-frequency');assert.equal(frequency.data.frequency_hz,mode==='network-backing'?null:14095600);
     const selected=await a.request('standalone-frequency','PUT',{schema:frequency.data.schema,target:frequency.data.target,frequency_hz:14095600},frequency.revision);
     const body=await selected.json();assert.equal(selected.status,200,JSON.stringify(body));assert.equal(body.frequency_hz,14095600);
     const accepted=await f.command({op:'frequency_state'});assert.equal(accepted.saved_dial_hz,14095600);assert.equal(accepted.enabled,false);

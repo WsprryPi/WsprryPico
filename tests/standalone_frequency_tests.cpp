@@ -125,7 +125,7 @@ void first_use_requires_explicit_station_application() {
                     ",\"application\":{\"draft_revision\":\"" +
                     std::to_string(progress.sequence()) + "\",\"domain\":\"station\"}}");
     REQUIRE(applied.status == 200 && f.store.config() && !f.store.config()->enabled);
-    REQUIRE(!f.store.config()->wspr_dial_frequency_hz);
+    REQUIRE(f.store.config()->wspr_dial_frequency_hz == 14'095'600);
     REQUIRE(request("PUT", "/api/control/v1/standalone-frequency", frequency).status == 200);
     standalone::Store reboot(f.flash);
     REQUIRE(reboot.load() && reboot.config()->wspr_dial_frequency_hz == 14095600);

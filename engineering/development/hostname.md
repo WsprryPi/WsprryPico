@@ -1,5 +1,7 @@
 # Hostname
 
+Fresh installations use `wpico-` followed by the last four hexadecimal characters of the station MAC and `.local`. An explicitly saved hostname or certified profile name takes precedence. The setup SSID remains `WsprryPico-` followed by six MAC-derived characters.
+
 ## Authority and supported profiles
 
 | Profile/carrier | Hostname source | Supported operation |

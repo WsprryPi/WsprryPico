@@ -1,4 +1,5 @@
 #include "application/config_update.hpp"
+
 #include "network/control_contract.hpp"
 
 namespace wsprrypico::application {
@@ -12,8 +13,8 @@ bool config_fields(Value value, bool partial, bool drive) {
         return false;
     if (partial)
         return fields(value, {},
-                      {"enabled", "station", "wifi", "schedules", "expires_utc_s",
-                       "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency",
+                      {"enabled", "station", "wifi", "schedules", "expires_utc_s", "pins",
+                       "allow_unqualified_frequency", "allow_non_amateur_frequency",
                        "gpio_drive_ma"}) &&
                !fields(value, {});
     return fields(value, {"enabled", "station", "wifi", "schedules"},
@@ -33,8 +34,7 @@ Envelope validate_config_update(Value root, std::string_view device, std::string
     if (!fields(root, {"schema", "target", "mode", "config"}))
         return Envelope::Invalid;
     const auto schema = *root.get("schema"), target = *root.get("target"), mode = *root.get("mode");
-    if (schema.type() != '"' || mode.type() != '"' ||
-        mode.string() != "merge" ||
+    if (schema.type() != '"' || mode.type() != '"' || mode.string() != "merge" ||
         !fields(target, {"scope", "device_id", "boot_id"}))
         return Envelope::Invalid;
     for (const auto name : {"scope", "device_id", "boot_id"})
@@ -66,7 +66,8 @@ std::optional<std::string> config_candidate(Value supplied,
         !(partial ? fields(*wifi, {}, {"ssid", "password", "ntp_ipv4"}) && !fields(*wifi, {})
                   : fields(*wifi, {"ssid", "password"}, {"ntp_ipv4"})))
         return {};
-    const auto previous_text = current ? standalone::serialize_config(*current) : "{}";
+    const auto previous_text =
+        standalone::serialize_config((current ? *current : standalone::factory_config()));
     const auto previous = wtp::json::parse(previous_text);
     if (!previous)
         return {};
@@ -111,28 +112,31 @@ std::optional<std::string> config_candidate(Value supplied,
             object += '}';
             member(result, name, object);
         } else if (input) {
-            if (name == std::string_view("pins") && preserve && prior &&
-                (!amplifier || !input->get("amplifier_active_high"))) {
-                // Even a complete ordinary pin replacement preserves omitted
-                // polarity. Explicit replacement uses the documented default.
+            if (name == std::string_view("pins")) {
                 auto plan = hardware::parse_plan(std::string(input->raw));
                 if (!plan)
                     return {};
-                plan->amplifier_active_high = current->pins.amplifier_active_high;
-                if (!amplifier)
-                    plan->amplifier = current->pins.amplifier;
+                if (preserve && (!amplifier || !input->get("amplifier_active_high"))) {
+                    plan->amplifier_active_high = current->pins.amplifier_active_high;
+                    if (!amplifier)
+                        plan->amplifier = current->pins.amplifier;
+                } else if (!input->get("amplifier_active_high"))
+                    plan->amplifier_active_high =
+                        standalone::factory_config().pins.amplifier_active_high;
                 member(result, name, hardware::serialize_plan(*plan));
             } else
                 member(result, name, std::string(input->raw));
-        } else if (preserve && prior)
+        } else if ((preserve || !current) && prior)
             member(result, name, std::string(prior->raw));
     }
     if (mode == ConfigWrite::Replace)
         result += ",\"manual_correction_ppb\":0,\"ntp_rf_calibration\":false";
     // Closed legacy resources cannot name this independently owned setting.
     // Even their replace operation must preserve its saved selection.
-    if (current && current->wspr_dial_frequency_hz)
-        member(result, "wspr_dial_frequency_hz", std::to_string(*current->wspr_dial_frequency_hz));
+    const auto dial = current ? current->wspr_dial_frequency_hz
+                              : standalone::factory_config().wspr_dial_frequency_hz;
+    if (dial)
+        member(result, "wspr_dial_frequency_hz", std::to_string(*dial));
     if (current && current->ntp_timeout_s != standalone::default_ntp_timeout_s)
         member(result, "ntp_timeout_s", std::to_string(current->ntp_timeout_s));
     if (current && current->amplifier_timing != rf::AmplifierTiming{})

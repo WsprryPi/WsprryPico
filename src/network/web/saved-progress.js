@@ -8,7 +8,7 @@
   const keys = (x, expected) => object(x) && Object.keys(x).sort().join(',') === [...expected].sort().join(',');
   const sequence = x => typeof x === 'string' && /^(0|[1-9][0-9]{0,19})$/.test(x) && BigInt(x) <= 0xffffffffffffffffn;
   const ascii = (x,min,max) => typeof x === 'string' && x.length >= min && x.length <= max && /^[\x20-\x7e]*$/.test(x);
-  const call = x => ascii(x,3,12) && /^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(x) && /[A-Z]/.test(x) && /[0-9]/.test(x) && (!x.startsWith('<') || x.length >= 5);
+  const call = x => ascii(x,3,12) && !['N0CALL','<N0CALL>'].includes(x) && /^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(x) && /[A-Z]/.test(x) && /[0-9]/.test(x) && (!x.startsWith('<') || x.length >= 5);
   const grid = x => typeof x === 'string' && /^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(x);
   const power = x => typeof x === 'number' && [0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60].includes(x);
   const station = (x,partial = true) => keys(x,['callsign','locator','power_dbm']) &&

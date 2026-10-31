@@ -143,7 +143,7 @@ def server_identity(args):
         raise ValueError('--hostname and --mac-address require the stable WTP --device-id')
     if args.device_id and not args.hostname and not args.mac_address:
         raise ValueError('Default hostname requires observed --mac-address; use --hostname for an explicit alias')
-    selected = args.hostname or ('wsprrypico-' + args.mac_address.replace(':', '')[-6:] + '.local'
+    selected = args.hostname or ('wpico-' + args.mac_address.replace(':', '')[-4:] + '.local'
                                  if args.mac_address else None)
     if not args.device and not args.device_id:
         raise ValueError('Provide --device-id for hostname deployment or --device for legacy IP deployment')

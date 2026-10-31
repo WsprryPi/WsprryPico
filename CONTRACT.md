@@ -88,7 +88,7 @@ closed rather than resurrecting superseded credentials or enabled settings.
 Reset levels preserve only their defined domains. Upgrade/rollback support
 must account for the actual on-flash record versions.
 
-The [pin contract](engineering/pin-assignment-contract.md) requires exclusive GPIO roles and a validated boot pin plan. Pin, drive and amplifier timing changes latch restart and output inhibition for the boot, including A/B/A saves. GPIO drive is 2/4/8/12 mA, default 4 mA, independent of reported WSPR dBm. Saved selection, immutable boot selection and nullable cached ARM-time SDK pad verification are distinct. A save never programs the pad or proves RF power. Optional amplifier enable uses the same local sink authority, initializes inactive, asserts before local RF and deasserts before fallible cleanup. Configurable lead and tail each default to 200 ms, accept 0–1000 whole milliseconds and surround the unchanged scheduled RF window. The amplifier pin remains disabled by default. Optional [LPF/band selection](engineering/development/lpf-band-selector.md) uses exclusive named GPIO resources and complete-job nominal/programmed coverage. Selection settles before amplifier lead and stays active through amplifier tail; cleanup disables the amplifier before selectors. Fixed/manual is the default. Selector changes require restart. Si5351 remains unavailable.
+The [pin contract](engineering/pin-assignment-contract.md) requires exclusive GPIO roles and a validated boot pin plan. Pin, drive and amplifier timing changes latch restart and output inhibition for the boot, including A/B/A saves. GPIO drive is 2/4/8/12 mA, default 12 mA, independent of reported WSPR dBm. Saved selection, immutable boot selection and nullable cached ARM-time SDK pad verification are distinct. A save never programs the pad or proves RF power. Optional amplifier enable uses the same local sink authority, initializes inactive, asserts before local RF and deasserts before fallible cleanup. Configurable lead and tail each default to 200 ms, accept 0–1000 whole milliseconds and surround the unchanged scheduled RF window. The amplifier pin remains disabled by default. Optional [LPF/band selection](engineering/development/lpf-band-selector.md) uses exclusive named GPIO resources and complete-job nominal/programmed coverage. Selection settles before amplifier lead and stays active through amplifier tail; cleanup disables the amplifier before selectors. Fixed/manual is the default. Selector changes require restart. Si5351 remains unavailable.
 
 ## Implementation and qualification
 
@@ -96,7 +96,7 @@ The normal `WsprryPico` application uses the 138 MHz PIO/DMA engine.
 `WsprryPico-Inhibited` explicitly selects the RF-free simulator;
 `WsprryPico-StandaloneRF` remains a compatible explicit RF target. RF capability
 preserves saved enablement and all admission guards. Generic deployment images
-select no transmit frequency; the operator saves one before enabling schedules.
+default new station settings to a 14095600 Hz WSPR dial and a ten-minute UTC-aligned schedule, initially disabled. Saved selections survive upgrades.
 
 Native engine limits and [band support](engineering/development/band-support.md) are
 separate. Conducted results apply only to their recorded board, source/image,

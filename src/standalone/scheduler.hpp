@@ -112,10 +112,10 @@ class Scheduler {
     bool boot_configured_ = false;
     bool hardware_application_failed_ = false;
     std::optional<wtp::PayloadDigest> active_network_;
-    hardware::PinPlan active_pins_;
+    hardware::PinPlan active_pins_ = factory_config().pins;
     rf::AmplifierTiming active_amplifier_timing_;
     hardware::FilterSettings active_filters_;
-    unsigned active_gpio_drive_ma_ = 4;
+    unsigned active_gpio_drive_ma_ = factory_config().gpio_drive_ma;
     unsigned active_ntp_timeout_s_ = default_ntp_timeout_s;
 };
 } // namespace wsprrypico::standalone

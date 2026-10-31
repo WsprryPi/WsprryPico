@@ -385,8 +385,8 @@ async function readProgress(fillDraft = false) {
   if (fillDraft && !progressEdits.size && !consumerSetupDirty) {
     const f = $('config').elements, v = result.data.fields;
     for (const key of ['callsign','locator','power_dbm']) {
-      f[key].value = result.data.station[key] ?? '';
-      if (radio) $('consumer-' + (key === 'power_dbm' ? 'power' : key)).value = result.data.station[key] ?? '';
+      f[key].value = stationEntry(result.data,key);
+      if (radio) $('consumer-' + (key === 'power_dbm' ? 'power' : key)).value = stationEntry(result.data,key);
     }
     if (Object.hasOwn(v,'enabled')) f.enabled.checked = v.enabled === true;
     if (Object.hasOwn(v,'schedules')) f.schedules.value = Array.isArray(v.schedules) ? v.schedules.map(x=>`${x.period_s} / ${x.phase_s}`).join('\n') : '';
@@ -940,10 +940,17 @@ function controls(connected) {
   for (const id of passwordFields) setPasswordVisible(id,$(id).type === 'text');
   renderAccess(); renderSettingsRecovery();
 }
+const initialStation = {callsign:'N0CALL',locator:'ZZ99',power_dbm:0};
+function stationEntry(data,key) {
+  // Explicitly cleared draft fields stay blank. Only absent initial fields
+  // receive a visible placeholder; these are never applied configurations.
+  return data.station[key] ?? (Object.hasOwn(data.fields,key) || data.applied_station ? '' : initialStation[key]);
+}
 function fill(c, network = c?.wifi) {
   currentConfig = c; dirty = false;
+  defaultMessageDraft();
   const form = $('config').elements;
-  if (!engineeringStationDirty) for (const name of ['callsign','locator','power_dbm']) form[name].value = c?.station[name] ?? '';
+  if (!engineeringStationDirty) for (const name of ['callsign','locator','power_dbm']) form[name].value = c?.station[name] ?? initialStation[name];
   if (!engineeringNetworkDirty) {
     form.ssid.value = network?.ssid ?? '';
     form.ntp_ipv4.value = network?.ntp_ipv4 ?? 'pool.ntp.org';
@@ -953,14 +960,14 @@ function fill(c, network = c?.wifi) {
     if (!consumerSetupDirty) {
       $('consumer-ssid').value = network?.ssid ?? '';
       $('consumer-time-server').value = network?.ntp_ipv4 ?? 'pool.ntp.org';
-      $('consumer-callsign').value = c?.station.callsign ?? '';
-      $('consumer-locator').value = c?.station.locator ?? '';
-      $('consumer-power').value = c?.station.power_dbm ?? 37;
+      $('consumer-callsign').value = c?.station.callsign ?? initialStation.callsign;
+      $('consumer-locator').value = c?.station.locator ?? initialStation.locator;
+      $('consumer-power').value = c?.station.power_dbm ?? 0;
     }
   }
   if (!engineeringNetworkDirty) clearPassword('config-password');
   form.enabled.checked = c?.enabled ?? false;
-  form.schedules.value = (c?.schedules || [{period_s:120,phase_s:0}]).map(s => `${s.period_s} / ${s.phase_s}`).join('\n');
+  form.schedules.value = (c?.schedules || [{period_s:600,phase_s:0}]).map(s => `${s.period_s} / ${s.phase_s}`).join('\n');
   fillPins(c?.pins);
   form.expiry.value = c?.expires_utc_s ? new Date(c.expires_utc_s * 1000).toISOString().slice(0,19) : '';
   utcEditors.forEach(editor=>editor.sync());
@@ -1564,7 +1571,7 @@ function adoptMessageSchedule(prompt=true) {
   $('message-start').value=new Date(Number(BigInt(s.first_start_utc_ns)/1000000n)).toISOString().slice(0,19);
   $('message-until').value=s.expires_utc_s?new Date(s.expires_utc_s*1000).toISOString().slice(0,19):'';
   $('message-interval').value=s.period_s/60;
-  messageEdited=false;messagePreview();utcEditors.forEach(editor=>editor.sync());
+  messageEdited=false;messageTextEdited=true;messageStartEdited=true;messagePreview();utcEditors.forEach(editor=>editor.sync());
   messageBaseline=messageDraftState();
 }
 if ($('message-schedule-adopt')) $('message-schedule-adopt').onclick=()=>adoptMessageSchedule();
@@ -1596,6 +1603,7 @@ function messageFrequencies(mode) {
 }
 function messagePlan(timingOnly = false) {
   const text = $('message-text').value, mode = $('message-mode').value;
+  if (/(^|[^A-Z0-9])N0CALL([^A-Z0-9]|$)/i.test(text)) throw new Error('Replace the N0CALL placeholder before transmitting.');
   if (!text || text.length > 32) throw new Error('Use 1–32 characters, including spaces. The message has ' + text.length);
   if (!['qrss','fskcw','dfcw'].includes(mode)) throw new Error('Choose QRSS, FSKCW or DFCW');
   const frequencies = timingOnly ? null : messageFrequencies(mode);
@@ -1632,6 +1640,20 @@ function messagePlan(timingOnly = false) {
   return {duration,events,frequencies:frequencies.preview,body:{mode,message:text,frequency_nhz:frequencies.frequency.toString(),space_frequency_nhz:frequencies.second.toString(),timing:Object.fromEntries(Object.entries(timing).map(([k,v])=>[k,v.toString()])),repeat_count:repeat,repeat_gap_ns:repeatGap.toString(),allow_frequency_adjustment:true}};
 }
 let messageEdited = false;
+let messageTextEdited = false;
+let messageStartEdited = false;
+function defaultMessageDraft() {
+  const before = messageDraftState();
+  const clean = before === messageBaseline;
+  if (!messageTextEdited) $('message-text').value = '73 DE ' + (currentConfig?.station.callsign || 'N0CALL');
+  if (!messageStartEdited && !messageEdited) {
+    const boundary = (Math.floor(utcNowMs()/600000)+1)*600000;
+    $('message-start').value = new Date(boundary).toISOString().slice(0,19);
+    utcEditors.forEach(editor=>editor.sync());
+  }
+  if (clean) messageBaseline = messageDraftState();
+}
+
 // Compare editor values with the initial, loaded or confirmed-saved draft.
 // Nonempty saved messages are readback, and clearing a field is still an edit.
 function messageDraftState() {
@@ -1652,8 +1674,8 @@ function messagePreview() {
     catch (error) { $('message-duration').textContent = 'Transmission length unavailable: ' + error.message; }
   }
   for (const id of ['message-frequency','message-shift']) $(id).setAttribute('aria-invalid','false');
-  if (!messageEdited && !$('message-text').value) {
-    $('message-preview').textContent = 'Enter a message and frequency to calculate its duration.';
+  if (!messageEdited && (!$('message-text').value || !$('message-frequency').value)) {
+    $('message-preview').textContent = $('message-text').value ? 'Enter a carrier frequency and review the message before saving or transmitting.' : 'Enter a message and frequency to calculate its duration.';
     $('message-preview').classList.toggle('error',false); return;
   }
   try { const p = messagePlan(); $('message-preview').textContent = p.frequencies + ' · ' + durationText(p.duration) + ' · ' + p.events + ' / ' + (capabilities?.wtp?.max_events || 512) + ' events · ' + $('message-text').value.length + ' / 32 characters'; $('message-preview').classList.toggle('error',false); }
@@ -1668,8 +1690,9 @@ function updateProgress() {
   const bounded = elapsed < 0n ? 0n : elapsed > activePlan.durationNs ? activePlan.durationNs : elapsed;
   $('job-progress').textContent = 'Running · estimated ' + durationText(bounded) + ' of ' + durationText(activePlan.durationNs) + ' · ' + (Number(bounded*1000n/activePlan.durationNs)/10).toFixed(1) + '% · status checked ' + observedAt;
 }
-$('message-form').oninput = () => { messageEdited=true; $('message-result').textContent=''; messagePreview(); };
+$('message-form').oninput = event => { if(event?.target === $('message-text')) messageTextEdited=true; if(event?.target === $('message-start')) messageStartEdited=true; messageEdited=true; $('message-result').textContent=''; messagePreview(); };
 $('message-mode').onchange = () => { $('message-result').textContent=''; messagePreview(); };
+defaultMessageDraft();
 messagePreview();
 $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=true; messagePreview(); return action(async () => {
   $('message-result').textContent = ''; $('message-result').classList.toggle('error',false);
@@ -1743,7 +1766,7 @@ function lockPins() {
 }
 function fillPins(plan) {
   const f = $('config').elements;
-  const p = plan || {rf_gp:2,button_gp:14,amplifier_gp:null,indicator:'onboard_led',indicator_gp:null,indicator_active_high:true};
+  const p = plan || {rf_gp:2,button_gp:14,amplifier_gp:null,amplifier_active_high:false,indicator:'onboard_led',indicator_gp:null,indicator_active_high:true};
   const gps = pinChoices?.eligible_gps || [2,14];
   for (const key of ['rf_gp','button_gp','amplifier_gp','indicator_gp']) {
     const optional = key === 'button_gp' || key === 'amplifier_gp';

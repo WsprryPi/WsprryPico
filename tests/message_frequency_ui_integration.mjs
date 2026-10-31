@@ -80,6 +80,12 @@ try {
       await field('local-password','test-password');await submitLogin();
     }
     await until(()=>cdp.evaluate('typeof online!=="undefined" && online && !busy'),'ready page');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-delivery').value`),'recurring','new CW editor defaults to recurring delivery');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-interval').value`),'10');
+    assert.deepEqual(await cdp.evaluate(`['message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap'].map(id=>document.getElementById(id).value)`),['73 DE AA0NT','qrss','','5','3','1','3']);
+    assert.equal(await cdp.evaluate(`Date.parse(document.getElementById('message-start').value+'Z')%600000`),0);
+    await capture(surface+'-initial-defaults');
+    await field('message-delivery','once');
     assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-controls').hidden`),true,'Send once without a saved schedule');
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Carrier frequency (Hz)');
     assert.equal(await cdp.evaluate(`document.getElementById('message-shift').disabled`),true);

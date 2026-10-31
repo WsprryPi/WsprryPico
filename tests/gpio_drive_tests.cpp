@@ -122,7 +122,7 @@ void observations_and_admission() {
     auto view = blank.api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     auto v = parse(view.body);
     REQUIRE(v->get("saved")->raw == "null");
-    REQUIRE(v->get("boot_active")->raw == "4");
+    REQUIRE(v->get("boot_active")->raw == "12");
     REQUIRE(v->get("pad_readback")->raw == "null");
     Member m;
     m.api.gpio_drive_observer(+[] { return 8; });
