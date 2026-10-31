@@ -320,7 +320,7 @@ int main(int argc, char** argv) {
     }
     assert(network.status().find("\"station_mac\":\"88:a2:9e:0a:60:df\"") != std::string::npos);
     assert(started);
-    assert(network.status().find("\"stable_hostname\":\"wsprrypico-0a60df.local\"") !=
+    assert(network.status().find("\"stable_hostname\":\"wpico-60df.local\"") !=
            std::string::npos);
     assert(network.status().find("\"configured_hostname\":\"pico-a.local\"") != std::string::npos);
     network.listener_status(true, true);
@@ -356,7 +356,7 @@ int main(int argc, char** argv) {
     netif_set_up(&cyw43_state.netif[CYW43_ITF_AP]);
     netif_set_default(&cyw43_state.netif[CYW43_ITF_AP]); // Actual CYW43 enable behavior.
     const auto ntp_before_ap = station_ntp_packets;
-    assert(!network.softap_name(true, "wsprrypico-0a60df.local"));
+    assert(!network.softap_name(true, "wpico-60df.local"));
     advance(network, 70'000'000); // Include the unchanged 64-second retry interval.
     assert(station_ntp_packets > ntp_before_ap && ap_ntp_packets == 0);
     // Real pinned lwIP: station DHCP/DNS, AP DHCP/DNS, mDNS, NTP and UDP.
@@ -432,7 +432,7 @@ int main(int argc, char** argv) {
     pbuf_free(local_packet);
     udp_remove(local_pcb);
     assert(ap_local_packets == 1);
-    assert(network.softap_name(true, "wsprrypico-0a60df.local"));
+    assert(network.softap_name(true, "wpico-60df.local"));
     assert(ap_service_ptr == 0);
     assert(!network.softap_name(false, {}));
     netif_remove(&cyw43_state.netif[CYW43_ITF_AP]);
