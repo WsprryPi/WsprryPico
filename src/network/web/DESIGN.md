@@ -345,3 +345,4 @@ The header places a light manual-home help icon after Station Control and Wi-Fi/
 Every disclosure and section has contextual help, including nested pin roles, saved progress, raw readback, dynamically mounted UDP controls and setup-result sections; more specific subheading help remains available.
 
 Transmitter status uses terse values without explicit formatting line breaks. Exact Hz/kHz/MHz scaling preserves paired Space/Mark and Dot/Dash order. WSPR shows a confirmed dial only. Message timings, job/owner IDs and elapsed-duration arithmetic are omitted. Progress remains approximate and lifecycle-bound. The active hostname appears in the page heading only. Values and actionable warnings wrap naturally; no additional job-details disclosure is used.
+The header inset follows the available page width rather than viewport units so its manual link remains aligned when the browser reserves scrollbar space.
