@@ -122,16 +122,19 @@ Use **Transmitter status → Refresh** to read the Pico's current report:
 
 | Field | Meaning |
 | --- | --- |
-| Job | `empty` means no job is loaded; `loaded` means stored but not yet armed; `armed` means waiting for its accepted start; `running` means executing the job |
-| Standalone WSPR status | Reports whether the applied schedule is disabled, waiting for a window or blocked by an observed condition; refresh to update it. `Job: empty` can be normal between scheduled transmissions. |
-| Job, after execution | `complete` means finished; `aborted` means stopped early; `missed` means the start was missed; `failed` needs the reported fault resolved and output checked before another job |
-| RF output | **Active**, **Inactive** or **Unknown** is the Pico's reported output state; a browser error leaves it unknown |
-| Clock | Time synchronization state and the estimated timing error shown after `±`; see [clock status](reference/time.md#read-the-clock-status) |
-| Owner | **Available** means no controller holds the transmitter; **This browser** identifies this tab's control; another identifier belongs to another controller |
-| Next transmission | Shows the mode and available message for the next eligible enabled automatic transmission; hidden when no next transmission is available |
-| Manual RF correction (ppm) | The saved manual frequency correction selected for the next job preparation |
+| Mode | Accepted mode, or explicitly labelled scheduled context when no job is accepted |
+| Frequency | Nominal values use Hz, kHz or MHz. QRSS shows Carrier; FSKCW shows Space/Mark; DFCW shows Dot/Dash, for example `135.505/135.500 kHz`. Pair order follows those labels even when the second frequency is lower. |
+| Dial frequency | WSPR shows only its confirmed dial, for example `14.0956 MHz`. A matching Pico-scheduled job supplies it while still owned; external jobs and released history show **Unavailable** when their dial cannot be confirmed. |
+| Message | Accepted text alone, **Encoded WSPR frame**, or **Text unavailable** for prepared RF events without original text. A single-frequency test tone and no accepted job show a dash. |
+| Progress | **Loaded**, **Armed** with UTC start, **Running · ~50%**, or **Complete**, **Aborted**, **Missed**, **Failed**. A matching two-frame WSPR job shows its frame number. Percentages are estimates; 100% does not confirm completion. Unsynchronized time suppresses the estimate. |
+| RF output | **Active**, **Inactive** or **Unknown** is the Pico's reported output state; RF may be off during a running job's keyed gaps |
+| Clock | **Synchronized**, **Holdover** or **Unsynchronized**, with estimated timing uncertainty after `±`; see [clock status](reference/time.md#read-the-clock-status) |
+| Owner | **Available**, **This browser**, **Pico schedule**, or **Other controller** identifies control without displaying an owner ID |
+| Next transmission | Mode and available message for the next eligible enabled automatic transmission; hidden when no eligible next transmission is confirmed |
+| Manual correction (ppm) | The saved manual frequency correction selected for the next job preparation, with three decimal places |
 | Wi-Fi | Connection state and current IP address |
-| Hostname | The active full `.local` hostname; a saved name awaiting restart is shown in Wi-Fi/Host |
+
+Values wrap naturally on small screens. Raw jobs may show a complete nominal frequency span; an incomplete list shows **Multiple frequencies**. No accepted frequency or message is filled from an unsaved edit. The confirmed active hostname is in the page heading; a saved name awaiting restart is shown in Wi-Fi/Host. Actionable warnings remain visible, including simultaneous conditions and blockers affecting future transmissions while an accepted job continues.
 
 A successful login alone does not mean the Pico is ready to transmit. A connection failure makes observations stale or unknown. Complete jobs execute locally; closing a browser or unplugging a controller does not stop them.
 

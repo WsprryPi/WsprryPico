@@ -37,3 +37,12 @@ summary{cursor:pointer;min-height:44px;padding:.65rem 0;font-weight:600}summary:
 .documentation-help{display:inline-flex;align-items:center;min-width:44px;min-height:44px;padding:.5rem .25rem;color:#225e8a;font-size:.875rem;font-weight:400;text-underline-offset:.2em;vertical-align:middle;max-width:100%;overflow-wrap:anywhere}
 summary>.documentation-help{margin-inline-start:.75rem}
 .documentation-note{font-size:.875rem;color:#52616e}
+
+/* The small glyph has a full pointer target and stays beside its subject. */
+.documentation-help:has(svg){justify-content:center;flex:0 0 44px;width:44px;height:44px;padding:0;color:#52616e;text-decoration:none}
+.documentation-help:has(svg):hover{color:#225e8a}
+.documentation-help svg{display:block;flex:none;width:16px;height:16px;pointer-events:none}
+.help-heading{display:flex;align-items:center;gap:.125rem;width:fit-content;max-width:100%}
+.help-heading>h1,.help-heading>h2{min-width:0;margin:0}
+summary>.help-heading{display:inline-flex;vertical-align:middle;max-width:calc(100% - 1.5rem)}
+summary .help-heading>span{min-width:0}

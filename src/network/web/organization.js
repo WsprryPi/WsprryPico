@@ -1,6 +1,18 @@
 'use strict';
 // Fixed section IDs are presentation only; they never select API authority.
 (() => {
+  // The UDP editor has already mounted its nested disclosures. Reuse its
+  // inline topic link so dynamic sections keep the same offline icon and URL.
+  const udpHelp = $('udp-logging-section').querySelector('summary a.documentation-help');
+  for (const summary of $('udp-logging-controls').querySelectorAll('summary')) {
+    const topic=summary.textContent, group=document.createElement('span'), label=document.createElement('span');
+    group.className='help-heading'; label.textContent=topic;
+    const link=udpHelp.cloneNode(true);
+    link.dataset.help=topic;
+    link.title=topic+' — online help opens in a new tab';
+    link.setAttribute('aria-label','Help: '+topic+' (online, opens in a new tab)');
+    group.append(label,link); summary.replaceChildren(group);
+  }
   const station = $('station-area'), wifi = $('wifi-host-area');
   const sections = new Map([
     ['radio-settings','station'],['time-calibration','station'],['radio-pins','station'],['message-section','station'],

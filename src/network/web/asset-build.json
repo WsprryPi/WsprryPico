@@ -9,7 +9,7 @@
         "submission.js": "6119ce1314b0ea7626242259173c2b54c0d97c1dae4434cc9360a3b18e4ac392",
         "control-contract.js": "08c5411081e6f908cd934816d3b7bb3cf849d32e94c13808319814d4249d7950",
         "udp-logging.js": "c75a07a806f16007424d530f8983beaff6a77d14dfbe440cdd159b1f28ceae0b",
-        "operations.js": "0c07535b11cf2272fcda7c4274387132f850435af470c11979fb68fb8901dd4c",
+        "operations.js": "50238b10de775b5520bd1fb8a4ca6c41284f3b75c0c67448d8f8c3c612fb5d0e",
         "standalone-frequency.js": "4b2bc20293537f467253c9eba045cade68ae3cb7787e1e96a0d4cc77f1f5942d",
         "rf-calibration.js": "4d874739cfd33b25af459146c115f86cf777ab3823a00fb368441de4b52d8729",
         "amplifier-enable.js": "40d804e65e7f9a0889d2188e5139880c72a65914c9153c1ee11cf6869ba37e08",
@@ -20,10 +20,10 @@
         "saved-progress.js": "163cefe569b39d6f54c8174cdac4022d0b507e790f53b28ca8c1b2dd9c739e90",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "e7eaae7bef7c033031b98541c1a81229e143bb0bbd7627484fbb561ee4278ccc",
-        "app.js": "713b30892c5ec7c038104dbacae49258341b45ba9e6ec9193ea708151e4f4b51"
+        "app.js": "d23e12500671187a47d727ba8783067e52e996a98fefed0bedf7480622065e90"
       },
-      "sha256": "f9b68d67e96c4bc1aed14a72cb1cc55977e139c3cf078454b2ba70566c03305f",
-      "bytes": 226907
+      "sha256": "e8bccab8fa6282f9b9a650b6a64d033bfe4cb1f8b6fe3212ef311272b880a68e",
+      "bytes": 226712
     },
     "config-validation.min.js": {
       "inputs": {
@@ -41,10 +41,10 @@
     },
     "organization.min.js": {
       "inputs": {
-        "organization.js": "441e0cb3e88858505d83faf823bb126b3c9da7deedf8c92bc7b634ac0d224bff"
+        "organization.js": "f6ab338e5b9511f365359c006a23e84b60ced05f0257a891a65f85bf81bff271"
       },
-      "sha256": "62143e93785a6930653f6de2e312873d5531deeabeab4b7d0182b85ea0e382f4",
-      "bytes": 7613
+      "sha256": "1c25e5077184e247d406dda4c35c806eb3baf29d6ffe450d6864242f8204970b",
+      "bytes": 8089
     }
   }
 }

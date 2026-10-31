@@ -12,8 +12,8 @@
 <body>
   <header><strong>WsprryPico</strong><span>Station/Transmission</span></header>
   <main>
-    <h1 id="owner-title" tabindex="-1">Set your station details</h1>
-    <p class="documentation-note"><a class="documentation-help" title="Station commissioning — online help opens in a new tab" data-help="Station commissioning" href="@WSPRRY_PICO_HELP_BASE@configure.html#station-identity" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Station commissioning (online, opens in a new tab)">Help</a> · <a class="documentation-help" title="Operator manual — online help opens in a new tab" data-help="Operator manual" href="@WSPRRY_PICO_HELP_BASE@index.html" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Manual: Operator manual (online, opens in a new tab)">Manual</a><br>Online help opens in a new tab and needs Internet access. Setup Wi-Fi may have no Internet connection. Keep this tab open; setup does not need online help.</p>
+    <div class="help-heading"><h1 id="owner-title" tabindex="-1">Set your station details</h1><a class="documentation-help" title="Station commissioning — online help opens in a new tab" data-help="Station commissioning" href="@WSPRRY_PICO_HELP_BASE@configure.html#station-identity" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Station commissioning (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
+    <p class="documentation-note"><a class="documentation-help" title="Operator manual — online help opens in a new tab" data-help="Operator manual" href="@WSPRRY_PICO_HELP_BASE@index.html" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Manual: Operator manual (online, opens in a new tab)">Manual</a><br>Online help opens in a new tab and needs Internet access. Setup Wi-Fi may have no Internet connection. Keep this tab open; setup does not need online help.</p>
     <p id="station-intro" class="intro">The Pico will keep its saved Wi-Fi settings. You can change those on the <a href="/">Wi-Fi setup page</a>.</p>
     <div class="device-row">
       <p id="device" class="device">Checking Pico identity…</p>
@@ -22,7 +22,7 @@
     <p class="quiet">Optional: blink the LED to check which Pico you are setting up.</p>
     <div id="notice" role="status" aria-live="polite">Checking this browser…</div>
 
-    <section id="owner-settings" hidden>
+    <section id="owner-settings" hidden><div class="help-heading"><h2>Station identity</h2><a class="documentation-help" title="Station identity — online help opens in a new tab" data-help="Station identity" href="@WSPRRY_PICO_HELP_BASE@configure.html#station-identity" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Station identity (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <form id="owner-form" autocomplete="off" novalidate>
         <label for="owner-callsign">Callsign</label>
         <input id="owner-callsign" name="callsign" type="text" minlength="3" maxlength="12"
@@ -55,46 +55,46 @@
     </section>
 
     <section id="owner-wifi-first" hidden>
-      <h2>Connect to Wi-Fi first</h2>
+      <div class="help-heading"><h2>Connect to Wi-Fi first</h2><a class="documentation-help" title="Connect to Wi-Fi first — online help opens in a new tab" data-help="Connect to Wi-Fi first" href="@WSPRRY_PICO_HELP_BASE@configure.html#station-identity" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Connect to Wi-Fi first (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p>Save a Wi-Fi network before setting station details.</p>
       <p><a href="/">Go to Wi-Fi setup</a></p>
     </section>
 
     <section id="owner-checking" hidden>
-      <h2>Checking station settings</h2>
+      <div class="help-heading"><h2>Checking station settings</h2><a class="documentation-help" title="Checking station settings — online help opens in a new tab" data-help="Checking station settings" href="@WSPRRY_PICO_HELP_BASE@configure.html#station-identity" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Checking station settings (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p>Keep this page open while it checks the result. If your phone leaves the Pico Wi-Fi, reconnect and return to this open page. Do not tap Save again while the result is unknown.</p>
     </section>
 
     <section id="owner-accepted" hidden>
-      <h2>Station settings accepted</h2>
+      <div class="help-heading"><h2>Station settings accepted</h2><a class="documentation-help" title="Station settings accepted — online help opens in a new tab" data-help="Station settings accepted" href="@WSPRRY_PICO_HELP_BASE@configure.html#station-identity" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Station settings accepted (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p>The Pico received your details. This page is checking that they were saved. The Pico may restart and close its setup Wi-Fi.</p>
       <p>Keep this page open. If disconnected, reopen the Pico setup Wi-Fi, reconnect your phone and return to this open page. Do not tap Save again while the result is unknown.</p>
     </section>
 
     <section id="owner-unconfirmed" hidden>
-      <h2>Saved result not confirmed</h2>
+      <div class="help-heading"><h2>Saved result not confirmed</h2><a class="documentation-help" title="Saved result not confirmed — online help opens in a new tab" data-help="Saved result not confirmed" href="@WSPRRY_PICO_HELP_BASE@maintain.html#recovery-and-reset" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Saved result not confirmed (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p>This page could not verify the saved result within three minutes. The settings may have been saved.</p>
       <p>Keep this page open. Reopen the Pico setup Wi-Fi and reconnect your phone; this page will check again. Do not tap Save again until the result is known.</p>
     </section>
 
     <section id="owner-saved" hidden>
-      <h2>Station settings saved</h2>
+      <div class="help-heading"><h2>Station settings saved</h2><a class="documentation-help" title="Station settings saved — online help opens in a new tab" data-help="Station settings saved" href="@WSPRRY_PICO_HELP_BASE@configure.html#station-identity" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Station settings saved (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p>The Pico saved your station details and kept its Wi-Fi settings. It will use them after restart.</p>
     </section>
 
     <section id="owner-retry" hidden>
-      <h2>Station settings not saved</h2>
+      <div class="help-heading"><h2>Station settings not saved</h2><a class="documentation-help" title="Station settings not saved — online help opens in a new tab" data-help="Station settings not saved" href="@WSPRRY_PICO_HELP_BASE@configure.html#station-identity" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Station settings not saved (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p>This attempt ended without a verified save. Check your details and try again.</p>
       <button id="owner-retry-button" type="button">Back to station settings</button>
     </section>
 
     <section id="owner-service" hidden>
-      <h2>Setup needs attention</h2>
+      <div class="help-heading"><h2>Setup needs attention</h2><a class="documentation-help" title="Setup needs attention — online help opens in a new tab" data-help="Setup needs attention" href="@WSPRRY_PICO_HELP_BASE@maintain.html#recovery-and-reset" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Setup needs attention (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p>The Pico could not verify its saved state. Keep it powered for recovery.</p>
     </section>
 
     <section id="owner-browser" hidden>
-      <h2>Open in your browser</h2>
+      <div class="help-heading"><h2>Open in your browser</h2><a class="documentation-help" title="Open in your browser — online help opens in a new tab" data-help="Open in your browser" href="@WSPRRY_PICO_HELP_BASE@configure.html#station-identity" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Open in your browser (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p>This window cannot run encrypted setup. Stay connected to the Pico Wi-Fi and open
         <a href="http://192.168.4.1/owner.html">http://192.168.4.1/owner.html</a> in your regular browser.</p>
     </section>

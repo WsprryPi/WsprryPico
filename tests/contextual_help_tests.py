@@ -1,5 +1,6 @@
 """Missing or renamed manual destinations fail even if firmware URLs agree."""
 import importlib.util
+import re
 from pathlib import Path
 import tempfile
 import unittest
@@ -14,6 +15,29 @@ class HelpLinks(unittest.TestCase):
     def test_shipped_destinations(self):
         for version in ('main', 'devel'):
             help_check.validate(help_check.emitted_links(version), ROOT / 'docs/_build/html', version)
+
+    def test_inline_icons_in_every_source_page(self):
+        # Page-level help must sit beside its heading; Manual remains readable.
+        pages = [ROOT / 'src/network/web/index.html',
+                 *(ROOT / 'src/network/bootstrap_web').glob('*.html')]
+        for page in pages:
+            text = page.read_text()
+            for link in re.findall(r'<a class="documentation-help".*?</a>', text):
+                with self.subTest(page=page.name, link=link[:100]):
+                    if 'aria-label="Manual:' in link:
+                        self.assertIn('>Manual</a>', link)
+                        continue
+                    self.assertIn('aria-hidden="true" focusable="false"', link)
+                    self.assertIn('width="16" height="16"', link)
+                    self.assertIn('stroke="currentColor"', link)
+                    self.assertNotRegex(link, r'<(?:img|script|use)\b')
+                    self.assertRegex(link, r'aria-label="Help: [^"]+"')
+            for summary in re.findall(r'<summary[^>]*>.*?</summary>', text, re.S):
+                self.assertIn('documentation-help', summary, (page, summary))
+            for section in re.findall(r'<section\b[^>]*>.*?</section>', text, re.S):
+                self.assertIn('documentation-help', section, (page, section[:80]))
+            if page.parent.name == 'bootstrap_web' and 'documentation-help' in text:
+                self.assertRegex(text, r'<div class="help-heading"><h1[^>]*>.*?</h1><a class="documentation-help"')
 
     def test_missing_page_anchor_and_unsafe_urls_fail(self):
         attrs = {'href': 'https://wsprrypico.readthedocs.io/en/devel/topic.html#answer',

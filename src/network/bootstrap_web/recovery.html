@@ -10,22 +10,22 @@
 <body>
   <header><strong>WsprryPico</strong><span>Recovery</span></header>
   <main>
-    <h1>Reset this Pico</h1>
-    <p class="documentation-note"><a class="documentation-help" title="Reset and recovery — online help opens in a new tab" data-help="Reset and recovery" href="@WSPRRY_PICO_HELP_BASE@maintain.html#recovery-and-reset" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Reset and recovery (online, opens in a new tab)">Help</a> · <a class="documentation-help" title="Operator manual — online help opens in a new tab" data-help="Operator manual" href="@WSPRRY_PICO_HELP_BASE@index.html" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Manual: Operator manual (online, opens in a new tab)">Manual</a><br>Online help opens in a new tab and needs Internet access. Setup Wi-Fi may have no Internet connection. Keep this tab open; setup does not need online help.</p>
+    <div class="help-heading"><h1>Reset this Pico</h1><a class="documentation-help" title="Reset and recovery — online help opens in a new tab" data-help="Reset and recovery" href="@WSPRRY_PICO_HELP_BASE@maintain.html#recovery-and-reset" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Reset and recovery (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
+    <p class="documentation-note"><a class="documentation-help" title="Operator manual — online help opens in a new tab" data-help="Operator manual" href="@WSPRRY_PICO_HELP_BASE@index.html" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Manual: Operator manual (online, opens in a new tab)">Manual</a><br>Online help opens in a new tab and needs Internet access. Setup Wi-Fi may have no Internet connection. Keep this tab open; setup does not need online help.</p>
     <p><a href="/">Wi-Fi setup</a> · <a href="/owner.html">Station settings</a></p>
     <p id="device" class="device">Checking Pico identity…</p>
     <p id="notice" role="status" aria-live="polite">Keep transmission stopped while using recovery.</p>
     <p class="quiet">Anyone who can access this open setup Wi-Fi can use these actions. Confirmations prevent accidents; they do not authenticate you.</p>
     <section id="actions">
-      <h2>Provisioning reset</h2>
+      <div class="help-heading"><h2>Provisioning reset</h2><a class="documentation-help" title="Provisioning reset — online help opens in a new tab" data-help="Provisioning reset" href="@WSPRRY_PICO_HELP_BASE@maintain.html#recovery-and-reset" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Provisioning reset (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p>Clear network credentials, certificates, engineering access and Bluetooth bonds. Preserve station details, schedules and the time watermark.</p>
       <button id="provisioning" type="button" disabled>Reset provisioning…</button>
-      <h2>Full erase</h2>
+      <div class="help-heading"><h2>Full erase</h2><a class="documentation-help" title="Full erase — online help opens in a new tab" data-help="Full erase" href="@WSPRRY_PICO_HELP_BASE@maintain.html#recovery-and-reset" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Full erase (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p>Also clear station details, schedules and the time watermark. Protected platform boot storage is preserved by both actions.</p>
       <button id="full" type="button" disabled>Erase all settings…</button>
     </section>
     <section id="confirm" hidden>
-      <h2 id="operation" tabindex="-1">Confirm reset</h2>
+      <div class="help-heading"><h2 id="operation" tabindex="-1">Confirm reset</h2><a class="documentation-help" title="Confirm reset — online help opens in a new tab" data-help="Confirm reset" href="@WSPRRY_PICO_HELP_BASE@maintain.html#recovery-and-reset" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Confirm reset (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
       <p id="consequences"></p>
       <form id="reset-form" autocomplete="off">
         <label><input id="confirm-one" type="checkbox" required> I understand which settings will be cleared.</label>
