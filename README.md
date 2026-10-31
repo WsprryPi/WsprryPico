@@ -33,6 +33,8 @@ External GPIO assignments can use **GP0–GP22** or **GP26–GP28**. Each GPIO c
 
 If the Pico answers ping but its page will not open, follow the [browser troubleshooting steps](docs/troubleshoot.md#pico-answers-ping-but-the-browser-cannot-open-its-page). The [USB Console walkthrough](docs/usb.md) explains how to read its address and request setup Wi-Fi without an external button. A USB cable alone does not create a network connection or open the control page.
 
+The [factory defaults reference](docs/reference/defaults.md) lists the initial station, radio, time, connection, logging and CW editor settings. Settings-preserving upgrades retain existing selections.
+
 ## Use with WsprryPi
 
 Start with [Add a WsprryPico in the WsprryPi manual](https://wsprry-pi.readthedocs.io/en/devel/Install/pico.html). In WsprryPi's **Setup → Fleet**, the **Fleet** list identifies available transmitters. Select the Pico for the Pi's jobs or assign it an independent output schedule. USB provides settings, controller time and transmission jobs without Pico Wi-Fi; supported network connections are another option. That manual covers Pi connections, schedules and Pi-managed firmware updates.

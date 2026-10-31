@@ -6,10 +6,12 @@ Keep schedules disabled and output inactive while setting up. Use the hostname l
 
 Reloading the page replaces unsaved browser entries with device-saved values. When a save needs reconciliation, **Review saved settings** preserves your entries and shows a comparison with the Pico’s saved values. A **draft** is an edit or saved work in progress; **applied** settings are the accepted configuration used for operation. Pin changes also need a restart before they become active.
 
-A new installation prefills **N0CALL**, **ZZ99** and **0 dBm**. Replace both placeholders with your station details before applying settings. Automatic WSPR schedules are disabled, with a ten-minute interval aligned to UTC :00, :10, :20, :30, :40 and :50. Firmware upgrades preserve saved settings; defaults apply when the corresponding settings are absent after installation or an explicit reset.
+A new installation prefills **N0CALL**, **ZZ99** and **0 dBm**. Replace both placeholders with your station details before applying settings. Automatic WSPR schedules are disabled, with a ten-minute interval aligned to UTC :00, :10, :20, :30, :40 and :50. Settings-preserving upgrades retain existing selections, including an unset dial or an empty schedule list; missing fields in older records retain their original meanings. A provisioning-only reset preserves operating settings.
 
 (wspr-configuration)=
 ## WSPR configuration
+
+The [factory defaults reference](reference/defaults.md#station-wspr-and-time) lists the initial station, dial, schedule and time values, along with radio, connection, logging and CW editor defaults.
 
 (station-identity)=
 ### Station identity
