@@ -90,7 +90,7 @@ void pbuf_free(pbuf*) {
 }
 namespace {
 struct Harness {
-    bool ap = true, station = true, accepting = true;
+    bool ap = true, station = true, accepting = true, generated = false;
     std::vector<std::uint64_t> handled;
     std::map<std::uint64_t, bool> finished;
     std::weak_ptr<wsprrypico::wtp::FrameBuffer> input;
@@ -112,7 +112,12 @@ struct Harness {
         HttpResponse response;
         if (request.path == "/large") {
             static const std::string body(16000, 'x');
-            response.static_body = body;
+            if (self.generated)
+                response.generated_body =
+                    wsprrypico::wtp::make_response_source<wsprrypico::wtp::TextResponseSource>(
+                        body);
+            else
+                response.static_body = body;
         } else if (request.path == "/post") {
             check(request.body_view().size() == 4096);
             response.body = "accepted";
@@ -199,6 +204,23 @@ void stalled_output() {
     h.request(reused);
     h.complete(reused);
     check(h.handled.back() != h.handled.front() && h.server.connections() == 0);
+}
+void generated_output() {
+    Harness h;
+    h.generated = true;
+    tcp_pcb phone, mac;
+    h.accept(phone);
+    h.accept(mac);
+    h.request(phone, "/large");
+    h.request(mac);
+    phone.no_memory = true;
+    h.complete(mac);
+    check(!phone.closed);
+    phone.no_memory = false;
+    h.complete(phone);
+    check(phone.wire.ends_with(std::string(16000, 'x')));
+    check(phone.wire.find("Content-Length: 16000\r\n") != std::string::npos);
+    check(h.finished.at(h.handled.front()));
 }
 void failures() {
     for (unsigned mode = 0; mode < 6; ++mode) {
@@ -430,6 +452,7 @@ void startup_and_reclamation() {
 int main() {
     slow_upload();
     stalled_output();
+    generated_output();
     failures();
     interface_and_stop();
     expire_ap_preserves_station();

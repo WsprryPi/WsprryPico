@@ -662,8 +662,11 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
                       : !result.static_body.empty() ? wtp::InputView(result.static_body)
                                                     : wtp::InputView(result.body);
     if (size > max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes ||
-        !result.static_parts.empty() || !wtp::json::parse(body) ||
-        !wtp::memory_admitted(result.buffered_body.empty() ? size + 4096 : 8192)) {
+        !result.static_parts.empty() ||
+        (result.generated_body ? !result.generated_body->json_document()
+                               : !wtp::json::parse(body)) ||
+        !wtp::memory_admitted(
+            result.generated_body ? 8192 : (result.buffered_body.empty() ? size + 4096 : 8192))) {
         finish_request(transaction, false);
         if (password_saved)
             close();
@@ -672,17 +675,24 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
         return http_error(503, "radio_response_unavailable");
     }
     std::optional<HttpResponse> response;
-    if (!result.buffered_body.empty()) {
-        // Grow only the final partial page and framing headroom, then transfer
-        // the JSON pages to the cipher instead of allocating a second reply.
+    if (result.generated_body) {
+        auto inner_source = response_source(std::move(result));
+        if (inner_source) {
+            auto source = wtp::make_response_source<wtp::JoinedResponseSource>(
+                prefix, std::move(inner_source), "}", true);
+            if (source)
+                response = session.crypto->seal_source(std::move(source), session.binding, sequence);
+        }
+    } else if (!result.buffered_body.empty()) {
+        // Small typed resources already own their final pages. Keep the cheaper
+        // in-place path instead of paying for a streaming snapshot/cipher owner.
         auto envelope = std::move(result.buffered_body);
         if (envelope.reserve(size + consumer_radio_header_bytes + consumer_radio_tag_bytes) &&
             envelope.prepend(wtp::InputView(prefix).at(0)) &&
             envelope.append(wtp::InputView("}").at(0)))
             response = session.crypto->seal_buffer(std::move(envelope), session.binding, sequence);
     } else {
-        const std::array<wtp::InputView, 3> parts{wtp::InputView(prefix), body,
-                                                  wtp::InputView("}")};
+        const std::array<wtp::InputView, 3> parts{wtp::InputView(prefix), body, wtp::InputView("}")};
         response = session.crypto->seal_parts(parts, session.binding, sequence);
     }
     if (password_saved) {

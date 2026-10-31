@@ -1,6 +1,7 @@
 #include "network/http.hpp"
 
 #include "network/assets.hpp"
+#include "wtp/codec.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 
@@ -20,6 +21,56 @@ void scrub(std::string& value) {
 std::string_view HttpRequest::header(std::string_view name) const {
     auto it = headers.find(std::string(name));
     return it == headers.end() ? std::string_view{} : it->second;
+}
+namespace {
+class OwnedHttpSource final : public wtp::ResponseSource {
+  public:
+    explicit OwnedHttpSource(HttpResponse response) : response_(std::move(response)) {}
+    ~OwnedHttpSource() override {
+        volatile char* bytes = response_.body.data();
+        for (std::size_t i = 0; i < response_.body.size(); ++i)
+            bytes[i] = 0;
+    }
+    std::size_t size() const override {
+        return response_.body_size();
+    }
+    std::size_t copy(std::size_t offset, std::span<std::uint8_t> out) const override {
+        std::size_t done = 0;
+        while (done < out.size() && offset < size()) {
+            const auto part = response_.body_at(offset);
+            const auto count = std::min(part.size(), out.size() - done);
+            if (!count)
+                break;
+            std::copy_n(part.begin(), count, out.begin() + done);
+            offset += count;
+            done += count;
+        }
+        return done;
+    }
+
+  private:
+    HttpResponse response_;
+};
+} // namespace
+HttpResponse browser_load_response(const wtp::Request& request, const wtp::Response& response) {
+    HttpResponse result{200, {}, "application/json", {}};
+    // The fixed index/window costs more than ordinary short replies. Retain
+    // the prior allocation/sealing/framing path for up to 32 adjustments.
+    if (response.adjustments.size() <= 32) {
+        result.buffered_body = wtp::encode_load_response_buffer(request, response, true);
+        if (result.buffered_body.empty())
+            return http_error(503, "resource_exhausted");
+    } else {
+        result.generated_body = wtp::load_response_source(request, response);
+        if (!result.generated_body)
+            return http_error(503, "resource_exhausted");
+    }
+    return result;
+}
+wtp::ResponseSourcePtr response_source(HttpResponse response) {
+    if (response.generated_body)
+        return std::move(response.generated_body);
+    return wtp::make_response_source<OwnedHttpSource>(std::move(response));
 }
 HttpResponse http_error(unsigned status, std::string_view code) {
     return {
@@ -46,6 +97,8 @@ std::string HttpResponse::wire() const {
     auto out = wire_headers();
     for (std::size_t offset = 0; offset < body_size();) {
         const auto page = body_at(offset);
+        if (page.empty())
+            return {}; // Failed or already-consumed forward-only source.
         out.append(reinterpret_cast<const char*>(page.data()), page.size());
         offset += page.size();
     }
@@ -55,6 +108,8 @@ std::string HttpResponse::body_text() const {
     std::string out;
     for (std::size_t offset = 0; offset < body_size();) {
         const auto page = body_at(offset);
+        if (page.empty())
+            return {}; // Failed or already-consumed forward-only source.
         out.append(reinterpret_cast<const char*>(page.data()), page.size());
         offset += page.size();
     }

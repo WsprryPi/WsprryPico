@@ -28,6 +28,33 @@ std::string hex(std::span<const std::uint8_t> bytes) {
 HttpResponse ok(std::string body) {
     return {200, std::move(body), "application/json", {}};
 }
+// Count frozen fragments before allocating output; no complete intermediate
+// document or geometric response-string growth is needed.
+HttpResponse ok_parts(std::initializer_list<std::string_view> parts) {
+    constexpr std::string_view contract = "\"contract\":\"Wsprry-Control/1\",";
+    std::size_t bytes = contract.size();
+    for (const auto part : parts)
+        bytes += part.size();
+    HttpResponse result{200, {}, "application/json", {}};
+    if (!memory_admitted(bytes + 1024) || !result.buffered_body.reserve(bytes))
+        return http_error(503, "resource_exhausted");
+    bool first = true;
+    for (auto part : parts) {
+        if (first) {
+            if (part.empty() || part.front() != '{' ||
+                !result.buffered_body.append(wtp::InputView("{").at(0)) ||
+                !result.buffered_body.append(wtp::InputView(contract).at(0)))
+                return http_error(503, "resource_exhausted");
+            part.remove_prefix(1);
+            first = false;
+        }
+        if (!result.buffered_body.append(
+                {reinterpret_cast<const std::uint8_t*>(part.data()), part.size()}))
+            return http_error(503, "resource_exhausted");
+    }
+    result.control_wrapped = true;
+    return result;
+}
 void append(std::string& output, InputView input) {
     for (std::size_t offset = 0; offset < input.size();) {
         const auto part = input.at(offset);
@@ -570,44 +597,42 @@ HttpResponse BrowserApi::hardware_config() const {
     return result;
 }
 HttpResponse BrowserApi::application_config() const {
-    constexpr bool extended = true, drive = true, amplifier = true;
-    auto station = station_config();
-    if (station.status != 200)
-        return station;
-    auto hardware = hardware_config();
-    if (hardware.status != 200)
-        return hardware;
-    const auto status = scheduler_.status();
-    const auto value = json::parse(status);
-    if (!value)
-        return http_error(503, "resource_exhausted");
-    std::string recurrence = "{\"authority\":\"member\"";
-    for (const auto field : {"enabled", "suspended", "schedules"})
-        recurrence += ',' + json::quote(field) + ':' + std::string(value->get(field)->raw);
-    // Legacy application resources require a decimal string. Zero means
-    // unconfigured; the independent frequency resource reports explicit null.
-    recurrence += ",\"schedule_dial_frequency_nhz\":" +
-                  (value->get("schedule_dial_frequency_nhz")->raw == "null"
-                       ? std::string("\"0\"")
-                       : std::string(value->get("schedule_dial_frequency_nhz")->raw));
-    recurrence +=
-        ",\"expires_utc_s\":" + json::quote(std::string(value->get("expires_utc_s")->raw));
-    recurrence += '}';
-    const auto caps = application::capabilities();
-    auto result = ok(
-        "{\"schema\":" +
-        json::quote(amplifier  ? "application"
-                    : drive    ? "application"
-                    : extended ? "application"
-                               : application::application_schema) +
-        ",\"target\":" + application::target(device_, service_.status().boot_id) +
-        ",\"station\":" + station.body + ",\"hardware\":" + hardware.body +
-        ",\"recurrence\":" + recurrence + ",\"capabilities\":" + caps +
-        (extended ? ",\"wspr_plan\":" +
-                        (effective_config() ? application::wspr_plan(*effective_config()) : "null")
-                  : "") +
-        ",\"reboot_required\":" + (scheduler_.reboot_required() ? "true}" : "false}"));
-    result.etag = revision();
+    auto result = [&]() -> HttpResponse {
+        auto station = station_config();
+        if (station.status != 200)
+            return station;
+        auto hardware = hardware_config();
+        if (hardware.status != 200)
+            return hardware;
+        const auto status = scheduler_.status();
+        const auto value = json::parse(status);
+        if (!value)
+            return http_error(503, "resource_exhausted");
+        std::string recurrence = "{\"authority\":\"member\"";
+        for (const auto field : {"enabled", "suspended", "schedules"})
+            recurrence += ',' + json::quote(field) + ':' + std::string(value->get(field)->raw);
+        // Legacy application resources require a decimal string. Zero means
+        // unconfigured; the independent frequency resource reports explicit null.
+        recurrence += ",\"schedule_dial_frequency_nhz\":" +
+                      (value->get("schedule_dial_frequency_nhz")->raw == "null"
+                           ? std::string("\"0\"")
+                           : std::string(value->get("schedule_dial_frequency_nhz")->raw));
+        recurrence +=
+            ",\"expires_utc_s\":" + json::quote(std::string(value->get("expires_utc_s")->raw));
+        recurrence += '}';
+        const auto caps = application::capabilities();
+        const auto target = application::target(device_, service_.status().boot_id);
+        const auto config = effective_config();
+        const auto plan = config ? application::wspr_plan(*config) : "null";
+        auto result = ok_parts(
+            {"{\"schema\":\"application\",\"target\":", target, ",\"station\":", station.body,
+             ",\"hardware\":", hardware.body, ",\"recurrence\":", recurrence,
+             ",\"capabilities\":", caps, ",\"wspr_plan\":", plan,
+             ",\"reboot_required\":", scheduler_.reboot_required() ? "true}" : "false}"});
+        return result;
+    }();
+    if (result.status == 200)
+        result.etag = revision();
     return result;
 }
 HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
@@ -715,12 +740,8 @@ HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
     std::string{}.swap(payload);
     auto response = service_.handle(std::move(*request));
     request->body = std::monostate{};
-    if (response.ok && request->operation == "LOAD") {
-        auto encoded = encode_load_response_buffer(*request, response, true);
-        if (encoded.empty())
-            return http_error(503, "resource_exhausted");
-        return {200, {}, "application/json", {}, std::move(encoded)};
-    }
+    if (response.ok && request->operation == "LOAD")
+        return browser_load_response(*request, response);
 
     auto encoded = encode_response(*request, response, service_.config(), device_, firmware_);
     const auto result = json::parse(encoded);
@@ -944,29 +965,68 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             const auto caps =
                 encode_response(request, response, service_.config(), device_, firmware_);
             auto value = json::parse(caps);
-            const auto descriptor = [](std::string_view name) { return std::string(control_descriptor(name)); };
+            const auto descriptor = [](std::string_view name) {
+                return std::string(control_descriptor(name));
+            };
             const auto resources = descriptor("application_resources");
             auto message = descriptor("message_schedule");
             message.pop_back();
-            message += ",\"preparation_lead_ns\":" + json::quote(std::to_string(scheduler_.message_lead_ns())) + "}";
-            std::string body = "{\"wtp\":" + std::string(value->get("body")->raw);
-            for (const auto name : {"logging", "ntp_observations", "standalone_frequency", "rf_calibration", "filter_selector", "amplifier_timing", "gpio_drive"})
-                body += ',' + json::quote(name) + ':' + descriptor(name);
-            if (carrier != ManagementCarrier::EngineeringField)
-                body += ",\"operations_status\":" + descriptor("operations_status");
-            body += ",\"amplifier_enable\":" + application::amplifier_capabilities(service_.config().capability_engine == "pio-dma-gp2");
-            body += ",\"message_jobs\":{\"operation\":\"LOAD_MESSAGE\",\"max_characters\":32,\"tail_ns\":\"1000\",\"max_repeat_count\":512,\"modes\":[\"qrss\",\"fskcw\",\"dfcw\"]}";
-            body += ",\"message_schedule\":" + message;
-            body += ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,\"application\":true,\"station\":true,\"hardware\":true,\"consumer_setup_identity\":" +
-                std::string(consumer_runtime_ && (consumer_runtime_->consumer_profile() || consumer_runtime_->network_profile()) ? "true" : "false") +
+            message += ",\"preparation_lead_ns\":" +
+                       json::quote(std::to_string(scheduler_.message_lead_ns())) + "}";
+            const auto wtp_caps = std::string(value->get("body")->raw);
+            const auto amplifier = application::amplifier_capabilities(
+                service_.config().capability_engine == "pio-dma-gp2");
+            const auto features =
+                ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
+                "\"application\":true,\"station\":true,\"hardware\":true,\"consumer_setup_"
+                "identity\":" +
+                std::string(consumer_runtime_ && (consumer_runtime_->consumer_profile() ||
+                                                  consumer_runtime_->network_profile())
+                                ? "true"
+                                : "false") +
                 ",\"softap\":true,\"ble\":true,\"restart\":" + (restart_ ? "true" : "false") + "}";
-            body += ",\"application_resources\":" + resources + ",\"configuration_updates\":" + descriptor("configuration_updates");
-            body += ",\"management_carriers\":" + descriptor("management_carriers");
-            body += ",\"active_job_connections\":" + std::string(active_job_connections_ ? "true" : "false");
-            if (progress_) body += ",\"saved_progress\":" + descriptor("saved_progress");
-            body += ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}";
-            auto result = ok(std::move(body));
-            if (result.body.size() > application::max_capabilities_bytes)
+            const auto connections = ",\"active_job_connections\":" +
+                                     std::string(active_job_connections_ ? "true" : "false");
+            auto result = ok_parts(
+                {"{\"wtp\":",
+                 wtp_caps,
+                 ",\"logging\":",
+                 control_descriptor("logging"),
+                 ",\"ntp_observations\":",
+                 control_descriptor("ntp_observations"),
+                 ",\"standalone_frequency\":",
+                 control_descriptor("standalone_frequency"),
+                 ",\"rf_calibration\":",
+                 control_descriptor("rf_calibration"),
+                 ",\"filter_selector\":",
+                 control_descriptor("filter_selector"),
+                 ",\"amplifier_timing\":",
+                 control_descriptor("amplifier_timing"),
+                 ",\"gpio_drive\":",
+                 control_descriptor("gpio_drive"),
+                 carrier != ManagementCarrier::EngineeringField ? ",\"operations_status\":" : "",
+                 carrier != ManagementCarrier::EngineeringField
+                     ? control_descriptor("operations_status")
+                     : "",
+                 ",\"amplifier_enable\":",
+                 amplifier,
+                 ",\"message_jobs\":{\"operation\":\"LOAD_MESSAGE\",\"max_characters\":32,\"tail_"
+                 "ns\":\"1000\",\"max_repeat_count\":512,\"modes\":[\"qrss\",\"fskcw\",\"dfcw\"]}",
+                 ",\"message_schedule\":",
+                 message,
+                 features,
+                 ",\"application_resources\":",
+                 resources,
+                 ",\"configuration_updates\":",
+                 control_descriptor("configuration_updates"),
+                 ",\"management_carriers\":",
+                 control_descriptor("management_carriers"),
+                 connections,
+                 progress_ ? ",\"saved_progress\":" : "",
+                 progress_ ? control_descriptor("saved_progress") : "",
+                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
+                 "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}"});
+            if (result.body_size() > application::max_capabilities_bytes)
                 return http_error(503, "capabilities_too_large");
             return result;
         }

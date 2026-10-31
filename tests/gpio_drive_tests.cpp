@@ -74,11 +74,11 @@ void current_persistence() {
         REQUIRE(m.drive(std::to_string(value)).status == 200);
         const auto r = m.call("GET", "/api/control/v1/gpio-drive");
         REQUIRE(r.status == 200);
-        const auto v = parse(r.body);
+        const auto v = parse(r.body_view());
         REQUIRE(v->get("saved")->integer() == int(value));
         REQUIRE(v->get("boot_active")->raw == "4");
         REQUIRE(v->get("pad_readback")->raw == "null");
-        REQUIRE(m.call("GET", "/api/control/v1/config").body.find("gpio_drive_ma") != std::string::npos);
+        REQUIRE(m.call("GET", "/api/control/v1/config").body_text().find("gpio_drive_ma") != std::string::npos);
         REQUIRE(m.drive(value == 2 ? "12" : "2").status == 200);
         auto full = network_test::config;
         full.pop_back();
@@ -91,7 +91,7 @@ void current_persistence() {
         update.insert(update.size() - 1, ",\"mode\":\"merge\"");
         REQUIRE(m.call("POST", "/api/control/v1/config/update", update).status == 200);
         REQUIRE(m.f.store.config()->gpio_drive_ma == value);
-        REQUIRE(m.call("GET", "/api/control/v1/application").body.find("hardware") !=
+        REQUIRE(m.call("GET", "/api/control/v1/application").body_text().find("hardware") !=
                 std::string::npos);
         REQUIRE(m.call("POST", "/api/control/v1/config/update", network_test::configuration_update(network_test::config)).status == 200);
         REQUIRE(m.f.store.config()->gpio_drive_ma == value);
@@ -120,19 +120,19 @@ void observations_and_admission() {
     network_test::Fixture blank;
     auto r = request("GET", "/api/control/v1/gpio-drive");
     auto view = blank.api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
-    auto v = parse(view.body);
+    auto v = parse(view.body_view());
     REQUIRE(v->get("saved")->raw == "null");
     REQUIRE(v->get("boot_active")->raw == "12");
     REQUIRE(v->get("pad_readback")->raw == "null");
     Member m;
     m.api.gpio_drive_observer(+[] { return 8; });
     view = m.call("GET", "/api/control/v1/gpio-drive");
-    REQUIRE(parse(view.body)->get("pad_readback")->raw == "8");
-    REQUIRE(parse(view.body)->get("boot_active")->raw == "4");
+    REQUIRE(parse(view.body_view())->get("pad_readback")->raw == "8");
+    REQUIRE(parse(view.body_view())->get("boot_active")->raw == "4");
     m.api.gpio_drive_observer(+[] { return -2; });
     view = m.call("GET", "/api/control/v1/gpio-drive");
-    REQUIRE(parse(view.body)->get("pad_readback")->raw == "null");
-    REQUIRE(parse(view.body)->get("application_error")->string() == "pad_application_failed");
+    REQUIRE(parse(view.body_view())->get("pad_readback")->raw == "null");
+    REQUIRE(parse(view.body_view())->get("application_error")->string() == "pad_application_failed");
     const auto sequence = m.f.store.config_sequence();
     const auto good = m.envelope("gpio-drive", "gpio_drive_ma", "8");
     for (const auto extra : {",\"unknown\":true", ",\"gpio_drive_ma\":4"}) {
@@ -173,8 +173,8 @@ void drafts_and_failures() {
     REQUIRE(save(R"({"gpio_drive_ma":8,"locator":"FN42"})").status==200);
     REQUIRE(m.f.store.config()->gpio_drive_ma==12);
     const auto read=m.call("GET","/api/control/v1/progress");
-    REQUIRE(parse(read.body)->get("fields")->get("gpio_drive_ma")->integer()==8);
-    REQUIRE(parse(read.body)->get("matches_applied")->raw=="false");
+    REQUIRE(parse(read.body_view())->get("fields")->get("gpio_drive_ma")->integer()==8);
+    REQUIRE(parse(read.body_view())->get("matches_applied")->raw=="false");
     auto apply=m.envelope("progress","application","{\"domain\":\"drive\",\"draft_revision\":"+
         quote(std::to_string(m.progress.sequence()))+"}");
     REQUIRE(m.call("POST","/api/control/v1/progress/apply",apply).status==200);

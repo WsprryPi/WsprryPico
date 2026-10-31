@@ -196,12 +196,12 @@ void policy() {
     REQUIRE(f.api.handle(network_test::control_request(submit), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 5, 8)
                 .status == 409);
 
-    challenge.body.replace(challenge.body.find(std::string(32, '2')), 32, std::string(32, '3'));
+    challenge.body.replace(challenge.body_text().find(std::string(32, '2')), 32, std::string(32, '3'));
     REQUIRE(
         f.api.handle(network_test::control_request(challenge), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 6, 9)
             .status == 200);
     f.api.finish_request(9, true);
-    submit.body.replace(submit.body.find(std::string(32, '2')), 32, std::string(32, '3'));
+    submit.body.replace(submit.body_text().find(std::string(32, '2')), 32, std::string(32, '3'));
     f.now += 10'000'000ULL;
     REQUIRE(f.api.handle(network_test::control_request(submit), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 7, 10)
                 .status == 200);
@@ -213,9 +213,9 @@ void policy() {
     const auto capabilities =
         f.api.handle(network_test::control_request(caps), provisioning::SoftApSurface::Normal, hostname, 8, 11);
     REQUIRE(capabilities.status == 200);
-    REQUIRE(capabilities.body.find("\"softap\":true") != std::string::npos);
-    REQUIRE(capabilities.body.find("\"ble\":true") != std::string::npos);
-    REQUIRE(capabilities.body.find("\"application\":true") != std::string::npos);
+    REQUIRE(capabilities.body_text().find("\"softap\":true") != std::string::npos);
+    REQUIRE(capabilities.body_text().find("\"ble\":true") != std::string::npos);
+    REQUIRE(capabilities.body_text().find("\"application\":true") != std::string::npos);
     for (const auto path :
          {"/api/control/v1/application", "/api/control/v1/station", "/api/control/v1/application", "/api/control/v1/station",
           "/api/control/v1/hardware", "/api/control/v1/pins", "/api/control/v1/gpio-drive", "/api/control/v1/rf-calibration",
@@ -304,14 +304,14 @@ void policy() {
     malformed_hello.body = *stripped;
     REQUIRE(f.api.handle(malformed_hello, provisioning::SoftApSurface::Normal, hostname, 9, 19).status == 400);
     malformed_hello = hello;
-    malformed_hello.body.replace(malformed_hello.body.find("Wsprry-Control/1"), 15, "Wsprry-Control/2");
+    malformed_hello.body.replace(malformed_hello.body_text().find("Wsprry-Control/1"), 15, "Wsprry-Control/2");
     REQUIRE(f.api.handle(malformed_hello, provisioning::SoftApSurface::Normal, hostname, 9, 20).status == 400);
     auto refreshed_status = status;
     refreshed_status.headers["x-wsprrypico-session"] = std::string(32, '8');
     const auto refreshed =
         f.api.handle(network_test::control_request(refreshed_status), provisioning::SoftApSurface::Normal, hostname, 10, 17);
     REQUIRE(refreshed.status == 200);
-    REQUIRE(refreshed.body.find("\"wtp_session\":\"" + std::string(session) + "\"") !=
+    REQUIRE(refreshed.body_text().find("\"wtp_session\":\"" + std::string(session) + "\"") !=
             std::string::npos);
     auto conflicting_status = request("GET", "/api/control/v1/status");
     conflicting_status.headers.erase("origin");

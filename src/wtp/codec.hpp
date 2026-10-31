@@ -2,6 +2,7 @@
 #include "wtp/job_service.hpp"
 #include "wtp/json.hpp"
 #include "wtp/output_buffer.hpp"
+#include "wtp/response_source.hpp"
 
 namespace wsprrypico::wtp {
 // Invalid envelope has no safely echoable identity and closes without a response.
@@ -18,6 +19,7 @@ std::string encode_response(const Request& request, const Response& response,
 // insufficient working space; the endpoint must close and permit reconciliation.
 OutputBuffer encode_load_response_buffer(const Request& request, const Response& response,
                                          bool browser = false);
+ResponseSourcePtr load_response_source(const Request&, const Response&);
 // Own immutable adjustments and one reusable wire page. Partial transport writes
 // and TLS retries retain the same page until every byte in it is consumed.
 class LoadResponseStream {

@@ -77,6 +77,17 @@ struct Crypto : network::ConsumerRadioCrypto {
         const auto view = plaintext.view();
         return seal_parts(std::span(&view, 1), binding, sequence);
     }
+    std::optional<network::HttpResponse> seal_source(wtp::ResponseSourcePtr plaintext,
+                                                     const network::ConsumerRadioBinding&,
+                                                     std::uint64_t) override {
+        std::string text;
+        for (std::size_t offset = 0; offset < plaintext->size();) {
+            const auto part = plaintext->at(offset);
+            text.append(reinterpret_cast<const char*>(part.data()), part.size());
+            offset += part.size();
+        }
+        return network::HttpResponse{200, std::move(text), "application/json", {}};
+    }
     void clear() override {}
 };
 network::HttpRequest request(std::string path, std::string body = {}, bool binary = false) {

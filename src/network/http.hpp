@@ -1,6 +1,7 @@
 #pragma once
 #include "wtp/frame_buffer.hpp"
 #include "wtp/output_buffer.hpp"
+#include "wtp/response_source.hpp"
 
 #include <cstdint>
 #include <map>
@@ -10,6 +11,10 @@
 #include <string>
 #include <string_view>
 
+namespace wsprrypico::wtp {
+struct Request;
+struct Response;
+} // namespace wsprrypico::wtp
 namespace wsprrypico::network {
 inline constexpr std::size_t max_http_headers = 2048, max_http_body = 32768;
 struct HttpRequest {
@@ -30,6 +35,9 @@ struct HttpRequest {
         if (selected_body)
             return *selected_body;
         return buffered_body ? buffered_body->view() : wtp::InputView(body);
+    }
+    std::string body_text() const {
+        return std::string(body_view());
     }
     std::string_view header(std::string_view name) const;
 };
@@ -56,6 +64,8 @@ struct HttpResponse {
     // An empty override retains the main browser policy.
     std::string_view content_security_policy{};
     std::string_view location{};
+    wtp::ResponseSourcePtr generated_body{};
+    bool control_wrapped = false;
     void reset() {
         // Empty-string assignment can retain the preceding response's heap
         // buffer. Return it when the transport finishes or cancels a response.
@@ -63,6 +73,8 @@ struct HttpResponse {
         *this = HttpResponse{};
     }
     std::size_t body_size() const {
+        if (generated_body)
+            return generated_body->size();
         if (!static_parts.empty()) {
             std::size_t size = 0;
             for (const auto part : static_parts)
@@ -74,6 +86,8 @@ struct HttpResponse {
         return buffered_body.empty() ? body.size() : buffered_body.size();
     }
     std::span<const std::uint8_t> body_at(std::size_t offset) const {
+        if (generated_body)
+            return generated_body->at(offset);
         if (!static_parts.empty()) {
             for (const auto part : static_parts) {
                 if (offset < part.size())
@@ -92,6 +106,13 @@ struct HttpResponse {
             return buffered_body.at(offset);
         return std::span(reinterpret_cast<const std::uint8_t*>(body.data()), body.size())
             .subspan(offset);
+    }
+    // Borrow materialized JSON without flattening it. Generated sources are
+    // consumed through body_at(), never exposed as a dangling InputView.
+    wtp::InputView body_view() const {
+        if (!buffered_body.empty())
+            return buffered_body.view();
+        return static_body.empty() ? wtp::InputView(body) : wtp::InputView(static_body);
     }
     // Convenience for host consumers. Target transport streams body_at pages.
     std::string body_text() const;
@@ -131,5 +152,9 @@ class HttpParser {
     bool exhausted_ = false;
     bool headers_done_ = false, ready_ = false, failed_ = false;
 };
+// Preserve the materialized path for small LOAD replies; large immutable
+// adjustment lists use a bounded generator instead of a complete JSON body.
+HttpResponse browser_load_response(const wtp::Request&, const wtp::Response&);
+wtp::ResponseSourcePtr response_source(HttpResponse response);
 HttpResponse http_error(unsigned status, std::string_view code);
 } // namespace wsprrypico::network

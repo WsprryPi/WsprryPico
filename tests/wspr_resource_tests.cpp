@@ -20,7 +20,7 @@ int main(int argc, char**) {
     const auto call = [&](network::HttpRequest r) {
         return f.api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     };
-    REQUIRE(call(request("GET", "/api/control/v1/capabilities")).body.find("application_resources") !=
+    REQUIRE(call(request("GET", "/api/control/v1/capabilities")).body_text().find("application_resources") !=
             std::string::npos);
     for (const auto callsign :
          {"AA0NT", "AA0NT/12", "<AA0NT>", "<AA0NT/12>", "PJ4/AA0NT", "W1A/AA0NT", "<W1A/AA0NT>"}) {
@@ -30,7 +30,7 @@ int main(int argc, char**) {
         const auto sequence = f.store.config_sequence();
         auto preview = call(request("POST", "/api/control/v1/wspr-plan", station));
         REQUIRE(preview.status == 200 &&
-                wtp::json::parse(preview.body)->get("supported")->boolean());
+                wtp::json::parse(preview.body_view())->get("supported")->boolean());
         REQUIRE(f.api.revision() == before && f.store.config_sequence() == sequence);
         auto r = request("PUT", "/api/control/v1/station",
                          "{\"schema\":\"station\",\"target\":" +
@@ -39,17 +39,17 @@ int main(int argc, char**) {
         r.headers["if-match"] = before;
         const auto saved = call(r);
         REQUIRE(saved.status == 200 &&
-                saved.body.find("station") != std::string::npos);
-        REQUIRE(saved.body.find(callsign) != std::string::npos);
+                saved.body_text().find("station") != std::string::npos);
+        REQUIRE(saved.body_text().find(callsign) != std::string::npos);
         auto extended = call(request("GET", "/api/control/v1/application"));
-        const auto body = wtp::json::parse(extended.body);
-        REQUIRE(extended.status == 200 && body && extended.body.size() <= 4096);
+        const auto body = wtp::json::parse(extended.body_view());
+        REQUIRE(extended.status == 200 && body && extended.body_size() <= 4096);
         REQUIRE(body->get("capabilities")->get("station_encoding")->string() ==
                 "wspr_type123_auto");
         REQUIRE(body->get("wspr_plan")->get("supported")->boolean());
         if (samples.size() > 1)
             samples += ',';
-        samples += wtp::json::quote(callsign) + ':' + extended.body;
+        samples += wtp::json::quote(callsign) + ':' + extended.body_text();
         REQUIRE(call(request("GET", "/api/control/v1/application")).status ==
                 200U);
         standalone::Store reboot(f.flash);
@@ -69,7 +69,7 @@ int main(int argc, char**) {
         const auto revision = f.api.revision();
         const auto preview = call(request("POST", "/api/control/v1/wspr-plan", station));
         REQUIRE(preview.status == 400 ||
-                preview.body.find("\"supported\":false") != std::string::npos);
+                preview.body_text().find("\"supported\":false") != std::string::npos);
         auto invalid =
             request("PUT", "/api/control/v1/station",
                     "{\"schema\":\"station\",\"target\":" +
