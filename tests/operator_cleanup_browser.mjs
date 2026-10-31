@@ -71,7 +71,7 @@ const click=id=>evaluate(`document.getElementById(${JSON.stringify(id)}).click()
 const idle=()=>until(()=>evaluate('typeof busy!=="undefined" && !busy'),'request completion');
 async function checkStatusTypography(context) {
   const type=await evaluate(`(()=>{const root=getComputedStyle(document.documentElement);return {family:root.fontFamily,size:parseFloat(root.fontSize),values:Array.from(document.querySelectorAll('#transmitter-status dd')).map(e=>{const s=getComputedStyle(e);return {id:e.id,family:s.fontFamily,size:parseFloat(s.fontSize),weight:s.fontWeight,lineHeight:parseFloat(s.lineHeight)}})}})()`);
-  assert.equal(type.values.length,11,'both status grids and the conditional next value are covered');
+  assert.equal(type.values.length,10,'the status grid and conditional next value are covered');
   for(const value of type.values) {
     assert.equal(value.family,type.family,`${context} ${value.id} system font`);
     assert.equal(value.size,type.size,`${context} ${value.id} body-sized value`);
@@ -89,8 +89,8 @@ async function key(key,code=key) {
   await send('Input.dispatchKeyEvent',{type:'keyUp',key,code,windowsVirtualKeyCode});
 }
 async function checkStatusGrid() {
-  const original=await evaluate(`['console-message','hostname'].map(id=>[id,document.getElementById(id).textContent])`);
-  await evaluate(`document.getElementById('console-message').textContent='ABCDEFGHIJKLMNOPQRSTUVWXYZ123456\\nDot 3000000000 s · 512 copies';document.getElementById('hostname').textContent='a'.repeat(63)+'.'+'b'.repeat(63)+'.'+'c'.repeat(63)+'.'+'d'.repeat(57)+'.local';`);
+  const original=await evaluate(`['console-message','device-name'].map(id=>[id,document.getElementById(id).textContent])`);
+  await evaluate(`document.getElementById('console-message').textContent='ABCDEFGHIJKLMNOPQRSTUVWXYZ123456\\nDot 3000000000 s · 512 copies';document.getElementById('device-name').textContent='a'.repeat(63)+'.'+'b'.repeat(63)+'.'+'c'.repeat(63)+'.'+'d'.repeat(57)+'.local';`);
   for(const width of [1280,900,899,650,600,599,390,320]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});
     const grid=await evaluate(`(()=>{const lists=document.querySelectorAll('#transmitter-status dl');const list=lists[0],s=getComputedStyle(list);return {lists:lists.length,columns:s.gridTemplateColumns.split(' ').length,align:s.textAlign,overflow:document.documentElement.scrollWidth>innerWidth,items:[...list.children].filter(e=>!e.hidden).map(e=>{const r=e.getBoundingClientRect(),d=e.querySelector('dd').getBoundingClientRect();return {x:r.left,y:r.top,ddx:d.left,align:getComputedStyle(e).textAlign};})};})()`);
@@ -216,7 +216,7 @@ try {
   assert.equal(await evaluate('document.getElementById("console-next-item").hidden'),true);
   assert.equal(await evaluate('document.getElementById("console-next").textContent'),'');
   assert.match(await evaluate('document.getElementById("console-correction").textContent'),/^(?:-?\d+\.\d{3}|Unavailable)$/);
-  assert.equal(await evaluate('document.getElementById("hostname").textContent'),await evaluate('hostnameState.active'));
+  assert.equal(await evaluate('document.getElementById("device-name").textContent'),await evaluate('hostnameState.active'));
   for(const id of ['console-explanation','console-local','console-utc','console-observed','engine','discovery'])
     assert.equal(await evaluate(`document.getElementById('${id}')`),null);
   assert.equal(await evaluate('document.getElementById("notice").hidden'),true);
@@ -418,7 +418,7 @@ try {
   assert.equal(await evaluate('document.getElementById("console-next-item").hidden'),true);
   await f.command({op:'schedule_tick',delta_ns:'0',uncertainty_ns:'600000000'});
   await click('refresh');await idle();
-  assert.match(await evaluate('document.getElementById("console-warning").textContent'),/clock uncertainty.*INTERNAL_ERROR/);
+  assert.match(await evaluate('document.getElementById("console-warning").textContent'),/Clock uncertainty.*INTERNAL_ERROR/);
   await checkStatusGrid();
   if(output)for(const [width,height,name] of [[1280,1000,'desktop'],[650,1000,'tablet'],[390,1000,'mobile']]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
@@ -431,6 +431,21 @@ try {
   await click('refresh');await idle();
   assert.equal(await evaluate('document.getElementById("console-state").textContent'),'Job armed');
   assert.equal(await evaluate('document.getElementById("console-warning").hidden'),true,'confirmed admission clears the failure banner');
+  assert.equal(await evaluate('document.getElementById("console-frequency-label").textContent'),'Dial frequency');
+  assert.equal(await evaluate('document.getElementById("console-frequency").textContent'),'7.0386 MHz');
+  const lockedFrequencyRead=await scheduleClient.request('standalone-frequency');
+  const lockedFrequency=await lockedFrequencyRead.json();
+  assert.equal((await scheduleClient.request('standalone-frequency','PUT',{schema:'standalone-frequency',target:lockedFrequency.target,frequency_hz:14095600},lockedFrequencyRead.headers.get('etag'))).status,409,'owned scheduler job refuses a changed dial');
+  await f.command({op:'schedule_tick',delta_ns:'5000000000'});
+  await click('refresh');await idle();
+  assert.equal(await evaluate('document.getElementById("console-state").textContent'),'Job running');
+  assert.equal(await evaluate('document.getElementById("console-frequency").textContent'),'7.0386 MHz');
+  assert.match(await evaluate('document.getElementById("console-progress").textContent'),/^Running · ~\d+%$/);
+  if(output)for(const [width,height,name] of [[1280,1000,'desktop'],[390,1000,'mobile']]) {
+    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
+    await evaluate('scrollTo(0,0)');
+    saveScreenshot('compact-wspr-running-'+name+'.png',await send('Page.captureScreenshot',{format:'png'}));
+  }
   console.log('PASS recorded WSPR admission failure, simultaneous clock blocker, recovery and left-aligned 3/2/1 grid through production HTTP');
 
   console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,api:'production HTTP/crypto',hardware:false,screenshots:screenshotCount}));

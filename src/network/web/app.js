@@ -85,10 +85,12 @@ function consoleState(state,explanation,problem = '') {
 function clearConsole(reason = 'Read a fresh observation before using controls.') {
   operationsSnapshot=null; consoleObservedMs=0;
   consoleState(reconnectRunning ? 'Reset unconfirmed · reconnecting' : restartSent ? 'Reset unconfirmed' : 'Status unavailable',reason);
-  for(const id of ['state','output','clock','owner','network','hostname']) consolePut(id,'Unknown');
+  for(const id of ['state','output','clock','owner','network']) consolePut(id,'Unknown');
   consolePut('job-progress','Progress unavailable · status unknown');
   consolePut('discovery-help','');
   for(const field of ['mode','frequency','message','progress','correction']) consolePut('console-'+field,'Unavailable');
+  consolePut('console-progress','Unknown');
+  consolePut('console-frequency-label','Frequency');
   consolePut('console-next',''); $('console-next-item').hidden=true;
   consolePut('console-actions','');
 }
@@ -110,6 +112,7 @@ function renderConsole() {
   consoleState(view.state,view.explanation,view.warning);
   if($('console-state')) $('console-state').hidden=operationsSnapshot.job.state==='empty' && !view.warning && view.state!=='Recovery required';
   for(const field of ['mode','frequency','message','progress','next','correction','actions']) consolePut('console-'+field,view[field]);
+  consolePut('console-frequency-label',view.frequencyLabel);
   $('console-next-item').hidden=!view.next;
 }
 function consoleTick() {
@@ -1008,7 +1011,9 @@ async function refresh(loadConfig = false, quiet = false) {
     } else {
       if(!WsprryOperations.basicValid(observation,localIdentity?.boot_id||operationsTarget?.boot_id||capabilitiesBoot)) throw new Error('Basic status is malformed or belongs to a different boot');
       operationsSnapshot=null;
-      for(const field of ['mode','frequency','message','progress','correction']) consolePut('console-'+field,'Unavailable on this connection');
+      for(const field of ['mode','frequency','message','progress','correction']) consolePut('console-'+field,'Unavailable');
+      consolePut('console-progress','Unknown');
+      consolePut('console-frequency-label','Frequency');
       consolePut('console-next',''); $('console-next-item').hidden=true;
     }
     privateStatusVisible=true; snapshot=observation; consoleObservedMs=Date.now(); expectedPause = false; observedClockMs = Date.now();
@@ -1025,20 +1030,18 @@ async function refresh(loadConfig = false, quiet = false) {
     $('job-result').textContent = snapshot.job.job_id ? `Job ${snapshot.job.job_id}: ${snapshot.job.state} · observed ${observedAt}` : 'No loaded job · observed ' + observedAt;
     if (s.last_job === snapshot.job.job_id && Number.isInteger(s.wspr_frame) && s.wspr_frame > 0 && s.wspr_frame <= s.wspr_frames && [1,2].includes(s.wspr_frames)) $('job-result').textContent += ` · standalone WSPR frame ${s.wspr_frame} of ${s.wspr_frames}${s.wspr_pair_pending ? ' · pair in progress' : ''}`;
     $('output').textContent = snapshot.job.output_active === true ? 'Active' : snapshot.job.output_active === false ? 'Inactive' : 'Unknown';
-    $('clock').textContent = `${s.clock_state === 'holdover' ? 'using last time update' : s.clock_state} · ±${(Number(s.uncertainty_ns)/1e6).toFixed(2)} ms`;
-    $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id === 'e'.repeat(32) ? 'Pico schedule' : snapshot.job.owner_id || 'Available';
+    $('clock').textContent = `${s.clock_state === 'holdover' ? 'Holdover' : s.clock_state === 'synchronized' ? 'Synchronized' : 'Unsynchronized'} · ±${(Number(s.uncertainty_ns)/1e6).toFixed(2)} ms`;
+    $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id === 'e'.repeat(32) ? 'Pico schedule' : snapshot.job.owner_id ? 'Other controller' : 'Available';
     $('network').textContent = `${n.link_status === 3 ? 'Connected' : 'Disconnected'} · ${n.ipv4 || 'No address'}`;
-    const named=await readHostname(identityRequest);
+    await readHostname(identityRequest);
     if(epoch!==observationEpoch) return;
-    const activeHostname=named?.active ?? n.configured_hostname;
-    $('hostname').textContent = canonicalHostname(activeHostname)===activeHostname ? activeHostname : 'Unavailable';
     $('discovery-help').textContent = n.mdns_state === 'conflict' ? 'Another device is using this hostname. Resolve the duplicate, then retry with USB Console WIFI OFF and WIFI ON while idle. The device will not rename itself.' : n.mdns_reason === 'device_identity_mismatch' ? 'Credentials belong to a different device. Rebuild with this device’s certificate bundle and recover through USB Console.' : n.mdns_state === 'failed' ? 'Name discovery failed. Use the current IP address and check USB Console INFO.' : '';
     if (radio) {
       updateSetupReceipt();
     }
-    $('recovery').textContent = !capabilities.active_job_connections ? 'Network connections pause while RF jobs are armed or running. The job owner can abort over an established WTP connection; physical USB Console ABORT can also stop a job. ' : '';
+    $('recovery').textContent = !capabilities.active_job_connections ? 'Network pauses during armed/running jobs; stop through the owning controller or USB Console ABORT. ' : '';
     $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Settings saved. Use Reset Pico to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
-    if (s.frequency_required) $('recovery').textContent += ' Standalone transmission is blocked: choose and save a WSPR frequency in WSPR Configuration, then explicitly enable schedules.';
+    if (s.frequency_required) $('recovery').textContent += ' Future WSPR needs a saved dial before schedules can be enabled.';
     if (loadConfig) {
       const c = await api('config'); const config=checkedConfig(c);
       let network = config?.wifi;
@@ -1067,7 +1070,7 @@ async function refresh(loadConfig = false, quiet = false) {
     renderConsole();
     updateProgress(); messagePreview();
     if(!quiet) notice(''); controls(true);
-  } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network','hostname']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Controls locked. Public readback is unavailable.'; notice('Read-only status or settings could not be read: '+e.message+'. Check the connection and refresh. Your drafts are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
+  } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Controls locked. Public readback is unavailable.'; notice('Read-only status or settings could not be read: '+e.message+'. Check the connection and refresh. Your drafts are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
 }
 async function action(fn, options = {}) {
   if (accessClosing || stopRequested && !options.emergency) return;

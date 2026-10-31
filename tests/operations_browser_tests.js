@@ -24,6 +24,62 @@ function recurring(v) {
 }
 (async()=>{
   assert.doesNotMatch(fs.readFileSync(__dirname+'/../src/network/web/index.html','utf8').match(/<p id="public-status-note"[^>]*>/)[0],/aria-live|role=/);
+  for(const [input,expected] of [
+    ['0','0 Hz'],['1','0.000000001 Hz'],['475000000000','475 Hz'],
+    ['999999999999','999.999999999 Hz'],['1000000000000','1 kHz'],
+    ['135500000000000','135.5 kHz'],['999999999999999','999.999999999999 kHz'],
+    ['1000000000000000','1 MHz'],['14095600000000000','14.0956 MHz'],
+    ['18446744073709551615','18446.744073709551615 MHz'],
+    [null,'Unavailable'],[undefined,'Unavailable'],['-1','Unavailable'],['01','Unavailable']
+  ]) assert.equal(ops.formatFrequency(input),expected);
+  assert.equal(ops.formatFrequencies(['135505000000000','135500000000000']),'135.505/135.500 kHz');
+  assert.equal(ops.formatFrequencies(['135500000000000','135500000000001']),'135.500000000000/135.500000000001 kHz','one nanohertz remains distinguishable');
+  assert.equal(ops.formatFrequencies(['999000000000','1000000000000']),'0.999/1.000 kHz','one common unit across its boundary');
+  assert.equal(ops.formatFrequencies([]),'Unavailable');
+  const compactCaps={wtp:{maximum_holdover_age_ns:'3600000000000',maximum_arm_uncertainty_ns:'1000000'}};
+  for(const mode of ['qrss','fskcw','dfcw','wspr','cw','tone']) {
+    const value=observation();active(value,mode);
+    if(['wspr','cw','tone'].includes(mode))value.accepted.message=null;
+    const view=ops.model(value,compactCaps,'x');
+    for(const field of ['mode','frequency','message','progress'])assert.doesNotMatch(view[field],/[\r\n]/,mode+' '+field);
+    assert(!view.progress.includes(value.job.job_id));assert(!view.progress.includes('events'));
+    if(mode==='wspr') {assert.equal(view.frequencyLabel,'Dial frequency');assert.equal(view.frequency,'Unavailable');assert.equal(view.message,'Encoded WSPR frame');}
+    if(mode==='fskcw')assert.equal(view.frequencyLabel,'Space/Mark');
+    if(mode==='dfcw')assert.equal(view.frequencyLabel,'Dot/Dash');
+  }
+  const raw=observation();active(raw,'cw');raw.accepted.message=null;
+  raw.accepted.frequencies_nhz=[];assert.equal(ops.model(raw,compactCaps,'x').frequency,'Unavailable');
+  raw.accepted.frequencies_nhz=['475000000000'];assert.equal(ops.model(raw,compactCaps,'x').frequency,'475 Hz');
+  raw.accepted.frequencies_nhz=['1000000000000','475000000000'];assert.equal(ops.model(raw,compactCaps,'x').frequency,'0.475–1.000 kHz');
+  raw.accepted.frequencies_truncated=true;assert.equal(ops.model(raw,compactCaps,'x').frequency,'Multiple frequencies');
+  raw.accepted.mode='wspr';assert.equal(ops.model(raw,compactCaps,'x').frequency,'Unavailable','WSPR never shows raw tone lists/spans');
+  const local=observation();active(local,'wspr');local.accepted.message=null;
+  local.job.owner_id=local.standalone.owner_id='e'.repeat(32);local.standalone.last_job=local.job.job_id;
+  local.standalone.wspr_frames=2;local.standalone.wspr_frame=1;
+  assert.equal(ops.model(local,compactCaps,'x').frequency,'14.0956 MHz');
+  assert.equal(ops.model(local,compactCaps,'x').progress,'Frame 1/2 · ~100%');
+  local.standalone.wspr_frame=2;assert.equal(ops.model(local,compactCaps,'x').progress,'Frame 2/2 · ~100%');
+  for(const state of ['loaded','armed','running','complete','aborted','missed','failed']) {
+    local.job.state=local.standalone.state=state;
+    assert.equal(ops.model(local,compactCaps,'x').frequency,'14.0956 MHz','owned matching scheduler job '+state);
+  }
+  local.job.owner_id=local.standalone.owner_id=null;
+  local.standalone.schedule_dial_frequency_nhz='7038600000000000';
+  assert.equal(ops.model(local,compactCaps,'x').frequency,'Unavailable','released history cannot inherit a later saved dial');
+  local.job.owner_id=local.standalone.owner_id='e'.repeat(32);local.standalone.last_job='1'.repeat(32);
+  assert.equal(ops.model(local,compactCaps,'x').frequency,'Unavailable','unrelated scheduler job');
+  const progress=observation();active(progress,'qrss');
+  progress.standalone.utc_now_ns=(BigInt(progress.accepted.start_utc_ns)+3000000000n).toString();
+  assert.equal(ops.model(progress,compactCaps,'x').progress,'Running · ~50%');
+  progress.standalone.clock_state='unsynchronized';assert.equal(ops.model(progress,compactCaps,'x').progress,'Running');
+  progress.job.state=progress.standalone.state='armed';
+  assert.equal(ops.model(progress,compactCaps,'x').progress,'Armed · 07:59:50 UTC');
+  progress.standalone.utc_now_ns=(BigInt(progress.accepted.start_utc_ns)+86400000000000n).toString();
+  assert.match(ops.model(progress,compactCaps,'x').progress,/^Armed · \d{4}-\d{2}-\d{2} 07:59:50 UTC$/);
+  progress.accepted.start_utc_ns='1800000000000000000';progress.standalone.utc_now_ns='1800000000000000000';
+  assert.equal(ops.model(progress,compactCaps,'x').progress,'Armed · 08:00 UTC');
+  progress.accepted.start_utc_ns='1800000000123456789';
+  assert.equal(ops.model(progress,compactCaps,'x').progress,'Armed · 08:00:00.123456789 UTC','non-minute starts retain their exact time');
   const codes=JSON.parse(fs.readFileSync(__dirname+'/../engineering/protocol/wtp-1.schema.json','utf8')).$defs.errorCode.enum;
   for(const code of codes) assert(ops.validError({code,message:code,retryable:false}));
   for(const invalid of [undefined,[],{}, {code:'invented',message:'x',retryable:false},
@@ -81,22 +137,22 @@ function recurring(v) {
   failed.standalone.last_error={code:'INTERNAL_ERROR',message:'INTERNAL_ERROR',retryable:false};
   assert(ops.valid(failed));
   assert.equal(ops.model(failed,caps,'x').state,'WSPR transmission failed');
-  assert.match(ops.model(failed,caps,'x').warning,/last scheduled WSPR transmission failed.*INTERNAL_ERROR.*skipped/);
+  assert.match(ops.model(failed,caps,'x').warning,/WSPR occurrence failed.*INTERNAL_ERROR.*skipped/);
   assert.equal(next(failed),'','a failed load must not promise the next transmission');
   failed.standalone.uncertainty_ns='1000001';
-  assert.match(ops.model(failed,caps,'x').warning,/clock uncertainty.*1 ms.*INTERNAL_ERROR/,'simultaneous blockers remain visible');
+  assert.match(ops.model(failed,caps,'x').warning,/Clock uncertainty.*1 ms.*INTERNAL_ERROR/,'simultaneous blockers remain visible');
   failed.standalone.last_error=null;
-  assert.match(ops.model(failed,caps,'x').warning,/clock uncertainty/);
+  assert.match(ops.model(failed,caps,'x').warning,/Clock uncertainty/);
   failed.standalone.uncertainty_ns='1000000';
   assert.equal(ops.model(failed,caps,'x').warning,'','exact clock boundary and confirmed success clear the warning');
   assert.equal(next(failed),'WSPR');
   failed.standalone.last_error={code:'INTERNAL_ERROR',message:'old',retryable:false};
   active(failed);assert.equal(ops.model(failed,caps,'x').state,'Job running');
-  assert.doesNotMatch(ops.model(failed,caps,'x').warning,/last scheduled WSPR/,'accepted-job authority supersedes historical load failure');
-  failed.standalone.uncertainty_ns='1000001';assert.match(ops.model(failed,caps,'x').warning,/accepted job's current status/);
+  assert.doesNotMatch(ops.model(failed,caps,'x').warning,/WSPR occurrence failed/,'accepted-job authority supersedes historical load failure');
+  failed.standalone.uncertainty_ns='1000001';assert.match(ops.model(failed,caps,'x').warning,/accepted job remains running/);
   const owned=observation();owned.standalone.enabled=true;owned.standalone.clock_state='synchronized';owned.job.owner_id='4'.repeat(32);
-  assert.match(ops.model(owned,caps,'4'.repeat(32)).warning,/this browser.*Release control/);
-  assert.match(ops.model(owned,caps,'5'.repeat(32)).warning,/another controller/);
+  assert.match(ops.model(owned,caps,'4'.repeat(32)).warning,/This browser.*Release control/);
+  assert.match(ops.model(owned,caps,'5'.repeat(32)).warning,/Another controller/);
   owned.job.state=owned.standalone.state='failed';
   assert.doesNotMatch(ops.model(owned,caps,'4'.repeat(32)).warning,/Choose Release control/,'fault recovery must not recommend an ineligible release');
   owned.job.state=owned.standalone.state='complete';owned.job.output_active=true;
@@ -112,15 +168,15 @@ function recurring(v) {
   }
   active(v);assert(ops.valid(v));
   let view=ops.model(v,caps,'9'.repeat(32));assert.equal(view.state,'Job running');assert.match(view.explanation,/keyed gaps/);assert.equal(view.reset,false);
-  assert.match(view.frequency,/Dot 135505 Hz\nDash 135500 Hz/);assert.match(view.progress,/100.0%.*still running/);assert.equal(view.correction,'3.470');
+  assert.equal(view.frequency,'135.505/135.500 kHz');assert.equal(view.progress,'Running · ~100%');assert.equal(view.correction,'3.470');
   assert.match(view.actions,/cannot abort/);
   v.standalone.configured=false;v.standalone.frequency_required=true;assert.equal(ops.model(v,caps,'x').state,'Job running');
   v.message_schedule.state='recovery_required';assert.equal(ops.model(v,caps,'x').state,'Job running');
   for(const mode of ['qrss','fskcw','dfcw','tone','arbitrary']) {
     v=observation();active(v,mode);if(['tone','arbitrary'].includes(mode))v.accepted.message=null;
     assert(ops.valid(v));view=ops.model(v,caps,'x');
-    assert.match(view.frequency,mode==='qrss'?/Carrier/:mode==='fskcw'?/Space.*\nMark/:mode==='dfcw'?/Dot.*\nDash/:/Nominal RF/);
-    if(!v.accepted.message)assert.match(view.message,/unavailable/);
+    assert.equal(view.frequency,mode==='qrss'?'135.505 kHz':mode==='fskcw'?'135.500/135.505 kHz':mode==='dfcw'?'135.505/135.500 kHz':'135.500–135.505 kHz');
+    if(!v.accepted.message)assert.equal(view.message,'Text unavailable');
   }
   for(const state of ['loaded','armed','running','complete','aborted','missed','failed']) {
     v=observation();active(v);v.job.state=v.standalone.state=state;
@@ -144,19 +200,19 @@ function recurring(v) {
   recurring(f.operations);await f.elements.refresh.onclick();assert.equal(f.elements['console-next'].textContent,'QRSS: CQ AA0NT');
   f.operations.message_schedule.saved.enabled=false;f.operations.standalone.enabled=false;
   await f.elements.refresh.onclick();assert.equal(f.elements['console-next-item'].hidden,true);assert.equal(f.elements['console-next'].textContent,'');
-  f.savedHostname='future.local';await f.elements.refresh.onclick();assert.equal(f.elements.hostname.textContent,'old.local');
+  f.savedHostname='future.local';await f.elements.refresh.onclick();assert.equal(f.elements['device-name'].textContent,'old.local');
   assert.equal(f.elements.network.textContent,'Connected · 127.0.0.1');assert.equal(f.elements.owner.textContent,'Available');
   assert.equal(f.elements['discovery-help'].textContent,'');
   f.operations=structuredClone(failed);f.operations.job.state=f.operations.standalone.state='empty';
   f.operations.job.job_id=f.operations.standalone.job_id=null;f.operations.job.owner_id=f.operations.standalone.owner_id=null;f.operations.accepted=null;
   await f.elements.refresh.onclick();
   assert.equal(f.elements['console-warning'].hidden,false);assert.equal(f.elements['console-state'].hidden,false);
-  assert.match(f.elements['console-warning'].textContent,/clock uncertainty.*INTERNAL_ERROR/);
+  assert.match(f.elements['console-warning'].textContent,/Clock uncertainty.*INTERNAL_ERROR/);
   f.operations.standalone.last_error=null;f.operations.standalone.uncertainty_ns='1000';
   await f.elements.refresh.onclick();assert.equal(f.elements['console-warning'].hidden,true);
   f.elements['message-text'].value='KEEP DRAFT';active(f.operations);await f.elements.refresh.onclick();
   assert.equal(f.elements['console-state'].textContent,'Job running');assert.equal(f.elements.restart.disabled,true);assert.equal(f.elements['message-text'].value,'KEEP DRAFT');
-  f.now+=15001;vm.runInContext('consoleTick()',f.context);assert.equal(f.elements['console-state'].textContent,'Status unavailable');assert.equal(f.elements.restart.disabled,true);assert.equal(f.elements['console-next-item'].hidden,true);assert.equal(f.elements.hostname.textContent,'Unknown');
+  f.now+=15001;vm.runInContext('consoleTick()',f.context);assert.equal(f.elements['console-state'].textContent,'Status unavailable');assert.equal(f.elements.restart.disabled,true);assert.equal(f.elements['console-next-item'].hidden,true);assert.match(f.elements['device-name-state'].textContent,/Last confirmed/);
   await f.elements.refresh.onclick();assert.equal(f.elements['console-state'].textContent,'Job running');
   f.operations.target.device_id='2'.repeat(32);await f.elements.refresh.onclick();assert.equal(f.elements['console-state'].textContent,'Status unavailable');assert.equal(f.elements['console-message'].textContent,'Unavailable');
   f.operations=observation();Object.assign(f.operations.network,f.state.network);await f.elements.refresh.onclick();

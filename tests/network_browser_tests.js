@@ -8,10 +8,10 @@ const capabilityKeys=JSON.parse(fs.readFileSync(__dirname+'/../engineering/proto
 const scripts = process.env.WSPRRY_PICO_BROWSER_SHIPPED ? ['device-presentation.min.js','config-validation.min.js','app.min.js'] : ['submission.js','operations.js','device-presentation.js','saved-progress.js','config-validation.js','utc-datetime.js','message-schedule.js','app.js'];
 const source = scripts.map(name=>fs.readFileSync(__dirname + '/../src/network/web/'+name,'utf8')).join('\n');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false, options = {}) {
-    const ids = ['device-name','device-name-state','device-id','device-boot','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','network','hostname','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','unused-i2c-choices'];
+    const ids = ['device-name','device-name-state','device-id','device-boot','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','network','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','unused-i2c-choices'];
     ids.push('setup-result-reveal','settings-recovery-access','network-save-result','station-save-result','consumer-save-recovery','setup-recovery-access','amplifier-pin-settings','radio-result-reveal','radio-pins','save-pins','pins-status','station-settings-lock','wifi-settings-lock');
     ids.push('access-toggle','access-state','access-shackle','access-close','login-submit','recovery-reveal','top','status-heading','section-menu','station-identity','radio-settings','time-calibration','message-section','wifi-settings','pico-password-section','hostname-section','connection-section','saved-settings','device-diagnostics');
-    ids.push('console-state','console-warning','console-announcement','console-mode','console-frequency','console-message','console-progress','console-next','console-next-item','console-correction','console-reset','console-actions');
+    ids.push('udp-logging-section','udp-logging-controls','console-frequency-label','console-state','console-warning','console-announcement','console-mode','console-frequency','console-message','console-progress','console-next','console-next-item','console-correction','console-reset','console-actions');
     ids.push('pico-password-form','pico-password-settings','pico-password-default','pico-password-status','pico-password-help','pico-password-error','pico-new-password','pico-confirm-password','draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
     ids.push('message-frequency-label','message-frequency-help','message-shift-help','message-result');
     ids.push('schedule-save-help','standalone-status');
@@ -39,12 +39,13 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     elements.config.elements.indicator.replaceChildren(...['onboard_led','external','disabled'].map(x=>new Option(x,x)));
     elements.config.elements.indicator_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
     elements.config.elements.amplifier_active_high.replaceChildren(new Option('Active-high','true'),new Option('Active-low','false'));
-    const makeNode = tag => ({tag,children:[],ownText:'',attributes:{},classList:{toggle(){}},
+    const makeNode = tag => ({tag,children:[],ownText:'',attributes:{},classList:{toggle(){},add(){},remove(){}},addEventListener(){},
       get textContent(){return this.ownText+this.children.map(n=>typeof n==='string'?n:n.textContent).join(' ');},
       set textContent(value){this.ownText=String(value);this.children=[];},
       append(...nodes){this.children.push(...nodes);},replaceChildren(...nodes){this.ownText='';this.children=nodes;},
       setAttribute(key,value){this.attributes[key]=value;},getAttribute(key){return this.attributes[key]||null;}});
     elements['draft-comparison']=makeNode('div');
+    elements['udp-logging-controls']=makeNode('div');
     const config = {gpio_drive_ma:4,enabled:false,station:{callsign:'AA0NT',locator:'EM18',power_dbm:37},wifi:{ssid:'test',password:null,ntp_ipv4:'192.0.2.1'},schedules:[{period_s:120,phase_s:0}],expires_utc_s:0};
     const state = {job:{boot_id:'a'.repeat(32),state:'empty',owner_id:null,output_active:false,job_id:null},standalone:{reboot_required:false,storage_healthy:true,uncertainty_ns:'1000',clock_state:'synchronized',engine:'test'},network:{enabled:true,link_status:3,ipv4:'127.0.0.1',configured_hostname:'old.local'}};
     elements['config-password'] = elements.config.elements.password;
@@ -66,6 +67,8 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     }
     elements['local-access'].showModal=function(){this.open=true;};
     elements['local-access'].close=function(){this.open=false;};
+    elements['udp-logging-section'].querySelector=()=>null;
+    elements['udp-logging-controls'].querySelectorAll=()=>[];
     const navigationLinks=[];
     for(const [id,area] of [['radio-settings','station'],['radio-pins','station'],['time-calibration','station'],['message-section','station'],['wifi-settings','wifi-host'],['pico-password-section','wifi-host'],['hostname-section','wifi-host'],['connection-section','wifi-host'],['saved-settings',null],['device-diagnostics',null]]) {
       const e=elements[id];e.tagName='DETAILS';e.open=false;e.contains=()=>false;e.querySelectorAll=()=>[];
@@ -605,7 +608,7 @@ if (require.main === module) (async () => {
         f.state.network.mdns_state = state; await f.elements.refresh.onclick();
         assert.equal(f.form.callsign.value,'N0NEW');
         assert.equal(f.form.password.value,'unsaved-test-password');
-        assert.equal(f.elements.hostname.textContent,f.state.network.configured_hostname);
+        assert.equal(f.elements['device-name'].textContent,f.state.network.configured_hostname);
     }
     f.state.network.mdns_state = 'conflict'; await f.elements.refresh.onclick();
     assert.match(f.elements['discovery-help'].textContent,/will not rename/);
@@ -618,7 +621,7 @@ if (require.main === module) (async () => {
     await f.elements.release.onclick(); assert.match(f.elements['job-result'].textContent,/aborted/);
     f.state.job.state = 'complete'; await f.elements.refresh.onclick(); assert.match(f.elements['job-result'].textContent,/complete/);
     f.state.job.state = 'failed'; await f.elements.refresh.onclick(); assert.equal(f.elements.release.disabled,true);
-    f.offline = true; await f.elements.refresh.onclick(); assert.equal(f.elements.hostname.textContent,'Unknown'); assert.equal(f.elements.settings.disabled,true); assert.equal(f.elements.abort.disabled,true);
+    f.offline = true; await f.elements.refresh.onclick(); assert.match(f.elements['device-name-state'].textContent,/Last confirmed/); assert.equal(f.elements.settings.disabled,true); assert.equal(f.elements.abort.disabled,true);
     const rf = await fixture(false); rf.prepareJob();
     const statusReads = rf.calls.filter(c=>c.path.endsWith('status')).length;
     await rf.elements.job.onsubmit({preventDefault(){}});
