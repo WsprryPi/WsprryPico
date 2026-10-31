@@ -80,7 +80,7 @@ legend>.documentation-help{margin-inline-start:.125rem}
 summary .help-heading>span{min-width:0}
 
 /* Header navigation and manual help share the page content's right edge. */
-header{padding-inline:max(1.25rem,calc((100vw - 920px)/2))}
+header{padding-inline:max(1.25rem,calc((100% - 920px)/2))}
 .header-actions{display:flex;align-items:center;justify-content:flex-end;gap:.75rem;min-width:0}
 header .documentation-help:has(svg){color:#dbe5ed}
 header .documentation-help:has(svg):hover{color:#fff}

@@ -13,6 +13,12 @@ export async function checkContextualHelp({evaluate,send,key,section,helpWindows
     await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<800});
     assert.equal(await evaluate(`(()=>{const h=document.getElementById('status-heading').getBoundingClientRect(),a=document.querySelector('[data-help="Transmitter status"]'),r=a.getBoundingClientRect(),s=a.querySelector('svg').getBoundingClientRect();return r.x>=h.right && r.x-h.right<=4 && Math.abs(r.y+r.height/2-h.y-h.height/2)<2 && r.width>=44 && r.height>=44 && s.width===16 && s.height===16 && document.documentElement.scrollWidth<=innerWidth})()`),true,'status help stays beside its heading at '+width+'px');
     assert.equal(await evaluate(`(()=>{const a=document.getElementById('header-help'),r=a.getBoundingClientRect(),nav=document.getElementById('area-nav').getBoundingClientRect(),m=document.querySelector('main').getBoundingClientRect(),pad=parseFloat(getComputedStyle(document.querySelector('main')).paddingRight);return Math.abs(r.right-(m.right-pad))<1 && nav.right<=r.left && r.width>=44 && r.height>=44 && getComputedStyle(a).color==='rgb(219, 229, 237)'})()`),true,'manual icon follows navigation at the content edge at '+width+'px');
+    if(width===1280) {
+      // Reserve layout space as a traditional scrollbar does on Linux.
+      await evaluate(`document.body.style.width='calc(100% - 17px)'`);
+      assert.equal(await evaluate(`(()=>{const a=document.getElementById('header-help'),r=a.getBoundingClientRect(),nav=document.getElementById('area-nav').getBoundingClientRect(),m=document.querySelector('main').getBoundingClientRect(),pad=parseFloat(getComputedStyle(document.querySelector('main')).paddingRight);return Math.abs(r.right-(m.right-pad))<1 && nav.right<=r.left && r.width>=44 && r.height>=44 && getComputedStyle(a).color==='rgb(219, 229, 237)'})()`),true,'header alignment uses available layout width, including reserved scrollbar space');
+      await evaluate(`document.body.style.width=''`);
+    }
     assert.equal(await evaluate(`[...document.querySelectorAll('[data-operator-section]>summary .help-heading')].every(g=>{const label=g.firstElementChild.getBoundingClientRect(),link=g.querySelector('a').getBoundingClientRect();return link.x>=label.right && link.x-label.right<=4 && Math.abs(link.y+link.height/2-label.y-label.height/2)<2})`),true,'long collapsed titles retain their adjacent icon');
   }
   await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
