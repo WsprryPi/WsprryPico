@@ -1,5 +1,7 @@
 #include "provisioning/led_schedule_fixture.hpp"
+#include "rf/stream_engine.hpp"
 #include "standalone/dry_run_engine.hpp"
+#include "standalone/frequency_policy_engine.hpp"
 #include "standalone/heap_probe.hpp"
 #include "standalone/scheduler.hpp"
 #include "standalone/wtp_profile.hpp"
@@ -311,6 +313,10 @@ struct Identity : wtp::IdentitySource {
 struct Engine : wtp::RfEngine {
     wtp::InhibitedRfEngine backing;
     unsigned prepared = 0, began = 0;
+    std::size_t preparation_bytes = 32768;
+    std::size_t preparation_memory_bytes(const wtp::Job&) const override {
+        return preparation_bytes;
+    }
     bool reject = false, active = false, disable_allowed = true;
     wtp::Job job;
     wtp::PrepareResult prepare(const wtp::Job& j) override {
@@ -451,12 +457,10 @@ void scheduler_tests() {
     CHECK(service.status().state == wtp::State::Armed && store.watermark() == start);
     CHECK(engine.prepared == 1 && engine.job.events.size() == 162);
     CHECK(engine.job.total_duration_ns == 110'592'000'000ULL);
-    CHECK(engine.job.events[0].frequency_nhz ==
-          3'570'099'267'578'125ULL);
-    CHECK(scheduler.status().find(
-              "\"schedule_dial_frequency_nhz\":\"" +
-              std::to_string(std::uint64_t{selected_test_frequency_hz} * ns) +
-              "\"") != std::string::npos);
+    CHECK(engine.job.events[0].frequency_nhz == 3'570'099'267'578'125ULL);
+    CHECK(scheduler.status().find("\"schedule_dial_frequency_nhz\":\"" +
+                                  std::to_string(std::uint64_t{selected_test_frequency_hz} * ns) +
+                                  "\"") != std::string::npos);
     CHECK(scheduler.command("CONFIG " + example).find("busy") != std::string::npos);
     for (int i = 0; i < 10; ++i)
         scheduler.poll();
@@ -847,6 +851,105 @@ void standalone_memory_admission_test() {
         }
     }
 }
+// The real RF planner and frequency-policy adapter, with a sink that records
+// admission but never emits RF. Scheduler builds the actual 162 WSPR events.
+struct AdmissionSink : rf::BlockSink {
+    unsigned arms = 0, submissions = 0;
+    std::uint64_t epoch = 0;
+    bool stop(std::uint64_t) override {
+        return true;
+    }
+    bool submit(std::uint64_t, std::uint64_t, std::span<const std::uint32_t>,
+                std::uint64_t) override {
+        ++submissions;
+        return true;
+    }
+    bool schedules_locally() const override {
+        return true;
+    }
+    bool arm(std::uint64_t value, std::uint64_t, std::uint64_t, rf::LaunchGuard = {}) override {
+        ++arms;
+        epoch = value;
+        return true;
+    }
+    rf::SinkReport poll(std::uint64_t) override {
+        return {arms ? wtp::EngineState::Armed : wtp::EngineState::Idle, epoch};
+    }
+    bool output_active() const override {
+        return false;
+    }
+};
+void standalone_production_memory_admission_test() {
+    static std::size_t free_bytes, reclaimed_bytes;
+    static unsigned reclaims;
+    AdmissionSink sizing_sink;
+    rf::StreamEngine sizing_engine(sizing_sink);
+    wtp::Job shape;
+    for (unsigned i = 0; i < 162; ++i)
+        CHECK(shape.events.push_back({0, 1, true, rf::base_nhz}));
+    const auto required = 32768 + sizing_engine.preparation_memory_bytes(shape);
+    CHECK(required < 56840 && required > 32768);
+    for (const auto initial : {required - 1, required, std::size_t{56840}}) {
+        for (const bool reclaim : {false, true}) {
+            MemoryFlash flash;
+            standalone::Store store(flash);
+            CHECK(store.load() && store.save(scheduled_config()));
+            Clock clock;
+            clock.advance(116 * 1'000'000'000ULL);
+            AdmissionSink sink;
+            rf::StreamEngine engine(sink);
+            standalone::FrequencyPolicyEngine policy(engine, store, rf::minimum_frequency_nhz,
+                                                     rf::maximum_frequency_nhz);
+            Identity identity;
+            wtp::JobService service(clock, policy, identity);
+            standalone::Scheduler scheduler(store, service);
+            CHECK(service.preparation_memory_bytes(shape) ==
+                  engine.preparation_memory_bytes(shape));
+            free_bytes = initial;
+            reclaimed_bytes = reclaim ? required : initial;
+            reclaims = 0;
+            wtp::available_memory = [] { return free_bytes; };
+            wtp::reclaim_optional_memory = [] {
+                ++reclaims;
+                free_bytes = reclaimed_bytes;
+            };
+            scheduler.poll();
+            wtp::available_memory = nullptr;
+            wtp::reclaim_optional_memory = nullptr;
+            const bool accepted = initial >= required || reclaim;
+            CHECK(scheduler.last_load_stage() == (accepted ? 4U : 2U));
+            CHECK(sink.arms == (accepted ? 1U : 0U));
+            CHECK(sink.submissions == (accepted ? 2U : 0U));
+            CHECK(!sink.output_active());
+            CHECK(reclaims == (initial < required ? 1U : 0U));
+            CHECK(service.status().state == (accepted ? wtp::State::Armed : wtp::State::Empty));
+            if (!accepted) {
+                CHECK(!service.status().owner_id);
+                const auto watermark = store.watermark();
+                CHECK(watermark > 0);
+                scheduler.poll();
+                CHECK(store.watermark() == watermark && sink.arms == 0);
+            }
+            CHECK(engine.disable(clock.value.monotonic_now_ns));
+        }
+    }
+    // An oversized estimate must fail without overflow, preparation or output.
+    MemoryFlash flash;
+    standalone::Store store(flash);
+    CHECK(store.load() && store.save(scheduled_config()));
+    Clock clock;
+    clock.advance(116 * 1'000'000'000ULL);
+    Engine engine;
+    engine.preparation_bytes = SIZE_MAX;
+    Identity identity;
+    wtp::JobService service(clock, engine, identity);
+    standalone::Scheduler scheduler(store, service);
+    wtp::available_memory = [] { return SIZE_MAX; };
+    scheduler.poll();
+    wtp::available_memory = nullptr;
+    CHECK(scheduler.last_load_stage() == 2 && engine.prepared == 0);
+    CHECK(service.status().state == wtp::State::Empty && !service.status().owner_id);
+}
 void paired_scheduler_tests() {
     constexpr std::uint64_t ns = 1'000'000'000ULL, duration = 110'592'000'000ULL;
     for (unsigned fault = 0; fault < 11; ++fault) {
@@ -872,8 +975,7 @@ void paired_scheduler_tests() {
         const auto plan = encoding::wspr_plan(config.callsign, config.locator, config.power_dbm);
         for (unsigned i = 0; i < 162; ++i)
             CHECK(engine.job.events[i].frequency_nhz ==
-                  3'570'097'802'734'375ULL +
-                      plan->frames[0].symbols[i] * 1'464'843'750ULL);
+                  3'570'097'802'734'375ULL + plan->frames[0].symbols[i] * 1'464'843'750ULL);
         clock.advance(5 * ns);
         scheduler.poll();
         CHECK(engine.began == 1);
@@ -916,8 +1018,7 @@ void paired_scheduler_tests() {
                 const auto& event = engine.job.events[i];
                 CHECK(event.offset_ns == (std::uint64_t{i} * 2'048'000'000ULL + 1) / 3);
                 CHECK(event.frequency_nhz ==
-                      3'570'097'802'734'375ULL +
-                          plan->frames[1].symbols[i] * 1'464'843'750ULL);
+                      3'570'097'802'734'375ULL + plan->frames[1].symbols[i] * 1'464'843'750ULL);
             }
             clock.advance(9'408'000'000ULL);
             scheduler.poll();
@@ -1107,6 +1208,7 @@ int main() {
     configuration_fault_reset_tests();
     scheduler_tests();
     standalone_memory_admission_test();
+    standalone_production_memory_admission_test();
     paired_scheduler_tests();
     sntp_tests();
     sntp_poll_schedule_test();

@@ -68,9 +68,10 @@ struct Flash : standalone::Flash {
     }
 };
 struct Clock : wtp::Clock {
-    std::uint64_t now = 1'000'000'000, utc = 1'800'000'000'000'000'000ULL;
+    std::uint64_t now = 1'000'000'000, utc = 1'800'000'000'000'000'000ULL, uncertainty = 1000;
     wtp::ClockSnapshot snapshot() const override {
-        return {wtp::ClockState::Synchronized, utc + now, now, 1000, 0, wtp::LeapState::Normal, {}};
+        return {wtp::ClockState::Synchronized, utc + now, now, uncertainty, 0,
+                wtp::LeapState::Normal, {}};
     }
 };
 struct Identity : wtp::IdentitySource {

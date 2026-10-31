@@ -369,8 +369,16 @@ if(WSPRRY_PICO_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/tests/saved_progress_tests.js)
         add_test(NAME operations_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/operations_browser_tests.js)
+        add_test(NAME operations_shipped_tests COMMAND ${CMAKE_COMMAND} -E env
+            WSPRRY_PICO_BROWSER_SHIPPED=1 ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/operations_browser_tests.js)
         add_test(NAME network_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/network_browser_tests.js)
+        add_test(NAME unsaved_changes_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/unsaved_changes_browser_tests.js)
+        add_test(NAME unsaved_changes_shipped_tests COMMAND ${CMAKE_COMMAND} -E env
+            WSPRRY_PICO_BROWSER_SHIPPED=1 ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/unsaved_changes_browser_tests.js)
         add_test(NAME logging_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/logging_browser_tests.js)
         add_test(NAME ui_access_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
@@ -459,7 +467,7 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/application_schema_tests.py $<TARGET_FILE:application_resource_tests>)
 
     add_executable(standalone_tests tests/standalone_tests.cpp)
-    target_link_libraries(standalone_tests PRIVATE wsprrypico_core)
+    target_link_libraries(standalone_tests PRIVATE wsprrypico_rf)
     target_compile_definitions(standalone_tests PRIVATE WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
     target_compile_options(standalone_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME standalone_tests COMMAND standalone_tests)

@@ -684,6 +684,12 @@ class JobService {
     EngineReport rf_chain_observation() const {
         return engine_.poll(clock_.snapshot().monotonic_now_ns);
     }
+    // Pure sizing for trusted local producers that own the decoded input.
+    // They may reclaim optional transport buffers before LOAD; dispatch still
+    // independently checks this same budget with the authority/RF reserve.
+    std::size_t preparation_memory_bytes(const Job& job) const {
+        return engine_.preparation_memory_bytes(job);
+    }
     std::string_view engine_diagnostic() const {
         return engine_.diagnostic();
     }

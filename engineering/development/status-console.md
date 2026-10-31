@@ -2,6 +2,8 @@
 
 The Station Control Transmitter status section presents the current accepted job separately from future standalone work. It uses native controls, system fonts and the embedded page's flat section design. The section leads Station Control and includes output, owner, clock, Wi-Fi and active hostname observations. Reset Pico is available there once unlocked; Wi-Fi/Host has no status or reset section.
 
+All status fields use one left-aligned definition-list grid: three columns from 900 CSS pixels, two from 600 through 899, and one below 600. DOM order remains reading order; hidden next-occurrence fields leave no empty grid item. Hostnames, messages and blocker text wrap within the available width.
+
 ## Observations and disclosure
 
 Root control documents carry `contract:"Wsprry-Control/1"`, required on every control mutation. Capabilities negotiate `operations_status:{schema:"operations",path:"/api/control/v1/operations"}`. The authenticated GET returns one bounded operations projection. The current `/api/control/v1/status` and `/api/control/v1/jobs` expose job history, standalone state, a concise network summary and transport observations. The unauthenticated consumer endpoint remains the closed `public-status` projection. Its field set stays minimal. The operator page uses current `public-read` discovery for the existing detailed operations GET while locked; see [public settings discovery](../protocol/Consumer-Radio-v1.md#public-settings-discovery). Accepted message, frequencies, schedules, correction and owner identifiers are read-only public observations; control actions remain authenticated.
@@ -26,6 +28,12 @@ QRSS labels Carrier, FSKCW labels Space and Mark, and DFCW labels Dot and Dash u
 
 Elapsed duration and percentages use the device UTC at observation and the accepted start/duration. They are estimates, including at 100 percent, and never replace a running state with completion. Character progression remains an unimplemented enhancement; an authoritative event cursor is unavailable. The panel shows only the selected manual correction for the next preparation, as a number with three decimal places under Manual RF correction (ppm). The underlying accepted-job correction remains the engine's frozen preparation selection. Missing values remain unavailable. μChrony disciplines UTC and supplies no RF calibration measurement.
 
+## Transmission blockers
+
+The visible warning reports existing observations while locked or signed in: storage/output recovery, restart, suspension, missing station or frequency, absent schedule times, expiry, ownership, message recovery, and clock uncertainty or age beyond advertised bounds. A recorded WSPR `last_error` is shown with its code and skipped-occurrence explanation while WSPR owns recurrence and no new job has been admitted. It suppresses the next-transmission summary until successful admission clears the recorded error or WSPR is disabled. A clock blocker and recorded load failure can appear together. WTP error documents are shape/type/code/UTF-8 validated before presentation; server text is never inserted as HTML.
+
+Accepted-job state remains primary. A previous WSPR failure does not replace a newly admitted job; current blockers are labelled as future-transmission warnings. A fresh successful observation removes warnings that no longer apply. Expired, malformed, wrong-device/boot or unavailable observations remove the next-transmission summary and show status uncertainty rather than retaining an old success or error as current authority. No warning bypasses clock, frequency, memory, storage or ownership checks.
+
 ## Reset Pico
 
 The Station status button invokes the existing guarded operation with a product confirmation. Reset is a normal restart retaining saved settings; enabled schedules may resume after readiness checks, while consumed occurrences remain skipped. It does not erase credentials or perform a factory reset, and introduces no new reboot policy.
@@ -48,4 +56,4 @@ The information hierarchy follows WsprryPi devel `5bc24e893646140d44f0bf9a20d611
 | Manual correction | Numeric selection for next preparation in ppm; no NTP RF estimate |
 | Reboot policy and shutdown | Existing restart semantics and guarded Reset Pico; Pi policy choices/shutdown unavailable |
 
-Deterministic coverage is in `operations_browser_tests.js`, source/shipped `network_browser_tests.js`, `network_tests.cpp`, consumer session/crypto tests and the existing reset/hostname browser fixture. The production adapter, memory/stack/flash and image-integrity checks remain enabled. Browser fixtures are software evidence; they do not qualify physical RF timing, decoding or emissions.
+Deterministic coverage is in source/shipped `operations_browser_tests.js`, source/shipped `network_browser_tests.js`, `network_tests.cpp`, consumer session/crypto tests and the existing reset/hostname browser fixture. The production adapter, memory/stack/flash and image-integrity checks remain enabled. Browser fixtures are software evidence; they do not qualify physical RF timing, decoding or emissions.

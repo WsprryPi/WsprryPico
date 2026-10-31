@@ -175,12 +175,10 @@
       await refresh(); notice('Initial complete configuration saved. Restart applies network and pin settings.');
     } finally { clearPassword('config-password'); }
   }); };
-  const hasDraft = () => dirty || consumerSetupDirty || hostnameDraft ||
-    engineeringStationDirty || engineeringNetworkDirty || $('message-text').value || $('job-file').files?.length;
   addEventListener('beforeunload',event => {
-    if (hasDraft()) { event.preventDefault(); event.returnValue = ''; }
+    if (hasUnsavedDraft()) { event.preventDefault(); event.returnValue = ''; }
   });
   $('consumer-resume').addEventListener('click',event => {
-    if (hasDraft() && !confirm('Continue at this address? Copy unsaved drafts before leaving this tab.')) event.preventDefault();
+    if (hasUnsavedDraft() && !confirm('Continue at this address? Copy unsaved drafts before leaving this tab.')) event.preventDefault();
   });
 })();

@@ -56,7 +56,7 @@ Review local Markdown links and anchors, removed-path references, build/test inp
 
 ### Browser interface checks
 
-The registered host suite includes `ui_access_browser_tests` and `ui_access_shipped_tests` for cancellation, lock/request serialization, carrier discovery, response epochs and receipt History. Source and generated scripts must agree before firmware compilation. `submission_browser_tests` and `submission_shipped_tests` cover atomic intent admission, conflicting controls, cleanup exceptions and deferred owner-only abort.
+The registered host suite includes source/shipped `operations_browser_tests` for transmission blockers and accepted-job precedence, `unsaved_changes_browser_tests` for navigation warnings, and `ui_access_browser_tests` and `ui_access_shipped_tests` for cancellation, lock/request serialization, carrier discovery, response epochs and receipt History. Source and generated scripts must agree before firmware compilation. `submission_browser_tests` and `submission_shipped_tests` cover atomic intent admission, conflicting controls, cleanup exceptions and deferred owner-only abort.
 
 With retained npm dependencies and a current Chrome/Chromium installation, the opt-in native browser fixture checks disclosures, modal keyboard focus, login capacity and retirement, Top, selected files, hidden validation, responsive layout and the production HTTP/crypto routes:
 

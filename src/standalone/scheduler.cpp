@@ -67,7 +67,9 @@ wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody bo
     if (operation == "LOAD") {
         last_load_stage_ = 1;
         last_load_free_before_ = wtp::available_memory ? wtp::available_memory() : SIZE_MAX;
-        const bool admitted = wtp::authoritative_memory_admitted(32768);
+        const auto* job = std::get_if<wtp::Job>(&r.body);
+        const bool admitted =
+            job && wtp::authoritative_memory_admitted(service_.preparation_memory_bytes(*job));
         last_load_free_after_ = wtp::available_memory ? wtp::available_memory() : SIZE_MAX;
         if (!admitted) {
             last_load_stage_ = 2;

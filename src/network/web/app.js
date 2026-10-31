@@ -73,13 +73,13 @@ let loggingSnapshot = null, loggingRevision = '', loggingBusy = false, loggingEp
 let loadingSettings = false, settingsLoadedBoot = null;
 let observationEpoch = 0, operationsSnapshot = null, operationsTarget = null, consoleObservedMs = 0, privateStatusVisible = false;
 const consolePut = (id,text) => { const e=$(id); if(e && e.textContent!==text) e.textContent=text; };
-function consoleState(state,explanation) {
+function consoleState(state,explanation,problem = '') {
   if ($('console-state')) $('console-state').hidden = /^(?:Transmitter |Job )?empty$/i.test(state);
-  if ($('console-state')?.textContent!==state) consolePut('console-announcement',state+'. '+explanation);
+  consolePut('console-announcement',state+'. '+(problem || explanation));
   consolePut('console-state',state);
   // Routine state explanations stay out of the panel; recovery guidance remains visible.
-  const warning=/recovery required|pause awaiting save|reset required|status unavailable|reset unconfirmed/i.test(state);
-  consolePut('console-warning',warning?explanation:'');
+  const warning=Boolean(problem) || /recovery required|pause awaiting save|reset required|status unavailable|reset unconfirmed/i.test(state);
+  consolePut('console-warning',warning?(problem || explanation):'');
   $('console-warning').hidden=!warning;
 }
 function clearConsole(reason = 'Read a fresh observation before using controls.') {
@@ -107,8 +107,8 @@ function renderConsole() {
   if (!operationsSnapshot) return;
   privateStatusVisible=true;
   const view=WsprryOperations.model(operationsSnapshot,capabilities,session);
-  consoleState(view.state,view.explanation);
-  if($('console-state')) $('console-state').hidden=operationsSnapshot.job.state==='empty' && view.state!=='Recovery required';
+  consoleState(view.state,view.explanation,view.warning);
+  if($('console-state')) $('console-state').hidden=operationsSnapshot.job.state==='empty' && !view.warning && view.state!=='Recovery required';
   for(const field of ['mode','frequency','message','progress','next','correction','actions']) consolePut('console-'+field,view[field]);
   $('console-next-item').hidden=!view.next;
 }
@@ -879,8 +879,6 @@ function controls(connected) {
   timingEditor?.setAvailability(!!connected && !!snapshot, !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   ntpTimeoutEditor?.setAvailability(!!connected && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = uiBusy();
-  $('settings-actions').hidden = !unlocked;
-  $('reload-config').disabled = uiBusy() || !online || !unlocked;
   const idle = online && unlocked && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
   $('settings').disabled = uiBusy() || !idle;
   for (const area of ['station','network']) {
@@ -964,7 +962,7 @@ function fill(c, network = c?.wifi) {
   form.expiry.value = c?.expires_utc_s ? new Date(c.expires_utc_s * 1000).toISOString().slice(0,19) : '';
   utcEditors.forEach(editor=>editor.sync());
 }
-async function refresh(loadConfig = false, quiet = false, discardDraft = false) {
+async function refresh(loadConfig = false, quiet = false) {
   const epoch=++observationEpoch;
   if(localIdentity && !radio && (!localAuthenticated || localLocked)) { controls(false); return; }
   if (radio && !radio.authenticated) {
@@ -1053,7 +1051,7 @@ async function refresh(loadConfig = false, quiet = false, discardDraft = false) 
           throw new Error('Saved Wi-Fi could not be confirmed. Read the Pico identity and try again.');
         network = saved.network ? {ssid:saved.network.ssid,ntp_ipv4:saved.network.time_server} : undefined;
       }
-      const preserveDraft=!discardDraft && (dirty || engineeringStationDirty || engineeringNetworkDirty || consumerSetupDirty || progressEdits.size>0 || Boolean(saveAttempt));
+      const preserveDraft=(dirty || engineeringStationDirty || engineeringNetworkDirty || consumerSetupDirty || progressEdits.size>0 || Boolean(saveAttempt));
       revision = c.revision;
       if(preserveDraft) currentConfig=config; else fill(config,network);
       const p = await readProgress(!preserveDraft); if (p && p.revision !== c.revision) throw new Error('Saved progress changed during reload');
@@ -1318,15 +1316,6 @@ $('consumer-check-save').onclick = () => action(async () => {
 });
 if (consumerAttempt) $('consumer-save-status').textContent = 'A save needs confirmation. Unlock controls, then select Check saved result. No save has been repeated.';
 $('config').oninput = event => { dirty = true; editedProgress(event); showDraftComparison(); };
-$('reload-config').onclick = () => action(async () => {
-  if ((dirty || engineeringStationDirty || engineeringNetworkDirty || consumerSetupDirty || progressEdits.size) && !confirm('Discard your unsaved changes and reload saved settings?')) return;
-  if (!consumerAttempt) { setupResultKind = null; $('consumer-save-status').textContent = ''; renderSetupResult(); }
-  progressEdits.clear(); dirty=false;
-  engineeringStationDirty=false; engineeringNetworkDirty=false; consumerSetupDirty=false; consumerNetworkDirty=false;
-  for (const result of document.querySelectorAll?.('.field-result') || []) {result.textContent = '';result.classList.toggle('error',false);}
-  for (const input of document.querySelectorAll?.('[aria-invalid]') || []) input.removeAttribute('aria-invalid');
-  await refresh(true,false,true);
-});
 $('config').onsubmit = event => { event.preventDefault(); setPasswordVisible('config-password',false); return action(async () => {
   if (supportsProgress()) return saveConfigProgress();
   const f = $('config').elements;
@@ -1527,6 +1516,7 @@ async function saveMessageSchedule() {
   if (!messageSchedulingSupported()) throw new Error('This firmware does not support saved message schedules.');
   if (messageScheduleUncertain) throw new Error('Read the saved schedule before another save. Your entries are preserved.');
   if (!messageScheduleReadback) throw new Error('Read the saved schedule first.');
+  const submittedDraft=messageDraftState();
   const plan=messagePlan(), start=utcFieldMs($('message-start')), until=$('message-until').value?utcFieldMs($('message-until')):0;
   const minutes=Number($('message-interval').value);
   if (!Number.isFinite(start) || !Number.isFinite(until)) throw new Error('Choose valid UTC start and end times.');
@@ -1537,6 +1527,7 @@ async function saveMessageSchedule() {
   const body={schema:'message-schedule',target:messageScheduleReadback.data.target,schedule:{enabled:true,first_start_utc_ns:(BigInt(start)*1000000n).toString(),period_s:minutes*60,expires_utc_s:until?Math.floor(until/1000):0,message:plan.body}};
   try {
     messageScheduleReadback=checkedMessageSchedule(await api('message-schedule','PUT',body,messageScheduleReadback.revision));
+    messageBaseline=submittedDraft;
     describeMessageSchedule();$('job-result').textContent='Message schedule saved. It continues with this page closed.';
   } catch(error) {
     messageScheduleUncertain=true;
@@ -1570,7 +1561,8 @@ function adoptMessageSchedule(prompt=true) {
   $('message-start').value=new Date(Number(BigInt(s.first_start_utc_ns)/1000000n)).toISOString().slice(0,19);
   $('message-until').value=s.expires_utc_s?new Date(s.expires_utc_s*1000).toISOString().slice(0,19):'';
   $('message-interval').value=s.period_s/60;
-  messageEdited=prompt;messagePreview();utcEditors.forEach(editor=>editor.sync());
+  messageEdited=false;messagePreview();utcEditors.forEach(editor=>editor.sync());
+  messageBaseline=messageDraftState();
 }
 if ($('message-schedule-adopt')) $('message-schedule-adopt').onclick=()=>adoptMessageSchedule();
 
@@ -1637,6 +1629,17 @@ function messagePlan(timingOnly = false) {
   return {duration,events,frequencies:frequencies.preview,body:{mode,message:text,frequency_nhz:frequencies.frequency.toString(),space_frequency_nhz:frequencies.second.toString(),timing:Object.fromEntries(Object.entries(timing).map(([k,v])=>[k,v.toString()])),repeat_count:repeat,repeat_gap_ns:repeatGap.toString(),allow_frequency_adjustment:true}};
 }
 let messageEdited = false;
+// Compare editor values with the initial, loaded or confirmed-saved draft.
+// Nonempty saved messages are readback, and clearing a field is still an edit.
+function messageDraftState() {
+  return JSON.stringify(['text','mode','frequency','shift','dot','repeats','gap','dash',
+    'intra','character','word','start','delivery','interval','until'].map(key=>$('message-'+key).value));
+}
+let messageBaseline=messageDraftState();
+function hasUnsavedDraft() {
+  return dirty || consumerSetupDirty || hostnameDraft || engineeringStationDirty ||
+    engineeringNetworkDirty || messageDraftState()!==messageBaseline || Boolean($('job-file').files?.length);
+}
 function messagePreview() {
   messageFrequencyFields();
   messageSchedulingControls();
@@ -1925,7 +1928,7 @@ $('restart-cancel').onclick = () => { cancelReconnect(); $('restart-status').tex
 for (const id of ['config','consumer-network-form','consumer-station-form','message-form','job'])
   $(id).addEventListener('input',cancelReconnect);
 $('hostname-continue').onclick = event => {
-  if ((dirty || consumerSetupDirty || hostnameDraft || $('message-text').value || $('job-file').files?.length) &&
+  if (hasUnsavedDraft() &&
       !confirm('Continue to the new address? Unsaved drafts stay in this tab if you cancel. Continuing will discard them; copy anything you need first.')) event.preventDefault();
   else cancelReconnect();
 };

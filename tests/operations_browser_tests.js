@@ -7,7 +7,7 @@ function observation() {
   const boot='a'.repeat(32),job={boot_id:boot,state:'empty',owner_id:null,output_active:false,job_id:null,terminal_records:[]};
   return {schema:'operations',target:{scope:'member',device_id:'1'.repeat(32),boot_id:boot},job,accepted:null,
     standalone:{...job,configured:true,enabled:false,storage_healthy:true,reboot_required:false,suspended:false,frequency_required:false,wspr_pair_pending:false,
-      utc_now_ns:'1800000000000000000',uncertainty_ns:'1000',sync_age_ns:'100000000000',clock_state:'holdover',schedules:[{period_s:120,phase_s:0}],expires_utc_s:0,schedule_dial_frequency_nhz:'14095600000000000',engine:'test'},
+      utc_now_ns:'1800000000000000000',uncertainty_ns:'1000',sync_age_ns:'100000000000',clock_state:'holdover',last_error:null,schedules:[{period_s:120,phase_s:0}],expires_utc_s:0,schedule_dial_frequency_nhz:'14095600000000000',engine:'test'},
     message_schedule:{saved:null,state:'not_configured',pause_pending:false,next_start_utc_ns:null,last_start_utc_ns:null,last_job_id:null,last_result:null,last_error:null},
     next_wspr_start_utc_ns:null,correction:{next_ppb:3470,prepared_ppb:2000},reset_allowed:true,network:{enabled:true},transport:null};
 }
@@ -24,6 +24,17 @@ function recurring(v) {
 }
 (async()=>{
   assert.doesNotMatch(fs.readFileSync(__dirname+'/../src/network/web/index.html','utf8').match(/<p id="public-status-note"[^>]*>/)[0],/aria-live|role=/);
+  const codes=JSON.parse(fs.readFileSync(__dirname+'/../engineering/protocol/wtp-1.schema.json','utf8')).$defs.errorCode.enum;
+  for(const code of codes) assert(ops.validError({code,message:code,retryable:false}));
+  for(const invalid of [undefined,[],{}, {code:'invented',message:'x',retryable:false},
+    {code:'INTERNAL_ERROR',message:'',retryable:false}, {code:'INTERNAL_ERROR',message:'x',retryable:1},
+    {code:'INTERNAL_ERROR',message:'x',retryable:false,extra:1},
+    {code:'INTERNAL_ERROR',message:'é'.repeat(129),retryable:false},
+    {code:'INTERNAL_ERROR',message:'\ud800',retryable:false},
+    {code:'INTERNAL_ERROR',message:'x',retryable:false,detail:[]}]) assert.equal(ops.validError(invalid),false);
+  assert(ops.validError({code:'INTERNAL_ERROR',message:'é'.repeat(128),retryable:false,detail:{}}));
+  const detailed=observation();detailed.message_schedule.last_error={code:'INTERNAL_ERROR',message:'error',retryable:false,detail:{stage:'prepare'}};
+  assert(ops.valid(detailed),'the current optional WTP error detail is valid for message errors too');
   const caps={wtp:{maximum_holdover_age_ns:'3600000000000',maximum_arm_uncertainty_ns:'1000000'}};
   const next=x=>ops.model(x,caps,'x').next;
   let scheduled=observation();recurring(scheduled);assert(ops.valid(scheduled));
@@ -65,6 +76,40 @@ function recurring(v) {
   v.standalone.sync_age_ns='0';assert.equal(ops.model(v,{wtp:{maximum_holdover_age_ns:'0'}},'x').state,'Waiting for time');
   v.standalone.sync_age_ns='3600000000001';assert.equal(ops.model(v,caps,'9'.repeat(32)).state,'Waiting for time');
   v.message_schedule.saved={enabled:false,first_start_utc_ns:'1800000000000000000',period_s:120,expires_utc_s:0,message:{mode:'qrss',message:'PRIVATE',frequency_nhz:'135500000000000',space_frequency_nhz:'0',timing:{dot_ns:'1000000000',dash_ns:'3000000000',intra_gap_ns:'1000000000',character_gap_ns:'3000000000',word_gap_ns:'7000000000'},repeat_count:1,repeat_gap_ns:'0',allow_frequency_adjustment:true}};v.message_schedule.state='paused';v.standalone.sync_age_ns='0';assert.equal(ops.model(v,caps,'x').state,'Waiting for next occurrence');
+  const failed=observation();failed.standalone.enabled=true;failed.standalone.clock_state='synchronized';
+  failed.next_wspr_start_utc_ns='1800000120000000000';
+  failed.standalone.last_error={code:'INTERNAL_ERROR',message:'INTERNAL_ERROR',retryable:false};
+  assert(ops.valid(failed));
+  assert.equal(ops.model(failed,caps,'x').state,'WSPR transmission failed');
+  assert.match(ops.model(failed,caps,'x').warning,/last scheduled WSPR transmission failed.*INTERNAL_ERROR.*skipped/);
+  assert.equal(next(failed),'','a failed load must not promise the next transmission');
+  failed.standalone.uncertainty_ns='1000001';
+  assert.match(ops.model(failed,caps,'x').warning,/clock uncertainty.*1 ms.*INTERNAL_ERROR/,'simultaneous blockers remain visible');
+  failed.standalone.last_error=null;
+  assert.match(ops.model(failed,caps,'x').warning,/clock uncertainty/);
+  failed.standalone.uncertainty_ns='1000000';
+  assert.equal(ops.model(failed,caps,'x').warning,'','exact clock boundary and confirmed success clear the warning');
+  assert.equal(next(failed),'WSPR');
+  failed.standalone.last_error={code:'INTERNAL_ERROR',message:'old',retryable:false};
+  active(failed);assert.equal(ops.model(failed,caps,'x').state,'Job running');
+  assert.doesNotMatch(ops.model(failed,caps,'x').warning,/last scheduled WSPR/,'accepted-job authority supersedes historical load failure');
+  failed.standalone.uncertainty_ns='1000001';assert.match(ops.model(failed,caps,'x').warning,/accepted job's current status/);
+  const owned=observation();owned.standalone.enabled=true;owned.standalone.clock_state='synchronized';owned.job.owner_id='4'.repeat(32);
+  assert.match(ops.model(owned,caps,'4'.repeat(32)).warning,/this browser.*Release control/);
+  assert.match(ops.model(owned,caps,'5'.repeat(32)).warning,/another controller/);
+  owned.job.state=owned.standalone.state='failed';
+  assert.doesNotMatch(ops.model(owned,caps,'4'.repeat(32)).warning,/Choose Release control/,'fault recovery must not recommend an ineligible release');
+  owned.job.state=owned.standalone.state='complete';owned.job.output_active=true;
+  assert.doesNotMatch(ops.model(owned,caps,'4'.repeat(32)).warning,/Choose Release control/,'unknown active output retains recovery guidance');
+  const oldMessage=observation();recurring(oldMessage);oldMessage.message_schedule.saved.enabled=false;
+  oldMessage.message_schedule.state='expired';oldMessage.standalone.enabled=true;oldMessage.standalone.clock_state='synchronized';
+  oldMessage.next_wspr_start_utc_ns='1800000120000000000';
+  assert.equal(ops.model(oldMessage,caps,'x').state,'Waiting for next occurrence','expired disabled message history must not mask current WSPR authority');
+  const disabled=observation();disabled.standalone.last_error={code:'INTERNAL_ERROR',message:'old',retryable:false};
+  assert.equal(ops.model(disabled,caps,'x').warning,'','disabled WSPR does not keep a stale failure banner');
+  for(const mutate of [x=>delete x.standalone.last_error,x=>x.standalone.last_error=[],x=>x.standalone.last_error={code:'INTERNAL_ERROR'},x=>x.message_schedule.last_error={code:'bad',message:'bad',retryable:false}]) {
+    const bad=structuredClone(disabled);mutate(bad);assert.equal(ops.valid(bad),false);
+  }
   active(v);assert(ops.valid(v));
   let view=ops.model(v,caps,'9'.repeat(32));assert.equal(view.state,'Job running');assert.match(view.explanation,/keyed gaps/);assert.equal(view.reset,false);
   assert.match(view.frequency,/Dot 135505 Hz\nDash 135500 Hz/);assert.match(view.progress,/100.0%.*still running/);assert.equal(view.correction,'3.470');
@@ -102,6 +147,13 @@ function recurring(v) {
   f.savedHostname='future.local';await f.elements.refresh.onclick();assert.equal(f.elements.hostname.textContent,'old.local');
   assert.equal(f.elements.network.textContent,'Connected · 127.0.0.1');assert.equal(f.elements.owner.textContent,'Available');
   assert.equal(f.elements['discovery-help'].textContent,'');
+  f.operations=structuredClone(failed);f.operations.job.state=f.operations.standalone.state='empty';
+  f.operations.job.job_id=f.operations.standalone.job_id=null;f.operations.job.owner_id=f.operations.standalone.owner_id=null;f.operations.accepted=null;
+  await f.elements.refresh.onclick();
+  assert.equal(f.elements['console-warning'].hidden,false);assert.equal(f.elements['console-state'].hidden,false);
+  assert.match(f.elements['console-warning'].textContent,/clock uncertainty.*INTERNAL_ERROR/);
+  f.operations.standalone.last_error=null;f.operations.standalone.uncertainty_ns='1000';
+  await f.elements.refresh.onclick();assert.equal(f.elements['console-warning'].hidden,true);
   f.elements['message-text'].value='KEEP DRAFT';active(f.operations);await f.elements.refresh.onclick();
   assert.equal(f.elements['console-state'].textContent,'Job running');assert.equal(f.elements.restart.disabled,true);assert.equal(f.elements['message-text'].value,'KEEP DRAFT');
   f.now+=15001;vm.runInContext('consoleTick()',f.context);assert.equal(f.elements['console-state'].textContent,'Status unavailable');assert.equal(f.elements.restart.disabled,true);assert.equal(f.elements['console-next-item'].hidden,true);assert.equal(f.elements.hostname.textContent,'Unknown');

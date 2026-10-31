@@ -1,11 +1,11 @@
+#include "logging/logger.hpp"
+#include "logging/udp_settings.hpp"
 #include "mbedtls/platform.h"
 #include "network/bootstrap_codec.hpp"
 #include "network/identity.hpp"
 #include "network/pico/consumer_radio_crypto.hpp"
 #include "network/pico/http_server.hpp"
 #include "network_support.hpp"
-#include "logging/logger.hpp"
-#include "logging/udp_settings.hpp"
 #include "provisioning/consumer_profile.hpp"
 #include "standalone/frequency_policy_engine.hpp"
 #include "wtp/json.hpp"
@@ -400,6 +400,12 @@ struct Driver {
                   std::string::npos);
         if (!saved && !blank)
             check(f.store.reserve(1791970000000000000ULL));
+        // Firmware constructs the scheduler after loading its saved boot state.
+        // Rebuild it at the same address so BrowserApi retains its reference;
+        // a reconstructed fixture must not compare saved pins/timeouts with an
+        // unrelated default boot and invent a pending restart on the next save.
+        std::destroy_at(&f.scheduler);
+        std::construct_at(&f.scheduler, f.store, f.service);
         radio.admission(runtime.control_healthy(profiles) &&
                         runtime.consumer_browser_selected(profiles));
         radio.listeners(true, "192.168.1.53", hostname);
@@ -573,9 +579,11 @@ struct Driver {
             check(retained.load());
             const auto& config = retained.config();
             return "{\"saved_dial_hz\":" +
-                (config && config->wspr_dial_frequency_hz ? std::to_string(*config->wspr_dial_frequency_hz) : "null") +
-                ",\"sequence\":\"" + std::to_string(retained.config_sequence()) +
-                "\",\"enabled\":" + (config && config->enabled ? "true" : "false") + "}";
+                   (config && config->wspr_dial_frequency_hz
+                        ? std::to_string(*config->wspr_dial_frequency_hz)
+                        : "null") +
+                   ",\"sequence\":\"" + std::to_string(retained.config_sequence()) +
+                   "\",\"enabled\":" + (config && config->enabled ? "true" : "false") + "}";
         }
         if (op == "schedule_tick") {
             // Synthetic time drives the production scheduler and dry-run engine.
@@ -583,7 +591,15 @@ struct Driver {
             std::uint64_t delta;
             check(wtp::json::decimal(*v.get("delta_ns"), delta) && delta <= 600'000'000'000ULL);
             f.clock.now += delta;
+            if (const auto uncertainty = v.get("uncertainty_ns"))
+                check(wtp::json::decimal(*uncertainty, f.clock.uncertainty));
+            if (const auto bytes = v.get("free_bytes")) {
+                static std::uint64_t free_bytes;
+                check(wtp::json::decimal(*bytes, free_bytes) && free_bytes <= SIZE_MAX);
+                wtp::available_memory = +[]() -> std::size_t { return free_bytes; };
+            }
             f.scheduler.poll();
+            wtp::available_memory = nullptr;
             auto result = f.scheduler.status();
             if (!result.empty() && result.back() == '\n')
                 result.pop_back();

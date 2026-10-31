@@ -8,8 +8,8 @@ const capabilityKeys=JSON.parse(fs.readFileSync(__dirname+'/../engineering/proto
 const scripts = process.env.WSPRRY_PICO_BROWSER_SHIPPED ? ['device-presentation.min.js','config-validation.min.js','app.min.js'] : ['submission.js','operations.js','device-presentation.js','saved-progress.js','config-validation.js','utc-datetime.js','message-schedule.js','app.js'];
 const source = scripts.map(name=>fs.readFileSync(__dirname + '/../src/network/web/'+name,'utf8')).join('\n');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false, options = {}) {
-    const ids = ['device-name','device-name-state','device-id','device-boot','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','reload-config','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','network','hostname','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','unused-i2c-choices'];
-    ids.push('settings-actions','setup-result-reveal','settings-recovery-access','network-save-result','station-save-result','consumer-save-recovery','setup-recovery-access','amplifier-pin-settings','radio-result-reveal','radio-pins','save-pins','pins-status','station-settings-lock','wifi-settings-lock');
+    const ids = ['device-name','device-name-state','device-id','device-boot','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','network','hostname','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','unused-i2c-choices'];
+    ids.push('setup-result-reveal','settings-recovery-access','network-save-result','station-save-result','consumer-save-recovery','setup-recovery-access','amplifier-pin-settings','radio-result-reveal','radio-pins','save-pins','pins-status','station-settings-lock','wifi-settings-lock');
     ids.push('access-toggle','access-state','access-shackle','access-close','login-submit','recovery-reveal','top','status-heading','section-menu','station-identity','radio-settings','time-calibration','message-section','wifi-settings','pico-password-section','hostname-section','connection-section','saved-settings','device-diagnostics');
     ids.push('console-state','console-warning','console-announcement','console-mode','console-frequency','console-message','console-progress','console-next','console-next-item','console-correction','console-reset','console-actions');
     ids.push('pico-password-form','pico-password-settings','pico-password-default','pico-password-status','pico-password-help','pico-password-error','pico-new-password','pico-confirm-password','draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
@@ -200,7 +200,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     vm.runInContext(fs.readFileSync(__dirname+'/../src/network/web/udp-logging.js','utf8'),context);
     vm.runInContext(source,context);
     await new Promise(setImmediate);
-    if(organizationMode)vm.runInContext(fs.readFileSync(__dirname+'/../src/network/web/organization.js','utf8'),context);
+    if(organizationMode)vm.runInContext(fs.readFileSync(__dirname+'/../src/network/web/'+(process.env.WSPRRY_PICO_BROWSER_SHIPPED?'organization.min.js':'organization.js'),'utf8'),context);
     f.context = context;
     f.form = elements.config.elements;
     f.configReads = () => calls.filter(c=>c.path.endsWith('config') && c.options.method==='GET').length;
@@ -341,8 +341,8 @@ if (require.main === module) (async () => {
     assert.equal(organized.context.location.hash,areaReceipt);
     assert.equal(organized.elements['wifi-host-area'].hidden,false);
     organized.form.callsign.value='UNSAVED';organized.elements['engineering-station-form'].listeners.input();
-    await organized.elements['reload-config'].onclick();
-    assert.equal(organized.form.callsign.value,'K1ABC');
+    await organized.elements.refresh.onclick();
+    assert.equal(organized.form.callsign.value,'UNSAVED');
     const jumpReceipt=organized.context.location.hash, jumpRequests=organized.calls.length;
     organized.links.find(link=>link.getAttribute().endsWith('#message-section')).click(click);assert.equal(organized.elements.focused,'message-section-summary');
     assert.equal(organized.context.location.hash,jumpReceipt);assert.equal(organized.calls.length,jumpRequests);
@@ -481,7 +481,7 @@ if (require.main === module) (async () => {
     const experimental = await fixture();
     experimental.config.allow_unqualified_frequency = true;
     experimental.config.allow_non_amateur_frequency = true;
-    await experimental.elements['reload-config'].onclick();
+    await vm.runInContext('refresh(true)',experimental.context);
     experimental.form.locator.value = 'FN42';
     experimental.form.schedules.value = '240 / 0';
     await experimental.elements.config.onsubmit({preventDefault(){}});
@@ -595,7 +595,6 @@ if (require.main === module) (async () => {
     f.form.callsign.value = 'N0NEW'; f.form.password.value = 'unsaved-test-password'; f.elements.config.oninput();
     await f.elements.refresh.onclick();
     assert.equal(f.form.callsign.value,'N0NEW'); assert.equal(f.form.password.value,'unsaved-test-password'); assert.equal(f.configReads(),1);
-    f.confirm = false; await f.elements['reload-config'].onclick(); assert.equal(f.form.callsign.value,'N0NEW');
     f.elements['config-password-toggle'].onclick();
     assert.equal(f.form.password.type,'text');
     f.form.schedules.value = '240 / 0';
@@ -666,11 +665,6 @@ if (require.main === module) (async () => {
     assert.equal(ordinary.elements['consumer-save-recovery'].hidden,true);
     assert.equal(ordinary.elements['setup-result-reveal'].hidden,true);
     assert.equal(ordinary.elements['saved-active-status'].textContent,'');
-    ordinary.form.schedules.value='480 / 0';ordinary.elements.config.oninput();ordinary.confirm=false;
-    const ordinaryReads=ordinary.calls.length;await ordinary.elements['reload-config'].onclick();
-    assert.equal(ordinary.form.schedules.value,'480 / 0');assert.equal(ordinary.calls.length,ordinaryReads);
-    ordinary.confirm=true;await ordinary.elements['reload-config'].onclick();
-    assert.equal(ordinary.form.schedules.value,'120 / 0');assert.equal(ordinary.elements['saved-settings'].hidden,true);
     const newer=await fixture();newer.form.schedules.value='240 / 0';newer.elements.config.oninput();
     await newer.elements['read-saved'].onclick();newer.savedRevision='"newer-revision"';
     const writesBefore=newer.calls.filter(c=>c.options.method!=='GET').length;
@@ -680,12 +674,6 @@ if (require.main === module) (async () => {
     assert.equal(newer.calls.filter(c=>c.options.method!=='GET').length,writesBefore);
     await newer.elements['read-saved'].onclick();await newer.elements['review-saved'].onclick();
     assert.equal(newer.elements['saved-settings'].hidden,true);assert.equal(newer.elements['save-config'].disabled,false);
-    const reloadUncertain=await fixture();reloadUncertain.form.schedules.value='240 / 0';reloadUncertain.elements.config.oninput();
-    reloadUncertain.configSaveMode='lost';await reloadUncertain.elements.config.onsubmit({preventDefault(){}});
-    reloadUncertain.configSaveMode=null;const committed=reloadUncertain.configCommits;
-    await reloadUncertain.elements['reload-config'].onclick();
-    assert.equal(reloadUncertain.elements['save-config'].disabled,true);assert.equal(reloadUncertain.elements['saved-settings'].hidden,false);
-    assert.equal(reloadUncertain.configCommits,committed,'discard/reload never repeats or clears an uncertain save');
     for (const mode of ['before','lost','json','empty','wrong','expiry','pins','null']) {
         const uncertain=await fixture();uncertain.form.schedules.value='240 / 0';uncertain.elements.config.oninput();uncertain.configSaveMode=mode;
         await uncertain.elements.config.onsubmit({preventDefault(){}});
@@ -699,21 +687,14 @@ if (require.main === module) (async () => {
         assert.equal(uncertain.calls.length,comparisonCalls);assert.ok(!uncertain.elements['draft-comparison'].textContent.includes('PRIVATE-DRAFT-PASSWORD'));
         assert.match(uncertain.elements['draft-comparison'].textContent,/Password values are hidden/);
         await uncertain.elements['review-saved'].onclick();assert.equal(uncertain.elements['save-config'].disabled,false);
-        await uncertain.elements['reload-config'].onclick();
-        assert.equal(uncertain.elements['saved-readback-details'].hidden,true);
-        assert.equal(vm.runInContext('savedReadback',uncertain.context),null);
-        assert.equal(uncertain.elements['save-reconcile-status'].textContent,'');
-        assert.equal(uncertain.elements['saved-settings'].hidden,true);
-        await uncertain.elements['read-saved'].onclick();
-        if(mode==='before') assert.ok(!uncertain.elements['draft-comparison'].textContent.match(/Browser draft:\s+240 \/ 0/));
     }
     for (const expires of [2208988800,4102444799]) {
-        const future=await fixture();future.config.expires_utc_s=expires;await future.elements['reload-config'].onclick();assert.ok(future.form.expiry.value.startsWith(expires===2208988800?'2040':'2099'));
+        const future=await fixture();future.config.expires_utc_s=expires;await vm.runInContext('refresh(true)',future.context);assert.ok(future.form.expiry.value.startsWith(expires===2208988800?'2040':'2099'));
         future.form.schedules.value='240 / 0';future.elements.config.oninput();await future.elements['read-saved'].onclick();assert.equal(future.form.schedules.value,'240 / 0');await future.elements['review-saved'].onclick();assert.equal(future.elements['save-config'].disabled,false);
     }
     const legacyIdentity=await fixture();
     legacyIdentity.config.station.callsign='AA0NT/P/M';
-    await legacyIdentity.elements['reload-config'].onclick();
+    await vm.runInContext('refresh(true)',legacyIdentity.context);
     legacyIdentity.form.schedules.value='240 / 0';legacyIdentity.elements.config.oninput();
     await legacyIdentity.elements.config.onsubmit({preventDefault(){}});
     const legacySaves=()=>legacyIdentity.calls.filter(c=>c.path.endsWith('config/update')&&c.options.method==='POST');

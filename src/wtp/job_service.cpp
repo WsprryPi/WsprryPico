@@ -408,7 +408,7 @@ Response JobService::dispatch(Request& request) {
         // additional preparation/adjustment work rather than charging every
         // small job for a maximum plan. Serialization has its own paged gate;
         // memory_admitted still keeps the separate 32 KiB authority/RF reserve.
-        if (!memory_admitted(engine_.preparation_memory_bytes(*body)))
+        if (!memory_admitted(preparation_memory_bytes(*body)))
             return reject(ErrorCode::InternalError);
         const auto accepted_digest = job_digest(*body);
         Job accepted = std::move(*body);

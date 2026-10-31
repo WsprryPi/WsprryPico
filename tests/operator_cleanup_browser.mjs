@@ -88,6 +88,26 @@ async function key(key,code=key) {
   await send('Input.dispatchKeyEvent',{type:'keyDown',key,code,windowsVirtualKeyCode,text:key==='Enter'?'\r':undefined});
   await send('Input.dispatchKeyEvent',{type:'keyUp',key,code,windowsVirtualKeyCode});
 }
+async function checkStatusGrid() {
+  const original=await evaluate(`['console-message','hostname'].map(id=>[id,document.getElementById(id).textContent])`);
+  await evaluate(`document.getElementById('console-message').textContent='ABCDEFGHIJKLMNOPQRSTUVWXYZ123456\\nDot 3000000000 s · 512 copies';document.getElementById('hostname').textContent='a'.repeat(63)+'.'+'b'.repeat(63)+'.'+'c'.repeat(63)+'.'+'d'.repeat(57)+'.local';`);
+  for(const width of [1280,900,899,650,600,599,390,320]) {
+    await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});
+    const grid=await evaluate(`(()=>{const lists=document.querySelectorAll('#transmitter-status dl');const list=lists[0],s=getComputedStyle(list);return {lists:lists.length,columns:s.gridTemplateColumns.split(' ').length,align:s.textAlign,overflow:document.documentElement.scrollWidth>innerWidth,items:[...list.children].filter(e=>!e.hidden).map(e=>{const r=e.getBoundingClientRect(),d=e.querySelector('dd').getBoundingClientRect();return {x:r.left,y:r.top,ddx:d.left,align:getComputedStyle(e).textAlign};})};})()`);
+    assert.equal(grid.lists,1,'all transmitter observations share one grid');
+    const columns=width>=900?3:width>=600?2:1;
+    assert.equal(grid.columns,columns,`${width}px uses ${columns} columns`);
+    assert.equal(grid.overflow,false,`${width}px has no horizontal overflow`);
+    assert(grid.items.every(item=>['left','start'].includes(item.align)&&Math.abs(item.x-item.ddx)<1),'every field remains left aligned');
+    for(let at=0;at<Math.min(columns,grid.items.length);++at)assert.equal(grid.items[at].y,grid.items[0].y,'first row aligns');
+    if(grid.items.length>columns)assert.equal(grid.items[columns].x,grid.items[0].x,'following rows begin at the left edge');
+  }
+  await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+  await evaluate("document.body.style.zoom='2'");
+  assert.equal(await evaluate('document.documentElement.scrollWidth>innerWidth'),false,'long status values remain within the page at 200% zoom');
+  await evaluate("document.body.style.zoom=''");
+  await evaluate(`for(const [id,value] of ${JSON.stringify(original)})document.getElementById(id).textContent=value;`);
+}
 async function capture(state) {
   if(filterOnly)return;
   for(const [width,height] of [[1280,900],[650,900],[360,800],[390,844]]) for(const area of ['station','wifi-host']) {
@@ -189,9 +209,9 @@ try {
   assert.equal(await evaluate('[...document.querySelectorAll(".access-settings input,.access-settings textarea,.access-settings select")].every(e=>e.matches(":disabled"))'),true);
   assert.equal(await evaluate('document.getElementById("station-area").firstElementChild.id'),'transmitter-status');
   assert.equal(await evaluate('[...document.querySelectorAll("#station-area [data-operator-section]")].slice(-2).map(e=>e.id).join(",")'),'saved-settings,device-diagnostics');
-  assert.equal(await evaluate('document.getElementById("console-state").hidden'),true);
+  assert.equal(await evaluate('document.getElementById("console-state").hidden'),await evaluate('document.getElementById("console-warning").hidden'));
   if(await evaluate('snapshot.standalone.reboot_required'))
-    assert.match(await evaluate('document.getElementById("console-warning").textContent'),/restart/);
+    assert.match(await evaluate('document.getElementById("console-warning").textContent'),/Reset Pico/);
   else assert.equal(await evaluate('document.getElementById("console-warning").hidden'),true);
   assert.equal(await evaluate('document.getElementById("console-next-item").hidden'),true);
   assert.equal(await evaluate('document.getElementById("console-next").textContent'),'');
@@ -219,6 +239,8 @@ try {
   assert.equal(await evaluate('document.getElementById("access-toggle").getAttribute("data-access")'),'locked');
   assert.equal(await evaluate('getComputedStyle(document.getElementById("access-toggle")).borderTopColor'),'rgb(177, 61, 50)');
   assert.equal(await evaluate('document.getElementById("firmware-version").textContent'),'test-firmware');
+  assert.equal(await evaluate('!window.dispatchEvent(new Event("beforeunload",{cancelable:true}))'),false,'fresh locked page has no unsaved warning');
+  await checkStatusGrid();
   await capture('locked');
   console.log('PASS top navigation, active view, modal keyboard, mobile, color preferences and zoom');
   await click('access-toggle');await evaluate('document.getElementById("local-password").value="test-password"');await key('Enter');
@@ -227,7 +249,9 @@ try {
   assert.equal(await evaluate('document.getElementById("notice").hidden'),true);
   assert.equal(await evaluate('document.getElementById("saved-settings").hidden'),true);
   assert.equal(await evaluate('document.getElementById("consumer-save-recovery").hidden'),true);
-  assert.equal(await evaluate('document.getElementById("reload-config").textContent'),'Discard edits and reload');
+  assert.equal(await evaluate('document.getElementById("reload-config")'),null);
+  assert.equal(await evaluate('document.querySelector(".documentation-note")'),null);
+  assert.equal(await evaluate('!window.dispatchEvent(new Event("beforeunload",{cancelable:true}))'),false,'login readback has no unsaved warning');
   await capture('unlocked');
   await evaluate('document.getElementById("radio-pins").open=true');
   await click('amplifier-timing-read');await idle();
@@ -319,8 +343,8 @@ try {
   await click('access-toggle');await evaluate('document.getElementById("local-password").value="test-password"');
   await until(()=>evaluate('!busy && !document.getElementById("login-submit").disabled && (document.getElementById("local-login").requestSubmit(),true)'),'login available');
   await until(()=>evaluate('!busy && localAuthenticated && writeState==="review"'),'uncertain save login readback');
-  await click('reload-config');await idle();
-  assert.equal(await evaluate('writeState'),'readback','reload must not acknowledge an uncertain save');
+  await click('read-saved');await idle();
+  assert.equal(await evaluate('writeState'),'review','reading must not acknowledge an uncertain save');
   assert.equal(await evaluate('document.getElementById("save-pins").disabled'),true);
   await click('read-saved');await idle();
   assert.equal(await evaluate('writeState'),'review');
@@ -347,7 +371,7 @@ try {
   assert.equal(await evaluate('document.getElementById("recovery-reveal").hidden'),true);
   assert.equal(await evaluate('document.activeElement.id'),'device-name');
   assert.equal((await f.command({op:'stats'})).config_sequence,afterConcurrent,'review and approval never replay a save');
-  console.log('PASS contextual recovery, reload refusal, explicit review and concurrent-revision invalidation through production HTTP/crypto');
+  console.log('PASS contextual recovery, readback protection, explicit review and concurrent-revision invalidation through production HTTP/crypto');
   // Current timeout writes and public loading survive a boot.
   await evaluate('{const e=document.getElementById("ntp-timeout-minutes");e.value="0";e.dispatchEvent(new Event("input",{bubbles:true}));}');
   await click('ntp-timeout-save');await idle();
@@ -367,6 +391,47 @@ try {
   assert.equal(await evaluate('(async()=> (await radio.publicRead("ntp-timeout")).status)()'),200,'the canonical resource represents zero after reboot');
   assert.equal((await f.fetch('192.168.1.53',false,'/api/consumer/v1/read/3/ntp-timeout/2')).status,404,'obsolete public catalog routes are absent');
   console.log('PASS zero timeout save, stale-revision recovery, reboot persistence, automatic public load and historical-version refusal');
+
+  // Drive the real scheduler into a bounded memory refusal, then read it through
+  // production public HTTP and the shipped UI. The synthetic sink emits no RF.
+  const scheduleClient=f.client();await f.login(scheduleClient);
+  const frequencyRead=await scheduleClient.request('standalone-frequency');
+  const frequency=await frequencyRead.json();
+  assert.equal((await scheduleClient.request('standalone-frequency','PUT',{schema:'standalone-frequency',target:frequency.target,frequency_hz:7038600},frequencyRead.headers.get('etag'))).status,200);
+  const configRead=await scheduleClient.request('config');
+  const application=await (await scheduleClient.request('application')).json();
+  assert.equal((await scheduleClient.request('config/update','POST',{schema:'config-update',target:application.target,mode:'merge',config:{enabled:true,schedules:[{period_s:120,phase_s:0}]}},configRead.headers.get('etag'))).status,200);
+  let operations=await (await scheduleClient.request('operations')).json();
+  const advanceToPreparation=value=>{
+    const now=BigInt(value.standalone.utc_now_ns),period=120000000000n;
+    let slot=now/period*period+1000000000n;
+    const watermark=BigInt(value.standalone.watermark_utc_ns);
+    while(slot<=now+5000000000n || slot<=watermark)slot+=period;
+    return (slot-now-5000000000n).toString();
+  };
+  const rejected=await f.command({op:'schedule_tick',delta_ns:advanceToPreparation(operations),free_bytes:'64000'});
+  assert.equal(rejected.last_error?.code,'INTERNAL_ERROR',JSON.stringify(rejected));
+  await click('refresh');await idle();
+  assert.equal(await evaluate('document.getElementById("console-warning").hidden'),false);
+  assert.equal(await evaluate('document.getElementById("console-state").hidden'),false);
+  assert.match(await evaluate('document.getElementById("console-warning").textContent'),/INTERNAL_ERROR.*skipped/);
+  assert.equal(await evaluate('document.getElementById("console-next-item").hidden'),true);
+  await f.command({op:'schedule_tick',delta_ns:'0',uncertainty_ns:'600000000'});
+  await click('refresh');await idle();
+  assert.match(await evaluate('document.getElementById("console-warning").textContent'),/clock uncertainty.*INTERNAL_ERROR/);
+  await checkStatusGrid();
+  if(output)for(const [width,height,name] of [[1280,1000,'desktop'],[650,1000,'tablet'],[390,1000,'mobile']]) {
+    await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
+    await click('station-link');await evaluate('scrollTo(0,0)');
+    const shot=await send('Page.captureScreenshot',{format:'png'});saveScreenshot('transmission-blocked-'+name+'.png',shot);
+  }
+  operations=await (await scheduleClient.request('operations')).json();
+  const admitted=await f.command({op:'schedule_tick',delta_ns:advanceToPreparation(operations),uncertainty_ns:'1000'});
+  assert.equal(admitted.last_error,null);
+  await click('refresh');await idle();
+  assert.equal(await evaluate('document.getElementById("console-state").textContent'),'Job armed');
+  assert.equal(await evaluate('document.getElementById("console-warning").hidden'),true,'confirmed admission clears the failure banner');
+  console.log('PASS recorded WSPR admission failure, simultaneous clock blocker, recovery and left-aligned 3/2/1 grid through production HTTP');
 
   console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,api:'production HTTP/crypto',hardware:false,screenshots:screenshotCount}));
 } catch(error) {

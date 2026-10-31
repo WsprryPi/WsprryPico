@@ -94,6 +94,13 @@ async function capture(name){
         await writeFile(path.join(output,`${name}-${view.name}-${theme}.png`),Buffer.from(image.data,'base64'));
     }
 }
+async function reloadAndLogin() {
+    await cdp.evaluate('radio.logout().then(()=>{globalThis.progressReloadMarker=true;})');
+    await cdp.send('Page.reload');
+    await until(()=>cdp.evaluate(`!globalThis.progressReloadMarker && typeof radio!=='undefined' && !!localIdentity && !busy && !localAuthenticated`),'fresh locked readback');
+    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await until(()=>cdp.evaluate('localAuthenticated && !busy'),'login after reload');
+}
 try {
     chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
@@ -134,19 +141,19 @@ try {
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-locator').getAttribute('aria-invalid')`),'true');
     assert.equal(await cdp.evaluate(`savedProgress.data.fields.locator`),null);
     await capture('mixed-errors');
-    // Explicit read/review preserves invalid browser text; explicit discard reload adopts saved progress.
+    // Explicit read/review preserves invalid browser text; a page reload adopts saved progress.
     await click('read-saved');await until(()=>cdp.evaluate(`writeState==='review' && !busy`),'readback');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-locator').value`),'BAD');
     await click('review-saved');await until(()=>cdp.evaluate(`writeState==='ready' && !busy`),'explicit review');
     await field('consumer-callsign','BB1BB');await cdp.evaluate('window.confirm=()=>true');
-    await click('reload-config');await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-callsign').value==='AA0NT/12'`),'reload restores device-saved draft, not applied');
+    await reloadAndLogin();await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-callsign').value==='AA0NT/12'`),'reload restores device-saved draft, not applied');
     assert.equal(await cdp.evaluate('progressEdits.size'),0);assert.equal(await cdp.evaluate(`document.getElementById('consumer-locator').value`),'');
     await field('consumer-locator','EM18IG');await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
     await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && savedProgress.data.station.power_dbm===0`),'complete persisted station');
     assert.deepEqual(await cdp.evaluate(`savedProgress.data.wspr_plan.frame_types`),['type2','type3']);
     await field('consumer-locator','BAD');await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
     await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-locator').getAttribute('aria-invalid')==='true'`),'invalid locator result');
-    await click('reload-config');await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-locator').value==='EM18IG'`),'explicit reload adopts saved valid locator');
+    await reloadAndLogin();await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-locator').value==='EM18IG'`),'explicit reload adopts saved valid locator');
     assert.notEqual(await cdp.evaluate(`document.getElementById('consumer-locator').getAttribute('aria-invalid')`),'true');
     assert.match(await cdp.evaluate(`document.getElementById('progress-station-status').textContent`),/WSPR Type 2 \+ Type 3/);
     // Native selection exposes an explicit clear without coercing blank to zero.
