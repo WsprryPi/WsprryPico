@@ -80,8 +80,12 @@ void ReferenceMonitor::service(bool permitted) {
     if (now < retry_ns_)
         return;
     if (measuring_) {
-        if (!device_.configured() || !capture_.poll(generation_)) {
-            fault("reference_capture_failed");
+        if (!device_.configured()) {
+            fault("reference_device_unconfigured");
+            return;
+        }
+        if (!capture_.poll(generation_)) {
+            fault(capture_.error().empty() ? "reference_capture_failed" : capture_.error());
             return;
         }
         if (now < started_ns_ || now - started_ns_ > policy_.maximum_window_ns) {

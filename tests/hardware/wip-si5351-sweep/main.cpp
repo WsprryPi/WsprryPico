@@ -80,7 +80,7 @@ bool setup(const Plan& plan) {
         uint8_t status = 0xff;
         if (!read(0, &status, 1))
             return false;
-        if (!(status & 0xb0)) // SYS_INIT, LOL_A, LOS_XTAL
+        if (!(status & 0xa8)) // SYS_INIT, LOL_A, LOS_XTAL
             return write(16, plan.control |
                                  0x80); // Configured, integer, PLLA, 2 mA; still powered down.
         sleep_ms(5);

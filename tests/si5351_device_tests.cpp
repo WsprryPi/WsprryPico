@@ -47,12 +47,19 @@ int main() {
     assert(device.configure(config, *result.plan, 100));
     const auto operations = bus.operations;
     assert(bus.registers[3] == 0xff);
+    for (unsigned reg = 19; reg <= 23; ++reg)
+        assert(bus.registers[reg] & 0x80); // Internal unused drivers also stay down.
     assert(bus.registers[183] == 0x92);
     assert(device.transmit_state() == ClockOutputState::RegisterDisabled);
     assert(device.reference_state() == ClockOutputState::RegisterDisabled);
     assert(!device.transmit_enabled(true, 100)); // No enable before lock observation.
     assert(!device.reference_enabled(true, 100));
     assert(device.locked(100));
+    bus.registers[0] = 0x08; // AN619 LOS_XTAL invalidates both PLL outputs.
+    assert(!device.locked(100) && !device.reference_locked());
+    assert(!device.transmit_enabled(true, 100) && !device.reference_enabled(true, 100));
+    bus.registers[0] = 0x10; // Unused Si5351C CLKIN detector is independent.
+    assert(device.locked(100) && device.reference_locked());
     bus.registers[0] = 0x40; // PLLB loss must also invalidate reference lock.
     assert(device.locked(100) && !device.reference_locked());
     assert(!device.reference_enabled(true, 100));

@@ -38,6 +38,27 @@ void probe() {
                    "\"status\":%u,\"interrupt_status\":%u,\"output_disable\":%u}\n",
                    address, sample, written, read, values[0], values[1], values[3]);
         }
+        std::uint8_t registers[188]{};
+        bool complete = true;
+        for (unsigned offset = 0; offset < sizeof(registers); offset += 8) {
+            const auto count = sizeof(registers) - offset < 8 ? sizeof(registers) - offset : 8;
+            const auto reg = static_cast<std::uint8_t>(offset);
+            if (i2c_write_timeout_us(i2c0, address, &reg, 1, true, timeout_us) != 1 ||
+                i2c_read_timeout_us(i2c0, address, registers + offset, count, false, timeout_us) !=
+                    static_cast<int>(count)) {
+                complete = false;
+                break;
+            }
+        }
+        if (complete) {
+            printf("{\"address\":%u,\"registers\":[", address);
+            for (unsigned i = 0; i < sizeof(registers); ++i)
+                printf("%s%u", i ? "," : "", registers[i]);
+            puts("]}");
+        } else {
+            puts("{\"error\":\"register_readback_incomplete\"}");
+        }
+        ok = ok && complete;
         connected += ok;
     }
     printf("{\"result\":\"%s\",\"ack_count\":%u,\"si5351_candidates\":%u}\n",

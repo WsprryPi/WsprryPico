@@ -28,6 +28,7 @@ inline std::array<bool, 8> pwm_enabled{}, irq_enabled{};
 inline std::array<std::uint16_t, 8> counters{};
 inline unsigned system_hz = 138'000'000, reference_hz = 12'000'000;
 inline std::uint64_t raw_us = 1000;
+inline unsigned counter_read_delay_us = 0;
 inline unsigned transitions = 0;
 inline void check() {
     ++transitions;
@@ -99,7 +100,10 @@ inline void pwm_set_counter(unsigned slice, std::uint16_t value) {
     capture_mock::counters[slice] = value;
 }
 inline std::uint16_t pwm_get_counter(unsigned slice) {
-    return capture_mock::counters[slice];
+    const auto value = capture_mock::counters[slice];
+    capture_mock::raw_us += capture_mock::counter_read_delay_us;
+    capture_mock::counters[slice] += capture_mock::counter_read_delay_us;
+    return value;
 }
 inline unsigned clock_get_hz(unsigned clock) {
     return clock == clk_sys ? capture_mock::system_hz : capture_mock::reference_hz;

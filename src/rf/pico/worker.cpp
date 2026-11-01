@@ -14,6 +14,7 @@
 #include "runtime/pico/stack_guard.h"
 
 #include <algorithm>
+#include <memory>
 
 namespace wsprrypico::rf {
 namespace {
@@ -87,10 +88,13 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
     if (pins.engine == hardware::PinPlan::Engine::Direct) {
         static PicoPioDma direct_hardware(*pins.rf, drive_ma);
         static PioDmaSink sink(direct_hardware, &indicator, amplifier, filters);
-        static StreamEngine direct_engine(sink, filters);
+        // The complete direct waveform buffers are large. Allocate them only
+        // for the immutable direct boot plan; reserving their BSS for a Si5351
+        // boot would consume the heap needed by ordinary WTP LOAD admission.
+        static const auto direct_engine = std::make_unique<StreamEngine>(sink, filters);
         drive_hardware = &direct_hardware;
         direct_sink = &sink;
-        selected = &direct_engine;
+        selected = direct_engine.get();
     } else {
         if (!settings ||
             !hardware::validate_si5351(pins, *settings, 0,

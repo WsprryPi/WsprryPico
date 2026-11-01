@@ -10,6 +10,9 @@ class ReferenceCapture {
     virtual bool begin(std::uint64_t generation) = 0;
     virtual bool poll(std::uint64_t generation) = 0;
     virtual ReferenceWindow finish() = 0;
+    virtual std::string_view error() const {
+        return "reference_capture_failed";
+    }
 };
 // One RF owner services this monitor only while job timing permits. Captures
 // are never shared with I2C, discovery or an application-core status request.

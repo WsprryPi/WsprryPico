@@ -46,7 +46,9 @@ bool Device::quiesce(std::uint64_t deadline) {
     bool good = checked_write(3, disabled, deadline);
     // Always attempt the independent powerdown mechanism as well, without
     // short-circuiting after a NACK or partial write.
-    const std::uint8_t power[]{0x80, 0x80, 0x80};
+    // AN619 requires the unused CLK3–CLK7 drivers powered down even on the
+    // three-output 10-MSOP device. Registers 22/23 also carry PLL integer bits.
+    const std::uint8_t power[]{0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80};
     good = checked_write(16, power, deadline) && good;
     if (good) {
         states_.fill(ClockOutputState::RegisterDisabled);
@@ -173,8 +175,10 @@ bool Device::locked(std::uint64_t deadline) {
     }
     // SYS_INIT and LOS_XTAL affect both PLLs. PLLB lock loss must not pretend
     // the independent transmit PLLA is lost, or authorize a reference output.
-    transmit_locked_ = transmit_configured_ && !(status & 0xb0);
-    reference_locked_ = loopback_ && !(status & 0xd0);
+    // AN619 register 0: LOS_XTAL is bit 3; bit 4 is the unused CLKIN
+    // detector on Si5351C. External XA uses the XTAL detector as well.
+    transmit_locked_ = transmit_configured_ && !(status & 0xa8);
+    reference_locked_ = loopback_ && !(status & 0xc8);
     return transmit_locked_;
 }
 bool Device::transmit_tone(const Tone& tone, std::uint64_t deadline) {

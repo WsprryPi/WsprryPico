@@ -10,6 +10,9 @@ Minimal Pico 2 W sketch: I²C0, GP4 SDA (header pin 6), GP5 SCL (header pin 7),
 address scan and three register reads at responding addresses 0x60/0x61.
 Transactions have 10 ms deadlines. It sets only the read pointer and never
 programs frequencies, changes output controls or writes Pico settings.
+The command also returns registers 0–187 in bounded eight-byte reads for
+inspection of the actual PLL, MultiSynth, source and output-control state.
+An incomplete dump is an unsuccessful probe, not inferred register evidence.
 
 The [source](main.cpp) links only Pico SDK stdlib, USB, board ID and I²C support.
 Use retained SDK 2.3.1 and Arm GCC 15.3.1 with the standalone [CMake target](CMakeLists.txt).

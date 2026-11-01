@@ -21,7 +21,7 @@ class PicoReferenceCapture final : public ReferenceCapture {
     bool poll(std::uint64_t plan_generation) override;
     ReferenceWindow finish() override;
     void close();
-    std::string_view error() const {
+    std::string_view error() const override {
         return counter_.error();
     }
 
@@ -31,6 +31,8 @@ class PicoReferenceCapture final : public ReferenceCapture {
     std::uint32_t system_hz_ = 0, reference_hz_ = 0;
     bool running_ = false;
     ReferenceCounter counter_;
+    CounterSample previous_;
+    std::uint64_t generation_ = 0;
     static unsigned claimed_slices_;
 };
 } // namespace wsprrypico::rf

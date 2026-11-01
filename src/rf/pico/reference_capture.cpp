@@ -63,7 +63,9 @@ bool PicoReferenceCapture::begin(std::uint64_t generation) {
     // Use that hardware bound plus 1%, not the configured 1 MHz input. Clock
     // tree changes invalidate the run. Starved service fails closed.
     const auto bound = (static_cast<std::uint64_t>(system_hz_) * 101 + 99) / 100;
-    running_ = counter_.begin(snapshot(), bound, generation);
+    previous_ = snapshot();
+    generation_ = generation;
+    running_ = counter_.begin(previous_, bound, generation);
     if (!running_)
         pwm_set_enabled(*slice_, false);
     return running_;
@@ -74,11 +76,24 @@ bool PicoReferenceCapture::poll(std::uint64_t generation) {
     const auto sample = snapshot();
     if (clock_get_hz(clk_sys) != system_hz_ || clock_get_hz(clk_ref) != reference_hz_)
         generation = 0; // Invalidate rather than reinterpreting the old timer model.
+    // Core 1 can poll several times within one microsecond. Keep the prior
+    // coherent endpoint until the outward-rounded brackets no longer overlap.
+    // Do not consume a count here: the next accepted sample includes all edges.
+    // An interrupt-widened bracket is likewise discarded, never published.
+    // The next accepted endpoint still enforces the original wrap ambiguity
+    // bound from the previous accepted endpoint, without relaxing that bound.
+    // Clock/generation changes and malformed or backward brackets still reject.
+    if (generation == generation_ && sample.before_ns >= previous_.before_ns &&
+        sample.after_ns >= sample.before_ns &&
+        (sample.before_ns <= previous_.after_ns ||
+         sample.after_ns - sample.before_ns > 10'000))
+        return true;
     if (!counter_.sample(sample, generation)) {
         pwm_set_enabled(*slice_, false);
         running_ = false;
         return false;
     }
+    previous_ = sample;
     return true;
 }
 ReferenceWindow PicoReferenceCapture::finish() {
