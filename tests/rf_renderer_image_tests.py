@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from check_rf_renderer import validate
 
 SYMBOLS = """20001200 00000008 T wsprrypico::rf::Waveform::render(std::span<unsigned long, 4294967295u>)
-20010000 00029000 b wsprrypico::rf::start_worker(wsprrypico::time::UtcDiscipline&)::engine
+20010000 00029000 b wsprrypico::rf::start_worker(wsprrypico::time::UtcDiscipline&)::direct_engine
 """
 SECTIONS = " 10 .data 00003000 20000120 100f5000 000f7120 2**3"
 CODE = """20001200: b510\tpush {r4, lr}

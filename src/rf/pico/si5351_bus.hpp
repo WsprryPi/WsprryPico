@@ -15,6 +15,9 @@ class PicoBus final : public Bus {
               const hardware::FilterSettings& filters = {});
     bool read(std::uint8_t, std::span<std::uint8_t>, std::uint64_t) override;
     bool write(std::uint8_t, std::span<const std::uint8_t>, std::uint64_t) override;
+    bool is_open() const {
+        return bus_ != nullptr;
+    }
 
   private:
     static std::uint32_t remaining_us(std::uint64_t deadline_ns);

@@ -81,6 +81,7 @@ class ControllerTimeArbiter final : public ObservationSink {
     bool observe_ntp_model(const RateObservation& source, const wtp::ClockSnapshot& model,
                            std::uint32_t max_clock_error_ppb) override;
     void invalidate(ObservationSource source) override;
+    void frequency_reference_conflict(bool conflict) override;
     ControllerTimeStatus status() const;
 
   private:
@@ -127,5 +128,6 @@ class ControllerTimeArbiter final : public ObservationSink {
     Observation recovery_;
     ActiveTimeSource source_ = ActiveTimeSource::None;
     bool imported_ntp_ = false;
+    bool frequency_conflict_ = false;
 };
 } // namespace wsprrypico::time

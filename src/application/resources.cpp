@@ -1,7 +1,7 @@
 #include "application/resources.hpp"
-#include "network/control_contract.hpp"
 
 #include "encoding/wspr.hpp"
+#include "network/control_contract.hpp"
 
 namespace wsprrypico::application {
 Envelope validate_envelope(wtp::json::Value root, std::string_view schema, std::string_view payload,
@@ -39,7 +39,7 @@ std::string amplifier_capabilities(bool physical) {
     auto descriptor = std::string(network::control_descriptor("amplifier_enable"));
     descriptor.pop_back();
     return descriptor + ",\"execution\":" +
-        wtp::json::quote(physical ? "local_job" : "inhibited_inactive_only") + "}";
+           wtp::json::quote(physical ? "local_job" : "inhibited_inactive_only") + "}";
 }
 std::string amplifier_timing_capabilities() {
     return std::string(network::control_descriptor("amplifier_timing"));
@@ -65,7 +65,7 @@ std::string capabilities() {
            "\"hardware_activation\":\"restart\",\"station_encoding\":\"wspr_type123_auto\","
            "\"station_power_meaning\":\"reported_wspr_dbm\","
            "\"recurrence_authorities\":[\"member\"],\"autonomous_modes\":[\"wspr\"],"
-           "\"unavailable\":[\"recurrence_transfer\",\"si5351\","
+           "\"unavailable\":[\"recurrence_transfer\","
            "\"reference_calibration\",\"waveform_preferences\","
            "\"plain_lan_json_management\",\"ble_json_management\"]}";
 }

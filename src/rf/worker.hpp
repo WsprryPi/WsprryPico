@@ -1,6 +1,8 @@
 #pragma once
 #include "rf/amplifier_timing.hpp"
+#include "rf/reference_measurement.hpp"
 #include "rf/refill_metrics.hpp"
+#include "rf/si5351_engine.hpp"
 #include "time/utc_discipline.hpp"
 
 #include <atomic>
@@ -46,12 +48,18 @@ class WorkerEngine final : public wtp::RfEngine {
     std::uint64_t completion_acknowledgement_ns() const override {
         return completion_acknowledgement_ns_;
     }
+    bool externally_controlled_completion() const override {
+        return externally_controlled_completion_;
+    }
     bool schedule(const wtp::Job&, std::uint64_t, const wtp::LocalStartConditions&) override;
     bool begin(const wtp::Job&, std::uint64_t) override {
         return false;
     }
     wtp::EngineReport poll(std::uint64_t) override;
     bool disable(std::uint64_t) override;
+    void inhibit_output() override {
+        safety_inhibited_.store(true, std::memory_order_release);
+    }
     bool output_active() const override;
     bool execution_started() const override;
     std::string_view diagnostic() const override {
@@ -59,6 +67,9 @@ class WorkerEngine final : public wtp::RfEngine {
     }
     struct Metrics {
         AmplifierObservation amplifier;
+        std::optional<si5351::Engine::Observation> si5351;
+        std::optional<ReferenceMeasurement> reference;
+        std::string_view reference_error;
         // Start-to-start gap already includes preceding poll and command/probe work.
         std::uint64_t commands = 0, max_service_gap_ns = 0, max_poll_ns = 0;
         std::uint64_t max_roundtrip_ns = 0;
@@ -79,6 +90,12 @@ class WorkerEngine final : public wtp::RfEngine {
     void set_probe(void (*probe)(Metrics&, void*), void* context) {
         probe_ = probe;
         probe_context_ = context;
+    }
+    // Fixed-cost state copy only: no bus access, stack scan, allocation or wait.
+    // Unlike the diagnostic probe, it may run during a timing-sensitive job.
+    void set_observer(void (*observer)(Metrics&, void*), void* context) {
+        observer_ = observer;
+        observer_context_ = context;
     }
     // Configure before starting the worker. The probe observes input only;
     // physical disable remains on the engine-owning worker, never in an ISR.
@@ -111,6 +128,7 @@ class WorkerEngine final : public wtp::RfEngine {
     Mask mask_;
     Restore restore_;
     const std::uint64_t completion_acknowledgement_ns_;
+    const bool externally_controlled_completion_;
     const bool owns_execution_plan_;
     // 0: producer owns payload, 1: consumer owns it, 2: completed.
     mutable std::atomic<unsigned> phase_{0};
@@ -125,6 +143,8 @@ class WorkerEngine final : public wtp::RfEngine {
     mutable std::string_view diagnostic_;
     void (*probe_)(Metrics&, void*) = nullptr;
     void* probe_context_ = nullptr;
+    void (*observer_)(Metrics&, void*) = nullptr;
+    void* observer_context_ = nullptr;
     wtp::EngineState worker_state_ = wtp::EngineState::Idle;
     std::uint64_t last_step_ = 0;
     Metrics worker_metrics_{}, reply_metrics_{};

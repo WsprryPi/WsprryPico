@@ -3,7 +3,7 @@
 #include <array>
 #include <string_view>
 namespace wsprrypico::network {
-inline constexpr std::array<std::string_view, 23> public_read_resources = {
+inline constexpr std::array<std::string_view, 24> public_read_resources = {
     "capabilities",
     "pins",
     "operations",
@@ -27,5 +27,6 @@ inline constexpr std::array<std::string_view, 23> public_read_resources = {
     "consumer/password",
     "consumer/setup/api/owner/v1/public-status",
     "amplifier-timing",
+    "si5351",
 };
 }

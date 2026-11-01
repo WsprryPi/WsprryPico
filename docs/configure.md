@@ -87,6 +87,16 @@ Direct RF drive offers **2, 4, 8, or 12 mA**, with **12 mA** as the default. Thi
 Pin or drive changes require an **explicit restart** in **Station Control → Transmitter status** before transmitting. Saving does not program the running pad. Changing a value back does not clear the restart requirement. Read saved and active settings separately.
 
 (amplifier-lead-and-tail)=
+### Si5351 output settings
+
+Choose **Si5351** under **RF Output** to configure an external Si5351A 10-MSOP module at address **0x60**. Select the complete I²C SDA/SCL pair, the fitted **25 MHz** or **27 MHz** reference, its source, and the transmit clock. Passive crystals also require their specified **6, 8, or 10 pF** load. An external clock or TCXO uses the supported **XA** arrangement; selecting it does not select CLKIN. Output drive is **2, 4, 6, or 8 mA**, independent of reported WSPR power.
+
+Loopback is **None**, **CLK0**, **CLK1**, or **CLK2**, with a distinct transmit output and an eligible counter-input GPIO. None releases the input and disables dependent trusted use. **Measure only** reports the clock ratio and its uncertainty. **Trust local reference for Pico rate** requires an explicit reference-uncertainty allowance; a TCXO label is insufficient. It supplies no UTC epoch or automatic RF calibration. Manual correction is in **ppb**; a positive value lowers programmed RF for a fast reference. Direct GPIO correction is retained separately.
+
+Choose **Save RF output settings** to save the complete engine allocation together. Draft edits do not touch hardware. Restart explicitly to activate saved hardware changes. Selecting Direct GPIO restores its controls and retains inactive Si5351 settings. Each connected wire still needs a distinct GPIO, including external devices whose software is not enabled.
+
+Si5351 transmission and reference-output activation require an explicit engineering build while physical qualification is incomplete. Ordinary firmware refuses those outputs. Runtime readback distinguishes verified register state from unknown; neither proves physical RF inactivity or absolute accuracy. A separately powered module may continue through Pico reset or a failed bus transaction. Engineering operation requires a verified conducted RF path, verified 100 kHz I²C operation and appropriate electrical levels. Automatic calibration and GPS/PPS ingestion are unavailable.
+
 ### Amplifier lead and tail
 
 Open **Station Control → Radio pins → Amplifier control**. Saved values load automatically. Set **Amplifier enable**, **Pin polarity**, **Enable before RF (ms)**, and **Disable after RF (ms)**, then choose **Save amplifier config** while the Pico is idle and unowned. This saves amplifier pin, polarity, and timing edits while preserving other radio-pin drafts. Both values default to **200 ms** and accept **0–1000 whole milliseconds**. Restart the Pico to activate changes; saved and active values are shown separately. Changing timing requires a restart even if the amplifier pin is disabled.

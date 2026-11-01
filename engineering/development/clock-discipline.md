@@ -21,3 +21,7 @@ The existing NTP journal layout and device/topology bindings are preserved. Old 
 ## Measurement boundaries
 
 Statistical skew and indicated NTP offsets do not establish absolute UTC phase or physical carrier accuracy. [Independent clock measurements](microchrony-independent-measurement.md) define the reference and common-clock requirements. The portable engine's [integration and profile](../../src/microchrony/README.md) and the [external reference harness](../../tests/reference/README.md) describe software behavior and reproducible comparisons. Neither qualifies physical timing or RF.
+
+## Si5351 trusted-local rate input
+
+An engineering-enabled Si5351 allocation can measure a separate loopback against raw Pico time. Measurement only is the default. Trusted-local use requires an explicit oscillator uncertainty; a TCXO label alone does not establish it. Timestamped rate observations feed the existing μChrony engine without inventing NTP packets, UTC epochs or fresh network samples. Only μChrony-derived UTC receives this rate assistance. Independent rate disagreement blocks all UTC admission until resolved; missing capture cannot clear it. Expiry retains the last learned rate center with ordinary conservative UTC holdover and the original UTC-source age. Raw hardware clocks and manual RF correction are unchanged. See [Si5351 measurement and execution](si5351.md).

@@ -50,6 +50,23 @@ bool integer(wtp::json::Value value, std::uint32_t& n) {
 bool valid_gpio_drive(unsigned ma) {
     return ma == 2 || ma == 4 || ma == 8 || ma == 12;
 }
+std::string validate_rf_configuration(const Config& config,
+                                      const hardware::FilterSettings& filters) {
+    if (!hardware::operational(config.pins))
+        return "invalid_hardware_allocation";
+    if (config.si5351) {
+        if (const auto error = hardware::validate_si5351_settings(*config.si5351); !error.empty())
+            return error;
+    }
+    if (config.pins.engine == hardware::PinPlan::Engine::I2c) {
+        if (!config.si5351)
+            return "si5351_configuration_required";
+        const auto allocation = hardware::validate_si5351(config.pins, *config.si5351, 0, filters);
+        if (!allocation.valid())
+            return allocation.error.empty() ? allocation.pins.error : allocation.error;
+    }
+    return hardware::validate_filters(filters, config.pins);
+}
 bool valid_ntp_timeout_token(wtp::json::Value value, bool unlimited) {
     std::uint32_t seconds = 0;
     return integer(value, seconds) && std::to_string(seconds) == value.raw &&
@@ -147,7 +164,7 @@ std::optional<Config> parse_config(std::string_view text) {
                 {"expires_utc_s", "pins", "allow_unqualified_frequency",
                  "allow_non_amateur_frequency", "gpio_drive_ma", "manual_correction_ppb",
                  "ntp_rf_calibration", "wspr_dial_frequency_hz", "ntp_timeout_s",
-                 "amplifier_timing"}) ||
+                 "amplifier_timing", "si5351"}) ||
         (root->get("version")->raw != "1" && root->get("version")->raw != "2") ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
@@ -221,6 +238,17 @@ std::optional<Config> parse_config(std::string_view text) {
             return {};
         c.pins = *parsed;
     }
+    if (const auto supplied = root->get("si5351")) {
+        if (supplied->raw != "null") {
+            const auto settings = hardware::parse_si5351(std::string(supplied->raw));
+            if (!settings)
+                return {};
+            c.si5351 = *settings;
+        }
+    }
+    if (c.pins.engine == hardware::PinPlan::Engine::I2c &&
+        (!c.si5351 || !hardware::validate_si5351(c.pins, *c.si5351).valid()))
+        return {};
     c.enabled = root->get("enabled")->boolean();
     if (const auto expiry = root->get("expires_utc_s")) {
         if (expiry->type() < '0' || expiry->type() > '9')
@@ -309,6 +337,8 @@ std::string serialize_config(const Config& c, bool amplifier_view) {
         result +=
             ",\"amplifier_timing\":{\"lead_ms\":" + std::to_string(c.amplifier_timing.lead_ms) +
             ",\"tail_ms\":" + std::to_string(c.amplifier_timing.tail_ms) + "}";
+    if (c.si5351)
+        result += ",\"si5351\":" + hardware::serialize_si5351(*c.si5351);
     return result + "}";
 }
 } // namespace wsprrypico::standalone

@@ -18,7 +18,7 @@ Individual jobs fit the member's advertised limits even when recurrence has no e
 
 ## Hardware and RF authority
 
-The implemented Pico engine is PIO/DMA. Its build-selected clock and numerical limits are defined by [clock support](development/clock-support.md). Si5351 is unavailable on Pico. Pi engine identifiers, resources, and limits do not apply to Pico. GPIO assignments use device-specific numbering and exclusive roles under the [pin contract](pin-assignment-contract.md).
+The ordinary Pico engine is PIO/DMA. Its build-selected clock and numerical limits are defined by [clock support](development/clock-support.md). Si5351 has separate settings and local execution behind an explicit engineering gate; physical qualification remains incomplete. Pi engine identifiers, resources, and limits do not apply to Pico. GPIO assignments use device-specific numbering and exclusive roles under the [pin contract](pin-assignment-contract.md).
 
 Pico supports manual RF correction, GPIO drive, optional amplifier enable and [timing](development/amplifier-enable.md), and [LPF/band selection](development/lpf-band-selector.md). WSPR reported dBm is message content; it is independent of pad drive and does not measure antenna power. UTC discipline and RF correction remain separate. A controller's clock estimate does not calibrate its member.
 

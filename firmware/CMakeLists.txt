@@ -23,7 +23,7 @@ configure_file(
     @ONLY
 )
 
-set(wsprry_rf_images WsprryPico WsprryPico-StandaloneRF)
+set(wsprry_rf_images WsprryPico WsprryPico-StandaloneRF WsprryPico-Si5351Engineering)
 set(wsprry_application_images WsprryPico-Inhibited ${wsprry_rf_images})
 
 # One application wiring for USB, networking, storage and resource reservations.
@@ -58,6 +58,12 @@ foreach(image IN LISTS wsprry_application_images)
     pico_set_program_version(${image} "${WSPRRY_PICO_FIRMWARE_VERSION}")
     if(image IN_LIST wsprry_rf_images)
         target_sources(${image} PRIVATE ../src/rf/pico/worker.cpp)
+        if(image STREQUAL "WsprryPico-Si5351Engineering")
+            target_compile_definitions(${image} PRIVATE WSPRRY_PICO_SI5351_ENGINEERING=1)
+        else()
+            target_compile_definitions(${image} PRIVATE
+                WSPRRY_PICO_SI5351_ENGINEERING=$<BOOL:${WSPRRY_PICO_SI5351_ENGINEERING}>)
+        endif()
         target_compile_definitions(${image} PRIVATE
             WSPRRY_PICO_STANDALONE_RF=1 PICO_CORE1_STACK_SIZE=0)
         target_link_libraries(${image} PRIVATE wsprrypico_pico_rf pico_multicore)

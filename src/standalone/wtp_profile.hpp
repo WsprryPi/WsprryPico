@@ -18,13 +18,20 @@ inline time::DisciplineConfig clock_profile(unsigned ntp_timeout_s = default_ntp
     return config;
 }
 
-inline wtp::ServiceConfig wtp_profile(bool physical_rf,
-                                      unsigned ntp_timeout_s = default_ntp_timeout_s) {
+inline wtp::ServiceConfig
+wtp_profile(bool physical_rf, unsigned ntp_timeout_s = default_ntp_timeout_s,
+            hardware::PinPlan::Engine engine = hardware::PinPlan::Engine::Direct,
+            bool si5351_engineering = false) {
     auto config = rf::wtp_profile(physical_rf ? "pio-dma-gp2" : "inhibited-standalone-simulator");
     config.maximum_arm_uncertainty_ns =
         ntp_timeout_s ? time::standalone_max_uncertainty_ns : UINT64_MAX;
     config.maximum_holdover_age_ns =
         ntp_timeout_s ? std::uint64_t{ntp_timeout_s} * 1'000'000'000ULL : UINT64_MAX;
+    if (engine == hardware::PinPlan::Engine::I2c) {
+        config.capability_engine =
+            physical_rf && si5351_engineering ? "si5351-engineering" : "si5351-inhibited";
+        config.max_events = 512;
+    }
     return config;
 }
 } // namespace wsprrypico::standalone

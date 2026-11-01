@@ -136,6 +136,22 @@ std::optional<std::uint8_t> crystal_load_register(const Configuration& config) {
     const unsigned code = load == 6 ? 1 : load == 8 ? 2 : 3;
     return static_cast<std::uint8_t>(0x12 | (code << 6));
 }
+std::optional<ReferencePlan> plan_reference(const Configuration& config) {
+    if (!validate(config).empty() || !config.loopback)
+        return {};
+    const auto pll = divider(899'000'000.L / config.reference_hz);
+    if (!pll || pll->ratio() < 15 || pll->ratio() > 90)
+        return {};
+    const auto hz = pll->ratio() * config.reference_hz;
+    const auto output = tone(1'000'000'000'000'000ULL, 1'000'000, hz, 2, true, 0.001L);
+    if (!output)
+        return {};
+    return ReferencePlan{config, *pll, *output, hz};
+}
+bool valid_reference_plan(const ReferencePlan& supplied) {
+    const auto rebuilt = plan_reference(supplied.configuration);
+    return rebuilt && *rebuilt == supplied;
+}
 Result plan(const Configuration& config, std::span<const std::uint64_t> frequencies,
             std::int32_t correction, long double maximum_error) {
     if (const auto error = validate(config); !error.empty())

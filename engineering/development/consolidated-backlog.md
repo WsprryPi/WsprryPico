@@ -5,14 +5,11 @@ This is the distinct TODO list for selected unfinished work. Current behavior is
 ## In progress
 
 13. **Si5351**
-    - ⏳ Production integration is selected. The [portable planning and device-control library](si5351.md) is implemented; it does not yet select an application engine or advertise Si5351 support. GPS/PPS integration remains outside this task.
-    - Complete JobService/worker execution, local symbol transitions, independent output-state observations, fault/reset shutdown, and bounded capture hardware.
-    - Complete atomic persisted engine/pin/reference updates, current shared schemas and strict companion consumers, conditional browser controls, both production integration suites, and physical qualification.
-    - Optional external-engine enhancement.
-    - CLK2 calibration only if that engine is selected.
-    - Keep complete-job timing local to RP2350 through the existing JobService. Allocate exactly one approved SDA/SCL pair atomically, with exclusive roles and no direct RF-output GPIO. Validate device/reference, bus/address, output, drive, and calibration explicitly; no defaults or electrical compatibility are established by this proposal.
-    - Keep planning portable and SDK/I²C access in adapters. Preparation, symbol changes, output control, and terminal cleanup belong to the execution owner. Failed I²C writes cannot prove inactivity. Apply the TX indicator rules throughout RF-producing warmup, transmission, and cleanup.
-    - Preserve exact source provenance and upstream licenses. Qualify the actual board, firmware, Si5351/reference, bus, output, drive, mode, clock, and RF path before advertising support; host checks and cross-linking do not qualify timing or RF.
+    - ✅ Portable synthesis, local JobService/worker execution, bounded capture, atomic persisted allocations, current shared schemas and strict companion consumers, conditional Pico/Pi controls, and trusted-local μChrony rate input are implemented.
+    - ⏳ Physical qualification and production enablement remain unfinished. Keep ordinary Si5351 output gated; require both production integration suites and adversarial review for coordinated candidates before delivery.
+    - ▧ Qualify the actual Si5351/reference, I²C pull-ups/speed, physical transitions, shutdown/reset containment and mode waveforms. Ordinary firmware keeps Si5351 output activation disabled; engineering builds are explicit and physically unqualified.
+    - GPS/PPS ingestion and automatic RF calibration remain outside this task.
+
 ## Possible future work
 
 14. **Optional GPS UTC + PPS and improved holdover.**

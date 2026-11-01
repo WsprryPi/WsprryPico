@@ -117,7 +117,7 @@ Both carriers exercise production clients/coordinators, handlers, crypto, serial
 
 The opt-in [Si5351 bench diagnostics](../../tests/hardware/si5351-diagnostics.md) provide separate RAM-only fixed-tone, band-sweep, and CLK2 feedback targets. They are excluded from the production application and add no advertised Si5351 engine support.
 
-The [Si5351 library and adapters](si5351.md) provide synthesis, register control, allocation, and reference-measurement calculations. Application engine selection, controls, persistence, capture integration, and qualification remain unfinished; they add no advertised Si5351 capability.
+The [Si5351 library and adapters](si5351.md) provide synthesis, register control, allocation, and reference-measurement calculations. Application selection, conditional controls, atomic persistence and capture integration are implemented. Physical transmission and reference activation require an explicit engineering build while qualification remains incomplete.
 
 `scripts/usb_inventory.py` provides a read-only, explicitly selected USB Console and WTP inventory. `scripts/console_trace.py` reads bounded diagnostic pages; `scripts/network_trace.py` validates trace framing and identity offline, and `scripts/radio_capture.py` decodes radiotap/802.11 PCAP records offline. `scripts/gp14_diagnostics.py` drives the explicit button diagnostic image. Inspect an opt-in entry point before running it; normal software checks do not open devices.
 

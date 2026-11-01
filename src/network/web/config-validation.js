@@ -4,7 +4,7 @@ function validSavedConfig(c) {
   const object = v => v && typeof v === 'object' && !Array.isArray(v);
   const ascii = (v,min,max) => typeof v === 'string' && v.length >= min && v.length <= max && /^[\x20-\x7e]*$/.test(v);
   const gp = v => v === null || Number.isInteger(v) && (v >= 0 && v <= 22 || v >= 26 && v <= 28);
-  const known=['enabled','station','wifi','schedules','pins','expires_utc_s','allow_unqualified_frequency','allow_non_amateur_frequency','gpio_drive_ma'];
+  const known=['enabled','station','wifi','schedules','pins','expires_utc_s','allow_unqualified_frequency','allow_non_amateur_frequency','gpio_drive_ma','si5351'];
   if (!object(c) || Object.keys(c).some(k=>!known.includes(k)) || typeof c.enabled !== 'boolean' ||
       !object(c.station) || Object.keys(c.station).sort().join(',') !== 'callsign,locator,power_dbm' || ['N0CALL','<N0CALL>'].includes(c.station.callsign) || !ascii(c.station.callsign,3,12) || !/^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(c.station.callsign) || !/^[A-Ra-r]{2}[0-9]{2}([A-Xa-x]{2})?$/.test(c.station.locator) ||
       ![0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60].includes(c.station.power_dbm) ||
@@ -15,6 +15,8 @@ function validSavedConfig(c) {
       c.expires_utc_s !== undefined && (!Number.isSafeInteger(c.expires_utc_s) || c.expires_utc_s !== 0 && (c.expires_utc_s < 1735689600 || c.expires_utc_s >= 4102444800))) return false;
   for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) if (c[name] !== undefined && typeof c[name] !== 'boolean') return false;
   if (![2,4,8,12].includes(c.gpio_drive_ma)) return false;
+  if (c.si5351 !== undefined && !globalThis.WsprrySi5351?.valid(c.si5351)) return false;
+  if (c.pins?.engine === 'i2c' && !globalThis.WsprrySi5351?.allocation(c.si5351,c.pins)) return false;
   if (c.pins !== undefined) {
     const p=c.pins;
     if (!object(p) || Object.keys(p).sort().join(',') !== 'amplifier_active_high,amplifier_gp,button_gp,engine,i2c_pair,indicator,indicator_active_high,indicator_gp,lpf_gps,rf_gp' || !['direct','i2c'].includes(p.engine) || !gp(p.rf_gp) || !gp(p.button_gp) || !gp(p.amplifier_gp) || !gp(p.indicator_gp) ||

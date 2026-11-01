@@ -345,6 +345,11 @@ Engine::Engine(Config config) : config_(config) {
         s.status.poll = config_.min_poll;
 }
 void Engine::seed(std::int32_t frequency_ppb, std::uint32_t skew_ppb) {
+    // A provisional persisted seed cannot replace an observed reference or
+    // clear retained disagreement/holdover evidence. Policy removal has its
+    // own explicit operation.
+    if (frequency_reference_.generation)
+        return;
     if (std::abs(double(frequency_ppb)) <= config_.max_drift_ppm * 1000 &&
         skew_ppb <= 1'000'000'000U) {
         frequency_ = frequency_ppb / billion;
@@ -353,6 +358,87 @@ void Engine::seed(std::int32_t frequency_ppb, std::uint32_t skew_ppb) {
         skew_ = std::max(0.002, skew_ppb / billion);
         frequency_skew_ = skew_;
     }
+}
+FrequencyReferenceState Engine::frequency_reference_state(std::uint64_t now) const {
+    if (frequency_reference_state_ == FrequencyReferenceState::Disagreement)
+        return FrequencyReferenceState::Disagreement;
+    if (frequency_reference_.generation && (now < frequency_reference_.sampled_raw_ns ||
+                                            now >= frequency_reference_.valid_until_raw_ns))
+        return FrequencyReferenceState::Expired;
+    return frequency_reference_state_;
+}
+const char* name(FrequencyReferenceState value) {
+    switch (value) {
+    case FrequencyReferenceState::Selected:
+        return "selected";
+    case FrequencyReferenceState::Quality:
+        return "quality";
+    case FrequencyReferenceState::Disagreement:
+        return "disagreement";
+    case FrequencyReferenceState::Expired:
+        return "expired";
+    default:
+        return "none";
+    }
+}
+void Engine::clear_frequency_reference(std::uint64_t now) {
+    if (!frequency_reference_.generation || (clock_valid_ && now < clock_raw_ns_))
+        return;
+    advance(now);
+    frequency_reference_ = {};
+    frequency_reference_state_ = FrequencyReferenceState::None;
+    // Retain the last learned timer-rate center, like ordinary source loss.
+    // It is no longer fresh reference evidence and never renews UTC age.
+    skew_ = std::max(skew_, config_.max_clock_error_ppm * 1e-6);
+    frequency_skew_ = std::max(frequency_skew_, skew_);
+    ++generation_;
+}
+void Engine::retire_frequency_reference(std::uint64_t now) {
+    const auto floor = config_.max_clock_error_ppm * 1e-6;
+    if (!frequency_reference_.generation || now < frequency_reference_.sampled_raw_ns ||
+        (frequency_reference_.valid_until_raw_ns <= now && skew_ >= floor &&
+         frequency_skew_ >= floor))
+        return;
+    frequency_reference_.valid_until_raw_ns =
+        std::min(frequency_reference_.valid_until_raw_ns, now);
+    skew_ = std::max(skew_, floor);
+    frequency_skew_ = std::max(frequency_skew_, skew_);
+    ++generation_;
+    // Loss retires freshness, not a known disagreement. A new agreeing
+    // observation or an explicit policy removal is required to clear that.
+}
+bool Engine::observe_frequency_reference(FrequencyReference reference, std::uint64_t now) {
+    if (!config_valid_ || !reference.generation || !reference.uncertainty_ppb ||
+        reference.uncertainty_ppb > 1'000'000'000U ||
+        std::abs(double(reference.rate_ppb)) > config_.max_drift_ppm * 1000 ||
+        reference.sampled_raw_ns > now || reference.valid_until_raw_ns <= now ||
+        reference.valid_until_raw_ns <= reference.sampled_raw_ns ||
+        reference.valid_until_raw_ns - reference.sampled_raw_ns > 300 * second ||
+        (frequency_reference_.generation &&
+         (reference.generation < frequency_reference_.generation ||
+          reference.sampled_raw_ns <= frequency_reference_.sampled_raw_ns)) ||
+        (clock_valid_ && now < clock_raw_ns_))
+        return false;
+    advance(now);
+    frequency_reference_ = reference;
+    ++generation_;
+    const auto displacement = std::abs(double(reference.rate_ppb) - network_frequency_ppb_);
+    if (last_update_ns_ &&
+        displacement > double(reference.uncertainty_ppb) + network_frequency_uncertainty_ppb_) {
+        frequency_reference_state_ = FrequencyReferenceState::Disagreement;
+        return false;
+    }
+    if (last_update_ns_ && reference.uncertainty_ppb >= network_frequency_uncertainty_ppb_) {
+        frequency_reference_state_ = FrequencyReferenceState::Quality;
+        return true;
+    }
+    // Change only the frequency component of the existing virtual clock. No
+    // reference observation can establish its UTC epoch or source freshness.
+    frequency_ = reference.rate_ppb / billion;
+    frequency_skew_ = skew_ = reference.uncertainty_ppb / billion;
+    slew_ = std::clamp(slew_, -0.1 - frequency_, 0.1 - frequency_);
+    frequency_reference_state_ = FrequencyReferenceState::Selected;
+    return true;
 }
 bool Engine::configure(unsigned slot, std::uint32_t endpoint, std::uint64_t now) {
     if (!config_valid_ || slot >= source_capacity || !endpoint)
@@ -982,6 +1068,10 @@ void Engine::discipline(unsigned selected, std::span<const unsigned> combined, s
         clock_utc_ns_ = reference;
     } else
         advance(now);
+    if (frequency_reference_state(now) == FrequencyReferenceState::Expired) {
+        frequency_skew_ = std::max(frequency_skew_, config_.max_clock_error_ppm * 1e-6);
+        skew_ = std::max(skew_, frequency_skew_);
+    }
     if (next_skew <= config_.max_update_skew_ppm * 1e-6) {
         const auto combined_frequency =
             combine_frequency({frequency_, frequency_skew_}, {next_frequency, estimate.skew});
@@ -991,6 +1081,29 @@ void Engine::discipline(unsigned selected, std::span<const unsigned> combined, s
         // Fits overlap. Blending their centers does not create additional
         // independent measurements or reduce the new fit's own uncertainty.
         skew_ = std::max(frequency_skew_, next_skew + std::abs(next_frequency - frequency_));
+    }
+    network_frequency_ppb_ =
+        static_cast<std::int32_t>(std::llround(std::clamp(next_frequency, -0.1, 0.1) * billion));
+    // Counter and network fits cover different averaging windows. Preserve
+    // the configured oscillator allowance rather than treating a tiny NTP
+    // regression error as an independent instantaneous-frequency guarantee.
+    network_frequency_uncertainty_ppb_ =
+        static_cast<std::uint32_t>(std::ceil(
+            std::min(1.0, std::max(next_skew, config_.max_clock_error_ppm * 1e-6)) * billion)) +
+        1;
+    if (frequency_reference_.generation &&
+        frequency_reference_state(now) != FrequencyReferenceState::Expired &&
+        frequency_reference_state_ != FrequencyReferenceState::Disagreement) {
+        const auto& r = frequency_reference_;
+        if (std::abs(double(r.rate_ppb) - network_frequency_ppb_) >
+            double(r.uncertainty_ppb) + network_frequency_uncertainty_ppb_)
+            frequency_reference_state_ = FrequencyReferenceState::Disagreement;
+        else if (r.uncertainty_ppb < network_frequency_uncertainty_ppb_) {
+            frequency_ = r.rate_ppb / billion;
+            frequency_skew_ = skew_ = r.uncertainty_ppb / billion;
+            frequency_reference_state_ = FrequencyReferenceState::Selected;
+        } else
+            frequency_reference_state_ = FrequencyReferenceState::Quality;
     }
     pending_phase_ = difference(reference, clock_utc_ns_);
     const auto interval =
@@ -1032,7 +1145,10 @@ Tracking Engine::tracking(std::uint64_t now) const {
     const double rate = frequency_ + (std::abs(remaining) >= 1e-9 ? slew_ : 0);
     result.rate_ppb = std::int32_t(std::llround(std::clamp(rate, -0.1, 0.1) * billion));
     result.utc_frequency_ppb = std::int32_t(std::llround(frequency_ * billion));
-    result.skew_ppb = std::uint32_t(std::ceil(std::min(1.0, skew_) * billion));
+    const auto skew = frequency_reference_state(now) == FrequencyReferenceState::Expired
+                          ? std::max(skew_, config_.max_clock_error_ppm * 1e-6)
+                          : skew_;
+    result.skew_ppb = std::uint32_t(std::ceil(std::min(1.0, skew) * billion));
     result.root_delay = root_delay_;
     result.root_dispersion =
         root_dispersion_ +

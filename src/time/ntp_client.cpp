@@ -71,6 +71,18 @@ void NtpClient::clear_seed() {
     core_.seed(0);
     reset_peer();
 }
+bool NtpClient::frequency_reference(const std::optional<microchrony::FrequencyReference>& value,
+                                    std::uint64_t now) {
+    const bool accepted = value ? core_.observe_frequency_reference(*value, now) : false;
+    if (!value)
+        core_.retire_frequency_reference(now);
+    (void)apply(now); // Imports the original UTC source age, never the reference timestamp.
+    return accepted;
+}
+void NtpClient::clear_frequency_reference(std::uint64_t now) {
+    core_.clear_frequency_reference(now);
+    (void)apply(now);
+}
 std::optional<std::array<std::uint8_t, 48>>
 NtpClient::scheduled_request(unsigned slot, std::uint64_t now, std::uint64_t token) {
     last_now_ = now;
@@ -125,10 +137,13 @@ bool NtpClient::receive(unsigned slot, std::span<const std::uint8_t> packet, std
 }
 bool NtpClient::apply(std::uint64_t now) {
     last_now_ = now;
+    const bool conflict =
+        core_.frequency_reference_state(now) == microchrony::FrequencyReferenceState::Disagreement;
+    clock_.frequency_reference_conflict(conflict);
     const auto tracking = core_.tracking(now);
     arbiter_selected_ = false;
     control_ = {};
-    if (!tracking.synchronized || tracking.source_raw_ns > now) {
+    if (conflict || !tracking.synchronized || tracking.source_raw_ns > now) {
         // Losing a usable NTP estimate is not a new clock observation. Leave
         // the last accepted anchor at its original age; the discipline's
         // configured timeout and growing uncertainty decide its usability.

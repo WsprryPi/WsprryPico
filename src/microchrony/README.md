@@ -116,7 +116,7 @@ defines compatibility; GPS/PPS input remains selected future work.
 
 Supported scope is a bounded IPv4 basic client with a virtual UTC clock. It does
 not implement NTS/MAC authentication, NTP server/peer modes, interleaved or
-extension-field modes, Unix kernel control, reference clocks, GPS/PPS or RTC
+extension-field modes, Unix kernel control, NTP reference-clock drivers, GPS/PPS or RTC
 tracking. Pending leap indicators are exposed to the application; leap-second
 execution is not yet a demonstrated Chrony-equivalent behavior. The Pico job
 policy excludes jobs near announced leap transitions. Exhaustive
@@ -152,3 +152,7 @@ The governing references are the official [Chrony 4.9 configuration
 manual](https://chrony-project.org/doc/4.9/chrony.conf.html), [chronyc
 manual](https://chrony-project.org/doc/4.9/chronyc.html), and the
 [NTPv4 specification](https://www.rfc-editor.org/rfc/rfc5905.html).
+
+## Independent bounded frequency input
+
+`FrequencyReference` carries the original raw sample time, expiry, plan generation, rate in ppb and uncertainty. It is a frequency-only observation into the existing virtual-clock model, not an NTP packet or UTC epoch. The engine preserves phase before changing rate, rejects duplicate/stale/future observations, compares independent network and reference rate intervals, and retains disagreement through source loss. Expiry keeps the last learned rate center with conservative holdover and the original UTC-source age. Explicit policy removal has a separate operation; provisional persisted seeds cannot overwrite observed reference or conflict metadata. The Pico adapter supplies this input only for explicitly trusted Si5351 loopback settings. It does not change raw hardware clocks or RF correction.

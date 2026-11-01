@@ -32,8 +32,10 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         get selectedOptions() { return this.options.filter(o=>o.value===this.value); }
         replaceChildren(...options) { this.options = options; this.current = options[0]?.value || ''; }
         addEventListener(type,callback) { this['on'+type] = callback; }
+        querySelector(selector) {const match=selector.match(/^\[value="([^"]+)"\]$/);return match ? this.options.find(o=>o.value===match[1]) : null;}
     }
-    for (const key of ['rf_gp','button_gp','amplifier_gp','amplifier_active_high','indicator','indicator_gp','indicator_active_high']) elements.config.elements[key] = new Select();
+    for (const key of ['rf_engine','rf_gp','button_gp','amplifier_gp','amplifier_active_high','indicator','indicator_gp','indicator_active_high']) elements.config.elements[key] = new Select();
+    elements.config.elements.rf_engine.replaceChildren(new Option('Direct GPIO / PIO','direct'),new Option('Si5351 (engineering)','i2c'));
     elements['consumer-power'] = new Select();
     elements['retirement-target'] = new Select();
     elements.config.elements.indicator.replaceChildren(...['onboard_led','external','disabled'].map(x=>new Option(x,x)));

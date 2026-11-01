@@ -145,7 +145,7 @@ std::optional<PinPlan> parse_plan(std::string_view text) {
     return p;
 }
 bool operational(const PinPlan& p) {
-    return validate(p).valid() && p.engine == PinPlan::Engine::Direct && p.lpf.empty();
+    return validate(p).valid() && p.lpf.empty();
 }
 std::string serialize_plan(const PinPlan& p, bool amplifier_view) {
     const auto pin = [](std::optional<unsigned> gp) { return gp ? std::to_string(*gp) : "null"; };
@@ -197,8 +197,8 @@ std::string describe(const PinPlan& p) {
            ",\"applied\":false}";
 }
 std::string choices(bool amplifier_view) {
-    std::string out = std::string("{\"schema\":\"pins\"") +
-                      ",\"numbering\":\"pico_gp\",\"eligible_gps\":[";
+    std::string out =
+        std::string("{\"schema\":\"pins\"") + ",\"numbering\":\"pico_gp\",\"eligible_gps\":[";
     bool comma = false;
     for (unsigned gp = 0; gp <= 28; ++gp) {
         if (!eligible(gp))
@@ -223,6 +223,6 @@ std::string choices(bool amplifier_view) {
            "\"button\":\"configurable_active_low_when_enabled\",\"indicator\":\"configurable_"
            "shared_cues_and_tx\","
            "\"amplifier\":" +
-           (amplifier_view ? std::string("true") : "false") + ",\"lpf\":false,\"i2c_rf\":false}}";
+           (amplifier_view ? std::string("true") : "false") + ",\"lpf\":false,\"i2c_rf\":true}}";
 }
 } // namespace wsprrypico::hardware

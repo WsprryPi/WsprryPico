@@ -15,11 +15,11 @@ bool config_fields(Value value, bool partial, bool drive) {
         return fields(value, {},
                       {"enabled", "station", "wifi", "schedules", "expires_utc_s", "pins",
                        "allow_unqualified_frequency", "allow_non_amateur_frequency",
-                       "gpio_drive_ma"}) &&
+                       "gpio_drive_ma", "si5351"}) &&
                !fields(value, {});
     return fields(value, {"enabled", "station", "wifi", "schedules"},
                   {"expires_utc_s", "pins", "allow_unqualified_frequency",
-                   "allow_non_amateur_frequency", "gpio_drive_ma"});
+                   "allow_non_amateur_frequency", "gpio_drive_ma", "si5351"});
 }
 
 void member(std::string& result, std::string_view name, std::string_view raw) {
@@ -73,9 +73,10 @@ std::optional<std::string> config_candidate(Value supplied,
         return {};
     const bool preserve = mode != ConfigWrite::Replace && current.has_value();
     std::string result = "{";
-    for (const auto name : {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s",
-                            "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency",
-                            "gpio_drive_ma", "manual_correction_ppb", "ntp_rf_calibration"}) {
+    for (const auto name :
+         {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s", "pins",
+          "allow_unqualified_frequency", "allow_non_amateur_frequency", "gpio_drive_ma",
+          "manual_correction_ppb", "ntp_rf_calibration", "si5351"}) {
         if (name == std::string_view("version")) {
             member(result, name, current && current->ntp_timeout_s == 0 ? "2" : "1");
             continue;
@@ -143,6 +144,8 @@ std::optional<std::string> config_candidate(Value supplied,
         member(result, "amplifier_timing",
                "{\"lead_ms\":" + std::to_string(current->amplifier_timing.lead_ms) +
                    ",\"tail_ms\":" + std::to_string(current->amplifier_timing.tail_ms) + "}");
+    if (!supplied.get("si5351") && current && current->si5351 && !preserve)
+        member(result, "si5351", hardware::serialize_si5351(*current->si5351));
     result += '}';
     if (result.size() > standalone::max_config_bytes)
         return {};

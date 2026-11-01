@@ -38,6 +38,15 @@ struct Tone {
     unsigned r_divider = 1;
     std::uint8_t control = 0;
 };
+struct ReferencePlan {
+    bool operator==(const ReferencePlan&) const = default;
+    Configuration configuration;
+    Divider pll;
+    Tone output;
+    long double pll_hz = 0;
+};
+std::optional<ReferencePlan> plan_reference(const Configuration&);
+bool valid_reference_plan(const ReferencePlan&);
 struct Plan {
     bool operator==(const Plan&) const = default;
     Configuration configuration;

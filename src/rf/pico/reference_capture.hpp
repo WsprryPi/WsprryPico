@@ -2,11 +2,12 @@
 #pragma once
 #include "hardware/si5351_settings.hpp"
 #include "rf/reference_counter.hpp"
+#include "rf/reference_monitor.hpp"
 
 namespace wsprrypico::rf {
 // RF-owner-only, input-only PWM capture. Clock output control belongs to the
 // Si5351 device owner; opening capture never enables an external clock.
-class PicoReferenceCapture {
+class PicoReferenceCapture final : public ReferenceCapture {
   public:
     PicoReferenceCapture() = default;
     ~PicoReferenceCapture() {
@@ -16,9 +17,9 @@ class PicoReferenceCapture {
     PicoReferenceCapture& operator=(const PicoReferenceCapture&) = delete;
     bool open(const hardware::PinPlan&, const hardware::Si5351Settings&,
               const hardware::FilterSettings& filters = {});
-    bool begin(std::uint64_t plan_generation);
-    bool poll(std::uint64_t plan_generation);
-    ReferenceWindow finish();
+    bool begin(std::uint64_t plan_generation) override;
+    bool poll(std::uint64_t plan_generation) override;
+    ReferenceWindow finish() override;
     void close();
     std::string_view error() const {
         return counter_.error();

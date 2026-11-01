@@ -57,6 +57,8 @@ ControllerChallenge ControllerTimeArbiter::challenge(std::string_view principal,
         return {ControllerTimeCode::AuthenticationRequired};
     if (requested_device != device_id_)
         return {ControllerTimeCode::WrongDevice};
+    if (frequency_conflict_)
+        return {ControllerTimeCode::Disagreement};
     if (pending_.live) {
         const auto now = now_(context_);
         if (now >= pending_.started_ns &&
@@ -128,6 +130,8 @@ ControllerTimeCode ControllerTimeArbiter::submit(std::string_view principal,
                                                  std::string_view requested_device,
                                                  std::string_view nonce, std::uint64_t utc_ns,
                                                  bool browser) {
+    if (frequency_conflict_)
+        return ControllerTimeCode::Disagreement;
     if (!pending_.live)
         return ControllerTimeCode::Replay;
     const auto now = now_(context_);
@@ -240,6 +244,8 @@ bool ControllerTimeArbiter::observe_rate(std::uint64_t utc, std::uint64_t raw,
 bool ControllerTimeArbiter::observe_ntp_model(const RateObservation& source,
                                               const wtp::ClockSnapshot& model,
                                               std::uint32_t max_clock_error_ppb) {
+    if (frequency_conflict_)
+        return false;
     if (!now_ || !consistent_import(source, model) || source.utc_ns < sntp_min_utc_ns ||
         source.utc_ns >= sntp_max_utc_ns || source.rate_ppb < -100'000 ||
         source.rate_ppb > 100'000 || source.rate_uncertainty_ppb > utc_max_rate_uncertainty_ppb ||
@@ -300,6 +306,8 @@ bool ControllerTimeArbiter::observe_model(ObservationSource source, std::uint64_
                                           std::string_view principal, std::int32_t rate,
                                           std::uint32_t rate_uncertainty,
                                           std::uint64_t generation) {
+    if (frequency_conflict_)
+        return false;
     if (rate < -100'000 || rate > 100'000 || rate_uncertainty > 200'000)
         return false;
     if (!now_ || leap != wtp::LeapState::Normal || leap_transition_utc_ns ||
@@ -379,12 +387,21 @@ void ControllerTimeArbiter::invalidate(ObservationSource source) {
         imported_ntp_ = false;
     }
 }
+void ControllerTimeArbiter::frequency_reference_conflict(bool conflict) {
+    if (conflict && !frequency_conflict_)
+        clock_.invalidate();
+    frequency_conflict_ = conflict;
+    // Keep any independent phase-disagreement recovery state. Clearing this
+    // frequency interlock is not itself a new or accepted UTC observation.
+}
 
 ControllerTimeStatus ControllerTimeArbiter::status() const {
     ControllerTimeStatus result;
     result.source = source_;
     result.state = clock_.snapshot().state;
-    result.disagreement = source_ == ActiveTimeSource::Disagreement;
+    result.disagreement = frequency_conflict_ || source_ == ActiveTimeSource::Disagreement;
+    if (result.disagreement)
+        result.source = ActiveTimeSource::Disagreement;
     if (!result.disagreement && source_ != ActiveTimeSource::Browser &&
         clock_.browser_time_available())
         result.source = ActiveTimeSource::None;
@@ -394,7 +411,7 @@ ControllerTimeStatus ControllerTimeArbiter::status() const {
         const auto clock = clock_.snapshot();
         result.age_ns = clock.sync_age_ns;
         result.uncertainty_ns = clock.uncertainty_ns;
-        if (clock.state == wtp::ClockState::Unsynchronized)
+        if (clock.state == wtp::ClockState::Unsynchronized && !result.disagreement)
             result.source = ActiveTimeSource::None;
         return result;
     }

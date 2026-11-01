@@ -72,9 +72,10 @@ void manual() {
         application::config_candidate(*supplied, extended, application::ConfigWrite::Merge);
     REQUIRE(standalone::parse_config(*legacy)->manual_correction_ppb == -10125);
     REQUIRE(f.store.save(extended));
-    const auto legacy_view =
-        f.api.handle(network_test::control_request({"GET", "/api/control/v1/rf-calibration", {}, {{"host", "127.0.0.1:8443"}}}), "test",
-                     "127.0.0.1:8443");
+    const auto legacy_view = f.api.handle(
+        network_test::control_request(
+            {"GET", "/api/control/v1/rf-calibration", {}, {{"host", "127.0.0.1:8443"}}}),
+        "test", "127.0.0.1:8443");
     REQUIRE(legacy_view.status == 200 &&
             legacy_view.body.find("\"mode\":\"manual\"") != std::string::npos);
     REQUIRE(wtp::json::parse(f.scheduler.command("CONFIG " + network_test::config))
@@ -106,8 +107,8 @@ void manual() {
     }
     // Closed old config views never leak new fields to strict old clients.
     network::HttpRequest get{"GET", "/api/control/v1/config", {}, {{"host", "127.0.0.1:8443"}}};
-    REQUIRE(f.api.handle(network_test::control_request(get), "test", "127.0.0.1:8443").body.find("correction") ==
-            std::string::npos);
+    REQUIRE(f.api.handle(network_test::control_request(get), "test", "127.0.0.1:8443")
+                .body.find("correction") == std::string::npos);
 }
 std::array<std::uint8_t, 48> ntp_reply(const std::array<std::uint8_t, 48>& request,
                                        std::uint64_t utc) {
@@ -257,6 +258,65 @@ void selected_source_freshness() {
     REQUIRE(client.receive(ntp_reply(recovered, epoch + raw - 1'000'000), raw));
     REQUIRE(clock.snapshot().state == wtp::ClockState::Synchronized);
     REQUIRE(client.engine().tracking(raw).generation > before.generation);
+}
+void reference_frequency_authority() {
+    std::uint64_t raw = 0;
+    time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
+    time::ControllerTimeArbiter arbiter(clock, now, &raw, "test");
+    time::NtpClient client(arbiter);
+    raw = ns;
+    REQUIRE(client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 1, 10000, 100}, raw));
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(client.engine().history(0).empty());
+    client.clear_frequency_reference(raw);
+    for (unsigned i = 0; i < 3; ++i) {
+        const auto request = client.request(raw, i + 1);
+        raw += 2'000'000;
+        REQUIRE(client.receive(ntp_reply(request, epoch + raw - 1'000'000), raw));
+        raw += 64 * ns;
+    }
+    REQUIRE(client.apply(raw));
+    const auto before = clock.snapshot();
+    const auto samples = client.engine().history(0).size();
+    REQUIRE(before.state == wtp::ClockState::Synchronized);
+    const microchrony::FrequencyReference reference{raw, raw + 30 * ns, 7, 10000, 100};
+    REQUIRE(client.frequency_reference(reference, raw));
+    const auto after = clock.snapshot();
+    REQUIRE(after.sync_age_ns == before.sync_age_ns);
+    REQUIRE(after.utc_now_ns >= before.utc_now_ns - 1000 &&
+            after.utc_now_ns <= before.utc_now_ns + 1000);
+    REQUIRE(after.subsequent_rate_ppb == 10000);
+    REQUIRE(client.engine().history(0).size() == samples);
+    const auto generation = client.engine().tracking(raw).generation;
+    REQUIRE(!client.frequency_reference(reference, raw));
+    REQUIRE(client.engine().tracking(raw).generation == generation);
+    raw += ns;
+    (void)client.frequency_reference({}, raw);
+    REQUIRE(client.engine().frequency_reference_state(raw) ==
+            microchrony::FrequencyReferenceState::Expired);
+    REQUIRE(clock.snapshot().sync_age_ns == before.sync_age_ns + ns);
+    raw += ns;
+    REQUIRE(!client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 7, 90000, 100}, raw));
+    REQUIRE(arbiter.status().disagreement);
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    (void)client.frequency_reference({}, raw);
+    REQUIRE(arbiter.status().disagreement);
+    REQUIRE(arbiter.challenge("browser", "session", "test", "fresh-nonce").code ==
+            time::ControllerTimeCode::Disagreement);
+    REQUIRE(!arbiter.observe(time::ObservationSource::Browser, epoch + raw, raw,
+                             time::browser_clock_uncertainty_ns, wtp::LeapState::Normal));
+    raw += ns;
+    REQUIRE(client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 7, 0, 100}, raw));
+    REQUIRE(!arbiter.status().disagreement &&
+            clock.snapshot().state == wtp::ClockState::Synchronized);
+    REQUIRE(clock.snapshot().sync_age_ns == before.sync_age_ns + 3 * ns);
+    REQUIRE(client.engine().history(0).size() == samples);
+    client.clear_seed();
+    REQUIRE(client.engine().frequency_reference_state(raw) ==
+            microchrony::FrequencyReferenceState::Selected);
 }
 void model_import() {
     std::uint64_t raw = 10 * ns;
@@ -574,6 +634,7 @@ int main(int argc, char** argv) {
     }
     manual();
     model_import();
+    reference_frequency_authority();
     diagnostic_pages();
     selected_source_freshness();
     retention();

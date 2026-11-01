@@ -49,6 +49,62 @@ bool measurement(Engine& engine, unsigned slot, std::uint64_t midpoint, double o
         std::uint64_t(std::int64_t(epoch + midpoint) + std::int64_t(std::llround(offset * 1e9)));
     return engine.receive(slot, reply(*request, utc, dispersion), send + delay);
 }
+void frequency_reference_input() {
+    static_assert(sizeof(Engine) <= 32768);
+    Engine cold;
+    const FrequencyReference initial{second, 31 * second, 1, -12000, 100};
+    CHECK(cold.observe_frequency_reference(initial, second));
+    CHECK(cold.frequency_reference_state(second) == FrequencyReferenceState::Selected);
+    CHECK(!cold.tracking(second).synchronized && cold.tracking(second).utc_ns == 0);
+    const auto generation = cold.tracking(second).generation;
+    CHECK(!cold.observe_frequency_reference(initial, 2 * second));
+    CHECK(cold.tracking(2 * second).generation == generation);
+    auto invalid = initial;
+    invalid.generation = 0;
+    CHECK(!cold.observe_frequency_reference(invalid, 2 * second));
+    invalid = initial;
+    invalid.sampled_raw_ns = 4 * second;
+    CHECK(!cold.observe_frequency_reference(invalid, 2 * second));
+    invalid = initial;
+    invalid.valid_until_raw_ns = 2 * second;
+    CHECK(!cold.observe_frequency_reference(invalid, 2 * second));
+    cold.retire_frequency_reference(3 * second);
+    CHECK(cold.frequency_reference_state(3 * second) == FrequencyReferenceState::Expired);
+    CHECK(cold.tracking(3 * second).source_raw_ns == 0);
+
+    Engine engine;
+    CHECK(engine.configure(0, 1, 0));
+    for (unsigned i = 1; i <= 12; ++i)
+        CHECK(measurement(engine, 0, i * 64 * second, 0));
+    const auto now = 12 * 64 * second + 2'000'000;
+    const auto before = engine.tracking(now);
+    CHECK(before.synchronized);
+    FrequencyReference observation{now, now + 30 * second, 7, 500, 50};
+    CHECK(engine.observe_frequency_reference(observation, now));
+    const auto after = engine.tracking(now);
+    CHECK(after.utc_ns == before.utc_ns && after.source_raw_ns == before.source_raw_ns);
+    CHECK(after.utc_frequency_ppb == 500);
+    engine.seed(-20000, 10);
+    CHECK(engine.tracking(now).utc_frequency_ppb == 500);
+    CHECK(engine.frequency_reference_state(now) == FrequencyReferenceState::Selected);
+    const auto held = engine.tracking(now + 31 * second);
+    CHECK(engine.frequency_reference_state(now + 31 * second) == FrequencyReferenceState::Expired);
+    CHECK(held.utc_frequency_ppb == 500 && held.source_raw_ns == before.source_raw_ns);
+    CHECK(held.skew_ppb >= 1000 && held.uncertainty_ns > after.uncertainty_ns);
+    observation.sampled_raw_ns = now + 32 * second;
+    observation.valid_until_raw_ns = now + 62 * second;
+    observation.rate_ppb = 50000;
+    CHECK(!engine.observe_frequency_reference(observation, now + 32 * second));
+    CHECK(engine.frequency_reference_state(now + 32 * second) ==
+          FrequencyReferenceState::Disagreement);
+    engine.retire_frequency_reference(now + 33 * second);
+    engine.seed(0);
+    CHECK(engine.frequency_reference_state(now + 100 * second) ==
+          FrequencyReferenceState::Disagreement);
+    engine.clear_frequency_reference(now + 100 * second);
+    CHECK(engine.frequency_reference_state(now + 100 * second) == FrequencyReferenceState::None);
+    CHECK(engine.tracking(now + 100 * second).source_raw_ns == before.source_raw_ns);
+}
 void learning() {
     for (double rate : {-20e-6, 0.0, 20e-6}) {
         Engine engine;
@@ -692,6 +748,7 @@ int main(int argc, char** argv) {
     phase_change_preserves_frequency();
     variable_delay_retention();
     predecessor_phase_rebase();
+    frequency_reference_input();
     learning();
     delay_and_loss();
     packet_admission_rules();

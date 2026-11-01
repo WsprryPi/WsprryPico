@@ -9,6 +9,7 @@ WorkerEngine::WorkerEngine(wtp::RfEngine& engine, time::UtcDiscipline& clock, No
     : engine_(engine), clock_(clock), staged_clock_(clock), worker_clock_(clock), now_(now),
       wait_(wait), failure_(failure), mask_(mask), restore_(restore),
       completion_acknowledgement_ns_(engine.completion_acknowledgement_ns()),
+      externally_controlled_completion_(engine.externally_controlled_completion()),
       owns_execution_plan_(engine.owns_execution_plan()) {}
 void WorkerEngine::call(Op op) const {
     // No reentrancy, no queue overwrite, no retry after ambiguous completion.
@@ -33,7 +34,10 @@ void WorkerEngine::call(Op op) const {
 void WorkerEngine::check_safety() {
     if (safety_probe_ && safety_probe_(safety_context_))
         safety_inhibited_.store(true, std::memory_order_release);
-    if (!safety_inhibited() || safety_stopped_)
+    if (!safety_inhibited())
+        return;
+    engine_.inhibit_output();
+    if (safety_stopped_)
         return;
     const auto requested = now_();
     if (!engine_.disable(requested + 100'000'000ULL) || engine_.output_active()) {
@@ -97,9 +101,11 @@ void WorkerEngine::step() {
     worker_state_ = report_.state;
     diagnostic_ = safety_inhibited() ? "gp14_safety_inhibit" : engine_.diagnostic();
     ++worker_metrics_.commands;
+    if (op_ == Op::Metrics && observer_)
+        observer_(worker_metrics_, observer_context_);
     // Stack scans and driver snapshots are diagnostic work, not ordinary RPC work.
     // Execute only on an explicit metrics request, retaining single-core ownership.
-    if (op_ == Op::Metrics && probe_) {
+    if (op_ == Op::Metrics && probe_ && engine_.background_work_allowed()) {
         const auto before = now_();
         probe_(worker_metrics_, probe_context_);
         worker_metrics_.max_probe_ns = std::max(worker_metrics_.max_probe_ns, now_() - before);

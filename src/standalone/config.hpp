@@ -1,5 +1,6 @@
 #pragma once
 #include "hardware/pins.hpp"
+#include "hardware/si5351_settings.hpp"
 #include "rf/amplifier_timing.hpp"
 #include "wtp/json.hpp"
 
@@ -22,6 +23,7 @@ struct Schedule {
 };
 struct Config {
     hardware::PinPlan pins;
+    std::optional<hardware::Si5351Settings> si5351;
     rf::AmplifierTiming amplifier_timing;
     unsigned gpio_drive_ma = 4; // Nominal direct RF pad current, never WSPR power.
     std::int32_t manual_correction_ppb = 0;
@@ -53,6 +55,7 @@ inline Config factory_config() {
 }
 std::optional<Config> parse_config(std::string_view text);
 std::string serialize_config(const Config& config, bool amplifier_view = false);
+std::string validate_rf_configuration(const Config&, const hardware::FilterSettings& = {});
 bool valid_gpio_drive(unsigned ma);
 bool valid_gpio_drive_token(wtp::json::Value value);
 bool valid_ntp_timeout_token(wtp::json::Value value, bool unlimited = false);

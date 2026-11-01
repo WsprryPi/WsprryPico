@@ -1,5 +1,4 @@
 #include "network/api.hpp"
-#include "network/control.hpp"
 
 #include "application/config_update.hpp"
 #include "application/frequency_policy.hpp"
@@ -7,6 +6,7 @@
 #include "encoding/wspr.hpp"
 #include "hardware/pins.hpp"
 #include "network/assets.hpp"
+#include "network/control.hpp"
 #include "network/identity.hpp"
 #include "network/message_job.hpp"
 #include "rf/calibration.hpp"
@@ -113,9 +113,9 @@ HttpResponse BrowserApi::message_schedule_resource(const HttpRequest& r) {
     const auto root = json::parse(r.body_view());
     if (!root)
         return http_error(400, "invalid_json");
-    const auto envelope = application::validate_envelope(*root, "message-schedule",
-                                                         pause ? "pause" : "schedule", device_,
-                                                         service_.status().boot_id);
+    const auto envelope =
+        application::validate_envelope(*root, "message-schedule", pause ? "pause" : "schedule",
+                                       device_, service_.status().boot_id);
     if (envelope != application::Envelope::Valid)
         return http_error(envelope == application::Envelope::TargetMismatch ? 409 : 400,
                           envelope == application::Envelope::TargetMismatch ? "target_mismatch"
@@ -176,7 +176,8 @@ std::optional<standalone::Config> BrowserApi::effective_config() const {
         // station exists. Do not manufacture an empty station or generation 0.
         if (consumer_runtime_->consumer_profile()->usb_managed && !store_.config())
             return {};
-        return consumer_runtime_->overlay((store_.config() ? *store_.config() : standalone::factory_config()));
+        return consumer_runtime_->overlay(
+            (store_.config() ? *store_.config() : standalone::factory_config()));
     }
     return store_.config();
 }
@@ -387,7 +388,8 @@ HttpResponse BrowserApi::config() const {
         redacted.amplifier_timing = {};
         body = standalone::serialize_config(redacted, true);
         const auto storage_version = body.find("\"version\":");
-        if (storage_version != std::string::npos) body.erase(storage_version, body.find(',', storage_version) - storage_version + 1);
+        if (storage_version != std::string::npos)
+            body.erase(storage_version, body.find(',', storage_version) - storage_version + 1);
         if (drive && redacted.gpio_drive_ma == 4) {
             body.pop_back();
             body += ",\"gpio_drive_ma\":4}";
@@ -409,13 +411,13 @@ HttpResponse BrowserApi::station_config() const {
             return http_error(409, "unsupported_station_encoding");
     }
     const bool saved = config.has_value();
-    auto result = ok("{\"schema\":" +
-                     json::quote(extended ? "station" : application::station_schema) +
-                     ",\"target\":" + application::target(device_, service_.status().boot_id) +
-                     ",\"station\":" + (saved ? application::station(*config) : "null") +
-                     ",\"saved_generation\":" +
-                     (saved ? json::quote(std::to_string(store_.config_sequence())) : "null") +
-                     ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
+    auto result =
+        ok("{\"schema\":" + json::quote(extended ? "station" : application::station_schema) +
+           ",\"target\":" + application::target(device_, service_.status().boot_id) +
+           ",\"station\":" + (saved ? application::station(*config) : "null") +
+           ",\"saved_generation\":" +
+           (saved ? json::quote(std::to_string(store_.config_sequence())) : "null") +
+           ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
     result.etag = revision();
     return result;
 }
@@ -455,7 +457,8 @@ HttpResponse BrowserApi::ntp_timeout() const {
     const auto config = effective_config();
     const auto saved = config ? config->ntp_timeout_s : standalone::default_ntp_timeout_s;
     const auto active = scheduler_.active_ntp_timeout_s();
-    auto result = ok("{\"schema\":\"ntp-timeout\",\"target\":" + application::target(device_, service_.status().boot_id) +
+    auto result = ok("{\"schema\":\"ntp-timeout\",\"target\":" +
+                     application::target(device_, service_.status().boot_id) +
                      ",\"saved_timeout_s\":" + std::to_string(saved) +
                      ",\"active_timeout_s\":" + std::to_string(active) +
                      ",\"pending_restart\":" + (saved != active ? "true" : "false") +
@@ -511,7 +514,9 @@ HttpResponse BrowserApi::filter_selector() const {
     const auto selected = observation.filter_selector;
     const auto config = effective_config();
     const auto pins = config ? config->pins : hardware::PinPlan{};
-    const auto owners = hardware::validate(pins).owners;
+    const auto owners = config && config->si5351 && pins.engine == hardware::PinPlan::Engine::I2c
+                            ? hardware::validate_si5351(pins, *config->si5351).pins.owners
+                            : hardware::validate(pins).owners;
     std::string reserved = "[";
     for (unsigned gp = 0; gp < owners.size(); ++gp) {
         if (owners[gp].empty())
@@ -557,6 +562,28 @@ HttpResponse BrowserApi::gpio_drive() const {
            ",\"rf_gp\":" +
            (scheduler_.active_pins().rf ? std::to_string(*scheduler_.active_pins().rf) : "null") +
            ",\"execution_engine\":" + json::quote(service_.config().capability_engine) +
+           ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
+    result.etag = revision();
+    return result;
+}
+HttpResponse BrowserApi::si5351() const {
+    const auto config = effective_config();
+    const auto& boot = scheduler_.active_si5351();
+    const auto saved = store_.healthy() && config && config->si5351
+                           ? hardware::serialize_si5351(*config->si5351)
+                           : "null";
+    auto result =
+        ok("{\"schema\":\"si5351\",\"target\":" +
+           application::target(device_, service_.status().boot_id) + ",\"saved\":" + saved +
+           ",\"boot_active\":" +
+           (scheduler_.boot_configured() &&
+                    scheduler_.active_pins().engine == hardware::PinPlan::Engine::I2c && boot
+                ? hardware::serialize_si5351(*boot)
+                : "null") +
+           ",\"pending_restart\":" + (scheduler_.hardware_restart_required() ? "true" : "false") +
+           ",\"physically_qualified\":false,\"execution_engine\":" +
+           json::quote(service_.config().capability_engine) +
+           ",\"runtime\":" + (si5351_observer_ ? si5351_observer_(si5351_context_) : "null") +
            ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
     result.etag = revision();
     return result;
@@ -775,8 +802,8 @@ HttpResponse BrowserApi::logging_resource(const HttpRequest& r) {
         const auto root = json::parse(r.body_view());
         if (!root)
             return http_error(400, "invalid_json");
-        const auto envelope = application::validate_envelope(
-            *root, "logging", "logging", device_, service_.status().boot_id);
+        const auto envelope = application::validate_envelope(*root, "logging", "logging", device_,
+                                                             service_.status().boot_id);
         if (envelope != application::Envelope::Valid)
             return http_error(envelope == application::Envelope::TargetMismatch ? 409 : 400,
                               "invalid_logging_target_or_resource");
@@ -814,7 +841,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& request, std::string_view pri
     if (request.method == "PUT" && request.path == "/api/control/v1/config")
         return control_response(http_error(405, "use_configuration_update"));
     if (request.method != "GET" && request.path.starts_with(control_prefix) &&
-        request.body_view().size() > control_request_limit(request.path.substr(control_prefix.size())))
+        request.body_view().size() >
+            control_request_limit(request.path.substr(control_prefix.size())))
         return control_response(http_error(413, "resource_body_too_large"));
     HttpRequest current;
     ControlStringWiper wipe_payload(current.body);
@@ -829,7 +857,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& request, std::string_view pri
         if (!memory_admitted(control_workspace_bytes(request.body_view())))
             return control_response(http_error(503, "resource_exhausted"));
         auto payload = control_payload(request.body_view());
-        if (!payload) return control_response(http_error(400, "unsupported_control_contract"));
+        if (!payload)
+            return control_response(http_error(400, "unsupported_control_contract"));
         current.body = std::move(*payload);
         current.buffered_body.reset();
         current.selected_body.reset();
@@ -838,8 +867,8 @@ HttpResponse BrowserApi::handle(const HttpRequest& request, std::string_view pri
     return control_response(std::move(response));
 }
 HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view principal,
-                                std::string_view authority, std::uint64_t transaction,
-                                ManagementCarrier carrier) {
+                                        std::string_view authority, std::uint64_t transaction,
+                                        ManagementCarrier carrier) {
     if (service_.maintenance() && r.method != "GET")
         return http_error(409, "usb_maintenance_pending");
     // The parser already owns the complete HTTP body. Outer JSON whitespace
@@ -858,9 +887,9 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     // reserved by other endpoints. Keep the independent 32 KiB authority/RF
     // reserve unchanged while avoiding a false 503 under an established TLS
     // observer and a resident RF plan.
-    const bool status_read =
-        r.method == "GET" &&
-        (r.path == "/api/control/v1/status" || r.path == "/api/control/v1/jobs" || r.path == "/api/control/v1/operations");
+    const bool status_read = r.method == "GET" && (r.path == "/api/control/v1/status" ||
+                                                   r.path == "/api/control/v1/jobs" ||
+                                                   r.path == "/api/control/v1/operations");
     const auto request_scratch = status_read ? 8192 : working_bytes * 2 + 16384;
     if (!wtp::memory_admitted(request_scratch))
         return http_error(503, "resource_exhausted");
@@ -895,12 +924,15 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             return http_error(403, "cross_site_request");
     }
     service_.poll();
-    if (r.path == "/api/control/v1/udp-logging" || r.path == "/api/control/v1/udp-logging/capabilities" ||
-        r.path == "/api/control/v1/udp-logging/test" || r.path == "/api/control/v1/udp-logging/test/capabilities")
+    if (r.path == "/api/control/v1/udp-logging" ||
+        r.path == "/api/control/v1/udp-logging/capabilities" ||
+        r.path == "/api/control/v1/udp-logging/test" ||
+        r.path == "/api/control/v1/udp-logging/test/capabilities")
         return udp_logging_resource(r);
     if (r.path == "/api/control/v1/logging")
         return logging_resource(r);
-    if (r.path == "/api/control/v1/message-schedule" || r.path == "/api/control/v1/message-schedule/pause")
+    if (r.path == "/api/control/v1/message-schedule" ||
+        r.path == "/api/control/v1/message-schedule/pause")
         return message_schedule_resource(r);
     if (local_usb && local_settings_ && r.path == "/api/usb/v1/wifi") {
         if (!local_settings_->healthy())
@@ -923,8 +955,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         const auto root = json::parse(r.body_view());
         if (!root)
             return http_error(400, "invalid_json");
-        const auto envelope = application::validate_envelope(*root, "wifi", "wifi",
-                                                             device_, service_.status().boot_id);
+        const auto envelope = application::validate_envelope(*root, "wifi", "wifi", device_,
+                                                             service_.status().boot_id);
         if (envelope != application::Envelope::Valid)
             return http_error(envelope == application::Envelope::TargetMismatch ? 409 : 400,
                               envelope == application::Envelope::TargetMismatch
@@ -975,7 +1007,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                        json::quote(std::to_string(scheduler_.message_lead_ns())) + "}";
             const auto wtp_caps = std::string(value->get("body")->raw);
             const auto amplifier = application::amplifier_capabilities(
-                service_.config().capability_engine == "pio-dma-gp2");
+                service_.config().capability_engine == "pio-dma-gp2" ||
+                service_.config().capability_engine == "si5351-engineering");
             const auto features =
                 ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
                 "\"application\":true,\"station\":true,\"hardware\":true,\"consumer_setup_"
@@ -1011,6 +1044,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                  control_descriptor("amplifier_timing"),
                  ",\"gpio_drive\":",
                  control_descriptor("gpio_drive"),
+                 ",\"si5351\":",
+                 control_descriptor("si5351"),
                  carrier != ManagementCarrier::EngineeringField ? ",\"operations_status\":" : "",
                  carrier != ManagementCarrier::EngineeringField
                      ? control_descriptor("operations_status")
@@ -1056,10 +1091,10 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             return result;
         }
         if (r.path == "/api/control/v1/status" || r.path == "/api/control/v1/jobs")
-            return ok(
-                "{\"job\":" + status_json(service_.status()) +
-                ",\"standalone\":" + scheduler_.status() + ",\"network\":" + network_.operations_status() +
-                ",\"transport\":" + (transport_ ? transport_(transport_context_) : "null") + "}");
+            return ok("{\"job\":" + status_json(service_.status()) + ",\"standalone\":" +
+                      scheduler_.status() + ",\"network\":" + network_.operations_status() +
+                      ",\"transport\":" + (transport_ ? transport_(transport_context_) : "null") +
+                      "}");
         if (r.path == "/api/control/v1/ntp-observations") {
             const auto clock = service_.clock_snapshot();
             const auto active =
@@ -1088,6 +1123,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             return filter_selector();
         if (r.path == "/api/control/v1/gpio-drive")
             return gpio_drive();
+        if (r.path == "/api/control/v1/si5351")
+            return si5351();
         if (r.path == "/api/control/v1/ntp-timeout")
             return ntp_timeout();
         if (r.path == "/api/control/v1/config")
@@ -1101,8 +1138,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         if (r.path == "/api/control/v1/station")
             return station_config();
         if (r.path == "/api/control/v1/pins") {
-            return ok("{\"choices\":" + hardware::choices(true) +
-                      ",\"active\":" + hardware::serialize_plan(scheduler_.active_pins(), true) + "}");
+            return ok("{\"choices\":" + hardware::choices(true) + ",\"active\":" +
+                      hardware::serialize_plan(scheduler_.active_pins(), true) + "}");
         }
         if (r.path == "/api/control/v1/network") {
             auto result = ok(network_.status());
@@ -1176,7 +1213,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         apply.body = standalone::serialize_config(compatible, true);
         const auto storage_version = apply.body.find("\"version\":");
         if (storage_version != std::string::npos)
-            apply.body.erase(storage_version, apply.body.find(',', storage_version) - storage_version + 1);
+            apply.body.erase(storage_version,
+                             apply.body.find(',', storage_version) - storage_version + 1);
         apply.buffered_body.reset();
         apply.selected_body = {};
         return handle_current(apply, principal, authority, transaction, carrier);
@@ -1208,10 +1246,12 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             return http_error(400, "invalid_pin_plan");
         return ok(hardware::describe(*plan));
     }
-    if (r.method == "POST" && (r.path == "/api/control/v1/jobs" || r.path.starts_with("/api/control/v1/jobs/")))
+    if (r.method == "POST" &&
+        (r.path == "/api/control/v1/jobs" || r.path.starts_with("/api/control/v1/jobs/")))
         return job(r, principal);
     const bool restart = r.method == "POST" && r.path == "/api/control/v1/restart";
-    const bool amplifier_config = r.path == "/api/control/v1/config" || r.path == "/api/control/v1/config/update";
+    const bool amplifier_config =
+        r.path == "/api/control/v1/config" || r.path == "/api/control/v1/config/update";
     const bool drive_config = amplifier_config;
     const bool calibration_resource = r.path == "/api/control/v1/rf-calibration";
     const bool frequency_resource = r.path == "/api/control/v1/standalone-frequency";
@@ -1230,9 +1270,9 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     const bool hostname = r.path == "/api/control/v1/hostname" && r.method == "PUT";
     if (!restart && !config_update && !hostname &&
         (r.method != "PUT" ||
-         (r.path != "/api/control/v1/config" && !drive_resource &&
-          !timing_resource && !filter_resource && !calibration_resource && !frequency_resource &&
-          !ntp_resource && r.path != "/api/control/v1/schedules" && r.path != "/api/control/v1/network" &&
+         (r.path != "/api/control/v1/config" && !drive_resource && !timing_resource &&
+          !filter_resource && !calibration_resource && !frequency_resource && !ntp_resource &&
+          r.path != "/api/control/v1/schedules" && r.path != "/api/control/v1/network" &&
           !scoped_resource)))
         return http_error(404, "not_found");
     if ((scoped_resource || timing_resource || drive_resource || calibration_resource ||
@@ -1241,8 +1281,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         return http_error(413, "resource_body_too_large");
     if (config_update && r.body_view().size() > application::max_config_update_bytes)
         return http_error(413, "resource_body_too_large");
-    if ((r.path == "/api/control/v1/config") &&
-        r.body_view().size() > standalone::max_config_bytes)
+    if ((r.path == "/api/control/v1/config") && r.body_view().size() > standalone::max_config_bytes)
         return http_error(400, "invalid_config");
     if (r.header("if-match").empty())
         return http_error(428, "revision_required");
@@ -1258,8 +1297,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     if (filter_resource) {
         if (r.body_view().size() > hardware::FilterSettings::maximum_bytes + 256)
             return http_error(413, "resource_body_too_large");
-        const auto envelope = application::validate_envelope(
-            *root, "filter-selector", "settings", device_, service_.status().boot_id);
+        const auto envelope = application::validate_envelope(*root, "filter-selector", "settings",
+                                                             device_, service_.status().boot_id);
         if (envelope != application::Envelope::Valid)
             return http_error(envelope == application::Envelope::TargetMismatch ? 409 : 400,
                               "invalid_filter_resource");
@@ -1340,9 +1379,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     }
     std::string candidate;
     if (frequency_resource) {
-        const auto checked =
-            application::validate_envelope(*root, "standalone-frequency",
-                                           "frequency_hz", device_, service_.status().boot_id);
+        const auto checked = application::validate_envelope(
+            *root, "standalone-frequency", "frequency_hz", device_, service_.status().boot_id);
         if (checked != application::Envelope::Valid)
             return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
                               "invalid_frequency_resource");
@@ -1359,9 +1397,10 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             return http_error(400, "frequency_not_allowed");
         candidate = standalone::serialize_config(updated);
     } else if (calibration_resource) {
-        const auto checked =
-            application::validate_envelope(*root, "rf-calibration", "calibration",
-                                           device_, service_.status().boot_id);
+        if (scheduler_.active_pins().engine != hardware::PinPlan::Engine::Direct)
+            return http_error(409, "inactive_direct_engine");
+        const auto checked = application::validate_envelope(*root, "rf-calibration", "calibration",
+                                                            device_, service_.status().boot_id);
         if (checked != application::Envelope::Valid)
             return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
                               "invalid_calibration_resource");
@@ -1386,8 +1425,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         candidate +=
             ",\"manual_correction_ppb\":" + std::to_string(*ppb) + ",\"ntp_rf_calibration\":false}";
     } else if (timing_resource) {
-        const auto checked = application::validate_envelope(
-            *root, "amplifier-timing", "timing", device_, service_.status().boot_id);
+        const auto checked = application::validate_envelope(*root, "amplifier-timing", "timing",
+                                                            device_, service_.status().boot_id);
         if (checked != application::Envelope::Valid)
             return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
                               "invalid_amplifier_timing_resource");
@@ -1413,9 +1452,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         }
     } else if (ntp_resource) {
         const auto checked = application::validate_envelope(
-            *root,
-            unlimited_ntp_resource ? "ntp-timeout" : "ntp-timeout",
-            "timeout_s", device_, service_.status().boot_id);
+            *root, unlimited_ntp_resource ? "ntp-timeout" : "ntp-timeout", "timeout_s", device_,
+            service_.status().boot_id);
         if (checked != application::Envelope::Valid)
             return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
                               "invalid_ntp_timeout_resource");
@@ -1433,8 +1471,10 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             candidate += ",\"ntp_timeout_s\":" + std::to_string(updated.ntp_timeout_s) + "}";
         }
     } else if (drive_resource) {
-        const auto checked = application::validate_envelope(
-            *root, "gpio-drive", "gpio_drive_ma", device_, service_.status().boot_id);
+        if (scheduler_.active_pins().engine != hardware::PinPlan::Engine::Direct)
+            return http_error(409, "inactive_direct_engine");
+        const auto checked = application::validate_envelope(*root, "gpio-drive", "gpio_drive_ma",
+                                                            device_, service_.status().boot_id);
         if (checked != application::Envelope::Valid)
             return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
                               "invalid_drive_resource");
@@ -1447,8 +1487,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         candidate = standalone::serialize_config(updated);
     } else if (scoped_resource) {
         const auto field = station_resource ? "station" : "pins";
-        const auto schema = station_resource     ? (extended_station ? "station"
-                                                                     : application::station_schema)
+        const auto schema = station_resource
+                                ? (extended_station ? "station" : application::station_schema)
                             : amplifier_resource ? "hardware"
                                                  : application::hardware_schema;
         switch (application::validate_envelope(*root, schema, field, device_,
@@ -1492,8 +1532,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             const auto station = current->get("station")->raw;
             candidate.replace(station.offset(), station.size(), std::string(root->get(field)->raw));
         }
-    } else if (r.path == "/api/control/v1/config" || drive_config ||
-               config_update) {
+    } else if (r.path == "/api/control/v1/config" || drive_config || config_update) {
         if (!store_.healthy())
             return http_error(503, "storage_fault");
         auto supplied = *root;
@@ -1511,7 +1550,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                 break;
             }
             supplied = *root->get("config");
-            mode = effective_config() ? application::ConfigWrite::Merge : application::ConfigWrite::Legacy;
+            mode = effective_config() ? application::ConfigWrite::Merge
+                                      : application::ConfigWrite::Legacy;
         }
         auto wifi = supplied.get("wifi");
         auto password = wifi ? wifi->get("password") : std::nullopt;
@@ -1546,7 +1586,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     const auto validated = standalone::parse_config(candidate);
     if (!validated)
         return http_error(400, "invalid_config");
-    if (const auto conflict = hardware::validate_filters(store_.filters(), validated->pins);
+    if (const auto conflict = standalone::validate_rf_configuration(*validated, store_.filters());
         !conflict.empty())
         return http_error(400, conflict);
     if (!store_.config_fits(*validated))

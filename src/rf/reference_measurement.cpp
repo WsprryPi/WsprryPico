@@ -56,6 +56,9 @@ ReferenceMeasurement measure_reference(const ReferenceWindow& w, long double nom
     if (m.uncertainty_ppb > policy.maximum_measurement_uncertainty_ppb)
         return fail("measurement_uncertainty");
     m.observed_raw_ns = w.end_raw_ns;
+    m.start_raw_ns = w.start_raw_ns;
+    m.edges = w.edges;
+    m.endpoint_uncertainty_ns = w.endpoint_uncertainty_ns;
     m.duration_ns = duration;
     m.plan_generation = generation;
     m.observed_hz = hz;

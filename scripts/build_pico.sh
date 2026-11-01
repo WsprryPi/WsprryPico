@@ -22,7 +22,8 @@ case "$target" in
   WsprryPico) default_dir="$project_root/build/pico2-w-local" ;;
   WsprryPico-Inhibited) default_dir="$project_root/build/pico2-w-local-inhibited" ;;
   WsprryPico-StandaloneRF) default_dir="$project_root/build/pico2-w-local-standalone-rf" ;;
-  *) echo 'Usage: build_pico.sh [WsprryPico|WsprryPico-Inhibited|WsprryPico-StandaloneRF] [build-directory]' >&2; exit 2 ;;
+  WsprryPico-Si5351Engineering) default_dir="$project_root/build/pico2-w-local-si5351-engineering" ;;
+  *) echo 'Usage: build_pico.sh [WsprryPico|WsprryPico-Inhibited|WsprryPico-StandaloneRF|WsprryPico-Si5351Engineering] [build-directory]' >&2; exit 2 ;;
 esac
 if [[ $# -gt 2 ]]; then
   echo 'At most a target and build directory may be specified.' >&2

@@ -99,6 +99,21 @@ struct Tracking {
     std::uint32_t skew_ppb = 2'000'000;
     double root_delay = 0, root_dispersion = 0;
 };
+// An independently trusted frequency observation has no UTC epoch, leap or
+// synchronization authority. All timestamps are on the unmodified raw timer.
+struct FrequencyReference {
+    std::uint64_t sampled_raw_ns = 0, valid_until_raw_ns = 0, generation = 0;
+    std::int32_t rate_ppb = 0;
+    std::uint32_t uncertainty_ppb = 0;
+};
+enum class FrequencyReferenceState : std::uint8_t {
+    None,
+    Selected,
+    Quality,
+    Disagreement,
+    Expired
+};
+const char* name(FrequencyReferenceState);
 struct Readiness {
     bool synchronized = false, phase_settled = false, rate_settled = false;
     bool error_within_limit = false;
@@ -153,6 +168,13 @@ class Engine {
     }
     void reset(std::uint64_t raw_ns);
     void seed(std::int32_t utc_frequency_ppb, std::uint32_t skew_ppb = 2'000'000);
+    bool observe_frequency_reference(FrequencyReference, std::uint64_t raw_ns);
+    void clear_frequency_reference(std::uint64_t raw_ns);
+    void retire_frequency_reference(std::uint64_t raw_ns);
+    FrequencyReferenceState frequency_reference_state(std::uint64_t raw_ns) const;
+    const FrequencyReference& frequency_reference() const {
+        return frequency_reference_;
+    }
     std::optional<std::array<std::uint8_t, 48>>
     request(unsigned source, std::uint64_t raw_ns, std::uint64_t random_token, bool force = false);
     bool receive(unsigned source, std::span<const std::uint8_t> packet, std::uint64_t raw_ns);
@@ -201,5 +223,9 @@ class Engine {
     double root_delay_ = 0, root_dispersion_ = 0;
     unsigned selected_ = source_capacity, combined_count_ = 0;
     Leap leap_ = Leap::Unsynchronized;
+    FrequencyReference frequency_reference_;
+    std::int32_t network_frequency_ppb_ = 0;
+    std::uint32_t network_frequency_uncertainty_ppb_ = 2'000'000;
+    FrequencyReferenceState frequency_reference_state_ = FrequencyReferenceState::None;
 };
 } // namespace microchrony

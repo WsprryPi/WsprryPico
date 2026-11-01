@@ -58,6 +58,18 @@ bool FilterSelector::deactivate() {
     initialized_ = initialized_ || inactive_;
     return inactive_;
 }
+bool FilterSelector::prepare_frequencies(std::span<const wtp::FrequencyAdjustment> points) {
+    if (!initialized_ || !inactive_ || points.empty())
+        return false;
+    FilterCoverage coverage(settings_);
+    for (const auto& point : points)
+        coverage.include(point.requested_frequency_nhz, point.realized_frequency_nhz);
+    const auto candidate = coverage.selection();
+    if (candidate == -2)
+        return false;
+    selected_ = candidate;
+    return true;
+}
 bool FilterSelector::activate() {
     if (!required())
         return true;

@@ -47,3 +47,7 @@ Only control major 1 is supported. The current policy fixes `Wsprry-Control/1`, 
 Transport/authentication formats, flash records, and deployment manifests retain versions for their independently parsed bytes. Their identifiers do not reset when a control representation changes. Stored records are never reinterpreted under a cosmetically reset version.
 
 Coordinated changes update Pico production handlers and every Pi/browser consumer, generated asset, adapter, fixture, and documentation. Both production network and USB integration suites must pass for the explicit candidate source pair. Contract digests identify reviewed artifacts; runtime compatibility does not require matching product versions, Git commits, or entire build digests. Software tests establish no physical USB, installation, service, timing, or RF qualification.
+
+## Si5351 member settings
+
+The current Control/1 schema defines optional `si5351` settings in config/config-update and GET `/api/control/v1/si5351`. RF activation requires an atomic complete `pins` plus `si5351` allocation; partial allocation, role conflicts and invalid policy are refused before persistence. The read-only resource separates saved/boot settings, latched restart, storage health, nullable register/control evidence, raw measurement bounds and clock-reference status. It advertises physical qualification as false. Output activation requires the explicit engineering build gate. Automatic RF calibration and GPS are unavailable. See the [engine and reference contract](development/si5351.md).

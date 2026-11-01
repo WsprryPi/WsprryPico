@@ -1,5 +1,6 @@
 // Shipped page/bundle -> Chrome -> production HTTP/AEAD; time and board are synthetic.
 import assert from 'node:assert/strict';
+import {checkSi5351} from './si5351_ui_checks.mjs';
 import {checkContextualHelp} from './contextual_help_browser.mjs';
 import {spawn} from 'node:child_process';
 import {mkdtemp,readFile,writeFile,mkdir} from 'node:fs/promises';
@@ -68,6 +69,8 @@ async function capture(state,dialog=false) {
         await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name!=='desktop'});
         if(state==='contextual-help')await evaluate('document.getElementById("radio-settings").scrollIntoView({block:"start"})');
         else if(state==='field-settings')await evaluate('document.getElementById("field-access").scrollIntoView({block:"start"})');
+        else if(state==='si5351-details')await evaluate('document.querySelector("[data-si-status]").scrollIntoView({block:"end"})');
+        else if(state==='si5351-settings')await evaluate('document.getElementById("si5351-settings").scrollIntoView({block:"start"})');
         else if(!dialog)await evaluate('scrollTo(0,0)');
         assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'no horizontal overflow');
         if(process.env.UI_REVIEW_NO_CAPTURE==='1')continue;
@@ -106,6 +109,8 @@ try {
       assert.equal(await evaluate('online'),true);await key('Escape');
       assert.equal(await evaluate('online'),true);
       pass('certificate carrier retains authority and explains browser-managed certificate access');
+      await checkSi5351({evaluate,section,click,idle,capture});
+      pass('native Si5351 conditional controls, validation focus, draft isolation, atomic save and direct restoration');
     } else if(carrier==='field') {
       await control({op:'field_clock'});
       await send('Page.bringToFront');

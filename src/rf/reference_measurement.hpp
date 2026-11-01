@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include <cmath>
 #include <cstdint>
 #include <optional>
 #include <string_view>
@@ -25,7 +26,9 @@ struct ReferencePolicy {
     std::uint64_t maximum_window_ns = 60'000'000'000ULL;
     std::uint32_t maximum_measurement_uncertainty_ppb = 1'000;
 };
+bool valid_reference_policy(const ReferencePolicy&);
 struct ReferenceMeasurement {
+    std::uint64_t start_raw_ns = 0, edges = 0, endpoint_uncertainty_ns = 0;
     std::uint64_t observed_raw_ns = 0, duration_ns = 0, plan_generation = 0;
     long double observed_hz = 0, ratio = 0, uncertainty_ppb = 0;
     // UTC seconds per raw second minus one, ONLY if the independently trusted
@@ -34,7 +37,17 @@ struct ReferenceMeasurement {
     ReferencePolicy policy;
     std::string_view error;
     bool valid() const {
-        return error.empty() && duration_ns && plan_generation;
+        return error.empty() && valid_reference_policy(policy) &&
+               duration_ns >= policy.minimum_window_ns && duration_ns <= policy.maximum_window_ns &&
+               plan_generation && edges && observed_raw_ns > start_raw_ns &&
+               observed_raw_ns - start_raw_ns == duration_ns &&
+               endpoint_uncertainty_ns < duration_ns && std::isfinite(observed_hz) &&
+               observed_hz >= 990 && observed_hz <= 10'100'000 && std::isfinite(ratio) &&
+               ratio >= 0.99L && ratio <= 1.01L && std::isfinite(uncertainty_ppb) &&
+               uncertainty_ppb > 0 && uncertainty_ppb <= 200'100 &&
+               (policy.use == ReferenceUse::TrustedLocal
+                    ? local_rate_ppb && *local_rate_ppb >= -100'000 && *local_rate_ppb <= 100'000
+                    : !local_rate_ppb);
     }
 };
 bool valid_reference_policy(const ReferencePolicy&);

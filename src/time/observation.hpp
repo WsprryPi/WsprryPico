@@ -43,5 +43,11 @@ class ObservationSink {
         return false; // A sink must explicitly support age-preserving model import.
     }
     virtual void invalidate(ObservationSource source) = 0;
+    // Independent trusted frequency disagreement cannot be bypassed by
+    // choosing another epoch source. It supplies no replacement UTC sample.
+    virtual void frequency_reference_conflict(bool conflict) {
+        if (conflict)
+            invalidate(ObservationSource::Sntp);
+    }
 };
 } // namespace wsprrypico::time

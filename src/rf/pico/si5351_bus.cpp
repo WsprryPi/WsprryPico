@@ -14,10 +14,13 @@ bool PicoBus::open(const hardware::PinPlan& pins, const hardware::Si5351Settings
     const auto pair = hardware::i2c_pairs[*pins.i2c_pair];
     bus_ = pair.controller ? i2c1 : i2c0;
     address_ = settings.address;
-    i2c_init(bus_, 400'000);
-    // External compatible pullups are part of the electrical contract.
+    i2c_init(bus_, 100'000);
     gpio_set_function(pair.sda, GPIO_FUNC_I2C);
     gpio_set_function(pair.scl, GPIO_FUNC_I2C);
+    // Match the documented 100 kHz bench wiring. Pull-up adequacy and rise
+    // time remain electrical qualification questions, not a speed upgrade.
+    gpio_pull_up(pair.sda);
+    gpio_pull_up(pair.scl);
     return true;
 }
 std::uint32_t PicoBus::remaining_us(std::uint64_t deadline_ns) {

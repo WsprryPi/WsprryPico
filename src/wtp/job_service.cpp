@@ -600,6 +600,7 @@ Response JobService::local_abort() {
 
 bool JobService::local_inhibit_output() {
     output_inhibited_ = true;
+    engine_.inhibit_output();
     const auto aborted = local_abort().ok;
     const auto now = clock_.snapshot().monotonic_now_ns;
     const auto disabled = engine_.disable(saturating_add(now, config_.output_disable_timeout_ns));
@@ -722,9 +723,12 @@ void JobService::poll() {
         const auto nominal_end = saturating_add(
             arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns), job_->total_duration_ns);
         const auto acknowledgement_ns =
-            arm_->scheduled_locally ? std::min(engine_.completion_acknowledgement_ns(),
-                                               RfEngine::maximum_completion_acknowledgement_ns)
-                                    : 0;
+            arm_->scheduled_locally
+                ? std::min(engine_.completion_acknowledgement_ns(),
+                           engine_.externally_controlled_completion()
+                               ? config_.output_disable_timeout_ns
+                               : RfEngine::maximum_completion_acknowledgement_ns)
+                : 0;
         if (arm_->scheduled_locally && report.state == EngineState::Running &&
             report.chain_phase == ChainPhase::Tail && report.tail_deadline_monotonic_ns &&
             engine_.amplifier_tail_ns()) {
