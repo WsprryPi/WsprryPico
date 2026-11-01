@@ -25,7 +25,10 @@ The selected slot must match state, context, sequence and complete AEAD. IDs use
 a random prefix and a nonreused boot-local 64-bit serial suffix. Zero, RNG failure,
 raw occupied-ID collision and serial exhaustion fail closed without retry loops.
 Expiry and every local failure close only the selected slot. Generation, unhealthy
-profile and global admission invalidate all affected slots. AP withdrawal and
+profile and global admission invalidate all affected slots, except the verified
+station-only authority transfer described in [configuration updates](configuration-updates.md#station-authority-and-live-application).
+That transfer preserves active logins, pending handshakes and recovery proofs
+without changing their cryptographic bindings, sequence or expiry. AP withdrawal and
 station address/hostname changes invalidate only the matching interface. Normal
 TCP closure leaves login state intact. Nonreused transport transaction identities
 route delivery completion across slot reuse, without duplicating board effects.

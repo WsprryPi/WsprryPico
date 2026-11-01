@@ -18,7 +18,7 @@ The [factory defaults reference](reference/defaults.md#station-wspr-and-time) li
 
 1. Enter your **Callsign**, four- or six-character **Grid locator**, and **Reported WSPR power (dBm)**. The locator is the Maidenhead position code for your transmitting location, such as `EM18` or `EM18ab`; use your own location. Reported power is the value broadcast in the WSPR message. The unit **dBm** expresses power relative to one milliwatt; for example, 30 dBm means one watt. Enter an appropriate value for your actual RF setup; this field does not set or measure physical power.
 2. Choose **Save valid station fields**, or **Save station identity** if the page uses that label. Read the result for each field. Valid entries can be saved even when another field still needs correction.
-3. When offered, choose **Apply saved station** to use the saved complete station. Follow any connection-check or reconnect instructions until the Pico confirms the result.
+3. When offered, choose **Apply saved station** to use the saved complete station. Updating an already configured station keeps the web console and existing logins available and needs no restart. New transmissions use the applied details; accepted jobs retain their original settings. Initial station setup may still show connection-check or reconnect instructions.
 4. Check the saved **WSPR plan**, which describes the message type and number of frames the Pico will send. A callsign with a prefix or suffix separated by `/` can require two adjacent frames with a six-character locator; see [WSPR operation](operate.md#wspr-schedules).
 
 ```{image} _static/images/station-settings.png

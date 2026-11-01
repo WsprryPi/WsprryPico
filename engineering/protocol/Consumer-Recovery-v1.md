@@ -58,7 +58,11 @@ of competing new starts; adversarial traffic can deny service.
 
 The successful grant has Radio/1's exact grant fields, `login_ms:5000`, and one
 additional `recovery` object containing exactly `target_selector`, `authority`
-and `interface`. Device/boot/generation are current. Its fresh session/challenge
+and `interface`. Device/boot/generation are current at proof admission.
+A pending proof retains its immutable transcript across the exact station-only
+authority transfer defined in [configuration updates](../development/configuration-updates.md#station-authority-and-live-application).
+Its five-second deadline, target selector and request scope do not change;
+credential, trust and other profile transitions still invalidate it. Its fresh session/challenge
 and X25519 key are a proof identity, never an ordinary session identity. The
 same nonreused boot-local serial namespace prevents delayed proofs from
 selecting a later ordinary occupant. Clients compare all scope fields with the

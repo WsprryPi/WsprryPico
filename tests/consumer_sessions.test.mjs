@@ -282,7 +282,7 @@ await run('distinct sessions retain one transmitter owner after logout',async f=
 await run('failed save and lost reply retain bounded abandoned session without mutation replay',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   let original=await a.request('config');const app=await (await a.request('application')).json();
-  const update={schema:'config-update',target:app.target,mode:'merge',config:{station:{callsign:'K1ABC'}}};
+  const update={schema:'config-update',target:app.target,mode:'merge',config:{wifi:{ssid:'other-network'}}};
   assert.equal((await a.request('config/update','POST',update,original.headers.get('etag'))).status,409);
   assert.ok(a.authenticated);assert.equal((await b.request('status')).status,200);
   update.config={allow_unqualified_frequency:true};const fetcher=a.fetcher;let sent=0;

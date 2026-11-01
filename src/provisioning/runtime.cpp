@@ -36,6 +36,7 @@ bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_dev
                           BuildBundleState build_bundle) {
     consumer_selected_ = consumer_selected_ || store.source() == ProfileSource::ConsumerProfile;
     clear();
+    station_source_generation_.reset();
     generation_ = store.sequence();
     source_ = RuntimeSource::Fault;
     fault_ = RuntimeFault::Storage;
@@ -117,6 +118,17 @@ bool RuntimeProfile::load(const ProfileStore& store, std::string_view actual_dev
     source_ = RuntimeSource::Provisioned;
     fault_ = RuntimeFault::None;
     return true;
+}
+
+void RuntimeProfile::select_config_station(std::uint64_t generation) noexcept {
+    // LocalSettings has verified a profile differing only by station authority.
+    // Keep credentials/TLS storage and all borrowed adapter references intact.
+    station_source_generation_ = generation_;
+    consumer_profile_.usb_managed = true;
+    consumer_profile_.callsign.clear();
+    consumer_profile_.locator.clear();
+    consumer_profile_.power_dbm = 0;
+    generation_ = generation;
 }
 
 std::optional<standalone::Config> RuntimeProfile::overlay(const standalone::Config& base) const {

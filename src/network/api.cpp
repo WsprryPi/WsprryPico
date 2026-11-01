@@ -984,6 +984,11 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                                                   consumer_runtime_->network_profile())
                                 ? "true"
                                 : "false") +
+                ",\"station_live_apply\":" +
+                std::string(consumer_runtime_ && consumer_runtime_->consumer_profile() &&
+                                    local_settings_ && effective_config()
+                                ? "true"
+                                : "false") +
                 ",\"softap\":true,\"ble\":true,\"restart\":" + (restart_ ? "true" : "false") + "}";
             const auto connections = ",\"active_job_connections\":" +
                                      std::string(active_job_connections_ ? "true" : "false");
@@ -1567,17 +1572,22 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         if (!error.empty())
             return http_error(503, error);
     }
-    if (!local_usb && station_changed && consumer_runtime_ &&
+    const bool consumer_station_write =
+        (carrier == ManagementCarrier::ConsumerStation ||
+         carrier == ManagementCarrier::ConsumerAp) &&
+        consumer_runtime_ && consumer_runtime_->consumer_profile() && local_settings_ && existing;
+    if (!local_usb && !consumer_station_write && station_changed && consumer_runtime_ &&
         (consumer_runtime_->consumer_profile() || consumer_runtime_->network_profile()))
         return http_error(409, "consumer_setup_identity_required");
-    if (local_usb && local_settings_ && consumer_runtime_ &&
-        consumer_runtime_->consumer_profile()) {
+    if ((local_usb || consumer_station_write) && local_settings_ && consumer_runtime_ &&
+        consumer_runtime_->consumer_profile() && station_changed) {
         // Network credentials use the explicit USB Wi-Fi resource, so station
         // promotion cannot silently overwrite the profile-owned network.
         const auto* profile = consumer_runtime_->consumer_profile();
         if (validated->ssid != profile->ssid || validated->password != profile->password ||
             validated->ntp_ipv4 != profile->time_server)
-            return http_error(409, "use_usb_wifi_resource");
+            return http_error(409, local_usb ? "use_usb_wifi_resource"
+                                             : "consumer_setup_identity_required");
         const auto error = local_settings_->station_save(*validated);
         if (!error.empty())
             return http_error(503, error);
@@ -1606,6 +1616,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             return http_error(503, "output_disable_failed");
         return http_error(503, "storage_fault");
     }
+    ++network_revision_; // Consume even an effective no-op without rewriting flash.
     if (calibration_resource)
         return rf_calibration();
     if (frequency_resource)

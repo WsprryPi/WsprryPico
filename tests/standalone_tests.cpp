@@ -372,6 +372,16 @@ void live_config_tests() {
     current.ntp_ipv4 = "192.0.2.1";
     CHECK(save().find("\"reboot_required\":false") != std::string::npos);
     CHECK(scheduler.status().find("\"suspended\":true") != std::string::npos);
+    const auto sequence = store.config_sequence();
+    CHECK(save().find("\"reboot_required\":false") != std::string::npos);
+    CHECK(store.config_sequence() == sequence); // Healthy no-op does not write.
+    auto changed = current;
+    changed.power_dbm = 27;
+    flash.budget = 0;
+    CHECK(!store.save(changed) && !store.healthy());
+    const auto damaged = flash.bytes;
+    CHECK(save().find("storage_fault") != std::string::npos);
+    CHECK(store.config_sequence() == sequence && flash.bytes == damaged);
 }
 void reset_guard_tests() {
     MemoryFlash flash;

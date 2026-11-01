@@ -199,16 +199,23 @@ std::string LocalSettings::station_save(const standalone::Config&) {
     // Transfer station authority without changing the effective configuration.
     // The caller's requested complete Config is committed afterwards through
     // the one standalone journal, so a torn save cannot mix station and radio.
-    const auto effective = runtime_.overlay((store_.config() ? *store_.config() : standalone::factory_config()));
-    if (!effective || !store_.save(*effective))
-        return "storage_fault";
     ConsumerProposal proposal{*runtime_.consumer_profile()};
     proposal.value.usb_managed = true;
     proposal.value.callsign.clear();
     proposal.value.locator.clear();
     proposal.value.power_dbm = 0;
-    proposal.value.request_sha256 =
-        digest(profiles_.data() + ":usb-station-authority:" + std::to_string(profiles_.sequence()));
-    return commit(ProfileSource::ConsumerProfile, serialize_consumer_profile(proposal.value));
+    // Preserve the commissioning receipt, network and authentication material.
+    // Allocate/serialize before writing; publication neither allocates nor
+    // clears credentials borrowed by adapters or pending crypto responses.
+    const auto payload = serialize_consumer_profile(proposal.value);
+    const auto effective =
+        runtime_.overlay(store_.config() ? *store_.config() : standalone::factory_config());
+    if (payload.empty() || !effective || !store_.save(*effective))
+        return "storage_fault";
+    const auto result = commit_setup_profile(profiles_, ProfileSource::ConsumerProfile, payload);
+    if (result != SetupCommitResult::Committed)
+        return result == SetupCommitResult::Reconcile ? "reconcile_required" : "storage_fault";
+    runtime_.select_config_station(profiles_.sequence());
+    return {};
 }
 } // namespace wsprrypico::provisioning

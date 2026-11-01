@@ -23,8 +23,9 @@ and scoped; no reset-by-omission behavior exists.
 
 Ordinary station, network and schedule forms send only their intended fields.
 They do not reconstruct saved credentials or copy advanced fields from a GET.
-Profile-owned station/network settings retain their transactional setup paths;
-generic updates cannot bypass ownership. Hardware changes retain restart and
+Wi-Fi and initial station commissioning retain their transactional setup paths.
+Authenticated consumer and physical USB station updates share Config authority;
+engineering/public callers cannot select consumer or USB authority. Hardware changes retain restart and
 output-inhibition latching. Hostname, frequency, correction, timeout, timing and
 filter settings retain their documented authoritative resources.
 
@@ -36,3 +37,55 @@ complete-response delivery receipt.
 
 The [control contract](../browser-api.md) and machine-readable
 [resource schema](../protocol/control-1.schema.json) define current shapes.
+
+## Station authority and live application
+
+The optional Boolean capability `features.station_live_apply` is true only when
+an established consumer station and its Config authority service are available.
+Companions require that explicit capability before admitting consumer station
+application; Wi-Fi-only commissioning remains separate.
+
+An established consumer station applies saved station progress through the
+shared `progress/apply` station domain. Callsign, locator and reported WSPR dBm
+are Config settings; their application preserves STOP, schedules, watermarks,
+credentials, listeners and browser sessions. Job admission remains idle/unowned;
+already prepared jobs are immutable. No-op Config writes consume the current
+ETag without rewriting the Config journal.
+
+The existing consumer storage representation with `usb_managed=true` denotes
+Config-owned station settings. The name grants no physical USB authority.
+Existing profile-owned stations transfer on an explicit changed station Apply,
+not during boot or draft Save. No new storage format or flash region is used.
+
+| Boundary | Authoritative station and recovery |
+| --- | --- |
+| Before transfer | Existing consumer profile overlays Config; credentials and station remain unchanged. |
+| Prepare Config | Persist the complete prior effective settings. The profile still overlays identical station values. |
+| Select profile | Select the exact prior profile with only Config authority and removal of its station snapshot. Preserve its commissioning receipt and every credential/trust field. Interrupted selection reconciles the verified old/new selection or refuses as unhealthy. |
+| Publish runtime | Update only station-authority fields and generation without allocation or replacement of credential storage. Retain the previous generation solely for existing session transcripts. |
+| Commit requested Config | Persist the complete validated candidate. Failure retains the prepared prior settings or the journal's explicit storage-fault recovery state; it never reports successful application. |
+| Subsequent boot | Select the durable profile and Config; reconstruct ordinary session authority with no retained old sessions. |
+
+An established profile without Config uses its existing effective defaults only
+when the operator explicitly applies a complete station. Preparation preserves
+those effective values and disabled operation. Blank, Wi-Fi-only and incomplete
+profiles do not enter this transfer, manufacture a station, or apply drafts.
+Later ordinary edits write only Config. Wi-Fi changes preserve Config station
+authority; credential/profile loads revoke the retained-generation exception.
+Authenticated Wi-Fi preparation reads the exact current device/boot generation
+after reserving the setup slot, which blocks competing mutations. Its result
+receipt uses that reserved generation, never a retained login's older transcript
+generation. A changed device/boot refuses before submit.
+
+Station transfer is allowed by the profile selector only when an exact full
+profile comparison proves every non-station field unchanged. Profile selection
+and Config append allocate publication/readback storage before writes; normal
+successful verification and runtime publication do not allocate after commit.
+Profile verification compares the complete prepared header, commit and payload;
+reboot admission retains its independent conservative scanner. Consumer-Radio
+keeps original cryptographic bindings, sequences and expiry times for active
+logins, pending handshakes and recovery proofs. Its generation exception is
+boot-local, limited to this one verified transfer, and requires healthy current
+storage/runtime. Arbitrary profile changes remain invalidating. A pending
+background TLS activation retains its independently defined restart behavior;
+station application neither creates nor clears that unrelated pending action.

@@ -57,8 +57,10 @@ Consumer control is available at the station IP/hostname and an available AP's
 `/radio` path under [Consumer-Radio/1](engineering/protocol/Consumer-Radio-v1.md).
 The Pico password authenticates encrypted, volatile application sessions for both Wi-Fi-only and completed station profiles. Its default is the saved Wi-Fi password; an independently saved Pico password survives Wi-Fi and station changes. Password changes retire all browser logins and pending recovery proofs without changing Wi-Fi, field/BLE access, schedules or job ownership. Station details and synchronized UTC are not prerequisites for page access or login. HTTP page delivery is unauthenticated and retains page-substitution
 risk. Public setup mutations stay AP-only; LAN setup uses authenticated
-wrappers around the same trial/commit authority. Profile-owned Wi-Fi and
-station identity retain their transactional setup paths. Lost replies require
+wrappers around the same trial/commit authority. Wi-Fi and initial station commissioning retain their transactional setup paths.
+Ordinary station metadata uses Config authority and applies without restart or
+session retirement; a verified station-only authority transfer preserves the
+original login transcripts while retaining credential-change invalidation. Lost replies require
 authoritative readback and explicit review before another save.
 
 Engineering BLE uses the separately versioned

@@ -112,6 +112,10 @@ struct Test {
     Media media;
     provisioning::ProfileStore store{media};
     provisioning::RuntimeProfile runtime;
+    Flash progress_flash;
+    standalone::Progress progress{progress_flash};
+    provisioning::LocalSettings settings{store,    runtime, fixture.store,
+                                         progress, device,  "wsprrypico-0a60df.local"};
     Random random;
     Crypto crypto, crypto2, crypto3;
     network::ConsumerRadioApi api{
@@ -149,6 +153,8 @@ struct Test {
                                 provisioning::serialize_consumer_profile(profile)));
         assert(runtime.load(store, device, provisioning::BuildBundleState::Absent));
         fixture.api.consumer_config(runtime);
+        assert(progress.load());
+        fixture.api.local_usb_settings(settings);
         if (!network_only)
             assert(fixture.scheduler.command("CONFIG " + config).find("true") != std::string::npos);
         api.admission(runtime.control_healthy(store) && runtime.consumer_browser_selected(store));
@@ -642,18 +648,22 @@ int main() {
         auto altered = config;
         altered.replace(altered.find("AA0NT"), 5, "K1ABC");
         result = t.call("POST", "/api/control/v1/config/update", network_test::configuration_update(altered), revision);
-        assert(result.body.find("consumer_setup_identity_required") != std::string::npos);
+        assert(result.body.find("\"status\":200") != std::string::npos);
+        assert(t.runtime.consumer_profile()->usb_managed);
+        assert(t.fixture.store.config()->callsign == "K1ABC");
         t.api.finish_request(t.transaction - 1, true);
-        auto opt = config;
+        auto opt = altered;
         opt.insert(1, "\"allow_unqualified_frequency\":true,");
         opt.replace(opt.find("\"test-password\""), 15, "null");
         const auto cursor = t.fixture.store.watermark();
-        result = t.call("POST", "/api/control/v1/config/update", network_test::configuration_update(opt), revision);
+        result = t.call("POST", "/api/control/v1/config/update",
+                        network_test::configuration_update(opt), t.fixture.api.revision());
         assert(result.body.find("\"status\":200") != std::string::npos);
         assert(t.fixture.store.config()->allow_unqualified_frequency);
         assert(t.fixture.store.watermark() == cursor);
         t.api.finish_request(t.transaction - 1, true);
-        assert(t.media.data == before); // Authentication/config does not rewrite commissioning.
+        assert(t.media.data != before); // One station-authority transfer preserves credentials.
+        assert(t.runtime.consumer_profile()->request_sha256 == std::string(64, 'a'));
         const auto latest = t.fixture.api.revision();
         result = t.call("PUT", "/api/control/v1/network", "{\"enabled\":false}", latest);
         assert(t.fixture.network.pending == false && t.fixture.network.enabled);

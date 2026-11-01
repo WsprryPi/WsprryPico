@@ -18,9 +18,9 @@ the Pico password. Its default is the Wi-Fi passphrase saved in the selected pro
 button-requested or automatic unavailable-network fallback. AP association
 alone grants no private radio read or mutation. The station listener exposes
 only the public radio document/identity and encrypted consumer routes.
-Wi-Fi and station identity remain owned by their transactional setup adapters; the
-radio configuration API presents their effective values and rejects changes
-that the profile would override at restart. Schedules, pins and frequency
+Wi-Fi and initial station commissioning retain their transactional setup adapters.
+Ordinary station metadata uses the shared Config application authority, including
+a verified transfer from an existing station-owning consumer profile. Schedules, pins and frequency
 opt-ins use the existing configuration journal and admission engine.
 
 Radio management retains LAN access during loaded, armed and running jobs.
@@ -148,7 +148,18 @@ is 32,768 bytes, leaving 32,724 bytes for plaintext. Input pages are decrypted
 in place only with exclusive ownership; no application parse occurs until the
 entire tag verifies. Response envelopes and ciphertext use bounded pages.
 
-POST logical `/api/control/v1/consumer/logout`, body `{"contract":"Wsprry-Control/1"}`, closes the volatile session after constructing its encrypted acknowledgement. It does not abort or release a job. Sessions expire after thirty idle minutes or eight total hours and close on profile generation changes, reboot, admission loss or invalid tags. Logout, expiry, invalid tags and sequence exhaustion affect only the addressed session; every session has its own keys, context, timers and exact sequence. Ordinary configuration journal revisions do not expire other logins. Idle time renews only after an authenticated request; public reads, page visibility and form editing do not renew it. The absolute deadline starts at successful authentication and never renews. Current management discovery advertises typed `idle_ms:1800000` and `absolute_ms:28800000` policies within the shared contract bounds; historical management views are unsupported. Consumer-Radio/1 handshake bytes and cryptographic vectors are unchanged. No automatic mutation retry occurs. On a lost response the page clears its keys, preserves edits, and blocks saves until authentication, authoritative saved-state readback and explicit review establish a fresh revision. Status or login alone cannot unlock saving. [Consumer-Recovery/1](Consumer-Recovery-v1.md) adds a separately versioned, password-authenticated retirement proof usable at full ordinary capacity. It lists one-way retirement aliases, never raw traffic IDs, and requires explicit target selection. It creates no replacement session and replays no application request. Deferred restart/network-disable actions execute only after the complete reply has been acknowledged on the matching transport transaction. A lost/partial reply or session expiry cancels only that transaction's still-pending deferred action. A normally acknowledged HTTP connection close leaves the login usable. Already committed settings or accepted WTP operations can remain effective after a lost reply.
+POST logical `/api/control/v1/consumer/logout`, body `{"contract":"Wsprry-Control/1"}`, closes the volatile session after constructing its encrypted acknowledgement. It does not abort or release a job. Sessions expire after thirty idle minutes or eight total hours and close on profile generation changes, reboot, admission loss or invalid tags,
+except the exact station-authority transfer defined in
+[configuration updates](../development/configuration-updates.md#station-authority-and-live-application).
+That transfer preserves every authentication field, receipt and credential;
+active sessions, pending handshakes and recovery proofs retain their original
+transcripts, keys, sequences, selectors and deadlines. It does not rebind a
+transcript to the new profile generation. Management policy reports the current
+profile generation; clients validate it against fresh exact device/boot identity,
+independently of the immutable handshake generation. A transfer between those
+observations permits one bounded reread of the same read-only policy resource,
+with full contract validation; it never retries a mutation or renews a session's
+absolute lifetime. Logout, expiry, invalid tags and sequence exhaustion affect only the addressed session; every session has its own keys, context, timers and exact sequence. Ordinary configuration journal revisions do not expire other logins. Idle time renews only after an authenticated request; public reads, page visibility and form editing do not renew it. The absolute deadline starts at successful authentication and never renews. Current management discovery advertises typed `idle_ms:1800000` and `absolute_ms:28800000` policies within the shared contract bounds; historical management views are unsupported. Consumer-Radio/1 handshake bytes and cryptographic vectors are unchanged. No automatic mutation retry occurs. On a lost response the page clears its keys, preserves edits, and blocks saves until authentication, authoritative saved-state readback and explicit review establish a fresh revision. Status or login alone cannot unlock saving. [Consumer-Recovery/1](Consumer-Recovery-v1.md) adds a separately versioned, password-authenticated retirement proof usable at full ordinary capacity. It lists one-way retirement aliases, never raw traffic IDs, and requires explicit target selection. It creates no replacement session and replays no application request. Deferred restart/network-disable actions execute only after the complete reply has been acknowledged on the matching transport transaction. A lost/partial reply or session expiry cancels only that transaction's still-pending deferred action. A normally acknowledged HTTP connection close leaves the login usable. Already committed settings or accepted WTP operations can remain effective after a lost reply.
 
 DHCP/link/hostname changes close station sessions and cancel pending deferred
 actions. AP withdrawal closes AP sessions without closing a healthy LAN session.

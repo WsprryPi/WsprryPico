@@ -272,6 +272,16 @@ bool valid_consumer_payload(std::string_view payload, ProfileSource prior_source
         auto prior = parse_consumer_profile(prior_data);
         bool tls_completion = false;
         bool hostname_change = false;
+        bool station_transfer = false;
+        if (prior && !prior->usb_managed && parsed->usb_managed) {
+            auto expected = *prior;
+            expected.usb_managed = true;
+            expected.callsign.clear();
+            expected.locator.clear();
+            expected.power_dbm = 0;
+            station_transfer = expected == *parsed;
+            scrub(expected);
+        }
         if (prior && prior->tls_pending && !parsed->tls_pending && prior->clients.empty() &&
             parsed->clients.empty()) {
             auto expected = *prior;
@@ -297,7 +307,7 @@ bool valid_consumer_payload(std::string_view payload, ProfileSource prior_source
                 (parsed->owner_epoch >= prior->owner_epoch ||
                  (parsed->owner_epoch == 0 && parsed->owners.empty())) &&
                 (payload == prior_data || parsed->request_sha256 != prior->request_sha256 ||
-                 tls_completion || hostname_change);
+                 tls_completion || hostname_change || station_transfer);
         if (prior)
             scrub(*prior);
     }
@@ -333,6 +343,10 @@ bool ProfileStore::select(ProfileSource source, std::string_view canonical_profi
     // one-use request after a lost response.
     if (source == source_ && canonical_profile == data_ && source != ProfileSource::NetworkOnly)
         return true;
+    // Allocate publication before touching flash. Candidate owns and scrubs
+    // this credential-bearing copy on both success and failure.
+    Candidate selected;
+    selected.data.assign(canonical_profile);
     std::string payload(selection_header_size, '\0');
     put(std::span(reinterpret_cast<std::uint8_t*>(payload.data()), 8), selection_magic);
     payload[8] = static_cast<char>(source);
@@ -384,9 +398,24 @@ bool ProfileStore::select(ProfileSource source, std::string_view canonical_profi
         secure_clear(payload);
         return false;
     }
-    const auto verified = scan(media_, target);
-    if (verified.state != Candidate::State::Valid || verified.sequence != sequence_ + 1 ||
-        verified.data != payload) {
+    // Verify the exact prepared record without allocating after commit. These
+    // bytes include the canonical payload, digest, CRC, version and generation;
+    // load() retains its independent conservative scanner for reboot/recovery.
+    const auto matches = [this](std::size_t offset, std::span<const std::uint8_t> expected) {
+        std::array<std::uint8_t, profile_page_size> page{};
+        for (std::size_t at = 0; at < expected.size(); at += page.size()) {
+            const auto count = std::min(page.size(), expected.size() - at);
+            if (!media_.read(offset + at, std::span(page).first(count)) ||
+                !std::equal(page.begin(), page.begin() + count, expected.begin() + at)) {
+                secure_clear(std::span(page));
+                return false;
+            }
+        }
+        secure_clear(std::span(page));
+        return true;
+    };
+    if (!matches(base, header) || !matches(base + commit_offset, commit) ||
+        !matches(base + payload_offset, input)) {
         healthy_ = false;
         secure_clear(payload);
         return false;
@@ -394,7 +423,7 @@ bool ProfileStore::select(ProfileSource source, std::string_view canonical_profi
     ++sequence_;
     active_slot_ = target;
     secure_clear(data_);
-    data_.assign(canonical_profile);
+    data_.swap(selected.data);
     source_ = source;
     secure_clear(payload);
     return true;

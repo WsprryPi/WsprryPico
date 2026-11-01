@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <charconv>
 #include <limits>
+#include <utility>
 
 namespace wsprrypico::standalone {
 namespace {
@@ -76,6 +77,8 @@ bool Journal::append(std::string_view data) {
         sequence_ == std::numeric_limits<std::uint64_t>::max())
         return false;
     std::vector<std::uint8_t> record(size_, 255);
+    std::vector<std::uint8_t> verified(size_);
+    std::string selected(data);
     std::size_t offset = sequence_ ? latest_ + size_ : 0;
     const auto bank = sequence_ ? latest_ / 4096 : 0;
     // Use only erased slots in the current bank. Any damaged record latches
@@ -108,14 +111,13 @@ bool Journal::append(std::string_view data) {
             healthy_ = false;
             return false;
         }
-    std::vector<std::uint8_t> verified(size_);
     if (!flash_.read(base_ + offset, verified) || record != verified) {
         healthy_ = false;
         return false;
     }
     latest_ = offset;
     ++sequence_;
-    data_ = data;
+    data_ = std::move(selected);
     return true;
 }
 namespace {
@@ -241,11 +243,12 @@ bool Store::save(const Config& config) {
         !hardware::validate_filters(filters_, config.pins).empty() ||
         (config.enabled && message_ && message_->enabled))
         return false;
+    auto selected = config; // Allocate the runtime copy before the durable append.
     if (!config_.append(text)) {
         healthy_ = false;
         return false;
     }
-    current_ = config;
+    current_ = std::move(selected);
     return true;
 }
 bool Store::save_logging(logging::Settings settings) {

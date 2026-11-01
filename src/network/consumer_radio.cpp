@@ -248,13 +248,13 @@ void ConsumerRadioApi::poll(std::uint64_t now_ms) {
     }
     const bool healthy = available();
     if (recovery_.state != State::None &&
-        (!healthy || recovery_.binding.generation != store_.sequence() ||
+        (!healthy || !runtime_.session_generation_current(recovery_.binding.generation, store_) ||
          elapsed(now_ms, recovery_.started_ms, 5'000)))
         close(recovery_);
     for (auto& session : sessions_) {
         if (session.state == State::None)
             continue;
-        if (!healthy || session.binding.generation != store_.sequence() ||
+        if (!healthy || !runtime_.session_generation_current(session.binding.generation, store_) ||
             elapsed(now_ms, session.started_ms,
                     session.state == State::Pending ? login_ms : absolute_ms) ||
             (session.state == State::Active && elapsed(now_ms, session.seen_ms, idle_ms)))
