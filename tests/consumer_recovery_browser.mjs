@@ -125,6 +125,10 @@ try{
   // An interrupted authenticated read leaves this browser's occupied selector
   // recoverable through the visible locked-access dialog.
   dropNextReply=true;await evaluate(a,'document.getElementById("refresh").click();true');
+  await until(()=>evaluate(a,'!busy'));
+  assert.equal(await evaluate(a,'radio.authenticated'),true,'public refresh preserves authentication');
+  assert.equal(dropNextReply,true,'public refresh sends no authenticated exchange');
+  await evaluate(a,'void action(()=>api("management"));true');
   await until(()=>evaluate(a,'!busy && !radio.authenticated'));
 
   await evaluate(a,'if(!document.getElementById("local-access").open)document.getElementById("access-toggle").click();document.getElementById("login-recovery").open=true;document.getElementById("inspect-logins").click();true');await until(()=>evaluate(a,'!busy && Boolean(retirementDiscovery)'));

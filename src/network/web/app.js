@@ -977,13 +977,15 @@ function fill(c, network = c?.wifi) {
 async function refresh(loadConfig = false, quiet = false) {
   const epoch=++observationEpoch;
   if(localIdentity && !radio && (!localAuthenticated || localLocked)) { controls(false); return; }
-  if (radio && !radio.authenticated) {
-    localAuthenticated=false;
-    $('local-login').hidden=false; $('local-logout').hidden=true;
+  if (radio) {
     try {
       const identity=await radio.identity();
+      if (!radio.authenticated) {
+        localAuthenticated=false;
+        $('local-login').hidden=false; $('local-logout').hidden=true;
+      }
       if(localIdentity && identity.device_id!==localIdentity.device_id) throw new Error('This is a different Pico.');
-      if(localIdentity?.boot_id!==identity.boot_id) {
+      if(localIdentity?.boot_id!==identity.boot_id || localIdentity?.generation!==identity.generation) {
         capabilities=null; capabilitiesBoot=null; operationsTarget=null; settingsLoadedBoot=null;
         localIdentity=identity; pageIdentity.bind(identity); loadConfig=true;
       } else localIdentity=identity;

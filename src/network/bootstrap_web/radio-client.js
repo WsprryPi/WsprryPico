@@ -74,6 +74,8 @@ export class RadioClient {
     if (Object.keys(id).sort().join(',') !== 'authentication,boot_id,device_id,generation,version' ||
         id.version !== 1 || !['saved_wifi_passphrase','pico_password'].includes(id.authentication) || typeof id.generation !== 'string' ||
         !/^[1-9][0-9]{0,19}$/.test(id.generation) || BigInt(id.generation) > 0xffffffffffffffffn) throw new Error('Invalid Pico identity');
+    if (this.state && this.identityContext && ['device_id','boot_id'].some(key=>id[key]!==this.identityContext[key]))
+      this.clear(); // Public identity can retire authority, never grant or renew it.
     this.publicIdentity = id;
     this.publicReads = null;
     return id;

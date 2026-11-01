@@ -113,8 +113,8 @@ try {
     await evaluate('radio.login=originalLogin');
     pass('synchronous admission, nested modal stacking, duplicate forms, cancellation, live status, themes, reduced motion and responsive busy rendering');
     await login();assert.equal(await evaluate('localAuthenticated'),true);
-    await evaluate(`globalThis.handoffFetch=radio.fetcher;globalThis.handoffStage=0;radio.fetcher=async(...args)=>{const response=await handoffFetch(...args);if(String(args[0]).endsWith('/request') && handoffStage<2){handoffStage++;await new Promise(resolve=>{globalThis['drain'+handoffStage]=resolve;});}return response;};void action(()=>refresh(false,true),{background:true});`);
-    await until(()=>evaluate('typeof drain1==="function"'),'actual encrypted poll held');
+    await evaluate(`globalThis.handoffFetch=radio.fetcher;globalThis.handoffStage=0;radio.fetcher=async(...args)=>{const response=await handoffFetch(...args);if(String(args[0]).endsWith('/read/operations') && handoffStage<2){handoffStage++;await new Promise(resolve=>{globalThis['drain'+handoffStage]=resolve;});}return response;};void action(()=>refresh(false,true),{background:true});`);
+    await until(()=>evaluate('typeof drain1==="function"'),'actual public poll held');
     assert.equal(await evaluate('document.getElementById("refresh").disabled'),false,'polling leaves operator controls available');
     await click('refresh');
     const foregroundToken=await evaluate('submissions.token.id');
@@ -126,7 +126,7 @@ try {
     assert.equal(await evaluate('document.getElementById("submission-busy").open'),true);
     await evaluate('drain2()');await idle();await evaluate('radio.fetcher=handoffFetch');
     assert.equal(await evaluate('localAuthenticated && radio.authenticated'),true);
-    pass('foreground priority drains one genuine encrypted poll without refusal, crypto overlap, stale continuation or old-token release');
+    pass('foreground priority drains one genuine public poll without refusal, crypto overlap, stale continuation or old-token release');
     await section('time-calibration');
     await evaluate(`document.getElementById('ntp-timeout-minutes').value='11';document.getElementById('ntp-timeout-minutes').dispatchEvent(new Event('input',{bubbles:true}));globalThis.putCount=0;globalThis.originalRequest=radio.request.bind(radio);radio.request=async(path,method,...args)=>{const result=await originalRequest(path,method,...args);if(path==='ntp-timeout' && method==='PUT'){putCount++;await new Promise(resolve=>globalThis.finishPut=resolve);}return result;};document.getElementById('ntp-timeout-save').click();`);
     await until(()=>evaluate('typeof finishPut==="function"'),'actual timeout mutation committed');
@@ -176,14 +176,14 @@ try {
     await evaluate('radio.request=originalRequest;void action(async()=>{await job("RELEASE");await refresh();})');await idle();
     pass('foreground abort drains an actual loaded job, invalidates the pending ARM continuation and confirms inactive output');
 
-    await evaluate(`radio.request=async(path,method,...args)=>{const result=await originalRequest(path,method,...args);if(path==='operations')await new Promise(resolve=>globalThis.finishPoll=resolve);return result;};void action(()=>refresh(false,true),{background:true});`);
+    await evaluate(`globalThis.originalPublicRead=radio.publicRead.bind(radio);radio.publicRead=async(path,...args)=>{const result=await originalPublicRead(path,...args);if(path==='operations')await new Promise(resolve=>globalThis.finishPoll=resolve);return result;};void action(()=>refresh(false,true),{background:true});`);
     await until(()=>evaluate('typeof finishPoll==="function"'),'pending production poll');
     assert.equal(await evaluate('document.getElementById("submission-busy").open'),false,'background reads do not dim the page');
     await evaluate('dispatchEvent(new PageTransitionEvent("pagehide",{persisted:true}))');
     assert.equal(await evaluate('submissions.suspended && accessClosing && !localAuthenticated'),true);
     await evaluate('finishPoll()');await until(()=>evaluate('!busy'),'old observation drained');
     assert.equal(await evaluate('accessClosing'),true,'suspension never admits a new mutation');
-    await evaluate('radio.request=originalRequest;dispatchEvent(new PageTransitionEvent("pageshow",{persisted:true}))');
+    await evaluate('radio.publicRead=originalPublicRead;radio.request=originalRequest;dispatchEvent(new PageTransitionEvent("pageshow",{persisted:true}))');
     await until(()=>evaluate('!accessClosing && !busy'),'restored page drains logout');
     assert.equal(await evaluate('localAuthenticated || radio.authenticated || submissions.pending'),false);
     pass('polling remains visually quiet and page suspension invalidates observations, retains ownership and drains lock on restoration');

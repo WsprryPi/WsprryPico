@@ -313,6 +313,11 @@ await run('slow genuine encrypted upload permits another login and two large exc
   assert.equal((await a.request('status')).status,200);assert.equal((await b.request('status')).status,200);
 });
 
+await run('public identity retires changed boot authority without an authenticated read',async f=>{
+  const a=f.client();await f.login(a);
+  await f.command({op:'reboot'});await a.identity();assert.equal(a.authenticated,false);
+});
+
 await run('profile generation invalidates all old sessions while shared PSA owner survives',async f=>{
   await f.command({op:'psa_owner',active:true});
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);

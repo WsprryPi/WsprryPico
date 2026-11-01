@@ -52,12 +52,12 @@ async function navigate(hash='') {
     await until(()=>evaluate('typeof accessCarrier!=="undefined" && (!!localIdentity || accessCarrier==="certificate") && !busy'),'shipped admitted page');
 }
 async function login(password='test-password') {
+    await until(()=>evaluate('!busy && !submissions.pending && !accessClosing && !accessLoginPending'),'login request owner available');
     await click('access-toggle');
     assert.equal(await evaluate('document.activeElement.id'),'local-password');
-    await evaluate(`document.getElementById('local-password').value=${JSON.stringify(password)}`);
     // Polling can briefly disable submission. Submit exactly once when the
     // native form is available; keyboard Enter is covered by the shipped UI fixture.
-    await until(()=>evaluate('!busy && !document.getElementById("login-submit").disabled && (document.getElementById("local-login").requestSubmit(),true)'),'login submit available');
+    await until(()=>evaluate(`!busy && !submissions.pending && !accessClosing && !accessLoginPending && !document.getElementById('login-submit').matches(':disabled') && (document.getElementById('local-password').value=${JSON.stringify(password)},document.getElementById('local-login').requestSubmit(),true)`),'login submit available');
     await idle();
 }
 const helpWindows=[];
@@ -206,19 +206,19 @@ try {
     assert.equal(await evaluate('document.activeElement.id'),'access-toggle');
     pass('native modal focus, Escape, password refusal, scrub and authenticated success');
     await section('message-section');
-    await evaluate('document.getElementById("message-text").value="DRAFT";document.getElementById("message-text").dispatchEvent(new Event("input",{bubbles:true}));globalThis.savedRequest=radio.request.bind(radio);globalThis.requestOrder=[];radio.request=async(...args)=>{requestOrder.push(args[0]);if(args[0]==="operations")await new Promise(resolve=>globalThis.releaseRead=resolve);return savedRequest(...args)};document.getElementById("refresh").click()');
+    await evaluate('document.getElementById("message-text").value="DRAFT";document.getElementById("message-text").dispatchEvent(new Event("input",{bubbles:true}));globalThis.savedRequest=radio.request.bind(radio);globalThis.savedRead=radio.publicRead.bind(radio);globalThis.requestOrder=[];radio.publicRead=async(...args)=>{requestOrder.push(args[0]);if(args[0]==="operations" && !globalThis.releaseRead)await new Promise(resolve=>globalThis.releaseRead=resolve);return savedRead(...args)};radio.request=async(...args)=>{requestOrder.push(args[0]);if(args[0]==="operations" && !globalThis.releaseRead)await new Promise(resolve=>globalThis.releaseRead=resolve);return savedRequest(...args)};document.getElementById("refresh").click()');
     await until(()=>evaluate('!!globalThis.releaseRead'),'held current request');
     await click('submission-lock');assert.equal(await evaluate('document.getElementById("save-config").disabled'),true);
     assert.equal(await evaluate('localAuthenticated'),false);
     assert.equal(await evaluate('document.getElementById("console-message").textContent'),'Unavailable');
     assert.equal(await evaluate('requestOrder.includes("consumer/logout")'),false);
     await evaluate('releaseRead()');await idle();
-    assert.equal(await evaluate('radio.authenticated'),false);assert.equal(await evaluate('requestOrder.at(-1)'),'consumer/logout');
+    assert.equal(await evaluate('radio.authenticated'),false);assert.equal(await evaluate('requestOrder.filter(path=>path==="consumer/logout").length'),1);assert.equal(await evaluate('requestOrder.indexOf("consumer/logout")>requestOrder.indexOf("operations")'),true);
     assert.equal(await evaluate('document.getElementById("message-text").value'),'DRAFT');
     // Exercise the actual registered interval without waiting five wall-clock seconds.
-    await evaluate('globalThis.publicReads=0;const savedPublic=radio.publicRead.bind(radio);radio.publicRead=(...args)=>{publicReads++;return savedPublic(...args)}');
+    await evaluate('radio.publicRead=savedRead;globalThis.publicReads=0;const savedPublic=radio.publicRead.bind(radio);radio.publicRead=(...args)=>{publicReads++;return savedPublic(...args)}');
     await until(()=>evaluate('publicReads>0'),'public polling continues after logout');
-    await evaluate('radio.request=savedRequest');
+    await evaluate('radio.request=savedRequest;radio.publicRead=savedRead');
     pass('lock gates immediately, clears private status, serializes logout and keeps public polling');
     await login();
     await evaluate('radio.logout=async()=>{throw Error("synthetic lost logout") }');await click('access-toggle');await idle();
@@ -235,7 +235,7 @@ try {
     for(const [button,resource,editor] of [['rf-calibration-read','rf-calibration','calibrationEditor'],['ntp-timeout-read','ntp-timeout','ntpTimeoutEditor'],['gpio-drive-read','gpio-drive','driveEditor']]) {
       await navigate();await login();await section(resource==='gpio-drive'?'radio-pins':'time-calibration');
       await evaluate(`${editor}.invalidate();controls(online)`);
-      await evaluate(`globalThis.editorRequest=radio.request.bind(radio);globalThis.editorOrder=[];radio.request=async(...args)=>{editorOrder.push(args[0]);if(args[0]==='${resource}')await new Promise(resolve=>globalThis.releaseEditor=resolve);return editorRequest(...args)}`);
+      await evaluate(`globalThis.editorRequest=radio.request.bind(radio);globalThis.editorRead=radio.publicRead.bind(radio);globalThis.editorOrder=[];radio.request=async(...args)=>{editorOrder.push(args[0]);return editorRequest(...args)};radio.publicRead=async(...args)=>{if(args[0]==='${resource}'&&!globalThis.releaseEditor)await new Promise(resolve=>globalThis.releaseEditor=resolve);return editorRead(...args)}`);
       await click(button);await until(()=>evaluate('!!globalThis.releaseEditor'),'held editor');
       assert.equal(await evaluate('busy'),true);await click('submission-lock');
       assert.equal(await evaluate('editorOrder.includes("consumer/logout")'),false);
