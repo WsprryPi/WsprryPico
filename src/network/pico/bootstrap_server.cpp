@@ -1079,6 +1079,11 @@ bool PicoBootstrapServer::owner_claimable() const {
                runtime_->network_profile()->device_id == device_ &&
                runtime_->source() == provisioning::RuntimeSource::NetworkOnly;
     case provisioning::ProfileSource::ConsumerProfile:
+        // A Config-backed established station cannot be recommissioned into a
+        // profile snapshot. Initial incomplete station setup remains separate.
+        if (runtime_->consumer_profile() && runtime_->consumer_profile()->usb_managed &&
+            (!progress_api_ || progress_api_->saved_station_json() != "null"))
+            return false;
         return profile_->sequence() && runtime_->consumer_profile() &&
                runtime_->consumer_profile()->device_id == device_ &&
                runtime_->source() == provisioning::RuntimeSource::ConsumerPreClock;

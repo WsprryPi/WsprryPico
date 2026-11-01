@@ -115,7 +115,8 @@ void authentication_and_revisions() {
     const auto token = m.api.revision();
     restore.headers["if-match"] = token;
     REQUIRE(m.call(restore).status == 200);
-    REQUIRE(m.api.revision() != token); // Identical saves consume journal generation too.
+    // No-op saves consume the API revision without a flash write.
+    REQUIRE(m.api.revision() != token);
     auto before_boot = m.station();
     m.f.service.reset();
     REQUIRE(m.call(before_boot).status == 412);

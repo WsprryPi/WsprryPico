@@ -167,9 +167,16 @@ try {
     await field('consumer-power','0');await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
     await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && savedProgress.data.station.power_dbm===0`),'explicit zero restored');
     await capture('complete-unapplied');
+    await f.command({op:'production_listeners'});
     await click('apply-station-progress');
-    await until(()=>cdp.evaluate(`document.getElementById('consumer-save-status').textContent.startsWith('Settings accepted.')`),'delivered explicit profile application');
-    await f.time(f.now+2000);await f.command({op:'activate'});await f.time(f.now+1000);
+    await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-save-status').textContent.startsWith('Station settings applied.')`),'uninterrupted explicit station application');
+    await f.time(f.now+61000);
+    assert.equal(await cdp.evaluate('localAuthenticated && radio.authenticated'),true);
+    assert.equal((await f.command({op:'stats'})).restarts,0);
+    assert.match(await cdp.evaluate(`document.getElementById('progress-station-status').textContent`),/Station settings applied/);
+    assert.equal(await cdp.evaluate(`document.getElementById('progress-error-station-power_dbm').textContent`),'Saved value applied.');
+    await capture('station-live-applied');
+    await cdp.evaluate('refresh()');
     const a=f.client();await f.login(a);const applied=await (await a.request('config')).json();
     assert.equal(applied.config.station.callsign,'AA0NT/12');assert.equal(applied.config.station.locator,'EM18IG');assert.equal(applied.config.station.power_dbm,0);await a.logout();
     // Newly reconstructed runtime/journals keep saved progress through boot without applying it.

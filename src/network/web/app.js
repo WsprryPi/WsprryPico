@@ -1294,6 +1294,10 @@ async function saveConsumer(kind, savedStation) {
   status.textContent = 'Preparing your settings…';
   const epoch=accessEpoch;
   try {
+    const identity = await radio.identity();
+    if (identity.device_id !== localIdentity?.device_id || identity.boot_id !== localIdentity?.boot_id)
+      throw new Error('The Pico or its boot changed. Read saved settings before another save.');
+    localIdentity = identity;
     if (kind === 'station') {
       await readApplication();
       await reviewWspr(savedStation ? {callsign:savedStation.callsign,locator:savedStation.locator,power_dbm:savedStation.power_dbm} : {callsign:$('consumer-callsign').value.trim().toUpperCase(),
@@ -1355,12 +1359,26 @@ async function applyProgressDomain(domain) {
     if (outcome && !progressEdits.has(unit)) { outcome.textContent = 'Saved value applied.'; outcome.classList.toggle('error',false); }
   }
   notice(result.data.reboot_required ? 'Saved progress applied. Network or pin changes need an explicit restart.' : 'Saved progress applied. Check the selected operation’s current status before transmitting.');
+  return reconciled;
 }
 $('apply-progress').onclick = () => action(() => applyProgressDomain('radio'));
 for (const domain of ['station','network']) $('apply-engineering-' + domain + '-progress').onclick = () => action(() => applyProgressDomain(domain));
 $('apply-station-progress').onclick = () => action(async () => {
   if (!savedProgress || writeState !== 'ready') throw new Error('Read and review saved station progress before applying.');
-  await saveConsumer('station',savedProgress.data.station);
+  if (currentConfig) {
+    if (capabilities?.features?.station_live_apply !== true) throw new Error('This Pico has not advertised live station application. Your draft is preserved.');
+    const confirmed = await applyProgressDomain('station');
+    const message = confirmed
+      ? 'Station settings applied. Your login remains active; new transmissions use the applied station details.'
+      : 'Read saved settings and review the station result before another change. Your draft is preserved.';
+    $('progress-station-status').textContent = $('consumer-save-status').textContent = message;
+    if (confirmed) for (const key of ['callsign','locator','power_dbm']) {
+      const outcome = $('progress-error-station-' + key);
+      if (outcome && !progressEdits.has(key)) { outcome.textContent = 'Saved value applied.'; outcome.classList.toggle('error',false); }
+    }
+  } else {
+    await saveConsumer('station',savedProgress.data.station);
+  }
 });
 async function job(operation, body = {}) {
   const result = await api('jobs','POST',{session_id:session,request_id:requestId(),operation,body});

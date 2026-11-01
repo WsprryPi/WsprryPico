@@ -353,8 +353,8 @@ void saved_progress_explicit_usb_application() {
     REQUIRE(t.f.store.config()->ssid.empty() && t.f.store.config()->password.empty());
     REQUIRE(!t.f.store.config()->enabled && t.f.store.config()->schedules == std::vector<standalone::Schedule>({{600, 0}}));
     REQUIRE(t.runtime.consumer_profile()->usb_managed);
-    // Network observers cannot turn a draft into a consumer station-identity
-    // edit. The USB carrier can explicitly apply the same reviewed draft.
+    // Authenticated consumer application shares Config authority with USB.
+    // Engineering and public observers cannot select consumer authority.
     REQUIRE(save(R"({"callsign":"AB1CD"})").status == 200);
     const auto applied = *t.f.store.config();
     const auto profile = t.profiles.data();
@@ -369,9 +369,14 @@ void saved_progress_explicit_usb_application() {
                      {"if-match", t.f.api.revision()}};
     REQUIRE(t.f.api
                 .handle(network_test::control_request(apply), "network-consumer", "127.0.0.1", 101,
-                        network::ManagementCarrier::ConsumerStation)
+                        network::ManagementCarrier::EngineeringStation)
                 .status == 409);
     REQUIRE(t.f.store.config() == applied && t.profiles.data() == profile);
+    REQUIRE(t.f.api
+                .handle(network_test::control_request(apply), "network-consumer", "127.0.0.1", 102,
+                        network::ManagementCarrier::ConsumerStation)
+                .status == 200);
+    REQUIRE(t.profiles.data() == profile);
     REQUIRE(t.request("POST", apply.path, apply.body).status == 200);
     REQUIRE(t.f.store.config()->callsign == "AB1CD");
 }
@@ -420,6 +425,51 @@ void network_only_and_factory_profiles() {
     old.power_dbm = 0;
     REQUIRE(provisioning::serialize_consumer_profile(old).size() < old_size);
 }
+void station_transfer_power_cuts() {
+    for (unsigned page = 1; page <= 8; ++page) {
+        Test t;
+        const auto profile = legacy_consumer();
+        REQUIRE(t.profiles.select(provisioning::ProfileSource::ConsumerProfile,
+                                  provisioning::serialize_consumer_profile(profile)));
+        REQUIRE(t.runtime.load(t.profiles, device, provisioning::BuildBundleState::Absent));
+        auto base = *standalone::parse_config(config);
+        base.enabled = false;
+        REQUIRE(t.f.store.save(base));
+        REQUIRE(t.f.scheduler.command("STOP").find("true") != std::string::npos);
+        const auto before = *t.runtime.overlay(base);
+        const auto old_generation = t.profiles.sequence();
+        t.media.fail_at = t.media.writes + page;
+        const auto error = t.settings.station_save(before);
+        provisioning::ProfileStore cold(t.media);
+        provisioning::RuntimeProfile runtime;
+        standalone::Store config_store(t.f.flash);
+        REQUIRE(cold.load() && runtime.load(cold, device, provisioning::BuildBundleState::Absent));
+        REQUIRE(config_store.load());
+        REQUIRE(runtime.overlay(*config_store.config()) == before);
+        REQUIRE(runtime.consumer_profile()->tls == profile.tls);
+        REQUIRE(runtime.consumer_profile()->request_sha256 == profile.request_sha256);
+        REQUIRE(t.f.scheduler.suspended());
+        if (error.empty()) {
+            REQUIRE(t.runtime.session_generation_current(old_generation, t.profiles));
+            REQUIRE(t.runtime.session_generation_current(t.profiles.sequence(), t.profiles));
+            REQUIRE(!t.runtime.session_generation_current(old_generation + 2, t.profiles));
+            // A later profile load must revoke the retained generation.
+            REQUIRE(t.runtime.load(t.profiles, device, provisioning::BuildBundleState::Absent));
+            REQUIRE(!t.runtime.session_generation_current(old_generation, t.profiles));
+            // The requested write can fail after transfer; reboot retains the
+            // coherent previous station and unchanged radio settings.
+            auto candidate = before;
+            candidate.power_dbm = 0;
+            t.f.flash.fail = true;
+            REQUIRE(!t.f.store.save(candidate));
+            standalone::Store recovered(t.f.flash);
+            REQUIRE(recovered.load());
+            REQUIRE(runtime.overlay(*recovered.config()) == before);
+        } else {
+            REQUIRE(cold.sequence() == old_generation);
+        }
+    }
+}
 void profile_power_cuts() {
     for (unsigned page = 1; page <= 6; ++page) {
         Test t;
@@ -450,4 +500,5 @@ int main() {
     saved_progress_explicit_usb_application();
     network_only_and_factory_profiles();
     profile_power_cuts();
+    station_transfer_power_cuts();
 }

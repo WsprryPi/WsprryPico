@@ -28,9 +28,16 @@ export async function prepareNetwork(client, identity, settings) {
       browser_public_key:pending.browserPublicKey,request_nonce:pending.requestNonce});
     if (started.version !== 1 || started.device_id !== identity.device_id || started.boot_id !== identity.boot_id)
       throw new Error('Pico identity changed. Log in again');
+    // The admitted setup slot blocks competing mutations. Observe generation
+    // after reservation: this login may retain a pre-station-transfer transcript.
+    const current = await client.identity();
+    if (current.device_id !== identity.device_id || current.boot_id !== identity.boot_id ||
+        typeof current.generation !== 'string' || !/^[1-9][0-9]{0,19}$/.test(current.generation) ||
+        BigInt(current.generation) > 0xffffffffffffffffn)
+      throw new Error('Pico setup identity changed. Read saved settings before another save');
     const sealed = sealNetwork(pending, started, identity.device_id, settings.ssid, settings.password,
       {timeServer:settings.time_server});
-    return {kind:'network',device:identity.device_id,generation:(BigInt(identity.generation)+1n).toString(),
+    return {kind:'network',device:identity.device_id,generation:(BigInt(current.generation)+1n).toString(),
       digest:sealed.requestDigest,submit:sealed.submit,ack:{version:1,device_id:identity.device_id,
         boot_id:started.boot_id,slot_id:started.slot_id,request_id:sealed.submit.request_id,ack_tag:sealed.ackTag}};
   } finally { pending.secretKey.fill(0); }

@@ -92,9 +92,9 @@ USB exposes the existing GET progress, POST progress/update and POST
 progress/apply resources, with the same target, common revision, draft revision,
 field validation and explicit application domain. Independent station fields
 can be saved without a network or complete Config. Only an explicit successful
-USB apply creates or updates the runnable Config. A read-only network observer
-cannot apply a consumer station-identity draft; the original consumer gate
-remains in force for network callers. Network commissioning can still create its supported complete consumer profile;
+USB apply creates or updates the runnable Config. Public and engineering observers cannot apply consumer station drafts.
+Authenticated consumer callers can explicitly apply established station settings
+through the same Config authority, without receiving physical USB authority. Network commissioning can still create its supported complete consumer profile;
 ordinary network radio configuration retains its station-identity restrictions.
 
 For engineering profiles, journal version 2 permits explicitly absent Wi-Fi

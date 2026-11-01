@@ -249,6 +249,8 @@ struct Driver {
     provisioning::RuntimeProfile runtime;
     HostnamePlatform hostname_platform{f};
     std::optional<provisioning::HostnameSettings> hostname_settings;
+    provisioning::LocalSettings local_settings{profiles, runtime, f.store,
+                                               progress, device,  "wsprrypico-0a60df.local"};
     Random random;
     bool low_memory = false, handler_memory_failure = false;
     std::uint64_t last_transaction = 0;
@@ -297,13 +299,17 @@ struct Driver {
     unsigned recovery_requests = 0;
     PicoBootstrapServer server{device, "p158-host",
                                +[](const tcp_pcb* p, void*) { return p->interface == 1; }, this};
-    bool page_setup = true;
+    bool page_setup = true, production_listeners = false;
     void poll_server() {
         // Match the firmware loop: profile writes and reboot reloads must be
         // reflected in the authenticated descriptor before the next request.
         f.api.management_availability(
             {ManagementProfile::Consumer, runtime.generation(), true, false, false, true, true});
-        server.poll(true, true, page_setup, true, true);
+        if (production_listeners)
+            radio.admission(runtime.control_healthy(profiles) &&
+                            runtime.consumer_browser_selected(profiles));
+        const bool station = !production_listeners || (radio.available() && network.link_up());
+        server.poll(true, true, page_setup, station, true);
     }
     unsigned connections() const {
         return server.resources().connected ? 1 : 0;
@@ -378,6 +384,7 @@ struct Driver {
             progress_flash = *saved_progress;
         check(progress.load());
         f.api.progress_settings(progress);
+        f.api.local_usb_settings(local_settings);
         check(engineering_progress.load());
         engineering.api.progress_settings(engineering_progress);
         check(engineering.store.save(*standalone::parse_config(network_test::config)));
@@ -692,6 +699,11 @@ struct Driver {
                    ",\"network_pending\":" + (f.network.pending ? "true" : "false") +
                    ",\"psa_owners\":" + std::to_string(PsaCryptoOwner::owners()) + "}";
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+        if (op == "production_listeners") {
+            production_listeners = true;
+            poll_server();
+            return "{}";
+        }
         if (op == "page_profile") {
             const auto mode = field(v, "mode");
             if (mode != "unavailable") {

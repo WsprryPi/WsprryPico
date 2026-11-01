@@ -662,7 +662,8 @@ std::string Scheduler::command(std::string_view line) {
         return error("saved_settings_too_large");
     if (config->enabled && store_.message_schedule() && store_.message_schedule()->enabled)
         return error("message_schedule_enabled");
-    if (!store_.save(*config))
+    if (!store_.healthy() ||
+        ((!store_.config() || *store_.config() != *config) && !store_.save(*config)))
         return error("storage_fault");
     // The scheduler reads station/schedules from Store on each new job. Only
     // network and pin settings are boot-initialized. Compare with the active boot, not
