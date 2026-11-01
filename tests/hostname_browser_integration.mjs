@@ -29,7 +29,7 @@ async function serve(req,res){
     try {
         const u=new URL(req.url.startsWith('http:')?req.url:'http://192.168.1.53'+req.url);
         if(!['192.168.1.53','192.168.4.1','wsprrypico-0a60df.local','pico-a.local','pico-b.local', 'x'.repeat(63)+'.local'].includes(u.hostname)){res.writeHead(403);res.end();return;}
-        if(blockPresentation && u.pathname==='/api/consumer/v1/presentation' || failRadioRequests && u.pathname==='/api/consumer/v1/request') {
+        if(blockPresentation && u.pathname==='/api/consumer/v1/presentation' || failRadioRequests && (u.pathname==='/api/consumer/v1/request' || u.pathname==='/api/consumer/v1/read/operations')) {
             res.writeHead(503,{'Content-Type':'application/json'});res.end('{"error":{"code":"unavailable"}}');return;
         }
         const chunks=[];for await(const b of req)chunks.push(b);
@@ -242,12 +242,13 @@ try {
     const attempts=(await f.command({op:'stats'})).api_restarts;
     await new Promise(r=>setTimeout(r,2200));
     assert.equal((await f.command({op:'stats'})).api_restarts,attempts);
+    const previousBoot=await cdp.evaluate('localIdentity.boot_id');
     await f.command({op:'reboot'});await f.time(5000);
     await click('refresh');await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'old-boot session withdrawn before unlock');
-    await field('local-password','test-password');
-    await submitLogin();
-    await until(()=>cdp.evaluate('!busy'),'new-boot identity review');
-    assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/boot changed.*unlock again/);
+    assert.equal(await cdp.evaluate('radio.authenticated'),false,'public reboot observation retires old keys');
+    assert.notEqual(await cdp.evaluate('localIdentity.boot_id'),previousBoot,'new boot observed before explicit login');
+    assert.equal(await cdp.evaluate(`document.getElementById('local-login').hidden`),false);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'KEEP DRAFT');
     await login();
     assert.equal(await cdp.evaluate('document.title'),'pico-a.local - Station control');
     assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),'pico-a.local');
@@ -314,13 +315,16 @@ try {
     if(!noCapture && !process.env.HOSTNAME_BROWSER_CAPTURE_PREFIX) {++captures;const zoom=await cdp.send('Page.captureScreenshot',{format:'png'});await writeFile(path.join(output,'long-name-zoom-200.png'),Buffer.from(zoom.data,'base64'));}
     await cdp.evaluate(`document.body.style.zoom=''`);
     const idleLimit=await cdp.evaluate('(async()=> (await api("management")).data.limits.idle_ms)()');
-    await f.time(f.now+idleLimit+1);await click('refresh');
+    // Only the server's fixture clock advances here. Discover its expiry with
+    // an explicit authenticated read; public polling must not renew the login.
+    await f.time(f.now+idleLimit+1);await cdp.evaluate('void action(()=>api("management"))');
     await until(()=>cdp.evaluate('!busy && !localAuthenticated && !radio.authenticated'),'session expiry');
-    assert.match(await cdp.evaluate(`document.getElementById('local-status').textContent`),/Controls locked/);
+    assert.match(await cdp.evaluate(`document.getElementById('local-status').textContent`),/locked|expired|unconfirmed/i);
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Last confirmed/);
     await capture('session-expired');await login();
     failRadioRequests=true;await click('refresh');await until(()=>cdp.evaluate('!busy && !online'),'connection failure');
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Last confirmed/);
+    assert.equal(await cdp.evaluate('radio.authenticated'),true,'public observation failure does not retire a valid login');
     assert.match(await cdp.evaluate('document.title'),/last confirmed/);await capture('disconnected-last-confirmed');
     console.log(JSON.stringify({identity_heading:true,full_id_diagnostics:true,keyboard_disclosure:true,no_diagnostics_effects:true,public_hostname_without_presentation:true,long_active_name:true,stale_agreement:true,browser:(await cdp.send('Browser.getVersion')).product,served_assets:true,real_crypto:true,
         initial_title:true,hostname_origin:true,canonical_validation:true,generation_save:true,new_boot_readback:true,

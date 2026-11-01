@@ -133,9 +133,9 @@ try {
     const unsupportedBefore=await f.command({op:'stats'});
     // Refuse the one current application read. Crypto, save/apply handlers and
     // journals still run through production code; no alternate view is selected.
-    await cdp.evaluate(`globalThis.applicationReads=0;const actualRequest=radio.request.bind(radio);radio.request=(resource,...args)=>{
+    await cdp.evaluate(`globalThis.applicationReads=0;const actualRead=radio.publicRead.bind(radio);radio.publicRead=(resource,...args)=>{
       if(resource==='application'){++applicationReads;return Promise.reject(Object.assign(new Error('Unsupported application view'),{code:'not_found'}));}
-      return actualRequest(resource,...args);
+      return actualRead(resource,...args);
     };`);
     await click('apply-station-progress');
     await until(()=>cdp.evaluate(`!busy && document.getElementById('notice').textContent.includes('Unsupported application view')`),'unconfirmed application-view refusal');
