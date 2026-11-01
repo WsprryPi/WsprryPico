@@ -94,6 +94,7 @@ add_library(wsprrypico_core
     src/application/resources.cpp
     src/application/frequency_policy.cpp
     src/hardware/pins.cpp
+    src/hardware/si5351_settings.cpp
     src/hardware/filter_settings.cpp
     src/rf/filter_selector.cpp
     src/provisioning/profile.cpp
@@ -140,6 +141,11 @@ add_library(wsprrypico_core
     src/standalone/progress.cpp
     src/standalone/scheduler.cpp
     src/rf/calibration.cpp
+    src/rf/si5351_plan.cpp
+    src/rf/si5351_device.cpp
+    src/rf/si5351_job.cpp
+    src/rf/reference_measurement.cpp
+    src/rf/reference_counter.cpp
     src/time/ntp_filter.cpp
     src/time/ntp_client.cpp
     src/time/controller_time.cpp
@@ -205,10 +211,12 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 
 if(WSPRRY_PICO_BUILD_FIRMWARE)
-    add_library(wsprrypico_pico_rf src/rf/pico/pico_pio_dma.cpp)
+    add_library(wsprrypico_pico_rf src/rf/pico/pico_pio_dma.cpp src/rf/pico/si5351_bus.cpp
+        src/rf/pico/reference_capture.cpp)
     target_link_libraries(wsprrypico_pico_rf PUBLIC wsprrypico_rf hardware_pio hardware_dma
-                          hardware_timer hardware_irq hardware_clocks pico_stdlib)
-    set_source_files_properties(src/rf/pico/pico_pio_dma.cpp PROPERTIES
+                          hardware_timer hardware_irq hardware_clocks hardware_i2c hardware_pwm pico_stdlib)
+    set_source_files_properties(src/rf/pico/pico_pio_dma.cpp src/rf/pico/si5351_bus.cpp
+        src/rf/pico/reference_capture.cpp PROPERTIES
         COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fno-exceptions;-fno-rtti;-fstack-usage")
     pico_generate_pio_header(wsprrypico_pico_rf ${CMAKE_SOURCE_DIR}/src/rf/pico/packed_output.pio)
     add_executable(rf_driver_linkcheck EXCLUDE_FROM_ALL tests/pico_driver_linkcheck.cpp)
@@ -220,6 +228,36 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(si5351_plan_tests tests/si5351_plan_tests.cpp)
+    target_link_libraries(si5351_plan_tests PRIVATE wsprrypico_core)
+    target_compile_options(si5351_plan_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME si5351_plan COMMAND si5351_plan_tests)
+    add_executable(reference_measurement_tests tests/reference_measurement_tests.cpp)
+    target_link_libraries(reference_measurement_tests PRIVATE wsprrypico_core)
+    target_compile_options(reference_measurement_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME reference_measurement COMMAND reference_measurement_tests)
+    add_executable(si5351_allocation_tests tests/si5351_allocation_tests.cpp)
+    target_link_libraries(si5351_allocation_tests PRIVATE wsprrypico_core)
+    target_compile_options(si5351_allocation_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME si5351_allocation COMMAND si5351_allocation_tests)
+    add_executable(si5351_device_tests tests/si5351_device_tests.cpp)
+    target_link_libraries(si5351_device_tests PRIVATE wsprrypico_core)
+    target_compile_options(si5351_device_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME si5351_device COMMAND si5351_device_tests)
+    add_executable(reference_counter_tests tests/reference_counter_tests.cpp)
+    target_link_libraries(reference_counter_tests PRIVATE wsprrypico_core)
+    target_compile_options(reference_counter_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME reference_counter COMMAND reference_counter_tests)
+    add_executable(si5351_job_tests tests/si5351_job_tests.cpp)
+    target_link_libraries(si5351_job_tests PRIVATE wsprrypico_core)
+    target_compile_options(si5351_job_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME si5351_job COMMAND si5351_job_tests)
+    add_executable(pico_reference_capture_tests tests/pico_reference_capture_tests.cpp
+        src/rf/pico/reference_capture.cpp)
+    target_include_directories(pico_reference_capture_tests PRIVATE tests/reference_capture_mock)
+    target_link_libraries(pico_reference_capture_tests PRIVATE wsprrypico_core)
+    target_compile_options(pico_reference_capture_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME pico_reference_capture COMMAND pico_reference_capture_tests)
     add_executable(udp_logging_tests tests/udp_logging_tests.cpp)
     target_link_libraries(udp_logging_tests PRIVATE wsprrypico_core)
     target_compile_options(udp_logging_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)

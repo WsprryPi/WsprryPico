@@ -2,14 +2,19 @@
 
 This is the distinct TODO list for selected unfinished work. Current behavior is documented in the engineering guides. The reusable [cleanup instructions](repository-cleanup-prompt.md) apply to repository and harness cleanup. Item numbers remain stable.
 
-## Possible future work
+## In progress
 
 13. **Si5351**
+    - ⏳ Production integration is selected. The [portable planning and device-control library](si5351.md) is implemented; it does not yet select an application engine or advertise Si5351 support. GPS/PPS integration remains outside this task.
+    - Complete JobService/worker execution, local symbol transitions, independent output-state observations, fault/reset shutdown, and bounded capture hardware.
+    - Complete atomic persisted engine/pin/reference updates, current shared schemas and strict companion consumers, conditional browser controls, both production integration suites, and physical qualification.
     - Optional external-engine enhancement.
     - CLK2 calibration only if that engine is selected.
     - Keep complete-job timing local to RP2350 through the existing JobService. Allocate exactly one approved SDA/SCL pair atomically, with exclusive roles and no direct RF-output GPIO. Validate device/reference, bus/address, output, drive, and calibration explicitly; no defaults or electrical compatibility are established by this proposal.
     - Keep planning portable and SDK/I²C access in adapters. Preparation, symbol changes, output control, and terminal cleanup belong to the execution owner. Failed I²C writes cannot prove inactivity. Apply the TX indicator rules throughout RF-producing warmup, transmission, and cleanup.
     - Preserve exact source provenance and upstream licenses. Qualify the actual board, firmware, Si5351/reference, bus, output, drive, mode, clock, and RF path before advertising support; host checks and cross-linking do not qualify timing or RF.
+## Possible future work
+
 14. **Optional GPS UTC + PPS and improved holdover.**
     - Reuse the original MIT [μChrony engine](../../src/microchrony/README.md): bounded source histories, adaptive frequency estimation, source selection and combination, uncertainty propagation, and separate phase slewing and frequency correction. Add a reference-clock input path; GPS/PPS ingestion is not implemented today. Keep one clock-control loop rather than adding a second GPS servo or fabricating NTP packets for PPS.
     - Add a portable, timestamped reference-observation interface and a Pico SDK adapter that captures PPS against the raw monotonic clock. Pair each edge with a GPS message identifying its UTC second; PPS alone does not supply the date or second number. Qualify capture latency, cable delay, receiver time validity, GPS-to-UTC conversion, and leap handling. Preserve the portable engine's separation from hardware and transport.
