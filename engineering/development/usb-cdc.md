@@ -1,8 +1,8 @@
 # USB CDC transport roles
 
-Console = bounded line administration and UTF-8/JSON diagnostics. WTP = WTP frame stream only. Never send logging, debug output, prompts or unframed JSON through WTP. The transport accepts binary bytes; the [strict WTP endpoint](wtp-endpoint.md) supplies valid WTP/1 frames, performs JSON dispatch and serializes responses and events. No unsolicited diagnostics are emitted on WTP.
+Console = bounded line administration and UTF-8/JSON diagnostics. WTP = WTP frame stream only. Never send logging, debug output, prompts, or unframed JSON through WTP. The transport accepts binary bytes; the [strict WTP endpoint](wtp-endpoint.md) supplies valid WTP/1 frames, performs JSON dispatch, and serializes responses and events. No unsolicited diagnostics are emitted on WTP.
 
-USB JSON administration is independently defined by [USB-Management/1](../protocol/USB-Management.md). A third management CDC role carries framed shared-API requests and qualified UTC observations. A fourth Logging role carries the independent diagnostic stream. Console and WTP roles and byte streams remain unchanged. The [local configuration contract](usb-local-configuration.md) defines no-network profiles, hostname and saved Wi-Fi lifecycle. Network authentication is unchanged.
+USB JSON administration is independently defined by [USB-Management/1](../protocol/USB-Management.md). A third management CDC role carries framed shared-API requests and qualified UTC observations. A fourth Logging role carries the independent diagnostic stream. Console and WTP roles and byte streams remain unchanged. The [local configuration contract](usb-local-configuration.md) defines no-network profiles, hostname, and saved Wi-Fi lifecycle. Network authentication is unchanged.
 
 ## Identity and ownership
 
@@ -10,20 +10,20 @@ USB JSON administration is independently defined by [USB-Management/1](../protoc
 
 | Role | CDC instance | USB control interface | USB data interface | | --- | --- | --- | --- | | WsprryPico Console | 0 | 0 | 1 | | WsprryPico WTP | 1 | 2 | 3 | | WsprryPico Management | 2 | 4 | 5 | | WsprryPico Logging | 3 | 6 | 7 |
 
-`firmware/usb_descriptors.c` retains manufacturer `WsprryPi`, product `WsprryPico`, the board-derived USB serial, and development identity `cafe:4012`. This is not a production VID/PID allocation. Separate endpoint addresses are Console `81/02/82`, WTP `83/04/84`, Management `85/06/86` and Logging `87/08/88` (notification/OUT/IN). The pinned TinyUSB macro places role strings on the control interfaces; association descriptors and data interfaces have no string. Operating systems and serial libraries may show only the device product or generated filenames. Identify a role using VID/PID, USB serial and control-interface number, consulting USB descriptors as needed. Neither tty ordering nor a displayed friendly name is a discovery contract. USB serial and the hashed WTP device_id are distinct.
+`firmware/usb_descriptors.c` retains manufacturer `WsprryPi`, product `WsprryPico`, the board-derived USB serial, and development identity `cafe:4012`. This is not a production VID/PID allocation. Separate endpoint addresses are Console `81/02/82`, WTP `83/04/84`, Management `85/06/86`, and Logging `87/08/88` (notification/OUT/IN). The pinned TinyUSB macro places role strings on the control interfaces; association descriptors and data interfaces have no string. Operating systems and serial libraries may show only the device product or generated filenames. Identify a role using VID/PID, USB serial, and control-interface number, consulting USB descriptors as needed. Neither tty ordering nor a displayed friendly name is a discovery contract. USB serial and the hashed WTP device_id are distinct.
 
-The USB adapter is `src/usb/transport.{hpp,cpp}`. Application code uses `console_write`, `wtp_transport_read` and `wtp_transport_write`, without CDC indices. `main.cpp` owns `tud_task`, adapter servicing, parser dispatch and job service polling. Generic USB and UART stdio remain disabled; `snprintf` only formats console text. No second USB stack or interrupt logging is introduced.
+The USB adapter is `src/usb/transport.{hpp,cpp}`. Application code uses `console_write`, `wtp_transport_read`, and `wtp_transport_write`, without CDC indices. `main.cpp` owns `tud_task`, adapter servicing, parser dispatch, and job service polling. Generic USB and UART stdio remain disabled; `snprintf` only formats console text. No second USB stack or interrupt logging is introduced.
 
 ## Bounds and failure semantics
 
-All adapter APIs and TinyUSB callbacks belong to the single main-loop owner. They must not be called from another core, IRQ, PPS, modulation or timing-critical path. The adapter adds no locks, waits, host polling loops or dynamic allocation. This is not a target timing guarantee: TinyUSB services its own event queue and the existing portable parser can allocate and perform frame-sized work.
+All adapter APIs and TinyUSB callbacks belong to the single main-loop owner. They must not be called from another core, IRQ, PPS, modulation, or timing-critical path. The adapter adds no locks, waits, host polling loops, or dynamic allocation. This is not a target timing guarantee: TinyUSB services its own event queue and the existing portable parser can allocate and perform frame-sized work.
 
 - Console has an 8192-byte output ring. Each write queues its entire diagnostic or returns false and drops it if disconnected or full. Callers supply valid UTF-8; the adapter does not transcode or validate text. Pressure never drops part of an accepted diagnostic, though a disconnect may truncate a stream in flight.
 - The main loop reads at most 64 Console bytes per iteration through `console_transport_read`; the bounded line parser dispatches standalone and physical administration commands. Service submits at most 64 Console TX bytes per iteration, retaining a short-write suffix. The bounded startup text fits in the empty queue on each open. Later logs may be dropped under pressure; no delivery guarantee is made for diagnostics.
-- TinyUSB has independent 64-byte RX/TX FIFOs per function. Each WTP read/write call handles at most 64 bytes and returns the actual count. A zero write means no progress, not success. The caller owns the frame and must retain the suffix, resume on a later iteration and serialize complete frames without interleaving. Never spin until a write succeeds. The main loop reads one chunk per iteration.
+- TinyUSB has independent 64-byte RX/TX FIFOs per function. Each WTP read/write call handles at most 64 bytes and returns the actual count. A zero write means no progress, not success. The caller owns the frame and must retain the suffix, resume on a later iteration, and serialize complete frames without interleaving. Never spin until a write succeeds. The main loop reads one chunk per iteration.
 - The USB byte adapter has no extra WTP TX queue; the endpoint has its own bounded frame queue. Accepted bytes retain FIFO order while the DTR-active USB connection is healthy; no application-level acknowledgment or endpoint compliance is implied. TinyUSB disables FIFO overwrite with DTR.
 - All four functions must assert DTR. DTR deassertion aborts that port's stream and clears queued software RX/TX; Console also clears its ring. Mount/unmount callbacks reset all four sessions. Reset notifications survive close/open transitions between main-loop polls, so the parser resets and the Console banner repeats. Disconnected RX is discarded. RTS and nominal baud rate do not select behavior; 1200 baud does not invoke an application reset-to-bootloader handler.
-- Clearing a FIFO cannot retract a packet already submitted to a USB endpoint or delivered to a host buffer. A host must discard its old stream when reconnecting; the endpoint requires a fresh HELLO exchange and clients must handle framing resynchronization. This foundation does not promise seamless frame delivery across disconnect, suspend, reset or host failure.
+- Clearing a FIFO cannot retract a packet already submitted to a USB endpoint or delivered to a host buffer. A host must discard its old stream when reconnecting; the endpoint requires a fresh HELLO exchange and clients must handle framing resynchronization. This foundation does not promise seamless frame delivery across disconnect, suspend, reset, or host failure.
 - A parser closed by invalid input or timeout remains closed until a session reset. It does not take down Console or block the job-service poll. Closing the transport does not abort already accepted work; RF lifecycle and ownership remain in JobService. The fatal-error loop continues USB/console servicing.
 
 ## Hardware-free checks
@@ -39,7 +39,7 @@ cmake --preset pico2-w
 cmake --build --preset pico2-w
 ```
 
-`usb_transport_tests` compiles the real adapter against bounded TinyUSB mocks. It tests short writes, startup-sized UTF-8 text, saturation, independent RX/TX, binary preservation, parser input, DTR transitions and USB reconfiguration. Existing portable-core and monitor tests remain enabled.
+`usb_transport_tests` compiles the real adapter against bounded TinyUSB mocks. It tests short writes, startup-sized UTF-8 text, saturation, independent RX/TX, binary preservation, parser input, DTR transitions, and USB reconfiguration. Existing portable-core and monitor tests remain enabled.
 
 To also inspect the actual descriptors expanded with a locally available pinned TinyUSB checkout, configure the optional descriptor test (no download is made):
 
@@ -50,11 +50,11 @@ cmake --build --preset host-debug
 ctest --preset host-debug
 ```
 
-Use the SDK checkout specified in the firmware-foundation guide. The descriptor test checks configuration lengths, eight interfaces/four associations, distinct endpoints, role strings, development VID/PID and the serial callback. Only the board-ID function is mocked. It is not a host enumeration test.
+Use the SDK checkout specified in the firmware-foundation guide. The descriptor test checks configuration lengths, eight interfaces/four associations, distinct endpoints, role strings, development VID/PID, and the serial callback. Only the board-ID function is mocked. It is not a host enumeration test.
 
 ## Opt-in Linux validation
 
-The following procedure requires separate authorization for the intended USB operations and an already authorized, loaded image. Do not flash or enable RF as part of this procedure. Record board, image SHA-256, source revision, inhibited engine, unsynchronized clock, no transmission mode, host OS and physical setup.
+The following procedure requires separate authorization for the intended USB operations and an already authorized, loaded image. Do not flash or enable RF as part of this procedure. Record board, image SHA-256, source revision, inhibited engine, unsynchronized clock, no transmission mode, host OS, and physical setup.
 
 Inspect the device and candidate ports:
 
@@ -84,7 +84,7 @@ With an authorized bounded serial test driver, negotiate HELLO and send existing
 
 Use `python3 scripts/wtp_monitor.py --list`, `ls /dev/cu.usbmodem*`, and `ioreg -p IOUSB -l -w 0` to correlate device serial and interface identity. Generated filenames vary. Substitute the identified Console port in `screen` and WTP port in the monitor. A normal terminal should assert DTR; a custom client must do so explicitly. Exit screen with Control-A, backslash, then `y`.
 
-The strict WTP endpoint provides JSON decoding, response/event encoding, serialized frame-send ownership and logical session handling. This original endpoint record does not establish physical USB/timing/RF qualification. Later results retain their exact source/image applicability; current work is selected only in the [Consolidated backlog](consolidated-backlog.md).
+The strict WTP endpoint provides JSON decoding, response/event encoding, serialized frame-send ownership, and logical session handling. This original endpoint record does not establish physical USB/timing/RF qualification. Later results retain their exact source/image applicability; current work is selected only in the [Consolidated backlog](consolidated-backlog.md).
 
 ## Console INFO and WTP STATUS are different interfaces
 
@@ -92,10 +92,10 @@ Console INFO is implementation diagnostic JSON from the standalone scheduler. It
 
 ## Browser Console compatibility
 
-Native Windows Chrome exposes Console through Web Serial. Device Manager can label all functions **USB Serial Device (COMn)**; the hardware interface suffix MI_00 identifies Console, while MI_02 and MI_04 identify WTP and Management. Chrome's chooser includes the Console role string. DTR is on; RTS and flow control are off. The [operator walkthrough](../../docs/usb.md) gives the terminal settings, port-release procedure and current Windows screenshots. A COM number is an example assigned by Windows, not a stable device role.
+Native Windows Chrome exposes Console through Web Serial. Device Manager can label all functions **USB Serial Device (COMn)**; the hardware interface suffix MI_00 identifies Console, while MI_02 and MI_04 identify WTP and Management. Chrome's chooser includes the Console role string. DTR is on; RTS and flow control are off. The [operator walkthrough](../../docs/usb.md) gives the terminal settings, port-release procedure, and current Windows screenshots. A COM number is an example assigned by Windows, not a stable device role.
 
-The bounded Windows Console scope is Windows 11 Pro 26H2 build 26300.9711, Chrome 155.0.8059.85, Pico 2 W serial `1545B6EFBF78028C`, device `c2a3a2a314c948b50a8562a1aeb69669`, source `03e0df4d7875ec505631e563fa2fe4f5b4834ec4`, normal `pio-dma-gp2` firmware at 138 MHz, with inactive output and no RF mode. INFO, ACCESS SOFTAP and release for another serial reader are within that scope. Associated-client AP retention beyond the 120-second join grace and reported expiry after a ten-minute disconnected interval use a separate wspr5 Wi-Fi client; those observations do not qualify direct Windows Wi-Fi association, every Console command, the command-line installer, physical RF or target timing.
+The bounded Windows Console scope is Windows 11 Pro 26H2 build 26300.9711, Chrome 155.0.8059.85, Pico 2 W serial `1545B6EFBF78028C`, device `c2a3a2a314c948b50a8562a1aeb69669`, source `03e0df4d7875ec505631e563fa2fe4f5b4834ec4`, normal `pio-dma-gp2` firmware at 138 MHz, with inactive output and no RF mode. INFO, ACCESS SOFTAP, and release for another serial reader are within that scope. Associated-client AP retention beyond the 120-second join grace and reported expiry after a ten-minute disconnected interval use a separate wspr5 Wi-Fi client; those observations do not qualify direct Windows Wi-Fi association, every Console command, the command-line installer, physical RF, or target timing.
 
 ## Dedicated Logging compatibility
 
-Logging is appended at control/data interfaces 6/7 with CDC instance 3. Existing device identity, role strings, interfaces 0 through 5 and endpoint assignments are unchanged. The USB device version remains 1.00; hosts must enumerate the updated configuration after the firmware-update disconnect. Operating-system port names can change and are never role identities. Earlier three-function firmware remains supported by Console, WTP, Management and the installer. Missing Logging is an explicit unsupported capability; the collector never opens Console as a fallback. See [USB logging](usb-logging.md) for the independent USB-Logging/1 handshake and budgets.
+Logging is appended at control/data interfaces 6/7 with CDC instance 3. Existing device identity, role strings, interfaces 0 through 5, and endpoint assignments are unchanged. The USB device version remains 1.00; hosts must enumerate the updated configuration after the firmware-update disconnect. Operating-system port names can change and are never role identities. Earlier three-function firmware remains supported by Console, WTP, Management, and the installer. Missing Logging is an explicit unsupported capability; the collector never opens Console as a fallback. See [USB logging](usb-logging.md) for the independent USB-Logging/1 handshake and budgets.

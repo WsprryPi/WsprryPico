@@ -6,7 +6,7 @@ The manual uses Sphinx, MyST Markdown, and sphinx_rtd_theme. Its design, logo, f
 
 The adapted portions retain this license:
 
-> Copyright © 2024 Lee Bussy
+> Copyright © 2026 Lee Bussy
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the “Software”), to deal

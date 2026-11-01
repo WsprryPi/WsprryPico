@@ -44,6 +44,7 @@ operate
 wsprrypi
 maintain
 troubleshoot
+support
 usb
 udp
 ```

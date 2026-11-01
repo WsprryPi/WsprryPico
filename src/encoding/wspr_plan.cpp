@@ -1,6 +1,6 @@
 // Packing/hash arithmetic adapted from WsprryPi WSPR-Reference at
 // a2437d1bf026e91ea95ac7e2a7a0101e3c4f11a1, wspr_ref_encoder.cpp.
-// Copyright (c) 2024 Lee Bussy. MIT; see WsprryPi-LICENSE.md.
+// Copyright (c) 2026 Lee Bussy. MIT; see WsprryPi-LICENSE.md.
 // Hash is Bob Jenkins lookup3/hashlittle with WSPR seed 146 and 15-bit reduction.
 #include "encoding/wspr.hpp"
 

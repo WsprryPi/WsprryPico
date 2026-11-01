@@ -1,5 +1,5 @@
 // Packing and sync constants adapted from WsprryPi WSPR-Reference.
-// Copyright (c) 2024 Lee Bussy. MIT; see WsprryPi-LICENSE.md.
+// Copyright (c) 2026 Lee Bussy. MIT; see WsprryPi-LICENSE.md.
 #include "encoding/wspr.hpp"
 
 #include <algorithm>

@@ -11,57 +11,25 @@
 | Explicit `<CALL>` + six-character locator | Type 3 single; hash excludes brackets |
 | Explicit Type 3 + four characters or unsupported syntax | Explicit refusal before transmitter claim/reservation |
 
-The stored token remains 3–12 ASCII characters, including explicit brackets.
-Supported compound prefixes are 1–3 alphanumerics before a valid Type 1 base;
-suffixes are one alphanumeric or two decimal digits after a valid base. A
-prefix may itself be a base call (`W1A/AA0NT`). Maximum supported compound is ten
-characters, or twelve with brackets. Empty/nested/malformed brackets, NUL,
-non-ASCII, whitespace, unsupported multiple slashes, impossible base calls and
-oversized affixes refuse without truncation/substitution. Existing broadly valid
-legacy slash identities remain readable; unchanged identity bytes survive
-unrelated complete settings saves even if transmission planning refuses them.
+The stored token remains 3–12 ASCII characters, including explicit brackets. Supported compound prefixes are 1–3 alphanumerics before a valid Type 1 base; suffixes are one alphanumeric or two decimal digits after a valid base. A prefix may itself be a base call (`W1A/AA0NT`). Maximum supported compound is ten characters, or twelve with brackets. Empty/nested/malformed brackets, NUL, non-ASCII, whitespace, unsupported multiple slashes, impossible base calls, and oversized affixes refuse without truncation/substitution. Existing broadly valid legacy slash identities remain readable; unchanged identity bytes survive unrelated complete settings saves even if transmission planning refuses them.
 
-Locators require A–R, two digits, and optional A–X subsquare. Exact reported
-powers remain 0, 3, 7, 10, 13, 17, 20, 23, 27, 30, 33, 37, 40, 43, 47, 50,
-53, 57, 60 dBm. Power is message content, independent of RF drive/output.
-Only automatic planning is exposed; there is no preference selector or Type 1/3
-pair option. Host-produced finite WTP jobs remain independently supported.
+Locators require A–R, two digits, and optional A–X subsquare. Exact reported powers remain 0, 3, 7, 10, 13, 17, 20, 23, 27, 30, 33, 37, 40, 43, 47, 50, 53, 57, 60 dBm. Power is message content, independent of RF drive/output. Only automatic planning is exposed; there is no preference selector or Type 1/3 pair option. Host-produced finite WTP jobs remain independently supported.
 
-`/00`–`/09` are supported, matching Pi's ambiguity policy. They share Type 2
-bits with `/Q`–`/Z`; `/09` and `/Z` are the same Type 2 payload. The saved call
-is unchanged, and paired Type 3 hashes the requested full call. Plan metadata
-and UI disclose the alternate spelling/receiver ambiguity. No general receiver
-collision/full-call resolution guarantee is claimed.
+`/00`–`/09` are supported, matching Pi's ambiguity policy. They share Type 2 bits with `/Q`–`/Z`; `/09` and `/Z` are the same Type 2 payload. The saved call is unchanged, and paired Type 3 hashes the requested full call. Plan metadata and UI disclose the alternate spelling/receiver ambiguity. No general receiver collision/full-call resolution guarantee is claimed.
 
 ## Frozen pair and authority contract
 
-A bounded portable plan owns at most two fixed 162-symbol arrays. JobService receives two separate complete 162-event, 110.592-second jobs in adjacent even-minute UTC +1-second windows. Both symbol arrays, identity/power and one saved WSPR USB dial snapshot are frozen. The scheduler converts the dial once into the four exact nominal RF targets around dial +1500 Hz and reuses those targets for both frames, with no random placement. Each frame retains engine and policy admission; neither remote WTP jobs nor explicit-frequency messages add this standalone offset.
+A bounded portable plan owns at most two fixed 162-symbol arrays. JobService receives two separate complete 162-event, 110.592-second jobs in adjacent even-minute UTC +1-second windows. Both symbol arrays, identity/power, and one saved WSPR USB dial snapshot are frozen. The scheduler converts the dial once into the four exact nominal RF targets around dial +1500 Hz and reuses those targets for both frames, with no random placement. Each frame retains engine and policy admission; neither remote WTP jobs nor explicit-frequency messages add this standalone offset.
 
-Nominal start separation is 120 seconds, RF-off gap 9.408 seconds and overall
-span 230.592 seconds. Each frame retains its independent local UTC/holdover
-launch guard and accepted launch second. Complete-pair expiry preflight includes
-the entire final launch second and rejects monotonic/UTC overflow before claim.
-These are software timing contracts, not measured physical launch results.
+Nominal start separation is 120 seconds, RF-off gap 9.408 seconds and overall span 230.592 seconds. Each frame retains its independent local UTC/holdover launch guard and accepted launch second. Complete-pair expiry preflight includes the entire final launch second and rejects monotonic/UTC overflow before claim. These are software timing contracts, not measured physical launch results.
 
-Before first LOAD/ARM, the existing durable watermark reserves through the
-second slot's start. All intersecting configured occurrences through that slot
-are conservatively consumed. A single 60-second owner lease, renewed every
-30 seconds, spans both frames/gap. Configuration writes are busy while owned.
-Continuation is volatile: reboot, rollback, STOP, changed generation, loss of
-clock quality/ownership, missed preparation, journal/engine/allocation failure
-or restart inhibition cannot replay a first half or resume a stray second half.
-Failed cutoff retains failed/output-unknown authority for explicit recovery.
-No catch-up or automatic retry is introduced. Existing core/RF/frequency/pin/
-output-inhibit guards and the 32 KiB authority reserve remain.
+Before first LOAD/ARM, the existing durable watermark reserves through the second slot's start. All intersecting configured occurrences through that slot are conservatively consumed. A single 60-second owner lease, renewed every 30 seconds, spans both frames/gap. Configuration writes are busy while owned. Continuation is volatile: reboot, rollback, STOP, changed generation, loss of clock quality/ownership, missed preparation, journal/engine/allocation failure, or restart inhibition cannot replay a first half or resume a stray second half. Failed cutoff retains failed/output-unknown authority for explicit recovery. No catch-up or automatic retry is introduced. Existing core/RF/frequency/pin/output-inhibit guards and the 32 KiB authority reserve remain.
 
-The engine guards each job’s initial launch. Separate jobs provide the required
-second-window time check for a pair.
+The engine guards each job’s initial launch. Separate jobs provide the required second-window time check for a pair.
 
-## API, station persistence and commissioning
+## API, station persistence, and commissioning
 
-The current `Wsprry-Control/1` representation covers all supported station
-identities without historical application or station projections. Capability
-and schema validation precede mutation; unsupported encodings refuse explicitly.
+The current `Wsprry-Control/1` representation covers all supported station identities without historical application or station projections. Capability and schema validation precede mutation; unsupported encodings refuse explicitly.
 
 | Method | Path | Meaning |
 | --- | --- | --- |
@@ -71,100 +39,33 @@ and schema validation precede mutation; unsupported encodings refuse explicitly.
 | POST | `/api/control/v1/config/update` | Omission-preserving configuration update |
 | POST | `/api/control/v1/wspr-plan` | Authenticated, bounded, pure authoritative preview |
 
-The current representation includes `/api/control/v1/hardware` and authenticated carrier policy.
-The stable `wspr-plan` type within `Wsprry-Control/1` contains supported state,
-known frame types/count, 120-second slot separation, bounded rationale and explicit
-ambiguity/alternate call. Current station, hardware and application resources
-represent all supported identities. Mutations require the root contract and retain
-ETags, target/boot binding, idle/storage checks, credential preservation and unrelated
-flags, pins, schedules and watermarks. The current
-`engineering/protocol/control-1.schema.json` validates actual responses. WTP/1,
-Consumer-Radio/1 and Consumer-Recovery/1 retain independent formats.
+The current representation includes `/api/control/v1/hardware` and authenticated carrier policy. The stable `wspr-plan` type within `Wsprry-Control/1` contains supported state, known frame types/count, 120-second slot separation, bounded rationale, and explicit ambiguity/alternate call. Current station, hardware, and application resources represent all supported identities. Mutations require the root contract and retain ETags, target/boot binding, idle/storage checks, credential preservation, and unrelated flags, pins, schedules, and watermarks. The current `engineering/protocol/control-1.schema.json` validates actual responses. WTP/1, Consumer-Radio/1, and Consumer-Recovery/1 retain independent formats.
 
-Profile-owned station writes remain transactional setup, not ordinary resource
-mutation. Existing owner wire/plaintext broad decoding remains readable; the
-actual PicoBootstrapServer validates planning before trial/commit. The pure
-`/api/owner/v1/wspr-support` descriptor exposes known support through existing
-public AP GET or authenticated setup policy. Unknown/old firmware refuses new
-setup syntax with an editable preserved draft. Sent-once receipts,
-generation/readback/review, full-capacity recovery and healthy-peer continuity
-remain. A status refresh/login never establishes an interrupted save's result.
+Profile-owned station writes remain transactional setup, not ordinary resource mutation. Existing owner wire/plaintext broad decoding remains readable; the actual PicoBootstrapServer validates planning before trial/commit. The pure `/api/owner/v1/wspr-support` descriptor exposes known support through existing public AP GET or authenticated setup policy. Unknown/old firmware refuses new setup syntax with an editable preserved draft. Sent-once receipts, generation/readback/review, full-capacity recovery, and healthy-peer continuity remain. A status refresh/login never establishes an interrupted save's result.
 
 ## Source provenance and independent receiver observations
 
-Packing/hash arithmetic is a bounded adaptation of MIT WSPR-Reference at Pi
-`a2437d1`, principally `src/WSPR-Reference/src/wspr/wspr_ref_encoder.cpp`.
-Attribution/license are retained in `src/encoding/WsprryPi-LICENSE.md` and
-THIRD_PARTY_NOTICES. No desktop reference/decoder, JSON library or Linux hardware
-code is linked into firmware. Existing Type 1 channel goldens remain identical;
-six fixed Pi Type 2/3 vectors compare every symbol.
+Packing/hash arithmetic is a bounded adaptation of MIT WSPR-Reference at Pi `a2437d1`, principally `src/WSPR-Reference/src/wspr/wspr_ref_encoder.cpp`. Attribution/license are retained in `src/encoding/WsprryPi-LICENSE.md` and THIRD_PARTY_NOTICES. No desktop reference/decoder, JSON library, or Linux hardware code is linked into firmware. Existing Type 1 channel goldens remain identical; six fixed Pi Type 2/3 vectors compare every symbol.
 
-The independent oracle is official WSJT-X
-`967c85a6119110788b0df3782cf796485b2cee14`, eight `lib/wsprd` source/header files.
-Exact SHA-256s, 21 payload/symbol/receiver observations and 33 hash tails are in
-`tests/wspr_oracle_vectors.json`. GPL implementation stays in temporary
-validation storage; only numeric outputs/provenance are committed. Test-only
-instrumentation prints the existing unpk result and supplies its byte parity
-table; packing/decoding arithmetic is unchanged. Hash seed is 146 with explicit
-15-bit reduction. The upstream empty-input early return is recorded both raw
-and reduced; empty input is not a valid station. Tests cover all tail lengths,
-unaligned/exact-length views and repeated alternating long/short inputs.
+The independent oracle is official WSJT-X `967c85a6119110788b0df3782cf796485b2cee14`, eight `lib/wsprd` source/header files. Exact SHA-256s, 21 payload/symbol/receiver observations, and 33 hash tails are in `tests/wspr_oracle_vectors.json`. GPL implementation stays in temporary validation storage; only numeric outputs/provenance are committed. Test-only instrumentation prints the existing unpk result and supplies its byte parity table; packing/decoding arithmetic is unchanged. Hash seed is 146 with explicit 15-bit reduction. The upstream empty-input early return is recorded both raw and reduced; empty input is not a valid station. Tests cover all tail lengths, unaligned/exact-length views, and repeated alternating long/short inputs.
 
-Cold Type 3 observes `<...>`; prior ordinary compound Type 2 resolves the recorded
-PJ4 and W1A examples in that independent decoder. `/Z` and `/09` remain an
-intrinsic Type 2 ambiguity and have distinct requested-full-call Type 3 hashes.
-Pi's own unpacker retains alternates, while its correlator can clear ambiguity
-after a base-call-hash pairing. The real compound paired test deliberately
-observes different base/full-call hashes. Those reference observations do not
-prove general receiver correlation or RF decoding.
+Cold Type 3 observes `<...>`; prior ordinary compound Type 2 resolves the recorded PJ4 and W1A examples in that independent decoder. `/Z` and `/09` remain an intrinsic Type 2 ambiguity and have distinct requested-full-call Type 3 hashes. Pi's own unpacker retains alternates, while its correlator can clear ambiguity after a base-call-hash pairing. The real compound paired test deliberately observes different base/full-call hashes. Those reference observations do not prove general receiver correlation or RF decoding.
 
-Unchanged Pi's one-character prefix encoding (`W/AA0NT`) differs from WSJT-X:
-its prefix branch shifts once, leaving space/W/NUL; correct packing needs two
-leading spaces. Pico pads by exact prefix length and matches the independent
-vector. Independent vectors represent the one-character prefix discrepancy;
-no WSPR-Reference repair is included. Its reviewed unchecked copies, invalid-input
-substitution and aligned-hash hazards were avoided; they are source observations,
-not newly claimed runtime reproductions.
+Unchanged Pi's one-character prefix encoding (`W/AA0NT`) differs from WSJT-X: its prefix branch shifts once, leaving space/W/NUL; correct packing needs two leading spaces. Pico pads by exact prefix length and matches the independent vector. Independent vectors represent the one-character prefix discrepancy; no WSPR-Reference repair is included. Its reviewed unchecked copies, invalid-input substitution, and aligned-hash hazards were avoided; they are source observations, not newly claimed runtime reproductions.
 
 ## Conducted Type 2/3 applicability
 
-The demonstrated pair is `PJ4/AA0NT`, `EM18IG`, 20 dBm at **3.570100 MHz** on
-Pico A: USB `0BF4B4AEC9FFB344`, WTP `fd6127d11d6aca42a9905fa3fb1bf1d5`.
-The normal `WsprryPico` image uses GP2 PIO/DMA, 138 MHz and 4 mA drive, from
-source `14698ca1dba32914959530a3b5a0cf41f74caf8f`, build identity
-`14698ca1dba3-dirty`, UF2 SHA-256
-`6cbe319e996b4a935dc7ba311583832e68228177cb2b7434573776ab19284528`.
-The recorded dirty build identity includes enclosing documentation changes.
-It identifies a bounded observation rather than a CI-produced image.
+The demonstrated pair is `PJ4/AA0NT`, `EM18IG`, 20 dBm at **3.570100 MHz** on Pico A: USB `0BF4B4AEC9FFB344`, WTP `fd6127d11d6aca42a9905fa3fb1bf1d5`. The normal `WsprryPico` image uses GP2 PIO/DMA, 138 MHz, and 4 mA drive, from source `14698ca1dba32914959530a3b5a0cf41f74caf8f`, build identity `14698ca1dba3-dirty`, UF2 SHA-256 `6cbe319e996b4a935dc7ba311583832e68228177cb2b7434573776ab19284528`. The recorded dirty build identity includes enclosing documentation changes. It identifies a bounded observation rather than a CI-produced image.
 
-The conducted path is GP2/GND, 20 dB attenuation, combiner and 40 dB attenuation
-into wspr5 RSP1B `2404058C60`, without an antenna, amplifier, filter or enabled
-GPSDO output. Capture settings are CF32, channel 0, 250000 sample/s, 200000 Hz
-bandwidth, 3545100 Hz tuning, 20 dB gain, AGC/bias tee off.
+The conducted path is GP2/GND, 20 dB attenuation, combiner, and 40 dB attenuation into wspr5 RSP1B `2404058C60`, without an antenna, amplifier, filter, or enabled GPSDO output. Capture settings are CF32, channel 0, 250000 sample/s, 200000 Hz bandwidth, 3545100 Hz tuning, 20 dB gain, AGC/bias tee off.
 
 | Frame | Independent expected-message decode |
 | --- | --- |
 | Type 2 | `PJ4/AA0NT 20` |
 | Type 3 | `<PJ4/AA0NT> EM18IG 20`, full callsign resolved from the preceding Type 2 |
 
-The independent decoder is Debian WSJT-X `wsjtx 2.7.0+repack-1` `wsprd`, SHA-256
-`3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3`.
-It starts with an empty hash directory; Type 2 supplies context for Type 3.
-Cold Type 3 still decodes its grid/power with an unresolved `<...>` callsign.
-No known callsign, symbol or hash entry is injected. The
-[offline decoder helper](../../scripts/decode_wspr_type23_pair.py) separates
-frame matching, preserves that context ordering and rejects wrong identity,
-missing halves, stale state and decoder failures.
+The independent decoder is Debian WSJT-X `wsjtx 2.7.0+repack-1` `wsprd`, SHA-256 `3e1f562239d86c2deb08b237cef9fcb8511d4dd7579fee33c969abb784465be3`. It starts with an empty hash directory; Type 2 supplies context for Type 3. Cold Type 3 still decodes its grid/power with an unresolved `<...>` callsign. No known callsign, symbol, or hash entry is injected. The [offline decoder helper](../../scripts/decode_wspr_type23_pair.py) separates frame matching, preserves that context ordering, and rejects wrong identity, missing halves, stale state, and decoder failures.
 
-The observation contains two adjacent complete local jobs and a 480-second,
-120000000-complex-sample capture without reported overflow, timeout or clipping.
-Receiver sample-axis durations are 110.593/110.592 seconds with 120.024-second
-onset separation. These values do not qualify calibrated duration or launch
-timing without hardware timestamps. Completion requires both ordered running
-jobs, complete associated sample intervals and frame-2/2 terminal readback
-without a pending pair, owner, output, error or DMA fault. The scheduler releases
-completed jobs, so persistent `complete` is not a valid sole completion criterion.
+The observation contains two adjacent complete local jobs and a 480-second, 120000000-complex-sample capture without reported overflow, timeout, or clipping. Receiver sample-axis durations are 110.593/110.592 seconds with 120.024-second onset separation. These values do not qualify calibrated duration or launch timing without hardware timestamps. Completion requires both ordered running jobs, complete associated sample intervals, and frame-2/2 terminal readback without a pending pair, owner, output, error, or DMA fault. The scheduler releases completed jobs, so persistent `complete` is not a valid sole completion criterion.
 
-The result qualifies only this board/image/frequency/payload/path. It establishes
-no general compound-call/hash-collision guarantee, other-board/band/clock support,
-calibrated power/frequency/timing or general reliability.
+The result qualifies only this board/image/frequency/payload/path. It establishes no general compound-call/hash-collision guarantee, other-board/band/clock support, calibrated power/frequency/timing, or general reliability.

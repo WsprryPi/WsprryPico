@@ -16,6 +16,7 @@ You need a **Pico 2 W**, a USB **data** cable, a reliable USB power supply, and 
 - [Install or update firmware](https://wsprrypico.readthedocs.io/en/devel/install.html).
 - [Connect to the Pico](https://wsprrypico.readthedocs.io/en/devel/connect.html), [configure the station](https://wsprrypico.readthedocs.io/en/devel/configure.html), and [make a first transmission](https://wsprrypico.readthedocs.io/en/devel/operate.html#your-first-wspr-transmission).
 - [Use with WsprryPi](https://wsprrypico.readthedocs.io/en/devel/wsprrypi.html), including switching between Pi-controlled and standalone schedules.
+- [Get support or report a bug](https://wsprrypico.readthedocs.io/en/devel/support.html).
 - [Troubleshoot a problem](https://wsprrypico.readthedocs.io/en/devel/troubleshoot.html) or [maintain and recover the Pico](https://wsprrypico.readthedocs.io/en/devel/maintain.html).
 
 ## Development and contribution
