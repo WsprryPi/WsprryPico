@@ -20,7 +20,7 @@ const pending=new Map();
 function send(method,params={}) {
     const id=++serial;
     return new Promise((resolve,reject)=>{
-        const timer=setTimeout(()=>{pending.delete(id);reject(Error('Browser deadline: '+method));},15000);
+        const timer=setTimeout(()=>{pending.delete(id);reject(Error('Browser deadline: '+method));},method==='Page.navigate'?60000:15000);
         pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});
         ws.send(JSON.stringify({id,method,params}));
     });
