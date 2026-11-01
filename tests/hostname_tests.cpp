@@ -111,7 +111,7 @@ struct Test {
     network::HttpResponse request(std::string_view name, std::string revision = "current",
                                   std::string target = device) {
         network::HttpRequest r;
-        r.path = "/api/v1/hostname";
+        r.path = "/api/control/v1/hostname";
         r.method = "PUT";
         r.headers = {{"host", "127.0.0.1"},
                      {"origin", "https://127.0.0.1"},
@@ -119,10 +119,10 @@ struct Test {
                      {"x-wsprrypico-request", "1"}};
         if (!revision.empty())
             r.headers["if-match"] = revision == "current" ? f.api.revision() : revision;
-        r.body = "{\"schema\":\"transmitter-hostname/1\",\"target\":" +
+        r.body = "{\"schema\":\"hostname\",\"target\":" +
                  application::target(target, f.service.status().boot_id) +
                  ",\"hostname\":" + std::string(name) + "}";
-        return f.api.handle(r, "test", "127.0.0.1");
+        return f.api.handle(network_test::control_request(r), "test", "127.0.0.1");
     }
 };
 } // namespace

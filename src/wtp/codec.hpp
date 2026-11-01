@@ -2,6 +2,7 @@
 #include "wtp/job_service.hpp"
 #include "wtp/json.hpp"
 #include "wtp/output_buffer.hpp"
+#include "wtp/response_source.hpp"
 
 namespace wsprrypico::wtp {
 // Invalid envelope has no safely echoable identity and closes without a response.
@@ -10,7 +11,7 @@ std::optional<Request> decode_request(json::Value root, std::string_view princip
                                       std::optional<PayloadDigest> original_digest = {});
 // Only a LOAD naming the caller's current active job can omit decoded events.
 bool is_active_load_replay(json::Value root, std::string_view active_replay_id);
-bool is_small_read_request(json::Value root);
+bool is_bounded_control_request(json::Value root);
 std::string encode_response(const Request& request, const Response& response,
                             const ServiceConfig& config, std::string_view device_id,
                             std::string_view firmware_version);
@@ -18,6 +19,7 @@ std::string encode_response(const Request& request, const Response& response,
 // insufficient working space; the endpoint must close and permit reconciliation.
 OutputBuffer encode_load_response_buffer(const Request& request, const Response& response,
                                          bool browser = false);
+ResponseSourcePtr load_response_source(const Request&, const Response&);
 // Own immutable adjustments and one reusable wire page. Partial transport writes
 // and TLS retries retain the same page until every byte in it is consumed.
 class LoadResponseStream {

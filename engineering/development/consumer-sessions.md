@@ -25,13 +25,22 @@ The selected slot must match state, context, sequence and complete AEAD. IDs use
 a random prefix and a nonreused boot-local 64-bit serial suffix. Zero, RNG failure,
 raw occupied-ID collision and serial exhaustion fail closed without retry loops.
 Expiry and every local failure close only the selected slot. Generation, unhealthy
-profile and global admission invalidate all affected slots. AP withdrawal and
+profile and global admission invalidate all affected slots, except the verified
+station-only authority transfer described in [configuration updates](configuration-updates.md#station-authority-and-live-application).
+That transfer preserves active logins, pending handshakes and recovery proofs
+without changing their cryptographic bindings, sequence or expiry. AP withdrawal and
 station address/hostname changes invalidate only the matching interface. Normal
 TCP closure leaves login state intact. Nonreused transport transaction identities
 route delivery completion across slot reuse, without duplicating board effects.
 
-Network management discovery uses closed `transmitter-management/2`, keeping the old
-shape and all old limits except `consumer_sessions:3`, and adding integer
-`consumer_pending_logins:1` in limits. Version 1 remains frozen. Compatible Pi adapters accept
-exact versions 1 and 2 with their exact limits/types. Older adapters refuse version 2;
-there is no fallback or downgrade. Consumer-Radio/1 bytes/vectors stay unchanged.
+## Duration and compatibility
+
+Authenticated requests renew a thirty-minute idle interval. The eight-hour absolute lifetime starts at successful login and never renews. Public requests, page visibility and editing do not renew idle time. Existing armed/running-job status polling may renew it; no general keepalive is added. Closing or reloading a tab can abandon a server slot until expiry. Explicit logout and authenticated retirement can free it sooner.
+
+
+Pi adapters consume the current `management` document within `Wsprry-Control/1`,
+with exact fields, integer limits, matching capability references, and validated
+policy bounds. Local consumer deadlines come from that authenticated document.
+Unsupported control versions and inconsistent policies refuse without fallback,
+eviction, or automatic mutation retry. Consumer-Radio/1 retains its independent
+handshake and cryptographic vectors.

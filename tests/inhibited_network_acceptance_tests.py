@@ -81,8 +81,8 @@ def browser_baseline(*args, **kwargs):
 class AcceptanceTests(unittest.TestCase):
     def test_actual_browser_default_and_nondefault_canonical_authority(self):
         for port, authority in ((443, "wsprrypico.test"), (8443, "wsprrypico.test:8443")):
-            for method, body, route in (("GET", None, "/api/v1/status"),
-                                        ("POST", {"operation": "ABORT"}, "/api/v1/jobs")):
+            for method, body, route in (("GET", None, "/api/control/v1/status"),
+                                        ("POST", {"operation": "ABORT"}, "/api/control/v1/jobs")):
                 with self.subTest(port=port, method=method):
                     class Stream:
                         closed = False

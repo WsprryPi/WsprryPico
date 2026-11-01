@@ -12,6 +12,9 @@ enum class ManagementCarrier {
     UsbPhysical
 };
 enum class ManagementProfile { Unavailable, Blank, Recovery, Engineering, Consumer };
+inline constexpr std::string_view management_schema(ManagementCarrier) {
+    return "management";
+}
 struct ManagementAvailability {
     ManagementProfile profile = ManagementProfile::Unavailable;
     std::uint64_t generation = 0;

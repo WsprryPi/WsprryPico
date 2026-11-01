@@ -14,6 +14,8 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts/ci'))
 import bundle
+sys.path.insert(0, str(ROOT / 'scripts'))
+from check_control_policy import check_files as check_control_policy
 
 
 def capture(*args):
@@ -48,12 +50,10 @@ def inputs():
     version = (os.environ['GITHUB_REF'].removeprefix('refs/tags/v') if tagged else
                os.environ.get('CI_TESTING_VERSION', '') or f'0.1.0-ci.{run_id}.{attempt}')
     if os.environ.get('CI_TESTING_VERSION'):
-        bundle.require(bundle.is_testing_version(version) and
-                       os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch' and
-                       os.environ.get('GITHUB_REF') == 'refs/heads/devel',
-                       'Testing versions require a manual devel dispatch and 0.1.0-testing.N')
+        raise ValueError('The historical 0.1.0-testing.N producer is unsupported for Control/1; use a CI build or a semantic beta/stable release')
     bundle.firmware_channel(version, dict(event=os.environ['GITHUB_EVENT_NAME'],
                             ref=os.environ['GITHUB_REF'], run_id=int(run_id), attempt=int(attempt)))
+    check_control_policy(stable_release=bundle.version_kind(version) == 'stable')
     publish = os.environ.get('CI_PUBLISH', 'false')
     latest = os.environ.get('CI_MAKE_LATEST', 'false')
     bundle.require(publish in ('true', 'false') and latest in ('true', 'false') and
@@ -110,6 +110,7 @@ def host_checks(deps, audit):
     options = {
         'CMAKE_BUILD_TYPE': 'Debug', 'WSPRRY_PICO_BUILD_TESTS': 'ON',
         'WSPRRY_PICO_BUILD_FIRMWARE': 'OFF',
+        'WSPRRY_PICO_DOCUMENTATION_VERSION': documentation_version(),
         'WSPRRY_PICO_TEST_MBEDTLS_PATH': deps / 'sdk/lib/mbedtls',
         'WSPRRY_PICO_TEST_LWIP_PATH': deps / 'sdk/lib/lwip',
         'WSPRRY_PICO_TEST_CYW43_PATH': deps / 'sdk/lib/cyw43-driver',
@@ -151,10 +152,38 @@ def host_checks(deps, audit):
     os.environ['CHROME_BIN'] = chrome
     execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
             host / 'consumer_bootstrap_driver', audit / 'consumer-ui')
+    execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
+            host / 'consumer_bootstrap_driver', audit / 'first-wspr-ui', 'first-use:network', 'transmission')
+    execute(log, 'node', ROOT / 'tests/session_timeout_browser.mjs',
+            host / 'consumer_bootstrap_driver', audit / 'session-timeout-ui')
+    execute(log, 'env', 'PROGRESS_BROWSER_NO_CAPTURE=1', 'node', ROOT / 'tests/progress_browser_integration.mjs',
+            host / 'consumer_bootstrap_driver', audit / 'progress-ui')
+    execute(log, 'node', ROOT / 'tests/consumer_recovery_browser.mjs', host / 'consumer_bootstrap_driver')
+    execute(log, 'env', 'UI_REVIEW_NO_CAPTURE=1', 'node', ROOT / 'tests/submission_ui_browser.mjs',
+            host / 'consumer_bootstrap_driver', audit / 'submission-ui')
+    for suite in ('hostname_browser_integration', 'organization_browser_integration',
+                  'wspr_browser_integration', 'message_frequency_ui_integration'):
+        execute(log, 'env', 'PICO_BROWSER_NO_CAPTURE=1', 'node', ROOT / f'tests/{suite}.mjs',
+                host / 'consumer_bootstrap_driver', audit / suite)
+    execute(log, 'node', ROOT / 'tests/operator_cleanup_browser.mjs', host / 'consumer_session_driver')
+    for carrier in ('consumer', 'engineering'):
+        execute(log, 'env', 'UI_REVIEW_NO_CAPTURE=1', 'node', ROOT / 'tests/ui_sections_browser.mjs',
+                host / 'consumer_bootstrap_driver', audit / f'sections-{carrier}', carrier)
     return {'registered': len(names), 'passed': len(cases), 'failed': 0, 'skipped': 0,
             'test_names': sorted(names), 'wtp_contract': 'passed', 'browser_npm': 'passed',
             'packaging_failure_tests': 'passed', 'consumer_ui': 'passed',
             'historical_evidence_skips': json.loads((audit / 'evidence-skips.json').read_text())}
+
+
+def documentation_version():
+    stream = bundle.build_stream(os.environ.get('GITHUB_EVENT_NAME'), os.environ.get('GITHUB_REF'))
+    if stream == 'release':
+        release_version = os.environ['GITHUB_REF'].removeprefix('refs/tags/v')
+        if bundle.version_kind(release_version) == 'stable':
+            return 'main'
+        stage = release_version.split('+', 1)[0].split('-', 1)[1].split('.', 1)[0].lower()
+        return 'main' if stage == 'rc' else 'devel'
+    return 'main' if stream == 'main' else 'devel'
 
 
 def firmware(deps, audit, identifier, version):
@@ -169,7 +198,8 @@ def firmware(deps, audit, identifier, version):
             '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w',
             '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DPICOTOOL_NO_LIBUSB=1',
             f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
-            f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}')
+            f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
+            f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
     execute(log, 'cmake', '--build', build, '--target', target, '--parallel', '4')
     directory = audit / identifier
     directory.mkdir()
@@ -257,7 +287,8 @@ def build(deps, output):
                 '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
                 '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w', '-DPICOTOOL_NO_LIBUSB=1',
                 f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
-                f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}')
+                f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
+                f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
         execute(audit / 'reproducibility.log', 'cmake', '--build', fresh,
                 '--target', 'WsprryPico', '--parallel', '4')
         checks['reproducibility'] = 'identical' if bundle.sha(original / 'firmware/WsprryPico.uf2') == bundle.sha(fresh / 'firmware/WsprryPico.uf2') else 'different'

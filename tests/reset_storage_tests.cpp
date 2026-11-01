@@ -328,7 +328,10 @@ int main() {
     provisioning::ResetStorageTargets targets(store, flash, media, bonds, idle, nullptr);
     assert(targets.preserve_operational(profiles));
     assert(store.config());
-    assert(!store.config()->enabled && store.config()->schedules.empty());
+    assert(!store.config()->enabled &&
+           store.config()->schedules == std::vector<standalone::Schedule>({{600, 0}}));
+    assert(store.config()->gpio_drive_ma == 12 && !store.config()->pins.amplifier_active_high);
+    assert(store.config()->wspr_dial_frequency_hz == 14'095'600);
     assert(store.config()->callsign == c.callsign && store.config()->locator == c.locator &&
            store.config()->power_dbm == c.power_dbm);
     assert(store.config()->ssid.empty() && store.config()->password.empty());
@@ -336,6 +339,9 @@ int main() {
     assert(reboot.load());
     assert(reboot.config() == store.config());
     auto scheduled = *store.config();
+    scheduled.gpio_drive_ma = 8;
+    scheduled.pins.amplifier_active_high = true;
+    scheduled.wspr_dial_frequency_hz = 10'138'700;
     scheduled.enabled = true;
     scheduled.schedules = {{120, 0}};
     scheduled.ssid = "secretSSID";
@@ -343,6 +349,8 @@ int main() {
     assert(store.save(scheduled));
     assert(store.reserve(1800000000000000000ULL));
     assert(targets.preserve_operational(profiles));
+    assert(store.config()->gpio_drive_ma == 8 && store.config()->pins.amplifier_active_high);
+    assert(store.config()->wspr_dial_frequency_hz == 10'138'700);
     assert(store.config()->schedules == scheduled.schedules);
     assert(store.config()->enabled);
     assert(store.watermark() == 1800000000000000000ULL);

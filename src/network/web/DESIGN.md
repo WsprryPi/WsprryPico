@@ -3,6 +3,7 @@ name: WsprryPico Station Control
 description: Source-derived conventions for the embedded station control interface.
 colors:
   header-navy: "#263e52"
+  modal-backdrop: "#132331"
   action-blue: "#225e8a"
   canvas: "#f6f7f8"
   field-surface: "white"
@@ -13,6 +14,10 @@ colors:
   field-border: "#687e90"
   button-border: "#687e90"
   focus-amber: "#b37617"
+  busy-backdrop: "rgb(15 28 40 / 48%)"
+  busy-dark-surface: "#243746"
+  busy-dark-border: "#96adbd"
+  busy-dark-backdrop: "rgb(0 8 16 / 62%)"
   notice-surface: "#e7eef4"
   notice-border: "#b6c6d3"
   error-surface: "#fff0ed"
@@ -21,8 +26,39 @@ colors:
 typography:
   body:
     fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.5
+  page-title:
+    fontSize: "2rem"
+    fontWeight: 700
+    lineHeight: 1.2
+  section-heading:
+    fontSize: "1.25rem"
+    fontWeight: 600
+    lineHeight: 1.5
+  status-value:
+    fontSize: "1rem"
+    fontWeight: 400
+    lineHeight: 1.5
+  status-label:
+    fontSize: "0.85rem"
+    fontWeight: 400
+    lineHeight: 1.5
+  status-heading:
+    fontSize: "1.65rem"
+    fontWeight: 700
+    lineHeight: 1.25
+  status-heading-narrow:
+    fontSize: "1.4rem"
+    fontWeight: 700
+    lineHeight: 1.25
+  comparison-heading:
+    fontSize: "1.125rem"
+    fontWeight: 700
     lineHeight: 1.5
   label:
+    fontSize: "1rem"
     fontWeight: 600
   help:
     fontSize: "0.875rem"
@@ -91,11 +127,7 @@ Color alone does not express validation or RF output state.
 
 ## Typography
 
-Body text and controls use the system stack recorded above, with controls
-inheriting the surrounding font. Labels and status values are semibold; help
-text is smaller and normal weight. The current page heading is `2rem` with
-`1.2` line height; section headings and header identity are `1.25rem`. These
-heading sizes describe the existing surface, not a new display-font identity.
+Body text and controls use the system stack recorded above, with controls inheriting the surrounding font. Form labels and default definition values are semibold; saved-setting comparisons and Transmitter status use regular-weight values. Help text is smaller and normal weight. Every definition value in Transmitter status uses the same status-value role: one system family at 1rem, regular weight 400 and line height 1.5, including accepted-job details, the next transmission, RF correction and device state. The status-label role uses smaller, muted, regular-weight text to distinguish labels from values; multiline details retain line breaks and wrap within their column. All peer operator disclosure labels use the section-heading role, including semantic headings nested inside summary and About this Pico / Diagnostics. Their family, size, semibold weight and line height stay identical in locked, unlocked, narrow and zoomed views. Page and active-status headings retain their distinct hierarchy. No additional font assets are loaded.
 
 Message previews and progress use tabular numerals. Keep units attached to
 values and retain significant subsecond digits; do not round away a finite-job
@@ -130,23 +162,15 @@ their recognizable control geometry.
 ### Buttons and navigation
 
 Primary buttons submit settings or load and arm a complete job. Secondary
-buttons use white surfaces with dark text and a one-pixel border. Enabled hover
-uses `brightness(.93)`; disabled buttons and fieldsets use `.6` opacity.
+buttons use white surfaces with dark text and a one-pixel border. Enabled hover uses `brightness(.93)`; disabled buttons retain `.6` opacity. Locked settings wrappers and their nested fieldsets retain full opacity so disclosure labels and read-only content remain legible; native disabled controls continue to enforce access.
 Keyboard focus has a three-pixel amber outline with a three-pixel offset. Programmatic section targets retain a one-rem scroll margin so the outline stays visible.
-The header keeps its home link and station-control descriptor. A two-link task
-navigation below the page heading selects Station/Transmission or Wi-Fi/Host.
-The current area uses a thicker underline and `aria-current="page"`. Both links
-retain the same document, session and drafts; only an explicit click scrolls to
-the chosen area. Three local section shortcuts focus station identity, schedules/pins or message composition without changing the URL, receipt, session or form values. Shared access, observed transmitter status and save recovery
-remain reachable in either area. Native profile-specific forms provide one
-visible editor for each station/network field.
+The navy header contains the home link and two view links, Station Control and Wi-Fi/Host. Active navigation uses a 3px underline and aria-current. Selecting a view scrolls to window top while retaining the document, session and drafts. Native section summaries replace the body menu. Top closes managed and nested disclosures and focuses the hostname. Station starts with merged Transmitter status; Saved settings and recovery sits immediately above the final About this Pico / Diagnostics section. Wi-Fi/Host contains network, Pico password, hostname and Logging. WSPR Configuration and Radio pins have separate save/apply ownership; one cannot apply the other's drafts.
 
 ### Device identity
 
 The device presentation uses the boot-active hostname as the one main heading in shared chrome,
 above both task areas. Product and task labels stay unchanged. The heading and
-tab title share one observation controller. Public names say to sign in;
-authenticated readback labels the active name. A saved rename appears secondarily
+tab title share one observation controller. Fresh names need no helper line. Diagnostics identifies public versus authenticated observation. A saved rename appears secondarily
 as pending restart, and connection/session loss labels the retained name last
 confirmed. With no usable observation, show hostname unavailable and current-IP/
 setup-Wi-Fi guidance. Discovery/reachability remains separate from the name.
@@ -172,10 +196,22 @@ splitting it into jobs.
 
 The message form has adjacent availability guidance derived from the existing connectivity, ownership, restart and capability gates. It introduces no second authority for job admission.
 
+Saved CW schedule controls share one status region. Ordinary Refresh reads the schedule without replacing the draft; explicit Read saved schedule appears only for failed reads or action recovery and alone clears an unconfirmed action. Restore saved schedule confirms replacement of the complete editor and selects recurring delivery without transmitting. Existing schedules remain accessible while preparing Send once. Pause schedule appears only for an enabled schedule; pending pauses retain their durable-save guidance, and interrupted schedules expose Acknowledge interrupted schedule through the same pause endpoint. An already paused schedule explains the explicit save-and-start path to resume.
+
+### LPF / band selector
+
+The selector editor sits in Radio pins after amplifier timing and before GPIO drive. It uses the existing native fieldset, full-width inputs and selects, flat headings, buttons and concise saved/active status. Selection policy and release/settling fields use the three-column field grid, stacking at 650px; selector outputs and named frequency ranges repeat the same form pattern. Each selector names a Pico GPIO and polarity, while each range names a selector and inclusive whole-Hz limits. Add and remove actions stay beside their own group and return focus to the relevant entry or add button.
+
+Read saved selectors, Save selectors and Discard selector entries remain separate actions. Reads preserve edited entries; discard restores the last read saved settings. Supported readback, a current device/boot identity and revision, writable availability, healthy storage and valid edited entries gate saving. A changed Pico or boot preserves the draft behind fresh readback and the explicit Use entries for this Pico action. A refused or unconfirmed save retains the entries and requires another read before saving again.
+
+Validation uses one uniquely identified polite summary, with aria-invalid on the affected fields and aria-describedby connecting each invalid field to that explanation. Shared conflicts identify every affected field; editing clears stale invalid state. Help remains associated with valid fields. Observed status separately identifies saved policy, restart need, boot-active settings and current selection, including an unknown selection.
+
+Adjacent help explains fixed / manual filtering and required automatic selection, release/settling units and bounds, and activation after restart. Saving never switches a relay or starts a job. Declared frequency coverage, GPIO observations and an active selector do not establish relay position or measured filtering.
+
 ### Standalone frequency
 
 The standalone WSPR frequency form precedes the schedule-enable checkbox in
-Schedules and radio pins. It uses the existing native fieldset, label, full-width
+WSPR Configuration. It uses the existing native fieldset, label, full-width
 text input and buttons. The label names Hz, the input requests a numeric keyboard,
 and adjacent help explains whole-Hz entry without commas or decimals. An unset
 frequency appears as a blank field; no band or frequency is preselected.
@@ -193,6 +229,12 @@ preserving the draft. A draft retained across a changed Pico or boot identity
 requires fresh readback and the explicit Use entry for this Pico action before
 saving. A refused or unconfirmed save preserves the entry and requires another
 read; the browser does not repeat the save automatically.
+
+### UTC date and time
+
+Start times and schedule expiry use one UTC text field with adjacent Date and Time buttons. The field accepts an ISO date and a 24-hour time; both spaces and the ISO T separator are accepted. The UTC calendar and time selector replace the operating system's local-time popup. Opening either picker completes both components from current UTC when either is empty, while later selections preserve the other component. Complete invalid drafts remain visible for correction. Calendar navigation, Escape dismissal and focus return stay within the existing native-button and visible-focus treatment.
+
+Calendar arithmetic and Today/Now actions use UTC, including near local midnight and daylight-saving changes. Observation timestamps name UTC, and past start values are rejected before job ownership is requested. The Pico remains the authority for clock readiness and final ARM admission.
 
 ### Finite-message preview
 
@@ -268,4 +310,39 @@ implemented palette tokens.
 
 ### Pico password settings
 
-The consumer login label is Pico password. Its default is the saved Wi-Fi password. Wi-Fi/Host presents a separate Pico password fieldset with current default/custom status, two masked confirmation fields, existing eye controls, inline errors and explicit save/default actions. Fields use two desktop columns and one mobile column. Saving signs out browser sessions and returns keyboard focus to login; no password is placed in a URL, receipt or browser storage.
+The consumer login label is Pico password. Its default is the saved Wi-Fi password. Wi-Fi/Host presents a separate Pico password fieldset with current default/custom status, two masked confirmation fields, existing eye controls, inline errors and explicit save/default actions. Fields use two desktop columns and one mobile column. Saving signs out browser sessions and returns keyboard focus to the hostname lock; no password is placed in a URL, receipt or browser storage.
+
+### NTP update timeout
+
+Time and calibration is a separate section for the cross-mode NTP timeout and carrier correction. Both values load automatically; explicit read actions appear only when readback is unavailable or a write needs recovery. Timeout uses whole minutes, defaults to 60, accepts zero for indefinite NTP holdover after initial synchronization, and keeps saved and active values separate. Reads remain available during a transmission; saves require inactive, unowned output and a current target/revision. The help explains restart activation, initial synchronization, and uncertainty handling for finite and unlimited timeout selections. Unconfirmed writes require readback before another save, and changing Pico identity preserves the entry behind explicit review.
+
+Transmission length appears immediately below the message and uses the same exact timing calculation as job submission. It updates before a frequency is entered and includes repeats, gaps and the final tail. Signed-out status uses a bounded public projection with five-second polling; unavailable readings become unknown with saved settings visible in full-opacity locked sections; mutations and job controls remain locked. Ordinary entry leaves the password modal closed. Only deliberate lock activation opens it and focuses the password. Subsequent status updates preserve focus and drafts.
+
+### Contextual status console
+
+Station status uses the status-heading role for accepted work or recovery and its compact variant on narrow screens; the empty-job headline is hidden. Context values use two flat columns and become single-column at 650px. Accepted work and Next transmission have separate labels; unique transmitter and connection observations follow in the same section. Routine explanations and the three timestamp fields are omitted. Recovery guidance remains visible when needed. Reset Pico and its feedback belong to Station status. Status transitions have one polite announcement; routine observations do not announce ticks. Unavailable status clears live values and disables controls without changing drafts or focus.
+
+### Disclosures and access dialog
+
+The hostname lock is a 44 px native button with local stroked SVG, a visually hidden state description and an action label. It is separate from the mutable hostname text node. Consumer and password SoftAP sessions use their real login/logout adapters; certificate access opens an explanation because the page cannot revoke a client certificate. The icon describes application access rather than HTTPS, ownership or RF safety.
+
+Non-status operator groups use flat, border-separated native details/summary sections, closed by default. Explicit section bookmarks and unresolved save continuations reveal the needed content. Summary headings remain discoverable, and Top links have 44 px targets. Header view links wrap within the existing inset on narrow screens. Opening and closing retains the same form DOM, file selection and drafts; routine observations preserve disclosure choices.
+
+The native access dialog uses the light canvas, one existing field border and the modal-backdrop color at 55 percent opacity. Section summaries and their nested headings share the section-heading role; view links retain the native header typography. It fits the dynamic viewport with internal scrolling for small screens and on-screen keyboards. Enter submits once, Escape or Close cancels and returns focus to the lock, and backdrop clicks leave it open. Errors remain within the dialog; passwords clear after attempts or dismissal. The native modal makes its background inert; an explicit Tab/Shift+Tab cycle keeps document focus among its visible enabled controls. Global mutation/reset warnings stay visible outside collapsed forms.
+
+The Transmitter status panel keeps accepted jobs separate from Next transmission, which shows one eligible enabled automatic mode/message and is hidden when unavailable. Routine explanations, the three observation clocks and the engine identifier are omitted. Recovery guidance remains conditional and accessible. Manual RF correction (ppm) uses one three-decimal number, Wi-Fi retains connection/address, and Hostname shows the confirmed active full name.
+
+Locked settings wrappers retain full-opacity disclosure headings and read-only content; native disabled form controls continue to enforce access. Reset Pico, Abort my job and Release control share one flex row in DOM order, wrapping naturally when the available width cannot fit their touch targets.
+
+Station identity is grouped inside WSPR Configuration with its independent save/apply actions. Message type appears in the saved station draft summary, without provisional plan callouts. The schedule field uses interval/offset labels with UTC examples. Legacy station section bookmarks reveal WSPR Configuration. Raw boot-selector JSON is omitted from operator controls; restart and observed-selection status remain visible.
+
+## Submission feedback
+
+A native modal in the top layer dims the whole viewport, including an open access dialog. The foreground uses the existing compact corners, system type and 44 px buttons. Its operation text is a polite live status outside the busy main region. A dark color preference selects the navy foreground surface and light text; the underlying product keeps its established appearance. The backdrop uses 48% navy in light preference and 62% near-black in dark preference. There is no animation, spinner, flashing or motion. Cancel login, Lock controls and Abort this browser’s job are contextual actions in the foreground.
+
+Contextual help uses original 16 px circle-question inline SVGs in help-text gray, with 44 px targets and existing amber keyboard focus. Icons sit beside their headings, disclosure titles, legends, labels or actions. Manual navigation retains its text.
+The header places a light manual-home help icon after Station Control and Wi-Fi/Host navigation, aligned with the page content’s right edge on desktop and narrow screens.
+Every disclosure and section has contextual help, including nested pin roles, saved progress, raw readback, dynamically mounted UDP controls and setup-result sections; more specific subheading help remains available.
+
+Transmitter status uses terse values without explicit formatting line breaks. Exact Hz/kHz/MHz scaling preserves paired Space/Mark and Dot/Dash order. WSPR shows a confirmed dial only. Message timings, job/owner IDs and elapsed-duration arithmetic are omitted. Progress remains approximate and lifecycle-bound. The active hostname appears in the page heading only. Values and actionable warnings wrap naturally; no additional job-details disclosure is used.
+The header inset follows the available page width rather than viewport units so its manual link remains aligned when the browser reserves scrollbar space.

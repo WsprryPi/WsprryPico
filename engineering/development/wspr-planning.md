@@ -1,6 +1,6 @@
 # Wspr planning
 
-## Delivered automatic behavior and bounds
+## Automatic behavior and bounds
 
 | Stored station input | Selected complete plan |
 | --- | --- |
@@ -24,8 +24,8 @@ unrelated complete settings saves even if transmission planning refuses them.
 Locators require A–R, two digits, and optional A–X subsquare. Exact reported
 powers remain 0, 3, 7, 10, 13, 17, 20, 23, 27, 30, 33, 37, 40, 43, 47, 50,
 53, 57, 60 dBm. Power is message content, independent of RF drive/output.
-Only automatic planning is exposed; no ignored preference selector or Type 1/3
-pair was added. Host-produced finite WTP jobs remain independently supported.
+Only automatic planning is exposed; there is no preference selector or Type 1/3
+pair option. Host-produced finite WTP jobs remain independently supported.
 
 `/00`–`/09` are supported, matching Pi's ambiguity policy. They share Type 2
 bits with `/Q`–`/Z`; `/09` and `/Z` are the same Type 2 payload. The saved call
@@ -54,35 +54,32 @@ Failed cutoff retains failed/output-unknown authority for explicit recovery.
 No catch-up or automatic retry is introduced. Existing core/RF/frequency/pin/
 output-inhibit guards and the 32 KiB authority reserve remain.
 
-A single 324-symbol timeline was rejected because the engine guards only its
-initial launch; separate jobs permit the required second-window time check.
+The engine guards each job’s initial launch. Separate jobs provide the required
+second-window time check for a pair.
 
 ## API, station persistence and commissioning
 
-Frozen application/1 and station/1 shapes and `wspr_type1` literal remain.
-Existing release-Pi Type 1 workflows work. A selected encodable Type 2/3 station
-or bracket form returns explicit `409 unsupported_station_encoding` on those
-legacy projections. Unknown new support refuses rather than falling back.
-
-The exact additive `application_resources_v2` descriptor advertises:
+The current `Wsprry-Control/1` representation covers all supported station
+identities without historical application or station projections. Capability
+and schema validation precede mutation; unsupported encodings refuse explicitly.
 
 | Method | Path | Meaning |
 | --- | --- | --- |
-| GET | `/api/v1/application/2` | `transmitter-application/2`, station/2, `wspr_type123_auto`, plan |
-| GET/PUT | `/api/v1/station/2` | Complete versioned station resource |
-| PUT | `/api/v1/config/2` | Config v1 content with explicit new-format admission |
-| POST | `/api/v1/config/update/2` | Existing config-update/1 envelope/omission semantics |
-| POST | `/api/v1/wspr-plan` | Authenticated, bounded, pure authoritative preview |
+| GET | `/api/control/v1/application` | Current application, station, hardware, and planning observations |
+| GET/PUT | `/api/control/v1/station` | Complete current station resource |
+| PUT | `/api/control/v1/config` | Current configuration with explicit contract admission |
+| POST | `/api/control/v1/config/update` | Omission-preserving configuration update |
+| POST | `/api/control/v1/wspr-plan` | Authenticated, bounded, pure authoritative preview |
 
-The descriptor retains `/api/v1/hardware` and authenticated carrier policy.
-`wspr-plan/1` contains supported state, known frame types/count, 120-second slot
-separation, bounded rationale and explicit ambiguity/alternate call. Old full
-config paths may preserve an unchanged new identity during unrelated edits but
-cannot introduce a changed new format. ETags, target/boot binding, idle/storage
-checks, password-null preservation, flags, pins, schedules and watermark remain.
-`engineering/protocol/transmitter-application-2.schema.json` validates actual responses;
-legacy schemas are untouched. WTP/1, management/1 and /2, Consumer-Radio/1 and
-Consumer-Recovery/1 are unchanged.
+The current representation includes `/api/control/v1/hardware` and authenticated carrier policy.
+The stable `wspr-plan` type within `Wsprry-Control/1` contains supported state,
+known frame types/count, 120-second slot separation, bounded rationale and explicit
+ambiguity/alternate call. Current station, hardware and application resources
+represent all supported identities. Mutations require the root contract and retain
+ETags, target/boot binding, idle/storage checks, credential preservation and unrelated
+flags, pins, schedules and watermarks. The current
+`engineering/protocol/control-1.schema.json` validates actual responses. WTP/1,
+Consumer-Radio/1 and Consumer-Recovery/1 retain independent formats.
 
 Profile-owned station writes remain transactional setup, not ordinary resource
 mutation. Existing owner wire/plaintext broad decoding remains readable; the
@@ -170,4 +167,4 @@ completed jobs, so persistent `complete` is not a valid sole completion criterio
 
 The result qualifies only this board/image/frequency/payload/path. It establishes
 no general compound-call/hash-collision guarantee, other-board/band/clock support,
-calibrated power/frequency/timing or release qualification.
+calibrated power/frequency/timing or general reliability.

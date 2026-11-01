@@ -10,19 +10,6 @@
 namespace wsprrypico::usb {
 namespace {
 constexpr std::string_view schema = "usb-management/1";
-std::string_view quoted_byte(unsigned char c, std::array<char, 6>& scratch) {
-    if (c == '"')
-        return "\\\"";
-    if (c == '\\')
-        return "\\\\";
-    if (c < 32) {
-        constexpr char hex[] = "0123456789abcdef";
-        scratch = {'\\', 'u', '0', '0', hex[c >> 4], hex[c & 15]};
-        return {scratch.data(), scratch.size()};
-    }
-    scratch[0] = static_cast<char>(c);
-    return {scratch.data(), 1};
-}
 } // namespace
 
 std::string ManagementEndpoint::target() const {
@@ -37,7 +24,9 @@ void ManagementEndpoint::disconnect() {
         finish_(transaction_, false);
     pending_ = false;
     clear_input();
+    preparing_ = nullptr;
     output_ = {};
+    small_output_ = {};
     output_offset_ = 0;
     timing_ = negotiated_ = false;
     closed_ = true;
@@ -56,9 +45,34 @@ void ManagementEndpoint::connect(std::string session) {
     closed_ = false;
 }
 void ManagementEndpoint::poll(std::uint64_t now_ms) {
-    if (timing_ && (now_ms < started_ms_ || now_ms - started_ms_ >= transaction_timeout_ms))
+    if (timing_ && (now_ms < started_ms_ || now_ms - started_ms_ >= transaction_timeout_ms)) {
         disconnect();
+        return;
+    }
+    if (preparing_) {
+        if (!preparing_->count_step()) {
+            disconnect();
+            return;
+        }
+        if (preparing_->ready()) {
+            const auto length = output_->size();
+            if (length > maximum_response) {
+                disconnect();
+                return;
+            }
+            output_header_ = {'U',
+                              'M',
+                              'P',
+                              '1',
+                              static_cast<std::uint8_t>(length >> 24),
+                              static_cast<std::uint8_t>(length >> 16),
+                              static_cast<std::uint8_t>(length >> 8),
+                              static_cast<std::uint8_t>(length)};
+            preparing_ = nullptr;
+        }
+    }
 }
+
 bool ManagementEndpoint::binding(wtp::json::Value value) const {
     const auto session = value.get("session"), destination = value.get("target");
     if (!session || session->type() != '"' || session->string() != session_ || !destination ||
@@ -79,30 +93,51 @@ bool ManagementEndpoint::respond(unsigned status, network::HttpResponse response
     const auto suffix = "\",\"etag\":" + wtp::json::quote(response.etag) +
                         ",\"delivery_required\":" + (delivery ? "true}" : "false}");
     std::size_t length = prefix.size() + suffix.size();
-    std::array<char, 6> escaped{};
-    for (std::size_t offset = 0; offset < response.body_size();) {
-        const auto part = response.body_at(offset);
-        for (auto c : part)
-            length += quoted_byte(c, escaped).size();
-        offset += part.size();
+    if (!response.generated_body) {
+        // Materialized resources keep their existing retained footprint. Only
+        // immutable generated documents avoid a complete final frame; wrapping
+        // an already complete string would retain it plus generator overhead.
+        std::array<char, 6> scratch{};
+        for (std::size_t offset = 0; offset < response.body_size();) {
+            const auto part = response.body_at(offset);
+            for (auto c : part)
+                length += wtp::response_escape(c, scratch).size();
+            offset += part.size();
+        }
+        if (length > maximum_response || !wtp::memory_admitted(length, memory_reserve) ||
+            !small_output_.reserve(length))
+            return false;
+        const auto append = [&](std::string_view text) {
+            return small_output_.append(
+                {reinterpret_cast<const std::uint8_t*>(text.data()), text.size()});
+        };
+        if (!append(prefix))
+            return false;
+        for (std::size_t offset = 0; offset < response.body_size();) {
+            const auto part = response.body_at(offset);
+            for (auto c : part)
+                if (!append(wtp::response_escape(c, scratch)))
+                    return false;
+            offset += part.size();
+        }
+        if (!append(suffix))
+            return false;
+    } else {
+        if (!wtp::memory_admitted(8192, memory_reserve) || response.body_size() > maximum_response)
+            return false;
+        auto body = network::response_source(std::move(response));
+        if (!body)
+            return false;
+        auto escaped = wtp::make_response_source<wtp::EscapedResponseSource>(std::move(body), true);
+        if (!escaped || !escaped->valid())
+            return false;
+        auto* preparing = escaped.get();
+        output_ = wtp::make_response_source<wtp::JoinedResponseSource>(prefix, std::move(escaped),
+                                                                       suffix);
+        if (!output_)
+            return false;
+        preparing_ = preparing;
     }
-    if (length > maximum_response || !wtp::memory_admitted(length, memory_reserve) ||
-        !output_.reserve(length))
-        return false;
-    const auto append = [&](std::string_view text) {
-        return output_.append({reinterpret_cast<const std::uint8_t*>(text.data()), text.size()});
-    };
-    if (!append(prefix))
-        return false;
-    for (std::size_t offset = 0; offset < response.body_size();) {
-        const auto part = response.body_at(offset);
-        for (auto c : part)
-            if (!append(quoted_byte(c, escaped)))
-                return false;
-        offset += part.size();
-    }
-    if (!append(suffix))
-        return false;
     output_header_ = {'U',
                       'M',
                       'P',
@@ -182,7 +217,7 @@ bool ManagementEndpoint::dispatch() {
 }
 std::size_t ManagementEndpoint::receive(std::span<const std::uint8_t> bytes, std::uint64_t now_ms) {
     poll(now_ms);
-    if (closed_ || !output_.empty())
+    if (closed_ || output_ != nullptr || !small_output_.empty())
         return 0;
     if (!bytes.empty() && !timing_) {
         started_ms_ = now_ms;
@@ -218,11 +253,12 @@ std::size_t ManagementEndpoint::receive(std::span<const std::uint8_t> bytes, std
     return consumed;
 }
 std::span<const std::uint8_t> ManagementEndpoint::output() const {
-    if (output_.empty())
+    if (preparing_ || (!output_ && small_output_.empty()))
         return {};
     if (output_offset_ < output_header_.size())
         return std::span(output_header_).subspan(output_offset_);
-    return output_.at(output_offset_ - output_header_.size());
+    return output_ ? output_->at(output_offset_ - output_header_.size())
+                   : small_output_.at(output_offset_ - output_header_.size());
 }
 void ManagementEndpoint::consume_output(std::size_t bytes) {
     if (bytes > output().size()) {
@@ -230,8 +266,10 @@ void ManagementEndpoint::consume_output(std::size_t bytes) {
         return;
     }
     output_offset_ += bytes;
-    if (!output_.empty() && output_offset_ == output_.size() + output_header_.size()) {
+    const auto size = output_ ? output_->size() : small_output_.size();
+    if (size && output_offset_ == size + output_header_.size()) {
         output_ = {};
+        small_output_ = {};
         output_offset_ = 0;
         if (!pending_)
             timing_ = false;

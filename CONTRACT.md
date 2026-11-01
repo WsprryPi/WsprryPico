@@ -30,16 +30,15 @@ messages before LOAD/ARM; WTP carries complete encoded jobs. See
 PPM value. NTP-derived RF calibration and Pico-to-Pi GPIO timing pulses are not
 supported. GPS/PPS input is future work in the consolidated backlog. Job launch
 retains clock uncertainty, age, ownership, frequency, hardware and output
-inhibition checks. A compile or simulated job establishes neither physical
+inhibition checks. The explicit zero NTP-timeout setting retains the last accepted
+NTP clock without age or server uncertainty expiry; initial synchronization,
+leap checks and a caller's stricter job uncertainty budget still apply.
+A compile or simulated job establishes neither physical
 symbol timing nor RF performance.
 
 ## Control and authority
 
-USB CDC is the reference WTP transport. Console diagnostics, WTP framing and
-[USB management/time](engineering/protocol/USB-Management.md) use separate CDC
-interfaces. Logging must not enter either protocol stream. USB management uses
-local physical authority, supports no-network configuration and does not grant
-transmitter ownership. Network callers cannot select USB authority.
+USB CDC is the reference WTP transport. Console diagnostics, WTP framing and [USB management/time](engineering/protocol/USB-Management.md) use separate CDC interfaces. Diagnostic logging has an independent fourth CDC interface; collection leaves Console available. Logging must not enter either protocol stream. USB management uses local physical authority, supports no-network configuration and does not grant transmitter ownership. Network callers cannot select USB authority.
 
 Network WTP/TCP carries the identical WTP/1 stream to the same service.
 The consumer image defaults to Plain LAN on station TCP port 31417 after
@@ -51,18 +50,17 @@ certificate authentication. Full fleet interoperability is not qualified.
 
 The browser uses the shared, independently versioned
 [JSON API](engineering/browser-api.md). Firmware supplies lightweight HTTP handlers
-and static assets. It does not host Apache or PHP. Resource schema versions
-are independent of the `/api/v1/` namespace. Legacy closed views, explicit
-capability negotiation, omission preservation and atomic replacement remain
-part of the configuration contract. Saved drafts do not establish complete
+and static assets. It does not host Apache or PHP. The current `Wsprry-Control/1` contract uses `/api/control/v1`, with one complete current representation per resource. Explicit capability admission, omission preservation and authoritative transaction boundaries apply; historical settings views are unsupported. Saved drafts do not establish complete
 configuration, applied hardware or transmit readiness.
 
 Consumer control is available at the station IP/hostname and an available AP's
 `/radio` path under [Consumer-Radio/1](engineering/protocol/Consumer-Radio-v1.md).
 The Pico password authenticates encrypted, volatile application sessions for both Wi-Fi-only and completed station profiles. Its default is the saved Wi-Fi password; an independently saved Pico password survives Wi-Fi and station changes. Password changes retire all browser logins and pending recovery proofs without changing Wi-Fi, field/BLE access, schedules or job ownership. Station details and synchronized UTC are not prerequisites for page access or login. HTTP page delivery is unauthenticated and retains page-substitution
 risk. Public setup mutations stay AP-only; LAN setup uses authenticated
-wrappers around the same trial/commit authority. Profile-owned Wi-Fi and
-station identity retain their transactional setup paths. Lost replies require
+wrappers around the same trial/commit authority. Wi-Fi and initial station commissioning retain their transactional setup paths.
+Ordinary station metadata uses Config authority and applies without restart or
+session retirement; a verified station-only authority transfer preserves the
+original login transcripts while retaining credential-change invalidation. Lost replies require
 authoritative readback and explicit review before another save.
 
 Engineering BLE uses the separately versioned
@@ -92,14 +90,7 @@ closed rather than resurrecting superseded credentials or enabled settings.
 Reset levels preserve only their defined domains. Upgrade/rollback support
 must account for the actual on-flash record versions.
 
-The [pin contract](engineering/pin-assignment-contract.md) requires exclusive GPIO
-roles and a validated boot pin plan. Pin/drive changes latch restart and output
-inhibition for the boot, including A/B/A saves. GPIO drive is 2/4/8/12 mA,
-default 4 mA, independent of reported WSPR dBm. Saved selection, immutable
-boot selection and nullable cached ARM-time SDK pad verification are distinct.
-A save never programs the pad or proves RF power. Optional amplifier enable
-uses the same local sink authority, initializes inactive, asserts before local
-RF and deasserts before fallible cleanup. LPF and Si5351 adapters are unavailable.
+The [pin contract](engineering/pin-assignment-contract.md) requires exclusive GPIO roles and a validated boot pin plan. Pin, drive and amplifier timing changes latch restart and output inhibition for the boot, including A/B/A saves. GPIO drive is 2/4/8/12 mA, default 12 mA, independent of reported WSPR dBm. Saved selection, immutable boot selection and nullable cached ARM-time SDK pad verification are distinct. A save never programs the pad or proves RF power. Optional amplifier enable uses the same local sink authority, initializes inactive, asserts before local RF and deasserts before fallible cleanup. Configurable lead and tail each default to 200 ms, accept 0–1000 whole milliseconds and surround the unchanged scheduled RF window. The amplifier pin remains disabled by default. Optional [LPF/band selection](engineering/development/lpf-band-selector.md) uses exclusive named GPIO resources and complete-job nominal/programmed coverage. Selection settles before amplifier lead and stays active through amplifier tail; cleanup disables the amplifier before selectors. Fixed/manual is the default. Selector changes require restart. Si5351 remains unavailable.
 
 ## Implementation and qualification
 
@@ -107,7 +98,7 @@ The normal `WsprryPico` application uses the 138 MHz PIO/DMA engine.
 `WsprryPico-Inhibited` explicitly selects the RF-free simulator;
 `WsprryPico-StandaloneRF` remains a compatible explicit RF target. RF capability
 preserves saved enablement and all admission guards. Generic deployment images
-select no transmit frequency; the operator saves one before enabling schedules.
+default new station settings to a 14095600 Hz WSPR dial and a ten-minute UTC-aligned schedule, initially disabled. Saved selections survive upgrades.
 
 Native engine limits and [band support](engineering/development/band-support.md) are
 separate. Conducted results apply only to their recorded board, source/image,

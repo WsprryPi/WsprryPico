@@ -6,6 +6,7 @@
 
 namespace wsprrypico::standalone {
 wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
+    failure_ = nullptr;
     // Storage faults revoke all new execution, including qualified bands that
     // need no saved experimental permissions.
     if (!store_.healthy())
@@ -29,6 +30,21 @@ wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
     auto prepared = engine_.prepare(job);
     if (!prepared.accepted)
         return prepared;
+    rf::FilterCoverage coverage(boot_filters_);
+    for (std::size_t i = 0; i < job.events.size(); ++i) {
+        const auto& event = job.events[i];
+        if (!event.rf_on || !event.frequency_nhz)
+            continue;
+        auto programmed = *event.frequency_nhz;
+        for (const auto& adjustment : prepared.adjustments)
+            if (adjustment.event_index == i)
+                programmed = adjustment.realized_frequency_nhz;
+        coverage.include(*event.frequency_nhz, programmed);
+    }
+    if (coverage.selection() == -2) {
+        failure_ = "filter_coverage_required";
+        return {};
+    }
     // Quantization consent is independent of experimental consent. An engine
     // adjustment must not cross a policy or advertised hardware boundary.
     for (const auto& adjustment : prepared.adjustments) {

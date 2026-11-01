@@ -40,6 +40,8 @@ terminal jobs keep a compact typed-value digest and their LOAD/ARM results, so
 retrying an older retained job does not reload or rearm it after a newer job.
 Access to those retained results refreshes terminal LRU order without extending TTL.
 
+Immutable frequency-adjustment lists share repeated requested/realized frequency pairs when there are at most four distinct pairs. Compact entries preserve every event index and its original order; other lists retain ordinary typed entries. Active and retained ARM responses use their containing job identity and the original clock mapping. These representations preserve complete LOAD/ARM replies and the eight terminal records without duplicating repeated frequency values or ARM job identifiers. Standalone memory regressions include populated WSPR adjustment lists across sixteen cycles under a fixed allocation budget; the preparation and authority reserves remain unchanged.
+
 ## Validation and errors
 
 Before dispatch, reject invalid UTF-8, BOM, duplicate decoded member names,

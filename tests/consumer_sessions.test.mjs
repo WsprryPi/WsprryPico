@@ -48,10 +48,43 @@ async function run(name,fn) {
   finally {await f.stop();}
 }
 if(import.meta.url===new URL(process.argv[1],'file:').href) {
+await run('public settings and full observations are read-only without occupying or renewing a login',async f=>{
+  for(const [host,ap] of [['192.168.1.53',false],['192.168.4.1',true]]) {
+    const client=f.client(host,ap);await client.identity();
+    const before=await f.command({op:'stats'});
+    const config=await client.publicRead('config');assert.equal(config.status,200);
+    const data=await config.json();assert.equal(data.config.station.callsign,'AA0NT');assert.equal(data.config.wifi.password,null);
+    const observed=await (await client.publicRead('operations')).json();assert.equal(observed.schema,'operations');assert.equal(observed.job.state,'empty');
+    assert.equal((await client.publicRead('logging')).status,200);assert.equal((await client.publicRead('udp-logging')).status,200);
+    for(const method of ['POST','PUT','DELETE']) assert.equal((await f.fetch(host,ap,'/api/consumer/v1/read/config',{method,body:'{}'})).status,method==='DELETE'?400:405);
+    assert.equal((await f.fetch(host,ap,'/api/consumer/v1/read/jobs')).status,404);
+    assert.equal(client.authenticated,false);assert.equal((await f.command({op:'stats'})).config_sequence,before.config_sequence);
+    await assert.rejects(client.request('config','PUT',{}),/Log in/);
+  }
+});
+await run('recurring message profile uses authenticated encrypted management and survives reboot',async f=>{
+  const a=f.client();await f.login(a);
+  const read=await a.request('message-schedule'),resource=await read.json();
+  assert.equal(resource.schema,'message-schedule');
+  const saved={enabled:false,first_start_utc_ns:'1793001605000000000',period_s:1200,expires_utc_s:0,
+    message:{mode:'dfcw',message:'CQ AA0NT',frequency_nhz:'10140000000000000',space_frequency_nhz:'10140005000000000',
+      timing:{dot_ns:'1000000000',dash_ns:'3000000000',intra_gap_ns:'1000000000',character_gap_ns:'3000000000',word_gap_ns:'7000000000'},
+      repeat_count:1,repeat_gap_ns:'3000000000',allow_frequency_adjustment:true}};
+  const body={schema:resource.schema,target:resource.target,schedule:saved};
+  assert.equal((await a.request('message-schedule','PUT',body)).status,428);
+  const changed=await a.request('message-schedule','PUT',body,read.headers.get('etag'));
+  assert.equal(changed.status,200);assert.deepEqual((await changed.json()).saved,saved);
+  await f.command({op:'reboot'});await f.time(2000);await f.login(a);
+  const after=await a.request('message-schedule'),observed=await after.json();
+  assert.deepEqual(observed.saved,saved);assert.equal(observed.state,'paused');
+  const pause=await a.request('message-schedule/pause','POST',{schema:observed.schema,target:observed.target,pause:true},after.headers.get('etag'));
+  assert.equal(pause.status,200);assert.equal((await pause.json()).pause_pending,false);
+});
+
 await run('separate Pico password persists, rejects stale saves and retires all browser logins',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   const read=await a.request('consumer/password'),state=await read.json();
-  assert.equal(state.schema,'pico-password/1');assert.equal(state.wifi_default,true);
+  assert.equal(state.contract,'Wsprry-Control/1');assert.equal(state.schema,'pico-password');assert.equal(state.wifi_default,true);
   const etag=read.headers.get('etag'),body={schema:state.schema,target:state.target,password:'private-pico-password'};
   assert.equal((await a.request('consumer/password','PUT',body)).status,428);
   assert.equal((await a.request('consumer/password','PUT',body,'"stale"')).status,412);
@@ -79,7 +112,7 @@ await run('three real independent station/hostname sessions, quotas, logout and 
   assert.notDeepEqual(a.state.keys,b.state.keys);assert.notDeepEqual(a.state.session,b.state.session);
   for(let i=0;i<3;i++)for(const client of [a,b,c])assert.equal((await client.request('status')).status,200);
   const other=f.client();await f.time(4000);await assert.rejects(f.login(other),/session|request/i);
-  const packet=seal(a.state,a.sequence,{method:'GET',path:'/api/v1/status',if_match:null,body:null});
+  const packet=seal(a.state,a.sequence,{method:'GET',path:'/api/control/v1/status',if_match:null,body:null});
   const raw=await f.fetch(a.host,false,'/api/consumer/v1/request',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:packet});
   const reply=new Uint8Array(await raw.arrayBuffer());assert.throws(()=>open(b.state,a.sequence,reply));
   open(a.state,a.sequence++,reply);
@@ -110,7 +143,7 @@ await run('pending proof, bad password, RNG and allocation failure preserve acti
 await run('unknown IDs, wrong sequence, wrong origin and invalid tag isolate addressed slot',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   const call=async(packet,host=a.host)=>f.fetch(host,false,'/api/consumer/v1/request',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:packet});
-  const envelope={method:'GET',path:'/api/v1/status',if_match:null,body:null};
+  const envelope={method:'GET',path:'/api/control/v1/status',if_match:null,body:null};
   let p=seal(a.state,a.sequence,envelope);p[4]^=1;assert.equal((await call(p)).status,401);
   assert.equal((await a.request('status')).status,200);
   p=seal(a.state,a.sequence+1n,envelope);assert.equal((await call(p)).status,401);
@@ -121,25 +154,52 @@ await run('unknown IDs, wrong sequence, wrong origin and invalid tag isolate add
 });
 await run('independent idle, login and absolute expiry, and interface invalidation',async f=>{
   const a=f.client(),b=f.client('192.168.4.1',true);await f.login(a);await f.time(2000);await f.login(b);
-  await f.time(300999);assert.equal((await b.request('status')).status,200);
-  await f.time(301000);await assert.rejects(a.request('status'));assert.equal((await b.request('status')).status,200);
-  await f.time(302000);await f.login(a);
+  await f.time(1800999);assert.equal((await b.request('status')).status,200);
+  await f.time(1801000);await assert.rejects(a.request('status'));assert.equal((await b.request('status')).status,200);
+  await f.time(1802000);await f.login(a);
   await f.command({op:'listeners',ap:false,ip:'192.168.1.53',host:'wsprrypico-0a60df.local'});
   assert.equal((await a.request('status')).status,200);await assert.rejects(b.request('status'));
   await f.command({op:'listeners',ap:true,ip:'192.168.1.53',host:'wsprrypico-0a60df.local'});
-  await f.time(303000);await f.login(b);
+  await f.time(1803000);await f.login(b);
   await f.command({op:'listeners',ap:true,ip:'192.168.1.54',host:'wsprrypico-0a60df.local'});
   assert.equal((await b.request('status')).status,200);await assert.rejects(a.request('status'));
-  for(const ms of [500000,700000,900000,1100000]){await f.time(ms);assert.equal((await b.request('status')).status,200);}
-  await f.time(1203000);await assert.rejects(b.request('status'));
-  a.host='192.168.1.54';a.fetcher=(p,o)=>f.fetch(a.host,false,p,o);await f.time(1204000);await f.login(a);
-  await f.time(1203000);await assert.rejects(a.request('status'));
+  for(let elapsed=1000000;elapsed<28800000;elapsed+=1000000){await f.time(1803000+elapsed);assert.equal((await b.request('status')).status,200);}
+  await f.time(1803000+28800000-1);assert.equal(b.authenticated,true);
+  await f.time(1803000+28800000);await assert.rejects(b.request('status'));
+  a.host='192.168.1.54';a.fetcher=(p,o)=>f.fetch(a.host,false,p,o);await f.time(f.now+1000);await f.login(a);
+  await f.time(f.now-1);await assert.rejects(a.request('status'));
+});
+await run('server expires idle and absolute sessions even when a client keeps its keys',async f=>{
+  const a=f.client();await f.login(a);
+  // Freeze the client clock so its local expiry cannot mask a server defect.
+  a.now=()=>1000;
+  await f.time(301000);assert.equal(a.authenticated,true);
+  await a.identity(); // Public traffic does not renew authenticated idle time.
+  assert.equal((await a.publicStatus()).state,'empty');
+  await f.time(1800999);assert.equal((await a.request('status')).status,200);
+  await f.time(3600998);await a.identity();await a.publicStatus();assert.equal(a.authenticated,true);
+  await f.time(3600999);await assert.rejects(a.request('status'));
+  await f.login(a);
+  const started=f.now;
+  for(let elapsed=1000000;elapsed<28800000;elapsed+=1000000){await f.time(started+elapsed);assert.equal((await a.request('status')).status,200);}
+  await f.time(started+28800000-1);assert.equal((await a.request('status')).status,200);
+  await f.time(started+28800000);await assert.rejects(a.request('status'));
+});
+await run('idle expiry frees one occupied slot without evicting its active peers',async f=>{
+  const a=f.client(),b=f.client(),c=f.client(),next=f.client();
+  await f.login(a);await f.time(2000);await f.login(b);await f.time(3000);await f.login(c);
+  await f.time(1800999);
+  assert.equal((await b.request('status')).status,200);assert.equal((await c.request('status')).status,200);
+  await assert.rejects(f.login(next),/three radio sessions/);
+  await f.time(1801000);await f.login(next);
+  assert.equal(a.authenticated,false);
+  for(const client of [b,c,next])assert.equal((await client.request('status')).status,200);
 });
 await run('stale concurrent edits share one journal and keep both logins',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   const ra=await a.request('config'),rb=await b.request('config');assert.equal(ra.headers.get('etag'),rb.headers.get('etag'));
   const app=await (await a.request('application')).json();
-  const update={schema:'transmitter-config-update/1',target:app.target,mode:'merge',config:{allow_unqualified_frequency:true}};
+  const update={schema:'config-update',target:app.target,mode:'merge',config:{allow_unqualified_frequency:true}};
   assert.equal((await a.request('config/update','POST',update,ra.headers.get('etag'))).status,200);
   assert.equal((await b.request('config/update','POST',update,rb.headers.get('etag'))).status,412);
   assert.ok(a.authenticated&&b.authenticated);
@@ -222,7 +282,7 @@ await run('distinct sessions retain one transmitter owner after logout',async f=
 await run('failed save and lost reply retain bounded abandoned session without mutation replay',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   let original=await a.request('config');const app=await (await a.request('application')).json();
-  const update={schema:'transmitter-config-update/1',target:app.target,mode:'merge',config:{station:{callsign:'K1ABC'}}};
+  const update={schema:'config-update',target:app.target,mode:'merge',config:{wifi:{ssid:'other-network'}}};
   assert.equal((await a.request('config/update','POST',update,original.headers.get('etag'))).status,409);
   assert.ok(a.authenticated);assert.equal((await b.request('status')).status,200);
   update.config={allow_unqualified_frequency:true};const fetcher=a.fetcher;let sent=0;
@@ -236,7 +296,7 @@ await run('failed save and lost reply retain bounded abandoned session without m
 
 await run('slow genuine encrypted upload permits another login and two large exchanges reclaim pages',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);
-  const value={method:'POST',path:'/api/v1/jobs',if_match:null,body:{pad:''}};
+  const value={method:'POST',path:'/api/control/v1/jobs',if_match:null,body:{pad:''}};
   value.body.pad='x'.repeat(32724-JSON.stringify(value).length);
   const packet=seal(a.state,a.sequence++,value);assert.equal(packet.length,32768);
   const upload=await f.command({op:'request',host:a.host,ap:false,path:'/api/consumer/v1/request',method:'POST',type:'application/octet-stream',hex:Buffer.from(packet).toString('hex'),hold:false,cut:'500'});

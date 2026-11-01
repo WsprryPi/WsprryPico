@@ -46,3 +46,16 @@ except (OSError, subprocess.CalledProcessError):
     source_revision = "unknown"
 version = os.environ.get("READTHEDOCS_VERSION", "devel")
 release = f"{version} · {source_revision}"
+
+
+def verify_contextual_help(app, exception):
+    """A removed help target must fail local and published HTML builds."""
+    if exception is None and app.builder.format == 'html':
+        subprocess.run([sys.executable,
+                        str(Path(__file__).resolve().parents[1] / 'scripts/check_contextual_help.py'),
+                        '--site', str(app.outdir),
+                        '--version', 'main' if version == 'main' else 'devel'], check=True)
+
+
+def setup(app):
+    app.connect('build-finished', verify_contextual_help)

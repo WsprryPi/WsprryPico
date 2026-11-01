@@ -25,7 +25,7 @@ try:
         with context.wrap_socket(raw, server_hostname='127.0.0.1') as stream:
             assert stream.version() == 'TLSv1.3'
             assert stream.selected_alpn_protocol() == 'http/1.1'
-            stream.sendall(b'GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\nConnection: close\r\n\r\n')
+            stream.sendall(b'GET /api/control/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\nConnection: close\r\n\r\n')
             response = bytearray()
             while block := stream.recv(4096):
                 response.extend(block)

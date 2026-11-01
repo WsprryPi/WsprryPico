@@ -1,3 +1,4 @@
+import '../web/submission.js';
 import {titleFromDevice} from './presentation.js';
 import {available, begin, seal} from './crypto.js';
 
@@ -5,14 +6,14 @@ const names = ['credentials', 'checking', 'accepted', 'unconfirmed', 'connected'
   'saved', 'retry', 'interrupted', 'unknown', 'service', 'browser'];
 const $ = (id) => document.getElementById(id);
 const show = (name, moveFocus = false) => {
-  const focused=document.activeElement;
+  const focused=submissions.origin || document.activeElement;
   for (const section of names) $(section).hidden = section !== name;
   $('page-title').textContent = name === 'accepted' ? 'Wi-Fi settings accepted' :
     name === 'connected' ? 'Wi-Fi connected' : 'Connect this Pico to Wi-Fi';
   $('setup-intro').hidden = name !== 'credentials';
   $('setup-footer').hidden = name !== 'credentials';
   if ($('next-connection')) $('next-connection').hidden = !['accepted','unconfirmed','connected','saved','unknown'].includes(name);
-  if (moveFocus || focused?.closest('[hidden]')) $('page-title').focus();
+  if (moveFocus || focused?.closest('[hidden]')) submissions.focus($('page-title'));
 };
 const notice = (message, error = false) => {
   $('notice').textContent = message;
@@ -44,6 +45,7 @@ const validTimeServer = (value) => {
 };
 
 async function json(path, body, timeoutMs = 8000) {
+  if (submissions.suspended) throw new Error('This page was left before the next request. Check the saved result before another save.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const options = {cache: 'no-store', credentials: 'omit', redirect: 'error',
@@ -141,15 +143,17 @@ function showUnconfirmed() {
 }
 
 async function acknowledge() {
-  if (acknowledging || !started || !sealed) return;
-  acknowledging = true;
-  try {
-    await json('/api/bootstrap/v1/ack', {version: 1, device_id: deviceId,
-      boot_id: started.boot_id, slot_id: started.slot_id,
-      request_id: sealed.submit.request_id, ack_tag: sealed.ackTag});
-  } catch { /* A lost ACK does not undo the verified journal save. */ }
-  clearAttempt();
-  acknowledging = false;
+  if (acknowledging || !started || !sealed || submissions.pending) return;
+  return submissions.run(async () => {
+    acknowledging = true;
+    try {
+      await json('/api/bootstrap/v1/ack', {version: 1, device_id: deviceId,
+        boot_id: started.boot_id, slot_id: started.slot_id,
+        request_id: sealed.submit.request_id, ack_tag: sealed.ackTag});
+    } catch { /* A lost ACK does not undo the verified journal save. */ }
+    clearAttempt();
+    acknowledging = false;
+  },{background:true});
 }
 
 async function update() {
@@ -157,10 +161,10 @@ async function update() {
   polling = true;
   const attemptAtStart = sealed;
   try {
-    if (saving) return;
+    if (saving || submissions.pending) return;
     const status = await json('/api/bootstrap/v1/status');
     // A status request started before the POST can describe the old slot.
-    if (saving || attemptAtStart !== sealed) return;
+    if (saving || submissions.pending || attemptAtStart !== sealed) return;
     if (!Number.isSafeInteger(status.generation) || status.generation < 0)
       throw new Error('invalid generation');
     currentGeneration = status.generation;
@@ -231,7 +235,7 @@ async function update() {
       notice('Checking the saved result. Reconnect to the Pico Wi-Fi if needed.');
     }
   } finally {
-    if (!saving && !sealed) await hintTime();
+    if (!saving && !sealed && !submissions.pending) await hintTime();
     polling = false;
     setTimeout(update, 1000);
   }
@@ -240,10 +244,15 @@ async function update() {
 function fieldError(id,message) {
   $(id).setAttribute('aria-invalid',String(Boolean(message)));$(id+'-error').textContent=message;
 }
-async function submit(event) {
+const submissions = WsprrySubmission.create(document,{refuse:text=>notice(text,true)});
+function submit(event) {
+  event.preventDefault();
+  return submissions.run(()=>submitWork(event),{message:'Saving Wi-Fi settings and checking the Pico response.'});
+}
+async function submitWork(event) {
   event.preventDefault();
   if (!deviceId || !Number.isSafeInteger(currentGeneration) ||
-      currentGeneration >= Number.MAX_SAFE_INTEGER || saving) return;
+      currentGeneration >= Number.MAX_SAFE_INTEGER || saving || sealed || completed) return;
   const ssid = $('ssid').value, password = $('password').value;
   const timeServer = $('time-server').value.trim();
   for (const id of ['ssid','password','time-server']) fieldError(id,'');
@@ -251,12 +260,12 @@ async function submit(event) {
   if (badSsid || badPassword) {
     if(badSsid) fieldError('ssid','Use 1–32 printable ASCII characters for the network name.');
     if(badPassword) fieldError('password','Use 8–63 printable ASCII characters for the Wi-Fi password.');
-    $(badSsid?'ssid':'password').focus();
+    submissions.focus($(badSsid?'ssid':'password'));
     notice('Enter a 1–32 character network name and an 8–63 character Wi-Fi password.', true);
     return;
   }
   if (!validTimeServer(timeServer)) {
-    fieldError('time-server','Use a valid time server hostname or IPv4 address.');$('time-server').focus();
+    fieldError('time-server','Use a valid time server hostname or IPv4 address.');submissions.focus($('time-server'));
     notice('Enter a valid time server name or IPv4 address.', true);
     return;
   }
@@ -306,11 +315,12 @@ async function submit(event) {
     }
   } finally {
     saving = false;
-    $('submit').disabled = false;
+    $('submit').disabled = Boolean(sealed || completed);
   }
 }
 
 function change() {
+  if (submissions.pending) { notice('Wait for the current Pico request to finish. No additional action was sent.',true); return; }
   clearAttempt();
   completed = false;
   show('credentials');
@@ -367,3 +377,6 @@ boot();
 globalThis.addEventListener?.('beforeunload', event => {
   if (formEdited) { event.preventDefault(); event.returnValue = ''; }
 });
+
+globalThis.addEventListener?.('pagehide',()=>submissions.suspend());
+globalThis.addEventListener?.('pageshow',()=>submissions.resume());

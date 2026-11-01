@@ -154,7 +154,8 @@ bool integer_token(InputView bytes, std::int32_t& number) {
     return result.ec == std::errc{} && result.ptr == text.data() + bytes.size();
 }
 // Validation stores only key views for the active objects, never a value tree.
-bool value(InputView s, std::size_t& p, unsigned depth, bool validate) {
+bool value(InputView s, std::size_t& p, unsigned depth, bool validate,
+           unsigned maximum_depth = 16) {
     whitespace(s, p);
     if (p == s.size())
         return false;
@@ -163,7 +164,7 @@ bool value(InputView s, std::size_t& p, unsigned depth, bool validate) {
     if (c == '"')
         return string_token(s, p);
     if (c == '{' || c == '[') {
-        if (depth > 16)
+        if (depth > maximum_depth)
             return false;
         ++p;
         whitespace(s, p);
@@ -198,7 +199,7 @@ bool value(InputView s, std::size_t& p, unsigned depth, bool validate) {
                 if (p == s.size() || s[p++] != ':')
                     return false;
             }
-            if (!value(s, p, depth + 1, validate))
+            if (!value(s, p, depth + 1, validate, maximum_depth))
                 return false;
             whitespace(s, p);
             if (p == s.size())
@@ -327,13 +328,15 @@ std::optional<Value> Value::get(std::string_view key) const {
     }
     return std::nullopt;
 }
-std::optional<Value> parse(InputView payload) {
-    if (payload.empty() || payload.size() > 65536 || !utf8(payload))
+std::optional<Value> parse(InputView payload, unsigned maximum_depth) {
+    if (!maximum_depth || maximum_depth > 16 || payload.empty() || payload.size() > 65536 ||
+        !utf8(payload))
         return std::nullopt;
     std::size_t p = 0;
     whitespace(payload, p);
     auto start = p;
-    if (p == payload.size() || payload[p] != '{' || !value(payload, p, 1, true))
+    if (p == payload.size() || payload[p] != '{' ||
+        !value(payload, p, 1, true, maximum_depth))
         return std::nullopt;
     auto end = p;
     whitespace(payload, p);

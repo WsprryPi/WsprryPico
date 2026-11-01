@@ -22,6 +22,19 @@ import run as ci_run
 
 
 class TestingInputTests(unittest.TestCase):
+    def test_documentation_version_uses_actual_build_stream(self):
+        for ref, expected in [('refs/heads/main', 'main'), ('refs/heads/devel', 'devel'),
+                              ('refs/tags/v1.0.0-alpha.1', 'devel'),
+                              ('refs/tags/v1.0.0-beta.1', 'devel'),
+                              ('refs/tags/v1.0.0-rc.1', 'main'),
+                              ('refs/tags/v1.0.0-RC.2+build.1', 'main'),
+                              ('refs/tags/v1.0.0', 'main')]:
+            with self.subTest(ref=ref), patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': ref}, clear=True):
+                self.assertEqual(ci_run.documentation_version(), expected)
+        with patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': 'refs/heads/arbitrary'}, clear=True):
+            with self.assertRaises(ValueError):
+                ci_run.documentation_version()
+
     def test_semver_policy_matches_schema_and_rejects_unsafe_or_reserved_versions(self):
         schema = bundle.read_json(bundle.SCHEMA)['properties']['firmware_version']
         self.assertEqual(schema['pattern'], '^' + bundle.SEMVER + '$')
@@ -47,10 +60,12 @@ class TestingInputTests(unittest.TestCase):
                 def capture(*args):
                     return 'a'*40 if args[:2] == ('git', 'rev-parse') else ''
                 with self.subTest(version=version,event=event), patch.dict(os.environ,env,clear=True), \
+                     patch.object(ci_run,'check_control_policy') as control_policy, \
                      patch.object(ci_run,'capture',side_effect=capture), \
                      patch.object(ci_run.Path,'exists',return_value=False), \
                      patch.object(ci_run.subprocess,'run',return_value=SimpleNamespace(returncode=0)):
                     self.assertEqual(ci_run.inputs()[1], version)
+                    control_policy.assert_called_once_with(stable_release=bundle.version_kind(version) == 'stable')
                     with patch.object(ci_run.subprocess,'run',return_value=SimpleNamespace(returncode=1)):
                         with self.assertRaisesRegex(ValueError,'maintained'):
                             ci_run.inputs()
@@ -64,7 +79,35 @@ class TestingInputTests(unittest.TestCase):
                         with self.assertRaises(ValueError):
                             ci_run.inputs()
 
-    def test_testing_identity_is_manual_devel_only(self):
+    def test_first_stable_control_release_is_guarded_before_build(self):
+        env = dict(CI_PROFILE='consumer', CI_STREAM='release', GITHUB_RUN_ID='123',
+                   GITHUB_RUN_ATTEMPT='1', GITHUB_EVENT_NAME='push',
+                   GITHUB_REF='refs/tags/v1.0.0', GITHUB_REPOSITORY='WsprryPi/WsprryPico')
+        from check_control_policy import check_files, validate
+        policy, schema = check_files()
+        policy.update(phase='prerelease', first_release=None, schema_sha256=None)
+        def guard(stable_release):
+            validate(policy, schema, stable_release)
+        with patch.dict(os.environ, env, clear=True), patch.object(ci_run, 'check_control_policy', side_effect=guard):
+            with self.assertRaisesRegex(ValueError, 'First stable release requires'):
+                ci_run.inputs()
+
+    def test_stable_publication_refuses_prerelease_control_before_download(self):
+        from check_control_policy import check_files, validate
+        policy, schema = check_files()
+        policy.update(phase='prerelease', first_release=None, schema_sha256=None)
+        env = dict(GITHUB_EVENT_NAME='workflow_dispatch', GITHUB_REF='refs/tags/v1.0.0',
+                   GITHUB_RUN_ID='123', GITHUB_RUN_ATTEMPT='1', GITHUB_SHA='a'*40)
+        def guard(stable_release):
+            validate(policy, schema, stable_release)
+        with patch.dict(os.environ, env, clear=True), patch.object(sys, 'argv', ['publish.py', '--destination', '/unused']), \
+             patch.object(publish, 'require_authorization'), patch.object(publish, 'check_control_policy', side_effect=guard), \
+             patch.object(publish.download, 'retrieve') as retrieve:
+            with self.assertRaisesRegex(ValueError, 'First stable release requires'):
+                publish.main()
+            retrieve.assert_not_called()
+
+    def test_obsolete_testing_producer_refuses_before_build(self):
         env = dict(CI_PROFILE='consumer', CI_STREAM='devel', GITHUB_RUN_ID='123',
                    GITHUB_RUN_ATTEMPT='1', GITHUB_EVENT_NAME='workflow_dispatch',
                    GITHUB_REF='refs/heads/devel', CI_EVENT_SHA='a'*40,
@@ -73,7 +116,8 @@ class TestingInputTests(unittest.TestCase):
             return 'a'*40 if args[:2] == ('git', 'rev-parse') else ''
         with patch.dict(os.environ, env, clear=True), patch.object(ci_run, 'capture', side_effect=capture), \
              patch.object(ci_run.Path, 'exists', return_value=False):
-            self.assertEqual(ci_run.inputs()[1], '0.1.0-testing.1')
+            with self.assertRaisesRegex(ValueError, 'unsupported for Control/1'):
+                ci_run.inputs()
             for field, value in [('GITHUB_EVENT_NAME','push'), ('GITHUB_REF','refs/heads/main'),
                                  ('CI_TESTING_VERSION','0.1.0-testing.0'),
                                  ('CI_TESTING_VERSION','0.1.0-testing.1;bad'),
@@ -159,9 +203,8 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(workflow['on']['workflow_dispatch']['inputs']['publish']['default'], 'false')
         self.assertEqual(workflow['on']['workflow_dispatch']['inputs']['make_latest']['default'], 'false')
         self.assertIn("github.repository == 'WsprryPi/WsprryPico'", publisher['if'])
-        self.assertIn('!inputs.testing_version', publisher['if'])
-        self.assertEqual(workflow['jobs']['verify']['env']['CI_TESTING_VERSION'],
-                         "${{ inputs.testing_version || '' }}")
+        self.assertNotIn('testing_version', workflow['on']['workflow_dispatch']['inputs'])
+        self.assertNotIn('CI_TESTING_VERSION', workflow['jobs']['verify']['env'])
         self.assertEqual(publisher['permissions'], {'contents':'write','actions':'read'})
         self.assertEqual(publisher['concurrency']['group'], 'firmware-publication-${{ github.ref }}')
         self.assertEqual(publisher['concurrency']['queue'], 'max')
@@ -239,13 +282,22 @@ class BundleTests(unittest.TestCase):
             for p in sorted(self.deploy.iterdir()) if p.name != 'SHA256SUMS'))
 
     def test_layout_is_bound_to_frozen_source(self):
-        self.assertEqual(self.created_boundary, '103ee000')
+        self.assertEqual(self.created_boundary, '103ec000')
+        manifest = bundle.read_json(self.deploy / 'release-manifest.json')
+        self.assertEqual(manifest['schema_version'], 2)
+        self.assertEqual(manifest['update']['storage_contract'], 2)
         self.verify()
-        wrong = 0x103f0000 if bundle.source_application_end(self.source) == 0x103ee000 else 0x103ee000
-        self.mutate_manifest(lambda v: v['update'].update(application_end=f'{wrong:x}'))
-        self.reseal()
-        with self.assertRaisesRegex(ValueError, 'Flash reservation differs'):
-            self.verify()
+        # A schema-valid contract-2 manifest must still match its frozen source.
+        with patch.object(bundle, 'source_application_end', return_value=0x103ee000):
+            with self.assertRaisesRegex(ValueError, 'Flash reservation differs'):
+                self.verify()
+        # Contract 2 cannot borrow either historical contract-1 reservation.
+        from jsonschema import ValidationError
+        for wrong in (0x103ee000, 0x103f0000):
+            self.mutate_manifest(lambda v: v['update'].update(application_end=f'{wrong:x}'))
+            self.reseal()
+            with self.assertRaises(ValidationError):
+                self.verify()
 
     def test_valid_inventory_and_distinct_archive_identity(self):
         result = self.verify()
@@ -459,6 +511,21 @@ class BundleTests(unittest.TestCase):
         manifest['workflow'].update(event='workflow_dispatch',ref='refs/heads/devel')
         manifest_path.write_text(json.dumps(manifest))
         self.reseal()
+
+    def test_testing_metadata_uses_current_control_and_bound_companion(self):
+        from jsonschema import Draft202012Validator
+        metadata = bundle.testing_metadata(self.source)
+        self.assertEqual(metadata['api'], ['Wsprry-Control/1'])
+        schema = json.loads(bundle.SCHEMA.read_text())['properties']['testing_release']
+        Draft202012Validator(schema).validate(metadata)
+        # The schema checks a closed SHA-shaped record; source-aware verification
+        # binds that revision to the exact pinned companion rather than a stale
+        # schema literal. A well-shaped foreign revision must still fail.
+        self.testing_fixture()
+        self.mutate_manifest(lambda m: m['testing_release']['companion'].update(
+            software_tested_revision='f' * 40))
+        with self.assertRaisesRegex(ValueError, 'Testing release metadata mismatch'):
+            self.verify()
 
     def test_testing_manifest_requires_exact_metadata_and_manual_devel(self):
         from jsonschema import ValidationError

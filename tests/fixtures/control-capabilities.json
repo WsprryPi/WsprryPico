@@ -1,0 +1,188 @@
+{
+  "description": "Hardware-free BrowserApi capabilities captured through control_contract_tests --samples; stable current control baseline for browser request doubles.",
+  "capabilities": {
+    "contract": "Wsprry-Control/1",
+    "wtp": {
+      "profiles": [
+        "rf-events/1"
+      ],
+      "modes": [
+        "wspr",
+        "qrss",
+        "fskcw",
+        "dfcw",
+        "cw",
+        "tone"
+      ],
+      "engine": "pio-dma-simulated-worker",
+      "frequency_ranges": [
+        {
+          "minimum_nhz": "1",
+          "maximum_nhz": "18446744073709551615"
+        }
+      ],
+      "max_payload_bytes": 65536,
+      "max_events": 512,
+      "max_job_duration_ns": "86400000000000",
+      "minimum_arm_lead_ns": "100000000",
+      "maximum_arm_ahead_ns": "604800000000000",
+      "maximum_arm_uncertainty_ns": "1000000",
+      "maximum_holdover_age_ns": "0",
+      "output_disable_timeout_ns": "100000000",
+      "minimum_lease_ms": 5000,
+      "maximum_lease_ms": 60000,
+      "response_cache_entries": 8,
+      "response_cache_ttl_seconds": 300,
+      "terminal_record_entries": 8,
+      "terminal_record_ttl_seconds": 3600
+    },
+    "logging": {
+      "schema": "logging",
+      "path": "/api/control/v1/logging"
+    },
+    "ntp_observations": {
+      "schema": "ntp-observations",
+      "path": "/api/control/v1/ntp-observations"
+    },
+    "standalone_frequency": {
+      "schema": "standalone-frequency",
+      "path": "/api/control/v1/standalone-frequency",
+      "method": "PUT",
+      "units": "Hz",
+      "reference": "wspr_usb_dial",
+      "activation": "next_job",
+      "default": null
+    },
+    "rf_calibration": {
+      "schema": "rf-calibration",
+      "path": "/api/control/v1/rf-calibration",
+      "method": "PUT",
+      "units": "ppm",
+      "precision": 3,
+      "minimum": "-100.000",
+      "maximum": "100.000",
+      "default_mode": "manual",
+      "activation": "next_preparation"
+    },
+    "filter_selector": {
+      "schema": "filter-selector",
+      "path": "/api/control/v1/filter-selector"
+    },
+    "amplifier_timing": {
+      "schema": "amplifier-timing",
+      "path": "/api/control/v1/amplifier-timing",
+      "method": "PUT",
+      "units": "ms",
+      "minimum": 0,
+      "maximum": 1000,
+      "default_lead_ms": 200,
+      "default_tail_ms": 200,
+      "activation": "restart",
+      "scope": "complete_job"
+    },
+    "gpio_drive": {
+      "schema": "gpio-drive",
+      "read": "/api/control/v1/gpio-drive",
+      "write": "/api/control/v1/gpio-drive",
+      "method": "PUT",
+      "values": [
+        2,
+        4,
+        8,
+        12
+      ],
+      "default": 4,
+      "units": "mA",
+      "engine": "pio",
+      "activation": "restart",
+      "config": "/api/control/v1/config",
+      "update": "/api/control/v1/config/update",
+      "update_schema": "config-update",
+      "hardware": "/api/control/v1/hardware",
+      "application": "/api/control/v1/application",
+      "progress": "/api/control/v1/progress",
+      "progress_schema": "progress"
+    },
+    "operations_status": {
+      "schema": "operations",
+      "path": "/api/control/v1/operations"
+    },
+    "amplifier_enable": {
+      "schema": "amplifier-enable",
+      "pins": "/api/control/v1/pins",
+      "validate": "/api/control/v1/pins/validate",
+      "config": "/api/control/v1/config",
+      "update": "/api/control/v1/config/update",
+      "update_schema": "config-update",
+      "hardware": "/api/control/v1/hardware",
+      "application": "/api/control/v1/application",
+      "progress": "/api/control/v1/progress",
+      "progress_schema": "progress",
+      "default_pin": null,
+      "default_active_high": true,
+      "activation": "restart",
+      "execution": "inhibited_inactive_only"
+    },
+    "message_jobs": {
+      "operation": "LOAD_MESSAGE",
+      "max_characters": 32,
+      "tail_ns": "1000",
+      "max_repeat_count": 512,
+      "modes": [
+        "qrss",
+        "fskcw",
+        "dfcw"
+      ]
+    },
+    "message_schedule": {
+      "schema": "message-schedule",
+      "path": "/api/control/v1/message-schedule",
+      "pause": "/api/control/v1/message-schedule/pause",
+      "min_period_s": 60,
+      "max_period_s": 86400,
+      "max_storage_bytes": 1984,
+      "preparation_lead_ns": "2000000000"
+    },
+    "features": {
+      "config": true,
+      "schedules": true,
+      "jobs": true,
+      "network": true,
+      "application": true,
+      "station": true,
+      "hardware": true,
+      "consumer_setup_identity": false,
+      "softap": true,
+      "ble": true,
+      "restart": false
+    },
+    "application_resources": {
+      "schema": "application",
+      "read": "/api/control/v1/application",
+      "station": "/api/control/v1/station",
+      "config": "/api/control/v1/config",
+      "update": "/api/control/v1/config/update",
+      "hardware": "/api/control/v1/hardware"
+    },
+    "configuration_updates": {
+      "schema": "config-update",
+      "path": "/api/control/v1/config/update",
+      "method": "POST",
+      "modes": [
+        "merge"
+      ],
+      "max_update_bytes": 2048,
+      "max_config_bytes": 1800
+    },
+    "management_carriers": {
+      "schema": "management",
+      "path": "/api/control/v1/management"
+    },
+    "active_job_connections": false,
+    "max_network_connections": 2,
+    "max_wtp_connections": 1,
+    "max_pending_connections": 1,
+    "max_handshakes": 1,
+    "max_body_bytes": 32768
+  }
+}

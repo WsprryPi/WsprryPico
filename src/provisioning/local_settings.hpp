@@ -5,7 +5,9 @@
 
 namespace wsprrypico::provisioning {
 // Serialized by the same application owner as BrowserApi. Callers establish
-// physical USB authority, target binding, idle safety and revision first.
+// operation-specific authority, target binding, idle safety and revision first.
+// Only station_save is shared with authenticated consumer station application;
+// Wi-Fi/bootstrap operations retain their physical-USB admission checks.
 class LocalSettings {
   public:
     LocalSettings(ProfileStore& profiles, RuntimeProfile& runtime, standalone::Store& store,

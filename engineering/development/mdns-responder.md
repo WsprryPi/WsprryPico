@@ -82,7 +82,7 @@ Already cached remote records can remain until their TTL expires. Recovery boot
 does not initialize Wi-Fi, TLS or mDNS. Network-control-disabled builds allocate
 no mDNS PCB or host helper and make no discovery announcements.
 
-## WTP DNS-SD beta extension
+## WTP DNS-SD discovery
 
 The same pinned responder publishes `_wtp._tcp.local.` on the station netif
 when an admitted WTP/TCP listener is active. It uses the station hostname label

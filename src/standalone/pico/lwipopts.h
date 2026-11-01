@@ -41,7 +41,7 @@
 #define MEM_ALIGNMENT 4
 #define MEM_SIZE 32768
 #define PBUF_POOL_SIZE 8
-#define MEMP_NUM_UDP_PCB 6 // Station/AP DHCP, SNTP, mDNS, client DNS and blank-AP captive DNS.
+#define MEMP_NUM_UDP_PCB 7 // Station/AP DHCP, NTP, mDNS, client/captive DNS and independent UDP logging.
 #define LWIP_STATS 1
 #define LWIP_STATS_LARGE 1
 #define LWIP_STATS_DISPLAY 0

@@ -71,7 +71,7 @@ class NtpClient {
     microchrony::Engine core_;
     std::array<std::uint64_t, microchrony::source_capacity> epochs_{1, 1, 1, 1};
     ControlModel control_;
-    std::uint64_t last_now_ = 0, applied_generation_ = 0;
+    std::uint64_t last_now_ = 0;
     bool packet_accepted_ = false, arbiter_selected_ = false;
     struct PacketRecord {
         std::uint64_t id = 0, epoch = 0, send_ns = 0, receive_ns = 0, token = 0;

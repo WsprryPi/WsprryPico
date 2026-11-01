@@ -13,7 +13,7 @@ namespace wsprrypico::network {
 class PicoHttpServer {
   public:
     static constexpr std::size_t capacity = 2, output_chunk = 1024;
-    static constexpr std::size_t header_workspace = 32768;
+    static constexpr std::size_t header_workspace = HttpParser::header_prefix_workspace;
     static constexpr std::uint64_t lifetime_ms = 10'000;
     using Classify = ConsumerInterface (*)(void*, const tcp_pcb*, bool accepting);
     using Handle = HttpResponse (*)(void*, const HttpRequest&, ConsumerInterface, std::uint64_t);

@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <limits>
 
 namespace wsprrypico::wtp {
@@ -251,15 +252,22 @@ std::string caps(const ServiceConfig& c) {
            std::to_string(c.terminal_record_ttl_ns / 1'000'000'000ULL) + '}';
 }
 } // namespace
-bool is_small_read_request(Value root) {
-    const auto op = get(root, "op");
-    // Classify only bounded read envelopes. Full protocol/schema validation
-    // still follows; whitespace padding never requires a second event array.
+bool is_bounded_control_request(Value root) {
+    // Scalar controls never allocate a job/event array. Bound their encoded
+    // body before choosing the existing small workspace; full closed-envelope
+    // and body validation still precedes dispatch. LOAD keeps its full budget.
+    const auto op = get(root, "op"), b = get(root, "body");
     if (get(root, "protocol").raw.size() > 128 || get(root, "type").raw.size() > 44 ||
-        op.raw.size() > 56 || !json::fields(get(root, "body"), {}))
+        op.raw.size() > 56 || b.type() != '{')
         return false;
     const auto name = op.string();
-    return name == "STATUS" || name == "CAPS" || name == "GET_CLOCK";
+    if (json::fields(b, {}) && (name == "STATUS" || name == "CAPS" || name == "GET_CLOCK" ||
+                                name == "PING" || name == "RELEASE"))
+        return true;
+    if (b.raw.size() > 2048)
+        return false;
+    return name == "HELLO" || name == "CLAIM" || name == "RENEW" || name == "ARM" ||
+           name == "ABORT" || name == "PING";
 }
 bool is_active_load_replay(Value root, std::string_view id) {
     if (id.empty())
@@ -418,6 +426,108 @@ OutputBuffer encode_load_response_buffer(const Request& r, const Response& s, bo
     if (!complete || result.size() != bytes)
         return {};
     return result;
+}
+namespace {
+class BrowserLoadSource final : public ResponseSource {
+  public:
+    BrowserLoadSource(const Request& r, const Response& s)
+        : prefix_("{\"ok\":true,\"request_id\":" + quote(r.request_id) +
+                  ",\"result\":" + load_fields(s)),
+          adjustments_(s.adjustments) {
+        size_ = prefix_.size();
+
+        for (std::size_t i = 0; i < adjustments_.size(); ++i) {
+            offsets_[offset_count_++] = size_;
+            constexpr std::string_view punctuation = "{\"event_index\":,\"requested_frequency_"
+                                                     "nhz\":\"\",\"realized_frequency_nhz\":\"\"}";
+            const auto value = adjustments_[i];
+            size_ += (i ? 1 : 0) + punctuation.size() + decimal_width(value.event_index) +
+                     decimal_width(value.requested_frequency_nhz) +
+                     decimal_width(value.realized_frequency_nhz);
+        }
+        offsets_[offset_count_++] = size_;
+        size_ += 3;
+    }
+    std::size_t size() const override {
+        return size_;
+    }
+    bool json_document() const override {
+        return true;
+    }
+    std::size_t copy(std::size_t offset, std::span<std::uint8_t> out) const override {
+        std::size_t done = 0;
+        if (offset < prefix_.size()) {
+            done = copy_text(prefix_, offset, out);
+            offset += done;
+        }
+        if (offset < offsets_[offset_count_ - 1]) {
+            auto it = std::upper_bound(offsets_.begin(), offsets_.begin() + offset_count_, offset);
+            auto i = static_cast<std::size_t>(it - offsets_.begin() - 1);
+            while (done < out.size() && i < adjustments_.size()) {
+                std::array<char, 192> text{};
+                const auto part = format(i, text);
+                const auto n = copy_text(part, offset - offsets_[i], out.subspan(done));
+                done += n;
+                offset += n;
+                if (offset != offsets_[i + 1])
+                    break;
+                ++i;
+            }
+        }
+        if (done < out.size() && offset >= offsets_[offset_count_ - 1])
+            done += copy_text("]}}", offset - offsets_[offset_count_ - 1], out.subspan(done));
+        return done;
+    }
+
+  private:
+    std::string_view format(std::size_t index, std::array<char, 192>& text) const {
+        const auto a = adjustments_[index];
+        // All fields are typed integers. This bounded formatter owns no string
+        // temporaries and preserves the existing decimal wire representation.
+        auto* cursor = text.data();
+        bool valid = true;
+        const auto append = [&](std::string_view part) {
+            if (!valid ||
+                part.size() > static_cast<std::size_t>(text.data() + text.size() - cursor)) {
+                valid = false;
+                return;
+            }
+            std::memcpy(cursor, part.data(), part.size());
+            cursor += part.size();
+        };
+        const auto number = [&](auto value) {
+            if (!valid)
+                return;
+            const auto result = std::to_chars(cursor, text.data() + text.size(), value);
+            valid = result.ec == std::errc{};
+            if (valid)
+                cursor = result.ptr;
+        };
+        if (index)
+            append(",");
+        append("{\"event_index\":");
+        number(a.event_index);
+        append(",\"requested_frequency_nhz\":\"");
+        number(a.requested_frequency_nhz);
+        append("\",\"realized_frequency_nhz\":\"");
+        number(a.realized_frequency_nhz);
+        append("\"}");
+        return valid ? std::string_view(text.data(), cursor - text.data()) : std::string_view{};
+    }
+    std::string prefix_;
+    AdjustmentList adjustments_;
+    std::array<std::uint32_t, 513> offsets_{};
+    std::size_t offset_count_ = 0;
+    std::size_t size_ = 0;
+};
+} // namespace
+ResponseSourcePtr load_response_source(const Request& r, const Response& s) {
+    if (!s.ok || r.operation != "LOAD" || s.adjustments.size() > 512 || !memory_admitted(8192))
+        return {};
+    auto source = make_response_source<BrowserLoadSource>(r, s);
+    if (!source || source->size() > 65536)
+        return {};
+    return source;
 }
 LoadResponseStream::LoadResponseStream(const Request& r, const Response& s) {
     if (!s.ok || r.operation != "LOAD" || s.adjustments.size() > 512 || !memory_admitted(6144))

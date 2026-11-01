@@ -1,9 +1,11 @@
 #include "standalone/storage.hpp"
+
 #include "standalone/progress.hpp"
 
 #include <algorithm>
 #include <charconv>
 #include <limits>
+#include <utility>
 
 namespace wsprrypico::standalone {
 namespace {
@@ -75,6 +77,8 @@ bool Journal::append(std::string_view data) {
         sequence_ == std::numeric_limits<std::uint64_t>::max())
         return false;
     std::vector<std::uint8_t> record(size_, 255);
+    std::vector<std::uint8_t> verified(size_);
+    std::string selected(data);
     std::size_t offset = sequence_ ? latest_ + size_ : 0;
     const auto bank = sequence_ ? latest_ / 4096 : 0;
     // Use only erased slots in the current bank. Any damaged record latches
@@ -107,57 +111,225 @@ bool Journal::append(std::string_view data) {
             healthy_ = false;
             return false;
         }
-    std::vector<std::uint8_t> verified(size_);
     if (!flash_.read(base_ + offset, verified) || record != verified) {
         healthy_ = false;
         return false;
     }
     latest_ = offset;
     ++sequence_;
-    data_ = data;
+    data_ = std::move(selected);
     return true;
 }
+namespace {
+std::string state_record(const std::optional<Config>& config,
+                         const std::optional<MessageSchedule>& schedule,
+                         logging::Settings logging = {},
+                         const hardware::FilterSettings& filters = {}) {
+    const auto c = config ? serialize_config(*config) : "null";
+    if (filters != hardware::FilterSettings{})
+        return "{\"schema\":\"standalone-state/4\",\"config\":" + c + ",\"message_schedule\":" +
+               (schedule ? serialize_message_schedule(*schedule) : "null") +
+               ",\"logging\":{\"enabled\":" + (logging.enabled ? "true" : "false") +
+               ",\"maximum_severity\":" + std::to_string(logging.maximum_severity) +
+               "},\"filter_selector\":" + hardware::serialize_filters(filters) + "}";
+    if (logging.enabled || logging.maximum_severity != 6)
+        return "{\"schema\":\"standalone-state/4\",\"config\":" + c + ",\"message_schedule\":" +
+               (schedule ? serialize_message_schedule(*schedule) : "null") +
+               ",\"logging\":{\"enabled\":" + (logging.enabled ? "true" : "false") +
+               ",\"maximum_severity\":" + std::to_string(logging.maximum_severity) + "}}";
+    if (!schedule)
+        return config ? c : "";
+    return "{\"schema\":\"standalone-state/3\",\"config\":" + c +
+           ",\"message_schedule\":" + serialize_message_schedule(*schedule) + "}";
+}
+} // namespace
 bool Store::load(bool reset_recovery) {
     healthy_ = false;
     current_.reset();
+    logging_ = {};
+    filters_ = {};
+    message_.reset();
+    message_in_flight_ = false;
     watermark_ = 0;
+    last_message_start_ = 0;
     if (!config_.load(reset_recovery) || !cursor_.load())
         return false;
     if (!config_.data().empty()) {
-        current_ = parse_config(config_.data());
-        if (!current_)
+        const auto root = wtp::json::parse(config_.data());
+        if (!root)
             return false;
+        if (root->get("schema")) {
+            const bool filters = root->get("filter_selector").has_value();
+            const bool logs = root->get("schema")->string() == "standalone-state/4";
+            if (logs) {
+                if (!wtp::json::fields(*root, {"schema", "config", "message_schedule", "logging"},
+                                       {"filter_selector"}))
+                    return false;
+                if (filters) {
+                    const auto selected =
+                        hardware::parse_filters(std::string(root->get("filter_selector")->raw));
+                    if (!selected)
+                        return false;
+                    filters_ = *selected;
+                }
+                const auto settings = *root->get("logging");
+                const auto severity = settings.get("maximum_severity");
+                if (!wtp::json::fields(settings, {"enabled", "maximum_severity"}) ||
+                    (settings.get("enabled")->raw != "true" &&
+                     settings.get("enabled")->raw != "false") ||
+                    !severity || severity->raw.size() != 1 || severity->integer() < 0 ||
+                    severity->integer() > 7 || severity->type() < '0' || severity->type() > '7')
+                    return false;
+                logging_ = {settings.get("enabled")->raw == "true",
+                            static_cast<unsigned>(severity->integer())};
+            } else if (!wtp::json::fields(*root, {"schema", "config", "message_schedule"}) ||
+                       root->get("schema")->string() != "standalone-state/3")
+                return false;
+            if (root->get("config")->raw != "null") {
+                current_ = parse_config(std::string(root->get("config")->raw));
+                if (!current_)
+                    return false;
+            }
+            if (!hardware::validate_filters(filters_,
+                                            current_ ? current_->pins : hardware::PinPlan{})
+                     .empty())
+                return false;
+            if (root->get("message_schedule")->raw != "null") {
+                message_ = parse_message_schedule(*root->get("message_schedule"));
+                if (!message_ || (current_ && current_->enabled && message_->enabled))
+                    return false;
+            } else if (!logs)
+                return false;
+        } else {
+            current_ = parse_config(config_.data());
+            if (!current_)
+                return false;
+        }
     }
     if (!cursor_.data().empty()) {
         const auto& value = cursor_.data();
-        const auto result = std::from_chars(value.data(), value.data() + value.size(), watermark_);
-        if (result.ec != std::errc{} || result.ptr != value.data() + value.size() ||
-            watermark_ == 0)
-            return false;
+        if (value.starts_with('{')) {
+            const auto cursor = wtp::json::parse(value);
+            if (!cursor ||
+                !wtp::json::fields(*cursor, {"schema", "watermark_ns", "message_in_flight",
+                                             "last_message_start_ns"}) ||
+                cursor->get("schema")->string() != "standalone-cursor/2" ||
+                !wtp::json::decimal(*cursor->get("watermark_ns"), watermark_, true))
+                return false;
+            if (!wtp::json::decimal(*cursor->get("last_message_start_ns"), last_message_start_) ||
+                last_message_start_ > watermark_)
+                return false;
+            const auto flight = cursor->get("message_in_flight")->raw;
+            if (flight != "true" && flight != "false")
+                return false;
+            message_in_flight_ = flight == "true";
+            if (message_in_flight_ && last_message_start_ != watermark_)
+                return false;
+        } else {
+            const auto result =
+                std::from_chars(value.data(), value.data() + value.size(), watermark_);
+            if (result.ec != std::errc{} || result.ptr != value.data() + value.size() ||
+                watermark_ == 0)
+                return false;
+        }
     }
     healthy_ = true;
     return true;
 }
 bool Store::save(const Config& config) {
-    const auto text = serialize_config(config);
-    if (!healthy() || !parse_config(text))
+    const auto legacy = serialize_config(config);
+    const auto text = state_record(config, message_, logging_, filters_);
+    if (!healthy() || !parse_config(legacy) || text.size() > max_state_bytes ||
+        !hardware::validate_filters(filters_, config.pins).empty() ||
+        (config.enabled && message_ && message_->enabled))
+        return false;
+    auto selected = config; // Allocate the runtime copy before the durable append.
+    if (!config_.append(text)) {
+        healthy_ = false;
+        return false;
+    }
+    current_ = std::move(selected);
+    return true;
+}
+bool Store::save_logging(logging::Settings settings) {
+    if (!healthy() || settings.maximum_severity > 7)
+        return false;
+    const auto text = state_record(current_, message_, settings, filters_);
+    if (text.size() > max_state_bytes)
         return false;
     if (!config_.append(text)) {
         healthy_ = false;
         return false;
     }
-    current_ = config;
+    logging_ = settings;
     return true;
 }
-bool Store::reserve(std::uint64_t utc_ns) {
-    if (!healthy() || utc_ns <= watermark_)
+bool Store::config_fits(const Config& config) const {
+    return state_record(config, message_, logging_, filters_).size() <= max_state_bytes;
+}
+bool Store::message_schedule_fits(const std::optional<MessageSchedule>& schedule) const {
+    return state_record(current_, schedule, logging_, filters_).size() <= max_state_bytes;
+}
+bool Store::save_message_schedule(const std::optional<MessageSchedule>& schedule) {
+    if (!healthy() || !message_schedule_fits(schedule) ||
+        (schedule && schedule->enabled && current_ && current_->enabled))
         return false;
-    if (!cursor_.append(std::to_string(utc_ns))) {
+    if (schedule) {
+        const auto encoded = serialize_message_schedule(*schedule);
+        const auto parsed = wtp::json::parse(encoded);
+        if (!parsed || !parse_message_schedule(*parsed))
+            return false;
+    }
+    if (!config_.append(state_record(current_, schedule, logging_, filters_))) {
+        healthy_ = false;
+        return false;
+    }
+    message_ = schedule;
+    return true;
+}
+bool Store::save_filters(const hardware::FilterSettings& settings) {
+    if (!healthy() ||
+        !hardware::validate_filters(settings, current_ ? current_->pins : hardware::PinPlan{})
+             .empty() ||
+        hardware::serialize_filters(settings).size() > hardware::FilterSettings::maximum_bytes)
+        return false;
+    const auto text = state_record(current_, message_, logging_, settings);
+    if (text.size() > max_state_bytes)
+        return false;
+    if (!config_.append(text)) {
+        healthy_ = false;
+        return false;
+    }
+    filters_ = settings;
+    return true;
+}
+bool Store::reserve_cursor(std::uint64_t utc_ns, bool flight) {
+    const auto message_start = flight ? utc_ns : last_message_start_;
+    const auto data =
+        message_ || flight || message_start
+            ? "{\"schema\":\"standalone-cursor/2\",\"watermark_ns\":" +
+                  wtp::json::quote(std::to_string(utc_ns)) +
+                  ",\"message_in_flight\":" + (flight ? "true" : "false") +
+                  ",\"last_message_start_ns\":" + wtp::json::quote(std::to_string(message_start)) +
+                  "}"
+            : std::to_string(utc_ns);
+    if (!cursor_.append(data)) {
         healthy_ = false;
         return false;
     }
     watermark_ = utc_ns;
+    last_message_start_ = message_start;
+    message_in_flight_ = flight;
     return true;
+}
+bool Store::reserve(std::uint64_t utc_ns) {
+    return healthy() && !message_in_flight_ && utc_ns > watermark_ && reserve_cursor(utc_ns, false);
+}
+bool Store::reserve_message(std::uint64_t utc_ns) {
+    return healthy() && !message_in_flight_ && utc_ns > watermark_ && reserve_cursor(utc_ns, true);
+}
+bool Store::clear_message_flight() {
+    return healthy() && (!message_in_flight_ || reserve_cursor(watermark_, false));
 }
 bool Store::healthy() const {
     return healthy_ && (!progress_ || progress_->healthy());

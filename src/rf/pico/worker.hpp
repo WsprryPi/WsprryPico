@@ -4,9 +4,10 @@
 #include "rf/indicator_gate.hpp"
 #include "rf/worker.hpp"
 namespace wsprrypico::rf {
+class FilterSelector;
 // Launch once on core 0, before any engine/JobService call. Never hot-reset core 1.
 WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& pins,
                            bool storage_healthy, IndicatorGate& indicator, unsigned drive_ma = 4,
-                           AmplifierEnable* amplifier = nullptr);
+                           AmplifierEnable* amplifier = nullptr, FilterSelector* filters = nullptr);
 int gpio_drive_observation();
 } // namespace wsprrypico::rf

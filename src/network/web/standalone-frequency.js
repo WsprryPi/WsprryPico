@@ -1,5 +1,7 @@
 (function (root) {
   'use strict';
+  const control = root.WsprryControl || (typeof module !== 'undefined' && module.exports ? require('./control-contract.js') : null);
+  if (!control) throw new Error('The control definitions could not be loaded. Reload the Pico page.');
   function frequency(text, ranges) {
     if (!/^[1-9][0-9]{4,7}$/.test(text) || Number(text) < 98503 || Number(text) > 74998496) return null;
     // nHz never enters Number arithmetic. Check every tone against one engine
@@ -10,11 +12,8 @@
     }
     return Number(text);
   }
-  function supported(d) {
-    return d?.schema === 'transmitter-standalone-frequency/1' && d.path === '/api/v1/standalone-frequency' &&
-      d.method === 'PUT' && d.units === 'Hz' && d.activation === 'next_job' && d.default === null;
-  }
-  function create({input,read,save,discard,adopt,status,exchange,ranges = ()=>undefined,afterSave = ()=>{}, context = ()=>null, stationActions = draft=>draft ? 'Choose Apply saved station settings.' : 'Complete station details, choose Save valid station fields, then Apply saved station settings.', hasProgress = ()=>true, run = fn=>fn()}) {
+  function supported(value) { return control.supported('standalone_frequency',value); }
+  function create({input,read,save,discard,adopt,status,exchange,ranges = ()=>undefined,afterSave = ()=>{},onError = ()=>{}, context = ()=>null, stationActions = draft=>draft ? 'Choose Apply saved station settings.' : 'Complete station details, choose Save valid station fields, then Apply saved station settings.', hasProgress = ()=>true, run = fn=>fn()}) {
     let available = false, busy = false, observed = null, revision = '', epoch = 0, edited = false, draftTarget = '', review = false;
     let ready = false, draftOnly = false, knownRevision = '', hasRead = false, refreshNeeded = false;
     const identity = value => JSON.stringify(value.target);
@@ -28,7 +27,7 @@
     }
     function valid(r) {
       const v = r.data;
-      if (v?.schema !== 'transmitter-standalone-frequency/1' || !r.revision ||
+      if (v?.schema !== 'standalone-frequency' || !r.revision ||
           v.target?.scope !== 'member' || !/^[0-9a-f]{32}$/.test(v.target.device_id) ||
           !/^[0-9a-f]{32}$/.test(v.target.boot_id) || !v.storage_healthy ||
           (v.frequency_hz !== null && (!Number.isInteger(v.frequency_hz) || frequency(String(v.frequency_hz)) === null)) || typeof v.allowed !== 'boolean')
@@ -46,7 +45,7 @@
     }
     function stationRead(r) {
       const s = r.data;
-      if (s?.schema !== 'transmitter-station/2' || !r.revision || !s.storage_healthy ||
+      if (s?.schema !== 'station' || !r.revision || !s.storage_healthy ||
           !sameTarget(s.target,s.target) || !/^[0-9a-f]{32}$/.test(s.target.device_id) || !/^[0-9a-f]{32}$/.test(s.target.boot_id) ||
           !(s.station === null || typeof s.station?.callsign === 'string' && s.station.callsign.length > 0 && typeof s.station.locator === 'string' && s.station.locator.length > 0 && Number.isInteger(s.station.power_dbm)))
         throw new Error('Applied station readiness is unconfirmed. Read saved frequency to check again; your entry is preserved.');
@@ -58,25 +57,25 @@
       try {
         // All resources share the API revision, including profile and draft epochs.
         // Bracket the read so a station/profile transition cannot mix contexts.
-        const before = await exchange('GET',undefined,undefined,'station/2');
+        const before = await exchange('GET',undefined,undefined,'station');
         if (ticket !== epoch) return;
         const b = stationRead(before);
         const r = await exchange('GET'), v = valid(r);
         const progress = hasProgress() ? await exchange('GET',undefined,undefined,'progress') : null;
-        const after = await exchange('GET',undefined,undefined,'station/2');
+        const after = await exchange('GET',undefined,undefined,'station');
         const a = stationRead(after), current = context();
         if (ticket !== epoch) return;
         if (![before,after,...(progress ? [progress] : [])].every(x=>x.revision === r.revision && sameTarget(x.data.target,v.target)) ||
             !sameStation(b.station,a.station) || current && (current.boot_id !== v.target.boot_id || current.device_id && current.device_id !== v.target.device_id) ||
-            progress && (!/^transmitter-progress\/[123]$/.test(progress.data.schema) || typeof progress.data.station_complete !== 'boolean' || !sameStation(progress.data.applied_station,a.station)))
+            progress && (progress.data.schema !== 'progress' || typeof progress.data.station_complete !== 'boolean' || !sameStation(progress.data.applied_station,a.station)))
           throw new Error('Station or saved revision changed during readback. Read saved frequency again; your entry is preserved.');
         ready = a.station !== null; draftOnly = !ready && progress?.data.station_complete === true;
         knownRevision = r.revision;
         observed = v; revision = r.revision;
-        if (!edited) { input.value = v.frequency_hz === null ? '' : String(v.frequency_hz); draftTarget = identity(v); }
+        if (!edited) { input.value = v.frequency_hz === null ? (ready ? '' : String(control.descriptors.standalone_frequency.default)) : String(v.frequency_hz); draftTarget = identity(v); }
         review = edited && draftTarget !== identity(v);
         status.textContent = summary() + `${ready && edited ? ' Your entry is preserved.' : ''}${review ? ' Review the new Pico identity before saving this entry.' : ''}`;
-      } catch (e) { if (ticket === epoch) status.textContent = e.message; }
+      } catch (e) { if (ticket === epoch) { onError(e); status.textContent = e.message; } }
       finally { if (ticket === epoch) busy = false; render(); }
     }
     async function commit() {
@@ -84,7 +83,7 @@
       const target = observed.target, expected = frequency(input.value,ranges()), match = revision, ticket = ++epoch;
       busy = true; revision = ''; render();
       try {
-        const r = await exchange('PUT',{schema:'transmitter-standalone-frequency/1',target,frequency_hz:expected},match);
+        const r = await exchange('PUT',{schema:'standalone-frequency',target,frequency_hz:expected},match);
         const v = valid(r);
         if (ticket !== epoch) return;
         if (identity(v) !== JSON.stringify(target) || v.frequency_hz !== expected || !v.allowed)
@@ -92,9 +91,10 @@
         observed = v; revision = r.revision; knownRevision = r.revision; edited = false; review = false;
         input.value = String(v.frequency_hz); draftTarget = identity(v);
         status.textContent = `Saved WSPR dial ${v.frequency_hz.toLocaleString('en-US')} Hz for future standalone WSPR jobs. A first frequency selection leaves schedules disabled; enable them when ready.`;
-        afterSave();
+        await afterSave(r);
       } catch (e) {
         if (ticket === epoch) {
+          onError(e);
           if (e.code === 'not_configured') { ready = false; draftOnly = false; status.textContent = prerequisite(); return; }
           const reason = {revision_conflict:'Saved settings changed.',precondition_failed:'Saved revision changed.',
             frequency_not_allowed:'The four WSPR tones are blocked by the engine limits or frequency permissions.',
@@ -114,7 +114,7 @@
     };
     discard.onclick = () => {
       if (discard.disabled) return;
-      input.value = observed.frequency_hz === null ? '' : String(observed.frequency_hz); edited = false; review = false; draftTarget = identity(observed); render();
+      input.value = observed.frequency_hz === null ? (ready ? '' : String(control.descriptors.standalone_frequency.default)) : String(observed.frequency_hz); edited = false; review = false; draftTarget = identity(observed); render();
       status.textContent = summary() + ' Your frequency draft was discarded.';
     };
     adopt.onclick = () => { if (!adopt.disabled) { draftTarget = identity(observed); review = false; status.textContent = ready ? 'Station settings are applied. Your entry now addresses this Pico. Save frequency to validate and apply it.' : prerequisite(); render(); } };
@@ -123,7 +123,7 @@
       if (hasRead) status.textContent = observed && !ready ? prerequisite() : 'Station readiness needs fresh readback. Read saved frequency before saving; your entry is preserved.';
       ++epoch; revision = ''; observed = null; ready = false; busy = false; refreshNeeded = true; render();
     };
-    return {setAvailability(value) { if (available && !value) invalidate(); available = value; render(); }, invalidate,
+    return {load,setAvailability(value) { if (available && !value) invalidate(); available = value; render(); }, invalidate,
       observeRevision(value) { if (knownRevision && value !== knownRevision) invalidate(); knownRevision = value; },
       async refresh() { if (hasRead && refreshNeeded && available && !busy) await load(); }
     };

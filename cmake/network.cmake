@@ -41,6 +41,7 @@ configure_file(${CMAKE_SOURCE_DIR}/cmake/network_credentials.hpp.in
 file(CHMOD ${CMAKE_CURRENT_BINARY_DIR}/generated/network_credentials.hpp PERMISSIONS OWNER_READ OWNER_WRITE)
 foreach(image IN LISTS wsprry_application_images)
     target_sources(${image} PRIVATE
+        ${CMAKE_SOURCE_DIR}/src/standalone/pico/udp_logging.cpp
         ${CMAKE_SOURCE_DIR}/src/network/pico/psa_lifetime.cpp
         ${CMAKE_SOURCE_DIR}/src/network/pico/server.cpp
         ${CMAKE_SOURCE_DIR}/src/network/pico/http_server.cpp

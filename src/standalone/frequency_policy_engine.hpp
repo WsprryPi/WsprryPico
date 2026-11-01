@@ -1,5 +1,6 @@
 #pragma once
 
+#include "rf/filter_selector.hpp"
 #include "standalone/storage.hpp"
 #include "time/ntp_filter.hpp"
 #include "wtp/job_service.hpp"
@@ -13,7 +14,10 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     FrequencyPolicyEngine(wtp::RfEngine& engine, const Store& store,
                           std::uint64_t minimum_frequency_nhz, std::uint64_t maximum_frequency_nhz)
         : engine_(engine), store_(store), minimum_(minimum_frequency_nhz),
-          maximum_(maximum_frequency_nhz) {}
+          maximum_(maximum_frequency_nhz), boot_filters_(store.filters()) {}
+    std::size_t preparation_memory_bytes(const wtp::Job& job) const override {
+        return engine_.preparation_memory_bytes(job);
+    }
     wtp::PrepareResult prepare(const wtp::Job& job) override;
     // Sole correction authority; external setters cannot bypass persisted selection.
     bool set_frequency_correction_ppb(std::int32_t) override {
@@ -28,10 +32,19 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     }
     std::string calibration_status(std::uint64_t now) const override;
     std::string_view diagnostic() const override {
-        return engine_.diagnostic();
+        return failure_ ? failure_ : engine_.diagnostic();
     }
     bool schedules_locally() const override {
         return engine_.schedules_locally();
+    }
+    std::uint64_t filter_preparation_ns() const override {
+        return engine_.filter_preparation_ns();
+    }
+    std::uint64_t amplifier_lead_ns() const override {
+        return engine_.amplifier_lead_ns();
+    }
+    std::uint64_t amplifier_tail_ns() const override {
+        return engine_.amplifier_tail_ns();
     }
     bool owns_execution_plan() const override {
         return engine_.owns_execution_plan();
@@ -57,6 +70,9 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     bool disable(std::uint64_t deadline) override {
         return engine_.disable(deadline);
     }
+    bool execution_started() const override {
+        return engine_.execution_started();
+    }
     bool output_active() const override {
         return engine_.output_active();
     }
@@ -73,5 +89,7 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     wtp::RfEngine& engine_;
     const Store& store_;
     const std::uint64_t minimum_, maximum_;
+    const hardware::FilterSettings boot_filters_;
+    const char* failure_ = nullptr;
 };
 } // namespace wsprrypico::standalone

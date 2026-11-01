@@ -27,11 +27,10 @@ constexpr std::array powers{0U,  3U,  7U,  10U, 13U, 17U, 20U, 23U, 27U, 30U,
                             33U, 37U, 40U, 43U, 47U, 50U, 53U, 57U, 60U};
 } // namespace
 bool valid_station_locator(std::string_view locator) {
-    return (locator.size() == 4 || locator.size() == 6) && locator[0] >= 'A' &&
-           locator[0] <= 'R' && locator[1] >= 'A' && locator[1] <= 'R' &&
-           digit(locator[2]) && digit(locator[3]) &&
-           (locator.size() == 4 || (locator[4] >= 'A' && locator[4] <= 'X' &&
-                                   locator[5] >= 'A' && locator[5] <= 'X'));
+    return (locator.size() == 4 || locator.size() == 6) && locator[0] >= 'A' && locator[0] <= 'R' &&
+           locator[1] >= 'A' && locator[1] <= 'R' && digit(locator[2]) && digit(locator[3]) &&
+           (locator.size() == 4 ||
+            (locator[4] >= 'A' && locator[4] <= 'X' && locator[5] >= 'A' && locator[5] <= 'X'));
 }
 bool valid_station_power(unsigned dbm) {
     return std::find(powers.begin(), powers.end(), dbm) != powers.end();
@@ -41,7 +40,7 @@ bool valid_station_callsign(std::string_view call) {
         return false;
     if (call.front() == '<' && call.back() == '>')
         call = call.substr(1, call.size() - 2);
-    if (call.size() < 3 || call.front() == '/' || call.back() == '/')
+    if (call == "N0CALL" || call.size() < 3 || call.front() == '/' || call.back() == '/')
         return false;
     bool has_letter = false, has_digit = false, slash = false;
     for (char c : call) {
@@ -54,7 +53,8 @@ bool valid_station_callsign(std::string_view call) {
     return has_letter && has_digit;
 }
 bool valid_station_details(std::string_view call, std::string_view locator, unsigned dbm) {
-    return valid_station_callsign(call) && valid_station_locator(locator) && valid_station_power(dbm);
+    return valid_station_callsign(call) && valid_station_locator(locator) &&
+           valid_station_power(dbm);
 }
 
 std::optional<Symbols> wspr_type1_from_station(std::string_view call, std::string_view locator,
@@ -65,9 +65,9 @@ std::optional<Symbols> wspr_type1_from_station(std::string_view call, std::strin
 }
 
 std::optional<Symbols> wspr_type1(std::string_view call, std::string_view grid, unsigned dbm) {
-    if (call.size() < 3 || call.size() > 6 || grid.size() != 4 || grid[0] < 'A' || grid[0] > 'R' ||
-        grid[1] < 'A' || grid[1] > 'R' || !digit(grid[2]) || !digit(grid[3]) ||
-        std::find(powers.begin(), powers.end(), dbm) == powers.end())
+    if (call == "N0CALL" || call.size() < 3 || call.size() > 6 || grid.size() != 4 ||
+        grid[0] < 'A' || grid[0] > 'R' || grid[1] < 'A' || grid[1] > 'R' || !digit(grid[2]) ||
+        !digit(grid[3]) || std::find(powers.begin(), powers.end(), dbm) == powers.end())
         return {};
     std::array<char, 6> padded{' ', ' ', ' ', ' ', ' ', ' '};
     const unsigned offset = digit(call[2]) ? 0 : 1;

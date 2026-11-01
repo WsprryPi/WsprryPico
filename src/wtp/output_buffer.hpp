@@ -1,6 +1,7 @@
 #pragma once
 
 #include "wtp/input_buffer.hpp"
+#include "wtp/input_view.hpp"
 
 #include <array>
 
@@ -23,8 +24,8 @@ class OutputBuffer {
         return *this;
     }
     bool reserve(std::size_t bytes) {
-        if (capacity_)
-            return bytes <= capacity_;
+        if (bytes <= capacity_)
+            return true;
         if (!bytes || bytes > maximum_bytes)
             return false;
         for (std::size_t offset = 0; offset < bytes; offset += page_bytes) {
@@ -59,6 +60,40 @@ class OutputBuffer {
     }
     bool empty() const {
         return size_ == 0;
+    }
+    InputView view() const {
+        return {pages_.data(), size_};
+    }
+    std::span<std::uint8_t> mutable_at(std::size_t offset) {
+        if (offset >= size_)
+            return {};
+        return {pages_[offset / page_bytes].data() + offset % page_bytes,
+                std::min(size_ - offset, page_bytes - offset % page_bytes)};
+    }
+    bool prepend(std::span<const std::uint8_t> bytes) {
+        const auto old_size = size_;
+        if (!append(bytes))
+            return false;
+        // Copy backwards in page-bounded chunks so overlapping source and
+        // destination remain valid, including across page boundaries.
+        for (auto end = old_size; end;) {
+            const auto destination_end = end + bytes.size();
+            const auto count =
+                std::min({end, (end - 1) % page_bytes + 1, (destination_end - 1) % page_bytes + 1});
+            auto* destination = pages_[(destination_end - count) / page_bytes].data() +
+                                (destination_end - count) % page_bytes;
+            const auto* source =
+                pages_[(end - count) / page_bytes].data() + (end - count) % page_bytes;
+            std::memmove(destination, source, count);
+            end -= count;
+        }
+        for (std::size_t at = 0; at < bytes.size();) {
+            auto destination = mutable_at(at);
+            const auto count = std::min(destination.size(), bytes.size() - at);
+            std::copy_n(bytes.begin() + at, count, destination.begin());
+            at += count;
+        }
+        return true;
     }
 
   private:

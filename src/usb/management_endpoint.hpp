@@ -34,7 +34,8 @@ class ManagementEndpoint {
         return closed_;
     }
     bool busy() const {
-        return header_size_ || expected_ || pending_ || !output_.empty();
+        return header_size_ || expected_ || pending_ ||
+               (output_ != nullptr || !small_output_.empty());
     }
 
   private:
@@ -49,7 +50,9 @@ class ManagementEndpoint {
     std::array<std::uint8_t, 8> header_{};
     std::size_t header_size_ = 0, expected_ = 0, output_offset_ = 0;
     wtp::FrameBuffer input_;
-    wtp::OutputBuffer output_;
+    wtp::ResponseSourcePtr output_;
+    wtp::EscapedResponseSource* preparing_ = nullptr;
+    wtp::OutputBuffer small_output_;
     std::array<std::uint8_t, 8> output_header_{};
     std::uint64_t started_ms_ = 0, generation_ = 0, transaction_ = 0;
     std::int32_t last_id_ = 0;

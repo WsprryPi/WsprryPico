@@ -10,6 +10,7 @@ namespace wsprrypico::usb {
 // INFO includes bounded network pools, DNS names and RF worker diagnostics.
 // Keep whole-response enqueue while retaining the 64-byte foreground service budget.
 constexpr std::size_t kConsoleCapacity = 8192;
+constexpr std::size_t kLoggingCapacity = 2048;
 constexpr std::size_t kServiceBytes = 64;
 
 // Single owner: main loop and TinyUSB callbacks dispatched by tud_task only.
@@ -19,6 +20,10 @@ bool console_connected();
 bool console_output_pending();
 bool wtp_connected();
 bool management_connected();
+bool logging_connected();
+bool take_logging_reset();
+bool logging_write(std::string_view text);
+std::size_t logging_transport_read(std::span<std::uint8_t> bytes);
 bool take_management_reset();
 std::size_t management_transport_write(std::span<const std::uint8_t> bytes);
 std::size_t management_transport_read(std::span<std::uint8_t> bytes);

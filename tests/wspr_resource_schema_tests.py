@@ -1,27 +1,14 @@
-#!/usr/bin/env python3
-"""Validate actual version-2 resource output against its closed wire schema."""
+"""Canonical application output includes current WSPR formats."""
 import copy
 import json
-from pathlib import Path
-import subprocess
 import sys
-
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "scripts"))
-from validate_wtp_contract import SchemaValidator
-
-schema = json.loads((ROOT / "engineering/protocol/transmitter-application-2.schema.json").read_text())
-validator = SchemaValidator(schema)
-samples = json.loads(subprocess.check_output([sys.argv[1], "--samples"], text=True))
-for name, sample in samples.items():
-    errors = validator.errors(sample, schema["$defs"]["application_read"])
-    assert not errors, (name, errors)
-    assert len(json.dumps(sample, separators=(",", ":")).encode()) <= 4096
-    for field, value in [("schema", "transmitter-application/99"), ("unknown", True)]:
-        bad = copy.deepcopy(sample)
-        bad[field] = value
-        assert validator.errors(bad, schema["$defs"]["application_read"])
-    bad = copy.deepcopy(sample)
-    bad["wspr_plan"]["frame_types"] = ["type99"]
-    assert validator.errors(bad, schema["$defs"]["application_read"])
-print(f"Closed version-2 schemas validate {len(samples)} actual persisted application responses")
+from control_schema_support import Validator, documents, closed, SCHEMA
+check=Validator('application')
+samples=documents(sys.argv[1],'--samples')[0]
+for name,value in samples.items():
+    closed(value,check)
+    assert len(json.dumps(value,separators=(',',':')).encode())<=4096
+    bad=copy.deepcopy(value)
+    bad['wspr_plan']['frame_types']=['type99']
+    assert check.errors(bad),name
+print(f'PASS {len(samples)} current WSPR application snapshots')

@@ -26,8 +26,7 @@ Measure contemporaneously across startup, changes, source loss and holdover;
 a favorable checkpoint does not establish a uniform improvement.
 
 Physical UTC phase requires an independent timestamped reference and a bounded
-observation path. Future GPS UTC/PPS work must verify UTC-second pairing,
-latency, common-clock binding, reference errors, source disagreement and
-loss/recovery. Any RF correction additionally needs independent conducted
-carrier qualification. See [UTC discipline](clock-discipline.md) and the
-[selected future work](consolidated-backlog.md#remain-in-backlog-for-future).
+observation path. Source identification, UTC-second pairing, latency, common-clock
+binding, reference errors, disagreement, and loss/recovery determine whether an
+observation is usable. RF correction additionally requires independent conducted
+carrier qualification. See [UTC discipline](clock-discipline.md).

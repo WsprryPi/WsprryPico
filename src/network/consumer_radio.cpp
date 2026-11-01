@@ -1,8 +1,10 @@
 #include "network/consumer_radio.hpp"
+#include "network/control.hpp"
 
 #include "application/resources.hpp"
 #include "network/bootstrap_codec.hpp"
 #include "network/identity.hpp"
+#include "network/public_read.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 #include "wtp/sha256.hpp"
@@ -167,7 +169,7 @@ HttpResponse ConsumerRadioApi::password_resource(const HttpRequest& request) {
         if (request.body_view().size() > 512)
             return http_error(400, "invalid_password");
         const auto root = wtp::json::parse(request.body_view());
-        if (!root || application::validate_envelope(*root, "pico-password/1", "password", device_,
+        if (!root || application::validate_envelope(*root, "pico-password", "password", device_,
                                                     boot_) != application::Envelope::Valid)
             return http_error(400, "invalid_password");
         const auto field = root->get("password");
@@ -192,7 +194,7 @@ HttpResponse ConsumerRadioApi::password_resource(const HttpRequest& request) {
     const auto* saved = password_store_->record();
     HttpResponse result{
         200,
-        "{\"schema\":\"pico-password/1\",\"target\":" + application::target(device_, boot_) +
+        "{\"schema\":\"pico-password\",\"target\":" + application::target(device_, boot_) +
             ",\"wifi_default\":" + (!saved || saved->radio_password.empty() ? "true" : "false") +
             ",\"saved\":true}",
         "application/json",
@@ -246,13 +248,13 @@ void ConsumerRadioApi::poll(std::uint64_t now_ms) {
     }
     const bool healthy = available();
     if (recovery_.state != State::None &&
-        (!healthy || recovery_.binding.generation != store_.sequence() ||
+        (!healthy || !runtime_.session_generation_current(recovery_.binding.generation, store_) ||
          elapsed(now_ms, recovery_.started_ms, 5'000)))
         close(recovery_);
     for (auto& session : sessions_) {
         if (session.state == State::None)
             continue;
-        if (!healthy || session.binding.generation != store_.sequence() ||
+        if (!healthy || !runtime_.session_generation_current(session.binding.generation, store_) ||
             elapsed(now_ms, session.started_ms,
                     session.state == State::Pending ? login_ms : absolute_ms) ||
             (session.state == State::Active && elapsed(now_ms, session.seen_ms, idle_ms)))
@@ -576,19 +578,28 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
         if (method && path && match && body && method->type() == '"' && path->type() == '"' &&
             (method->string() == "GET" || method->string() == "POST" ||
              method->string() == "PUT") &&
-            path->string().starts_with("/api/v1/") && printable(path->string(), 128) &&
+            path->string().starts_with("/api/control/v1/") && printable(path->string(), 128) &&
             (match->raw == "null" || (match->type() == '"' && printable(match->string(), 80))) &&
             (method->string() == "GET" ? body->raw == "null" : body->type() == '{')) {
-            if (method->string() == "POST" && path->string() == "/api/v1/consumer/logout" &&
-                body->raw == "{}") {
+            const bool special_control = path->string() == "/api/control/v1/consumer/password" || path->string() == "/api/control/v1/consumer/logout" || path->string().starts_with("/api/control/v1/consumer/setup/");
+            auto special_payload = method->string() == "GET" || !special_control ? std::optional<std::string>{""} : control_payload(body->raw);
+            std::string special_text = special_payload ? std::move(*special_payload) : std::string{};
+            ControlStringWiper wipe_special(special_text);
+            if (method->string() != "GET" && special_control && !special_payload) {
+                close(session);
+                return http_error(400, "unsupported_control_contract");
+            }
+            if (method->string() == "POST" && path->string() == "/api/control/v1/consumer/logout" &&
+                wtp::json::fields(*wtp::json::parse(special_text), {})) {
                 auto response =
-                    session.crypto->seal("{\"status\":200,\"etag\":null,\"body\":{\"ok\":true}}",
+                    session.crypto->seal("{\"status\":200,\"etag\":null,\"body\":{\"contract\":\"Wsprry-Control/1\",\"ok\":true}}",
                                          session.binding, sequence);
                 close(session);
                 return response ? std::move(*response)
                                 : http_error(503, "radio_response_unavailable");
             }
             HttpRequest inner;
+            ControlStringWiper wipe_inner(inner.body);
             inner.method = method->string();
             inner.path = path->string();
             inner.buffered_body = request.buffered_body;
@@ -603,14 +614,20 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
                              {"x-wsprrypico-request", "1"}};
             if (match->type() == '"')
                 inner.headers["if-match"] = match->string();
-            if (inner.path == "/api/v1/consumer/password") {
+            const bool special = inner.path == "/api/control/v1/consumer/password" || inner.path.starts_with("/api/control/v1/consumer/setup/");
+            if (special && inner.method != "GET") {
+                inner.body = std::move(special_text);
+                inner.selected_body.reset();
+                inner.buffered_body.reset();
+            }
+            if (inner.path == "/api/control/v1/consumer/password") {
                 if (inner.method != "GET" && setup_busy_ && setup_busy_(setup_context_))
                     result = http_error(409, "setup_pending");
                 else
                     result = password_resource(inner);
                 password_saved = inner.method == "PUT" && result.status == 200;
-            } else if (inner.path.starts_with("/api/v1/consumer/setup/") && setup_handler_) {
-                inner.path.erase(0, std::string_view("/api/v1/consumer/setup").size());
+            } else if (inner.path.starts_with("/api/control/v1/consumer/setup/") && setup_handler_) {
+                inner.path.erase(0, std::string_view("/api/control/v1/consumer/setup").size());
                 // Each production setup decoder has its own closed header
                 // policy. Do not carry ordinary API or the other adapter's
                 // marker into the owner-claim decoder.
@@ -631,16 +648,25 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
                                 session.interface == ConsumerInterface::Station
                                     ? ManagementCarrier::ConsumerStation
                                     : ManagementCarrier::ConsumerAp);
+            if (special) result = control_response(std::move(result));
             session.pending_transaction = transaction;
         }
     }
     const auto prefix = "{\"status\":" + std::to_string(result.status) + ",\"etag\":" +
                         (result.etag.empty() ? "null" : wtp::json::quote(result.etag)) +
                         ",\"body\":";
-    wtp::FrameBuffer envelope;
     const auto size = prefix.size() + result.body_size() + 1;
+    // BrowserApi returns one JSON value. Validate its existing storage, then
+    // borrow its pages between the small envelope delimiters during sealing.
+    const auto body = !result.buffered_body.empty() ? result.buffered_body.view()
+                      : !result.static_body.empty() ? wtp::InputView(result.static_body)
+                                                    : wtp::InputView(result.body);
     if (size > max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes ||
-        !wtp::memory_admitted(size * 2 + 4096) || !envelope.reserve(size)) {
+        !result.static_parts.empty() ||
+        (result.generated_body ? !result.generated_body->json_document()
+                               : !wtp::json::parse(body)) ||
+        !wtp::memory_admitted(
+            result.generated_body ? 8192 : (result.buffered_body.empty() ? size + 4096 : 8192))) {
         finish_request(transaction, false);
         if (password_saved)
             close();
@@ -648,22 +674,27 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
             close(session);
         return http_error(503, "radio_response_unavailable");
     }
-    envelope.append(wtp::InputView(prefix));
-    for (std::size_t at = 0; at < result.body_size();) {
-        const auto part = result.body_at(at);
-        envelope.append(part);
-        at += part.size();
+    std::optional<HttpResponse> response;
+    if (result.generated_body) {
+        auto inner_source = response_source(std::move(result));
+        if (inner_source) {
+            auto source = wtp::make_response_source<wtp::JoinedResponseSource>(
+                prefix, std::move(inner_source), "}", true);
+            if (source)
+                response = session.crypto->seal_source(std::move(source), session.binding, sequence);
+        }
+    } else if (!result.buffered_body.empty()) {
+        // Small typed resources already own their final pages. Keep the cheaper
+        // in-place path instead of paying for a streaming snapshot/cipher owner.
+        auto envelope = std::move(result.buffered_body);
+        if (envelope.reserve(size + consumer_radio_header_bytes + consumer_radio_tag_bytes) &&
+            envelope.prepend(wtp::InputView(prefix).at(0)) &&
+            envelope.append(wtp::InputView("}").at(0)))
+            response = session.crypto->seal_buffer(std::move(envelope), session.binding, sequence);
+    } else {
+        const std::array<wtp::InputView, 3> parts{wtp::InputView(prefix), body, wtp::InputView("}")};
+        response = session.crypto->seal_parts(parts, session.binding, sequence);
     }
-    envelope.append(wtp::InputView("}"));
-    if (!wtp::json::parse(envelope.view())) {
-        finish_request(transaction, false);
-        if (password_saved)
-            close();
-        else
-            close(session);
-        return http_error(503, "radio_response_unavailable");
-    }
-    auto response = session.crypto->seal(envelope.view(), session.binding, sequence);
     if (password_saved) {
         password_sequence_ = password_store_->sequence();
         password_digest_ = password_digest();
@@ -683,6 +714,73 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
         return http_error(409, "consumer_radio_unavailable");
     if (!page_admitted(request, interface))
         return http_error(403, "forbidden");
+    if (request.path == "/api/consumer/v1/read" ||
+        request.path.starts_with("/api/consumer/v1/read/")) {
+        if (!wtp::memory_admitted(4096))
+            return http_error(503, "resource_exhausted");
+        if (request.method != "GET")
+            return http_error(405, "method_not_allowed");
+        if (!request.body_view().empty())
+            return http_error(400, "public_read_body_forbidden");
+        auto host = request.header("host");
+        if (host.ends_with(":80"))
+            host.remove_suffix(3);
+        if ((!request.header("origin").empty() &&
+             request.header("origin") != "http://" + std::string(host)) ||
+            (!request.header("sec-fetch-site").empty() &&
+             request.header("sec-fetch-site") != "same-origin"))
+            return http_error(403, "forbidden");
+        const auto allowed = std::span<const std::string_view>(public_read_resources);
+        const std::string prefix = "/api/consumer/v1/read/";
+        if (request.path == "/api/consumer/v1/read") {
+            std::string resources = "[";
+            for (const auto resource : allowed) {
+                if (resources.size() > 1)
+                    resources += ',';
+                resources += wtp::json::quote(resource);
+            }
+            return {200,
+                    "{\"contract\":\"Wsprry-Control/1\",\"schema\":" +
+                        wtp::json::quote("public-read") +
+                        ",\"target\":" + application::target(device_, boot_) + ",\"prefix\":" +
+                        wtp::json::quote(prefix) + ",\"resources\":" + resources + "]}",
+                    "application/json",
+                    {}};
+        }
+        const auto resource = std::string_view(request.path).substr(prefix.size());
+        if (std::find(allowed.begin(), allowed.end(), resource) == allowed.end())
+            return http_error(404, "public_read_resource_unavailable");
+        // The public adapter owns a fixed GET allowlist. No caller body,
+        // principal, revision or headers enter the authenticated command path.
+        HttpRequest inner;
+        inner.method = "GET";
+        inner.path = "/api/control/v1/" + std::string(resource);
+        const std::string authority = "192.168.4.1";
+        inner.headers = {{"host", authority},
+                         {"origin", "https://" + authority},
+                         {"sec-fetch-site", "same-origin"}};
+        if (resource == "consumer/password")
+            return control_response(password_resource(inner));
+        if (resource == "consumer/setup/api/owner/v1/public-status" && setup_handler_) {
+            inner.path = "/api/owner/v1/public-status";
+            inner.headers["origin"] = "http://" + authority;
+            const std::array<std::uint8_t, 16> observer{};
+            return control_response(setup_handler_(inner, transaction, observer, setup_context_));
+        }
+        return api_.handle(inner, "public-observer", authority, 0,
+                           ManagementCarrier::EngineeringStation);
+    }
+    if (request.path == "/api/consumer/v1/status" && request.method == "GET") {
+        auto host = request.header("host");
+        if (host.ends_with(":80"))
+            host.remove_suffix(3);
+        if ((!request.header("origin").empty() &&
+             request.header("origin") != "http://" + std::string(host)) ||
+            (!request.header("sec-fetch-site").empty() &&
+             request.header("sec-fetch-site") != "same-origin"))
+            return http_error(403, "forbidden");
+        return api_.public_status();
+    }
     if (request.path == "/api/consumer/v1/presentation" && request.method == "GET")
         return {200,
                 "{\"schema\":\"device-presentation/1\",\"device_id\":" + wtp::json::quote(device_) +

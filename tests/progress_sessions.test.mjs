@@ -13,7 +13,7 @@ try {
  const read=async client=>{const r=await client.request('progress');equal(r.status,200);const data=await r.json();samples.push(data);return {data,revision:r.headers.get('etag')};};
  const initial=await read(a),before=await f.command({op:'stats'});
  let serial=0;
- const save=(client,fields,saved)=>client.request('progress/update','POST',{schema:'transmitter-progress/1',target:saved.data.target,request_id:(++serial).toString(16).padStart(32,'0'),fields},saved.revision);
+ const save=(client,fields,saved)=>client.request('progress/update','POST',{schema:'progress',target:saved.data.target,request_id:(++serial).toString(16).padStart(32,'0'),fields},saved.revision);
  let r=await save(a,{callsign:'AA0NT/09',power_dbm:'2147483648'},initial);equal(r.status,200);
  const ack=await r.json();samples.push(ack);equal(ack.outcomes,{callsign:'saved',power_dbm:'invalid'});
  equal((await save(b,{locator:'EM18IG'},initial)).status,412);
@@ -39,6 +39,9 @@ try {
    equal((await f.fetch('192.168.1.53',false,path,{marker:'Owner',method:path.endsWith('start')?'POST':'GET',body:path.endsWith('start')?'{}':''})).status,403);
  const publicRead=await f.fetch('192.168.4.1',true,'/api/owner/v1/progress',{marker:'Owner'});
  const publicData=await publicRead.json(),owner=p256.keygen(),browser=x25519.keygen();
+ equal(publicData.contract,'Wsprry-Control/1');equal(typeof publicData.apply_domains.drive,'boolean');
+ equal(publicData.last_receipt,null);
+ for(const field of ['enabled','wifi','pins','gpio_drive_ma','amplifier_active_high']) equal(Object.hasOwn(publicData.fields,field),false);
  samples.push(publicData);
  const start={version:1,device_id:publicData.target.device_id,owner_public_key:Buffer.from(p256.getPublicKey(owner.secretKey,false)).toString('base64url'),browser_public_key:Buffer.from(browser.publicKey).toString('base64url'),browser_nonce:'a'.repeat(32),profile_source:5,generation:after.profile_generation,progress_revision:publicRead.headers.get('etag')};
  equal((await f.fetch('192.168.4.1',true,'/api/owner/v1/progress/start',{marker:'Owner',method:'POST',body:JSON.stringify(start)})).status,200);

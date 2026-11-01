@@ -13,7 +13,10 @@
 
 int main() {
     using namespace wsprrypico::standalone::flash_layout;
-    CHECK(linked_flash_size == ntp_base);
+    CHECK(linked_flash_size == udp_logging_base);
+    CHECK(udp_logging_base == 0x3ec000);
+    CHECK(udp_logging_size == 8192);
+    CHECK(udp_logging_base + udp_logging_size == ntp_base);
     CHECK(ntp_base == 0x3ee000 && ntp_size == 8192);
     CHECK(ntp_base + ntp_size == progress_base);
     CHECK(progress_base == 0x3f0000);

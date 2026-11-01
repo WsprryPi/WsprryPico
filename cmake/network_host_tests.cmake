@@ -90,6 +90,12 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_compile_options(bootstrap_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME bootstrap_crypto_tests COMMAND bootstrap_crypto_tests
         ${CMAKE_SOURCE_DIR}/engineering/protocol/WiFi-Bootstrap-v1-vectors.json)
+    add_executable(response_crypto_metrics tests/response_crypto_metrics.cpp
+        src/network/pico/consumer_radio_crypto.cpp src/network/pico/psa_lifetime.cpp)
+    target_compile_definitions(response_crypto_metrics PRIVATE
+        MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}" WSPRRY_PICO_CONSUMER_RADIO_CRYPTO_TEST=1)
+    target_link_libraries(response_crypto_metrics PRIVATE wsprrypico_core mbedcrypto)
+    target_compile_options(response_crypto_metrics PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_executable(consumer_radio_crypto_tests tests/consumer_radio_crypto_tests.cpp
         src/network/pico/consumer_radio_crypto.cpp src/network/pico/psa_lifetime.cpp)
     target_compile_definitions(consumer_radio_crypto_tests PRIVATE
@@ -119,6 +125,8 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
         add_test(NAME standalone_frequency_first_use_sessions COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/standalone_frequency_first_use_sessions.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
+        add_test(NAME station_live_apply COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/station_live_apply.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
         add_test(NAME progress_sessions COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/progress_sessions.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
         add_test(NAME organization_routes COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}

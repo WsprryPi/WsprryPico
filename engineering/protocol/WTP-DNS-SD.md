@@ -1,6 +1,6 @@
 # WTP DNS-SD discovery profile
 
-Status: implemented in WsprryPico for public beta. This document defines the
+Status: implemented in WsprryPico. This document defines the
 discovery profile for the device-neutral [WTP/1 protocol](WTP.md).
 It does not change WTP frames, USB CDC, TCP admission, or transmitter authority.
 

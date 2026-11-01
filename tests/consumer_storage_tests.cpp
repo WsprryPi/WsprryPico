@@ -105,6 +105,29 @@ int main() {
                                              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") == "null");
     assert(network::owner_saved_station_json(direct_readback, preclock,
                                              "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa") == "null");
+    // Same-receipt station authority transfer permits no credential/trust edits.
+    {
+        MemoryMedia transfer_media = blank;
+        provisioning::ProfileStore transfer(transfer_media);
+        assert(transfer.load());
+        auto next = profile;
+        next.usb_managed = true;
+        next.callsign.clear();
+        next.locator.clear();
+        next.power_dbm = 0;
+        auto hostile = next;
+        hostile.time_server = "other.example.org";
+        assert(!transfer.select(provisioning::ProfileSource::ConsumerProfile,
+                                provisioning::serialize_consumer_profile(hostile)));
+        hostile = next;
+        hostile.password = "other-password";
+        assert(!transfer.select(provisioning::ProfileSource::ConsumerProfile,
+                                provisioning::serialize_consumer_profile(hostile)));
+        assert(transfer.sequence() == 1);
+        assert(transfer.select(provisioning::ProfileSource::ConsumerProfile,
+                               provisioning::serialize_consumer_profile(next)));
+        assert(transfer.sequence() == 2);
+    }
     // A new journal generation must not be paired with the old boot's fields.
     auto changed_station = profile;
     changed_station.callsign = "AA0NT/P";

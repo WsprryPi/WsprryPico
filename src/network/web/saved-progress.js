@@ -1,14 +1,14 @@
-// Shared validation/presentation for the independently versioned draft resource.
+// Shared validation/presentation for the current control-contract draft resource.
 // No persistence, networking, job control or secret storage in this helper.
 (() => {
   const names = ['callsign','locator','power_dbm','enabled','schedules','expires_utc_s','pins','frequency_policy','wifi','ntp_ipv4'];
   const labels = {callsign:'Callsign',locator:'Grid locator',power_dbm:'Reported power',enabled:'Schedule enablement',schedules:'Schedules',expires_utc_s:'Schedule expiry',pins:'Pin plan',frequency_policy:'Frequency permissions',wifi:'Wi-Fi credentials',ntp_ipv4:'Time server'};
-  const errors = {callsign:'use a valid 3–12 character station callsign',locator:'use a valid four- or six-character grid locator',power_dbm:'choose an exact supported power; zero dBm is valid',enabled:'choose enabled or disabled',schedules:'use a complete non-overlapping schedule array',expires_utc_s:'use a valid UTC expiry',pins:'use a complete supported pin plan with no conflicts',frequency_policy:'review both frequency permissions together',wifi:'provide a complete valid network name and password pair',ntp_ipv4:'use a valid hostname or IPv4 address'};
+  const errors = {callsign:'use a valid 3–12 character station callsign',locator:'use a valid four- or six-character grid locator',power_dbm:'choose an exact supported power; zero dBm is valid',enabled:'choose enabled or disabled',schedules:'use interval / offset pairs in seconds without overlapping transmissions',expires_utc_s:'use a valid UTC expiry',pins:'use a complete supported pin plan with no conflicts',frequency_policy:'review both frequency permissions together',wifi:'provide a complete valid network name and password pair',ntp_ipv4:'use a valid hostname or IPv4 address'};
   const object = x => x !== null && typeof x === 'object' && !Array.isArray(x);
   const keys = (x, expected) => object(x) && Object.keys(x).sort().join(',') === [...expected].sort().join(',');
   const sequence = x => typeof x === 'string' && /^(0|[1-9][0-9]{0,19})$/.test(x) && BigInt(x) <= 0xffffffffffffffffn;
   const ascii = (x,min,max) => typeof x === 'string' && x.length >= min && x.length <= max && /^[\x20-\x7e]*$/.test(x);
-  const call = x => ascii(x,3,12) && /^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(x) && /[A-Z]/.test(x) && /[0-9]/.test(x) && (!x.startsWith('<') || x.length >= 5);
+  const call = x => ascii(x,3,12) && !['N0CALL','<N0CALL>'].includes(x) && /^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(x) && /[A-Z]/.test(x) && /[0-9]/.test(x) && (!x.startsWith('<') || x.length >= 5);
   const grid = x => typeof x === 'string' && /^[A-R]{2}[0-9]{2}([A-X]{2})?$/.test(x);
   const power = x => typeof x === 'number' && [0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60].includes(x);
   const station = (x,partial = true) => keys(x,['callsign','locator','power_dbm']) &&
@@ -18,7 +18,7 @@
   const outcomes = (x,amplifier = false) => object(x) && Object.keys(x).length <= names.length + (amplifier ? 1 : 0) && Object.entries(x).every(([k,v]) => (names.includes(k) || amplifier && k==='gpio_drive_ma') && ['saved','cleared','invalid'].includes(v));
   function validPlan(p) {
     if (!keys(p,['alternate_callsign','frame_types','frames','rationale','schema','slot_separation_s','supported','type2_ambiguous']) ||
-        p.schema !== 'wspr-plan/1' || typeof p.supported !== 'boolean' || typeof p.type2_ambiguous !== 'boolean' ||
+        p.schema !== 'wspr-plan' || typeof p.supported !== 'boolean' || typeof p.type2_ambiguous !== 'boolean' ||
         !Array.isArray(p.frame_types) || !Number.isInteger(p.frames) || p.frames !== p.frame_types.length ||
         p.slot_separation_s !== 120 || !ascii(p.rationale,1,512)) return false;
     if (p.supported ? !['type1','type2','type3','type2,type3'].includes(p.frame_types.join(',')) : p.frames !== 0) return false;
@@ -37,11 +37,11 @@
   const gp = x => Number.isInteger(x) && (x>=0 && x<=22 || x>=26 && x<=28);
   function pins(x,amplifier = false) {
     const members = ['engine','rf_gp','i2c_pair','button_gp','amplifier_gp','lpf_gps','indicator','indicator_gp','indicator_active_high'];
-    if (amplifier && Object.hasOwn(x,'amplifier_active_high')) members.push('amplifier_active_high');
+    members.push('amplifier_active_high');
     if (!keys(x,members) ||
         x.engine!=='direct' || !gp(x.rf_gp) || x.i2c_pair!==null || !(x.button_gp===null || gp(x.button_gp)) ||
         !(x.amplifier_gp===null || amplifier && gp(x.amplifier_gp)) || !Array.isArray(x.lpf_gps) || x.lpf_gps.length ||
-        x.amplifier_active_high!==undefined && typeof x.amplifier_active_high!=='boolean' ||
+        typeof x.amplifier_active_high!=='boolean' ||
         !['onboard_led','external','disabled'].includes(x.indicator) || typeof x.indicator_active_high!=='boolean' ||
         (x.indicator==='external' ? !gp(x.indicator_gp) : x.indicator_gp!==null)) return false;
     const assigned=[x.rf_gp,x.button_gp,x.amplifier_gp,x.indicator==='external'?x.indicator_gp:null].filter(v=>v!==null);
@@ -72,11 +72,11 @@
     return false;
   }
   function valid(x, acknowledgement = false) {
-    const amplifier = x?.schema === 'transmitter-progress/3';
+    const amplifier = true;
     const allowed = amplifier ? [...names,'gpio_drive_ma'] : names;
     const required = ['schema','target','draft_revision','config_revision','profile_revision','fields','last_receipt','last_outcomes','applied_station','station','station_complete','complete','apply_domains','wspr_plan','schedule_enabled','schedule_suspended','matches_applied'];
     if (acknowledgement) required.push('outcomes','request_id');
-    if (!keys(x,required) || !['transmitter-progress/1','transmitter-progress/3'].includes(x.schema) ||
+    if (!keys(x,required) || x.schema !== 'progress' ||
         !keys(x.target,['scope','device_id','boot_id']) || x.target.scope !== 'member' ||
         !ascii(x.target.device_id,32,32) || !/^[0-9a-f]{32}$/.test(x.target.device_id) ||
         !ascii(x.target.boot_id,32,32) || !/^[0-9a-f]{32}$/.test(x.target.boot_id) ||
@@ -122,7 +122,7 @@
       '; grid locator ' + (x.station.locator ?? 'missing') + '; reported power ' +
       (x.station.power_dbm === null ? 'missing' : x.station.power_dbm + ' dBm') + '. ';
     text += missing.length ? 'WSPR station draft is incomplete. ' :
-      x.wspr_plan?.supported ? 'WSPR draft is encodable. ' : 'WSPR draft cannot be encoded: ' + (x.wspr_plan?.rationale || 'read current station planning') + '. ';
+      x.wspr_plan?.supported ? 'WSPR Type ' + x.wspr_plan.frame_types.map(t=>t.slice(4)).join(' + Type ') + ': ' + (x.wspr_plan.frame_types.length === 1 ? 'one frame. ' : 'two frames in adjacent even-minute windows. ') : 'WSPR draft cannot be encoded: ' + (x.wspr_plan?.rationale || 'read current station planning') + '. ';
     text += 'Saving progress does not apply settings or establish transmit readiness. ';
     if (x.schedule_enabled === true) text += x.schedule_suspended === true
       ? 'The enabled schedule remains suspended and retains the previously applied settings.'

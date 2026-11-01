@@ -24,7 +24,7 @@ await run('Wi-Fi-only setup survives reboot and admits LAN login without station
    assert.equal(bytes.length,expected);assert.match(bytes.toString(),/id="local-login"/);
    const a=f.client(host);await f.login(a);
    assert.equal((await(await a.request('config')).json()).config,null);
-   assert.equal((await(await a.request('station/2')).json()).station,null);
+   assert.equal((await(await a.request('station')).json()).station,null);
    assert.equal((await(await a.request('capabilities')).json()).features.consumer_setup_identity,true);
    const status=await(await a.request('status')).json();assert.equal(status.job.output_active,false);
    assert.equal((await f.command({op:'stats'})).config_sequence,'0');
@@ -41,12 +41,12 @@ await run('Wi-Fi-only setup survives reboot and admits LAN login without station
  await f.command({op:'reboot'});await f.time(f.now+1000);
  await assert.rejects(f.login(a,'changed-wifi-password'),/password/i);
  await f.time(f.now+1000);await f.login(a,'independent-pico-password');
- assert.equal((await(await a.request('station/2')).json()).station,null);
+ assert.equal((await(await a.request('station')).json()).station,null);
  const station=await a.prepareStation(await a.identity(),{callsign:'K1ABC',locator:'FN42',powerDbm:30});
  await a.submitSetup(station);await f.time(f.now+2000);
  assert.equal((await f.command({op:'stats'})).profile_generation,station.generation);
  await f.command({op:'reboot'});await f.time(f.now+1000);await f.login(a,'independent-pico-password');
- assert.equal((await(await a.request('station/2')).json()).station.callsign,'K1ABC');
+ assert.equal((await(await a.request('station')).json()).station.callsign,'K1ABC');
 },['1'.repeat(32),'--blank']);
 await run('real network submit cancelled by authenticated retirement before delivery, stale ACK cannot start trial',async f=>{
  const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
@@ -119,6 +119,19 @@ await run('accepted restart keeps a committed network setup blocked until actual
  assert.equal(response.status,409);const after=await f.command({op:'stats'});assert.equal(after.network_slot,0);assert.equal(after.profile_programs,committed.profile_programs);
 });
 
+await run('retained consumer profile and authenticated management policy agree after reboot',async f=>{
+ await f.command({op:'generation'});
+ const before=(await f.command({op:'stats'})).profile_generation;
+ assert.ok(BigInt(before)>1n);
+ await f.command({op:'reboot'});await f.time(2000);
+ const client=f.client();await f.login(client);await client.readPolicy();
+ assert.equal(client.authenticated,true);
+ const policy=await (await client.request('management')).json();
+ assert.equal(policy.profile_generation,client.identityContext.generation);
+ assert.equal(policy.profile_generation,before);
+ assert.equal(policy.target.boot_id,client.identityContext.boot_id);
+});
+
 for (const [callsign,locator,types] of [
   ['AA0NT/12','EM18',['type2']],['<AA0NT>','EM18IG',['type3']],
   ['PJ4/AA0NT','EM18IG',['type2','type3']],['W1A/AA0NT','EM18IG',['type2','type3']],['<W1A/AA0NT>','EM18IG',['type3']],['<AA0NT/12>','EM18IG',['type3']]
@@ -132,10 +145,11 @@ for (const [callsign,locator,types] of [
  assert.equal(await a.checkSetup(attempt),'saved');await assert.rejects(a.submitSetup(attempt),/already sent/);
  const saved=(await (await a.request('config')).json()).config;
  assert.deepEqual(saved.station,{callsign,locator,power_dbm:30});assert.deepEqual(saved.wifi,before.wifi);assert.deepEqual(saved.pins,before.pins);assert.deepEqual(saved.schedules,before.schedules);
- const app=(await (await a.request('application/2')).json());
- assert.equal(app.schema,'transmitter-application/2');assert.deepEqual(app.wspr_plan.frame_types,types);
- assert.equal((await a.request('application')).status,409);
+ const app=(await (await a.request('application')).json());
+ assert.equal(app.schema,'application');assert.deepEqual(app.wspr_plan.frame_types,types);
+ // Superseded per-resource views are refused; the current view above preserves Type 2/3 planning.
+ assert.equal((await a.request('application/1')).status,404);
  const programs=(await f.command({op:'stats'})).profile_programs;
- const refused=await a.request('station/2','PUT',{schema:'transmitter-station/2',target:app.target,station:{callsign:'K1ABC',locator:'FN42',power_dbm:30}},(await a.request('config')).headers.get('ETag'));
+ const refused=await a.request('station','PUT',{schema:'station',target:app.target,station:{callsign:'K1ABC',locator:'FN42',power_dbm:30}},(await a.request('config')).headers.get('ETag'));
  assert.equal(refused.status,409);assert.equal((await f.command({op:'stats'})).profile_programs,programs);
 });

@@ -2,6 +2,7 @@
 
 #include "runtime/activity_trace.hpp"
 #include "time/mapping.hpp"
+#include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 
 #include <algorithm>
@@ -92,6 +93,15 @@ JobService::JobService(Clock& clock, RfEngine& engine, IdentitySource& identitie
                        ServiceConfig config)
     : clock_(clock), engine_(engine), identities_(identities), config_(config),
       boot_id_(identities_.new_boot_id()) {
+    // CAPS and admission share the same immutable boot-local preparation bound.
+    // Companion schedulers already consume this WTP capability.
+    if (const auto lead = engine_.amplifier_lead_ns())
+        config_.minimum_arm_lead_ns =
+            std::max(config_.minimum_arm_lead_ns, saturating_add(lead, 2'000'000));
+    if (const auto filters = engine_.filter_preparation_ns())
+        config_.minimum_arm_lead_ns = std::max(
+            config_.minimum_arm_lead_ns,
+            saturating_add(saturating_add(filters, engine_.amplifier_lead_ns()), 3'000'000));
     const bool configuration_valid =
         capability_text(config_.capability_engine) && !config_.supported_modes.empty() &&
         unique(config_.supported_modes) &&
@@ -131,7 +141,11 @@ Response JobService::handle(Request&& request) {
     return handle_owned(request);
 }
 
-Response JobService::handle_owned(Request& request) {
+Response JobService::handle_internal(Request&& request) {
+    return handle_owned(request, false);
+}
+
+Response JobService::handle_owned(Request& request, bool retain_response) {
     const auto now = clock_.snapshot();
     runtime::ActivitySpan status_span(
         runtime::activity_trace(), runtime::ActivityKind::Status,
@@ -160,8 +174,9 @@ Response JobService::handle_owned(Request& request) {
     }
     // Check before replay as well as dispatch. An earlier successful ARM must
     // never be acknowledged as a live permission after a physical stop.
-    if ((output_inhibited_ || maintenance()) && (request.operation == "CLAIM" || request.operation == "RENEW" ||
-                              request.operation == "LOAD" || request.operation == "ARM"))
+    if ((output_inhibited_ || maintenance()) &&
+        (request.operation == "CLAIM" || request.operation == "RENEW" ||
+         request.operation == "LOAD" || request.operation == "ARM"))
         return reject(ErrorCode::Busy);
 
     auto session = std::find_if(sessions_.begin(), sessions_.end(), [&](const Session& candidate) {
@@ -213,7 +228,8 @@ Response JobService::handle_owned(Request& request) {
     }
 
     auto response = dispatch(request);
-    remember(request, response, now.monotonic_now_ns);
+    if (retain_response)
+        remember(request, response, now.monotonic_now_ns);
     return response;
 }
 
@@ -337,7 +353,7 @@ Response JobService::dispatch(Request& request) {
             if (retained != retained_jobs_.end()) {
                 if (retained->digest != replay->digest)
                     return reject(ErrorCode::JobIdConflict);
-                auto response = retained->load_response;
+                auto response = retained_load_response(*retained);
                 touch_terminal(replay->job_id);
                 return response;
             }
@@ -367,7 +383,7 @@ Response JobService::dispatch(Request& request) {
         if (retained != retained_jobs_.end()) {
             if (retained->digest != job_digest(*body))
                 return reject(ErrorCode::JobIdConflict);
-            auto response = retained->load_response;
+            auto response = retained_load_response(*retained);
             touch_terminal(body->job_id);
             return response;
         }
@@ -388,10 +404,11 @@ Response JobService::dispatch(Request& request) {
             return reject(error);
         }
         // The production adapters transfer the already decoded event pages.
-        // Reserve bounded preparation/adjustment work here; serialization has
-        // its own paged gate and memory_admitted keeps the separate 32 KiB
-        // authority/RF reserve.
-        if (!memory_admitted(32768))
+        // Decoded pages are already resident. Reserve the selected engine's
+        // additional preparation/adjustment work rather than charging every
+        // small job for a maximum plan. Serialization has its own paged gate;
+        // memory_admitted still keeps the separate 32 KiB authority/RF reserve.
+        if (!memory_admitted(preparation_memory_bytes(*body)))
             return reject(ErrorCode::InternalError);
         const auto accepted_digest = job_digest(*body);
         Job accepted = std::move(*body);
@@ -419,6 +436,20 @@ Response JobService::dispatch(Request& request) {
                 return reject(ErrorCode::DeviceFault);
             }
         }
+        observed_event_count_ = accepted.events.size();
+        observed_frequency_count_ = 0;
+        observed_frequencies_truncated_ = false;
+        for (const auto& event : accepted.events) {
+            if (!event.rf_on || !event.frequency_nhz)
+                continue;
+            const auto end = observed_frequencies_.begin() + observed_frequency_count_;
+            if (std::find(observed_frequencies_.begin(), end, *event.frequency_nhz) != end)
+                continue;
+            if (observed_frequency_count_ < observed_frequencies_.size())
+                observed_frequencies_[observed_frequency_count_++] = *event.frequency_nhz;
+            else
+                observed_frequencies_truncated_ = true;
+        }
         job_ = std::move(accepted);
         job_digest_ = accepted_digest;
         // Different jobs often have the same complete adjustment sequence.
@@ -426,14 +457,14 @@ Response JobService::dispatch(Request& request) {
         // equal immutable values; eight histories must not multiply this list.
         const auto identical = std::find_if(
             retained_jobs_.begin(), retained_jobs_.end(), [&](const RetainedJob& retained) {
-                const auto& values = retained.load_response.adjustments;
+                const auto& values = retained.adjustments;
                 return values.size() == preparation.adjustments.size() &&
                        (values.empty() ||
                         std::equal(values.begin(), values.end(), preparation.adjustments.begin()));
             });
         adjustments_ = identical == retained_jobs_.end()
                            ? AdjustmentList(std::move(preparation.adjustments))
-                           : identical->load_response.adjustments;
+                           : identical->adjustments;
         arm_.reset();
         state_ = State::Loaded;
         auto response = success();
@@ -454,14 +485,14 @@ Response JobService::dispatch(Request& request) {
             if (!retained->arm || retained->arm->start_utc_ns != body->start_utc_ns ||
                 retained->arm->max_uncertainty_ns != body->max_start_uncertainty_ns)
                 return reject(ErrorCode::InvalidState);
-            auto response = retained->arm->response;
+            auto response = arm_response(retained->job_id, *retained->arm);
             touch_terminal(body->job_id);
             return response;
         }
-        if (arm_ && arm_->job_id == body->job_id) {
+        if (arm_ && job_ && job_->job_id == body->job_id) {
             if (arm_->start_utc_ns == body->start_utc_ns &&
                 arm_->max_uncertainty_ns == body->max_start_uncertainty_ns) {
-                return arm_->response;
+                return arm_response(job_->job_id, *arm_);
             }
             if (state_ == State::Armed || state_ == State::Running) {
                 return reject(ErrorCode::ArmConflict);
@@ -482,14 +513,9 @@ Response JobService::dispatch(Request& request) {
             return reject(error);
         }
         state_ = State::Armed;
-        auto response = success();
-        response.state = state_;
-        response.job_id = body->job_id;
-        response.start_monotonic_ns = start_monotonic_ns;
-        response.start_utc_ns = body->start_utc_ns;
-        response.clock_snapshot = now;
-        arm_ = ArmRecord{body->job_id,       body->start_utc_ns, body->max_start_uncertainty_ns,
-                         start_monotonic_ns, response,           engine_.schedules_locally()};
+        arm_ = ArmRecord{body->start_utc_ns, body->max_start_uncertainty_ns, start_monotonic_ns,
+                         now, engine_.schedules_locally()};
+        auto response = arm_response(job_->job_id, *arm_);
         if (arm_->scheduled_locally &&
             (!engine_.schedule(
                  *job_, start_monotonic_ns,
@@ -593,7 +619,9 @@ void JobService::poll() {
     if (state_ == State::Armed && arm_ && job_ && arm_->scheduled_locally) {
         const auto report = engine_.poll(now.monotonic_now_ns);
         local_report = report;
-        if (report.state == EngineState::Armed && !report.output_active) {
+        if (report.state == EngineState::Armed &&
+            (!report.output_active || report.chain_phase == ChainPhase::Lead ||
+             report.chain_phase == ChainPhase::Selecting)) {
             return;
         }
         // The local engine has launched, missed, or failed. Process its terminal
@@ -691,12 +719,22 @@ void JobService::poll() {
                now.monotonic_now_ns >=
                    saturating_add(arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns),
                                   job_->total_duration_ns)) {
+        const auto nominal_end = saturating_add(
+            arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns), job_->total_duration_ns);
         const auto acknowledgement_ns =
             arm_->scheduled_locally ? std::min(engine_.completion_acknowledgement_ns(),
                                                RfEngine::maximum_completion_acknowledgement_ns)
                                     : 0;
-        const auto nominal_end = saturating_add(
-            arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns), job_->total_duration_ns);
+        if (arm_->scheduled_locally && report.state == EngineState::Running &&
+            report.chain_phase == ChainPhase::Tail && report.tail_deadline_monotonic_ns &&
+            engine_.amplifier_tail_ns()) {
+            const auto deadline = *report.tail_deadline_monotonic_ns;
+            const auto observed_now = clock_.snapshot().monotonic_now_ns;
+            if (deadline >= nominal_end &&
+                deadline <= saturating_add(observed_now, engine_.amplifier_tail_ns()) &&
+                now.monotonic_now_ns <= saturating_add(deadline, acknowledgement_ns))
+                return; // RF is verified off; bound tail from that observation.
+        }
         if (report.state == EngineState::Running && acknowledgement_ns &&
             now.monotonic_now_ns <= saturating_add(nominal_end, acknowledgement_ns)) {
             return; // Keep authority/state until the bounded final acknowledgement.
@@ -746,11 +784,12 @@ ServiceActivity JobService::activity() const {
     // terminal transitions still require poll() and verified engine shutdown.
     if (result.state == State::Armed && result.output_active && job_ && arm_ &&
         arm_->scheduled_locally)
-        result.state = State::Running;
+        if (engine_.execution_started())
+            result.state = State::Running;
     return result;
 }
 
-ServiceStatus JobService::status() const {
+ServiceStatus JobService::status(bool history) const {
     const auto current = activity();
     ServiceStatus result{boot_id_,     current.state, current.output_active,
                          std::nullopt, std::nullopt,  {}};
@@ -760,7 +799,8 @@ ServiceStatus JobService::status() const {
     if (job_) {
         result.job_id = job_->job_id;
     }
-    result.terminal_records.assign(terminal_records_.begin(), terminal_records_.end());
+    if (history)
+        result.terminal_records.assign(terminal_records_.begin(), terminal_records_.end());
     return result;
 }
 
@@ -779,6 +819,29 @@ Response JobService::success() const {
     response.state = state_;
     response.output_active = engine_.output_active();
     response.boot_id = boot_id_;
+    return response;
+}
+
+Response JobService::retained_load_response(const RetainedJob& retained) const {
+    Response response;
+    response.ok = true;
+    response.state = State::Loaded;
+    response.boot_id = boot_id_;
+    response.job_id = retained.job_id;
+    response.output_active = retained.load_output_active;
+    response.adjustments = retained.adjustments;
+    return response;
+}
+
+Response JobService::arm_response(std::string_view job_id, const ArmRecord& arm) const {
+    Response response;
+    response.ok = true;
+    response.state = State::Armed;
+    response.boot_id = boot_id_;
+    response.job_id = std::string(job_id);
+    response.start_monotonic_ns = arm.start_monotonic_ns;
+    response.start_utc_ns = arm.start_utc_ns;
+    response.clock_snapshot = arm.clock_snapshot;
     return response;
 }
 
@@ -935,11 +998,10 @@ void JobService::record_terminal(State state, ErrorCode error, std::uint64_t now
     terminal_records_.push_front(TerminalRecord{job_ ? job_->job_id : std::string{}, state, now_ns,
                                                 engine_.output_active(), error});
     if (job_) {
-        auto load = success();
-        load.state = State::Loaded;
-        load.job_id = job_->job_id;
-        load.adjustments = adjustments_;
-        retained_jobs_.push_front({job_->job_id, job_digest_, std::move(load), arm_});
+        // Reconstruct the fixed LOAD reply fields on replay instead of keeping
+        // a full Response (including unused clock/status storage) per job.
+        retained_jobs_.push_front(
+            {job_->job_id, job_digest_, adjustments_, engine_.output_active(), arm_});
         if (state == State::Complete) {
             // Completion has authoritatively stopped the engine. Status needs
             // the identity and duration; retained replay uses the digest above.
@@ -977,6 +1039,35 @@ void JobService::release_execution_input() {
         // storage is no longer consulted by this execution path.
         job_->events.clear();
     }
+}
+
+std::string JobService::presentation_json() const {
+    if (!job_)
+        return "null";
+    const auto n = [](std::uint64_t value) { return json::quote(std::to_string(value)); };
+    std::string frequencies = "[";
+    for (std::size_t i = 0; i < observed_frequency_count_; ++i) {
+        if (i)
+            frequencies += ',';
+        frequencies += n(observed_frequencies_[i]);
+    }
+    frequencies += ']';
+    std::string message = "null";
+    if (job_->message) {
+        const auto& m = *job_->message;
+        message = "{\"text\":" + json::quote(m.text) + ",\"frequency_nhz\":" + n(m.frequency_nhz) +
+                  ",\"space_frequency_nhz\":" + n(m.space_frequency_nhz) +
+                  ",\"dot_ns\":" + n(m.dot_ns) + ",\"dash_ns\":" + n(m.dash_ns) +
+                  ",\"repeat_gap_ns\":" + n(m.repeat_gap_ns) +
+                  ",\"repeat_count\":" + std::to_string(m.repeat_count) + "}";
+    }
+    return "{\"mode\":" + json::quote(job_->mode) +
+           ",\"duration_ns\":" + n(job_->total_duration_ns) +
+           ",\"start_utc_ns\":" + (arm_ ? n(arm_->start_utc_ns) : "null") +
+           ",\"event_count\":" + std::to_string(observed_event_count_) +
+           ",\"frequencies_nhz\":" + frequencies +
+           ",\"frequencies_truncated\":" + (observed_frequencies_truncated_ ? "true" : "false") +
+           ",\"message\":" + message + "}";
 }
 
 void JobService::clear_job() {

@@ -18,9 +18,9 @@ the Pico password. Its default is the Wi-Fi passphrase saved in the selected pro
 button-requested or automatic unavailable-network fallback. AP association
 alone grants no private radio read or mutation. The station listener exposes
 only the public radio document/identity and encrypted consumer routes.
-Wi-Fi and station identity remain owned by their transactional setup adapters; the
-radio configuration API presents their effective values and rejects changes
-that the profile would override at restart. Schedules, pins and frequency
+Wi-Fi and initial station commissioning retain their transactional setup adapters.
+Ordinary station metadata uses the shared Config application authority, including
+a verified transfer from an existing station-owning consumer profile. Schedules, pins and frequency
 opt-ins use the existing configuration journal and admission engine.
 
 Radio management retains LAN access during loaded, armed and running jobs.
@@ -59,6 +59,36 @@ The server records the actual interface and Host at successful start. Finish
 and request must match that context. This is server-side session binding;
 it does not add origin bytes to the unchanged cryptographic transcript.
 
+Public GET `/api/consumer/v1/status` returns the closed `public-status` projection: `schema`, lowercase 32-hex `device_id` and `boot_id`, WTP `state`, Boolean `output_active` and `owned`, `clock_state`, decimal-string `utc_now_ns` (null when unsynchronized), decimal-string `uncertainty_ns`, and `engine`. It follows the same listener, Host, Origin and resource-admission rules as public identity. It does not create or renew a login, claim ownership or alter a job. It exposes no owner ID, job ID, message, settings, credentials or history. This bounded projection grants no mutation authority. Detailed public observations use the independent discovery below; mutations still require authenticated encrypted requests.
+
+### Public settings discovery
+
+GET `/api/consumer/v1/read` returns the current `public-read` resource under
+`Wsprry-Control/1`, defined in [the canonical schema](control-1.schema.json).
+It binds the exact member device/boot, fixed public prefix and a bounded unique
+catalog of permitted resource identifiers. Catalog order has no authority.
+Unknown optional identifiers are left unused; malformed known entries,
+duplicates, unsupported contracts and incorrect target bindings refuse.
+
+Only explicitly permitted redacted GET resources are dispatched. The adapter
+forwards no caller principal, mutation body or revision to the internal handler.
+Non-GET methods, nonempty GET bodies and unregistered suffixes refuse before
+mutation. Resource existence or an inner writable flag grants no public write
+permission. Credentials, keys and certificates remain excluded. Public reads
+retain exact Host/interface and Origin/fetch-metadata admission, create or renew
+no login, grant no job ownership and change no stored state.
+
+The operator page uses these reads while locked and authenticated encrypted
+control after login. Known logical resources share `/api/control/v1` and the
+Control/1 contract; no historical public catalogs or per-resource generation
+is selected. NTP timeout (including explicit zero) and amplifier timing are
+members of this current catalog. Locking preserves browser drafts; uncertain
+writes require authoritative saved-state readback and explicit review.
+
+Consumer-Radio/1 framing, authentication transcript, sequence and encryption
+semantics remain independent. Fixed cryptographic vectors exercise those bytes;
+their sample plaintext does not authorize an obsolete logical control route.
+
 POST `/api/consumer/v1/start`, JSON, exactly:
 `version`, `device_id`, `boot_id`, `generation`, `public_key`, `nonce`.
 The browser supplies an ephemeral X25519 public key (canonical unpadded
@@ -74,8 +104,9 @@ These refusals neither evict a client nor authorize a retry of a mutation.
 An abandoned client can occupy a slot until its own idle/absolute expiry.
 Session IDs include a nonreused boot-local serial and random bytes; ID lookup
 alone grants no authority. RNG failure and serial exhaustion fail closed.
-[Management/2](../development/consumer-sessions.md) advertises these bounds;
-management/1 remains frozen for historical one-session firmware.
+The current shared `management` resource advertises bounded policy values; see
+[consumer sessions](../development/consumer-sessions.md). Historical control
+management generations are unsupported.
 
 Transcript bytes, in order:
 
@@ -106,7 +137,7 @@ The saved passphrase is never sent as a plaintext or encrypted login payload.
 POST `/api/consumer/v1/request` uses the request key and consecutive sequences
 starting at one. Authenticated plaintext is exactly the JSON object
 `{method,path,if_match,body}`. Methods are GET/POST/PUT. Path is an existing
-`/api/v1/` route; GET body is null, other bodies are objects. `if_match` is null
+`/api/control/v1/` route; GET body is null, other bodies are objects. `if_match` is null
 or the existing quoted revision string. The adapter supplies the authenticated
 principal and invokes the same BrowserApi/JobService, preserving revision,
 ownership, idle, time, frequency, event, duration and RF safety checks.
@@ -117,26 +148,18 @@ is 32,768 bytes, leaving 32,724 bytes for plaintext. Input pages are decrypted
 in place only with exclusive ownership; no application parse occurs until the
 entire tag verifies. Response envelopes and ciphertext use bounded pages.
 
-POST logical `/api/v1/consumer/logout`, body `{}`, closes the volatile session
-after constructing its encrypted acknowledgement. It does not abort or release
-a job. Sessions expire after five idle minutes or fifteen total minutes and
-close on profile generation changes, reboot, admission loss or invalid tags.
-Logout, expiry, invalid tags and sequence exhaustion affect only the addressed
-session; every session has its own keys, context, timers and exact sequence.
-Ordinary configuration journal revisions do not expire other logins.
-No automatic mutation retry occurs. On a lost response the page clears its keys,
-preserves edits, and blocks saves until authentication, authoritative saved-state
-readback and explicit review establish a fresh revision. Status or login alone
-cannot unlock saving. [Consumer-Recovery/1](Consumer-Recovery-v1.md) adds a
-separately versioned, password-authenticated retirement proof usable at full
-ordinary capacity. It lists one-way retirement aliases, never raw traffic IDs,
-and requires explicit target selection. It creates no replacement session and
-replays no application request.
-Deferred restart/network-disable actions execute only after the complete reply
-has been acknowledged on the matching transport transaction. A lost/partial reply or
-session expiry cancels only that transaction's still-pending deferred action.
-A normally acknowledged HTTP connection close leaves the login usable. Already committed settings or
-accepted WTP operations can remain effective after a lost reply.
+POST logical `/api/control/v1/consumer/logout`, body `{"contract":"Wsprry-Control/1"}`, closes the volatile session after constructing its encrypted acknowledgement. It does not abort or release a job. Sessions expire after thirty idle minutes or eight total hours and close on profile generation changes, reboot, admission loss or invalid tags,
+except the exact station-authority transfer defined in
+[configuration updates](../development/configuration-updates.md#station-authority-and-live-application).
+That transfer preserves every authentication field, receipt and credential;
+active sessions, pending handshakes and recovery proofs retain their original
+transcripts, keys, sequences, selectors and deadlines. It does not rebind a
+transcript to the new profile generation. Management policy reports the current
+profile generation; clients validate it against fresh exact device/boot identity,
+independently of the immutable handshake generation. A transfer between those
+observations permits one bounded reread of the same read-only policy resource,
+with full contract validation; it never retries a mutation or renews a session's
+absolute lifetime. Logout, expiry, invalid tags and sequence exhaustion affect only the addressed session; every session has its own keys, context, timers and exact sequence. Ordinary configuration journal revisions do not expire other logins. Idle time renews only after an authenticated request; public reads, page visibility and form editing do not renew it. The absolute deadline starts at successful authentication and never renews. Current management discovery advertises typed `idle_ms:1800000` and `absolute_ms:28800000` policies within the shared contract bounds; historical management views are unsupported. Consumer-Radio/1 handshake bytes and cryptographic vectors are unchanged. No automatic mutation retry occurs. On a lost response the page clears its keys, preserves edits, and blocks saves until authentication, authoritative saved-state readback and explicit review establish a fresh revision. Status or login alone cannot unlock saving. [Consumer-Recovery/1](Consumer-Recovery-v1.md) adds a separately versioned, password-authenticated retirement proof usable at full ordinary capacity. It lists one-way retirement aliases, never raw traffic IDs, and requires explicit target selection. It creates no replacement session and replays no application request. Deferred restart/network-disable actions execute only after the complete reply has been acknowledged on the matching transport transaction. A lost/partial reply or session expiry cancels only that transaction's still-pending deferred action. A normally acknowledged HTTP connection close leaves the login usable. Already committed settings or accepted WTP operations can remain effective after a lost reply.
 
 DHCP/link/hostname changes close station sessions and cancel pending deferred
 actions. AP withdrawal closes AP sessions without closing a healthy LAN session.
@@ -145,9 +168,9 @@ again at the intended origin. Session closure never releases or aborts a job.
 
 ## Authenticated commissioning routes
 
-The additive logical `/api/v1/consumer/setup/` prefix reuses the same envelope,
+The additive logical `/api/control/v1/consumer/setup/` prefix reuses the same envelope,
 sequence, authentication and response rules. The suffix is an existing setup
-path, for example `/api/v1/consumer/setup/api/bootstrap/v1/start`. Only these
+path, for example `/api/control/v1/consumer/setup/api/bootstrap/v1/start`. Only these
 method/path pairs are forwarded after the complete outer AEAD authenticates:
 
 - GET `/api/bootstrap/v1/status`, `/api/owner/v1/public-status`,
@@ -183,7 +206,7 @@ The restored receipt cannot be submitted as a mutation.
 The [fixed vectors](Consumer-Radio-v1-vectors.json) use synthetic credentials
 and compare Noble browser output with the pinned Mbed TLS implementation,
 including a maximum-size paged request. Host/vector checks are not target/RF
-qualification. Physical peer/board behavior and release qualification are independent of
+qualification. Physical peer/board behavior and general reliability are independent of
 source/vector conformance.
 
 An active fake endpoint can choose its own X25519 key, obtain the client's
@@ -195,9 +218,9 @@ execution but does not authenticate a unique device before emitting that proof.
 
 ## Pico password settings
 
-Inside an authenticated Consumer-Radio envelope, `GET /api/v1/consumer/password` returns schema `pico-password/1`, the member target `{scope, device_id, boot_id}`, Boolean `wifi_default`, and `saved:true`, with an ETag. It returns no password or verifier. The ordinary API, public setup interface, engineering transport and Plain LAN WTP do not expose this resource.
+Inside an authenticated Consumer-Radio envelope, `GET /api/control/v1/consumer/password` returns schema `pico-password`, the member target `{scope, device_id, boot_id}`, Boolean `wifi_default`, and `saved:true`, with an ETag. It returns no password or verifier. The independent public read surface exposes this same redacted GET only. The ordinary API, public setup interface, engineering transport and Plain LAN WTP do not expose its mutation route.
 
-`PUT` on the same logical route requires `If-Match` from that read and exactly `{schema, target, password}`. The schema and exact member device/boot must match. A password is 8–63 printable ASCII characters; JSON null explicitly selects the saved Wi-Fi default and is refused when no Wi-Fi password exists. The caller must be authenticated, the transmitter idle and unowned, and no setup/configuration mutation may be pending. There is no implicit retry. Responses use `428 revision_required`, `412 revision_conflict`, `400 invalid_password`, `409 busy`, `409 setup_pending`, `409 wifi_password_unavailable` or `503 password_save_unconfirmed` as applicable.
+`PUT` on the same logical route requires `If-Match` from that read and exactly `{contract, schema, target, password}`. The schema and exact member device/boot must match. A password is 8–63 printable ASCII characters; JSON null explicitly selects the saved Wi-Fi default and is refused when no Wi-Fi password exists. The caller must be authenticated, the transmitter idle and unowned, and no setup/configuration mutation may be pending. There is no implicit retry. Responses use `428 revision_required`, `412 revision_conflict`, `400 invalid_password`, `409 busy`, `409 setup_pending`, `409 wifi_password_unavailable` or `503 password_save_unconfirmed` as applicable.
 
 The access journal stores the separate Pico password independently of network and station profiles. Its legacy version-2 payload remains valid; version 3 adds a length-prefixed password at byte 160, with at most 63 following bytes and zero padding. Journal framing, slots, commit/readback and fault behavior are unchanged. Creating this record for browser settings keeps BLE disabled and field mode off. Other access-journal writes preserve the separate Pico password; browser logins are invalidated only when that password changes, not when unrelated access metadata changes.
 

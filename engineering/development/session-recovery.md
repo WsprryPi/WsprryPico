@@ -1,10 +1,10 @@
 # Session recovery
 
-## Selected design
+## Recovery exchange
 
 WsprryPico leads; WsprryPi adopts the same separately versioned
-Consumer-Recovery/1 extension. Consumer-Radio/1 traffic, its fixed vectors and
-the frozen management/1 and management/2 discovery documents stay unchanged.
+Consumer-Recovery/1 extension. Consumer-Radio/1 traffic and its fixed vectors
+remain independent from the current `Wsprry-Control/1` management resource.
 
 Recovery retires one explicitly selected login and never creates a replacement
 session or repeats an application request. The operator supplies the current
@@ -46,25 +46,7 @@ wrong Host/Origin/interface, stale identity/generation, oversized/duplicate JSON
 invalid keys and failed RNG/allocation/crypto. All workspace keys are erased on
 consumption, expiry or context invalidation. No private application reads occur.
 
-A client retiring its own login clears its traffic state before dispatching
-the finish proof. A lost reply retains only the alias and invalidates saving.
-A lost recovery reply is reconciled by another explicit authenticated retirement
-of the same boot-bound target: an absent target returns an authenticated absent
-result. No slot is allocated and nonreused boot-local session IDs prevent a
-delayed proof from retiring a new occupant. Abandoned recovery starts can delay
-another recovery by at most five seconds with healthy transport and no competing
-new starts. Repeated competing traffic can deny service; no availability guarantee
-is made against that traffic. No ordinary
-five-minute expiry or reboot is required. A complete recovery followed by an
-explicit ordinary login requires four POSTs plus discovery/identity reads; the
-existing one-second ordinary login pacing still applies. Browser discovery and
-identity reads each have a five-second timeout; recovery POSTs each have five
-seconds and ordinary login POSTs each have 30 seconds. Native HTTP exchanges each
-have an eight-second absolute deadline and check the proof's five-second
-pre-finish budget. There is no retry loop. A successful finish retires during
-that dispatch within the server proof lifetime; timeout/refusal is reported
-explicitly. These are bounded attempts under a healthy transport, not an
-availability promise under competing traffic.
+A client retiring its own login clears its traffic state before dispatching the finish proof. A lost reply retains only the alias and invalidates saving. A lost recovery reply is reconciled by another explicit authenticated retirement of the same boot-bound target: an absent target returns an authenticated absent result. No slot is allocated and nonreused boot-local session IDs prevent a delayed proof from retiring a new occupant. Abandoned recovery starts can delay another recovery by at most five seconds with healthy transport and no competing new starts. Repeated competing traffic can deny service; no availability guarantee is made against that traffic. No ordinary session expiry or reboot is required. A complete recovery followed by an explicit ordinary login requires four POSTs plus discovery/identity reads; the existing one-second ordinary login pacing still applies. Browser discovery and identity reads each have a five-second timeout; recovery POSTs each have five seconds and ordinary login POSTs each have 30 seconds. Native HTTP exchanges each have an eight-second absolute deadline and check the proof's five-second pre-finish budget. There is no retry loop. A successful finish retires during that dispatch within the server proof lifetime; timeout/refusal is reported explicitly. These are bounded attempts under a healthy transport, not an availability promise under competing traffic.
 
 Retirement cancels only the selected session's still-pending transaction through
 the existing false-delivery callback. Already durable settings and accepted jobs
@@ -89,3 +71,9 @@ bootstrap dispatch/delivery gates. Failed results retain correctable drafts;
 successful readback must preserve unrelated edits. Receipt-only origin
 continuations cannot submit. Password changes require an explicit login using
 the password valid for the observed profile. No automatic password guesses.
+
+The hostname lock opens the password dialog; occupied-login recovery is a secondary native disclosure within it. Inspection, exact target selection, current-password proof and explicit confirmation remain separate from replacement login. Cancelling the dialog scrubs both password entries. Locking during an application action gates subsequent dispatches immediately and serializes logout after the current bounded operation; it cannot reverse an accepted save or job. A cancelled late successful login is cleaned up before another login is admitted. Unconfirmed cleanup retains only the existing nonsecret selector for explicit recovery.
+
+Saved-state review is contextual. Normal page reads and confirmed mutations hide the panel; uncertainty or changed settings exposes Review saved settings. The comparison retains browser edits, and explicit confirmation rechecks its exact revision and target before enabling saving. Reloading device values does not acknowledge uncertainty. Pending commissioning receipts remain beside the corresponding Wi-Fi or station form, and checking a receipt never replays it.
+
+Explicit actions retain the [page-wide submission authority](browser-pages.md#submission-authority-and-feedback) through all nested reads and cleanup. Closing its modal never acknowledges uncertainty. Receipt checking and exact-revision comparison remain distinct from saving, and pending polling cannot acknowledge a save. The foreground's lock, login cancellation and deferred owner-only abort have their original authority boundaries.

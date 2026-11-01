@@ -63,7 +63,7 @@ class Tests(unittest.TestCase):
         first=self.run_tool();self.assertEqual(first.returncode,0,first.stderr)
         seeded=self.files['output'].read_bytes();self.files['output'].unlink();self.write('backup',seeded)
         self.refuse('123456789')
-        changed=profile();changed['station']['callsign']='N0CALL';changed['request_sha256']='b'*64;self.write('profile',compact(changed).encode())
+        changed=profile();changed['station']['callsign']='K1ABC';changed['request_sha256']='b'*64;self.write('profile',compact(changed).encode())
         second=self.run_tool('123456790');self.assertEqual(second.returncode,0,second.stderr)
         loaded=json.loads(subprocess.check_output([INSPECTOR,str(self.files['output'])]))
         self.assertEqual(loaded['profile_sequence'],2);self.assertEqual(loaded['watermark'],123456790)

@@ -1,11 +1,15 @@
 #include "rf/stream_engine.hpp"
 
+#include "rf/filter_selector.hpp"
 #include "time/mapping.hpp"
 
 #include <algorithm>
 #include <limits>
 
 namespace wsprrypico::rf {
+std::uint64_t StreamEngine::filter_preparation_ns() const {
+    return filters_ && filters_->required() ? filters_->preparation_ns() + 1 : 0;
+}
 
 bool StreamEngine::schedule(const wtp::Job& job, std::uint64_t start_ns,
                             const wtp::LocalStartConditions& conditions) {
@@ -111,6 +115,16 @@ bool StreamEngine::set_frequency_correction_ppb(std::int32_t ppb) {
     return true;
 }
 
+std::size_t StreamEngine::preparation_memory_bytes(const wtp::Job& job) const {
+    const auto marks = std::count_if(job.events.begin(), job.events.end(),
+                                     [](const auto& event) { return event.rf_on; });
+    // Plan segments and one exactly reserved adjustment vector coexist. The
+    // compact retained list may coexist with that vector as well. Fixed slack
+    // covers its shared metadata, allocator bookkeeping and bounded job fields.
+    return 4096 + job.events.size() * sizeof(Segment) +
+           marks * (sizeof(wtp::FrequencyAdjustment) + sizeof(std::uint16_t));
+}
+
 wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
     if (state_ != wtp::EngineState::Idle || output_active()) {
         return {};
@@ -119,7 +133,18 @@ wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
     if (!candidate) {
         return {};
     }
+    if (filters_ && !filters_->prepare(job, *candidate)) {
+        failure_ = "filter_coverage_required";
+        return {};
+    }
     wtp::PrepareResult result{true, {}};
+    const auto adjustments = std::count_if(
+        candidate->segments.begin(), candidate->segments.end(), [&](const auto& segment) {
+            const auto index = &segment - candidate->segments.data();
+            return segment.increment &&
+                   realized_nhz(segment.increment) != *job.events[index].frequency_nhz;
+        });
+    result.adjustments.reserve(adjustments);
     for (std::size_t i = 0; i < candidate->count; ++i) {
         if (candidate->segments[i].increment != 0) {
             const auto realized = realized_nhz(candidate->segments[i].increment);
@@ -159,11 +184,13 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
     if (state_ != wtp::EngineState::Idle || !job_ || *job_ != wtp::job_digest(job) ||
         epoch_ == std::numeric_limits<std::uint64_t>::max() ||
         start_monotonic_ns > std::numeric_limits<std::uint64_t>::max() -
-                                 std::max(job.total_duration_ns, realized_duration_ns)) {
+                                 std::max(job.total_duration_ns, realized_duration_ns) -
+                                 amplifier_tail_ns() - maximum_completion_acknowledgement_ns) {
         return false;
     }
     if (!sink_.stop(start_monotonic_ns) || output_active()) {
         state_ = wtp::EngineState::Failed;
+        filter_observation_ = -2;
         return false;
     }
     ++epoch_;
@@ -187,15 +214,21 @@ wtp::EngineReport StreamEngine::fail(std::uint64_t now_ns, const char* reason) {
     failure_ = reason;
     state_ = wtp::EngineState::Failed;
     // Even when stop fails, never recycle buffers or restart without successful disable.
-    (void)sink_.stop(now_ns);
+    filter_observation_ = sink_.stop(now_ns) ? -1 : -2;
     return {state_, output_active()};
 }
 
 wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
+    auto result = poll_impl(now_ns);
+    result.filter_selector = filter_observation_;
+    return result;
+}
+wtp::EngineReport StreamEngine::poll_impl(std::uint64_t now_ns) {
     if (state_ != wtp::EngineState::Armed && state_ != wtp::EngineState::Running) {
         return {state_, output_active()};
     }
     const auto report = sink_.poll(now_ns);
+    filter_observation_ = report.filter_selector;
     if (report.observed_monotonic_ns) {
         if (*report.observed_monotonic_ns < now_ns) {
             return fail(now_ns, "invalid_progress");
@@ -232,10 +265,12 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     // An alarm may be serviced late within the accepted second. A finite
     // waveform's duration is measured only once its launch is observed.
     if (report.state == wtp::EngineState::Armed && start_conditions_.clock &&
-        report.consumed_samples == 0 && report.completed_blocks == 0 && !active) {
+        report.consumed_samples == 0 && report.completed_blocks == 0 &&
+        (!active || report.chain_phase == wtp::ChainPhase::Lead ||
+         report.chain_phase == wtp::ChainPhase::Selecting)) {
         last_poll_ns_ = now_ns;
         if (now_ns < launch_deadline_ns_)
-            return {wtp::EngineState::Armed, false};
+            return {wtp::EngineState::Armed, active, {}, report.chain_phase};
         if (!sink_.stop(now_ns) || output_active())
             return fail(now_ns, "missed_disable_failed");
         state_ = wtp::EngineState::Missed;
@@ -270,6 +305,17 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
         state_ = wtp::EngineState::Complete;
         return {state_, false, launch_ns_};
     }
+    if (report.chain_phase == wtp::ChainPhase::Tail && report.state == wtp::EngineState::Running &&
+        launch_ns_ && now_ns >= end_ns_ && report.tail_deadline_monotonic_ns &&
+        *report.tail_deadline_monotonic_ns > now_ns &&
+        *report.tail_deadline_monotonic_ns - now_ns <= amplifier_tail_ns() &&
+        report.consumed_samples == plan_.total_samples && report.completed_blocks == submitted_ &&
+        waveform_.position() == plan_.total_samples && active) {
+        state_ = wtp::EngineState::Running;
+        completed_ = report.completed_blocks;
+        consumed_ = report.consumed_samples;
+        return {state_, true, launch_ns_, wtp::ChainPhase::Tail, report.tail_deadline_monotonic_ns};
+    }
     // Final data and zero-tail IRQ acknowledgements can both lag the hardware.
     // Allow only the final submitted block to be unacknowledged, for at most
     // 100 us after the nominal end. This does not generate extra RF samples.
@@ -294,15 +340,17 @@ wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     completed_ = report.completed_blocks;
     consumed_ = report.consumed_samples;
     state_ = report.state;
-    return {state_, active, launch_ns_};
+    return {state_, active, launch_ns_, report.chain_phase};
 }
 
 bool StreamEngine::disable(std::uint64_t deadline_monotonic_ns) {
     if (!sink_.stop(deadline_monotonic_ns) || output_active()) {
         state_ = wtp::EngineState::Failed;
+        filter_observation_ = -2;
         return false;
     }
     state_ = wtp::EngineState::Idle;
+    filter_observation_ = -1;
     job_.reset();
     plan_ = {};
     start_conditions_ = {};

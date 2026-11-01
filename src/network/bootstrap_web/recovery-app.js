@@ -1,3 +1,4 @@
+import '../web/submission.js';
 import {titleFromDevice} from './presentation.js';
 import {available} from './crypto.js';
 import {recoveryKey, recoverySeal} from './recovery-crypto.js';
@@ -5,7 +6,9 @@ const $ = (s) => document.getElementById(s);
 const host = 'http://192.168.4.1';
 let identity, phrase, resetOrigin='provisioning', submitting = false, uncertain = false;
 const notice = (s) => { $('notice').textContent = s; };
+const submissions = WsprrySubmission.create(document,{refuse:notice});
 async function request(path, body) {
+  if (submissions.suspended) throw new Error('This page was left before the next request. Check the saved result before another save.');
   const controller = new AbortController(), timeout = setTimeout(() => controller.abort(), 8000);
   try {
     const options = {cache: 'no-store', credentials: 'omit', redirect: 'error', signal: controller.signal};
@@ -39,25 +42,28 @@ $('cancel').addEventListener('click', () => {
   $('phrase').value = ''; phrase = undefined; $('confirm').hidden = true; $('actions').hidden = false;
   $(resetOrigin).focus();
 });
-$('reset-form').addEventListener('submit', async (event) => {
-  event.preventDefault(); update(); if ($('execute').disabled) return;
-  submitting = true; update(); $('cancel').disabled = true;
-  let key, submitted = false;
-  try {
-    key = recoveryKey();
-    const start = await request('/api/recovery/v1/start', {version: 1, device_id: identity.device_id,
-      browser_public_key: key.public, request_nonce: key.nonce});
-    if (start.boot_id !== identity.boot_id) throw new Error('The Pico restarted. Reload before confirming a reset.');
-    const body = recoverySeal(key, start, identity.device_id, phrase);
-    $('phrase').value = ''; submitted = true;
-    const result = await request('/api/recovery/v1/submit', body);
-    if (result.state !== 'reset_pending') throw new Error('Reset result could not be confirmed.');
-    uncertain = true; $('confirm').hidden = true;
-    notice('Reset accepted. The Pico will restart. Reconnect to its setup Wi-Fi after restart.');
-  } catch (error) {
-    uncertain = submitted;
-    notice(submitted ? 'Reset result unknown. Do not repeat the request. Wait for restart, then reconnect and check the Pico.' : error.message);
-  } finally { key?.secret.fill(0); submitting = false; update(); if (!uncertain) $('cancel').disabled = false; }
+$('reset-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  return submissions.run(async () => {
+    event.preventDefault(); update(); if ($('execute').disabled) return;
+    submitting = true; update(); $('cancel').disabled = true;
+    let key, submitted = false;
+    try {
+      key = recoveryKey();
+      const start = await request('/api/recovery/v1/start', {version: 1, device_id: identity.device_id,
+        browser_public_key: key.public, request_nonce: key.nonce});
+      if (start.boot_id !== identity.boot_id) throw new Error('The Pico restarted. Reload before confirming a reset.');
+      const body = recoverySeal(key, start, identity.device_id, phrase);
+      $('phrase').value = ''; submitted = true;
+      const result = await request('/api/recovery/v1/submit', body);
+      if (result.state !== 'reset_pending') throw new Error('Reset result could not be confirmed.');
+      uncertain = true; $('confirm').hidden = true;
+      notice('Reset accepted. The Pico will restart. Reconnect to its setup Wi-Fi after restart.');
+    } catch (error) {
+      uncertain = submitted;
+      notice(submitted ? 'Reset result unknown. Do not repeat the request. Wait for restart, then reconnect and check the Pico.' : error.message);
+    } finally { key?.secret.fill(0); submitting = false; update(); if (!uncertain) $('cancel').disabled = false; }
+  },{message:'Requesting the confirmed Pico reset.'});
 });
 (async () => {
   try {
@@ -71,3 +77,6 @@ $('reset-form').addEventListener('submit', async (event) => {
     notice('Select a recovery action. Transmission must remain stopped.');
   } catch (error) { notice(error.message); }
 })();
+
+globalThis.addEventListener?.('pagehide',()=>submissions.suspend());
+globalThis.addEventListener?.('pageshow',()=>submissions.resume());

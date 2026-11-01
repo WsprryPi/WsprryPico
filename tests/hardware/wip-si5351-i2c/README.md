@@ -2,8 +2,8 @@
 
 This standalone diagnostic stays outside the normal application build. It
 checks I²C communication with an attached candidate and implements no production
-Si5351 RF engine. The [Si5351 design reference](../../../engineering/development/si5351-engine-notes.md)
-defines the engine boundary and the consolidated backlog selects unfinished work.
+Si5351 RF engine. The [Si5351 TODO](../../../engineering/development/consolidated-backlog.md#possible-future-work)
+records the proposed engine boundary and unfinished work.
 
 Minimal Pico 2 W sketch: I²C0, GP4 SDA (header pin 6), GP5 SCL (header pin 7),
 100 kHz, internal pull-ups. An explicit USB `PROBE` command performs one finite

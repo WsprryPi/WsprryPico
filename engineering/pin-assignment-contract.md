@@ -1,12 +1,6 @@
 # Pico 2 W pin-assignment contract
 
-Status: selected design contract, agreed 2026-10-01; implemented subset below.
-The [pin allocation feature](development/pin-allocation.md) implements boot-applied
-direct RF, active-low switch and indicator selection plus candidate allocation
-validation. Optional immediate amplifier-enable execution and independent polarity
-are implemented in the [amplifier slice](development/amplifier-enable.md).
-LPF adapters and Pico Si5351 support remain unimplemented. Hardware eligibility
-is not RF qualification.
+Status: selected design contract, agreed 2026-10-01; implemented subset below. The [pin allocation feature](development/pin-allocation.md) implements boot-applied direct RF, active-low switch and indicator selection plus candidate allocation validation. Optional amplifier-enable execution and independent polarity are implemented in the [amplifier slice](development/amplifier-enable.md). Named [LPF/band selection](development/lpf-band-selector.md) has separate settings, complete-job coverage and local settling. Pico Si5351 support remains unimplemented. Hardware eligibility is not RF qualification.
 
 ## Target and numbering
 
@@ -147,30 +141,19 @@ suitable buffering, level conversion or relay drivers. External bias establishes
 required startup/reset/unpowered states; software does not guarantee driven
 levels throughout those conditions. I²C requires compatible pull-ups and voltage.
 
-Assignments may change only while the member is idle, unowned, RF-inactive and
-nonfaulted, with configuration revision validation. The member owns the complete
-local RF chain. The implemented subset initializes the amplifier inactive,
-prepares the engine, asserts enable immediately before physical RF activation,
-executes one finite job including keyed gaps, stops RF and immediately deasserts
-enable. Separate jobs deassert between them, including a Type 2/3 pair.
-Filter selection/settling and amplifier lead/tail timing are unavailable.
-Completion, cancellation and faults use the same cleanup authority. Unconfirmed
-cleanup blocks another transmission. Pin assignment does not authorize output.
+Assignments may change only while the member is idle, unowned, RF-inactive and nonfaulted, with configuration revision validation. The member owns the complete local RF chain. The implemented subset initializes the amplifier inactive, prepares the engine, completes the saved amplifier lead before scheduled physical RF activation, executes one finite job including keyed gaps, stops RF and completes a normal RF-off tail before deasserting enable. Lead and tail each default to 200 ms and are independently configurable from 0 to 1000 ms. Separate jobs deassert between them, including a Type 2/3 pair. Filter selection/settling is unavailable. Emergency cleanup bypasses amplifier tail. Completion, cancellation and faults use the same cleanup authority. Unconfirmed cleanup blocks another transmission. Pin assignment does not authorize output.
 
 ## Implementation and validation boundary
 
-This is the selected target design. The feature guide above records its current
-implemented subset and pending restart behavior.
-Exact schema names, configuration migration, drive settings, bus speeds, filter
-circuits and settling/lead/tail values remain separate implementation decisions.
-These settings belong to the member management API, not WTP/1.
+The [boot pin guide](development/pin-allocation.md) defines saved configuration,
+restart latching, and active-plan observations. GPIO drive, amplifier timing,
+and filter policy use their independent management resources. These settings
+are not WTP/1 fields. Si5351 remains unavailable.
 
-Future implementation must verify valid choices, each overlap class, engine
-exclusivity, pair completeness, atomic replacement, saved-config rejection and
-indicator selection with deterministic hardware-free checks. Opt-in target
-validation must identify board, firmware, engine, clock, pins and physical setup;
-RF qualification is separately scoped. No hardware operations are authorized by
-this document.
+Deterministic checks cover valid choices, overlap classes, engine exclusivity,
+pair completeness, atomic replacement, saved-config rejection, and indicator
+selection. Physical validation requires the exact board, firmware, engine,
+clock, pins, and setup. It does not follow from a successful host check.
 
 ## References
 

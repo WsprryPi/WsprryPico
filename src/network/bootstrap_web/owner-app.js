@@ -1,9 +1,10 @@
+import '../web/submission.js';
 import '../web/saved-progress.js';
 import {titleFromDevice} from './presentation.js';
 import {x25519} from '@noble/curves/ed25519.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {available} from './crypto.js';
-import {claimPlaintext, sealOwnerClaim, sealSavedProgress, stationPlanHint} from './owner-claim.js';
+import {claimPlaintext, sealOwnerClaim, sealSavedProgress, validateStationIdentity} from './owner-claim.js';
 
 const host = 'http://192.168.4.1';
 const p256 = globalThis.WsprryPicoOwnerKey;
@@ -32,15 +33,16 @@ const random = (size) => {
   return bytes;
 };
 const show = (selected, moveFocus = false) => {
-  const focused=document.activeElement;
+  const focused=submissions.origin || document.activeElement;
   for (const name of sections) $(name).hidden = name !== selected;
   if ($('station-intro')) $('station-intro').hidden = selected === 'owner-wifi-first';
-  if (moveFocus || focused?.closest('[hidden]')) $('owner-title').focus();
+  if (moveFocus || focused?.closest('[hidden]')) submissions.focus($('owner-title'));
 };
 const notice = (message, error = false) => {
   $('notice').textContent = message;
   $('notice').classList.toggle('error', error);
 };
+const submissions = WsprrySubmission.create(document,{refuse:text=>notice(text,true)});
 let deviceId, status, submitted, polling = false, saving = false;
 let complete = false, retryVisible = false;
 let formEdited = false, filledGeneration;
@@ -64,18 +66,25 @@ async function readOwnerProgress(fill = false) {
   const response = await fetch(host + '/api/owner/v1/progress',{cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(8000)});
   if (response.status === 404 && !ownerProgress) return false;
   const data = await response.json(), revision = response.headers.get('ETag');
+  if (data.contract !== 'Wsprry-Control/1') throw new Error('Update the Pico application before saving station settings. Your edits are preserved.');
+  delete data.contract;
   if (!response.ok || !revision || !progressUI.valid(data) || data.target.device_id !== deviceId || data.target.boot_id !== status.boot_id || epoch !== progressReadEpoch)
     throw new Error('Saved progress could not be verified. Your edits are preserved.');
   ownerProgress = {data,revision};
   if (fill && !formEdited && !progressEdits.size) {
-    $('owner-callsign').value = data.station.callsign ?? '';
-    $('owner-locator').value = data.station.locator ?? '';
-    $('owner-power').value = data.station.power_dbm ?? '';
+    const initial = {callsign:'N0CALL',locator:'ZZ99',power_dbm:0};
+    const entry = key => data.station[key] ?? (Object.hasOwn(data.fields,key) || data.applied_station ? '' : initial[key]);
+    $('owner-callsign').value = entry('callsign');
+    $('owner-locator').value = entry('locator');
+    $('owner-power').value = entry('power_dbm');
   }
   $('owner-progress-status').textContent = progressUI.summary(data);
   progressState = fill ? 'ready' : 'review'; progressControls(); return true;
 }
-async function saveOwnerProgress() {
+function saveOwnerProgress() {
+  return submissions.run(saveOwnerProgressWork,{message:'Saving valid station fields.'});
+}
+async function saveOwnerProgressWork() {
   if (!ownerProgress || progressState !== 'ready' || progressBusy || saving || submitted) return;
   const fields = {}, edits = new Map(progressEdits);
   for (const key of edits.keys()) {
@@ -97,7 +106,7 @@ async function saveOwnerProgress() {
         started.browser_nonce !== browserNonce || started.browser_public_key !== b64u(pair.publicKey) ||
         started.owner_key_sha256 !== hex(sha256(ownerPublic))) throw new Error('Progress target changed.');
     const requestId = hex(random(16)), nonce = random(12);
-    const body = {schema:'transmitter-progress/1',target:ownerProgress.data.target,request_id:requestId,fields};
+    const body = {contract:'Wsprry-Control/1',schema:'progress',target:ownerProgress.data.target,request_id:requestId,fields};
     const envelope = sealSavedProgress({origin:host,deviceId,bootId:started.boot_id,slotId:started.slot_id,
       ownerPublicKey:ownerPublic,browserPublicKey:pair.publicKey,picoPublicKey:fromB64u(started.pico_public_key,32),
       browserNonce,requestId,source:status.profile_source,generation:status.generation},secret,nonce,body);
@@ -105,6 +114,8 @@ async function saveOwnerProgress() {
     sent = true; progressState = 'readback';
     const result = await request('/api/owner/v1/progress/submit',{version:1,device_id:deviceId,boot_id:started.boot_id,
       slot_id:started.slot_id,request_id:requestId,aead_nonce:b64u(nonce),...envelope});
+    if (result.contract !== 'Wsprry-Control/1') throw new Error('Save acknowledgement uses an unsupported control contract.');
+    delete result.contract;
     if (!progressUI.confirms(result,body)) throw new Error('Save acknowledgement is malformed.');
     // A separate read establishes the new common revision, never request attribution.
     const accepted = result.outcomes;
@@ -146,6 +157,7 @@ function showPending() {
 }
 
 async function request(path, body, bootstrap = false, timeoutMs = 8000) {
+  if (submissions.suspended) throw new Error('This page was left before the next request. Check the saved result before another save.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const options = {cache: 'no-store', credentials: 'omit', redirect: 'error',
@@ -238,10 +250,11 @@ async function update() {
   polling = true;
   const pending = submitted;
   try {
+    if (submissions.pending) return;
     const current = await request('/api/owner/v1/claim/status');
     if (!validStatus(current)) throw new Error('wrong Pico status');
     // A poll issued before this POST cannot decide the new attempt's outcome.
-    if (saving || pending !== submitted) return;
+    if (saving || submissions.pending || pending !== submitted) return;
     const wasClaimAvailable = status?.claim_available === true;
     status = current;
     if (complete || retryVisible) return;
@@ -306,14 +319,17 @@ async function update() {
   } catch {
     if (submitted && !saving && pending === submitted) showPending();
   } finally {
-    if (!saving && !submitted) await hintTime();
+    if (!saving && !submitted && !submissions.pending) await hintTime();
     polling = false;
     progressControls();
     setTimeout(update, 1000);
   }
 }
 
-async function identify() {
+function identify() {
+  return submissions.run(identifyWork,{message:'Identifying the Pico with its LED.'});
+}
+async function identifyWork() {
   if (!status?.claim_available || saving || submitted || complete) return;
   $('owner-identify').disabled = true;
   try {
@@ -329,13 +345,17 @@ async function identify() {
   }
 }
 
-async function submit(event) {
+function submit(event) {
+  event.preventDefault();
+  return submissions.run(()=>submitWork(event),{message:'Applying saved station settings.'});
+}
+async function submitWork(event) {
   event.preventDefault();
   if (!status?.claim_available || status.source === 'unprovisioned' || saving ||
       submitted || complete || retryVisible) return;
   if (ownerProgress && progressState !== 'ready') return;
   const proposed = ownerProgress ? {ssid:'',password:'',callsign:ownerProgress.data.station.callsign,locator:ownerProgress.data.station.locator,powerDbm:ownerProgress.data.station.power_dbm} : settings();
-  try { claimPlaintext(proposed).fill(0); stationPlanHint(proposed.callsign, proposed.locator); }
+  try { claimPlaintext(proposed).fill(0); validateStationIdentity(proposed.callsign, proposed.locator); }
   catch (error) {
     notice(error.message || 'Check the callsign, locator and reported WSPR power.', true);
     return;
@@ -439,13 +459,13 @@ async function submit(event) {
 async function boot() {
   globalThis.addEventListener?.('beforeunload',event=>{if(progressEdits.size || submitted){event.preventDefault();event.returnValue='';}});
   $('owner-save-progress').onclick = saveOwnerProgress;
-  $('owner-read-progress').onclick = async () => {
+  $('owner-read-progress').onclick = () => submissions.run(async () => {
     if (progressBusy || saving || submitted) return;
     progressBusy=true;progressControls();
     try {await readOwnerProgress(false);notice('Review saved progress. Matching values do not identify which earlier request committed.');}
     catch(error) {progressState='readback';notice(error.message,true);}
     finally {progressBusy=false;progressControls();}
-  };
+  },{message:'Reading saved station fields.'});
   $('owner-review-progress').onclick = () => {if(progressState==='review'){progressState='ready';progressControls();}};
   $('owner-form').addEventListener('input', event => {
     const key = {'owner-callsign':'callsign','owner-locator':'locator','owner-power':'power_dbm'}[event.target.id];
@@ -461,6 +481,7 @@ async function boot() {
   }
   $('owner-identify').addEventListener('click', identify);
   $('owner-retry-button').addEventListener('click', () => {
+    if (submissions.pending) { notice('Wait for the current Pico request to finish. No additional action was sent.',true); return; }
     clearTransaction();
     retryVisible = false;
     // Recheck the slot before permitting a new POST; the old status may predate rejection.
@@ -472,10 +493,6 @@ async function boot() {
     update();
   });
   $('owner-form').addEventListener('submit', submit);
-  $('owner-form').addEventListener('input', () => {
-    try { const s = settings(); $('owner-wspr-plan').textContent = 'Draft: ' + stationPlanHint(s.callsign,s.locator) + ' The Pico validates encoding before applying station settings.'; }
-    catch (error) { $('owner-wspr-plan').textContent = error.message; }
-  });
   if (location.origin !== host || !available() || !p256 ||
       typeof AbortController !== 'function') {
     show('owner-browser');
@@ -528,3 +545,6 @@ boot();
 globalThis.addEventListener?.('beforeunload', event => {
   if (formEdited) { event.preventDefault(); event.returnValue = ''; }
 });
+
+globalThis.addEventListener?.('pagehide',()=>submissions.suspend());
+globalThis.addEventListener?.('pageshow',()=>submissions.resume());

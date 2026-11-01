@@ -2,7 +2,7 @@
 const assert = require('node:assert/strict');
 const {create,valid,supported} = require('../src/network/web/gpio-drive.js');
 function element() { return {value:'',disabled:false,textContent:'',handlers:{},setAttribute(){},addEventListener(k,fn){this.handlers[k]=fn;}}; }
-const observation = {schema:'transmitter-gpio-drive/1',target:{scope:'member',device_id:'a'.repeat(32),boot_id:'b'.repeat(32)},saved:4,boot_active:4,pad_readback:null,pending_restart:false,application_error:null,rf_gp:2,execution_engine:'inhibited',storage_healthy:true};
+const observation = {schema:'gpio-drive',target:{scope:'member',device_id:'a'.repeat(32),boot_id:'b'.repeat(32)},saved:4,boot_active:4,pad_readback:null,pending_restart:false,application_error:null,rf_gp:2,execution_engine:'inhibited',storage_healthy:true};
 (async()=>{
  const e=Object.fromEntries(['select','read','save','discard','status'].map(k=>[k,element()]));
  let state=structuredClone(observation),version=1,fail=false; const calls=[];
@@ -28,13 +28,13 @@ const observation = {schema:'transmitter-gpio-drive/1',target:{scope:'member',de
 (async()=>{
  const e=Object.fromEntries(['select','read','save','discard','status','saveDraft','applyDraft','draftStatus'].map(k=>[k,element()]));
  let applied=null,draft,version=1;const writes=[];
- const progress=()=>({schema:'transmitter-progress/2',target:observation.target,draft_revision:draft===undefined?'0':'1',fields:draft===undefined?{}:{gpio_drive_ma:draft},apply_domains:{drive:applied!==null}});
+ const progress=()=>({schema:'progress',target:observation.target,draft_revision:draft===undefined?'0':'1',fields:draft===undefined?{}:{gpio_drive_ma:draft},apply_domains:{drive:applied!==null}});
  const controller=create({...e,exchange:async(method,body,match,resource='gpio-drive')=>{
    if(method!=='GET'){assert.equal(match,'"'+version+'"');writes.push({resource,body});++version;
-     if(resource==='progress/update/2'){draft=body.fields.gpio_drive_ma;return {data:{...progress(),request_id:body.request_id,outcomes:{gpio_drive_ma:'saved'}},revision:'"'+version+'"'};}
+     if(resource==='progress/update'){draft=body.fields.gpio_drive_ma;return {data:{...progress(),request_id:body.request_id,outcomes:{gpio_drive_ma:'saved'}},revision:'"'+version+'"'};}
      assert.equal(body.application.domain,'drive');applied=draft;return {data:{config:{gpio_drive_ma:applied}},revision:'"'+version+'"'};
    }
-   return {data:resource==='progress/2'?progress():{...observation,saved:applied,pending_restart:applied===8},revision:'"'+version+'"'};
+   return {data:resource==='progress'?progress():{...observation,saved:applied,pending_restart:applied===8},revision:'"'+version+'"'};
  }});
  controller.setAvailability(true);await e.read.handlers.click();assert.equal(e.select.value,'');
  e.select.value='8';e.select.handlers.change();assert(!e.saveDraft.disabled);assert(e.save.disabled);assert(e.applyDraft.disabled);
@@ -47,18 +47,18 @@ const observation = {schema:'transmitter-gpio-drive/1',target:{scope:'member',de
  const e=Object.fromEntries(['select','read','save','discard','status','saveDraft','applyDraft','draftStatus'].map(k=>[k,element()]));
  let finish;
  const controller=create({...e,exchange:async(method,body,revision,resource='gpio-drive')=>{
-   if(resource==='progress/2')return new Promise(resolve=>{finish=resolve;});
+   if(resource==='progress')return new Promise(resolve=>{finish=resolve;});
    return {data:structuredClone(observation),revision:'"1"'};
  }});
  controller.setAvailability(true);const pending=controller.load();await new Promise(setImmediate);
  assert.equal(typeof finish,'function');controller.invalidate();
- finish({data:{schema:'transmitter-progress/2',target:observation.target,draft_revision:'0',fields:{},apply_domains:{drive:false}},revision:'"1"'});
+ finish({data:{schema:'progress',target:observation.target,draft_revision:'0',fields:{},apply_domains:{drive:false}},revision:'"1"'});
  await pending;assert(e.select.disabled);assert(e.save.disabled);assert(e.saveDraft.disabled);
  assert.match(e.status.textContent,/Target or saved revision changed/);
  console.log('GPIO drive editor: target change during progress read cannot revive stale authority');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 
-const descriptor={schema:'transmitter-gpio-drive/1',read:'/api/v1/gpio-drive',write:'/api/v1/gpio-drive',method:'PUT',values:[2,4,8,12],default:4,units:'mA',engine:'pio',activation:'restart',config:'/api/v1/config/3',update:'/api/v1/config/update/3',update_schema:'transmitter-config-update/2',hardware:'/api/v1/hardware/2',application:'/api/v1/application/3',progress:'/api/v1/progress/2',progress_schema:'transmitter-progress/2'};
+const descriptor={schema:'gpio-drive',read:'/api/control/v1/gpio-drive',write:'/api/control/v1/gpio-drive',method:'PUT',values:[2,4,8,12],default:4,units:'mA',engine:'pio',activation:'restart',config:'/api/control/v1/config',update:'/api/control/v1/config/update',update_schema:'config-update',hardware:'/api/control/v1/hardware',application:'/api/control/v1/application',progress:'/api/control/v1/progress',progress_schema:'progress'};
 assert(supported(descriptor));assert(!supported(undefined));
-for(const [key,value] of Object.entries({method:'POST',units:'ordinal',engine:'si5351',write:'/other',progress:'/api/v1/progress',extra:true}))assert(!supported({...descriptor,[key]:value}));
+for(const [key,value] of Object.entries({method:'POST',units:'ordinal',engine:'si5351',write:'/other',progress:'/api/control/v1/progress/99',extra:true}))assert(!supported({...descriptor,[key]:value}));
 console.log('GPIO drive descriptor: exact engine, units, methods, versions and closed fields required');

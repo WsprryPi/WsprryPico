@@ -6,12 +6,18 @@ namespace wsprrypico::rf {
 
 bool PioDmaSink::halt_output(std::uint64_t deadline_ns) {
     hw_.force_inactive();
+    if (observation_.rf_start_ns && !observation_.rf_off_ns && hw_.rf_inactive_verified())
+        observation_.rf_off_ns = hw_.now_ns();
     const bool amplifier_inactive = !amplifier_ || amplifier_->deactivate();
+    const bool filters_inactive = !filters_ || filters_->deactivate();
+    if (observation_.enable_ns && !observation_.disable_ns && amplifier_inactive)
+        observation_.disable_ns = hw_.now_ns();
     const bool stopped = hw_.halt(deadline_ns);
     const bool inactive = !hw_.active();
     if (indicator_ && inactive)
         indicator_->inactive();
-    return stopped && inactive && amplifier_inactive;
+    return stopped && inactive && hw_.rf_inactive_verified() && amplifier_inactive &&
+           filters_inactive;
 }
 
 bool PioDmaSink::stop(std::uint64_t deadline_ns) {
@@ -30,6 +36,11 @@ bool PioDmaSink::stop(std::uint64_t deadline_ns) {
     tail_ = tail_submitted_ = false;
     guard_ = {};
     launch_ns_.reset();
+    enable_ns_.reset();
+    tail_deadline_ns_.reset();
+    break_ns_.reset();
+    selected_ns_.reset();
+    filters_ready_ = false;
     submitted_ = accepted_ = dma_blocks_ = dma_samples_ = total_ = 0;
     return !output_active();
 }
@@ -93,14 +104,28 @@ bool PioDmaSink::queue_tail() {
 bool PioDmaSink::arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t total_samples,
                      LaunchGuard guard) {
     Guard lock(hw_);
+    const bool selecting = filters_ && filters_->required();
+    const auto preparation = amplifier_lead_ns() + (selecting ? filters_->preparation_ns() : 0);
     if (state_ != wtp::EngineState::Idle || !opened_ || epoch != epoch_ || queued_ == 0 ||
         total_samples == 0 || total_samples > max_duration_ns / 1000 * (sample_rate / 1000000) ||
         accepted_ > total_samples ||
         (accepted_ < total_samples && accepted_ % block_samples != 0) || start_ns % 1000 != 0 ||
-        start_ns <= hw_.now_ns()) {
+        start_ns <= hw_.now_ns() || hw_.inhibited() ||
+        (amplifier_ && !amplifier_->timing().valid()) ||
+        (amplifier_lead_ns() && (start_ns < amplifier_lead_ns() + 1'000'000 ||
+                                 hw_.now_ns() >= start_ns - amplifier_lead_ns() - 1'000'000)) ||
+        (selecting && (start_ns < preparation + 2'000'000 ||
+                       hw_.now_ns() >= start_ns - preparation - 2'000'000))) {
         return false;
     }
     start_ = start_ns;
+    observation_ = {};
+    observation_.epoch = epoch;
+    observation_.configured = amplifier_ && amplifier_->enabled();
+    if (amplifier_) {
+        observation_.lead_ms = amplifier_->timing().lead_ms;
+        observation_.tail_ms = amplifier_->timing().tail_ms;
+    }
     total_ = total_samples;
     guard_ = guard;
     state_ = wtp::EngineState::Armed;
@@ -112,7 +137,11 @@ bool PioDmaSink::arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t 
             return false;
         }
     }
-    if (!queue_tail() || !hw_.alarm(start_, epoch_)) {
+    const bool alarm_ok = selecting ? hw_.retry_alarm(start_ - preparation - 2'000'000, epoch_)
+                          : amplifier_lead_ns()
+                              ? hw_.retry_alarm(start_ - amplifier_lead_ns() - 1'000'000, epoch_)
+                              : hw_.alarm(start_, epoch_);
+    if (!queue_tail() || !alarm_ok) {
         fault("arm_tail_or_alarm_rejected");
         return false;
     }
@@ -137,18 +166,120 @@ void PioDmaSink::event(DriverEvent event) {
         return;
     }
     if (event.kind == DriverEventKind::Alarm) {
+        if (tail_deadline_ns_) {
+            finish_tail();
+            return;
+        }
         if (state_ != wtp::EngineState::Armed) {
             return;
         }
         const auto deadline = guard_.deadline_ns ? guard_.deadline_ns : start_ + 1;
         const auto target = guard_.target(start_);
-        if (!target.admissible || target.monotonic_ns >= deadline) {
+        if (!target.admissible || target.monotonic_ns >= deadline || hw_.inhibited()) {
             failure_ = "launch_clock_guard_rejected";
             state_ =
                 halt_output(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
             return;
         }
         start_ = target.monotonic_ns;
+        if (filters_ && filters_->required()) {
+            auto now = hw_.now_ns();
+            if (!break_ns_) {
+                hw_.force_inactive();
+                if (!hw_.rf_inactive_verified() || (amplifier_ && !amplifier_->deactivate()) ||
+                    !filters_->deactivate()) {
+                    fault("filter_break_unconfirmed");
+                    return;
+                }
+                break_ns_ = hw_.now_ns();
+                now = *break_ns_;
+            }
+            const auto lead = amplifier_lead_ns(), release = filters_->release_ns(),
+                       settle = filters_->settle_ns();
+            if (*break_ns_ > UINT64_MAX - release) {
+                fault("filter_release_overflow");
+                return;
+            }
+            const auto remaining_release =
+                now < *break_ns_ + release ? *break_ns_ + release - now : 0;
+            if (now < *break_ns_ || now > UINT64_MAX - remaining_release - settle - lead ||
+                (!selected_ns_ && start_ < now + remaining_release + settle + lead)) {
+                fault("insufficient_filter_preparation");
+                return;
+            }
+            if (!selected_ns_) {
+                const auto released = *break_ns_ + release;
+                if (now < released) {
+                    if (!hw_.retry_alarm(released, epoch_))
+                        fault("filter_release_alarm_rejected");
+                    return;
+                }
+                if (!hw_.rf_inactive_verified() || hw_.inhibited() ||
+                    (amplifier_ && amplifier_->output_active_or_unknown()) ||
+                    !filters_->activate()) {
+                    fault("filter_selection_failed");
+                    return;
+                }
+                selected_ns_ = hw_.now_ns();
+                now = *selected_ns_;
+            }
+            if (now < *selected_ns_ || *selected_ns_ > UINT64_MAX - settle - lead ||
+                start_ < *selected_ns_ + settle + lead || !filters_->verify()) {
+                fault("filter_settling_unconfirmed");
+                return;
+            }
+            if (now < *selected_ns_ + settle) {
+                if (!hw_.retry_alarm(*selected_ns_ + settle, epoch_))
+                    fault("filter_settle_alarm_rejected");
+                return;
+            }
+            if (!filters_ready_) {
+                filters_ready_ = true;
+                if (!lead) {
+                    if (!hw_.alarm(start_, epoch_))
+                        fault("filter_rf_alarm_rejected");
+                    return;
+                }
+            }
+        }
+        const auto lead = amplifier_lead_ns();
+        if (lead) {
+            auto now = hw_.now_ns();
+            if (!enable_ns_) {
+                if (start_ < lead || now > start_ - lead) {
+                    failure_ = "insufficient_amplifier_lead";
+                    state_ = halt_output(now) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+                    return;
+                }
+                const auto activation = start_ - lead;
+                if (activation > now && activation - now > 1'000'000) {
+                    if (!hw_.retry_alarm(activation - 1'000'000, epoch_))
+                        fault("lead_alarm_rejected");
+                    return;
+                }
+                hw_.force_inactive();
+                if (hw_.active() || hw_.inhibited() || !amplifier_->activate()) {
+                    fault("amplifier_activation_failed");
+                    return;
+                }
+                // Settling starts after completion of the checked enable write.
+                now = hw_.now_ns();
+                enable_ns_ = now;
+                observation_.enable_ns = now;
+                if (hw_.inhibited() || now > start_ - lead) {
+                    fault("amplifier_activation_late");
+                    return;
+                }
+                if (!hw_.alarm(start_, epoch_))
+                    fault("rf_alarm_rejected");
+                return;
+            }
+            if (start_ < *enable_ns_ || start_ - *enable_ns_ < lead) {
+                failure_ = "shortened_amplifier_lead";
+                state_ = halt_output(now) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+                return;
+            }
+        }
         if (indicator_ && indicator_->enabled()) {
             const auto now = hw_.now_ns();
             // ARM and early alarm entry retain the non-TX cue. Only a valid
@@ -166,7 +297,17 @@ void PioDmaSink::event(DriverEvent event) {
                 return;
             }
         }
-        const auto launch = hw_.launch(start_, deadline, {amplifier_});
+        const auto launch = hw_.launch(start_, deadline,
+                                       {amplifier_, enable_ns_.has_value(),
+                                        [](void* context) {
+                                            auto& self = *static_cast<PioDmaSink*>(context);
+                                            self.observation_.enable_ns = self.hw_.now_ns();
+                                        },
+                                        this,
+                                        [](void* context) {
+                                            const auto& self = *static_cast<PioDmaSink*>(context);
+                                            return !self.filters_ || self.filters_->verify();
+                                        }});
         if (launch == LaunchResult::Rejected) {
             failure_ = "launch_driver_rejected";
             state_ =
@@ -178,6 +319,7 @@ void PioDmaSink::event(DriverEvent event) {
                 return;
             }
             launch_ns_ = observed;
+            observation_.rf_start_ns = observed;
             start_ = *launch_ns_;
             state_ = wtp::EngineState::Running;
         }
@@ -194,12 +336,11 @@ void PioDmaSink::event(DriverEvent event) {
         // Ten zero words have entered an eight-word FIFO: every data word,
         // including the OSR word, has drained and a zero word has been emitted. No
         // frequency-bearing tail remains.
-        if (state_ != wtp::EngineState::Running || dma_samples_ != total_ ||
-            !halt_output(hw_.now_ns())) {
+        if (state_ != wtp::EngineState::Running || dma_samples_ != total_) {
             fault("tail_completion");
             return;
         }
-        state_ = wtp::EngineState::Complete;
+        complete_rf();
         return;
     }
     if (queued_ == 0 || (state_ == wtp::EngineState::Running && hw_.stalled())) {
@@ -221,6 +362,54 @@ void PioDmaSink::event(DriverEvent event) {
     }
 }
 
+void PioDmaSink::complete_rf() {
+    if (tail_deadline_ns_)
+        return;
+    hw_.force_inactive();
+    if (!hw_.rf_inactive_verified() || hw_.inhibited()) {
+        fault("rf_completion_unconfirmed");
+        return;
+    }
+    if (indicator_)
+        indicator_->inactive();
+    const auto now = hw_.now_ns(), dwell = amplifier_tail_ns();
+    observation_.rf_off_ns = now;
+    observation_.normal_rf_completion = true;
+    if (!dwell) {
+        if (halt_output(now))
+            state_ = wtp::EngineState::Complete;
+        else
+            fault("tail_cleanup_failed");
+        return;
+    }
+    if (now > UINT64_MAX - dwell) {
+        fault("tail_deadline_overflow");
+        return;
+    }
+    tail_deadline_ns_ = now + dwell;
+    if (!hw_.retry_alarm(*tail_deadline_ns_, epoch_))
+        fault("tail_alarm_rejected");
+}
+
+void PioDmaSink::finish_tail() {
+    const auto now = hw_.now_ns();
+    if (!tail_deadline_ns_ || state_ != wtp::EngineState::Running)
+        return;
+    if (hw_.inhibited() || hw_.active()) {
+        fault("tail_inhibited_or_rf_active");
+        return;
+    }
+    if (now < *tail_deadline_ns_) {
+        if (!hw_.retry_alarm(*tail_deadline_ns_, epoch_))
+            fault("tail_retry_rejected");
+        return;
+    }
+    if (halt_output(now))
+        state_ = wtp::EngineState::Complete;
+    else
+        fault("tail_cleanup_failed");
+}
+
 SinkReport PioDmaSink::poll(std::uint64_t) {
     Guard lock(hw_);
     const auto now_ns = hw_.now_ns();
@@ -234,28 +423,64 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
     // delayed; requiring the software IRQ first creates a false DEVICE_FAULT
     // window after output is already safely low.
     if (state_ == wtp::EngineState::Running && tail_ && !hw_.active()) {
-        if (halt_output(now_ns))
-            state_ = wtp::EngineState::Complete;
-        else
-            fault("tail_cleanup_failed");
+        complete_rf();
+        if (tail_deadline_ns_ && (now_ns >= *tail_deadline_ns_ || hw_.inhibited()))
+            finish_tail();
     }
     // A failed stop may later become verifiably inactive. Pending activation
     // is the exception: Armed retains its request while waiting for the LED.
     if (indicator_ && state_ != wtp::EngineState::Armed && !hw_.active())
         indicator_->inactive();
     if (state_ == wtp::EngineState::Complete) {
-        return {state_, epoch_, submitted_, total_, now_ns, output_active(), launch_ns_};
+        return {state_,     epoch_,
+                submitted_, total_,
+                now_ns,     output_active(),
+                launch_ns_, wtp::ChainPhase::Inactive,
+                {},         filters_ ? filters_->observation() : -1};
+    }
+    if (tail_deadline_ns_ && state_ == wtp::EngineState::Running) {
+        return {state_,
+                epoch_,
+                submitted_,
+                total_,
+                now_ns,
+                output_active(),
+                launch_ns_,
+                wtp::ChainPhase::Tail,
+                tail_deadline_ns_,
+                filters_ ? filters_->observation() : -1};
     }
     if (state_ != wtp::EngineState::Running) {
-        return {state_, epoch_, 0, 0, now_ns, output_active(), launch_ns_};
+        return {state_,
+                epoch_,
+                0,
+                0,
+                now_ns,
+                output_active(),
+                launch_ns_,
+                state_ == wtp::EngineState::Armed
+                    ? (enable_ns_                         ? wtp::ChainPhase::Lead
+                       : filters_ && filters_->required() ? wtp::ChainPhase::Selecting
+                                                          : wtp::ChainPhase::Waiting)
+                : state_ == wtp::EngineState::Failed ? wtp::ChainPhase::Fault
+                                                     : wtp::ChainPhase::Inactive,
+                {},
+                filters_ ? filters_->observation() : -1};
     }
     const auto elapsed = now_ns > start_ ? std::min(now_ns - start_, max_duration_ns) : 0;
     // Conservative nominal-clock progress; DMA completion is FIFO delivery, not RF timing.
     const auto samples =
         std::min({elapsed * (sample_rate / 1000000) / 1000, dma_samples_, total_ - 1});
-    return {state_,    epoch_, std::min(dma_blocks_, samples / block_samples),
-            samples,   now_ns, output_active(),
-            launch_ns_};
+    return {state_,
+            epoch_,
+            std::min(dma_blocks_, samples / block_samples),
+            samples,
+            now_ns,
+            output_active(),
+            launch_ns_,
+            wtp::ChainPhase::Rf,
+            {},
+            filters_ ? filters_->observation() : -1};
 }
 
 } // namespace wsprrypico::rf

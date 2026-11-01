@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "board",
+    "variant",
+    "version",
+    "source",
+    "usb_update_contract",
+    "application_end",
+    "uf2"
+  ],
+  "properties": {
+    "schema": {
+      "const": "wsprrypico-local-build/2"
+    },
+    "board": {
+      "const": "pico2_w"
+    },
+    "variant": {
+      "enum": [
+        "normal",
+        "inhibited"
+      ]
+    },
+    "version": {
+      "const": "0.0.0-devel"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "revision",
+        "dirty",
+        "identity",
+        "inputs_sha256"
+      ],
+      "properties": {
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "dirty": {
+          "type": "boolean"
+        },
+        "identity": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{12}(-dirty)?$"
+        },
+        "inputs_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "usb_update_contract": {
+      "const": 2
+    },
+    "application_end": {
+      "const": "103ec000"
+    },
+    "uf2": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "bytes",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "const": "WsprryPico-0.0.0-devel-pico2_w.uf2"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}

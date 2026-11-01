@@ -1,0 +1,82 @@
+'use strict';
+const assert=require('node:assert/strict'),vm=require('node:vm');
+const {fixture}=require('./network_browser_tests.js');
+const run=(f,code)=>vm.runInContext(code,f.context), submit={preventDefault(){}};
+(async()=>{
+  const f=await fixture();let release,started=0;
+  f.context.held=async()=>{started++;await new Promise(resolve=>release=resolve);};
+  const first=run(f,'action(held)');
+  assert.equal(run(f,'busy'),true,'acquire before the first await');
+  assert.equal(run(f,'submissions.pending'),true);
+  await run(f,'action(held)');await f.elements['config'].onsubmit(submit);
+  assert.equal(started,1);assert.equal(f.calls.filter(c=>['POST','PUT'].includes(c.options.method)).length,0);
+  assert.match(f.elements.notice.textContent,/No additional action/);
+  release();await first;assert.equal(run(f,'busy || submissions.pending'),false);
+  let drain,foreground=0;
+  f.context.poll=()=>new Promise(resolve=>drain=resolve);
+  f.context.foreground=async()=>{foreground++;};
+  const poll=run(f,'action(poll,{background:true})');
+  assert.equal(f.elements.refresh.disabled,false,'polling does not disable explicit controls');
+  const accepted=run(f,'action(foreground)');
+  const owner=run(f,'submissions.token.id');
+  assert.equal(run(f,'uiBusy()'),true,'foreground owns presentation before the poll drains');
+  assert.equal(foreground,0,'production exchange must drain before another dispatch');
+  await run(f,'action(foreground)');assert.equal(foreground,0);
+  drain();await poll;await accepted;
+  assert.equal(foreground,1);assert.equal(run(f,'busy || submissions.pending'),false);
+  assert.ok(owner>0);
+
+  // An exception in the post-action readiness render used to skip busy=false.
+  await run(f,`action(async()=>{
+    const original=controls;let fail=true;
+    controls=(...args)=>{if(fail){fail=false;throw Error('readiness render failed');}return original(...args);};
+  })`);
+  assert.equal(run(f,'busy || submissions.pending'),false);
+  assert.match(f.elements.notice.textContent,/Readiness could not be confirmed/);
+  await run(f,'action(async()=>{globalThis.nextAction=true;})');assert.equal(f.context.nextAction,true);
+
+  const preempt=await fixture();preempt.prepareJob();let completeLoad;
+  const fetch=preempt.context.fetch;
+  preempt.context.fetch=async(path,options)=>{
+    const response=await fetch(path,options);
+    if(path.endsWith('/jobs')&&JSON.parse(options.body).operation==='LOAD')
+      await new Promise(resolve=>completeLoad=resolve);
+    return response;
+  };
+  const loading=preempt.elements.job.onsubmit(submit);await new Promise(setImmediate);
+  assert.equal(typeof completeLoad,'function');
+  preempt.elements.abort.onclick();completeLoad();await loading;
+  const jobs=preempt.calls.filter(c=>c.path.endsWith('/jobs')).map(c=>JSON.parse(c.options.body).operation);
+  assert.equal(jobs.filter(op=>op==='LOAD').length,1);
+  assert.equal(jobs.includes('ARM'),false,'preemption invalidates the undispatched ARM');
+  assert.equal(jobs.filter(op=>op==='ABORT').length,1);
+  assert.equal(run(preempt,'busy || stopRequested || submissions.pending'),false);
+  assert.equal(preempt.state.job.output_active,false);
+  const saving=await fixture();let finishSave;
+  saving.form.schedules.value='240 / 0';saving.elements.config.oninput();
+  const savedFetch=saving.context.fetch;
+  saving.context.fetch=async(path,options)=>{const response=await savedFetch(path,options);if(path.endsWith('/config/update'))await new Promise(resolve=>finishSave=resolve);return response;};
+  const committed=saving.elements.config.onsubmit(submit);await new Promise(setImmediate);
+  assert.equal(saving.configCommits,1);saving.elements.abort.onclick();finishSave();await committed;
+  assert.equal(run(saving,'writeState'),'readback');
+  assert.equal(run(saving,'settingsRecoveryNeeded'),true);
+  assert.match(saving.elements.notice.textContent,/Review saved settings/);
+  assert.equal(saving.configCommits,1,'abort never repeats a possibly committed save');
+  const expired=await fixture(true,true,false,true);let finishExpired;
+  expired.elements['local-password'].value='test-password';
+  await expired.elements['local-login'].onsubmit(submit);
+  expired.context.delayed=()=>new Promise(resolve=>finishExpired=resolve);
+  const ending=run(expired,'action(delayed)');
+  expired.elements.abort.onclick();expired.radio.authenticated=false;finishExpired();await ending;
+  assert.match(expired.elements.notice.textContent,/Abort is unconfirmed.*login ended/);
+  assert.equal(expired.calls.filter(c=>c.path.endsWith('/jobs')).length,0,'lost authority cannot send a replacement abort');
+  const lifecycle=run(f,'WsprrySubmission.create({})');let settle;
+  const old=lifecycle.run(()=>new Promise(resolve=>settle=resolve));
+  const token=lifecycle.token;lifecycle.suspend();
+  assert.equal(await lifecycle.run(()=>{throw Error('suspended reentry');}),false);
+  lifecycle.resume();assert.equal(lifecycle.token,token);
+  assert.equal(await lifecycle.run(()=>{throw Error('resumed reentry');}),false);
+  settle();await old;
+  assert.equal(await lifecycle.run(async()=>{}),true);
+  console.log('Submission: atomic admission, conflict refusal, cleanup recovery and deferred production abort passed');
+})().catch(error=>{console.error(error);process.exitCode=1;});

@@ -5,8 +5,8 @@ const vm = require('node:vm');
 const path = require('node:path');
 const root = path.resolve(__dirname,'..');
 const amplifier = require('../src/network/web/amplifier-enable.js');
-const schema = JSON.parse(fs.readFileSync(path.join(root,'engineering/protocol/transmitter-amplifier-enable-1.schema.json')));
-const descriptor = Object.fromEntries(Object.entries(schema.properties).map(([k,v])=>[k,v.const ?? v.enum?.[0] ?? null]));
+const schema = JSON.parse(fs.readFileSync(path.join(root,'engineering/protocol/control-1.schema.json'))).$defs['amplifier-enable'];
+const descriptor = Object.fromEntries(Object.entries(schema.properties).filter(([k])=>k!=='contract').map(([k,v])=>[k,v.const ?? v.enum?.[0] ?? null]));
 descriptor.default_active_high = true;
 assert(amplifier.supported(descriptor));
 assert(amplifier.supported({...descriptor,execution:'inhibited_inactive_only'}));
@@ -14,16 +14,8 @@ for (const value of [undefined,null,{}, {...descriptor,activation:'immediate'}, 
 for (const key of Object.keys(descriptor)) {
   const missing = {...descriptor}; delete missing[key]; assert(!amplifier.supported(missing));
 }
-const body = {schema:'transmitter-progress/1',target:{device_id:'a'.repeat(32)},fields:{pins:{amplifier_gp:18,amplifier_active_high:false}}};
-const selected = amplifier.select('progress/update',body);
-assert.equal(selected.path,'progress/update/3');
-assert.equal(selected.body.schema,'transmitter-progress/3');
-assert.equal(body.schema,'transmitter-progress/1');
-assert.equal(selected.body.fields,body.fields);
-assert.equal(amplifier.select('config/2',{}).path,'config/4');
-assert.equal(amplifier.select('application/2').path,'application/4');
-assert.equal(amplifier.select('pins').path,'pins/2');
-assert.equal(amplifier.select('jobs',{}).path,'jobs');
+const body = {schema:'progress',target:{device_id:'a'.repeat(32)},fields:{pins:{amplifier_gp:18,amplifier_active_high:false}}};
+assert.equal(amplifier.select,undefined,'canonical control must not select a historical route');
 const context = {globalThis:{}};
 vm.runInNewContext(fs.readFileSync(path.join(root,'src/network/web/saved-progress.js'),'utf8'),context);
 const valid = context.globalThis.WsprryPicoSavedProgress.valid;
@@ -31,9 +23,11 @@ const valid = context.globalThis.WsprryPicoSavedProgress.valid;
 if (process.argv[2]) {
   const {execFileSync} = require('node:child_process');
   const samples = execFileSync(process.argv[2],['--samples'],{encoding:'utf8'}).trim().split('\n').map(JSON.parse);
-  const sample = samples.find(v=>v.schema === 'transmitter-progress/3');
+  const sample = samples.find(v=>v.schema === 'progress');
+  assert.equal(sample.contract,'Wsprry-Control/1');
+  delete sample.contract;
   assert(valid(sample));
-  const pins = samples.find(v=>v.schema === 'transmitter-hardware/3').saved;
+  const pins = samples.find(v=>v.schema === 'hardware').saved;
   sample.fields.pins = pins;
   assert(valid(sample));
   for (const bad of [null,0,1,'false',[],{}]) {
@@ -42,7 +36,7 @@ if (process.argv[2]) {
   }
   const conflict = structuredClone(sample); conflict.fields.pins.amplifier_gp = conflict.fields.pins.rf_gp;
   assert(!valid(conflict));
-  const old = structuredClone(sample); old.schema = 'transmitter-progress/1'; delete old.apply_domains.drive;
+  const old = structuredClone(sample); old.schema = 'progress'; delete old.apply_domains.drive;
   assert(!valid(old));
 }
 console.log('Amplifier browser capability negotiation, target-preserving routes and actual draft readback passed');
@@ -63,11 +57,11 @@ console.log('Amplifier browser capability negotiation, target-preserving routes 
   let selectedPath;
   f.context.fetch = async (route,options) => {
     selectedPath = route;
-    if (route === '/api/v1/config/4') return {ok:true,json:async()=>({config:f.config}),headers:{get:()=> '"revision"'}};
+    if (route === '/api/control/v1/config') return {ok:true,json:async()=>({contract:'Wsprry-Control/1',config:f.config}),headers:{get:()=> '"revision"'}};
     return originalFetch(route,options);
   };
   await vm.runInContext('api("config")',f.context);
-  assert.equal(selectedPath,'/api/v1/config/4');
+  assert.equal(selectedPath,'/api/control/v1/config');
   vm.runInContext('capabilities={};lockPins()',f.context);
   assert.equal(f.form.amplifier_gp.disabled,true);
   assert.equal(f.form.amplifier_active_high.disabled,true);

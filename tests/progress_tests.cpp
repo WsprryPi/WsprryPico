@@ -18,21 +18,21 @@ struct ProgressFixture : Fixture {
     standalone::Progress progress{draft_flash};
     ProgressFixture() { REQUIRE(progress.load()); api.progress_settings(progress); }
     network::HttpResponse read() {
-        return api.handle(request("/api/v1/progress"), "test", "127.0.0.1:8443");
+        return api.handle(network_test::control_request(request("/api/control/v1/progress")), "test", "127.0.0.1:8443");
     }
     network::HttpResponse save(std::string fields, std::string revision = {}) {
-        auto r = request("/api/v1/progress/update", "{\"schema\":\"transmitter-progress/1\",\"target\":" +
+        auto r = request("/api/control/v1/progress/update", "{\"schema\":\"progress\",\"target\":" +
             application::target("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", service.status().boot_id) +
             ",\"request_id\":\"11111111111111111111111111111111\",\"fields\":" + fields + '}');
         r.headers["if-match"] = revision.empty() ? api.revision() : revision;
-        return api.handle(r, "test", "127.0.0.1:8443");
+        return api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     }
     network::HttpResponse apply(std::string domain = "all") {
-        auto r = request("/api/v1/progress/apply", "{\"schema\":\"transmitter-progress/1\",\"target\":" +
+        auto r = request("/api/control/v1/progress/apply", "{\"schema\":\"progress\",\"target\":" +
             application::target("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", service.status().boot_id) +
             ",\"application\":{\"draft_revision\":" + wtp::json::quote(std::to_string(progress.sequence())) + ",\"domain\":" + wtp::json::quote(domain) + "}}");
         r.headers["if-match"] = api.revision();
-        return api.handle(r, "test", "127.0.0.1:8443");
+        return api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     }
 };
 void independent() {
@@ -89,9 +89,9 @@ void legacy_authority() {
     REQUIRE(f.scheduler.command("CONFIG "+config).find("true")!=std::string::npos);
     REQUIRE(f.store.config()->callsign=="AA0NT");
     REQUIRE(f.progress.fields()==before);
-    auto preview=request("/api/v1/wspr-plan",R"({"callsign":"CC2CC","locator":"EM18","power_dbm":0})");
+    auto preview=request("/api/control/v1/wspr-plan",R"({"callsign":"CC2CC","locator":"EM18","power_dbm":0})");
     const auto seq=f.store.config_sequence();
-    REQUIRE(f.api.handle(preview,"test","127.0.0.1:8443").status==200);
+    REQUIRE(f.api.handle(network_test::control_request(preview),"test","127.0.0.1:8443").status==200);
     REQUIRE(f.store.config_sequence()==seq && f.progress.fields()==before);
     standalone::Store reload(f.flash);REQUIRE(reload.load());
     REQUIRE(reload.config()->callsign=="AA0NT");
@@ -116,10 +116,10 @@ void coupled_and_preservation() {
     REQUIRE(f.store.config()->password == applied.password && f.store.config()->locator == applied.locator);
     REQUIRE(f.scheduler.status().find("\"suspended\":true") != std::string::npos);
     REQUIRE(f.store.watermark() == 100);
-    auto legacy = request("/api/v1/config", R"({"version":1,"enabled":false,"station":{"callsign":"BB1BB","locator":"bad","power_dbm":0},"wifi":{"ssid":"","password":""},"schedules":[]})");
+    auto legacy = request("/api/control/v1/config", R"({"version":1,"enabled":false,"station":{"callsign":"BB1BB","locator":"bad","power_dbm":0},"wifi":{"ssid":"","password":""},"schedules":[]})");
     legacy.method = "PUT"; legacy.headers["if-match"] = f.api.revision();
     const auto stored = *f.store.config();
-    REQUIRE(f.api.handle(legacy, "test", "127.0.0.1:8443").status == 400);
+    REQUIRE(f.api.handle(network_test::control_request(legacy), "test", "127.0.0.1:8443").status == 405);
     REQUIRE(*f.store.config() == stored);
 }
 void faults_and_secrets() {
@@ -160,11 +160,11 @@ void domains_and_admission() {
     REQUIRE(f.apply("station").status == 409);
     REQUIRE(f.progress.station_fields(f.store.config()).find("\"locator\":null") != std::string::npos);
     const auto seq=f.progress.sequence();
-    auto r=request("/api/v1/progress/update", "{}");
+    auto r=request("/api/control/v1/progress/update", "{}");
     r.headers["origin"]="https://wrong.example";
-    REQUIRE(f.api.handle(r,"test","127.0.0.1:8443").status == 403);
+    REQUIRE(f.api.handle(network_test::control_request(r),"test","127.0.0.1:8443").status == 403);
     r.headers["origin"]="https://127.0.0.1:8443";r.headers.erase("x-wsprrypico-request");
-    REQUIRE(f.api.handle(r,"test","127.0.0.1:8443").status == 403);
+    REQUIRE(f.api.handle(network_test::control_request(r),"test","127.0.0.1:8443").status == 403);
     REQUIRE(f.progress.sequence() == seq);
     const auto public_read=f.api.progress_readback(true);
     REQUIRE(public_read.body.find("pool.ntp.org") == std::string::npos);

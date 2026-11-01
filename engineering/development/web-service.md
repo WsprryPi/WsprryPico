@@ -11,9 +11,9 @@ serialized owner. Core 1 remains dedicated to the RF worker.
 | Resource | Bound/behavior |
 | --- | --- |
 | Port-80 connections | Two across AP and station; excess connections reset without evicting admitted clients |
-| Task storage | Compile-time `sizeof(PicoHttpServer) <= 2048`; retained Linux build reports 1976 bytes, excluding dynamic buffers/lwIP |
+| Task storage | Compile-time `sizeof(PicoHttpServer) <= 2048`; dynamic response sources, windows and lwIP are excluded |
 | HTTP input | Existing 2048-byte headers and 32768-byte body maximum; narrower setup-route limits retained |
-| Header admission | Each incomplete-header fragment requires 32768 bytes of shared heap workspace above the existing 32768-byte authority reserve; pressure resets that connection before parser growth |
+| Header admission | Raw-prefix growth requires 5120 bytes of workspace; the completed header separately admits method/path, strings and map nodes using its byte and field counts; both retain the 32768-byte authority reserve, and pressure refuses the connection before allocation |
 | Body admission | Existing shared paged-buffer admission; already reserved body pages continue without requiring another header allowance |
 | Output | At most one 1024-byte chunk per task per poll; first task alternates each poll; immutable assets borrow flash storage |
 | Lifetime | Absolute ten seconds from accept, including partial input and stalled ACKs; traffic does not extend it |
@@ -21,6 +21,12 @@ serialized owner. Core 1 remains dedicated to the RF worker.
 | Delivery identity | Monotonic high-bit transaction namespace; stop/start does not reset it; exhaustion fails admission before reuse |
 | Other transports | Engineering HTTPS remains two slots; existing aggregate four TCP PCBs, 32 KiB lwIP heap and packet/segment pools remain unchanged |
 | Authentication | Three fixed consumer slots, at most one pending login; transport capacity is independent of login capacity |
+
+Large typed job replies use an owned [response generator](response-generation.md)
+with a reusable 1,024-byte output window. Consumer encryption can consume that
+snapshot incrementally. USB management shares the source and bounded escaping
+preparation while retaining its independent framing and explicit ACK. Capability
+and application documents use counted paged output; flash assets remain borrowed.
 
 The heap figures are an admission policy and compile-time/source bounds, not
 measurements of target fragmentation, transient peak heap, stack or RF latency.

@@ -60,7 +60,7 @@ inline std::string default_hostname(std::string_view mac) {
     }
     if (!nonzero || (first & 1))
         return {};
-    return "wsprrypico-" + hex + ".local";
+    return "wpico-" + hex.substr(2) + ".local";
 }
 inline bool deployment_identity_matches(std::string_view actual, std::string_view configured,
                                         std::string_view hostname) {

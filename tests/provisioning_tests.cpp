@@ -1456,6 +1456,7 @@ void consumer_runtime_readback_and_reload() {
     CHECK(runtime.consumer_readback_json() == "null");
     CHECK(store.select(provisioning::ProfileSource::ConsumerProfile,
                        provisioning::serialize_consumer_profile(candidate)));
+    CHECK(!runtime.standalone_boot_ready(store, true)); // A changed profile needs fresh admission.
 
     auto check_readback = [&] {
         const auto text = runtime.consumer_readback_json();
@@ -1486,6 +1487,8 @@ void consumer_runtime_readback_and_reload() {
     CHECK(runtime.load(rebooted, device, provisioning::BuildBundleState::Absent));
     CHECK(runtime.source() == provisioning::RuntimeSource::ConsumerPreClock);
     CHECK(runtime.generation() == 1);
+    CHECK(!runtime.standalone_boot_ready(rebooted, false));
+    CHECK(runtime.standalone_boot_ready(rebooted, true));
     check_readback();
     const auto base = standalone::parse_config(
         R"({"version":1,"enabled":true,"station":{"callsign":"AA0NT","locator":"EM18","power_dbm":37},"wifi":{"ssid":"old-network","password":"old-password","ntp_ipv4":"pool.ntp.org"},"schedules":[{"period_s":120,"phase_s":0}]})");
@@ -1564,6 +1567,8 @@ void network_only_source_and_recovery() {
     provisioning::RuntimeProfile runtime;
     CHECK(runtime.load(recovered, device, provisioning::BuildBundleState::Absent));
     CHECK(runtime.source() == provisioning::RuntimeSource::NetworkOnly);
+    CHECK(!runtime.standalone_boot_ready(store, false));
+    CHECK(!runtime.standalone_boot_ready(store, true));
     CHECK(runtime.network_profile() && runtime.network_profile()->ssid == "Home Net");
     CHECK(runtime.network_profile()->time_server == "time.example.org");
     provisioning::RuntimeProfile wrong;

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/WsprryPi/WsprryPico/udp-logging-state-1.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "settings"
+  ],
+  "properties": {
+    "schema": {
+      "const": "udp-logging-state/1"
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "destination_ipv4",
+        "destination_port",
+        "maximum_severity",
+        "event_codes",
+        "rate",
+        "burst"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "destination_ipv4": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 7,
+              "maxLength": 15,
+              "pattern": "^(?!127\\.)(?:[1-9]|[1-9][0-9]|1[0-9]{2}|2[01][0-9]|22[0-3])(?:\\.(?:0|[1-9][0-9]?|1[0-9]{2}|2[0-4][0-9]|25[0-5])){3}$"
+            }
+          ]
+        },
+        "destination_port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "maximum_severity": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
+        },
+        "event_codes": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "pattern": "^[\\x21\\x23-\\x5b\\x5d-\\x7e]+$"
+          }
+        },
+        "rate": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "burst": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        }
+      }
+    }
+  }
+}

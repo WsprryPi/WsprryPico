@@ -12,7 +12,7 @@ general physical network/RF or fleet interoperability.
 | Carrier | Authentication and availability | Operation boundary |
 | --- | --- | --- |
 | Engineering station HTTPS | TLS 1.3, client certificate fingerprint principal, certified Host/Origin, configured listener and usable UTC | Shared JSON resources; same target, revisions, validators and idle/safety gates |
-| Engineering field HTTPS | AP-scoped server TLS, password-issued Secure/HttpOnly cookie and session; existing access health/clock policy | Blank/preclock Configure denied; closed field allowlist currently excludes hostname and GET config/2 |
+| Engineering field HTTPS | AP-scoped server TLS, password-issued Secure/HttpOnly cookie and session; existing access health/clock policy | Blank/preclock Configure denied; closed field allowlist currently excludes hostname and GET config |
 | Consumer station / AP | Saved Wi-Fi passphrase, volatile Consumer-Radio/1 encrypted session bound to actual interface, Host, device/boot and profile generation | Shared JSON through encrypted wrappers only; station/Wi-Fi edits use authenticated transactional setup. HTTP page delivery remains unauthenticated |
 | USB physical management | Separate UMP1 CDC, internal physical principal; no Pico Wi-Fi/UTC prerequisite for negotiation and ordinary saves | Shared JSON plus explicit USB Wi-Fi/AP/time operations; boot/session/target binding, exact revisions, matching response ACK and finite deadline |
 
@@ -23,15 +23,7 @@ WTP, TLS-WTP and BLE WTP carry jobs without acquiring JSON administration.
 Console line commands, WTP binary frames and UMP1 frames have separate roles.
 Physical USB identity is not cryptographic device authentication.
 
-Network views advertise `transmitter-management/2`; USB selects `/3` with the
-additional physical carrier. The legacy `/1` discovery and legacy network
-projections remain closed. See [API discovery](../browser-api.md#management-carrier-discovery),
-[USB framing/delivery](../protocol/USB-Management.md) and
-[Consumer-Radio/1](../protocol/Consumer-Radio-v1.md). HTTP effects wait for the
-matching complete-response acknowledgement; UMP1 effects wait for the matching
-resource ACK. Lost delivery cancels undelivered deferred effects, not durable
-saves or accepted jobs. Read authoritative saved/active state and review before
-another explicit mutation; never replay an uncertain write automatically.
+Every admitted network and USB carrier advertises the same `management` shape within `Wsprry-Control/1`, including five carrier rows and the actual selected carrier. Root control documents carry `contract:"Wsprry-Control/1"`; mutations require it before domain validation. Historical management generations and control views are unsupported. See [API discovery](../browser-api.md), [USB framing/delivery](../protocol/USB-Management.md) and [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md). HTTP effects wait for the matching complete-response acknowledgement; UMP1 effects wait for the matching resource ACK. Lost delivery cancels undelivered deferred effects, not durable saves or accepted jobs. Read authoritative saved/active state and review before another explicit mutation; never replay an uncertain write automatically.
 
 Source: [carrier projections](../../src/network/management.cpp),
 [TLS/interface admission](../../src/network/pico/server.cpp),
@@ -86,7 +78,7 @@ Keep its directory and a backup private. The CA private key is unencrypted on di
 with owner-only permissions; keep it offline when not issuing credentials. Do
 not use the same CA across a fleet. Firmware contains its device private key;
 credential-bearing build directories are private and generated credentials are
-owner-readable only. Such UF2 files are private deployment artifacts, never release
+owner-readable only. Such UF2 files are private deployment artifacts, never public
 artifacts or source-controlled files.
 
 Obtain the stable 32-hex WTP device ID from an existing recorded INFO/HELLO result
@@ -201,7 +193,7 @@ live local-control evidence do not by themselves qualify a general end-user
 provisioning path.
 
 Consumer commissioning uses the device-served AP Wi-Fi-first page and optional
-station step, followed by ordinary LAN Consumer-Radio access. USB management
+station setup, followed by ordinary LAN Consumer-Radio access. USB management
 can create/replace/delete the saved connection without a Pico network. Blank
 engineering HTTPS remains read-only; that does not remove the separately
 authorized consumer HTTP commissioning transactions. Engineering BLE/profile
@@ -450,7 +442,7 @@ cmake --build build-host --parallel
 ctest --test-dir build-host --output-on-failure
 ```
 
-The `host_client_interop_tests` fixture runs the actual client against the Pico endpoint/job service. The retained `network_11_1_interop` target builds the selected client, application, scheduler and TLS/HTTP implementation. Pi's own current-source fixtures independently validate selected Pico sources. Use unused build directories, serialize fixtures sharing loopback ports and keep the separately pinned MbedTLS dependency policy. Release manifests retain their chosen dependency provenance; they do not impose a local source admission gate. OpenSSL development files must already be installed; set `OPENSSL_ROOT_DIR` if CMake needs its location.
+The `host_client_interop_tests` fixture runs the actual client against the Pico endpoint/job service. The retained `network_11_1_interop` target builds the selected client, application, scheduler and TLS/HTTP implementation. Pi's own current-source fixtures independently validate selected Pico sources. Use unused build directories, serialize fixtures sharing loopback ports and keep the separately pinned MbedTLS dependency policy. Deployment manifests retain their chosen dependency provenance; they do not impose a local source admission gate. OpenSSL development files must already be installed; set `OPENSSL_ROOT_DIR` if CMake needs its location.
 
 ASan/UBSan applies to C and C++ (including Mbed TLS):
 

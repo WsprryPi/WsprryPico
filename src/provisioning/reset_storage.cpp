@@ -1,5 +1,6 @@
 #include "provisioning/reset_storage.hpp"
 
+#include "logging/udp_settings.hpp"
 #include "provisioning/consumer_profile.hpp"
 
 #include <algorithm>
@@ -17,7 +18,7 @@ bool ResetStorageTargets::preserve_operational(const ProfileStore& profiles) {
         if (!consumer)
             return false;
         if (!config)
-            config = standalone::Config{};
+            config = standalone::factory_config();
         config->callsign = consumer->callsign;
         config->locator = consumer->locator;
         config->power_dbm = consumer->power_dbm;
@@ -42,6 +43,8 @@ bool ResetStorageTargets::clear_profile(ProfileStore& profiles, ProfileSource ta
     return profiles.load() && profiles.select(target);
 }
 bool ResetStorageTargets::erase_operational() {
+    if (udp_ && !udp_->clear())
+        return false;
     if (ntp_ && !ntp_->erase())
         return false;
     if (!store_.erase_progress())
@@ -52,6 +55,8 @@ bool ResetStorageTargets::erase_operational() {
     return store_.load();
 }
 bool ResetStorageTargets::operational_erased() const {
+    if (udp_ && (!udp_->healthy() || !(udp_->settings() == logging::UdpSettings{})))
+        return false;
     if (ntp_ && !ntp_->erased())
         return false;
     std::array<std::uint8_t, 256> bytes{};
@@ -60,6 +65,7 @@ bool ResetStorageTargets::operational_erased() const {
             !std::all_of(bytes.begin(), bytes.end(), [](auto b) { return b == 255; }))
             return false;
     }
-    return store_.healthy() && !store_.config() && store_.watermark() == 0;
+    return store_.healthy() && !store_.config() && !store_.message_schedule() &&
+           !store_.message_in_flight() && store_.watermark() == 0;
 }
 } // namespace wsprrypico::provisioning

@@ -74,9 +74,10 @@ class Peer final : public HostTestEndpoint {
     wtp::Endpoint endpoint_{service_, std::string(32, '4'), "host-interop-test"};
 
   public:
-    explicit Peer(bool physical)
-        : service_(clock_, physical ? static_cast<wtp::RfEngine&>(physical_engine_) : engine_, ids_,
-                   standalone::wtp_profile(physical)) {}
+    explicit Peer(bool physical, unsigned ntp_timeout_s)
+        : clock_(tick, this, standalone::clock_profile(ntp_timeout_s)),
+          service_(clock_, physical ? static_cast<wtp::RfEngine&>(physical_engine_) : engine_, ids_,
+                   standalone::wtp_profile(physical, ntp_timeout_s)) {}
     void connect() override {
         endpoint_.connect("usb-physical");
     }
@@ -93,28 +94,29 @@ class Peer final : public HostTestEndpoint {
         // Inject an actual correlated SNTP reply with a 2 ms network round trip.
         // No network, Console time command or direct clock validity override.
         for (unsigned i = 0; i < 3; ++i) {
-        const std::uint64_t nonce = 123 + i;
-        (void)source_.request(mono_, nonce);
-        std::array<std::uint8_t, 48> reply{};
-        reply[0] = 0x24;
-        reply[1] = 1;
-        reply[3] = 0xec;
-        auto put = [&](std::size_t offset, unsigned count, std::uint64_t value) {
-            for (unsigned i = 0; i < count; ++i)
-                reply[offset + count - 1 - i] = static_cast<std::uint8_t>(value >> (8 * i));
-        };
-        put(24, 8, nonce);
-        const auto utc = 1'800'000'000'000'000'000ULL + mono_;
-        const auto seconds = utc / 1'000'000'000;
-        const auto fraction = ((utc % 1'000'000'000) << 32) / 1'000'000'000;
-        for (auto offset : {16, 32, 40}) {
-            put(offset, 4, seconds + 2'208'988'800ULL);
-            put(offset + 4, 4, fraction);
-        }
-        mono_ += 2'000'000;
-        if (!source_.receive(reply, mono_))
-            throw std::runtime_error("SNTP fixture rejected");
-        if (i < 2) mono_ += 2'000'000'000ULL;
+            const std::uint64_t nonce = 123 + i;
+            (void)source_.request(mono_, nonce);
+            std::array<std::uint8_t, 48> reply{};
+            reply[0] = 0x24;
+            reply[1] = 1;
+            reply[3] = 0xec;
+            auto put = [&](std::size_t offset, unsigned count, std::uint64_t value) {
+                for (unsigned i = 0; i < count; ++i)
+                    reply[offset + count - 1 - i] = static_cast<std::uint8_t>(value >> (8 * i));
+            };
+            put(24, 8, nonce);
+            const auto utc = 1'800'000'000'000'000'000ULL + mono_;
+            const auto seconds = utc / 1'000'000'000;
+            const auto fraction = ((utc % 1'000'000'000) << 32) / 1'000'000'000;
+            for (auto offset : {16, 32, 40}) {
+                put(offset, 4, seconds + 2'208'988'800ULL);
+                put(offset + 4, 4, fraction);
+            }
+            mono_ += 2'000'000;
+            if (!source_.receive(reply, mono_))
+                throw std::runtime_error("SNTP fixture rejected");
+            if (i < 2)
+                mono_ += 2'000'000'000ULL;
         }
     }
     void invalidate_clock() override {
@@ -150,6 +152,7 @@ class Peer final : public HostTestEndpoint {
     }
 };
 } // namespace
-std::unique_ptr<HostTestEndpoint> host_test_endpoint(bool physical_planner) {
-    return std::make_unique<Peer>(physical_planner);
+std::unique_ptr<HostTestEndpoint> host_test_endpoint(bool physical_planner,
+                                                     unsigned ntp_timeout_s) {
+    return std::make_unique<Peer>(physical_planner, ntp_timeout_s);
 }

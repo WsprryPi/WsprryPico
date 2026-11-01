@@ -13,7 +13,7 @@ Normal `WsprryPico` and compatibility `WsprryPico-StandaloneRF` use the complete
 `DryRunEngine` simulator. Boot starts unsynchronized until qualified UTC is
 acquired. See [current application/build selection](firmware-foundation.md).
 
-## Implemented scope
+## Scope
 
 `src/rf/waveform.*` plans and generates direct-baseband tone/event jobs.
 The bench retains its original four-tone 80 m workload.
@@ -125,32 +125,24 @@ The engine has two 64 KiB waveform buffers. Static assertions cap the complete
 engine object at 180 KiB (including its tables) and its plan at 4 KiB. The bench
 has another 64 KiB CPU-test buffer and a separate 34,816-byte table set. Job copies, strings,
 USB queues, allocator overhead and stack are additional. The bench reserves a
-16 KiB primary stack and reports a canary estimate; its observed maximum was
-9,848 bytes in the latest recorded workload. This is not a maximum-job call-chain proof.
+16 KiB primary stack and reports a canary estimate. That estimate does not
+establish maximum-job call-chain use.
 `heap_free_bytes` is free space in the allocator arena, not all unallocated SRAM.
 The standard firmware's memory-layout checks remain separate.
 
-The stream needs 18.75 MB/s of packed data. Each half-buffer provides
-3.495253 ms. The proposed target generation budget remains <=1.747626 ms per
-half-buffer under the declared competing load. A host benchmark is only a
+At 150 MHz, the stream needs 18.75 MB/s of packed data, and each half-buffer
+provides 3.495253 ms. A generation allowance of 1.747626 ms leaves half the
+refill interval for competing work. This budget is not a qualified maximum.
+A host benchmark is a
 reproducible workload and regression aid. It renders a full 162-symbol,
 four-tone synthetic job locally, consumes the output checksum, and reports
 elapsed and maximum block-render time. Host wall-clock maxima include scheduling
 and cannot establish RP2350 deadlines. Cross-compilation establishes neither
 cycle counts nor hardware timing.
 
-## Recorded target workload
-
-On the recorded Pico 2 W at 150 MHz, `BENCH 128` changed from a worst render call
-of 22.092 ms with the original generator to 1.507 ms with exact word lookup and
-removal of redundant buffer clearing. Both produced checksum 4503602371141397.
-The latter is below the proposed 1.747626 ms half-buffer budget for this measured
-workload. It is not a maximum-load or full-frame guarantee. See the
-[image hashes, setup and limitations](rf-bench.md).
-
 ## Validation commands
 
-Normal checks include the new stream tests:
+The stream tests run with the normal checks:
 
 ```sh
 cmake -S . -B build-host -DCMAKE_BUILD_TYPE=Debug -DWSPRRY_PICO_BUILD_TESTS=ON
@@ -158,7 +150,7 @@ cmake --build build-host --parallel
 ctest --test-dir build-host --output-on-failure
 ```
 
-For a host Release workload:
+For an optimized host workload:
 
 ```sh
 cmake -S . -B build/rf-release -G Ninja -DCMAKE_BUILD_TYPE=Release -DWSPRRY_PICO_BUILD_TESTS=ON

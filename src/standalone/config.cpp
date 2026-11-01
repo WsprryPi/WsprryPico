@@ -50,10 +50,17 @@ bool integer(wtp::json::Value value, std::uint32_t& n) {
 bool valid_gpio_drive(unsigned ma) {
     return ma == 2 || ma == 4 || ma == 8 || ma == 12;
 }
+bool valid_ntp_timeout_token(wtp::json::Value value, bool unlimited) {
+    std::uint32_t seconds = 0;
+    return integer(value, seconds) && std::to_string(seconds) == value.raw &&
+           ((unlimited && seconds == 0) || seconds >= minimum_ntp_timeout_s) &&
+           seconds <= maximum_ntp_timeout_s && seconds % 60 == 0;
+}
 std::optional<std::array<std::uint64_t, 4>> wspr_tones(std::uint64_t dial_hz) {
     constexpr auto nhz_per_hz = 1'000'000'000ULL;
     constexpr auto highest_offset = audio_offset_nhz + center_to_tone0_nhz;
-    if (!dial_hz || dial_hz > (std::numeric_limits<std::uint64_t>::max() - highest_offset) / nhz_per_hz)
+    if (!dial_hz ||
+        dial_hz > (std::numeric_limits<std::uint64_t>::max() - highest_offset) / nhz_per_hz)
         return {};
     const auto tone0 = dial_hz * nhz_per_hz + audio_offset_nhz - center_to_tone0_nhz;
     std::array<std::uint64_t, 4> tones{};
@@ -139,8 +146,9 @@ std::optional<Config> parse_config(std::string_view text) {
         !fields(*root, {"version", "enabled", "station", "wifi", "schedules"},
                 {"expires_utc_s", "pins", "allow_unqualified_frequency",
                  "allow_non_amateur_frequency", "gpio_drive_ma", "manual_correction_ppb",
-                 "ntp_rf_calibration", "wspr_dial_frequency_hz"}) ||
-        root->get("version")->raw != "1" ||
+                 "ntp_rf_calibration", "wspr_dial_frequency_hz", "ntp_timeout_s",
+                 "amplifier_timing"}) ||
+        (root->get("version")->raw != "1" && root->get("version")->raw != "2") ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
     auto station = *root->get("station"), wifi = *root->get("wifi"),
@@ -154,7 +162,25 @@ std::optional<Config> parse_config(std::string_view text) {
     for (auto name : {"ssid", "password"})
         if (wifi.get(name)->type() != '"')
             return {};
+    const bool unlimited = root->get("version")->raw == "2";
+    if (unlimited && (!root->get("ntp_timeout_s") || root->get("ntp_timeout_s")->raw != "0"))
+        return {};
     Config c;
+    if (const auto timing = root->get("amplifier_timing")) {
+        std::uint32_t lead = 0, tail = 0;
+        if (!fields(*timing, {"lead_ms", "tail_ms"}) || !integer(*timing->get("lead_ms"), lead) ||
+            !integer(*timing->get("tail_ms"), tail) ||
+            std::to_string(lead) != timing->get("lead_ms")->raw ||
+            std::to_string(tail) != timing->get("tail_ms")->raw ||
+            lead > rf::AmplifierTiming::maximum_ms || tail > rf::AmplifierTiming::maximum_ms)
+            return {};
+        c.amplifier_timing = {lead, tail};
+    }
+    if (const auto timeout = root->get("ntp_timeout_s")) {
+        if (!valid_ntp_timeout_token(*timeout, unlimited))
+            return {};
+        c.ntp_timeout_s = unsigned(timeout->integer());
+    }
     if (const auto frequency = root->get("wspr_dial_frequency_hz")) {
         if (!valid_wspr_frequency_token(*frequency))
             return {};
@@ -246,7 +272,8 @@ std::optional<Config> parse_config(std::string_view text) {
 std::string serialize_config(const Config& c, bool amplifier_view) {
     using wtp::json::quote;
     std::string result =
-        "{\"version\":1,\"enabled\":" + std::string(c.enabled ? "true" : "false") +
+        "{\"version\":" + std::string(c.ntp_timeout_s == 0 ? "2" : "1") +
+        ",\"enabled\":" + std::string(c.enabled ? "true" : "false") +
         ",\"station\":{\"callsign\":" + quote(c.callsign) + ",\"locator\":" + quote(c.locator) +
         ",\"power_dbm\":" + std::to_string(c.power_dbm) + "},\"wifi\":{\"ssid\":" + quote(c.ssid) +
         ",\"password\":" + quote(c.password) + ",\"ntp_ipv4\":" + quote(c.ntp_ipv4) +
@@ -276,6 +303,12 @@ std::string serialize_config(const Config& c, bool amplifier_view) {
         result += ",\"ntp_rf_calibration\":true";
     if (c.wspr_dial_frequency_hz)
         result += ",\"wspr_dial_frequency_hz\":" + std::to_string(*c.wspr_dial_frequency_hz);
+    if (c.ntp_timeout_s != default_ntp_timeout_s)
+        result += ",\"ntp_timeout_s\":" + std::to_string(c.ntp_timeout_s);
+    if (c.amplifier_timing != rf::AmplifierTiming{})
+        result +=
+            ",\"amplifier_timing\":{\"lead_ms\":" + std::to_string(c.amplifier_timing.lead_ms) +
+            ",\"tail_ms\":" + std::to_string(c.amplifier_timing.tail_ms) + "}";
     return result + "}";
 }
 } // namespace wsprrypico::standalone

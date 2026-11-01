@@ -16,21 +16,15 @@ project-specific Mac and Raspberry Pi work harnesses.
   configuration, constraints, supported workflows and operating procedures.
 - Remove first-person narration, vague promises, aspirational feature lists,
   development diaries, abandoned approaches, intermediate failures, completed
-  handoffs, phase-by-phase storytelling and retrospective explanations whose
+  handoffs, development chronology and retrospective explanations whose
   only purpose is to describe how development reached the current state.
 - Keep explanations of current design choices when they help maintainers use
   or change the implementation correctly. State the reason and current
   consequence without recreating the investigation.
-- Clean development phase and step references through the same inventory,
-  rewrite, reference-repair and validation process as other development
-  narratives. This includes headings, prose, status labels, navigation and
-  cross-references in ordinary documentation such as `README.md` and
-  `SECURITY.md`. Preserve phase/step organization only in explicitly retained,
-  currently used planning documents such as `ROADMAP.md`,
-  `consolidated-backlog.md` or an equivalent active plan; identify these
-  exceptions in the inventory. Preserve current behavior, constraints and
-  qualification limits in current-state wording. Actual operating instructions
-  and technical uses of phase or step are not development chronology.
+- Remove development chronology from headings, prose, status labels, navigation,
+  and references, including ordinary `README.md` and `SECURITY.md` content.
+  The distinct TODO list is the exception. Preserve current behavior,
+  constraints, qualification limits, operating procedures, and technical terms.
 - Put selected future work only in a maintained, committed backlog document
   or a real issue.
   `engineering/development/consolidated-backlog.md` is the current backlog entry point;
@@ -68,8 +62,8 @@ An operator should not need to interpret a paragraph about normative WTP,
 host tests, cross-linking, PIO/DMA internals, experimental clocks, refill times,
 bench images, receiver hosts, GPSDO comparisons, benchmark victories or the
 sequence of validation campaigns to discover those basic capabilities. This
-applies even when every technical statement is accurate and there are no phase
-numbers. Removing labels or shortening the same status report is insufficient;
+applies even when every technical statement is accurate and there are no milestone
+labels. Removing labels or shortening the same status report is insufficient;
 rewrite its message for the reader.
 
 Extract technical information still needed by maintainers into the appropriate
@@ -85,9 +79,8 @@ to the planned operator documentation in product prose or add a documentation
 section, unavailable site link, placeholder, "coming soon" statement or promise
 that documentation will be written later. The operator-facing description must
 stand on its own. Keep necessary maintainer references in
-engineering entry points. The separately selected operator-documentation work
-remains in the canonical backlog; cleanup does not execute it or advertise its
-future result in product prose.
+engineering entry points. Selected unfinished documentation work belongs in
+the distinct TODO list; cleanup does not imply that work is implemented.
 
 This standard applies throughout non-engineering text, including feature and
 status paragraphs, headings, captions, navigation and security explanations.
@@ -117,7 +110,7 @@ approval. An uncertain item stays on hold while independent work continues.
    shared tools and another project's data remain outside it.
 
 Preserve existing user edits, unique source, Git metadata, branches, tags,
-releases, installed applications and current operational state. Do not
+distributed firmware, installed applications and current operational state. Do not
 initialize Git, reset, stash, stage, commit, push, publish, rewrite history,
 prune worktrees or remove checkouts merely to make the working tree clean.
 Separate staging/commit/push requests govern those actions. Do not run blanket
@@ -137,9 +130,9 @@ maintained files under this prompt. A disposable paired-source test snapshot
 can be removed only after its role, lack of unique work and source availability
 are verified; a name containing `pi` or `pico` establishes none of these facts.
 
-## Stage 1: Read-only discovery and inventory
+## Discovery and inventory
 
-Complete this stage before deleting, renaming, rewriting or generating cleanup
+Complete the inventory before deleting, renaming, rewriting or generating cleanup
 replacements. A temporary inventory outside maintained source is permitted.
 Do not install tools, download SDKs, start a build or alter a host to inventory it.
 
@@ -147,13 +140,13 @@ Do not install tools, download SDKs, start a build or alter a host to inventory 
 
 - Read applicable `AGENTS.md`, `README.md`, `CONTRACT.md`,
   `engineering/architecture.md`, `engineering/development/README.md`, the current backlog,
-  `.gitignore`, build presets, dependency pins and relevant release metadata.
+  `.gitignore`, build presets, dependency pins and relevant build metadata.
   Inspect the actual implementation where documentation disagrees. Historical
   result files do not override current code or selected requirements.
 - Record branch, revision, upstream relationship and worktree identity with
   read-only Git commands. Inspect staged and unstaged diffs and list untracked
   and ignored artifacts. Capture the pre-existing dirty-path set. Do not fetch,
-  pull or synchronize as an incidental cleanup step.
+  pull or synchronize as an incidental cleanup action.
 - Use `rg --files`, `rg` and bounded directory listings first. Include hidden
   generated files through an explicit ignored/untracked inventory; ordinary
   `rg --files` omits them. Exclude Git internals from content searches.
@@ -163,7 +156,7 @@ Do not install tools, download SDKs, start a build or alter a host to inventory 
   the files that use it. Classify dependency groups before removing members.
 - Distinguish executable regression tests and necessary fixtures from tests
   that only assert the presence or historical wording of completed records.
-  Inspect their assertions and build registration; a phase number alone is
+  Inspect their assertions and build registration; a development label alone is
   not a deletion reason.
 - Classify documentation by audience and inspect mixed sections separately.
   Identify the operator capability or decision each retained passage explains.
@@ -208,15 +201,10 @@ Do not install tools, download SDKs, start a build or alter a host to inventory 
   to retain every intermediate failure do not by themselves require permanent
   retention during this explicitly requested cleanup.
 
-Known location hints from repository records include local `build/`,
-`build-host*`, `config/local/`, and project-specific Python caches; on `wspr5`,
-`/tmp/wsprrypico-capture-build`, `/home/pi/consumer-lan-acceptance-20261014`,
-`/home/pi/consumer-lan-browser-20261014`, `/home/pi/p15-default-build-20261017`,
-`/home/pi/p15-gpio-drive-20261017`, `/home/pi/p15-drive-acceptance-20261017`,
-and `/home/pi/phase14-qualification-20261008`.
-These are historical discovery hints, **never a deletion allowlist**. Verify
-existence, ownership, contents, active dependencies and mixed-project material
-at execution. Discover newer locations through the same process.
+Use current scripts, build metadata, configured aliases, and bounded directory
+listings to discover project work areas. A familiar path or name is never a
+deletion allowlist. Verify ownership, contents, active dependencies, and
+mixed-project material before acting.
 
 ### Required inventory output
 
@@ -250,7 +238,7 @@ a specific ambiguity or an action outside the authorized scope. Continue safe,
 independent cleanup while held items remain intact. Refresh the inventory
 before acting if files, active jobs, ownership or dependencies change.
 
-## Stage 2: Apply the classified cleanup
+## Apply the classified cleanup
 
 ### Delete obsolete artifacts
 
@@ -267,13 +255,13 @@ before acting if files, active jobs, ownership or dependencies change.
   an old date alone does not establish obsolescence. Retire the task-specific
   cleanup handoff when its execution is finished, repairing the checklist link
   while retaining this reusable guidance.
-- Remove intermediate review reports, superseded plans, phase journals, old
+- Remove intermediate review reports, superseded plans, development journals, old
   result matrices and raw test evidence whose useful current information has
   been consolidated. Preserve behavioral tests and necessary current fixtures;
   do not preserve obsolete execution prompts just to satisfy record-presence
   tests.
 - Remove obsolete capture/analysis results, dated screenshots, stale firmware
-  candidates, duplicated releases, old UF2/ELF files, build intermediates,
+  candidates, duplicated firmware bundles, old UF2/ELF files, build intermediates,
   abandoned source snapshots, editor backups, temporary scripts and
   project-specific caches after satisfying their inventory prerequisites.
   Remove stale lock/PID files only after verifying that no active owner or
@@ -313,10 +301,9 @@ Do not make another backup of material classified for deletion.
 - Consolidate current behavior into appropriate maintained guides and
   contracts. Remove duplicate status paragraphs and completed milestone lists
   from `README.md`, `CONTRACT.md`, architecture and development guides.
-- Remove development phase/step framing outside the explicitly retained active
-  planning documents. Review phase/step-named files and link targets with their
-  dependencies before any rename or deletion; retaining a necessary contract
-  or technical detail does not require retaining its development narrative.
+- Remove development chronology outside the distinct TODO list. Review named
+  files and link targets with their dependencies before renaming or deleting
+  them. Retaining a technical contract does not require keeping its history.
 - Replace historical acceptance stories with concise current support limits
   where those limits remain useful. Retain exact source/board/engine/clock/
   band/mode/setup applicability when a retained physical or RF claim requires
@@ -348,7 +335,7 @@ Respect pre-existing edits. An overlapping required repair must preserve the
 user's content; hold it if that cannot be established. Check the working state
 again during long runs to avoid overwriting concurrent work.
 
-## Stage 3: Validate and finish
+## Validate and finish
 
 Derive commands from the current development guide and actual build/test
 registration. Use installed tools and existing dependencies. Select checks
@@ -362,9 +349,9 @@ reference and formatting validation, not hardware acceptance.
    with link or untracked-file validation.
 2. Review the final diff and newly created files for current-state prose,
    normative meaning, preservation of selected backlog work and user edits.
-   Check development phase/step references throughout retained documentation,
-   including `README.md` and `SECURITY.md`, against the explicit active-plan
-   exceptions; preserve actual procedures and technical terminology.
+   Check development chronology throughout retained documentation,
+   including `README.md` and `SECURITY.md`, against the distinct TODO
+   exception; preserve actual procedures and technical terminology.
    Read operator-facing passages as an operator: can the reader identify the
    product's capabilities and relevant operating limits without interpreting
    engineering milestones or following a chain of validation records? Confirm
@@ -418,4 +405,4 @@ task-only scratch files when their purpose is finished.
 Do not claim complete harness cleanup for an unreachable host or an uninspected
 area. Report completed scope and remaining exceptions explicitly. Do not fill
 the closeout with a development chronology, generic promises or speculative
-next steps.
+future-work lists.

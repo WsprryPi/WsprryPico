@@ -7,6 +7,7 @@ import io
 import json
 import os
 import pty
+import plistlib
 import select
 import shlex
 import shutil
@@ -76,6 +77,56 @@ def fixture(branch='devel', modern=False, version=None):
     checksums['release-manifest.json'] = installer.sha(files['release-manifest.json'])
     files['SHA256SUMS'] = ''.join(f'{digest}  {name}\n' for name, digest in sorted(checksums.items())).encode()
     return files, manifest, proof
+
+
+class UsbRoleDiscoveryTests(unittest.TestCase):
+    def test_darwin_three_and_four_functions_and_bootsel(self):
+        for count in (3, 4):
+            children = []
+            for role in range(0, count * 2, 2):
+                children.extend([
+                    {'bInterfaceNumber': role, 'bInterfaceClass': 2, 'bInterfaceSubClass': 2, 'bInterfaceProtocol': 0},
+                    {'bInterfaceNumber': role + 1, 'bInterfaceClass': 10,
+                     'IORegistryEntryChildren': [{'IOCalloutDevice': '/dev/port-role-' + str(role)}]}])
+            parent = {'idVendor': 0xcafe, 'idProduct': 0x4012, 'USB Serial Number': SERIAL,
+                      'locationID': 123, 'IORegistryEntryChildren': children}
+            with patch.object(installer.subprocess, 'run', return_value=SimpleNamespace(stdout=plistlib.dumps([parent]))):
+                self.assertEqual(installer.discover('Darwin')[0]['ports'],
+                                 {str(r): '/dev/port-role-' + str(r) for r in range(0, count * 2, 2)})
+            children[0]['bInterfaceSubClass'] = 6
+            with patch.object(installer.subprocess, 'run', return_value=SimpleNamespace(stdout=plistlib.dumps([parent]))):
+                self.assertNotIn('0', installer.discover('Darwin')[0]['ports'])
+            parent.update(idVendor=0x2e8a, idProduct=0x000f, IORegistryEntryChildren=[])
+            with patch.object(installer.subprocess, 'run', return_value=SimpleNamespace(stdout=plistlib.dumps([parent]))):
+                found = installer.discover('Darwin')[0]
+                self.assertEqual(found['mode'], 'bootsel')
+                self.assertEqual(found['ports'], {})
+
+    def test_linux_role_metadata_with_arbitrary_tty_numbers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            parent = root / '1-2'
+            parent.mkdir()
+            for name, value in {'idVendor':'cafe','idProduct':'4012','serial':SERIAL}.items():
+                (parent / name).write_text(value)
+            for role in (0, 2, 4, 6):
+                interface = parent / ('1-2:1.' + str(role))
+                (interface / 'tty' / ('ttyACM' + str(90 - role))).mkdir(parents=True)
+                (interface / 'bInterfaceNumber').write_text(format(role, '02x'))
+                for name, value in {'bInterfaceClass':'02','bInterfaceSubClass':'02','bInterfaceProtocol':'00'}.items():
+                    (interface / name).write_text(value)
+            actual_path = installer.Path
+            def selected_path(value):
+                return root if value == '/sys/bus/usb/devices' else actual_path(value)
+            with patch.object(installer, 'Path', side_effect=selected_path):
+                found = installer.discover('Linux')[0]
+                self.assertEqual(found['ports'], {str(r): '/dev/ttyACM' + str(90-r) for r in (0,2,4,6)})
+            (parent / '1-2:1.6' / 'bInterfaceSubClass').write_text('06')
+            with patch.object(installer, 'Path', side_effect=selected_path):
+                self.assertNotIn('6', installer.discover('Linux')[0]['ports'])
+            shutil.rmtree(parent / '1-2:1.6')
+            with patch.object(installer, 'Path', side_effect=selected_path):
+                self.assertEqual(set(installer.discover('Linux')[0]['ports']), {'0','2','4'})
 
 
 class Network:
@@ -241,6 +292,22 @@ class InstallerTests(unittest.TestCase):
         for wrong in (3570237,3568737000000000,None):
             changed=copy.deepcopy(snapshot);changed['frequency']['frequency_hz']=wrong
             self.assertNotEqual(before,installer.saved_semantics(changed))
+
+    def test_message_schedule_preservation_and_update_admission(self):
+        snapshot = dict(config={'config':None},progress={'fields':{},'draft_revision':'0'},
+                        hostname={'saved':None},frequency={'frequency_hz':None},calibration={'saved':None},
+                        status={'job':dict(state='empty',output_active=False,owner_id=None),
+                                'standalone':dict(suspended=False,watermark_utc_ns='0')})
+        installer.admit_snapshot(snapshot)  # Legacy firmware has no message profile.
+        legacy = installer.saved_semantics(snapshot)
+        snapshot['message_schedule'] = dict(schema='transmitter-message-schedule/1',state='paused',
+                                           pause_pending=False,saved={'enabled':False,'message':{'message':'E'}})
+        installer.admit_snapshot(snapshot)
+        self.assertNotEqual(legacy,installer.saved_semantics(snapshot))
+        for change in ({'state':'waiting'}, {'pause_pending':True}, {'state':'recovery_required'},
+                       {'saved':{'enabled':True}}, {'schema':'future/2'}):
+            changed=copy.deepcopy(snapshot);changed['message_schedule'].update(change)
+            with self.assertRaises(installer.Refusal):installer.admit_snapshot(changed)
 
     def test_explicit_beta_final_metadata_and_stable_selection_keep_canonical_provenance(self):
         for version in ('1.0.0-beta.1','1.0.0','1.0.0+build.001'):
@@ -518,6 +585,43 @@ class InstallerTests(unittest.TestCase):
                 (root/'.git').write_text('fixture')
                 with self.assertRaises(installer.Refusal):installer.private_directory(root/'inside')
 
+    def test_exact_selected_and_historical_receipt_preservation_boundaries(self):
+        for end,boundary in [('103ec000',0x3ec000),('103ee000',0x3ee000),('103f0000',0x3f0000)]:
+            manifest={'update':{'application_end':end}}
+            self.assertEqual(installer.preserved_start(manifest),boundary)
+            if end!='103ec000':self.assertEqual(installer.preserved_start(manifest,{'installer_version':'0.2.1'}),0x3ee000)
+        with self.assertRaises(installer.Refusal):installer.preserved_start({'update':{'application_end':'103ed000'}})
+
+    def test_contract_two_inhibited_bundle_and_closed_shape(self):
+        data=bytearray(uf2());tag=b'WsprryPico USB maintenance 1 postboot verification 1'
+        data[544:800]=tag.ljust(256,b'\0');data=bytes(data)
+        asset={'path':'WsprryPico-0.0.0-devel-pico2_w.uf2','bytes':len(data),'sha256':installer.sha(data)}
+        meta={'schema':'wsprrypico-local-build/2','board':'pico2_w','variant':'inhibited','version':'0.0.0-devel',
+              'source':{'revision':'a'*40,'identity':'a'*12,'dirty':False,'inputs_sha256':'b'*64},
+              'usb_update_contract':2,'application_end':'103ec000','uf2':asset}
+        files={'local-build.json':encoded(meta),asset['path']:data}
+        self.assertEqual(installer.verify_local(files)[0]['update']['application_end'],'103ec000')
+        for key,value in [('schema','wsprrypico-local-build/1'),('usb_update_contract',1),('application_end','103ee000'),('extra',True)]:
+            bad=dict(meta);bad[key]=value
+            with self.assertRaises(installer.Refusal):installer.verify_local({**files,'local-build.json':encoded(bad)})
+
+    def test_developer_metadata_shape_and_types_precede_field_access_for_both_contracts(self):
+        for version,end in ((1,'103f0000'),(2,'103ec000')):
+            meta={'schema':f'wsprrypico-local-build/{version}','board':'pico2_w','variant':'normal','version':'0.0.0-devel',
+                  'source':{'revision':'a'*40,'identity':'a'*12,'dirty':False,'inputs_sha256':'b'*64},
+                  'usb_update_contract':version,'application_end':end,
+                  'uf2':{'path':'WsprryPico-0.0.0-devel-pico2_w.uf2','bytes':512,'sha256':'c'*64}}
+            invalid=[]
+            for key,value in (('source',[]),('uf2',None),('extra',True),('usb_update_contract',True)):
+                bad=copy.deepcopy(meta);bad[key]=value;invalid.append(bad)
+            for key in ('revision','identity','inputs_sha256'):
+                bad=copy.deepcopy(meta);bad['source'][key]=7;invalid.append(bad)
+            bad=copy.deepcopy(meta);del bad['source']['revision'];invalid.append(bad)
+            bad=copy.deepcopy(meta);bad['uf2']['bytes']=True;invalid.append(bad)
+            for bad in invalid:
+                with self.subTest(contract=version,metadata=bad),self.assertRaises(installer.Refusal):
+                    installer.verify_local({'local-build.json':encoded(bad)})
+
     def test_local_identity_outlives_secret_backup_retention(self):
         data=bytearray(uf2());tag=b'WsprryPico USB maintenance 1 postboot verification 1'
         data[544:800]=tag.ljust(256,b'\0');data=bytes(data)
@@ -548,7 +652,7 @@ class InstallerTests(unittest.TestCase):
         for offset in range(installer.PERSISTENT_START,installer.FLASH_SIZE,4096):before[offset+17]=71
         original=bytes(before); commands=[]; phase=['application','verification']; snapshots=[0]
         board=lambda:dict(serial=SERIAL,parent='changed' if migration_failure=='wrong_port' and phase[0]=='bootsel' else 'fixed',mode=phase[0],ports={'4':'fixture'})
-        def snapshot(_):
+        def snapshot(_, *, pre_reset_upgrade=False):
             snapshots[0]+=1
             return dict(serial=SERIAL,parent='fixed',target=dict(scope='member',device_id=installer.device_id(SERIAL),boot_id='b'*32),
                 revision='"4"',firmware=('0.1.0-ci.2.1' if old_network_failure else old_manifest['firmware_version']) if snapshots[0]==1 else manifest['firmware_version'],source_revision=manifest['source']['revision'][:12],
@@ -569,7 +673,8 @@ class InstallerTests(unittest.TestCase):
                 if migration_failure=='backup':raise installer.Refusal('backup failed')
                 data=(b'X'+original[1:]) if migration_failure=='old_image' else original
                 if migration_failure=='reserved' and self.reads>1:
-                    data=data[:installer.PERSISTENT_START]+b'X'+data[installer.PERSISTENT_START+1:]
+                    boundary=installer.preserved_start(manifest)
+                    data=data[:boundary]+b'X'+data[boundary+1:]
                 path.write_bytes(data);return data
         class Management:
             def __init__(self,_):pass
@@ -721,6 +826,187 @@ class InstallerTests(unittest.TestCase):
             self.assertEqual(any(c[0] == 'load' for c in commands), failure == 'preservation')
             self.assertFalse(any(c[0] == 'reboot' for c in commands))
             self.assertNotIn('before.bin', json.dumps(record))
+
+
+class InstalledBundleHandoffTests(unittest.TestCase):
+    """Exercise a local deployment followed by a public upgrade through the real transaction."""
+
+    def run_upgrade(self, failure=None, retained=True):
+        files, manifest, _ = fixture(modern=True)
+        data = bytearray(uf2())
+        declaration = b'WsprryPico USB maintenance 1 postboot verification 1'
+        data[544:800] = declaration.ljust(256, b'\0')
+        data = bytes(data)
+        asset = {'path': 'WsprryPico-0.0.0-devel-pico2_w.uf2', 'bytes': len(data), 'sha256': installer.sha(data)}
+        source = manifest['source']['revision']
+        meta = {'schema': 'wsprrypico-local-build/1', 'board': 'pico2_w', 'variant': 'normal',
+                'version': '0.0.0-devel', 'source': {'revision': source, 'identity': source[:12],
+                'dirty': False, 'inputs_sha256': 'b'*64}, 'usb_update_contract': 1,
+                'application_end': '103ee000', 'uf2': asset}
+        local_files = {'local-build.json': encoded(meta), asset['path']: data}
+        _, old_image = installer.verify_local(local_files)
+        new_image = b'A'*256 + b'B'*256
+        flash = bytearray(b'\xff'*installer.FLASH_SIZE)
+        flash[:len(old_image)] = old_image
+        flash[installer.PERSISTENT_START + 17] = 71
+        if failure == 'flash':
+            flash[0] ^= 1
+        original = bytes(flash)
+        phase, calls = ['application'], []
+
+        def board(*args, **kwargs):
+            return {'serial': SERIAL, 'parent': 'fixed', 'mode': phase[0], 'ports': {'4': 'fixture'}}
+
+        def snapshot(_, *, pre_reset_upgrade=False):
+            new = phase[0] == 'verified'
+            return {'serial': SERIAL, 'parent': 'fixed', 'target': {'scope': 'member',
+                    'device_id': installer.device_id(SERIAL), 'boot_id': 'b'*32}, 'revision': '"1"',
+                    'firmware': manifest['firmware_version'] if new or failure == 'public' else '0.0.0-devel',
+                    'source_revision': 'f'*12 if failure == 'ancestry' and not new else source[:12], 'status': {'job': {'state': 'empty',
+                    'output_active': False, 'owner_id': None}, 'standalone': {'suspended': False, 'watermark_utc_ns': '7'}},
+                    'config': {'config': {'enabled': False}}, 'progress': {'fields': {}, 'draft_revision': '3'}, 'hostname': {'saved': 'fixture.local'},
+                    'frequency': {'frequency_hz': None}, 'calibration': {'saved': None}}
+
+        class Tool:
+            path = 'fixture'
+            identity = {'version': 'fixture'}
+            def __init__(self, _): pass
+            def run(self, serial, *args, **kwargs):
+                calls.append(args)
+                if args[0] == 'load':
+                    flash[:len(new_image)] = new_image
+                    if '-x' in args:
+                        phase[0] = 'verified'
+                return ' type: RP2350\n chipid: 0x' + serial.lower() + '\n'
+            def read_flash(self, serial, path):
+                calls.append(('read_flash',))
+                path.write_bytes(flash)
+                return bytes(flash)
+
+        class Management:
+            def __init__(self, _): pass
+            def __enter__(self): return self
+            def __exit__(self, *_): pass
+            def enter_bootsel(self, _):
+                calls.append(('enter_bootsel',))
+                phase[0] = 'bootsel'
+            def get(self, _): return {'phase': 'verification'}
+            def finish_verification(self, _): calls.append(('release',))
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)/'state'; root.mkdir()
+            bundle = Path(temporary)/'original-bundle'; bundle.mkdir()
+            for name, value in local_files.items(): (bundle/name).write_bytes(value)
+            if failure in ('source', 'ancestry'):
+                meta['source'].update(revision='f'*40, identity='f'*12)
+                (bundle/'local-build.json').write_bytes(encoded(meta))
+            elif failure == 'hash':
+                (bundle/asset['path']).write_bytes(data + b'changed')
+            reference = root/('.local-reference-'+SERIAL+'.json')
+            if retained:
+                reference.write_text('stale reference must survive refusal')
+            if failure == 'symlink':
+                previous = root/'previous.json'
+                reference.rename(previous)
+                reference.symlink_to(previous)
+            args = SimpleNamespace(operation='upgrade', device=SERIAL, board='pico2_w', yes=True,
+                    branch='devel', picotool='fixture', state_dir=root, installed_bundle=bundle)
+            info = (' name: WsprryPico\n version: '+manifest['firmware_version']+
+                    '\n description: Standalone PIO/DMA RF '+source[:12]+
+                    '\n pico_board: pico2_w\n target chip: RP2350\n')
+            def linked_info(command):
+                if Path(command[-1]).name == asset['path']:
+                    return info.replace(manifest['firmware_version'], '0.0.0-devel').replace(
+                        'pico2_w', 'wrong_board' if failure == 'embedded' else 'pico2_w').replace(
+                        source[:12], 'f'*12 if failure == 'ancestry' else source[:12])
+                return info
+            class BaselineNetwork(Network):
+                def api(self, path):
+                    if failure == 'ancestry' and path.startswith('compare/'):
+                        return {'status': 'diverged', 'merge_base_commit': {'sha': 'c'*40}}
+                    return super().api(path)
+            with patch.object(installer, 'private_directory', return_value=root), \
+                 patch.object(installer, 'device_lock', lambda _: contextlib.nullcontext()), \
+                 patch.object(installer, 'Picotool', Tool), patch.object(installer, 'command', side_effect=linked_info), \
+                 patch.object(installer, 'selected', side_effect=board), \
+                 patch.object(installer, 'discover', side_effect=lambda: [dict(board(), mode='application' if phase[0]=='verified' else phase[0])]), \
+                 patch.object(installer, 'public_snapshot', side_effect=snapshot), \
+                 patch.object(installer, 'Management', Management):
+                if failure:
+                    with self.assertRaises((installer.Refusal, installer.TransactionFailure)):
+                        installer.transaction(args, files, manifest, new_image, BaselineNetwork())
+                    self.assertFalse(any(c[0]=='load' for c in calls))
+                    self.assertEqual(reference.read_text(), 'stale reference must survive refusal')
+                    if failure != 'flash':
+                        self.assertFalse(calls)
+                        self.assertEqual(phase[0], 'application')
+                else:
+                    result = installer.transaction(args, files, manifest, new_image, BaselineNetwork())
+                    self.assertEqual(result['stage'], 'complete')
+                    self.assertTrue(result['installed_reference_repaired'])
+                    self.assertEqual(json.loads(reference.read_text())['uf2_sha256'], asset['sha256'])
+                    baseline = installer.installed_local(root, SERIAL, {'source_revision': source[:12]}, original)
+                    self.assertEqual(baseline[2], old_image)
+                    self.assertLess(calls.index(('read_flash',)), next(i for i,c in enumerate(calls) if c[0]=='load'))
+                    self.assertIn(('release',), calls)
+                self.assertEqual(flash[installer.PERSISTENT_START:], original[installer.PERSISTENT_START:])
+
+    def test_stale_reference_is_reconciled_only_after_exact_same_board_flash_match(self):
+        self.run_upgrade()
+
+    def test_new_host_can_import_original_bundle_without_a_retained_reference(self):
+        self.run_upgrade(retained=False)
+
+    def test_wrong_source_hash_flash_or_public_baseline_never_programs_or_repairs(self):
+        for failure in ('source', 'hash', 'flash', 'public', 'embedded', 'ancestry', 'symlink'):
+            with self.subTest(failure=failure): self.run_upgrade(failure=failure)
+
+    def test_installed_bundle_is_upgrade_only_before_discovery_or_download(self):
+        for operation in ('plan', 'install', 'recover', 'snapshot', 'erase', 'discover'):
+            with self.subTest(operation=operation), \
+                 patch.object(installer, 'discover', side_effect=AssertionError('device access')), \
+                 patch.object(installer, 'resolve', side_effect=AssertionError('download')), \
+                 contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(installer.main([operation, '--installed-bundle', 'bundle']), 2)
+                self.assertIn('only supported for upgrade', json.loads(output.getvalue())['error'])
+
+    def test_local_deployment_persists_reference_before_releasing_verification_hold(self):
+        _, manifest, _ = fixture(modern=True)
+        board = {'serial': SERIAL, 'parent': 'fixed', 'mode': 'application'}
+        observed = {'firmware': manifest['firmware_version'], 'source_revision': manifest['source']['revision'][:12],
+                    'target': {'boot_id': 'b'*32}, 'config': {'config': None}, 'status': {
+                    'job': {'state': 'empty', 'output_active': False, 'owner_id': None},
+                    'standalone': {'suspended': False}}}
+        for fail in (False, True):
+            calls = []
+            class Management:
+                def __init__(self, _): pass
+                def __enter__(self): return self
+                def __exit__(self, *_): pass
+                def get(self, _): return {'phase': 'verification'}
+                def finish_verification(self, _): calls.append('release')
+            def remember(*args):
+                calls.append('reference')
+                if fail: raise OSError('reference storage unavailable')
+            with self.subTest(reference_write_fails=fail), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                (root/'local-build.json').write_text('fixture marker')
+                path = root/'transaction.json'
+                record = {'serial': SERIAL, 'parent': 'fixed', 'operation': 'install'}
+                with patch.object(installer, 'discover', return_value=[board]), \
+                     patch.object(installer, 'selected', return_value=board), \
+                     patch.object(installer, 'public_snapshot', return_value=observed), \
+                     patch.object(installer, 'remember_local', side_effect=remember), \
+                     patch.object(installer, 'Management', Management), \
+                     patch.object(installer, 'trim_finished_history'):
+                    if fail:
+                        with self.assertRaisesRegex(OSError, 'reference storage'):
+                            installer.verify_application(SimpleNamespace(), None, record, path, manifest, None)
+                        self.assertEqual(calls, ['reference'])
+                    else:
+                        result = installer.verify_application(SimpleNamespace(), None, record, path, manifest, None)
+                        self.assertEqual(result['stage'], 'complete')
+                        self.assertEqual(calls, ['reference', 'release'])
 
 
 class PicotoolCompatibilityTests(unittest.TestCase):
@@ -1413,7 +1699,7 @@ class StandaloneGuidanceTests(unittest.TestCase):
         core = (ROOT / 'scripts/usb_installer.py').read_text().replace(
             "if __name__ == '__main__':\n", "if __name__ == '__main__':\n" + overrides)
         (source / 'usb_installer.py').write_text(core)
-        (source / 'release-manifest-1.schema.json').write_text('{}')
+        (source / 'release-manifest-2.schema.json').write_text('{}')
         curl = tools / 'curl'
         curl.write_text('#!' + sys.executable + '\n' +
             'import json,os,sys\nfrom pathlib import Path\n'
@@ -1581,6 +1867,69 @@ class StandaloneGuidanceTests(unittest.TestCase):
             self.assertFalse((root / 'curl.log').exists())
             self.assertFalse((root / 'INJECTED').exists())
             self.assertEqual(list(downloads.iterdir()), [])
+
+
+class ControlSnapshotTransitionTests(unittest.TestCase):
+    def capture(self, *, old=False, upgrade=False, wrong=False, malformed=None):
+        calls = []
+        class Management:
+            hello = {'target': {'device_id': 'a' * 32, 'boot_id': 'b' * 32},
+                     'body': json.dumps({'firmware': '0.0.0-devel'})}
+            etags = {}
+            def __init__(self, device): pass
+            def __enter__(self): return self
+            def __exit__(self, *args): pass
+            def get(self, path, *, absent_ok=False):
+                calls.append(path)
+                if malformed and path.endswith('/' + malformed): return []
+                if old and path == '/api/control/v1/capabilities':
+                    if absent_ok: return installer.CONTROL_RESOURCE_ABSENT
+                    raise installer.Refusal('Required current control resource unavailable')
+                self.etags[path] = 'revision'
+                return {'contract': 'unknown' if wrong else 'Wsprry-Control/1',
+                        'source_revision': 'c' * 12}
+        with patch.object(installer, 'Management', Management):
+            value = installer.public_snapshot({'serial': SERIAL, 'parent': 'physical-parent'},
+                                              pre_reset_upgrade=upgrade)
+        return value, calls
+
+    def test_reset_preserves_settings_despite_removed_wire_storage_version(self):
+        old = {'config': {'config': {'version': 1, 'enabled': False, 'gpio_drive_ma': 8}},
+               'progress': {'fields': {}, 'draft_revision': '1'}, 'hostname': {'saved': None},
+               'frequency': {'frequency_hz': None}, 'calibration': {'saved': None},
+               'status': {'standalone': {'watermark_utc_ns': '0', 'suspended': False}}}
+        current = copy.deepcopy(old)
+        current['config']['contract'] = 'Wsprry-Control/1'
+        del current['config']['config']['version']
+        self.assertEqual(installer.saved_semantics(old), installer.saved_semantics(current))
+        current['config']['config']['gpio_drive_ma'] = 12
+        self.assertNotEqual(installer.saved_semantics(old), installer.saved_semantics(current))
+        old['config']['config']['version'] = 2
+        self.assertEqual(installer.saved_semantics(old)['config']['gpio_drive_ma'],8)
+        old['config']['config']['version'] = 99
+        with self.assertRaises(installer.Refusal): installer.saved_semantics(old)
+
+    def test_malformed_current_documents_do_not_select_legacy_capture(self):
+        for resource in ('capabilities','status','config','progress'):
+            with self.subTest(resource=resource), self.assertRaisesRegex(installer.Refusal, 'Malformed'):
+                self.capture(upgrade=True, malformed=resource)
+
+    def test_current_snapshot_never_uses_old_namespace(self):
+        value, calls = self.capture()
+        self.assertTrue(all(path.startswith('/api/control/v1/') for path in calls))
+        self.assertEqual(value['revision'], 'revision')
+        self.assertIn('/api/control/v1/progress', calls)
+
+    def test_only_explicit_pre_reset_upgrade_can_capture_old_settings(self):
+        with self.assertRaises(installer.Refusal): self.capture(old=True)
+        value, calls = self.capture(old=True, upgrade=True)
+        self.assertEqual(calls[0], '/api/control/v1/capabilities')
+        self.assertIn('/api/v1/config/4', calls)
+        self.assertEqual(value['source_revision'], 'c' * 12)
+
+    def test_unknown_contract_refuses_without_legacy_capture(self):
+        with self.assertRaisesRegex(installer.Refusal, 'Unknown control contract'):
+            self.capture(upgrade=True, wrong=True)
 
 
 if __name__ == '__main__':

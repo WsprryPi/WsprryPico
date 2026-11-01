@@ -1,9 +1,12 @@
 #include "application/resources.hpp"
 #include "network/bootstrap_codec.hpp"
 #include "network/consumer_radio.hpp"
+#include "network/public_read.hpp"
 #include "network_support.hpp"
 #include "provisioning/consumer_profile.hpp"
+#include "rf/stream_engine.hpp"
 #include "wtp/json.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <cassert>
 using namespace wsprrypico;
@@ -11,6 +14,8 @@ using namespace network_test;
 namespace {
 constexpr auto device = "11111111111111111111111111111111";
 constexpr auto boot = "22222222222222222222222222222222";
+std::map<void*, std::size_t> message_pages;
+std::size_t message_page_bytes = 0;
 struct Media : provisioning::Media {
     std::array<std::uint8_t, 16384> data{};
     Media() {
@@ -58,9 +63,30 @@ struct Crypto : network::ConsumerRadioCrypto {
             return {};
         return p.view().substr(28, p.size() - 44);
     }
-    std::optional<network::HttpResponse>
-    seal(wtp::InputView text, const network::ConsumerRadioBinding&, std::uint64_t) override {
-        return network::HttpResponse{200, std::string(text), "application/json", {}};
+    std::optional<network::HttpResponse> seal_parts(std::span<const wtp::InputView> parts,
+                                                    const network::ConsumerRadioBinding&,
+                                                    std::uint64_t) override {
+        std::string text;
+        for (const auto part : parts)
+            text += std::string(part);
+        return network::HttpResponse{200, std::move(text), "application/json", {}};
+    }
+    std::optional<network::HttpResponse> seal_buffer(wtp::OutputBuffer plaintext,
+                                                     const network::ConsumerRadioBinding& binding,
+                                                     std::uint64_t sequence) override {
+        const auto view = plaintext.view();
+        return seal_parts(std::span(&view, 1), binding, sequence);
+    }
+    std::optional<network::HttpResponse> seal_source(wtp::ResponseSourcePtr plaintext,
+                                                     const network::ConsumerRadioBinding&,
+                                                     std::uint64_t) override {
+        std::string text;
+        for (std::size_t offset = 0; offset < plaintext->size();) {
+            const auto part = plaintext->at(offset);
+            text.append(reinterpret_cast<const char*>(part.data()), part.size());
+            offset += part.size();
+        }
+        return network::HttpResponse{200, std::move(text), "application/json", {}};
     }
     void clear() override {}
 };
@@ -86,6 +112,10 @@ struct Test {
     Media media;
     provisioning::ProfileStore store{media};
     provisioning::RuntimeProfile runtime;
+    Flash progress_flash;
+    standalone::Progress progress{progress_flash};
+    provisioning::LocalSettings settings{store,    runtime, fixture.store,
+                                         progress, device,  "wsprrypico-0a60df.local"};
     Random random;
     Crypto crypto, crypto2, crypto3;
     network::ConsumerRadioApi api{
@@ -98,7 +128,8 @@ struct Test {
         r.headers["origin"] = "http://" + authority;
         return api.handle(r, now, tx, interface);
     }
-    Test(bool network_only = false) {
+    Test(bool network_only = false, wtp::RfEngine* engine = nullptr)
+        : fixture(0, std::string(32, 'a'), engine) {
         provisioning::ConsumerProfile profile;
         profile.device_id = device;
         profile.owner_epoch = 0;
@@ -122,6 +153,8 @@ struct Test {
                                 provisioning::serialize_consumer_profile(profile)));
         assert(runtime.load(store, device, provisioning::BuildBundleState::Absent));
         fixture.api.consumer_config(runtime);
+        assert(progress.load());
+        fixture.api.local_usb_settings(settings);
         if (!network_only)
             assert(fixture.scheduler.command("CONFIG " + config).find("true") != std::string::npos);
         api.admission(runtime.control_healthy(store) && runtime.consumer_browser_selected(store));
@@ -135,7 +168,7 @@ struct Test {
                 R"({"version":1,"device_id":"11111111111111111111111111111111","boot_id":"22222222222222222222222222222222","generation":"1","public_key":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA","nonce":"00000000000000000000000000000000"})"),
             transaction++);
     }
-    void login() {
+    void login(unsigned context=0) {
         sequence = 1;
         auto result = start();
         assert(result.status == 200);
@@ -145,10 +178,16 @@ struct Test {
         auto h = network::consumer_radio_header(session, 0);
         std::string packet(h.begin(), h.end());
         packet.resize(44);
-        assert(send(request("/api/consumer/v1/finish", packet, true), transaction++).status == 200);
+        const auto finished=send(request("/api/consumer/v1/finish", packet, true), transaction++);
+        if (finished.status!=200) std::cerr << "Login finish "<<finished.status<<" "<<finished.body<<" context "<<context<<" now "<<now<<"\n";
+        assert(finished.status == 200);
     }
     network::HttpResponse call(std::string method, std::string path, std::string body = "null",
                                std::string revision = {}) {
+        if (method != "GET") {
+            network::HttpRequest logical{method,path,body,{}};
+            body=network_test::control_request(std::move(logical)).body;
+        }
         auto h = network::consumer_radio_header(crypto.binding.session, sequence++);
         std::string packet(h.begin(), h.end());
         packet += "{\"method\":" + wtp::json::quote(method) +
@@ -159,8 +198,157 @@ struct Test {
         return send(request("/api/consumer/v1/request", packet, true), transaction++);
     }
 };
+network::HttpResponse read_public(Test& test) {
+    auto get = request("/api/consumer/v1/status");
+    get.method = "GET";
+    return test.send(std::move(get), test.transaction++);
+}
 } // namespace
 int main() {
+    {
+        Test t;
+        auto read = [&](std::string path, std::string method = "GET", std::string body = {}) {
+            auto r = request(std::move(path), std::move(body));
+            r.method = std::move(method);
+            return t.send(std::move(r), t.transaction++);
+        };
+        const auto revision = t.fixture.store.config_sequence();
+        const auto caps = read("/api/consumer/v1/read");
+        const auto root = wtp::json::parse(caps.body);
+        assert(caps.status == 200 && root &&
+               wtp::json::fields(*root, {"contract", "schema", "target", "prefix", "resources"}));
+        assert(root->get("schema")->string() == "public-read");
+        assert(root->get("resources")->elements().size() == network::public_read_resources.size());
+        assert(read("/api/consumer/v1/read/amplifier-timing").status == 200);
+        assert(read("/api/consumer/v1/read/ntp-timeout").status == 200);
+        for (const auto old : {"/api/consumer/v1/read/2", "/api/consumer/v1/read/3", "/api/consumer/v1/read/ntp-timeout/2", "/api/consumer/v1/read/config/4"})
+            assert(read(old).status==404);
+        assert(read("/api/consumer/v1/read/amplifier-timing", "PUT", "{}").status==405);
+        const auto config_read = read("/api/consumer/v1/read/config");
+        assert(config_read.status == 200 && config_read.body.find("AA0NT") != std::string::npos);
+        assert(config_read.body.find("test-password") == std::string::npos);
+        const auto operations = read("/api/consumer/v1/read/operations");
+        assert(operations.status == 200 &&
+               operations.body.find("operations") != std::string::npos);
+        for (const auto resource : network::public_read_resources) {
+            const auto path = "/api/consumer/v1/read/" + std::string(resource);
+            for (const auto method : {"POST", "PUT", "DELETE"})
+                assert(read(path, method, "{\"enabled\":true}").status == 405);
+        }
+        for (const auto suffix :
+             {"jobs", "restart", "progress/apply", "pins/validate", "config/update", "../jobs"})
+            assert(read("/api/consumer/v1/read/" + std::string(suffix)).status == 404);
+        assert(read("/api/consumer/v1/read/config", "GET", "{}").status == 400);
+        auto cross_site = request("/api/consumer/v1/read/config");
+        cross_site.method = "GET";
+        cross_site.headers["origin"] = "http://other.example";
+        assert(t.api.handle(network_test::control_request(cross_site), t.now, t.transaction++).status == 403);
+        assert(!t.api.active(t.now) && t.fixture.store.config_sequence() == revision);
+        assert(t.fixture.service.status().state == wtp::State::Empty);
+    }
+    {
+        Test t;
+        auto response = read_public(t);
+        assert(response.status == 200);
+        const auto value = wtp::json::parse(response.body);
+        assert(value && wtp::json::fields(*value, {"schema", "device_id", "boot_id", "state",
+                                                   "output_active", "owned", "clock_state",
+                                                   "utc_now_ns", "uncertainty_ns", "engine"}));
+        assert(value->get("schema")->string() == "public-status");
+        assert(value->get("state")->string() == "empty");
+        assert(value->get("output_active")->raw == "false");
+        assert(value->get("owned")->raw == "false");
+        assert(response.body.find("owner_id") == std::string::npos);
+        assert(response.body.find("test-password") == std::string::npos);
+        assert(response.body.find("AA0NT") == std::string::npos);
+        assert(!t.api.active(t.now));
+        auto forged = request("/api/consumer/v1/status");
+        forged.method = "GET";
+        forged.headers["host"] = "evil.example";
+        assert(t.api.handle(network_test::control_request(forged), t.now, t.transaction++).status == 403);
+        forged.headers["host"] = "192.168.4.1";
+        forged.headers["origin"] = "http://evil.example";
+        assert(t.api.handle(network_test::control_request(forged), t.now, t.transaction++).status == 403);
+        assert(t.send(request("/api/consumer/v1/status", "{}"), t.transaction++).status != 200);
+        wtp::available_memory = []() -> std::size_t { return 32768; };
+        assert(read_public(t).status == 503);
+        wtp::available_memory = nullptr;
+    }
+    {
+        struct Sink final : rf::BlockSink {
+            bool stop(std::uint64_t) override {
+                return true;
+            }
+            bool submit(std::uint64_t, std::uint64_t, std::span<const std::uint32_t>,
+                        std::uint64_t) override {
+                std::abort();
+            }
+            bool arm(std::uint64_t, std::uint64_t, std::uint64_t, rf::LaunchGuard) override {
+                std::abort();
+            }
+            rf::SinkReport poll(std::uint64_t) override {
+                return {};
+            }
+            bool output_active() const override {
+                return false;
+            }
+        } sink;
+        rf::StreamEngine engine(sink);
+        Test t(false, &engine);
+        t.authority = "192.168.1.53";
+        t.interface = network::ConsumerInterface::Station;
+        t.login(__LINE__);
+        const std::string session(32, '1');
+        unsigned id = 2000;
+        const auto command = [&](std::string op, std::string body) {
+            auto result = t.call("POST", "/api/control/v1/jobs",
+                                 "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
+                                     std::string(28, '0') + std::to_string(++id) +
+                                     "\",\"operation\":\"" + op + "\",\"body\":" + body + "}");
+            assert(result.status == 200);
+            assert(result.body.find("\"status\":200") != std::string::npos);
+            t.api.finish_request(t.transaction - 1, true);
+            return result.body.size();
+        };
+        command(
+            "HELLO",
+            R"({"versions":["WTP/1"],"client_name":"message regression","client_version":"1"})");
+        command("CLAIM", "{\"owner_id\":\"" + session + "\",\"lease_ms\":60000}");
+        // Model resident request/event/reply pages as real allocations. The
+        // large adjustment JSON leaves room for framing, but not another full
+        // ciphertext allocation alongside the unchanged 32 KiB reserve.
+        const auto allocate = wtp::allocate_input;
+        const auto deallocate = wtp::deallocate_input;
+        wtp::allocate_input = [](std::size_t size) -> void* {
+            auto* memory = std::malloc(size);
+            if (memory) {
+                message_pages[memory] = size;
+                message_page_bytes += size;
+            }
+            return memory;
+        };
+        wtp::deallocate_input = [](void* memory) {
+            if (const auto found = message_pages.find(memory); found != message_pages.end()) {
+                message_page_bytes -= found->second;
+                message_pages.erase(found);
+            }
+            std::free(memory);
+        };
+        wtp::available_memory = []() -> std::size_t { return 70000 - message_page_bytes; };
+        const auto bytes = command(
+            "LOAD_MESSAGE",
+            R"({"job_id":"33333333333333333333333333333333","mode":"fskcw","message":"CQ CQ DE AA0NT EM18 QRSS TEST 73","frequency_nhz":"10140005000000000","space_frequency_nhz":"10140000000000000","timing":{"dot_ns":"3000000000","dash_ns":"9000000000","intra_gap_ns":"3000000000","character_gap_ns":"9000000000","word_gap_ns":"21000000000"},"repeat_count":1,"repeat_gap_ns":"3000000000","allow_frequency_adjustment":true})");
+        wtp::available_memory = nullptr;
+        assert(bytes > wtp::OutputBuffer::page_bytes);
+        assert(t.fixture.service.status().state == wtp::State::Loaded);
+        assert(!t.fixture.service.status().output_active);
+        command("RELEASE", "{}");
+        assert(!t.fixture.service.status().owner_id);
+        t.api.close();
+        assert(message_pages.empty());
+        wtp::allocate_input = allocate;
+        wtp::deallocate_input = deallocate;
+    }
     for (const auto* host : {"192.168.1.53", "wsprrypico-0a60df.local"}) {
         Test t(true);
         t.authority = host;
@@ -170,12 +358,12 @@ int main() {
         assert(!t.runtime.consumer_profile());
         assert(!t.fixture.store.config());
         const auto profile = t.media.data;
-        t.login();
-        auto response = t.call("GET", "/api/v1/config");
+        t.login(__LINE__);
+        auto response = t.call("GET", "/api/control/v1/config");
         assert(response.status == 200);
         assert(response.body.find("\"config\":null") != std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
-        response = t.call("GET", "/api/v1/capabilities");
+        response = t.call("GET", "/api/control/v1/capabilities");
         assert(response.body.find("\"consumer_setup_identity\":true") != std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         assert(t.media.data == profile);
@@ -183,21 +371,21 @@ int main() {
         // A changed or corrupt profile must close the old authenticated authority.
         assert(t.store.select(provisioning::ProfileSource::Unprovisioned, ""));
         assert(!t.api.available());
-        assert(t.call("GET", "/api/v1/status").status == 409);
+        assert(t.call("GET", "/api/control/v1/status").status == 409);
     }
     {
         Test t;
-        t.login();
+        t.login(__LINE__);
         const auto cursor = t.fixture.store.watermark();
         const auto profile = t.media.data;
         const auto target =
             application::target(std::string(32, 'a'), t.fixture.service.status().boot_id);
         const auto update = [&](std::string config) {
-            return "{\"schema\":\"transmitter-config-update/1\",\"target\":" + target +
+            return "{\"schema\":\"config-update\",\"target\":" + target +
                    ",\"mode\":\"merge\",\"config\":" + config + '}';
         };
         auto result =
-            t.call("POST", "/api/v1/config/update",
+            t.call("POST", "/api/control/v1/config/update",
                    update("{\"allow_unqualified_frequency\":true}"), t.fixture.api.revision());
         assert(result.body.find("\"status\":200") != std::string::npos);
         assert(t.fixture.store.config()->allow_unqualified_frequency);
@@ -205,7 +393,7 @@ int main() {
         t.api.finish_request(t.transaction - 1, true);
         const auto generation = t.fixture.store.config_sequence();
         result =
-            t.call("POST", "/api/v1/config/update",
+            t.call("POST", "/api/control/v1/config/update",
                    update("{\"wifi\":{\"ssid\":\"other-network\"}}"), t.fixture.api.revision());
         assert(result.body.find("consumer_setup_identity_required") != std::string::npos);
         assert(t.fixture.store.config_sequence() == generation);
@@ -214,14 +402,14 @@ int main() {
         t.api.setup_handler(nullptr, nullptr, &setup_busy,
                             [](void* context) { return *static_cast<bool*>(context); });
         result =
-            t.call("POST", "/api/v1/config/update",
+            t.call("POST", "/api/control/v1/config/update",
                    update("{\"allow_unqualified_frequency\":false}"), t.fixture.api.revision());
         assert(result.body.find("setup_pending") != std::string::npos);
         assert(t.fixture.store.config_sequence() == generation);
         t.api.finish_request(t.transaction - 1, true);
         setup_busy = false;
         result =
-            t.call("POST", "/api/v1/config/update",
+            t.call("POST", "/api/control/v1/config/update",
                    update("{\"allow_unqualified_frequency\":false}"), t.fixture.api.revision());
         assert(result.body.find("\"status\":200") != std::string::npos);
         assert(!t.fixture.store.config()->allow_unqualified_frequency);
@@ -233,13 +421,13 @@ int main() {
         // Overlapping subnets still cannot move a session between interfaces.
         t.api.listeners(true, "192.168.4.1", "wsprrypico-0a60df.local");
         t.interface = network::ConsumerInterface::Station;
-        t.login();
+        t.login(__LINE__);
         t.interface = network::ConsumerInterface::AccessPoint;
-        assert(t.call("GET", "/api/v1/status").status == 403);
+        assert(t.call("GET", "/api/control/v1/status").status == 403);
         t.interface = network::ConsumerInterface::Station;
         t.sequence = 1;
         t.api.listeners(false, "192.168.4.1", "wsprrypico-0a60df.local");
-        assert(t.call("GET", "/api/v1/status").body.find("\"status\":200") != std::string::npos);
+        assert(t.call("GET", "/api/control/v1/status").body.find("\"status\":200") != std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
     }
     {
@@ -247,20 +435,20 @@ int main() {
         bool setup_busy = true;
         t.api.setup_handler(nullptr, nullptr, &setup_busy,
                             [](void* context) { return *static_cast<bool*>(context); });
-        t.login();
-        assert(t.call("GET", "/api/v1/status").body.find("\"status\":200") != std::string::npos);
+        t.login(__LINE__);
+        assert(t.call("GET", "/api/control/v1/status").body.find("\"status\":200") != std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         const std::string hello =
             R"({"session_id":"33333333333333333333333333333333","request_id":"44444444444444444444444444444444","operation":"HELLO","body":{"versions":["WTP/1"],"client_name":"test","client_version":"1"}})";
-        assert(t.call("POST", "/api/v1/jobs", hello).body.find("setup_pending") !=
+        assert(t.call("POST", "/api/control/v1/jobs", hello).body.find("setup_pending") !=
                std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         assert(!t.fixture.service.activity().owned && !t.fixture.service.activity().output_active);
-        assert(t.call("PUT", "/api/v1/config", "{}", t.fixture.api.revision())
+        assert(t.call("POST", "/api/control/v1/config/update", network_test::configuration_update("{}"), t.fixture.api.revision())
                    .body.find("setup_pending") != std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         setup_busy = false;
-        assert(t.call("POST", "/api/v1/jobs", hello).body.find("\"status\":200") !=
+        assert(t.call("POST", "/api/control/v1/jobs", hello).body.find("\"status\":200") !=
                std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
     }
@@ -289,8 +477,8 @@ int main() {
             &setup);
         t.authority = "192.168.1.53";
         t.interface = network::ConsumerInterface::Station;
-        t.login();
-        assert(t.call("POST", "/api/v1/consumer/setup/api/bootstrap/v1/start", "{}").status == 200);
+        t.login(__LINE__);
+        assert(t.call("POST", "/api/control/v1/consumer/setup/api/bootstrap/v1/start", "{}").status == 200);
         assert(setup.requests == 1 && setup.deliveries == 0);
         t.api.finish_request(t.transaction + 9, true);
         assert(setup.deliveries == 0);
@@ -303,11 +491,11 @@ int main() {
         Test t;
         t.authority = "192.168.1.53";
         t.interface = network::ConsumerInterface::Station;
-        t.login();
+        t.login(__LINE__);
         const std::string session(32, '1'), job(32, '2');
         unsigned id = 1000;
         const auto command = [&](std::string op, std::string body) {
-            auto result = t.call("POST", "/api/v1/jobs",
+            auto result = t.call("POST", "/api/control/v1/jobs",
                                  "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
                                      std::string(28, '0') + std::to_string(++id) +
                                      "\",\"operation\":\"" + op + "\",\"body\":" + body + "}");
@@ -322,26 +510,34 @@ int main() {
                             "\"duration_ns\":\"1000000000\","
                             "\"rf_on\":true,\"frequency_nhz\":\"3570100000000000\"}],\"allow_"
                             "frequency_adjustment\":false}");
-        assert(t.call("GET", "/api/v1/status").body.find("\"state\":\"loaded\"") !=
+        assert(t.call("GET", "/api/control/v1/status").body.find("\"state\":\"loaded\"") !=
                std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         const auto start = t.fixture.clock.snapshot().utc_now_ns + 2'000'000'000ULL;
         command("ARM", "{\"job_id\":\"" + job + "\",\"start_utc_ns\":\"" + std::to_string(start) +
                            "\",\"max_start_uncertainty_ns\":\"1000\"}");
-        assert(t.call("GET", "/api/v1/status").body.find("\"state\":\"armed\"") !=
+        assert(t.call("GET", "/api/control/v1/status").body.find("\"state\":\"armed\"") !=
                std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         auto refused =
-            t.call("PUT", "/api/v1/network", "{\"enabled\":false}", t.fixture.api.revision());
+            t.call("PUT", "/api/control/v1/network", "{\"enabled\":false}", t.fixture.api.revision());
         assert(refused.body.find("\"status\":409") != std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         t.fixture.clock.now += 2'000'000'000ULL;
         t.fixture.service.poll();
-        assert(t.call("GET", "/api/v1/status").body.find("\"state\":\"running\"") !=
+        assert(t.call("GET", "/api/control/v1/status").body.find("\"state\":\"running\"") !=
                std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         t.api.close(); // Browser loss neither aborts nor releases accepted local execution.
         assert(t.fixture.service.status().state == wtp::State::Running);
+        const auto public_running = read_public(t);
+        assert(public_running.status == 200);
+        const auto view = wtp::json::parse(public_running.body);
+        assert(view->get("state")->string() == "running");
+        // This fixture uses a dry-run engine: running does not assert RF output.
+        assert(view->get("output_active")->raw == "false");
+        assert(view->get("owned")->raw == "true");
+        assert(!view->get("owner_id") && !view->get("job_id"));
         assert(t.fixture.service.status().owner_id == session);
         t.fixture.clock.now += 1'000'000'000ULL;
         t.fixture.service.poll();
@@ -354,22 +550,22 @@ int main() {
         get.method = "GET";
         for (const auto host : {"192.168.1.53", "wsprrypico-0a60df.local", "192.168.1.53:80"}) {
             get.headers["host"] = host;
-            assert(t.api.handle(get, t.now, 1, station).status == 200);
-            assert(t.api.handle(get, t.now, 1).status == 403);
+            assert(t.api.handle(network_test::control_request(get), t.now, 1, station).status == 200);
+            assert(t.api.handle(network_test::control_request(get), t.now, 1).status == 403);
         }
         for (const auto host : {"", "evil.local", "wsprrypico-0a60df.local.evil", "192.168.4.1",
                                 "192.168.1.53:81", "192.168.1.053", "user@192.168.1.53",
                                 "192.168.1.53/", "192.168.1.53:80:80", "[::1]"}) {
             get.headers["host"] = host;
-            assert(t.api.handle(get, t.now, 1, station).status == 403);
+            assert(t.api.handle(network_test::control_request(get), t.now, 1, station).status == 403);
         }
         t.authority = "wsprrypico-0a60df.local";
         t.interface = station;
-        t.login();
+        t.login(__LINE__);
         t.api.listeners(false, "192.168.1.53", t.authority); // AP loss preserves LAN session.
         assert(t.api.active(t.now));
         auto result =
-            t.call("PUT", "/api/v1/network", "{\"enabled\":false}", t.fixture.api.revision());
+            t.call("PUT", "/api/control/v1/network", "{\"enabled\":false}", t.fixture.api.revision());
         assert(result.body.find("\"status\":200") != std::string::npos);
         assert(t.fixture.network.pending == false);
         t.api.listeners(false, "192.168.1.54", t.authority); // DHCP cancels deferred action.
@@ -377,24 +573,24 @@ int main() {
         assert(t.fixture.network.enabled && !t.fixture.network.pending);
         assert(!t.api.active(t.now));
         t.now += 1000;
-        t.login();
+        t.login(__LINE__);
         t.authority = "192.168.1.54";
-        assert(t.call("GET", "/api/v1/status").status == 403); // Same IP netif, different origin.
+        assert(t.call("GET", "/api/control/v1/status").status == 403); // Same IP netif, different origin.
         --t.sequence;
         t.authority = "wsprrypico-0a60df.local";
-        assert(t.call("GET", "/api/v1/status").status == 200);
+        assert(t.call("GET", "/api/control/v1/status").status == 200);
         t.api.finish_request(t.transaction - 1, true);
         t.api.listeners(false, "192.168.1.54", "renamed.local");
         assert(!t.api.active(t.now));
         t.authority = "renamed.local";
         t.now += 1000;
-        t.login();
+        t.login(__LINE__);
         t.api.listeners(false, {}, t.authority); // Link/explicit network disable.
         assert(!t.api.active(t.now));
     }
     {
         Test t;
-        t.login();
+        t.login(__LINE__);
         t.api.listeners(false, "192.168.1.53", "wsprrypico-0a60df.local");
         assert(!t.api.active(t.now)); // AP withdrawal cancels only the AP session.
     }
@@ -426,56 +622,82 @@ int main() {
         assert(t.start().status == 409);
         t.api.admission(true);
         assert(
-            t.api.handle(request("/api/consumer/v1/request", std::string(44, 'x'), true), t.now, 1)
+            t.api.handle(network_test::control_request(request("/api/consumer/v1/request", std::string(44, 'x'), true)), t.now, 1)
                 .status == 401);
         auto cross = request("/api/consumer/v1/start", "{}");
         cross.headers["origin"] = "http://evil";
-        assert(t.api.handle(cross, t.now, 2).status == 403);
+        assert(t.api.handle(network_test::control_request(cross), t.now, 2).status == 403);
         cross.headers["origin"] = "http://192.168.4.1";
         cross.headers["host"] = "192.168.1.53";
-        assert(t.api.handle(cross, t.now, 3).status == 403);
+        assert(t.api.handle(network_test::control_request(cross), t.now, 3).status == 403);
         assert(t.start().status == 200);
         assert(t.start().status == 409);
         t.now += 30000;
         t.api.poll(t.now);
         assert(!t.api.active(t.now));
-        t.login();
-        auto config_reply = t.call("GET", "/api/v1/config");
+        t.login(__LINE__);
+        auto config_reply = t.call("GET", "/api/control/v1/config");
         assert(config_reply.body.find("test-password") == std::string::npos);
         assert(config_reply.body.find("AA0NT") != std::string::npos);
         const auto parsed = wtp::json::parse(config_reply.body);
         const auto revision = parsed->get("etag")->string();
         t.api.finish_request(t.transaction - 1, true);
-        auto result = t.call("PUT", "/api/v1/config", config, "\"stale\"");
+        auto result = t.call("POST", "/api/control/v1/config/update", network_test::configuration_update(config), "\"stale\"");
         assert(result.body.find("revision_conflict") != std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         auto altered = config;
         altered.replace(altered.find("AA0NT"), 5, "K1ABC");
-        result = t.call("PUT", "/api/v1/config", altered, revision);
-        assert(result.body.find("consumer_setup_identity_required") != std::string::npos);
+        result = t.call("POST", "/api/control/v1/config/update", network_test::configuration_update(altered), revision);
+        assert(result.body.find("\"status\":200") != std::string::npos);
+        assert(t.runtime.consumer_profile()->usb_managed);
+        assert(t.fixture.store.config()->callsign == "K1ABC");
         t.api.finish_request(t.transaction - 1, true);
-        auto opt = config;
+        auto opt = altered;
         opt.insert(1, "\"allow_unqualified_frequency\":true,");
         opt.replace(opt.find("\"test-password\""), 15, "null");
         const auto cursor = t.fixture.store.watermark();
-        result = t.call("PUT", "/api/v1/config", opt, revision);
+        result = t.call("POST", "/api/control/v1/config/update",
+                        network_test::configuration_update(opt), t.fixture.api.revision());
         assert(result.body.find("\"status\":200") != std::string::npos);
         assert(t.fixture.store.config()->allow_unqualified_frequency);
         assert(t.fixture.store.watermark() == cursor);
         t.api.finish_request(t.transaction - 1, true);
-        assert(t.media.data == before); // Authentication/config does not rewrite commissioning.
+        assert(t.media.data != before); // One station-authority transfer preserves credentials.
+        assert(t.runtime.consumer_profile()->request_sha256 == std::string(64, 'a'));
         const auto latest = t.fixture.api.revision();
-        result = t.call("PUT", "/api/v1/network", "{\"enabled\":false}", latest);
+        result = t.call("PUT", "/api/control/v1/network", "{\"enabled\":false}", latest);
         assert(t.fixture.network.pending == false && t.fixture.network.enabled);
         t.api.finish_request(t.transaction + 5, true);
         assert(t.fixture.network.enabled);
         t.api.finish_request(t.transaction - 1, false);
         assert(t.fixture.network.enabled && !t.fixture.network.pending);
-        result = t.call("PUT", "/api/v1/network", "{\"enabled\":false}", t.fixture.api.revision());
+        result = t.call("PUT", "/api/control/v1/network", "{\"enabled\":false}", t.fixture.api.revision());
         t.api.finish_request(t.transaction - 1, true);
         assert(!t.fixture.network.enabled);
-        t.now += 300000;
+        t.now += network::ConsumerRadioApi::idle_ms;
         assert(!t.api.active(t.now));
+    }
+    {
+        Test t;
+        t.login(__LINE__);
+        const auto started = t.now;
+        t.now = started + 300000;
+        assert(t.api.active(t.now)); // The former idle limit no longer closes a login.
+        t.now = started + 1800000 - 1;
+        assert(t.api.active(t.now));
+        ++t.now;
+        assert(!t.api.active(t.now));
+        t.login(__LINE__);
+        const auto fresh = t.now;
+        for (std::uint64_t elapsed = 1000000; elapsed < 28800000; elapsed += 1000000) {
+            t.now = fresh + elapsed;
+            assert(t.call("GET", "/api/control/v1/status").status == 200);
+            t.api.finish_request(t.transaction - 1, true);
+        }
+        t.now = fresh + 28800000 - 1;
+        assert(t.api.active(t.now));
+        ++t.now;
+        assert(!t.api.active(t.now)); // Authenticated traffic never renews absolute time.
     }
     {
         Test t;
@@ -488,28 +710,28 @@ int main() {
         const auto h = network::consumer_radio_header(id, 0);
         std::string packet(h.begin(), h.end());
         packet.resize(44);
-        assert(t.api.handle(request("/api/consumer/v1/finish", packet, true), t.now, 1).status ==
+        assert(t.api.handle(network_test::control_request(request("/api/consumer/v1/finish", packet, true)), t.now, 1).status ==
                401);
         assert(!t.api.active(t.now));
         assert(t.start().status == 429);
         t.now += 1000;
         t.crypto.password_ok = true;
-        t.login();
+        t.login(__LINE__);
         t.crypto.tag_ok = false;
-        assert(t.call("PUT", "/api/v1/network", "{\"enabled\":false}").status == 401);
+        assert(t.call("PUT", "/api/control/v1/network", "{\"enabled\":false}").status == 401);
         assert(!t.api.active(t.now));
         assert(t.fixture.network.enabled && !t.fixture.network.pending);
     }
     {
         Test t;
-        t.login();
-        t.call("GET", "/api/v1/status");
+        t.login(__LINE__);
+        t.call("GET", "/api/control/v1/status");
         t.api.finish_request(t.transaction - 1, true);
         --t.sequence;
-        assert(t.call("GET", "/api/v1/status").status == 401);
+        assert(t.call("GET", "/api/control/v1/status").status == 401);
         t.now += network::ConsumerRadioApi::absolute_ms;
         assert(!t.api.active(t.now));
-        t.login();
+        t.login(__LINE__);
         assert(t.store.select(provisioning::ProfileSource::Unprovisioned));
         t.api.poll(t.now);
         assert(!t.api.active(t.now));

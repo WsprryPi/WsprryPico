@@ -97,7 +97,7 @@ static wsprry_dhcp_server_t server(void) {
 }
 
 int main(void) {
-    _Static_assert(MEMP_NUM_UDP_PCB == 6, "firmware must reserve blank AP DNS PCB");
+    _Static_assert(MEMP_NUM_UDP_PCB == 7, "firmware must reserve AP DNS and independent UDP logging PCBs");
     const uint8_t first_mac[6] = {0x02, 0, 0, 0, 0, 1};
     uint8_t input[WSPRRY_DHCPS_PACKET_CAPACITY];
     uint8_t output[WSPRRY_DHCPS_PACKET_CAPACITY];

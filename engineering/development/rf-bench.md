@@ -123,9 +123,9 @@ reported by the operator, not independently measured. Receiver gain is 20 dB,
 center 3.55 MHz, sample rate 250 kS/s, bandwidth 200 kHz, channel 0, AGC off,
 bias tee off. No GPSDO or receiver service configuration was changed.
 
-The existing Harness checkout on wspr5 was clean at
-`d69da41a4d5ae14fc6a451889e153c2aaf48ce09`. Its native helper was built outside
-that checkout, without changing the Harness repository:
+The capture helper uses Harness source
+`d69da41a4d5ae14fc6a451889e153c2aaf48ce09`. Build it outside the maintained
+Harness checkout with retained dependencies:
 
 ```sh
 ssh wspr5 'cmake -S ~/WsprryPi-Qualification-Harness -B /tmp/wsprrypico-capture-build -DWSPQ_BUILD_SOAPY=ON -DWSPQ_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release'
@@ -133,7 +133,7 @@ ssh wspr5 'cmake --build /tmp/wsprrypico-capture-build --parallel 2'
 ssh wspr5 'ctest --test-dir /tmp/wsprrypico-capture-build --output-on-failure'
 ```
 
-Both native helper tests passed. The helper executable SHA-256 was
+The helper executable for the scoped measurements has SHA-256
 `b98de116d696846b88eea1b3ad3f1b2a471052fa2ca440f4234fec7087dc5a03`.
 The capture coordinator uses that helper directly, waits for retained samples,
 commands one finite Pico tone, waits for receiver cleanup, and downloads IQ and

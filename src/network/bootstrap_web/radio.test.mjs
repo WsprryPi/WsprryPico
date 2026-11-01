@@ -75,7 +75,22 @@ test('client login binds identity, never retries mutation, clears uncertain sess
   assert.equal(mutations,2); assert.equal(starts,1); assert.equal(client.authenticated,false);
   await assert.rejects(client.request('status'),/Log in/); assert.equal(mutations,2);
   await client.login('test-only-password',id);
-  now+=300000; assert.equal(client.authenticated,false);
+  now+=300000; assert.equal(client.authenticated,true);
+  now+=1499999; assert.equal(client.authenticated,true);
+  now++; assert.equal(client.authenticated,false);
+});
+test('browser idle renewal retains an independent eight-hour hard deadline',async()=>{
+  let now=1000;
+  const client=new RadioClient(async(path,options)=>{
+    const sequence=new DataView(options.body.buffer,options.body.byteOffset+20,8).getBigUint64(0);
+    return new Response(response(client.state,sequence,{status:200,etag:null,body:{ok:true}}),{headers:{'Content-Type':'application/octet-stream'}});
+  },()=>now);
+  client.state=vectorState();client.sequence=1n;client.started=client.seen=now;
+  for(let elapsed=1000000;elapsed<28800000;elapsed+=1000000){now=1000+elapsed;await client.request('status');}
+  now=1000+28800000-1;assert.equal(client.authenticated,true);
+  now++;assert.equal(client.authenticated,false);
+  client.state=vectorState();client.started=client.seen=now;
+  now--;assert.equal(client.authenticated,false);
 });
 test('wrong boot acknowledgement, concurrency and active response substitution fail closed',async()=>{
   const client=new RadioClient(); client.state=vectorState(); client.identityContext=id; client.sequence=1n; client.started=client.seen=Date.now();
@@ -170,4 +185,91 @@ test('nonce RNG failure scrubs generated radio and setup private keys before ret
    assert.throws(create,/RNG failed/);assert.equal(key.length,32);assert.ok(key.every(b=>b===0));
   }
  } finally {Object.defineProperty(globalThis,'crypto',{configurable:true,value:original});}
+});
+
+test('public transmitter status is a bounded read without authentication or renewal',async()=>{
+  const value={schema:'public-status',device_id:id.device_id,boot_id:id.boot_id,state:'running',output_active:true,owned:true,clock_state:'synchronized',utc_now_ns:'1793000000000000000',uncertainty_ns:'1000',engine:'pio-dma-gp2'};
+  let result=value, reads=0;
+  const client=new RadioClient(async(path,options)=>{
+    reads++;assert.equal(path,'/api/consumer/v1/status');assert.equal(options.body,undefined);
+    assert.equal(options.credentials,'omit');assert.equal(options.cache,'no-store');
+    return Response.json(result);
+  });
+  assert.deepEqual(await client.publicStatus(),value);assert.equal(client.authenticated,false);
+  for(const patch of [{owner_id:'private'},{state:'unknown'},{owned:'yes'},{uncertainty_ns:'-1'},{utc_now_ns:'18446744073709551616'},{engine:'bad\nengine'},{device_id:'wrong'}]){
+    result={...value,...patch};await assert.rejects(client.publicStatus());
+  }
+  assert.equal(reads,8);
+});
+
+test('local locking refuses undispatched requests but admits logout and retains refused-logout context',async()=>{
+  let calls=0,status=200;
+  const client=new RadioClient(async(path)=>{
+    calls++;assert.equal(path,'/api/consumer/v1/request');
+    return new Response(response(client.state,client.sequence-1n,{status,etag:null,body:status===200?{ok:true}:{error:'busy'}}),{headers:{'Content-Type':'application/octet-stream'}});
+  },()=>1000);
+  function authorize(){client.state=vectorState();client.identityContext=id;client.sequence=1n;client.started=client.seen=1000;}
+  authorize();client.requestAllowed=()=>false;
+  await assert.rejects(client.request('config','PUT',{}),error=>error.local===true);
+  assert.equal(calls,0);assert.equal(client.sequence,1n);assert.equal(client.authenticated,true);
+  await client.logout();assert.equal(calls,1);assert.equal(client.authenticated,false);
+  authorize();status=409;
+  const selector=client.retirementSelector;
+  await assert.rejects(client.logout(),/refused/);
+  assert.equal(client.authenticated,false);assert.equal(client.lostSession.selector,selector);
+});
+
+test('canonical public catalog binds identity without granting or renewing authority',async()=>{
+  const resources=['config','amplifier-timing','ntp-timeout'];
+  const descriptor={contract:'Wsprry-Control/1',schema:'public-read',target:{scope:'member',device_id:id.device_id,boot_id:id.boot_id},prefix:'/api/consumer/v1/read/',resources};
+  let advertised=descriptor,raw=null,requests=[];
+  const client=new RadioClient(async(path,options)=>{
+    requests.push(path);assert.equal(options.method||'GET','GET');assert.equal(options.body,undefined);assert.equal(options.credentials,'omit');
+    if(path==='/api/consumer/v1/read'&&raw!==null)return new Response(raw);
+    return Response.json(path.endsWith('/identity')?id:path==='/api/consumer/v1/read'?advertised:{contract:'Wsprry-Control/1',config:null});
+  });
+  await client.identity();client.seen=123;
+  for(const path of resources)assert.equal((await client.publicRead(path)).ok,true);
+  assert.equal(requests.filter(p=>p==='/api/consumer/v1/read').length,1);
+  assert.equal(client.authenticated,false);assert.equal(client.seen,123);assert.equal(client.sequence,undefined);
+  for(const path of ['jobs','restart','config/4','ntp-timeout/2']){
+    const count=requests.length;await assert.rejects(client.publicRead(path));assert.equal(requests.length,count);
+  }
+  for(const patch of [{contract:'Wsprry-Control/2'},{contract:null},{schema:'pico-public-read/1'},{schema:'pico-public-read/2'},{schema:'pico-public-read/3'},{extra:true},{prefix:'/api/control/v1/'},{resources:['ntp-timeout']},{resources:['config','config']},{resources:[...resources,{}]},{resources:Array(65).fill('config')},{target:{...descriptor.target,boot_id:'ff'.repeat(16)}},{target:{...descriptor.target,device_id:'ff'.repeat(16)}}]){
+    advertised={...descriptor,...patch};client.publicReads=null;
+    const count=requests.length;await assert.rejects(client.publicRead('config'));assert.equal(requests.length,count+1);
+  }
+  advertised=descriptor;
+  for(const content of [JSON.stringify(descriptor).replace('"schema":','"schema":"public-read","schema":'),JSON.stringify(descriptor).replace('"scope":','"sc\\u006fpe":"member","scope":'),' '.repeat(4097)+JSON.stringify(descriptor),'{"target":{"deep":{"nested":{}}}}']){
+    raw=content;client.publicReads=null;const count=requests.length;
+    await assert.rejects(client.publicRead('config'));assert.equal(requests.length,count+1);
+  }
+  raw=null;advertised={...descriptor,resources:['future-read',...resources].reverse()};client.publicReads=null;
+  assert.equal((await client.publicRead('config')).ok,true);
+  const count=requests.length;await assert.rejects(client.publicRead('future-read'));assert.equal(requests.length,count);
+});
+
+test('encrypted mutations carry the new logical namespace and mandatory control contract',async()=>{
+  let captured;
+  const client=new RadioClient(async(path,options)=>{
+    assert.equal(path,'/api/consumer/v1/request');
+    const bytes=options.body,h=bytes.subarray(0,28),nonce=new Uint8Array(12);
+    new DataView(nonce.buffer).setBigUint64(4,1n);
+    captured=JSON.parse(new TextDecoder().decode(chacha20poly1305(client.state.keys.subarray(0,32),nonce,join(client.state.digest,h)).decrypt(bytes.subarray(28))));
+    return new Response(response(client.state,1n,{status:200,etag:'"new"',body:{contract:'Wsprry-Control/1',saved:true}}),{headers:{'Content-Type':'application/octet-stream'}});
+  },()=>1000);
+  client.state=vectorState();client.identityContext=id;client.sequence=1n;client.started=client.seen=1000;
+  await client.request('restart','POST',{});
+  assert.deepEqual(captured,{method:'POST',path:'/api/control/v1/restart',if_match:null,body:{contract:'Wsprry-Control/1'}});
+});
+
+test('only authenticated target-bound management policy controls local session expiry',async()=>{
+ let now=1000,advertised;
+ const policy=()=>({contract:'Wsprry-Control/1',schema:'management',target:{scope:'member',device_id:id.device_id,boot_id:id.boot_id},profile:'consumer',profile_generation:id.generation,preclock:true,selected:'consumer_station',carriers:['engineering_mtls','engineering_field','consumer_station','consumer_ap','usb_physical'].map(carrier=>({carrier,built_in:true,available:carrier==='consumer_station'})),unsupported:[],operations:{GET:['management'],PUT:[],POST:[]},limits:{http_body:32768,consumer_plaintext:32724,config:1800,update:2048,login_ms:30000,idle_ms:1000,absolute_ms:5000,consumer_sessions:3,consumer_pending_logins:1}});
+ const client=new RadioClient(async path=>path.endsWith('/identity') ? Response.json({version:1,...id,authentication:'saved_wifi_passphrase'}) : new Response(response(client.state,client.sequence-1n,{status:200,etag:null,body:advertised}),{headers:{'Content-Type':'application/octet-stream'}}),()=>now);
+ const authorize=()=>{client.state=vectorState();client.identityContext=id;client.sequence=1n;client.started=client.seen=now;};
+ advertised=policy();authorize();await client.readPolicy();assert.equal(client.idleMs,1000);now+=999;assert(client.authenticated);now++;assert.equal(client.authenticated,false);
+ for(const patch of [{contract:'Wsprry-Control/2'},{target:{scope:'member',device_id:id.device_id,boot_id:'f'.repeat(32)}},{selected:'usb_physical'},{carriers:Array(5).fill({carrier:'consumer_station',built_in:true,available:true})},{operations:{GET:['management','management'],PUT:[],POST:[]}},{profile_generation:'999'},{limits:{...policy().limits,idle_ms:'1000'}},{limits:{...policy().limits,idle_ms:6000}}]){
+  authorize();advertised={...policy(),...patch};await assert.rejects(client.readPolicy());assert.equal(client.authenticated,false);
+ }
 });

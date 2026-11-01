@@ -221,6 +221,32 @@ void recovery() {
     CHECK(!f.session.request(Operation::Load, j, f.now()));
     CHECK(f.stream.peer->inactive());
 }
+void unlimited_ntp() {
+    char id = 'a';
+    for (const auto mode : {Mode::Wspr, Mode::Tone, Mode::Qrss, Mode::Fskcw, Mode::Dfcw}) {
+        Fixture f;
+        f.stream.peer = host_test_endpoint(true, 0);
+        f.stream.peer->synchronize();
+        f.stream.peer->advance(f.stream.peer->now_ns() + 30ULL * 86'400 * 1'000'000'000);
+        f.connect();
+        CHECK(f.session.phase() == SessionPhase::Ready);
+        CHECK(f.session.capabilities()->maximum_holdover_age_ns == UINT64_MAX);
+        CHECK(f.session.capabilities()->maximum_arm_uncertainty_ns == UINT64_MAX);
+        f.claim();
+        const auto j = job(mode, id++);
+        CHECK(f.request(Operation::Load, j).kind == ResultKind::Acknowledged);
+        const auto start = f.stream.peer->utc_ns() + 1'000'000'895;
+        const auto strict = f.request(Operation::Arm, ArmRequest{j.job_id, start, 500'000'000});
+        CHECK(strict.kind == ResultKind::Rejected);
+        CHECK(strict.response &&
+              std::get<Error>(strict.response->body).code == ErrorCode::ClockUncertain);
+        CHECK(f.request(Operation::Arm, ArmRequest{j.job_id, start, UINT64_MAX}).kind ==
+              ResultKind::Acknowledged);
+        CHECK(f.request(Operation::Abort, AbortRequest{j.job_id}).kind == ResultKind::Acknowledged);
+        CHECK(f.request(Operation::Release).kind == ResultKind::Acknowledged);
+        CHECK(f.stream.peer->inactive());
+    }
+}
 } // namespace
 int main() {
     try {
@@ -228,6 +254,7 @@ int main() {
         physical_admission();
         physical_host_wspr_admission();
         recovery();
+        unlimited_ntp();
         std::cout << "Actual WsprryPi client/current Pico endpoint: five finite modes, SNTP clock "
                      "admission, disconnected completion, lost LOAD/ARM/ABORT recovery and "
                      "boot-change refusal passed\n";

@@ -8,7 +8,7 @@ Use this checklist on a Pico 2 W with firmware containing the Wi-Fi-only access,
 - [ ] Connect the Pico to that computer with a USB data cable. Close other programs using its serial ports and stop any owning controller from reconnecting during the test. If WsprryPi runs on this USB host, follow [Standalone installer on a WsprryPi host](../../docs/wsprrypi.md#standalone-installer-on-a-wsprrypi-host) to pause and later restore its service.
 - [ ] Have a Wi-Fi-capable computer or phone for the browser checks. A headless Pi can handle USB while a phone handles Wi-Fi. Keep the Pi on Ethernet if you need continuous SSH access; switching its only Wi-Fi connection can disconnect SSH.
 - [ ] Use a fresh private browser window and close old Pico tabs so previous drafts or connection receipts do not affect the factory-new pass. Keep the same window open while any save is awaiting confirmation.
-- [ ] While the host still has Internet access, verify the published devel image with the plan command below. Record its returned `version`, `source` and UF2 SHA-256, plus the host OS and browser/version. Confirm the source contains the changes listed above; published Beta 1 predates them. A missing download or a failed plan is not a usable test image. Keep passwords out of the test record.
+- [ ] While the host still has Internet access, verify the published devel image with the plan command below. Record its returned `version`, `source` and UF2 SHA-256, plus the host OS and browser/version. Confirm the source implements the behavior under test. A missing download or a failed plan is not a usable test image. Keep passwords out of the test record.
 
 Run the following from the repository root on either host. A standalone downloaded `install_usb.sh` works with the same arguments; omit `scripts/` in that case.
 
@@ -50,7 +50,7 @@ bash scripts/install_usb.sh install --branch devel --version FIRMWARE_VERSION \
 - [ ] Enter a valid home Wi-Fi network name and its actual Wi-Fi password. Leave the suggested time server unchanged. Enter no station information. Select **Connect to Wi-Fi** once.
 - [ ] Wait for **Wi-Fi connected** and **Wi-Fi saved and connected.** If the result is uncertain, reconnect to setup Wi-Fi and let the same tab check the result before considering another save.
 - [ ] Return the browser device to the home network. Find the Pico's current IP in the router or USB INFO. Open `http://YOUR_PICO_IP/` using that numeric address. Expect a **Pico password** field; no station form completion or clock synchronization should be required first.
-- [ ] Sign in with the home Wi-Fi password saved in the previous step. Confirm that the page loads authenticated settings, Wi-Fi/Host shows the intended network, station information remains empty and no schedule is enabled.
+- [ ] Sign in with the home Wi-Fi password saved during network setup. Confirm that the page loads authenticated settings, Wi-Fi/Host shows the intended network, station information remains empty and no schedule is enabled.
 - [ ] Power-cycle the Pico without holding BOOTSEL. Find its current IP again and repeat the home-network login. It must still work with no station information saved.
 
 ## 5. Change the Pico password independently

@@ -1,4 +1,5 @@
 #pragma once
+#include "logging/udp_settings.hpp"
 #include "network/http.hpp"
 #include "network/management.hpp"
 #include "provisioning/hostname.hpp"
@@ -12,7 +13,13 @@ namespace wsprrypico::network {
 class NetworkControl {
   public:
     virtual ~NetworkControl() = default;
+    virtual bool udp_destination_allowed(std::string_view value) const {
+        return logging::udp_ipv4(value).has_value();
+    }
     virtual std::string status() const = 0;
+    virtual std::string operations_status() const {
+        return status();
+    }
     virtual bool set_enabled(bool enabled) = 0;
     virtual bool request_enabled(bool enabled) {
         return set_enabled(enabled);
@@ -29,6 +36,16 @@ class BrowserApi {
                         std::string_view authority, std::uint64_t transaction = 0,
                         ManagementCarrier carrier = ManagementCarrier::EngineeringStation);
     std::string revision() const;
+    void logging_service(logging::Logger& logger) {
+        logger_ = &logger;
+    }
+    void udp_logging_service(logging::UdpStore& store, logging::UdpSender& sender) {
+        udp_store_ = &store;
+        udp_sender_ = &sender;
+    }
+    // Small read-only projection for the admitted consumer page before login.
+    // No job contents, owner identity, settings, history or transport details.
+    HttpResponse public_status();
     void time_source(const time::ControllerTimeArbiter& arbiter) {
         time_arbiter_ = &arbiter;
     }
@@ -65,15 +82,22 @@ class BrowserApi {
         hostname_authority_ = std::move(authority);
     }
     // All calls are serialized by the application owner. Tokens are never reused.
-    bool mutation_pending() const { return pending_transaction_.has_value(); }
+    bool mutation_pending() const {
+        return pending_transaction_.has_value();
+    }
     bool access_change_ready() const {
         return scheduler_.idle() && !mutation_pending();
+    }
+    bool restart_safe() const {
+        return scheduler_.idle() && service_.activity().state != wtp::State::Loaded &&
+               store_.healthy() && !scheduler_.message_pause_pending() &&
+               !scheduler_.message_recovery_required();
     }
     void finish_request(std::uint64_t transaction = 0, bool apply = true) {
         if (pending_transaction_ && *pending_transaction_ == transaction) {
             const bool allowed = apply && scheduler_.idle();
             if (pending_restart_) {
-                if (allowed && restart_)
+                if (allowed && restart_safe() && restart_)
                     (void)restart_(restart_context_);
             } else
                 network_.finish_request(allowed);
@@ -102,19 +126,29 @@ class BrowserApi {
     }
 
   private:
+    HttpResponse handle_current(const HttpRequest&, std::string_view principal, std::string_view authority, std::uint64_t transaction, ManagementCarrier carrier);
+    logging::UdpStore* udp_store_ = nullptr;
+    std::optional<std::uint64_t> udp_test_at_;
+    logging::UdpSender* udp_sender_ = nullptr;
+    HttpResponse udp_logging_resource(const HttpRequest& request);
+    logging::Logger* logger_ = nullptr;
+    HttpResponse logging_resource(const HttpRequest& request);
     const time::ControllerTimeArbiter* time_arbiter_ = nullptr;
     std::string source_revision_ = "unreported";
     std::uint64_t nominal_sample_hz_ = 0;
     ManagementAvailability management_;
     std::optional<standalone::Config> effective_config() const;
-    HttpResponse config(bool drive = false, bool amplifier = false) const;
+    HttpResponse message_schedule_resource(const HttpRequest& request);
+    HttpResponse config() const;
     HttpResponse gpio_drive() const;
+    HttpResponse amplifier_timing() const;
+    HttpResponse filter_selector() const;
+    HttpResponse ntp_timeout() const;
     HttpResponse rf_calibration() const;
     HttpResponse standalone_frequency() const;
-    HttpResponse station_config(bool extended = false) const;
-    HttpResponse hardware_config(bool drive = false, bool amplifier = false) const;
-    HttpResponse application_config(bool extended = false, bool usb_management = false,
-                                    bool drive = false, bool amplifier = false) const;
+    HttpResponse station_config() const;
+    HttpResponse hardware_config() const;
+    HttpResponse application_config() const;
     HttpResponse job(const HttpRequest& request, std::string_view principal);
     wtp::JobService& service_;
     standalone::Store& store_;

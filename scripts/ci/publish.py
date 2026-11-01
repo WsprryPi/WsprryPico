@@ -7,10 +7,13 @@ from pathlib import Path
 import re
 import subprocess
 import time
+import sys
 from types import SimpleNamespace
 
 import bundle
 import download
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from check_control_policy import check_files as check_control_policy
 
 REPOSITORY = download.REPOSITORY
 BASE = 'https://github.com/' + REPOSITORY
@@ -283,6 +286,7 @@ def main():
     request = SimpleNamespace(branch=branch, run=run, attempt=attempt, source=os.environ['GITHUB_SHA'],
                               version=(os.environ['GITHUB_REF'].removeprefix('refs/tags/v') if branch == 'release'
                                        else f'0.1.0-ci.{run}.{attempt}'), destination=args.destination)
+    check_control_policy(stable_release=bundle.version_kind(request.version) == 'stable')
     make_latest = os.environ.get('CI_MAKE_LATEST', 'false')
     bundle.require(make_latest in ('true', 'false') and
                    (make_latest == 'false' or bundle.version_kind(request.version) == 'stable'),

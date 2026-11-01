@@ -3,6 +3,7 @@
 #include "rf/waveform.hpp"
 
 namespace wsprrypico::rf {
+class FilterSelector;
 
 struct LaunchTarget {
     bool admissible = false;
@@ -27,6 +28,9 @@ struct SinkReport {
     std::optional<std::uint64_t> observed_monotonic_ns = {};
     std::optional<bool> observed_output_active = {};
     std::optional<std::uint64_t> launch_monotonic_ns = {};
+    wtp::ChainPhase chain_phase = wtp::ChainPhase::Unspecified;
+    std::optional<std::uint64_t> tail_deadline_monotonic_ns = {};
+    int filter_selector = -1;
 };
 
 // stop() must release all submitted spans
@@ -36,6 +40,12 @@ struct SinkReport {
 class BlockSink {
   public:
     virtual ~BlockSink() = default;
+    virtual std::uint64_t amplifier_lead_ns() const {
+        return 0;
+    }
+    virtual std::uint64_t amplifier_tail_ns() const {
+        return 0;
+    }
     [[nodiscard]] virtual std::string_view diagnostic() const {
         return {};
     }
@@ -51,18 +61,30 @@ class BlockSink {
     virtual bool arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t total_samples,
                      LaunchGuard guard = {}) = 0;
     virtual SinkReport poll(std::uint64_t now_ns) = 0;
+    virtual bool execution_started() const {
+        return output_active();
+    }
     [[nodiscard]] virtual bool output_active() const = 0;
 };
 
 class StreamEngine final : public wtp::RfEngine {
   public:
-    explicit StreamEngine(BlockSink& sink) : sink_(sink) {}
+    explicit StreamEngine(BlockSink& sink, FilterSelector* filters = nullptr)
+        : sink_(sink), filters_(filters) {}
     StreamEngine(const StreamEngine&) = delete;
     StreamEngine& operator=(const StreamEngine&) = delete;
+    std::uint64_t amplifier_lead_ns() const override {
+        return sink_.amplifier_lead_ns();
+    }
+    std::uint64_t amplifier_tail_ns() const override {
+        return sink_.amplifier_tail_ns();
+    }
+    std::uint64_t filter_preparation_ns() const override;
     std::string_view diagnostic() const override {
         return failure_;
     }
     bool set_frequency_correction_ppb(std::int32_t ppb) override;
+    std::size_t preparation_memory_bytes(const wtp::Job& job) const override;
     wtp::PrepareResult prepare(const wtp::Job& job) override;
     [[nodiscard]] bool schedules_locally() const override {
         return sink_.schedules_locally();
@@ -81,11 +103,15 @@ class StreamEngine final : public wtp::RfEngine {
     bool begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) override;
     wtp::EngineReport poll(std::uint64_t monotonic_now_ns) override;
     bool disable(std::uint64_t deadline_monotonic_ns) override;
+    bool execution_started() const override {
+        return sink_.execution_started();
+    }
     [[nodiscard]] bool output_active() const override {
         return sink_.output_active();
     }
 
   private:
+    wtp::EngineReport poll_impl(std::uint64_t now_ns);
     static LaunchTarget project_clock(void* context);
     wtp::LocalStartConditions start_conditions_{};
     bool submit_next(std::size_t slot);
@@ -93,6 +119,8 @@ class StreamEngine final : public wtp::RfEngine {
     std::int32_t correction_ppb_ = 0;
     const char* failure_ = "";
     BlockSink& sink_;
+    FilterSelector* filters_;
+    int filter_observation_ = -1;
     Plan plan_{};
     Waveform waveform_;
     std::optional<wtp::PayloadDigest> job_;

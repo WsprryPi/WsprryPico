@@ -284,7 +284,7 @@ std::optional<LocalIdentity> derive_local_identity(std::string_view device_id,
     }
     LocalIdentity result;
     result.suffix = suffix;
-    result.hostname = "wsprrypico-" + suffix + ".local";
+    result.hostname = "wpico-" + suffix.substr(2) + ".local";
     result.advertising_name = "WsprryPico-" + suffix;
     result.softap_ssid = result.advertising_name;
     result.default_password = "wspr-" + suffix;

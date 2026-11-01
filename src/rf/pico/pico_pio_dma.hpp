@@ -45,6 +45,10 @@ class PicoPioDma final : public PioDmaHardware {
     PicoDriverMetrics metrics();
     bool stalled() const override;
     bool active() const override;
+    bool rf_inactive_verified() const override;
+    bool inhibited() const override {
+        return output_inhibit_ && output_inhibit_->load(std::memory_order_acquire);
+    }
     // Bind before worker startup; never clear or replace during execution.
     void set_output_inhibit(const std::atomic<bool>& latch) {
         output_inhibit_ = &latch;

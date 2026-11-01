@@ -156,6 +156,15 @@ int main() {
     browser.progress_settings(progress);
     browser.hostname_settings(hostname);
     browser.local_usb_settings(settings);
+    Flash udp_flash;
+    logging::UdpStore udp_store(udp_flash);
+    if (!udp_store.load())
+        return 2;
+    logging::UdpSender udp_sender(device, service.status().boot_id, "pico.local");
+    browser.udp_logging_service(udp_store, udp_sender);
+    logging::Logger udp_logger(device, service.status().boot_id, "pico.local");
+    udp_logger.udp_sink(udp_sender);
+    browser.logging_service(udp_logger);
     network::LocalUsbApi api(browser);
     usb::TimeExchange time(arbiter, monotonic, nullptr);
     usb::ManagementEndpoint endpoint(

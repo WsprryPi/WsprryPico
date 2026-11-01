@@ -1,3 +1,5 @@
+#include "logging/logger.hpp"
+#include "logging/udp_settings.hpp"
 #include "mbedtls/platform.h"
 #include "network/bootstrap_codec.hpp"
 #include "network/identity.hpp"
@@ -238,11 +240,17 @@ struct Driver {
     standalone::Progress engineering_progress{engineering_progress_flash};
     network_test::Flash progress_flash;
     standalone::Progress progress{progress_flash};
+    network_test::Flash udp_flash;
+    logging::UdpStore udp_store{udp_flash};
+    logging::Logger logger{device, f.service.status().boot_id, "wsprrypico-0a60df.local"};
+    logging::UdpSender udp_sender{device, f.service.status().boot_id, "wsprrypico-0a60df.local"};
     Media media;
     provisioning::ProfileStore profiles{media};
     provisioning::RuntimeProfile runtime;
     HostnamePlatform hostname_platform{f};
     std::optional<provisioning::HostnameSettings> hostname_settings;
+    provisioning::LocalSettings local_settings{profiles, runtime, f.store,
+                                               progress, device,  "wsprrypico-0a60df.local"};
     Random random;
     bool low_memory = false, handler_memory_failure = false;
     std::uint64_t last_transaction = 0;
@@ -291,9 +299,17 @@ struct Driver {
     unsigned recovery_requests = 0;
     PicoBootstrapServer server{device, "p158-host",
                                +[](const tcp_pcb* p, void*) { return p->interface == 1; }, this};
-    bool page_setup = true;
+    bool page_setup = true, production_listeners = false;
     void poll_server() {
-        server.poll(true, true, page_setup, true, true);
+        // Match the firmware loop: profile writes and reboot reloads must be
+        // reflected in the authenticated descriptor before the next request.
+        f.api.management_availability(
+            {ManagementProfile::Consumer, runtime.generation(), true, false, false, true, true});
+        if (production_listeners)
+            radio.admission(runtime.control_healthy(profiles) &&
+                            runtime.consumer_browser_selected(profiles));
+        const bool station = !production_listeners || (radio.available() && network.link_up());
+        server.poll(true, true, page_setup, station, true);
     }
     unsigned connections() const {
         return server.resources().connected ? 1 : 0;
@@ -304,6 +320,10 @@ struct Driver {
 #else
     PicoHttpServer server{this, classify, handle, finish};
     void poll_server() {
+        // Match the firmware loop: profile writes and reboot reloads must be
+        // reflected in the authenticated descriptor before the next request.
+        f.api.management_availability(
+            {ManagementProfile::Consumer, runtime.generation(), true, false, false, true, true});
         server.poll();
     }
     unsigned connections() const {
@@ -356,10 +376,15 @@ struct Driver {
                                   provisioning::serialize_consumer_profile(p)));
         check(runtime.load(profiles, p.device_id, provisioning::BuildBundleState::Absent));
         f.api.consumer_config(runtime);
+        check(udp_store.load());
+        logger.udp_sink(udp_sender);
+        f.api.logging_service(logger);
+        f.api.udp_logging_service(udp_store, udp_sender);
         if (saved_progress)
             progress_flash = *saved_progress;
         check(progress.load());
         f.api.progress_settings(progress);
+        f.api.local_usb_settings(local_settings);
         check(engineering_progress.load());
         engineering.api.progress_settings(engineering_progress);
         check(engineering.store.save(*standalone::parse_config(network_test::config)));
@@ -382,11 +407,17 @@ struct Driver {
                   std::string::npos);
         if (!saved && !blank)
             check(f.store.reserve(1791970000000000000ULL));
+        // Firmware constructs the scheduler after loading its saved boot state.
+        // Rebuild it at the same address so BrowserApi retains its reference;
+        // a reconstructed fixture must not compare saved pins/timeouts with an
+        // unrelated default boot and invent a pending restart on the next save.
+        std::destroy_at(&f.scheduler);
+        std::construct_at(&f.scheduler, f.store, f.service);
         radio.admission(runtime.control_healthy(profiles) &&
                         runtime.consumer_browser_selected(profiles));
         radio.listeners(true, "192.168.1.53", hostname);
         f.api.management_availability(
-            {ManagementProfile::Consumer, 1, true, false, false, true, true});
+            {ManagementProfile::Consumer, runtime.generation(), true, false, false, true, true});
         for (auto& pcb : sockets)
             pcb.closed = true;
         if (saved_access)
@@ -478,6 +509,9 @@ struct Driver {
             check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
             std::destroy_at(&f.scheduler);
             std::construct_at(&f.scheduler, f.store, f.service);
+            if (!runtime.standalone_boot_ready(profiles,
+                                               f.store.healthy() && f.store.config().has_value()))
+                (void)f.scheduler.command("STOP");
             radio.admission(runtime.control_healthy(profiles) &&
                             runtime.consumer_browser_selected(profiles));
             poll_server();
@@ -492,6 +526,9 @@ struct Driver {
                 std::construct_at(&fixture->scheduler, fixture->store, fixture->service);
                 fixture->api.set_active_job_connections(true);
             }
+            if (!runtime.standalone_boot_ready(profiles,
+                                               f.store.healthy() && f.store.config().has_value()))
+                (void)f.scheduler.command("STOP");
             consumer_engine.policy.emplace(consumer_engine.engine, f.store,
                                            f.service.config().minimum_frequency_nhz,
                                            f.service.config().maximum_frequency_nhz);
@@ -549,9 +586,31 @@ struct Driver {
             check(retained.load());
             const auto& config = retained.config();
             return "{\"saved_dial_hz\":" +
-                (config && config->wspr_dial_frequency_hz ? std::to_string(*config->wspr_dial_frequency_hz) : "null") +
-                ",\"sequence\":\"" + std::to_string(retained.config_sequence()) +
-                "\",\"enabled\":" + (config && config->enabled ? "true" : "false") + "}";
+                   (config && config->wspr_dial_frequency_hz
+                        ? std::to_string(*config->wspr_dial_frequency_hz)
+                        : "null") +
+                   ",\"sequence\":\"" + std::to_string(retained.config_sequence()) +
+                   "\",\"enabled\":" + (config && config->enabled ? "true" : "false") + "}";
+        }
+        if (op == "schedule_tick") {
+            // Synthetic time drives the production scheduler and dry-run engine.
+            // No device access or physical RF output is provided by this fixture.
+            std::uint64_t delta;
+            check(wtp::json::decimal(*v.get("delta_ns"), delta) && delta <= 600'000'000'000ULL);
+            f.clock.now += delta;
+            if (const auto uncertainty = v.get("uncertainty_ns"))
+                check(wtp::json::decimal(*uncertainty, f.clock.uncertainty));
+            if (const auto bytes = v.get("free_bytes")) {
+                static std::uint64_t free_bytes;
+                check(wtp::json::decimal(*bytes, free_bytes) && free_bytes <= SIZE_MAX);
+                wtp::available_memory = +[]() -> std::size_t { return free_bytes; };
+            }
+            f.scheduler.poll();
+            wtp::available_memory = nullptr;
+            auto result = f.scheduler.status();
+            if (!result.empty() && result.back() == '\n')
+                result.pop_back();
+            return result;
         }
         if (op == "flash_failure") {
             f.flash.fail = v.get("fail")->boolean();
@@ -640,6 +699,11 @@ struct Driver {
                    ",\"network_pending\":" + (f.network.pending ? "true" : "false") +
                    ",\"psa_owners\":" + std::to_string(PsaCryptoOwner::owners()) + "}";
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+        if (op == "production_listeners") {
+            production_listeners = true;
+            poll_server();
+            return "{}";
+        }
         if (op == "page_profile") {
             const auto mode = field(v, "mode");
             if (mode != "unavailable") {
@@ -661,8 +725,8 @@ struct Driver {
             page_setup = mode != "unavailable";
             if (mode != "unavailable")
                 check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
-            if (mode == "unavailable")
-                radio.admission(false);
+            radio.admission(mode != "unavailable" && runtime.control_healthy(profiles) &&
+                            runtime.consumer_browser_selected(profiles));
             if (mode == "recovery") {
                 server.configure_recovery(f.service.status().boot_id, access, random);
                 server.reset_control(

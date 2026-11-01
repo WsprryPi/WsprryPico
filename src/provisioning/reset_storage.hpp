@@ -3,6 +3,9 @@
 #include "provisioning/reset.hpp"
 #include "standalone/ntp_retention.hpp"
 #include "standalone/storage.hpp"
+namespace wsprrypico::logging {
+class UdpStore;
+}
 namespace wsprrypico::provisioning {
 // Shared production/host implementation. Access intent is stored separately and
 // remains authoritative throughout every erase below.
@@ -15,6 +18,9 @@ class ResetStorageTargets final : public ResetTargets {
                         standalone::NtpRetention* ntp = nullptr)
         : store_(store), flash_(flash), media_(profiles), bonds_(bonds), activity_(activity),
           context_(context), bond_erase_(erase_bonds), bond_context_(bond_context), ntp_(ntp) {}
+    void udp_logging(logging::UdpStore& store) {
+        udp_ = &store;
+    }
     Activity activity() const override {
         return activity_(context_);
     }
@@ -31,6 +37,7 @@ class ResetStorageTargets final : public ResetTargets {
     }
 
   private:
+    logging::UdpStore* udp_ = nullptr;
     standalone::Store& store_;
     standalone::Flash& flash_;
     Media& media_;

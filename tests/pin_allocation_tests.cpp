@@ -120,25 +120,25 @@ int main() {
                                      {"x-wsprrypico-request", "1"}}};
     };
     auto validate =
-        request("POST", "/api/v1/pins/validate", hardware::serialize_plan(hardware::PinPlan{}));
-    CHECK(api.handle(validate, "", "127.0.0.1:8443").status == 401);
+        request("POST", "/api/control/v1/pins/validate", hardware::serialize_plan(hardware::PinPlan{}));
+    CHECK(api.handle(network_test::control_request(validate), "", "127.0.0.1:8443").status == 401);
     const auto flash_before = f.flash.bytes;
     const auto revision_before = api.revision();
-    CHECK(api.handle(validate, "test", "127.0.0.1:8443").status == 200);
+    CHECK(api.handle(network_test::control_request(validate), "test", "127.0.0.1:8443").status == 200);
     CHECK(f.flash.bytes == flash_before && api.revision() == revision_before);
     auto invalid = *initial;
     invalid.pins.rf = 14;
-    auto save = request("PUT", "/api/v1/config", standalone::serialize_config(invalid));
+    auto save = request("POST", "/api/control/v1/config/update", network_test::configuration_update(standalone::serialize_config(invalid)));
     save.headers["if-match"] = api.revision();
-    CHECK(api.handle(save, "test", "127.0.0.1:8443").status == 400);
+    CHECK(api.handle(network_test::control_request(save), "test", "127.0.0.1:8443").status == 400);
     CHECK(f.flash.bytes == flash_before && f.store.config() == initial);
     auto changed = *initial;
     changed.pins.rf = 28;
-    save.body = standalone::serialize_config(changed);
+    save.body = network_test::configuration_update(standalone::serialize_config(changed));
     save.headers["if-match"] = "wrong";
-    CHECK(api.handle(save, "test", "127.0.0.1:8443").status == 412);
+    CHECK(api.handle(network_test::control_request(save), "test", "127.0.0.1:8443").status == 412);
     save.headers["if-match"] = api.revision();
-    CHECK(api.handle(save, "test", "127.0.0.1:8443").status == 200);
+    CHECK(api.handle(network_test::control_request(save), "test", "127.0.0.1:8443").status == 200);
     CHECK(scheduler.reboot_required() && scheduler.active_pins().rf == 2);
     CHECK(f.store.config()->pins.rf == 28);
     standalone::Store reloaded(f.flash);
@@ -146,9 +146,9 @@ int main() {
     CHECK(reloaded.config()->pins.rf == 28);
     // A later ordinary save cannot conceal the pending pin restart.
     changed.locator = "EM19";
-    save.body = standalone::serialize_config(changed);
+    save.body = network_test::configuration_update(standalone::serialize_config(changed));
     save.headers["if-match"] = api.revision();
-    CHECK(api.handle(save, "test", "127.0.0.1:8443").status == 200);
+    CHECK(api.handle(network_test::control_request(save), "test", "127.0.0.1:8443").status == 200);
     CHECK(scheduler.reboot_required());
     wtp::Request hello;
     hello.operation = "HELLO";

@@ -1,7 +1,10 @@
 // Production LOAD decoding and service copying under bounded input allocations.
 #include "encoding/morse.hpp"
+#include "standalone/scheduler.hpp"
 #include "wtp/codec.hpp"
+#include "wtp/memory_budget.hpp"
 
+#include <array>
 #include <cassert>
 #include <cstdlib>
 #include <cstring>
@@ -11,6 +14,7 @@
 #include <string>
 
 using namespace wsprrypico::wtp;
+namespace standalone = wsprrypico::standalone;
 namespace {
 struct alignas(std::max_align_t) Allocation {
     std::size_t bytes;
@@ -23,6 +27,7 @@ constexpr char expired_principal[] =
     "qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
 static_assert(sizeof(expired_principal) == 64);
 std::size_t heap_calls = 0;
+std::size_t heap_live_bytes = 0;
 std::size_t expired_principal_frees = 0;
 bool watch_principal = false;
 
@@ -32,12 +37,14 @@ void* heap_allocate(std::size_t bytes) {
         throw std::bad_alloc();
     allocation->bytes = bytes;
     ++heap_calls;
+    heap_live_bytes += bytes;
     return allocation + 1;
 }
 void heap_free(void* memory) noexcept {
     if (!memory)
         return;
     auto* allocation = static_cast<Allocation*>(memory) - 1;
+    heap_live_bytes -= allocation->bytes;
     if (watch_principal && allocation->bytes == sizeof(expired_principal) &&
         std::memcmp(memory, expired_principal, sizeof(expired_principal)) == 0)
         ++expired_principal_frees;
@@ -147,6 +154,184 @@ void admit(JobService& service) {
         std::cerr << "CLAIM error " << static_cast<unsigned>(claim.error) << '\n';
     assert(claim.ok);
 }
+
+void internal_control_memory() {
+    TestClock clock;
+    TestEngine engine;
+    TestIdentity identity;
+    JobService service(clock, engine, identity);
+    assert(service.handle_internal(request("HELLO", HelloBody{{"WTP/1"}}, '9')).ok);
+    const auto baseline = heap_live_bytes;
+    constexpr char hex[] = "0123456789abcdef";
+    for (unsigned i = 0; i != 64; ++i) {
+        auto ping = request("PING", std::monostate{}, '1');
+        ping.request_id.assign(32, '0');
+        ping.request_id[30] = hex[i >> 4];
+        ping.request_id[31] = hex[i & 15];
+        ping.payload_digest[0] = static_cast<std::uint8_t>(i + 1);
+        assert(service.handle_internal(std::move(ping)).ok);
+    }
+    assert(heap_live_bytes == baseline);
+    auto foreign = request("PING", std::monostate{}, 'a');
+    foreign.principal = "other";
+    const auto refused = service.handle_internal(std::move(foreign));
+    assert(!refused.ok && refused.error == ErrorCode::AuthenticationRequired);
+}
+
+std::size_t admission_origin = std::numeric_limits<std::size_t>::max();
+std::size_t admission_extra = 0;
+std::size_t request_lifetime_headroom() {
+    const auto used = heap_live_bytes + live_bytes;
+    if (admission_origin == std::numeric_limits<std::size_t>::max())
+        admission_origin = used;
+    // Fix capacity at the first check. Later real allocations consume it,
+    // including full terminal history; no per-occurrence budget reset hides
+    // retained growth. The request-lifetime case adds no history allowance.
+    const auto capacity = admission_origin + 65536 + admission_extra;
+    return used < capacity ? capacity - used : 0;
+}
+void adjustment_storage_round_trip() {
+    for (const unsigned tones : {1U, 4U, 5U, 162U}) {
+        std::vector<FrequencyAdjustment> expected;
+        for (unsigned i = 0; i < 162; ++i)
+            expected.push_back({i * 3, 7'040'100'000'000'000ULL + i % tones,
+                                7'040'100'000'000'001ULL + i % tones});
+        const auto baseline = heap_live_bytes;
+        AdjustmentList list(expected);
+        assert(list.size() == expected.size());
+        assert(std::equal(list.begin(), list.end(), expected.begin()));
+        if (tones <= 4)
+            assert(heap_live_bytes - baseline < expected.size() * sizeof(FrequencyAdjustment) / 2);
+        auto retained = list;
+        list.clear();
+        for (std::size_t i = 0; i < expected.size(); ++i)
+            assert(retained[i] == expected[i]);
+        assert(retained.begin()->event_index == expected.front().event_index);
+        auto original = expected;
+        ++expected[0].realized_frequency_nhz;
+        assert(retained == AdjustmentList(original));
+        assert(!(retained == AdjustmentList(expected)));
+    }
+    // A wide index is representable through the ordinary list, never truncated.
+    for (const auto index : {511U, 16383U, 16384U, 65536U}) {
+        const std::vector<FrequencyAdjustment> wide(10, {index, 1, 2});
+        const AdjustmentList list(wide);
+        assert(std::equal(list.begin(), list.end(), wide.begin()));
+    }
+    assert(AdjustmentList{}.empty());
+}
+
+void standalone_request_lifetime_admission(bool retained_history = false) {
+    struct Flash final : standalone::Flash {
+        std::array<std::uint8_t, 16384> bytes{};
+        Flash() {
+            bytes.fill(255);
+        }
+        bool read(std::size_t offset, std::span<std::uint8_t> output) override {
+            std::copy_n(bytes.begin() + offset, output.size(), output.begin());
+            return true;
+        }
+        bool erase(std::size_t offset) override {
+            std::fill_n(bytes.begin() + offset, 4096, 255);
+            return true;
+        }
+        bool program(std::size_t offset, std::span<const std::uint8_t> input) override {
+            std::copy(input.begin(), input.end(), bytes.begin() + offset);
+            return true;
+        }
+    } flash;
+    struct Clock final : wsprrypico::wtp::Clock {
+        std::uint64_t now = 116'000'000'000ULL;
+        ClockSnapshot snapshot() const override {
+            return {ClockState::Synchronized,
+                    1'792'800'000'000'000'000ULL + now,
+                    now,
+                    1000,
+                    0,
+                    LeapState::Normal,
+                    std::nullopt};
+        }
+    } clock;
+    struct Engine final : RfEngine {
+        unsigned preparations = 0;
+        bool begun = false;
+        PrepareResult prepare(const Job& job) override {
+            ++preparations;
+            PrepareResult result{true, {}};
+            for (std::size_t i = 0; i < job.events.size(); ++i)
+                result.adjustments.push_back(
+                    {i, *job.events[i].frequency_nhz, *job.events[i].frequency_nhz + 1});
+            return result;
+        }
+        bool begin(const Job&, std::uint64_t) override {
+            begun = true;
+            return true;
+        }
+        EngineReport poll(std::uint64_t) override {
+            return {begun ? EngineState::Complete : EngineState::Idle, false};
+        }
+        bool disable(std::uint64_t) override {
+            begun = false;
+            return true;
+        }
+        bool output_active() const override {
+            return false;
+        }
+    } engine;
+    standalone::Store store(flash);
+    assert(store.load());
+    standalone::Config config;
+    config.callsign = "AA0NT";
+    config.locator = "EM18";
+    config.power_dbm = 20;
+    config.enabled = true;
+    config.wspr_dial_frequency_hz = 14095600;
+    config.schedules = {{120, 0}};
+    assert(store.save(config));
+    TestIdentity identity;
+    JobService service(clock, engine, identity);
+    standalone::Scheduler scheduler(store, service);
+    const auto complete_occurrence = [&] {
+        clock.now += 5'000'000'000ULL;
+        scheduler.poll();
+        assert(service.status().state == State::Complete && !service.status().owner_id);
+        clock.now += 115'000'000'000ULL;
+    };
+    const unsigned warmup = retained_history ? 16 : 0;
+    // Prime the host library's deque storage before measuring retained payloads.
+    // libc++ allocates larger blocks lazily, unlike libstdc++'s initial storage.
+    // Expire every warmup record so all measured history payloads still consume
+    // the fixed 4 KiB allowance; no measured occurrence resets the capacity.
+    for (unsigned occurrence = 0; occurrence != warmup; ++occurrence) {
+        scheduler.poll();
+        assert(service.status().state == State::Armed);
+        assert(engine.preparations == occurrence + 1);
+        complete_occurrence();
+    }
+    if (warmup) {
+        clock.now += service.config().terminal_record_ttl_ns;
+        service.poll();
+        assert(service.status().state == State::Empty && service.status().terminal_records.empty());
+    }
+    admission_origin = std::numeric_limits<std::size_t>::max();
+    admission_extra = retained_history ? 4096 : 0;
+    for (unsigned occurrence = 0; occurrence != (retained_history ? 16 : 2); ++occurrence) {
+        if (!retained_history)
+            admission_origin = std::numeric_limits<std::size_t>::max();
+        available_memory = request_lifetime_headroom;
+        scheduler.poll();
+        available_memory = nullptr;
+        if (service.status().state != State::Armed)
+            std::cerr << "Standalone occurrence " << occurrence + 1 << ": LOAD stage "
+                      << scheduler.last_load_stage() << ", free "
+                      << scheduler.last_load_free_after() << '\n';
+        assert(service.status().state == State::Armed);
+        assert(engine.preparations == warmup + occurrence + 1);
+        complete_occurrence();
+        assert(service.status().terminal_records.size() ==
+               std::min<std::size_t>(occurrence + 1, service.config().terminal_record_entries));
+    }
+}
 } // namespace
 
 void* operator new(std::size_t bytes) {
@@ -169,6 +354,10 @@ void operator delete[](void* memory, std::size_t) noexcept {
 }
 
 int main() {
+    adjustment_storage_round_trip();
+    internal_control_memory();
+    standalone_request_lifetime_admission();
+    standalone_request_lifetime_admission(true);
     {
         TestClock quiet_clock;
         TestIdentity quiet_identity;
@@ -185,8 +374,7 @@ int main() {
         // request may prune sessions and hide a missing idle-poll cleanup.
         watch_principal = true;
         const auto allocations_before_poll = heap_calls;
-        quiet_clock.monotonic_ns =
-            admitted_at + quiet_service.config().response_cache_ttl_ns - 1;
+        quiet_clock.monotonic_ns = admitted_at + quiet_service.config().response_cache_ttl_ns - 1;
         quiet_service.poll();
         assert(expired_principal_frees == 0 && heap_calls == allocations_before_poll);
         ++quiet_clock.monotonic_ns;

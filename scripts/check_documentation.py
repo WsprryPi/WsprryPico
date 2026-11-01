@@ -87,6 +87,13 @@ def main():
                     errors.append(f"{path.relative_to(ROOT)}: missing anchor {reference}")
     if not pages:
         errors.append("No built HTML; build the operator manual first")
+    # Firmware URLs are external to the device but owned by this manual. Check
+    # their emitted destinations here instead of skipping them as external links.
+    from check_contextual_help import emitted_links, validate
+    try:
+        validate(emitted_links(), built)
+    except (ValueError, OSError) as error:
+        errors.append(str(error))
     for error in errors:
         print(error)
     print(f"Checked {len(sources)} Markdown sources, {len(pages)} HTML pages, {checked} local targets; {len(errors)} errors")

@@ -40,12 +40,13 @@ enum {
     STRID_CONSOLE,
     STRID_WTP,
     STRID_MANAGEMENT,
+    STRID_LOGGING,
 };
 
 #define USB_VID 0xcafe
 #define USB_PID 0x4012
 #define USB_BCD 0x0100
-#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + (3 * TUD_CDC_DESC_LEN))
+#define CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + (4 * TUD_CDC_DESC_LEN))
 
 #define EPNUM_CONSOLE_NOTIF 0x81
 #define EPNUM_CONSOLE_OUT 0x02
@@ -56,6 +57,9 @@ enum {
 #define EPNUM_MANAGEMENT_NOTIF 0x85
 #define EPNUM_MANAGEMENT_OUT 0x06
 #define EPNUM_MANAGEMENT_IN 0x86
+#define EPNUM_LOGGING_NOTIF 0x87
+#define EPNUM_LOGGING_OUT 0x08
+#define EPNUM_LOGGING_IN 0x88
 
 static tusb_desc_device_t const device_descriptor = {
     .bLength = sizeof(tusb_desc_device_t),
@@ -81,6 +85,8 @@ static uint8_t const configuration_descriptor[] = {
     TUD_CDC_DESCRIPTOR(USB_ITF_WTP, STRID_WTP, EPNUM_WTP_NOTIF, 8, EPNUM_WTP_OUT, EPNUM_WTP_IN, 64),
     TUD_CDC_DESCRIPTOR(USB_ITF_MANAGEMENT, STRID_MANAGEMENT, EPNUM_MANAGEMENT_NOTIF, 8,
                        EPNUM_MANAGEMENT_OUT, EPNUM_MANAGEMENT_IN, 64),
+    TUD_CDC_DESCRIPTOR(USB_ITF_LOGGING, STRID_LOGGING, EPNUM_LOGGING_NOTIF, 8, EPNUM_LOGGING_OUT,
+                       EPNUM_LOGGING_IN, 64),
 };
 
 uint8_t const* tud_descriptor_device_cb(void) {
@@ -105,9 +111,10 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
         "RFBench Console",
         "RFBench Commands",
         "WsprryPico Management",
+        "WsprryPico Logging",
 #elif defined(WSPRRY_PICO_RF_WTP)
         NULL,         "WsprryPi",  "WsprryPico-RFWTP",      serial,
-        "RFWTP Time", "RFWTP WTP", "WsprryPico Management",
+        "RFWTP Time", "RFWTP WTP", "WsprryPico Management", "WsprryPico Logging",
 #else
         NULL,
         "WsprryPi",
@@ -116,6 +123,7 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
         "WsprryPico Console",
         "WsprryPico WTP",
         "WsprryPico Management",
+        "WsprryPico Logging",
 #endif
     };
 

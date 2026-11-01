@@ -47,7 +47,7 @@ try {
      assert.ok(!html.includes('<script src='));
    }
  }
- for(const path of ['/api/bootstrap/v1/status','/api/owner/v1/public-status','/recovery.html','/api/v1/config'])
+ for(const path of ['/api/bootstrap/v1/status','/api/owner/v1/public-status','/recovery.html','/api/control/v1/config'])
    assert.equal((await complete(f,'192.168.1.53',false,path)).response.status,403);
  assert.equal((await complete(f,'192.168.4.1',false,'/wifi-host')).response.status,403,'Host cannot fabricate AP context');
  assert.equal((await complete(f,'192.168.1.53',false,'/wifi-host',{method:'POST'})).response.status,403);

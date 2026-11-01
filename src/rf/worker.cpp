@@ -140,6 +140,11 @@ bool WorkerEngine::disable(std::uint64_t deadline) {
     call(Op::Disable);
     return result_;
 }
+bool WorkerEngine::execution_started() const {
+    call(Op::Inspect);
+    return report_.launch_monotonic_ns.has_value() ||
+           (report_.chain_phase == wtp::ChainPhase::Unspecified && report_.output_active);
+}
 bool WorkerEngine::output_active() const {
     call(Op::Inspect);
     return report_.output_active;

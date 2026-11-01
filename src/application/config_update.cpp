@@ -1,5 +1,7 @@
 #include "application/config_update.hpp"
 
+#include "network/control_contract.hpp"
+
 namespace wsprrypico::application {
 namespace {
 using wtp::json::fields;
@@ -11,11 +13,11 @@ bool config_fields(Value value, bool partial, bool drive) {
         return false;
     if (partial)
         return fields(value, {},
-                      {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s",
-                       "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency",
+                      {"enabled", "station", "wifi", "schedules", "expires_utc_s", "pins",
+                       "allow_unqualified_frequency", "allow_non_amateur_frequency",
                        "gpio_drive_ma"}) &&
                !fields(value, {});
-    return fields(value, {"version", "enabled", "station", "wifi", "schedules"},
+    return fields(value, {"enabled", "station", "wifi", "schedules"},
                   {"expires_utc_s", "pins", "allow_unqualified_frequency",
                    "allow_non_amateur_frequency", "gpio_drive_ma"});
 }
@@ -32,15 +34,14 @@ Envelope validate_config_update(Value root, std::string_view device, std::string
     if (!fields(root, {"schema", "target", "mode", "config"}))
         return Envelope::Invalid;
     const auto schema = *root.get("schema"), target = *root.get("target"), mode = *root.get("mode");
-    if (schema.type() != '"' || mode.type() != '"' ||
-        (mode.string() != "merge" && mode.string() != "replace") ||
+    if (schema.type() != '"' || mode.type() != '"' || mode.string() != "merge" ||
         !fields(target, {"scope", "device_id", "boot_id"}))
         return Envelope::Invalid;
     for (const auto name : {"scope", "device_id", "boot_id"})
         if (target.get(name)->type() != '"')
             return Envelope::Invalid;
-    if (schema.string() != (amplifier ? "transmitter-config-update/3"
-                            : drive   ? "transmitter-config-update/2"
+    if (schema.string() != (amplifier ? "config-update"
+                            : drive   ? "config-update"
                                       : config_update_schema))
         return Envelope::UnsupportedSchema;
     if (target.get("scope")->string() != "member" || target.get("device_id")->string() != device ||
@@ -57,15 +58,6 @@ std::optional<std::string> config_candidate(Value supplied,
         return {};
     if (!config_fields(supplied, partial, drive) || (partial && !current))
         return {};
-    // Legacy closed pin plans never gain authority over amplifier settings.
-    // Omitted plans still preserve the complete saved plan below.
-    if (!amplifier) {
-        if (const auto pins = supplied.get("pins")) {
-            const auto p = hardware::parse_plan(std::string(pins->raw));
-            if (!p || pins->get("amplifier_active_high") || hardware::requires_amplifier_view(*p))
-                return {};
-        }
-    }
     const auto station = supplied.get("station"), wifi = supplied.get("wifi");
     if (partial && station &&
         (!fields(*station, {}, {"callsign", "locator", "power_dbm"}) || fields(*station, {})))
@@ -74,7 +66,8 @@ std::optional<std::string> config_candidate(Value supplied,
         !(partial ? fields(*wifi, {}, {"ssid", "password", "ntp_ipv4"}) && !fields(*wifi, {})
                   : fields(*wifi, {"ssid", "password"}, {"ntp_ipv4"})))
         return {};
-    const auto previous_text = current ? standalone::serialize_config(*current) : "{}";
+    const auto previous_text =
+        standalone::serialize_config((current ? *current : standalone::factory_config()));
     const auto previous = wtp::json::parse(previous_text);
     if (!previous)
         return {};
@@ -83,6 +76,10 @@ std::optional<std::string> config_candidate(Value supplied,
     for (const auto name : {"version", "enabled", "station", "wifi", "schedules", "expires_utc_s",
                             "pins", "allow_unqualified_frequency", "allow_non_amateur_frequency",
                             "gpio_drive_ma", "manual_correction_ppb", "ntp_rf_calibration"}) {
+        if (name == std::string_view("version")) {
+            member(result, name, current && current->ntp_timeout_s == 0 ? "2" : "1");
+            continue;
+        }
         const auto input = supplied.get(name), prior = previous->get(name);
         if (input && ((partial && name == std::string_view("station")) ||
                       name == std::string_view("wifi"))) {
@@ -115,28 +112,37 @@ std::optional<std::string> config_candidate(Value supplied,
             object += '}';
             member(result, name, object);
         } else if (input) {
-            if (name == std::string_view("pins") && preserve && prior &&
-                (!amplifier || !input->get("amplifier_active_high"))) {
-                // Even a complete ordinary pin replacement preserves omitted
-                // polarity. Explicit replacement uses the documented default.
+            if (name == std::string_view("pins")) {
                 auto plan = hardware::parse_plan(std::string(input->raw));
                 if (!plan)
                     return {};
-                plan->amplifier_active_high = current->pins.amplifier_active_high;
-                if (!amplifier)
-                    plan->amplifier = current->pins.amplifier;
+                if (preserve && (!amplifier || !input->get("amplifier_active_high"))) {
+                    plan->amplifier_active_high = current->pins.amplifier_active_high;
+                    if (!amplifier)
+                        plan->amplifier = current->pins.amplifier;
+                } else if (!input->get("amplifier_active_high"))
+                    plan->amplifier_active_high =
+                        standalone::factory_config().pins.amplifier_active_high;
                 member(result, name, hardware::serialize_plan(*plan));
             } else
                 member(result, name, std::string(input->raw));
-        } else if (preserve && prior)
+        } else if ((preserve || !current) && prior)
             member(result, name, std::string(prior->raw));
     }
     if (mode == ConfigWrite::Replace)
         result += ",\"manual_correction_ppb\":0,\"ntp_rf_calibration\":false";
     // Closed legacy resources cannot name this independently owned setting.
     // Even their replace operation must preserve its saved selection.
-    if (current && current->wspr_dial_frequency_hz)
-        member(result, "wspr_dial_frequency_hz", std::to_string(*current->wspr_dial_frequency_hz));
+    const auto dial = current ? current->wspr_dial_frequency_hz
+                              : standalone::factory_config().wspr_dial_frequency_hz;
+    if (dial)
+        member(result, "wspr_dial_frequency_hz", std::to_string(*dial));
+    if (current && current->ntp_timeout_s != standalone::default_ntp_timeout_s)
+        member(result, "ntp_timeout_s", std::to_string(current->ntp_timeout_s));
+    if (current && current->amplifier_timing != rf::AmplifierTiming{})
+        member(result, "amplifier_timing",
+               "{\"lead_ms\":" + std::to_string(current->amplifier_timing.lead_ms) +
+                   ",\"tail_ms\":" + std::to_string(current->amplifier_timing.tail_ms) + "}");
     result += '}';
     if (result.size() > standalone::max_config_bytes)
         return {};
@@ -144,9 +150,6 @@ std::optional<std::string> config_candidate(Value supplied,
 }
 
 std::string config_update_capabilities() {
-    return "{\"schema\":\"transmitter-config-update/1\","
-           "\"path\":\"/api/v1/config/update\",\"method\":\"POST\","
-           "\"modes\":[\"merge\",\"replace\"],\"max_update_bytes\":2048,"
-           "\"max_config_bytes\":1800,\"legacy_put_omission\":\"preserve_optional\"}";
+    return std::string(network::control_descriptor("configuration_updates"));
 }
 } // namespace wsprrypico::application

@@ -58,8 +58,22 @@ class ConsumerRadioCrypto {
     // after the complete AEAD tag has authenticated.
     virtual std::optional<wtp::InputView>
     open(wtp::FrameBuffer& packet, const ConsumerRadioBinding& binding, std::uint64_t sequence) = 0;
-    virtual std::optional<HttpResponse>
-    seal(wtp::InputView plaintext, const ConsumerRadioBinding& binding, std::uint64_t sequence) = 0;
+    std::optional<HttpResponse> seal(wtp::InputView plaintext, const ConsumerRadioBinding& binding,
+                                     std::uint64_t sequence) {
+        return seal_parts(std::span(&plaintext, 1), binding, sequence);
+    }
+    // Encrypt borrowed reply pages without retaining another full plaintext
+    // envelope. Parts form one authenticated message with the same wire format.
+    virtual std::optional<HttpResponse> seal_parts(std::span<const wtp::InputView> plaintext,
+                                                   const ConsumerRadioBinding& binding,
+                                                   std::uint64_t sequence) = 0;
+    // Consume and encrypt an owned paged reply in place.
+    virtual std::optional<HttpResponse> seal_buffer(wtp::OutputBuffer plaintext,
+                                                    const ConsumerRadioBinding& binding,
+                                                    std::uint64_t sequence) = 0;
+    virtual std::optional<HttpResponse> seal_source(wtp::ResponseSourcePtr plaintext,
+                                                    const ConsumerRadioBinding& binding,
+                                                    std::uint64_t sequence) = 0;
     virtual void clear() = 0;
 };
 
@@ -70,8 +84,8 @@ class ConsumerRadioApi {
     static constexpr std::size_t session_capacity = 3;
     static constexpr std::size_t pending_capacity = 1;
     static constexpr std::uint64_t login_ms = 30'000;
-    static constexpr std::uint64_t idle_ms = 5 * 60'000;
-    static constexpr std::uint64_t absolute_ms = 15 * 60'000;
+    static constexpr std::uint64_t idle_ms = 30 * 60'000;
+    static constexpr std::uint64_t absolute_ms = 8 * 60 * 60'000;
     ConsumerRadioApi(BrowserApi& api, provisioning::ProfileStore& store,
                      provisioning::RuntimeProfile& runtime, provisioning::RandomSource& random,
                      const std::array<ConsumerRadioCrypto*, session_capacity>& crypto,

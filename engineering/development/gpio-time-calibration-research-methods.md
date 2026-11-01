@@ -5,7 +5,7 @@ carrier are different observations. A rate fitted to periodic Console INFO
 snapshots is a diagnostic estimate; it is not a complete NTP sample stream or
 an RF calibration. Current RF correction uses manual PPM only; NTP-derived RF
 calibration is [rejected](clock-discipline.md). The Pico-to-Pi GPIO measurement
-path is retired. These methods remain available for offline historical analysis.
+path is unavailable. These methods support offline diagnostic analysis.
 
 ## Observation identity and quality
 

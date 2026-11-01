@@ -10,7 +10,7 @@ const driver=process.argv[2], output=path.resolve(process.argv[3] || 'build/mess
 if (!driver) throw Error('Usage: node message_frequency_ui_integration.mjs DRIVER [OUTPUT]');
 await mkdir(output,{recursive:true});
 const profile=await mkdtemp(path.join(os.tmpdir(),'wsprrypico-cw-browser-'));
-const processGroup=process.platform!=='win32';
+const processGroup=process.platform==='linux';
 let fixture, chrome, cdp, fixturePort=19039;
 class Cdp {
   constructor(url) {
@@ -22,20 +22,23 @@ class Cdp {
   async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
 }
 async function until(fn,label,ms=15000){const end=Date.now()+ms;while(Date.now()<end){if(await fn())return;await new Promise(resolve=>setTimeout(resolve,50));}let detail='';try{detail=await cdp.evaluate(`JSON.stringify({feedback:document.getElementById('message-result')?.textContent,notice:document.getElementById('notice')?.textContent,active:document.activeElement?.id,writes:globalThis.cwRequests?.slice(-5)})`);}catch{}throw Error('Timed out: '+label+' '+detail);}
-async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
+async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
+// Submit once the production form admits it; discovery/polling can briefly disable login.
+async function submitLogin(){await until(()=>cdp.evaluate(`!busy && !document.getElementById('login-submit').disabled && (document.getElementById('local-login').requestSubmit(),true)`),'login form available');}
 async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
 async function control(command) {
   const r=await fetch('http://127.0.0.1:'+fixturePort+'/.fixture-control',{method:'POST',body:JSON.stringify(command)});
   assert.equal(r.status,200);return r.json();
 }
-async function capture(name){
+async function capture(name,target='job-heading'){
   for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name==='mobile'});
-    await cdp.evaluate(`document.getElementById('job-heading').scrollIntoView({block:'start'})`);
+    await cdp.evaluate(`document.getElementById(${JSON.stringify(target)}).scrollIntoView({block:'start'})`);
     assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,'horizontal overflow');
+    if(process.env.PICO_BROWSER_NO_CAPTURE==='1')continue;
     const png=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
     await writeFile(path.join(output,`${name}-${view.name}.png`),Buffer.from(png.data,'base64'));
-    if(view.name==='mobile') {
+    if(view.name==='mobile' && target==='job-heading') {
       await cdp.evaluate(`document.getElementById('message-preview').scrollIntoView({block:'center'})`);
       const tail=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
       await writeFile(path.join(output,`${name}-preview-mobile.png`),Buffer.from(tail.data,'base64'));
@@ -74,9 +77,16 @@ try {
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     if(surface==='consumer') {
       await until(()=>cdp.evaluate('typeof localIdentity!=="undefined" && !!localIdentity && !busy'),'consumer page');
-      await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+      await field('local-password','test-password');await submitLogin();
     }
     await until(()=>cdp.evaluate('typeof online!=="undefined" && online && !busy'),'ready page');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-delivery').value`),'recurring','new CW editor defaults to recurring delivery');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-interval').value`),'10');
+    assert.deepEqual(await cdp.evaluate(`['message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap'].map(id=>document.getElementById(id).value)`),['73 DE AA0NT','qrss','','5','3','1','3']);
+    assert.equal(await cdp.evaluate(`Date.parse(document.getElementById('message-start').value+'Z')%600000`),0);
+    await capture(surface+'-initial-defaults');
+    await field('message-delivery','once');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-controls').hidden`),true,'Send once without a saved schedule');
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Carrier frequency (Hz)');
     assert.equal(await cdp.evaluate(`document.getElementById('message-shift').disabled`),true);
     await cdp.evaluate(`globalThis.cwRequests=[];const originalJob=job;job=async(operation,body={})=>{cwRequests.push({operation,body:structuredClone(body)});return originalJob(operation,body);};`);
@@ -147,7 +157,7 @@ try {
     await field('message-frequency','1000000');
     await cdp.evaluate(`document.getElementById('message-form').requestSubmit()`);
     await until(()=>cdp.evaluate(`!busy && document.getElementById('message-result').textContent.includes('preserved')`),'server refusal');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-result').closest('fieldset')`),null,'action feedback remains outside disabled controls');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-result').closest('fieldset:disabled')`),null,'action feedback remains outside disabled controls');
     assert.equal(await cdp.evaluate(`getComputedStyle(document.getElementById('message-result')).opacity`),'1');
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency').value`),'1000000');
     assert.equal(await cdp.evaluate(`document.getElementById('message-shift').value`),'5');await capture(surface+'-server-refusal');
@@ -159,15 +169,54 @@ try {
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Space frequency (Hz)');
     await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await cdp.evaluate('refresh()');
     if(surface==='consumer' && !await cdp.evaluate('localAuthenticated')) {
-      await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+      await field('local-password','test-password');await submitLogin();
     }
     await until(()=>cdp.evaluate(`online && !busy && !document.getElementById('message-settings').disabled`),'reconnected message editor');
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Space frequency (Hz)');
     assert.equal(await cdp.evaluate(`document.getElementById('message-shift').disabled`),false);
     assert.equal(await cdp.evaluate(`JSON.stringify(['message-frequency','message-shift','message-text','message-dot','message-dash'].map(id=>document.getElementById(id).value))`),saved);
+    assert.deepEqual(await control({op:'frequency_state'}),beforeState,'message preparation never persists standalone settings');
+    // Production schedule saves and readback preserve one-time drafts and the
+    // explicit recovery barrier after a committed save loses its UI reply.
+    for(const [id,value] of Object.entries({mode:'qrss',text:'E',frequency:'14096900',delivery:'recurring',interval:'20'}))await field('message-'+id,value);
+    await cdp.evaluate(`document.getElementById('message-start').value=new Date(Number(BigInt(snapshot.standalone.utc_now_ns)/1000000n)+60000).toISOString().slice(0,19);document.getElementById('message-form').requestSubmit()`);
+    await until(()=>cdp.evaluate(`!busy && messageScheduleReadback?.data.saved?.enabled`),'saved message schedule');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-read').hidden`),true);
+    await field('message-delivery','once');await field('message-text','ONE TIME');await click('refresh');
+    await until(()=>cdp.evaluate('!busy'),'schedule refresh');
+    assert.deepEqual(await cdp.evaluate(`['message-delivery','message-text'].map(id=>document.getElementById(id).value)`),['once','ONE TIME']);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-controls').hidden`),false);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').hidden`),false);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-adopt').textContent`),'Restore saved schedule');
+    await capture(surface+'-schedule-during-send-once','message-schedule-controls');
+    let restoreDialog;
+    const acceptRestore=event=>{const r=JSON.parse(event.data);if(r.method==='Page.javascriptDialogOpening'){restoreDialog=r.params;void cdp.send('Page.handleJavaScriptDialog',{accept:true});}};
+    cdp.ws.addEventListener('message',acceptRestore);
+    try{await click('message-schedule-adopt');}finally{cdp.ws.removeEventListener('message',acceptRestore);}
+    assert.match(restoreDialog?.message||'',/Replace the current message draft/);
+    assert.deepEqual(await cdp.evaluate(`['message-delivery','message-text'].map(id=>document.getElementById(id).value)`),['recurring','E']);
+    await cdp.evaluate(`{const original=api;api=async(...args)=>{const response=await original(...args);if(args[0]==='message-schedule'&&args[1]==='PUT'){api=original;throw Error('Saved schedule reply lost');}return response;};document.getElementById('message-form').requestSubmit();}`);
+    await until(()=>cdp.evaluate('!busy && messageScheduleUncertain'),'unconfirmed committed schedule save');
+    await click('refresh');await until(()=>cdp.evaluate('!busy'),'ordinary refresh during schedule recovery');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-submit').disabled`),true);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-read').hidden`),false);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-adopt').hidden`),true);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').hidden`),true);
+    await capture(surface+'-schedule-recovery','message-schedule-controls');
+    await click('message-schedule-read');await until(()=>cdp.evaluate('!busy && !messageScheduleUncertain'),'explicit schedule readback');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-read').hidden`),true);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-result').textContent`),'');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').textContent`),'Pause schedule');
+    await click('message-schedule-pause');await until(()=>cdp.evaluate(`!busy && messageScheduleReadback?.data.saved?.enabled===false`),'confirmed schedule pause');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').hidden`),true);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-help').hidden`),true);
+    assert.match(await cdp.evaluate(`document.getElementById('message-schedule-status').textContent`),/Save and start schedule/);
+    await capture(surface+'-schedule-paused','message-schedule-controls');
     await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});assert.equal(await cdp.evaluate('getComputedStyle(document.documentElement).colorScheme'),'light');
     await cdp.evaluate(`document.documentElement.style.fontSize='200%'`);await capture(surface+'-text-200-percent');
-    assert.deepEqual(await control({op:'frequency_state'}),beforeState,'message preparation never persists standalone settings');
+    const afterSchedule=await control({op:'frequency_state'});
+    assert.equal(afterSchedule.saved_dial_hz,beforeState.saved_dial_hz,'message schedule leaves the WSPR dial unchanged');
+    assert.equal(afterSchedule.enabled,beforeState.enabled,'message schedule leaves WSPR enablement unchanged');
     cdp.ws.close();cdp=null;await cleanupUiProcesses([chrome],profile,{processGroup});chrome=null;
     console.log('PASS '+surface+' shipped CW requests, compiled events, explicit API, keyboard, errors, drafts and views');
   }

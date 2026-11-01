@@ -72,6 +72,48 @@ int main(){
             self.assertEqual(built.returncode, 0, built.stderr)
             subprocess.run([str(path / 'softap')], check=True, capture_output=True, timeout=10)
 
+    def test_console_status_observation_precedes_profile_control_guard(self):
+        source = (ROOT / 'src/standalone/pico/main.cpp').read_text()
+        start = source.index('        if (text == "STATUS")')
+        end = source.index('        if (text.starts_with("HEAP PROBE "))', start)
+        actual = source[start:end]
+        # Compile the actual target routing and guard, including all combinations
+        # of consumer selection, pending ownership and absent runtime authority.
+        program = r'''
+#include <string>
+#include <string_view>
+#include <stdexcept>
+struct Scheduler { unsigned reads=0; std::string status(){++reads;return "observed";} } scheduler;
+struct Bootstrap { bool pending=false; bool owner_claim_pending(){return pending;} } bootstrap;
+bool consumer=false, ready=false;
+bool consumer_source_selected(){return consumer;}
+bool runtime_profile_ready(){return ready;}
+std::string command(std::string_view text) { ACTUAL return "control"; }
+int main() {
+ for(unsigned flags=0;flags<8;++flags) {
+  consumer=flags&1; bootstrap.pending=flags&2; ready=flags&4;
+  if(command("STATUS")!="observed") return 1;
+  const bool blocked=consumer||bootstrap.pending||!ready;
+  for(auto text:{"STOP","CONFIG {}","WIFI OFF","STATUS extra"}) {
+   const auto result=command(text);
+   if(blocked ? result.find("profile_runtime_unavailable")==std::string::npos : result!="control") return 2;
+  }
+  for(auto text:{"ABORT","REBOOT","BOOTSEL","ACCESS SOFTAP device"})
+   if(command(text)!="control") return 3;
+ }
+ if(scheduler.reads!=8) return 4;
+}
+'''.replace('ACTUAL', actual)
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory)
+            (path / 'status.cpp').write_text(program)
+            subprocess.run(['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
+                            str(path / 'status.cpp'), '-o', str(path / 'status')],
+                           check=True, capture_output=True, timeout=60)
+            subprocess.run([str(path / 'status')], check=True, capture_output=True, timeout=10)
+        command_start = source.index('    auto command =')
+        self.assertLess(source.index('if (reset_coordinator.blocks_admission()', command_start), start)
+
     def test_actual_indicator_poll_selects_transmit_gate_only_for_rf(self):
         main = (ROOT / 'src/standalone/pico/main.cpp').read_text()
         begin, end = block(main, 'const auto poll_indicator =')
@@ -268,6 +310,7 @@ int main(){
         program = r'''
 #include "usb/console_reply.hpp"
 #include "network/assets.hpp"
+#include "network/control.hpp"
 #include "network/consumer_radio.hpp"
 #include "wtp/json.hpp"
 #include <array>
@@ -276,25 +319,22 @@ int main(){
 #include <stdexcept>
 #include <string>
 #include <string_view>
-void check(bool v) { if (!v) throw std::runtime_error("adapter assertion"); }
+void check_at(bool v,int line) { if (!v) throw std::runtime_error("adapter assertion line " + std::to_string(line)); }
+#define check(v) check_at((v),__LINE__)
 using wsprrypico::network::ConsumerInterface;
 using wsprrypico::network::WebAsset;
 namespace wtp = wsprrypico::wtp;
 struct Request { std::string path="/", method="GET"; std::string_view header(std::string_view)const{return "192.168.4.1";} };
 struct Parser { Request value; bool invalid=false; bool failed()const{return invalid;} const Request& request()const{return value;} };
-struct HttpResponse {
- unsigned status; std::string body,type,etag,content_security_policy,location;
- std::string_view static_body; std::span<const std::string_view> static_parts;
- HttpResponse(unsigned code=200,std::string text={},std::string kind="application/json",std::string tag={})
-  :status(code),body(std::move(text)),type(std::move(kind)),etag(std::move(tag)){}
- std::string wire_headers()const{return "headers";}
-};
+using wsprrypico::network::HttpResponse;
+using wsprrypico::network::control_response;
+using wsprrypico::network::http_error;
 using Response=HttpResponse;
-Response http_error(unsigned n,std::string_view s){return {n,std::string(s)};}
-Response json(std::string s){return {200,std::move(s)};}
+namespace wsprrypico::network { std::string_view web_csp(){return "test-csp";} }
+Response json(std::string s){return {200,std::move(s),"application/json",{}};}
 unsigned time_us_64(){return 1;}
 bool owner_public_get_admitted(const Request&,const std::string&){return true;}
-Response bootstrap_http_response(const Request&,const std::string&,const std::string&,bool setup,bool,bool){return {200,setup?"setup":"identity"};}
+Response bootstrap_http_response(const Request&,const std::string&,const std::string&,bool setup,bool,bool){return {200,setup?"setup":"identity","application/json",{}};}
 bool asset_available=true;
 std::array<std::string_view,2> radio_parts={"radio-","page"};
 std::optional<WebAsset> consumer_radio_asset(){
@@ -318,11 +358,17 @@ struct Radio {
  bool available()const{return ready;}
  bool page_admitted(const Request&,ConsumerInterface)const{return page_allowed;}
  Response handle(const Request&,std::uint64_t,std::uint64_t token,ConsumerInterface source){
-  ++handled;transaction=token;interface=source;handled_address=address;return {200,"radio-api"};
+  ++handled;transaction=token;interface=source;handled_address=address;return {200,"radio-api","application/json",{}};
  }
 };
 struct Commit {bool allowed=true;bool cancellation_allowed()const{return allowed;}};
-struct Progress {Response progress_readback(bool){return {200,"progress"};}};
+struct Progress {
+ bool station_only=false,drive=false,amplifier=false;
+ Response progress_readback(bool station,bool gpio,bool amp){
+  station_only=station;drive=gpio;amplifier=amp;
+  return {200,R"({"schema":"progress"})","application/json",{}};
+ }
+};
 struct PicoBootstrapServer {
 DEFAULT
  bool setup_admitted_=default_setup_admission,active_=true,mutation_safe_=true;
@@ -335,11 +381,11 @@ DEFAULT
  void* reset_begin_=nullptr; std::string device_="device",boot_id_="boot",firmware_="firmware",headers_;
  Progress* progress_api_=nullptr;bool owner_claimable()const{return true;}
  Parser parser_;Response response_;Commit bootstrap_commit_;unsigned canceled=0,owner_canceled=0,advanced=0;
- Response recovery(const Request&){return {200,"recovery"};}
- Response status(){return {200,"status"};}
- Response mutation(const Request&){return {200,"mutation"};}
- Response owner_status(bool){return {200,"owner"};}
- Response owner_mutation(const Request&){return {200,"owner mutation"};}
+ Response recovery(const Request&){return {200,"recovery","application/json",{}};}
+ Response status(){return {200,"status","application/json",{}};}
+ Response mutation(const Request&){return {200,"mutation","application/json",{}};}
+ Response owner_status(bool){return {200,"owner","application/json",{}};}
+ Response owner_mutation(const Request&){return {200,"owner mutation","application/json",{}};}
  void cancel_slot(){++canceled;} void cancel_owner_slot(bool){++owner_canceled;}
  std::uint64_t setup_transaction_=0;
  void remember_setup_reply(const Request&,std::uint64_t){}
@@ -398,10 +444,16 @@ int main() {
  server.parser_.value.path="/";server.dispatch();
  check(server.response_.status==302&&server.response_.location=="/wifi-host");
  server.setup_transaction_=31;server.parser_.value.path="/api/bootstrap/v1/status";
- server.dispatch();check(server.response_.status==409&&server.response_.body=="setup_response_pending");
+ server.dispatch();check(server.response_.status==409&&server.response_.body==R"({"error":{"code":"setup_response_pending"}})");
  server.parser_.value.path="/radio";server.dispatch();check(server.response_.status==200);
  server.parser_.value.path="/api/consumer/v1/identity";server.dispatch();check(server.response_.body=="radio-api");
  server.setup_transaction_=0;
+ server.ap_setup_admitted_=true;
+ Progress progress;server.progress_api_=&progress;
+ server.parser_.value.path="/api/owner/v1/progress";server.dispatch();
+ check(server.response_.status==200&&progress.station_only&&progress.drive&&progress.amplifier);
+ check(server.response_.body==R"({"contract":"Wsprry-Control/1","schema":"progress"})");
+ server.parser_.value.path="/api/consumer/v1/identity";
  server.pending=true;unsigned paused=0;server.setup_control_context_=&paused;
  server.setup_control_=[](void* context){++*static_cast<unsigned*>(context);};
  server.dispatch();check(paused==1);
@@ -429,7 +481,10 @@ int main() {
                 args = ['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
                         '-I' + str(ROOT / 'src/microchrony'),
                         '-I' + str(ROOT / 'src'), str(path / 'adapter.cpp'),
-                        str(ROOT / 'src/wtp/json.cpp'),
+                        str(ROOT / 'src/wtp/json.cpp'), str(ROOT / 'src/wtp/codec.cpp'),
+                        str(ROOT / 'src/wtp/job_service.cpp'), str(ROOT / 'src/wtp/sha256.cpp'),
+                        str(ROOT / 'src/wtp/frame_parser.cpp'),
+                        str(ROOT / 'src/network/http.cpp'),
                         '-o', str(path / 'adapter')]
                 if rf:
                     args.append('-DWSPRRY_PICO_STANDALONE_RF=1')

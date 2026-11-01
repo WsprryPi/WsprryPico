@@ -76,7 +76,7 @@ void limits() {
     CHECK(config.minimum_frequency_nhz == 100'000'000'000'000ULL);
     CHECK(config.maximum_frequency_nhz == (rf::sample_rate / 2 - 1) * 1'000'000'000ULL);
     CHECK(config.maximum_arm_uncertainty_ns == 500'000'000);
-    CHECK(config.maximum_holdover_age_ns == 90'000'000'000ULL);
+    CHECK(config.maximum_holdover_age_ns == 3'600'000'000'000ULL);
     Fixture f;
     auto good = job();
     CHECK(f.request("LOAD", good).ok);
@@ -175,8 +175,9 @@ void clocks() {
     CHECK(aged.service.status().state == wtp::State::Missed && !aged.engine.output_active());
     Fixture old;
     CHECK(old.clock.observe(utc, 0, 3'000'000, wtp::LeapState::Normal));
-    old.now = 90'000'000'001ULL;
-    // Reclaim after idle lease expiry; an old SNTP observation still cannot arm.
+    old.now = 3'600'000'000'001ULL;
+    // Reclaim after idle lease expiry; a source beyond the configured hour cannot arm.
+    CHECK(old.request("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
     CHECK(old.request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}).ok);
     CHECK(old.request("LOAD", job()).ok);
     CHECK(

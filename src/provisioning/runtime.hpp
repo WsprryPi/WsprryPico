@@ -53,6 +53,22 @@ class RuntimeProfile {
     bool control_healthy(const ProfileStore& store) const {
         return store.healthy() && fault_ == RuntimeFault::None && generation_ == store.sequence();
     }
+    // A single verified station-authority transfer may retain pre-transfer
+    // login transcripts. Any other profile load/change revokes this exception.
+    bool session_generation_current(std::uint64_t generation, const ProfileStore& store) const {
+        return control_healthy(store) &&
+               (generation == generation_ || station_source_generation_ == generation);
+    }
+    bool standalone_boot_ready(const ProfileStore& store, bool standalone_configured) const {
+        // Browser commissioning remains ConsumerPreClock structurally. A saved
+        // standalone configuration must survive restart without a new STOP;
+        // JobService independently checks the actual clock at every launch.
+        return control_healthy(store) && source_ != RuntimeSource::Unprovisioned &&
+               source_ != RuntimeSource::NetworkOnly &&
+               (source_ != RuntimeSource::ConsumerPreClock ||
+                (has_consumer_profile_ &&
+                 (consumer_profile_.usb_managed || standalone_configured)));
+    }
     bool consumer_selected(const ProfileStore& store) const {
         return consumer_selected_ || store.source() == ProfileSource::ConsumerProfile;
     }
@@ -79,6 +95,9 @@ class RuntimeProfile {
     std::string consumer_readback_json() const;
 
   private:
+    friend class LocalSettings;
+    void select_config_station(std::uint64_t generation) noexcept;
+    std::optional<std::uint64_t> station_source_generation_;
     void clear();
     RuntimeSource source_ = RuntimeSource::Fault;
     RuntimeFault fault_ = RuntimeFault::Storage;

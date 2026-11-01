@@ -1,6 +1,25 @@
 cmake_minimum_required(VERSION 3.24)
 
 option(WSPRRY_PICO_BUILD_FIRMWARE "Build Pico 2 W firmware" OFF)
+set(WSPRRY_PICO_FIRMWARE_VERSION "0.0.0-devel" CACHE STRING "Firmware identity")
+# Local main checkouts use the main manual. Other local development checkouts
+# use devel; canonical CI supplies this choice explicitly for detached sources.
+execute_process(COMMAND git symbolic-ref --quiet --short HEAD
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}" OUTPUT_VARIABLE WSPRRY_PICO_SOURCE_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+set(WSPRRY_PICO_DOCUMENTATION_DEFAULT devel)
+if(WSPRRY_PICO_SOURCE_BRANCH STREQUAL "main")
+    set(WSPRRY_PICO_DOCUMENTATION_DEFAULT main)
+endif()
+set(WSPRRY_PICO_DOCUMENTATION_VERSION auto CACHE STRING "Operator manual version (auto, main or devel)")
+set_property(CACHE WSPRRY_PICO_DOCUMENTATION_VERSION PROPERTY STRINGS auto main devel)
+set(WSPRRY_PICO_DOCUMENTATION_SELECTED "${WSPRRY_PICO_DOCUMENTATION_VERSION}")
+if(WSPRRY_PICO_DOCUMENTATION_SELECTED STREQUAL "auto")
+    set(WSPRRY_PICO_DOCUMENTATION_SELECTED "${WSPRRY_PICO_DOCUMENTATION_DEFAULT}")
+endif()
+if(NOT WSPRRY_PICO_DOCUMENTATION_SELECTED MATCHES "^(main|devel)$")
+    message(FATAL_ERROR "Operator manual version must be auto, main or devel")
+endif()
 
 if(WSPRRY_PICO_BUILD_FIRMWARE)
     set(PICO_BOARD pico2_w CACHE STRING "Pico SDK board" FORCE)
@@ -43,10 +62,10 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
     wsprry_cyw43_tx_overlay()
 endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    src/network/web/index.html src/network/web/style.css src/network/web/app.js
+    src/network/web/index.html src/network/web/style.css src/network/web/app.js src/network/web/udp-logging.js
     src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
-    src/network/web/saved-progress.js src/network/web/gpio-drive.js
-    src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/standalone-frequency.js
+    src/network/web/saved-progress.js src/network/web/gpio-drive.js src/network/web/utc-datetime.js src/network/web/message-schedule.js
+    src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/amplifier-timing.js src/network/web/filter-selector.js src/network/web/standalone-frequency.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
     src/network/bootstrap_web/radio-bundle.js
@@ -57,15 +76,26 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/device-presentation.min.js src/network/web/organization.min.js
     src/network/web/asset-build.json scripts/build_operator_assets.mjs
     scripts/generate_web_assets.py)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    engineering/protocol/control-policy.json engineering/protocol/control-1.schema.json
+    scripts/check_control_policy.py)
+execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_control_policy.py
+    COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_web_assets.py
     ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
+    "${WSPRRY_PICO_FIRMWARE_VERSION}" "${WSPRRY_PICO_DOCUMENTATION_SELECTED}"
     COMMAND_ERROR_IS_FATAL ANY)
 
 add_library(wsprrypico_core
+    src/logging/logger.cpp
+    src/logging/udp_settings.cpp
+    src/network/udp_logging.cpp
     src/application/config_update.cpp
     src/application/resources.cpp
     src/application/frequency_policy.cpp
     src/hardware/pins.cpp
+    src/hardware/filter_settings.cpp
+    src/rf/filter_selector.cpp
     src/provisioning/profile.cpp
     src/provisioning/network_profile.cpp
     src/provisioning/consumer_profile.cpp
@@ -190,6 +220,24 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(udp_logging_tests tests/udp_logging_tests.cpp)
+    target_link_libraries(udp_logging_tests PRIVATE wsprrypico_core)
+    target_compile_options(udp_logging_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME udp_logging_tests COMMAND udp_logging_tests)
+    add_executable(logging_tests tests/logging_tests.cpp)
+    target_link_libraries(logging_tests PRIVATE wsprrypico_core)
+    target_compile_options(logging_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME logging_tests COMMAND logging_tests)
+    add_executable(clock_logging_tests tests/clock_logging_tests.cpp)
+    target_link_libraries(clock_logging_tests PRIVATE wsprrypico_core)
+    target_compile_options(clock_logging_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME clock_logging_tests COMMAND clock_logging_tests)
+    add_executable(usb_control_logging_tests tests/usb_control_logging_tests.cpp)
+    target_link_libraries(usb_control_logging_tests PRIVATE wsprrypico_core)
+    target_compile_options(usb_control_logging_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME usb_control_logging_tests COMMAND usb_control_logging_tests)
+    add_test(NAME pico_cold_stop_tests COMMAND ${CMAKE_COMMAND} -E env "CXX=${CMAKE_CXX_COMPILER}"
+        ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/pico_cold_stop_tests.py)
     add_executable(standalone_frequency_tests tests/standalone_frequency_tests.cpp)
     target_link_libraries(standalone_frequency_tests PRIVATE wsprrypico_core)
     target_compile_options(standalone_frequency_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -270,6 +318,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_options(mdns_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME mdns_tests COMMAND mdns_tests)
     add_executable(hostname_tests tests/hostname_tests.cpp)
+    add_executable(oob_defaults_tests tests/oob_defaults_tests.cpp)
+    target_link_libraries(oob_defaults_tests PRIVATE wsprrypico_core)
+    target_compile_options(oob_defaults_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME oob_defaults COMMAND oob_defaults_tests)
     add_executable(progress_tests tests/progress_tests.cpp)
     target_link_libraries(progress_tests PRIVATE wsprrypico_core)
     target_compile_options(progress_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
@@ -277,8 +329,23 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(hostname_tests PRIVATE wsprrypico_core)
     target_compile_options(hostname_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME hostname_tests COMMAND hostname_tests)
+    add_executable(message_schedule_tests tests/message_schedule_tests.cpp)
+    target_link_libraries(message_schedule_tests PRIVATE wsprrypico_core wsprrypico_rf)
+    target_compile_options(message_schedule_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME message_schedule_tests COMMAND message_schedule_tests)
+    add_executable(response_source_tests tests/response_source_tests.cpp)
+    target_link_libraries(response_source_tests PRIVATE wsprrypico_core)
+    target_compile_options(response_source_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME response_sources COMMAND response_source_tests)
+    add_executable(response_usb_pair_tests tests/response_usb_pair_tests.cpp)
+    target_link_libraries(response_usb_pair_tests PRIVATE wsprrypico_rf)
+    target_compile_options(response_usb_pair_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME response_usb_pair COMMAND response_usb_pair_tests)
+    add_executable(response_metrics tests/response_metrics.cpp)
+    target_link_libraries(response_metrics PRIVATE wsprrypico_core)
+    target_compile_options(response_metrics PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_executable(network_tests tests/network_tests.cpp)
-    target_link_libraries(network_tests PRIVATE wsprrypico_core)
+    target_link_libraries(network_tests PRIVATE wsprrypico_core wsprrypico_rf)
     target_compile_options(network_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME network_tests COMMAND network_tests)
     add_executable(management_carrier_tests tests/management_carrier_tests.cpp)
@@ -286,7 +353,7 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_options(management_carrier_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME management_carrier_tests COMMAND management_carrier_tests)
     add_executable(consumer_radio_tests tests/consumer_radio_tests.cpp)
-    target_link_libraries(consumer_radio_tests PRIVATE wsprrypico_core)
+    target_link_libraries(consumer_radio_tests PRIVATE wsprrypico_core wsprrypico_rf)
     target_compile_options(consumer_radio_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME consumer_radio_tests COMMAND consumer_radio_tests)
     add_executable(http_response_lifetime_tests tests/http_response_lifetime_tests.cpp)
@@ -311,14 +378,42 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME bootstrap_wire_tests COMMAND bootstrap_wire_tests)
     find_program(WSPRRY_PICO_NODE_EXECUTABLE node)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME oob_defaults_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/oob_defaults_browser_tests.js)
         add_test(NAME device_presentation_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/device_presentation_tests.js)
         add_test(NAME saved_progress_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/saved_progress_tests.js)
+        add_test(NAME operations_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/operations_browser_tests.js)
+        add_test(NAME operations_shipped_tests COMMAND ${CMAKE_COMMAND} -E env
+            WSPRRY_PICO_BROWSER_SHIPPED=1 ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/operations_browser_tests.js)
         add_test(NAME network_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/network_browser_tests.js)
+        add_test(NAME unsaved_changes_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/unsaved_changes_browser_tests.js)
+        add_test(NAME unsaved_changes_shipped_tests COMMAND ${CMAKE_COMMAND} -E env
+            WSPRRY_PICO_BROWSER_SHIPPED=1 ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/unsaved_changes_browser_tests.js)
+        add_test(NAME logging_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/logging_browser_tests.js)
+        add_test(NAME ui_access_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/ui_access_browser_tests.js)
+        add_test(NAME ui_access_shipped_tests COMMAND ${CMAKE_COMMAND} -E env
+            WSPRRY_PICO_BROWSER_SHIPPED=1 ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/ui_access_browser_tests.js)
+        add_test(NAME submission_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/submission_browser_tests.js)
+        add_test(NAME submission_shipped_tests COMMAND ${CMAKE_COMMAND} -E env
+            WSPRRY_PICO_BROWSER_SHIPPED=1 ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/submission_browser_tests.js)
+        add_test(NAME schedule_workflow_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/schedule_workflow_browser_tests.js)
         add_test(NAME message_frequency_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/message_frequency_browser_tests.js)
+        add_test(NAME utc_datetime_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/utc_datetime_browser_tests.js)
     endif()
     add_executable(firmware_profile_tests tests/firmware_profile_tests.cpp)
     target_link_libraries(firmware_profile_tests PRIVATE wsprrypico_rf)
@@ -349,6 +444,14 @@ if(WSPRRY_PICO_BUILD_TESTS)
         add_test(NAME rf_calibration_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_calibration_browser_tests.js)
     endif()
     add_executable(gpio_drive_tests tests/gpio_drive_tests.cpp)
+    add_executable(ntp_timeout_tests tests/ntp_timeout_tests.cpp)
+    target_link_libraries(ntp_timeout_tests PRIVATE wsprrypico_core)
+    target_compile_options(ntp_timeout_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME ntp_timeout COMMAND ntp_timeout_tests)
+    add_test(NAME ntp_timeout_schema COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/ntp_timeout_schema_tests.py $<TARGET_FILE:ntp_timeout_tests>)
+    if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME ntp_timeout_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/ntp_timeout_browser_tests.js)
+    endif()
     target_link_libraries(gpio_drive_tests PRIVATE wsprrypico_core)
     target_compile_options(gpio_drive_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME gpio_drive COMMAND gpio_drive_tests)
@@ -356,6 +459,13 @@ if(WSPRRY_PICO_BUILD_TESTS)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
         add_test(NAME gpio_drive_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/gpio_drive_browser_tests.js)
     endif()
+    add_executable(control_contract_tests tests/control_contract_tests.cpp)
+    target_link_libraries(control_contract_tests PRIVATE wsprrypico_core)
+    target_compile_options(control_contract_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME control_contract COMMAND control_contract_tests)
+    add_test(NAME control_policy COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_control_policy.py)
+    add_test(NAME control_policy_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/control_policy_tests.py)
+    add_test(NAME control_contract_generated COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_control_contract.py --check)
     add_executable(application_resource_tests tests/application_resource_tests.cpp)
     target_link_libraries(application_resource_tests PRIVATE wsprrypico_core)
     target_compile_options(application_resource_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -366,17 +476,15 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME config_updates COMMAND config_update_tests)
     add_test(NAME config_update_schema COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/config_update_schema_tests.py $<TARGET_FILE:config_update_tests>)
-    set_tests_properties(config_update_schema PROPERTIES SKIP_RETURN_CODE 77)
-    if(WSPRRY_PICO_NODE_EXECUTABLE)
-        add_test(NAME config_update_legacy_pi COMMAND ${Python3_EXECUTABLE}
-            ${CMAKE_SOURCE_DIR}/tests/config_update_legacy_pi_test.py
-            $<TARGET_FILE:config_update_tests> ${WSPRRY_PICO_NODE_EXECUTABLE})
-    endif()
+    add_test(NAME control_jsonschema COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/control_jsonschema_tests.py $<TARGET_FILE:control_contract_tests>
+        $<TARGET_FILE:application_resource_tests> $<TARGET_FILE:amplifier_enable_tests>
+        $<TARGET_FILE:filter_selector_tests> $<TARGET_FILE:wspr_resource_tests>)
     add_test(NAME application_schema COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/application_schema_tests.py $<TARGET_FILE:application_resource_tests>)
 
     add_executable(standalone_tests tests/standalone_tests.cpp)
-    target_link_libraries(standalone_tests PRIVATE wsprrypico_core)
+    target_link_libraries(standalone_tests PRIVATE wsprrypico_rf)
     target_compile_definitions(standalone_tests PRIVATE WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
     target_compile_options(standalone_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME standalone_tests COMMAND standalone_tests)
@@ -442,9 +550,22 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(amplifier_enable_tests PRIVATE wsprrypico_core)
     target_compile_options(amplifier_enable_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME amplifier_enable COMMAND amplifier_enable_tests)
+    add_executable(filter_selector_tests tests/filter_selector_tests.cpp src/hardware/pico/filter_outputs.cpp)
+    target_include_directories(filter_selector_tests PRIVATE tests/indicator_mock)
+    target_link_libraries(filter_selector_tests PRIVATE wsprrypico_rf)
+    target_compile_options(filter_selector_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME filter_selector COMMAND filter_selector_tests)
+    add_test(NAME filter_selector_schema COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/filter_selector_schema_tests.py $<TARGET_FILE:filter_selector_tests>)
+    if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME filter_selector_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/filter_selector_browser_tests.js)
+    endif()
+    add_test(NAME amplifier_timing_schema COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/amplifier_timing_schema_tests.py $<TARGET_FILE:amplifier_enable_tests>)
     add_test(NAME amplifier_enable_schema COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/amplifier_enable_schema_tests.py $<TARGET_FILE:amplifier_enable_tests>)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME amplifier_timing_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/amplifier_timing_browser_tests.js)
         add_test(NAME amplifier_enable_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/amplifier_enable_browser_tests.js $<TARGET_FILE:amplifier_enable_tests>)
     endif()
@@ -462,6 +583,10 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(consumer_storage_tests PRIVATE wsprrypico_core)
     target_compile_options(consumer_storage_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME consumer_storage_tests COMMAND consumer_storage_tests)
+    add_executable(station_commit_allocation_tests tests/station_commit_allocation_tests.cpp)
+    target_link_libraries(station_commit_allocation_tests PRIVATE wsprrypico_core)
+    target_compile_options(station_commit_allocation_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME station_commit_allocation_tests COMMAND station_commit_allocation_tests)
     add_executable(consumer_claim_tests tests/consumer_claim_tests.cpp)
     target_link_libraries(consumer_claim_tests PRIVATE wsprrypico_core)
     target_compile_options(consumer_claim_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
@@ -688,6 +813,9 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME radio_capture_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/radio_capture_tests.py)
     if(WSPRRY_PICO_HARNESS_PYTHON)
+        add_test(NAME wspr_type23_decode_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}
+            ${CMAKE_SOURCE_DIR}/tests/wspr_type23_decode_tests.py)
+        set_tests_properties(wspr_type23_decode_tests PROPERTIES TIMEOUT 30)
         add_test(NAME rf_analysis_jobs_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}
             ${CMAKE_SOURCE_DIR}/tests/rf_analysis_jobs_tests.py)
         add_test(NAME rf_abort_analysis_tests COMMAND ${WSPRRY_PICO_HARNESS_PYTHON}
