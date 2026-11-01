@@ -110,9 +110,11 @@ try {
     await until(()=>cdp.evaluate(`!busy && savedProgress?.data.station_complete && savedProgress.data.fields.callsign==='AA0NT/09'`),'station draft confirmed');
     assert.equal((await f.command({op:'stats'})).profile_programs,before.profile_programs,'draft save does not apply station');
     assert.match(await cdp.evaluate(`document.getElementById('progress-station-status').textContent`),/WSPR Type 2 \+ Type 3/);
+    await cdp.evaluate('globalThis.stationSessionBefore=radio.state');
     await click('apply-station-progress');
-    await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-save-status').textContent.startsWith('Settings accepted.')`),'one explicit station application');
-    await f.time(f.now+2000);await f.command({op:'activate'});await f.time(f.now+1000);
+    await until(()=>cdp.evaluate(`!busy && localAuthenticated && currentConfig?.station.callsign==='AA0NT/09' && document.getElementById('consumer-save-status').textContent.startsWith('Station settings applied.')`),'one explicit live station application');
+    assert.equal(await cdp.evaluate('radio.state===stationSessionBefore'),true,'live station application retains the login');
+    await f.time(f.now+1000); // A separate reader still obeys the login admission interval.
     const a=f.client();await f.login(a);const saved=await (await a.request('config')).json();
     assert.equal(saved.config.station.callsign,'AA0NT/09');assert.equal(saved.config.station.locator,'EM18IG');
     const application=await (await a.request('application')).json();assert.equal(application.wspr_plan.type2_ambiguous,true);assert.equal(application.wspr_plan.alternate_callsign,'AA0NT/Z');
@@ -143,7 +145,7 @@ try {
     assert.equal((await f.command({op:'stats'})).config_sequence,unsupportedBefore.config_sequence);
     assert.equal((await f.command({op:'stats'})).setup_pending,false);
     await capture('unconfirmed-support-draft');
-    console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,shipped_bundle:true,real_crypto:true,type2:true,type3:true,pair:true,ambiguity:true,commissioning:true,unconfirmed_support_refusal:true,draft_preserved:true,captures_enabled:!noCapture}));
+    console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,shipped_bundle:true,real_crypto:true,type2:true,type3:true,pair:true,ambiguity:true,live_application:true,unconfirmed_support_refusal:true,draft_preserved:true,captures_enabled:!noCapture}));
 } catch(error) {
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,600),scripts:[...document.scripts].map(s=>s.src)})`).catch(e=>e.message):null}));
     throw error;

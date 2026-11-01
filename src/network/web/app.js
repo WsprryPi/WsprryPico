@@ -1367,6 +1367,7 @@ $('apply-station-progress').onclick = () => action(async () => {
   if (!savedProgress || writeState !== 'ready') throw new Error('Read and review saved station progress before applying.');
   if (currentConfig) {
     if (capabilities?.features?.station_live_apply !== true) throw new Error('This Pico has not advertised live station application. Your draft is preserved.');
+    await readApplication(); // Keep current-contract refusal before any station write.
     const confirmed = await applyProgressDomain('station');
     const message = confirmed
       ? 'Station settings applied. Your login remains active; new transmissions use the applied station details.'
