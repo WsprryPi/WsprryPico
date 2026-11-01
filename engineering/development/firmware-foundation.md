@@ -90,7 +90,7 @@ evidence directories rather than reconfiguring them for another variant.
 `WsprryPico-RFBench` and legacy USB-time `WsprryPico-RFWTP` are separate explicit
 diagnostic targets, not application variants. Bench/fixture definitions and
 historical image names must be interpreted with their recorded source/role;
-they do not select the normal application or establish release qualification.
+they do not select the normal application or establish physical qualification.
 
 The normal build produces `build/pico2-w/firmware/WsprryPico.elf`, `.bin`, `.hex`,
 `.dis`, `.elf.map` and `.uf2`. Generated artifacts are ignored. The UF2 metadata
@@ -102,7 +102,7 @@ that metadata.
 
 The firmware reports product `WsprryPico`, version `0.0.0-devel`, and the
 12-character Git revision. A dirty source tree adds `-dirty`. This version is a
-development identity and does not assign a release.
+local-build identity, independent of protocol and storage versions.
 
 On RP2350, the SDK reads the stable 64-bit unique identifier from OTP. The
 firmware hashes a WsprryPico namespace and that identifier, then uses the first
@@ -123,11 +123,12 @@ semantics, descriptor identity, Linux/macOS validation and focused tests.
 
 The development USB identity uses TinyUSB's shared development VID `0xcafe`
 and PID `0x4012`. It is not a production USB allocation. The composite device
-has three CDC interfaces:
+has four CDC functions:
 
 1. `WsprryPico Console` carries standalone configuration commands and JSON diagnostics.
 2. `WsprryPico WTP` accepts binary WTP frames only.
 3. `WsprryPico Management` carries separately framed management/time transactions.
+4. `WsprryPico Logging` exports diagnostics without occupying Console.
 
 On macOS, list ports after connecting the board:
 
@@ -151,7 +152,7 @@ python3 scripts/wtp_monitor.py /dev/cu.usbmodemYYYY
 The monitor validates framing, length, CRC-32C, UTF-8 and strict JSON before
 printing a message. Only one process can own a serial device at a time.
 
-## Implemented boundary
+## Application boundary
 
 The firmware instantiates and polls the same portable `JobService` used by host
 tests. The normal target connects the existing RF worker and engine. In the
@@ -164,10 +165,9 @@ encoding, typed dispatch and logical session handling through the
 [WTP endpoint](wtp-endpoint.md). Both variants enforce the existing timing and ownership admission; only the
 explicit inhibited variant simulates execution without physical RF. Endpoint host tests do not establish target USB conformance.
 
-Building the image is hardware-free. No target execution was recorded unless a
-report explicitly names the board, firmware digest, connection and observed
-output. A build does not establish USB behavior, target timing, electrical
-safety, RF behavior or WTP conformance.
+Building the image is hardware-free. Physical validation requires the board,
+firmware digest, connection, and observed output. A build does not establish
+USB behavior, target timing, electrical safety, RF behavior, or WTP conformance.
 
 Build authority: [root CMake](../../CMakeLists.txt),
 [presets](../../CMakePresets.json),

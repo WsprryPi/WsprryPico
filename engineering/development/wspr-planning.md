@@ -1,6 +1,6 @@
 # Wspr planning
 
-## Delivered automatic behavior and bounds
+## Automatic behavior and bounds
 
 | Stored station input | Selected complete plan |
 | --- | --- |
@@ -24,8 +24,8 @@ unrelated complete settings saves even if transmission planning refuses them.
 Locators require A–R, two digits, and optional A–X subsquare. Exact reported
 powers remain 0, 3, 7, 10, 13, 17, 20, 23, 27, 30, 33, 37, 40, 43, 47, 50,
 53, 57, 60 dBm. Power is message content, independent of RF drive/output.
-Only automatic planning is exposed; no ignored preference selector or Type 1/3
-pair was added. Host-produced finite WTP jobs remain independently supported.
+Only automatic planning is exposed; there is no preference selector or Type 1/3
+pair option. Host-produced finite WTP jobs remain independently supported.
 
 `/00`–`/09` are supported, matching Pi's ambiguity policy. They share Type 2
 bits with `/Q`–`/Z`; `/09` and `/Z` are the same Type 2 payload. The saved call
@@ -54,27 +54,24 @@ Failed cutoff retains failed/output-unknown authority for explicit recovery.
 No catch-up or automatic retry is introduced. Existing core/RF/frequency/pin/
 output-inhibit guards and the 32 KiB authority reserve remain.
 
-A single 324-symbol timeline was rejected because the engine guards only its
-initial launch; separate jobs permit the required second-window time check.
+The engine guards each job’s initial launch. Separate jobs provide the required
+second-window time check for a pair.
 
 ## API, station persistence and commissioning
 
-Frozen application/1 and station/1 shapes and `wspr_type1` literal remain.
-Existing release-Pi Type 1 workflows work. A selected encodable Type 2/3 station
-or bracket form returns explicit `409 unsupported_station_encoding` on those
-legacy projections. Unknown new support refuses rather than falling back.
-
-The exact additive `application_resources_v2` descriptor advertises:
+The current `Wsprry-Control/1` representation covers all supported station
+identities without historical application or station projections. Capability
+and schema validation precede mutation; unsupported encodings refuse explicitly.
 
 | Method | Path | Meaning |
 | --- | --- | --- |
-| GET | `/api/control/v1/application` | `application`, station/2, `wspr_type123_auto`, plan |
-| GET/PUT | `/api/control/v1/station` | Complete versioned station resource |
-| PUT | `/api/control/v1/config` | Config v1 content with explicit new-format admission |
-| POST | `/api/control/v1/config/update` | Existing config-update/1 envelope/omission semantics |
+| GET | `/api/control/v1/application` | Current application, station, hardware, and planning observations |
+| GET/PUT | `/api/control/v1/station` | Complete current station resource |
+| PUT | `/api/control/v1/config` | Current configuration with explicit contract admission |
+| POST | `/api/control/v1/config/update` | Omission-preserving configuration update |
 | POST | `/api/control/v1/wspr-plan` | Authenticated, bounded, pure authoritative preview |
 
-The descriptor retains `/api/control/v1/hardware` and authenticated carrier policy.
+The current representation includes `/api/control/v1/hardware` and authenticated carrier policy.
 The stable `wspr-plan` type within `Wsprry-Control/1` contains supported state,
 known frame types/count, 120-second slot separation, bounded rationale and explicit
 ambiguity/alternate call. Current station, hardware and application resources
@@ -170,4 +167,4 @@ completed jobs, so persistent `complete` is not a valid sole completion criterio
 
 The result qualifies only this board/image/frequency/payload/path. It establishes
 no general compound-call/hash-collision guarantee, other-board/band/clock support,
-calibrated power/frequency/timing or release qualification.
+calibrated power/frequency/timing or general reliability.

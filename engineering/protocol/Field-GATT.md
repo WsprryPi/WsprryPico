@@ -26,7 +26,7 @@ RP2350.
 
 Merely connecting, pairing, authorizing, reading status or synchronizing time
 does not authorize RF output. The normal firmware is RF-capable; `WsprryPico-Inhibited` is an explicit
-diagnostic selection. RF and release qualification remain separate.
+diagnostic selection. RF and general reliability qualification remain separate.
 
 Two application streams share one encrypted BLE connection:
 
@@ -486,12 +486,12 @@ first profile can pass this check.
 Real profiles contain private material. Keep them outside Git, do not paste
 them into issue reports or logs, and clear temporary client copies after use.
 
-### Step 1: `open`
+### Open the profile transaction
 
 Choose a fresh profile-session ID. The request has only the common fields, with
 that profile session in `session_id`. Success reports the current `generation`.
 
-### Step 2: ordered `write`
+### Write ordered chunks
 
 Split the canonical profile bytes into nonempty chunks of at most 64 bytes.
 Each `write` request adds:
@@ -509,7 +509,7 @@ cumulative byte count before this chunk. Set `final:true` only on the last
 chunk. Success reports cumulative `accepted_bytes`. A gap, overlap, duplicate
 fragment, write after final or mismatched session is rejected.
 
-### Step 3: `profile_step_up`
+### Authenticate the profile change
 
 Profile application never inherits ordinary retained-bond authority. After the
 last `write`, re-enter the current local password and bind it to the exact
@@ -530,7 +530,7 @@ staged digest, profile session, apply request and observed generation:
 ```
 
 Here `session_id` is the field session, while `profile_session_id` is the
-transaction opened in step 1. The future `apply` request MUST use
+transaction opened by `open`. The `apply` request MUST use
 `apply_request_id` as its request ID. Success adds the two booleans below. Their
 values reflect the current password mode and confirmation state; this example
 shows the public-default case before USB-local confirmation:
@@ -566,7 +566,7 @@ idle, unowned, not armed/running/failed, with output known inactive. The page
 uses a bounded 25-second confirmation wait so the complete operation remains
 inside the provisioning session's 30-second no-progress limit.
 
-### Step 4: `apply`
+### Apply the profile
 
 Only after step-up is ready, send the profile-session request:
 
@@ -619,7 +619,7 @@ clock, output or lifecycle rules.
 
 ### Field-carrier mode
 
-After successful `select_wtp_status_carrier`, use the same steps but substitute
+After successful `select_wtp_status_carrier`, use the same procedure but substitute
 field command (`7d6b0003...`) and field status (`7d6b0004...`). Values on those
 characteristics are then raw WTP bytes, not section 6 frames. Deliberate
 reconnect and reauthorization restores field JSON mode.
@@ -765,4 +765,4 @@ the change is not conforming. Compatible clarifications must update all affected
 artifacts; incompatible wire behavior requires a new protocol version.
 
 Host tests and cross-links establish source behavior only. Neither this guide nor a successful GATT exchange proves iPhone offline-page
-support, complete physical interoperability, RF behavior or release readiness.
+support, complete physical interoperability, RF behavior or general reliability.

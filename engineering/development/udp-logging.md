@@ -44,7 +44,7 @@ The corresponding test resource accepts only authenticated `POST` with exact `{c
 
 ## Storage and bundles
 
-The independent UDP settings journal occupies `[0x3ec000,0x3ee000)`, leaving existing regions fixed. Current application images end at `103ec000`. Release manifest 2 and developer bundle 2 declare storage/update contract 2 explicitly; old manifest and developer bundle 1 retain their own exact historical ends. Developer bundle 2 supports explicit normal and inhibited engines, keeps the retained image filename stable, and validates linked engine identity. The shared installer hashes the actual source inputs and retains the exact bundle and same-board reference through postboot verification.
+The independent UDP settings journal occupies `[0x3ec000,0x3ee000)`, leaving existing regions fixed. Current application images end at `103ec000`. Deployment manifest 2 and developer bundle 2 declare storage/update contract 2 explicitly; old manifest and developer bundle 1 retain their own exact historical ends. Developer bundle 2 supports explicit normal and inhibited engines, keeps the retained image filename stable, and validates linked engine identity. The shared installer hashes the actual source inputs and retains the exact bundle and same-board reference through postboot verification.
 
 New transactions preserve the selected layout's reserved region. Historical installer receipts retain their original NTP-inclusive preservation hash boundary. A contract-2 application cannot be replaced by an image whose application reservation expands into the UDP journal; a reviewed settings-preserving migration is required. No erase or deletion of a same-board reference substitutes for that migration.
 

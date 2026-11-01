@@ -7,8 +7,7 @@ carrier correction. Internet NTP is not qualified as an RF calibration source.
 
 The Pico-to-Pi GPIO pulse path and CLOCKPROBE commands are unavailable. No GPIO
 timing connection is required. Pi GPS HAT services remain independent of Pico
-UTC discipline. GPS/PPS ingestion is selected future work in the
-[consolidated backlog](consolidated-backlog.md#possible-future-work).
+UTC discipline. GPS/PPS ingestion is unavailable.
 
 ## Compatibility and persistence
 

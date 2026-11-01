@@ -1,6 +1,6 @@
 # Session recovery
 
-## Selected design
+## Recovery exchange
 
 WsprryPico leads; WsprryPi adopts the same separately versioned
 Consumer-Recovery/1 extension. Consumer-Radio/1 traffic and its fixed vectors

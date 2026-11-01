@@ -50,7 +50,7 @@ f(t)=base+t*(375/256) Hz. All calculations initially assume ideal references.
 |---|---|---|
 | Static PIO toggle loop | f=F*256/(2*q), integer q encodes D=q/256 | Reject this simple WSPR implementation: all four tones map to one divider at every study base. This does not reject GPIO synthesis. |
 | Static clock output | f=F*65536/q | Reject as a general four-tone solution across this matrix; several tones collapse and maximum errors reach tens of Hz. |
-| Retuned PLL plus GPOUT | Enumerate legal parents and nearest 16.16 divider independently per tone | Some combinations give small mean errors, but they do not prove phase continuity, lock time or a usable shared clock tree. Defer. |
+| Retuned PLL plus GPOUT | Enumerate legal parents and nearest 16.16 divider independently per tone | Some combinations give small mean errors, but they do not prove phase continuity, lock time or a usable shared clock tree. PLL retuning is not an application engine. |
 | PIO/DMA packed NCO bits | k=round(f*2^32/F); output MSB of an accumulating 32-bit phase at F | Fine mean resolution and continuous phase state. Numerical resolution does not establish generation throughput or unwanted emissions. |
 | Si5351A alternative | Fixed 900 MHz PLL; fractional MultiSynth divisor approximates 900 MHz/f | Numerically strong, but needs additional hardware and measured update behavior. No Si5351 engine is implemented. |
 

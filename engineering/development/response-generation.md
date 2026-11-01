@@ -1,12 +1,12 @@
 # Response generation
 
 HTTP and USB management share owned response snapshots and bounded byte sources.
-Their wire formats, schemas, resource limits, authentication and delivery rules
+Their wire formats, schemas, resource limits, authentication, and delivery rules
 are unchanged. Firmware uses no HTTP worker threads or RTOS.
 
 ## Typed documents and ownership
 
-`HttpResponse` supports small strings, paged JSON, borrowed flash assets and an
+`HttpResponse` supports small strings, paged JSON, borrowed flash assets, and an
 owned `ResponseSource`. Capability and application documents count frozen
 fragments before allocating their final pages. The writer includes the current
 control contract once, with the same field order and bytes as the string writer.
@@ -34,7 +34,7 @@ the rendering window. Sharing that storage is not the same as eliminating it.
 Materialized JSON still passes the existing JSON validator. Only the closed,
 typed LOAD serializer declares a generated JSON document; arbitrary sources do
 not. Contract composition requires that declaration. Request shape, field,
-version, identity, revision and authority validation remains unchanged.
+version, identity, revision, and authority validation remains unchanged.
 
 ## HTTP and encryption
 
@@ -44,7 +44,7 @@ bytes. Port-80 service still alternates two slots and uses an absolute ten-secon
 connection lifetime. Flash assets retain their borrowed-storage path.
 
 Generated consumer replies use a response-owned ChaCha20-Poly1305 context. The
-existing header, associated data, nonce, sequence and final tag are unchanged.
+existing header, associated data, nonce, sequence, and final tag are unchanged.
 The cipher advances once per plaintext byte; retries retain the existing
 ciphertext window. Cipher output is explicitly non-replayable. The host `wire` and `body_text`
 helpers return an empty result if a source stops before its advertised length,
@@ -58,7 +58,7 @@ and application replies are encrypted in place; string replies use the existing
 parts interface. This avoids paying generator overhead for an already complete
 small document.
 
-Transport loss, incomplete ciphertext or an undelivered tag does not establish
+Transport loss, incomplete ciphertext, or an undelivered tag does not establish
 delivery. Existing transaction completion, login retirement, password change,
 interface withdrawal and TCP acknowledgement semantics remain authoritative.
 
@@ -78,7 +78,7 @@ without publishing an incomplete frame header.
 
 Output then uses the reusable outer window, including boundaries inside escaped
 characters. Draining the final byte does not complete a mutation; only the bound
-USB ACK does. Disconnect, timeout and optional-buffer reclamation retain their
+USB ACK does. Disconnect, timeout, and optional-buffer reclamation retain their
 existing cancellation behavior.
 
 Already materialized resources keep the existing final-frame buffer. Wrapping a
@@ -95,8 +95,12 @@ or emission, exact escaping, partial drains, explicit ACK and preparation timeou
 Crypto tests compare the streaming packet with existing vectors and maximum-size
 buffered sealing, including one-byte reads after session retirement.
 
-The [measurement report](response-generation-results.md) records before/after
-allocation, host processing and linked-image costs. `scripts/measure_responses.py`
-compiles identical probe sources against baseline and candidate libraries and
-retains every sample. Host measurements and cross-link checks do not establish
-physical Pico heap high-water, service latency, USB timing or RF performance.
+`scripts/measure_responses.py` compiles identical probes against separately
+built baseline and candidate libraries and retains each sample. Select explicit
+source revisions, separate build directories, and the pinned TLS dependency.
+Response lengths and digests must match before comparing allocation or processing
+costs. Allocation counts exclude pre-existing jobs, allocator overhead, transport
+buffers, and unrelated state. Shared adjustment storage remains live while an
+owned response needs it. Host processing times exclude end-to-end scheduling.
+Host measurements and cross-link checks do not establish physical Pico heap or
+stack high-water, service latency, USB timing, or RF performance.

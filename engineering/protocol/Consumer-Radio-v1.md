@@ -195,7 +195,7 @@ The restored receipt cannot be submitted as a mutation.
 The [fixed vectors](Consumer-Radio-v1-vectors.json) use synthetic credentials
 and compare Noble browser output with the pinned Mbed TLS implementation,
 including a maximum-size paged request. Host/vector checks are not target/RF
-qualification. Physical peer/board behavior and release qualification are independent of
+qualification. Physical peer/board behavior and general reliability are independent of
 source/vector conformance.
 
 An active fake endpoint can choose its own X25519 key, obtain the client's

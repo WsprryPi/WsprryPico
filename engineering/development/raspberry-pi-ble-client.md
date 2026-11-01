@@ -196,4 +196,4 @@ reply or process exit is never evidence that RF output is inactive.
 identity binding, authorization, field controls, WTP negotiation/status, the
 bound step-up/apply transaction, confirmation polling, cancellation, the exact
 7,168-byte transfer and local file controls. The vector-driven provisioning
-contract check keeps firmware, Linux, documentation and the frozen limits synchronized. These deterministic checks establish no RF, general release or physical UTC-accuracy qualification.
+contract check keeps firmware, Linux, documentation and the frozen limits synchronized. These deterministic checks establish no RF, general reliability or physical UTC-accuracy qualification.

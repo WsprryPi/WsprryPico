@@ -1,6 +1,6 @@
 # Device presentation
 
-## Delivered presentation and authority
+## Presentation and authority
 
 `device-presentation.js` owns heading, title, stable ID, boot observation and
 freshness. Each request captures an epoch; a new request, identity bind, logout

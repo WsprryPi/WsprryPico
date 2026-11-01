@@ -2,12 +2,12 @@
 
 The shared logical API uses `/api/control/v1` and the contract identifier
 `Wsprry-Control/1`. Resource types have stable `schema` discriminators under
-that contract; application, station, hardware, progress and settings updates
+that contract; application, station, hardware, progress, and settings updates
 do not negotiate independent schema generations. Superseded `/api/v1`
 control routes and historical views are unsupported.
 
 WsprryPico owns the contract definitions. WsprryPi consumes the same current
-contract. Firmware release identities identify builds; they do not select a
+contract. Firmware versions identify builds; they do not select a
 settings schema or substitute for capability negotiation. WTP/1 remains the
 independent device-neutral finite-job protocol.
 
@@ -16,7 +16,7 @@ independent device-neutral finite-job protocol.
 Capabilities describe implemented features, current availability, selected
 management carrier and bounded policy values. Known resource documents are
 closed objects: missing or extra fields, duplicate keys, wrong types,
-unsupported units and inconsistent advertisement/readback are rejected.
+unsupported units, and inconsistent advertisement/readback are rejected.
 Unknown optional feature identifiers grant no authority and can be left unused
 only at explicitly defined extension points.
 
@@ -32,6 +32,14 @@ retain their authoritative domain resources. Manual RF correction, standalone
 frequency, NTP timeout and profile-owned settings retain their own storage
 and application rules; a configuration projection must not report invented
 defaults in place of those authoritative values.
+
+The application representation binds the selected device and boot and composes
+station, hardware, recurrence, capabilities, and WSPR planning observations.
+Station supports Type 1/2/3 planning. Pi validates the target, complete pin roles,
+GPIO exclusivity, returned capabilities, and revisions before writes. Native Pi
+GPIO controls retain their separate platform authority. The
+[member/controller contract](transmitter-application-contract.md) describes the
+execution and recurrence boundaries.
 
 ## Pi client route authority
 
@@ -77,13 +85,13 @@ mutations remain scoped to their existing commissioning authority.
 
 Public discovery grants GET access only to the explicit redacted public
 registry. Resource existence or write support does not make a resource public.
-Passwords, keys and certificate material remain excluded. Public reads do not
+Passwords, keys, and certificate material remain excluded. Public reads do not
 create or renew a login, claim a job or authorize writes.
 
 Session durations and payload budgets are typed policy data within documented
 implementation and security ceilings. Clients validate bounds and relationships
 rather than matching historical descriptor literals. Authentication semantics,
-units, enum meanings and safety constraints remain fixed by the contract.
+units, enum meanings, and safety constraints remain fixed by the contract.
 
 ## Hardware and execution
 
@@ -100,58 +108,25 @@ control reset. No control save transmits or proves readiness.
 
 ## Version policy and evidence
 
-Only the current control major is supported. Before the first shared-control
-stable release, the major stays at 1 while the one current schema and semantics
-evolve, including breaking changes, through coordinated Pi/Pico changes and both
-required integration suites. After the release transition, incompatible changes
-require an explicitly reviewed new control major. New optional
-features use defined extension points; policy values within defined bounds
-do not create another resource generation.
+Only control major 1 is supported. The current policy fixes `Wsprry-Control/1`,
+`/api/control/v1/`, and schema ID `urn:wsprry:control:1`. The one current schema
+and its semantics evolve through coordinated Pi/Pico changes and both required
+integration suites. There are no historical views or per-resource generations.
+Optional features use defined extension points, and policy values stay within
+defined bounds. The authoritative [control policy](protocol/control-policy.json)
+and `scripts/check_control_policy.py` enforce these rules during configuration,
+metadata generation, and CI. Pi vendors the exact policy and checker with
+provenance hashes and validates them during generation and non-hardware CI.
 
-Transport/authentication formats, flash records and deployment manifests retain
+Transport/authentication formats, flash records, and deployment manifests retain
 versions for their independently parsed bytes. Their identifiers do not reset
 when a control representation changes. Stored records are never reinterpreted
 under a cosmetically reset version.
 
 Coordinated changes update Pico production handlers and every Pi/browser
-consumer, generated asset, adapter, fixture and documentation. Both production
+consumer, generated asset, adapter, fixture, and documentation. Both production
 network and USB integration suites must pass for the explicit candidate source
 pair. Contract digests identify reviewed artifacts; runtime compatibility does
-not require matching product versions, Git commits or entire build digests.
-Software tests establish no physical USB, installation, service, timing or RF
+not require matching product versions, Git commits, or entire build digests.
+Software tests establish no physical USB, installation, service, timing, or RF
 qualification.
-
-
-## Prerelease lifecycle and first release
-
-The authoritative [control lifecycle policy](protocol/control-policy.json) is in
-`prerelease` phase. The major, `Wsprry-Control/1`, `/api/control/v1/` and schema ID
-stay fixed. Resource discriminators remain unversioned; resource route generations
-and version selectors are forbidden. Schema contents may change before the first
-release without maintaining historical compatibility. Producer, consumers,
-generated assets, documentation and required network/USB integration checks move
-together for every change.
-
-`scripts/check_control_policy.py` enforces the policy during Pico CMake configure,
-metadata generation and CI. Pi vendors the exact policy and checker with provenance
-hashes, verifies them during generation and checks them in non-hardware CI. This
-policy does not freeze firmware/application SemVer, WTP, authentication/crypto,
-USB framing, logging wire formats, journals or deployment bundle formats. Those
-independent boundaries retain their own existing validation and version rules.
-
-The first shared-control stable release requires a reviewed transition, after the
-intended schema and paired checks are final:
-
-```sh
-python3 scripts/check_control_policy.py --record-first-release 1.0.0
-python3 scripts/generate_control_contract.py
-```
-
-The release number is the actual first stable release identifier; `1.0.0` is an
-example. The command records `phase:"released"`, the identifier and the SHA-256 of
-canonical JSON (sorted keys, compact separators and UTF-8). It does not publish a
-release. Vendor the policy into Pi, rerun the paired gates and review/commit the
-transition with the release sources. Pico stable-tag CI refuses a prerelease policy;
-released mode refuses schema digest drift. Subsequent incompatible control changes
-need an explicit policy/checker review for a new major. Editing a stored digest to
-approve schema drift is not a release procedure. No release transition has occurred.

@@ -160,7 +160,7 @@ The ordinary consumer profile uses its authenticated radio configuration API;
 it deliberately rejects Console configuration. False flags may be absent from
 canonical Config readback; STATUS exposes their effective values.
 4 m remains Unqualified
-for every release mode under the required reliable-WSPR gate, and native direct
+for every advertised mode under the required reliable-WSPR gate, and native direct
 2 m is Unavailable. See the [qualification catalog](band-support.md)
 and [machine-readable statuses](band-support.json). Experimental consent
 does not change qualification, promote prior failed results or override engine
@@ -181,7 +181,7 @@ lower fundamental, with the job's tone spacing also divided by three. A
 fundamental around 48.16 MHz is outside this correlation catalog and requires
 both flags. Supplying a normal 144 MHz job still fails the numeric limit;
 neither flag converts it into a harmonic job. This is experimental use and
-does not restore release support for 2 m.
+does not restore support for 2 m.
 Its failed WSPR pilots remain Unqualified evidence; native 2 m stays Unavailable.
 
 The document is limited to 1,800 bytes and eight schedules. Station validation
@@ -492,7 +492,7 @@ operation without either listener. The accepted clock observation ages locally a
 remains serviced, including ABORT. BTstack, SoftAP and controller-time adapters
 remain on core 0; the shared IndicatorController owns the boot-selected onboard
 or external LED. These source ownership rules do not establish physical RF coexistence,
-mode/band/clock qualification or release reliability. Selected work is maintained
+mode/band/clock qualification or general reliability. Selected work is maintained
 in the [consolidated backlog](consolidated-backlog.md).
 
 ## Validation

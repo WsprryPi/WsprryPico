@@ -12,7 +12,9 @@ Owned implementation is under `src/`, deterministic tests under `tests/`, build 
 
 Normal firmware `all`, the `pico2-w` preset and `scripts/build_pico.sh` select the complete RF-capable 138 MHz `WsprryPico` application. `WsprryPico-Inhibited` selects the simulator; `WsprryPico-StandaloneRF` is a compatible explicit RF target. New station settings use a 14095600 Hz WSPR dial with schedules disabled; saved settings retain their selections on upgrade. The [software/build CI guide](software-build-ci.md) defines Linux checks, deployment manifests, source/version identity, integrity verification and separate main/devel downloads. Installation consumes exact verified bytes.
 
-The [release tooling guide](software-build-ci.md#beta-and-final-firmware-tags) defines beta/final tag builds and explicit publication. Pushes run verification without publishing. Firmware versions and the installer's implementation version are independent; installation downloads a compiled, verified UF2.
+Firmware versions and the installer's implementation version are independent.
+Installation downloads a compiled, verified UF2. Pushes run verification without
+publishing firmware.
 
 ## Deterministic validation
 
@@ -133,7 +135,7 @@ Inhibited diagnostics use `WSPRRY_PICO_JOURNAL_FAULT_STAGE`, `WSPRRY_PICO_JOURNA
 - [Factory-new Wi-Fi, Pico password and setup-network checklist](factory-new-access-checklist.md) for manual checks from a Mac or Raspberry Pi.
 - [WTP/1](../protocol/WTP.md), [USB management/time](../protocol/USB-Management.md), [Field-GATT/1](../protocol/Field-GATT.md), [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md) and the [browser API](../browser-api.md).
 - [Standalone configuration, journals and scheduling](standalone.md), [configuration updates](configuration-updates.md), [saved progress](saved-progress.md) and [USB local configuration](usb-local-configuration.md).
-- [Shared application resources](shared-transmitter-application.md) and the [member/controller contract](../transmitter-application-contract.md).
+- [Shared application resources](../browser-api.md#resource-model) and the [member/controller contract](../transmitter-application-contract.md).
 - [Contextual transmitter status and Reset Pico](status-console.md).
 - [Consumer LAN/setup access](consumer-lan-access.md), [management carriers](management-carriers.md), [web servicing](web-service.md), [sessions](consumer-sessions.md), [session/save recovery](session-recovery.md), [hostname](hostname.md), [browser areas](browser-pages.md) and [device presentation](device-presentation.md).
 - [Engineering network control and certificates](network-control.md), [network identity](network-identity.md), [mDNS](mdns-responder.md), [field access/reset policy](field-access.md) and [Linux BLE client](raspberry-pi-ble-client.md).

@@ -27,7 +27,7 @@ The Pico 2 W presents a drive labelled `RP2350`. If it is absent, repeat the pow
 
 ## 2. Erase with flash_nuke
 
-This command downloads Raspberry Pi's [flash_nuke UF2](https://datasheets.raspberrypi.com/soft/flash_nuke.uf2), mounts the BOOTSEL drive if necessary and copies the UF2 to it. It uses `curl` and standard Linux disk tools; no SDK, compiler or picotool installation is needed for this erase step.
+This command downloads Raspberry Pi's [flash_nuke UF2](https://datasheets.raspberrypi.com/soft/flash_nuke.uf2), mounts the BOOTSEL drive if necessary and copies the UF2 to it. It uses `curl` and standard Linux disk tools; no SDK, compiler or picotool installation is needed for this erase operation.
 
 Run the whole block in Bash, including the opening `(` and closing `)`. These parentheses keep `set -euo pipefail` inside a subshell instead of changing the SSH login shell's options. Exclude Markdown backticks and terminal prompt text when copying:
 

@@ -64,7 +64,7 @@ is not isolated as increased transmitter output.
 | 8 m | — | 138 (A) | Qualified† | Qualified†‡ | Qualified† | Qualified† | Qualified† |
 | 6 m | +13.7 | 132, 138, 150 | Qualified | Qualified* | Qualified | Qualified | Qualified |
 | 5 m | — | 138 (A) | Qualified† | Qualified†‡ | Qualified† | Qualified† | Qualified† |
-| 4 m | — | None accepted for release | Unqualified | Unqualified | Unqualified | Unqualified | Unqualified |
+| 4 m | — | None accepted for operation | Unqualified | Unqualified | Unqualified | Unqualified | Unqualified |
 | 2 m | — | None available for native direct output | Unavailable | Unavailable | Unavailable | Unavailable | Unavailable |
 
 *The 6 m WSPR result includes Pico A/138 MHz receiver-only +125 Hz retuning;
@@ -97,7 +97,7 @@ all three clocks. Manually mapped third-harmonic pilots do not implement a
 native route or qualify 2 m.
 
 These results establish no LPF, calibrated power/frequency/launch timing,
-antenna-ready emissions, general reliability or release qualification.
+antenna-ready emissions, general reliability or general reliability.
 Nondefault GPIO drive inherits no all-band qualification. The
 [machine-readable support catalog](band-support.json) carries these
 scoped dispositions; numeric admission and legal operating permission remain

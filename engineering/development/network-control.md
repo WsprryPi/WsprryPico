@@ -78,7 +78,7 @@ Keep its directory and a backup private. The CA private key is unencrypted on di
 with owner-only permissions; keep it offline when not issuing credentials. Do
 not use the same CA across a fleet. Firmware contains its device private key;
 credential-bearing build directories are private and generated credentials are
-owner-readable only. Such UF2 files are private deployment artifacts, never release
+owner-readable only. Such UF2 files are private deployment artifacts, never public
 artifacts or source-controlled files.
 
 Obtain the stable 32-hex WTP device ID from an existing recorded INFO/HELLO result
@@ -193,7 +193,7 @@ live local-control evidence do not by themselves qualify a general end-user
 provisioning path.
 
 Consumer commissioning uses the device-served AP Wi-Fi-first page and optional
-station step, followed by ordinary LAN Consumer-Radio access. USB management
+station setup, followed by ordinary LAN Consumer-Radio access. USB management
 can create/replace/delete the saved connection without a Pico network. Blank
 engineering HTTPS remains read-only; that does not remove the separately
 authorized consumer HTTP commissioning transactions. Engineering BLE/profile
@@ -442,7 +442,7 @@ cmake --build build-host --parallel
 ctest --test-dir build-host --output-on-failure
 ```
 
-The `host_client_interop_tests` fixture runs the actual client against the Pico endpoint/job service. The retained `network_11_1_interop` target builds the selected client, application, scheduler and TLS/HTTP implementation. Pi's own current-source fixtures independently validate selected Pico sources. Use unused build directories, serialize fixtures sharing loopback ports and keep the separately pinned MbedTLS dependency policy. Release manifests retain their chosen dependency provenance; they do not impose a local source admission gate. OpenSSL development files must already be installed; set `OPENSSL_ROOT_DIR` if CMake needs its location.
+The `host_client_interop_tests` fixture runs the actual client against the Pico endpoint/job service. The retained `network_11_1_interop` target builds the selected client, application, scheduler and TLS/HTTP implementation. Pi's own current-source fixtures independently validate selected Pico sources. Use unused build directories, serialize fixtures sharing loopback ports and keep the separately pinned MbedTLS dependency policy. Deployment manifests retain their chosen dependency provenance; they do not impose a local source admission gate. OpenSSL development files must already be installed; set `OPENSSL_ROOT_DIR` if CMake needs its location.
 
 ASan/UBSan applies to C and C++ (including Mbed TLS):
 

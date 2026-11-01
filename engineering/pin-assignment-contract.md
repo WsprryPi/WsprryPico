@@ -145,18 +145,15 @@ Assignments may change only while the member is idle, unowned, RF-inactive and n
 
 ## Implementation and validation boundary
 
-This is the selected target design. The feature guide above records its current
-implemented subset and pending restart behavior.
-Exact schema names, configuration migration, drive settings, bus speeds, filter
-circuits and settling/lead/tail values remain separate implementation decisions.
-These settings belong to the member management API, not WTP/1.
+The [boot pin guide](development/pin-allocation.md) defines saved configuration,
+restart latching, and active-plan observations. GPIO drive, amplifier timing,
+and filter policy use their independent management resources. These settings
+are not WTP/1 fields. Si5351 remains unavailable.
 
-Future implementation must verify valid choices, each overlap class, engine
-exclusivity, pair completeness, atomic replacement, saved-config rejection and
-indicator selection with deterministic hardware-free checks. Opt-in target
-validation must identify board, firmware, engine, clock, pins and physical setup;
-RF qualification is separately scoped. No hardware operations are authorized by
-this document.
+Deterministic checks cover valid choices, overlap classes, engine exclusivity,
+pair completeness, atomic replacement, saved-config rejection, and indicator
+selection. Physical validation requires the exact board, firmware, engine,
+clock, pins, and setup. It does not follow from a successful host check.
 
 ## References
 

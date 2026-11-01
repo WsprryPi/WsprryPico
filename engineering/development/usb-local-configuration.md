@@ -48,7 +48,7 @@ The supported cardinality remains one saved network.
 
 These operations save configuration without an association trial, DHCP, DNS,
 SNTP, TLS generation or AP. They leave the USB connection/time channel usable.
-Saved network changes require the supported explicit restart/application step;
+Saved network changes require the supported explicit restart/application operation;
 readback does not claim the running station has already changed. A successful
 profile save latches the scheduler's existing restart-required state, so
 application, configuration and standalone-status projections agree. Later

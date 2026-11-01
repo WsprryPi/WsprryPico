@@ -35,4 +35,9 @@ route delivery completion across slot reuse, without duplicating board effects.
 Authenticated requests renew a thirty-minute idle interval. The eight-hour absolute lifetime starts at successful login and never renews. Public requests, page visibility and editing do not renew idle time. Existing armed/running-job status polling may renew it; no general keepalive is added. Closing or reloading a tab can abandon a server slot until expiry. Explicit logout and authenticated retirement can free it sooner.
 
 
-Updated Pi adapters accept network /1, /2 and /4, or USB /3 and /5, with exact fields, integer limits and matching capability references. Their local consumer deadlines come from the authenticated, validated management document. Older Pi adapters explicitly refuse /4 and /5. An old browser bundle may still end its own login at the historical limits; reload the page from the updated firmware. Unsupported versions and mismatched policies refuse without fallback, eviction or automatic mutation retry. Consumer-Radio/1 bytes/vectors stay unchanged.
+Pi adapters consume the current `management` document within `Wsprry-Control/1`,
+with exact fields, integer limits, matching capability references, and validated
+policy bounds. Local consumer deadlines come from that authenticated document.
+Unsupported control versions and inconsistent policies refuse without fallback,
+eviction, or automatic mutation retry. Consumer-Radio/1 retains its independent
+handshake and cryptographic vectors.
