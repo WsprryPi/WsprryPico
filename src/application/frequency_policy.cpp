@@ -9,7 +9,7 @@ struct Band {
     bool ordinary;
 };
 // Correlation envelopes adapted from WsprryPi's Band-Lookup catalog (MIT,
-// Copyright 2024 Lee Bussy; see LICENSE.md). Allocated in at least one
+// Copyright 2026 Lee Bussy; see LICENSE.md). Allocated in at least one
 // jurisdiction; these ranges do not establish an operator's local authority.
 // Experimental ranges require explicit consent; measured points do not qualify
 // the complete ranges. 4m/2m lack reliable required WSPR support. Higher bands

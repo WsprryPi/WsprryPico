@@ -120,6 +120,8 @@ The Pico replies with a long line of diagnostic text in JSON format. You do not 
 | --- | --- |
 | `ok` | `true` means the command succeeded. |
 | `device_id` | The full 32-character Pico identity. Keep this for the setup command below. It is different from the USB serial. |
+| `firmware` | The running firmware version. Copy this into a bug report. |
+| `revision` | The running firmware's source revision. Include it with the version, especially for development or custom firmware. |
 | `network.ipv4` | The current home-network IP. Open `http://` followed by this address and `/` in your browser. An empty value or `0.0.0.0` means there is no usable home-network address. |
 | `network.configured_hostname` | The hostname to try with `http://` when local name resolution works. |
 | `network.consumer_web_ready` | `true` means the firmware reports its home-network web service ready. If it is `false` despite a usable IP, record that result for support. |

@@ -12,7 +12,7 @@ unchanged from that revision, along with `docs/_templates/layout.html` and
 `tests/test_image_delivery.py`. The adapted `docs/_ext/image_delivery.py`
 converts inferred pixel styles to intrinsic HTML dimensions for the pinned
 Docutils 0.21 writer, preserving responsive sizing and authored dimensions.
-MIT, copyright 2024 Lee Bussy; the complete
+MIT, copyright 2026 Lee Bussy; the complete
 retained notice is in [the manual's credits](docs/reference/credits.md).
 Preserve that notice with distributions of these assets and adapted material.
 
@@ -49,7 +49,7 @@ AA0NT/EM18/20 and /37 test vectors, are adapted from WsprryPi WSPR-Reference at
 `3222b7eb7ad04cb8ddff6a012c4983164d7f206b`
 (<https://github.com/WsprryPi/WsprryPi>), files
 `src/WSPR-Reference/src/wspr/wspr_ref_encoder.cpp`, `wspr_constants.hpp` and
-`test_vectors/wspr_golden_vectors.json`. MIT, copyright 2024 Lee Bussy; retained
+`test_vectors/wspr_golden_vectors.json`. MIT, copyright 2026 Lee Bussy; retained
 notice: [WsprryPi license](src/encoding/WsprryPi-LICENSE.md). The adaptation uses
 strict bounded Type 1 validation and a stateless C++20 implementation. Types 2/3
 and upstream permissive normalization are not imported. Preserve this notice
