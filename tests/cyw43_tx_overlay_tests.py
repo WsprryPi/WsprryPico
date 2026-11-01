@@ -36,6 +36,19 @@ class OverlayTests(unittest.TestCase):
                     check=True, timeout=30)
                 subprocess.run([str(exe)], check=True, timeout=10)
 
+    def test_actual_ap_authentication_selection(self):
+        for fixed, text in [(False, self.raw.decode()), (True, transform(self.raw))]:
+            with self.subTest(fixed=fixed), tempfile.TemporaryDirectory() as tmp:
+                body = text[text.index('int cyw43_ll_wifi_ap_init('):text.index('int cyw43_ll_wifi_ap_set_up(')]
+                source = Path(tmp) / 'ap.c'
+                source.write_text((ROOT / 'tests/cyw43_ap_overlay_harness.c').read_text() + body +
+                    "\nint main(void) { return check_ap_auth(); }\n")
+                exe = Path(tmp) / 'ap'
+                subprocess.run([os.environ.get('CC', 'cc'), '-std=c11', '-Wall', '-Wextra', '-Werror',
+                    '-Wno-unused-parameter', '-DEXPECT_FIXED=' + str(int(fixed)), str(source), '-o', str(exe)],
+                    check=True, timeout=30)
+                subprocess.run([str(exe)], check=True, timeout=10)
+
     def test_changed_source_is_rejected(self):
         with self.assertRaises(ValueError):
             transform(self.raw + b'\n')

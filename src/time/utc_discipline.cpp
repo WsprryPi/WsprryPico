@@ -17,13 +17,14 @@ bool add(std::uint64_t left, std::uint64_t right, std::uint64_t& result) {
 
 UtcDiscipline::UtcDiscipline(MonotonicNow now, void* context, DisciplineConfig config)
     : now_(now), context_(context), config_(config),
-      config_valid_(now && config.synchronized_for_ns <= config.holdover_for_ns &&
-                    config.holdover_for_ns <= 604'800'000'000'000ULL &&
-                    config.non_ntp_holdover_for_ns <= 604'800'000'000'000ULL &&
-                    config.max_observation_age_ns <= config.holdover_for_ns &&
-                    config.max_rate_observation_age_ns <= config.holdover_for_ns &&
-                    config.max_uncertainty_ns > 0 &&
-                    config.oscillator_drift_ppb <= 1'000'000'000ULL) {}
+      config_valid_(
+          now && config.synchronized_for_ns <= config.holdover_for_ns &&
+          config.holdover_for_ns <= 604'800'000'000'000ULL && config.browser_holdover_for_ns > 0 &&
+          config.browser_holdover_for_ns <= 3'600'000'000'000ULL &&
+          config.non_ntp_holdover_for_ns <= 604'800'000'000'000ULL &&
+          config.max_observation_age_ns <= config.holdover_for_ns &&
+          config.max_rate_observation_age_ns <= config.holdover_for_ns &&
+          config.max_uncertainty_ns > 0 && config.oscillator_drift_ppb <= 1'000'000'000ULL) {}
 
 bool UtcDiscipline::observe(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
                             std::uint64_t uncertainty_ns, wtp::LeapState leap,
@@ -172,7 +173,8 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
                 generation_};
     auto state = wtp::ClockState::Unsynchronized;
     const auto maximum_age =
-        observation_source_ != ObservationSource::Sntp && config_.non_ntp_holdover_for_ns
+        observation_source_ == ObservationSource::Browser ? config_.browser_holdover_for_ns
+        : observation_source_ != ObservationSource::Sntp && config_.non_ntp_holdover_for_ns
             ? config_.non_ntp_holdover_for_ns
             : config_.holdover_for_ns;
     if (age <= std::min(config_.synchronized_for_ns, maximum_age))
@@ -180,16 +182,22 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
     else if (age <= maximum_age ||
              (config_.unlimited_ntp_holdover && observation_source_ == ObservationSource::Sntp))
         state = wtp::ClockState::Holdover;
-    auto result = wtp::ClockSnapshot{state,
-                                     utc,
-                                     now,
-                                     grown,
-                                     age,
-                                     leap_,
-                                     leap_transition_utc_ns_,
-                                     now >= rate_until_ns_ ? subsequent_rate_ppb_ : rate_ppb_,
-                                     rate_uncertainty_ppb_,
-                                     generation_};
+    if (observation_source_ == ObservationSource::Browser && grown > 500'000'000ULL)
+        state = wtp::ClockState::Unsynchronized;
+    auto result =
+        wtp::ClockSnapshot{state,
+                           utc,
+                           now,
+                           grown,
+                           age,
+                           leap_,
+                           leap_transition_utc_ns_,
+                           now >= rate_until_ns_ ? subsequent_rate_ppb_ : rate_ppb_,
+                           observation_source_ == ObservationSource::Browser
+                               ? std::max(rate_uncertainty_ppb_,
+                                          static_cast<std::uint32_t>(config_.oscillator_drift_ppb))
+                               : rate_uncertainty_ppb_,
+                           generation_};
     result.rate_until_monotonic_ns = now >= rate_until_ns_ ? UINT64_MAX : rate_until_ns_;
     result.subsequent_rate_ppb = subsequent_rate_ppb_;
     return result;

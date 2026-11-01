@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Preserve CYW43 transmit bytes across credit-wait RX; never edit the pinned SDK."""
+"""Preserve CYW43 TX bytes and WPA2-only AP intent; never edit the pinned SDK."""
 import argparse
 import hashlib
 from pathlib import Path
@@ -77,7 +77,17 @@ static void wsprry_tx_count(uint32_t *value) {
     if text.count(old) != 1:
         raise ValueError('CYW43 post-wait anchor changed')
     text = text.replace(old, new)
-    return ('/* Modified by WsprryPico: preserve TX across shared-buffer RX credit polling.\n'
+    old = """        } else if (auth == CYW43_AUTH_WPA2_AES_PSK || auth == CYW43_AUTH_WPA2_MIXED_PSK) {
+            val = CYW43_WPA_AUTH_PSK | CYW43_WPA2_AUTH_PSK;"""
+    new = """        } else if (auth == CYW43_AUTH_WPA2_AES_PSK) {
+            /* WsprryPico: an explicit WPA2/AES AP must not also admit WPA1. */
+            val = CYW43_WPA2_AUTH_PSK;
+        } else if (auth == CYW43_AUTH_WPA2_MIXED_PSK) {
+            val = CYW43_WPA_AUTH_PSK | CYW43_WPA2_AUTH_PSK;"""
+    if text.count(old) != 1:
+        raise ValueError('CYW43 AP authentication anchor changed')
+    text = text.replace(old, new)
+    return ('/* Modified by WsprryPico: preserve TX and honor WPA2-only AP selection.\n'
             ' * Original licensing and attribution follow unchanged. */\n' + text)
 
 

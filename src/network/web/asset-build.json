@@ -7,7 +7,7 @@
     "app.min.js": {
       "inputs": {
         "submission.js": "6119ce1314b0ea7626242259173c2b54c0d97c1dae4434cc9360a3b18e4ac392",
-        "control-contract.js": "40763a56473c395a360382ef567f8601b67f7660049f973185598bf0621c675b",
+        "control-contract.js": "9a7db3a94ef9bf0be7cae515205938e4de4da4a9759fa663745fba635d6fd44b",
         "udp-logging.js": "c75a07a806f16007424d530f8983beaff6a77d14dfbe440cdd159b1f28ceae0b",
         "operations.js": "50238b10de775b5520bd1fb8a4ca6c41284f3b75c0c67448d8f8c3c612fb5d0e",
         "standalone-frequency.js": "4f25017d87f11ddfd571b6737aa0b7963e0790b8eb6f2f5bc2d47050ef4e6bc8",
@@ -20,10 +20,10 @@
         "saved-progress.js": "dc07bb447d3e3f1c75d5c54eea0b9088f91bbf154a37be66611dc4994d2ace4c",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "e7eaae7bef7c033031b98541c1a81229e143bb0bbd7627484fbb561ee4278ccc",
-        "app.js": "1bf79b256160e9ebf97d542e24d3be76f814d67449ec3b5a3c3d9be607b33df6"
+        "app.js": "a05c815ec542b9371dd8bbf45a6e8d8182d4083abb32e4439d31f37fda62b74d"
       },
-      "sha256": "cf9805abfc7db56cffd7452b62dfdbd56d5f9ce6c0336dd688f56f7ff1b2bd4b",
-      "bytes": 228973
+      "sha256": "b672f6dca0836247532f6892dee395e8ad7bc9f3b1db5569f73fbcb283d47d51",
+      "bytes": 234135
     },
     "config-validation.min.js": {
       "inputs": {
@@ -41,10 +41,10 @@
     },
     "organization.min.js": {
       "inputs": {
-        "organization.js": "f6ab338e5b9511f365359c006a23e84b60ced05f0257a891a65f85bf81bff271"
+        "organization.js": "b35d275320b621802548fbcf42132ede51fabcbc89758ef5118d61c76809cf5b"
       },
-      "sha256": "1c25e5077184e247d406dda4c35c806eb3baf29d6ffe450d6864242f8204970b",
-      "bytes": 8089
+      "sha256": "d519ad99c21c3f36ab63bdca1dc8f5c81fb620698cde9ef2d3b219a257a1b264",
+      "bytes": 8118
     }
   }
 }

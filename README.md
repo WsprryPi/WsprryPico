@@ -8,7 +8,7 @@ It supports **WSPR**, **QRSS**, **FSKCW**, and **DFCW**, plus finite test tones 
 
 The [operator manual on Read the Docs](https://wsprrypico.readthedocs.io/en/devel/) covers hardware, installation, configuration, and operation.
 
-You need a **Pico 2 W**, a USB **data** cable, a reliable USB power supply, and a suitable RF path. Other Pico models are not supported. The USB firmware installer requires **macOS or native Linux**. Standalone browser control uses a compatible personal **2.4 GHz Wi-Fi network**; WsprryPi can configure and control the Pico over USB without Pico Wi-Fi.
+You need a **Pico 2 W**, a USB **data** cable, a reliable USB power supply, and a suitable RF path. Other Pico models are not supported. The USB firmware installer requires **macOS or native Linux**. Standalone browser control uses a compatible personal **2.4 GHz Wi-Fi network** or the Pico’s protected field Wi-Fi; an authenticated AP browser can supply time without Internet. WsprryPi can configure and control the Pico over USB without Pico Wi-Fi.
 
 **The RF output is unfiltered.** Read the [output and band limits](https://wsprrypico.readthedocs.io/en/devel/reference/output.html) before connecting an antenna, and use appropriate filtering, attenuation, and a suitable load.
 

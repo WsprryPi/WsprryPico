@@ -13,6 +13,7 @@ struct DisciplineConfig {
     std::uint64_t oscillator_drift_ppb = 50'000;
     std::uint64_t max_rate_observation_age_ns = 0; // Zero inherits the ordinary observation limit.
     std::uint64_t non_ntp_holdover_for_ns = 0;     // Zero inherits the general holdover limit.
+    std::uint64_t browser_holdover_for_ns = 3'600'000'000'000ULL;
     bool unlimited_ntp_holdover = false; // Retain an accepted NTP anchor without age expiry.
 };
 
@@ -36,6 +37,13 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
                       std::uint32_t rate_uncertainty_ppb, std::uint64_t generation) override;
     bool observe_ntp_model(const RateObservation& source, const wtp::ClockSnapshot& model,
                            std::uint32_t max_clock_error_ppb) override;
+    bool browser_time_available() const {
+        const auto value = snapshot();
+        return value.state == wtp::ClockState::Unsynchronized ||
+               (value.uncertainty_ns > 500'000'000ULL &&
+                !(config_.unlimited_ntp_holdover &&
+                  observation_source_ == ObservationSource::Sntp));
+    }
     void invalidate();
     void invalidate(ObservationSource) override {
         invalidate();

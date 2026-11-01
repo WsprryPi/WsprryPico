@@ -378,6 +378,24 @@ bool AccessStore::replace(const AccessRecord& record) {
     return commit(record);
 }
 
+bool AccessStore::set_field_mode(bool enabled, std::string_view initial_field_password) {
+    if ((state_ != AccessStoreState::Erased && !healthy()) ||
+        (record() && record()->reset.pending()))
+        return false;
+    AccessRecord next = record() ? *record() : AccessRecord{};
+    if (state_ == AccessStoreState::Erased) {
+        next.epoch = 1;
+        next.password = initial_field_password;
+        next.ble_disabled = true;
+    }
+    next.field_mode = enabled;
+    const bool saved = state_ == AccessStoreState::Erased ? commit(next) : replace(next);
+    const bool loaded = saved || load();
+    const bool verified = loaded && healthy() && record_ == next;
+    scrub(next);
+    return verified;
+}
+
 bool AccessStore::set_radio_password(std::string_view password,
                                      std::string_view initial_field_password) {
     if ((!password.empty() && !valid_local_password(password)) ||

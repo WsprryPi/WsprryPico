@@ -1,15 +1,17 @@
 #include "network/consumer_radio.hpp"
-#include "network/control.hpp"
 
 #include "application/resources.hpp"
 #include "network/bootstrap_codec.hpp"
+#include "network/control.hpp"
 #include "network/identity.hpp"
 #include "network/public_read.hpp"
+#include "time/controller_time.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 #include "wtp/sha256.hpp"
 
 #include <algorithm>
+#include <charconv>
 #include <cstring>
 #include <limits>
 #include <vector>
@@ -203,6 +205,113 @@ HttpResponse ConsumerRadioApi::password_resource(const HttpRequest& request) {
                   std::to_string(password_store_->sequence()) + "\"";
     return result;
 }
+HttpResponse ConsumerRadioApi::field_resource(const HttpRequest& request, Session&,
+                                              std::uint64_t transaction) {
+    if (!password_store_)
+        return http_error(404, "field_unavailable");
+    const auto revision = "\"field:" + std::to_string(password_store_->sequence()) + "\"";
+    if (request.method != "GET") {
+        if (request.method != "PUT")
+            return http_error(405, "method_not_allowed");
+        if (!api_.access_change_ready() || (setup_busy_ && setup_busy_(setup_context_)))
+            return http_error(409, "busy");
+        if (request.header("if-match").empty())
+            return http_error(428, "revision_required");
+        if (request.header("if-match") != revision)
+            return http_error(412, "revision_conflict");
+        const auto root = wtp::json::parse(request.body_view());
+        if (!root ||
+            application::validate_envelope(*root, "field-access", "enabled", device_, boot_) !=
+                application::Envelope::Valid ||
+            (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
+            return http_error(400, "invalid_field_access");
+        if (!provisioning::valid_local_password(authentication_password()))
+            return http_error(409, "pico_password_unavailable");
+        if (!password_store_->set_field_mode(root->get("enabled")->raw == "true",
+                                             initial_field_password_))
+            return http_error(503, "field_save_unconfirmed");
+        credential_transaction_ = transaction;
+    }
+    auto response = HttpResponse{
+        200,
+        "{\"schema\":\"field-access\",\"target\":" + application::target(device_, boot_) +
+            ",\"enabled\":" +
+            (password_store_->record() && password_store_->record()->field_mode ? "true"
+                                                                                : "false") +
+            ",\"storage_healthy\":" +
+            ((password_store_->healthy() ||
+              password_store_->state() == provisioning::AccessStoreState::Erased)
+                 ? "true}"
+                 : "false}"),
+        "application/json",
+        {}};
+    response.etag = "\"field:" + std::to_string(password_store_->sequence()) + "\"";
+    return response;
+}
+
+HttpResponse ConsumerRadioApi::time_resource(const HttpRequest& request, Session& session) {
+    if (request.body_view().size() > 512)
+        return http_error(400, "invalid_browser_time");
+    if (!time_ || session.interface != ConsumerInterface::AccessPoint)
+        return http_error(403, "browser_time_ap_required");
+    const auto principal = "browser:" + bootstrap_hex(session.binding.session);
+    const auto logical = bootstrap_hex(session.binding.session);
+    if (request.method == "POST") {
+        const bool challenge = request.path == "/api/control/v1/consumer/time/challenge";
+        const auto root = wtp::json::parse(request.body_view());
+        if (!root ||
+            application::validate_envelope(
+                *root, challenge ? "browser-time-challenge" : "browser-time-sample",
+                challenge ? "nonce" : "sample", device_, boot_) != application::Envelope::Valid)
+            return http_error(400, "invalid_browser_time");
+        const auto payload = root->get(challenge ? "nonce" : "sample");
+        if (!challenge && !wtp::json::fields(*payload, {"nonce", "utc_ns"}))
+            return http_error(400, "invalid_browser_time");
+        const auto nonce = challenge ? payload : payload->get("nonce");
+        if (!nonce || !wtp::json::identifier(*nonce))
+            return http_error(400, "invalid_browser_time");
+        if (challenge) {
+            const auto result = time_->challenge(principal, logical, device_, nonce->string());
+            if (result.code != time::ControllerTimeCode::Ok)
+                return http_error(409, "time_source_busy");
+        } else {
+            const auto value = payload->get("utc_ns");
+            std::uint64_t utc = 0;
+            if (!value || value->type() != '\"')
+                return http_error(400, "invalid_browser_time");
+            const auto text = value->string();
+            const auto parsed = std::from_chars(text.data(), text.data() + text.size(), utc);
+            if (text.empty() || text.size() > 20 || (text.size() > 1 && text.front() == '0') ||
+                parsed.ec != std::errc{} || parsed.ptr != text.data() + text.size())
+                return http_error(400, "invalid_browser_time");
+            const auto result =
+                time_->submit(principal, logical, device_, nonce->string(), utc, true);
+            if (result != time::ControllerTimeCode::Ok)
+                return http_error(409, result == time::ControllerTimeCode::Disagreement
+                                           ? "time_disagreement"
+                                           : "browser_time_not_accepted");
+        }
+    } else if (request.method != "GET")
+        return http_error(405, "method_not_allowed");
+    const auto status = time_->status();
+    const char* source = status.source == time::ActiveTimeSource::Browser      ? "browser"
+                         : status.source == time::ActiveTimeSource::Sntp       ? "network"
+                         : status.source == time::ActiveTimeSource::Controller ? "controller"
+                         : status.disagreement                                 ? "disagreement"
+                                                                               : "none";
+    return {200,
+            "{\"schema\":\"browser-time\",\"target\":" + application::target(device_, boot_) +
+                ",\"source\":" + wtp::json::quote(source) + ",\"clock_state\":" +
+                wtp::json::quote(status.state == wtp::ClockState::Unsynchronized ? "unsynchronized"
+                                 : status.state == wtp::ClockState::Holdover     ? "holdover"
+                                                                                 : "synchronized") +
+                ",\"age_ns\":" + wtp::json::quote(std::to_string(status.age_ns)) +
+                ",\"uncertainty_ns\":" + wtp::json::quote(std::to_string(status.uncertainty_ns)) +
+                ",\"disagreement\":" + (status.disagreement ? "true}" : "false}"),
+            "application/json",
+            {}};
+}
+
 void ConsumerRadioApi::listeners(bool ap, std::string_view station_ip, std::string_view hostname) {
     if (station_ip == station_ip_ && hostname == hostname_ && ap == ap_available_)
         return;
@@ -238,6 +347,8 @@ bool ConsumerRadioApi::page_admitted(const HttpRequest& request,
                             (host == station_ip_ || (!hostname_.empty() && host == hostname_))));
 }
 void ConsumerRadioApi::poll(std::uint64_t now_ms) {
+    if (credential_transaction_ && elapsed(now_ms, credential_changed_ms_, 5'000))
+        credential_transaction_.reset();
     if (password_store_ && password_store_->sequence() != password_sequence_) {
         const auto current = password_digest();
         // Field/BLE updates share this journal but do not change Pico login.
@@ -267,6 +378,8 @@ bool ConsumerRadioApi::active(std::uint64_t now_ms) {
                        [](const Session& s) { return s.state != State::None; });
 }
 void ConsumerRadioApi::finish_request(std::uint64_t transaction, bool apply) {
+    // Credential activation retains a bounded five-second reply opportunity,
+    // including when authentication closure cancels the logical transaction.
     for (auto& session : sessions_) {
         if (session.pending_transaction != transaction)
             continue;
@@ -279,6 +392,10 @@ void ConsumerRadioApi::finish_request(std::uint64_t transaction, bool apply) {
     }
 }
 void ConsumerRadioApi::close(Session& session) {
+    if (time_) {
+        const auto logical = bootstrap_hex(session.binding.session);
+        time_->cancel_challenge("browser:" + logical, logical);
+    }
     if (session.pending_transaction)
         finish_request(*session.pending_transaction, false);
     if (setup_closed_ && std::any_of(session.binding.session.begin(), session.binding.session.end(),
@@ -568,7 +685,6 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
         close(session);
         return http_error(401, "radio_authentication_failed");
     }
-    session.seen_ms = now_ms;
     const auto root = wtp::json::parse(*plaintext);
     HttpResponse result = http_error(400, "invalid_radio_request");
     bool password_saved = false;
@@ -581,9 +697,20 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
             path->string().starts_with("/api/control/v1/") && printable(path->string(), 128) &&
             (match->raw == "null" || (match->type() == '"' && printable(match->string(), 80))) &&
             (method->string() == "GET" ? body->raw == "null" : body->type() == '{')) {
-            const bool special_control = path->string() == "/api/control/v1/consumer/password" || path->string() == "/api/control/v1/consumer/logout" || path->string().starts_with("/api/control/v1/consumer/setup/");
-            auto special_payload = method->string() == "GET" || !special_control ? std::optional<std::string>{""} : control_payload(body->raw);
-            std::string special_text = special_payload ? std::move(*special_payload) : std::string{};
+            const bool time_control = path->string().starts_with("/api/control/v1/consumer/time");
+            if (!time_control)
+                session.seen_ms = now_ms;
+            const bool field_control = path->string() == "/api/control/v1/consumer/field";
+            const bool special_control =
+                time_control || field_control ||
+                path->string() == "/api/control/v1/consumer/password" ||
+                path->string() == "/api/control/v1/consumer/logout" ||
+                path->string().starts_with("/api/control/v1/consumer/setup/");
+            auto special_payload = method->string() == "GET" || !special_control
+                                       ? std::optional<std::string>{""}
+                                       : control_payload(body->raw);
+            std::string special_text =
+                special_payload ? std::move(*special_payload) : std::string{};
             ControlStringWiper wipe_special(special_text);
             if (method->string() != "GET" && special_control && !special_payload) {
                 close(session);
@@ -592,7 +719,8 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
             if (method->string() == "POST" && path->string() == "/api/control/v1/consumer/logout" &&
                 wtp::json::fields(*wtp::json::parse(special_text), {})) {
                 auto response =
-                    session.crypto->seal("{\"status\":200,\"etag\":null,\"body\":{\"contract\":\"Wsprry-Control/1\",\"ok\":true}}",
+                    session.crypto->seal("{\"status\":200,\"etag\":null,\"body\":{\"contract\":"
+                                         "\"Wsprry-Control/1\",\"ok\":true}}",
                                          session.binding, sequence);
                 close(session);
                 return response ? std::move(*response)
@@ -614,19 +742,40 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
                              {"x-wsprrypico-request", "1"}};
             if (match->type() == '"')
                 inner.headers["if-match"] = match->string();
-            const bool special = inner.path == "/api/control/v1/consumer/password" || inner.path.starts_with("/api/control/v1/consumer/setup/");
+            const bool special = time_control || field_control ||
+                                 inner.path == "/api/control/v1/consumer/password" ||
+                                 inner.path.starts_with("/api/control/v1/consumer/setup/");
             if (special && inner.method != "GET") {
                 inner.body = std::move(special_text);
                 inner.selected_body.reset();
                 inner.buffered_body.reset();
             }
-            if (inner.path == "/api/control/v1/consumer/password") {
+            if (time_control) {
+                if (inner.path != "/api/control/v1/consumer/time" &&
+                    inner.path != "/api/control/v1/consumer/time/challenge" &&
+                    inner.path != "/api/control/v1/consumer/time/submit")
+                    result = http_error(404, "not_found");
+                else if ((inner.path == "/api/control/v1/consumer/time" && inner.method != "GET") ||
+                         (inner.path != "/api/control/v1/consumer/time" && inner.method != "POST"))
+                    result = http_error(405, "method_not_allowed");
+                else
+                    result = time_resource(inner, session);
+            } else if (field_control) {
+                result = field_resource(inner, session, transaction);
+                if (inner.method == "PUT" && result.status == 200)
+                    credential_changed_ms_ = now_ms;
+            } else if (inner.path == "/api/control/v1/consumer/password") {
                 if (inner.method != "GET" && setup_busy_ && setup_busy_(setup_context_))
                     result = http_error(409, "setup_pending");
                 else
                     result = password_resource(inner);
                 password_saved = inner.method == "PUT" && result.status == 200;
-            } else if (inner.path.starts_with("/api/control/v1/consumer/setup/") && setup_handler_) {
+                if (password_saved) {
+                    credential_transaction_ = transaction;
+                    credential_changed_ms_ = now_ms;
+                }
+            } else if (inner.path.starts_with("/api/control/v1/consumer/setup/") &&
+                       setup_handler_) {
                 inner.path.erase(0, std::string_view("/api/control/v1/consumer/setup").size());
                 // Each production setup decoder has its own closed header
                 // policy. Do not carry ordinary API or the other adapter's
@@ -648,7 +797,8 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
                                 session.interface == ConsumerInterface::Station
                                     ? ManagementCarrier::ConsumerStation
                                     : ManagementCarrier::ConsumerAp);
-            if (special) result = control_response(std::move(result));
+            if (special)
+                result = control_response(std::move(result));
             session.pending_transaction = transaction;
         }
     }
@@ -681,7 +831,8 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
             auto source = wtp::make_response_source<wtp::JoinedResponseSource>(
                 prefix, std::move(inner_source), "}", true);
             if (source)
-                response = session.crypto->seal_source(std::move(source), session.binding, sequence);
+                response =
+                    session.crypto->seal_source(std::move(source), session.binding, sequence);
         }
     } else if (!result.buffered_body.empty()) {
         // Small typed resources already own their final pages. Keep the cheaper
@@ -692,7 +843,8 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
             envelope.append(wtp::InputView("}").at(0)))
             response = session.crypto->seal_buffer(std::move(envelope), session.binding, sequence);
     } else {
-        const std::array<wtp::InputView, 3> parts{wtp::InputView(prefix), body, wtp::InputView("}")};
+        const std::array<wtp::InputView, 3> parts{wtp::InputView(prefix), body,
+                                                  wtp::InputView("}")};
         response = session.crypto->seal_parts(parts, session.binding, sequence);
     }
     if (password_saved) {
@@ -739,13 +891,13 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
                     resources += ',';
                 resources += wtp::json::quote(resource);
             }
-            return {200,
-                    "{\"contract\":\"Wsprry-Control/1\",\"schema\":" +
-                        wtp::json::quote("public-read") +
-                        ",\"target\":" + application::target(device_, boot_) + ",\"prefix\":" +
-                        wtp::json::quote(prefix) + ",\"resources\":" + resources + "]}",
-                    "application/json",
-                    {}};
+            return {
+                200,
+                "{\"contract\":\"Wsprry-Control/1\",\"schema\":" + wtp::json::quote("public-read") +
+                    ",\"target\":" + application::target(device_, boot_) + ",\"prefix\":" +
+                    wtp::json::quote(prefix) + ",\"resources\":" + resources + "]}",
+                "application/json",
+                {}};
         }
         const auto resource = std::string_view(request.path).substr(prefix.size());
         if (std::find(allowed.begin(), allowed.end(), resource) == allowed.end())

@@ -11,3 +11,5 @@ Engineering BLE uses Just Works pairing plus an application password. Its statio
 Never publish passwords, access-sector contents, private keys, credential-bearing firmware or generated private build headers.
 
 The consumer operator page exposes a read-only public transmitter projection at `/api/consumer/v1/status`: device/boot identity, job state, RF output activity, whether the transmitter is reserved, clock state/time/uncertainty and engine. Owner IDs, job IDs, messages, settings, history and credentials are omitted. Host and same-origin request checks remain enforced; public reads do not authenticate a browser or renew a login.
+
+Configured consumer field/fallback Wi-Fi uses WPA2 with the effective Pico control password. Deliberate physical/USB recovery can expose open commissioning. Browser time requires authenticated AP control; its first UTC sample trusts the operator device clock and does not independently prove absolute accuracy. Challenge freshness, session binding, source consistency, and finite age/uncertainty gates constrain later use. WPA2 does not authenticate the HTTP page against a peer that knows the shared passphrase.

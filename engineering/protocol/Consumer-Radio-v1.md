@@ -14,8 +14,7 @@ owner keys or change the immediate commissioning transaction.
 A healthy source-4 Wi-Fi-only or source-5 consumer profile normally keeps its AP off. No station claim or synchronized UTC is required for browser access or authentication. Open
 `http://<current-station-IPv4>/` or `http://<configured-local-hostname>/` on
 infrastructure Wi-Fi, or `/radio` on either admitted interface. Log in with
-the Pico password. Its default is the Wi-Fi passphrase saved in the selected profile; an independently saved Pico password takes precedence. AP access is temporary
-button-requested or automatic unavailable-network fallback. AP association
+the Pico password. Its default is the Wi-Fi passphrase saved in the selected profile; an independently saved Pico password takes precedence. AP access is persistent when saved field mode is enabled, or temporary through deliberate recovery or automatic unavailable-network fallback. Configured field/fallback APs use WPA2 with the effective Pico password. AP association
 alone grants no private radio read or mutation. The station listener exposes
 only the public radio document/identity and encrypted consumer routes.
 Wi-Fi and initial station commissioning retain their transactional setup adapters.
@@ -24,12 +23,8 @@ a verified transfer from an existing station-owning consumer profile. Schedules,
 opt-ins use the existing configuration journal and admission engine.
 
 Radio management retains LAN access during loaded, armed and running jobs.
-Operation-specific BUSY and ownership checks remain authoritative. The AP radio
-surface permits unarmed ownership and loaded plans while requested by its lease
-or fallback lifecycle.
-Commissioning keeps its stricter unowned-only guard. Unknown/active output,
-armed, running and failed states withdraw this AP path under the retained RF
-connection policy; job execution stays local. Current source-5 consumer and
+Operation-specific BUSY and ownership checks remain authoritative. The existing consumer AP radio surface retains status and permitted controls through loaded, armed and running jobs while requested by its field/fallback lifecycle.
+Commissioning keeps its stricter unowned-only guard. Unknown/active output, armed, running and failed states defer disruptive AP transitions; job execution stays local. Current source-5 consumer and
 engineering profiles admit reference USB WTP under local physical authority,
 alongside Console and the separately framed
 [USB management/time adapter](USB-Management.md). USB management,
@@ -225,3 +220,7 @@ Inside an authenticated Consumer-Radio envelope, `GET /api/control/v1/consumer/p
 The access journal stores the separate Pico password independently of network and station profiles. Its legacy version-2 payload remains valid; version 3 adds a length-prefixed password at byte 160, with at most 63 following bytes and zero padding. Journal framing, slots, commit/readback and fault behavior are unchanged. Creating this record for browser settings keeps BLE disabled and field mode off. Other access-journal writes preserve the separate Pico password; browser logins are invalidated only when that password changes, not when unrelated access metadata changes.
 
 The Pico verifies the journal save and seals the response before retiring all browser sessions and pending recovery proofs, including the initiating session. A lost response does not undo a committed password change. The operator signs in with the new password, or tries the previous password if the new one is refused, then reads the setting before another explicit save. Wi-Fi, station, schedule, watermark and job ownership are unchanged. Restart preserves the password; access/provisioning/full-settings resets clear it. Wi-Fi updates preserve an explicit Pico password, while default-mode login follows the newly saved Wi-Fi passphrase.
+
+## Authenticated field time
+
+The optional exact `field_access` descriptor in Control/1 capabilities advertises consumer field settings and AP-only browser-time routes. Their closed documents remain within Control/1; the Radio/1 cryptographic transcript and packet format are unchanged. Time observations consume ordinary authenticated sequence numbers but do not renew login inactivity. Field settings retain ordinary revision and idle-write guards. See [field-time policy and routes](../development/field-time.md).

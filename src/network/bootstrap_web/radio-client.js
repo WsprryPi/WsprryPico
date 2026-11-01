@@ -190,7 +190,7 @@ export class RadioClient {
     try {
       this.sequence++;
       const result = open(this.state,sequence,await this.post('request',packet,true,timeout));
-      this.seen = this.now();
+      if (!path.startsWith('consumer/time')) this.seen = this.now();
       if (!Number.isInteger(result.status) || result.status < 100 || result.status > 599 ||
           (result.etag !== null && typeof result.etag !== 'string') || !result.body || typeof result.body !== 'object') throw new Error('Invalid radio API response');
       return {ok:result.status >= 200 && result.status < 300,status:result.status,headers:{get:name => name.toLowerCase() === 'etag' ? result.etag : null},json:async () => result.body};

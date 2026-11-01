@@ -16,7 +16,7 @@
   const station = $('station-area'), wifi = $('wifi-host-area');
   const sections = new Map([
     ['radio-settings','station'],['time-calibration','station'],['radio-pins','station'],['message-section','station'],
-    ['wifi-settings','wifi-host'],['pico-password-section','wifi-host'],['hostname-section','wifi-host'],
+    ['field-access','wifi-host'],['wifi-settings','wifi-host'],['pico-password-section','wifi-host'],['hostname-section','wifi-host'],
     ['connection-section','wifi-host'],['saved-settings','station'],['device-diagnostics','station']
   ]);
   const aliases = new Map([

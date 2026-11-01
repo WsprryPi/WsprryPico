@@ -997,6 +997,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                  wtp_caps,
                  ",\"logging\":",
                  control_descriptor("logging"),
+                 consumer_runtime_ ? ",\"field_access\":" : "",
+                 consumer_runtime_ ? control_descriptor("field_access") : "",
                  ",\"ntp_observations\":",
                  control_descriptor("ntp_observations"),
                  ",\"standalone_frequency\":",

@@ -133,6 +133,8 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
             ${CMAKE_SOURCE_DIR}/tests/organization_routes.test.mjs $<TARGET_FILE:consumer_bootstrap_driver> ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp)
         add_test(NAME hostname_sessions COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/hostname_sessions.test.mjs $<TARGET_FILE:consumer_session_driver>)
+        add_test(NAME field_time_sessions COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/field_time_sessions.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
         add_test(NAME consumer_sessions COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/consumer_sessions.test.mjs $<TARGET_FILE:consumer_session_driver>)
         add_test(NAME consumer_recovery COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}

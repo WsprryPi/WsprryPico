@@ -64,7 +64,7 @@ Standalone Wi-Fi builds also link the pinned SDK's network dependencies:
 - [cyw43-driver](https://github.com/georgerobotics/cyw43-driver), v1.1.1 at
   `055d64274b014dd7b1c2fc94d26e8a18face7124`, including the SDK-selected
   `firmware/wb43439A0_7_95_49_00_combined.h` Wi-Fi/Bluetooth/CLM resource. The external SDK source and
-  resources remain unchanged. A hash-verified build overlay of `cyw43_ll.c`
+  resources remain unchanged. A hash-verified build overlay of `cyw43_ll.c` also keeps explicit WPA2/AES AP selection WPA2-only, preserving mixed mode only when explicitly selected. The overlay
   preserves outgoing frames across shared-buffer receive polling; generated
   copies retain the original header and identify the modification. Retained upstream
   [LICENSE.RP](engineering/licenses/cyw43-driver-RP.txt) covers use with Raspberry Pi

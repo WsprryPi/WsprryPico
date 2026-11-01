@@ -34,14 +34,14 @@ The active-low GP14 capture adapter, configurable exclusive pin plan and
 single-action debouncing retain the gesture timings specified in the
 [operator button table](../../docs/connect.md#request-setup-wi-fi-with-the-external-button).
 AP requests follow confirmed local output shutdown and never rearm a job.
-An associated Wi-Fi client retains every AP activation. The final disconnect starts a ten-minute inactivity interval. Initial unjoined access lasts ten minutes, or 120 seconds for Console join grace; the grace begins at actual activation. Browser traffic and login slots do not substitute for association. The driver samples CYW43 associated stations once per second and refreshes the sample at expiry. Saved network
+Explicit saved field mode retains its AP without expiry. An associated Wi-Fi client retains every other AP activation. The final disconnect starts a ten-minute inactivity interval. Initial unjoined access lasts ten minutes, or 120 seconds for Console join grace; the grace begins at actual activation. Browser traffic and login slots do not substitute for association. The driver samples CYW43 associated stations once per second and refreshes the sample at expiry. Saved network
 credentials, profile and no-repeat state are not changed by AP coordination.
 
 A blank device starts setup AP automatically. A saved network unavailable for
 60 seconds requests fallback AP without a button. Background station retries
 occur at 30-second intervals; a latched failed join gets a one-second leave
 interval before retry. Recovered association plus IPv4 must remain stable for
-30 seconds before fallback is withdrawn, and an associated AP client retains access through that recovery. An unchanged outage cannot reopen an expired window; stable recovery rearms a later outage. The AP coordinator
+30 seconds before fallback is withdrawn, and an associated AP client retains access through that recovery. An expired fallback window reopens after five minutes closed during a continuing outage; stable recovery also rearms a later outage. The AP coordinator
 does not rewrite credentials, profiles or cursors during these transitions.
 
 Activation/physical AP transitions are deferred while output is active,
@@ -49,8 +49,7 @@ unknown, armed, running or failed. Automatic outage recovery never invokes
 the physical stop override or aborts an accepted local job. The next safe
 state retries automatically. LAN status remains available throughout normal
 loaded/armed/running operation; mutations retain BUSY and ownership checks.
-An existing AP radio session loses admission when the RF policy withdraws its
-surface. Page loss never aborts, releases, rearms or restarts a job.
+An existing consumer AP radio session retains status and permitted control during RF; commissioning still requires its stricter idle authority. Page loss never aborts, releases, rearms or restarts a job.
 
 At manual/recovery withdrawal, an existing reply gets at most ten seconds to drain; new AP connections are refused during that drain. HTTP connections and page polling cannot retain the AP without a Wi-Fi association. Each HTTP connection has its existing
 ten-second total deadline, one request and bounded buffers. Three fixed consumer login slots are shared between AP and LAN, with at most
@@ -121,3 +120,9 @@ An already connected AP client can use `--ap` with `ip` set to `192.168.4.1`;
 that checks the authenticated `/radio` page on the actual AP interface.
 An optional `receipt` object (`kind`, `device`, `generation`, `digest`) checks
 read-only save recovery after login and captures the pending-receipt view.
+
+## Protected field access and browser time
+
+Configured consumer APs use the effective Pico password as WPA2 key; authentication and AP key selection share one resolver. Deliberate physical/USB recovery can open commissioning. Credential changes have a bounded five-second reply opportunity before safe-idle AP rekeying; browser authentication retires immediately under its existing rules. Field-mode changes use journal-backed state with revision-bound writes and no RF ownership transfer.
+
+The exact authenticated routes, source arbitration and holdover policy are specified in [field time](field-time.md). Browser observation traffic does not renew login inactivity. Public setup hints do not establish transmit-ready UTC.

@@ -8,7 +8,7 @@ The Pico sets and maintains its clock from the configured **time server** using 
 
 The initial setup suggests **pool.ntp.org** as the time server. Keep that value unless you need a different server. The setup form requires a valid server value, so leave the suggestion in place rather than clearing the field. Change it later in **Wi-Fi/Host**.
 
-An Internet time server needs Internet access from the Pico. For an isolated network, use a reachable local NTP server or a supported controller-time connection. Opening the Pico's browser page does not by itself set its clock.
+An Internet time server needs Internet access from the Pico. For an isolated network, use a reachable local NTP server or a supported controller-time connection. After authentication on the Pico’s AP, the control page automatically supplies browser time if no usable higher-priority source is available. Merely opening an unauthenticated page does not establish transmit-ready time.
 
 **Start time (UTC)** and **Schedule expiry (UTC)** have UTC **Date** and **Time** controls. If either component is empty, opening either picker fills both with the current UTC date and time. Once both are valid, selecting a date preserves the time and selecting a time preserves the date. **Today (UTC)** and **Now (UTC)** update only their respective component. The pickers use the Pico's most recently observed UTC clock when available, advanced by elapsed browser time; otherwise they use the browser's UTC clock. These defaults do not replace the Pico's clock admission checks.
 
@@ -36,3 +36,15 @@ The value after **±** is the estimated timing uncertainty, in **ms** (milliseco
 In **Station Control → Time and calibration → Carrier calibration**, the saved value loads automatically. Edit **Manual correction (ppm)**. Note the original value. Enter the measured correction, choose **Save calibration**, then measure the carrier again. The field accepts −100.000 through +100.000 ppm with up to three decimal places. The saved correction applies when a new job is prepared; it does not retune a job already running. Restore the original value if the adjustment is unsuccessful.
 
 RF calibration does not change UTC or remove the normal clock, frequency, pin, and output checks.
+
+## Browser time in the field
+
+**Using browser time** means **Time supplied by this device’s clock**. The browser reads the operating-system clock of your phone, tablet, or computer; it does not independently verify UTC. Check the device’s clock before relying on it. Authentication is required, and another browser cannot replace a still-valid browser source simply by signing in.
+
+The page refreshes time about every 30 seconds while active. Time updates do not extend the browser login’s inactivity timeout. A backgrounded, sleeping, disconnected, signed-out, or expired browser may stop supplying observations. The Pico then uses its last accepted time in holdover.
+
+Browser holdover has a one-hour maximum. Its estimated uncertainty starts with a 250 ms device-clock allowance plus transfer and local processing allowances, then grows conservatively at 50 ppm (180 ms per hour). New starts require uncertainty no greater than 500 ms, or a stricter job limit. A slow initial transfer can therefore exhaust the budget before one hour. These are conservative software policy values, not a guarantee of the device clock’s accuracy or measured multi-day Pico holdover.
+
+The NTP timeout setting, including zero, does not extend browser-time holdover or remove its uncertainty ceiling. Restart requires fresh observations. A valid higher-priority network or controller source retains authority. Conflicting source observations block new starts until consistent observations restore time. An already running job retains its local timing; an armed job that fails its launch clock check is missed.
+
+The source display includes clock state, sample age, and estimated uncertainty. Restore an active authenticated AP page or another supported time source when time becomes unusable. Refreshing time does not enable schedules, clear a shutdown suspension, or replay missed occurrences.

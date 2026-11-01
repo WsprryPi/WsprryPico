@@ -33,7 +33,7 @@ The default **Pico password** is the home Wi-Fi password saved during setup. Set
 
 1. Sign in with the current Pico password. Open **Wi-Fi/Host → Pico password**.
 2. Enter the new password in **New Pico password** and **Confirm new Pico password**. Use 8–63 characters; accented letters and emoji are not supported.
-3. Select **Save Pico password**. Wait for confirmation, then sign in with the new password. Saving signs out all Pico browser logins; the new password survives a restart.
+3. Select **Save Pico password**. Wait for confirmation, then sign in with the new password. Saving signs out all Pico browser logins; the new password survives a restart. It also becomes the configured Pico’s field/fallback Wi-Fi join password. Wait for the save reply, then reconnect with the new password; AP changes wait for safe idle RF output.
 
 ```{image} _static/images/pico-password.jpg
 :alt: Pico password controls showing the Wi-Fi default status, New Pico password and Confirm new Pico password fields, Save Pico password, and Use Wi-Fi password as Pico password.
@@ -77,7 +77,7 @@ Read saved settings and try reconnecting before resetting. If the Pico password 
 - **Erase all settings…:** Also clears station details, schedules, the consumed-slot watermark, and retained clock-rate estimates learned from the time server. Firmware and protected platform boot storage remain installed. The page calls this **Full erase**; it is distinct from USB full flash erase below.
 - **USB full flash erase:** Removes firmware and **all persistent data in the entire 4 MiB flash**, including Wi-Fi credentials, bonds, settings, drafts, and watermarks. It creates no backup and leaves the Pico in BOOTSEL.
 
-Recovery pages are device-served at **http://192.168.4.1/recovery.html** during an available setup window. Anyone able to access this open setup network can use these recovery actions. The two checkboxes and typed confirmation phrase prevent accidents; they do not authenticate the operator. Keep transmission stopped. BOOTSEL is an installation gesture, not a runtime password reset button.
+Recovery pages are device-served at **http://192.168.4.1/recovery.html** during an available setup window. A configured protected AP requires its Pico password to join. If that password is forgotten, request a deliberate recovery window through the physical button or USB Console; a blank device or deliberate recovery window can expose open commissioning. Anyone able to access an open recovery window can use these recovery actions. The two checkboxes and typed confirmation phrase prevent accidents; they do not authenticate the operator. Keep transmission stopped. BOOTSEL is an installation gesture, not a runtime password reset button.
 
 For deliberate full erase, identify the USB serial first, then replace `USB_SERIAL` with that exact selected serial:
 

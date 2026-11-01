@@ -81,9 +81,15 @@ void SoftApCoordinator::ready(bool value) {
 
 bool SoftApCoordinator::poll(std::uint64_t now_ms) {
     last_poll_ms_ = now_ms;
-    if (activated_ && !client_connected_ &&
+    const bool field_mode = access_.healthy() && access_.record() && access_.record()->field_mode;
+    if (field_mode && expired_) {
+        expired_ = false;
+        activated_ = false;
+    }
+    if (!field_mode && !expired_ && activated_ && !client_connected_ &&
         elapsed(now_ms, activated_ms_, softap_manual_setup_ms)) {
         expired_ = true;
+        expired_ms_ = now_ms;
         manual_active_ = grace_active_ = draining_ = false;
         ready_ = requested_ = false;
         client_hold_ = false;
@@ -106,7 +112,12 @@ bool SoftApCoordinator::poll(std::uint64_t now_ms) {
             activated_ = false;
         }
     }
-    const bool field_mode = access_.record() && access_.record()->field_mode;
+    if (expired_ && fallback_ && !station_usable_ &&
+        elapsed(now_ms, expired_ms_, softap_reopen_ms)) {
+        expired_ = false;
+        activated_ = false;
+        client_hold_ = false;
+    }
     const bool retained = client_hold_ ||
                           (!temporary_access_ && (token_records_ || reply_active_)) ||
                           grace(now_ms) || manual_setup(now_ms);

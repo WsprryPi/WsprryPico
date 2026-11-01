@@ -85,7 +85,7 @@ try {
     await time(started+300000);assert.equal(await evaluate('radio.authenticated'),true);
     await time(started+1800000-1);await refresh();
     assert.equal(await evaluate('radio.authenticated && localAuthenticated'),true);
-    const renewed=now;
+    const renewed=started;
     await time(renewed+1800000-1);
     await evaluate('document.querySelector("[name=schedules]").dispatchEvent(new Event("input",{bubbles:true}));radio.identity()');
     await time(renewed+1800000);await refresh();
@@ -100,7 +100,7 @@ try {
     assert.equal(await draft(),'240 / 0');
     assert.equal(await evaluate('writeState'),'review');
     const fresh=now;
-    for(let elapsed=1000000;elapsed<28800000;elapsed+=1000000){await time(fresh+elapsed);await refresh();assert.equal(await evaluate('radio.authenticated'),true);}
+    for(let elapsed=1000000;elapsed<28800000;elapsed+=1000000){await time(fresh+elapsed);await evaluate('radio.request("management")');await refresh();assert.equal(await evaluate('radio.authenticated'),true);}
     await time(fresh+28800000-1);await refresh();
     assert.equal(await evaluate('radio.authenticated'),true);
     await time(fresh+28800000);await refresh();

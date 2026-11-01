@@ -18,13 +18,17 @@ using namespace wsprrypico;
 // Current control request producer for API behavioral tests. The independent
 // control_contract_tests use raw requests to verify missing/old contract refusal.
 inline network::HttpRequest control_request(network::HttpRequest request) {
-    if (request.method != "GET" && (request.path.starts_with("/api/control/v1/") || request.path == "/api/usb/v1/wifi")) {
+    if (request.method != "GET" &&
+        (request.path.starts_with("/api/control/v1/") || request.path == "/api/usb/v1/wifi")) {
         const auto root = wtp::json::parse(request.body_view());
         if (root && root->type() == '{' && !root->get("contract")) {
             std::string body(request.body_view());
             const auto position = root->raw.offset() - request.body_view().offset() + 1;
-            body.insert(position, "\"contract\":\"Wsprry-Control/1\"" + std::string(wtp::json::fields(*root,{}) ? "" : ","));
-            request.body=std::move(body); request.buffered_body.reset(); request.selected_body.reset();
+            body.insert(position, "\"contract\":\"Wsprry-Control/1\"" +
+                                      std::string(wtp::json::fields(*root, {}) ? "" : ","));
+            request.body = std::move(body);
+            request.buffered_body.reset();
+            request.selected_body.reset();
         }
     }
     return request;
@@ -33,20 +37,24 @@ inline network::HttpRequest control_request(network::HttpRequest request) {
 // Serialize a current update from the fixture's private stored configuration.
 // This is a test producer, not a protocol adapter or runtime fallback.
 inline std::string configuration_update(std::string config,
-        std::string boot = std::string(31,'0') + '1') {
+                                        std::string boot = std::string(31, '0') + '1') {
     if (const auto root = wtp::json::parse(config); root && root->get("version")) {
         const auto at = config.find("\"version\"");
         const auto end = config.find(',', at);
-        if (end != std::string::npos) config.erase(at,end-at+1);
+        if (end != std::string::npos)
+            config.erase(at, end - at + 1);
     }
     // The frequency resource owns this field independently of configuration.
     if (const auto at = config.find("\"wspr_dial_frequency_hz\""); at != std::string::npos) {
         const auto end = config.find(',', at);
-        if (end != std::string::npos) config.erase(at, end - at + 1);
-        else config.erase(at - 1, config.size() - at);
+        if (end != std::string::npos)
+            config.erase(at, end - at + 1);
+        else
+            config.erase(at - 1, config.size() - at);
     }
-    return "{\"schema\":\"config-update\",\"target\":{\"scope\":\"member\",\"device_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":" +
-        wtp::json::quote(boot) + "},\"mode\":\"merge\",\"config\":" + config + "}";
+    return "{\"schema\":\"config-update\",\"target\":{\"scope\":\"member\",\"device_id\":"
+           "\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":" +
+           wtp::json::quote(boot) + "},\"mode\":\"merge\",\"config\":" + config + "}";
 }
 struct Flash : standalone::Flash {
     std::array<std::uint8_t, 16384> bytes{};
@@ -74,10 +82,13 @@ struct Flash : standalone::Flash {
     }
 };
 struct Clock : wtp::Clock {
+    const wtp::Clock* selected = nullptr;
     std::uint64_t now = 1'000'000'000, utc = 1'800'000'000'000'000'000ULL, uncertainty = 1000;
     wtp::ClockSnapshot snapshot() const override {
+        if (selected)
+            return selected->snapshot();
         return {wtp::ClockState::Synchronized, utc + now, now, uncertainty, 0,
-                wtp::LeapState::Normal, {}};
+                wtp::LeapState::Normal,        {}};
     }
 };
 struct Identity : wtp::IdentitySource {
@@ -108,7 +119,8 @@ struct Network : network::NetworkControl {
     }
     std::string operations_status() const override {
         return std::string("{\"enabled\":") + (enabled ? "true" : "false") +
-               ",\"link_status\":3,\"ipv4\":\"127.0.0.1\",\"configured_hostname\":\"wsprrypico-test\","
+               ",\"link_status\":3,\"ipv4\":\"127.0.0.1\",\"configured_hostname\":\"wsprrypico-"
+               "test\","
                "\"mdns_state\":\"active\",\"mdns_reason\":\"\"}";
     }
     std::string status() const override {

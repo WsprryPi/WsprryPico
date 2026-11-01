@@ -12,6 +12,10 @@
 #include <span>
 #include <string>
 
+namespace wsprrypico::time {
+class ControllerTimeArbiter;
+}
+
 namespace wsprrypico::network {
 // Authenticated radio management may retain an unarmed owner or loaded plan.
 // Commissioning keeps its stricter unowned-only activity gate.
@@ -112,6 +116,14 @@ class ConsumerRadioApi {
         close();
     }
     bool available() const;
+    // One effective credential authority for browser authentication and WPA2.
+    std::string_view authentication_password() const;
+    void time_authority(time::ControllerTimeArbiter& value) {
+        time_ = &value;
+    }
+    bool credential_reply_pending() const {
+        return credential_transaction_.has_value();
+    }
     void password_storage(provisioning::AccessStore& store,
                           std::string_view initial_field_password) {
         password_store_ = &store;
@@ -159,7 +171,8 @@ class ConsumerRadioApi {
         ConsumerInterface interface = ConsumerInterface::None;
     };
     void close(Session& session);
-    std::string_view authentication_password() const;
+    HttpResponse field_resource(const HttpRequest&, Session&, std::uint64_t);
+    HttpResponse time_resource(const HttpRequest&, Session&);
     HttpResponse password_resource(const HttpRequest& request);
     std::array<std::uint8_t, 32> password_digest() const;
     Session* select(wtp::InputView packet);
@@ -172,6 +185,9 @@ class ConsumerRadioApi {
     HttpResponse recovery_start(const HttpRequest&, std::uint64_t, ConsumerInterface);
     HttpResponse recovery_finish(const HttpRequest&, ConsumerInterface);
     HttpResponse recovery_discovery(const HttpRequest&, ConsumerInterface) const;
+    time::ControllerTimeArbiter* time_ = nullptr;
+    std::optional<std::uint64_t> credential_transaction_;
+    std::uint64_t credential_changed_ms_ = 0;
     BrowserApi& api_;
     provisioning::ProfileStore& store_;
     provisioning::RuntimeProfile& runtime_;

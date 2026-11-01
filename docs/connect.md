@@ -22,6 +22,18 @@
 
 Setup Wi-Fi stays available while your phone or computer is connected to it. After the last device disconnects, it closes after **ten minutes** without a connection. If nobody joins, the initial setup window also lasts ten minutes. Saving settings that restart the Pico can interrupt the connection. Do not assume a lost reply means the save failed. If needed, use [USB recovery](usb.md) or request setup Wi-Fi again with the external button.
 
+## Field access without Internet
+
+In **Wi-Fi/Host → Field access**, select **Keep field Wi-Fi available**, then **Save field access**. The selection survives restart. Join the Pico network using its **Pico password**, then open **http://192.168.4.1/** and unlock controls. A separate saved Pico password takes precedence; otherwise, use the Wi-Fi password saved on the Pico. Joining Wi-Fi does not unlock browser controls.
+
+After authentication, the browser automatically supplies its device’s UTC clock when no usable network or controller time source is available. **Using browser time** means **Time supplied by this device’s clock.** Check that the phone, tablet, or computer has the correct time. Keep the page active for automatic refresh. No Internet connection is needed between the browser and Pico.
+
+Without refresh, browser time remains usable for at most one hour and only while estimated uncertainty remains within **±500 ms**. Transfer delay can shorten that period. A restart needs fresh time. See [time sources and holdover](reference/time.md).
+
+When the saved infrastructure network is unavailable for 60 seconds, the Pico requests fallback Wi-Fi and keeps trying to reconnect. An unjoined fallback window lasts ten minutes; after expiry, a continuing outage offers another window following five minutes closed. A connected Wi-Fi client retains access, followed by ten minutes after the last disconnect. Infrastructure recovery must remain stable for 30 seconds and does not evict a connected client. Internet loss alone does not trigger fallback.
+
+An existing AP keeps browser status and permitted controls available while a job runs. Starting, stopping, or changing the AP waits for safe idle RF output and never aborts an accepted job. Explicit field mode keeps the AP available without the inactivity timeout. A password change also changes the protected AP join password; reconnect after the reply using the new password. If a save is unconfirmed, read saved state before trying another save. Physical and USB recovery remain available.
+
 ## Online help from the control page
 
 **Help** beside a section heading or group opens the relevant operator-manual instructions in a separate tab. Help is available while controls are locked and section headings are collapsed. It does not save settings, unlock controls, or stop transmissions. Keep the Pico tab open to retain unsaved entries and selected files.
@@ -71,7 +83,7 @@ This route needs a fitted external push button. The factory runtime button conne
 | Hold briefly (hold for 0.9 seconds, or release between 0.4 and 0.9 seconds) | Transmission shutdown |
 | Hold for over 10 seconds (setup request begins at 9 seconds) | Setup Wi-Fi after shutdown is confirmed |
 
-After setup Wi-Fi appears, [join the setup network](usb.md#join-the-setup-network-again) and open **http://192.168.4.1/**. Setup Wi-Fi is open, including on a configured Pico; the configured control page still requires the Pico password. If the saved network remains unavailable for 60 seconds, the Pico requests fallback setup. Activation may be deferred while a job runs. A connection timeout is not proof that RF has stopped.
+After setup Wi-Fi appears, [join the setup network](usb.md#join-the-setup-network-again) and open **http://192.168.4.1/**. On a configured Pico, field and fallback Wi-Fi use WPA2: join with the Pico password, then unlock browser controls with that password. A blank Pico or deliberate recovery window uses open setup Wi-Fi. If the saved network remains unavailable for 60 seconds, the Pico requests fallback setup. Activation may be deferred while a job runs. A connection timeout is not proof that RF has stopped.
 
 ## USB access without Wi-Fi
 

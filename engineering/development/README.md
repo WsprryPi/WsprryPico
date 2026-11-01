@@ -169,3 +169,5 @@ The shared scaffold follows WsprryPi-Docs `c0215b6d980ae809dfacdeb9d2ef557dfc714
 The documentation dependencies do not install an SDK or toolchain. Current instructional screenshots remain under `docs/_static/images/`.
 
 The [UDP logging contract](udp-logging.md) defines the wire profile, independent settings, finite test resources, worker packaging, storage boundaries and validation applicability. Physical logging evidence does not establish RF performance or lossless delivery.
+
+The [field access and time contract](field-time.md) defines protected field Wi-Fi, outage recovery, authenticated automatic browser UTC, and holdover boundaries.

@@ -710,6 +710,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
   if(['unknown','unavailable'].includes(accessCarrier)) throw new Error('Identify this connection with Refresh before using controls');
   if(accessClosing || localLocked && localIdentity && !radio) throw new Error('Controls are locked in this browser. An earlier request may already have been accepted; read back before repeating it.');
   if (method !== 'GET' && !controlsUnlocked()) { const e=new Error('Unlock controls before changing the Pico.'); e.local=true; throw e; }
+  if (path === 'jobs' && method === 'POST') await updateFieldTime();
   if (method !== 'GET') body = {...(body || {}),contract:WsprryControl.contract};
   const requestEpoch=accessEpoch;
   if ((returnReceipt || consumerAttempt) && localIdentity) checkReturningDevice(localIdentity.device_id);
@@ -729,7 +730,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
   }
   try {
     const selected = {path,body};
-    response = radio ? await (method==='GET' && !radio.authenticated ? radio.publicRead(selected.path,timeout) : radio.request(selected.path,method,selected.body,etag,timeout)) :
+    response = radio ? await (method==='GET' && (!radio.authenticated || WsprryControl.publicResources.includes(selected.path)) ? radio.publicRead(selected.path,timeout) : radio.request(selected.path,method,selected.body,etag,timeout)) :
       await fetch(WsprryControl.prefix + selected.path, {method, headers, body: selected.body === undefined ? undefined : JSON.stringify(selected.body), signal: AbortSignal.timeout(timeout), cache:'no-store'});
   } catch (error) {
     if (error.local) { if (saveAttempt) saveAttempt.sent=false; throw error; }
@@ -869,6 +870,7 @@ function controls(connected) {
   renderAccess();
   online = connected;
   const unlocked=controlsUnlocked();
+  if ($('field-access-settings')) $('field-access-settings').disabled = !unlocked || uiBusy() || !fieldTimeSupported();
   for (const id of ['station-settings-lock','wifi-settings-lock']) if($(id)) $(id).disabled=!unlocked || uiBusy();
   loggingControls();
   messageSchedulingControls();
@@ -1041,6 +1043,7 @@ async function refresh(loadConfig = false, quiet = false) {
     $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id === 'e'.repeat(32) ? 'Pico schedule' : snapshot.job.owner_id ? 'Other controller' : 'Available';
     $('network').textContent = `${n.link_status === 3 ? 'Connected' : 'Disconnected'} · ${n.ipv4 || 'No address'}`;
     await readHostname(identityRequest);
+    await updateFieldTime(loadConfig);
     if(epoch!==observationEpoch) return;
     $('discovery-help').textContent = n.mdns_state === 'conflict' ? 'Another device is using this hostname. Resolve the duplicate, then retry with USB Console WIFI OFF and WIFI ON while idle. The device will not rename itself.' : n.mdns_reason === 'device_identity_mismatch' ? 'Credentials belong to a different device. Rebuild with this device’s certificate bundle and recover through USB Console.' : n.mdns_state === 'failed' ? 'Name discovery failed. Use the current IP address and check USB Console INFO.' : '';
     if (radio) {
@@ -1236,6 +1239,8 @@ $('local-login').onsubmit = event => {
       $('local-status').textContent='Controls unlocked in this browser.';
       closeAccess();
       if(localIdentity.surface==='provisioned_preclock') await supplyPhoneTime();
+      lastBrowserTimeRefresh = 0;
+      await updateFieldTime(true);
       if(dirty || writeState!=='ready' && saveAttempt) { await refresh(); await readSavedKeepingDraft(); }
       else await refresh(true);
       if(radio && !picoPasswordState && localAuthenticated) await readPicoPassword();
@@ -2145,3 +2150,87 @@ async function applyWsprProgress() {
     if(outcome && !progressEdits.has(key)) {outcome.textContent='Saved value applied.';outcome.classList.toggle('error',false);}
   }
 }
+
+// Field time uses the existing serialized request owner. Automatic observations
+// do not renew authentication and cannot enable schedules or acquire RF ownership.
+let fieldAccessState = null, fieldAccessRevision = null, fieldAccessEdited = false;
+let lastBrowserTimeRefresh = 0;
+function fieldTimeSupported() {
+  return radio && radio.authenticated && capabilities &&
+    WsprryControl.supported('field_access', capabilities.field_access);
+}
+function checkedField(value, schema, fields) {
+  const expected = ['contract','schema','target',...fields].sort().join(',');
+  if (!value || Object.keys(value).sort().join(',') !== expected ||
+      value.contract !== WsprryControl.contract || value.schema !== schema ||
+      !value.target || Object.keys(value.target).sort().join(',') !== 'boot_id,device_id,scope' ||
+      value.target.scope !== 'member' || value.target.device_id !== localIdentity?.device_id ||
+      value.target.boot_id !== localIdentity?.boot_id)
+    throw new Error('Field observation changed or is malformed. Read saved settings again.');
+  return value;
+}
+async function readFieldAccess() {
+  if (!fieldTimeSupported()) return;
+  fieldAccessState = null; fieldAccessRevision = null;
+  const result = await api('consumer/field');
+  const value = checkedField({...result.data,contract:WsprryControl.contract},'field-access',['enabled','storage_healthy']);
+  if (typeof value.enabled !== 'boolean' || value.storage_healthy !== true || !result.revision)
+    throw new Error('Field settings are unavailable. Check storage and read again.');
+  fieldAccessState = value; fieldAccessRevision = result.revision;
+  if (!fieldAccessEdited) $('field-access-enabled').checked = value.enabled;
+  $('field-access-settings').disabled = !controlsUnlocked();
+  $('field-access-status').textContent = value.enabled ? 'Field Wi-Fi stays available across restarts.' : 'Field Wi-Fi is off. Automatic outage recovery remains available.';
+}
+async function updateFieldTime(readSettings = false) {
+  if ($('field-access-settings')) $('field-access-settings').disabled = !fieldTimeSupported() || !controlsUnlocked();
+  if (!fieldTimeSupported()) return;
+  if (readSettings) await readFieldAccess();
+  if (radio.context?.interface !== 'ap' || document.hidden) return;
+  const now = Date.now();
+  if (lastBrowserTimeRefresh && now >= lastBrowserTimeRefresh && now-lastBrowserTimeRefresh < 30000) return;
+  lastBrowserTimeRefresh = now;
+  const read = async (path, method='GET', body) => {
+    const response = await radio.request(path,method,body,undefined,2000);
+    const value = await response.json();
+    if (!response.ok) throw new Error(value.error?.code || 'Browser time update was not accepted');
+    return checkedField(value,'browser-time',['source','clock_state','age_ns','uncertainty_ns','disagreement']);
+  };
+  try {
+    let status = await read('consumer/time');
+    if (!['synchronized','holdover','unsynchronized'].includes(status.clock_state) ||
+        !['none','network','controller','browser','disagreement'].includes(status.source) ||
+        !/^(0|[1-9][0-9]{0,19})$/.test(status.age_ns) ||
+        !/^(0|[1-9][0-9]{0,19})$/.test(status.uncertainty_ns) || typeof status.disagreement !== 'boolean')
+      throw new Error('Invalid time observation');
+    if (['none','browser','disagreement'].includes(status.source)) {
+      const nonce = requestId(), target = status.target;
+      await read('consumer/time/challenge','POST',{schema:'browser-time-challenge',target,nonce});
+      status = await read('consumer/time/submit','POST',{schema:'browser-time-sample',target,
+        sample:{nonce,utc_ns:(BigInt(Date.now())*1000000n).toString()}});
+    }
+    const labels = {browser:'Using browser time',network:'Using network time',controller:'Using controller time',none:'Waiting for usable time',disagreement:'Time sources disagree'};
+    $('browser-time-status').textContent = labels[status.source] + ' · ' + status.clock_state +
+      ` · last sample ${(Number(status.age_ns)/1e9).toFixed(0)} seconds ago · estimated uncertainty ±${(Number(status.uncertainty_ns)/1e6).toFixed(1)} ms.` +
+      (status.source==='browser' ? ' Time supplied by this device’s clock. Without refresh, holdover lasts up to one hour; uncertainty may block starts sooner.' : '');
+  } catch (error) {
+    $('browser-time-status').textContent = 'Fresh browser time is unavailable. The Pico retains its clock within holdover limits. ' + error.message;
+    lastBrowserTimeRefresh = now-25000;
+  }
+}
+$('field-access-enabled')?.addEventListener('change',()=>{fieldAccessEdited=true;});
+$('field-access-read')?.addEventListener('click',()=>action(readFieldAccess,{message:'Reading saved field access.'}));
+$('field-access-form')?.addEventListener('submit',event=>{
+  event.preventDefault();
+  return action(async()=>{
+    if (!fieldAccessState || !fieldAccessRevision || !controlsUnlocked()) throw new Error('Read saved field access before saving.');
+    const target=fieldAccessState.target, revision=fieldAccessRevision;
+    fieldAccessState=null; fieldAccessRevision=null;
+    try {
+      await api('consumer/field','PUT',{schema:'field-access',target,enabled:$('field-access-enabled').checked},revision);
+      fieldAccessEdited=false; await readFieldAccess();
+    } catch(error) {
+      $('field-access-status').textContent='Save unconfirmed. Read saved field access and review it before another save. '+error.message;
+      throw error;
+    }
+  },{message:'Saving field access. The Wi-Fi connection may close after confirmation.'});
+});

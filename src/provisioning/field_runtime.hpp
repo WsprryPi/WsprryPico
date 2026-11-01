@@ -9,6 +9,7 @@
 
 namespace wsprrypico::provisioning {
 inline constexpr std::uint64_t softap_fallback_ms = 60'000;
+inline constexpr std::uint64_t softap_reopen_ms = 300'000;
 inline constexpr std::uint64_t softap_station_stable_ms = 30'000;
 inline constexpr std::uint64_t softap_join_grace_ms = 120'000;
 inline constexpr std::uint64_t softap_manual_setup_ms = 600'000;
@@ -93,7 +94,7 @@ class SoftApCoordinator {
     bool activated_ = false, expired_ = false, fallback_armed_ = true;
     bool client_connected_ = false, client_hold_ = false;
     std::uint64_t activated_ms_ = 0, last_poll_ms_ = 0;
-    std::uint64_t drain_started_ms_ = 0;
+    std::uint64_t drain_started_ms_ = 0, expired_ms_ = 0;
 };
 
 class IndicatorOutput {

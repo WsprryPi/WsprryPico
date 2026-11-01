@@ -8,6 +8,8 @@
 #include "network_support.hpp"
 #include "provisioning/consumer_profile.hpp"
 #include "standalone/frequency_policy_engine.hpp"
+#include "standalone/wtp_profile.hpp"
+#include "time/controller_time.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
@@ -232,6 +234,11 @@ struct ObservedEngine : wtp::RfEngine {
 };
 struct Driver {
     std::string device;
+    time::UtcDiscipline field_clock{+[](void*) -> std::uint64_t { return time_us_64() * 1000 + 1; },
+                                    nullptr, standalone::clock_profile()};
+    time::ControllerTimeArbiter field_time{
+        field_clock, +[](void*) -> std::uint64_t { return time_us_64() * 1000 + 1; }, nullptr,
+        device};
     ObservedEngine consumer_engine, engineering_engine;
     network_test::Fixture f{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &consumer_engine};
     // Independent engineering adapter boundary for genuine served-page tests.
@@ -424,6 +431,7 @@ struct Driver {
             access_media = *saved_access;
         check(access.load());
         radio.password_storage(access, "wspr-0a60df");
+        radio.time_authority(field_time);
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
         network.hostname = hostname;
         server.configure(f.service.status().boot_id, access, profiles, random, indicator, network,
@@ -615,6 +623,12 @@ struct Driver {
         if (op == "flash_failure") {
             f.flash.fail = v.get("fail")->boolean();
             return "{}";
+        }
+        if (op == "field_clock") {
+            f.clock.selected = &field_clock;
+            f.api.time_source(field_time);
+            f.api.set_active_job_connections(true);
+            return "{\"ok\":true}";
         }
         if (op == "time") {
             std::uint64_t time;

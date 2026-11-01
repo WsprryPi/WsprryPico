@@ -44,6 +44,9 @@ async function evaluate(expression) {
   if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || 'Browser script failed');
   return result.result.value;
 }
+async function ownedEvaluate(expression) {
+  return evaluate(`(async()=>{let result,error;await action(async()=>{try{result=await (${expression});}catch(e){error=e;throw e;}},{refreshFrequency:false});if(error)throw error;return result;})()`);
+}
 try {
   await until(()=>fs.existsSync(path.join(profile,'DevToolsActivePort')));
   const port=fs.readFileSync(path.join(profile,'DevToolsActivePort'),'utf8').split('\n')[0];
@@ -106,6 +109,65 @@ try {
     }
     const before=await evaluate('(async()=>({config:(await api("config")).data.config,status:(await api("status")).data}))()');
     assert.equal(before.status.job.output_active,false);
+    if (args.includes('--field-time')) {
+      assert.equal(ap,true,'field time requires the actual AP interface');
+      assert.match(await evaluate('document.getElementById("browser-time-status").textContent'),/Using browser time/);
+      const observed=await ownedEvaluate('(async()=>{const r=await radio.request("consumer/time");if(!r.ok)throw Error("Time read refused");return r.json()})()');
+      assert.equal(observed.source,'browser');
+      assert.notEqual(observed.clock_state,'unsynchronized');
+      assert.ok(BigInt(observed.uncertainty_ns)<=500000000n);
+      evidence.browser_time=observed;
+    }
+    if (args.includes('--field-rf')) {
+      assert.ok(args.includes('--field-time') && input.rf_path_verified===true,'explicit conducted RF verification required');
+      assert.ok(Number.isInteger(input.frequency_hz) && input.frequency_hz>=100000 && input.frequency_hz<=30000000);
+      assert.ok(Array.isArray(input.capture_argv) && input.capture_argv.every(x=>typeof x==='string'));
+      assert.ok(Array.isArray(input.cleanup_argv) && input.cleanup_argv.every(x=>typeof x==='string'));
+      const receiverLog=fs.openSync(path.join(output,'receiver.log'),'w',0o600);
+      const receiver=spawn(input.capture_argv[0],input.capture_argv.slice(1),{stdio:['ignore',receiverLog,receiverLog]});
+      let receiverCode;
+      receiver.on('exit',code=>{receiverCode=code;});
+      try {
+        await until(()=>fs.existsSync(input.receiver_ready));
+        const frequency=input.frequency_hz;
+        evidence.rf=await ownedEvaluate(`(async()=>{
+          const observed=[];const id=requestId();let claimed=false;
+          try {
+            await job('HELLO',{versions:['WTP/1'],client_name:'Field AP validation',client_version:'1'});
+            await job('CLAIM',{owner_id:session,lease_ms:30000});claimed=true;
+            await job('LOAD',{job_id:id,profile:'rf-events/1',mode:'tone',total_duration_ns:'3000000000',allow_frequency_adjustment:true,
+              events:[{offset_ns:'0',duration_ns:'3000000000',rf_on:true,frequency_nhz:String(BigInt(${frequency})*1000000000n)}]});
+            const state=(await api('status')).data;
+            const start=BigInt(state.standalone.utc_now_ns)+3000000000n;
+            await job('ARM',{job_id:id,start_utc_ns:String(start),max_start_uncertainty_ns:'500000000'});
+            const deadline=Date.now()+15000;
+            while(Date.now()<deadline){
+              const value=(await api('status')).data;observed.push({at:Date.now(),state:value.job.state,output:value.job.output_active,uncertainty_ns:value.standalone.uncertainty_ns});
+              if(value.job.state==='complete'){if(value.job.output_active)throw Error('Completed job has active output');return {job_id:id,start_utc_ns:String(start),frequency_hz:${frequency},observed};}
+              if(['failed','aborted','missed'].includes(value.job.state))throw Error('RF job ended '+value.job.state);
+              await new Promise(r=>setTimeout(r,150));
+            }
+            throw Error('Finite RF job deadline');
+          } finally {
+            if(claimed){const value=(await api('status')).data.job;
+              if(value.owner_id===session){if(['loaded','armed','running'].includes(value.state))await job('ABORT',{job_id:id});await job('RELEASE');}}
+          }
+        })()`);
+        assert.ok(evidence.rf.observed.some(value=>value.state==='running'&&value.output===true),'actual AP status during RF');
+        await until(()=>receiverCode!==undefined);
+        assert.equal(receiverCode,0,'bounded receiver capture');
+      } finally {
+        if(receiverCode===undefined)receiver.kill('SIGTERM');
+        fs.closeSync(receiverLog);
+        // Independent USB physical cleanup was selected before RF enable.
+        const cleanup=spawn(input.cleanup_argv[0],input.cleanup_argv.slice(1),{stdio:['ignore','pipe','pipe']});
+        let text='';cleanup.stdout.on('data',part=>text+=part);
+        const code=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{cleanup.kill('SIGTERM');reject(Error('Physical RF cleanup deadline'));},15000);cleanup.on('exit',value=>{clearTimeout(timer);resolve(value);});});
+        assert.equal(code,0,'independent physical cleanup');
+        evidence.physical_cleanup=JSON.parse(text);
+        assert.equal(evidence.physical_cleanup.output_active,false);
+      }
+    }
     if (index===0 && args.includes('--settings')) {
       assert.equal(before.config.enabled,false);
       // A reversible radio opt-in while schedules/output are disabled. The

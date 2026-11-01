@@ -643,6 +643,7 @@ int main() {
     (void)softap_coordinator.request_join_grace(time_us_64() / 1000ULL);
 #endif
     static wsprrypico::provisioning::PicoSoftAp softap;
+    std::array<std::uint8_t, 32> ap_credential_digest{};
     std::optional<wsprrypico::standalone::Config> runtime_network_config;
     if (store_loaded && store.config())
         runtime_network_config = runtime_profile.overlay(*store.config());
@@ -689,6 +690,7 @@ int main() {
         identities.device_id(), service.status().boot_id, &consumer_radio_crypto[3]);
     consumer_radio.password_storage(access_store,
                                     derived_identity ? derived_identity->default_password : "");
+    consumer_radio.time_authority(time_arbiter);
     bootstrap.radio_control(consumer_radio);
     bootstrap.progress_control(browser_api);
     if (consumer_browser_selected())
@@ -1962,7 +1964,8 @@ int main() {
         softap_coordinator.client_connected(
             softap.client_connected(softap_coordinator.status(now_ms).remaining_ms == 0), now_ms);
         (void)softap_coordinator.poll(now_ms);
-        if (softap_coordinator.expired() && softap.running()) {
+        if (softap_coordinator.expired() && softap.running() && !consumer_radio.credential_reply_pending() &&
+            wsprrypico::network::consumer_radio_network_idle(provisioning_activity(&service))) {
             const auto address = network.ipv4();
             consumer_radio.listeners(
                 false, consumer_browser_selected() && network.link_up() ? address : "",
@@ -2180,17 +2183,21 @@ int main() {
         const auto surface = softap_coordinator.surface(
             service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
         const auto access_activity = provisioning_activity(&service);
-        const bool radio_unarmed_access =
-            consumer_browser_selected() && consumer_radio.available() &&
-            wsprrypico::network::consumer_radio_network_idle(access_activity);
-        const bool blank_captive =
-            bootstrap_started &&
-            surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
-            blank_access_available() &&
-            (wsprrypico::provisioning::idle_for_access(access_activity) || radio_unarmed_access);
+        const bool consumer_ap = bootstrap_started && consumer_browser_selected();
+        const bool deliberate_recovery = boot_recovery ||
+            (softap_coordinator.status(field_now_ms).manual_setup ||
+             softap_coordinator.status(field_now_ms).join_grace);
+        const bool blank_captive = bootstrap_started && blank_access_available() &&
+            (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
+             deliberate_recovery);
+        const auto ap_password = consumer_ap ? consumer_radio.authentication_password() :
+            access_store.record() ? std::string_view(access_store.record()->password) : std::string_view{};
+        const auto next_ap_digest = wsprrypico::wtp::sha256(std::span(
+            reinterpret_cast<const std::uint8_t*>(ap_password.data()), ap_password.size()));
         const bool ap_transition_safe =
             wsprrypico::network::consumer_radio_network_idle(access_activity);
-        if (ap_transition_safe && softap.running() && softap.captive() != blank_captive) {
+        if (ap_transition_safe && !consumer_radio.credential_reply_pending() && softap.running() &&
+            (softap.captive() != blank_captive || (!blank_captive && ap_credential_digest != next_ap_digest))) {
             (void)network.softap_name(false, {});
             softap.stop();
         }
@@ -2198,10 +2205,11 @@ int main() {
             const auto* access = access_store.record();
             if (blank_captive)
                 (void)softap.start_blank(local_identity);
-            else if (surface != wsprrypico::provisioning::SoftApSurface::BlankReadOnly &&
-                     runtime_profile_ready() && access_store.healthy() && access)
-                (void)softap.start(local_identity, access->password);
-        } else if ((ap_transition_safe || softap_coordinator.expired()) && !request_softap &&
+            else if (runtime_profile_ready() && (consumer_ap || (access_store.healthy() && access)) &&
+                     wsprrypico::provisioning::valid_local_password(ap_password)) {
+                if (softap.start(local_identity, ap_password)) ap_credential_digest = next_ap_digest;
+            }
+        } else if (ap_transition_safe && !consumer_radio.credential_reply_pending() && !request_softap &&
                    softap.running()) {
             if (softap_coordinator.expired()) {
                 consumer_radio.listeners(
@@ -2214,7 +2222,7 @@ int main() {
         }
         softap_coordinator.ready(softap.running());
         const bool softap_name_ready = network.softap_name(softap.ready(), deployment_hostname);
-        const bool bootstrap_active = bootstrap_started && softap.ready() && blank_captive;
+        const bool bootstrap_active = bootstrap_started && softap.ready() && (blank_captive || consumer_ap);
         const bool consumer_station = bootstrap_started && consumer_browser_selected() &&
                                       consumer_radio.available() && station_ready;
         consumer_radio.listeners(bootstrap_active, consumer_station ? station_ip : "",
@@ -2272,7 +2280,7 @@ int main() {
                        consumer_station, !softap_coordinator.status(field_now_ms).draining);
         network.consumer_listener_status(consumer_station && bootstrap.listening());
         const bool softap_service_ready =
-            softap.ready() && (surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly
+            softap.ready() && ((consumer_ap || surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly)
                                    ? bootstrap.listening()
                                    : softap_name_ready && server.listening());
         softap_coordinator.ready(softap_service_ready);

@@ -18,7 +18,7 @@ accepted NTP clock without the Pico's NTP age or uncertainty admission cutoff.
 Actual uncertainty continues to grow and remains reported. Initial
 synchronization, explicit invalidation, range checks, cross-source disagreement,
 leap handling and callers' stricter uncertainty budgets remain enforced.
-Controller/browser source expiry remains 90 seconds. A finite timeout retains
+Engineering controller source expiry remains 90 seconds. Authenticated consumer browser time has an independent one-hour maximum and 500 ms ceiling; see [field time](field-time.md). A finite timeout retains
 the 500 ms admission limit.
 
 Positive timeout settings retain internal Config version 1. Zero is serialized as

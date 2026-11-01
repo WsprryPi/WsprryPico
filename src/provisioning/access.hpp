@@ -89,6 +89,7 @@ class AccessStore {
     bool load();
     bool initialize(const AccessRecord& record);
     bool replace(const AccessRecord& record);
+    bool set_field_mode(bool enabled, std::string_view initial_field_password);
     bool set_radio_password(std::string_view password, std::string_view initial_field_password);
     AccessStoreState state() const {
         return state_;

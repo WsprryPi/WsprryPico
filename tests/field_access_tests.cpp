@@ -1202,20 +1202,26 @@ void runtime_policy() {
     CHECK(blank_ap.poll(provisioning::softap_fallback_ms));
     CHECK(blank_ap.poll(lifetime - 1));
     CHECK(!blank_ap.poll(lifetime));
-    CHECK(!blank_ap.poll(2 * lifetime)); // Persistent blank/outage stays off.
+    CHECK(blank_ap.poll(2 * lifetime)); // A continuing outage reopens a bounded window.
+    blank_ap.ready(true);
+    CHECK(!blank_ap.poll(3 * lifetime));
     CHECK(blank_ap.status(lifetime).expired);
     CHECK(blank_ap.status(lifetime).remaining_ms == 0);
-    CHECK(blank_ap.request_manual_setup(2 * lifetime + 1, true));
-    CHECK(blank_ap.poll(2 * lifetime + 1));
+    CHECK(blank_ap.request_manual_setup(3 * lifetime + 1, true));
+    CHECK(blank_ap.poll(3 * lifetime + 1));
     blank_ap.ready(true);
-    CHECK(!blank_ap.poll(3 * lifetime + 1));
+    CHECK(!blank_ap.poll(4 * lifetime + 1));
 
     provisioning::SoftApCoordinator fallback_ap(store);
     fallback_ap.station(false, 0);
     CHECK(fallback_ap.poll(provisioning::softap_fallback_ms));
     fallback_ap.ready(true);
     CHECK(!fallback_ap.poll(provisioning::softap_fallback_ms + lifetime));
-    CHECK(!fallback_ap.poll(3 * lifetime));
+    CHECK(!fallback_ap.poll(provisioning::softap_fallback_ms + lifetime +
+                            provisioning::softap_reopen_ms - 1));
+    CHECK(fallback_ap.poll(provisioning::softap_fallback_ms + lifetime +
+                           provisioning::softap_reopen_ms));
+    fallback_ap.ready(true);
     fallback_ap.station(true, 3 * lifetime);
     CHECK(!fallback_ap.poll(3 * lifetime + provisioning::softap_station_stable_ms));
     fallback_ap.station(false, 4 * lifetime);
@@ -1296,6 +1302,16 @@ void runtime_policy() {
     CHECK(unattended_grace.poll(next_join + provisioning::softap_join_grace_ms - 1));
     CHECK(!unattended_grace.poll(next_join + provisioning::softap_join_grace_ms));
     CHECK(media.bytes == access_before_manual);
+    CHECK(store.set_field_mode(true, identity.default_password));
+    provisioning::SoftApCoordinator persistent(store);
+    persistent.station(true, 0);
+    CHECK(persistent.poll(0));
+    persistent.ready(true);
+    CHECK(persistent.poll(10 * lifetime));
+    CHECK(!persistent.expired());
+    CHECK(store.set_field_mode(false, identity.default_password));
+    CHECK(!persistent.poll(10 * lifetime + 1));
+
     ap.no_profile(false);
     CHECK(ap.surface(false) == provisioning::SoftApSurface::ProvisionedPreClock);
     CHECK(ap.surface(true) == provisioning::SoftApSurface::Normal);
@@ -1685,29 +1701,62 @@ void browser_time_hint_policy() {
     config.holdover_for_ns = 180'000'000'000ULL;
     time::UtcDiscipline discipline(monotonic, nullptr, config);
     time::ControllerTimeArbiter arbiter(discipline, monotonic, nullptr, std::string(device));
-    constexpr std::uint64_t utc_ms = 1'800'000'000'000ULL;
+    constexpr std::uint64_t utc = 1'800'000'000'000'000'000ULL;
     clock_now = 1'000'000'000ULL;
-    CHECK(!arbiter.seed_browser_hint(time::sntp_min_utc_ns / 1'000'000ULL - 1, 0));
-    CHECK(!arbiter.seed_browser_hint(time::sntp_max_utc_ns / 1'000'000ULL, 0));
-    CHECK(!arbiter.seed_browser_hint(utc_ms, time::browser_challenge_max_age_ns + 1));
-    CHECK(arbiter.seed_browser_hint(utc_ms, 50'000'000ULL));
+    CHECK(!arbiter.seed_browser_hint(utc / 1'000'000ULL, 0));
+    CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
+    const auto sample = [&](std::string_view principal, std::uint64_t value,
+                            std::uint64_t latency = 50'000'000ULL) {
+        CHECK(arbiter.challenge(principal, "session", device, "nonce").code ==
+              time::ControllerTimeCode::Ok);
+        clock_now += latency;
+        return arbiter.submit(principal, "session", device, "nonce", value, true);
+    };
+    CHECK(sample("browser-one", utc) == time::ControllerTimeCode::Ok);
     CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
     CHECK(discipline.snapshot().state == wtp::ClockState::Synchronized);
     CHECK(discipline.snapshot().uncertainty_ns < time::standalone_max_uncertainty_ns);
-    clock_now += 30'000'000'000ULL;
-    CHECK(arbiter.seed_browser_hint(utc_ms + 30'000, 50'000'000ULL));
-    CHECK(!arbiter.seed_browser_hint(utc_ms + 60'000, 50'000'000ULL)); // Bad phone jump.
-    CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
-    clock_now += 1;
-    CHECK(arbiter.observe(time::ObservationSource::Sntp, (utc_ms + 60'000) * 1'000'000ULL,
-                          clock_now, 10'000'000ULL, wtp::LeapState::Normal));
-    CHECK(arbiter.status().source == time::ActiveTimeSource::Sntp);
-    CHECK(!arbiter.seed_browser_hint(utc_ms + 30'000, 50'000'000ULL));
-    clock_now += 181'000'000'000ULL;
+    clock_now += 120'000'000'000ULL;
+    CHECK(discipline.snapshot().state == wtp::ClockState::Holdover);
+    CHECK(sample("browser-two", utc + 120'050'000'000ULL) == time::ControllerTimeCode::SourceBusy);
+    CHECK(sample("browser-one", utc + 120'100'000'000ULL) == time::ControllerTimeCode::Ok);
+    CHECK(sample("browser-one", utc + 120'150'000'000ULL, time::browser_challenge_max_age_ns + 1) ==
+          time::ControllerTimeCode::Timeout);
+    CHECK(sample("browser-one", utc + 900'000'000'000ULL) ==
+          time::ControllerTimeCode::Disagreement);
     CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
-    CHECK(arbiter.seed_browser_hint(utc_ms + 211'000, 50'000'000ULL));
-    CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
+    CHECK(sample("browser-one", utc + 121'000'000'000ULL) ==
+          time::ControllerTimeCode::Disagreement);
+    CHECK(!arbiter.observe(time::ObservationSource::Browser, utc + 121'000'000'000ULL, clock_now,
+                           300'000'000ULL, wtp::LeapState::Normal, {}, "browser-one"));
+    CHECK(sample("browser-one", utc + 121'050'000'000ULL) == time::ControllerTimeCode::Ok);
+    clock_now += time::browser_source_lifetime_ns + 1;
+    CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
+    CHECK(sample("browser-two", utc + 4'000'000'000'000ULL) == time::ControllerTimeCode::Ok);
+    clock_now += 1;
+    CHECK(!arbiter.observe(time::ObservationSource::Sntp, utc + 8'000'000'000'000ULL, clock_now,
+                           10'000'000ULL, wtp::LeapState::Normal));
+    CHECK(arbiter.status().disagreement);
 }
+
+void browser_authority_expires_with_uncertainty() {
+    time::UtcDiscipline discipline(monotonic, nullptr);
+    time::ControllerTimeArbiter arbiter(discipline, monotonic, nullptr, std::string(device));
+    constexpr std::uint64_t utc = 1'800'000'000'000'000'000ULL;
+    clock_now = 1'000'000'000ULL;
+    CHECK(arbiter.challenge("first", "one", device, "nonce").code == time::ControllerTimeCode::Ok);
+    clock_now += 190'000'000ULL;
+    CHECK(arbiter.submit("first", "one", device, "nonce", utc, true) ==
+          time::ControllerTimeCode::Ok);
+    clock_now += 1'200'000'000'000ULL;
+    CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
+    CHECK(arbiter.status().source == time::ActiveTimeSource::None);
+    CHECK(arbiter.challenge("second", "two", device, "fresh").code == time::ControllerTimeCode::Ok);
+    clock_now += 10'000'000ULL;
+    CHECK(arbiter.submit("second", "two", device, "fresh", utc + 1'200'010'000'000ULL, true) ==
+          time::ControllerTimeCode::Ok);
+}
+
 } // namespace
 
 int main() {
@@ -1767,5 +1816,6 @@ int main() {
     reset_policy();
     controller_time_policy();
     browser_time_hint_policy();
+    browser_authority_expires_with_uncertainty();
     std::cout << "field access tests passed\n";
 }

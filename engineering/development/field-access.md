@@ -5,7 +5,7 @@ manager and one JobService. Consumer Wi-Fi setup and password-encrypted radio
 control use the [consumer access](consumer-lan-access.md) and
 [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md) contracts. Their open
 Wi-Fi-first setup supersedes read-only blank-AP policy for that consumer surface.
-Every AP path, including engineering field and recovery access, remains available while a Wi-Fi client is associated. The final disconnect starts a ten-minute inactivity interval. Initial unjoined access lasts ten minutes, except the Console's two-minute join grace. Browser traffic, authentication slots and stored field intent do not substitute for association or reopen an expired window. USB remains the local recovery transport.
+Saved field mode keeps the AP requested persistently. Other AP paths, including engineering recovery access, remain available while a Wi-Fi client is associated. The final disconnect starts a ten-minute inactivity interval. Initial unjoined access lasts ten minutes, except the Console's two-minute join grace. Browser traffic and authentication slots do not substitute for association. A continuing infrastructure outage reopens expired fallback after five minutes closed. USB remains the local recovery transport.
 
 Provisioning remains outside WTP/1. All field job control enters the existing
 JobService; transport loss does not prove inactivity or transfer ownership.
@@ -226,7 +226,7 @@ report source, sample age, conservative uncertainty and disagreement state.
 Enrolled BLE clients, explicit USB-local tooling and the provisioned server-
 authenticated pre-clock SoftAP surface can identify and synchronize the device,
 but cannot arm a job until the ordinary WTP clock and leap checks pass. Public blank-AP reads grant no controller-time authority; the consumer setup
-page uses its independently challenge-bound time adapter. UTC is never restored as valid merely from
+hints cannot establish transmit-ready time. The authenticated consumer AP uses the independently session-bound browser-time adapter described in [field time](field-time.md). UTC is never restored as valid merely from
 flash, reboot history or a prior browser session.
 
 ## Local field-control binding

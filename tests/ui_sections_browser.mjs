@@ -8,7 +8,7 @@ import path from 'node:path';
 import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
 
 const carrier=process.argv[4] || 'consumer';
-const proxyPort=carrier==='engineering' ? 19154 : 19149;
+const proxyPort=carrier==='engineering' ? 19154 : carrier==='field' ? 19153 : 19149;
 const driver=process.argv[2],output=path.resolve(process.argv[3] || 'build/ui-sections-browser');
 if(!driver)throw Error('Usage: node tests/ui_sections_browser.mjs DRIVER [OUTPUT]');
 await mkdir(output,{recursive:true});
@@ -35,7 +35,7 @@ async function until(fn,label) {
     throw Error('Timed out: '+label);
 }
 async function control(value) {
-    const response=await fetch('http://127.0.0.1:19149/.fixture-control',{method:'POST',body:JSON.stringify(value)});
+    const response=await fetch('http://127.0.0.1:'+proxyPort+'/.fixture-control',{method:'POST',body:JSON.stringify(value)});
     assert.equal(response.status,200);return response.json();
 }
 async function click(id) {await evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
@@ -48,7 +48,7 @@ async function idle() {await until(()=>evaluate('typeof busy!=="undefined" && !b
 async function navigate(hash='') {
     await send('Page.navigate',{url:'about:blank'});
     await until(()=>evaluate('location.href==="about:blank"').catch(()=>false),'blank document');
-    await send('Page.navigate',{url:'http://192.168.1.53/'+hash});
+    await send('Page.navigate',{url:(carrier==='field'?'http://192.168.4.1/station':'http://192.168.1.53/')+hash});
     await until(()=>evaluate('typeof accessCarrier!=="undefined" && (!!localIdentity || accessCarrier==="certificate") && !busy'),'shipped admitted page');
 }
 async function login(password='test-password') {
@@ -67,6 +67,7 @@ async function capture(state,dialog=false) {
     for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844},{name:'landscape',width:740,height:360}]) {
         await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name!=='desktop'});
         if(state==='contextual-help')await evaluate('document.getElementById("radio-settings").scrollIntoView({block:"start"})');
+        else if(state==='field-settings')await evaluate('document.getElementById("field-access").scrollIntoView({block:"start"})');
         else if(!dialog)await evaluate('scrollTo(0,0)');
         assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'no horizontal overflow');
         if(process.env.UI_REVIEW_NO_CAPTURE==='1')continue;
@@ -105,6 +106,23 @@ try {
       assert.equal(await evaluate('online'),true);await key('Escape');
       assert.equal(await evaluate('online'),true);
       pass('certificate carrier retains authority and explains browser-managed certificate access');
+    } else if(carrier==='field') {
+      await control({op:'field_clock'});
+      await send('Page.bringToFront');
+      await login();
+      assert.equal(await evaluate('localAuthenticated'),true);
+      assert.match(await evaluate('document.getElementById("browser-time-status").textContent'),/Using browser time/);
+      await capture('field-time');
+      await section('field-access');
+      assert.equal(await evaluate('document.getElementById("field-access-settings").disabled'),false);
+      await evaluate('document.getElementById("field-access-enabled").checked=true;document.getElementById("field-access-enabled").dispatchEvent(new Event("change"));document.getElementById("field-access-form").requestSubmit()');
+      await idle();
+      assert.match(await evaluate('document.getElementById("field-access-status").textContent'),/stays available/);
+      await capture('field-settings');
+      await evaluate('document.getElementById("field-access-enabled").checked=false;document.getElementById("field-access-enabled").dispatchEvent(new Event("change"));document.getElementById("field-access-form").requestSubmit()');
+      await idle();
+      assert.match(await evaluate('document.getElementById("field-access-status").textContent'),/is off/);
+      pass('AP automatic browser time, field persistence read/save, responsive field controls and status');
     } else {
     assert.equal(await evaluate('document.querySelectorAll("[data-operator-section][open]").length'),0);
     assert.equal(await evaluate('document.getElementById("local-access").open'),false);
@@ -263,7 +281,7 @@ try {
     const result={carrier,browser:(await send('Browser.getVersion')).product,checks,physical_device:false};
     await writeFile(path.join(output,'results.json'),JSON.stringify(result,null,2)+'\n');
 } catch(error) {
-    console.error('UI failure state',await evaluate('JSON.stringify({busy,online,carrier:accessCarrier,authenticated:localAuthenticated,notice:document.getElementById("notice").textContent,focus:document.activeElement.id,open:[...document.querySelectorAll("[data-operator-section][open]")].map(e=>e.id)})').catch(()=>null));
+    console.error('UI failure state',await evaluate('JSON.stringify({busy,online,carrier:accessCarrier,authenticated:localAuthenticated,notice:document.getElementById("notice").textContent,field:capabilities?.field_access,context:radio?.context,hidden:document.hidden,fieldSupported:fieldTimeSupported(),focus:document.activeElement.id,open:[...document.querySelectorAll("[data-operator-section][open]")].map(e=>e.id)})').catch(()=>null));
     throw error;
 } finally {
     if(ws){await send('Browser.close').catch(()=>{});ws.close();}await cleanupUiProcesses([chrome,fixture],profile,{processGroup});
