@@ -1,8 +1,8 @@
-# Credits and technical references
+# Credits and licensing
 
 WsprryPico is maintained by Lee C. Bussy and contributors. Original project contributions use the [MIT license](https://github.com/WsprryPi/WsprryPico/blob/devel/LICENSE.md). See [third-party notices](https://github.com/WsprryPi/WsprryPico/blob/devel/THIRD_PARTY_NOTICES.md) for firmware and browser dependency attribution.
 
-The manual uses Sphinx, MyST Markdown and sphinx_rtd_theme. Its typography, spacing, navigation colors, mobile navigation and build helpers adapt [WsprryPi-Docs](https://github.com/WsprryPi/WsprryPi-Docs) at `c0215b6d980ae809dfacdeb9d2ef557dfc71445e`. The WsprryPi logo and favicon are copied unchanged from the same revision. The image-delivery extension and its build regression test come from the same revision, with adaptations for the Pico manual's documentation tools.
+The manual uses Sphinx, MyST Markdown, and sphinx_rtd_theme. Its design, logo, favicon, and documentation tools incorporate work from [WsprryPi-Docs](https://github.com/WsprryPi/WsprryPi-Docs).
 
 The adapted portions retain this license:
 
@@ -25,5 +25,3 @@ The adapted portions retain this license:
 > LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 > OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 > SOFTWARE.
-
-Engineering contracts, protocol schemas and test records remain in the repository's [engineering directory](https://github.com/WsprryPi/WsprryPico/tree/devel/engineering). They are outside this operator site's navigation and search.
