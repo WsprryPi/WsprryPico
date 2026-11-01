@@ -1,119 +1,42 @@
 # Strict WTP USB endpoint
 
-The Pico 2 W image implements WTP/1 request decoding, job-service dispatch,
-response/event encoding and ordered USB frame transmission. The normal
-`WsprryPico` application uses the 138 MHz PIO/DMA engine;
-`WsprryPico-Inhibited` explicitly selects its lifecycle simulator. Both start
-unsynchronized, acquire qualified UTC and enforce local ARM/launch admission.
-See [current firmware selection](firmware-foundation.md). Host tests and a
-firmware build do not qualify USB on a board, target timing or RF.
+The Pico 2 W image implements WTP/1 request decoding, job-service dispatch, response/event encoding, and ordered USB frame transmission. The normal `WsprryPico` application uses the 138 MHz PIO/DMA engine; `WsprryPico-Inhibited` explicitly selects its lifecycle simulator. Both start unsynchronized, acquire qualified UTC, and enforce local ARM/launch admission. See [current firmware selection](firmware-foundation.md). Host tests and a firmware build do not qualify USB on a board, target timing, or RF.
 
 ## Architecture and trust
 
-`src/wtp/json.*` validates bounded UTF-8 JSON and exposes non-owning value views.
-`codec.*` maps closed WTP envelopes/bodies to typed requests and serializes
-responses. `endpoint.*` owns the connection and frame queues. All are portable
-C++20. `src/standalone/pico/main.cpp` supplies the existing USB adapter, device identity and
-clock. Console remains independent; generic USB stdio is disabled.
+`src/wtp/json.*` validates bounded UTF-8 JSON and exposes non-owning value views. `codec.*` maps closed WTP envelopes/bodies to typed requests and serializes responses. `endpoint.*` owns the connection and frame queues. All are portable C++20. `src/standalone/pico/main.cpp` supplies the existing USB adapter, device identity, and clock. Console remains independent; generic USB stdio is disabled.
 
-USB supplies principal `usb-physical`: access to this CDC function is the trust
-boundary, enforced by physical access and host device permissions. Firmware
-cannot identify individual host users or processes. Session/owner IDs are not
-credentials. A client with the same physical access can resume the same session;
-a different adapter principal is rejected by JobService. No TLS, network
-principal, new authentication protocol or host production integration is added.
+USB supplies principal `usb-physical`: access to this CDC function is the trust boundary, enforced by physical access and host device permissions. Firmware cannot identify individual host users or processes. Session/owner IDs are not credentials. A client with the same physical access can resume the same session; a different adapter principal is rejected by JobService. No TLS, network principal, new authentication protocol, or host production integration is added.
 
-Every connection starts unnegotiated and requires HELLO. Subsequent requests
-must use that connection's session. A session switch receives SESSION_REPLACED
-when possible and closes the old logical connection. USB provides only one active
-WTP connection; reconnect replaces the previous stream. The job service, leases,
-loaded jobs, replay cache and terminal results survive a transport disconnect.
-A boot change clears the connection and event sequence; the service resets its
-own state and verifies output inhibition separately.
+Every connection starts unnegotiated and requires HELLO. Subsequent requests must use that connection's session. A session switch receives SESSION_REPLACED when possible and closes the old logical connection. USB provides only one active WTP connection; reconnect replaces the previous stream. The job service, leases, loaded jobs, replay cache, and terminal results survive a transport disconnect. A boot change clears the connection and event sequence; the service resets its own state and verifies output inhibition separately.
 
-All eleven operations are connected: HELLO, CAPS, CLAIM, RENEW, RELEASE, LOAD,
-ARM, ABORT, STATUS, GET_CLOCK and PING. The adapter supplies the SHA-256 of the
-original payload, including its whitespace/escaping. Typed JobService responses
-now retain STATUS and clock snapshots and the ARM start mapping, so replay and
-idempotent ARM responses do not accidentally serialize current state. Retained
-terminal jobs keep a compact typed-value digest and their LOAD/ARM results, so
-retrying an older retained job does not reload or rearm it after a newer job.
-Access to those retained results refreshes terminal LRU order without extending TTL.
+All eleven operations are connected: HELLO, CAPS, CLAIM, RENEW, RELEASE, LOAD, ARM, ABORT, STATUS, GET_CLOCK, and PING. The adapter supplies the SHA-256 of the original payload, including its whitespace/escaping. Typed JobService responses retain STATUS and clock snapshots and the ARM start mapping, so replay and idempotent ARM responses do not accidentally serialize current state. Retained terminal jobs keep a compact typed-value digest and their LOAD/ARM results, so retrying an older retained job does not reload or rearm it after a newer job. Access to those retained results refreshes terminal LRU order without extending TTL.
 
 Immutable frequency-adjustment lists share repeated requested/realized frequency pairs when there are at most four distinct pairs. Compact entries preserve every event index and its original order; other lists retain ordinary typed entries. Active and retained ARM responses use their containing job identity and the original clock mapping. These representations preserve complete LOAD/ARM replies and the eight terminal records without duplicating repeated frequency values or ARM job identifiers. Standalone memory regressions include populated WSPR adjustment lists across sixteen cycles under a fixed allocation budget; the preparation and authority reserves remain unchanged.
 
 ## Validation and errors
 
-Before dispatch, reject invalid UTF-8, BOM, duplicate decoded member names,
-unpaired surrogates, non-JSON/floating/non-finite numbers, integers outside signed
-32-bit range, trailing content, non-object roots and container depth above 16.
-Body validation enforces closed members, exact types, canonical u64 decimal
-strings, identifiers, array limits and UTF-8 byte limits. Job arithmetic,
-ownership, engine and clock policy remain in JobService.
+Before dispatch, reject invalid UTF-8, BOM, duplicate decoded member names, unpaired surrogates, non-JSON/floating/non-finite numbers, integers outside signed 32-bit range, trailing content, non-object roots, and container depth above 16. Body validation enforces closed members, exact types, canonical u64 decimal strings, identifiers, array limits, and UTF-8 byte limits. Job arithmetic, ownership, engine, and clock policy remain in JobService.
 
-The adapter records body-schema validity on Request; JobService applies it after
-negotiation/replay/operation recognition and before ownership/mutation. Thus an
-unknown operation returns UNKNOWN_OPERATION, while a conflicting replay returns
-REQUEST_ID_REUSE even when its new body is invalid. Unsupported protocol
-negotiation produces UNSUPPORTED_VERSION and logical closure.
+The adapter records body-schema validity on Request; JobService applies it after negotiation/replay/operation recognition and before ownership/mutation. Thus an unknown operation returns UNKNOWN_OPERATION, while a conflicting replay returns REQUEST_ID_REUSE even when its new body is invalid. Unsupported protocol negotiation produces UNSUPPORTED_VERSION and logical closure.
 
-When valid framing carries invalid JSON or an envelope without safely echoable
-WTP identity, close without inventing IDs or sending an invalid error envelope.
-A recognized request with an invalid body receives INVALID_MESSAGE. Framing
-errors may produce INVALID_FRAME events after negotiation; the existing parser
-owns its three-error/resynchronization/partial-timeout limits.
+When valid framing carries invalid JSON or an envelope without safely echoable WTP identity, close without inventing IDs or sending an invalid error envelope. A recognized request with an invalid body receives INVALID_MESSAGE. Framing errors may produce INVALID_FRAME events after negotiation; the existing parser owns its three-error/resynchronization/partial-timeout limits.
 
 ## USB closure and backpressure
 
-CDC has no independent socket EOF. Closure here means stop accepting WTP input,
-send any queued final response, and stay closed until DTR close/open or USB
-reconfiguration. Console remains connected. A client must use bounded response
-timeouts and reopen WTP to recover; it must not interpret terminal silence as
-mutation success. Neither the device nor this adapter disconnects the composite
-USB device. Queued endpoint/host packets cannot be recalled, so clients must
-discard the old byte stream on reopen and query STATUS after HELLO.
+CDC has no independent socket EOF. Closure here means stop accepting WTP input, send any queued final response, and stay closed until DTR close/open or USB reconfiguration. Console remains connected. A client must use bounded response timeouts and reopen WTP to recover; it must not interpret terminal silence as mutation success. Neither the device nor this adapter disconnects the composite USB device. Queued endpoint/host packets cannot be recalled, so clients must discard the old byte stream on reopen and query STATUS after HELLO.
 
-The main loop stages at most 64 RX bytes and retains unconsumed bytes. Endpoint
-receive consumes at most 64 bytes per call and stops when output is queued.
-Frames never interleave; output offsets advance only by the transport's actual
-accepted byte count. Requests wait behind pending responses instead of allowing
-an unbounded response backlog. JobService polling continues under backpressure
-and when disconnected. No USB callback delivers symbol timing.
+The main loop stages at most 64 RX bytes and retains unconsumed bytes. Endpoint receive consumes at most 64 bytes per call and stops when output is queued. Frames never interleave; output offsets advance only by the transport's actual accepted byte count. Requests wait behind pending responses instead of allowing an unbounded response backlog. JobService polling continues under backpressure and when disconnected. No USB callback delivers symbol timing.
 
-At most eight output frames and 131,072 queued bytes are retained. A response is
-queued before events for that operation. Advisory events may be dropped at the
-bound, consuming an event ID so clients can detect gaps. Five seconds without
-TX acceptance aborts the logical connection; a client must resolve an uncertain
-mutation by STATUS/replay after reconnect. Acceptance into TinyUSB is not proof
-of host receipt. No delivery guarantee is made across connection loss.
+At most eight output frames and 131,072 queued bytes are retained. A response is queued before events for that operation. Advisory events may be dropped at the bound, consuming an event ID so clients can detect gaps. Five seconds without TX acceptance aborts the logical connection; a client must resolve an uncertain mutation by STATUS/replay after reconnect. Acceptance into TinyUSB is not proof of host receipt. No delivery guarantee is made across connection loss.
 
-JOB_STATE, MISSED_START, OWNER_RELEASED, DEVICE_FAULT, INVALID_FRAME and
-SESSION_REPLACED are serialized with monotonic per-boot IDs. Observation includes
-intermediate terminal records, such as lease expiry passing loaded -> aborted ->
-empty. Events are advisory; STATUS remains authoritative.
+JOB_STATE, MISSED_START, OWNER_RELEASED, DEVICE_FAULT, INVALID_FRAME, and SESSION_REPLACED are serialized with monotonic per-boot IDs. Observation includes intermediate terminal records, such as lease expiry passing loaded -> aborted -> empty. Events are advisory; STATUS remains authoritative.
 
 ## Capabilities and resource bounds
 
-CAPS reflects the selected engine/profile. Normal and compatibility RF images
-identify `pio-dma-gp2`; the explicit simulator identifies
-`inhibited-standalone-simulator`. Both advertise five finite modes (`wspr`,
-`tone`, `qrss`, `fskcw`, `dfcw`), at most 512 events and 3,600 seconds, with
-numeric frequencies from 100 kHz through one Hz below half the selected sample
-rate. Application frequency policy and engine representability still apply;
-numeric limits are not physical RF coverage. An unsynchronized clock rejects
-ARM; qualification of UTC does not calibrate RF frequency. The earlier
-`inhibited-no-rf`, six-label, permanently unsynchronized endpoint was the
-pre-standalone foundation, not the current application profile.
+CAPS reflects the selected engine/profile. Normal and compatibility RF images identify `pio-dma-gp2`; the explicit simulator identifies `inhibited-standalone-simulator`. Both advertise five finite modes (`wspr`, `tone`, `qrss`, `fskcw`, `dfcw`), at most 512 events, and 3,600 seconds, with numeric frequencies from 100 kHz through one Hz below half the selected sample rate. Application frequency policy and engine representability still apply; numeric limits are not physical RF coverage. An unsynchronized clock rejects ARM; qualification of UTC does not calibrate RF frequency. The earlier `inhibited-no-rf`, six-label, permanently unsynchronized endpoint was the pre-standalone foundation, not the current application profile.
 
-Payloads remain limited to 65,536 bytes and valid jobs to 512 events. JSON stores
-views, not a DOM; duplicate-key validation retains key views for active objects,
-and schema extraction bounds arrays before constructing jobs. Heap allocation
-remains in the portable parser, strings, jobs and replay cache; target heap
-high-water and failure behavior still need opt-in hardware characterization.
-The application reserves a 32 KiB primary stack in main RP2350 SRAM through the
-pinned SDK linker symbols, excluding that region from the heap. Long-lived
-service objects use static storage. Compiler `.su` files are generated for
-inspection. These measures are not target stack/timing qualification.
+Payloads remain limited to 65,536 bytes and valid jobs to 512 events. JSON stores views, not a DOM; duplicate-key validation retains key views for active objects, and schema extraction bounds arrays before constructing jobs. Heap allocation remains in the portable parser, strings, jobs, and replay cache; target heap high-water and failure behavior still need opt-in hardware characterization. The application reserves a 32 KiB primary stack in main RP2350 SRAM through the pinned SDK linker symbols, excluding that region from the heap. Long-lived service objects use static storage. Compiler `.su` files are generated for inspection. These measures are not target stack/timing qualification.
 
 ## Deterministic validation
 
@@ -127,17 +50,9 @@ cmake --build build/pico2-w --target WsprryPico-Inhibited
 python3 scripts/check_endpoint_image.py build/pico2-w/firmware/WsprryPico-Inhibited.elf
 ```
 
-Use the [build guide](firmware-foundation.md) for pinned local inputs and unused
-output directories. Ordinary `all`/build-preset selection is RF-capable; the
-explicit target above is the diagnostic simulator. The application stack is 32 KiB; current image checks enforce its separation
-from the linked heap and reserved flash.
+Use the [build guide](firmware-foundation.md) for pinned local inputs and unused output directories. Ordinary `all`/build-preset selection is RF-capable; the explicit target above is the diagnostic simulator. The application stack is 32 KiB; current image checks enforce its separation from the linked heap and reserved flash.
 
-The endpoint test runs the real C++ implementation against an independent Python
-schema validator and the existing monitor decoder. It covers all operations,
-request fixtures, raw negative vectors, lifecycle, snapshots/replay, reconnect,
-boot changes, Unicode/JSON rejection, fragmented/combined frames, partial TX,
-pressure, maximum payloads/events and deterministic syntax mutation cases.
-Existing core, USB adapter, descriptor and monitor tests remain in place.
+The endpoint test runs the real C++ implementation against an independent Python schema validator and the existing monitor decoder. It covers all operations, request fixtures, raw negative vectors, lifecycle, snapshots/replay, reconnect, boot changes, Unicode/JSON rejection, fragmented/combined frames, partial TX, pressure, maximum payloads/events, and deterministic syntax mutation cases. Existing core, USB adapter, descriptor, and monitor tests remain in place.
 
 For address/undefined-behavior checks on a supporting host compiler:
 
@@ -151,22 +66,12 @@ ctest --test-dir build/endpoint-sanitize --output-on-failure
 
 ## Opt-in board smoke test
 
-Only with explicit authorization for this USB test, identify the WTP port by
-serial/interface using the [USB guide](usb-cdc.md), leave Console open in screen,
-and run:
+Only with explicit authorization for this USB test, identify the WTP port by serial/interface using the [USB guide](usb-cdc.md), leave Console open in screen, and run:
 
 ```sh
 python3 scripts/wtp_probe.py /dev/IDENTIFIED_WTP_PORT --run
 ```
 
-The probe asserts DTR and performs only HELLO, CAPS, GET_CLOCK, STATUS and PING,
-with five-second timeouts and schema/identity checks. It neither LOADs nor ARMs a
-job. Do not run a second monitor on the same WTP port. Record board, firmware
-SHA-256/revision, host OS, physical setup, actual engine and clock state,
-no transmitting mode, and actual results. Flashing and RF operations are outside
-this procedure. Host probing is a bounded protocol observation, not general USB conformance,
-physical clock or RF qualification.
+The probe asserts DTR and performs only HELLO, CAPS, GET_CLOCK, STATUS, and PING, with five-second timeouts and schema/identity checks. It neither LOADs nor ARMs a job. Do not run a second monitor on the same WTP port. Record board, firmware SHA-256/revision, host OS, physical setup, actual engine, and clock state, no transmitting mode, and actual results. Flashing and RF operations are outside this procedure. Host probing is a bounded protocol observation, not general USB conformance, physical clock, or RF qualification.
 
-Standalone timing, network/browser/provisioning adapters and USB management/time
-now share application services. Their accepted records retain their own evidence
-scope. Current work is selected only in the [consolidated backlog](consolidated-backlog.md).
+Standalone timing, network/browser/provisioning adapters, and USB management/time share application services. Their accepted records retain their own evidence scope. Current work is selected only in the [consolidated backlog](consolidated-backlog.md).

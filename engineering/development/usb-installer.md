@@ -4,47 +4,35 @@ The shared installer is `scripts/usb_installer.py` (version 0.2.0). It runs with
 
 ## Operator instructions
 
-The canonical [installation/update guide](../../docs/install.md) and [recovery/erase guide](../../docs/maintain.md#recovery-and-reset) describe current operator actions. This document retains installer contracts, implementation boundaries and physical acceptance scope.
+The canonical [installation/update guide](../../docs/install.md) and [recovery/erase guide](../../docs/maintain.md#recovery-and-reset) describe current operator actions. This document retains installer contracts, implementation boundaries, and physical acceptance scope.
 
 ## Full flash erase contract
 
-The explicit erase operation removes all 4 MiB of external flash, verifies every byte against `0xff`, leaves BOOTSEL active and creates no credential backup. Immutable ROM, chip identity and OTP are outside external flash. Same-board serial/port/chip checks, durable intent and retry behavior remain shared with the transaction implementation. A failed or interrupted check is unresolved. Existing host backups remain retained.
+The explicit erase operation removes all 4 MiB of external flash, verifies every byte against `0xff`, leaves BOOTSEL active and creates no credential backup. Immutable ROM, chip identity, and OTP are outside external flash. Same-board serial/port/chip checks, durable intent, and retry behavior remain shared with the transaction implementation. A failed or interrupted check is unresolved. Existing host backups remain retained.
 
-The deterministic erase checks include identity/port, explicit confirmation, uniform/blank flash, full-range comparison, a nonblank last byte, interruption, recovery and preservation of existing backups. Reproduction commands remain in [the development guide](README.md).
+The deterministic erase checks include identity/port, explicit confirmation, uniform/blank flash, full-range comparison, a nonblank last byte, interruption, recovery, and preservation of existing backups. Reproduction commands remain in [the development guide](README.md).
 
 ### Physical erase applicability
 
-The bounded CLI/core erase observation is Pico C / Pico 2 W / RP2350 on wspr4, USB `1545B6EFBF78028C`, device `c2a3a2a314c948b50a8562a1aeb69669`, USB parent `1-1.3`, USB-enabled picotool 2.3.0 and installer SHA-256 `f568a1abb1452c250ee3ffc9361005e1d9d72c8c2fd8b5a65e25f02b5a9a15f0`. The original image is `0.1.0-ci.39155533863.1`, source `0a7c05d1c41b`, with no configured standalone schedule. This observation covers an independently verified 4,194,304-byte blank readback after a full `0x5a` fixture, rejection of a nonblank final byte at `0x103fffff`, and successful repeat erase recovery. The all-`0xff` SHA-256 is `cd3517473707d59c3d915b52a3e16213cadce80d9ffb2b4371958fb7acb51a08`. Restoration was verified across the original 4 MiB and saved semantics. Physical power-cut/disconnect cases, the live Pi web route, other boards and RF behavior are outside that observation. Current installed firmware is not asserted.
+The bounded CLI/core erase observation is Pico C / Pico 2 W / RP2350 on wspr4, USB `1545B6EFBF78028C`, device `c2a3a2a314c948b50a8562a1aeb69669`, USB parent `1-1.3`, USB-enabled picotool 2.3.0 and installer SHA-256 `f568a1abb1452c250ee3ffc9361005e1d9d72c8c2fd8b5a65e25f02b5a9a15f0`. The original image is `0.1.0-ci.39155533863.1`, source `0a7c05d1c41b`, with no configured standalone schedule. This observation covers an independently verified 4,194,304-byte blank readback after a full `0x5a` fixture, rejection of a nonblank final byte at `0x103fffff`, and successful repeat erase recovery. The all-`0xff` SHA-256 is `cd3517473707d59c3d915b52a3e16213cadce80d9ffb2b4371958fb7acb51a08`. Restoration was verified across the original 4 MiB and saved semantics. Physical power-cut/disconnect cases, the live Pi web route, other boards, and RF behavior are outside that observation. Current installed firmware is not asserted.
 
 ## Image selection and planning
 
-An explicit `--version` selects an exact semantic tag independently of the
-checkout or bootstrap branch. Without an explicit version or another image
-selector, the firmware branch defaults to **main**; `--branch devel` selects
-devel explicitly. Branch resolution requires the corresponding `ci-main` or
-`ci-devel` bookmark and its exact verified bundle. The bookmark is a locator;
-the selected manifest and immutable image hashes establish identity. Missing
-bookmarks, assets, or provenance cause refusal without substituting another
-branch, older image, or local compilation.
+An explicit `--version` selects an exact semantic tag independently of the checkout or bootstrap branch. Without an explicit version or another image selector, the firmware branch defaults to **main**; `--branch devel` selects devel explicitly. Branch resolution requires the corresponding `ci-main` or `ci-devel` bookmark and its exact verified bundle. The bookmark is a locator; the selected manifest and immutable image hashes establish identity. Missing bookmarks, assets, or provenance cause refusal without substituting another branch, older image, or local compilation.
 
 Output directories must be new. `--bundle DIRECTORY` revalidates a previously saved public bundle without another download. It cannot accompany another image selector. `recent_ci` reports additional run status separately from the immutable selected image. Missing or invalid downloads still cause refusal.
 
-The ordinary path uses anonymous HTTPS and needs no Git, compiler, SDK or GitHub account. A saved successful verification receipt remains usable after Actions retention expiry when the public bundle and exact hashes remain intact. HTTPS/repository ownership is the distribution trust boundary; checksums are integrity checks, not signatures.
+The ordinary path uses anonymous HTTPS and needs no Git, compiler, SDK, or GitHub account. A saved successful verification receipt remains usable after Actions retention expiry when the public bundle and exact hashes remain intact. HTTPS/repository ownership is the distribution trust boundary; checksums are integrity checks, not signatures.
 
-The standard-library manifest policy is shared with CI. Schema version 1 uses
-the bounded schema interpreter. Firmware version numbers grant no storage
-compatibility. Every selected image remains subject to flash-boundary,
-same-board backup, saved-settings, upgrade, and recovery guards. Pending
-transactions retain their original installer version and immutable bootstrap
-revision; resume them with that installer.
+The standard-library manifest policy is shared with CI. Schema version 1 uses the bounded schema interpreter. Firmware version numbers grant no storage compatibility. Every selected image remains subject to flash-boundary, same-board backup, saved-settings, upgrade, and recovery guards. Pending transactions retain their original installer version and immutable bootstrap revision; resume them with that installer.
 
-GitHub API rate limits are reported separately from a missing branch bookmark, permission failures and connection errors. Refusals include the HTTP status and an earliest retry time in UTC, using GitHub's `X-RateLimit-Reset` and `Retry-After` headers. If both apply, the later time is used. Missing or invalid retry guidance requires at least a one-minute wait, identified as a minimum rather than a confirmed quota reset. The result includes `error_code: github_rate_limited` and `retry_at` in Unix seconds. The installer does not retry requests automatically or load GitHub credentials. A rate limit on optional additional-run status leaves the verified selected image usable and reports its reason separately in `recent_ci`.
+GitHub API rate limits are reported separately from a missing branch bookmark, permission failures, and connection errors. Refusals include the HTTP status and an earliest retry time in UTC, using GitHub's `X-RateLimit-Reset` and `Retry-After` headers. If both apply, the later time is used. Missing or invalid retry guidance requires at least a one-minute wait, identified as a minimum rather than a confirmed quota reset. The result includes `error_code: github_rate_limited` and `retry_at` in Unix seconds. The installer does not retry requests automatically or load GitHub credentials. A rate limit on optional additional-run status leaves the verified selected image usable and reports its reason separately in `recent_ci`.
 
 ## Installer source distribution
 
-The standalone bootstrap fetches the Python installer and firmware-manifest schema from one immutable source revision. WsprryPi selects the configured main/devel branch head only after its canonical `software-build.yml` run and verification job have succeeded. It downloads both files through GitHub's Contents API at that SHA, checks Git blob identities, and stores their exact sizes, SHA-256 hashes, source and verification receipt in private storage. A pending or unavailable check retains an already verified installer; a fresh client waits for successful verification. Installer source identity is independent of firmware tags.
+The standalone bootstrap fetches the Python installer and firmware-manifest schema from one immutable source revision. WsprryPi selects the configured main/devel branch head only after its canonical `software-build.yml` run and verification job have succeeded. It downloads both files through GitHub's Contents API at that SHA, checks Git blob identities, and stores their exact sizes, SHA-256 hashes, source, and verification receipt in private storage. A pending or unavailable check retains an already verified installer; a fresh client waits for successful verification. Installer source identity is independent of firmware tags.
 
-Installer contract 1 retains `wsprrypico-usb-result/1`, `wsprrypico-usb-transaction/1`, firmware-manifest schema 1 and Python 3.10+. Installer implementation versions are independent of firmware image versions. Firmware is downloaded as a compiled UF2 from a separately verified firmware bundle; the operator's machine does not compile it.
+Installer contract 1 retains `wsprrypico-usb-result/1`, `wsprrypico-usb-transaction/1`, firmware-manifest schema 1, and Python 3.10+. Installer implementation versions are independent of firmware image versions. Firmware is downloaded as a compiled UF2 from a separately verified firmware bundle; the operator's machine does not compile it.
 
 Checked image plans and transactions retain their exact installer and schema. Recovery uses those local bytes offline, including existing contract-1 receipts, and never substitutes the current branch implementation. Pi cache budgets span installer versions and preserve unresolved recovery transactions.
 
@@ -55,25 +43,23 @@ python3 -B tests/usb_installer_tests.py
 python3 -B tests/usb_tool_download_tests.py
 ```
 
-Physical interruption/power-cut recovery, arbitrary downgrades, every board/host combination and RF quality remain unqualified. Windows and WSL USB operation are unsupported. Software checks do not establish physical recovery success.
+Physical interruption/power-cut recovery, arbitrary downgrades, every board/host combination, and RF quality remain unqualified. Windows and WSL USB operation are unsupported. Software checks do not establish physical recovery success.
 
 ## USB dependency and device selection
 
-Programming accepts **picotool 2.3 or newer within the 2.x series**, including the public [picotool 2.3.1](https://github.com/raspberrypi/picotool/releases/tag/2.3.1). The installer checks the version, USB support and the command options needed for identity, backup, programming, verification and erase. Older versions, prereleases, 3.x versions and builds without the required capabilities are refused. USB is a normal picotool capability; builds without libusb cannot access a connected Pico. The exact executable version and SHA-256 are recorded for each transaction. It accepts an explicit `--picotool /absolute/path/to/picotool`. The standalone entry can offer an official, size/SHA-256-verified picotool 2.3.1 download when no compatible executable is available. Its private cache, consent, extraction, recovery retention and cleanup contracts are described in [managed tool downloads](#managed-tool-downloads). The imported Fleet entry never downloads or removes tools. Neither entry installs system packages or acquires an SDK, and the bootstrap must run as an ordinary user.
+Programming accepts **picotool 2.3 or newer within the 2.x series**, including the public [picotool 2.3.1](https://github.com/raspberrypi/picotool/releases/tag/2.3.1). The installer checks the version, USB support, and the command options needed for identity, backup, programming, verification, and erase. Older versions, prereleases, 3.x versions and builds without the required capabilities are refused. USB is a normal picotool capability; builds without libusb cannot access a connected Pico. The exact executable version and SHA-256 are recorded for each transaction. It accepts an explicit `--picotool /absolute/path/to/picotool`. The standalone entry can offer an official, size/SHA-256-verified picotool 2.3.1 download when no compatible executable is available. Its private cache, consent, extraction, recovery retention, and cleanup contracts are described in [managed tool downloads](#managed-tool-downloads). The imported Fleet entry never downloads or removes tools. Neither entry installs system packages or acquires an SDK, and the bootstrap must run as an ordinary user.
 
-Discovery binds USB serial and physical parent. Application CDC roles are Console interface 0, WTP interface 2 and management interface 4; macOS places serial clients under their paired data interfaces. Tty suffixes are not roles. BOOTSEL identifies RP2350, so `--board pico2_w` explicitly confirms the board's wireless hardware. Re-enumeration must retain the serial and physical port.
+Discovery binds USB serial and physical parent. Application CDC roles are Console interface 0, WTP interface 2, and management interface 4; macOS places serial clients under their paired data interfaces. Tty suffixes are not roles. BOOTSEL identifies RP2350, so `--board pico2_w` explicitly confirms the board's wireless hardware. Re-enumeration must retain the serial and physical port.
 
-Interactive device selection and initial BOOTSEL use are documented in the [operator guide](../../docs/install.md). The installer rechecks selected serial, mode and port before creating a transaction and under the device lock. Only the selected Pico is programmed.
+Interactive device selection and initial BOOTSEL use are documented in the [operator guide](../../docs/install.md). The installer rechecks selected serial, mode, and port before creating a transaction and under the device lock. Only the selected Pico is programmed.
 
-Install/upgrade mode admission precedes picotool preparation and image resolution, including explicit-device and imported calls. BOOTSEL upgrades return `error_code: device_mode_mismatch`, the serial and expected/observed modes, with first-install, running-application and retained-transaction recovery guidance. A mode mismatch never changes the selected operation. Device identity, mode and port are checked again under the transaction lock after image resolution.
+Install/upgrade mode admission precedes picotool preparation and image resolution, including explicit-device and imported calls. BOOTSEL upgrades return `error_code: device_mode_mismatch`, the serial, and expected/observed modes, with first-install, running-application, and retained-transaction recovery guidance. A mode mismatch never changes the selected operation. Device identity, mode, and port are checked again under the transaction lock after image resolution.
 
-The standalone entry renders progress and results for a terminal when both output streams are terminals. Imported calls, redirected standard output and `--json-only` retain the single `wsprrypico-usb-result/1` JSON response. `--json-only` disables device-selection, tool-download and cleanup questions and BOOTSEL guidance. Progress describes actual transaction stages; completion requires the existing flash and application checks. Preflight refusals do not create recovery work; cleanup independently checks all retained transaction records before removing a managed tool.
+The standalone entry renders progress and results for a terminal when both output streams are terminals. Imported calls, redirected standard output, and `--json-only` retain the single `wsprrypico-usb-result/1` JSON response. `--json-only` disables device-selection, tool-download, and cleanup questions and BOOTSEL guidance. Progress describes actual transaction stages; completion requires the existing flash and application checks. Preflight refusals do not create recovery work; cleanup independently checks all retained transaction records before removing a managed tool.
 
 ## Managed tool downloads
 
-Missing or older Python is reported before bootstrap downloads begin. Windows,
-Git Bash, and WSL are rejected before USB access. An explicit `--picotool`
-selection never falls back to a download if it fails.
+Missing or older Python is reported before bootstrap downloads begin. Windows, Git Bash, and WSL are rejected before USB access. An explicit `--picotool` selection never falls back to a download if it fails.
 
 If no compatible executable is available on `PATH`, the installer checks its private cache and verifies a retained package before reuse. Reusing an existing executable or cached package needs no download consent. If neither is available, an interactive terminal offers an official download; an unattended command must explicitly allow it with `--download-picotool`. Flash confirmation through `--yes` does not authorize downloading tools. Requirements and available backup space are checked before firmware image resolution and device maintenance.
 
@@ -82,75 +68,52 @@ python3 scripts/usb_installer.py upgrade --branch devel \
   --device SERIAL --board pico2_w --yes --download-picotool --tool-cleanup remove
 ```
 
-The same arguments work with the piped `install_usb.sh` bootstrap. Interactive
-install/upgrade commands may omit `--device` to select a Pico from the terminal
-menu. Tool download and cleanup prompts read the controlling terminal, leaving
-piped script input and JSON stdout separate.
+The same arguments work with the piped `install_usb.sh` bootstrap. Interactive install/upgrade commands may omit `--device` to select a Pico from the terminal menu. Tool download and cleanup prompts read the controlling terminal, leaving piped script input and JSON stdout separate.
 
 ### Official packages and verification
 
-The automatic download uses the reviewed picotool 2.3.1 packages from
-[Raspberry Pi v2.3.1-0 packages](https://github.com/raspberrypi/pico-sdk-tools/releases/tag/v2.3.1-0):
+The automatic download uses the reviewed picotool 2.3.1 packages from [Raspberry Pi v2.3.1-0 packages](https://github.com/raspberrypi/pico-sdk-tools/releases/tag/v2.3.1-0):
 
 - macOS: the universal Intel/Apple Silicon ZIP.
 - Linux ARM64: the AArch64 tarball, including 64-bit Raspberry Pi OS.
 - Linux x86-64: the x86-64 tarball.
 
-Other architectures require an existing compatible picotool or a supported
-host. An executable that cannot run reports architecture/runtime-library
-guidance. No SDK, compiler or package manager is installed. System tools and
-`PATH` remain unchanged.
+Other architectures require an existing compatible picotool or a supported host. An executable that cannot run reports architecture/runtime-library guidance. No SDK, compiler, or package manager is installed. System tools and `PATH` remain unchanged.
 
-Archive size and SHA-256 are checked before extraction or execution. Extraction
-rejects links, special files, path traversal, duplicate paths and oversized
-contents. The package's support files remain alongside the executable. A
-private copy of the verified archive allows later uses to check cached files
-against the official bytes, including detection of altered local receipts.
+Archive size and SHA-256 are checked before extraction or execution. Extraction rejects links, special files, path traversal, duplicate paths, and oversized contents. The package's support files remain alongside the executable. A private copy of the verified archive allows later uses to check cached files against the official bytes, including detection of altered local receipts.
 
 ### Tool cleanup and recovery
 
-Verified packages are reused under `~/.cache/wsprrypico-usb/tools`, without a
-new copy for each update. A lock protects managed tools throughout an update
-or recovery. Firmware transactions and backups remain under their existing
-private state directory and retention policy.
+Verified packages are reused under `~/.cache/wsprrypico-usb/tools`, without a new copy for each update. A lock protects managed tools throughout an update or recovery. Firmware transactions and backups remain under their existing private state directory and retention policy.
 
-`--tool-cleanup ask` is the default. After the operation, a terminal offers to remove picotool, its retained archive and support files only when the current run downloaded them. Previously retained packages are kept without a cleanup question. Without a terminal, the tool is kept. `--tool-cleanup keep` retains it without asking; `--tool-cleanup remove` explicitly requests removal of a managed package, including a retained one, without prompting. `--json-only` never asks questions; its default cleanup policy keeps the tool.
+`--tool-cleanup ask` is the default. After the operation, a terminal offers to remove picotool, its retained archive, and support files only when the current run downloaded them. Previously retained packages are kept without a cleanup question. Without a terminal, the tool is kept. `--tool-cleanup keep` retains it without asking; `--tool-cleanup remove` explicitly requests removal of a managed package, including a retained one, without prompting. `--json-only` never asks questions; its default cleanup policy keeps the tool.
 
-Cleanup removes only an unchanged installer-managed package. It never removes
-an existing user-installed picotool, firmware backups or recovery records.
-Unfinished operations, unreadable/unknown recovery records, changed package
-files or added user files prevent removal. An unresolved transaction retains
-its tool so the printed same-board continuation command remains usable.
-Small private lock/state-index files remain for safe reuse and recovery checks.
+Cleanup removes only an unchanged installer-managed package. It never removes an existing user-installed picotool, firmware backups, or recovery records. Unfinished operations, unreadable/unknown recovery records, changed package files, or added user files prevent removal. An unresolved transaction retains its tool so the printed same-board continuation command remains usable. Small private lock/state-index files remain for safe reuse and recovery checks.
 
-Temporary bootstrap files and incomplete download staging are removed on normal
-exit and handled interruptions. Cleanup failures are reported separately and
-do not replace a verified firmware result. No cleanup operation erases or
-changes the Pico's saved settings.
+Temporary bootstrap files and incomplete download staging are removed on normal exit and handled interruptions. Cleanup failures are reported separately and do not replace a verified firmware result. No cleanup operation erases or changes the Pico's saved settings.
 
-WsprryPi's imported installer entry does not download or remove tools. Fleet
-continues to use its configured host executable and shared verification logic.
+WsprryPi's imported installer entry does not download or remove tools. Fleet continues to use its configured host executable and shared verification logic.
 
 ## Preserving upgrade and recovery
 
 
-An ordinary upgrade starts in the running application and takes its own fresh USB snapshot. It refuses active, owned, uncertain, faulted or configured STOP state. It never sends STOP, claims RF ownership or changes saved settings to obtain admission. Firmware must provide guarded USB maintenance, and the target manifest must declare `usb_maintenance: 1` and `postboot_verification: 1`. For verified older CI firmware without this operation, upgrade prepares a settings-preserving BOOTSEL migration and returns `awaiting_bootsel` with a private transaction path. It writes no firmware and sends no reset or STOP. The saved standalone schedule must already be disabled or unconfigured; the installer does not change that setting. An unconfigured board's automatic suspension remains intact.
+An ordinary upgrade starts in the running application and takes its own fresh USB snapshot. It refuses active, owned, uncertain, faulted, or configured STOP state. It never sends STOP, claims RF ownership, or changes saved settings to obtain admission. Firmware must provide guarded USB maintenance, and the target manifest must declare `usb_maintenance: 1` and `postboot_verification: 1`. For verified older CI firmware without this operation, upgrade prepares a settings-preserving BOOTSEL migration and returns `awaiting_bootsel` with a private transaction path. It writes no firmware and sends no reset or STOP. The saved standalone schedule must already be disabled or unconfigured; the installer does not change that setting. An unconfigured board's automatic suspension remains intact.
 
-When prompted, unplug the selected Pico, hold BOOTSEL while reconnecting it to the same physical USB port, then release BOOTSEL. Run `recover` with the returned transaction path (or choose **Continue after BOOTSEL** in WsprryPi). The standalone flasher prints a ready-to-run continuation command on stderr. Copy that command after reconnecting; it supplies the actual transaction, selected USB serial, board confirmation, `--yes`, picotool and private state directory. Paths are shell-quoted, including paths containing spaces or quotes. The command uses the retained image without repeating image selection. A failed pending continuation repeats the reconnect guidance and command; preparation and failed continuation are not completed installation.
+When prompted, unplug the selected Pico, hold BOOTSEL while reconnecting it to the same physical USB port, then release BOOTSEL. Run `recover` with the returned transaction path (or choose **Continue after BOOTSEL** in WsprryPi). The standalone flasher prints a ready-to-run continuation command on stderr. Copy that command after reconnecting; it supplies the actual transaction, selected USB serial, board confirmation, `--yes`, picotool, and private state directory. Paths are shell-quoted, including paths containing spaces or quotes. The command uses the retained image without repeating image selection. A failed pending continuation repeats the reconnect guidance and command; preparation and failed continuation are not completed installation.
 
 If programming fails after backup and compatibility checks, the flasher identifies the incomplete installation and prints a BOOTSEL recovery command. Leave a Pico already in BOOTSEL connected. A failure during postboot verification instead asks to keep the Pico connected and prints a verification retry command so an existing maintenance hold can be verified on the same boot.
 
 For a piped `install_usb.sh` invocation, the continuation downloads the same immutable installer revision and works after the initial temporary directory has been removed. Its `WSPRRY_PICO_USB_INSTALLER_REVISION` value pins installer source only; firmware selection and the cached transaction remain separate. The bootstrap validates this value as a full lowercase commit SHA. Run the printed command as the same ordinary user, with the same USB permissions.
 
-Continuation revalidates the checked target, installed CI receipt, preflight, USB serial, physical port and RP2350 chip ID. It completes a verified full-flash backup and checks the old application bytes against the identified CI image before authorizing programming. It applies the same reserved-storage and postboot semantic checks as a guarded upgrade. A wrong board, changed image, incompatible reserved storage or failed backup refuses without programming. Ordinary updates use no 1200-baud reset, forced takeover, mass erase or settings transplant.
+Continuation revalidates the checked target, installed CI receipt, preflight, USB serial, physical port, and RP2350 chip ID. It completes a verified full-flash backup and checks the old application bytes against the identified CI image before authorizing programming. It applies the same reserved-storage and postboot semantic checks as a guarded upgrade. A wrong board, changed image, incompatible reserved storage, or failed backup refuses without programming. Ordinary updates use no 1200-baud reset, forced takeover, mass erase, or settings transplant.
 
 The pending transaction survives host and browser restarts. Keep the Pico idle and do not edit its settings during the reconnect. Starting `recover` before BOOTSEL is ready leaves the pending transaction available for another explicit attempt. The Pi keeps this member paused until verification and reconnection complete; it never treats the preparation result as a completed installation.
 
-The acknowledged preflash hold excludes WTP admission, standalone slot/watermark reservation, application writes and provisioning commits. A verified full-flash same-board backup precedes programming. UF2 validation checks exact normal RP2350 blocks, numbering, flags, contiguous ranges, sector-rounded erase extent and the pinned E10 workaround. Picotool skips the validated workaround block; all bytes from offset `0x3ee000` through `0x400000` must read back unchanged before boot. This preserves the superset of saved progress, diagnostics, access/bonds, profiles, standalone configuration/watermarks, NTP learning and boot reservation. It does not add an OTA partition.
+The acknowledged preflash hold excludes WTP admission, standalone slot/watermark reservation, application writes, and provisioning commits. A verified full-flash same-board backup precedes programming. UF2 validation checks exact normal RP2350 blocks, numbering, flags, contiguous ranges, sector-rounded erase extent, and the pinned E10 workaround. Picotool skips the validated workaround block; all bytes from offset `0x3ee000` through `0x400000` must read back unchanged before boot. This preserves the superset of saved progress, diagnostics, access/bonds, profiles, standalone configuration/watermarks, NTP learning, and boot reservation. It does not add an OTA partition.
 
 The verified image launches using picotool's FLASH_UPDATE boot. Supporting firmware holds standalone scheduling and mutating admission until fresh USB identity/version/source and public saved semantics have been verified and a matching finish request is acknowledged. The host records release intent before sending it. A lost acknowledgement is ambiguous; same-boot recovery can inspect the actual hold rather than blindly replaying a reset or programming operation. A later normal power-on can follow the device's existing saved enablement; there is no persistent A/B rollback or guarantee of a hold across power loss. Installation does not qualify RF or enable a disabled schedule.
 
-Host transactions and full-flash backups contain credentials and bonds. They stay outside Git and served roots, under owner-only `~/.local/state/wsprrypico-usb` or `/var/lib/wsprrypi/pico-usb`. Symlink ancestors are refused. Before a new transaction, prior successful history is pruned to two records and unchanged/refused history to eight, dropping either after seven days. Pruning runs only on invocation, and the new transaction can add one record. Eight unresolved records block new work rather than deleting recovery evidence. Device locks serialize installers and the optional Pi runtime. Recovery revalidates the exact cached image, backup, serial and physical parent. It does not transplant banks, blindly restore flash, erase saved state or promise arbitrary downgrades. If backup never completed, a record is not authority to program: inspect the unchanged image and perform deliberate BOOTSEL recovery.
+Host transactions and full-flash backups contain credentials and bonds. They stay outside Git and served roots, under owner-only `~/.local/state/wsprrypico-usb` or `/var/lib/wsprrypi/pico-usb`. Symlink ancestors are refused. Before a new transaction, prior successful history is pruned to two records and unchanged/refused history to eight, dropping either after seven days. Pruning runs only on invocation, and the new transaction can add one record. Eight unresolved records block new work rather than deleting recovery evidence. Device locks serialize installers and the optional Pi runtime. Recovery revalidates the exact cached image, backup, serial, and physical parent. It does not transplant banks, blindly restore flash, erase saved state, or promise arbitrary downgrades. If backup never completed, a record is not authority to program: inspect the unchanged image and perform deliberate BOOTSEL recovery.
 
 Results are JSON `wsprrypico-usb-result/1`. Exit 0 means the requested operation completed or prepared an `awaiting_bootsel` continuation. Only `complete` establishes finished installation. Exit 2 is refusal/failure before ambiguous programming, and 3 means a retained transaction needs recovery. Cancellation within a transaction retains its last durable stage. Failed transactions also retain `failure_reason` in the private record. A successful tool process or USB appearance is insufficient for upgrade success.
 
@@ -158,11 +121,11 @@ Results are JSON `wsprrypico-usb-result/1`. Exit 0 means the requested operation
 
 Physical same-image preservation covers a Pico 2 W / RP2350 on Linux AArch64 host `wspr5a`, USB serial `1545B6EFBF78028C`, physical parent `3-2` and device `c2a3a2a314c948b50a8562a1aeb69669`. The installer is 0.2.0 at `1b8d51b22365b6d183029862cad56918067a1590`; firmware is `0.1.0-ci.39953536554.1`, source `3ffd65ec5c0c9856739dd5707f1df9716aace5ee`, normal `pio-dma-gp2` engine at 138 MHz. USB-enabled picotool 2.3.1 supplies programming. No RF job forms part of this scope.
 
-The tested states include an unconfigured board and a populated configuration with a nondefault hostname, station, manual PPM, selected frequency, saved draft and disabled schedule. Both retain identical programming readbacks across 4 MiB and matching postboot saved semantics. The tested contract-1 reserved range starts at `0x3ee000`; this is not the current contract-2 `0x3ec000` application boundary. The unconfigured state is restored from a same-board backup with full readback verification. These results apply to the identified same-image transactions; they do not establish every cross-version migration, host/platform or RF qualification. Current preserving-upgrade, transaction-retention and installed-bundle reconciliation requirements remain authoritative.
+The tested states include an unconfigured board and a populated configuration with a nondefault hostname, station, manual PPM, selected frequency, saved draft, and disabled schedule. Both retain identical programming readbacks across 4 MiB and matching postboot saved semantics. The tested contract-1 reserved range starts at `0x3ee000`; this is not the current contract-2 `0x3ec000` application boundary. The unconfigured state is restored from a same-board backup with full readback verification. These results apply to the identified same-image transactions; they do not establish every cross-version migration, host/platform, or RF qualification. Current preserving-upgrade, transaction-retention, and installed-bundle reconciliation requirements remain authoritative.
 
 ## Explicit developer builds
 
-Existing pinned SDK 2.3.1 (`079c6f39023649b154152db30f1d781e884879bc`), submodules, Arm GNU 15.3.1 and picotool sources are prerequisites. Compilation invokes the accepted normal `scripts/build_pico.sh` target with a new build directory and its linked engine, flash, USB, stack and heap checks. It validates generic network-disabled, credential-free defaults and the linked USB update contract.
+Existing pinned SDK 2.3.1 (`079c6f39023649b154152db30f1d781e884879bc`), submodules, Arm GNU 15.3.1 and picotool sources are prerequisites. Compilation invokes the accepted normal `scripts/build_pico.sh` target with a new build directory and its linked engine, flash, USB, stack, and heap checks. It validates generic network-disabled, credential-free defaults, and the linked USB update contract.
 
 The explicit developer commands use the selected source revision and a new build directory; these are separate from ordinary public-image installation:
 
@@ -177,7 +140,7 @@ python3 scripts/usb_installer.py upgrade --branch devel --local-bundle /new/loca
 ```
 
 
-`--allow-dirty` explicitly selects a development build; omit it for a clean checkout. Source HEAD, actual dirty identity and input digest are retained, and source inputs must remain unchanged during compilation. Local metadata is private developer evidence, never a public CI receipt. These bytes enter the same image, backup, preservation and postboot transaction. A previous local image needs its same-board compact image reference and an exact flash match; a version string alone cannot identify it. Source ancestry/downgrade checks still apply, so an unavailable or divergent source comparison refuses. Generic local-image references are retained separately from expiring secret backups, with a maximum of 32 boards; retire an unused reference explicitly before adding another board.
+`--allow-dirty` explicitly selects a development build; omit it for a clean checkout. Source HEAD, actual dirty identity, and input digest are retained, and source inputs must remain unchanged during compilation. Local metadata is private developer evidence, never a public CI receipt. These bytes enter the same image, backup, preservation, and postboot transaction. A previous local image needs its same-board compact image reference and an exact flash match; a version string alone cannot identify it. Source ancestry/downgrade checks still apply, so an unavailable or divergent source comparison refuses. Generic local-image references are retained separately from expiring secret backups, with a maximum of 32 boards; retire an unused reference explicitly before adding another board.
 
 ### Deployment handoff and reference reconciliation
 
@@ -191,7 +154,7 @@ python3 scripts/usb_installer.py upgrade --branch devel \
   --device SERIAL --board pico2_w --yes --picotool /path/to/picotool
 ```
 
-`--installed-bundle` is an explicit baseline import, not a target-image selector or a force option. It is accepted only for an upgrade from local `0.0.0-devel` firmware. The original bundle's source identity must match the running application, and source ancestry checks still apply. The importer copies the validated bundle into private transaction storage before guarded maintenance, then requires the selected board's full flash backup to match the supplied application image exactly. Only after that comparison does it repair the compact reference; no firmware programming is authorized by a version string, receipt or reference edit alone. The normal reserved-flash and saved-semantics checks cover the subsequent upgrade. An incomplete or mismatched bundle refuses without replacing the reference; a flash mismatch after guarded reset retains the backup and recovery transaction without programming firmware.
+`--installed-bundle` is an explicit baseline import, not a target-image selector or a force option. It is accepted only for an upgrade from local `0.0.0-devel` firmware. The original bundle's source identity must match the running application, and source ancestry checks still apply. The importer copies the validated bundle into private transaction storage before guarded maintenance, then requires the selected board's full flash backup to match the supplied application image exactly. Only after that comparison does it repair the compact reference; no firmware programming is authorized by a version string, receipt, or reference edit alone. The normal reserved-flash and saved-semantics checks cover the subsequent upgrade. An incomplete or mismatched bundle refuses without replacing the reference; a flash mismatch after guarded reset retains the backup and recovery transaction without programming firmware.
 
 If only an old build tree remains, regenerate its bundle through the pinned `plan --local-build` procedure above and require the resulting UF2 to match the retained deployed UF2 byte for byte before using it. Do not invent build-input metadata or relabel another image. Without a matching bundle and image, retain the device and its evidence for deliberate recovery.
 
@@ -199,10 +162,10 @@ If only an old build tree remains, regenerate its bundle through the pinned `pla
 
 Completed install/upgrade histories are limited to two transactions, and pre-programming refusals to eight, with a seven-day lifetime. Cleanup runs before new work and after a verified completion or unchanged refusal. The current transaction is retained even if an older record has a future timestamp. Unresolved records and their backups are never evicted; eight unresolved transactions block new work while explicit recovery remains available. An explicit full erase retains other host backups and histories.
 
-A cleanup failure adds `retention_warning` to the result. It does not replace a verified firmware result, discard an unresolved transaction or expose private paths. Retained records from an older installer use their original printed continuation command, which downloads that exact installer revision.
+A cleanup failure adds `retention_warning` to the result. It does not replace a verified firmware result, discard an unresolved transaction, or expose private paths. Retained records from an older installer use their original printed continuation command, which downloads that exact installer revision.
 
 ## Bootstrap and Pi access
 
 The bootstrap resolves its installer source revision once and retrieves the core and schema at that immutable revision. Firmware branch selection remains independent. Current invocation instructions live in the [operator installation guide](../../docs/install.md).
 
-WsprryPi's selected USB Pico controls call the identified deployed core. The adapter verifies an independently published compatible installer and its hashes; browser requests cannot supply commands, URLs or local paths. Only the selected member is held, with a private persistent marker across service restart. The marker remains until core verification and Pi USB reconnection both succeed. Network-only selections do not offer a USB update. Local compilation remains an explicit host command.
+WsprryPi's selected USB Pico controls call the identified deployed core. The adapter verifies an independently published compatible installer and its hashes; browser requests cannot supply commands, URLs, or local paths. Only the selected member is held, with a private persistent marker across service restart. The marker remains until core verification and Pi USB reconnection both succeed. Network-only selections do not offer a USB update. Local compilation remains an explicit host command.

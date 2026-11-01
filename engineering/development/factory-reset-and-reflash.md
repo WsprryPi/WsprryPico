@@ -1,8 +1,8 @@
 # Factory reset and reflash devel from a Raspberry Pi
 
-This procedure erases a Pico 2 W connected by USB to a Raspberry Pi, then installs the current published devel firmware. Run the shell commands in the Raspberry Pi's terminal or SSH session. Erasing removes the Pico's firmware and saved data, including Wi-Fi credentials, passwords, station settings, schedules and calibration, without making a backup.
+This procedure erases a Pico 2 W connected by USB to a Raspberry Pi, then installs the current published devel firmware. Run the shell commands in the Raspberry Pi's terminal or SSH session. Erasing removes the Pico's firmware and saved data, including Wi-Fi credentials, passwords, station settings, schedules, and calibration, without making a backup.
 
-Command output starts with two blank lines. Messages, diagnostic listings and the returning shell prompt have a blank line between them; the installer's own headings retain its terminal formatting. Copy the complete shell blocks, including both parentheses, and exclude the example output.
+Command output starts with two blank lines. Messages, diagnostic listings, and the returning shell prompt have a blank line between them; the installer's own headings retain its terminal formatting. Copy the complete shell blocks, including both parentheses, and exclude the example output.
 
 ## 1. Enter BOOTSEL mode
 
@@ -27,7 +27,7 @@ The Pico 2 W presents a drive labelled `RP2350`. If it is absent, repeat the pow
 
 ## 2. Erase with flash_nuke
 
-This command downloads Raspberry Pi's [flash_nuke UF2](https://datasheets.raspberrypi.com/soft/flash_nuke.uf2), mounts the BOOTSEL drive if necessary and copies the UF2 to it. It uses `curl` and standard Linux disk tools; no SDK, compiler or picotool installation is needed for this erase operation.
+This command downloads Raspberry Pi's [flash_nuke UF2](https://datasheets.raspberrypi.com/soft/flash_nuke.uf2), mounts the BOOTSEL drive if necessary, and copies the UF2 to it. It uses `curl` and standard Linux disk tools; no SDK, compiler, or picotool installation is needed for this erase operation.
 
 Run the whole block in Bash, including the opening `(` and closing `)`. These parentheses keep `set -euo pipefail` inside a subshell instead of changing the SSH login shell's options. Exclude Markdown backticks and terminal prompt text when copying:
 
@@ -70,7 +70,7 @@ printf '%s\n%s\n' \
 )
 ```
 
-A normal transfer looks like this; download sizes, timings and transfer rates vary:
+A normal transfer looks like this; download sizes, timings, and transfer rates vary:
 
 ```text
 
@@ -92,7 +92,7 @@ BOOTSEL before installing firmware.
 
 ```
 
-A download, mount, copy or synchronization failure stops the block before the success message. The exit trap supplies the final blank line on both success and error paths, including the missing-drive path. After a successful transfer, the Pico runs the erase program and returns to BOOTSEL. Allow several seconds for USB to reconnect, then leave it connected for installation.
+A download, mount, copy, or synchronization failure stops the block before the success message. The exit trap supplies the final blank line on both success and error paths, including the missing-drive path. After a successful transfer, the Pico runs the erase program and returns to BOOTSEL. Allow several seconds for USB to reconnect, then leave it connected for installation.
 
 An error-free transfer is consistent with success, but this command does not independently read back the flash. Raspberry Pi's [erase program](https://github.com/raspberrypi/pico-examples/blob/master/flash/nuke/nuke.c) also writes a `NUKE` marker into the first flash page, so this path does not produce an entirely `0xff` image. The project's separate [full flash erase operation](usb-installer.md#full-flash-erase-contract) verifies every byte by readback.
 
@@ -100,9 +100,9 @@ An error-free transfer is consistent with success, but this command does not ind
 
 After flash_nuke, use a first installation (`install`). The `--replace-unidentified-application` option permits replacement of the erase program's `NUKE` marker; the installer still requires erased saved-state regions. Use this option here only after deliberately erasing this Pico.
 
-Run the following as the ordinary Raspberry Pi user, with Python 3.10 or newer and `curl` available. The public bootstrap works without a local checkout, SDK or compiler. It reuses a compatible USB-enabled picotool or offers a verified download when needed; accept that download if no compatible tool is available. See [USB installation](../../docs/install.md#run-directly-with-curl) for tool permissions, selection and cleanup details.
+Run the following as the ordinary Raspberry Pi user, with Python 3.10 or newer and `curl` available. The public bootstrap works without a local checkout, SDK, or compiler. It reuses a compatible USB-enabled picotool or offers a verified download when needed; accept that download if no compatible tool is available. See [USB installation](../../docs/install.md#run-directly-with-curl) for tool permissions, selection, and cleanup details.
 
-The command prints a start message with two blank lines before it and one after it. The bootstrap download is quiet while errors remain visible. With both output streams attached to the terminal, the installer displays spaced stage headings, progress and its final verified result. Keep the output in the terminal to retain that readable presentation.
+The command prints a start message with two blank lines before it and one after it. The bootstrap download is quiet while errors remain visible. With both output streams attached to the terminal, the installer displays spaced stage headings, progress, and its final verified result. Keep the output in the terminal to retain that readable presentation.
 
 Copy the entire block, starting with `(` and ending with `)`. Omitting the opening parenthesis applies `set -euo pipefail` to the login shell and makes the closing parenthesis a syntax error, which can end the SSH session.
 
@@ -133,7 +133,7 @@ fi
 
 Confirm the intended Pico's USB serial and port if prompted. Keep it connected through programming and verification. `--branch devel` selects the current published devel CI image at execution time; it requires a valid published `ci-devel` index and verified firmware assets. An unavailable image or failed integrity check stops installation. Record the returned firmware version and source revision; the published image can lag newer commits on the branch.
 
-A normal installation looks like this; firmware versions, source revisions, USB identities and transaction paths vary. If the bootstrap download or installer command fails, the block prints a separated error message and returns the failure status with a blank line before the shell prompt. The installer's own verified, recovery and refusal results retain its terminal formatting.
+A normal installation looks like this; firmware versions, source revisions, USB identities, and transaction paths vary. If the bootstrap download or installer command fails, the block prints a separated error message and returns the failure status with a blank line before the shell prompt. The installer's own verified, recovery, and refusal results retain its terminal formatting.
 
 ```text
 
