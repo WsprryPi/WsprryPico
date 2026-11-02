@@ -2,14 +2,6 @@
 
 This is the distinct TODO list for selected unfinished work. Current behavior is documented in the engineering guides. The reusable [cleanup instructions](repository-cleanup-prompt.md) apply to repository and harness cleanup. Item numbers remain stable.
 
-## In progress
-
-13. **Si5351, including TCXO-assisted UTC continuity without GPS.**
-    - ✅ Synthesis, local execution, bounded loopback capture, shared controls, trusted-local μChrony rate input, retained-rate continuity and informational UTC uncertainty are implemented.
-    - ✅ Retained bench observations include 85/85 band/mode cells and 51/51 WSPR decodes under their original image identities, plus the recorded ordinary-image continuity smoke check. These are shared results, not certification of operator hardware.
-    - ⏳ Finish the current paired software CI and matching Pi controller/UI delivery described in the [Si5351 Backlog](#si5351-backlog). Feature-branch delivery is separate from `devel` or `main`.
-    - Reference hardware, its uncertainty allowance and hardware qualification are local operator decisions. Environmental oscillator qualification and absolute UTC/long-holdover hardware measurements are not project completion gates. GPS/PPS ingestion and automatic RF calibration remain in item 14.
-
 ## Possible future work
 
 14. **Optional GPS UTC + PPS and improved holdover.**
@@ -30,24 +22,12 @@ This is the distinct TODO list for selected unfinished work. Current behavior is
 
 ## Si5351 Backlog
 
-This slice completes software support for no-GPS TCXO-assisted UTC continuity. NTP or authenticated phone time supplies UTC phase observations; Si5351 loopback supplies frequency observations under the operator's declared reference allowance. Hardware selection and qualification belong to the local operator. Shared bench results describe measured conditions and do not certify hardware or guarantee absolute UTC accuracy. Environmental TCXO testing and independent ordinary-firmware absolute UTC/long-holdover measurements are not completion gates for this project.
+Item 13 is complete on the `codex/si5351-execution` feature branches. The current software provides Si5351 synthesis and local execution, bounded input-only loopback capture, no-GPS UTC rate assistance, retained-rate continuity across jobs and capture loss, strict paired Control/1 interfaces, and informational UTC uncertainty. GPS/PPS ingestion and automatic RF calibration remain separate future work in item 14.
 
-UTC phase uncertainty is displayed for operator judgment. It does not add a first-party transmission veto or another configuration setting. Preserve independent source-validity, authentication, leap, ownership and hardware safety checks, frequency-estimate quality selection, and explicit external WTP request contracts. The ±500 ppb example is illustrative, not a requirement.
+The final software pair is Pico `03340049379eeb074583f67dcf520fbd902e016c` and Pi `309db1d85c02ae51e8db1c5cb13583e9ae766b37`. Both required production integration suites and every other job passed in [paired CI run 41511319323](https://github.com/WsprryPi/WsprryPi/actions/runs/41511319323). The ordinary Pico candidate and matched Pi controller/UI are installed on C and wspr5, with saved settings preserved and idle/service state verified. Subsequent Pico changes are documentation-only; feature-branch delivery is separate from `devel` or `main`.
 
-1. ✅ **Reconcile the candidate and retained evidence.** Review the existing Pico/Pi feature branches, architecture, consumers and retained results; preserve unrelated checkout work. Keep the 85/85 engineering matrix and 51/51 WSPR decodes bound to their actual images and conditions.
+The [continuity validation record](si5351-continuity-validation.md) describes deterministic checks, adversarial corrections, finite bench observations and ordinary-image smoke results. The retained developer bundle contains exact commands, source manifests, logs, installer receipts and image identities. The existing 85/85 engineering matrix and 51/51 WSPR decodes retain their original scope and image identities.
 
-2. ✅ **Represent reference assumptions honestly.** Keep measurement-only operation available. Trusted-local operation accepts an explicit operator-supplied reference allowance; count quantization, endpoint capture, divider and numerical effects are added conservatively. Do not substitute a temperature-stability figure for total reference error or assume a universal ±500 ppb specification. Document the software model and measured examples without requiring project hardware qualification.
+UTC phase uncertainty is displayed for operator judgment, without another configuration item or first-party phase-uncertainty veto. Independent source-validity, authentication, age, leap, disagreement, ownership and hardware safety checks, frequency-estimate quality selection, and explicit external WTP request contracts remain enforced. The ±500 ppb example is illustrative, not a requirement.
 
-3. ✅ **Complete frequency assistance in the existing time architecture.** Use timestamped frequency-only observations, uncertainty-based quality selection and independent-source disagreement handling. Preserve continuous virtual UTC, original epoch age, authentication, expiry, leap policy, immutable accepted jobs and manual RF correction. Reference observations must not manufacture UTC, refresh phase evidence, erase accumulated uncertainty or create independent agreement from correlated estimates.
-
-4. ✅ **Retain useful rate information through jobs and capture loss.** Pause acquisition from accepted-job preparation through cleanup, including the loaded interval before ARM. Retain the learned center with explicit timer-drift uncertainty growth; distinguish sample freshness, learned-rate age and epoch-source age. Test loss, reacquisition, plan/clock changes and policy removal without time steps or stale-confidence resets. State the model's assumptions rather than claiming certified hardware performance.
-
-5. ✅ **Demonstrate behavior and share scoped observations.** Deterministic known-error checks cover both timer-error signs, intermittent/jittery NTP, accepted phone time, source/reference loss, drift, reacquisition, full WSPR intervals, repeated gaps, invalid/duplicated/stale/future/generation-mismatched observations, disagreement and restart seeds. Retain physical bench measurements and ordinary-image smoke results with their truth-source assumptions, finite durations and image identities. Do not treat synthetic checks as physical evidence or introduce production GPS ingestion.
-
-6. ⏳ **Complete coordinated interfaces and software integration.** Update current Control/1 schemas, descriptors, strict consumers, runtime use, serialization, generated assets, paired adapters, shared UI and Read the Docs sources together. Render applicable desktop/mobile states with the Impeccable workflow. Both actual production network and USB suites must succeed for the intended source pair under the checked-in Pi workflow recipes; failed, cancelled, skipped or timed-out required checks remain unresolved.
-
-7. ✅ **Validate and deploy the ordinary software candidate.** Cross-build the normal image with pinned inputs and linked memory/flash/stack checks. Use the preserving shared installer and retain the exact developer bundle, same-board references and recovery assets. Verify installed identity, saved settings, finite ordinary-image smoke behavior and restored idle/service state. Additional boards are not prerequisites; excluded boards invalidate no retained results.
-
-8. ⏳ **Finish adversarial review and delivery.** Correct actionable findings, rerun affected checks, commit/push the existing feature branches, bind companion provenance to the tested Pico software revision and verify remote heads. Report tested revisions, commands/results, CI links, documentation, installed images/configuration and actual repository/service state. Remove hardware-qualification assumptions from project completion criteria while preserving honest evidence scope.
-
-The implementation, software model and shared finite measurements are described in [Si5351 continuity validation](si5351-continuity-validation.md). Hardware qualification remains an operator responsibility, not selected unfinished project work.
+Reference hardware, its declared uncertainty allowance and hardware qualification are local operator decisions. Shared results do not certify hardware or guarantee absolute UTC accuracy. Environmental TCXO testing and independent absolute UTC/long-holdover hardware measurements are outside project completion criteria.
