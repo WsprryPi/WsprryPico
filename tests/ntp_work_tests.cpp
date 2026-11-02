@@ -10,6 +10,7 @@
 #include "time/ntp_filter.hpp"
 #include "time/sntp.hpp"
 
+#include <array>
 #include <charconv>
 #include <iostream>
 #include <sstream>
@@ -452,8 +453,8 @@ void browser_reference_transmission_gaps() {
                                 "phone"));
         REQUIRE(client.frequency_reference(
             microchrony::FrequencyReference{raw, raw + 30 * ns, 1, -timer_ppb, 1000}, raw));
-        for (const std::uint64_t elapsed :
-             {110'592'000'000ULL, 120 * ns, 240 * ns, 1800 * ns, 3600 * ns}) {
+        for (const std::uint64_t elapsed : std::array<std::uint64_t, 5>{
+                 110'592'000'000ULL, 120 * ns, 240 * ns, 1800 * ns, 3600 * ns}) {
             const auto raw_elapsed = std::uint64_t(
                 std::int64_t(elapsed) + std::int64_t(elapsed) * timer_ppb / std::int64_t(ns));
             raw = start + raw_elapsed;
