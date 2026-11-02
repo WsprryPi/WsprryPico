@@ -56,6 +56,7 @@ udp
 reference/output
 reference/time
 reference/defaults
+reference/pico-validation-platform
 reference/security
 reference/credits
 ```
