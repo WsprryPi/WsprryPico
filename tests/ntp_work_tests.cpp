@@ -10,6 +10,7 @@
 #include "time/ntp_filter.hpp"
 #include "time/sntp.hpp"
 
+#include <array>
 #include <charconv>
 #include <iostream>
 #include <sstream>
@@ -72,9 +73,10 @@ void manual() {
         application::config_candidate(*supplied, extended, application::ConfigWrite::Merge);
     REQUIRE(standalone::parse_config(*legacy)->manual_correction_ppb == -10125);
     REQUIRE(f.store.save(extended));
-    const auto legacy_view =
-        f.api.handle(network_test::control_request({"GET", "/api/control/v1/rf-calibration", {}, {{"host", "127.0.0.1:8443"}}}), "test",
-                     "127.0.0.1:8443");
+    const auto legacy_view = f.api.handle(
+        network_test::control_request(
+            {"GET", "/api/control/v1/rf-calibration", {}, {{"host", "127.0.0.1:8443"}}}),
+        "test", "127.0.0.1:8443");
     REQUIRE(legacy_view.status == 200 &&
             legacy_view.body.find("\"mode\":\"manual\"") != std::string::npos);
     REQUIRE(wtp::json::parse(f.scheduler.command("CONFIG " + network_test::config))
@@ -106,8 +108,8 @@ void manual() {
     }
     // Closed old config views never leak new fields to strict old clients.
     network::HttpRequest get{"GET", "/api/control/v1/config", {}, {{"host", "127.0.0.1:8443"}}};
-    REQUIRE(f.api.handle(network_test::control_request(get), "test", "127.0.0.1:8443").body.find("correction") ==
-            std::string::npos);
+    REQUIRE(f.api.handle(network_test::control_request(get), "test", "127.0.0.1:8443")
+                .body.find("correction") == std::string::npos);
 }
 std::array<std::uint8_t, 48> ntp_reply(const std::array<std::uint8_t, 48>& request,
                                        std::uint64_t utc) {
@@ -257,6 +259,220 @@ void selected_source_freshness() {
     REQUIRE(client.receive(ntp_reply(recovered, epoch + raw - 1'000'000), raw));
     REQUIRE(clock.snapshot().state == wtp::ClockState::Synchronized);
     REQUIRE(client.engine().tracking(raw).generation > before.generation);
+}
+void reference_frequency_authority() {
+    std::uint64_t raw = 0;
+    time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
+    time::ControllerTimeArbiter arbiter(clock, now, &raw, "test");
+    time::NtpClient client(arbiter);
+    raw = ns;
+    REQUIRE(client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 1, 10000, 100}, raw));
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(client.engine().history(0).empty());
+    client.clear_frequency_reference(raw);
+    for (unsigned i = 0; i < 12; ++i) {
+        const auto request = client.request(raw, i + 1);
+        raw += 2'000'000;
+        // A jittery phase source has a worse rate fit than the independent
+        // counter. Perfect synthetic NTP is deliberately tested separately.
+        REQUIRE(client.receive(ntp_reply(request, epoch + raw - 1'000'000 + (i % 2 ? 100'000 : 0)),
+                               raw));
+        raw += 64 * ns;
+    }
+    REQUIRE(client.apply(raw));
+    const auto before = clock.snapshot();
+    const auto samples = client.engine().history(0).size();
+    REQUIRE(before.state == wtp::ClockState::Synchronized);
+    const microchrony::FrequencyReference reference{raw, raw + 30 * ns, 7, 10000, 100};
+    REQUIRE(client.frequency_reference(reference, raw));
+    const auto after = clock.snapshot();
+    REQUIRE(after.sync_age_ns == before.sync_age_ns);
+    REQUIRE(after.utc_now_ns >= before.utc_now_ns - 1000 &&
+            after.utc_now_ns <= before.utc_now_ns + 1000);
+    REQUIRE(after.subsequent_rate_ppb == 10000);
+    REQUIRE(client.engine().history(0).size() == samples);
+    const auto generation = client.engine().tracking(raw).generation;
+    REQUIRE(!client.frequency_reference(reference, raw));
+    REQUIRE(client.engine().tracking(raw).generation == generation);
+    raw += ns;
+    (void)client.frequency_reference({}, raw);
+    REQUIRE(client.engine().frequency_reference_state(raw) ==
+            microchrony::FrequencyReferenceState::Expired);
+    REQUIRE(clock.snapshot().sync_age_ns == before.sync_age_ns + ns);
+    raw += ns;
+    REQUIRE(!client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 7, 90000, 100}, raw));
+    REQUIRE(arbiter.status().disagreement);
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    (void)client.frequency_reference({}, raw);
+    REQUIRE(arbiter.status().disagreement);
+    REQUIRE(arbiter.challenge("browser", "session", "test", "fresh-nonce").code ==
+            time::ControllerTimeCode::Disagreement);
+    REQUIRE(!arbiter.observe(time::ObservationSource::Browser, epoch + raw, raw,
+                             time::browser_clock_uncertainty_ns, wtp::LeapState::Normal));
+    raw += ns;
+    REQUIRE(client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 7, 0, 100}, raw));
+    REQUIRE(!arbiter.status().disagreement &&
+            clock.snapshot().state == wtp::ClockState::Synchronized);
+    REQUIRE(clock.snapshot().sync_age_ns == before.sync_age_ns + 3 * ns);
+    REQUIRE(client.engine().history(0).size() == samples);
+    client.clear_seed();
+    REQUIRE(client.engine().frequency_reference_state(raw) ==
+            microchrony::FrequencyReferenceState::Selected);
+}
+void browser_reference_holdover() {
+    std::uint64_t raw = ns;
+    const auto start = raw;
+    time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
+    time::ControllerTimeArbiter arbiter(clock, now, &raw, "test");
+    time::NtpClient client(arbiter);
+    const microchrony::FrequencyReference first{raw, raw + 30 * ns, 1, -20000, 1000};
+    REQUIRE(client.frequency_reference(first, raw));
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(client.frequency_reference_status(raw) == "awaiting_utc");
+    REQUIRE(arbiter.observe(time::ObservationSource::Browser, epoch + raw, raw,
+                            time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                            "phone"));
+    REQUIRE(client.frequency_reference_status(raw) == "selected");
+    REQUIRE(clock.snapshot().rate_ppb == -20000);
+    const auto bounded = clock.snapshot();
+    REQUIRE(!clock.adjust_browser_rate(100001, 1000));
+    REQUIRE(!clock.adjust_browser_rate(-20000, 0));
+    REQUIRE(!clock.adjust_browser_rate(-20000, 100001));
+    REQUIRE(clock.snapshot() == bounded);
+    raw += 20 * ns;
+    const auto corrected = clock.snapshot();
+    REQUIRE(corrected.utc_now_ns == epoch + raw - 400000);
+    REQUIRE(corrected.sync_age_ns == 20 * ns);
+    REQUIRE(corrected.uncertainty_ns >= time::browser_clock_uncertainty_ns + 1'020'000);
+    REQUIRE(arbiter.status().age_ns == corrected.sync_age_ns);
+    REQUIRE(arbiter.status().uncertainty_ns == corrected.uncertainty_ns);
+    REQUIRE(!client.frequency_reference(first, raw));
+    REQUIRE(clock.snapshot().sync_age_ns == 20 * ns);
+    REQUIRE(client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 1, -19000, 1000}, raw));
+    REQUIRE(clock.snapshot().utc_now_ns == corrected.utc_now_ns);
+    REQUIRE(clock.snapshot().sync_age_ns == corrected.sync_age_ns);
+    raw += 31 * ns;
+    (void)client.frequency_reference({}, raw);
+    REQUIRE(client.frequency_reference_status(raw) == "expired");
+    const auto lost = clock.snapshot();
+    REQUIRE(lost.rate_ppb == -19000 && lost.sync_age_ns == 51 * ns);
+    REQUIRE(client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 1, -18000, 1000}, raw));
+    REQUIRE(clock.snapshot().utc_now_ns == lost.utc_now_ns);
+    REQUIRE(clock.snapshot().sync_age_ns == lost.sync_age_ns);
+    client.clear_frequency_reference(raw);
+    REQUIRE(clock.snapshot().utc_now_ns == lost.utc_now_ns);
+    REQUIRE(clock.snapshot().rate_ppb == 0);
+    REQUIRE(clock.snapshot().sync_age_ns == lost.sync_age_ns);
+    REQUIRE(client.frequency_reference_status(raw) == "none");
+    REQUIRE(!client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 2, -20000, 100500}, raw));
+    REQUIRE(!arbiter.observe_frequency_reference({raw, raw + 30 * ns, 2, -20000, 1000}, raw));
+    ++raw; // A removed policy requires a genuinely newer capture.
+    REQUIRE(client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 2, -20000, 100500}, raw));
+    REQUIRE(client.frequency_reference_status(raw) == "quality");
+    REQUIRE(clock.snapshot().rate_ppb == 0);
+    client.clear_frequency_reference(raw);
+    ++raw;
+    REQUIRE(client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 3, -20000, 1000}, raw));
+    const auto before_bad = clock.snapshot();
+    for (const auto bad : {time::LocalFrequencyReference{raw + 1, raw + 30 * ns, 3, 0, 1000},
+                           time::LocalFrequencyReference{raw, raw + 31 * ns, 3, 0, 1000},
+                           time::LocalFrequencyReference{raw, raw + 30 * ns, 0, 0, 1000},
+                           time::LocalFrequencyReference{raw, raw + 30 * ns, 3, 0, 0},
+                           time::LocalFrequencyReference{raw, raw + 30 * ns, 3, 0, 200102},
+                           time::LocalFrequencyReference{raw, raw + 30 * ns, 3, 100001, 1000}}) {
+        REQUIRE(!arbiter.observe_frequency_reference(bad, raw));
+        REQUIRE(clock.snapshot() == before_bad);
+    }
+    raw = start + 3600 * ns + 1;
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(client.frequency_reference(
+        microchrony::FrequencyReference{raw, raw + 30 * ns, 3, -20000, 1000}, raw));
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().sync_age_ns == 3600 * ns + 1);
+    REQUIRE(client.frequency_reference_status(raw) == "awaiting_utc");
+    REQUIRE(arbiter.observe(time::ObservationSource::Browser, epoch + raw, raw,
+                            time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                            "phone"));
+    REQUIRE(clock.snapshot().rate_ppb == -20000 && clock.snapshot().sync_age_ns == 0);
+    arbiter.frequency_reference_conflict(true);
+    REQUIRE(client.frequency_reference_status(raw) == "disagreement");
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    raw += ns;
+    REQUIRE(arbiter.observe_frequency_reference({raw, raw + 30 * ns, 3, -20000, 1000}, raw));
+    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+}
+void browser_reference_drift_benefit() {
+    std::uint64_t raw = ns;
+    const auto start = raw;
+    time::UtcDiscipline assisted(now, &raw, standalone::clock_profile());
+    time::UtcDiscipline unassisted(now, &raw, standalone::clock_profile());
+    time::ControllerTimeArbiter arbiter(assisted, now, &raw, "test");
+    time::NtpClient client(arbiter);
+    REQUIRE(arbiter.observe(time::ObservationSource::Browser, epoch, raw,
+                            time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                            "phone"));
+    REQUIRE(unassisted.observe(time::ObservationSource::Browser, epoch, raw,
+                               time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                               "phone"));
+    for (unsigned seconds = 0; seconds <= 1800; seconds += 20) {
+        // Independent truth: a raw timer that runs 20 ppm fast. A stable
+        // external counter estimates its inverse slope to integer ppb.
+        raw = start + seconds * ns + seconds * 20000ULL;
+        REQUIRE(client.frequency_reference(
+            microchrony::FrequencyReference{raw, raw + 30 * ns, 1, -20000, 1000}, raw));
+        REQUIRE(assisted.snapshot().sync_age_ns == raw - start);
+    }
+    const auto truth = epoch + 1800 * ns;
+    const auto corrected = assisted.snapshot().utc_now_ns;
+    REQUIRE(corrected <= truth && truth - corrected < 2000);
+    REQUIRE(unassisted.snapshot().utc_now_ns - truth == 36'000'000);
+    REQUIRE(assisted.snapshot().uncertainty_ns >= time::browser_clock_uncertainty_ns);
+    REQUIRE(assisted.snapshot().state != wtp::ClockState::Unsynchronized);
+    REQUIRE(arbiter.status().age_ns == raw - start);
+}
+void browser_reference_transmission_gaps() {
+    // Independent known-error truth includes either sign of 20 ppm timer
+    // error. Publish once, then withhold capture across whole jobs: freshness
+    // expires, but the learned center and original epoch must survive.
+    for (const int timer_ppb : {-20000, 20000}) {
+        std::uint64_t raw = ns;
+        const auto start = raw;
+        time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
+        time::ControllerTimeArbiter arbiter(clock, now, &raw, "test");
+        time::NtpClient client(arbiter);
+        REQUIRE(arbiter.observe(time::ObservationSource::Browser, epoch, raw,
+                                time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                                "phone"));
+        REQUIRE(client.frequency_reference(
+            microchrony::FrequencyReference{raw, raw + 30 * ns, 1, -timer_ppb, 1000}, raw));
+        for (const std::uint64_t elapsed : std::array<std::uint64_t, 5>{
+                 110'592'000'000ULL, 120 * ns, 240 * ns, 1800 * ns, 3600 * ns}) {
+            const auto raw_elapsed = std::uint64_t(
+                std::int64_t(elapsed) + std::int64_t(elapsed) * timer_ppb / std::int64_t(ns));
+            raw = start + raw_elapsed;
+            (void)client.frequency_reference({}, raw);
+            const auto model = clock.snapshot();
+            const auto truth = epoch + elapsed;
+            const auto error =
+                model.utc_now_ns > truth ? model.utc_now_ns - truth : truth - model.utc_now_ns;
+            REQUIRE(model.rate_ppb == -timer_ppb);
+            REQUIRE(model.sync_age_ns == raw_elapsed);
+            REQUIRE(model.uncertainty_ns >= error + time::browser_clock_uncertainty_ns);
+            // Exact ppb correction is rounded: the inverse of (1 +/- 20 ppm)
+            // differs by about 0.4 ppb. Retention still removes >99.9% of the
+            // known 20 ppm error, including a one-hour maximum-duration job.
+            REQUIRE(error < 10'000);
+            REQUIRE(client.frequency_reference_status(raw) == "expired");
+        }
+    }
 }
 void model_import() {
     std::uint64_t raw = 10 * ns;
@@ -574,6 +790,10 @@ int main(int argc, char** argv) {
     }
     manual();
     model_import();
+    reference_frequency_authority();
+    browser_reference_holdover();
+    browser_reference_drift_benefit();
+    browser_reference_transmission_gaps();
     diagnostic_pages();
     selected_source_freshness();
     retention();

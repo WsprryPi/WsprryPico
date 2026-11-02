@@ -1,6 +1,7 @@
 #include "application/config_update.hpp"
 #include "network_support.hpp"
 #include "standalone/progress.hpp"
+
 #include <limits>
 
 using namespace wsprrypico;
@@ -40,9 +41,9 @@ struct Member {
     network_test::Clock clock;
     Engine engine;
     network_test::Identity identity;
-    static wtp::ServiceConfig limits(std::uint64_t maximum) {
+    static wtp::ServiceConfig limits(std::uint64_t maximum, std::uint64_t minimum) {
         wtp::ServiceConfig result;
-        result.minimum_frequency_nhz = 100000 * ns;
+        result.minimum_frequency_nhz = minimum;
         result.maximum_frequency_nhz = maximum;
         return result;
     }
@@ -57,8 +58,10 @@ struct Member {
         REQUIRE(store.save(c));
         return store;
     }
-    explicit Member(bool inherited = false, std::uint64_t maximum = 68999999 * ns)
-        : service(clock, engine, identity, limits(maximum)), scheduler(initialize(inherited), service),
+    explicit Member(bool inherited = false, std::uint64_t maximum = 68999999 * ns,
+                    std::uint64_t minimum = 100000 * ns)
+        : service(clock, engine, identity, limits(maximum, minimum)),
+          scheduler(initialize(inherited), service),
           api(service, store, scheduler, network, std::string(32, 'a'), "test") {}
     network::HttpResponse request(std::string method, std::string path, std::string body = {},
                                   std::string match = {}) {
@@ -90,22 +93,22 @@ void first_use_requires_explicit_station_application() {
     f.api.progress_settings(progress);
     auto request = [&](std::string method, std::string path, std::string body = "") {
         return f.api.handle(network_test::control_request({method,
-                             path,
-                             body,
-                             {{"host", "127.0.0.1:8443"},
-                              {"origin", "https://127.0.0.1:8443"},
-                              {"content-type", "application/json"},
-                              {"x-wsprrypico-request", "1"},
-                              {"if-match", f.api.revision()}}}),
+                                                           path,
+                                                           body,
+                                                           {{"host", "127.0.0.1:8443"},
+                                                            {"origin", "https://127.0.0.1:8443"},
+                                                            {"content-type", "application/json"},
+                                                            {"x-wsprrypico-request", "1"},
+                                                            {"if-match", f.api.revision()}}}),
                             "test", "127.0.0.1:8443");
     };
     const auto target = application::target(std::string(32, 'a'), f.service.status().boot_id);
     const auto frequency =
-        "{\"schema\":\"standalone-frequency\",\"target\":" + target +
-        ",\"frequency_hz\":14095600}";
+        "{\"schema\":\"standalone-frequency\",\"target\":" + target + ",\"frequency_hz\":14095600}";
     REQUIRE(!f.store.config() && f.store.healthy());
-    REQUIRE(request("GET", "/api/control/v1/standalone-frequency").body_text().find("\"frequency_hz\":null") !=
-            std::string::npos);
+    REQUIRE(request("GET", "/api/control/v1/standalone-frequency")
+                .body_text()
+                .find("\"frequency_hz\":null") != std::string::npos);
     REQUIRE(request("PUT", "/api/control/v1/standalone-frequency", frequency).status == 409);
     REQUIRE(f.store.config_sequence() == 0 && !f.store.config());
     const auto draft = request(
@@ -117,7 +120,8 @@ void first_use_requires_explicit_station_application() {
             draft.body_text().find("\"station_complete\":true") != std::string::npos);
     REQUIRE(draft.body_text().find("\"applied_station\":null") != std::string::npos);
     const auto refused = request("PUT", "/api/control/v1/standalone-frequency", frequency);
-    REQUIRE(refused.status == 409 && refused.body_text().find("not_configured") != std::string::npos);
+    REQUIRE(refused.status == 409 &&
+            refused.body_text().find("not_configured") != std::string::npos);
     REQUIRE(f.store.config_sequence() == 0 && !f.store.config());
     const auto applied =
         request("POST", "/api/control/v1/progress/apply",
@@ -137,25 +141,28 @@ void identity_atomicity_and_old_journal() {
     const auto first_revision = m.api.revision();
     auto wrong = m.envelope("14095600");
     const auto boot = m.service.status().boot_id;
-    wrong.replace(wrong.find(boot), boot.size(), std::string(32,'f'));
+    wrong.replace(wrong.find(boot), boot.size(), std::string(32, 'f'));
     const auto committed = *m.store.config();
     REQUIRE(m.request("PUT", "/api/control/v1/standalone-frequency", wrong).status == 409);
     REQUIRE(*m.store.config() == committed);
     REQUIRE(m.frequency("14095600").status == 200);
     REQUIRE(m.frequency("3568737").status == 200);
     REQUIRE(m.api.revision() != first_revision);
-    REQUIRE(m.request("PUT", "/api/control/v1/standalone-frequency",m.envelope("14095600"),first_revision).status == 412);
+    REQUIRE(m.request("PUT", "/api/control/v1/standalone-frequency", m.envelope("14095600"),
+                      first_revision)
+                .status == 412);
     // The latest valid-CRC record with an unknown old member fails ordinary
     // strict parsing; the loader must not resurrect a prior enabled record.
     network_test::Flash flash;
     standalone::Store original(flash);
     REQUIRE(original.load());
-    auto enabled = committed; enabled.enabled = true;
+    auto enabled = committed;
+    enabled.enabled = true;
     REQUIRE(original.save(enabled));
-    standalone::Journal journal(flash,0,2048);
+    standalone::Journal journal(flash, 0, 2048);
     REQUIRE(journal.load());
     auto old = standalone::serialize_config(enabled);
-    old.replace(old.find("wspr_dial_frequency_hz"),22,"wspr_base_frequency_hz");
+    old.replace(old.find("wspr_dial_frequency_hz"), 22, "wspr_base_frequency_hz");
     REQUIRE(journal.append(old));
     standalone::Store reboot(flash);
     REQUIRE(!reboot.load() && !reboot.healthy() && !reboot.config());
@@ -163,7 +170,8 @@ void identity_atomicity_and_old_journal() {
     const auto sequence = m.store.config_sequence();
     m.flash.fail = true;
     REQUIRE(m.frequency("14095600").status == 503);
-    REQUIRE(*m.store.config() == last && m.store.config_sequence() == sequence && !m.store.healthy());
+    REQUIRE(*m.store.config() == last && m.store.config_sequence() == sequence &&
+            !m.store.healthy());
     REQUIRE(!m.service.activity().owned && m.engine.jobs.empty());
     m.flash.fail = false;
     REQUIRE(m.frequency("14095600").status == 409); // Failed service state remains blocked.
@@ -178,16 +186,23 @@ void blocked_dial_survives_unrelated_updates() {
     REQUIRE(m.frequency("1000000").status == 200);
     // Explicit false values revoke permissions without erasing the saved dial.
     const auto envelope = "{\"schema\":\"config-update\",\"target\":" +
-        application::target(std::string(32,'a'),m.service.status().boot_id) +
-        ",\"mode\":\"merge\",\"config\":{\"allow_unqualified_frequency\":false,\"allow_non_amateur_frequency\":false}}";
-    REQUIRE(m.request("POST","/api/control/v1/config/update",envelope).status == 200);
+                          application::target(std::string(32, 'a'), m.service.status().boot_id) +
+                          ",\"mode\":\"merge\",\"config\":{\"allow_unqualified_frequency\":false,"
+                          "\"allow_non_amateur_frequency\":false}}";
+    REQUIRE(m.request("POST", "/api/control/v1/config/update", envelope).status == 200);
     REQUIRE(m.store.config()->wspr_dial_frequency_hz == 1000000);
-    REQUIRE(!m.store.config()->allow_unqualified_frequency && !m.store.config()->allow_non_amateur_frequency);
-    REQUIRE(m.request("GET","/api/control/v1/standalone-frequency").body_text().find("\"allowed\":false") != std::string::npos);
-    REQUIRE(m.scheduler.command("CONFIG " + network_test::config).find("\"ok\":true") != std::string::npos);
+    REQUIRE(!m.store.config()->allow_unqualified_frequency &&
+            !m.store.config()->allow_non_amateur_frequency);
+    REQUIRE(m.request("GET", "/api/control/v1/standalone-frequency")
+                .body_text()
+                .find("\"allowed\":false") != std::string::npos);
+    REQUIRE(m.scheduler.command("CONFIG " + network_test::config).find("\"ok\":true") !=
+            std::string::npos);
     REQUIRE(m.store.config()->wspr_dial_frequency_hz == 1000000);
-    auto changed = *m.store.config(); changed.wspr_dial_frequency_hz = 1000001;
-    REQUIRE(m.scheduler.command("CONFIG " + standalone::serialize_config(changed)).find("frequency_not_allowed") != std::string::npos);
+    auto changed = *m.store.config();
+    changed.wspr_dial_frequency_hz = 1000001;
+    REQUIRE(m.scheduler.command("CONFIG " + standalone::serialize_config(changed))
+                .find("frequency_not_allowed") != std::string::npos);
     REQUIRE(m.store.config()->wspr_dial_frequency_hz == 1000000);
 }
 void absolute_jobs_ignore_standalone_dial() {
@@ -196,28 +211,30 @@ void absolute_jobs_ignore_standalone_dial() {
     auto send = [&](std::string operation, wtp::RequestBody body = {}) {
         wtp::Request request;
         request.principal = "remote";
-        request.session_id = std::string(32,'c');
+        request.session_id = std::string(32, 'c');
         ++sequence;
-        request.request_id = std::string(30,'0') + (sequence < 10 ? "0" : "") + std::to_string(sequence);
+        request.request_id =
+            std::string(30, '0') + (sequence < 10 ? "0" : "") + std::to_string(sequence);
         request.payload_digest[0] = 1;
-        request.operation = operation; request.body = std::move(body);
+        request.operation = operation;
+        request.body = std::move(body);
         return m.service.handle(std::move(request));
     };
     for (const auto dial : {"3568737", "14095600"}) {
         REQUIRE(m.frequency(dial).status == 200);
-        REQUIRE(send("HELLO",wtp::HelloBody{{"WTP/1"}}).ok);
-        REQUIRE(send("CLAIM",wtp::ClaimBody{std::string(32,'c'),30000}).ok);
-        wtp::Job job{std::string(32,'d'),"rf-events/1","wspr",ns,{},true};
-        REQUIRE(job.events.push_back({0,ns,true,14095600123456789ULL}));
-        REQUIRE(send("LOAD",job).ok);
+        REQUIRE(send("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
+        REQUIRE(send("CLAIM", wtp::ClaimBody{std::string(32, 'c'), 30000}).ok);
+        wtp::Job job{std::string(32, 'd'), "rf-events/1", "wspr", ns, {}, true};
+        REQUIRE(job.events.push_back({0, ns, true, 14095600123456789ULL}));
+        REQUIRE(send("LOAD", job).ok);
         REQUIRE(m.engine.jobs.back().events[0].frequency_nhz == 14095600123456789ULL);
         REQUIRE(m.frequency("7038600").status == 409);
         REQUIRE(send("RELEASE").ok);
     }
 }
 void api_engine_boundaries() {
-    for (const auto upper : {65999999ULL,68999999ULL,74999999ULL}) {
-        Member m(false,upper*ns);
+    for (const auto upper : {65999999ULL, 68999999ULL, 74999999ULL}) {
+        Member m(false, upper * ns);
         auto config = *m.store.config();
         config.allow_unqualified_frequency = config.allow_non_amateur_frequency = true;
         REQUIRE(m.store.save(config));
@@ -225,16 +242,32 @@ void api_engine_boundaries() {
         REQUIRE(m.store.config()->wspr_dial_frequency_hz == 98503);
         auto sequence = m.store.config_sequence();
         REQUIRE(m.frequency("98502").status == 400 && m.store.config_sequence() == sequence);
-        REQUIRE(m.frequency(std::to_string(upper-1503)).status == 200);
-        REQUIRE(m.store.config()->wspr_dial_frequency_hz == upper-1503);
+        REQUIRE(m.frequency(std::to_string(upper - 1503)).status == 200);
+        REQUIRE(m.store.config()->wspr_dial_frequency_hz == upper - 1503);
         sequence = m.store.config_sequence();
-        REQUIRE(m.frequency(std::to_string(upper-1502)).status == 400 && m.store.config_sequence() == sequence);
+        REQUIRE(m.frequency(std::to_string(upper - 1502)).status == 400 &&
+                m.store.config_sequence() == sequence);
+    }
+}
+void api_si5351_boundaries() {
+    Member m(false, 160000000 * ns, 8000 * ns);
+    auto config = *m.store.config();
+    config.allow_unqualified_frequency = config.allow_non_amateur_frequency = true;
+    REQUIRE(m.store.save(config));
+    for (const auto dial : {6503U, 136000U, 144489000U, 159998496U}) {
+        REQUIRE(m.frequency(std::to_string(dial)).status == 200);
+        standalone::Store reboot(m.flash);
+        REQUIRE(reboot.load() && reboot.config()->wspr_dial_frequency_hz == dial);
+    }
+    const auto generation = m.store.config_sequence();
+    for (const auto dial : {"6502", "159998497", "144489000.0", "1.44489e8", "0144489000"}) {
+        REQUIRE(m.frequency(dial).status == 400);
+        REQUIRE(m.store.config_sequence() == generation);
     }
 }
 void arithmetic_bounds_and_policy() {
-    const std::array<std::uint64_t, 4> expected{
-        14097097802734375ULL, 14097099267578125ULL,
-        14097100732421875ULL, 14097102197265625ULL};
+    const std::array<std::uint64_t, 4> expected{14097097802734375ULL, 14097099267578125ULL,
+                                                14097100732421875ULL, 14097102197265625ULL};
     REQUIRE(standalone::wspr_tones(14095600) == expected);
     REQUIRE(!standalone::wspr_tones(0));
     REQUIRE(!standalone::wspr_tones(std::numeric_limits<std::uint64_t>::max()));
@@ -253,8 +286,8 @@ void arithmetic_bounds_and_policy() {
     }
     c.allow_unqualified_frequency = c.allow_non_amateur_frequency = false;
     // Every emitted tone must be inside policy; D itself is only a reference.
-    for (const auto& [dial, accepted] : std::array<std::pair<unsigned,bool>,4>{
-             {{128503,true},{128502,false},{188497,true},{188498,false}}}) {
+    for (const auto& [dial, accepted] : std::array<std::pair<unsigned, bool>, 4>{
+             {{128503, true}, {128502, false}, {188497, true}, {188498, false}}}) {
         c.wspr_dial_frequency_hz = dial;
         REQUIRE(standalone::wspr_frequency_allowed(c, 100000 * ns, 68999999 * ns) == accepted);
     }
@@ -275,12 +308,15 @@ void single_frame_and_closed_views() {
                             "/api/control/v1/application", "/api/control/v1/application"}) {
         const auto r = m.request("GET", path);
         REQUIRE(r.status == 200);
-        REQUIRE(r.body_text().find("\"schedule_dial_frequency_nhz\":\"3568737000000000\"") != std::string::npos);
+        REQUIRE(r.body_text().find("\"schedule_dial_frequency_nhz\":\"3568737000000000\"") !=
+                std::string::npos);
         REQUIRE(r.body_text().find("schedule_base_frequency_nhz") == std::string::npos);
     }
-    for (const auto path : {"/api/control/v1/config", "/api/control/v1/config", "/api/control/v1/config", "/api/control/v1/config"}) {
+    for (const auto path : {"/api/control/v1/config", "/api/control/v1/config",
+                            "/api/control/v1/config", "/api/control/v1/config"}) {
         const auto r = m.request("GET", path);
-        REQUIRE(r.status == 200 && r.body_text().find("wspr_dial_frequency_hz") == std::string::npos);
+        REQUIRE(r.status == 200 &&
+                r.body_text().find("wspr_dial_frequency_hz") == std::string::npos);
     }
     auto old = standalone::serialize_config(saved);
     old.replace(old.find("wspr_dial_frequency_hz"), 22, "wspr_base_frequency_hz");
@@ -294,28 +330,33 @@ void single_frame_and_closed_views() {
     Member single;
     auto c = *single.store.config();
     c.wspr_dial_frequency_hz = 3568737;
-    c.enabled = true; c.schedules = {{240,0}};
+    c.enabled = true;
+    c.schedules = {{240, 0}};
     REQUIRE(single.store.save(c));
-    single.clock.now = 236 * ns; single.scheduler.poll();
-    const auto plan = encoding::wspr_plan(c.callsign,c.locator,c.power_dbm);
+    single.clock.now = 236 * ns;
+    single.scheduler.poll();
+    const auto plan = encoding::wspr_plan(c.callsign, c.locator, c.power_dbm);
     REQUIRE(plan && plan->count == 1 && single.engine.jobs.size() == 1);
-    const std::array<std::uint64_t,4> expected{
-        3570234802734375ULL,3570236267578125ULL,
-        3570237732421875ULL,3570239197265625ULL};
-    for (unsigned i=0;i<162;++i)
-        REQUIRE(single.engine.jobs[0].events[i].frequency_nhz == expected[plan->frames[0].symbols[i]]);
+    const std::array<std::uint64_t, 4> expected{3570234802734375ULL, 3570236267578125ULL,
+                                                3570237732421875ULL, 3570239197265625ULL};
+    for (unsigned i = 0; i < 162; ++i)
+        REQUIRE(single.engine.jobs[0].events[i].frequency_nhz ==
+                expected[plan->frames[0].symbols[i]]);
     REQUIRE(single.frequency("14095600").status == 409);
     REQUIRE(single.store.config()->wspr_dial_frequency_hz == 3568737);
 }
 void console_first_selection_is_disabled() {
     Member m(true);
-    auto c = *m.store.config(); c.wspr_dial_frequency_hz = 14095600;
+    auto c = *m.store.config();
+    c.wspr_dial_frequency_hz = 14095600;
     REQUIRE(c.enabled);
-    REQUIRE(m.scheduler.command("CONFIG " + standalone::serialize_config(c)).find("\"ok\":true") != std::string::npos);
+    REQUIRE(m.scheduler.command("CONFIG " + standalone::serialize_config(c)).find("\"ok\":true") !=
+            std::string::npos);
     REQUIRE(m.store.config()->wspr_dial_frequency_hz == 14095600 && !m.store.config()->enabled);
     REQUIRE(m.engine.jobs.empty() && !m.service.activity().owned);
     // A later explicit schedule operation owns enabled, with the saved dial intact.
-    REQUIRE(m.scheduler.command("CONFIG " + standalone::serialize_config(c)).find("\"ok\":true") != std::string::npos);
+    REQUIRE(m.scheduler.command("CONFIG " + standalone::serialize_config(c)).find("\"ok\":true") !=
+            std::string::npos);
     REQUIRE(m.store.config()->enabled && m.engine.jobs.empty());
 }
 void unset_is_nontransmitting() {
@@ -332,7 +373,8 @@ void unset_is_nontransmitting() {
     REQUIRE(value->get("configured")->raw == "false" && value->get("allowed")->raw == "false");
     REQUIRE(m.scheduler.status().find("\"frequency_required\":true") != std::string::npos);
     REQUIRE(m.request("GET", "/api/control/v1/application")
-                .body_text().find("\"schedule_dial_frequency_nhz\":\"0\"") != std::string::npos);
+                .body_text()
+                .find("\"schedule_dial_frequency_nhz\":\"0\"") != std::string::npos);
     // First selection is explicit and cannot resume the inherited enabled flag.
     REQUIRE(m.frequency("14095600").status == 200);
     REQUIRE(!m.store.config()->enabled && m.store.config()->wspr_dial_frequency_hz == 14095600);
@@ -344,7 +386,8 @@ void validation_and_preservation() {
     Member m;
     const auto generation = m.store.config_sequence();
     for (auto bad : {"null", "true", "false", "\"14095600\"", "14095600.0", "1.40956e7", "0", "-1",
-                     "014095600", "98502", "74998497", "4294967296", "3999999", "68998497", "18446744073709551616", "14095600.5", "14095600Hz"}) {
+                     "014095600", "98502", "74998497", "4294967296", "3999999", "68998497",
+                     "18446744073709551616", "14095600.5", "14095600Hz"}) {
         REQUIRE(m.frequency(bad).status == 400);
         REQUIRE(m.store.config_sequence() == generation);
     }
@@ -353,9 +396,12 @@ void validation_and_preservation() {
         REQUIRE(m.frequency(std::to_string(frequency)).status == 200);
         standalone::Store reboot(m.flash);
         REQUIRE(reboot.load() && reboot.config()->wspr_dial_frequency_hz == unsigned(frequency));
-        REQUIRE(m.request("GET", "/api/control/v1/config").body_text().find("wspr_dial_frequency_hz") ==
-                std::string::npos);
-        REQUIRE(m.request("POST", "/api/control/v1/config/update", network_test::configuration_update(network_test::config)).status == 200);
+        REQUIRE(
+            m.request("GET", "/api/control/v1/config").body_text().find("wspr_dial_frequency_hz") ==
+            std::string::npos);
+        REQUIRE(m.request("POST", "/api/control/v1/config/update",
+                          network_test::configuration_update(network_test::config))
+                    .status == 200);
         REQUIRE(m.store.config()->wspr_dial_frequency_hz == unsigned(frequency));
         REQUIRE(m.scheduler.command("CONFIG " + network_test::config).find("\"ok\":true") !=
                 std::string::npos);
@@ -370,8 +416,8 @@ void validation_and_preservation() {
     wrong.replace(wrong.find(std::string(32, 'a')), 32, std::string(32, 'c'));
     REQUIRE(m.request("PUT", "/api/control/v1/standalone-frequency", wrong).status == 409);
     REQUIRE(
-        m.request("PUT", "/api/control/v1/standalone-frequency", m.envelope("14095600"), "stale").status ==
-        412);
+        m.request("PUT", "/api/control/v1/standalone-frequency", m.envelope("14095600"), "stale")
+            .status == 412);
     auto proposed = *m.store.config();
     proposed.wspr_dial_frequency_hz = 68'998'497;
     proposed.allow_unqualified_frequency = proposed.allow_non_amateur_frequency = true;
@@ -401,9 +447,8 @@ void pair_uses_selected_frequency() {
         m.scheduler.poll();
     }
     REQUIRE(m.engine.jobs.size() == 2 && m.scheduler.idle());
-    const std::array<std::uint64_t, 4> expected{
-        14097097802734375ULL, 14097099267578125ULL,
-        14097100732421875ULL, 14097102197265625ULL};
+    const std::array<std::uint64_t, 4> expected{14097097802734375ULL, 14097099267578125ULL,
+                                                14097100732421875ULL, 14097102197265625ULL};
     const auto plan = encoding::wspr_plan(config.callsign, config.locator, config.power_dbm);
     REQUIRE(plan && plan->count == 2);
     std::array<bool, 4> symbols{};
@@ -421,9 +466,8 @@ void pair_uses_selected_frequency() {
     m.clock.now = 476 * ns;
     m.scheduler.poll();
     REQUIRE(m.engine.jobs.size() == 3);
-    const std::array<std::uint64_t, 4> next{
-        7040097802734375ULL, 7040099267578125ULL,
-        7040100732421875ULL, 7040102197265625ULL};
+    const std::array<std::uint64_t, 4> next{7040097802734375ULL, 7040099267578125ULL,
+                                            7040100732421875ULL, 7040102197265625ULL};
     for (unsigned i = 0; i < 162; ++i)
         REQUIRE(m.engine.jobs.back().events[i].frequency_nhz == next[plan->frames[0].symbols[i]]);
 }
@@ -441,6 +485,7 @@ int main(int argc, char** argv) {
     identity_atomicity_and_old_journal();
     absolute_jobs_ignore_standalone_dial();
     api_engine_boundaries();
+    api_si5351_boundaries();
     arithmetic_bounds_and_policy();
     single_frame_and_closed_views();
     console_first_selection_is_disabled();

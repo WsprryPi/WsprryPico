@@ -1,6 +1,6 @@
 # Pico 2 W pin-assignment contract
 
-Status: selected design contract, agreed 2026-10-01; implemented subset below. The [pin allocation feature](development/pin-allocation.md) implements boot-applied direct RF, active-low switch, and indicator selection plus candidate allocation validation. Optional amplifier-enable execution and independent polarity are implemented in the [amplifier slice](development/amplifier-enable.md). Named [LPF/band selection](development/lpf-band-selector.md) has separate settings, complete-job coverage, and local settling. Pico Si5351 support remains unimplemented. Hardware eligibility is not RF qualification.
+Status: selected design contract, agreed 2026-10-01; implemented subset below. The [pin allocation feature](development/pin-allocation.md) implements boot-applied direct RF, active-low switch, and indicator selection plus candidate allocation validation. Optional amplifier-enable execution and independent polarity are implemented in the [amplifier slice](development/amplifier-enable.md). Named [LPF/band selection](development/lpf-band-selector.md) has separate settings, complete-job coverage, and local settling. Si5351 uses a separate atomic I²C allocation and qualified-profile or engineering-gated execution. Hardware eligibility is not RF qualification.
 
 ## Target and numbering
 
@@ -91,7 +91,7 @@ Assignments may change only while the member is idle, unowned, RF-inactive and n
 
 ## Implementation and validation boundary
 
-The [boot pin guide](development/pin-allocation.md) defines saved configuration, restart latching, and active-plan observations. GPIO drive, amplifier timing, and filter policy use their independent management resources. These settings are not WTP/1 fields. Si5351 remains unavailable.
+The [boot pin guide](development/pin-allocation.md) defines saved configuration, restart latching, and active-plan observations. GPIO drive, amplifier timing, and filter policy use their independent management resources. These settings are not WTP/1 fields. Si5351 uses an exclusive atomic I²C allocation with separate engine settings and a qualified-profile or explicit engineering execution gate; see the [Si5351 contract](development/si5351.md).
 
 Deterministic checks cover valid choices, overlap classes, engine exclusivity, pair completeness, atomic replacement, saved-config rejection, and indicator selection. Physical validation requires the exact board, firmware, engine, clock, pins, and setup. It does not follow from a successful host check.
 

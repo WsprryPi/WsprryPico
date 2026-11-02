@@ -1,12 +1,14 @@
 """Operational IQ measurements; no claim of calibrated power or emissions compliance."""
 
 import json
+import math
+from dataclasses import replace
 from pathlib import Path
 import subprocess
 import wave
 
 import numpy as np
-from measure_rf_bench import baseband, measure, phase_fit
+from measure_rf_bench import acquired_baseband, baseband, lf_phase_transition, measure, phase_fit, refine_lf_edge
 from decode_rf_wspr import audio_from_iq
 from .jobs import GOLDEN37
 
@@ -62,6 +64,29 @@ def spectrum(iq, rate, center, frequencies, intervals, *, excluded_frequencies=(
     )
 
 
+def complete_carrier_windows(sample_count, rate, fft_size):
+    """Uniform guard apertures with complete coverage, including a short tail."""
+    width=max(4,min(fft_size//8,round(rate*.02)))
+    if sample_count<width:
+        raise ValueError('Carrier interior lacks one complete guard window')
+    full=sample_count//width*width
+    ranges=[(0,full)]
+    if full<sample_count:
+        ranges.append((sample_count-width,sample_count))
+    intervals=[]
+    for a,b in ranges:
+        left=0. if a==0 else float(np.nextafter(a/rate,-np.inf))
+        right=float(np.nextafter(b/rate,np.inf))
+        if math.ceil(left*rate)!=a or math.floor(right*rate)!=b:
+            raise ValueError('Carrier interval conversion lost sample coverage')
+        intervals.append([left,right])
+    coverage=dict(input_samples=sample_count,covered_samples=sample_count,
+        window_samples=width,remainder_samples=sample_count-full,
+        sample_ranges=[list(r) for r in ranges],
+        tail_policy='overlapping full-width final window',all_samples_covered=True)
+    return intervals,coverage
+
+
 def tone(iq, rate, center, frequency, directory):
     from wsprrypi_qualification.carrier import CarrierParameters, analyze_carrier
     report = measure(iq, rate, center, duration_s=5, base_hz=frequency)
@@ -73,21 +98,27 @@ def tone(iq, rate, center, frequency, directory):
     if start < 1 or len(iq) / rate - end < 0.5:
         return dict(passed=False, measurement=report, reason="missing quiet evidence")
     on, off = directory / "on.cf32", directory / "off.cf32"
-    np.asarray(iq[round((start + 0.1) * rate) : round((end - 0.1) * rate)]).tofile(on)
+    interior=np.asarray(iq[round((start + 0.1) * rate) : round((end - 0.1) * rate)])
+    interior.tofile(on)
     np.asarray(iq[: round((start - 0.1) * rate)]).tofile(off)
+    parameters=CarrierParameters(rate,center,frequency)
+    intervals,coverage=complete_carrier_windows(len(interior),rate,parameters.fft_size)
     carrier = analyze_carrier(
         off,
         on,
-        CarrierParameters(rate, center, frequency),
+        replace(parameters,temporal_on_intervals_s=intervals),
         directory / "harness-carrier.json",
     )
     metrics = carrier["metrics"]
+    if metrics['noise_guard']['window_samples'] != coverage['window_samples']:
+        raise ValueError('Carrier guard aperture differs from requested coverage')
     passed = (
         report["relative_checks_passed"]
         and metrics["relative_acquisition_passed"]
         and metrics["nominal_offset_gate_passed"]
     )
-    return dict(passed=bool(passed), measurement=report, carrier_metrics=metrics)
+    return dict(passed=bool(passed), measurement=report, carrier_metrics=metrics,
+                carrier_temporal_coverage=coverage)
 
 
 def wspr(iq, rate, center, frequency, directory, decoder, slot_utc, *, reference_hz=None):
@@ -155,22 +186,32 @@ def wspr(iq, rate, center, frequency, directory, decoder, slot_utc, *, reference
     )
     return dict(
         spectrum=spectral,
-        passed=bool(report["relative_checks_passed"] and decoded),
+        passed=bool(decoded),
         decoded=decoded,
+        acceptance="External decoder returns the expected WSPR message; waveform measurements are diagnostic.",
+        waveform_checks_passed=bool(report["relative_checks_passed"]),
         measurement=report,
     )
 
 
 def keyed(iq, rate, center, frequency, job):
-    bb, brate = baseband(iq, rate, center, frequency)
+    bb, brate, analysis_center, acquisition, frequency_bb, frequency_rate = acquired_baseband(iq, rate, center, frequency)
     power = np.abs(bb) ** 2
     noise = max(float(np.median(power[: round(0.5 * brate)])), 1e-300)
     threshold = max(noise * 10, float(np.max(power)) * 0.05)
     active = power > threshold
+    if acquisition is not None:
+        indexes = np.flatnonzero(active)
+        groups = np.split(indexes, np.flatnonzero(np.diff(indexes) > 1) + 1)
+        for group in groups:
+            if len(group) < 2:
+                active[group] = False # Isolated noise below the reported 20 ms burst resolution.
     expected = [e for e in job["events"] if e["rf_on"]]
     indexes = np.flatnonzero(active)
     issues = []
-    if len(indexes) < 10:
+    if acquisition is not None and not acquisition['passed']:
+        issues.append('insufficient narrowband LF acquisition')
+    if len(indexes) < max(2, round(.01 * brate)):
         return dict(passed=False, issues=["no acquired keyed carrier"])
     # Align once to the first detected edge; do not realign individual marks.
     offset = indexes[0] / brate - int(expected[0]["offset_ns"]) / 1e9
@@ -179,7 +220,21 @@ def keyed(iq, rate, center, frequency, job):
     measurements = []
     observed = []
     groups = np.split(indexes, np.flatnonzero(np.diff(indexes) > 1) + 1)
-    observed = [[g[0] / brate, (g[-1] + 1) / brate] for g in groups if len(g)]
+    observed = [[g[0] / brate, (g[-1] + 1) / brate] for g in groups
+                if len(g) >= (2 if acquisition is not None else 1)]
+    edge_measurements = []
+    if acquisition is not None:
+        refined = []
+        for left, right in observed:
+            edges = [refine_lf_edge(iq, rate, center, bb, brate, analysis_center, left, True),
+                     refine_lf_edge(iq, rate, center, bb, brate, analysis_center, right, False)]
+            edge_measurements.extend(edges)
+            if not all(e['resolved'] and e['uncertainty_s'] <= .01 for e in edges):
+                return dict(passed=False, issues=issues+['LF keyed timing edge unresolved'],
+                            acquisition=acquisition, edge_measurements=edge_measurements)
+            refined.append([e['observed_s'] for e in edges])
+        observed = refined
+        offset = observed[0][0] - int(expected[0]['offset_ns'])/1e9
     envelope = []
     for event_index, event in enumerate(job["events"]):
         left = offset + int(event["offset_ns"]) / 1e9
@@ -202,7 +257,7 @@ def keyed(iq, rate, center, frequency, job):
             continue
         if event["rf_on"]:
             expected_hz = int(event["frequency_nhz"]) / 1e9
-            measurement = phase_fit(bb[a:b], brate, frequency)
+            measurement = phase_fit(frequency_bb[round((left+.02)*frequency_rate):round((right-.02)*frequency_rate)], frequency_rate, analysis_center)
             measurement["event_index"] = event_index
             measurement["expected_hz"] = expected_hz
             measurement["contrast_db"] = float(
@@ -226,7 +281,7 @@ def keyed(iq, rate, center, frequency, job):
     ):
         issues.append("keyed envelope timing or extra transmission failed")
     if len(bb) / brate - observed[-1][1] < 0.5 or np.any(
-        active[round(observed[-1][1] * brate) + 20 :]
+        active[round(observed[-1][1] * brate) + max(1,round(.02*brate)) :]
     ):
         issues.append("missing final silence")
     means = {}
@@ -246,7 +301,7 @@ def keyed(iq, rate, center, frequency, job):
     fitted = {m["event_index"]: m for m in measurements}
     lag = max(1, round(brate * 0.01))
     phase = np.unwrap(np.angle(bb))
-    instantaneous = frequency + (phase[2 * lag :] - phase[: -2 * lag]) * brate / (
+    instantaneous = analysis_center + (phase[2 * lag :] - phase[: -2 * lag]) * brate / (
         4 * np.pi * lag
     )
     for i in range(1, len(job["events"])):
@@ -261,6 +316,19 @@ def keyed(iq, rate, center, frequency, job):
             issues.append("missing frequency transition interior")
             continue
         expected_time = offset + int(current["offset_ns"]) / 1e9
+        if acquisition is not None:
+            transition = lf_phase_transition(bb, brate, analysis_center, expected_time,
+                                            fitted[i-1]['indicated_hz'], fitted[i]['indicated_hz'])
+            transition['event_index'] = i
+            transitions.append(transition)
+            if not transition['resolved']:
+                issues.append('LF keyed frequency transition unresolved')
+            elif (abs(transition['error_s']) + transition['uncertainty_s'] +
+                  edge_measurements[0]['uncertainty_s'] > .02):
+                issues.append('LF keyed transition not resolved within 20 ms')
+            if transition.get('phase_residual_rms_rad',1) > .15:
+                issues.append('LF keyed transition phase residual exceeds 0.15 rad')
+            continue
         lo = max(0, round((expected_time - 0.05) * brate) - lag)
         hi = min(len(instantaneous), round((expected_time + 0.05) * brate) - lag)
         times = (np.arange(lo, hi) + lag) / brate
@@ -292,18 +360,28 @@ def keyed(iq, rate, center, frequency, job):
         previous_end=offset+(int(previous['offset_ns'])+int(previous['duration_ns']))/1e9
         current_start=offset+int(current['offset_ns'])/1e9
         width=min(.5,.4*int(previous['duration_ns'])/1e9,.4*int(current['duration_ns'])/1e9)
+        if acquisition is not None:
+            width=min(.5,int(previous['duration_ns'])/1e9-.04,int(current['duration_ns'])/1e9-.04)
         if width<.008:continue
         a,b=round((previous_end-.02-width)*brate),round((previous_end-.02)*brate)
         c,d=round((current_start+.02)*brate),round((current_start+.02+width)*brate)
         if min(a,c)<0 or max(b,d)>len(bb):continue
-        before=phase_fit(bb[a:b],brate,frequency);after=phase_fit(bb[c:d],brate,frequency)
+        if acquisition is not None:
+            a,b=round((previous_end-.02-width)*frequency_rate),round((previous_end-.02)*frequency_rate)
+            c,d=round((current_start+.02)*frequency_rate),round((current_start+.02+width)*frequency_rate)
+            before=phase_fit(frequency_bb[a:b],frequency_rate,analysis_center)
+            after=phase_fit(frequency_bb[c:d],frequency_rate,analysis_center)
+        else:
+            before=phase_fit(bb[a:b],brate,analysis_center);after=phase_fit(bb[c:d],brate,analysis_center)
         state_pairs.append(dict(before_event_index=i,after_event_index=j,
             expected_jump_hz=(int(current['frequency_nhz'])-int(previous['frequency_nhz']))/1e9,
             observed_jump_hz=after['indicated_hz']-before['indicated_hz'],
-            before_interval_s=[a/brate,b/brate],after_interval_s=[c/brate,d/brate]))
+            before_interval_s=[a/(frequency_rate if acquisition is not None else brate),b/(frequency_rate if acquisition is not None else brate)],after_interval_s=[c/(frequency_rate if acquisition is not None else brate),d/(frequency_rate if acquisition is not None else brate)]))
     return dict(
         passed=not issues,
         issues=issues,
+        acquisition=acquisition,
+        edge_measurements=edge_measurements,
         spectrum=spectrum(
             iq, rate, center, [m["indicated_hz"] for m in measurements], observed
         ),

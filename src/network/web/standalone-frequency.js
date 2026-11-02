@@ -3,7 +3,7 @@
   const control = root.WsprryControl || (typeof module !== 'undefined' && module.exports ? require('./control-contract.js') : null);
   if (!control) throw new Error('The control definitions could not be loaded. Reload the Pico page.');
   function frequency(text, ranges) {
-    if (!/^[1-9][0-9]{4,7}$/.test(text) || Number(text) < 98503 || Number(text) > 74998496) return null;
+    if (!/^[1-9][0-9]{3,8}$/.test(text) || Number(text) < 6503 || Number(text) > 159998496) return null;
     // nHz never enters Number arithmetic. Check every tone against one engine
     // range; the server separately enforces its current frequency permissions.
     if (ranges) {

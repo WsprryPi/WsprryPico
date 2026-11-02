@@ -5,6 +5,7 @@ const f=new Fixture(process.argv[2]);
 try {
   await f.time(1000);
   await f.command({op:'field_clock'});
+  assert.equal((await f.command({op:'field_reference',action:'sample'})).reference_state,'awaiting_utc');
   const client=f.client('192.168.4.1',true);
   await f.login(client);
   const id=await client.identity();
@@ -42,7 +43,12 @@ try {
   assert.equal(clock.clock_state,'synchronized');
   assert.equal(clock.uncertainty_ns,status.value.uncertainty_ns);
   assert.equal((await submit()).status,409,'single-use challenge');
-  await f.time(2000); assert.equal((await challenge()).status,200);
+  await f.time(2000);
+  const disciplined=await f.command({op:'field_reference',action:'get'});
+  assert.equal(disciplined.reference_state,'selected');assert.equal(disciplined.rate_ppb,-20000);
+  assert.equal(disciplined.age_ns,'950000000');
+  assert.equal(BigInt(disciplined.utc_ns),utc+950000000n-19000n);
+  assert.equal((await challenge()).status,200);
   await f.time(2201);assert.equal((await submit(utc+1151000000n)).status,409,'late exchange');
   await f.time(3000);assert.equal((await challenge()).status,200);
   assert.equal((await submit(utc,{extra:true})).status,400,'closed validation');
@@ -58,6 +64,18 @@ try {
   assert.equal((await challenge()).status,200);
   await f.time(14001);
   assert.equal((await submit(utc+12951000000n)).status,200);
+  const beforeLoss=await f.command({op:'field_reference',action:'get'});
+  const lost=await f.command({op:'field_reference',action:'loss'});
+  assert.equal(lost.reference_state,'expired');assert.equal(lost.rate_ppb,-20000);
+  assert.equal(lost.utc_ns,beforeLoss.utc_ns);assert.equal(lost.age_ns,beforeLoss.age_ns);
+  await f.time(14011);
+  const removed=await f.command({op:'field_reference',action:'remove'});
+  assert.equal(removed.rate_ppb,0);assert.equal(removed.reference_state,'none');
+  assert.equal(removed.age_ns,'10000000');
+  const recovered=await f.command({op:'field_reference',action:'sample'});
+  assert.equal(recovered.reference_state,'selected');assert.equal(recovered.rate_ppb,-20000);
+  assert.equal(recovered.utc_ns,removed.utc_ns);assert.equal(recovered.age_ns,removed.age_ns);
+
   // Time-only traffic must not renew application authentication.
   for(let ms=44000;ms<1800000;ms+=30000) {
     await f.time(ms); assert.equal((await challenge()).status,200);

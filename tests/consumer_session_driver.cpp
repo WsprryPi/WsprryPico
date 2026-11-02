@@ -10,6 +10,7 @@
 #include "standalone/frequency_policy_engine.hpp"
 #include "standalone/wtp_profile.hpp"
 #include "time/controller_time.hpp"
+#include "time/ntp_client.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
@@ -239,10 +240,19 @@ struct Driver {
     time::ControllerTimeArbiter field_time{
         field_clock, +[](void*) -> std::uint64_t { return time_us_64() * 1000 + 1; }, nullptr,
         device};
+    time::NtpClient field_ntp{field_time};
     ObservedEngine consumer_engine, engineering_engine;
-    network_test::Fixture f{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &consumer_engine};
+    static wtp::ServiceConfig application_policy() {
+        auto policy = network_test::Fixture::physical_policy();
+        policy.maximum_arm_uncertainty_ns =
+            standalone::wtp_profile(false).maximum_arm_uncertainty_ns;
+        return policy;
+    }
+    network_test::Fixture f{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &consumer_engine,
+                            application_policy()};
     // Independent engineering adapter boundary for genuine served-page tests.
-    network_test::Fixture engineering{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &engineering_engine};
+    network_test::Fixture engineering{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &engineering_engine,
+                                      application_policy()};
     network_test::Flash engineering_progress_flash;
     standalone::Progress engineering_progress{engineering_progress_flash};
     network_test::Flash progress_flash;
@@ -359,7 +369,8 @@ struct Driver {
            std::string selected_device = std::string(32, '1'),
            const network_test::Flash* saved_progress = nullptr, bool blank = false,
            const AccessMedia* saved_access = nullptr)
-        : device(std::move(selected_device)), f(boot, device, &consumer_engine) {
+        : device(std::move(selected_device)),
+          f(boot, device, &consumer_engine, application_policy()) {
         if (retained)
             media = *retained;
         if (saved) {
@@ -623,6 +634,27 @@ struct Driver {
         if (op == "flash_failure") {
             f.flash.fail = v.get("fail")->boolean();
             return "{}";
+        }
+        if (op == "field_reference") {
+            // Synthetic counter observation enters the same production NTP
+            // adapter and arbiter used by target CLK2 observations.
+            const auto action = field(v, "action");
+            const auto raw = time_us_64() * 1000 + 1;
+            if (action == "sample")
+                check(field_ntp.frequency_reference(
+                    microchrony::FrequencyReference{raw, raw + 30'000'000'000ULL, 1, -20000, 1000},
+                    raw));
+            else if (action == "loss")
+                (void)field_ntp.frequency_reference({}, raw);
+            else if (action == "remove")
+                field_ntp.clear_frequency_reference(raw);
+            else
+                check(action == "get");
+            const auto model = field_clock.snapshot();
+            return "{\"utc_ns\":" + wtp::json::quote(std::to_string(model.utc_now_ns)) +
+                   ",\"age_ns\":" + wtp::json::quote(std::to_string(model.sync_age_ns)) +
+                   ",\"rate_ppb\":" + std::to_string(model.rate_ppb) + ",\"reference_state\":" +
+                   wtp::json::quote(field_ntp.frequency_reference_status(raw)) + "}";
         }
         if (op == "field_clock") {
             f.clock.selected = &field_clock;

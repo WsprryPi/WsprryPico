@@ -31,7 +31,7 @@ def validate(symbols, disassembly, sections, expect):
             and 0x10000000 <= lma < lma + length <= 0x103FB000):
         raise ValueError("renderer outside SRAM initialization image")
     # The engine contains its immutable plan, tables and double buffers by value.
-    engine = re.findall(r"^([0-9a-f]+) ([0-9a-f]+) [Bb] wsprrypico::rf::start_worker\(.*::engine$",
+    engine = re.findall(r"^([0-9a-f]+) ([0-9a-f]+) [Bb] wsprrypico::rf::start_worker\(.*::direct_engine$",
                         symbols, re.M)
     if len(engine) != 1:
         raise ValueError("missing standalone worker engine")

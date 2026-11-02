@@ -14,11 +14,19 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     FrequencyPolicyEngine(wtp::RfEngine& engine, const Store& store,
                           std::uint64_t minimum_frequency_nhz, std::uint64_t maximum_frequency_nhz)
         : engine_(engine), store_(store), minimum_(minimum_frequency_nhz),
-          maximum_(maximum_frequency_nhz), boot_filters_(store.filters()) {}
+          maximum_(maximum_frequency_nhz), boot_filters_(store.filters()),
+          boot_engine_(store.config() ? store.config()->pins.engine
+                                      : hardware::PinPlan::Engine::Direct) {}
     std::size_t preparation_memory_bytes(const wtp::Job& job) const override {
         return engine_.preparation_memory_bytes(job);
     }
     wtp::PrepareResult prepare(const wtp::Job& job) override;
+    void inhibit_output() override {
+        engine_.inhibit_output();
+    }
+    bool background_work_allowed() const override {
+        return engine_.background_work_allowed();
+    }
     // Sole correction authority; external setters cannot bypass persisted selection.
     bool set_frequency_correction_ppb(std::int32_t) override {
         return false;
@@ -55,6 +63,9 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     std::uint64_t completion_acknowledgement_ns() const override {
         return engine_.completion_acknowledgement_ns();
     }
+    bool externally_controlled_completion() const override {
+        return engine_.externally_controlled_completion();
+    }
     bool schedule(const wtp::Job& job, std::uint64_t start,
                   const wtp::LocalStartConditions& conditions) override {
         // Preparation may precede a latched storage fault. Keep cleanup paths
@@ -90,6 +101,7 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     const Store& store_;
     const std::uint64_t minimum_, maximum_;
     const hardware::FilterSettings boot_filters_;
+    const hardware::PinPlan::Engine boot_engine_;
     const char* failure_ = nullptr;
 };
 } // namespace wsprrypico::standalone

@@ -44,6 +44,9 @@ class Scheduler {
     const hardware::PinPlan& active_pins() const {
         return active_pins_;
     }
+    const std::optional<hardware::Si5351Settings>& active_si5351() const {
+        return active_si5351_;
+    }
     rf::AmplifierTiming active_amplifier_timing() const {
         return active_amplifier_timing_;
     }
@@ -113,6 +116,7 @@ class Scheduler {
     bool hardware_application_failed_ = false;
     std::optional<wtp::PayloadDigest> active_network_;
     hardware::PinPlan active_pins_ = factory_config().pins;
+    std::optional<hardware::Si5351Settings> active_si5351_;
     rf::AmplifierTiming active_amplifier_timing_;
     hardware::FilterSettings active_filters_;
     unsigned active_gpio_drive_ma_ = factory_config().gpio_drive_ma;

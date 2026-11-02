@@ -21,3 +21,13 @@ The existing NTP journal layout and device/topology bindings are preserved. Old 
 ## Measurement boundaries
 
 Statistical skew and indicated NTP offsets do not establish absolute UTC phase or physical carrier accuracy. [Independent clock measurements](microchrony-independent-measurement.md) define the reference and common-clock requirements. The portable engine's [integration and profile](../../src/microchrony/README.md) and the [external reference harness](../../tests/reference/README.md) describe software behavior and reproducible comparisons. Neither qualifies physical timing or RF.
+
+## Si5351 trusted-local rate input
+
+An engineering-enabled Si5351 allocation can measure a separate loopback against raw Pico time. Measurement only is the default. Trusted-local use requires an explicit oscillator uncertainty; a TCXO label alone does not establish it. Timestamped rate observations feed the existing μChrony engine without inventing NTP packets, UTC epochs or fresh network samples. Both μChrony-derived UTC and authenticated browser UTC receive this rate assistance through their existing mappings. Independent rate disagreement blocks all UTC admission until resolved; missing capture cannot clear it. Expiry retains the last learned rate center with ordinary conservative UTC holdover and the original UTC-source age. Raw hardware clocks and manual RF correction are unchanged. See [Si5351 measurement and execution](si5351.md).
+
+## UTC uncertainty and admission
+
+UTC phase uncertainty is reported to the operator. First-party standalone and browser submissions advertise and request the full uint64 WTP ceiling; Pi submissions use the admitted peer ceiling rather than the historical stored profile value. No additional operator setting is provided. The current Control/1 descriptors declare `utc_uncertainty_policy: informational`. Browser source age, NTP timeout, authentication, leap safety, source disagreement, ownership, output inhibition, launch-window mapping and overflow checks remain independent admission requirements. External WTP callers retain the independently versioned protocol right to request an explicit smaller `max_start_uncertainty_ns`; this is not silently ignored. Frequency-reference quality and disagreement still use rate uncertainty, which is distinct from an operator-facing UTC phase tolerance.
+
+Changing the frequency estimate settles accumulated dispersion at the old bound before applying the new slope. A reference observation cannot retrospectively reduce phase uncertainty or refresh the UTC source timestamp.

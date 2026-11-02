@@ -14,19 +14,71 @@ SPACING = 375 / 256
 SYMBOL = 8192 / 12000
 
 
-def baseband(iq, rate, center, carrier=BASE):
+def baseband(iq, rate, center, carrier=BASE, *, output_rate_hz=1000):
     """Hann-weighted integrate/decimate; preserve global oscillator phase."""
-    factor = max(1, int(rate / 1000))
+    if not np.isfinite(output_rate_hz) or not 0 < output_rate_hz <= rate:
+        raise ValueError('Invalid analysis sample rate')
+    factor = max(1, int(rate / output_rate_hz))
     weights = np.hanning(factor) if factor > 2 else np.ones(factor)
     weights /= weights.sum()
     count = len(iq) // factor
     result = np.empty(count, dtype=np.complex128)
-    for block in range(0, count, 4096):
-        first, last = block * factor, min(count, block + 4096) * factor
+    chunk = max(1, min(4096, 1048576 // factor))
+    for block in range(0, count, chunk):
+        first, last = block * factor, min(count, block + chunk) * factor
         indices = np.arange(first, last)
         mixed = iq[first:last] * np.exp(-2j * np.pi * (carrier - center) * indices / rate)
         result[block:last // factor] = mixed.reshape(-1, factor) @ weights
     return result, rate / factor
+
+
+def acquired_baseband(iq, rate, center, carrier=BASE, *, enable_lf=True):
+    """LF acquisition uses 20 Hz, timing/phase uses independent 100 Hz samples.
+
+    A 1 kHz analysis aperture admits excessive LF receiver noise. Acquire the
+    actual peak first so a narrow decimator cannot alias an off-frequency tone.
+    Timing remains resolved at 10 ms; acquisition is never a UTC calibration.
+    """
+    if not enable_lf or carrier >= 1_000_000:
+        bb, brate = baseband(iq, rate, center, carrier)
+        return bb, brate, carrier, None, bb, brate
+    n = 2 ** int(np.floor(np.log2(min(65536, rate * .25))))
+    frequencies = center + np.fft.fftfreq(n, 1 / rate)
+    selected = np.flatnonzero(np.abs(frequencies - carrier) < 1000)
+    if not len(selected) or len(iq) < 4 * n:
+        raise ValueError('Insufficient LF acquisition span')
+    window = np.hanning(n)
+    spectra = np.array([np.abs(np.fft.fft(iq[a:a+n] * window)[selected]) ** 2
+                        for a in range(0, len(iq) - n + 1, n)])
+    quiet_count = max(1, round(.5 * rate / n))
+    quiet = np.mean(np.concatenate([spectra[:quiet_count], spectra[-quiet_count:]]), axis=0)
+    floor = np.maximum(quiet, np.convolve(quiet, np.ones(5) / 5, mode='same'))
+    added = np.maximum(np.quantile(spectra, .9, axis=0) - floor, 0)
+    peaks=[i for i in range(len(added))
+           if (i==0 or added[i]>=added[i-1]) and (i+1==len(added) or added[i]>=added[i+1])]
+    peaks=sorted(peaks,key=lambda i:added[i],reverse=True)[:8]
+    if not peaks:peaks=[int(np.argmax(added))]
+    candidates=[];accepted=None
+    for index in peaks:
+        acquired=float(frequencies[selected[index]])
+        narrow,narrow_rate=baseband(iq,rate,center,acquired,output_rate_hz=20)
+        power=np.abs(narrow)**2
+        noise=max(float(np.median(power[:max(1,round(.5*narrow_rate))])),1e-300)
+        snr=float(10*np.log10(max(float(np.quantile(power,.85)),1e-300)/noise))
+        candidates.append(dict(center_hz=acquired,added_spectral_power=float(added[index]),
+                               acquisition_snr_db=snr,passed=bool(snr>=20)))
+        if accepted is None:accepted=(acquired,narrow,narrow_rate,snr)
+        if snr>=20:
+            accepted=(acquired,narrow,narrow_rate,snr)
+            break
+    acquired,narrow,narrow_rate,snr=accepted
+    bb, brate = baseband(iq, rate, center, acquired, output_rate_hz=100)
+    acquisition = dict(method='dominant added peaks with independent 20 dB/20 Hz acquisition; independent 100 Hz timing aperture',
+                       acquired_center_hz=acquired, acquisition_snr_db=snr,candidates=candidates,
+                       maximum_candidate_peaks=8,
+                       minimum_acquisition_snr_db=20, timing_resolution_s=1/brate,
+                       minimum_resolved_burst_s=2/brate, passed=bool(snr >= 20))
+    return bb, brate, acquired, acquisition, narrow, narrow_rate
 
 
 def phase_fit(samples, rate, carrier=BASE):
@@ -40,6 +92,95 @@ def phase_fit(samples, rate, carrier=BASE):
     return dict(indicated_hz=float(carrier + slope / (2 * np.pi)),
                 phase_residual_rms_rad=float(np.sqrt(np.mean(residual ** 2))),
                 amplitude_min_ratio=float(np.min(np.abs(samples)) / np.median(np.abs(samples))))
+
+
+def refine_lf_edge(iq, rate, center, bb, brate, analysis_center, rough, rising):
+    """Fit a coherent on/off step through the known Hann integration aperture.
+
+    The narrowband carrier establishes frequency/phase; independent 1 ms
+    amplitude samples locate the edge. A 99% profile-likelihood support interval
+    is retained rather than equating the narrow acquisition aperture with time.
+    """
+    left, right = (rough + .08, rough + .58) if rising else (rough - .58, rough - .08)
+    # Frequency/coherence is estimated independently through the narrow
+    # acquisition aperture; wide noisy phase is never unwrapped to time an edge.
+    segment, frequency_rate = baseband(iq[max(0,round(left*rate)):round(right*rate)],
+                                     rate, center, analysis_center, output_rate_hz=20)
+    fit = phase_fit(segment, frequency_rate, analysis_center)
+    if fit['phase_residual_rms_rad'] > .15 or fit['amplitude_min_ratio'] < .5:
+        return dict(resolved=False, reason='incoherent LF edge interior')
+    first = max(0, round((rough - .6) * rate))
+    last = min(len(iq), round((rough + .6) * rate))
+    local, local_rate = baseband(iq[first:last], rate, center, fit['indicated_hz'])
+    times = first / rate + (np.arange(len(local)) + .5) / local_rate
+    on = (times > left) & (times < right)
+    qleft, qright = (rough - .58, rough - .08) if rising else (rough + .08, rough + .58)
+    quiet = (times > qleft) & (times < qright)
+    if np.count_nonzero(on) < 100 or np.count_nonzero(quiet) < 100:
+        return dict(resolved=False, reason='insufficient LF edge baseline')
+    baseline = np.mean(local[quiet]); amplitude = np.mean(local[on]) - baseline
+    if abs(amplitude) <= np.finfo(float).tiny:
+        return dict(resolved=False, reason='absent coherent LF edge')
+    projection = np.real((local - baseline) * np.conj(amplitude) / abs(amplitude)**2)
+    variance = max(float(np.var(projection[quiet])), float(np.var(projection[on])), 1e-12)
+    use = (times > rough - .05) & (times < rough + .05)
+    block_start = times[use] - .5 / local_rate
+    candidates = rough + np.linspace(-.03, .03, 601)
+    x = np.clip((candidates[:, None] - block_start[None, :]) * local_rate, 0, 1)
+    fraction = 1 - x + np.sin(2 * np.pi * x) / (2 * np.pi)
+    prediction = fraction if rising else 1 - fraction
+    rss = np.sum((prediction - projection[None, use])**2, axis=1)
+    best = int(np.argmin(rss)); support = np.flatnonzero(rss <= rss[best] + 6.635 * variance)
+    observed = float(candidates[best]); uncertainty = float(max(observed-candidates[support[0]], candidates[support[-1]]-observed) + .0001)
+    return dict(resolved=bool(support[0] > 0 and support[-1] < 600), observed_s=observed,
+                uncertainty_s=uncertainty, confidence=.99,
+                method='coherent amplitude step with Hann aperture, 1 ms samples, 99% profile likelihood')
+
+
+def lf_phase_transition(bb, brate, analysis_center, expected, before, after, width=.30, context=None):
+    """Fit phase through the known Hann aperture, retaining timing uncertainty.
+
+    LF WSPR uses the independently verified tone/linear-drift model in a local
+    multi-symbol window. This avoids amplifying receiver noise by differentiating
+    phase; missing tones, phase steps and wrong timing remain visible residuals.
+    """
+    first, last = 0, len(bb)
+    if context is not None:
+        width=4*SYMBOL # Eight-symbol context resolves LF timing without widening limits.
+        first=max(first,round((context['start']+.04)*brate))
+        last=min(last,round((context['start']+162*SYMBOL-.04)*brate))
+    a=max(first,round((expected-width)*brate)); b=min(last,round((expected+width)*brate))
+    if b-a<20 or abs(after-before)<.1:
+        return dict(resolved=False)
+    phase=np.unwrap(np.angle(bb[a:b])); time=(np.arange(a,b)+.5)/brate
+    candidates=np.linspace(-.04,.04,801)
+    def integrated_ramp(distance):
+        x=np.clip(.5-distance*brate,0,1)
+        within=((1-x)**2/2-(1-np.cos(2*np.pi*x))/(4*np.pi**2))/brate
+        return np.where(distance>=.5/brate,distance,np.where(distance<=-.5/brate,0,within))
+    if context is None:
+        t=time-expected
+        prediction=2*np.pi*((before-analysis_center)*t[None,:]+
+            (after-before)*integrated_ramp(t[None,:]-candidates[:,None]))
+    else:
+        t=time-context['start']
+        model=(context['base_hz']-analysis_center)*t+.5*context['drift']*t*t
+        for i in range(1,162):
+            delta=context['spacing']*(context['tones'][i]-context['tones'][i-1])
+            if delta:model+=delta*integrated_ramp(t-i*SYMBOL)
+        relative=time-expected
+        prediction=2*np.pi*(model[None,:]+(after-before)*(
+            integrated_ramp(relative[None,:]-candidates[:,None])-integrated_ramp(relative)[None,:]))
+    residual=phase[None,:]-prediction
+    residual-=residual.mean(axis=1,keepdims=True)
+    rss=np.sum(residual**2,axis=1);best=int(np.argmin(rss))
+    variance=max(float(rss[best]/max(1,len(phase)-2)),1e-12)
+    support=np.flatnonzero(rss<=rss[best]+6.635*variance)
+    error=float(candidates[best]);uncertainty=float(max(error-candidates[support[0]],candidates[support[-1]]-error)+.0001)
+    return dict(resolved=bool(support[0]>0 and support[-1]<800),observed_s=float(expected+error),
+        error_s=error,uncertainty_s=uncertainty,confidence=.99,
+        phase_residual_rms_rad=float(np.sqrt(rss[best]/len(phase))),
+        method='Hann-integrated continuous phase; local tone model; 99% profile likelihood')
 
 
 def local_contrast(iq, rate, center, frequency):
@@ -64,7 +205,8 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
         raise ValueError('Expected carrier must be finite')
     if rate < 10000 or abs(base_hz - center) > rate / 2 - 2000:
         raise ValueError('Requested signal is outside usable capture span')
-    bb, brate = baseband(iq, rate, center, base_hz)
+    bb, brate, analysis_center, acquisition, frequency_bb, frequency_rate = acquired_baseband(
+        iq, rate, center, base_hz, enable_lf=reference_hz is None)
     if len(bb) < brate:
         raise ValueError('Capture needs leading and trailing baseline')
     ref = None
@@ -75,10 +217,11 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
         ref, _ = baseband(iq, rate, center, reference_hz)
     power = np.abs(bb) ** 2
     noise = float(np.median(power[:int(brate / 2)]))
-    threshold = max(noise * 100, float(np.max(power)) * .05, np.finfo(float).tiny)
+    threshold = max(noise * (10 if acquisition is not None else 100),
+                    float(np.max(power)) * .05, np.finfo(float).tiny)
     active = np.flatnonzero(power > threshold)
     groups = np.split(active, np.flatnonzero(np.diff(active) > 1) + 1) if len(active) else []
-    groups = [g for g in groups if len(g) >= 10]
+    groups = [g for g in groups if len(g) >= max(2, round(.01 * brate))]
     intervals = [[float(g[0] / brate), float((g[-1] + 1) / brate)] for g in groups]
     expected = 162 * SYMBOL if frame else duration_s
     report = dict(version=1, qualification=False, calibration_applied=False,
@@ -88,6 +231,11 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
                   limitations=['Receiver clock and frequency axis are uncalibrated.',
                                'Decimator is diagnostic; adjacent interference can bias phase.',
                                'No absolute GPIO timing or out-of-band harmonic claim.'])
+    if acquisition is not None:
+        report['acquisition'] = acquisition
+        report['method'] = acquisition['method'] + '; per-interval linear unwrapped phase fit'
+        if not acquisition['passed']:
+            report['issues'].append('Insufficient narrowband LF acquisition')
     if len(groups) != 1:
         report['issues'].append('Expected one uninterrupted burst')
     if not groups:
@@ -95,6 +243,16 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
         return report
     group = max(groups, key=len)
     start, end = group[0] / brate, (group[-1] + 1) / brate
+    if acquisition is not None:
+        edges = [refine_lf_edge(iq, rate, center, bb, brate, analysis_center, start, True),
+                 refine_lf_edge(iq, rate, center, bb, brate, analysis_center, end, False)]
+        report['edge_measurements'] = edges
+        if not all(e['resolved'] and e['uncertainty_s'] <= .01 for e in edges):
+            report['issues'].append('LF timing edge unresolved within 10 ms')
+            report['relative_checks_passed'] = False
+            return report
+        start, end = [e['observed_s'] for e in edges]
+        report['intervals_s'] = [[start,end]]
     report['observed_duration_s'] = float(end - start)
     if start < .5 or len(bb) / brate - end < .5:
         report['issues'].append('Missing independent leading/trailing quiet interval')
@@ -107,8 +265,8 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
         if right > end or right <= left:
             report['issues'].append(f'Missing segment {index}')
             break
-        data = bb[int(round(left * brate)):int(round(right * brate))]
-        result = phase_fit(data, brate, base_hz)
+        data = frequency_bb[int(round(left * frequency_rate)):int(round(right * frequency_rate))]
+        result = phase_fit(data, frequency_rate, analysis_center)
         if ref is not None:
             reference = phase_fit(ref[int(round(left * brate)):int(round(right * brate))],
                                   brate, reference_hz)
@@ -134,10 +292,28 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
         report.update(frequency_basis=field, fitted_base_hz=float(offset), tone_spacing_hz=float(spacing),
                       linear_drift_hz_per_s=float(drift),
                       max_symbol_residual_hz=float(np.max(np.abs(residuals))))
-        # Symmetric 20 ms phase difference locates each physical tone transition.
+        lf_context = None
+        if acquisition is not None:
+            a=round((start+.08)*brate); b=round((end-.08)*brate)
+            t=(np.arange(a,b)+.5)/brate-start
+            integral=tones[0]*t
+            for i in range(1,162):
+                integral+=(tones[i]-tones[i-1])*np.maximum(t-i*SYMBOL,0)
+            phase_data=np.unwrap(np.angle(bb[a:b]))
+            phase_design=np.column_stack([np.ones(len(t)),2*np.pi*t,2*np.pi*integral,np.pi*t*t])
+            coefficients=np.linalg.lstsq(phase_design,phase_data,rcond=None)[0]
+            phase_rms=float(np.sqrt(np.mean((phase_data-phase_design@coefficients)**2)))
+            lf_context=dict(start=start,base_hz=float(analysis_center+coefficients[1]),
+                            spacing=float(coefficients[2]),drift=float(coefficients[3]),tones=tones)
+            report['lf_phase_model']={**{k:v for k,v in lf_context.items() if k!='tones'},
+                                      'phase_residual_rms_rad':phase_rms}
+            if phase_rms>.15 or abs(lf_context['spacing']-SPACING)>.05:
+                report['issues'].append('LF whole-frame phase/tone model is incoherent')
+        # Symmetric 20 ms phase difference locates HF transitions; LF uses
+        # direct coherent phase with independently reported edge uncertainty.
         lag = max(1, round(brate * .01))
         phase = np.unwrap(np.angle(bb))
-        instantaneous = base_hz + (phase[2*lag:] - phase[:-2*lag]) * brate / (4*np.pi*lag)
+        instantaneous = analysis_center + (phase[2*lag:] - phase[:-2*lag]) * brate / (4*np.pi*lag)
         boundaries = []
         for index in range(1, 162):
             if tones[index-1] == tones[index]:
@@ -145,6 +321,22 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
             expected_time = start + index * SYMBOL
             before = report['measurements'][index-1]['indicated_hz']
             after = report['measurements'][index]['indicated_hz']
+            if acquisition is not None:
+                # Use the independently checked whole-frame tone/drift fit;
+                # noisy individual frequency estimates cannot become edge bias.
+                before=lf_context['base_hz']+lf_context['spacing']*tones[index-1]+lf_context['drift']*index*SYMBOL
+                after=lf_context['base_hz']+lf_context['spacing']*tones[index]+lf_context['drift']*index*SYMBOL
+                boundary=lf_phase_transition(bb,brate,analysis_center,expected_time,before,after,context=lf_context)
+                boundary['index'] = index
+                boundaries.append(boundary)
+                if not boundary['resolved']:
+                    report['issues'].append(f'LF transition unresolved at symbol {index}')
+                elif (abs(boundary['error_s']) + boundary['uncertainty_s'] +
+                      report['edge_measurements'][0]['uncertainty_s'] > .01):
+                    report['issues'].append(f'LF transition timing not resolved within 10 ms at symbol {index}')
+                if boundary.get('phase_residual_rms_rad',1) > .15:
+                    report['issues'].append(f'LF transition phase residual exceeds 0.15 rad at symbol {index}')
+                continue
             lo = max(0, round((expected_time - .05) * brate) - lag)
             hi = min(len(instantaneous), round((expected_time + .05) * brate) - lag)
             times = (np.arange(lo, hi) + lag) / brate
@@ -166,7 +358,7 @@ def measure(iq, rate, center, *, frame=False, tone=0, duration_s=10, reference_h
                                    error_s=float(observed - expected_time), fit_rms_hz=rms))
         report['transitions'] = boundaries
         if boundaries:
-            report['max_transition_error_s'] = max(abs(b['error_s']) for b in boundaries)
+            report['max_transition_error_s'] = max(abs(b.get('error_s',1)) for b in boundaries)
             if report['max_transition_error_s'] > .01:
                 report['issues'].append('Transition timing differs by more than 10 ms')
         if abs(spacing - SPACING) > .05 or np.max(np.abs(residuals)) > .1:

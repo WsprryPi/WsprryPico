@@ -140,6 +140,8 @@ python3 scripts/usb_installer.py upgrade --branch devel --local-bundle /new/loca
 ```
 
 
+`--local-variant si5351-engineering` explicitly selects the `WsprryPico-Si5351Engineering` target. Its retained bundle is labelled `si5351-engineering`, never normal or publicly qualified firmware. Ordinary developer builds keep the engineering output gate off. This variant uses the same preservation, same-board reference and postboot transaction.
+
 `--allow-dirty` explicitly selects a development build; omit it for a clean checkout. Source HEAD, actual dirty identity, and input digest are retained, and source inputs must remain unchanged during compilation. Local metadata is private developer evidence, never a public CI receipt. These bytes enter the same image, backup, preservation, and postboot transaction. A previous local image needs its same-board compact image reference and an exact flash match; a version string alone cannot identify it. Source ancestry/downgrade checks still apply, so an unavailable or divergent source comparison refuses. Generic local-image references are retained separately from expiring secret backups, with a maximum of 32 boards; retire an unused reference explicitly before adding another board.
 
 ### Deployment handoff and reference reconciliation

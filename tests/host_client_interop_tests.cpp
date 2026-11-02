@@ -150,7 +150,7 @@ void five_modes() {
     const auto caps = *f.session.capabilities();
     CHECK(caps.engine == "inhibited-standalone-simulator");
     CHECK(caps.max_events == 512 && caps.max_job_duration_ns == 3'600'000'000'000ULL);
-    CHECK(caps.maximum_arm_uncertainty_ns == 500'000'000);
+    CHECK(caps.maximum_arm_uncertainty_ns == UINT64_MAX);
     CHECK(caps.modes.size() == 5);
     CHECK(std::find(caps.modes.begin(), caps.modes.end(), Mode::Cw) == caps.modes.end());
     char id = 'a';

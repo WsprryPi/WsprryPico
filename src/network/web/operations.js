@@ -84,8 +84,7 @@
     const j=v.job,s=v.standalone,m=v.message_schedule,a=v.accepted;
     const occupied=['loaded','armed','running'].includes(j.state);
     const clockReady=s.clock_state!=='unsynchronized' &&
-      !(s.clock_state==='holdover'&&(!caps?.wtp?.maximum_holdover_age_ns||BigInt(caps.wtp.maximum_holdover_age_ns)===0n||BigInt(s.sync_age_ns)>BigInt(caps.wtp.maximum_holdover_age_ns))) &&
-      !(caps?.wtp?.maximum_arm_uncertainty_ns&&BigInt(s.uncertainty_ns)>BigInt(caps.wtp.maximum_arm_uncertainty_ns));
+      !(s.clock_state==='holdover'&&(!caps?.wtp?.maximum_holdover_age_ns||BigInt(caps.wtp.maximum_holdover_age_ns)===0n||BigInt(s.sync_age_ns)>BigInt(caps.wtp.maximum_holdover_age_ns)));
     const wsprFailure=!!(s.enabled && !m.saved?.enabled && s.last_error && !occupied && !s.wspr_pair_pending);
     let state='Idle', explanation='No accepted job is active. Review future transmissions below.';
     if (!s.storage_healthy || j.state==='failed' || j.output_active&&!['armed','running'].includes(j.state)) {state='Recovery required';explanation='Output or storage authority needs recovery. Check Transmitter status; RF-off alone does not clear a fault.';}
@@ -132,8 +131,6 @@
       if(s.suspended || m.state==='suspended') blockers.push('Standalone suspended; review the schedule before resuming.');
       if(!clockReady) {
         if(s.clock_state==='unsynchronized') blockers.push('Clock not synchronized; check the time server.');
-        else if(caps?.wtp?.maximum_arm_uncertainty_ns && BigInt(s.uncertainty_ns)>BigInt(caps.wtp.maximum_arm_uncertainty_ns))
-          blockers.push('Clock uncertainty exceeds '+(Number(BigInt(caps.wtp.maximum_arm_uncertainty_ns))/1000000)+' ms; wait for a better update.');
         else blockers.push('Clock update too old; check the time server.');
       }
       if(s.enabled && !m.saved?.enabled && (!s.configured || s.frequency_required)) blockers.push('WSPR setup incomplete; save station settings and dial frequency.');

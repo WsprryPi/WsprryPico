@@ -1,6 +1,6 @@
 # USB UTC uncertainty
 
-WsprryPi defaults new/missing WTP settings to 100000000 ns (100 ms). Explicit saved values, including 1 ms, remain unchanged. The default is an engineering admission policy, not a measured accuracy claim or a WTP/1 requirement. Uncertainty is checked at ARM and again before local launch; symbol timing, lead time, missed-start, cleanup, and holdover rules remain independent.
+First-party WsprryPi submissions use the peer's advertised uncertainty ceiling. The ordinary Pico advertises the full uint64 ceiling: UTC uncertainty is displayed for operator judgment rather than automatically vetoing a transmission. Historical stored profile values are retained without scheduling authority. External WTP callers can still request an explicit smaller limit, checked at ARM and local launch. Symbol timing, lead time, missed-start, cleanup and source-age rules remain independent.
 
 ## Interval accounting
 
@@ -15,7 +15,7 @@ max(qualified host error before sample, after response, after ACK)
 + unchanged 100000 ns processing/drift margin
 ```
 
-Clock-step, total exchange-age, overflow, leap, qualification, identity, deadline, and one-use sample checks remain. Pico still ages error from its actual monotonic capture at the existing 50 ppm rate, including ACK/submission time and time before job admission. No RF workspace, foreground service budget, holdover, launch, or uncertainty limit is weakened.
+Clock-step, total exchange-age, overflow, leap, qualification, identity, deadline, and one-use sample checks remain. Pico still ages error from its actual monotonic capture at the existing 50 ppm rate, including ACK/submission time and time before job admission. RF workspace, foreground service budgets, source-age expiry and local execution remain independent of the informational UTC uncertainty policy.
 
 Runtime observations expose host uncertainty, sample round trip, midpoint radius, total and post-ACK clock discrepancy, processing margin, and ACK duration. This separates the causes without claiming stronger clock quality.
 

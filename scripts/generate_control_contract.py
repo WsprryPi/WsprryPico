@@ -67,7 +67,8 @@ def outputs():
     javascript += 'const featureRequired=' + json.dumps(spec['$defs']['capabilities']['properties']['features']['required']) + ';\n'
     javascript += r'''
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
-const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const canonical=v=>JSON.stringify(v,(_key,item)=>object(item)?Object.fromEntries(Object.keys(item).sort().map(k=>[k,item[k]])):item);
+const equal=(a,b)=>{try{return canonical(a)===canonical(b);}catch(_error){return false;}};
 function policy(rule,x,value,base){
  if(rule.type==='integer'&&!Number.isInteger(x))return false;
  if(rule.type==='boolean'&&typeof x!=='boolean')return false;
@@ -155,7 +156,29 @@ root.WsprryControl=api;if(typeof module!=='undefined'&&module.exports)module.exp
     catalog = common + '#include <array>\n#include <string_view>\nnamespace wsprrypico::network {\n'
     catalog += f'inline constexpr std::array<std::string_view, {len(resources)}> public_read_resources = {{\n'
     catalog += ''.join(f'    {json.dumps(name)},\n' for name in resources) + '};\n}\n'
-    return {ROOT/'src/network/control_contract.hpp': constants, ROOT/'src/network/public_read.hpp': catalog, ROOT/'src/network/web/control-contract.js': javascript}
+    q = descriptors['si5351']['ordinary_profile']
+    advertised_profile = spec['$defs']['capabilities']['properties']['si5351']['properties']['ordinary_profile']['const']
+    expected_qualification = {'type': 'boolean'} if q['qualified'] else {'const': False}
+    if (type(q['qualified']) is not bool or advertised_profile != q or
+            spec['$defs']['si5351']['properties']['physically_qualified'] != expected_qualification):
+        raise ValueError('Si5351 descriptor, capability shape and qualification readback disagree')
+    if (q['reference_source'] != 'external_xa' or q['crystal_load_pf'] is not None or
+            q['rf_gate_gp'] is not None or q['allow_none'] is not True or
+            q['reference_uses'] != ['measurement_only', 'trusted_local'] or
+            q['modes'] != ['wspr', 'tone', 'qrss', 'fskcw', 'dfcw']):
+        raise ValueError('Unsupported ordinary Si5351 qualification profile')
+    profile = common + '#include <string_view>\nnamespace wsprrypico::hardware::si5351_support {\n'
+    profile += f'inline constexpr std::string_view id = {json.dumps(q["id"])};\n'
+    profile += f'inline constexpr bool qualified = {str(q["qualified"]).lower()};\n'
+    for name in ('system_clock_hz', 'i2c_pair', 'address', 'reference_hz', 'transmit_output',
+                 'drive_ma', 'loopback_output', 'loopback_input_gp'):
+        if type(q[name]) is not int or q[name] < 0:
+            raise ValueError('Invalid Si5351 qualification constant: ' + name)
+        profile += f'inline constexpr unsigned {name} = {q[name]};\n'
+    profile += '}\n'
+    return {ROOT/'src/network/control_contract.hpp': constants, ROOT/'src/network/public_read.hpp': catalog,
+            ROOT/'src/network/web/control-contract.js': javascript,
+            ROOT/'src/hardware/si5351_qualification_profile.hpp': profile}
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

@@ -49,7 +49,12 @@ struct Fixture {
     static std::uint64_t tick(void* self) {
         return static_cast<Fixture*>(self)->now;
     }
-    time::UtcDiscipline clock{tick, this, standalone::clock_profile()};
+    static time::DisciplineConfig profile(std::uint64_t maximum_uncertainty) {
+        auto config = standalone::clock_profile();
+        config.max_uncertainty_ns = maximum_uncertainty;
+        return config;
+    }
+    time::UtcDiscipline clock;
     Identity identity;
     standalone::DryRunEngine engine;
     wtp::JobService service{clock, engine, identity, standalone::wtp_profile(false)};
@@ -64,7 +69,8 @@ struct Fixture {
         r.body = std::move(body);
         return service.handle(r);
     }
-    Fixture() {
+    explicit Fixture(std::uint64_t maximum_uncertainty = 1'000'000'000ULL)
+        : clock(tick, this, profile(maximum_uncertainty)) {
         CHECK(request("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
         CHECK(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}).ok);
     }
@@ -75,8 +81,16 @@ void limits() {
     CHECK(config.max_events == 512 && config.max_job_duration_ns == 3'600'000'000'000);
     CHECK(config.minimum_frequency_nhz == 100'000'000'000'000ULL);
     CHECK(config.maximum_frequency_nhz == (rf::sample_rate / 2 - 1) * 1'000'000'000ULL);
-    CHECK(config.maximum_arm_uncertainty_ns == 500'000'000);
+    CHECK(config.maximum_arm_uncertainty_ns == UINT64_MAX);
     CHECK(config.maximum_holdover_age_ns == 3'600'000'000'000ULL);
+    const auto si = standalone::wtp_profile(true, 3600, hardware::PinPlan::Engine::I2c, true);
+    CHECK(si.capability_engine == "si5351-engineering");
+    CHECK(si.minimum_frequency_nhz == 8'000'000'000'000ULL);
+    CHECK(si.maximum_frequency_nhz == 160'000'000'000'000'000ULL);
+    CHECK(standalone::wtp_profile(true, 3600, hardware::PinPlan::Engine::I2c, false)
+              .capability_engine == "si5351-inhibited");
+    CHECK(standalone::wtp_profile(true, 3600, hardware::PinPlan::Engine::I2c, false, true)
+              .capability_engine == "si5351");
     Fixture f;
     auto good = job();
     CHECK(f.request("LOAD", good).ok);
@@ -188,7 +202,7 @@ void clocks() {
 void ordinary_utc_policy() {
     constexpr std::uint64_t utc = 1'800'000'000'000'000'000ULL;
     constexpr std::uint64_t limit = 100'000'000;
-    // The per-job policy is independent of the unchanged 500 ms device ceiling.
+    // Explicit external WTP limits retain their independent protocol meaning.
     for (const auto uncertainty : {limit - 1, limit, limit + 1}) {
         Fixture f;
         CHECK(f.clock.observe(utc, 0, uncertainty, wtp::LeapState::Normal));
@@ -208,8 +222,8 @@ void ordinary_utc_policy() {
         CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, limit}).ok);
         f.now = 1'000'000'000;
         f.service.poll();
-        CHECK(f.service.status().state == (launch_uncertainty <= limit ? wtp::State::Running
-                                                                      : wtp::State::Missed));
+        CHECK(f.service.status().state ==
+              (launch_uncertainty <= limit ? wtp::State::Running : wtp::State::Missed));
         CHECK(!f.engine.output_active()); // The inhibited engine never asserts physical RF.
     }
     // Explicit tight policies retain their original meaning.
@@ -220,6 +234,19 @@ void ordinary_utc_policy() {
           wtp::ErrorCode::ClockUncertain);
     CHECK(!tight.engine.output_active());
 }
+void informational_utc_uncertainty() {
+    constexpr std::uint64_t utc = 1'800'000'000'000'000'000ULL;
+    Fixture f(6'000'000'000ULL);
+    CHECK(f.clock.observe(utc, 0, 5'000'000'000ULL, wtp::LeapState::Normal));
+    CHECK(f.request("LOAD", job()).ok);
+    CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, 500'000'000}).error ==
+          wtp::ErrorCode::ClockUncertain);
+    CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, UINT64_MAX}).ok);
+    f.now = 1'000'000'000;
+    f.service.poll();
+    CHECK(f.clock.snapshot().uncertainty_ns > 5'000'000'000ULL);
+    CHECK(f.service.status().state == wtp::State::Running);
+}
 } // namespace
 int main() {
     try {
@@ -227,6 +254,7 @@ int main() {
         physical_planner();
         clocks();
         ordinary_utc_policy();
+        informational_utc_uncertainty();
         std::cout << "Firmware profile, planner and clock gates passed at " << rf::sample_rate
                   << " Hz\n";
     } catch (const std::exception& error) {

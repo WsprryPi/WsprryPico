@@ -31,6 +31,7 @@ class FilterSelector {
         : settings_(settings), outputs_(outputs) {}
     bool initialize();
     bool prepare(const wtp::Job&, const Plan&);
+    bool prepare_frequencies(std::span<const wtp::FrequencyAdjustment>);
     bool deactivate();
     bool activate();
     bool verify() const;

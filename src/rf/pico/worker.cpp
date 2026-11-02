@@ -1,6 +1,8 @@
 #include "rf/pico/worker.hpp"
 
+#include "hardware/clocks.h"
 #include "hardware/gpio.h"
+#include "hardware/si5351_qualification.hpp"
 #include "hardware/structs/watchdog.h"
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
 #include "provisioning/button_safety.hpp"
@@ -10,16 +12,21 @@
 #include "pico/multicore.h"
 #include "pico/time.h"
 #include "rf/pico/pico_pio_dma.hpp"
+#include "rf/pico/si5351_platform.hpp"
 #include "runtime/pico/stack_guard.h"
 
 #include <algorithm>
+#include <memory>
+
+extern "C" int __real_flash_safe_execute(void (*)(void*), void*, std::uint32_t);
 
 namespace wsprrypico::rf {
 namespace {
 alignas(8) std::uint32_t worker_stack[4096];
 WorkerEngine* worker = nullptr;
 std::atomic<unsigned> ready{0};
-std::optional<unsigned> emergency_rf, emergency_amplifier;
+std::optional<unsigned> emergency_rf, emergency_amplifier, emergency_gate;
+bool emergency_gate_high = true;
 bool emergency_amplifier_high = true;
 std::array<std::pair<unsigned, bool>, hardware::FilterSettings::maximum_outputs>
     emergency_filters{};
@@ -43,6 +50,9 @@ void wait() {
         // clamp effective even if another core resumes between instructions.
         gpio_set_oeover(*emergency_rf, GPIO_OVERRIDE_LOW);
     }
+    if (emergency_gate)
+        gpio_set_outover(*emergency_gate,
+                         emergency_gate_high ? GPIO_OVERRIDE_LOW : GPIO_OVERRIDE_HIGH);
     if (emergency_amplifier)
         gpio_set_outover(*emergency_amplifier,
                          emergency_amplifier_high ? GPIO_OVERRIDE_LOW : GPIO_OVERRIDE_HIGH);
@@ -65,21 +75,64 @@ void run() {
 } // namespace
 namespace {
 PicoPioDma* drive_hardware = nullptr;
-}
+PioDmaSink* direct_sink = nullptr;
+si5351::Engine* si_engine = nullptr;
+si5351::PicoExecutionPlatform* si_platform = nullptr;
+} // namespace
 int gpio_drive_observation() {
     return drive_hardware ? drive_hardware->drive_observation() : -1;
 }
 WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& pins,
                            bool storage_healthy, IndicatorGate& indicator, unsigned drive_ma,
-                           AmplifierEnable* amplifier, FilterSelector* filters) {
+                           AmplifierEnable* amplifier, FilterSelector* filters,
+                           const std::optional<hardware::Si5351Settings>& settings) {
     if (!hardware::operational(pins))
         failure();
-    static PicoPioDma hardware(*pins.rf, drive_ma);
-    drive_hardware = &hardware;
-    static PioDmaSink sink(hardware, &indicator, amplifier, filters);
-    static StreamEngine engine(sink, filters);
-    static WorkerEngine proxy(engine, clock, now, wait, failure, save_and_disable_interrupts,
+    wtp::RfEngine* selected = nullptr;
+    if (pins.engine == hardware::PinPlan::Engine::Direct) {
+        static PicoPioDma direct_hardware(*pins.rf, drive_ma);
+        static PioDmaSink sink(direct_hardware, &indicator, amplifier, filters);
+        // The complete direct waveform buffers are large. Allocate them only
+        // for the immutable direct boot plan; reserving their BSS for a Si5351
+        // boot would consume the heap needed by ordinary WTP LOAD admission.
+        static const auto direct_engine = std::make_unique<StreamEngine>(sink, filters);
+        drive_hardware = &direct_hardware;
+        direct_sink = &sink;
+        selected = direct_engine.get();
+    } else {
+        if (!settings ||
+            !hardware::validate_si5351(pins, *settings, 0,
+                                       filters ? filters->settings() : hardware::FilterSettings{})
+                 .valid())
+            failure();
+        static si5351::PicoBus bus;
+        static si5351::Device device(bus);
+        static si5351::PicoExecutionPlatform platform(
+            pins, *settings, filters ? filters->settings() : hardware::FilterSettings{}, bus,
+            device);
+        static si5351::Engine engine(
+            settings->synthesis, device, platform, WSPRRY_PICO_SI5351_ENGINEERING, &indicator,
+            amplifier, filters,
+            hardware::si5351_ordinary_qualified(pins, *settings, clock_get_hz(clk_sys),
+                                                filters ? filters->settings()
+                                                        : hardware::FilterSettings{}));
+        si_engine = &engine;
+        si_platform = &platform;
+        selected = &engine;
+        if (storage_healthy) {
+            emergency_gate = settings->gate;
+            emergency_gate_high = settings->gate_active_high;
+        }
+    }
+    static WorkerEngine proxy(*selected, clock, now, wait, failure, save_and_disable_interrupts,
                               restore_interrupts);
+    if (si_engine)
+        proxy.set_background_control(
+            [](std::uint64_t deadline, void* context) {
+                return static_cast<si5351::Engine*>(context)->suspend_background(deadline);
+            },
+            [](void* context) { static_cast<si5351::Engine*>(context)->resume_background(); },
+            si_engine);
     if (worker)
         failure();
     if (storage_healthy) {
@@ -114,8 +167,20 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
 #else
     proxy.set_safety([](void*) { return !boot_safe; }, nullptr);
 #endif
-    hardware.set_output_inhibit(proxy.safety_latch());
+    if (drive_hardware)
+        drive_hardware->set_output_inhibit(proxy.safety_latch());
     std::fill(std::begin(worker_stack), std::end(worker_stack), 0xa59c37e1U);
+    proxy.set_observer(
+        [](WorkerEngine::Metrics& result, void*) {
+            if (si_engine && si_platform) {
+                result.si5351 = si_engine->observation();
+                result.amplifier = result.si5351->amplifier;
+                result.reference = si_platform->reference();
+                result.reference_error = si_platform->reference_diagnostic();
+            } else if (direct_sink)
+                result.amplifier = direct_sink->timing_observation();
+        },
+        nullptr);
     proxy.set_probe(
         [](WorkerEngine::Metrics& result, void* context) {
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
@@ -124,18 +189,20 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
             result.safety_input_reset = safety.reset();
             result.safety_input_fault = safety.fault();
 #endif
-            const auto driver = static_cast<PicoPioDma*>(context)->metrics();
-            result.amplifier = sink.timing_observation();
-            result.dma_irqs = driver.dma_irqs;
-            result.max_irq_ns = driver.max_irq_ns;
-            result.launch_ns = driver.launch_ns;
-            result.launch_epoch = driver.launch_epoch;
-            result.launch_target_ns = driver.launch_target_ns;
-            result.alarm_irqs = driver.alarm_irqs;
-            result.max_alarm_irq_ns = driver.max_alarm_irq_ns;
-            result.tail_irqs = driver.tail_irqs;
-            result.dma_errors = driver.dma_errors;
-            result.refill = driver.refill;
+            (void)context;
+            if (drive_hardware) {
+                const auto driver = drive_hardware->metrics();
+                result.dma_irqs = driver.dma_irqs;
+                result.max_irq_ns = driver.max_irq_ns;
+                result.launch_ns = driver.launch_ns;
+                result.launch_epoch = driver.launch_epoch;
+                result.launch_target_ns = driver.launch_target_ns;
+                result.alarm_irqs = driver.alarm_irqs;
+                result.max_alarm_irq_ns = driver.max_alarm_irq_ns;
+                result.tail_irqs = driver.tail_irqs;
+                result.dma_errors = driver.dma_errors;
+                result.refill = driver.refill;
+            }
             std::size_t free = 0;
             while (free < std::size(worker_stack) && worker_stack[free] == 0xa59c37e1U)
                 ++free;
@@ -147,7 +214,7 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
             result.stack_guard_valid =
                 guard.valid && guard.bottom == reinterpret_cast<std::uintptr_t>(worker_stack);
         },
-        &hardware);
+        nullptr);
     worker = &proxy;
     multicore_launch_core1_with_stack(run, worker_stack, sizeof(worker_stack));
     const auto started = now();
@@ -158,4 +225,27 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
     }
     return proxy;
 }
+int guarded_flash_execute(void (*operation)(void*), void* context, std::uint32_t timeout_ms) {
+    // SDK lockout can interrupt an in-flight idle reference I2C transfer. Pause
+    // and acknowledge it on its owner before asking the SDK to halt that core.
+    // Early startup has no worker; the SDK retains its normal safety checks.
+    static bool active = false; // Core 0 only; reject nested flash callbacks.
+    if (get_core_num() != 0 || active)
+        return PICO_ERROR_NOT_PERMITTED;
+    active = true;
+    if (worker && !worker->suspend_background(now() + 100'000'000ULL)) {
+        active = false;
+        return PICO_ERROR_NOT_PERMITTED;
+    }
+    const auto result = __real_flash_safe_execute(operation, context, timeout_ms);
+    if (worker)
+        worker->resume_background();
+    active = false;
+    return result;
+}
 } // namespace wsprrypico::rf
+
+extern "C" int __wrap_flash_safe_execute(void (*operation)(void*), void* context,
+                                         std::uint32_t timeout_ms) {
+    return wsprrypico::rf::guarded_flash_execute(operation, context, timeout_ms);
+}

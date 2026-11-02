@@ -612,8 +612,12 @@ def candidate_asset(files, manifest):
 
 def verify_linked_identity(tool, filename, manifest):
     linked = command([tool.path, 'info', '-a', filename])
-    inhibited = manifest.get('developer_variant') == 'inhibited'
-    for field, expected in (('name', 'WsprryPico-Inhibited' if inhibited else 'WsprryPico'), ('version', manifest['firmware_version']),
+    variant = manifest.get('developer_variant', 'normal')
+    inhibited = variant == 'inhibited'
+    image_name = {'normal':'WsprryPico','inhibited':'WsprryPico-Inhibited',
+                  'si5351-engineering':'WsprryPico-Si5351Engineering'}.get(variant)
+    require(image_name is not None, 'Unsupported linked developer variant')
+    for field, expected in (('name', image_name), ('version', manifest['firmware_version']),
                             ('description', ('Standalone RF-inhibited ' if inhibited else 'Standalone PIO/DMA RF ') + manifest['source'].get('identity', manifest['source']['revision'][:12])),
                             ('pico_board', 'pico2_w'), ('target chip', 'RP2350')):
         require(re.search(r'^ ' + re.escape(field) + r':\s+' + re.escape(expected) + r'$', linked, re.M),
@@ -725,7 +729,7 @@ def verify_local(files):
     require(((meta['schema'], meta['usb_update_contract'], meta['application_end']) in
              (('wsprrypico-local-build/1', 1, '103ee000'), ('wsprrypico-local-build/1', 1, '103f0000'),
               ('wsprrypico-local-build/2', 2, '103ec000'))) and meta['board'] == 'pico2_w' and
-            (meta['variant'] == 'normal' or (meta['schema'] == 'wsprrypico-local-build/2' and meta['variant'] == 'inhibited')) and meta['version'] == '0.0.0-devel' and
+            (meta['variant'] == 'normal' or (meta['schema'] == 'wsprrypico-local-build/2' and meta['variant'] in ('inhibited','si5351-engineering'))) and meta['version'] == '0.0.0-devel' and
             re.fullmatch(HEX40, source['revision']) and type(source['dirty']) is bool and
             re.fullmatch(HEX64, source['inputs_sha256']) and
             source['identity'] in (source['revision'][:12], source['revision'][:12] + '-dirty') and
@@ -766,8 +770,9 @@ def build_local(args):
     require(shutil.disk_usage(output.parent).free >= 768 * 1024 * 1024,
             'Need at least 768 MiB free for a fresh developer build')
     variant = getattr(args,'local_variant',None) or 'normal'
-    require(variant in ('normal','inhibited'), 'Unsupported developer image variant')
-    target = 'WsprryPico' if variant == 'normal' else 'WsprryPico-Inhibited'
+    require(variant in ('normal','inhibited','si5351-engineering'), 'Unsupported developer image variant')
+    target = {'normal':'WsprryPico','inhibited':'WsprryPico-Inhibited',
+              'si5351-engineering':'WsprryPico-Si5351Engineering'}[variant]
     # Existing helper checks exact SDK/submodule/compiler pins and performs the
     # linked engine/storage/USB checks. No package or SDK acquisition is offered.
     log = output.with_name(output.name + '.installer-build.log')
@@ -790,6 +795,8 @@ def build_local(args):
             re.search(r'^WSPRRY_PICO_NETWORK_PORT:STRING=0$', cache, re.M) and
             re.search(r'^WSPRRY_PICO_NETWORK_CREDENTIAL_DIR:PATH=$', cache, re.M),
             'Developer build must use generic Pico 2 W defaults without credentials')
+    require(variant != 'normal' or not re.search(r'^WSPRRY_PICO_SI5351_ENGINEERING:BOOL=ON$', cache, re.M),
+            'Engineering-enabled output requires the explicit si5351-engineering variant')
     identity = (output / 'firmware/generated/firmware_identity.hpp').read_text()
     match = re.search(r'kBuildRevision\[\]\s*=\s*"([0-9a-f]{12}(?:-dirty)?)"', identity)
     require(match and match[1].startswith(revision[:12]), 'Developer linked source identity unavailable')
@@ -2251,7 +2258,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     choice.add_argument('--local-bundle', type=Path, help='Explicit previously built developer bundle')
     parser.add_argument('--installed-bundle', type=Path,
                         help='Original developer bundle for the running local image; upgrade verifies flash before repairing its reference')
-    parser.add_argument('--local-variant', choices=('normal','inhibited'), help='Explicit developer firmware engine; inhibited never drives RF')
+    parser.add_argument('--local-variant', choices=('normal','inhibited','si5351-engineering'), help='Explicit developer firmware engine; inhibited never drives RF; si5351-engineering enables unqualified Si5351 output')
     parser.add_argument('--build-dir', type=Path, help='New developer build directory; never reused')
     parser.add_argument('--source-revision', help='Require this exact full local source HEAD')
     parser.add_argument('--allow-dirty', action='store_true', help='Explicitly accept a labelled dirty developer build')

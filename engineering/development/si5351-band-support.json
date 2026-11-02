@@ -1,0 +1,685 @@
+{
+  "schema": "si5351-conducted-mode-results/1",
+  "date": "2026-11-02",
+  "profile_id": "qrp-labs-rev6-25mhz-clk0-8ma",
+  "board": {
+    "name": "Pico C",
+    "model": "Pico 2 W / RP2350",
+    "serial": "1545B6EFBF78028C",
+    "device_id": "c2a3a2a314c948b50a8562a1aeb69669"
+  },
+  "module": {
+    "board": "QRP Labs Rev. 6",
+    "reference_hz": 25000000,
+    "reference": "external_xa",
+    "tcxo_marking": "25.00BN D441",
+    "clock_marking_reported": "M55361M 1CMD59 (uncertain transcription)",
+    "silicon_identity": "Not electronically identified; vendor documents the register-compatible MS5351M on Rev. 6."
+  },
+  "firmware": {
+    "variant": "si5351-engineering",
+    "uf2_sha256": "4e76802a68253a018fa39f30cdd45c8d516b339a0a9a84e2204a3bdfb96e81cd",
+    "source_base": "2bade39003fa2fb08032af08c11d5f5885f32618",
+    "source_uncommitted": true,
+    "source_inputs_sha256": "05e977b7e6c21f05ece46ba9983e1bda5cd8cb7707645e0b0fc56a5c10965ca4"
+  },
+  "settings": {
+    "system_clock_hz": 138000000,
+    "i2c_hz": 100000,
+    "sda_gp": 4,
+    "scl_gp": 5,
+    "address": 96,
+    "transmit_output": 0,
+    "drive_ma": 8,
+    "loopback_output": 2,
+    "loopback_input_gp": 7,
+    "reference_use": "measurement_only",
+    "manual_correction_ppb": 0,
+    "independent_rf_gate_gp": null
+  },
+  "receiver": {
+    "model": "RSP1B",
+    "serial": "2404058C60",
+    "sample_rate_hz": 250000,
+    "bandwidth_hz": 200000,
+    "agc": false,
+    "bias": false
+  },
+  "criteria": {
+    "WSPR": "All three consecutive frames decode the expected AA0NT EM18 37 message with external wsprd.",
+    "keyed": "Maintained human-copy assessment: complete marks/gaps and visibly distinct ordered frequency states.",
+    "TONE": "Finite acquired carrier with independent quiet evidence.",
+    "waveform": "Phase, drift and transition-fit measurements are retained as diagnostics, not WSPR/CW acceptance gates."
+  },
+  "paths": {
+    "direct_three_20db_attenuators": "CLK0 through three 20 dB attenuators to SDR; combiner, DC block and commercial-band filter removed; no simultaneous GPSDO.",
+    "original_20db_combiner_40db": "Original nominal 60 dB path through ZSC-3-1+ combiner; retained accepted tone/CW evidence only. Path response is not calibrated."
+  },
+  "receiver_adjustment": {
+    "direct_2m": "Before-only constant receiver-axis translation of 155.2002609372 Hz at the same 144460500 Hz LO, observed using GPSDO 0673ED0FA107 before bypass; later receiver drift is not bounded.",
+    "transmitter_adjustment": "None; manual correction zero.",
+    "absolute_accuracy": "Not established."
+  },
+  "accepted_cells": 85,
+  "wspr_decoded_frames": 51,
+  "results": [
+    {
+      "rf_hz": 137500,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "283c1f59f162d999bfece8c169bc63479fab0b751900abd412b959bf62881435",
+      "path": "direct_three_20db_attenuators"
+    },
+    {
+      "rf_hz": 137500,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "820cf6756aae32653affd662bc83e862ff2acc95672d23a3605b4883cca05c26",
+      "path": "direct_three_20db_attenuators"
+    },
+    {
+      "rf_hz": 137500,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "565dbdbb3a90f3c27608e16c34538403b41221c390ddf72734e4926f23e06110",
+      "path": "direct_three_20db_attenuators"
+    },
+    {
+      "rf_hz": 137500,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "aab0cd961e061ed10e0a120bde10bb227ff08c45d602da79a32fc2c2f3515638",
+      "path": "direct_three_20db_attenuators"
+    },
+    {
+      "rf_hz": 137500,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "45ac9b6fbaa27c7190e25e93fb387a103da44091a4cf634fb00bcedb8dc6d404",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 475700,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "279589406cf2d8db75478aa609339b2e32d839287766439df1ba9e3c420af8a6",
+      "path": "direct_three_20db_attenuators"
+    },
+    {
+      "rf_hz": 475700,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "5b8ca7a7a8251ad91b07fdb4471542ec382c0fd3a71b5ee481f87fc1b30e2421",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 475700,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "f3d51c1f6ba37a1e5835de4b23e07b54e3d4b60c2802e6616672075ea1408970",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 475700,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "067e5af0560cfb69618ad110db8cf7ee36e803547f3cc8f723a2e8ac0865e78d",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 475700,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "aa5d3757d00661083aca41657853ab636d9228f57b2f2fc776452465af74ca4d",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 1838100,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "b3b2845a7f85ddd6493c9e547aff554b95a451c84fb3da35954b11e64246bc55",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 1838100,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "a4290b99087dedba3e38f6bd1117fb32e70ad852858607ff261b4bce8c2eb7d2",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 1838100,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "8330d9b83a0603eca282bf7eb319025ba6cf81a405f2ac2a4fbfa44a6d0efb97",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 1838100,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "99b561544240aab9a0f4f74cc5bf222e998e6ddce12a3dcdd85526eb7a447524",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 1838100,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "befb02b95905abf5a29e4d440b606e1254124908af2c77100fe3bfb595d9ba59",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 3570100,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "efdfa19034d96ae0b802cfe773674320db946da3b40a966343cb4ebef1167fee",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 3570100,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "8ea282d9580b3fe600dad4cc77405351964bb9ddacda0d1dbdfba195dbba7110",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 3570100,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "8403d28b5661bf43fc31fa189aa4c64aa89eb8be621c8ef864e5a00254121ad0",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 3570100,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "c8f3b2171d606fef7d008def608f8c7d0f4201cea7eb3f6802a98fc9bd0e5b1f",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 3570100,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "cbaf78198e5869c0eac267b8e4d755cb3db5d5e80649bd2956cff61995746d12",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 5288700,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "8c53f59645d6f2fd4f0cc65446ba8d3d312974a9178f4ac01ca64dbf2dd13118",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 5288700,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "6caa775428c8d89a503635454124a5ee3dd35733b30978dc22106d8af99f5272",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 5288700,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "6da5974134142f228d00338a6e7d1dee70a3e3b27fd478f776e6617756048c1e",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 5288700,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "e3faa5f5ffefa6d3375d539810da9f58673b7a8f9a0bdc63eb9c0c42926be9bc",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 5288700,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "889607d9c8a275a30c3fa20c659502a3cb529e8dcf400151e915d8fee72eba70",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 7050000,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "7c2526b518f87e769f72ff10c0d3ff3d7d9eb592d3442f518906dde09519e23b",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 7050000,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "e08616ae4ac62007720125f9af5a4b9b3c9a5e1ed545525c0b4f7104387c1013",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 7050000,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "d6a8e1ba610403fa34099c66ca20ca9e7766f0053a0a0d0468e309b1a746b395",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 7050000,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "f0ca797250877a92fa035e71dc759355d9339f7259a1ca3056dc656b6ceda78f",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 7050000,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "e320bc0b7630533469392121819eaeb4ab43bba651e522370017ab058a8960be",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 10140200,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "416ba01bff616a6a9942938dbdddb566350019552e00b4e1beaba430db9d5392",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 10140200,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "7decc0120667e41466a970231b10e3697268e9afb02afa65492d3e7723d1b286",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 10140200,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "392abf23df1b66936ffde431fadd93af50ef5b00d9b85fb7056e3fc4e10c1e3f",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 10140200,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "3b9c34c09a86057da78863bf1db4462467005a4b51b2531b748c277be833515d",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 10140200,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "b632c472fc3bed8cf65f672c5493d9a291ce6fab9a1f489c6734274ac7069171",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 14097100,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "56fa6fa79f90784ff263058619f34f6bbb13fd2644acdd0ca927970447e5a072",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 14097100,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "e15e1a6fcd8188fff4ce297e459ce0c0b8c864167bf12e7edc5aa9a277f390e8",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 14097100,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "cf4622ed977144893ef42067566b6ae55bb131cbd07c493f11b9287cebd0a802",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 14097100,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "d3882a44dd903ce78613dd40f473911d39a96b1be835b1efd09d5d4df6baca35",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 14097100,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "709f5b9cc2c125cbf6b76170cb48366d768ab45fd020a28d204c6030eaf21d7c",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 18106100,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "c10d2cb4f334126978b1bae7bae82323ecb2eb1e04b0584a5118914b24b5ab86",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 18106100,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "9f0d6a5e03f8d873344b539e741c1904d3fcc97b570462455c1f7e0adfe4c9f5",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 18106100,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "d7cf6d92dd2ff58e52c3448c619ebdd3315da272d6c0c0c556eab0b1510a2c7f",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 18106100,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "034a59e50fcb8063050fdcdf16334358b6f9973761f4a5260ebf04fda3bfd086",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 18106100,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "78346a0e6a45c19aaef239a5e36a5e7ee0acc96997df98906800dc27b68e325b",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 21096100,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "ce86a4f7228ceea31d4b7c2663a087737cbff3cdc88c4cc9899bbb734c4a7fee",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 21096100,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "ebbdf9123ea31abd7f52da1fc0c3f6c42603087416a06ec045d0bd7cdf9ab0f4",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 21096100,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "168994379e453a1418bf26d9cfbeda0c7b4c0a8cc69a16eceef5baa05283c846",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 21096100,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "665aeec6efaf68d48624af68fffd96f754e619deae6078da24d746eb2c76740b",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 21096100,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "0abce5e8e7c379eead37f3f8e345563507a813b1d23fb4da49ef78b7d4241e30",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 24926100,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "9ab032235efe5b0312293e593b83e2dc51ae689eaed3b0a101247957bc4c1333",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 24926100,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "5dd3b75212df10bde1b1d1a6b9cd44a0f3e3cc8d8983efbd50098ea3d1f5026c",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 24926100,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "37586f6a0eadaa6d62d0f790a01f1aa7e689d86727003191dab3ac4d310f5dd6",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 24926100,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "4099b946366189d23d78c3abb904714d6a0cb0f4bd6448df84903d2195225c9e",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 24926100,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "2553971c78440537bef6ad51bb71448c0145266952298bc2545c46af0c12cb0e",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 28126100,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "93794959bafdb928869bb2041a45fb84dcdee845cbe4d89a6d5497907c3b728a",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 28126100,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "5ec1357161cf7af73c40e3547e5634a1c6835ce080c4f45140ade6008ba7972f",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 28126100,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "505e9e852d0cd3be1f29d597eb7059bc0398cbdb9733f2a0dce8e19e1bb39981",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 28126100,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "2532876505808af2c589ca74b55955bce6bfb1aba4cafb9bdbf0532dfbedb06b",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 28126100,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "49580c6db6699573b3d20b2f4f16fe25f3741d6fa6cf9024bc9717c91bbe8b1b",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 40001000,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "8cde7beb9207b2b8c5c49d89381da25f0eebd0682e611dabd1886832a3a006c6",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 40001000,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "19725c050cc59484d05f82aeb6b39adf9806084a4fa00b2976dd9a875d224be2",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 40001000,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "cdcfa27b3213da4194131c0d23aaf4e5d88e0678cf9739cf38ba78ae2efaf54b",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 40001000,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "bfb6baecbc5dc7c2a1fe3a8f81e15093ddfae0e9f55e2f23709101465fbe62d5",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 40001000,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "2b4b8792385916da1347c68be4a8dbaae54a84a406020166db43a12a54300a0d",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 50294500,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "0a79cd77a755a9845994870534c363a2d0add8fa9a0e23481146aaabb17376a5",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 50294500,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "e7b1debdaab6c6ccc5867ace09fae9b49720d2501b1dc4a85228619e79ff9e27",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 50294500,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "95d6c597a639a2e8dbf0f0d801842bcaafd8ea8be7c3a58a5e93dfe81daa60c9",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 50294500,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "647bac4072b7959b8b2b90058b41a4540abe1d44237283e9f83cb7f3f4561a22",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 50294500,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "09336ea2848d9bd74cb4a6d8633ed55454c1f8d32c060e8073577ef35a00c9d7",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 60001000,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "ef5e49b3a7f3405a813921eb3ee7dc64591bd9a38b97ca0b89e11231e7709963",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 60001000,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "5fe4cace2d2d5482822701c85b1f353a4749888909243262247aea4134a6cfa5",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 60001000,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "49628961530ab4ee320211068aaf322d3065d1dc9110ac272add319ac91757e6",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 60001000,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "de21947d226b0abd84449f05a7e7bcbd51decfa98c541a730aadca45ec9bb900",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 60001000,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "42680840532f2b32013e4784847af7422ed9407a523f987c64d93546f7803d50",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 70400000,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "7007ab8515bf0c046519621884d9b59e4dd3046b52cf89f03df7258bfff8288f",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 70400000,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "a64ba9a2381c7a129b5108d26d32f22a17dba96c5716a82b1037f15bd8de3905",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 70400000,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "89263e20e371ad9dbf6fe438c4bdec55453d3c89b29186ca03f811b0e31edbe6",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 70400000,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "61df429f83c085d6a1b7ba773abaf512198884085ddc667222dd147b3e51172d",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 70400000,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "0376c37caffe572fdb0d9ee750d69a5732f5e25c7ef4129ff535faa1e6f87257",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    },
+    {
+      "rf_hz": 144490500,
+      "mode": "TONE",
+      "accepted": true,
+      "capture_sha256": "ee6bd78504aa21daf41c6854f4acd308162815b932581b2b4b4b9511a14bb7ed",
+      "path": "direct_three_20db_attenuators"
+    },
+    {
+      "rf_hz": 144490500,
+      "mode": "QRSS",
+      "accepted": true,
+      "capture_sha256": "a2d62e4675dc6f3c43a200de591407984cd219acc7bac9d7ef40675a4198ba25",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 144490500,
+      "mode": "FSKCW",
+      "accepted": true,
+      "capture_sha256": "29624a96def58ad42c97bc90a562053a9949dfb679093c40cc3816a78e4aff0e",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 144490500,
+      "mode": "DFCW",
+      "accepted": true,
+      "capture_sha256": "d1648fe4a81bc0bf3f8db3acc42f896eaafca68ec2d8b341e76fe9279c8dafb0",
+      "path": "original_20db_combiner_40db"
+    },
+    {
+      "rf_hz": 144490500,
+      "mode": "WSPR",
+      "accepted": true,
+      "capture_sha256": "b91bad6cc2699ba5ed0378e1ec8588563111971fa12400b76c53855821aac749",
+      "path": "direct_three_20db_attenuators",
+      "decoded_frames": 3
+    }
+  ],
+  "limitations": [
+    "Exact conducted test points, board, image, drive, reference and per-record path only; broad band intervals and other configurations are not measured by this matrix.",
+    "No calibrated RF frequency, transmitter power, emissions, harmonics, receiver sample-time or absolute UTC launch claim.",
+    "Mode acceptance does not establish independent hardware cutoff during reset or a failed bus; output lifecycle and integration checks are separate.",
+    "An ordinary image requires a separately recorded source-impact assessment and deployment verification; these measurements are not relabelled as its RF matrix."
+  ]
+}

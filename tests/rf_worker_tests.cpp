@@ -110,6 +110,51 @@ void manual_wait() {
 bool safety_requested(void* context) {
     return *static_cast<bool*>(context);
 }
+void background_rendezvous() {
+    manual_ns = 1'000'000;
+    Engine engine;
+    time::UtcDiscipline clock(manual_clock, nullptr);
+    CHECK(clock.observe(1'800'000'000'000'000'000ULL, manual_ns, 1000, wtp::LeapState::Normal));
+    rf::WorkerEngine proxy(engine, clock, manual_now, manual_wait, failure, mask, restore);
+    manual_worker = &proxy;
+    struct Control {
+        unsigned pauses = 0, resumes = 0;
+        bool accept = true, held = false;
+    } control;
+    proxy.set_background_control(
+        [](std::uint64_t deadline, void* context) {
+            auto& c = *static_cast<Control*>(context);
+            CHECK(deadline == manual_ns + 100'000'000);
+            ++c.pauses;
+            c.held = c.accept;
+            return c.accept;
+        },
+        [](void* context) {
+            auto& c = *static_cast<Control*>(context);
+            CHECK(c.held);
+            c.held = false;
+            ++c.resumes;
+        },
+        &control);
+    CHECK(proxy.suspend_background(manual_ns + 100'000'000));
+    CHECK(control.held && control.pauses == 1);
+    CHECK(!proxy.suspend_background(manual_ns + 100'000'000));
+    wtp::Job value;
+    CHECK(!proxy.prepare(value).accepted && engine.prepares == 0);
+    CHECK(!proxy.schedule(value, manual_ns + 100'000'000, {&clock}));
+    CHECK(engine.schedules == 0 && control.held);
+    proxy.resume_background();
+    CHECK(!control.held && control.resumes == 1);
+    CHECK(proxy.prepare(value).accepted);
+    engine.state = wtp::EngineState::Armed;
+    engine.start = manual_ns + 1'000'000'000;
+    CHECK(!proxy.suspend_background(manual_ns + 100'000'000));
+    CHECK(control.pauses == 1); // No background callback while a launch is armed.
+    engine.state = wtp::EngineState::Idle;
+    control.accept = false;
+    CHECK(!proxy.suspend_background(manual_ns + 100'000'000));
+    CHECK(!control.held && control.pauses == 2 && control.resumes == 1);
+}
 
 void independent_worker_safety(bool armed) {
     manual_ns = 1'000'000;
@@ -286,6 +331,7 @@ int main(int argc, char** argv) {
             (void)proxy.prepare(job); // No consumer: bounded non-returning recovery.
         return 1;
     }
+    background_rendezvous();
     independent_worker_safety(true);
     independent_worker_safety(false);
     safety_during_prepare();

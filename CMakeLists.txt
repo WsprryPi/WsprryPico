@@ -42,6 +42,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(WSPRRY_PICO_BUILD_TESTS "Build hardware-free host tests" ON)
+option(WSPRRY_PICO_SI5351_ENGINEERING "Enable physically unqualified Si5351 engineering execution" OFF)
 
 if(WSPRRY_PICO_BUILD_FIRMWARE)
     if(WSPRRY_PICO_BUILD_TESTS)
@@ -65,7 +66,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js src/network/web/udp-logging.js
     src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
     src/network/web/saved-progress.js src/network/web/gpio-drive.js src/network/web/utc-datetime.js src/network/web/message-schedule.js
-    src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/amplifier-timing.js src/network/web/filter-selector.js src/network/web/standalone-frequency.js
+    src/network/web/si5351.js src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/amplifier-timing.js src/network/web/filter-selector.js src/network/web/standalone-frequency.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
     src/network/bootstrap_web/radio-bundle.js
@@ -94,6 +95,7 @@ add_library(wsprrypico_core
     src/application/resources.cpp
     src/application/frequency_policy.cpp
     src/hardware/pins.cpp
+    src/hardware/si5351_settings.cpp
     src/hardware/filter_settings.cpp
     src/rf/filter_selector.cpp
     src/provisioning/profile.cpp
@@ -140,6 +142,13 @@ add_library(wsprrypico_core
     src/standalone/progress.cpp
     src/standalone/scheduler.cpp
     src/rf/calibration.cpp
+    src/rf/si5351_plan.cpp
+    src/rf/si5351_observation.cpp
+    src/rf/si5351_device.cpp
+    src/rf/si5351_job.cpp
+    src/rf/reference_measurement.cpp
+    src/rf/reference_counter.cpp
+    src/rf/reference_monitor.cpp
     src/time/ntp_filter.cpp
     src/time/ntp_client.cpp
     src/time/controller_time.cpp
@@ -176,7 +185,7 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 
 # Portable experimental RF library; not linked into the inhibited firmware.
-add_library(wsprrypico_rf src/rf/waveform.cpp src/rf/stream_engine.cpp src/rf/pio_dma_sink.cpp src/rf/bench.cpp src/rf/worker.cpp)
+add_library(wsprrypico_rf src/rf/waveform.cpp src/rf/stream_engine.cpp src/rf/pio_dma_sink.cpp src/rf/bench.cpp src/rf/worker.cpp src/rf/si5351_engine.cpp)
 set(WSPRRY_PICO_RF_SAMPLE_RATE_HZ "138000000" CACHE STRING "Experimental bench clock: 132000000, 138000000 or 150000000")
 if(DEFINED WSPRRY_PICO_STANDALONE_WSPR_BASE_FREQUENCY_HZ)
     message(FATAL_ERROR "Build-time standalone frequency selection was removed; configure frequency at runtime")
@@ -205,10 +214,12 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 
 if(WSPRRY_PICO_BUILD_FIRMWARE)
-    add_library(wsprrypico_pico_rf src/rf/pico/pico_pio_dma.cpp)
+    add_library(wsprrypico_pico_rf src/rf/pico/pico_pio_dma.cpp src/rf/pico/si5351_bus.cpp
+        src/rf/pico/reference_capture.cpp src/rf/pico/si5351_platform.cpp)
     target_link_libraries(wsprrypico_pico_rf PUBLIC wsprrypico_rf hardware_pio hardware_dma
-                          hardware_timer hardware_irq hardware_clocks pico_stdlib)
-    set_source_files_properties(src/rf/pico/pico_pio_dma.cpp PROPERTIES
+                          hardware_timer hardware_irq hardware_clocks hardware_i2c hardware_pwm pico_stdlib)
+    set_source_files_properties(src/rf/pico/pico_pio_dma.cpp src/rf/pico/si5351_bus.cpp
+        src/rf/pico/reference_capture.cpp src/rf/pico/si5351_platform.cpp PROPERTIES
         COMPILE_OPTIONS "-Wall;-Wextra;-Wpedantic;-Werror;-fno-exceptions;-fno-rtti;-fstack-usage")
     pico_generate_pio_header(wsprrypico_pico_rf ${CMAKE_SOURCE_DIR}/src/rf/pico/packed_output.pio)
     add_executable(rf_driver_linkcheck EXCLUDE_FROM_ALL tests/pico_driver_linkcheck.cpp)
@@ -220,6 +231,52 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(si5351_settings_tests tests/si5351_settings_tests.cpp)
+    target_link_libraries(si5351_settings_tests PRIVATE wsprrypico_core)
+    target_compile_options(si5351_settings_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME si5351_settings COMMAND si5351_settings_tests)
+    add_test(NAME si5351_schema COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/si5351_schema_tests.py $<TARGET_FILE:si5351_settings_tests>)
+    add_test(NAME si5351_browser COMMAND node ${CMAKE_SOURCE_DIR}/tests/si5351_browser_tests.js
+        $<TARGET_FILE:si5351_settings_tests>)
+    add_executable(reference_monitor_tests tests/reference_monitor_tests.cpp)
+    target_link_libraries(reference_monitor_tests PRIVATE wsprrypico_core)
+    target_compile_options(reference_monitor_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME reference_monitor COMMAND reference_monitor_tests)
+    add_executable(si5351_engine_tests tests/si5351_engine_tests.cpp)
+    target_link_libraries(si5351_engine_tests PRIVATE wsprrypico_rf)
+    target_compile_options(si5351_engine_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME si5351_engine COMMAND si5351_engine_tests)
+    add_executable(si5351_plan_tests tests/si5351_plan_tests.cpp)
+    target_link_libraries(si5351_plan_tests PRIVATE wsprrypico_core)
+    target_compile_options(si5351_plan_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME si5351_plan COMMAND si5351_plan_tests)
+    add_executable(reference_measurement_tests tests/reference_measurement_tests.cpp)
+    target_link_libraries(reference_measurement_tests PRIVATE wsprrypico_core)
+    target_compile_options(reference_measurement_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME reference_measurement COMMAND reference_measurement_tests)
+    add_executable(si5351_allocation_tests tests/si5351_allocation_tests.cpp)
+    target_link_libraries(si5351_allocation_tests PRIVATE wsprrypico_core)
+    target_compile_options(si5351_allocation_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME si5351_allocation COMMAND si5351_allocation_tests)
+    add_executable(si5351_device_tests tests/si5351_device_tests.cpp)
+    target_link_libraries(si5351_device_tests PRIVATE wsprrypico_core)
+    target_compile_options(si5351_device_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME si5351_device COMMAND si5351_device_tests)
+    add_executable(reference_counter_tests tests/reference_counter_tests.cpp)
+    target_link_libraries(reference_counter_tests PRIVATE wsprrypico_core)
+    target_compile_options(reference_counter_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME reference_counter COMMAND reference_counter_tests)
+    add_executable(si5351_job_tests tests/si5351_job_tests.cpp)
+    target_link_libraries(si5351_job_tests PRIVATE wsprrypico_core)
+    target_compile_options(si5351_job_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME si5351_job COMMAND si5351_job_tests)
+    add_executable(pico_reference_capture_tests tests/pico_reference_capture_tests.cpp
+        src/rf/pico/reference_capture.cpp)
+    target_include_directories(pico_reference_capture_tests PRIVATE tests/reference_capture_mock)
+    target_link_libraries(pico_reference_capture_tests PRIVATE wsprrypico_core)
+    target_compile_options(pico_reference_capture_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME pico_reference_capture COMMAND pico_reference_capture_tests)
     add_executable(udp_logging_tests tests/udp_logging_tests.cpp)
     target_link_libraries(udp_logging_tests PRIVATE wsprrypico_core)
     target_compile_options(udp_logging_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
@@ -427,6 +484,9 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_options(microchrony_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME microchrony COMMAND microchrony_tests)
     add_executable(microchrony_loop tests/reference/microchrony_loop.cpp)
+    add_executable(si5351_continuity_replay tests/reference/si5351_continuity_replay.cpp)
+    target_link_libraries(si5351_continuity_replay PRIVATE wsprrypico_core)
+    target_compile_options(si5351_continuity_replay PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     target_link_libraries(microchrony_loop PRIVATE microchrony)
     target_compile_options(microchrony_loop PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME microchrony_clock_loop COMMAND ${Python3_EXECUTABLE}

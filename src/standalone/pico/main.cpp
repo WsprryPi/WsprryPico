@@ -1,5 +1,8 @@
-#include "network/control.hpp"
 #include "application/resources.hpp"
+#include "network/control.hpp"
+#include "rf/si5351_observation.hpp"
+
+#include <cmath>
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE
 #include "hardware/gpio.h"
 #include "hardware/sync.h"
@@ -22,6 +25,7 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "hardware/clocks.h"
 #include "hardware/pico/amplifier_output.hpp"
 #include "hardware/pico/filter_outputs.hpp"
+#include "hardware/si5351_qualification.hpp"
 #include "hardware/structs/clocks.h"
 #include "hardware/structs/pll.h"
 #include "hardware/structs/powman.h"
@@ -427,8 +431,10 @@ int main() {
         (access_store.record() && access_store.record()->reset.pending());
     const bool boot_recovery = recovery || access_recovery;
     [[maybe_unused]] const unsigned boot_gpio_drive_ma =
-        store.config() ? store.config()->gpio_drive_ma : wsprrypico::standalone::factory_config().gpio_drive_ma;
-    auto boot_pins = store.config() ? store.config()->pins : wsprrypico::standalone::factory_config().pins;
+        store.config() ? store.config()->gpio_drive_ma
+                       : wsprrypico::standalone::factory_config().gpio_drive_ma;
+    auto boot_pins =
+        store.config() ? store.config()->pins : wsprrypico::standalone::factory_config().pins;
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE
     // Only the selected indicator differs; all pin ownership checks still apply.
     boot_pins.indicator_gp.reset();
@@ -460,9 +466,10 @@ int main() {
 #ifdef WSPRRY_PICO_STANDALONE_RF
     static wsprrypico::rf::IndicatorGate tx_indicator_gate(
         boot_pins.indicator != wsprrypico::hardware::PinPlan::Indicator::Disabled);
-    auto& engine = wsprrypico::rf::start_worker(clock, boot_pins, store_loaded && store.healthy(),
-                                                tx_indicator_gate, boot_gpio_drive_ma,
-                                                &amplifier_enable, &filter_selector);
+    auto& engine = wsprrypico::rf::start_worker(
+        clock, boot_pins, store_loaded && store.healthy(), tx_indicator_gate, boot_gpio_drive_ma,
+        &amplifier_enable, &filter_selector,
+        store.config() ? store.config()->si5351 : std::nullopt);
 #else
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
@@ -487,9 +494,14 @@ int main() {
         return runtime_profile.consumer_browser_selected(profile_store);
     };
 #ifdef WSPRRY_PICO_STANDALONE_RF
-    const auto config = wsprrypico::standalone::wtp_profile(true, ntp_timeout_s);
+    const auto config = wsprrypico::standalone::wtp_profile(
+        true, ntp_timeout_s, boot_pins.engine, WSPRRY_PICO_SI5351_ENGINEERING,
+        store.config() && store.config()->si5351 &&
+            wsprrypico::hardware::si5351_ordinary_qualified(boot_pins, *store.config()->si5351,
+                                                            clock_get_hz(clk_sys),
+                                                            filter_selector.settings()));
 #else
-    const auto config = wsprrypico::standalone::wtp_profile(false, ntp_timeout_s);
+    const auto config = wsprrypico::standalone::wtp_profile(false, ntp_timeout_s, boot_pins.engine);
 #endif
     static wsprrypico::standalone::FrequencyPolicyEngine policy_engine(
         engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz);
@@ -736,6 +748,23 @@ int main() {
 
 #ifdef WSPRRY_PICO_STANDALONE_RF
     browser_api.gpio_drive_observer(wsprrypico::rf::gpio_drive_observation);
+    struct SiRuntimeContext {
+        wsprrypico::rf::WorkerEngine* engine;
+        wsprrypico::standalone::PicoNetwork* network;
+    };
+    static SiRuntimeContext si_runtime{&engine, &network};
+    browser_api.si5351_observer(
+        [](void* context) {
+            auto& runtime = *static_cast<SiRuntimeContext*>(context);
+            const auto value = runtime.engine->metrics();
+            const auto now = time_us_64() * 1000ULL;
+            return value.si5351 ? wsprrypico::rf::si5351::observation_json(
+                                      *value.si5351, value.reference, value.reference_error, now,
+                                      runtime.network->frequency_reference_status(now),
+                                      runtime.network->frequency_reference_sample())
+                                : "null";
+        },
+        &si_runtime);
 #endif
     // Source 5 keeps public commissioning separate from encrypted, password-
     // authenticated radio requests. Legacy plaintext field mutations stay closed.
@@ -842,7 +871,8 @@ int main() {
         profile_store, runtime_profile, store, progress, identities.device_id(),
         local_identity.hostname);
     if (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Factory) {
-        const auto config = (store.config() ? *store.config() : wsprrypico::standalone::factory_config());
+        const auto config =
+            (store.config() ? *store.config() : wsprrypico::standalone::factory_config());
         local_settings.factory_profile({identities.device_id(), config.ssid, config.password,
                                         config.ntp_ipv4, std::string(tls_credentials.hostname),
                                         tls_credentials.port,
@@ -910,8 +940,8 @@ int main() {
                     activity.state == wtp::State::Failed || !radio_identity_ok)
                     return network::http_error(409, "ap_unavailable");
                 usb_ap_transaction = transaction;
-                return network::control_response(network::HttpResponse{202, "{\"requested\":true}", "application/json",
-                                             browser_api.revision()});
+                return network::control_response(network::HttpResponse{
+                    202, "{\"requested\":true}", "application/json", browser_api.revision()});
             }
             return usb_api.handle(request, transaction);
         },
@@ -1964,7 +1994,8 @@ int main() {
         softap_coordinator.client_connected(
             softap.client_connected(softap_coordinator.status(now_ms).remaining_ms == 0), now_ms);
         (void)softap_coordinator.poll(now_ms);
-        if (softap_coordinator.expired() && softap.running() && !consumer_radio.credential_reply_pending() &&
+        if (softap_coordinator.expired() && softap.running() &&
+            !consumer_radio.credential_reply_pending() &&
             wsprrypico::network::consumer_radio_network_idle(provisioning_activity(&service))) {
             const auto address = network.ipv4();
             consumer_radio.listeners(
@@ -1975,6 +2006,7 @@ int main() {
             softap.stop();
         }
     };
+    [[maybe_unused]] std::uint64_t last_reference_copy_us = 0;
     while (true) {
         // AP association and inactivity are serviced during reset intent/recovery
         // and before any early continue can bypass ordinary radio polling.
@@ -2111,6 +2143,38 @@ int main() {
             (network_state != wsprrypico::wtp::State::Armed &&
              network_state != wsprrypico::wtp::State::Running))
             network.poll();
+#ifdef WSPRRY_PICO_STANDALONE_RF
+        if (boot_pins.engine == wsprrypico::hardware::PinPlan::Engine::I2c &&
+            time_us_64() - last_reference_copy_us >= 1'000'000) {
+            const auto value = engine.metrics();
+            last_reference_copy_us = time_us_64();
+            const auto raw_ns = last_reference_copy_us * 1000ULL;
+            // Only an explicit accepted policy/allocation replacement removes
+            // a trusted-source conflict. A missing capture cannot bypass it.
+            const auto& current = store.config();
+            const bool replaced =
+                store.healthy() && current &&
+                (current->pins.engine != wsprrypico::hardware::PinPlan::Engine::I2c ||
+                 current->si5351 != scheduler.active_si5351());
+            if (replaced ||
+                (scheduler.active_si5351() && scheduler.active_si5351()->reference_use !=
+                                                  wsprrypico::rf::ReferenceUse::TrustedLocal))
+                network.clear_frequency_reference(raw_ns);
+            else {
+                std::optional<microchrony::FrequencyReference> reference;
+                if (value.reference && value.reference->local_rate_ppb &&
+                    value.reference->observed_raw_ns <=
+                        UINT64_MAX - value.reference->policy.maximum_age_ns) {
+                    const auto& m = *value.reference;
+                    reference = microchrony::FrequencyReference{
+                        m.observed_raw_ns, m.observed_raw_ns + m.policy.maximum_age_ns,
+                        m.plan_generation, *m.local_rate_ppb,
+                        static_cast<std::uint32_t>(std::ceil(m.uncertainty_ppb)) + 1};
+                }
+                network.frequency_reference(reference, raw_ns);
+            }
+        }
+#endif
         // Persistence faults and factory reset must not leave an old enabled
         // sink running. This fixed-size comparison never touches the USB sink.
         if (!udp_store.healthy()) {
@@ -2184,20 +2248,24 @@ int main() {
             service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
         const auto access_activity = provisioning_activity(&service);
         const bool consumer_ap = bootstrap_started && consumer_browser_selected();
-        const bool deliberate_recovery = boot_recovery ||
-            (softap_coordinator.status(field_now_ms).manual_setup ||
-             softap_coordinator.status(field_now_ms).join_grace);
-        const bool blank_captive = bootstrap_started && blank_access_available() &&
+        const bool deliberate_recovery =
+            boot_recovery || (softap_coordinator.status(field_now_ms).manual_setup ||
+                              softap_coordinator.status(field_now_ms).join_grace);
+        const bool blank_captive =
+            bootstrap_started && blank_access_available() &&
             (runtime_profile.source() == wsprrypico::provisioning::RuntimeSource::Unprovisioned ||
              deliberate_recovery);
-        const auto ap_password = consumer_ap ? consumer_radio.authentication_password() :
-            access_store.record() ? std::string_view(access_store.record()->password) : std::string_view{};
+        const auto ap_password = consumer_ap ? consumer_radio.authentication_password()
+                                 : access_store.record()
+                                     ? std::string_view(access_store.record()->password)
+                                     : std::string_view{};
         const auto next_ap_digest = wsprrypico::wtp::sha256(std::span(
             reinterpret_cast<const std::uint8_t*>(ap_password.data()), ap_password.size()));
         const bool ap_transition_safe =
             wsprrypico::network::consumer_radio_network_idle(access_activity);
         if (ap_transition_safe && !consumer_radio.credential_reply_pending() && softap.running() &&
-            (softap.captive() != blank_captive || (!blank_captive && ap_credential_digest != next_ap_digest))) {
+            (softap.captive() != blank_captive ||
+             (!blank_captive && ap_credential_digest != next_ap_digest))) {
             (void)network.softap_name(false, {});
             softap.stop();
         }
@@ -2205,12 +2273,14 @@ int main() {
             const auto* access = access_store.record();
             if (blank_captive)
                 (void)softap.start_blank(local_identity);
-            else if (runtime_profile_ready() && (consumer_ap || (access_store.healthy() && access)) &&
+            else if (runtime_profile_ready() &&
+                     (consumer_ap || (access_store.healthy() && access)) &&
                      wsprrypico::provisioning::valid_local_password(ap_password)) {
-                if (softap.start(local_identity, ap_password)) ap_credential_digest = next_ap_digest;
+                if (softap.start(local_identity, ap_password))
+                    ap_credential_digest = next_ap_digest;
             }
-        } else if (ap_transition_safe && !consumer_radio.credential_reply_pending() && !request_softap &&
-                   softap.running()) {
+        } else if (ap_transition_safe && !consumer_radio.credential_reply_pending() &&
+                   !request_softap && softap.running()) {
             if (softap_coordinator.expired()) {
                 consumer_radio.listeners(
                     false, station_ready && consumer_browser_selected() ? station_ip : "",
@@ -2222,7 +2292,8 @@ int main() {
         }
         softap_coordinator.ready(softap.running());
         const bool softap_name_ready = network.softap_name(softap.ready(), deployment_hostname);
-        const bool bootstrap_active = bootstrap_started && softap.ready() && (blank_captive || consumer_ap);
+        const bool bootstrap_active =
+            bootstrap_started && softap.ready() && (blank_captive || consumer_ap);
         const bool consumer_station = bootstrap_started && consumer_browser_selected() &&
                                       consumer_radio.available() && station_ready;
         consumer_radio.listeners(bootstrap_active, consumer_station ? station_ip : "",
@@ -2280,9 +2351,10 @@ int main() {
                        consumer_station, !softap_coordinator.status(field_now_ms).draining);
         network.consumer_listener_status(consumer_station && bootstrap.listening());
         const bool softap_service_ready =
-            softap.ready() && ((consumer_ap || surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly)
-                                   ? bootstrap.listening()
-                                   : softap_name_ready && server.listening());
+            softap.ready() &&
+            ((consumer_ap || surface == wsprrypico::provisioning::SoftApSurface::BlankReadOnly)
+                 ? bootstrap.listening()
+                 : softap_name_ready && server.listening());
         softap_coordinator.ready(softap_service_ready);
         indicator.softap_ready(softap_coordinator.status(field_now_ms).ready
 #ifdef WSPRRY_PICO_LED_ACCEPTANCE

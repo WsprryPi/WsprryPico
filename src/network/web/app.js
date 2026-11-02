@@ -1,9 +1,14 @@
 'use strict';
 // Pure ownership calculation used by the settings selects and offline checks.
-function pinOwners(plan, except) {
+function pinOwners(plan, except, si5351 = {}) {
   const owners = new Map();
   const claim = (gp, role) => { if (gp !== null && gp !== undefined && role !== except) owners.set(gp, role); };
   claim(plan.rf_gp, 'RF output'); claim(plan.button_gp, 'Switch');
+  if(plan.engine==='i2c') {
+    const pair=[[0,1],[4,5],[8,9],[12,13],[16,17],[20,21],[2,3],[6,7],[10,11],[14,15],[18,19],[26,27]][plan.i2c_pair];
+    if(pair) {claim(pair[0],'I²C SDA');claim(pair[1],'I²C SCL');}
+    claim(si5351.loopback_input_gp,'Loopback'); claim(si5351.rf_gate_gp,'RF gate');
+  }
   claim(plan.amplifier_gp, 'Amplifier');
   (plan.lpf_gps || []).forEach((gp,i) => claim(gp, 'LPF ' + (i+1)));
   if (plan.indicator === 'external') claim(plan.indicator_gp, 'Indicator');
@@ -53,6 +58,19 @@ let session = requestId();
 let activePlan = null, capabilitiesBoot = null, pinChoices = null, filterSaved = null;
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let stopRequested = false, stopping = false;
+const si5351Editor = $('si5351-settings') ? WsprrySi5351.create($('si5351-settings'), {
+  changed:()=>{dirty=true;showDraftComparison();lockPins();}
+}) : null;
+function syncRfEngine() {
+  const field=$('config').elements.rf_engine;
+  const supported=Boolean(si5351Editor) && WsprryControl.supported('si5351',capabilities?.si5351);
+  if(field) field.querySelector('[value="i2c"]').disabled=!supported;
+  const selected=field?.value==='i2c';
+  si5351Editor?.show(selected);
+  if($('direct-rf-pin')) $('direct-rf-pin').hidden=selected;
+  for(const id of ['gpio-drive-form','rf-calibration-form']) if($(id)) $(id).hidden=selected;
+  if($('config').elements.rf_gp) $('config').elements.rf_gp.disabled=selected;
+}
 const submissions = WsprrySubmission.create(document, {
   refuse: text => notice(text,true),
   controls: () => {
@@ -576,7 +594,7 @@ function showDraftComparison() {
   row('Schedules and pins','Standalone schedule enabled',f.enabled.checked,progress('enabled',c?.enabled),c?.enabled);
   row('Schedules and pins','Schedules (interval / offset, seconds)',f.schedules.value,schedules(progress('schedules',c?.schedules)),schedules(c?.schedules));
   row('Schedules and pins','Schedule expiry (UTC)',f.expiry.value,expiry(progress('expires_utc_s',c?.expires_utc_s)),expiry(c?.expires_utc_s));
-  for (const [key,label] of [['rf_gp','RF GPIO'],['button_gp','Button GPIO'],['amplifier_gp','Amplifier GPIO'],['amplifier_active_high','Amplifier active-high'],['indicator','TX LED'],['indicator_gp','External LED Pin'],['indicator_active_high','LED active-high']]) {
+  for (const [key,label] of [['engine','RF engine'],['i2c_pair','I²C pair'],['rf_gp','RF GPIO'],['button_gp','Button GPIO'],['amplifier_gp','Amplifier GPIO'],['amplifier_active_high','Amplifier active-high'],['indicator','TX LED'],['indicator_gp','External LED Pin'],['indicator_active_high','LED active-high']]) {
     if (key === 'amplifier_active_high' && !supportsAmplifier()) continue;
     row('Schedules and pins',label,member(draftPins,key),member(progress('pins',c?.pins),key),c?.pins?.[key]);
   }
@@ -619,7 +637,7 @@ async function readSavedKeepingDraft(showRecovery = true, reveal = showRecovery)
   $('saved-readback-details').hidden = false;
   if (showRecovery) $('saved-readback-details').open = true;
   const h = after.data.hardware;
-  const pins = p => p === null || !p ? 'Unknown / unavailable' : `RF GP${p.rf_gp}; switch ${p.button_gp === null ? 'disabled' : 'GP' + p.button_gp}; indicator ${p.indicator}; amplifier ${p.amplifier_gp === null ? 'disabled' : 'GP' + p.amplifier_gp + (p.amplifier_active_high === false ? ' active-low' : ' active-high')}`;
+  const pins = p => p === null || !p ? 'Unknown / unavailable' : `${p.engine==='i2c' ? 'Si5351, I²C pair '+p.i2c_pair : 'RF GP'+p.rf_gp}; switch ${p.button_gp === null ? 'disabled' : 'GP' + p.button_gp}; indicator ${p.indicator}; amplifier ${p.amplifier_gp === null ? 'disabled' : 'GP' + p.amplifier_gp + (p.amplifier_active_high === false ? ' active-low' : ' active-high')}`;
   $('saved-active-status').textContent = `Saved pins: ${pins(h?.saved)}. Active pins: ${pins(h?.active)}. ` +
     (h?.pending_restart === true ? 'Saved pins require restart. ' : h?.pending_restart === false ? 'No pin restart is pending. ' : 'Restart requirement is unconfirmed. ') +
     (h?.storage_healthy === false ? 'Storage fault. ' : '') + (h?.application_error ? `Application fault: ${h.application_error}. ` : '') +
@@ -915,6 +933,8 @@ function controls(connected) {
     $('consumer-network-settings').disabled = true;
     $('consumer-station-settings').disabled = true;
   }
+  syncRfEngine();
+  si5351Editor?.enable(controlsUnlocked() && !uiBusy() && idle && writeState==='ready');
   if($('save-pins')) $('save-pins').disabled = uiBusy() || !idle || writeState !== 'ready' || !currentConfig;
   $('job-settings').disabled = uiBusy() || !idle || snapshot.standalone.reboot_required;
   $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
@@ -970,6 +990,7 @@ function fill(c, network = c?.wifi) {
   if (!engineeringNetworkDirty) clearPassword('config-password');
   form.enabled.checked = c?.enabled ?? false;
   form.schedules.value = (c?.schedules || [{period_s:600,phase_s:0}]).map(s => `${s.period_s} / ${s.phase_s}`).join('\n');
+  si5351Editor?.load(c?.si5351 ?? null,c?.pins?.i2c_pair);
   fillPins(c?.pins);
   form.expiry.value = c?.expires_utc_s ? new Date(c.expires_utc_s * 1000).toISOString().slice(0,19) : '';
   utcEditors.forEach(editor=>editor.sync());
@@ -1086,12 +1107,14 @@ async function refresh(loadConfig = false, quiet = false) {
 }
 async function action(fn, options = {}) {
   if (accessClosing || stopRequested && !options.emergency) return;
+  let recoveryControl=null;
   return submissions.run(async token => {
     busy = true;
     try {
       controls(online);
       if(!accessClosing && (!stopRequested || options.emergency)) await fn();
     } catch (e) {
+      if(e.control) recoveryControl=e.control;
       if (!accessClosing && !stopRequested && (e.serverResponse || e.unconfirmed) && (!radio || radio.authenticated)) await refresh();
       if (['revision_conflict','precondition_failed'].includes(e.code)) requireReadback();
       if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; requireReadback(Boolean(saveAttempt)); }
@@ -1111,6 +1134,7 @@ async function action(fn, options = {}) {
     }
   },{...options,drain:()=>{++observationEpoch;},message:options.message || 'Processing your Pico request.'}).finally(async () => {
     controls(online);
+    if(recoveryControl && !accessClosing && !stopRequested) {recoveryControl.reportValidity?.();recoveryControl.focus?.();}
     if(accessClosing) await finishLock();
     else if(stopRequested && !stopping) await finishAbort();
   });
@@ -1750,7 +1774,8 @@ action(async () => { await discoverLocal(); accessDiscovered=true; renderAccess(
 
 function readPins() {
   const f = $('config').elements;
-  return {engine:'direct',rf_gp:Number(f.rf_gp.value),i2c_pair:null,
+  const si=f.rf_engine?.value==='i2c';
+  return {engine:si?'i2c':'direct',rf_gp:si || f.rf_gp.value===''?null:Number(f.rf_gp.value),i2c_pair:si?si5351Editor?.pair():null,
     button_gp:f.button_gp.value === '' ? null : Number(f.button_gp.value),
     amplifier_gp:supportsAmplifier() && f.amplifier_gp.value !== '' ? Number(f.amplifier_gp.value) : null,
     ...(supportsAmplifier() ? {amplifier_active_high:f.amplifier_active_high.value === 'true'} : {}),
@@ -1760,8 +1785,8 @@ function readPins() {
 }
 function pinOptions(select, role, nullable) {
   const selected = select.value;
-  const owners = pinOwners(readPins(), role);
-  const options = nullable ? [new Option('Disabled','')] : [];
+  const owners = pinOwners(readPins(), role,si5351Editor?.pinAssignments());
+  const options = nullable ? [new Option('Disabled','')] : role==='RF output' ? [new Option('Choose RF GPIO','')] : [];
   for (const gp of pinChoices?.eligible_gps || []) {
     const filterOwner=filterSaved?.selectors.find(o=>o.gp===gp);
     const owner = owners.get(gp) || (filterOwner ? 'selector '+filterOwner.name : '');
@@ -1769,19 +1794,21 @@ function pinOptions(select, role, nullable) {
     option.disabled = Boolean(owner); options.push(option);
   }
   select.replaceChildren(...options); select.value = selected;
-  if (select.selectedOptions[0]?.disabled && filterSaved?.selectors.some(o=>String(o.gp)===selected)) {
+  if (select.selectedOptions[0]?.disabled && (readPins().engine==='i2c' || filterSaved?.selectors.some(o=>String(o.gp)===selected))) {
     select.setAttribute('aria-invalid','true');
     return; // Preserve a conflicting pin draft for explicit correction.
   }
+  if(role==='RF output' && !selected) return;
   if (!select.value || select.selectedOptions[0]?.disabled) {
     const available = options.find(option => !option.disabled);
     if (available) select.value = available.value;
   }
 }
 function lockPins() {
+  syncRfEngine();
   if (!pinChoices) return;
   const f = $('config').elements;
-  pinOptions(f.rf_gp,'RF output',false);
+  if(f.rf_engine?.value!=='i2c') pinOptions(f.rf_gp,'RF output',false);
   pinOptions(f.button_gp,'Switch',true);
   pinOptions(f.amplifier_gp,'Amplifier',true);
   pinOptions(f.indicator_gp,'Indicator',false);
@@ -1793,12 +1820,14 @@ function lockPins() {
 function fillPins(plan) {
   const f = $('config').elements;
   const p = plan || {rf_gp:2,button_gp:14,amplifier_gp:null,amplifier_active_high:false,indicator:'onboard_led',indicator_gp:null,indicator_active_high:true};
+  if(f.rf_engine) f.rf_engine.value=p.engine || 'direct';
   const gps = pinChoices?.eligible_gps || [2,14];
   for (const key of ['rf_gp','button_gp','amplifier_gp','indicator_gp']) {
     const optional = key === 'button_gp' || key === 'amplifier_gp';
-    const options = optional ? [new Option('Disabled','')] : [];
+    const previous=f[key].value;
+    const options = optional ? [new Option('Disabled','')] : key==='rf_gp' ? [new Option('Choose RF GPIO','')] : [];
     f[key].replaceChildren(...options,...gps.map(gp=>new Option('GP'+gp,String(gp))));
-    f[key].value = p[key] === null ? (optional ? '' : '0') : String(p[key]);
+    f[key].value = key==='rf_gp' && p.engine==='i2c' ? previous : p[key] === null ? (optional ? '' : '0') : String(p[key]);
   }
   f.indicator.value = p.indicator;
   f.indicator_active_high.value = String(p.indicator_active_high ?? true);
@@ -1807,7 +1836,7 @@ function fillPins(plan) {
   $('amplifier-pin-settings').disabled = !pinChoices;
   lockPins();
 }
-for (const key of ['rf_gp','button_gp','amplifier_gp','indicator','indicator_gp']) $('config').elements[key].addEventListener('change',lockPins);
+for (const key of ['rf_engine','rf_gp','button_gp','amplifier_gp','indicator','indicator_gp']) $('config').elements[key].addEventListener('change',lockPins);
 
 // P15.10: metadata never derives from the address bar, draft or browser storage.
 function markTitleStale() { pageIdentity.stale(); }
@@ -2078,7 +2107,15 @@ async function loadAllSettings() {
     for(const [editor,field] of [[filterEditor,'filter-selector-controls'],[timingEditor,'amplifier-timing-status'],[frequencyEditor,'standalone-frequency-status'],[calibrationEditor,'rf-calibration-status'],[ntpTimeoutEditor,'ntp-timeout-status'],[driveEditor,'gpio-drive-status']]) {
       try { await editor?.load(); } catch(error) { consolePut(field,error.message); }
     }
-    try { const h=await api('hardware'); const value=checkedHardware(h); if(value.saved && !progressEdits.has('pins')) fillPins(value.saved); } catch(error) { consolePut('pins-status',error.message); }
+    try { const h=await api('hardware'); const value=checkedHardware(h); if(value.saved && !dirty && !progressEdits.has('pins')) fillPins(value.saved); } catch(error) { consolePut('pins-status',error.message); }
+    if(WsprryControl.supported('si5351',capabilities?.si5351) && si5351Editor) {
+      try {
+        const observation=await api('si5351');
+        const target={scope:'member',device_id:localIdentity?.device_id || operationsTarget?.device_id,boot_id:snapshot?.job.boot_id};
+        if(!WsprrySi5351.readback(observation.data,target) || !observation.revision) throw Error('Si5351 readback is malformed or belongs to another Pico or boot.');
+        si5351Editor.observation(observation.data);
+      } catch(error) {consolePut('pins-status',error.message);}
+    }
     if(!messageEdited && messageScheduleReadback?.data.saved) adoptMessageSchedule(false);
     if(WsprryControl.supported('logging',capabilities?.logging)) await readLogging();
     try { await udpEditor?.read(); } catch(error) { notice(error.message,true); }
@@ -2115,14 +2152,36 @@ function amplifierPinsChanged() {
 for (const id of ['pin-settings','amplifier-pin-settings']) $(id).addEventListener('input',event=>{dirty=true;editedProgress(event);showDraftComparison();timingEditor?.notify();});
 async function saveRadioPins(amplifierOnly=false) {
   if(writeState!=='ready') throw new Error('Read and review saved settings before saving pins.');
+  const draft=readPins();
+  if(!amplifierOnly && draft.engine==='direct' && draft.rf_gp===null) throw Error('Choose the direct RF GPIO before saving.');
+  let siDraft=null;
+  if(!amplifierOnly && draft.engine==='i2c') {
+    if(!WsprryControl.supported('si5351',capabilities?.si5351)) throw Error('This Pico does not advertise the current Si5351 controls. Read resources again.');
+    siDraft=si5351Editor.validate(draft,filterSaved?.selectors || []).settings;
+  }
   const path='hardware';
   const before=await api(path);
   if(before.revision!==revision) { requireReadback(); throw new Error('Saved settings changed. Read and review them before saving pins.'); }
   checkedHardware(before);
-  const draft=readPins();
   const pins=amplifierOnly ? {...before.data.saved,amplifier_gp:draft.amplifier_gp,amplifier_active_high:draft.amplifier_active_high} : draft;
   if(amplifierOnly && !before.data.saved) throw new Error('Read complete saved pins before saving amplifier config.');
   try {
+    if(!amplifierOnly && (pins.engine==='i2c' || currentConfig?.si5351)) {
+      const patch={pins};
+      if(pins.engine==='i2c') {
+        if(!WsprryControl.supported('si5351',capabilities?.si5351)) throw Error('This Pico does not advertise the current Si5351 controls. Read resources again.');
+        patch.si5351=siDraft;
+        if(!WsprrySi5351.allocation(patch.si5351,pins,filterSaved?.selectors || [])) throw Error('The Si5351 pair, loopback, gate and other GPIO roles conflict. Choose separate pins before saving.');
+      }
+      const result=await api('config/update','POST',{schema:'config-update',target:before.data.target,mode:'merge',config:patch},before.revision);
+      const equal=(a,b)=>a && b && Object.keys(a).sort().join(',')===Object.keys(b).sort().join(',') && Object.keys(a).every(k=>JSON.stringify(a[k])===JSON.stringify(b[k]));
+      if(!validSavedConfig(result.data.config) || !equal(result.data.config.pins,pins) ||
+         patch.si5351 && !equal(result.data.config.si5351,patch.si5351)) throw Error('Saved readback did not confirm the RF engine draft.');
+      const confirmed=await reconcileConfirmedSettings(result,before.data.target,'RF engine settings saved. Restart Pico explicitly to activate them.');
+      consolePut('pins-status','RF engine settings saved. Restart Pico explicitly to activate them.');
+      if(confirmed) await refresh();
+      return;
+    }
     const result=await api(path,'PUT',{schema:before.data.schema,target:before.data.target,pins},before.revision);
     checkedHardware(result);
     if(result.data.schema!==before.data.schema || JSON.stringify(result.data.target)!==JSON.stringify(before.data.target) ||
@@ -2213,7 +2272,7 @@ async function updateFieldTime(readSettings = false) {
     const labels = {browser:'Using browser time',network:'Using network time',controller:'Using controller time',none:'Waiting for usable time',disagreement:'Time sources disagree'};
     $('browser-time-status').textContent = labels[status.source] + ' · ' + status.clock_state +
       ` · last sample ${(Number(status.age_ns)/1e9).toFixed(0)} seconds ago · estimated uncertainty ±${(Number(status.uncertainty_ns)/1e6).toFixed(1)} ms.` +
-      (status.source==='browser' ? ' Time supplied by this device’s clock. Without refresh, holdover lasts up to one hour; uncertainty may block starts sooner.' : '');
+      (status.source==='browser' ? ' Time supplied by this device’s clock. Without refresh, holdover lasts up to one hour. Estimated UTC uncertainty is shown for your judgment.' : '');
   } catch (error) {
     $('browser-time-status').textContent = 'Fresh browser time is unavailable. The Pico retains its clock within holdover limits. ' + error.message;
     lastBrowserTimeRefresh = now-25000;

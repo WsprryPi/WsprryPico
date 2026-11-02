@@ -71,6 +71,26 @@ void NtpClient::clear_seed() {
     core_.seed(0);
     reset_peer();
 }
+bool NtpClient::frequency_reference(const std::optional<microchrony::FrequencyReference>& value,
+                                    std::uint64_t now) {
+    const bool accepted = value ? core_.observe_frequency_reference(*value, now) : false;
+    if (!value)
+        core_.retire_frequency_reference(now);
+    (void)apply(now); // Imports the original UTC source age, never the reference timestamp.
+    if (accepted && value)
+        (void)clock_.observe_frequency_reference({value->sampled_raw_ns, value->valid_until_raw_ns,
+                                                  value->generation, value->rate_ppb,
+                                                  value->uncertainty_ppb},
+                                                 now);
+    else if (!value)
+        clock_.retire_frequency_reference(now, false);
+    return accepted;
+}
+void NtpClient::clear_frequency_reference(std::uint64_t now) {
+    core_.clear_frequency_reference(now);
+    clock_.retire_frequency_reference(now, true);
+    (void)apply(now);
+}
 std::optional<std::array<std::uint8_t, 48>>
 NtpClient::scheduled_request(unsigned slot, std::uint64_t now, std::uint64_t token) {
     last_now_ = now;
@@ -125,10 +145,13 @@ bool NtpClient::receive(unsigned slot, std::span<const std::uint8_t> packet, std
 }
 bool NtpClient::apply(std::uint64_t now) {
     last_now_ = now;
+    const bool conflict =
+        core_.frequency_reference_state(now) == microchrony::FrequencyReferenceState::Disagreement;
+    clock_.frequency_reference_conflict(conflict);
     const auto tracking = core_.tracking(now);
     arbiter_selected_ = false;
     control_ = {};
-    if (!tracking.synchronized || tracking.source_raw_ns > now) {
+    if (conflict || !tracking.synchronized || tracking.source_raw_ns > now) {
         // Losing a usable NTP estimate is not a new clock observation. Leave
         // the last accepted anchor at its original age; the discipline's
         // configured timeout and growing uncertainty decide its usability.
@@ -154,7 +177,7 @@ bool NtpClient::apply(std::uint64_t now) {
                                                                 : wtp::LeapState::DeletePending;
     }
     model.rate_ppb = tracking.rate_ppb;
-    model.rate_uncertainty_ppb = tracking.skew_ppb;
+    model.rate_uncertainty_ppb = tracking.rate_error_bound_ppb;
     model.model_generation = tracking.generation;
     model.subsequent_rate_ppb = tracking.utc_frequency_ppb;
     const auto slew = std::int64_t(tracking.rate_ppb) - tracking.utc_frequency_ppb;
@@ -190,10 +213,9 @@ bool NtpClient::apply(std::uint64_t now) {
                                  tracking.source_raw_ns,
                                  ns(tracking.root_delay / 2 + tracking.root_dispersion),
                                  tracking.utc_frequency_ppb,
-                                 tracking.skew_ppb,
+                                 tracking.rate_error_bound_ppb,
                                  tracking.generation};
-    arbiter_selected_ = clock_.observe_ntp_model(
-        source, model, std::uint32_t(std::ceil(core_.config().max_clock_error_ppm * 1000)));
+    arbiter_selected_ = clock_.observe_ntp_model(source, model, tracking.rate_error_bound_ppb);
     if (arbiter_selected_) {
         control_ = {model.utc_now_ns,
                     now,

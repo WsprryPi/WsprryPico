@@ -4,6 +4,8 @@ WsprryPico turns a **Raspberry Pi Pico 2 W**, with its RP2350 processor, into a 
 
 It supports **WSPR**, **QRSS**, **FSKCW**, and **DFCW**, plus finite test tones submitted by controllers or prepared job files. Complete transmission jobs run locally on the Pico, so their timing does not depend on continuous USB or Wi-Fi delivery.
 
+One normal firmware image supports direct GPIO output and a qualified QRP Labs Rev. 6 Si5351 setup with a 25 MHz TCXO. Select and configure the RF engine through the Pico or WsprryPi controls. Loopback can measure the clock ratio or, with explicit reference trust and uncertainty, help maintain phone-set time. Other Si5351 configurations require an engineering build. GPS/PPS input and automatic RF calibration are unavailable.
+
 ## Getting started
 
 The [operator manual on Read the Docs](https://wsprrypico.readthedocs.io/en/devel/) covers hardware, installation, configuration, and operation.

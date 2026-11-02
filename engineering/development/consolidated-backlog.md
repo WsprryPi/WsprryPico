@@ -4,12 +4,6 @@ This is the distinct TODO list for selected unfinished work. Current behavior is
 
 ## Possible future work
 
-13. **Si5351**
-    - Optional external-engine enhancement.
-    - CLK2 calibration only if that engine is selected.
-    - Keep complete-job timing local to RP2350 through the existing JobService. Allocate exactly one approved SDA/SCL pair atomically, with exclusive roles and no direct RF-output GPIO. Validate device/reference, bus/address, output, drive, and calibration explicitly; no defaults or electrical compatibility are established by this proposal.
-    - Keep planning portable and SDK/I²C access in adapters. Preparation, symbol changes, output control, and terminal cleanup belong to the execution owner. Failed I²C writes cannot prove inactivity. Apply the TX indicator rules throughout RF-producing warmup, transmission, and cleanup.
-    - Preserve exact source provenance and upstream licenses. Qualify the actual board, firmware, Si5351/reference, bus, output, drive, mode, clock, and RF path before advertising support; host checks and cross-linking do not qualify timing or RF.
 14. **Optional GPS UTC + PPS and improved holdover.**
     - Reuse the original MIT [μChrony engine](../../src/microchrony/README.md): bounded source histories, adaptive frequency estimation, source selection and combination, uncertainty propagation, and separate phase slewing and frequency correction. Add a reference-clock input path; GPS/PPS ingestion is not implemented today. Keep one clock-control loop rather than adding a second GPS servo or fabricating NTP packets for PPS.
     - Add a portable, timestamped reference-observation interface and a Pico SDK adapter that captures PPS against the raw monotonic clock. Pair each edge with a GPS message identifying its UTC second; PPS alone does not supply the date or second number. Qualify capture latency, cable delay, receiver time validity, GPS-to-UTC conversion, and leap handling. Preserve the portable engine's separation from hardware and transport.
@@ -25,3 +19,15 @@ This is the distinct TODO list for selected unfinished work. Current behavior is
 18. **Enterprise/WPA3-only provisioning**, if a useful case emerges.
 19. **Automatic NTP-server discovery and preference.**
 20. **Additional LAN/page-delivery security**, if deployment needs change.
+
+## Si5351 Backlog
+
+Item 13 is complete. The current software provides Si5351 synthesis and local execution, bounded input-only loopback capture, no-GPS UTC rate assistance, retained-rate continuity across jobs and capture loss, strict paired Control/1 interfaces, and informational UTC uncertainty. GPS/PPS ingestion and automatic RF calibration remain separate future work in item 14.
+
+The final software pair is Pico `03340049379eeb074583f67dcf520fbd902e016c` and Pi `309db1d85c02ae51e8db1c5cb13583e9ae766b37`. Both required production integration suites and every other job passed in [paired CI run 41511319323](https://github.com/WsprryPi/WsprryPi/actions/runs/41511319323). The ordinary Pico candidate and matched Pi controller/UI are installed on C and wspr5, with saved settings preserved and idle/service state verified. Subsequent Pico changes affect documentation, the CI companion pin and test fixtures, without changing executable firmware sources.
+
+The [continuity validation record](si5351-continuity-validation.md) describes deterministic checks, adversarial corrections, finite bench observations and ordinary-image smoke results. The retained developer bundle contains exact commands, source manifests, logs, installer receipts and image identities. The existing 85/85 engineering matrix and 51/51 WSPR decodes retain their original scope and image identities.
+
+UTC phase uncertainty is displayed for operator judgment, without another configuration item or first-party phase-uncertainty veto. Independent source-validity, authentication, age, leap, disagreement, ownership and hardware safety checks, frequency-estimate quality selection, and explicit external WTP request contracts remain enforced. The ±500 ppb example is illustrative, not a requirement.
+
+Reference hardware, its declared uncertainty allowance and hardware qualification are local operator decisions. Shared results do not certify hardware or guarantee absolute UTC accuracy. Environmental TCXO testing and independent absolute UTC/long-holdover hardware measurements are outside project completion criteria.

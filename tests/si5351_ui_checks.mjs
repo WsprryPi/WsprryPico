@@ -1,0 +1,46 @@
+// Native shipped editor, real HTTP/crypto/journals; synthetic board only.
+import assert from 'node:assert/strict';
+export async function checkSi5351({evaluate,section,click,idle,capture}) {
+  await section('radio-pins'); await idle();
+  await evaluate(`globalThis.siOriginalPins=structuredClone(currentConfig.pins);globalThis.siWrites=[];globalThis.siApi=api;api=async(...a)=>{if(a[1] && a[1]!=='GET')siWrites.push(structuredClone(a));return siApi(...a)};
+    document.getElementById('config').elements.rf_engine.value='i2c';document.getElementById('config').elements.rf_engine.dispatchEvent(new Event('change',{bubbles:true}));`);
+  assert.equal(await evaluate(`document.getElementById('si5351-settings').hidden`),false);
+  assert.equal(await evaluate(`document.getElementById('gpio-drive-form').hidden && document.getElementById('rf-calibration-form').hidden`),true);
+  assert.equal(await evaluate('siWrites.length'),0);
+  await click('save-pins'); await idle();
+  assert.equal(await evaluate('siWrites.length'),0,'incomplete draft refuses before mutation');
+  assert.equal(await evaluate('document.activeElement.dataset.si'),'pair');
+  await evaluate(`globalThis.siSet=(name,value)=>{const e=document.querySelector('[data-si="'+name+'"]');e.value=value;e.dispatchEvent(new Event('change',{bubbles:true}))};
+    siSet('pair','1');siSet('reference_hz','25000000');siSet('reference_source','crystal');siSet('crystal_load_pf','8');siSet('transmit_output','0');
+    siSet('reference_source','external_xa');siSet('loopback_output','2');siSet('loopback_input_gp','7');`);
+  assert.equal(await evaluate(`document.querySelector('[data-si="crystal_load_pf"]').disabled`),true);
+  assert.equal(await evaluate(`si5351Editor.read().settings.crystal_load_pf`),null);
+  await evaluate(`siSet('reference_use','trusted_local');siSet('trusted_uncertainty_ppb','100');siSet('loopback_output','')`);
+  assert.deepEqual(await evaluate(`(()=>{const s=si5351Editor.read().settings;return [s.loopback_output,s.loopback_input_gp,s.reference_use,s.trusted_uncertainty_ppb]})()`),[null,null,'measurement_only',null]);
+  await evaluate(`siSet('transmit_output','1');siSet('loopback_output','0')`);
+  assert.equal(await evaluate('si5351Editor.read().settings.loopback_output'),0);
+  await evaluate(`siSet('transmit_output','0');siSet('loopback_output','2')`);
+  assert.equal(await evaluate('siWrites.length'),0,'draft changes have no writes');
+  await capture('si5351-settings');
+  await capture('si5351-details');
+  await click('save-pins'); await idle();
+  assert.equal(await evaluate('siWrites.length'),1);
+  assert.equal(await evaluate('siWrites[0][0]'),'config/update');
+  assert.deepEqual(await evaluate('Object.keys(siWrites[0][2].config).sort()'),['pins','si5351']);
+  assert.equal(await evaluate('currentConfig.pins.engine'),'i2c');
+  assert.equal(await evaluate('currentConfig.si5351.loopback_output'),2);
+  assert.equal(await evaluate('currentConfig.si5351.loopback_input_gp'),7);
+  assert.match(await evaluate('document.getElementById("pins-status").textContent'),/saved/i);
+  await evaluate(`document.getElementById('config').elements.rf_engine.value='direct';document.getElementById('config').elements.rf_engine.dispatchEvent(new Event('change',{bubbles:true}))`);
+  assert.equal(await evaluate('Number(document.getElementById("config").elements.rf_gp.value)'),await evaluate('siOriginalPins.rf_gp'),'direct GPIO draft retained');
+  await click('save-pins');await idle();
+  assert.equal(await evaluate('currentConfig.pins.engine'),'direct');
+  assert.equal(await evaluate('currentConfig.si5351.loopback_output'),2,'inactive settings retained');
+  assert.equal(await evaluate('document.getElementById("si5351-settings").hidden'),true);
+  await evaluate('api=siApi');
+  await section('radio-settings');await idle();
+  await click('standalone-frequency');
+  await evaluate(`document.getElementById('standalone-frequency').focus();document.execCommand('selectAll');document.execCommand('insertText',false,'144489000')`);
+  assert.equal(await evaluate(`document.getElementById('standalone-frequency').value`),'144489000','native dial input retains all nine 2 m digits');
+  await click('standalone-frequency-discard');await idle();
+}

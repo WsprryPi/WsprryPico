@@ -1,6 +1,10 @@
 # Output and band limits
 
-The normal firmware generates **RF**, a radio-frequency signal, directly on the configured **GPIO output pin**. The factory selection is **GP2, physical pin 4**; see [hardware preparation](../start.md#hardware-connections) for wiring and other pin choices. The Pico uses a **138 MHz** system clock for this output.
+One normal firmware image supports **Direct GPIO** and the qualified external **Si5351** setup. Select the RF engine in Radio pins.
+
+## Direct GPIO output
+
+The direct engine generates **RF**, a radio-frequency signal, on the configured **GPIO output pin**. The factory selection is **GP2, physical pin 4**; see [hardware preparation](../start.md#hardware-connections) for wiring and other pin choices. The Pico uses a **138 MHz** system clock for this output.
 
 The generator's numeric range is **100 kHz through 68,999,999 Hz**. **1 kHz is 1,000 Hz; 1 MHz is 1,000,000 Hz.** That range does not mean every frequency inside it is enabled or suitable for transmission. The firmware also checks permissions for the selected band and frequency.
 
@@ -8,10 +12,18 @@ The generator's numeric range is **100 kHz through 68,999,999 Hz**. **1 kHz is 1
 | --- | --- |
 | 2200 m, 630 m, 160 m, 80 m, 60 m, 40 m, 30 m, 20 m, 17 m, 15 m, 12 m, 10 m, 6 m | Enabled by the normal frequency policy, subject to the chosen frequency, RF setup, and operating privileges |
 | 8 m and 5 m experimental ranges | Disabled by default; require explicit advanced experimental-frequency permission |
-| 4 m | Unavailable in the normal 138 MHz firmware |
+| 4 m | Unavailable with direct GPIO in the normal 138 MHz firmware |
 | 2 m | Unavailable with direct GPIO output |
 
 For standalone WSPR, enter the whole-Hz USB dial in **WSPR dial frequency (Hz)**. The four RF tones surround dial +1,500 Hz, and every tone must fit the generator range and frequency permissions. On numeric engine limits alone, the normal 138 MHz engine allows dial values from 98503 through 68998496 Hz; frequency permissions also apply. The dial is a reference, not an emitted RF frequency.
+
+## Si5351 output
+
+Ordinary firmware supports the [qualified QRP Labs Rev. 6 / 25 MHz TCXO setup](../configure.md#si5351-output-settings). RF comes from the module's CLK0 connector, rather than a Pico RF GPIO. The numeric synthesis range is **8 kHz–160 MHz**, subject to complete-plan validation; this is not qualification of every frequency or configuration in that range. Other module/reference/drive arrangements require an engineering build.
+
+Conducted tone, WSPR, QRSS, FSKCW, and DFCW tests passed at 17 sampled points from **137.5 kHz through 144.4905 MHz**, including 8 m, 5 m, 4 m, and 2 m. WSPR acceptance requires decoding the expected message; CW acceptance uses human-readable marks and frequency states. These results do not establish calibrated frequency, power, emissions, or absolute UTC timing. Experimental-frequency permissions remain required for 8 m, 5 m, 4 m, and 2 m; measured points do not promote their broad frequency ranges.
+
+## RF connections and permissions
 
 The band names in metres describe approximate radio wavelengths. They are not frequency entries for the browser's Hz fields. Use a frequency appropriate for your chosen mode and operating privileges.
 

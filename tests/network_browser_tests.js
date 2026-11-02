@@ -32,8 +32,10 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         get selectedOptions() { return this.options.filter(o=>o.value===this.value); }
         replaceChildren(...options) { this.options = options; this.current = options[0]?.value || ''; }
         addEventListener(type,callback) { this['on'+type] = callback; }
+        querySelector(selector) {const match=selector.match(/^\[value="([^"]+)"\]$/);return match ? this.options.find(o=>o.value===match[1]) : null;}
     }
-    for (const key of ['rf_gp','button_gp','amplifier_gp','amplifier_active_high','indicator','indicator_gp','indicator_active_high']) elements.config.elements[key] = new Select();
+    for (const key of ['rf_engine','rf_gp','button_gp','amplifier_gp','amplifier_active_high','indicator','indicator_gp','indicator_active_high']) elements.config.elements[key] = new Select();
+    elements.config.elements.rf_engine.replaceChildren(new Option('Direct GPIO / PIO','direct'),new Option('Si5351 (engineering)','i2c'));
     elements['consumer-power'] = new Select();
     elements['retirement-target'] = new Select();
     elements.config.elements.indicator.replaceChildren(...['onboard_led','external','disabled'].map(x=>new Option(x,x)));
@@ -122,7 +124,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                 station:{saved:structuredClone(config.station)},hardware:f.appHardware || {saved:config.pins || null,active:null,pending_restart:true,application_error:null},
                 recurrence:{},capabilities:{station_encoding:'wspr_type123_auto'},reboot_required:false,wspr_plan:null};
             else if (path.endsWith('wspr-plan')) data={schema:'wspr-plan',supported:true,frame_types:['type1'],frames:1,slot_separation_s:120,rationale:'Type 1',type2_ambiguous:false,alternate_callsign:null};
-            else if (path.endsWith('capabilities')) data = {...Object.fromEntries(capabilityKeys.map(key=>[key,structuredClone(currentCapabilities[key])])),...(f.operations?{operations_status:{schema:'operations',path:'/api/control/v1/operations'}}:{}),...(f.scheduleSupport?{message_schedule:{schema:'message-schedule',path:'/api/control/v1/message-schedule',pause:'/api/control/v1/message-schedule/pause',min_period_s:60,max_period_s:86400,preparation_lead_ns:'2000000000',max_storage_bytes:1984}}:{}),configuration_updates:{schema:'config-update',path:'/api/control/v1/config/update',method:'POST',modes:['merge'],max_update_bytes:2048,max_config_bytes:1800},features:{...currentCapabilities.features,restart:true},active_job_connections:activeConnections,message_jobs:{...currentCapabilities.message_jobs,max_characters:32},wtp:{...structuredClone(currentCapabilities.wtp),maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
+            else if (path.endsWith('capabilities')) data = {...Object.fromEntries(capabilityKeys.map(key=>[key,structuredClone(currentCapabilities[key])])),...(f.operations?{operations_status:structuredClone(currentCapabilities.operations_status)}:{}),...(f.scheduleSupport?{message_schedule:{schema:'message-schedule',path:'/api/control/v1/message-schedule',pause:'/api/control/v1/message-schedule/pause',min_period_s:60,max_period_s:86400,preparation_lead_ns:'2000000000',max_storage_bytes:1984}}:{}),configuration_updates:{schema:'config-update',path:'/api/control/v1/config/update',method:'POST',modes:['merge'],max_update_bytes:2048,max_config_bytes:1800},features:{...currentCapabilities.features,restart:true},active_job_connections:activeConnections,message_jobs:{...currentCapabilities.message_jobs,max_characters:32},wtp:{...structuredClone(currentCapabilities.wtp),maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
             else if (path.endsWith('restart')) {
                 if (f.restartMode === 'lost') throw new Error('lost restart response');
                 if (f.restartMode === 'success') { state.job.boot_id = 'b'.repeat(32); if(f.operations) f.operations.target.boot_id=f.operations.job.boot_id=f.operations.standalone.boot_id=state.job.boot_id; }

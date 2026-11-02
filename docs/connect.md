@@ -28,7 +28,7 @@ In **Wi-Fi/Host → Field access**, select **Keep field Wi-Fi available**, then 
 
 After authentication, the browser automatically supplies its device’s UTC clock when no usable network or controller time source is available. **Using browser time** means **Time supplied by this device’s clock.** Check that the phone, tablet, or computer has the correct time. Keep the page active for automatic refresh. No Internet connection is needed between the browser and Pico.
 
-Without refresh, browser time remains usable for at most one hour and only while estimated uncertainty remains within **±500 ms**. Transfer delay can shorten that period. A restart needs fresh time. See [time sources and holdover](reference/time.md).
+Without refresh, browser time remains usable for at most one hour. Estimated UTC uncertainty is shown for your judgment and does not impose another transmission cutoff. A restart needs fresh time. See [time sources and holdover](reference/time.md).
 
 When the saved infrastructure network is unavailable for 60 seconds, the Pico requests fallback Wi-Fi and keeps trying to reconnect. An unjoined fallback window lasts ten minutes; after expiry, a continuing outage offers another window following five minutes closed. A connected Wi-Fi client retains access, followed by ten minutes after the last disconnect. Infrastructure recovery must remain stable for 30 seconds and does not evict a connected client. Internet loss alone does not trigger fallback.
 

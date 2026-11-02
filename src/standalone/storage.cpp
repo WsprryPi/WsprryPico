@@ -190,8 +190,8 @@ bool Store::load(bool reset_recovery) {
                 if (!current_)
                     return false;
             }
-            if (!hardware::validate_filters(filters_,
-                                            current_ ? current_->pins : hardware::PinPlan{})
+            if (!(current_ ? validate_rf_configuration(*current_, filters_)
+                           : hardware::validate_filters(filters_, hardware::PinPlan{}))
                      .empty())
                 return false;
             if (root->get("message_schedule")->raw != "null") {
@@ -240,7 +240,7 @@ bool Store::save(const Config& config) {
     const auto legacy = serialize_config(config);
     const auto text = state_record(config, message_, logging_, filters_);
     if (!healthy() || !parse_config(legacy) || text.size() > max_state_bytes ||
-        !hardware::validate_filters(filters_, config.pins).empty() ||
+        !validate_rf_configuration(config, filters_).empty() ||
         (config.enabled && message_ && message_->enabled))
         return false;
     auto selected = config; // Allocate the runtime copy before the durable append.
@@ -289,7 +289,8 @@ bool Store::save_message_schedule(const std::optional<MessageSchedule>& schedule
 }
 bool Store::save_filters(const hardware::FilterSettings& settings) {
     if (!healthy() ||
-        !hardware::validate_filters(settings, current_ ? current_->pins : hardware::PinPlan{})
+        !(current_ ? validate_rf_configuration(*current_, settings)
+                   : hardware::validate_filters(settings, hardware::PinPlan{}))
              .empty() ||
         hardware::serialize_filters(settings).size() > hardware::FilterSettings::maximum_bytes)
         return false;

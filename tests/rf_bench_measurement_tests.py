@@ -59,6 +59,25 @@ class Tests(unittest.TestCase):
         self.assertAlmostEqual(result['mean_indicated_hz'],frequency+158.7,places=2)
         self.assertFalse(reference_observation(noise,rate,center,frequency)['acquisition_passed'])
 
+    def test_independent_receiver_axis_correction_cannot_hide_wrong_rf(self):
+        from rf_analysis.reference import reference_observation
+        rate=12000;carrier=144490500;center=carrier-2500;reference=carrier-5000
+        time=np.arange(7*rate)/rate
+        receiver_phase=2*np.pi*(157*time+.005*time*time)
+        rng=np.random.default_rng(937)
+        noise=.0001*(rng.normal(size=len(time))+1j*rng.normal(size=len(time)))
+        marker=.2*np.exp(2j*np.pi*(reference-center)*time+1j*receiver_phase)
+        active=(time>=1)&(time<6)
+        for actual_error in (-16,300):
+            iq=noise+marker
+            iq[active]+=.1*np.exp(2j*np.pi*(carrier-center+actual_error)*time[active]+1j*receiver_phase[active])
+            observed=reference_observation(iq,rate,center,reference)
+            self.assertTrue(observed['acquisition_passed'])
+            offset=observed['mean_indicated_hz']-reference
+            report=measure(iq,rate,center-offset,duration_s=5,base_hz=carrier)
+            self.assertEqual(report['relative_checks_passed'],actual_error==-16,report['issues'])
+            self.assertAlmostEqual(report['tone_frequency_summary']['nominal_offset_hz'],actual_error,delta=.05)
+
     def test_decode_audio_preserves_frequency_and_time(self):
         audio = audio_from_iq(capture(), RATE, CENTER)
         self.assertEqual(len(audio), 120 * 12000)
@@ -161,6 +180,92 @@ class Tests(unittest.TestCase):
         rng = np.random.default_rng(7)
         iq = rng.normal(size=40000) + 1j*rng.normal(size=40000)
         self.assertFalse(measure(iq, RATE, CENTER, duration_s=2)['relative_checks_passed'])
+
+
+class LowFrequencyTests(unittest.TestCase):
+    @staticmethod
+    def sampled(*, duration=5, frequency_error=.7, gap=False, extra=False, frame=False, delayed=False, seed=22):
+        rate=20000; carrier=137500; center=carrier-2000
+        start=1.234; length=162*SYMBOL if frame else duration
+        count=round((length+4)*rate); rng=np.random.default_rng(seed)
+        amplitude=.01; noise=amplitude*3*np.sqrt(rate/100000)
+        iq=noise*(rng.normal(size=count)+1j*rng.normal(size=count))
+        n=round(length*rate); times=np.arange(n)/rate
+        tones=np.minimum(161,np.floor(times/SYMBOL).astype(int))%4 if frame else np.zeros(n)
+        if delayed:
+            tones[round(SYMBOL*rate):round((SYMBOL+.03)*rate)]=0
+        offsets=carrier-center+frequency_error+tones*SPACING
+        wave=amplitude*np.exp(2j*np.pi*np.cumsum(offsets)/rate)
+        a=round(start*rate);iq[a:a+n]+=wave
+        if gap:iq[a+round(2*rate):a+round(2.05*rate)]=noise*(rng.normal(size=round(.05*rate))+1j*rng.normal(size=round(.05*rate)))
+        if extra:
+            a=round((length+2)*rate);n=round(.1*rate)
+            iq[a:a+n]+=amplitude*np.exp(2j*np.pi*(carrier-center+frequency_error)*np.arange(n)/rate)
+        return iq,rate,center,carrier,start
+
+    def test_weak_lf_carrier_has_independent_resolved_edges(self):
+        for seed in range(3):
+            iq,rate,center,carrier,start=self.sampled(seed=seed)
+            r=measure(iq,rate,center,base_hz=carrier,duration_s=5)
+            self.assertTrue(r['relative_checks_passed'],r)
+            self.assertAlmostEqual(r['intervals_s'][0][0],start,delta=.01)
+            self.assertAlmostEqual(r['observed_duration_s'],5,delta=.02)
+            self.assertGreaterEqual(r['acquisition']['acquisition_snr_db'],20)
+            self.assertTrue(all(e['uncertainty_s']<=.01 for e in r['edge_measurements']))
+            self.assertAlmostEqual(r['measurements'][0]['indicated_hz'],carrier+.7,delta=.05)
+
+    def test_lf_acquisition_uses_dominant_added_power_and_rejects_wrong_dominant_carrier(self):
+        rate=12000;carrier=137500;center=carrier-2000;time=np.arange(9*rate)/rate
+        rng=np.random.default_rng(1207)
+        noise=1e-7*(rng.normal(size=len(time))+1j*rng.normal(size=len(time)))
+        main=np.exp(2j*np.pi*(carrier-center+.7)*time)
+        spur=np.exp(2j*np.pi*(carrier-center-350)*time)
+        active=(time>=1.234)&(time<6.234)
+        for spur_amplitude in (.002,.2):
+            iq=noise+.008*main
+            iq[active]+=.1*main[active]+spur_amplitude*spur[active]
+            report=measure(iq,rate,center,base_hz=carrier,duration_s=5)
+            self.assertEqual(report['relative_checks_passed'],spur_amplitude==.002,report)
+            if spur_amplitude==.002:
+                self.assertAlmostEqual(report['measurements'][0]['indicated_hz'],carrier+.7,delta=.02)
+                self.assertAlmostEqual(report['observed_duration_s'],5,delta=.02)
+
+    def test_lf_rejects_persistent_drifting_peak_but_not_a_new_wrong_carrier(self):
+        rate=12000;carrier=137500;center=carrier-2000;time=np.arange(9*rate)/rate
+        rng=np.random.default_rng(382)
+        noise=.001*(rng.normal(size=len(time))+1j*rng.normal(size=len(time)))
+        persistent=.4*np.exp(2j*np.pi*((carrier-center-500)*time+.1*time*time))
+        active=(time>=1.234)&(time<6.234)
+        for wrong in (False,True):
+            iq=noise+persistent
+            iq[active]+=.01*np.exp(2j*np.pi*(carrier-center+.7)*time[active])
+            if wrong:iq[active]+=.02*np.exp(2j*np.pi*(carrier-center+250)*time[active])
+            from measure_rf_bench import acquired_baseband
+            _,_,acquired,acquisition,narrow,narrow_rate=acquired_baseband(iq,rate,center,carrier)
+            self.assertTrue(acquisition['passed'])
+            self.assertTrue(any(not c['passed'] for c in acquisition['candidates']))
+            self.assertAlmostEqual(acquired,carrier+(250 if wrong else .7),delta=4)
+            fit=phase_fit(narrow[round(2*narrow_rate):round(5*narrow_rate)],narrow_rate,acquired)
+            self.assertAlmostEqual(fit['indicated_hz'],carrier+(250 if wrong else .7),delta=.02)
+            # Acquisition does not waive the independent edge-resolution gate:
+            # this deliberately overpowering interferer masks 1 ms edge samples.
+            report=measure(iq,rate,center,base_hz=carrier,duration_s=5)
+            self.assertFalse(report['relative_checks_passed'])
+
+    def test_lf_gap_extra_carrier_wrong_duration_and_frequency_fail(self):
+        for change in [dict(gap=True),dict(extra=True),dict(duration=4.95),dict(frequency_error=150)]:
+            iq,rate,center,carrier,_=self.sampled(**change)
+            r=measure(iq,rate,center,base_hz=carrier,duration_s=5)
+            self.assertFalse(r['relative_checks_passed'],(change,r))
+
+    def test_lf_frame_boundaries_and_delayed_transition(self):
+        iq,rate,center,carrier,_=self.sampled(frame=True)
+        r=measure(iq,rate,center,base_hz=carrier,frame=True)
+        self.assertTrue(r['relative_checks_passed'],r['issues'])
+        self.assertTrue(all(t['confidence']==.99 for t in r['transitions']))
+        iq,rate,center,carrier,_=self.sampled(frame=True,delayed=True)
+        r=measure(iq,rate,center,base_hz=carrier,frame=True)
+        self.assertFalse(r['relative_checks_passed'])
 
 if __name__ == '__main__':
     unittest.main()

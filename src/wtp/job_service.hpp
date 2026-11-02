@@ -497,6 +497,12 @@ class RfEngine {
         return 32768;
     }
     virtual PrepareResult prepare(const Job& job) = 0;
+    // Permanent local interlock also suppresses optional background hardware
+    // work. Cleanup remains available; this never re-enables an inhibited job.
+    virtual void inhibit_output() {}
+    virtual bool background_work_allowed() const {
+        return true;
+    }
     // Application calibration freezes for an ownership lifetime (including pairs).
     virtual void calibration_boundary() {}
     virtual void freeze_pair_calibration(bool) {}
@@ -525,6 +531,12 @@ class RfEngine {
     // after nominal RF end. This never authorizes additional waveform samples.
     [[nodiscard]] virtual std::uint64_t completion_acknowledgement_ns() const {
         return 0;
+    }
+    // External generators finish a bounded output-control transaction at the
+    // final event. Their confirmation is bounded by the advertised WTP output
+    // disable timeout, separately from autonomous DMA/IRQ acknowledgement.
+    [[nodiscard]] virtual bool externally_controlled_completion() const {
+        return false;
     }
     virtual bool schedule(const Job&, std::uint64_t, const LocalStartConditions&) {
         return false;

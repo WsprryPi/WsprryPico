@@ -24,6 +24,18 @@ class NtpClient {
     void cancel(unsigned slot = 0);
     void seed_rate(std::int32_t rate, std::uint32_t skew = 2'000'000);
     void clear_seed();
+    bool frequency_reference(const std::optional<microchrony::FrequencyReference>&,
+                             std::uint64_t now_raw_ns);
+    void clear_frequency_reference(std::uint64_t now_raw_ns);
+    std::string_view frequency_reference_status(std::uint64_t now) const {
+        const auto browser = clock_.browser_frequency_reference_status(now);
+        if (!browser.empty())
+            return browser;
+        const auto state = core_.frequency_reference_state(now);
+        return state == microchrony::FrequencyReferenceState::Selected && !arbiter_selected_
+                   ? "awaiting_utc"
+                   : microchrony::name(state);
+    }
     std::optional<std::array<std::uint8_t, 48>> scheduled_request(unsigned slot, std::uint64_t now,
                                                                   std::uint64_t token);
     // Explicit exchange hooks also support the existing host transport bridge.

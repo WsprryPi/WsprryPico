@@ -1,0 +1,52 @@
+# Si5351 continuity validation
+
+This evidence covers the no-GPS rate-assistance implementation developed from Pico `b5678828f5d4455d60a6d0b6a6a124a4701a56ba` and Pi `3e2f64b20f5774e4698a491529e50ab4a4fd125e` on `codex/si5351-execution`. Final paired revisions, commands, logs, CI runs, installer receipts and image identities belong in the retained developer bundle's validation report. Software completion follows the paired checks and delivery criteria in the [backlog](consolidated-backlog.md#si5351-backlog). Hardware selection, reference allowance and hardware qualification are local operator responsibilities; environmental and absolute-timing hardware measurements are not project completion gates.
+
+## Software behavior
+
+Frequency observations change the existing UTC mapping's slope continuously. They preserve epoch-source age and accumulated phase uncertainty. The complete rate-error bound adds estimate/reference error to the independent Pico drift allowance; statistical estimator skew remains separate for source selection. Lower-quality loopback cannot displace a better independent network estimate. Independent disagreement remains a source-validity failure. Loss of capture retains the learned center, while explicit removal of trust restores an independent network estimate or nominal rate. A retained replay watermark prevents policy cycling from accepting an old sample.
+
+UTC phase uncertainty is informational in first-party Pico/Pi scheduling. No additional operator setting is introduced. Source age, authentication, leap, ownership, hardware admission and explicit external WTP request limits remain enforced. USB time-observation quality admission is independently versioned and unchanged. Manual RF correction remains separate; automatic RF calibration and production GPS ingestion are absent.
+
+Deterministic checks exercise both signs of a known 20 ppm timer error, phone epochs, jittery/intermittent NTP, full 110.592-second WSPR intervals, repeated gaps, 1,800/3,600-second continuity, reference loss/reacquisition, malformed/stale/future/duplicated/generation-mismatched inputs, disagreement, policy removal and restart seeds. They establish software policy, not physical one-hour performance.
+
+## Independent physical observation
+
+Board C, USB serial `1545B6EFBF78028C`, used the QRP Labs Rev. 6 module and fitted QRP Labs 25 MHz TCXO, with CLK2 into GP7. QLG3 serial GP1 and PPS GP3 were receive-only test equipment. Pico ran at 138 MHz. The operator confirmed CLK0 connected directly to the SDR through 60 dB attenuation, with no GPSDO. This RAM-only diagnostic kept transmit outputs disabled. All 4 MiB of flash compared byte-identically before and after, original ordinary image `b5678828` and saved settings were restored, and the controller service resumed.
+
+The accepted finite run captured 301 PPS edges over 300 intervals, with maximum polling gap and raw endpoint bracket both 4 µs, zero UART/checksum errors, 301 valid RMC and GGA fixes, and successful register restoration. The final reported fix used 13 satellites. Private NMEA coordinates and flash backups are excluded from source control. Earlier trials with a count-bracketing defect or a startup UART error are diagnostic failures, not accepted evidence.
+
+The analysis includes count quantization, both capture endpoints, and a conditional 10 µs engineering allowance per PPS endpoint. The receiver's typical timing figure does not establish a guaranteed maximum. Under that condition the whole-run fitted-reference offset interval is −183.34 to −29.99 ppb, rounded outward; raw timer error is −300.01 to −146.66 ppb. Every 60-second reference interval fits within ±500 ppb during this run. That value is an observed conditional result, not a requirement or a total TCXO specification.
+
+Temperature and supply were not independently logged. This warmed bench observation does not qualify cold startup, temperature range, supply range, aging, a one-hour wander bound, absolute UTC-second pairing, or ordinary-firmware RF launch accuracy. The vendor's temperature-stability graph is not a complete initial-tolerance/error budget. Measurement-only remains the handback policy.
+
+## Production-code replay
+
+`si5351_continuity_replay` uses these physical raw/count brackets through the actual reference measurement, NTP adapter, phone arbiter and UTC mapping. It uses an explicit conditional 5,000 ppb reference allowance and a common synthetic phone epoch. It never refreshes that epoch. This is an offline replay of physical data, not a target ordinary-image timing measurement or an RF transmission.
+
+| Observation pattern | Observations | Indicated absolute error at 300 s | Maximum indicated assisted error | Reported uncertainty at 300 s |
+| --- | ---: | ---: | ---: | ---: |
+| Unassisted raw timer | 0 | 67.000 µs | — | — |
+| Every 20 PPS intervals | 15 | 31.009 µs | 31.009 µs | 266.559 ms |
+| WSPR-shaped gaps, at 20/160/280 s | 3 | 2.002 µs | 11.201 µs | 266.561 ms |
+| One capture at 20 s, then 280 s retained | 1 | 44.999 µs | 44.999 µs | 266.555 ms |
+
+The indicated errors use PPS midpoint truth; interpret improvements with the stated endpoint allowance. In particular, the 22 µs retained-case improvement is comparable to measurement-path uncertainty and does not independently establish an absolute improvement of that size. Every replayed error is covered by the reported uncertainty, including the conditional truth allowance. The initial 250 ms phone assumption dominates the absolute bound. The original epoch age at completion is `299999933000` ns in all cases.
+
+The supported software policy retains the rate center across acquisition pauses and adds the existing independent 50 ppm Pico drift allowance. For an illustrative 5 ppm reference plus 1 ppm capture bound, rate uncertainty grows by 6.19 ms per WSPR frame or 201.6 ms per hour, plus initial epoch error. These are explicit software-model assumptions, not hardware certification. Operators choose and qualify their reference hardware and allowance. No GPS is required to use an explicitly bounded independent reference.
+
+## Adversarial corrections
+
+Review found and corrected retroactive shrinkage of accumulated phase uncertainty, use of a maximum instead of addition for independent error terms, unfair comparison of reference quality against an NTP-only drift floor, and trust-removal/replay behavior. A subsequent pass found that an NTP discipline update could reconsider the internally retained watermark after trust removal; an explicit inactive-state check and regression now prevent that. Delayed-ARM hardware testing exposed reference service resuming while a prepared engine still reported Idle. The retained plan now excludes capture from LOAD preparation through cleanup; a full-slot wait and cleanup/reacquisition regression cover this authority boundary. Review also tightened physical-capture endpoint validation and replay allowance parsing. The native browser fixture now selects current application uncertainty policy and admits a five-second-uncertainty job through the actual scheduler and shipped UI. Required final-pair integration, native rendering, ordinary image, installer and RF results must accompany delivery; these software and replay results cannot substitute for them.
+
+## Ordinary-firmware observation
+
+Board C received ordinary software revision `03340049379eeb074583f67dcf520fbd902e016c` through the preserving shared installer. The retained UF2 SHA-256 is `b256b9940ef5fb6cd1729a28c6699511e8e2ef0fc360ec0b6de0f409c751c4e9`. A finite conducted run at 3.570100 MHz produced three consecutive WSPR frames; all three expected messages decoded. Measured frame-duration errors were 0–1 ms, and measured slot-spacing errors were 0–1 ms. These receiver-relative measurements do not establish absolute UTC accuracy or qualify other hardware.
+
+Seventeen status observations across delayed ARM and execution retained one capture timestamp while its age increased from 167.621 to 509.860 seconds. The reference output remained disabled during the prepared/transmitting job. Cleanup resumed acquisition; reference selection returned with capture age 2.372 seconds. Settings were restored to measurement-only reference use, 8 mA transmit drive and disabled schedule, with idle/unowned/output-inactive state. The original band-support evidence remains unchanged and retains its original image identities and scope.
+
+## Software delivery
+
+The final software pair, Pico `03340049379eeb074583f67dcf520fbd902e016c` and Pi `309db1d85c02ae51e8db1c5cb13583e9ae766b37`, passed every job in [paired CI run 41511319323](https://github.com/WsprryPi/WsprryPi/actions/runs/41511319323). This includes the actual production network runtime, interoperability and configuration suites, Linux interface/routing checks, actual Pico USB management driver, Pi USB management tests and production-pair browser producer. All 196 Pico host checks passed in one final clean-source run; ordinary cross-build and linked memory/flash/stack checks passed. Native Pico and Pi browser checks and strict documentation/link checks passed. The original source-selection failures and obsolete browser expectations were corrected and rerun; they are not counted as successful evidence.
+
+The matched Pi binary and transactional UI publication are installed on wspr5. The service is active/enabled with transmission disabled; configuration bytes are unchanged. C is idle with its schedule disabled and measurement-only reference policy restored. A is absent from active controller configuration, and B is excluded by operator instruction. Installer references, original images and recovery assets remain retained. Final review identified no further actionable findings. Documentation, CI dependency-pin and test-fixture followups do not change executable firmware sources or the installed ordinary image. The firmware CI companion pin selects the validated Pi revision above. Production GPS ingestion and automatic RF calibration remain outside the implemented capability.

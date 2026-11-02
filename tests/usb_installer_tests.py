@@ -592,6 +592,16 @@ class InstallerTests(unittest.TestCase):
             if end!='103ec000':self.assertEqual(installer.preserved_start(manifest,{'installer_version':'0.2.1'}),0x3ee000)
         with self.assertRaises(installer.Refusal):installer.preserved_start({'update':{'application_end':'103ed000'}})
 
+    def test_engineering_linked_identity_is_explicit_and_cannot_be_normal(self):
+        tool=SimpleNamespace(path='/fixture/picotool')
+        manifest={'developer_variant':'si5351-engineering','firmware_version':'0.0.0-devel',
+                  'source':{'revision':'a'*40,'identity':'a'*12}}
+        linked=' name: WsprryPico-Si5351Engineering\n version: 0.0.0-devel\n description: Standalone PIO/DMA RF '+('a'*12)+'\n pico_board: pico2_w\n target chip: RP2350\n'
+        with patch.object(installer,'command',return_value=linked):
+            installer.verify_linked_identity(tool,'firmware.uf2',manifest)
+            with self.assertRaises(installer.Refusal):
+                installer.verify_linked_identity(tool,'firmware.uf2',{**manifest,'developer_variant':'normal'})
+
     def test_contract_two_inhibited_bundle_and_closed_shape(self):
         data=bytearray(uf2());tag=b'WsprryPico USB maintenance 1 postboot verification 1'
         data[544:800]=tag.ljust(256,b'\0');data=bytes(data)
@@ -601,6 +611,10 @@ class InstallerTests(unittest.TestCase):
               'usb_update_contract':2,'application_end':'103ec000','uf2':asset}
         files={'local-build.json':encoded(meta),asset['path']:data}
         self.assertEqual(installer.verify_local(files)[0]['update']['application_end'],'103ec000')
+        engineering=copy.deepcopy(meta);engineering['variant']='si5351-engineering'
+        self.assertEqual(installer.verify_local({**files,'local-build.json':encoded(engineering)})[0]['developer_variant'],'si5351-engineering')
+        engineering['variant']='si5351-automatic'
+        with self.assertRaises(installer.Refusal):installer.verify_local({**files,'local-build.json':encoded(engineering)})
         for key,value in [('schema','wsprrypico-local-build/1'),('usb_update_contract',1),('application_end','103ee000'),('extra',True)]:
             bad=dict(meta);bad[key]=value
             with self.assertRaises(installer.Refusal):installer.verify_local({**files,'local-build.json':encoded(bad)})

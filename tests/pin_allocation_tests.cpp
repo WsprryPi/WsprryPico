@@ -28,7 +28,10 @@ int main() {
     for (unsigned i = 0; i < hardware::i2c_pairs.size(); ++i) {
         p.i2c_pair = i;
         CHECK(hardware::validate(p).valid());
-        CHECK(!hardware::operational(p));
+        CHECK(hardware::operational(p));
+        standalone::Config incomplete;
+        incomplete.pins = p;
+        CHECK(!standalone::validate_rf_configuration(incomplete).empty());
         p.amplifier = hardware::i2c_pairs[i].sda;
         CHECK(!hardware::validate(p).valid());
         p.amplifier = hardware::i2c_pairs[i].scl;
@@ -119,16 +122,18 @@ int main() {
                                      {"content-type", "application/json"},
                                      {"x-wsprrypico-request", "1"}}};
     };
-    auto validate =
-        request("POST", "/api/control/v1/pins/validate", hardware::serialize_plan(hardware::PinPlan{}));
+    auto validate = request("POST", "/api/control/v1/pins/validate",
+                            hardware::serialize_plan(hardware::PinPlan{}));
     CHECK(api.handle(network_test::control_request(validate), "", "127.0.0.1:8443").status == 401);
     const auto flash_before = f.flash.bytes;
     const auto revision_before = api.revision();
-    CHECK(api.handle(network_test::control_request(validate), "test", "127.0.0.1:8443").status == 200);
+    CHECK(api.handle(network_test::control_request(validate), "test", "127.0.0.1:8443").status ==
+          200);
     CHECK(f.flash.bytes == flash_before && api.revision() == revision_before);
     auto invalid = *initial;
     invalid.pins.rf = 14;
-    auto save = request("POST", "/api/control/v1/config/update", network_test::configuration_update(standalone::serialize_config(invalid)));
+    auto save = request("POST", "/api/control/v1/config/update",
+                        network_test::configuration_update(standalone::serialize_config(invalid)));
     save.headers["if-match"] = api.revision();
     CHECK(api.handle(network_test::control_request(save), "test", "127.0.0.1:8443").status == 400);
     CHECK(f.flash.bytes == flash_before && f.store.config() == initial);

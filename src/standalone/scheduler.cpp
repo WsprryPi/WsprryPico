@@ -44,6 +44,7 @@ Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), se
     if (store_.config()) {
         active_network_ = network_digest(*store_.config());
         active_pins_ = store_.config()->pins;
+        active_si5351_ = store_.config()->si5351;
         active_gpio_drive_ma_ = store_.config()->gpio_drive_ma;
         active_amplifier_timing_ = store_.config()->amplifier_timing;
         active_ntp_timeout_s_ = store_.config()->ntp_timeout_s;
@@ -655,7 +656,7 @@ std::string Scheduler::command(std::string_view line) {
         return error("standalone_frequency_required");
     if (config->enabled && message_recovery_required())
         return error("message_recovery_required");
-    if (const auto conflict = hardware::validate_filters(store_.filters(), config->pins);
+    if (const auto conflict = validate_rf_configuration(*config, store_.filters());
         !conflict.empty())
         return error(conflict);
     if (!store_.config_fits(*config))
@@ -669,7 +670,7 @@ std::string Scheduler::command(std::string_view line) {
     // network and pin settings are boot-initialized. Compare with the active boot, not
     // the previous save: a later station edit cannot conceal a pending change.
     if (active_pins_ != config->pins || active_gpio_drive_ma_ != config->gpio_drive_ma ||
-        active_amplifier_timing_ != config->amplifier_timing) {
+        active_amplifier_timing_ != config->amplifier_timing || active_si5351_ != config->si5351) {
         pin_restart_required_ = true;
         reboot_required_ = true;
         if (!service_.local_inhibit_output()) {
@@ -685,8 +686,9 @@ std::string Scheduler::command(std::string_view line) {
 std::string Scheduler::save_filters(const hardware::FilterSettings& settings) {
     if (!idle())
         return "busy";
-    if (const auto error = hardware::validate_filters(
-            settings, store_.config() ? store_.config()->pins : hardware::PinPlan{});
+    if (const auto error = store_.config()
+                               ? validate_rf_configuration(*store_.config(), settings)
+                               : hardware::validate_filters(settings, hardware::PinPlan{});
         !error.empty())
         return error;
     if (!store_.save_filters(settings))

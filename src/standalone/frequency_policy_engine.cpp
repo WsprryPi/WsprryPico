@@ -57,7 +57,10 @@ wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
 FrequencyPolicyEngine::Selection FrequencyPolicyEngine::selection() const {
     Selection result;
     if (store_.config()) {
-        result.ppb = store_.config()->manual_correction_ppb;
+        result.ppb =
+            boot_engine_ == hardware::PinPlan::Engine::Direct
+                ? store_.config()->manual_correction_ppb
+                : (store_.config()->si5351 ? store_.config()->si5351->manual_correction_ppb : 0);
         result.generation = store_.config_sequence();
     }
     return result;
