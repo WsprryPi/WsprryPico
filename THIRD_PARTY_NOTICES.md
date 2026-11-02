@@ -16,6 +16,13 @@ MIT, copyright 2026 Lee Bussy; the complete
 retained notice is in [the manual's credits](docs/reference/credits.md).
 Preserve that notice with distributions of these assets and adapted material.
 
+The wiring diagrams `docs/_static/images/wiring/pico2w-base-configuration.svg`,
+`docs/_static/images/wiring/pico2w-gps-flipped-wiring.svg`
+and `docs/_static/images/wiring/pico2w-si5351-flipped-wiring.svg` incorporate the underside artwork from [Gadgetoid's Pico 2 W pinout](https://pico2w.pinout.xyz/),
+MIT, copyright 2024 Gadgetoid (Phil Howard). The complete retained notice is
+[`pico2w-pinout-LICENSE.txt`](docs/_static/images/wiring/pico2w-pinout-LICENSE.txt)
+and is also embedded in the SVG. Preserve it with distributions of these diagrams.
+
 The optional host interoperability test compiles unmodified WTP-Client
 sources from [WsprryPi](https://github.com/WsprryPi/WsprryPi) at
 `c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf`. The external component is MIT,
