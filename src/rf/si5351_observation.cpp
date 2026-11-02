@@ -59,6 +59,10 @@ std::string observation_json(const Engine::Observation& o,
            ",\"reference_measurement\":" + measured +
            ",\"clock_reference_state\":" + wtp::json::quote(clock_reference_state) +
            ",\"clock_reference_observed_raw_ns\":" + decimal(clock_reference_observed_raw_ns) +
+           ",\"clock_reference_age_ns\":" +
+           decimal(clock_reference_observed_raw_ns && now >= clock_reference_observed_raw_ns
+                       ? now - clock_reference_observed_raw_ns
+                       : 0) +
            ",\"measurement_error\":" +
            (measurement && !fresh ? wtp::json::quote("stale_or_invalid_measurement")
             : error.empty()       ? "null"

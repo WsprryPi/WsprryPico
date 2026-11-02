@@ -39,10 +39,7 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
                            std::uint32_t max_clock_error_ppb) override;
     bool browser_time_available() const {
         const auto value = snapshot();
-        return value.state == wtp::ClockState::Unsynchronized ||
-               (value.uncertainty_ns > 500'000'000ULL &&
-                !(config_.unlimited_ntp_holdover &&
-                  observation_source_ == ObservationSource::Sntp));
+        return value.state == wtp::ClockState::Unsynchronized;
     }
     // Change only the slope of an accepted browser epoch. Preserve its UTC
     // continuity, accumulated uncertainty and original source age.

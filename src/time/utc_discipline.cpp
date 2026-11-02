@@ -208,8 +208,6 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
     else if (age <= maximum_age ||
              (config_.unlimited_ntp_holdover && observation_source_ == ObservationSource::Sntp))
         state = wtp::ClockState::Holdover;
-    if (observation_source_ == ObservationSource::Browser && grown > 500'000'000ULL)
-        state = wtp::ClockState::Unsynchronized;
     auto result = wtp::ClockSnapshot{
         state,
         utc,

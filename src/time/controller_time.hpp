@@ -18,7 +18,7 @@ inline constexpr std::uint64_t browser_source_lifetime_ns = 3'600'000'000'000ULL
 inline constexpr std::uint64_t controller_local_margin_ns = 1'050'999ULL;
 inline constexpr std::uint64_t controller_drift_ppb = 50'000ULL;
 // The browser clock contributes a 250 ms assumption. A fresh Pico challenge
-// adds its measured age, so the complete bound remains under job admission.
+// adds its measured age. The reported bound is independent of RF calibration.
 inline constexpr std::uint64_t browser_clock_uncertainty_ns = 250'000'000ULL;
 inline constexpr std::uint64_t browser_challenge_max_age_ns = 200'000'000ULL;
 
@@ -133,6 +133,7 @@ class ControllerTimeArbiter final : public ObservationSink {
     bool imported_ntp_ = false;
     bool frequency_conflict_ = false;
     std::optional<LocalFrequencyReference> local_reference_;
+    std::uint64_t reference_watermark_raw_ns_ = 0, reference_watermark_generation_ = 0;
     bool browser_reference_selected_ = false;
 };
 } // namespace wsprrypico::time

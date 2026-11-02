@@ -24,6 +24,14 @@ assert(!si.readback(sample,{...sample.target,boot_id:'0'.repeat(32)}));
 const altered=structuredClone(sample);altered.runtime.clock_reference_state='gps';assert(!si.readback(altered,sample.target));
 altered.runtime.clock_reference_state='none';altered.runtime.reference_measurement.age_ns='30000000001';assert(!si.readback(altered,sample.target));
 assert(!si.readback({...sample,contract:'Wsprry-Control/2'},sample.target));
+for (const value of [null, 0, '18446744073709551616', '-1', '01']) {
+  const bad=structuredClone(sample);bad.runtime.clock_reference_age_ns=value;assert(!si.readback(bad,sample.target));
+}
+const missingAge=structuredClone(sample);delete missingAge.runtime.clock_reference_age_ns;assert(!si.readback(missingAge,sample.target));
+const noReferenceAge=structuredClone(sample);noReferenceAge.runtime.clock_reference_state='none';noReferenceAge.runtime.clock_reference_observed_raw_ns='0';noReferenceAge.runtime.clock_reference_age_ns='1';assert(!si.readback(noReferenceAge,sample.target));
+const retained=structuredClone(sample.runtime);retained.reference_measurement=null;retained.clock_reference_state='expired';retained.clock_reference_observed_raw_ns='1';retained.clock_reference_age_ns='110592000000';assert(si.validRuntime(retained),'full WSPR capture gap retains a reportable rate age');
+retained.clock_reference_age_ns='18446744073709551615';assert(!si.validRuntime(retained),'reject raw timestamp plus age overflow');
+
 console.log('Shared Si5351 browser validation: explicit None/CLK0, types, allocations, age and bindings passed');
 
 for (const qualification of [{}, {profile_id:'other'}, {profile_id:'qrp-labs-rev6-25mhz-clk0-8ma',system_clock_hz:138000000,i2c_pair:1}]) {

@@ -1739,7 +1739,7 @@ void browser_time_hint_policy() {
     CHECK(arbiter.status().disagreement);
 }
 
-void browser_authority_expires_with_uncertainty() {
+void browser_authority_expires_by_age() {
     time::UtcDiscipline discipline(monotonic, nullptr);
     time::ControllerTimeArbiter arbiter(discipline, monotonic, nullptr, std::string(device));
     constexpr std::uint64_t utc = 1'800'000'000'000'000'000ULL;
@@ -1749,11 +1749,15 @@ void browser_authority_expires_with_uncertainty() {
     CHECK(arbiter.submit("first", "one", device, "nonce", utc, true) ==
           time::ControllerTimeCode::Ok);
     clock_now += 1'200'000'000'000ULL;
+    CHECK(discipline.snapshot().uncertainty_ns > 500'000'000ULL);
+    CHECK(discipline.snapshot().state == wtp::ClockState::Holdover);
+    CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
+    clock_now += 2'400'000'000'001ULL;
     CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
     CHECK(arbiter.status().source == time::ActiveTimeSource::None);
     CHECK(arbiter.challenge("second", "two", device, "fresh").code == time::ControllerTimeCode::Ok);
     clock_now += 10'000'000ULL;
-    CHECK(arbiter.submit("second", "two", device, "fresh", utc + 1'200'010'000'000ULL, true) ==
+    CHECK(arbiter.submit("second", "two", device, "fresh", utc + 3'600'010'000'001ULL, true) ==
           time::ControllerTimeCode::Ok);
 }
 
@@ -1816,6 +1820,6 @@ int main() {
     reset_policy();
     controller_time_policy();
     browser_time_hint_policy();
-    browser_authority_expires_with_uncertainty();
+    browser_authority_expires_by_age();
     std::cout << "field access tests passed\n";
 }

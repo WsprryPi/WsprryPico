@@ -22,17 +22,17 @@ In **Transmitter status**, choose **Refresh** and read **Clock**:
 | Status | Meaning and action |
 | --- | --- |
 | `unsynchronized` | The Pico has no currently usable UTC estimate. Check its network and time server, or the controller-time connection, and allow fresh synchronization. |
-| `synchronized` | The Pico has an accepted time source. A timed job must still pass its clock-age and uncertainty checks. |
-| `using last time update` | Fresh time observations have stopped. The Pico estimates UTC from its last accepted time. A finite NTP timeout retains age and uncertainty limits; a zero timeout allows indefinite NTP holdover. Restore the time source when available. |
+| `synchronized` | The Pico has an accepted time source. Timed jobs still require a valid source age and safe leap state. |
+| `using last time update` | Fresh time observations have stopped. The Pico estimates UTC from its last accepted time. A finite NTP timeout retains its source-age limit; a zero timeout allows indefinite NTP holdover. Restore the time source when available. |
 | **Unknown** or **Unavailable** | The browser has no current clock report. Restore the connection and refresh before relying on it. |
 
-The value after **±** is the estimated timing uncertainty, in **ms** (milliseconds), not a countdown. With a finite NTP timeout, excessive uncertainty blocks new timed starts. Set the timeout in **Time and calibration**; **0** removes the Pico's NTP age and uncertainty cutoffs while keeping the uncertainty visible. An external controller can still request a stricter timing limit. After a restart, the Pico needs fresh time observations; saved clock-rate estimates do not preserve the current date and time.
+The value after **±** is the estimated timing uncertainty, in **ms** (milliseconds), not a countdown. UTC uncertainty is displayed for your judgment and does not automatically block first-party transmissions. Set the source-age timeout in **Time and calibration**; **0** allows indefinite NTP holdover while keeping uncertainty visible. An external WTP controller can explicitly request its own timing limit. After a restart, the Pico needs fresh time observations; saved clock-rate estimates do not preserve the current date and time.
 
 ## Use a trusted loopback while offline
 
 With a supported Si5351 module and its loopback connected, **Trust local reference for Pico rate** can reduce timer drift after your phone supplies UTC through the authenticated Pico AP page. The phone supplies the date and time; the loopback helps maintain the clock rate. Configure its wiring and a known oscillator uncertainty in [Si5351 output settings](../configure.md#si5351-output-settings).
 
-Loopback readings do not refresh the phone sample. Browser time still expires after at most one hour or when estimated uncertainty exceeds 500 ms. A lost loopback retains the learned rate under conservative uncertainty growth; removing trusted use returns to the uncorrected timer rate without stepping UTC. The initial phone-clock error remains. This does not provide GPS timing or calibrate RF frequency.
+Loopback readings do not refresh the phone sample. Browser time still expires after at most one hour. UTC uncertainty remains visible throughout that interval. A lost loopback retains the learned rate under conservative uncertainty growth; removing trusted use returns browser UTC to the uncorrected timer rate, while NTP UTC returns to its independent network-rate estimate. Neither change steps UTC. The initial phone-clock error remains. The displayed bound includes the reference allowance, capture error and conservative Pico drift; a more accurate reference does not erase the error already accumulated. This does not provide GPS timing or calibrate RF frequency.
 
 (manual-frequency-correction)=
 ## Manual frequency correction
@@ -49,8 +49,8 @@ RF calibration does not change UTC or remove the normal clock, frequency, pin, a
 
 The page refreshes time about every 30 seconds while active. Time updates do not extend the browser login’s inactivity timeout. A backgrounded, sleeping, disconnected, signed-out, or expired browser may stop supplying observations. The Pico then uses its last accepted time in holdover.
 
-Browser holdover has a one-hour maximum. Its estimated uncertainty starts with a 250 ms device-clock allowance plus transfer and local processing allowances, then grows conservatively at 50 ppm (180 ms per hour). New starts require uncertainty no greater than 500 ms, or a stricter job limit. A slow initial transfer can therefore exhaust the budget before one hour. These are conservative software policy values, not a guarantee of the device clock’s accuracy or measured multi-day Pico holdover.
+Browser holdover has a one-hour maximum. Its estimated uncertainty starts with a 250 ms device-clock allowance plus transfer and local processing allowances, then grows conservatively at 50 ppm (180 ms per hour). Uncertainty does not impose an additional first-party start cutoff. These are conservative software policy values, not a guarantee of the device clock’s accuracy or measured multi-day Pico holdover.
 
-The NTP timeout setting, including zero, does not extend browser-time holdover or remove its uncertainty ceiling. Restart requires fresh observations. A valid higher-priority network or controller source retains authority. Conflicting source observations block new starts until consistent observations restore time. An already running job retains its local timing; an armed job that fails its launch clock check is missed.
+The NTP timeout setting, including zero, does not extend browser-time holdover. Restart requires fresh observations. A valid higher-priority network or controller source retains authority. Conflicting source observations block new starts until consistent observations restore time. An already running job retains its local timing; an armed job that fails its launch clock check is missed.
 
 The source display includes clock state, sample age, and estimated uncertainty. Restore an active authenticated AP page or another supported time source when time becomes unusable. Refreshing time does not enable schedules, clear a shutdown suspension, or replay missed occurrences.

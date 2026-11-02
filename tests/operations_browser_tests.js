@@ -105,7 +105,7 @@ function recurring(v) {
   }
   for(const mutate of [x=>x.message_schedule.pause_pending=true,x=>x.standalone.storage_healthy=false,
     x=>x.standalone.reboot_required=true,x=>x.standalone.suspended=true,x=>x.standalone.clock_state='unsynchronized',
-    x=>x.standalone.sync_age_ns='3600000000001',x=>x.standalone.uncertainty_ns='1000001',
+    x=>x.standalone.sync_age_ns='3600000000001',
     x=>x.job.state='failed',x=>x.message_schedule.next_start_utc_ns=null,
     x=>x.message_schedule.next_start_utc_ns=x.standalone.utc_now_ns,
     x=>x.message_schedule.saved.expires_utc_s=1800000120]) {
@@ -140,16 +140,16 @@ function recurring(v) {
   assert.match(ops.model(failed,caps,'x').warning,/WSPR occurrence failed.*INTERNAL_ERROR.*skipped/);
   assert.equal(next(failed),'','a failed load must not promise the next transmission');
   failed.standalone.uncertainty_ns='1000001';
-  assert.match(ops.model(failed,caps,'x').warning,/Clock uncertainty.*1 ms.*INTERNAL_ERROR/,'simultaneous blockers remain visible');
+  assert.match(ops.model(failed,caps,'x').warning,/INTERNAL_ERROR/,'actual failure remains visible');
   failed.standalone.last_error=null;
-  assert.match(ops.model(failed,caps,'x').warning,/Clock uncertainty/);
-  failed.standalone.uncertainty_ns='1000000';
-  assert.equal(ops.model(failed,caps,'x').warning,'','exact clock boundary and confirmed success clear the warning');
+  assert.equal(ops.model(failed,caps,'x').warning,'','UTC uncertainty is informational');
+  failed.standalone.uncertainty_ns='5000000000';
+  assert.equal(ops.model(failed,caps,'x').warning,'','five seconds of UTC uncertainty does not block an otherwise valid schedule');
   assert.equal(next(failed),'WSPR');
   failed.standalone.last_error={code:'INTERNAL_ERROR',message:'old',retryable:false};
   active(failed);assert.equal(ops.model(failed,caps,'x').state,'Job running');
   assert.doesNotMatch(ops.model(failed,caps,'x').warning,/WSPR occurrence failed/,'accepted-job authority supersedes historical load failure');
-  failed.standalone.uncertainty_ns='1000001';assert.match(ops.model(failed,caps,'x').warning,/accepted job remains running/);
+  failed.standalone.uncertainty_ns='5000000000';assert.doesNotMatch(ops.model(failed,caps,'x').warning,/uncertainty/i);
   const owned=observation();owned.standalone.enabled=true;owned.standalone.clock_state='synchronized';owned.job.owner_id='4'.repeat(32);
   assert.match(ops.model(owned,caps,'4'.repeat(32)).warning,/This browser.*Release control/);
   assert.match(ops.model(owned,caps,'5'.repeat(32)).warning,/Another controller/);
@@ -207,7 +207,7 @@ function recurring(v) {
   f.operations.job.job_id=f.operations.standalone.job_id=null;f.operations.job.owner_id=f.operations.standalone.owner_id=null;f.operations.accepted=null;
   await f.elements.refresh.onclick();
   assert.equal(f.elements['console-warning'].hidden,false);assert.equal(f.elements['console-state'].hidden,false);
-  assert.match(f.elements['console-warning'].textContent,/Clock uncertainty.*INTERNAL_ERROR/);
+  assert.match(f.elements['console-warning'].textContent,/INTERNAL_ERROR/);
   f.operations.standalone.last_error=null;f.operations.standalone.uncertainty_ns='1000';
   await f.elements.refresh.onclick();assert.equal(f.elements['console-warning'].hidden,true);
   f.elements['message-text'].value='KEEP DRAFT';active(f.operations);await f.elements.refresh.onclick();

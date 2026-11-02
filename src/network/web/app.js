@@ -2272,7 +2272,7 @@ async function updateFieldTime(readSettings = false) {
     const labels = {browser:'Using browser time',network:'Using network time',controller:'Using controller time',none:'Waiting for usable time',disagreement:'Time sources disagree'};
     $('browser-time-status').textContent = labels[status.source] + ' · ' + status.clock_state +
       ` · last sample ${(Number(status.age_ns)/1e9).toFixed(0)} seconds ago · estimated uncertainty ±${(Number(status.uncertainty_ns)/1e6).toFixed(1)} ms.` +
-      (status.source==='browser' ? ' Time supplied by this device’s clock. Without refresh, holdover lasts up to one hour; uncertainty may block starts sooner.' : '');
+      (status.source==='browser' ? ' Time supplied by this device’s clock. Without refresh, holdover lasts up to one hour. Estimated UTC uncertainty is shown for your judgment.' : '');
   } catch (error) {
     $('browser-time-status').textContent = 'Fresh browser time is unavailable. The Pico retains its clock within holdover limits. ' + error.message;
     lastBrowserTimeRefresh = now-25000;

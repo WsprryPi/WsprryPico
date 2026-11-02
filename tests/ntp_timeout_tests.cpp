@@ -149,7 +149,7 @@ void holdover() {
 void scheduled_holdover() {
     constexpr auto ns = 1'000'000'000ULL;
     for (const auto& [age, uncertainty, admitted] :
-         {std::tuple{116ULL, 1'000'000ULL, true}, std::tuple{116ULL, 499'000'000ULL, false},
+         {std::tuple{116ULL, 1'000'000ULL, true}, std::tuple{116ULL, 499'000'000ULL, true},
           std::tuple{3716ULL, 1'000'000ULL, false}}) {
         std::uint64_t mono = 0;
         const auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
@@ -202,6 +202,9 @@ void browser_uncertainty_is_independent() {
         mono = 1'000'000'000'000ULL;
         REQUIRE(clock.snapshot().state != wtp::ClockState::Unsynchronized);
         ++mono;
+        REQUIRE(clock.snapshot().uncertainty_ns > 500'000'000ULL);
+        REQUIRE(clock.snapshot().state != wtp::ClockState::Unsynchronized);
+        mono = 3'600'000'000'001ULL;
         REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
     }
     mono = 0;
@@ -211,6 +214,9 @@ void browser_uncertainty_is_independent() {
         REQUIRE(clock->observe(time::ObservationSource::Sntp, 1'792'800'000'000'000'000ULL, 0,
                                450'000'000ULL, wtp::LeapState::Normal, {}, {}));
     mono = 1'001'000'000'000ULL;
+    REQUIRE(!limited.browser_time_available());
+    REQUIRE(!unlimited.browser_time_available());
+    mono = 3'600'000'000'001ULL;
     REQUIRE(limited.browser_time_available());
     REQUIRE(!unlimited.browser_time_available());
 }

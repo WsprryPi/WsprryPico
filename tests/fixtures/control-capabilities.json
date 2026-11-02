@@ -238,7 +238,8 @@
     },
     "operations_status": {
       "schema": "operations",
-      "path": "/api/control/v1/operations"
+      "path": "/api/control/v1/operations",
+      "utc_uncertainty_policy": "informational"
     },
     "amplifier_enable": {
       "schema": "amplifier-enable",

@@ -187,10 +187,7 @@ bool ControllerTimeArbiter::interval(const Observation& observation, std::uint64
     std::uint64_t drift{};
     if (!growth(age, controller_drift_ppb + observation.rate_uncertainty_ppb, drift))
         return false;
-    return add(observation.uncertainty_ns, drift, uncertainty) &&
-           uncertainty <= (observation.source == ObservationSource::Sntp
-                               ? 3'000'000'000ULL
-                               : standalone_max_uncertainty_ns);
+    return add(observation.uncertainty_ns, drift, uncertainty);
 }
 
 bool ControllerTimeArbiter::current_valid(std::uint64_t now) const {
@@ -414,11 +411,16 @@ bool ControllerTimeArbiter::observe_frequency_reference(const LocalFrequencyRefe
         ref.rate_ppb < -100'000 || ref.rate_ppb > 100'000 || ref.sampled_raw_ns > now ||
         ref.valid_until_raw_ns <= now || ref.valid_until_raw_ns <= ref.sampled_raw_ns ||
         ref.valid_until_raw_ns - ref.sampled_raw_ns > 30'000'000'000ULL ||
+        (reference_watermark_generation_ &&
+         (ref.generation < reference_watermark_generation_ ||
+          (!local_reference_ && ref.sampled_raw_ns <= reference_watermark_raw_ns_))) ||
         (local_reference_ &&
          (ref.generation < local_reference_->generation ||
           ref.sampled_raw_ns < local_reference_->sampled_raw_ns ||
           (ref.sampled_raw_ns == local_reference_->sampled_raw_ns && ref != *local_reference_))))
         return false;
+    reference_watermark_raw_ns_ = ref.sampled_raw_ns;
+    reference_watermark_generation_ = ref.generation;
     local_reference_ = ref;
     if (frequency_conflict_ || source_ != ActiveTimeSource::Browser)
         return true; // A rate observation cannot create or replace a UTC epoch.

@@ -348,7 +348,7 @@ void Engine::seed(std::int32_t frequency_ppb, std::uint32_t skew_ppb) {
     // A provisional persisted seed cannot replace an observed reference or
     // clear retained disagreement/holdover evidence. Policy removal has its
     // own explicit operation.
-    if (frequency_reference_.generation)
+    if (frequency_reference_state_ != FrequencyReferenceState::None)
         return;
     if (std::abs(double(frequency_ppb)) <= config_.max_drift_ppm * 1000 &&
         skew_ppb <= 1'000'000'000U) {
@@ -360,6 +360,8 @@ void Engine::seed(std::int32_t frequency_ppb, std::uint32_t skew_ppb) {
     }
 }
 FrequencyReferenceState Engine::frequency_reference_state(std::uint64_t now) const {
+    if (frequency_reference_state_ == FrequencyReferenceState::None)
+        return FrequencyReferenceState::None;
     if (frequency_reference_state_ == FrequencyReferenceState::Disagreement)
         return FrequencyReferenceState::Disagreement;
     if (frequency_reference_.generation && (now < frequency_reference_.sampled_raw_ns ||
@@ -382,27 +384,33 @@ const char* name(FrequencyReferenceState value) {
     }
 }
 void Engine::clear_frequency_reference(std::uint64_t now) {
-    if (!frequency_reference_.generation || (clock_valid_ && now < clock_raw_ns_))
+    if (frequency_reference_state_ == FrequencyReferenceState::None ||
+        (clock_valid_ && now < clock_raw_ns_))
         return;
     advance(now);
-    frequency_reference_ = {};
+    // Retain the sample/generation watermark internally across policy removal.
+    // The public accessor exposes no active sample in state None.
+    frequency_reference_.valid_until_raw_ns =
+        std::min(frequency_reference_.valid_until_raw_ns, now);
     frequency_reference_state_ = FrequencyReferenceState::None;
-    // Retain the last learned timer-rate center, like ordinary source loss.
-    // It is no longer fresh reference evidence and never renews UTC age.
-    skew_ = std::max(skew_, config_.max_clock_error_ppm * 1e-6);
-    frequency_skew_ = std::max(frequency_skew_, skew_);
+    // Explicit trust removal must not retain a correction justified only by
+    // that trust. Restore the independent network estimate, or nominal rate,
+    // continuously and without renewing its epoch or confidence.
+    frequency_ = last_update_ns_ ? network_frequency_ppb_ / billion : 0;
+    skew_ = frequency_skew_ = last_update_ns_ ? network_frequency_uncertainty_ppb_ / billion : 0;
+    slew_ = std::clamp(slew_, -0.1 - frequency_, 0.1 - frequency_);
     ++generation_;
 }
 void Engine::retire_frequency_reference(std::uint64_t now) {
     const auto floor = config_.max_clock_error_ppm * 1e-6;
-    if (!frequency_reference_.generation || now < frequency_reference_.sampled_raw_ns ||
-        (frequency_reference_.valid_until_raw_ns <= now && skew_ >= floor &&
-         frequency_skew_ >= floor))
+    if (frequency_reference_state_ == FrequencyReferenceState::None ||
+        now < frequency_reference_.sampled_raw_ns || (clock_valid_ && now < clock_raw_ns_) ||
+        frequency_reference_.valid_until_raw_ns <= now)
         return;
+    advance(now);
     frequency_reference_.valid_until_raw_ns =
         std::min(frequency_reference_.valid_until_raw_ns, now);
-    skew_ = std::max(skew_, floor);
-    frequency_skew_ = std::max(frequency_skew_, skew_);
+    frequency_skew_ = std::max(frequency_skew_, floor);
     ++generation_;
     // Loss retires freshness, not a known disagreement. A new agreeing
     // observation or an explicit policy removal is required to clear that.
@@ -423,8 +431,9 @@ bool Engine::observe_frequency_reference(FrequencyReference reference, std::uint
     frequency_reference_ = reference;
     ++generation_;
     const auto displacement = std::abs(double(reference.rate_ppb) - network_frequency_ppb_);
-    if (last_update_ns_ &&
-        displacement > double(reference.uncertainty_ppb) + network_frequency_uncertainty_ppb_) {
+    if (last_update_ns_ && displacement > double(reference.uncertainty_ppb) +
+                                              network_frequency_uncertainty_ppb_ +
+                                              config_.max_clock_error_ppm * 1000) {
         frequency_reference_state_ = FrequencyReferenceState::Disagreement;
         return false;
     }
@@ -1016,6 +1025,12 @@ void Engine::select(std::uint64_t now, bool score_update) {
 void Engine::advance(std::uint64_t now) {
     if (!clock_valid_ || now < clock_raw_ns_)
         return;
+    // Settle elapsed uncertainty with the OLD rate bound before changing
+    // frequency/skew. Frequency evidence has no authority over phase error
+    // already accumulated since the last independent epoch observation.
+    root_dispersion_ +=
+        difference(now, dispersion_raw_ns_) * (skew_ + config_.max_clock_error_ppm * 1e-6);
+    dispersion_raw_ns_ = now;
     const auto elapsed = difference(now, clock_raw_ns_);
     double phase = slew_ * elapsed;
     if (std::abs(phase) > std::abs(pending_phase_))
@@ -1070,7 +1085,6 @@ void Engine::discipline(unsigned selected, std::span<const unsigned> combined, s
         advance(now);
     if (frequency_reference_state(now) == FrequencyReferenceState::Expired) {
         frequency_skew_ = std::max(frequency_skew_, config_.max_clock_error_ppm * 1e-6);
-        skew_ = std::max(skew_, frequency_skew_);
     }
     if (next_skew <= config_.max_update_skew_ppm * 1e-6) {
         const auto combined_frequency =
@@ -1084,19 +1098,18 @@ void Engine::discipline(unsigned selected, std::span<const unsigned> combined, s
     }
     network_frequency_ppb_ =
         static_cast<std::int32_t>(std::llround(std::clamp(next_frequency, -0.1, 0.1) * billion));
-    // Counter and network fits cover different averaging windows. Preserve
-    // the configured oscillator allowance rather than treating a tiny NTP
-    // regression error as an independent instantaneous-frequency guarantee.
+    // Compare estimate quality on the same basis. The independent timer
+    // drift allowance is charged separately to both clock error growth and
+    // disagreement across differing averaging windows, not to NTP alone.
     network_frequency_uncertainty_ppb_ =
-        static_cast<std::uint32_t>(std::ceil(
-            std::min(1.0, std::max(next_skew, config_.max_clock_error_ppm * 1e-6)) * billion)) +
-        1;
-    if (frequency_reference_.generation &&
+        static_cast<std::uint32_t>(std::ceil(std::min(1.0, next_skew) * billion)) + 1;
+    if (frequency_reference_state_ != FrequencyReferenceState::None &&
         frequency_reference_state(now) != FrequencyReferenceState::Expired &&
         frequency_reference_state_ != FrequencyReferenceState::Disagreement) {
         const auto& r = frequency_reference_;
         if (std::abs(double(r.rate_ppb) - network_frequency_ppb_) >
-            double(r.uncertainty_ppb) + network_frequency_uncertainty_ppb_)
+            double(r.uncertainty_ppb) + network_frequency_uncertainty_ppb_ +
+                config_.max_clock_error_ppm * 1000)
             frequency_reference_state_ = FrequencyReferenceState::Disagreement;
         else if (r.uncertainty_ppb < network_frequency_uncertainty_ppb_) {
             frequency_ = r.rate_ppb / billion;
@@ -1115,6 +1128,7 @@ void Engine::discipline(unsigned selected, std::span<const unsigned> combined, s
     slew_ = std::clamp(slew_, -0.1 - frequency_, 0.1 - frequency_);
     root_delay_ = source.status.estimate.root_delay;
     root_dispersion_ = std::max(0.0, reference_distance - root_delay_ / 2);
+    dispersion_raw_ns_ = now;
     selected_ = selected;
     combined_count_ = unsigned(combined.size());
     leap_ = source.samples[source.count - 1].leap;
@@ -1149,10 +1163,11 @@ Tracking Engine::tracking(std::uint64_t now) const {
                           ? std::max(skew_, config_.max_clock_error_ppm * 1e-6)
                           : skew_;
     result.skew_ppb = std::uint32_t(std::ceil(std::min(1.0, skew) * billion));
+    result.rate_error_bound_ppb = std::uint32_t(
+        std::ceil(std::min(1.0, skew_ + config_.max_clock_error_ppm * 1e-6) * billion));
     result.root_delay = root_delay_;
-    result.root_dispersion =
-        root_dispersion_ +
-        difference(now, last_update_ns_) * std::max(skew_, config_.max_clock_error_ppm * 1e-6);
+    result.root_dispersion = root_dispersion_ + difference(now, dispersion_raw_ns_) *
+                                                    (skew_ + config_.max_clock_error_ppm * 1e-6);
     const auto root_distance = result.root_delay / 2 + result.root_dispersion;
     result.synchronized = selected_ < source_capacity && leap_ != Leap::Unsynchronized &&
                           root_distance <= config_.max_distance;

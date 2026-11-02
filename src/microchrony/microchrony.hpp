@@ -97,6 +97,9 @@ struct Tracking {
     std::int32_t rate_ppb = 0;          // Actual system-clock mapping, including phase slew.
     std::int32_t utc_frequency_ppb = 0; // Frequency correction alone.
     std::uint32_t skew_ppb = 2'000'000;
+    // Frequency-estimate error plus the independent unobserved timer-drift
+    // allowance. Keep estimator skew separate for source quality/learning.
+    std::uint32_t rate_error_bound_ppb = 2'000'000;
     double root_delay = 0, root_dispersion = 0;
 };
 // An independently trusted frequency observation has no UTC epoch, leap or
@@ -173,7 +176,9 @@ class Engine {
     void retire_frequency_reference(std::uint64_t raw_ns);
     FrequencyReferenceState frequency_reference_state(std::uint64_t raw_ns) const;
     const FrequencyReference& frequency_reference() const {
-        return frequency_reference_;
+        static constexpr FrequencyReference empty;
+        return frequency_reference_state_ == FrequencyReferenceState::None ? empty
+                                                                           : frequency_reference_;
     }
     std::optional<std::array<std::uint8_t, 48>>
     request(unsigned source, std::uint64_t raw_ns, std::uint64_t random_token, bool force = false);
@@ -221,6 +226,7 @@ class Engine {
     double frequency_ = 0, skew_ = 0.002, slew_ = 0, pending_phase_ = 0;
     double frequency_skew_ = 0.002; // Controller state, distinct from the reported coverage bound.
     double root_delay_ = 0, root_dispersion_ = 0;
+    std::uint64_t dispersion_raw_ns_ = 0;
     unsigned selected_ = source_capacity, combined_count_ = 0;
     Leap leap_ = Leap::Unsynchronized;
     FrequencyReference frequency_reference_;

@@ -43,7 +43,7 @@ The host requires a synchronized, normal-leap system clock. It brackets the devi
 
 Successful submit reports actual `accepted`, `selected`, `source`, `uncertainty_ns`, and `age_ns`. Healthy SNTP retains priority, so status 200 with `accepted:false,selected:false,source:"sntp"` reports available but unselected USB input. Invalid observations still refuse before source arbitration. Disconnect clears the pending USB sample without invalidating unrelated SNTP. UTC refresh does not control RF symbols or calibrate an RF oscillator.
 
-The [USB uncertainty investigation](../development/usb-time-uncertainty.md) separates measured transfer uncertainty, host clock quality, and job admission policy. An accepted USB time update does not establish readiness for a job's configured uncertainty limit. WsprryPi's ordinary default for new/missing settings is 100000000 ns (100 ms), with explicit saved limits preserved; this is controller policy, not a new protocol requirement. Pico retains its 500 ms maximum and enforces each job's requested bound at ARM and local launch.
+The [USB uncertainty investigation](../development/usb-time-uncertainty.md) separates measured transfer uncertainty, host clock quality, and job admission policy. An accepted USB time update does not establish readiness for a job's configured uncertainty limit. First-party WsprryPi submissions use the Pico's advertised ceiling rather than the historical stored uncertainty setting. Pico's ordinary application advertises the full uint64 ceiling and reports UTC uncertainty for operator judgment. External WTP callers can still explicitly request a smaller bound, enforced at ARM and local launch. The USB time-observation quality limit is independent of this job policy.
 
 
 ## Compatibility and evidence

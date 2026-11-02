@@ -177,7 +177,7 @@ bool NtpClient::apply(std::uint64_t now) {
                                                                 : wtp::LeapState::DeletePending;
     }
     model.rate_ppb = tracking.rate_ppb;
-    model.rate_uncertainty_ppb = tracking.skew_ppb;
+    model.rate_uncertainty_ppb = tracking.rate_error_bound_ppb;
     model.model_generation = tracking.generation;
     model.subsequent_rate_ppb = tracking.utc_frequency_ppb;
     const auto slew = std::int64_t(tracking.rate_ppb) - tracking.utc_frequency_ppb;
@@ -213,10 +213,9 @@ bool NtpClient::apply(std::uint64_t now) {
                                  tracking.source_raw_ns,
                                  ns(tracking.root_delay / 2 + tracking.root_dispersion),
                                  tracking.utc_frequency_ppb,
-                                 tracking.skew_ppb,
+                                 tracking.rate_error_bound_ppb,
                                  tracking.generation};
-    arbiter_selected_ = clock_.observe_ntp_model(
-        source, model, std::uint32_t(std::ceil(core_.config().max_clock_error_ppm * 1000)));
+    arbiter_selected_ = clock_.observe_ntp_model(source, model, tracking.rate_error_bound_ppb);
     if (arbiter_selected_) {
         control_ = {model.utc_now_ns,
                     now,
