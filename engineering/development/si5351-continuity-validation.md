@@ -1,6 +1,6 @@
 # Si5351 continuity validation
 
-This evidence covers the no-GPS rate-assistance implementation developed from Pico `b5678828f5d4455d60a6d0b6a6a124a4701a56ba` and Pi `3e2f64b20f5774e4698a491529e50ab4a4fd125e` on `codex/si5351-execution`. Final paired revisions, commands, logs, CI runs, installer receipts and image identities belong in the retained developer bundle's validation report. This document does not close the remaining environmental and absolute-timing qualification gates in the [backlog](consolidated-backlog.md#si5351-backlog).
+This evidence covers the no-GPS rate-assistance implementation developed from Pico `b5678828f5d4455d60a6d0b6a6a124a4701a56ba` and Pi `3e2f64b20f5774e4698a491529e50ab4a4fd125e` on `codex/si5351-execution`. Final paired revisions, commands, logs, CI runs, installer receipts and image identities belong in the retained developer bundle's validation report. Software completion follows the paired checks and delivery criteria in the [backlog](consolidated-backlog.md#si5351-backlog). Hardware selection, reference allowance and hardware qualification are local operator responsibilities; environmental and absolute-timing hardware measurements are not project completion gates.
 
 ## Software behavior
 
@@ -33,7 +33,7 @@ Temperature and supply were not independently logged. This warmed bench observat
 
 The indicated errors use PPS midpoint truth; interpret improvements with the stated endpoint allowance. In particular, the 22 µs retained-case improvement is comparable to measurement-path uncertainty and does not independently establish an absolute improvement of that size. Every replayed error is covered by the reported uncertainty, including the conditional truth allowance. The initial 250 ms phone assumption dominates the absolute bound. The original epoch age at completion is `299999933000` ns in all cases.
 
-The supported software policy retains the rate center across acquisition pauses and adds the existing independent 50 ppm Pico drift allowance. For an illustrative 5 ppm reference plus 1 ppm capture bound, rate uncertainty grows by 6.19 ms per WSPR frame or 201.6 ms per hour, plus initial epoch error. A tighter physically qualified drift model and full environmental TCXO allowance remain open gates. No GPS is required to use an explicitly bounded independent reference.
+The supported software policy retains the rate center across acquisition pauses and adds the existing independent 50 ppm Pico drift allowance. For an illustrative 5 ppm reference plus 1 ppm capture bound, rate uncertainty grows by 6.19 ms per WSPR frame or 201.6 ms per hour, plus initial epoch error. These are explicit software-model assumptions, not hardware certification. Operators choose and qualify their reference hardware and allowance. No GPS is required to use an explicitly bounded independent reference.
 
 ## Adversarial corrections
 

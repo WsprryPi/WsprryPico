@@ -32,6 +32,8 @@ The value after **±** is the estimated timing uncertainty, in **ms** (milliseco
 
 With a supported Si5351 module and its loopback connected, **Trust local reference for Pico rate** can reduce timer drift after your phone supplies UTC through the authenticated Pico AP page. The phone supplies the date and time; the loopback helps maintain the clock rate. Configure its wiring and a known oscillator uncertainty in [Si5351 output settings](../configure.md#si5351-output-settings).
 
+Reference hardware, its uncertainty allowance and hardware qualification are local operator decisions. The displayed uncertainty applies the configured reference allowance and software drift assumptions; shared bench results do not certify an oscillator or guarantee absolute UTC accuracy.
+
 Loopback readings do not refresh the phone sample. Browser time still expires after at most one hour. UTC uncertainty remains visible throughout that interval. A lost loopback retains the learned rate under conservative uncertainty growth; removing trusted use returns browser UTC to the uncorrected timer rate, while NTP UTC returns to its independent network-rate estimate. Neither change steps UTC. The initial phone-clock error remains. The displayed bound includes the reference allowance, capture error and conservative Pico drift; a more accurate reference does not erase the error already accumulated. This does not provide GPS timing or calibrate RF frequency.
 
 (manual-frequency-correction)=
