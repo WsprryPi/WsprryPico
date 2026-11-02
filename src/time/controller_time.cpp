@@ -168,6 +168,13 @@ bool ControllerTimeArbiter::interval(const Observation& observation, std::uint64
                                      std::uint64_t& estimate, std::uint64_t& uncertainty) const {
     if (!observation.valid || now < observation.monotonic_ns)
         return false;
+    if (&observation == &current_ && observation.source == ObservationSource::Browser) {
+        const auto model = clock_.snapshot();
+        estimate = model.utc_now_ns;
+        uncertainty = model.uncertainty_ns;
+        return model.state != wtp::ClockState::Unsynchronized &&
+               model.sync_age_ns <= browser_source_lifetime_ns;
+    }
     const auto age = now - observation.monotonic_ns;
     wtp::ClockSnapshot anchor;
     anchor.utc_now_ns = observation.utc_ns;
@@ -220,6 +227,12 @@ bool ControllerTimeArbiter::accept(const Observation& observation) {
     if (!accepted)
         return false;
     current_ = observation;
+    browser_reference_selected_ = false;
+    if (observation.source == ObservationSource::Browser && local_reference_ &&
+        !frequency_conflict_ && local_reference_->valid_until_raw_ns > now_(context_) &&
+        local_reference_->uncertainty_ppb < controller_drift_ppb)
+        browser_reference_selected_ = clock_.adjust_browser_rate(local_reference_->rate_ppb,
+                                                                 local_reference_->uncertainty_ppb);
     imported_ntp_ = false;
     recovery_ = {};
     source_ = label(observation.source);
@@ -387,6 +400,59 @@ void ControllerTimeArbiter::invalidate(ObservationSource source) {
         imported_ntp_ = false;
     }
 }
+bool ControllerTimeArbiter::observe_frequency_reference(const LocalFrequencyReference& ref,
+                                                        std::uint64_t now) {
+    if (!now_)
+        return false;
+    const auto current_raw = now_(context_);
+    if (now > current_raw)
+        return false;
+    now = current_raw;
+    // The counter publishes at most 200100 ppb; the target adapter adds one
+    // ppb when rounding it upward for the rate-observation interface.
+    if (!ref.generation || !ref.uncertainty_ppb || ref.uncertainty_ppb > 200'101 ||
+        ref.rate_ppb < -100'000 || ref.rate_ppb > 100'000 || ref.sampled_raw_ns > now ||
+        ref.valid_until_raw_ns <= now || ref.valid_until_raw_ns <= ref.sampled_raw_ns ||
+        ref.valid_until_raw_ns - ref.sampled_raw_ns > 30'000'000'000ULL ||
+        (local_reference_ &&
+         (ref.generation < local_reference_->generation ||
+          ref.sampled_raw_ns < local_reference_->sampled_raw_ns ||
+          (ref.sampled_raw_ns == local_reference_->sampled_raw_ns && ref != *local_reference_))))
+        return false;
+    local_reference_ = ref;
+    if (frequency_conflict_ || source_ != ActiveTimeSource::Browser)
+        return true; // A rate observation cannot create or replace a UTC epoch.
+    if (ref.uncertainty_ppb >= controller_drift_ppb) {
+        browser_reference_selected_ = false;
+        return true;
+    }
+    browser_reference_selected_ = clock_.adjust_browser_rate(ref.rate_ppb, ref.uncertainty_ppb);
+    return browser_reference_selected_;
+}
+void ControllerTimeArbiter::retire_frequency_reference(std::uint64_t now, bool removed) {
+    if (!removed) {
+        if (local_reference_ && now >= local_reference_->sampled_raw_ns)
+            local_reference_->valid_until_raw_ns =
+                std::min(local_reference_->valid_until_raw_ns, now);
+        return; // Loss cannot refresh age or remove an established disagreement.
+    }
+    local_reference_.reset();
+    browser_reference_selected_ = false;
+    (void)clock_.adjust_browser_rate(0, 0);
+}
+std::string_view
+ControllerTimeArbiter::browser_frequency_reference_status(std::uint64_t now) const {
+    if (source_ != ActiveTimeSource::Browser || !local_reference_)
+        return {};
+    if (frequency_conflict_)
+        return "disagreement";
+    if (local_reference_->valid_until_raw_ns <= now)
+        return "expired";
+    if (clock_.snapshot().state == wtp::ClockState::Unsynchronized)
+        return "awaiting_utc";
+    return browser_reference_selected_ ? "selected" : "quality";
+}
+
 void ControllerTimeArbiter::frequency_reference_conflict(bool conflict) {
     if (conflict && !frequency_conflict_)
         clock_.invalidate();

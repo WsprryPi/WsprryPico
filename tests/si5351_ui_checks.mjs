@@ -38,4 +38,9 @@ export async function checkSi5351({evaluate,section,click,idle,capture}) {
   assert.equal(await evaluate('currentConfig.si5351.loopback_output'),2,'inactive settings retained');
   assert.equal(await evaluate('document.getElementById("si5351-settings").hidden'),true);
   await evaluate('api=siApi');
+  await section('radio-settings');await idle();
+  await click('standalone-frequency');
+  await evaluate(`document.getElementById('standalone-frequency').focus();document.execCommand('selectAll');document.execCommand('insertText',false,'144489000')`);
+  assert.equal(await evaluate(`document.getElementById('standalone-frequency').value`),'144489000','native dial input retains all nine 2 m digits');
+  await click('standalone-frequency-discard');await idle();
 }

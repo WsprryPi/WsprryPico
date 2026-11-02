@@ -16,6 +16,13 @@ struct RateObservation {
     std::uint64_t generation = 0;
 };
 
+struct LocalFrequencyReference {
+    std::uint64_t sampled_raw_ns = 0, valid_until_raw_ns = 0, generation = 0;
+    std::int32_t rate_ppb = 0;
+    std::uint32_t uncertainty_ppb = 0;
+    bool operator==(const LocalFrequencyReference&) const = default;
+};
+
 class ObservationSink {
   public:
     virtual ~ObservationSink() = default;
@@ -41,6 +48,14 @@ class ObservationSink {
         (void)model;
         (void)max_clock_error_ppb;
         return false; // A sink must explicitly support age-preserving model import.
+    }
+    virtual bool observe_frequency_reference(const LocalFrequencyReference&, std::uint64_t) {
+        return false;
+    }
+    virtual void retire_frequency_reference(std::uint64_t, bool) {}
+    // Empty means that no browser epoch owns this rate-reference status.
+    virtual std::string_view browser_frequency_reference_status(std::uint64_t) const {
+        return {};
     }
     virtual void invalidate(ObservationSource source) = 0;
     // Independent trusted frequency disagreement cannot be bypassed by

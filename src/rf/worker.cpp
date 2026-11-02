@@ -73,17 +73,32 @@ void WorkerEngine::step() {
     case Op::Metrics:
         break;
     case Op::Prepare:
-        prepared_ = safety_inhibited() ? wtp::PrepareResult{} : engine_.prepare(*job_);
+        prepared_ = safety_inhibited() || background_suspended_ ? wtp::PrepareResult{}
+                                                                : engine_.prepare(*job_);
         break;
     case Op::Schedule:
         conditions_.clock = &worker_clock_;
-        result_ = !safety_inhibited() && engine_.schedule(*job_, instant_, conditions_);
+        result_ = !safety_inhibited() && !background_suspended_ &&
+                  engine_.schedule(*job_, instant_, conditions_);
         break;
     case Op::Disable:
         result_ = engine_.disable(instant_);
         break;
     case Op::Correct:
-        result_ = !safety_inhibited() && engine_.set_frequency_correction_ppb(correction_);
+        result_ = !safety_inhibited() && !background_suspended_ &&
+                  engine_.set_frequency_correction_ppb(correction_);
+        break;
+    case Op::Suspend:
+        result_ = !background_suspended_ && worker_state_ == wtp::EngineState::Idle &&
+                  !engine_.output_active() &&
+                  (!background_pause_ || background_pause_(instant_, background_context_));
+        if (result_)
+            background_suspended_ = true;
+        break;
+    case Op::Resume:
+        if (background_suspended_ && background_resume_)
+            background_resume_(background_context_);
+        background_suspended_ = false;
         break;
     }
     check_safety();
@@ -160,5 +175,13 @@ WorkerEngine::Metrics WorkerEngine::metrics() {
     auto result = reply_metrics_;
     result.max_roundtrip_ns = max_roundtrip_;
     return result;
+}
+bool WorkerEngine::suspend_background(std::uint64_t deadline) {
+    instant_ = deadline;
+    call(Op::Suspend);
+    return result_;
+}
+void WorkerEngine::resume_background() {
+    call(Op::Resume);
 }
 } // namespace wsprrypico::rf

@@ -93,12 +93,29 @@ def rebase(value):
         return [rebase(item) for item in value]
     return value
 assert SCHEMA['$defs']['wtp']['$defs'] == rebase(wtp)
+# Conditional refinements intersect the closed base resource definition. They
+# cannot add fields; verify that closure rather than requiring each refinement
+# to redeclare every field with additionalProperties:false.
+def closed_si5351_refinement(value, path):
+    if (len(path) < 6 or path[:2] != ('si5351', 'allOf') or
+            path[3:5] != ('then', 'properties')):
+        return False
+    family = {'boot_active': 'si5351-settings', 'runtime': 'si5351-runtime'}.get(path[5])
+    if family is None:
+        return False
+    base = SCHEMA['$defs']['si5351']['properties'][path[5]]
+    if {'$ref': '#/$defs/' + family} not in base.get('anyOf', []):
+        return False
+    closed = SCHEMA['$defs'][family]
+    return (closed.get('additionalProperties') is False and
+            set(value.get('properties', {})) <= set(closed.get('properties', {})))
+
 # No placeholder broad unions or unclosed application objects remain.
 def inspect(value, path=()):
     if isinstance(value, dict):
         assert not isinstance(value.get('type'), list), path
         if value.get('type') == 'object' and '$defs' not in value:
-            assert value.get('additionalProperties') is False or 'const' in value or path == ('capabilities', 'properties', 'features') or path[-1:] == ('contains',), path
+            assert value.get('additionalProperties') is False or 'const' in value or path == ('capabilities', 'properties', 'features') or path[-1:] == ('contains',) or closed_si5351_refinement(value, path), path
         for key, item in value.items(): inspect(item, path + (key,))
     elif isinstance(value, list):
         for index, item in enumerate(value): inspect(item, path + (index,))

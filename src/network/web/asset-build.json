@@ -7,11 +7,11 @@
     "app.min.js": {
       "inputs": {
         "submission.js": "6119ce1314b0ea7626242259173c2b54c0d97c1dae4434cc9360a3b18e4ac392",
-        "control-contract.js": "648fff721bb712184e6868dc0495b90685d73bf99ced90f7113ca58b52f3da62",
-        "si5351.js": "bd858ea98e5fe5c32b8965f9ab9ecce74e86e3f5ded95af43ac62ce6676fb594",
+        "control-contract.js": "0a6f0eab4204ded945f36b154932c720e7ac34002f7b678640f3e3730e458483",
+        "si5351.js": "edab088a7ce392a208b6026c8b0fe62e2caf5763d63908fcf14d78017d61d4ff",
         "udp-logging.js": "c75a07a806f16007424d530f8983beaff6a77d14dfbe440cdd159b1f28ceae0b",
         "operations.js": "50238b10de775b5520bd1fb8a4ca6c41284f3b75c0c67448d8f8c3c612fb5d0e",
-        "standalone-frequency.js": "4f25017d87f11ddfd571b6737aa0b7963e0790b8eb6f2f5bc2d47050ef4e6bc8",
+        "standalone-frequency.js": "690df1c89b02c8075f149b1d48644dee0c2fb8f87d923303822bc804766c1c7e",
         "rf-calibration.js": "4d874739cfd33b25af459146c115f86cf777ab3823a00fb368441de4b52d8729",
         "amplifier-enable.js": "40d804e65e7f9a0889d2188e5139880c72a65914c9153c1ee11cf6869ba37e08",
         "amplifier-timing.js": "8938ca77042a6d3650b22b0cb4fff8a822e83ae2b178513f8ccdb43d678e09b9",
@@ -23,8 +23,8 @@
         "message-schedule.js": "e7eaae7bef7c033031b98541c1a81229e143bb0bbd7627484fbb561ee4278ccc",
         "app.js": "cd8772fe2030f602ab39b2dddadb6f371119db4d7a5d62967ec53188f3c0b32d"
       },
-      "sha256": "6c7e66d91ebb72982730c611ba6f2b147f89368feb1dacd94405408d7ad04dea",
-      "bytes": 252782
+      "sha256": "3a27aa2539107b9472ff36aaa4581e8b9f260f873216f5af4e6b4e6ad8162ac7",
+      "bytes": 255681
     },
     "config-validation.min.js": {
       "inputs": {

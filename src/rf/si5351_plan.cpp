@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "rf/si5351_plan.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <numeric>
 
@@ -104,6 +105,69 @@ std::optional<Tone> tone(std::uint64_t requested, long double target, long doubl
                                                (drive / 2 - 1));
     return result;
 }
+std::optional<Tone> pll_tone(std::uint64_t requested, long double target, std::uint32_t reference,
+                             unsigned drive, unsigned integer_ms, long double maximum_error,
+                             std::uint32_t low, std::uint32_t high, std::uint32_t common_p1,
+                             std::uint32_t& remaining_candidates) {
+    if ((integer_ms != 4 && integer_ms != 6) || target <= 0 || target > maximum_output_hz ||
+        target * integer_ms < 600'000'000 || target * integer_ms > 900'000'000)
+        return {};
+    const auto ratio = target * integer_ms / reference;
+    if (ratio < 15 || ratio > 90)
+        return {};
+    const auto integer = static_cast<std::uint32_t>(std::floor(ratio));
+    const auto fraction = ratio - integer;
+    for (auto c = high; c >= low && remaining_candidates; --c) {
+        --remaining_candidates;
+        auto b = static_cast<std::uint32_t>(std::round(fraction * c));
+        if (std::fabs(fraction * c - b) > maximum_error * integer_ms / reference * c)
+            continue;
+        auto a = integer;
+        if (b == c) {
+            ++a;
+            b = 0;
+        }
+        Divider pll;
+        pll.integer = a;
+        pll.numerator = b;
+        pll.denominator = c;
+        const auto d = 128ULL * b / c;
+        pll.p1 = static_cast<std::uint32_t>(128ULL * a + d - 512);
+        pll.p2 = static_cast<std::uint32_t>(128ULL * b - c * d);
+        pll.p3 = c;
+        if (pll.p1 != common_p1)
+            continue;
+        const auto p = pll.p1, q = pll.p2;
+        pll.registers = {static_cast<std::uint8_t>(c >> 8),
+                         static_cast<std::uint8_t>(c),
+                         static_cast<std::uint8_t>((p >> 16) & 3),
+                         static_cast<std::uint8_t>(p >> 8),
+                         static_cast<std::uint8_t>(p),
+                         static_cast<std::uint8_t>(((c >> 16) << 4) | ((q >> 16) & 15)),
+                         static_cast<std::uint8_t>(q >> 8),
+                         static_cast<std::uint8_t>(q)};
+        Tone result;
+        result.requested_nhz = requested;
+        result.programmed_hz = target;
+        result.pll = pll;
+        result.multisynth.integer = integer_ms;
+        result.multisynth.p1 = integer_ms == 6 ? 256 : 0;
+        result.multisynth.registers = {0,
+                                       1,
+                                       static_cast<std::uint8_t>(integer_ms == 4 ? 0x0c : 0),
+                                       static_cast<std::uint8_t>(result.multisynth.p1 >> 8),
+                                       static_cast<std::uint8_t>(result.multisynth.p1),
+                                       0,
+                                       0,
+                                       0};
+        result.control = static_cast<std::uint8_t>(0x4c | (drive / 2 - 1));
+        result.achieved_hz = pll.ratio() * reference / integer_ms;
+        result.error_hz = result.achieved_hz - target;
+        if (std::fabs(result.error_hz) <= maximum_error)
+            return result;
+    }
+    return {};
+}
 } // namespace
 long double Divider::ratio() const {
     return integer + static_cast<long double>(numerator) / denominator;
@@ -175,17 +239,72 @@ Result plan(const Configuration& config, std::span<const std::uint64_t> frequenc
         return {{}, "invalid_pll"};
     result.transmit_pll = *pll;
     result.transmit_pll_hz = pll->ratio() * config.reference_hz;
+    long double lowest = maximum_output_hz, highest = 0;
     for (const auto requested : frequencies) {
         const auto target = static_cast<long double>(requested) / 1'000'000'000 / factor;
-        const auto value =
-            tone(requested, target, result.transmit_pll_hz, config.drive_ma, false, maximum_error);
-        if (!value)
+        if (requested < minimum_output_hz * 1'000'000'000ULL || target > maximum_output_hz)
             return {{}, "unsupported_frequency_or_quantization"};
-        result.tone_storage[result.tone_count++] = *value;
+        lowest = std::min(lowest, target);
+        highest = std::max(highest, target);
+    }
+    unsigned integer_ms = 0;
+    if (highest > result.transmit_pll_hz / 8) {
+        if (lowest * 6 >= 600'000'000 && highest * 6 <= 900'000'000)
+            integer_ms = 6;
+        else if (lowest * 4 >= 600'000'000 && highest * 4 <= 900'000'000)
+            integer_ms = 4;
+        else
+            return {{}, "incompatible_pll_tone_set"};
+    }
+    if (integer_ms) {
+        const auto initial_ratio = static_cast<long double>(frequencies.front()) / 1e9L / factor *
+                                   integer_ms / config.reference_hz;
+        const auto common_p1 = static_cast<std::uint32_t>(std::floor(128 * initial_ratio) - 512);
+        for (const auto requested : frequencies) {
+            const auto ratio = static_cast<long double>(requested) / 1e9L / factor * integer_ms /
+                               config.reference_hz;
+            if (static_cast<std::uint32_t>(std::floor(128 * ratio) - 512) != common_p1)
+                return {{}, "incompatible_vhf_feedback_integer"};
+        }
+        // Search at most sixteen bounded denominator bands. All live PLL
+        // tones share P1 and a <=4095 P3 span; no unstable rational fallback.
+        auto remaining_candidates = vhf_candidate_evaluations_maximum;
+        for (auto high = vhf_denominator_maximum;
+             high >= vhf_denominator_minimum && remaining_candidates;) {
+            const auto low = std::max(vhf_denominator_minimum, high - vhf_denominator_span_maximum);
+            result.tone_count = 0;
+            for (const auto requested : frequencies) {
+                const auto target = static_cast<long double>(requested) / 1e9L / factor;
+                const auto value =
+                    pll_tone(requested, target, config.reference_hz, config.drive_ma, integer_ms,
+                             maximum_error, low, high, common_p1, remaining_candidates);
+                if (!value)
+                    break;
+                result.tone_storage[result.tone_count++] = *value;
+            }
+            if (result.tone_count == frequencies.size())
+                break;
+            if (low == vhf_denominator_minimum)
+                break;
+            high = low - 1;
+        }
+        if (result.tone_count != frequencies.size())
+            return {{}, "unsupported_vhf_tone_family"};
+        result.transmit_pll = *result.tones().front().pll;
+        result.transmit_pll_hz = result.transmit_pll.ratio() * config.reference_hz;
+    } else {
+        for (const auto requested : frequencies) {
+            const auto target = static_cast<long double>(requested) / 1e9L / factor;
+            const auto value = tone(requested, target, result.transmit_pll_hz, config.drive_ma,
+                                    false, maximum_error);
+            if (!value)
+                return {{}, "unsupported_frequency_or_quantization"};
+            result.tone_storage[result.tone_count++] = *value;
+        }
     }
     if (config.loopback) {
         result.loopback_pll = *pll;
-        result.loopback_pll_hz = result.transmit_pll_hz;
+        result.loopback_pll_hz = pll->ratio() * config.reference_hz;
         result.loopback = tone(1'000'000'000'000'000ULL, 1'000'000, result.loopback_pll_hz, 2, true,
                                maximum_error);
         if (!result.loopback)

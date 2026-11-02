@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
+#include "hardware/si5351_qualification.hpp"
 #include "network_support.hpp"
 #include "rf/si5351_observation.hpp"
 #include "standalone/frequency_policy_engine.hpp"
+#include "standalone/wtp_profile.hpp"
 
 #include <iostream>
 
@@ -57,6 +59,32 @@ void strict_settings() {
     zero.synthesis.loopback.reset();
     zero.loopback_input.reset();
     REQUIRE(hardware::parse_si5351(hardware::serialize_si5351(zero)) == zero);
+}
+void qualification_scope() {
+    auto pins = hardware::PinPlan{};
+    pins.engine = hardware::PinPlan::Engine::I2c;
+    pins.rf.reset();
+    pins.i2c_pair = 1;
+    auto s = settings();
+    s.synthesis.drive_ma = hardware::si5351_support::drive_ma;
+    REQUIRE(hardware::si5351_profile_matches(pins, s, 138'000'000));
+    REQUIRE(!hardware::si5351_profile_matches(pins, s, 132'000'000));
+    pins.i2c_pair = 2;
+    REQUIRE(!hardware::si5351_profile_matches(pins, s, 138'000'000));
+    pins.i2c_pair = 1;
+    s.synthesis.drive_ma = 4;
+    REQUIRE(!hardware::si5351_profile_matches(pins, s, 138'000'000));
+    s = settings();
+    s.synthesis.drive_ma = hardware::si5351_support::drive_ma;
+    s.synthesis.reference_hz = 27'000'000;
+    REQUIRE(!hardware::si5351_profile_matches(pins, s, 138'000'000));
+    s = settings();
+    s.synthesis.drive_ma = hardware::si5351_support::drive_ma;
+    s.synthesis.loopback.reset();
+    s.loopback_input.reset();
+    REQUIRE(hardware::si5351_profile_matches(pins, s, 138'000'000));
+    REQUIRE(hardware::si5351_ordinary_qualified(pins, s, 138'000'000) ==
+            hardware::si5351_support::qualified);
 }
 void measurement_publication_age() {
     const auto m =
@@ -136,7 +164,7 @@ void atomic_save_and_reboot_latch() {
     REQUIRE(f.store.config() == inactive);
 }
 } // namespace
-int main(int argc, char**) {
+int main(int argc, char** argv) {
     if (argc > 1) {
         network_test::Fixture f;
         auto config = *standalone::parse_config(network_test::config);
@@ -144,9 +172,17 @@ int main(int argc, char**) {
         config.pins.rf.reset();
         config.pins.i2c_pair = 1;
         config.si5351 = settings();
+        const bool matched_profile = std::string_view(argv[1]) == "--qualified-samples";
+        if (matched_profile)
+            config.si5351->synthesis.drive_ma = hardware::si5351_support::drive_ma;
         REQUIRE(f.store.save(config));
-        standalone::Scheduler scheduler(f.store, f.service);
-        network::BrowserApi api(f.service, f.store, scheduler, f.network, std::string(32, 'a'),
+        const auto service_policy = standalone::wtp_profile(
+            matched_profile, standalone::default_ntp_timeout_s,
+            hardware::PinPlan::Engine::I2c, false,
+            hardware::si5351_ordinary_qualified(config.pins, *config.si5351, rf::sample_rate));
+        wtp::JobService service(f.clock, f.engine, f.identities, service_policy);
+        standalone::Scheduler scheduler(f.store, service);
+        network::BrowserApi api(service, f.store, scheduler, f.network, std::string(32, 'a'),
                                 "test");
         rf::si5351::Engine::Observation observation;
         observation.transmit = observation.reference =
@@ -168,6 +204,7 @@ int main(int argc, char**) {
         return 0;
     }
     strict_settings();
+    qualification_scope();
     measurement_publication_age();
     atomic_save_and_reboot_latch();
     std::cout

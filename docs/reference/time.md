@@ -28,6 +28,12 @@ In **Transmitter status**, choose **Refresh** and read **Clock**:
 
 The value after **±** is the estimated timing uncertainty, in **ms** (milliseconds), not a countdown. With a finite NTP timeout, excessive uncertainty blocks new timed starts. Set the timeout in **Time and calibration**; **0** removes the Pico's NTP age and uncertainty cutoffs while keeping the uncertainty visible. An external controller can still request a stricter timing limit. After a restart, the Pico needs fresh time observations; saved clock-rate estimates do not preserve the current date and time.
 
+## Use a trusted loopback while offline
+
+With a supported Si5351 module and its loopback connected, **Trust local reference for Pico rate** can reduce timer drift after your phone supplies UTC through the authenticated Pico AP page. The phone supplies the date and time; the loopback helps maintain the clock rate. Configure its wiring and a known oscillator uncertainty in [Si5351 output settings](../configure.md#si5351-output-settings).
+
+Loopback readings do not refresh the phone sample. Browser time still expires after at most one hour or when estimated uncertainty exceeds 500 ms. A lost loopback retains the learned rate under conservative uncertainty growth; removing trusted use returns to the uncorrected timer rate without stepping UTC. The initial phone-clock error remains. This does not provide GPS timing or calibrate RF frequency.
+
 (manual-frequency-correction)=
 ## Manual frequency correction
 

@@ -12,6 +12,12 @@
 namespace wsprrypico::rf::si5351 {
 // AN619 rev. 0.8 register arithmetic, implemented independently. These plans
 // describe synthesis, never measured timing, lock, electrical safety or RF.
+inline constexpr std::uint64_t minimum_output_hz = 8'000;
+inline constexpr std::uint64_t maximum_output_hz = 160'000'000;
+inline constexpr std::uint32_t vhf_denominator_minimum = 983'040;
+inline constexpr std::uint32_t vhf_denominator_maximum = 1'048'575;
+inline constexpr std::uint32_t vhf_denominator_span_maximum = 4095;
+inline constexpr std::uint32_t vhf_candidate_evaluations_maximum = 32'768;
 enum class Output : std::uint8_t { Clk0, Clk1, Clk2 };
 enum class Reference { Crystal, ExternalXa };
 struct Configuration {
@@ -35,6 +41,7 @@ struct Tone {
     std::uint64_t requested_nhz = 0;
     long double programmed_hz = 0, achieved_hz = 0, error_hz = 0;
     Divider multisynth;
+    std::optional<Divider> pll; // VHF: fixed integer MultiSynth, tone-specific PLLA.
     unsigned r_divider = 1;
     std::uint8_t control = 0;
 };
@@ -50,7 +57,7 @@ bool valid_reference_plan(const ReferencePlan&);
 struct Plan {
     bool operator==(const Plan&) const = default;
     Configuration configuration;
-    Divider transmit_pll; // PLLA; unchanged across all transmitted symbols.
+    Divider transmit_pll; // Initial PLLA; HF keeps it fixed across symbols.
     static constexpr unsigned maximum_tones = 4;
     std::array<Tone, maximum_tones> tone_storage{};
     unsigned tone_count = 0;

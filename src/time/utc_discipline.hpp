@@ -44,6 +44,9 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
                 !(config_.unlimited_ntp_holdover &&
                   observation_source_ == ObservationSource::Sntp));
     }
+    // Change only the slope of an accepted browser epoch. Preserve its UTC
+    // continuity, accumulated uncertainty and original source age.
+    bool adjust_browser_rate(std::int32_t rate_ppb, std::uint32_t uncertainty_ppb);
     void invalidate();
     void invalidate(ObservationSource) override {
         invalidate();
@@ -65,7 +68,7 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
     std::uint64_t generation_ = 0;
     wtp::LeapState leap_ = wtp::LeapState::Unknown;
     std::optional<std::uint64_t> leap_transition_utc_ns_;
-    bool imported_ntp_ = false;
+    bool imported_ntp_ = false, browser_rate_model_ = false;
     ObservationSource observation_source_ = ObservationSource::Sntp;
     std::uint64_t source_ns_ = 0, imported_generation_ = 0, rate_until_ns_ = UINT64_MAX;
     std::int32_t subsequent_rate_ppb_ = 0;

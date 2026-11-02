@@ -87,6 +87,16 @@ class WorkerEngine final : public wtp::RfEngine {
         bool stack_guard_valid = false;
     };
     Metrics metrics();
+    // Core 0 requests; callbacks execute only on the RF owner. A successful
+    // suspend must be paired with resume after the SDK's flash safe zone exits.
+    bool suspend_background(std::uint64_t deadline_ns);
+    void resume_background();
+    void set_background_control(bool (*pause)(std::uint64_t, void*), void (*resume)(void*),
+                                void* context) {
+        background_pause_ = pause;
+        background_resume_ = resume;
+        background_context_ = context;
+    }
     void set_probe(void (*probe)(Metrics&, void*), void* context) {
         probe_ = probe;
         probe_context_ = context;
@@ -115,7 +125,7 @@ class WorkerEngine final : public wtp::RfEngine {
     }
 
   private:
-    enum class Op { Inspect, Metrics, Prepare, Schedule, Disable, Correct };
+    enum class Op { Inspect, Metrics, Prepare, Schedule, Disable, Correct, Suspend, Resume };
     void call(Op) const;
     void check_safety();
     wtp::RfEngine& engine_;
@@ -152,6 +162,10 @@ class WorkerEngine final : public wtp::RfEngine {
     void* safety_context_ = nullptr;
     std::atomic<bool> safety_inhibited_{false};
     bool safety_stopped_ = false;
+    bool background_suspended_ = false;
+    bool (*background_pause_)(std::uint64_t, void*) = nullptr;
+    void (*background_resume_)(void*) = nullptr;
+    void* background_context_ = nullptr;
     mutable std::uint64_t max_roundtrip_ = 0;
 };
 static_assert(std::atomic<unsigned>::is_always_lock_free);

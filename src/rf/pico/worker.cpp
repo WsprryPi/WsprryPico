@@ -1,6 +1,8 @@
 #include "rf/pico/worker.hpp"
 
+#include "hardware/clocks.h"
 #include "hardware/gpio.h"
+#include "hardware/si5351_qualification.hpp"
 #include "hardware/structs/watchdog.h"
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
 #include "provisioning/button_safety.hpp"
@@ -15,6 +17,8 @@
 
 #include <algorithm>
 #include <memory>
+
+extern "C" int __real_flash_safe_execute(void (*)(void*), void*, std::uint32_t);
 
 namespace wsprrypico::rf {
 namespace {
@@ -106,9 +110,12 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
         static si5351::PicoExecutionPlatform platform(
             pins, *settings, filters ? filters->settings() : hardware::FilterSettings{}, bus,
             device);
-        static si5351::Engine engine(settings->synthesis, device, platform,
-                                     WSPRRY_PICO_SI5351_ENGINEERING, &indicator, amplifier,
-                                     filters);
+        static si5351::Engine engine(
+            settings->synthesis, device, platform, WSPRRY_PICO_SI5351_ENGINEERING, &indicator,
+            amplifier, filters,
+            hardware::si5351_ordinary_qualified(pins, *settings, clock_get_hz(clk_sys),
+                                                filters ? filters->settings()
+                                                        : hardware::FilterSettings{}));
         si_engine = &engine;
         si_platform = &platform;
         selected = &engine;
@@ -119,6 +126,13 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
     }
     static WorkerEngine proxy(*selected, clock, now, wait, failure, save_and_disable_interrupts,
                               restore_interrupts);
+    if (si_engine)
+        proxy.set_background_control(
+            [](std::uint64_t deadline, void* context) {
+                return static_cast<si5351::Engine*>(context)->suspend_background(deadline);
+            },
+            [](void* context) { static_cast<si5351::Engine*>(context)->resume_background(); },
+            si_engine);
     if (worker)
         failure();
     if (storage_healthy) {
@@ -211,4 +225,27 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
     }
     return proxy;
 }
+int guarded_flash_execute(void (*operation)(void*), void* context, std::uint32_t timeout_ms) {
+    // SDK lockout can interrupt an in-flight idle reference I2C transfer. Pause
+    // and acknowledge it on its owner before asking the SDK to halt that core.
+    // Early startup has no worker; the SDK retains its normal safety checks.
+    static bool active = false; // Core 0 only; reject nested flash callbacks.
+    if (get_core_num() != 0 || active)
+        return PICO_ERROR_NOT_PERMITTED;
+    active = true;
+    if (worker && !worker->suspend_background(now() + 100'000'000ULL)) {
+        active = false;
+        return PICO_ERROR_NOT_PERMITTED;
+    }
+    const auto result = __real_flash_safe_execute(operation, context, timeout_ms);
+    if (worker)
+        worker->resume_background();
+    active = false;
+    return result;
+}
 } // namespace wsprrypico::rf
+
+extern "C" int __wrap_flash_safe_execute(void (*operation)(void*), void* context,
+                                         std::uint32_t timeout_ms) {
+    return wsprrypico::rf::guarded_flash_execute(operation, context, timeout_ms);
+}

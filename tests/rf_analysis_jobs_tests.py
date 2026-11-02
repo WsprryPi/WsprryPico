@@ -2,11 +2,40 @@
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
+import subprocess
+import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from rf_analysis.jobs import CLOCKS, MODES, make_job
 from wsprrypi_qualification.cw_defaults import hardware_free_keyed_protocol
 from wsprrypi_qualification.cw_reference import generate_expected_events
+
+
+class WsprDecodeAcceptanceTests(unittest.TestCase):
+    def test_expected_decode_accepts_waveform_diagnostics_but_rejects_other_messages_and_errors(self):
+        import numpy as np
+        from rf_analysis.measurements import wspr
+
+        report = dict(intervals_s=[[1., 111.592]], measurements=[],
+                      relative_checks_passed=False,
+                      issues=['Transition fit residual exceeds 0.15 Hz at symbol 1'])
+        expected = '0000 -12 0.1 14.097100 0 AA0NT EM18 37\n'
+        for stdout, code, accepted in ((expected, 0, True),
+                                       (expected.replace('AA0NT', 'AA0XX'), 0, False),
+                                       (expected, 1, False), ('', 0, False)):
+            with self.subTest(stdout=stdout, code=code), tempfile.TemporaryDirectory() as temporary:
+                with patch('rf_analysis.measurements.measure', return_value=report), \
+                     patch('rf_analysis.measurements.audio_from_iq', return_value=np.zeros(120, dtype=np.int16)), \
+                     patch('rf_analysis.measurements.spectrum', return_value={}), \
+                     patch('rf_analysis.measurements.subprocess.run', return_value=subprocess.CompletedProcess([], code, stdout, '')):
+                    result = wspr(np.zeros(1200, dtype=np.complex64), 10, 14095600,
+                                  14097100, Path(temporary), '/test/wsprd', 1800000001)
+                self.assertEqual(result['passed'], accepted)
+                self.assertEqual(result['decoded'], accepted)
+                self.assertFalse(result['waveform_checks_passed'])
+                self.assertEqual(result['measurement']['issues'], report['issues'])
 
 
 class SampleJobTests(unittest.TestCase):
@@ -60,6 +89,16 @@ class SampleJobTests(unittest.TestCase):
             with self.subTest(mode=mode, frequency=frequency), self.assertRaises(ValueError):
                 make_job(mode, frequency)
 
+
+
+class Si5351JobTests(unittest.TestCase):
+    def test_vhf_uses_explicit_engine_limits(self):
+        for mode in MODES:
+            high=make_job(mode,144490500,engine='si5351')
+            self.assertTrue(all(not e['rf_on'] or int(e['frequency_nhz'])>144000000000000000 for e in high['events']))
+            with self.assertRaises(ValueError):make_job(mode,144490500)
+        for engine in ('other','si5351'):
+            with self.assertRaises(ValueError):make_job('TONE',160000001,engine=engine)
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,30 +14,30 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[:0] = [str(ROOT / "src"), str(ROOT / "scripts")]
 from rf_analysis.jobs import make_job
-from rf_analysis.measurements import keyed, spectrum
+from rf_analysis.measurements import complete_carrier_windows, keyed, spectrum
 
 
-def synth(job, *, extra=False, wrong_shift=False, dropout=False):
+def synth(job, *, extra=False, wrong_shift=False, dropout=False, base_frequency=3570100, noise_amplitude=.0001, signal_amplitude=.2):
     rate = 12000
     duration = int(job["total_duration_ns"]) / 1e9 + 4
     count = round(duration * rate)
     rng = np.random.default_rng(71)
-    iq = 0.0001 * (rng.normal(size=count) + 1j * rng.normal(size=count))
+    iq = noise_amplitude * (rng.normal(size=count) + 1j * rng.normal(size=count))
     phase = 0.0
     for event in job["events"]:
         if not event["rf_on"]:
             continue
         a = round((2 + int(event["offset_ns"]) / 1e9) * rate)
         b = a + round(int(event["duration_ns"]) / 1e9 * rate)
-        frequency = int(event["frequency_nhz"]) / 1e9 - 3570100
+        frequency = int(event["frequency_nhz"]) / 1e9 - base_frequency
         if wrong_shift:
             frequency = 0
         angle = phase + 2 * np.pi * (2000 + frequency) * np.arange(b - a) / rate
-        iq[a:b] += 0.2 * np.exp(1j * angle)
+        iq[a:b] += signal_amplitude * np.exp(1j * angle)
         phase = angle[-1] + 2 * np.pi * (2000 + frequency) / rate
     if extra:
         a = round(0.8 * rate)
-        iq[a : a + 1200] += 0.2 * np.exp(2j * np.pi * 2000 * np.arange(1200) / rate)
+        iq[a : a + 1200] += signal_amplitude * np.exp(2j * np.pi * 2000 * np.arange(1200) / rate)
     if dropout:
         a = round(3.2 * rate)
         iq[a : a + 100] = 0.0001
@@ -203,6 +203,37 @@ class AnalysisTests(unittest.TestCase):
         self.assertFalse(report["passed"])
         self.assertIn("keyed frequency transition timing failed", report["issues"])
 
+
+
+class LowFrequencyKeyedTests(unittest.TestCase):
+    def test_temporal_guard_covers_short_tail_with_uniform_aperture(self):
+        import math
+        for count in (1200250,1200000,1200001,5000,5001):
+            intervals,coverage=complete_carrier_windows(count,250000,262144)
+            windows=[(a,min(a+5000,b)) for left,right in intervals
+                     for a,b in [(math.ceil(left*250000),math.floor(right*250000))]
+                     for a in range(a,b,5000)]
+            self.assertTrue(all(b-a==5000 for a,b in windows))
+            covered=np.zeros(count,dtype=bool)
+            for a,b in windows:covered[a:b]=True
+            self.assertTrue(np.all(covered))
+            self.assertEqual(coverage['covered_samples'],count)
+
+
+    def test_low_frequency_modes_and_false_passes(self):
+        for mode in ('QRSS','FSKCW','DFCW'):
+            job=make_job(mode,137500,engine='si5351')
+            parameters=dict(base_frequency=137500,signal_amplitude=.01,
+                            noise_amplitude=.01*3*np.sqrt(12000/100000))
+            iq,rate=synth(job,**parameters)
+            report=keyed(iq,rate,135500,137500,job)
+            self.assertTrue(report['passed'],(mode,report['issues']))
+            self.assertTrue(report['acquisition']['passed'])
+            bad,rate=synth(job,extra=True,**parameters)
+            self.assertFalse(keyed(bad,rate,135500,137500,job)['passed'])
+            if mode!='QRSS':
+                bad,rate=synth(job,wrong_shift=True,**parameters)
+                self.assertFalse(keyed(bad,rate,135500,137500,job)['passed'])
 
 if __name__ == "__main__":
     unittest.main()

@@ -77,10 +77,18 @@ bool NtpClient::frequency_reference(const std::optional<microchrony::FrequencyRe
     if (!value)
         core_.retire_frequency_reference(now);
     (void)apply(now); // Imports the original UTC source age, never the reference timestamp.
+    if (accepted && value)
+        (void)clock_.observe_frequency_reference({value->sampled_raw_ns, value->valid_until_raw_ns,
+                                                  value->generation, value->rate_ppb,
+                                                  value->uncertainty_ppb},
+                                                 now);
+    else if (!value)
+        clock_.retire_frequency_reference(now, false);
     return accepted;
 }
 void NtpClient::clear_frequency_reference(std::uint64_t now) {
     core_.clear_frequency_reference(now);
+    clock_.retire_frequency_reference(now, true);
     (void)apply(now);
 }
 std::optional<std::array<std::uint8_t, 48>>

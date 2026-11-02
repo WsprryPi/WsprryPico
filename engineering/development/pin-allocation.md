@@ -1,6 +1,6 @@
 # Pin allocation feature
 
-The [selected contract](../pin-assignment-contract.md) defines hardware eligibility. This implementation adds pin-plan validation and boot-applied assignments for direct PIO RF, active-low switch input, the shared indicator, and optional amplifier enable with independent polarity. Si5351 uses an exclusive approved I²C pair with separate loopback/gate resources and engineering-gated execution. These checks do not qualify RF performance on newly selected pins. The [amplifier record](amplifier-enable.md) documents its immediate launch/cleanup policy and evidence limits.
+The [selected contract](../pin-assignment-contract.md) defines hardware eligibility. This implementation adds pin-plan validation and boot-applied assignments for direct PIO RF, active-low switch input, the shared indicator, and optional amplifier enable with independent polarity. Si5351 uses an exclusive approved I²C pair with separate loopback/gate resources and qualified-profile or engineering-gated execution. These checks do not qualify RF performance on newly selected pins. The [amplifier record](amplifier-enable.md) documents its immediate launch/cleanup policy and evidence limits.
 
 ## Management API
 

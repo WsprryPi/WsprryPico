@@ -3,8 +3,13 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs'), vm = require('node:vm');
 const {frequency,supported,create} = require('../src/network/web/standalone-frequency.js');
 const element = value => ({value,disabled:false,hidden:false,textContent:'',setAttribute(k,v){this[k]=v;}});
-for (const value of ['', '0', '1e7', '14095600.0', '14,095,600', '-1', '14.0956MHz', '14095600Hz', '14095600 Hz', '014095600', ' 14095600', '74998497']) assert.equal(frequency(value),null);
+for (const value of ['', '0', '1e7', '14095600.0', '14,095,600', '-1', '14.0956MHz', '14095600Hz', '14095600 Hz', '014095600', ' 14095600', '6502', '159998497']) assert.equal(frequency(value),null);
 assert.equal(frequency('14095600'),14095600);
+const siRanges=[{minimum_nhz:'8000000000000',maximum_nhz:'160000000000000000'}];
+for(const value of ['6503','144489000','159998496']) assert.equal(frequency(value,siRanges),Number(value));
+assert.equal(frequency('144489000',[{minimum_nhz:'100000000000000',maximum_nhz:'68999999000000000'}]),null);
+assert.equal(frequency('159998497',siRanges),null);
+
 for (const upper of ['65999999000000000','68999999000000000','74999999000000000']) {
   const ranges=[{minimum_nhz:'100000000000000',maximum_nhz:upper}];
   assert.equal(frequency('98503',ranges),98503); assert.equal(frequency('98502',ranges),null);

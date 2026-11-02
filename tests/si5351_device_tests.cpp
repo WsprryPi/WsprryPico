@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <vector>
 
 using namespace wsprrypico::rf::si5351;
 namespace {
@@ -11,6 +12,8 @@ struct MemoryBus : Bus {
     unsigned operations = 0, fail_at = 0, writes = 0;
     std::uint64_t expected_deadline = 100;
     bool corrupt = false;
+    std::vector<std::uint8_t> written;
+    std::vector<std::array<std::uint8_t, 256>> reset_maps;
     bool read(std::uint8_t reg, std::span<std::uint8_t> bytes, std::uint64_t deadline) override {
         assert(deadline == expected_deadline);
         if (++operations == fail_at)
@@ -24,13 +27,16 @@ struct MemoryBus : Bus {
                std::uint64_t deadline) override {
         assert(deadline == expected_deadline);
         ++writes;
+        written.push_back(reg);
         if (++operations == fail_at) {
             registers[reg] = bytes.front(); // Partial mutation before timeout/NACK.
             return false;
         }
         std::copy(bytes.begin(), bytes.end(), registers.begin() + reg);
-        if (reg == 177)
+        if (reg == 177) {
+            reset_maps.push_back(registers);
             registers[177] &= 0x5f; // Self-clearing bits.
+        }
         return true;
     }
 };
@@ -136,4 +142,61 @@ int main() {
     auto crystal = plan(config, frequencies, 0, 0.001L);
     assert(crystal.plan && transitions.configure(config, *crystal.plan, 100));
     assert(changed.registers[183] == 0x52 && changed.registers[3] == 0xff);
+    {
+        Configuration high_config{25'000'000,   Reference::ExternalXa, {},
+                                  Output::Clk0, Output::Clk2,          2};
+        const std::uint64_t high_frequencies[]{144'490'500'000'000'000ULL,
+                                               144'490'501'464'843'750ULL};
+        const auto high = plan(high_config, high_frequencies, 0, 0.001L);
+        assert(high.plan);
+        MemoryBus high_bus;
+        Device high_device(high_bus);
+        assert(high_device.configure(high_config, *high.plan, 100));
+        assert(high_device.locked(100));
+        assert(high_device.reference_enabled(true, 100));
+        const auto reference_map = high_bus.registers;
+        const std::uint64_t lf_frequencies[]{137'500'000'000'000ULL};
+        const auto lf = plan(high_config, lf_frequencies, 0, 0.001L);
+        assert(lf.plan);
+        for (const auto* replacement : {&*lf.plan, &*high.plan}) {
+            high_bus.reset_maps.clear();
+            assert(high_device.configure(high_config, *replacement, 100));
+            assert(high_bus.reset_maps.size() == 1);
+            const auto& reset = high_bus.reset_maps.front();
+            const auto& first = replacement->tones().front();
+            assert(std::equal(first.multisynth.registers.begin(), first.multisynth.registers.end(),
+                              reset.begin() + 42));
+            assert(reset[16] == (first.control | 0x80));
+            assert((reset[3] & 1) && !(reset[3] & 4)); // TX disabled, loopback still enabled.
+            assert((reset[177] & 0xa0) == 0x20);       // Only PLLA is reset.
+            assert(std::equal(reference_map.begin() + 34, reference_map.begin() + 42,
+                              reset.begin() + 34));
+            assert(std::equal(reference_map.begin() + 58, reference_map.begin() + 66,
+                              reset.begin() + 58));
+            assert(high_device.locked(100) && high_device.reference_locked());
+        }
+        assert(high_device.transmit_enabled(true, 100));
+        const auto before = high_bus.registers;
+        high_bus.written.clear();
+        assert(high_device.transmit_tone(high.plan->tones()[1], 100));
+        assert(high_bus.written == std::vector<std::uint8_t>{26});
+        assert(high_device.transmit_state() == ClockOutputState::RegisterEnabled);
+        assert(
+            std::equal(before.begin() + 34, before.begin() + 42, high_bus.registers.begin() + 34));
+        assert(
+            std::equal(before.begin() + 58, before.begin() + 66, high_bus.registers.begin() + 58));
+        assert(before[177] == high_bus.registers[177]);
+        assert(before[3] == high_bus.registers[3] && before[16] == high_bus.registers[16]);
+        high_bus.fail_at = high_bus.operations + 1;
+        assert(!high_device.transmit_tone(high.plan->tones()[0], 100));
+        assert(high_device.transmit_state() == ClockOutputState::Unknown);
+        const auto writes = high_bus.writes;
+        assert(!high_device.transmit_tone(high.plan->tones()[0], 100));
+        assert(high_bus.writes == writes); // No retry using a stale PLL/MS cache.
+        assert(high_device.quiesce(100));
+        high_bus.written.clear();
+        assert(high_device.configure(high_config, *high.plan, 100));
+        assert(std::find(high_bus.written.begin(), high_bus.written.end(), 42) !=
+               high_bus.written.end());
+    }
 }

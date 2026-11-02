@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "rf/si5351_plan.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <limits>
@@ -58,8 +59,68 @@ void frequency_plans() {
         const std::uint64_t frequencies[]{hz * 1'000'000'000};
         assert(plan(config, frequencies, 0, 0.001L).plan);
     }
-    const std::uint64_t invalid[]{144'490'500'000'000'000ULL};
+    const std::uint64_t invalid[]{160'000'001'000'000'000ULL};
     assert(!plan(config, invalid, 0, 0.001L).plan);
+    for (const auto reference : {25'000'000u, 27'000'000u}) {
+        config.reference_hz = reference;
+        const auto reference_plan = plan_reference(config);
+        assert(reference_plan);
+        for (const auto base : {144'490'500ULL, 159'000'000ULL}) {
+            std::array<std::uint64_t, 4> vhf{};
+            for (unsigned i = 0; i < 4; ++i)
+                vhf[i] = base * 1'000'000'000 + i * 1'464'843'750ULL;
+            const auto high = plan(config, vhf, 0, 0.001L);
+            assert(high.plan && valid_plan(*high.plan));
+            assert(high.plan->loopback_pll == reference_plan->pll);
+            assert(high.plan->loopback->multisynth == reference_plan->output.multisynth);
+            auto minimum_c = vhf_denominator_maximum, maximum_c = 0U;
+            const auto common_p1 = high.plan->tones().front().pll->p1;
+            for (unsigned i = 0; i < 4; ++i) {
+                const auto& t = high.plan->tones()[i];
+                minimum_c = std::min(minimum_c, t.pll->denominator);
+                maximum_c = std::max(maximum_c, t.pll->denominator);
+                assert(t.pll->p1 == common_p1);
+                assert(t.pll->denominator >= vhf_denominator_minimum);
+                assert(t.pll->denominator <= vhf_denominator_maximum);
+                assert(t.pll && t.r_divider == 1 && (t.control & 0x40));
+                assert(t.pll->denominator > 1'048'575 / 2); // Bounded live denominator changes.
+
+                const auto ms =
+                    (t.multisynth.registers[2] & 0x0c) == 0x0c ? 4.L : decode(t.multisynth);
+                assert(ms == (base < 150'000'000 ? 6 : 4));
+                const auto wire_hz = decode(*t.pll) * reference / ms;
+                assert(std::fabs(wire_hz - static_cast<long double>(vhf[i]) / 1e9L) <= 0.001L);
+                auto corrupt = *high.plan;
+                corrupt.tone_storage[i].pll->registers[0] ^= 1;
+                assert(!valid_plan(corrupt));
+            }
+            assert(maximum_c - minimum_c <= vhf_denominator_span_maximum);
+            if (base == 144'490'500ULL) {
+                for (auto& frequency : vhf)
+                    frequency -= 2'197'265'625ULL;
+                const auto centered = plan(config, vhf, 0, 0.001L);
+                assert(centered.plan);
+                std::reverse(vhf.begin(), vhf.end());
+                const auto reversed = plan(config, vhf, 0, 0.001L);
+                assert(reversed.plan);
+                for (const auto& tone : centered.plan->tones()) {
+                    const auto found =
+                        std::find_if(reversed.plan->tones().begin(), reversed.plan->tones().end(),
+                                     [&](const auto& other) {
+                                         return other.requested_nhz == tone.requested_nhz;
+                                     });
+                    assert(found != reversed.plan->tones().end() && *found == tone);
+                    const auto wire = decode(*tone.pll) * reference /
+                                      static_cast<long double>(tone.multisynth.integer);
+                    assert(std::fabs(wire - static_cast<long double>(tone.requested_nhz) / 1e9L) <=
+                           .001L);
+                }
+            }
+        }
+    }
+    config.reference_hz = 25'000'000;
+    const std::uint64_t crossing_p1[]{144'498'697'000'000'000ULL, 144'498'701'000'000'000ULL};
+    assert(!plan(config, crossing_p1, 0, 0.001L).plan);
     const std::uint64_t too_low[]{7'000'000'000'000ULL};
     assert(!plan(config, too_low, 0, 0.001L).plan);
     config.loopback.reset();

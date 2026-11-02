@@ -25,6 +25,7 @@ int64_t led_release_hold(alarm_id_t, void*) {
 #include "hardware/clocks.h"
 #include "hardware/pico/amplifier_output.hpp"
 #include "hardware/pico/filter_outputs.hpp"
+#include "hardware/si5351_qualification.hpp"
 #include "hardware/structs/clocks.h"
 #include "hardware/structs/pll.h"
 #include "hardware/structs/powman.h"
@@ -493,8 +494,12 @@ int main() {
         return runtime_profile.consumer_browser_selected(profile_store);
     };
 #ifdef WSPRRY_PICO_STANDALONE_RF
-    const auto config = wsprrypico::standalone::wtp_profile(true, ntp_timeout_s, boot_pins.engine,
-                                                            WSPRRY_PICO_SI5351_ENGINEERING);
+    const auto config = wsprrypico::standalone::wtp_profile(
+        true, ntp_timeout_s, boot_pins.engine, WSPRRY_PICO_SI5351_ENGINEERING,
+        store.config() && store.config()->si5351 &&
+            wsprrypico::hardware::si5351_ordinary_qualified(boot_pins, *store.config()->si5351,
+                                                            clock_get_hz(clk_sys),
+                                                            filter_selector.settings()));
 #else
     const auto config = wsprrypico::standalone::wtp_profile(false, ntp_timeout_s, boot_pins.engine);
 #endif

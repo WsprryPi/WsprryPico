@@ -80,6 +80,9 @@ class ControllerTimeArbiter final : public ObservationSink {
                       std::uint64_t generation) override;
     bool observe_ntp_model(const RateObservation& source, const wtp::ClockSnapshot& model,
                            std::uint32_t max_clock_error_ppb) override;
+    bool observe_frequency_reference(const LocalFrequencyReference&, std::uint64_t now) override;
+    void retire_frequency_reference(std::uint64_t now, bool policy_removed) override;
+    std::string_view browser_frequency_reference_status(std::uint64_t now) const override;
     void invalidate(ObservationSource source) override;
     void frequency_reference_conflict(bool conflict) override;
     ControllerTimeStatus status() const;
@@ -129,5 +132,7 @@ class ControllerTimeArbiter final : public ObservationSink {
     ActiveTimeSource source_ = ActiveTimeSource::None;
     bool imported_ntp_ = false;
     bool frequency_conflict_ = false;
+    std::optional<LocalFrequencyReference> local_reference_;
+    bool browser_reference_selected_ = false;
 };
 } // namespace wsprrypico::time

@@ -65,8 +65,8 @@ bool valid_time_server(std::string_view value);
 inline constexpr std::uint64_t audio_offset_nhz = 1'500'000'000'000ULL;
 inline constexpr std::uint64_t spacing_nhz = 1'464'843'750ULL;
 inline constexpr std::uint64_t center_to_tone0_nhz = 2'197'265'625ULL;
-inline constexpr std::uint32_t minimum_wspr_dial_hz = 98'503;
-inline constexpr std::uint32_t maximum_wspr_dial_hz = 74'998'496;
+inline constexpr std::uint32_t minimum_wspr_dial_hz = 6'503;
+inline constexpr std::uint32_t maximum_wspr_dial_hz = 159'998'496;
 std::optional<std::array<std::uint64_t, 4>> wspr_tones(std::uint64_t dial_hz);
 bool valid_wspr_frequency_token(wtp::json::Value value);
 bool wspr_frequency_allowed(const Config& config, std::uint64_t minimum_nhz,

@@ -96,10 +96,7 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
         ntp_.clear_frequency_reference(raw_ns);
     }
     std::string_view frequency_reference_status(std::uint64_t raw_ns) const {
-        const auto state = ntp_.engine().frequency_reference_state(raw_ns);
-        return state == microchrony::FrequencyReferenceState::Selected && !ntp_.arbiter_accepted()
-                   ? "awaiting_utc"
-                   : microchrony::name(state);
+        return ntp_.frequency_reference_status(raw_ns);
     }
     std::uint64_t frequency_reference_sample() const {
         return ntp_.engine().frequency_reference().sampled_raw_ns;

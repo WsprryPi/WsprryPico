@@ -159,8 +159,7 @@
       "default_reference_use": "measurement_only",
       "automatic_calibration": false,
       "gps": false,
-      "physically_qualified": false,
-      "execution_gate": "engineering_build",
+      "execution_gate": "qualified_profile_or_engineering_build",
       "maximum_tones": 4,
       "maximum_events": 512,
       "minimum_transition_ns": "10000000",
@@ -172,7 +171,70 @@
       "reference_loss_policy": "retain_timer_rate_center_with_utc_holdover",
       "frequency_disagreement": "inhibit_utc_admission",
       "i2c_hz": 100000,
-      "completion_control_timeout_ns": "8000000"
+      "completion_control_timeout_ns": "8000000",
+      "ordinary_profile": {
+        "id": "qrp-labs-rev6-25mhz-clk0-8ma",
+        "qualified": true,
+        "system_clock_hz": 138000000,
+        "i2c_pair": 1,
+        "address": 96,
+        "reference_hz": 25000000,
+        "reference_source": "external_xa",
+        "crystal_load_pf": null,
+        "transmit_output": 0,
+        "drive_ma": 8,
+        "loopback_output": 2,
+        "loopback_input_gp": 7,
+        "allow_none": true,
+        "rf_gate_gp": null,
+        "reference_uses": [
+          "measurement_only",
+          "trusted_local"
+        ],
+        "modes": [
+          "wspr",
+          "tone",
+          "qrss",
+          "fskcw",
+          "dfcw"
+        ],
+        "frequency_points_hz": [
+          137500,
+          475700,
+          1838100,
+          3570100,
+          5288700,
+          7050000,
+          10140200,
+          14097100,
+          18106100,
+          21096100,
+          24926100,
+          28126100,
+          40001000,
+          50294500,
+          60001000,
+          70400000,
+          144490500
+        ]
+      },
+      "trusted_epoch_sources": [
+        "ntp",
+        "browser"
+      ],
+      "frequency_minimum_nhz": "8000000000000",
+      "frequency_maximum_nhz": "160000000000000000",
+      "transmit_strategies": [
+        "fixed_pll_multisynth",
+        "fixed_integer_multisynth_pll"
+      ],
+      "vhf_pll_family": {
+        "denominator_minimum": 983040,
+        "denominator_maximum": 1048575,
+        "denominator_span_maximum": 4095,
+        "common_p1": true,
+        "maximum_candidate_evaluations": 32768
+      }
     },
     "operations_status": {
       "schema": "operations",

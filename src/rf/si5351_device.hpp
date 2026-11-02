@@ -63,6 +63,7 @@ class Device {
     Output transmit_ = Output::Clk0;
     std::optional<Output> loopback_;
     std::optional<Configuration> configuration_;
+    std::optional<Divider> transmit_pll_, transmit_multisynth_;
     bool configured_ = false;
     bool unassigned_outputs_disabled_ = false;
     bool transmit_locked_ = false, reference_locked_ = false;

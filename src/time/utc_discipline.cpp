@@ -51,6 +51,8 @@ bool UtcDiscipline::accept(std::uint64_t utc_ns, std::uint64_t sampled_monotonic
     rate_ppb_ = 0;
     rate_uncertainty_ppb_ = 0;
     imported_ntp_ = false;
+    browser_rate_model_ = false;
+    source_ns_ = sampled_monotonic_ns;
     observation_source_ = ObservationSource::Sntp;
     rate_until_ns_ = UINT64_MAX;
     subsequent_rate_ppb_ = 0;
@@ -61,6 +63,29 @@ bool UtcDiscipline::accept(std::uint64_t utc_ns, std::uint64_t sampled_monotonic
     uncertainty_ns_ = uncertainty_ns;
     leap_ = leap;
     leap_transition_utc_ns_ = leap_transition_utc_ns;
+    return true;
+}
+
+bool UtcDiscipline::adjust_browser_rate(std::int32_t rate, std::uint32_t uncertainty) {
+    if (!valid_ || observation_source_ != ObservationSource::Browser || rate < -100'000 ||
+        rate > 100'000 || uncertainty > 100'000 || (rate != 0 && uncertainty == 0))
+        return false;
+    const auto model = snapshot();
+    if (model.state == wtp::ClockState::Unsynchronized)
+        return false;
+    if (rate_ppb_ == rate && rate_uncertainty_ppb_ == uncertainty)
+        return true;
+    // Reanchor the mathematical model, never the original browser observation.
+    // Retain the learned center on capture loss; the ordinary oscillator drift
+    // allowance continues to grow even while fresh capture is available.
+    utc_ns_ = model.utc_now_ns;
+    monotonic_ns_ = model.monotonic_now_ns;
+    uncertainty_ns_ = model.uncertainty_ns;
+    rate_ppb_ = subsequent_rate_ppb_ = rate;
+    rate_until_ns_ = UINT64_MAX;
+    rate_uncertainty_ppb_ = uncertainty;
+    browser_rate_model_ = true;
+    ++generation_;
     return true;
 }
 
@@ -104,6 +129,7 @@ bool UtcDiscipline::observe_ntp_model(const RateObservation& source,
         ++generation_;
     imported_generation_ = model.model_generation;
     imported_ntp_ = valid_ = true;
+    browser_rate_model_ = false;
     observation_source_ = ObservationSource::Sntp;
     utc_ns_ = model.utc_now_ns;
     monotonic_ns_ = model.monotonic_now_ns;
@@ -147,7 +173,7 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
                 0,
                 0,
                 generation_};
-    const auto age = now - (imported_ntp_ ? source_ns_ : monotonic_ns_);
+    const auto age = now - (imported_ntp_ || browser_rate_model_ ? source_ns_ : monotonic_ns_);
     const auto model_age = now - monotonic_ns_;
     std::uint64_t utc{}, grown{};
     std::uint64_t drift{};
@@ -184,20 +210,19 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
         state = wtp::ClockState::Holdover;
     if (observation_source_ == ObservationSource::Browser && grown > 500'000'000ULL)
         state = wtp::ClockState::Unsynchronized;
-    auto result =
-        wtp::ClockSnapshot{state,
-                           utc,
-                           now,
-                           grown,
-                           age,
-                           leap_,
-                           leap_transition_utc_ns_,
-                           now >= rate_until_ns_ ? subsequent_rate_ppb_ : rate_ppb_,
-                           observation_source_ == ObservationSource::Browser
-                               ? std::max(rate_uncertainty_ppb_,
-                                          static_cast<std::uint32_t>(config_.oscillator_drift_ppb))
-                               : rate_uncertainty_ppb_,
-                           generation_};
+    auto result = wtp::ClockSnapshot{
+        state,
+        utc,
+        now,
+        grown,
+        age,
+        leap_,
+        leap_transition_utc_ns_,
+        now >= rate_until_ns_ ? subsequent_rate_ppb_ : rate_ppb_,
+        observation_source_ == ObservationSource::Browser
+            ? rate_uncertainty_ppb_ + static_cast<std::uint32_t>(config_.oscillator_drift_ppb)
+            : rate_uncertainty_ppb_,
+        generation_};
     result.rate_until_monotonic_ns = now >= rate_until_ns_ ? UINT64_MAX : rate_until_ns_;
     result.subsequent_rate_ppb = subsequent_rate_ppb_;
     return result;

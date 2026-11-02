@@ -158,6 +158,40 @@ struct Fixture {
         return observed;
     }
 };
+void replace_complete_transmit_plan() {
+    Fixture f;
+    std::optional<std::array<std::uint8_t, 256>> reference;
+    for (const auto frequency : {144'490'500'000'000'000ULL, 137'500'000'000'000ULL,
+                                 144'490'501'464'843'750ULL, 1'838'100'000'000'000ULL}) {
+        auto value = job();
+        for (auto& event : value.events)
+            if (event.rf_on)
+                event.frequency_nhz = frequency;
+        const std::uint64_t frequencies[]{frequency};
+        const auto expected = plan(configuration(), frequencies, 0, 0.001L);
+        assert(expected.plan && f.engine.prepare(value).accepted);
+        assert(std::equal(expected.plan->transmit_pll.registers.begin(),
+                          expected.plan->transmit_pll.registers.end(),
+                          f.bus.registers.begin() + 26));
+        const auto& tone = expected.plan->tones().front();
+        assert(std::equal(tone.multisynth.registers.begin(), tone.multisynth.registers.end(),
+                          f.bus.registers.begin() + 42));
+        if (!reference) {
+            assert(f.device.reference_enabled(true, f.platform.now + 10'000'000));
+            reference = f.bus.registers;
+        } else {
+            assert(std::equal(reference->begin() + 34, reference->begin() + 42,
+                              f.bus.registers.begin() + 34));
+            assert(std::equal(reference->begin() + 58, reference->begin() + 66,
+                              f.bus.registers.begin() + 58));
+            assert(f.device.reference_state() == ClockOutputState::RegisterEnabled);
+        }
+        assert(f.engine.disable(f.platform.now + 10'000'000));
+        assert(f.device.transmit_state() == ClockOutputState::RegisterDisabled);
+        // Model the idle reference owner's resumption after cleanup.
+        assert(f.device.reference_enabled(true, f.platform.now + 10'000'000));
+    }
+}
 void finite_execution(bool keyed) {
     Fixture f;
     const auto start = f.start(job(keyed));
@@ -184,8 +218,87 @@ void finite_execution(bool keyed) {
 }
 } // namespace
 int main() {
+    replace_complete_transmit_plan();
+    {
+        Fixture f;
+        auto incompatible = job();
+        incompatible.events[0].frequency_nhz = 144'498'697'000'000'000ULL;
+        incompatible.events[1].frequency_nhz = 144'498'701'000'000'000ULL;
+        incompatible.events[2].frequency_nhz = 144'498'697'000'000'000ULL;
+        const auto before = f.bus.writes;
+        assert(!f.engine.prepare(incompatible).accepted);
+        assert(f.bus.writes == before && !f.engine.output_active());
+    }
+    for (const bool qualified : {false, true}) {
+        Platform platform;
+        TimedBus bus(platform);
+        Device device(bus);
+        Engine engine(configuration(), device, platform, false, nullptr, nullptr, nullptr,
+                      qualified);
+        assert(engine.disable(platform.now + 10'000'000));
+        assert(engine.prepare(job()).accepted == qualified);
+        assert(!engine.observation().engineering_allowed);
+    }
+    {
+        Fixture f;
+        auto high = job();
+        for (auto& event : high.events)
+            if (event.frequency_nhz)
+                *event.frequency_nhz += 130'393'400'000'000'000ULL;
+        const auto start = f.start(high);
+        const auto reference = f.bus.registers;
+        f.platform.now = start + 100'000'000;
+        assert(f.engine.poll(f.platform.now).state == wtp::EngineState::Running);
+        assert(std::equal(reference.begin() + 34, reference.begin() + 42,
+                          f.bus.registers.begin() + 34));
+        f.platform.now = start + 300'001'000;
+        assert(f.engine.poll(f.platform.now).state == wtp::EngineState::Complete);
+        assert(f.engine.disable(f.platform.now + 10'000'000));
+        assert(!f.engine.output_active());
+    }
     finite_execution(false);
     finite_execution(true);
+    {
+        Fixture f;
+        f.engine.poll(f.platform.now);
+        const auto services = f.platform.services;
+        const auto writes = f.bus.writes;
+        assert(services > 0);
+        assert(f.engine.suspend_background(f.platform.now + 10'000'000));
+        assert(!f.engine.suspend_background(f.platform.now + 10'000'000));
+        f.platform.now += 20'000'000'000ULL; // Real timer continues through flash lockout.
+        f.engine.poll(f.platform.now);
+        assert(f.platform.services == services && f.bus.writes == writes);
+        assert(!f.engine.prepare(job()).accepted && f.bus.writes == writes);
+        f.engine.resume_background();
+        f.engine.poll(f.platform.now);
+        assert(f.platform.services == services + 1);
+        assert(f.engine.suspend_background(f.platform.now + 10'000'000));
+        f.engine.inhibit_output();
+        f.engine.resume_background();
+        f.engine.poll(f.platform.now);
+        assert(f.platform.services == services + 1); // Flash exit cannot undo permanent inhibit.
+    }
+    {
+        Fixture f;
+        const auto value = job();
+        assert(f.engine.prepare(value).accepted);
+        assert(f.engine.suspend_background(f.platform.now + 10'000'000));
+        const auto start = f.platform.now + 100'000'000;
+        assert(!f.engine.begin(value, start));
+        f.engine.resume_background();
+        assert(f.engine.begin(value, start)); // The prepared immutable plan survives a pause.
+        assert(!f.engine.suspend_background(f.platform.now + 10'000'000)); // Armed.
+        f.platform.now = start;
+        assert(f.engine.poll(start).state == wtp::EngineState::Running);
+        assert(!f.engine.suspend_background(f.platform.now + 10'000'000)); // Running.
+    }
+    {
+        Fixture f;
+        f.platform.pause = false;
+        assert(!f.engine.suspend_background(f.platform.now + 10'000'000));
+        assert(f.engine.background_work_allowed());
+    }
     {
         Fixture f;
         auto malformed = job();

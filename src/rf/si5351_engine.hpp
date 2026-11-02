@@ -27,7 +27,8 @@ class Engine final : public wtp::RfEngine {
   public:
     Engine(const Configuration& configuration, Device& device, ExecutionPlatform& platform,
            bool engineering_allowed, IndicatorGate* indicator = nullptr,
-           AmplifierEnable* amplifier = nullptr, FilterSelector* filters = nullptr);
+           AmplifierEnable* amplifier = nullptr, FilterSelector* filters = nullptr,
+           bool ordinary_qualified = false);
     std::size_t preparation_memory_bytes(const wtp::Job&) const override;
     wtp::PrepareResult prepare(const wtp::Job&) override;
     bool set_frequency_correction_ppb(std::int32_t) override;
@@ -63,6 +64,10 @@ class Engine final : public wtp::RfEngine {
     // Called by the owner on permanent configuration/recovery inhibition.
     void inhibit_output() override;
     bool background_work_allowed() const override;
+    // RF-owner rendezvous before halting this core for flash access. Interrupted
+    // reference windows are discarded; this never clears permanent inhibition.
+    bool suspend_background(std::uint64_t deadline_ns);
+    void resume_background();
 
     struct Observation {
         ClockOutputState transmit = ClockOutputState::Unknown;
@@ -90,10 +95,11 @@ class Engine final : public wtp::RfEngine {
     Device& device_;
     ExecutionPlatform& platform_;
     const bool engineering_allowed_;
+    const bool ordinary_qualified_;
     IndicatorGate* indicator_;
     AmplifierEnable* amplifier_;
     FilterSelector* filters_;
-    bool initialized_ = false, inhibited_ = false, primed_ = false;
+    bool initialized_ = false, inhibited_ = false, primed_ = false, background_suspended_ = false;
     std::optional<JobPlan> plan_;
     std::int32_t correction_ppb_ = 0;
     wtp::EngineState state_ = wtp::EngineState::Idle;

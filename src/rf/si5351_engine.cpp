@@ -18,10 +18,10 @@ std::uint64_t realized_nhz(const Tone& tone) {
 } // namespace
 Engine::Engine(const Configuration& configuration, Device& device, ExecutionPlatform& platform,
                bool engineering_allowed, IndicatorGate* indicator, AmplifierEnable* amplifier,
-               FilterSelector* filters)
+               FilterSelector* filters, bool ordinary_qualified)
     : configuration_(configuration), device_(device), platform_(platform),
-      engineering_allowed_(engineering_allowed), indicator_(indicator), amplifier_(amplifier),
-      filters_(filters) {}
+      engineering_allowed_(engineering_allowed), ordinary_qualified_(ordinary_qualified),
+      indicator_(indicator), amplifier_(amplifier), filters_(filters) {}
 std::uint64_t Engine::amplifier_lead_ns() const {
     return amplifier_ && amplifier_->enabled() ? amplifier_->timing().lead_ns() : 0;
 }
@@ -57,8 +57,10 @@ bool Engine::set_frequency_correction_ppb(std::int32_t value) {
     return true;
 }
 wtp::PrepareResult Engine::prepare(const wtp::Job& job) {
-    if (!engineering_allowed_ || inhibited_ || state_ != wtp::EngineState::Idle) {
-        failure_ = !engineering_allowed_ ? "si5351_engineering_gate" : "si5351_not_idle";
+    if (!(engineering_allowed_ || ordinary_qualified_) || inhibited_ || background_suspended_ ||
+        state_ != wtp::EngineState::Idle) {
+        failure_ = !(engineering_allowed_ || ordinary_qualified_) ? "si5351_engineering_gate"
+                                                                  : "si5351_not_idle";
         return {};
     }
     // All frequency/event and filter checks precede any hardware preparation.
@@ -103,13 +105,13 @@ wtp::PrepareResult Engine::prepare(const wtp::Job& job) {
         fail("si5351_prepare_shutdown_failed");
         return {};
     }
-    if (!device_.transmit_configured()) {
-        if (!device_.configure(configuration_, candidate.plan->synthesis, deadline)) {
-            fail("si5351_configuration_failed");
-            return {};
-        }
-    } else if (!device_.transmit_tone(candidate.plan->synthesis.tones().front(), deadline)) {
-        fail("si5351_tone_preparation_failed");
+    // A previous job can leave PLLA on its final VHF tone. A fixed-PLL HF/LF
+    // tone contains only its MultiSynth update, so reusing that state would
+    // silently synthesize the next job against the wrong PLL frequency.
+    // Restore the complete initial transmit plan once per job, while RF is
+    // disabled. Device::configure preserves an established independent PLLB.
+    if (!device_.configure(configuration_, candidate.plan->synthesis, deadline)) {
+        fail("si5351_configuration_failed");
         return {};
     }
     bool locked = false;
@@ -133,7 +135,7 @@ wtp::PrepareResult Engine::prepare(const wtp::Job& job) {
 }
 bool Engine::schedule(const wtp::Job& job, std::uint64_t start,
                       const wtp::LocalStartConditions& conditions) {
-    if (!conditions.clock || !plan_ || state_ != wtp::EngineState::Idle ||
+    if (!conditions.clock || !plan_ || background_suspended_ || state_ != wtp::EngineState::Idle ||
         start > UINT64_MAX - wtp::start_window_ns(conditions.start_utc_ns))
         return false;
     conditions_ = conditions;
@@ -149,8 +151,9 @@ bool Engine::schedule(const wtp::Job& job, std::uint64_t start,
     return begin(job, start + conditions_.start_adjustment_ns);
 }
 bool Engine::begin(const wtp::Job& job, std::uint64_t start) {
-    if (!plan_ || !primed_ || inhibited_ || state_ != wtp::EngineState::Idle ||
-        plan_->digest != wtp::job_digest(job) || epoch_ == UINT64_MAX ||
+    if (!plan_ || !primed_ || inhibited_ || background_suspended_ ||
+        state_ != wtp::EngineState::Idle || plan_->digest != wtp::job_digest(job) ||
+        epoch_ == UINT64_MAX ||
         start > UINT64_MAX - plan_->requested_duration_ns - amplifier_tail_ns() - 1'000'000 ||
         output_active())
         return false;
@@ -320,7 +323,8 @@ bool Engine::finish_rf() {
 }
 wtp::EngineReport Engine::poll(std::uint64_t) {
     if (state_ == wtp::EngineState::Idle) {
-        platform_.service_reference(initialized_ && engineering_allowed_ && !inhibited_);
+        platform_.service_reference(initialized_ && (engineering_allowed_ || ordinary_qualified_) &&
+                                    !inhibited_ && !background_suspended_);
         return report();
     }
     const auto now = platform_.now_ns();
@@ -461,7 +465,20 @@ void Engine::inhibit_output() {
     platform_.inhibit_reference();
 }
 bool Engine::background_work_allowed() const {
-    return state_ != wtp::EngineState::Armed && state_ != wtp::EngineState::Running;
+    return !background_suspended_ && state_ != wtp::EngineState::Armed &&
+           state_ != wtp::EngineState::Running;
+}
+bool Engine::suspend_background(std::uint64_t deadline) {
+    if (background_suspended_ || state_ != wtp::EngineState::Idle || output_active())
+        return false;
+    background_suspended_ = true;
+    if (platform_.pause_reference(deadline) && !output_active())
+        return true;
+    background_suspended_ = false;
+    return false;
+}
+void Engine::resume_background() {
+    background_suspended_ = false;
 }
 Engine::Observation Engine::observation() const {
     return {device_.transmit_state(),

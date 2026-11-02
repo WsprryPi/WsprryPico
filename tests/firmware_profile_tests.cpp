@@ -77,6 +77,14 @@ void limits() {
     CHECK(config.maximum_frequency_nhz == (rf::sample_rate / 2 - 1) * 1'000'000'000ULL);
     CHECK(config.maximum_arm_uncertainty_ns == 500'000'000);
     CHECK(config.maximum_holdover_age_ns == 3'600'000'000'000ULL);
+    const auto si = standalone::wtp_profile(true, 3600, hardware::PinPlan::Engine::I2c, true);
+    CHECK(si.capability_engine == "si5351-engineering");
+    CHECK(si.minimum_frequency_nhz == 8'000'000'000'000ULL);
+    CHECK(si.maximum_frequency_nhz == 160'000'000'000'000'000ULL);
+    CHECK(standalone::wtp_profile(true, 3600, hardware::PinPlan::Engine::I2c, false)
+              .capability_engine == "si5351-inhibited");
+    CHECK(standalone::wtp_profile(true, 3600, hardware::PinPlan::Engine::I2c, false, true)
+              .capability_engine == "si5351");
     Fixture f;
     auto good = job();
     CHECK(f.request("LOAD", good).ok);
@@ -208,8 +216,8 @@ void ordinary_utc_policy() {
         CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, limit}).ok);
         f.now = 1'000'000'000;
         f.service.poll();
-        CHECK(f.service.status().state == (launch_uncertainty <= limit ? wtp::State::Running
-                                                                      : wtp::State::Missed));
+        CHECK(f.service.status().state ==
+              (launch_uncertainty <= limit ? wtp::State::Running : wtp::State::Missed));
         CHECK(!f.engine.output_active()); // The inhibited engine never asserts physical RF.
     }
     // Explicit tight policies retain their original meaning.

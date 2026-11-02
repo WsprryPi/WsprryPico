@@ -5,11 +5,13 @@
 #include "application/resources.hpp"
 #include "encoding/wspr.hpp"
 #include "hardware/pins.hpp"
+#include "hardware/si5351_qualification.hpp"
 #include "network/assets.hpp"
 #include "network/control.hpp"
 #include "network/identity.hpp"
 #include "network/message_job.hpp"
 #include "rf/calibration.hpp"
+#include "rf/waveform.hpp"
 #include "wtp/codec.hpp"
 #include "wtp/frame_parser.hpp"
 #include "wtp/memory_budget.hpp"
@@ -569,6 +571,18 @@ HttpResponse BrowserApi::gpio_drive() const {
 HttpResponse BrowserApi::si5351() const {
     const auto config = effective_config();
     const auto& boot = scheduler_.active_si5351();
+    const bool qualified =
+        scheduler_.boot_configured() && boot &&
+        (service_.config().capability_engine == "si5351" ||
+         service_.config().capability_engine == "si5351-engineering") &&
+        hardware::si5351_ordinary_qualified(scheduler_.active_pins(), *boot, rf::sample_rate,
+                                            scheduler_.active_filters());
+    const auto qualification =
+        qualified ? "{\"profile_id\":" + json::quote(hardware::si5351_support::id) +
+                        ",\"system_clock_hz\":" +
+                        std::to_string(hardware::si5351_support::system_clock_hz) +
+                        ",\"i2c_pair\":" + std::to_string(hardware::si5351_support::i2c_pair) + "}"
+                  : std::string("null");
     const auto saved = store_.healthy() && config && config->si5351
                            ? hardware::serialize_si5351(*config->si5351)
                            : "null";
@@ -581,8 +595,9 @@ HttpResponse BrowserApi::si5351() const {
                 ? hardware::serialize_si5351(*boot)
                 : "null") +
            ",\"pending_restart\":" + (scheduler_.hardware_restart_required() ? "true" : "false") +
-           ",\"physically_qualified\":false,\"execution_engine\":" +
-           json::quote(service_.config().capability_engine) +
+           ",\"physically_qualified\":" + (qualified ? "true" : "false") +
+           ",\"qualification\":" + qualification +
+           ",\"execution_engine\":" + json::quote(service_.config().capability_engine) +
            ",\"runtime\":" + (si5351_observer_ ? si5351_observer_(si5351_context_) : "null") +
            ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
     result.etag = revision();
@@ -1008,7 +1023,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             const auto wtp_caps = std::string(value->get("body")->raw);
             const auto amplifier = application::amplifier_capabilities(
                 service_.config().capability_engine == "pio-dma-gp2" ||
-                service_.config().capability_engine == "si5351-engineering");
+                service_.config().capability_engine == "si5351-engineering" ||
+                service_.config().capability_engine == "si5351");
             const auto features =
                 ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
                 "\"application\":true,\"station\":true,\"hardware\":true,\"consumer_setup_"

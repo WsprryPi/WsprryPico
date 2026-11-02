@@ -37,7 +37,7 @@ def matches(output, frame_type, call, grid, power):
 
 def frequency_mapping(dial_hz):
     """Whole-Hz standalone WSPR USB dial to nominal RF center, without a fit."""
-    if type(dial_hz) is not int or not 98503 <= dial_hz <= 74998496:
+    if type(dial_hz) is not int or not 6503 <= dial_hz <= 159998496:
         raise ValueError('Expected a whole-Hz WSPR dial frequency')
     return dial_hz + 1500
 

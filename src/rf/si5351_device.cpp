@@ -8,6 +8,8 @@ void Device::fault() {
     states_.fill(ClockOutputState::Unknown);
     configured_ = false;
     configuration_.reset();
+    transmit_pll_.reset();
+    transmit_multisynth_.reset();
     unassigned_outputs_disabled_ = false;
     transmit_locked_ = reference_locked_ = false;
     transmit_configured_ = transmit_primed_ = false;
@@ -76,6 +78,14 @@ bool Device::configure(const Configuration& config, const Plan& plan, std::uint6
         return false;
     transmit_ = config.transmit;
     loopback_ = config.loopback;
+    // The output mask is already verified disabled. Establish the new divider
+    // mode with the driver powered down before programming/resetting PLLA;
+    // a previous VHF integer mode must not survive an LF replacement.
+    const auto first = plan.tones().front();
+    const std::uint8_t down[]{static_cast<std::uint8_t>(first.control | 0x80)};
+    if (!checked_write(static_cast<std::uint8_t>(16 + static_cast<unsigned>(transmit_)), down,
+                       deadline))
+        return false;
     const std::uint8_t load[]{*crystal};
     if ((!preserve_reference &&
          (!masked_write(15, 0x0c, 0, deadline) || !checked_write(183, load, deadline) ||
@@ -99,6 +109,19 @@ bool Device::configure(const Configuration& config, const Plan& plan, std::uint6
             !checked_write(static_cast<std::uint8_t>(16 + output), control, deadline))
             return false;
     }
+    configured_ = true;
+    configuration_ = config;
+    transmit_locked_ = false;
+    transmit_primed_ = false;
+    if (!preserve_reference)
+        reference_locked_ = false;
+    transmit_configured_ = true;
+    transmit_pll_ = plan.transmit_pll;
+    if (!transmit_tone(first, deadline))
+        return false;
+    // The manufacturer's initialization sequence completes the divider map
+    // before soft reset. Reset only PLLA when the independent PLLB plan is
+    // already active; symbol-time retuning never enters this initialization.
     // Reset bits self-clear; compare only the reserved bits, not the written
     // self-clearing value. Other reserved fields are preserved by the RMW.
     std::uint8_t previous = 0;
@@ -118,14 +141,6 @@ bool Device::configure(const Configuration& config, const Plan& plan, std::uint6
         fault();
         return false;
     }
-    configured_ = true;
-    configuration_ = config;
-    transmit_locked_ = false;
-    if (!preserve_reference)
-        reference_locked_ = false;
-    transmit_configured_ = true;
-    if (!transmit_tone(plan.tones().front(), deadline))
-        return false;
     return true; // Lock acquisition is a separate, bounded owner operation.
 }
 bool Device::configure_reference(const Configuration& config, const ReferencePlan& plan,
@@ -186,11 +201,35 @@ bool Device::transmit_tone(const Tone& tone, std::uint64_t deadline) {
         return false;
     const auto output = static_cast<unsigned>(transmit_);
     const bool active = states_[output] == ClockOutputState::RegisterEnabled;
+    if (tone.pll && transmit_pll_ != tone.pll) {
+        const auto integer_mode = [](const Divider& pll) {
+            return pll.numerator == 0 && pll.integer % 2 == 0;
+        };
+        const bool changed_mode =
+            !transmit_pll_ || integer_mode(*transmit_pll_) != integer_mode(*tone.pll);
+        // PLLB and its output are independent. Compatible VHF tones retain the
+        // integer MultiSynth and change only PLLA, without reset or RF gating.
+        // Every write/readback and lock check shares the event deadline.
+        if (!checked_write(26, tone.pll->registers, deadline) ||
+            (changed_mode && !masked_write(22, 0x40, integer_mode(*tone.pll) ? 0x40 : 0, deadline)))
+            return false;
+        if (!locked(deadline)) {
+            fault(); // A failed lock check invalidates the register/cache authority.
+            return false;
+        }
+        transmit_pll_ = tone.pll;
+    }
+    if (tone.pll && transmit_multisynth_ == tone.multisynth && transmit_control_ &&
+        (*transmit_control_ & 0x7f) == tone.control)
+        return true; // Exclusive-owner cache; never rewrite an unchanged live MultiSynth.
     const std::uint8_t control[]{static_cast<std::uint8_t>(tone.control | (active ? 0 : 0x80))};
     transmit_primed_ = false;
-    return checked_write(static_cast<std::uint8_t>(42 + output * 8), tone.multisynth.registers,
-                         deadline) &&
-           checked_write(static_cast<std::uint8_t>(16 + output), control, deadline);
+    if (!checked_write(static_cast<std::uint8_t>(42 + output * 8), tone.multisynth.registers,
+                       deadline) ||
+        !checked_write(static_cast<std::uint8_t>(16 + output), control, deadline))
+        return false;
+    transmit_multisynth_ = tone.multisynth;
+    return true;
 }
 bool Device::enabled(Output output, bool value, std::uint64_t deadline) {
     if (!configured_ || (value && pending_ != Pending::None) ||

@@ -21,8 +21,11 @@ def digest(value):
         ).encode()
     ).hexdigest()
 
-def make_job(mode, frequency, *, sample_rate_hz=RATE, keyed_dot_ns=700000000):
+def make_job(mode, frequency, *, sample_rate_hz=RATE, keyed_dot_ns=700000000, engine="direct"):
     """Canonical ETE keyed jobs, five-second carrier, or Type 1 WSPR AA0NT EM18 37."""
+    if engine not in ("direct", "si5351"):
+        raise ValueError("Unsupported RF engine")
+    minimum, maximum = (100005, sample_rate_hz // 2 - 6) if engine == "direct" else (8005, 160000000 - 5)
     if (
         type(keyed_dot_ns) is not int
         or keyed_dot_ns not in (700000000, 3000000000)
@@ -30,7 +33,7 @@ def make_job(mode, frequency, *, sample_rate_hz=RATE, keyed_dot_ns=700000000):
         or sample_rate_hz not in CLOCKS
         or mode not in MODES
         or type(frequency) is not int
-        or not 100005 <= frequency < sample_rate_hz // 2 - 6
+        or not minimum <= frequency < maximum
     ):
         raise ValueError("Unsupported mode or direct-baseband frequency")
     events = []

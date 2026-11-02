@@ -40,6 +40,14 @@ int main() {
             assert(plan.tone[i] == i % 4);
         }
     }
+    auto vhf = job;
+    for (auto& event : vhf.events)
+        if (event.frequency_nhz)
+            *event.frequency_nhz += 130'393'400'000'000'000ULL;
+    const auto high = rf::si5351::plan_job(config, vhf, 0, 1'000'000, 0.001L);
+    assert(high.plan && high.plan->synthesis.tone_count == 4);
+    for (const auto& tone : high.plan->synthesis.tones())
+        assert(tone.pll && tone.multisynth.integer == 6);
     auto invalid = job;
     invalid.events[1].offset_ns++;
     assert(!rf::si5351::plan_job(config, invalid, 0, 1'000'000, 0.001L).plan);
