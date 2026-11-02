@@ -1,6 +1,6 @@
 # Consolidated backlog
 
-This is the distinct TODO list for selected unfinished work. Current behavior is documented in the engineering guides. The reusable [cleanup instructions](repository-cleanup-prompt.md) apply to repository and harness cleanup. Item numbers remain stable.
+This is the distinct TODO list for selected unfinished work, with completed items marked below. Current behavior is documented in the engineering guides. The reusable [cleanup instructions](repository-cleanup-prompt.md) apply to repository and harness cleanup. Item numbers remain stable.
 
 ## Possible future work
 
@@ -27,7 +27,9 @@ This is the distinct TODO list for selected unfinished work. Current behavior is
 19. **Automatic NTP-server discovery and preference.**
 20. **Additional LAN/page-delivery security**, if deployment needs change.
 
-## Si5351 Backlog
+## Completed work
+
+13. ✅ **Si5351 — complete and merged into `devel`.**
 
 Item 13 is complete. The current software provides Si5351 synthesis and local execution, bounded input-only loopback capture, no-GPS UTC rate assistance, retained-rate continuity across jobs and capture loss, strict paired Control/1 interfaces, and informational UTC uncertainty. GPS/PPS ingestion and automatic RF calibration remain separate future work in item 14.
 
