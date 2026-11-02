@@ -242,9 +242,17 @@ struct Driver {
         device};
     time::NtpClient field_ntp{field_time};
     ObservedEngine consumer_engine, engineering_engine;
-    network_test::Fixture f{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &consumer_engine};
+    static wtp::ServiceConfig application_policy() {
+        auto policy = network_test::Fixture::physical_policy();
+        policy.maximum_arm_uncertainty_ns =
+            standalone::wtp_profile(false).maximum_arm_uncertainty_ns;
+        return policy;
+    }
+    network_test::Fixture f{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &consumer_engine,
+                            application_policy()};
     // Independent engineering adapter boundary for genuine served-page tests.
-    network_test::Fixture engineering{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &engineering_engine};
+    network_test::Fixture engineering{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &engineering_engine,
+                                      application_policy()};
     network_test::Flash engineering_progress_flash;
     standalone::Progress engineering_progress{engineering_progress_flash};
     network_test::Flash progress_flash;
@@ -361,7 +369,8 @@ struct Driver {
            std::string selected_device = std::string(32, '1'),
            const network_test::Flash* saved_progress = nullptr, bool blank = false,
            const AccessMedia* saved_access = nullptr)
-        : device(std::move(selected_device)), f(boot, device, &consumer_engine) {
+        : device(std::move(selected_device)),
+          f(boot, device, &consumer_engine, application_policy()) {
         if (retained)
             media = *retained;
         if (saved) {

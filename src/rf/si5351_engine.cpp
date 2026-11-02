@@ -323,8 +323,11 @@ bool Engine::finish_rf() {
 }
 wtp::EngineReport Engine::poll(std::uint64_t) {
     if (state_ == wtp::EngineState::Idle) {
-        platform_.service_reference(initialized_ && (engineering_allowed_ || ordinary_qualified_) &&
-                                    !inhibited_ && !background_suspended_);
+        // A prepared job still reports Idle until ARM. Keep its primed
+        // register state and capture pause intact throughout that interval.
+        platform_.service_reference(initialized_ && !plan_ &&
+                                    (engineering_allowed_ || ordinary_qualified_) && !inhibited_ &&
+                                    !background_suspended_);
         return report();
     }
     const auto now = platform_.now_ns();

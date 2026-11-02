@@ -283,6 +283,11 @@ int main() {
         Fixture f;
         const auto value = job();
         assert(f.engine.prepare(value).accepted);
+        const auto services = f.platform.services;
+        f.engine.poll(f.platform.now);
+        f.platform.now += 120'000'000'000ULL; // A loaded job can wait a full WSPR slot.
+        f.engine.poll(f.platform.now);
+        assert(f.platform.services == services); // LOAD keeps capture paused before ARM.
         assert(f.engine.suspend_background(f.platform.now + 10'000'000));
         const auto start = f.platform.now + 100'000'000;
         assert(!f.engine.begin(value, start));
@@ -292,6 +297,9 @@ int main() {
         f.platform.now = start;
         assert(f.engine.poll(start).state == wtp::EngineState::Running);
         assert(!f.engine.suspend_background(f.platform.now + 10'000'000)); // Running.
+        assert(f.engine.disable(f.platform.now + 10'000'000));
+        f.engine.poll(f.platform.now);
+        assert(f.platform.services == services + 1); // Cleanup releases capture authority.
     }
     {
         Fixture f;

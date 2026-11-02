@@ -418,7 +418,7 @@ try {
   assert.equal(await evaluate('document.getElementById("console-next-item").hidden'),true);
   await f.command({op:'schedule_tick',delta_ns:'0',uncertainty_ns:'600000000'});
   await click('refresh');await idle();
-  assert.match(await evaluate('document.getElementById("console-warning").textContent'),/Clock uncertainty.*INTERNAL_ERROR/);
+  assert.match(await evaluate('document.getElementById("console-warning").textContent'),/INTERNAL_ERROR.*skipped/,'reported uncertainty does not replace the actual failure reason');
   await checkStatusGrid();
   if(output)for(const [width,height,name] of [[1280,1000,'desktop'],[650,1000,'tablet'],[390,1000,'mobile']]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<600});
@@ -426,7 +426,7 @@ try {
     const shot=await send('Page.captureScreenshot',{format:'png'});saveScreenshot('transmission-blocked-'+name+'.png',shot);
   }
   operations=await (await scheduleClient.request('operations')).json();
-  const admitted=await f.command({op:'schedule_tick',delta_ns:advanceToPreparation(operations),uncertainty_ns:'1000'});
+  const admitted=await f.command({op:'schedule_tick',delta_ns:advanceToPreparation(operations),uncertainty_ns:'5000000000'});
   assert.equal(admitted.last_error,null);
   await click('refresh');await idle();
   assert.equal(await evaluate('document.getElementById("console-state").textContent'),'Job armed');
@@ -446,7 +446,7 @@ try {
     await evaluate('scrollTo(0,0)');
     saveScreenshot('compact-wspr-running-'+name+'.png',await send('Page.captureScreenshot',{format:'png'}));
   }
-  console.log('PASS recorded WSPR admission failure, simultaneous clock blocker, recovery and left-aligned 3/2/1 grid through production HTTP');
+  console.log('PASS recorded WSPR admission failure, informational five-second uncertainty, recovery and left-aligned 3/2/1 grid through production HTTP');
 
   console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,api:'production HTTP/crypto',hardware:false,screenshots:screenshotCount}));
 } catch(error) {

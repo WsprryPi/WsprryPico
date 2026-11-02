@@ -146,9 +146,10 @@ struct Fixture {
     Network network;
     network::BrowserApi api;
     Fixture(unsigned boot = 0, std::string device = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            wtp::RfEngine* observer = nullptr)
+            wtp::RfEngine* observer = nullptr,
+            wtp::ServiceConfig policy = physical_policy())
         : identities(boot),
-          service(clock, observer ? *observer : engine, identities, physical_policy()),
+          service(clock, observer ? *observer : engine, identities, policy),
           api(service, store, scheduler, network, device, "test-firmware") {
         REQUIRE(store.load());
     }
