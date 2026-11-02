@@ -4,7 +4,7 @@ This is the distinct TODO list for selected unfinished work, with completed item
 
 ## Possible future work
 
-14. **Optional GPS UTC + PPS, RF calibration, location and improved holdover.**
+14. ⏳ **Optional GPS UTC + PPS, RF calibration, location and improved holdover.** In progress in another chat.
     - Support standalone field operation using GPS time and location without Internet, NTP or phone time. Use PPS with associated UTC messages for clock calibration and accurate local transmission scheduling; retain the existing local execution authority and launch gates.
     - Receive GPS serial data and PPS on separate inputs. Support optional Pico UART TX to configure receivers with a compatible GPS RX input, using explicitly supported receiver commands and validated pin allocation. Receive-only modules remain usable without that connection; the selected QLG3 harness exposes no GPS RX input. Receiver-specific configuration support must not be assumed for every module.
     - Reuse the original MIT [μChrony engine](../../src/microchrony/README.md): bounded source histories, adaptive frequency estimation, source selection and combination, uncertainty propagation, and separate phase slewing and frequency correction. Add a reference-clock input path; GPS/PPS ingestion is not implemented today. Keep one clock-control loop rather than adding a second GPS servo or fabricating NTP packets for PPS.
