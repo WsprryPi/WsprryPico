@@ -6,14 +6,14 @@ This is the distinct TODO list for selected unfinished work, with completed and 
 
 17. **Native iPhone consumer BLE app**, only for a need Wi-Fi does not meet.
 
-19. **Automatic NTP-server discovery and preference.**
-
 ## Closed — will not do
 
 15. **Advanced Pico scheduling and durable controller/member transfer — closed/will not do.** Handled from WsprryPi.
 16. **Keying-envelope work — closed/will not do.** Hardware is the operator's responsibility.
 
 18. **Enterprise/WPA3-only provisioning — closed/will not do.** Not needed for most operators.
+
+19. **Automatic NTP-server discovery and preference — closed/will not do.** Manual NTP configuration is sufficient.
 
 20. **Additional LAN/page-delivery security — closed/will not do.** No additional needs noted.
 
