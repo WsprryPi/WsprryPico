@@ -1,17 +1,21 @@
 # Consolidated backlog
 
-This is the distinct TODO list for selected unfinished work, with completed items marked below. Current behavior is documented in the engineering guides. The reusable [cleanup instructions](repository-cleanup-prompt.md) apply to repository and harness cleanup. Item numbers remain stable.
+This is the distinct TODO list for selected unfinished work, with completed and closed items marked below. Current behavior is documented in the engineering guides. The reusable [cleanup instructions](repository-cleanup-prompt.md) apply to repository and harness cleanup. Item numbers remain stable.
 
 ## Possible future work
 
-15. **Advanced Pico scheduling and durable controller/member transfer**, after WsprryPi [issue 333](https://github.com/WsprryPi/WsprryPi/issues/333) research.
-    - Define durable schedule identity, revisions, recovery, and duplicate prevention before expanding transfer. Pause the source authority, reconcile in-flight work, confirm inactive output, install the destination disabled, and enable only after saved-state readback. Interrupted cross-device writes must not duplicate dispatch; automatic offline fallback is not selected.
-    - Design and validate Pico takeover/revocation before advertising parity with Pi. Preserve station data, schedules, credentials, watermarks, and takeover history during migration.
-16. **Keying-envelope work.**
 17. **Native iPhone consumer BLE app**, only for a need Wi-Fi does not meet.
-18. **Enterprise/WPA3-only provisioning**, if a useful case emerges.
+
 19. **Automatic NTP-server discovery and preference.**
-20. **Additional LAN/page-delivery security**, if deployment needs change.
+
+## Closed — will not do
+
+15. **Advanced Pico scheduling and durable controller/member transfer — closed/will not do.** Handled from WsprryPi.
+16. **Keying-envelope work — closed/will not do.** Hardware is the operator's responsibility.
+
+18. **Enterprise/WPA3-only provisioning — closed/will not do.** Not needed for most operators.
+
+20. **Additional LAN/page-delivery security — closed/will not do.** No additional needs noted.
 
 ## Completed work
 
