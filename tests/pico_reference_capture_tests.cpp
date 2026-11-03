@@ -36,7 +36,10 @@ int main() {
         capture_mock::counters[3] += advance;
         assert(first.poll(1));
     }
+    const auto pps = first.pps_snapshot();
+    assert(pps.coherent && pps.edges == 10'000'000 && pps.plan_generation == 1 && pps.capture_id);
     const auto window = first.finish();
+    assert(!first.pps_snapshot().coherent); // Never count a paused/prepared-job capture.
     assert(window.coherent && window.edges == 10'000'000);
     assert(window.end_raw_ns - window.start_raw_ns == 10'000'000'000ULL);
     assert(!capture_mock::pwm_enabled[3]);

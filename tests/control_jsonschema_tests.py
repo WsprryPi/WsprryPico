@@ -96,14 +96,18 @@ assert SCHEMA['$defs']['wtp']['$defs'] == rebase(wtp)
 # Conditional refinements intersect the closed base resource definition. They
 # cannot add fields; verify that closure rather than requiring each refinement
 # to redeclare every field with additionalProperties:false.
-def closed_si5351_refinement(value, path):
-    if (len(path) < 6 or path[:2] != ('si5351', 'allOf') or
-            path[3:5] != ('then', 'properties')):
+def closed_resource_refinement(value, path):
+    if (len(path) < 6 or path[1:2] != ('allOf',) or
+            path[3] not in ('if', 'then') or path[4] != 'properties'):
         return False
-    family = {'boot_active': 'si5351-settings', 'runtime': 'si5351-runtime'}.get(path[5])
+    families = {
+        'si5351': {'boot_active': 'si5351-settings', 'runtime': 'si5351-runtime'},
+        'gps': {'boot_active': 'gps-settings', 'runtime': 'gps-runtime'},
+    }
+    family = families.get(path[0], {}).get(path[5])
     if family is None:
         return False
-    base = SCHEMA['$defs']['si5351']['properties'][path[5]]
+    base = SCHEMA['$defs'][path[0]]['properties'][path[5]]
     if {'$ref': '#/$defs/' + family} not in base.get('anyOf', []):
         return False
     closed = SCHEMA['$defs'][family]
@@ -115,7 +119,7 @@ def inspect(value, path=()):
     if isinstance(value, dict):
         assert not isinstance(value.get('type'), list), path
         if value.get('type') == 'object' and '$defs' not in value:
-            assert value.get('additionalProperties') is False or 'const' in value or path == ('capabilities', 'properties', 'features') or path[-1:] == ('contains',) or closed_si5351_refinement(value, path), path
+            assert value.get('additionalProperties') is False or 'const' in value or path == ('capabilities', 'properties', 'features') or path[-1:] == ('contains',) or closed_resource_refinement(value, path), path
         for key, item in value.items(): inspect(item, path + (key,))
     elif isinstance(value, list):
         for index, item in enumerate(value): inspect(item, path + (index,))

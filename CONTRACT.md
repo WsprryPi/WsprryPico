@@ -26,9 +26,7 @@ messages before LOAD/ARM; WTP carries complete encoded jobs. See
 [finite jobs](engineering/development/extended-jobs.md) and
 [WSPR planning](engineering/development/wspr-planning.md).
 
-μChrony supplies UTC discipline; RF carrier correction uses the persistent manual
-PPM value. NTP-derived RF calibration and Pico-to-Pi GPIO timing pulses are not
-supported. GPS/PPS input is future work in the consolidated backlog. Job launch
+μChrony supplies UTC discipline from NTP or optional qualified GPS UTC/PPS observations. RF carrier correction uses persistent manual PPM or separately selected PPS-derived oscillator correction with manual residual trim. Direct GPIO and Si5351 reference errors remain separate. NTP-derived RF calibration and Pico-to-Pi GPIO timing pulses are not supported. GPS settings, timing association, location snapshots, and holdover are defined in the [GPS/PPS contract](engineering/development/gps-pps.md). Job launch
 retains clock source-age, ownership, frequency, hardware and output
 inhibition checks. UTC uncertainty is reported without a first-party transmission veto; explicit external WTP caller limits retain their independent protocol meaning. The explicit zero NTP-timeout setting retains the last accepted
 NTP clock without age or server uncertainty expiry; initial synchronization,

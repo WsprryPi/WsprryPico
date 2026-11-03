@@ -37,15 +37,17 @@ network::HttpResponse TimeExchange::handle(const network::HttpRequest& request,
     const auto accepted = arbiter_.observe(time::ObservationSource::Controller, utc, sampled,
                                            uncertainty, wtp::LeapState::Normal, {}, "usb-physical");
     const auto status = arbiter_.status();
-    const bool sntp_selected = status.source == time::ActiveTimeSource::Sntp;
-    const auto source = sntp_selected                                           ? "sntp"
+    const bool sntp_selected = status.source == time::ActiveTimeSource::Sntp ||
+                               status.source == time::ActiveTimeSource::Gps;
+    const auto source = status.source == time::ActiveTimeSource::Gps ? "gps"
+                        : status.source == time::ActiveTimeSource::Sntp                                           ? "sntp"
                         : status.source == time::ActiveTimeSource::Controller   ? "controller"
                         : status.source == time::ActiveTimeSource::Disagreement ? "disagreement"
                                                                                 : "none";
     if (!accepted && !sntp_selected)
         return network::http_error(409, "time_source_refused");
-    // Healthy SNTP retains priority. This is an available but unselected USB
-    // observation, not an instruction to overwrite or invalidate SNTP.
+    // Healthy NTP/GPS retains priority. This is an available but unselected USB
+    // observation, not an instruction to replace that source.
     return {200,
             "{\"accepted\":" + std::string(accepted ? "true" : "false") +
                 ",\"selected\":" + (accepted ? "true" : "false") + ",\"source\":" + quote(source) +

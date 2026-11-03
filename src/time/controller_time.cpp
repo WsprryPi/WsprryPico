@@ -30,6 +30,8 @@ bool bounded_identifier(std::string_view value) {
 
 ActiveTimeSource ControllerTimeArbiter::label(ObservationSource source) {
     switch (source) {
+    case ObservationSource::Gps:
+        return ActiveTimeSource::Gps;
     case ObservationSource::Sntp:
         return ActiveTimeSource::Sntp;
     case ObservationSource::Controller:
@@ -194,7 +196,8 @@ bool ControllerTimeArbiter::current_valid(std::uint64_t now) const {
     if (imported_ntp_) {
         const auto snapshot = clock_.snapshot();
         return snapshot.state != wtp::ClockState::Unsynchronized &&
-               snapshot.sync_age_ns <= controller_source_lifetime_ns;
+               (current_.source == ObservationSource::Gps ||
+                snapshot.sync_age_ns <= controller_source_lifetime_ns);
     }
     std::uint64_t estimate{}, uncertainty{};
     return interval(current_, now, estimate, uncertainty);
@@ -252,8 +255,15 @@ bool ControllerTimeArbiter::observe_rate(std::uint64_t utc, std::uint64_t raw,
                          {}, rate, rate_uncertainty, generation);
 }
 bool ControllerTimeArbiter::observe_ntp_model(const RateObservation& source,
-                                              const wtp::ClockSnapshot& model,
-                                              std::uint32_t max_clock_error_ppb) {
+    const wtp::ClockSnapshot& model, std::uint32_t maximum_error) {
+    return import_model(ObservationSource::Sntp, source, model, maximum_error);
+}
+bool ControllerTimeArbiter::observe_reference_model(const RateObservation& source,
+    const wtp::ClockSnapshot& model, std::uint32_t maximum_error) {
+    return import_model(ObservationSource::Gps, source, model, maximum_error);
+}
+bool ControllerTimeArbiter::import_model(ObservationSource kind, const RateObservation& source,
+    const wtp::ClockSnapshot& model, std::uint32_t max_clock_error_ppb) {
     if (frequency_conflict_)
         return false;
     if (!now_ || !consistent_import(source, model) || source.utc_ns < sntp_min_utc_ns ||
@@ -264,7 +274,7 @@ bool ControllerTimeArbiter::observe_ntp_model(const RateObservation& source,
         source.raw_ns != model.monotonic_now_ns - model.sync_age_ns)
         return false;
     const auto now = now_(context_);
-    const Observation candidate{ObservationSource::Sntp,
+    const Observation candidate{kind,
                                 source.utc_ns,
                                 source.raw_ns,
                                 source.uncertainty_ns,
@@ -277,7 +287,7 @@ bool ControllerTimeArbiter::observe_ntp_model(const RateObservation& source,
     if (!interval(candidate, now, estimate, uncertainty))
         return false;
     if (source_ == ActiveTimeSource::Disagreement) {
-        if (!recovery_.valid || recovery_.source != ObservationSource::Sntp ||
+        if (!recovery_.valid || recovery_.source != kind ||
             !overlaps(recovery_, candidate, now)) {
             recovery_ = candidate;
             return false;
@@ -295,11 +305,13 @@ bool ControllerTimeArbiter::observe_ntp_model(const RateObservation& source,
     }
     // Successive NTP estimates are arbitrated solely by muChrony. Cross-source
     // authority compares its unslewed source interval, never its control lag.
-    if (!clock_.observe_ntp_model(source, model, max_clock_error_ppb))
+    if (!(kind == ObservationSource::Gps
+              ? clock_.observe_reference_model(source, model, max_clock_error_ppb)
+              : clock_.observe_ntp_model(source, model, max_clock_error_ppb)))
         return false;
     current_ = candidate;
     recovery_ = {};
-    source_ = ActiveTimeSource::Sntp;
+    source_ = label(kind);
     imported_ntp_ = true;
     return true;
 }
@@ -316,7 +328,7 @@ bool ControllerTimeArbiter::observe_model(ObservationSource source, std::uint64_
                                           std::string_view principal, std::int32_t rate,
                                           std::uint32_t rate_uncertainty,
                                           std::uint64_t generation) {
-    if (frequency_conflict_)
+    if (frequency_conflict_ || source == ObservationSource::Gps)
         return false;
     if (rate < -100'000 || rate > 100'000 || rate_uncertainty > 200'000)
         return false;
@@ -376,7 +388,8 @@ bool ControllerTimeArbiter::observe_model(ObservationSource source, std::uint64_
     }
     if (source == ObservationSource::Browser && current_.source != ObservationSource::Browser)
         return false;
-    if (current_.source == ObservationSource::Sntp && source == ObservationSource::Controller)
+    if ((current_.source == ObservationSource::Sntp || current_.source == ObservationSource::Gps) &&
+        source == ObservationSource::Controller)
         return false;
     if (current_.source == ObservationSource::Controller &&
         source == ObservationSource::Controller && current_.principal != candidate.principal)

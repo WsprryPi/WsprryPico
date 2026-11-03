@@ -33,7 +33,7 @@ enum class ControllerTimeCode {
     Disagreement,
     Uncertainty,
 };
-enum class ActiveTimeSource { None, Sntp, Controller, Browser, Disagreement };
+enum class ActiveTimeSource { None, Sntp, Controller, Browser, Gps, Disagreement };
 
 struct ControllerChallenge {
     ControllerTimeCode code = ControllerTimeCode::Invalid;
@@ -80,6 +80,8 @@ class ControllerTimeArbiter final : public ObservationSink {
                       std::uint64_t generation) override;
     bool observe_ntp_model(const RateObservation& source, const wtp::ClockSnapshot& model,
                            std::uint32_t max_clock_error_ppb) override;
+    bool observe_reference_model(const RateObservation& source, const wtp::ClockSnapshot& model,
+                                 std::uint32_t max_clock_error_ppb) override;
     bool observe_frequency_reference(const LocalFrequencyReference&, std::uint64_t now) override;
     void retire_frequency_reference(std::uint64_t now, bool policy_removed) override;
     std::string_view browser_frequency_reference_status(std::uint64_t now) const override;
@@ -88,6 +90,8 @@ class ControllerTimeArbiter final : public ObservationSink {
     ControllerTimeStatus status() const;
 
   private:
+    bool import_model(ObservationSource kind, const RateObservation&, const wtp::ClockSnapshot&,
+                      std::uint32_t max_clock_error_ppb);
     struct Observation {
         ObservationSource source = ObservationSource::Sntp;
         std::uint64_t utc_ns = 0;

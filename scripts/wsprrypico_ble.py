@@ -594,7 +594,7 @@ class Client:
     def field_status(self) -> dict[str, Any]:
         response = self._field("field_status")
         if (
-            response.get("time_source") not in {"none", "sntp", "controller", "disagreement"}
+            response.get("time_source") not in {"none", "sntp", "controller", "gps", "disagreement"}
             or not isinstance(response.get("time_age_ns"), str)
             or _DECIMAL.fullmatch(response["time_age_ns"]) is None
             or not isinstance(response.get("time_uncertainty_ns"), str)

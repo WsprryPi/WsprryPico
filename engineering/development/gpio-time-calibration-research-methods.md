@@ -1,6 +1,6 @@
 # Clock-rate analysis and RF calibration limits
 
-A device UTC mapping, an NTP packet exchange, and an independently measured RF carrier are different observations. A rate fitted to periodic Console INFO snapshots is a diagnostic estimate; it is not a complete NTP sample stream or an RF calibration. Current RF correction uses manual PPM only; NTP-derived RF calibration is [rejected](clock-discipline.md). The Pico-to-Pi GPIO measurement path is unavailable. These methods support offline diagnostic analysis.
+A device UTC mapping, an NTP packet exchange, and an independently measured RF carrier are different observations. A rate fitted to periodic Console INFO snapshots is a diagnostic estimate; it is not a complete NTP sample stream or an RF calibration. RF correction uses manual PPM or separately qualified PPS-derived oscillator measurements; NTP-derived RF calibration is [rejected](clock-discipline.md). The Pico-to-Pi GPIO measurement path is unavailable. These methods support offline diagnostic analysis.
 
 ## Observation identity and quality
 

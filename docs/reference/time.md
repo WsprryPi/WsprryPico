@@ -28,6 +28,12 @@ In **Transmitter status**, choose **Refresh** and read **Clock**:
 
 The value after **±** is the estimated timing uncertainty, in **ms** (milliseconds), not a countdown. UTC uncertainty is displayed for your judgment and does not automatically block first-party transmissions. Set the source-age timeout in **Time and calibration**; **0** allows indefinite NTP holdover while keeping uncertainty visible. An external WTP controller can explicitly request its own timing limit. After a restart, the Pico needs fresh time observations; saved clock-rate estimates do not preserve the current date and time.
 
+## Use GPS time without a network
+
+An optional GPS receiver can supply UTC through separate serial and PPS inputs after its pulse association has been independently validated. Configure it under [Radio pins → GPS and PPS](../configure.md#gps-and-pps). Time, position, and RF calibration have separate validity: a missing position does not automatically invalidate usable UTC, and serial reception does not prove PPS timing. GPS holdover is at most one hour; the NTP timeout setting, including zero, does not extend it.
+
+GPS/PPS can measure the Pico oscillator, while PPS plus CLK2 loopback measures the independent Si5351 reference. The clock's UTC rate and these two oscillator errors are different quantities. Manual correction stays separate and becomes residual trim when automatic correction is enabled. The page reports each calibration's age and estimated bound. PPS capture also reports IRQ latency separately from the corrected timestamp error bound; neither value establishes the receiver's absolute UTC accuracy. Fresh measurements are required after restart, and improved clock statistics alone do not establish carrier accuracy.
+
 ## Use a trusted loopback while offline
 
 With a supported Si5351 module and its loopback connected, **Trust local reference for Pico rate** can reduce timer drift after your phone supplies UTC through the authenticated Pico AP page. The phone supplies the date and time; the loopback helps maintain the clock rate. Configure its wiring and a known oscillator uncertainty in [Si5351 output settings](../configure.md#si5351-output-settings).

@@ -23,6 +23,7 @@ wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
             return {};
     }
     const auto selected = pair_frozen_ && frozen_ ? *frozen_ : selection();
+    if (!selected.valid) { failure_ = "gps_calibration_required"; return {}; }
     if ((selected.ppb && !job.allow_frequency_adjustment) ||
         (programmed_ != selected.ppb && !engine_.set_frequency_correction_ppb(selected.ppb)))
         return {};
@@ -62,6 +63,24 @@ FrequencyPolicyEngine::Selection FrequencyPolicyEngine::selection() const {
                 ? store_.config()->manual_correction_ppb
                 : (store_.config()->si5351 ? store_.config()->si5351->manual_correction_ppb : 0);
         result.generation = store_.config_sequence();
+        const auto& gps = store_.config()->gps;
+        const bool automatic = boot_engine_ == hardware::PinPlan::Engine::Direct
+            ? gps && gps->automatic_rf_calibration
+            : store_.config()->si5351 && store_.config()->si5351->automatic_calibration;
+        if (automatic) {
+            result.automatic = true;
+            if (!gps || !gps->enabled || !gps->pairing_qualified || !gps_clock_bound_ || gps_disagreement_ || !gps_calibration_ ||
+                !gps_calibration_->fresh(gps_now_, gps->calibration_maximum_age_s * time::gps::second)) {
+                result.valid = false; return result;
+            }
+            const auto corrected = time::gps::compose_correction(
+                gps_calibration_->oscillator_error_ppb, result.ppb);
+            if (!corrected) { result.valid = false; return result; }
+            result.ppb = *corrected;
+            result.generation = gps_calibration_->generation;
+            result.observed_raw_ns = gps_calibration_->observed_raw_ns;
+            result.uncertainty_ppb = gps_calibration_->uncertainty_at(gps_now_);
+        }
     }
     return result;
 }
@@ -76,9 +95,11 @@ std::string FrequencyPolicyEngine::calibration_status(std::uint64_t) const {
            "\"topology_supported\":false,\"independent_rf_verified\":false,"
            "\"ntp_rf_supported\":false,\"next_ppb\":" +
            std::to_string(next.ppb) + ",\"next_generation\":\"" + std::to_string(next.generation) +
-           "\"" + ",\"next_source\":\"manual\",\"reason\":\"manual_mode\",\"prepared_ppb\":" +
+           "\"" + ",\"next_source\":" + wtp::json::quote(next.automatic ? "gps" : "manual") +
+           ",\"reason\":" + wtp::json::quote(!next.valid ? "gps_calibration_required" :
+               next.automatic ? "gps_calibrated" : "manual_mode") + ",\"prepared_ppb\":" +
            (frozen_ ? std::to_string(frozen_->ppb) : "null") +
-           ",\"prepared_source\":" + (frozen_ ? "\"manual\"" : "null") +
+           ",\"prepared_source\":" + (frozen_ ? wtp::json::quote(frozen_->automatic ? "gps" : "manual") : "null") +
            ",\"prepared_generation\":" +
            (frozen_ ? wtp::json::quote(std::to_string(frozen_->generation)) : "null") + "}";
 }

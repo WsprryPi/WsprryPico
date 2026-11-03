@@ -88,6 +88,14 @@ class PicoNetwork : public network::NetworkControl, private network::MdnsAdapter
     const time::NtpClient::ControlModel& ntp_control() const {
         return ntp_.control_model();
     }
+    bool gps_clock(bool enabled, std::uint64_t now) { return ntp_.reference_clock(enabled, now); }
+    bool gps_observation(const time::gps::Observation& value, std::uint64_t now) {
+        return ntp_.reference_observation({value.raw_ns, value.utc_ns, value.uncertainty_ns,
+            value.sequence, microchrony::Leap::Normal}, now);
+    }
+    void clock_poll(std::uint64_t now) { (void)ntp_.apply(now); }
+    bool gps_selected(std::uint64_t now) const { return ntp_.engine().tracking(now).reference_clock; }
+    const microchrony::Engine& clock_engine() const { return ntp_.engine(); }
     void frequency_reference(const std::optional<microchrony::FrequencyReference>& value,
                              std::uint64_t raw_ns) {
         (void)ntp_.frequency_reference(value, raw_ns);

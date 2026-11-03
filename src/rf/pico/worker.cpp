@@ -14,6 +14,7 @@
 #include "rf/pico/pico_pio_dma.hpp"
 #include "rf/pico/si5351_platform.hpp"
 #include "runtime/pico/stack_guard.h"
+#include "time/capture_gap.hpp"
 
 #include <algorithm>
 #include <memory>
@@ -82,10 +83,14 @@ si5351::PicoExecutionPlatform* si_platform = nullptr;
 int gpio_drive_observation() {
     return drive_hardware ? drive_hardware->drive_observation() : -1;
 }
+time::gps::CycleSnapshot reference_count_at_pps() {
+    return si_platform ? si_platform->pps_snapshot() : time::gps::CycleSnapshot{};
+}
 WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& pins,
                            bool storage_healthy, IndicatorGate& indicator, unsigned drive_ma,
                            AmplifierEnable* amplifier, FilterSelector* filters,
-                           const std::optional<hardware::Si5351Settings>& settings) {
+                           const std::optional<hardware::Si5351Settings>& settings,
+                           bool gps_pps_calibration) {
     if (!hardware::operational(pins))
         failure();
     wtp::RfEngine* selected = nullptr;
@@ -109,7 +114,7 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
         static si5351::Device device(bus);
         static si5351::PicoExecutionPlatform platform(
             pins, *settings, filters ? filters->settings() : hardware::FilterSettings{}, bus,
-            device);
+            device, gps_pps_calibration);
         static si5351::Engine engine(
             settings->synthesis, device, platform, WSPRRY_PICO_SI5351_ENGINEERING, &indicator,
             amplifier, filters,
@@ -232,6 +237,7 @@ int guarded_flash_execute(void (*operation)(void*), void* context, std::uint32_t
     static bool active = false; // Core 0 only; reject nested flash callbacks.
     if (get_core_num() != 0 || active)
         return PICO_ERROR_NOT_PERMITTED;
+    time::CaptureGap capture_gap;
     active = true;
     if (worker && !worker->suspend_background(now() + 100'000'000ULL)) {
         active = false;

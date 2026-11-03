@@ -61,6 +61,9 @@ let stopRequested = false, stopping = false;
 const si5351Editor = $('si5351-settings') ? WsprrySi5351.create($('si5351-settings'), {
   changed:()=>{dirty=true;showDraftComparison();lockPins();}
 }) : null;
+const gpsEditor = $('gps-settings') ? WsprryGps.create($('gps-settings'), {
+  changed:()=>{dirty=true;showDraftComparison();lockPins();}
+}) : null;
 function syncRfEngine() {
   const field=$('config').elements.rf_engine;
   const supported=Boolean(si5351Editor) && WsprryControl.supported('si5351',capabilities?.si5351);
@@ -935,6 +938,7 @@ function controls(connected) {
   }
   syncRfEngine();
   si5351Editor?.enable(controlsUnlocked() && !uiBusy() && idle && writeState==='ready');
+  gpsEditor?.enable(controlsUnlocked() && !uiBusy() && idle && writeState==='ready' && WsprryControl.supported('gps',capabilities?.gps));
   if($('save-pins')) $('save-pins').disabled = uiBusy() || !idle || writeState !== 'ready' || !currentConfig;
   $('job-settings').disabled = uiBusy() || !idle || snapshot.standalone.reboot_required;
   $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
@@ -991,6 +995,7 @@ function fill(c, network = c?.wifi) {
   form.enabled.checked = c?.enabled ?? false;
   form.schedules.value = (c?.schedules || [{period_s:600,phase_s:0}]).map(s => `${s.period_s} / ${s.phase_s}`).join('\n');
   si5351Editor?.load(c?.si5351 ?? null,c?.pins?.i2c_pair);
+  gpsEditor?.load(c?.gps ?? null);
   fillPins(c?.pins);
   form.expiry.value = c?.expires_utc_s ? new Date(c.expires_utc_s * 1000).toISOString().slice(0,19) : '';
   utcEditors.forEach(editor=>editor.sync());
@@ -2116,6 +2121,14 @@ async function loadAllSettings() {
         si5351Editor.observation(observation.data);
       } catch(error) {consolePut('pins-status',error.message);}
     }
+    if(WsprryControl.supported('gps',capabilities?.gps) && gpsEditor) {
+      try {
+        const observation=await api('gps');
+        const target={scope:'member',device_id:localIdentity?.device_id || operationsTarget?.device_id,boot_id:snapshot?.job.boot_id};
+        if(!WsprryGps.readback(observation.data,target) || !observation.revision) throw Error('GPS readback is malformed or belongs to another Pico or boot.');
+        gpsEditor.observation(observation.data);
+      } catch(error) {consolePut('pins-status',error.message);}
+    }
     if(!messageEdited && messageScheduleReadback?.data.saved) adoptMessageSchedule(false);
     if(WsprryControl.supported('logging',capabilities?.logging)) await readLogging();
     try { await udpEditor?.read(); } catch(error) { notice(error.message,true); }
@@ -2159,6 +2172,8 @@ async function saveRadioPins(amplifierOnly=false) {
     if(!WsprryControl.supported('si5351',capabilities?.si5351)) throw Error('This Pico does not advertise the current Si5351 controls. Read resources again.');
     siDraft=si5351Editor.validate(draft,filterSaved?.selectors || []).settings;
   }
+  const gpsDraft=amplifierOnly ? null : gpsEditor?.read(draft,siDraft || currentConfig?.si5351,filterSaved?.selectors || []);
+  if(siDraft?.automatic_calibration && (!gpsDraft?.enabled || !gpsDraft?.pairing_qualified)) throw Error('Si5351 automatic correction requires enabled GPS with a validated UTC/PPS association.');
   const path='hardware';
   const before=await api(path);
   if(before.revision!==revision) { requireReadback(); throw new Error('Saved settings changed. Read and review them before saving pins.'); }
@@ -2166,8 +2181,9 @@ async function saveRadioPins(amplifierOnly=false) {
   const pins=amplifierOnly ? {...before.data.saved,amplifier_gp:draft.amplifier_gp,amplifier_active_high:draft.amplifier_active_high} : draft;
   if(amplifierOnly && !before.data.saved) throw new Error('Read complete saved pins before saving amplifier config.');
   try {
-    if(!amplifierOnly && (pins.engine==='i2c' || currentConfig?.si5351)) {
+    if(!amplifierOnly && (pins.engine==='i2c' || currentConfig?.si5351 || gpsDraft || currentConfig?.gps)) {
       const patch={pins};
+      if(gpsDraft)patch.gps=gpsDraft;
       if(pins.engine==='i2c') {
         if(!WsprryControl.supported('si5351',capabilities?.si5351)) throw Error('This Pico does not advertise the current Si5351 controls. Read resources again.');
         patch.si5351=siDraft;
@@ -2176,7 +2192,8 @@ async function saveRadioPins(amplifierOnly=false) {
       const result=await api('config/update','POST',{schema:'config-update',target:before.data.target,mode:'merge',config:patch},before.revision);
       const equal=(a,b)=>a && b && Object.keys(a).sort().join(',')===Object.keys(b).sort().join(',') && Object.keys(a).every(k=>JSON.stringify(a[k])===JSON.stringify(b[k]));
       if(!validSavedConfig(result.data.config) || !equal(result.data.config.pins,pins) ||
-         patch.si5351 && !equal(result.data.config.si5351,patch.si5351)) throw Error('Saved readback did not confirm the RF engine draft.');
+         patch.si5351 && !equal(result.data.config.si5351,patch.si5351) ||
+         patch.gps && !equal(result.data.config.gps,patch.gps)) throw Error('Saved readback did not confirm the RF engine draft.');
       const confirmed=await reconcileConfirmedSettings(result,before.data.target,'RF engine settings saved. Restart Pico explicitly to activate them.');
       consolePut('pins-status','RF engine settings saved. Restart Pico explicitly to activate them.');
       if(confirmed) await refresh();
@@ -2259,7 +2276,7 @@ async function updateFieldTime(readSettings = false) {
   try {
     let status = await read('consumer/time');
     if (!['synchronized','holdover','unsynchronized'].includes(status.clock_state) ||
-        !['none','network','controller','browser','disagreement'].includes(status.source) ||
+        !['none','network','controller','browser','gps','disagreement'].includes(status.source) ||
         !/^(0|[1-9][0-9]{0,19})$/.test(status.age_ns) ||
         !/^(0|[1-9][0-9]{0,19})$/.test(status.uncertainty_ns) || typeof status.disagreement !== 'boolean')
       throw new Error('Invalid time observation');
@@ -2269,7 +2286,7 @@ async function updateFieldTime(readSettings = false) {
       status = await read('consumer/time/submit','POST',{schema:'browser-time-sample',target,
         sample:{nonce,utc_ns:(BigInt(Date.now())*1000000n).toString()}});
     }
-    const labels = {browser:'Using browser time',network:'Using network time',controller:'Using controller time',none:'Waiting for usable time',disagreement:'Time sources disagree'};
+    const labels = {gps:'Using GPS/PPS time',browser:'Using browser time',network:'Using network time',controller:'Using controller time',none:'Waiting for usable time',disagreement:'Time sources disagree'};
     $('browser-time-status').textContent = labels[status.source] + ' · ' + status.clock_state +
       ` · last sample ${(Number(status.age_ns)/1e9).toFixed(0)} seconds ago · estimated uncertainty ±${(Number(status.uncertainty_ns)/1e6).toFixed(1)} ms.` +
       (status.source==='browser' ? ' Time supplied by this device’s clock. Without refresh, holdover lasts up to one hour. Estimated UTC uncertainty is shown for your judgment.' : '');

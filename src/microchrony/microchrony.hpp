@@ -11,6 +11,8 @@
 // implementation of documented clock-discipline rules, not Chrony source code.
 namespace microchrony {
 inline constexpr std::size_t source_capacity = 4, sample_capacity = 64;
+inline constexpr std::size_t reference_sample_capacity = 16;
+inline constexpr std::size_t reference_slot = source_capacity, source_count = source_capacity + 1;
 inline constexpr std::uint64_t second = 1'000'000'000;
 
 struct Config {
@@ -89,6 +91,7 @@ struct SourceStatus {
 };
 struct Tracking {
     bool synchronized = false;
+    bool reference_clock = false, reference_disagreement = false;
     Leap leap = Leap::Unsynchronized;
     unsigned selected = source_capacity, combined_sources = 0;
     std::uint64_t raw_ns = 0, utc_ns = 0, source_raw_ns = 0, generation = 0;
@@ -117,6 +120,11 @@ enum class FrequencyReferenceState : std::uint8_t {
     Expired
 };
 const char* name(FrequencyReferenceState);
+// A paired, receiver-qualified UTC epoch on the unmodified hardware timer.
+struct ReferenceObservation {
+    std::uint64_t raw_ns = 0, utc_ns = 0, uncertainty_ns = 0, sequence = 0;
+    Leap leap = Leap::Unsynchronized;
+};
 struct Readiness {
     bool synchronized = false, phase_settled = false, rate_settled = false;
     bool error_within_limit = false;
@@ -159,9 +167,17 @@ CombinedEstimate combine_sources(std::span<const SourceEstimate> sources);
 class Engine {
   public:
     explicit Engine(Config config = {});
+    Engine(const Engine&) = delete;
+    Engine& operator=(const Engine&) = delete;
+    Engine(Engine&&) = delete;
+    Engine& operator=(Engine&&) = delete;
     bool valid_config() const {
         return config_valid_;
     }
+    bool reference_clock(bool enabled, std::uint64_t raw_ns);
+    bool observe_reference(ReferenceObservation, std::uint64_t raw_ns);
+    void poll(std::uint64_t raw_ns);
+    SourceStatus reference_status(std::uint64_t raw_ns) const;
     bool configure(unsigned source, std::uint32_t endpoint, std::uint64_t raw_ns);
     void online(bool enabled, std::uint64_t raw_ns);
     void remove(unsigned source, std::uint64_t raw_ns);
@@ -196,8 +212,8 @@ class Engine {
     friend struct ClockLoopTestAccess;
     struct Source {
         SourceStatus status;
-        std::array<Measurement, sample_capacity> samples{};
-        std::array<RegressionPoint, sample_capacity> predecessors{};
+        std::span<Measurement> samples;
+        std::span<RegressionPoint> predecessors;
         unsigned count = 0, fit_start = 0, burst_left = 0, burst_attempts = 0, poll_score = 0;
         unsigned predecessor_count = 0, runs_count = 0;
         int asymmetry_evidence = 0;
@@ -208,6 +224,7 @@ class Engine {
         double min_delay = 0, asymmetry = 0;
     };
     void fit(Source& source);
+    void append(Source&, const Measurement&, std::uint64_t now);
     void clear(Source& source);
     void select(std::uint64_t raw_ns, bool score_update = false);
     void discipline(unsigned selected, std::span<const unsigned> combined, std::uint64_t raw_ns);
@@ -218,8 +235,14 @@ class Engine {
     void set_poll(Source& source, std::uint64_t raw_ns, std::uint64_t random_token);
     Config config_;
     bool config_valid_ = false, clock_valid_ = false, online_ = true;
-    std::array<Source, source_capacity> sources_{};
-    std::array<std::uint64_t, source_capacity> used_generation_{};
+    // Four unchanged 64-sample network histories and a compact PPS history.
+    // Source views refer only to this Engine's owned fixed storage.
+    std::array<std::array<Measurement, sample_capacity>, source_capacity> network_samples_{};
+    std::array<std::array<RegressionPoint, sample_capacity>, source_capacity> network_predecessors_{};
+    std::array<Measurement, reference_sample_capacity> reference_samples_{};
+    std::array<RegressionPoint, reference_sample_capacity> reference_predecessors_{};
+    std::array<Source, source_count> sources_{};
+    std::array<std::uint64_t, source_count> used_generation_{};
     std::uint64_t clock_raw_ns_ = 0, clock_utc_ns_ = 0, last_update_ns_ = 0;
     std::uint64_t last_source_raw_ns_ = 0;
     std::uint64_t generation_ = 1;
@@ -227,8 +250,10 @@ class Engine {
     double frequency_skew_ = 0.002; // Controller state, distinct from the reported coverage bound.
     double root_delay_ = 0, root_dispersion_ = 0;
     std::uint64_t dispersion_raw_ns_ = 0;
-    unsigned selected_ = source_capacity, combined_count_ = 0;
+    unsigned selected_ = source_count, combined_count_ = 0;
     Leap leap_ = Leap::Unsynchronized;
+    bool reference_enabled_ = false, reference_disagreement_ = false;
+    std::uint64_t reference_sequence_ = 0;
     FrequencyReference frequency_reference_;
     std::int32_t network_frequency_ppb_ = 0;
     std::uint32_t network_frequency_uncertainty_ppb_ = 2'000'000;

@@ -11,9 +11,11 @@ std::uint64_t add(std::uint64_t value, std::uint64_t amount) {
 } // namespace
 ReferenceMonitor::ReferenceMonitor(const si5351::Configuration& config,
                                    const ReferencePolicy& policy, si5351::Device& device,
-                                   ReferenceCapture& capture, Now now, void* context)
-    : config_(config), policy_(policy), plan_(si5351::plan_reference(config)), device_(device),
-      capture_(capture), now_(now), context_(context) {}
+                                   ReferenceCapture& capture, Now now, void* context,
+                                   bool pps_calibration)
+    : config_(config), policy_(policy), pps_calibration_(pps_calibration),
+      plan_(si5351::plan_reference(config)), device_(device), capture_(capture), now_(now),
+      context_(context) {}
 std::optional<ReferenceMeasurement> ReferenceMonitor::current() const {
     if (!now_ || inhibited_ || faulted_ || !latest_ ||
         !reference_fresh(*latest_, policy_, now_(context_), generation_))
@@ -92,12 +94,20 @@ void ReferenceMonitor::service(bool permitted) {
             fault("reference_window_expired");
             return;
         }
-        if (now - started_ns_ < policy_.minimum_window_ns)
+        // A ten-second capture starting between PPS edges contains only nine
+        // complete PPS intervals. Keep a qualified-GPS window long enough for
+        // eleven endpoints, while retaining the normal no-GPS capture cadence.
+        const auto window =
+            pps_calibration_
+                ? std::max(policy_.minimum_window_ns,
+                           std::min(policy_.maximum_window_ns, std::uint64_t{12'000'000'000}))
+                : policy_.minimum_window_ns;
+        if (now - started_ns_ < window)
             return;
-        const auto window = capture_.finish();
+        const auto captured = capture_.finish();
         measuring_ = false;
         const auto measured =
-            measure_reference(window, plan_->output.achieved_hz, generation_, policy_);
+            measure_reference(captured, plan_->output.achieved_hz, generation_, policy_);
         if (!device_.reference_enabled(false, add(now_(context_), 5'000'000))) {
             fault("reference_shutdown_unconfirmed");
             return;

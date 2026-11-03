@@ -31,6 +31,7 @@ set(wsprry_application_images WsprryPico-Inhibited ${wsprry_rf_images})
 foreach(image IN LISTS wsprry_application_images)
     add_executable(${image} EXCLUDE_FROM_ALL
         ../src/standalone/pico/main.cpp ../src/standalone/pico/adapters.cpp
+        ../src/time/pico/gps_input.cpp
         ../src/standalone/pico/net_trace.cpp
         ../src/hardware/pico/amplifier_output.cpp
         ../src/hardware/pico/filter_outputs.cpp
@@ -44,7 +45,9 @@ foreach(image IN LISTS wsprry_application_images)
         PICO_PANIC_FUNCTION=wsprrypico_panic)
     target_link_libraries(${image} PRIVATE
         wsprrypico_core pico_stdlib pico_rand pico_time pico_unique_id
-        hardware_flash pico_flash pico_cyw43_arch_lwip_poll tinyusb_device)
+        hardware_flash hardware_uart hardware_irq hardware_pwm pico_flash pico_cyw43_arch_lwip_poll tinyusb_device)
+    target_sources(${image} PRIVATE ../src/time/pico/flash_capture_guard.cpp)
+    target_link_options(${image} PRIVATE "LINKER:--wrap=flash_safe_execute")
     # 32 KiB primary stack, including the retained 4 KiB MSPLIM guard.
     target_link_options(${image} PRIVATE
         "LINKER:--defsym=RAM_LENGTH=0x78000"
@@ -58,7 +61,6 @@ foreach(image IN LISTS wsprry_application_images)
     pico_set_program_version(${image} "${WSPRRY_PICO_FIRMWARE_VERSION}")
     if(image IN_LIST wsprry_rf_images)
         target_sources(${image} PRIVATE ../src/rf/pico/worker.cpp)
-        target_link_options(${image} PRIVATE "LINKER:--wrap=flash_safe_execute")
         if(image STREQUAL "WsprryPico-Si5351Engineering")
             target_compile_definitions(${image} PRIVATE WSPRRY_PICO_SI5351_ENGINEERING=1)
         else()
@@ -250,6 +252,7 @@ if(WSPRRY_PICO_LED_ACCEPTANCE AND (WSPRRY_PICO_INDICATOR_FAULT_FIXTURE OR
 endif()
 
 set_source_files_properties(../src/standalone/pico/main.cpp ../src/standalone/pico/adapters.cpp
+        ../src/time/pico/gps_input.cpp
     PROPERTIES COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
 if(WSPRRY_PICO_LED_ACCEPTANCE)
     foreach(image IN LISTS wsprry_application_images)

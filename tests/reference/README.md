@@ -1,6 +1,6 @@
 # External Chrony 4.9 reference
 
-μChrony is retained for UTC discipline. RF correction uses manual PPM only; the Pico-to-Pi GPIO pulse path is unavailable. Retained captured-input tools operate offline and do not require that path. See the [UTC/RF contract](../../engineering/development/clock-discipline.md).
+μChrony is retained for UTC discipline. RF correction uses independent manual PPM or separately qualified PPS oscillator measurements; the Pico-to-Pi GPIO pulse path is unavailable. Retained captured-input tools operate offline and do not require that path. See the [UTC/RF contract](../../engineering/development/clock-discipline.md).
 
 These original MIT drivers keep the external GPL reference separate from μChrony and the firmware. They download nothing, install nothing, adjust no host clock, and perform no network or board operations. Keep upstream sources, objects, reference executables and generated reports in private ignored build directories. Preserve upstream licensing if distributing a reference binary.
 
@@ -173,3 +173,15 @@ python3 tests/reference/replay_chrony49_capture.py "$receipts"
 ```
 
 The command verifies the existing capture and binary hashes and writes `captured-source-comparison.json` in that private directory. It uses normalized scalar observations and the existing portable host stats profile, not the full Pico profile or a complete daemon feedback loop. Source-fit agreement is not an independent accuracy measurement. The generated report records divergences.
+
+## Qualified GPS/PPS reference-clock comparison
+
+`microchrony_gps_loop` feeds timestamped pulses and associated UTC messages through the production `gps::Pairer` and μChrony reference-clock input. The external `chrony49-loop` supports a separate `gps` mode: it captures the same physical PPS event and admits its subsequently completed UTC sample as an actual Chrony `SRC_REFCLOCK`, alongside independent NTP sources. GPS is never represented as an NTP request/reply. The external adapter enters after receiver qualification; it does not exercise Chrony's hardware RCL drivers, median filtering, or native `lock` message pairing. The configured Pico pairing bounds and rejection paths have separate production parser/adapter tests.
+
+```sh
+python3 tests/reference/build_chrony49_oracle.py "$reference" "$receipts/chrony49-gps" loop
+python3 tests/reference/compare_chrony49_gps.py "$receipts/host/microchrony_gps_loop" \
+  --chrony "$receipts/chrony49-gps" --output "$receipts/gps-comparison.json"
+```
+
+Six deterministic cases cover positive/negative known oscillator error, warmup drift, loss/holdover/reacquisition, a provisional restart seed, and GPS/NTP conflict. The script declares finite synthetic UTC/frequency bounds before running and records input/binary hashes and actual results. Neither process restores source authority from a seed. The Pico's deliberate disagreement latch persists after the conflicting peer expires; Chrony's native source-stage selection can return to GPS. That difference is reported and checked explicitly, rather than described as daemon equivalence. CTest's `gps_clock_loop` runs the same cases with an explicit `--engine-only` selection and makes no external-reference claim.

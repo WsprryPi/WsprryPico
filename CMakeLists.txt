@@ -66,7 +66,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js src/network/web/udp-logging.js
     src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
     src/network/web/saved-progress.js src/network/web/gpio-drive.js src/network/web/utc-datetime.js src/network/web/message-schedule.js
-    src/network/web/si5351.js src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/amplifier-timing.js src/network/web/filter-selector.js src/network/web/standalone-frequency.js
+    src/network/web/si5351.js src/network/web/gps.js src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/amplifier-timing.js src/network/web/filter-selector.js src/network/web/standalone-frequency.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
     src/network/bootstrap_web/bundle.js
     src/network/bootstrap_web/radio-bundle.js
@@ -94,6 +94,7 @@ add_library(wsprrypico_core
     src/application/config_update.cpp
     src/application/resources.cpp
     src/application/frequency_policy.cpp
+    src/hardware/gps_settings.cpp
     src/hardware/pins.cpp
     src/hardware/si5351_settings.cpp
     src/hardware/filter_settings.cpp
@@ -150,6 +151,8 @@ add_library(wsprrypico_core
     src/rf/reference_counter.cpp
     src/rf/reference_monitor.cpp
     src/time/ntp_filter.cpp
+    src/time/gps_calibration.cpp
+    src/time/gps.cpp
     src/time/ntp_client.cpp
     src/time/controller_time.cpp
     src/time/utc_discipline.cpp
@@ -479,6 +482,22 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_executable(pin_allocation_tests tests/pin_allocation_tests.cpp)
     target_link_libraries(pin_allocation_tests PRIVATE wsprrypico_core)
     add_test(NAME pin_allocation COMMAND pin_allocation_tests)
+    add_executable(gps_tests tests/gps_tests.cpp)
+    target_link_libraries(gps_tests PRIVATE wsprrypico_core)
+    target_compile_options(gps_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME gps COMMAND gps_tests)
+    add_executable(pico_gps_input_tests tests/pico_gps_input_tests.cpp src/time/pico/gps_input.cpp)
+    target_include_directories(pico_gps_input_tests PRIVATE tests/gps_input_mock)
+    target_link_libraries(pico_gps_input_tests PRIVATE wsprrypico_core)
+    target_compile_options(pico_gps_input_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME pico_gps_input COMMAND pico_gps_input_tests)
+    add_executable(gps_resource_tests tests/gps_resource_tests.cpp src/time/pico/gps_input.cpp)
+    target_include_directories(gps_resource_tests PRIVATE tests/gps_input_mock)
+    target_link_libraries(gps_resource_tests PRIVATE wsprrypico_core)
+    target_compile_options(gps_resource_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME gps_resource COMMAND gps_resource_tests)
+    add_test(NAME gps_browser COMMAND node ${CMAKE_SOURCE_DIR}/tests/gps_browser_tests.js $<TARGET_FILE:gps_resource_tests>)
+    add_test(NAME gps_schema COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/gps_schema_tests.py $<TARGET_FILE:gps_resource_tests>)
     add_executable(microchrony_tests tests/microchrony_tests.cpp)
     target_link_libraries(microchrony_tests PRIVATE microchrony)
     target_compile_options(microchrony_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -488,6 +507,11 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(si5351_continuity_replay PRIVATE wsprrypico_core)
     target_compile_options(si5351_continuity_replay PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     target_link_libraries(microchrony_loop PRIVATE microchrony)
+    add_executable(microchrony_gps_loop tests/reference/microchrony_gps_loop.cpp)
+    target_link_libraries(microchrony_gps_loop PRIVATE wsprrypico_core)
+    target_compile_options(microchrony_gps_loop PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME gps_clock_loop COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/reference/compare_chrony49_gps.py $<TARGET_FILE:microchrony_gps_loop> --engine-only)
     target_compile_options(microchrony_loop PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME microchrony_clock_loop COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/reference/test_microchrony_loop.py $<TARGET_FILE:microchrony_loop>)

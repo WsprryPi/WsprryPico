@@ -18,7 +18,7 @@ struct Si5351Settings {
     rf::ReferenceUse reference_use = rf::ReferenceUse::MeasurementOnly;
     std::optional<std::uint32_t> trusted_uncertainty_ppb;
     std::int32_t manual_correction_ppb = 0;
-    // GPS/PPS calibration is deliberately unavailable in this task slice.
+    // GPS/PPS calibration additionally requires the separately validated GPS policy.
     bool automatic_calibration = false;
 };
 std::string validate_si5351_settings(const Si5351Settings&);

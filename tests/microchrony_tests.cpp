@@ -50,7 +50,7 @@ bool measurement(Engine& engine, unsigned slot, std::uint64_t midpoint, double o
     return engine.receive(slot, reply(*request, utc, dispersion), send + delay);
 }
 void frequency_reference_input() {
-    static_assert(sizeof(Engine) <= 32768);
+    static_assert(sizeof(Engine) <= 36 * 1024);
     Engine cold;
     const FrequencyReference initial{second, 31 * second, 1, -12000, 100};
     CHECK(cold.observe_frequency_reference(initial, second));
@@ -748,10 +748,9 @@ void predecessor_phase_rebase() {
     CHECK(e.tracking(now).skew_ppb >= 900000);
 }
 void stats_driver() {
-    Engine engine;
     Config config;
     config.max_delay_deviation_ratio = 0; // Statistics-only comparison, same as SST input API.
-    engine = Engine(config);
+    Engine engine(config);
     CHECK(engine.configure(0, 1, 0));
     double when, offset, delay, dispersion;
     unsigned id = 0;

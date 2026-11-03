@@ -14,6 +14,8 @@ struct DisciplineConfig {
     std::uint64_t max_rate_observation_age_ns = 0; // Zero inherits the ordinary observation limit.
     std::uint64_t non_ntp_holdover_for_ns = 0;     // Zero inherits the general holdover limit.
     std::uint64_t browser_holdover_for_ns = 3'600'000'000'000ULL;
+    std::uint64_t gps_synchronized_for_ns = 3'000'000'000ULL;
+    std::uint64_t gps_holdover_for_ns = 3'600'000'000'000ULL;
     bool unlimited_ntp_holdover = false; // Retain an accepted NTP anchor without age expiry.
 };
 
@@ -27,6 +29,8 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
     bool observe(ObservationSource source, std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
                  std::uint64_t uncertainty_ns, wtp::LeapState leap,
                  std::optional<std::uint64_t> leap_transition_utc_ns, std::string_view) override {
+        if (source == ObservationSource::Gps)
+            return false;
         if (!observe(utc_ns, sampled_monotonic_ns, uncertainty_ns, leap, leap_transition_utc_ns))
             return false;
         observation_source_ = source;
@@ -37,6 +41,8 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
                       std::uint32_t rate_uncertainty_ppb, std::uint64_t generation) override;
     bool observe_ntp_model(const RateObservation& source, const wtp::ClockSnapshot& model,
                            std::uint32_t max_clock_error_ppb) override;
+    bool observe_reference_model(const RateObservation& source, const wtp::ClockSnapshot& model,
+                                 std::uint32_t max_clock_error_ppb) override;
     bool browser_time_available() const {
         const auto value = snapshot();
         return value.state == wtp::ClockState::Unsynchronized;
@@ -45,12 +51,15 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
     // continuity, accumulated uncertainty and original source age.
     bool adjust_browser_rate(std::int32_t rate_ppb, std::uint32_t uncertainty_ppb);
     void invalidate();
-    void invalidate(ObservationSource) override {
-        invalidate();
+    void invalidate(ObservationSource source) override {
+        if (source == observation_source_)
+            invalidate();
     }
     [[nodiscard]] wtp::ClockSnapshot snapshot() const override;
 
   private:
+    bool import_model(ObservationSource kind, const RateObservation&, const wtp::ClockSnapshot&,
+                      std::uint32_t max_clock_error_ppb);
     bool accept(std::uint64_t utc, std::uint64_t raw, std::uint64_t uncertainty,
                 wtp::LeapState leap, std::optional<std::uint64_t> transition,
                 std::uint64_t maximum_age);
@@ -70,6 +79,7 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
     std::uint64_t source_ns_ = 0, imported_generation_ = 0, rate_until_ns_ = UINT64_MAX;
     std::int32_t subsequent_rate_ppb_ = 0;
     std::uint32_t imported_growth_ppb_ = 1000;
+    std::uint64_t valid_until_utc_ns_ = UINT64_MAX;
 };
 
 } // namespace wsprrypico::time

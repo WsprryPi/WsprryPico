@@ -16,13 +16,16 @@ struct SpyEngine : wtp::RfEngine {
     standalone::DryRunEngine simulator;
     unsigned preparations = 0, schedules = 0, begins = 0, disables = 0;
     bool accept = true;
+    bool correction_allowed = false;
+    std::int32_t correction = 0;
     std::vector<wtp::FrequencyAdjustment> adjustments;
     wtp::PrepareResult prepare(const wtp::Job&) override {
         ++preparations;
         return {accept, adjustments};
     }
     bool set_frequency_correction_ppb(std::int32_t ppb) override {
-        return ppb == 0;
+        if (!correction_allowed && ppb != 0) return false;
+        correction = ppb; return true;
     }
     std::string_view diagnostic() const override {
         return "spy";
@@ -203,6 +206,39 @@ void config_and_storage() {
     REQUIRE(standalone::serialize_config(*f.store.config()).find("allow_") == std::string::npos);
     REQUIRE(f.scheduler.status().find("\"allow_unqualified_frequency\":false") !=
             std::string::npos);
+}
+void gps_correction_freeze() {
+    Fixture f;
+    auto config=*f.store.config();
+    config.gps.emplace(); config.gps->enabled=true; config.gps->pairing_qualified=true;
+    config.gps->automatic_rf_calibration=true; config.gps->calibration_maximum_age_s=30;
+    config.manual_correction_ppb=1000;
+    REQUIRE(f.store.save(config)); f.raw.correction_allowed=true;
+    auto job=f.job(3'570'100*hz);
+    REQUIRE(!f.engine.prepare(job).accepted && f.raw.preparations==0);
+    time::gps::Calibration learned{20000,1000,30*hz,20*hz,1};
+    f.engine.gps_calibration(learned,35*hz,false,false);
+    REQUIRE(!f.engine.prepare(job).accepted); // Timer-to-RF topology is mandatory.
+    f.engine.gps_calibration(learned,35*hz,true,false);
+    REQUIRE(f.engine.prepare(job).accepted && f.raw.correction==21000);
+    const auto frozen=f.engine.prepared_correction();
+    REQUIRE(frozen && frozen->automatic && frozen->generation==1 && frozen->observed_raw_ns==30*hz);
+    f.engine.freeze_pair_calibration(true);
+    learned.oscillator_error_ppb=-20000; learned.generation=2;
+    f.engine.gps_calibration(learned,36*hz,true,false);
+    config.manual_correction_ppb=500; REQUIRE(f.store.save(config));
+    REQUIRE(f.engine.prepare(job).accepted && f.raw.correction==21000);
+    REQUIRE(f.engine.prepared_correction()->generation==1); // Pair is one frozen intent.
+    f.engine.calibration_boundary();
+    REQUIRE(f.engine.prepare(job).accepted && f.raw.correction==-19500);
+    REQUIRE(f.engine.prepared_correction()->generation==2);
+    f.engine.gps_calibration(learned,61*hz,true,false);
+    REQUIRE(!f.engine.prepare(job).accepted); // Expiry cannot fall back to manual silently.
+    f.engine.gps_calibration(learned,36*hz,true,true);
+    REQUIRE(!f.engine.prepare(job).accepted);
+    f.engine.gps_calibration(learned,36*hz,true,false);
+    job.allow_frequency_adjustment=false;
+    REQUIRE(!f.engine.prepare(job).accepted);
 }
 void band_and_engine_limits() {
     using application::frequency_allowed;
@@ -441,6 +477,7 @@ void autonomous_admission() {
 } // namespace
 int main() {
     config_and_storage();
+    gps_correction_freeze();
     band_and_engine_limits();
     admission_and_revocation();
     progress_storage_fault_admission();

@@ -4,10 +4,14 @@
   // The UDP editor has already mounted its nested disclosures. Reuse its
   // inline topic link so dynamic sections keep the same offline icon and URL.
   const udpHelp = $('udp-logging-section').querySelector('summary a.documentation-help');
-  for (const summary of $('udp-logging-controls').querySelectorAll('summary')) {
+  for (const summary of document.querySelectorAll('#udp-logging-controls summary, #gps-settings summary')) {
     const topic=summary.textContent, group=document.createElement('span'), label=document.createElement('span');
     group.className='help-heading'; label.textContent=topic;
     const link=udpHelp.cloneNode(true);
+    if(summary.closest('#gps-settings')) {
+      const base=document.getElementById('header-help').href;
+      link.href=new URL('configure.html#gps-pps-configuration',base).href;
+    }
     link.dataset.help=topic;
     link.title=topic+' — online help opens in a new tab';
     link.setAttribute('aria-label','Help: '+topic+' (online, opens in a new tab)');

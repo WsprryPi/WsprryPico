@@ -1,4 +1,5 @@
 #include "time/utc_discipline.hpp"
+#include "time/gps.hpp"
 
 #include "time/mapping.hpp"
 
@@ -22,6 +23,8 @@ UtcDiscipline::UtcDiscipline(MonotonicNow now, void* context, DisciplineConfig c
           config.holdover_for_ns <= 604'800'000'000'000ULL && config.browser_holdover_for_ns > 0 &&
           config.browser_holdover_for_ns <= 3'600'000'000'000ULL &&
           config.non_ntp_holdover_for_ns <= 604'800'000'000'000ULL &&
+          config.gps_synchronized_for_ns <= config.gps_holdover_for_ns &&
+          config.gps_holdover_for_ns > 0 && config.gps_holdover_for_ns <= 3'600'000'000'000ULL &&
           config.max_observation_age_ns <= config.holdover_for_ns &&
           config.max_rate_observation_age_ns <= config.holdover_for_ns &&
           config.max_uncertainty_ns > 0 && config.oscillator_drift_ppb <= 1'000'000'000ULL) {}
@@ -105,8 +108,18 @@ bool UtcDiscipline::observe_rate(std::uint64_t utc, std::uint64_t raw, std::uint
     return true;
 }
 bool UtcDiscipline::observe_ntp_model(const RateObservation& source,
-                                      const wtp::ClockSnapshot& model,
-                                      std::uint32_t max_clock_error_ppb) {
+    const wtp::ClockSnapshot& model, std::uint32_t maximum_error) {
+    return import_model(ObservationSource::Sntp, source, model, maximum_error);
+}
+bool UtcDiscipline::observe_reference_model(const RateObservation& source,
+    const wtp::ClockSnapshot& model, std::uint32_t maximum_error) {
+    return import_model(ObservationSource::Gps, source, model, maximum_error);
+}
+bool UtcDiscipline::import_model(ObservationSource kind, const RateObservation& source,
+    const wtp::ClockSnapshot& model, std::uint32_t max_clock_error_ppb) {
+    const auto horizon = kind == ObservationSource::Gps ? gps::utc_valid_until(source.utc_ns)
+                                                       : std::optional<std::uint64_t>(UINT64_MAX);
+    if (!horizon || model.utc_now_ns >= *horizon) return false;
     if (!config_valid_ || !consistent_import(source, model) || !model.utc_now_ns ||
         model.sync_age_ns > model.monotonic_now_ns || model.monotonic_now_ns > now_(context_) ||
         now_(context_) - model.monotonic_now_ns > config_.max_observation_age_ns ||
@@ -130,7 +143,8 @@ bool UtcDiscipline::observe_ntp_model(const RateObservation& source,
     imported_generation_ = model.model_generation;
     imported_ntp_ = valid_ = true;
     browser_rate_model_ = false;
-    observation_source_ = ObservationSource::Sntp;
+    observation_source_ = kind;
+    valid_until_utc_ns_ = *horizon;
     utc_ns_ = model.utc_now_ns;
     monotonic_ns_ = model.monotonic_now_ns;
     source_ns_ = model.monotonic_now_ns - model.sync_age_ns;
@@ -199,11 +213,14 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
                 generation_};
     auto state = wtp::ClockState::Unsynchronized;
     const auto maximum_age =
-        observation_source_ == ObservationSource::Browser ? config_.browser_holdover_for_ns
+        observation_source_ == ObservationSource::Gps ? config_.gps_holdover_for_ns
+        : observation_source_ == ObservationSource::Browser ? config_.browser_holdover_for_ns
         : observation_source_ != ObservationSource::Sntp && config_.non_ntp_holdover_for_ns
             ? config_.non_ntp_holdover_for_ns
             : config_.holdover_for_ns;
-    if (age <= std::min(config_.synchronized_for_ns, maximum_age))
+    const auto synchronized_for = observation_source_ == ObservationSource::Gps
+        ? config_.gps_synchronized_for_ns : config_.synchronized_for_ns;
+    if (age <= std::min(synchronized_for, maximum_age))
         state = wtp::ClockState::Synchronized;
     else if (age <= maximum_age ||
              (config_.unlimited_ntp_holdover && observation_source_ == ObservationSource::Sntp))
@@ -223,6 +240,11 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
         generation_};
     result.rate_until_monotonic_ns = now >= rate_until_ns_ ? UINT64_MAX : rate_until_ns_;
     result.subsequent_rate_ppb = subsequent_rate_ppb_;
+    result.valid_until_utc_ns = observation_source_ == ObservationSource::Gps ? valid_until_utc_ns_ : UINT64_MAX;
+    if (utc >= result.valid_until_utc_ns) {
+        result.state = wtp::ClockState::Unsynchronized;
+        result.leap = wtp::LeapState::Unknown;
+    }
     return result;
 }
 

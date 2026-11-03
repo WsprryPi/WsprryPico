@@ -112,12 +112,12 @@ void Logger::stop() {
     head_ = size_ = 0;
 }
 void Logger::event(unsigned severity, std::string_view code, std::string_view message,
-                   std::uint64_t monotonic, std::uint64_t utc) {
+                   std::uint64_t monotonic, std::uint64_t utc, bool export_udp) {
     // Never wrap event identity in a boot. Exhaustion disables admission.
     if (severity > 7 || sequence_ == std::numeric_limits<std::uint64_t>::max())
         return;
     const auto sequence = ++sequence_;
-    if (udp_)
+    if (udp_ && export_udp)
         udp_->event(sequence, severity, code, message, monotonic, utc, dropped_);
     if (!settings_.enabled || severity > settings_.maximum_severity)
         return;

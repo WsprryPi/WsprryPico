@@ -4,6 +4,7 @@
 #include "standalone/storage.hpp"
 #include "time/ntp_filter.hpp"
 #include "wtp/job_service.hpp"
+#include "time/gps_calibration.hpp"
 
 namespace wsprrypico::standalone {
 // One application admission boundary for USB/LAN/BLE/browser and autonomous
@@ -39,6 +40,22 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         pair_frozen_ = freeze;
     }
     std::string calibration_status(std::uint64_t now) const override;
+    struct CorrectionSnapshot {
+        std::int32_t ppb;
+        bool automatic;
+        std::uint64_t generation, observed_raw_ns;
+        std::uint32_t uncertainty_ppb;
+    };
+    std::optional<CorrectionSnapshot> prepared_correction() const {
+        if (!frozen_) return {};
+        return CorrectionSnapshot{frozen_->ppb, frozen_->automatic, frozen_->generation,
+            frozen_->observed_raw_ns, frozen_->uncertainty_ppb};
+    }
+    void gps_calibration(std::optional<time::gps::Calibration> value, std::uint64_t now,
+                         bool clock_bound, bool disagreement) {
+        gps_calibration_ = value; gps_now_ = now;
+        gps_clock_bound_ = clock_bound; gps_disagreement_ = disagreement;
+    }
     std::string_view diagnostic() const override {
         return failure_ ? failure_ : engine_.diagnostic();
     }
@@ -92,6 +109,9 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     struct Selection {
         std::int32_t ppb = 0;
         std::uint64_t generation = 0;
+        bool valid = true, automatic = false;
+        std::uint64_t observed_raw_ns = 0;
+        std::uint32_t uncertainty_ppb = 0;
     };
     Selection selection() const;
     std::optional<Selection> frozen_;
@@ -103,5 +123,8 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     const hardware::FilterSettings boot_filters_;
     const hardware::PinPlan::Engine boot_engine_;
     const char* failure_ = nullptr;
+    std::optional<time::gps::Calibration> gps_calibration_;
+    std::uint64_t gps_now_ = 0;
+    bool gps_clock_bound_ = false, gps_disagreement_ = false;
 };
 } // namespace wsprrypico::standalone

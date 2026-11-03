@@ -56,6 +56,9 @@ bool PicoReferenceCapture::begin(std::uint64_t generation) {
     if (!slice_ || running_ || !system_hz_ || !reference_hz_ ||
         clock_get_hz(clk_sys) != system_hz_ || clock_get_hz(clk_ref) != reference_hz_)
         return false;
+    unpublish();
+    ++capture_id_;
+    last_publication_ns_ = 0;
     pwm_set_counter(*slice_, 0);
     pwm_clear_irq(*slice_);
     pwm_set_enabled(*slice_, true);
@@ -68,6 +71,8 @@ bool PicoReferenceCapture::begin(std::uint64_t generation) {
     running_ = counter_.begin(previous_, bound, generation);
     if (!running_)
         pwm_set_enabled(*slice_, false);
+    else
+        publish();
     return running_;
 }
 bool PicoReferenceCapture::poll(std::uint64_t generation) {
@@ -89,11 +94,13 @@ bool PicoReferenceCapture::poll(std::uint64_t generation) {
          sample.after_ns - sample.before_ns > 10'000))
         return true;
     if (!counter_.sample(sample, generation)) {
+        unpublish();
         pwm_set_enabled(*slice_, false);
         running_ = false;
         return false;
     }
     previous_ = sample;
+    publish();
     return true;
 }
 ReferenceWindow PicoReferenceCapture::finish() {
@@ -102,6 +109,7 @@ ReferenceWindow PicoReferenceCapture::finish() {
     // Use the last coherent polled endpoint. Do not merge an untimestamped
     // partial count into that window when stopping the peripheral.
     const auto result = counter_.finish();
+    unpublish();
     pwm_set_enabled(*slice_, false);
     running_ = false;
     return result;
@@ -109,6 +117,7 @@ ReferenceWindow PicoReferenceCapture::finish() {
 void PicoReferenceCapture::close() {
     if (!slice_)
         return;
+    unpublish();
     pwm_set_enabled(*slice_, false);
     pwm_set_irq_enabled(*slice_, false);
     pwm_clear_irq(*slice_);
@@ -119,5 +128,54 @@ void PicoReferenceCapture::close() {
     slice_.reset();
     gpio_.reset();
     running_ = false;
+}
+void PicoReferenceCapture::unpublish() {
+    publication_sequence_.fetch_add(1, std::memory_order_acq_rel);
+    publication_[0].store(0, std::memory_order_relaxed);
+    publication_sequence_.fetch_add(1, std::memory_order_release);
+}
+void PicoReferenceCapture::publish() {
+    const auto window = counter_.finish();
+    if (!window.coherent || (last_publication_ns_ &&
+        previous_.before_ns >= last_publication_ns_ &&
+        previous_.before_ns - last_publication_ns_ < 50'000)) return;
+    last_publication_ns_ = previous_.before_ns;
+    const std::array<std::uint64_t, 6> values{
+        previous_.before_ns, window.edges, generation_, capture_id_, system_hz_, reference_hz_};
+    publication_sequence_.fetch_add(1, std::memory_order_acq_rel);
+    publication_[0].store(*slice_ + 1, std::memory_order_relaxed);
+    publication_[1].store(previous_.counter, std::memory_order_relaxed);
+    for (unsigned i = 0; i < values.size(); ++i) {
+        publication_[2 + 2 * i].store(std::uint32_t(values[i]), std::memory_order_relaxed);
+        publication_[3 + 2 * i].store(std::uint32_t(values[i] >> 32), std::memory_order_relaxed);
+    }
+    publication_sequence_.fetch_add(1, std::memory_order_release);
+}
+time::gps::CycleSnapshot PicoReferenceCapture::pps_snapshot() const {
+    const auto sequence = publication_sequence_.load(std::memory_order_acquire);
+    if (sequence & 1) return {};
+    const auto slice = publication_[0].load(std::memory_order_relaxed);
+    if (!slice) return {};
+    const auto previous_counter = publication_[1].load(std::memory_order_relaxed);
+    std::array<std::uint64_t, 6> values{};
+    for (unsigned i = 0; i < values.size(); ++i)
+        values[i] = publication_[2 + 2 * i].load(std::memory_order_relaxed) |
+                    (std::uint64_t(publication_[3 + 2 * i].load(std::memory_order_relaxed)) << 32);
+    const auto before = time_us_64() * 1000ULL;
+    const auto counter = pwm_get_counter(slice - 1);
+    const auto after = (time_us_64() + 1) * 1000ULL;
+    // Keep all payload/peripheral reads before the second sequence read on
+    // weakly ordered cores; atomic words alone do not make a coherent view.
+    std::atomic_thread_fence(std::memory_order_acquire);
+    if (publication_sequence_.load(std::memory_order_relaxed) != sequence ||
+        after < before || before < values[0] || after - before > 10'000 ||
+        after - values[0] > 1'000'000'000ULL || clock_get_hz(clk_sys) != values[4] ||
+        clock_get_hz(clk_ref) != values[5]) return {};
+    const auto bound = (values[4] * 101 + 99) / 100;
+    const auto maximum = ((after - values[0]) * bound + 999'999'999) / 1'000'000'000 + 1;
+    const auto delta = std::uint16_t(counter - previous_counter);
+    if (maximum >= 65536 || delta > maximum || values[1] > UINT64_MAX - delta) return {};
+    return {values[1] + delta, before + (after - before) / 2,
+            (after - before + 1) / 2 + 1000, values[2], values[3], true};
 }
 } // namespace wsprrypico::rf

@@ -89,7 +89,7 @@ Controller statistical error remains separate from conservative public bounds.
 Conditional regression errors weight the controller; full joint covariance and
 path ambiguity still govern qualification. Each retained candidate path ages
 from its own measurement timestamp before ranking and combination weighting.
-The engine stays within its existing 32 KiB limit.
+The engine uses four 64-sample NTP histories and one compact 16-sample UTC reference-clock history within a 36 KiB static budget. No second estimator or servo is allocated.
 Frequency combination gives a new equally precise fit three times the previous
 estimate's weight and expands tracking error on disagreement. The controller's
 error state is separate from the conservative reported bound, which still
@@ -162,3 +162,5 @@ manual](https://chrony-project.org/doc/4.9/chronyc.html), and the
 A timestamped `FrequencyReference` supplies rate evidence only. It has no UTC epoch, authentication, leap or source-age authority. Reference and NTP fit uncertainties are compared on the same basis; a worse reference does not replace a better network fit. The timer-drift allowance is separately added to the frequency-estimate error for elapsed phase-error growth and `Tracking::rate_error_bound_ppb`. `Tracking::skew_ppb` remains estimator quality; callers importing the clock model must use the complete error bound for future projection. Differences between independent sources also include the timer allowance for their different averaging windows.
 
 Capture expiry retains the learned rate center and grows phase uncertainty. It does not erase accumulated error or rejuvenate a UTC observation. Explicit trust removal continuously restores the independent network-rate estimate, or nominal rate if none exists. The sample/generation watermark survives removal, so an old capture cannot become fresh evidence by cycling the policy. A new engine after restart has neither UTC nor reference freshness; persisted rate seeds remain provisional.
+
+The reference-clock input accepts observations at most three seconds old, covering a late serial sentence's completion and bounded application draining. The original electrical-edge timestamp remains the source age; arrival or repeated reads do not renew it.

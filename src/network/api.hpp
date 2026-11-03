@@ -112,6 +112,9 @@ class BrowserApi {
         si5351_observer_ = observer;
         si5351_context_ = context;
     }
+    void gps_observer(std::string (*observer)(void*), void* context) {
+        gps_observer_ = observer; gps_context_ = context;
+    }
     using Restart = bool (*)(void*);
     void restart_control(Restart callback, void* context) {
         restart_ = callback;
@@ -148,6 +151,7 @@ class BrowserApi {
     HttpResponse config() const;
     HttpResponse gpio_drive() const;
     HttpResponse si5351() const;
+    HttpResponse gps() const;
     HttpResponse amplifier_timing() const;
     HttpResponse filter_selector() const;
     HttpResponse ntp_timeout() const;
@@ -168,6 +172,8 @@ class BrowserApi {
     int (*drive_observer_)() = nullptr;
     std::string (*si5351_observer_)(void*) = nullptr;
     void* si5351_context_ = nullptr;
+    std::string (*gps_observer_)(void*) = nullptr;
+    void* gps_context_ = nullptr;
     std::optional<std::uint64_t> pending_transaction_;
     bool pending_restart_ = false;
     Restart restart_ = nullptr;

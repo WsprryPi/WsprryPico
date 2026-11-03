@@ -10,7 +10,7 @@ assert(si.valid(sample.saved));
 for(const key of Object.keys(sample.saved)) {
   const missing=structuredClone(sample.saved);delete missing[key];assert(!si.valid(missing),key);
 }
-for(const [key,value] of Object.entries({address:97,transmit_output:2,loopback_output:0,reference_hz:'25000000',crystal_load_pf:8,loopback_input_gp:6,automatic_calibration:true,trusted_uncertainty_ppb:100})) {
+for(const [key,value] of Object.entries({address:97,transmit_output:2,loopback_output:0,reference_hz:'25000000',crystal_load_pf:8,loopback_input_gp:6,automatic_calibration:'true',trusted_uncertainty_ppb:100})) {
   assert(!si.valid({...sample.saved,[key]:value}),key);
 }
 const none={...sample.saved,loopback_output:null,loopback_input_gp:null};assert(si.valid(none));

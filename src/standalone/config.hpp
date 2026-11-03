@@ -1,5 +1,6 @@
 #pragma once
 #include "hardware/pins.hpp"
+#include "hardware/gps_settings.hpp"
 #include "hardware/si5351_settings.hpp"
 #include "rf/amplifier_timing.hpp"
 #include "wtp/json.hpp"
@@ -24,6 +25,7 @@ struct Schedule {
 struct Config {
     hardware::PinPlan pins;
     std::optional<hardware::Si5351Settings> si5351;
+    std::optional<hardware::GpsSettings> gps;
     rf::AmplifierTiming amplifier_timing;
     unsigned gpio_drive_ma = 4; // Nominal direct RF pad current, never WSPR power.
     std::int32_t manual_correction_ppb = 0;
