@@ -52,6 +52,7 @@
   const pendingSection = () => consumerAttempt ? setupSection() : returnReceipt ? 'hostname-section' : 'saved-settings';
   const receipt = () => /^#(?:save|hostname-return)=/.test(location.hash);
   const stateKey = 'wsprrypicoPresentation';
+  const returningByLink = () => returnReceipt && location.hash.startsWith('#hostname-return=');
   function fragment() {
     if (receipt() || location.hash.length > 100) return null;
     try { const id=decodeURIComponent(location.hash.slice(1)); return sections.has(id) || id==='top' ? id : id==='consumer-setup' ? setupSection() : aliases.get(id) || null; }
@@ -87,7 +88,7 @@
     globalThis.scrollTo?.({top:0,left:0,behavior:'auto'});
   }
   function restore(focus=false) {
-    if (returnReceipt) { hostnameReturn(); return; }
+    if (returningByLink()) { hostnameReturn(); return; }
     const saved=history.state?.[stateKey];
     const id=fragment() || (receipt() && (sections.has(saved?.section) || saved?.section==='top') ? saved.section : null);
     const savedArea=['station','wifi-host'].includes(saved?.area)?saved.area:null;
@@ -152,8 +153,8 @@
   if(consumerAttempt) reveal($(pendingSection()));
   // Load/pageshow can restore scroll after script initialization. Reapply only
   // while a validated return receipt is pending, never during ordinary use.
-  addEventListener('load',()=>{if(returnReceipt) hostnameReturn();});
-  addEventListener('pageshow',()=>{if(returnReceipt) hostnameReturn();});
+  addEventListener('load',()=>{if(returningByLink()) hostnameReturn();});
+  addEventListener('pageshow',()=>{if(returningByLink()) hostnameReturn();});
 
   for (const kind of ['station','network']) {
     const form = $('engineering-' + kind + '-form');

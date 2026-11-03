@@ -1935,7 +1935,7 @@ async function readHostname(token = pageIdentity.request()) {
       $('restart-status').textContent = 'Same Pico and new boot confirmed. Hostname applied: ' + d.active +
         '.';
       returnReceipt = null; restartSent = false;
-      globalThis.WsprryPicoSections?.hostnameReturn();
+      if (globalThis.location?.hash.startsWith('#hostname-return=')) globalThis.WsprryPicoSections?.hostnameReturn();
       consoleState('Reset confirmed','Authenticated observation confirms the same Pico and a new boot.');
       globalThis.history?.replaceState(history.state,'',globalThis.location.pathname + globalThis.location.search);
     }
