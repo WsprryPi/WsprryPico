@@ -32,13 +32,15 @@ The value after **±** is the estimated timing uncertainty, in **ms** (milliseco
 
 An optional GPS receiver can supply UTC through separate serial and PPS inputs after its pulse association has been independently validated. Configure it under [Radio pins → GPS and PPS](../configure.md#gps-and-pps). Time, position, and RF calibration have separate validity: a missing position does not automatically invalidate usable UTC, and serial reception does not prove PPS timing. GPS holdover is at most one hour; the NTP timeout setting, including zero, does not extend it.
 
+PPS defines the second boundary; the serial message supplies its UTC label. Serial messages can arrive after another PPS, so the Pico selects the original captured edge using the receiver's qualified delay window. Serial arrival does not move that edge or set the oscillator measurement interval.
+
 GPS/PPS can measure the Pico oscillator, while PPS plus CLK2 loopback measures the independent Si5351 reference. The clock's UTC rate and these two oscillator errors are different quantities. Manual correction stays separate and becomes residual trim when automatic correction is enabled. The page reports each calibration's age and estimated bound. PPS capture also reports IRQ latency separately from the corrected timestamp error bound; neither value establishes the receiver's absolute UTC accuracy. Fresh measurements are required after restart, and improved clock statistics alone do not establish carrier accuracy.
 
 ## GPS/PPS validation scope
 
 Conducted checks on the validation platform exercised Si5351 CLK0 output with CLK2 loopback, GPS-only startup without NTP, correction behavior and a complete paired WSPR transmission. They do not establish calibrated absolute RF launch timing or consistently improved absolute carrier accuracy.
 
-GP2 is the separate direct GPIO RF output. Its GPS-derived RF correction still needs its own conducted transmission test; the Si5351 measurements do not qualify that path. The selected conducted test covers 160 m through 10 m; GP2 RF qualification remains incomplete. It can use PPS continuously. Loss and reacquisition are covered by software checks; physically removing the PPS wire is outside the selected test scope.
+GP2 is the separate direct GPIO RF output. Its conducted GPS/PPS test completed baseline and corrected tones at the selected 160 m, 60 m and 10 m points, manual residual trim, frozen correction across delayed ARM and one complete decoded WSPR frame. These checks apply to the tested setup. Absolute RF launch timing and consistently improved absolute carrier accuracy remain unestablished. PPS remained connected. Loss and reacquisition are covered by software checks; physically removing the PPS wire is outside the selected test scope.
 
 ## Use a trusted loopback while offline
 

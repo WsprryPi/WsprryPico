@@ -1,24 +1,26 @@
 {
   "schema": "gps-pps-validation/1",
   "validated_implementation": {
-    "pico": "c7d3b5befe90f7615c34f5b7583d6086cd3a1463",
-    "pi": "40c049c7f68767a1db316b471e35d15a2c5926e4"
+    "pico": "6e3d809d3fead91b7836ca84720be8d29f88e7c8",
+    "pi": "d677d7f27570a7315aa9f7cdd08a5de20279696b",
+    "physical_pi_client": "c1b763be70c2a11debd68579b24f7400eff20049",
+    "pi_successor_difference": "Test-only assertions; production byte-identical."
   },
   "ci": {
-    "pico": "https://github.com/WsprryPi/WsprryPico/actions/runs/41562836673",
-    "pi": "https://github.com/WsprryPi/WsprryPi/actions/runs/41565967348"
+    "pico": "https://github.com/WsprryPi/WsprryPico/actions/runs/41637682581",
+    "pi": "https://github.com/WsprryPi/WsprryPi/actions/runs/41639480111"
   },
   "installed_image": {
     "source": {
       "dirty": false,
-      "identity": "c7d3b5befe90",
-      "inputs_sha256": "5fa0dabb60f42916cf9bd7a5d1319ec321872c345e86bcf465defc62a426d0f7",
-      "revision": "c7d3b5befe90f7615c34f5b7583d6086cd3a1463"
+      "identity": "6e3d809d3fea",
+      "inputs_sha256": "026dac6987041bf629cb91a2ebf800196d088499bef9ac624e5c9555bf3ba9ba",
+      "revision": "6e3d809d3fead91b7836ca84720be8d29f88e7c8"
     },
     "uf2": {
-      "bytes": 6222336,
+      "bytes": 6225920,
       "path": "WsprryPico-0.0.0-devel-pico2_w.uf2",
-      "sha256": "b307528274f0d5294c000b99c3f9ae9be15492d26ed42b8262d5b255f15c9b41"
+      "sha256": "ce0c51790e35ded99514bc7bdd1ea49e2f0249e8efe16d26e14c77a5c6879fa5"
     }
   },
   "observations": {
@@ -250,59 +252,42 @@
     }
   },
   "handback": {
+    "verified": true,
     "serial": "1545B6EFBF78028C",
     "target": {
       "scope": "member",
       "device_id": "c2a3a2a314c948b50a8562a1aeb69669",
-      "boot_id": "731e832569ec41972f688636d4e24e92"
+      "boot_id": "8dd50dea20511f39ca12e82ea7dbb968"
     },
     "source": {
       "dirty": false,
-      "identity": "c7d3b5befe90",
-      "inputs_sha256": "5fa0dabb60f42916cf9bd7a5d1319ec321872c345e86bcf465defc62a426d0f7",
-      "revision": "c7d3b5befe90f7615c34f5b7583d6086cd3a1463"
+      "identity": "6e3d809d3fea",
+      "inputs_sha256": "026dac6987041bf629cb91a2ebf800196d088499bef9ac624e5c9555bf3ba9ba",
+      "revision": "6e3d809d3fead91b7836ca84720be8d29f88e7c8"
     },
     "uf2": {
-      "bytes": 6222336,
+      "bytes": 6225920,
       "path": "WsprryPico-0.0.0-devel-pico2_w.uf2",
-      "sha256": "b307528274f0d5294c000b99c3f9ae9be15492d26ed42b8262d5b255f15c9b41"
+      "sha256": "ce0c51790e35ded99514bc7bdd1ea49e2f0249e8efe16d26e14c77a5c6879fa5"
     },
-    "installer_reference_verified": true,
     "saved_semantics_equal": true,
-    "schedules_enabled": false,
-    "job": "empty",
-    "owner": null,
+    "idle": true,
+    "owned": false,
     "output_active": false,
     "clk0": "register_disabled",
-    "clk2_reference": "register_enabled",
+    "clk2": "register_enabled",
     "gps_absent": true,
-    "automatic_correction": false,
-    "manual_correction_ppb": 0,
-    "reference_use": "measurement_only",
+    "network_enabled": true,
     "logging": {
       "enabled": true,
       "maximum_severity": 6
     },
-    "station_restored": true,
-    "watermark_utc_ns": "1793670601000000000",
+    "installer_reference_verified": true,
+    "gpsdo_restored": true,
+    "gpsdo_locked": true,
+    "gpio_drive_ma": 4,
     "button_gp": 14,
     "led_gp": 17,
-    "gpsdo": {
-      "serial": "0673ED0FA107",
-      "f1": 10000000,
-      "f2": 10000000,
-      "out1": true,
-      "out2": true,
-      "pps1": false,
-      "fll": false,
-      "out1low": true,
-      "out2low": true
-    },
-    "gpsdo_lock": {
-      "sat": true,
-      "pll": true,
-      "antenna": true
-    },
     "wsprrypi_service": "active"
   },
   "gp2_prearm_attempt": {
@@ -377,7 +362,7 @@
         "reason": "First manual-zero 160 m tone LOAD and subsequent same-session STATUS timed out before ARM; restored"
       }
     ],
-    "diagnosis": "Observed free heap below generic LOAD decode workspace plus unchanged safety reserve; source admission can close the endpoint before dispatch. Root cause and corrective implementation remain unresolved.",
+    "diagnosis": "The original linked heap was below the LOAD workspace plus unchanged safety reserve. Corrected optional-buffer allocation and capture alignment increased linked heap by 32,284 bytes; later session-retention pressure was avoided by resuming one controller session. The final GP2 campaign passed without reducing reserves or replay guarantees.",
     "restoration": {
       "verified": true,
       "saved_semantics_equal": true,
@@ -423,6 +408,1200 @@
       "gpsdo_restored": true,
       "gpsdo_locked": true,
       "firmware_changed": false
+    },
+    "resolution": "Resolved by source6e3d809d, qualified delayed labels and a resumable controller session; see gp2_validation."
+  },
+  "si5351_validated_implementation": {
+    "pico": "c7d3b5befe90f7615c34f5b7583d6086cd3a1463",
+    "pi": "40c049c7f68767a1db316b471e35d15a2c5926e4"
+  },
+  "si5351_ci": {
+    "pico": "https://github.com/WsprryPi/WsprryPico/actions/runs/41562836673",
+    "pi": "https://github.com/WsprryPi/WsprryPi/actions/runs/41565967348"
+  },
+  "si5351_installed_image": {
+    "source": {
+      "dirty": false,
+      "identity": "c7d3b5befe90",
+      "inputs_sha256": "5fa0dabb60f42916cf9bd7a5d1319ec321872c345e86bcf465defc62a426d0f7",
+      "revision": "c7d3b5befe90f7615c34f5b7583d6086cd3a1463"
+    },
+    "uf2": {
+      "bytes": 6222336,
+      "path": "WsprryPico-0.0.0-devel-pico2_w.uf2",
+      "sha256": "b307528274f0d5294c000b99c3f9ae9be15492d26ed42b8262d5b255f15c9b41"
+    }
+  },
+  "si5351_handback": {
+    "serial": "1545B6EFBF78028C",
+    "target": {
+      "scope": "member",
+      "device_id": "c2a3a2a314c948b50a8562a1aeb69669",
+      "boot_id": "731e832569ec41972f688636d4e24e92"
+    },
+    "source": {
+      "dirty": false,
+      "identity": "c7d3b5befe90",
+      "inputs_sha256": "5fa0dabb60f42916cf9bd7a5d1319ec321872c345e86bcf465defc62a426d0f7",
+      "revision": "c7d3b5befe90f7615c34f5b7583d6086cd3a1463"
+    },
+    "uf2": {
+      "bytes": 6222336,
+      "path": "WsprryPico-0.0.0-devel-pico2_w.uf2",
+      "sha256": "b307528274f0d5294c000b99c3f9ae9be15492d26ed42b8262d5b255f15c9b41"
+    },
+    "installer_reference_verified": true,
+    "saved_semantics_equal": true,
+    "schedules_enabled": false,
+    "job": "empty",
+    "owner": null,
+    "output_active": false,
+    "clk0": "register_disabled",
+    "clk2_reference": "register_enabled",
+    "gps_absent": true,
+    "automatic_correction": false,
+    "manual_correction_ppb": 0,
+    "reference_use": "measurement_only",
+    "logging": {
+      "enabled": true,
+      "maximum_severity": 6
+    },
+    "station_restored": true,
+    "watermark_utc_ns": "1793670601000000000",
+    "button_gp": 14,
+    "led_gp": 17,
+    "gpsdo": {
+      "serial": "0673ED0FA107",
+      "f1": 10000000,
+      "f2": 10000000,
+      "out1": true,
+      "out2": true,
+      "pps1": false,
+      "fll": false,
+      "out1low": true,
+      "out2low": true
+    },
+    "gpsdo_lock": {
+      "sat": true,
+      "pll": true,
+      "antenna": true
+    },
+    "wsprrypi_service": "active"
+  },
+  "gp2_validation": {
+    "campaign": {
+      "success": true,
+      "nominal_dut_rf_s": 145.592,
+      "drive_ma": 4,
+      "engine": "direct",
+      "rf_gp": 2,
+      "maximum_band": "10m"
+    },
+    "budget": {
+      "serial": "1545B6EFBF78028C",
+      "engine": "direct",
+      "rf_gp": 2,
+      "frequencies_hz": [
+        1840100,
+        5366200,
+        28126100
+      ],
+      "maximum_band": "10m",
+      "maximum_commanded_dut_rf_s": 200,
+      "planned_commanded_dut_rf_s": 145.592,
+      "prior_commanded_dut_rf_s": 25,
+      "cumulative_planned_dut_rf_s": 170.592,
+      "pre_arm_control_quiet_s": 1.1,
+      "combiner_inputs": [
+        "GP2",
+        "Si5351 CLK0 disabled",
+        "GPSDO output1"
+      ],
+      "attenuation_db": 60,
+      "antenna": false,
+      "sample_rate_hz": 250000,
+      "sample_clock_allowance_ppm": 100,
+      "gpsdo_allowance_ppb": 10,
+      "line_allowance_hz": 0.25,
+      "pps_disconnect": false
+    },
+    "installed_image": {
+      "source": {
+        "dirty": false,
+        "identity": "6e3d809d3fea",
+        "inputs_sha256": "026dac6987041bf629cb91a2ebf800196d088499bef9ac624e5c9555bf3ba9ba",
+        "revision": "6e3d809d3fead91b7836ca84720be8d29f88e7c8"
+      },
+      "uf2": {
+        "bytes": 6225920,
+        "path": "WsprryPico-0.0.0-devel-pico2_w.uf2",
+        "sha256": "ce0c51790e35ded99514bc7bdd1ea49e2f0249e8efe16d26e14c77a5c6879fa5"
+      }
+    },
+    "association": {
+      "verified": true,
+      "utc_second_offset": 0,
+      "message_delay_window_ms": [
+        600,
+        1200
+      ],
+      "sample_count": 8,
+      "error_intersection_ns": [
+        -38445076,
+        20111234
+      ],
+      "observed_message_delay_ns": [
+        1005298128,
+        1055621273
+      ],
+      "older_than_nearest_edge_count": 8,
+      "scope": "Independent host brackets check integer-second labelling only, not100us absolute UTC or RF phase."
+    },
+    "tones": {
+      "scope": "Simultaneous GPSDO output1 subtracts common receiver tuning error; residual sample clock allowance 100 ppm over measured carrier spacing (about 3 Hz), including reciprocal margin, two 0.25 Hz line allowances, GPSDO engineering allowance 10 ppb. Conditional measurement only; no full sample clock, power, emissions or absolute UTC calibration.",
+      "results": [
+        {
+          "label": "baseline",
+          "prepared": {
+            "candidate": {
+              "qualified": false,
+              "utc_rate_ppb": 0,
+              "uncertainty_ppb": 100000,
+              "generation": "0",
+              "sampled_raw_ns": "0",
+              "span_ns": "0",
+              "samples": 0,
+              "reason": "ntp_rf_rejected"
+            },
+            "candidate_correction_ppb": null,
+            "candidate_uncertainty_ppb": 0,
+            "saved_ntp_available": false,
+            "saved_ntp": null,
+            "candidate_age_ns": "0",
+            "topology_supported": false,
+            "independent_rf_verified": false,
+            "ntp_rf_supported": false,
+            "next_ppb": 0,
+            "next_generation": "157",
+            "next_source": "manual",
+            "reason": "manual_mode",
+            "prepared_ppb": 0,
+            "prepared_source": "manual",
+            "prepared_generation": "157"
+          },
+          "frequency_hz": 1840100,
+          "dut": {
+            "observed_hz": 1840101.3710881998,
+            "snr_db": 98.05987797125078
+          },
+          "reference": {
+            "observed_hz": 1870102.3906986462,
+            "snr_db": 95.28383044713675
+          },
+          "difference_corrected_error_hz": -1.0196104464121163,
+          "conditional_error_allowance_hz": 3.519132972260356,
+          "analysis_start_s": 6.0,
+          "analysis_duration_s": 4,
+          "rf_execution_complete": true,
+          "capture_sha256": "ef49270b0d375398687b8e03c7100f088ff2bbb71b94a0c8d516140f5a72752e",
+          "quality_verified": true
+        },
+        {
+          "label": "baseline",
+          "prepared": {
+            "candidate": {
+              "qualified": false,
+              "utc_rate_ppb": 0,
+              "uncertainty_ppb": 100000,
+              "generation": "0",
+              "sampled_raw_ns": "0",
+              "span_ns": "0",
+              "samples": 0,
+              "reason": "ntp_rf_rejected"
+            },
+            "candidate_correction_ppb": null,
+            "candidate_uncertainty_ppb": 0,
+            "saved_ntp_available": false,
+            "saved_ntp": null,
+            "candidate_age_ns": "0",
+            "topology_supported": false,
+            "independent_rf_verified": false,
+            "ntp_rf_supported": false,
+            "next_ppb": 0,
+            "next_generation": "157",
+            "next_source": "manual",
+            "reason": "manual_mode",
+            "prepared_ppb": 0,
+            "prepared_source": "manual",
+            "prepared_generation": "157"
+          },
+          "frequency_hz": 28126100,
+          "dut": {
+            "observed_hz": 28126115.27024142,
+            "snr_db": 95.06867560493774
+          },
+          "reference": {
+            "observed_hz": 28156130.727197047,
+            "snr_db": 98.23703223123873
+          },
+          "difference_corrected_error_hz": -15.456955626606941,
+          "conditional_error_allowance_hz": 3.783436865589173,
+          "analysis_start_s": 5.25,
+          "analysis_duration_s": 4,
+          "rf_execution_complete": true,
+          "capture_sha256": "9666e74bd5c2e1346380e07fc20ed95c9d2d54d2329db2ce7664fd1f7d4c6793",
+          "quality_verified": true
+        },
+        {
+          "label": "baseline",
+          "prepared": {
+            "candidate": {
+              "qualified": false,
+              "utc_rate_ppb": 0,
+              "uncertainty_ppb": 100000,
+              "generation": "0",
+              "sampled_raw_ns": "0",
+              "span_ns": "0",
+              "samples": 0,
+              "reason": "ntp_rf_rejected"
+            },
+            "candidate_correction_ppb": null,
+            "candidate_uncertainty_ppb": 0,
+            "saved_ntp_available": false,
+            "saved_ntp": null,
+            "candidate_age_ns": "0",
+            "topology_supported": false,
+            "independent_rf_verified": false,
+            "ntp_rf_supported": false,
+            "next_ppb": 0,
+            "next_generation": "157",
+            "next_source": "manual",
+            "reason": "manual_mode",
+            "prepared_ppb": 0,
+            "prepared_source": "manual",
+            "prepared_generation": "157"
+          },
+          "frequency_hz": 5366200,
+          "dut": {
+            "observed_hz": 5366203.142632788,
+            "snr_db": 98.06030304942654
+          },
+          "reference": {
+            "observed_hz": 5396206.1026392095,
+            "snr_db": 95.898578639991
+          },
+          "difference_corrected_error_hz": -2.960006421431899,
+          "conditional_error_allowance_hz": 3.5545880332022137,
+          "analysis_start_s": 5.25,
+          "analysis_duration_s": 4,
+          "rf_execution_complete": true,
+          "capture_sha256": "d056d0aaaa11286e9c84a2b66da58967858c6fa3ee44aef9745b4449bc7464b5",
+          "quality_verified": true
+        },
+        {
+          "label": "corrected",
+          "prepared": {
+            "candidate": {
+              "qualified": false,
+              "utc_rate_ppb": 0,
+              "uncertainty_ppb": 100000,
+              "generation": "0",
+              "sampled_raw_ns": "0",
+              "span_ns": "0",
+              "samples": 0,
+              "reason": "ntp_rf_rejected"
+            },
+            "candidate_correction_ppb": null,
+            "candidate_uncertainty_ppb": 0,
+            "saved_ntp_available": false,
+            "saved_ntp": null,
+            "candidate_age_ns": "0",
+            "topology_supported": false,
+            "independent_rf_verified": false,
+            "ntp_rf_supported": false,
+            "next_ppb": -646,
+            "next_generation": "100",
+            "next_source": "gps",
+            "reason": "gps_calibrated",
+            "prepared_ppb": -650,
+            "prepared_source": "gps",
+            "prepared_generation": "99"
+          },
+          "frequency_hz": 1840100,
+          "dut": {
+            "observed_hz": 1840102.4231055593,
+            "snr_db": 98.83788868618322
+          },
+          "reference": {
+            "observed_hz": 1870102.4073304825,
+            "snr_db": 95.63948731862237
+          },
+          "difference_corrected_error_hz": 0.015775076812133193,
+          "conditional_error_allowance_hz": 3.519029422318793,
+          "analysis_start_s": 5.25,
+          "analysis_duration_s": 4,
+          "rf_execution_complete": true,
+          "capture_sha256": "5d3534a015545a61b117affe6d6d30784eb187f6724b65017b0c7c28fa74e438",
+          "quality_verified": true
+        },
+        {
+          "label": "corrected",
+          "prepared": {
+            "candidate": {
+              "qualified": false,
+              "utc_rate_ppb": 0,
+              "uncertainty_ppb": 100000,
+              "generation": "0",
+              "sampled_raw_ns": "0",
+              "span_ns": "0",
+              "samples": 0,
+              "reason": "ntp_rf_rejected"
+            },
+            "candidate_correction_ppb": null,
+            "candidate_uncertainty_ppb": 0,
+            "saved_ntp_available": false,
+            "saved_ntp": null,
+            "candidate_age_ns": "0",
+            "topology_supported": false,
+            "independent_rf_verified": false,
+            "ntp_rf_supported": false,
+            "next_ppb": -603,
+            "next_generation": "149",
+            "next_source": "gps",
+            "reason": "gps_calibrated",
+            "prepared_ppb": -603,
+            "prepared_source": "gps",
+            "prepared_generation": "149"
+          },
+          "frequency_hz": 28126100,
+          "dut": {
+            "observed_hz": 28126130.60257065,
+            "snr_db": 94.21972778444994
+          },
+          "reference": {
+            "observed_hz": 28156130.725406863,
+            "snr_db": 98.22937455429476
+          },
+          "difference_corrected_error_hz": -0.12283621355891228,
+          "conditional_error_allowance_hz": 3.7819032849725542,
+          "analysis_start_s": 5.25,
+          "analysis_duration_s": 4,
+          "rf_execution_complete": true,
+          "capture_sha256": "6f4a637688e3de45706e49e17f85c045c315119e4e9710fd3239e3e6ff987ebe",
+          "quality_verified": true
+        },
+        {
+          "label": "corrected",
+          "prepared": {
+            "candidate": {
+              "qualified": false,
+              "utc_rate_ppb": 0,
+              "uncertainty_ppb": 100000,
+              "generation": "0",
+              "sampled_raw_ns": "0",
+              "span_ns": "0",
+              "samples": 0,
+              "reason": "ntp_rf_rejected"
+            },
+            "candidate_correction_ppb": null,
+            "candidate_uncertainty_ppb": 0,
+            "saved_ntp_available": false,
+            "saved_ntp": null,
+            "candidate_age_ns": "0",
+            "topology_supported": false,
+            "independent_rf_verified": false,
+            "ntp_rf_supported": false,
+            "next_ppb": -633,
+            "next_generation": "119",
+            "next_source": "gps",
+            "reason": "gps_calibrated",
+            "prepared_ppb": -633,
+            "prepared_source": "gps",
+            "prepared_generation": "119"
+          },
+          "frequency_hz": 5366200,
+          "dut": {
+            "observed_hz": 5366206.193681435,
+            "snr_db": 98.58912574636093
+          },
+          "reference": {
+            "observed_hz": 5396206.117850371,
+            "snr_db": 95.64378985861994
+          },
+          "difference_corrected_error_hz": 0.07583106402307749,
+          "conditional_error_allowance_hz": 3.5542844160594558,
+          "analysis_start_s": 5.25,
+          "analysis_duration_s": 4,
+          "rf_execution_complete": true,
+          "capture_sha256": "116e3a33c8c0dce3fd56d44362d312de220258227e82ec366304e5b99d840a92",
+          "quality_verified": true
+        },
+        {
+          "label": "residual",
+          "prepared": {
+            "candidate": {
+              "qualified": false,
+              "utc_rate_ppb": 0,
+              "uncertainty_ppb": 100000,
+              "generation": "0",
+              "sampled_raw_ns": "0",
+              "span_ns": "0",
+              "samples": 0,
+              "reason": "ntp_rf_rejected"
+            },
+            "candidate_correction_ppb": null,
+            "candidate_uncertainty_ppb": 0,
+            "saved_ntp_available": false,
+            "saved_ntp": null,
+            "candidate_age_ns": "0",
+            "topology_supported": false,
+            "independent_rf_verified": false,
+            "ntp_rf_supported": false,
+            "next_ppb": 19375,
+            "next_generation": "167",
+            "next_source": "gps",
+            "reason": "gps_calibrated",
+            "prepared_ppb": 19375,
+            "prepared_source": "gps",
+            "prepared_generation": "167"
+          },
+          "frequency_hz": 5366200,
+          "dut": {
+            "observed_hz": 5366098.850927885,
+            "snr_db": 98.07186120792606
+          },
+          "reference": {
+            "observed_hz": 5396206.107900216,
+            "snr_db": 95.90803019214701
+          },
+          "difference_corrected_error_hz": -107.2569723315537,
+          "conditional_error_allowance_hz": 3.5650188770598508,
+          "analysis_start_s": 5.25,
+          "analysis_duration_s": 4,
+          "rf_execution_complete": true,
+          "capture_sha256": "e5185b69324ab3a8f92e8dc830c8b2b5c9622f4e73f8b0ec120c6708642ac08d",
+          "quality_verified": true
+        }
+      ]
+    },
+    "wspr": {
+      "scope": "One controller-encoded Type1 WSPR frame; receiver-relative envelope at0.25s resolution with100ppm sample-clock allowance, not calibrated absolute RF launch UTC or GPS-derived location.",
+      "frame": {
+        "rf_begin_s": 5.25,
+        "rf_end_s": 116.0,
+        "duration_s": 110.75,
+        "nominal_duration_s": 110.592,
+        "decoded": true,
+        "callsign": "AA0NT",
+        "locator": "EM18",
+        "encoded_power_dbm": 37
+      },
+      "gps_time_provenance": true,
+      "location_source": "controller_encoded",
+      "correction_ppb": -575,
+      "prepared_generation": "37",
+      "delayed_arm_freeze_verified": true,
+      "capture_sha256": "49e71ab6adc7c943ee0e90cc5f817d67b7b542b4607fd3fc81ebddf57c89411e",
+      "capture_quality": {
+        "overflows": 0,
+        "clipped_samples": 0,
+        "cleanup": "verified"
+      }
+    },
+    "executions": [
+      {
+        "label": "baseline",
+        "frequency_hz": 1840100,
+        "mode": "tone",
+        "rf_seconds": 5.0,
+        "prepared": {
+          "candidate": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "0",
+            "sampled_raw_ns": "0",
+            "span_ns": "0",
+            "samples": 0,
+            "reason": "ntp_rf_rejected"
+          },
+          "candidate_correction_ppb": null,
+          "candidate_uncertainty_ppb": 0,
+          "saved_ntp_available": false,
+          "saved_ntp": null,
+          "candidate_age_ns": "0",
+          "topology_supported": false,
+          "independent_rf_verified": false,
+          "ntp_rf_supported": false,
+          "next_ppb": 0,
+          "next_generation": "157",
+          "next_source": "manual",
+          "reason": "manual_mode",
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "157"
+        },
+        "delayed_arm_freeze_verified": false,
+        "timer_calibration": {
+          "oscillator_error_ppb": -497,
+          "uncertainty_ppb": 9113,
+          "observed_raw_ns": "69763692872",
+          "age_ns": "1456079128",
+          "span_ns": "44000000000",
+          "generation": "36",
+          "fresh": true
+        },
+        "clock_uncertainty_ns": "290999",
+        "load": {
+          "job_id": "e631dfcf56f74e908235c94bbb32321e",
+          "state": "loaded",
+          "adjustments": [
+            {
+              "event_index": 0,
+              "requested_frequency_nhz": "1840100000000000",
+              "realized_frequency_nhz": "1840100002940744"
+            }
+          ]
+        },
+        "arm": {
+          "job_id": "e631dfcf56f74e908235c94bbb32321e",
+          "state": "armed",
+          "start_utc_ns": "1793711262787520003",
+          "start_monotonic_ns": "81551206460",
+          "clock": {
+            "state": "synchronized",
+            "utc_now_ns": "1793711259855085004",
+            "monotonic_now_ns": "78618773000",
+            "uncertainty_ns": "294422",
+            "sync_age_ns": "1855083273",
+            "leap": "normal"
+          }
+        },
+        "success": true,
+        "cleanup_verified": true
+      },
+      {
+        "label": "baseline",
+        "frequency_hz": 28126100,
+        "mode": "tone",
+        "rf_seconds": 5.0,
+        "prepared": {
+          "candidate": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "0",
+            "sampled_raw_ns": "0",
+            "span_ns": "0",
+            "samples": 0,
+            "reason": "ntp_rf_rejected"
+          },
+          "candidate_correction_ppb": null,
+          "candidate_uncertainty_ppb": 0,
+          "saved_ntp_available": false,
+          "saved_ntp": null,
+          "candidate_age_ns": "0",
+          "topology_supported": false,
+          "independent_rf_verified": false,
+          "ntp_rf_supported": false,
+          "next_ppb": 0,
+          "next_generation": "157",
+          "next_source": "manual",
+          "reason": "manual_mode",
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "157"
+        },
+        "delayed_arm_freeze_verified": false,
+        "timer_calibration": {
+          "oscillator_error_ppb": -514,
+          "uncertainty_ppb": 11451,
+          "observed_raw_ns": "121763664727",
+          "age_ns": "1502115273",
+          "span_ns": "35000000000",
+          "generation": "75",
+          "fresh": true
+        },
+        "clock_uncertainty_ns": "278201",
+        "load": {
+          "job_id": "12381984847e4df4b18617e013667b6b",
+          "state": "loaded",
+          "adjustments": [
+            {
+              "event_index": 0,
+              "requested_frequency_nhz": "28126100000000000",
+              "realized_frequency_nhz": "28126100001856685"
+            }
+          ]
+        },
+        "arm": {
+          "job_id": "12381984847e4df4b18617e013667b6b",
+          "state": "armed",
+          "start_utc_ns": "1793711315526060003",
+          "start_monotonic_ns": "134289717829",
+          "clock": {
+            "state": "synchronized",
+            "utc_now_ns": "1793711312613695003",
+            "monotonic_now_ns": "131377354000",
+            "uncertainty_ns": "282623",
+            "sync_age_ns": "1613692418",
+            "leap": "normal"
+          }
+        },
+        "success": true,
+        "cleanup_verified": true
+      },
+      {
+        "label": "baseline",
+        "frequency_hz": 5366200,
+        "mode": "tone",
+        "rf_seconds": 5.0,
+        "prepared": {
+          "candidate": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "0",
+            "sampled_raw_ns": "0",
+            "span_ns": "0",
+            "samples": 0,
+            "reason": "ntp_rf_rejected"
+          },
+          "candidate_correction_ppb": null,
+          "candidate_uncertainty_ppb": 0,
+          "saved_ntp_available": false,
+          "saved_ntp": null,
+          "candidate_age_ns": "0",
+          "topology_supported": false,
+          "independent_rf_verified": false,
+          "ntp_rf_supported": false,
+          "next_ppb": 0,
+          "next_generation": "157",
+          "next_source": "manual",
+          "reason": "manual_mode",
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "157"
+        },
+        "delayed_arm_freeze_verified": false,
+        "timer_calibration": {
+          "oscillator_error_ppb": -518,
+          "uncertainty_ppb": 7184,
+          "observed_raw_ns": "82763685227",
+          "age_ns": "11816907773",
+          "span_ns": "57000000000",
+          "generation": "49",
+          "fresh": true
+        },
+        "clock_uncertainty_ns": "292255",
+        "load": {
+          "job_id": "cff51fb4fbbb45fdbc1b0a4fae908ce3",
+          "state": "loaded",
+          "adjustments": [
+            {
+              "event_index": 0,
+              "requested_frequency_nhz": "5366200000000000",
+              "realized_frequency_nhz": "5366200002841651"
+            }
+          ]
+        },
+        "arm": {
+          "job_id": "cff51fb4fbbb45fdbc1b0a4fae908ce3",
+          "state": "armed",
+          "start_utc_ns": "1793711286795572003",
+          "start_monotonic_ns": "105559245566",
+          "clock": {
+            "state": "synchronized",
+            "utc_now_ns": "1793711283882588004",
+            "monotonic_now_ns": "102646263000",
+            "uncertainty_ns": "295662",
+            "sync_age_ns": "1882587273",
+            "leap": "normal"
+          }
+        },
+        "success": true,
+        "cleanup_verified": true
+      },
+      {
+        "label": "corrected",
+        "frequency_hz": 1840100,
+        "mode": "tone",
+        "rf_seconds": 5.0,
+        "prepared": {
+          "candidate": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "0",
+            "sampled_raw_ns": "0",
+            "span_ns": "0",
+            "samples": 0,
+            "reason": "ntp_rf_rejected"
+          },
+          "candidate_correction_ppb": null,
+          "candidate_uncertainty_ppb": 0,
+          "saved_ntp_available": false,
+          "saved_ntp": null,
+          "candidate_age_ns": "0",
+          "topology_supported": false,
+          "independent_rf_verified": false,
+          "ntp_rf_supported": false,
+          "next_ppb": -646,
+          "next_generation": "100",
+          "next_source": "gps",
+          "reason": "gps_calibrated",
+          "prepared_ppb": -650,
+          "prepared_source": "gps",
+          "prepared_generation": "99"
+        },
+        "delayed_arm_freeze_verified": false,
+        "timer_calibration": {
+          "oscillator_error_ppb": -649,
+          "uncertainty_ppb": 11132,
+          "observed_raw_ns": "226383202872",
+          "age_ns": "1338679128",
+          "span_ns": "36000000000",
+          "generation": "95",
+          "fresh": true
+        },
+        "clock_uncertainty_ns": "270273",
+        "load": {
+          "job_id": "db380ea287cb402380dce957a790535d",
+          "state": "loaded",
+          "adjustments": [
+            {
+              "event_index": 0,
+              "requested_frequency_nhz": "1840100000000000",
+              "realized_frequency_nhz": "1840101191774011"
+            }
+          ]
+        },
+        "arm": {
+          "job_id": "db380ea287cb402380dce957a790535d",
+          "state": "armed",
+          "start_utc_ns": "1793711564355699004",
+          "start_monotonic_ns": "238738894345",
+          "clock": {
+            "state": "synchronized",
+            "utc_now_ns": "1793711561443216005",
+            "monotonic_now_ns": "235826413000",
+            "uncertainty_ns": "273709",
+            "sync_age_ns": "1443214773",
+            "leap": "normal"
+          }
+        },
+        "success": true,
+        "cleanup_verified": true
+      },
+      {
+        "label": "corrected",
+        "frequency_hz": 28126100,
+        "mode": "tone",
+        "rf_seconds": 5.0,
+        "prepared": {
+          "candidate": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "0",
+            "sampled_raw_ns": "0",
+            "span_ns": "0",
+            "samples": 0,
+            "reason": "ntp_rf_rejected"
+          },
+          "candidate_correction_ppb": null,
+          "candidate_uncertainty_ppb": 0,
+          "saved_ntp_available": false,
+          "saved_ntp": null,
+          "candidate_age_ns": "0",
+          "topology_supported": false,
+          "independent_rf_verified": false,
+          "ntp_rf_supported": false,
+          "next_ppb": -603,
+          "next_generation": "149",
+          "next_source": "gps",
+          "reason": "gps_calibrated",
+          "prepared_ppb": -603,
+          "prepared_source": "gps",
+          "prepared_generation": "149"
+        },
+        "delayed_arm_freeze_verified": false,
+        "timer_calibration": {
+          "oscillator_error_ppb": -603,
+          "uncertainty_ppb": 11793,
+          "observed_raw_ns": "284383167727",
+          "age_ns": "1913029273",
+          "span_ns": "34000000000",
+          "generation": "144",
+          "fresh": true
+        },
+        "clock_uncertainty_ns": "304755",
+        "load": {
+          "job_id": "e071131cb4814b8d87f580ed5bb79739",
+          "state": "loaded",
+          "adjustments": [
+            {
+              "event_index": 0,
+              "requested_frequency_nhz": "28126100000000000",
+              "realized_frequency_nhz": "28126116966828704"
+            }
+          ]
+        },
+        "arm": {
+          "job_id": "e071131cb4814b8d87f580ed5bb79739",
+          "state": "armed",
+          "start_utc_ns": "1793711623043076004",
+          "start_monotonic_ns": "297426235254",
+          "clock": {
+            "state": "synchronized",
+            "utc_now_ns": "1793711620133422005",
+            "monotonic_now_ns": "294516583000",
+            "uncertainty_ns": "308340",
+            "sync_age_ns": "2133420273",
+            "leap": "normal"
+          }
+        },
+        "success": true,
+        "cleanup_verified": true
+      },
+      {
+        "label": "corrected",
+        "frequency_hz": 5366200,
+        "mode": "tone",
+        "rf_seconds": 5.0,
+        "prepared": {
+          "candidate": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "0",
+            "sampled_raw_ns": "0",
+            "span_ns": "0",
+            "samples": 0,
+            "reason": "ntp_rf_rejected"
+          },
+          "candidate_correction_ppb": null,
+          "candidate_uncertainty_ppb": 0,
+          "saved_ntp_available": false,
+          "saved_ntp": null,
+          "candidate_age_ns": "0",
+          "topology_supported": false,
+          "independent_rf_verified": false,
+          "ntp_rf_supported": false,
+          "next_ppb": -633,
+          "next_generation": "119",
+          "next_source": "gps",
+          "reason": "gps_calibrated",
+          "prepared_ppb": -633,
+          "prepared_source": "gps",
+          "prepared_generation": "119"
+        },
+        "delayed_arm_freeze_verified": true,
+        "timer_calibration": {
+          "oscillator_error_ppb": -633,
+          "uncertainty_ppb": 6690,
+          "observed_raw_ns": "250383188227",
+          "age_ns": "1573901773",
+          "span_ns": "60000000000",
+          "generation": "119",
+          "fresh": true
+        },
+        "clock_uncertainty_ns": "297621",
+        "load": {
+          "job_id": "20fdba286826437fb2818e2ff3e0c58c",
+          "state": "loaded",
+          "adjustments": [
+            {
+              "event_index": 0,
+              "requested_frequency_nhz": "5366200000000000",
+              "realized_frequency_nhz": "5366203408688307"
+            }
+          ]
+        },
+        "arm": {
+          "job_id": "20fdba286826437fb2818e2ff3e0c58c",
+          "state": "armed",
+          "start_utc_ns": "1793711593912988006",
+          "start_monotonic_ns": "268296164689",
+          "clock": {
+            "state": "synchronized",
+            "utc_now_ns": "1793711591001876007",
+            "monotonic_now_ns": "265385055000",
+            "uncertainty_ns": "302138",
+            "sync_age_ns": "2001876128",
+            "leap": "normal"
+          }
+        },
+        "success": true,
+        "cleanup_verified": true
+      },
+      {
+        "label": "corrected",
+        "frequency_hz": 5366200,
+        "mode": "wspr",
+        "rf_seconds": 110.592,
+        "prepared": {
+          "candidate": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "0",
+            "sampled_raw_ns": "0",
+            "span_ns": "0",
+            "samples": 0,
+            "reason": "ntp_rf_rejected"
+          },
+          "candidate_correction_ppb": null,
+          "candidate_uncertainty_ppb": 0,
+          "saved_ntp_available": false,
+          "saved_ntp": null,
+          "candidate_age_ns": "0",
+          "topology_supported": false,
+          "independent_rf_verified": false,
+          "ntp_rf_supported": false,
+          "next_ppb": -556,
+          "next_generation": "39",
+          "next_source": "gps",
+          "reason": "gps_calibrated",
+          "prepared_ppb": -575,
+          "prepared_source": "gps",
+          "prepared_generation": "37"
+        },
+        "delayed_arm_freeze_verified": true,
+        "timer_calibration": {
+          "oscillator_error_ppb": -537,
+          "uncertainty_ppb": 10020,
+          "observed_raw_ns": "67383306227",
+          "age_ns": "1316558773",
+          "span_ns": "40000000000",
+          "generation": "32",
+          "fresh": true
+        },
+        "clock_uncertainty_ns": "265715",
+        "load": {
+          "job_id": "19c739c031a94b4d9159f7d3d0fd4614",
+          "state": "loaded",
+          "adjustment_count": 162,
+          "first_adjustment": {
+            "event_index": 0,
+            "requested_frequency_nhz": "5366201464843750",
+            "realized_frequency_nhz": "5366204565390944"
+          },
+          "last_adjustment": {
+            "event_index": 161,
+            "requested_frequency_nhz": "5366202929687500",
+            "realized_frequency_nhz": "5366206011269242"
+          },
+          "adjustments_sha256": "ce12bc02329d1118f5247436f6c30ee62bd2a3ac17431dcd1ecd3d5c2cfd7046"
+        },
+        "arm": {
+          "job_id": "19c739c031a94b4d9159f7d3d0fd4614",
+          "state": "armed",
+          "start_utc_ns": "1793711408259328000",
+          "start_monotonic_ns": "82642626196",
+          "clock": {
+            "state": "synchronized",
+            "utc_now_ns": "1793711405331733000",
+            "monotonic_now_ns": "79715032000",
+            "uncertainty_ns": "269326",
+            "sync_age_ns": "1331730418",
+            "leap": "normal"
+          }
+        },
+        "success": true,
+        "cleanup_verified": true
+      },
+      {
+        "label": "residual",
+        "frequency_hz": 5366200,
+        "mode": "tone",
+        "rf_seconds": 5.0,
+        "prepared": {
+          "candidate": {
+            "qualified": false,
+            "utc_rate_ppb": 0,
+            "uncertainty_ppb": 100000,
+            "generation": "0",
+            "sampled_raw_ns": "0",
+            "span_ns": "0",
+            "samples": 0,
+            "reason": "ntp_rf_rejected"
+          },
+          "candidate_correction_ppb": null,
+          "candidate_uncertainty_ppb": 0,
+          "saved_ntp_available": false,
+          "saved_ntp": null,
+          "candidate_age_ns": "0",
+          "topology_supported": false,
+          "independent_rf_verified": false,
+          "ntp_rf_supported": false,
+          "next_ppb": 19375,
+          "next_generation": "167",
+          "next_source": "gps",
+          "reason": "gps_calibrated",
+          "prepared_ppb": 19375,
+          "prepared_source": "gps",
+          "prepared_generation": "167"
+        },
+        "delayed_arm_freeze_verified": false,
+        "timer_calibration": {
+          "oscillator_error_ppb": -627,
+          "uncertainty_ppb": 7581,
+          "observed_raw_ns": "304383154372",
+          "age_ns": "12377024628",
+          "span_ns": "54000000000",
+          "generation": "164",
+          "fresh": true
+        },
+        "clock_uncertainty_ns": "280494",
+        "load": {
+          "job_id": "33752700ff614b55a155196752ddbdeb",
+          "state": "loaded",
+          "adjustments": [
+            {
+              "event_index": 0,
+              "requested_frequency_nhz": "5366200000000000",
+              "realized_frequency_nhz": "5366096028126776"
+            }
+          ]
+        },
+        "arm": {
+          "job_id": "33752700ff614b55a155196752ddbdeb",
+          "state": "armed",
+          "start_utc_ns": "1793711653567829003",
+          "start_monotonic_ns": "327950970565",
+          "clock": {
+            "state": "synchronized",
+            "utc_now_ns": "1793711650657879004",
+            "monotonic_now_ns": "325041022000",
+            "uncertainty_ns": "285062",
+            "sync_age_ns": "1657878273",
+            "leap": "normal"
+          }
+        },
+        "success": true,
+        "cleanup_verified": true
+      }
+    ],
+    "physical_pair": {
+      "pi_source": "c1b763be70c2a11debd68579b24f7400eff20049",
+      "pico_source": "6e3d809d3fead91b7836ca84720be8d29f88e7c8",
+      "statuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "resources": [
+        "configuration",
+        "gps",
+        "si5351",
+        "application"
+      ]
+    },
+    "restoration": {
+      "verified": true,
+      "saved_semantics_equal": true,
+      "idle": true,
+      "clk0": "register_disabled",
+      "gp2": "inactive",
+      "pins_restored": true
+    },
+    "handback": {
+      "verified": true,
+      "serial": "1545B6EFBF78028C",
+      "target": {
+        "scope": "member",
+        "device_id": "c2a3a2a314c948b50a8562a1aeb69669",
+        "boot_id": "8dd50dea20511f39ca12e82ea7dbb968"
+      },
+      "source": {
+        "dirty": false,
+        "identity": "6e3d809d3fea",
+        "inputs_sha256": "026dac6987041bf629cb91a2ebf800196d088499bef9ac624e5c9555bf3ba9ba",
+        "revision": "6e3d809d3fead91b7836ca84720be8d29f88e7c8"
+      },
+      "uf2": {
+        "bytes": 6225920,
+        "path": "WsprryPico-0.0.0-devel-pico2_w.uf2",
+        "sha256": "ce0c51790e35ded99514bc7bdd1ea49e2f0249e8efe16d26e14c77a5c6879fa5"
+      },
+      "saved_semantics_equal": true,
+      "idle": true,
+      "owned": false,
+      "output_active": false,
+      "clk0": "register_disabled",
+      "clk2": "register_enabled",
+      "gps_absent": true,
+      "network_enabled": true,
+      "logging": {
+        "enabled": true,
+        "maximum_severity": 6
+      },
+      "installer_reference_verified": true,
+      "gpsdo_restored": true,
+      "gpsdo_locked": true,
+      "gpio_drive_ma": 4,
+      "button_gp": 14,
+      "led_gp": 17,
+      "wsprrypi_service": "active"
+    },
+    "checks": {
+      "programmed_shifts": [
+        {
+          "frequency_hz": 1840100,
+          "programmed_shift_hz": 1.188833267,
+          "measured_shift_hz": 1.0353855232242495,
+          "combined_allowance_hz": 7.03816239457915,
+          "agrees": true
+        },
+        {
+          "frequency_hz": 5366200,
+          "programmed_shift_hz": 3.405846656,
+          "measured_shift_hz": 3.0358374854549766,
+          "combined_allowance_hz": 7.1088724492616695,
+          "agrees": true
+        },
+        {
+          "frequency_hz": 28126100,
+          "programmed_shift_hz": 16.964972019,
+          "measured_shift_hz": 15.334119413048029,
+          "combined_allowance_hz": 7.5653401505617275,
+          "agrees": true
+        }
+      ],
+      "manual_residual": {
+        "manual_ppm": 20,
+        "expected_once_shift_hz": -107.324,
+        "measured_shift_hz": -107.33280339557678,
+        "combined_allowance_hz": 7.119303293119307,
+        "agrees_once": true
+      },
+      "delayed_arm_frozen": true
+    },
+    "source_pair": {
+      "pico": "6e3d809d3fead91b7836ca84720be8d29f88e7c8",
+      "pi": "d677d7f27570a7315aa9f7cdd08a5de20279696b",
+      "physical_pi_client": "c1b763be70c2a11debd68579b24f7400eff20049",
+      "pi_successor_difference": "Test-only assertions; production byte-identical."
+    },
+    "ci": {
+      "pico": "https://github.com/WsprryPi/WsprryPico/actions/runs/41637682581",
+      "pi": "https://github.com/WsprryPi/WsprryPi/actions/runs/41639480111"
+    },
+    "memory": {
+      "previous_heap_capacity_bytes": 244572,
+      "heap_capacity_bytes": 276856,
+      "heap_gain_bytes": 32284,
+      "decode_workspace_bytes": 32768,
+      "decode_safety_reserve_bytes": 32768,
+      "replay_guarantees_unchanged": true,
+      "no_rf_session_diagnostic": {
+        "fresh_sessions_failed_at_load_number": 4,
+        "resumed_session_successful_load_abort_cycles": 8,
+        "arm_sent": false,
+        "restoration_verified": true
+      }
     }
   }
 }
