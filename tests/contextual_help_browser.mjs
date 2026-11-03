@@ -1,6 +1,18 @@
 // Called by both production-handler section carriers; popups use the fixture's
 // deny-by-default proxy, so this check never reaches the public Internet.
 import assert from 'node:assert/strict';
+
+export async function closeHelpTarget(send,targetId) {
+  try {await send('Target.closeTarget',{targetId});}
+  catch(error) {
+    if(error.message!=='No target with given id found')throw error;
+    // A popup can disappear after enumeration. Confirm that exact target is
+    // gone; other protocol failures or a still-live popup remain failures.
+    const targets=await send('Target.getTargets');
+    if(targets.targetInfos.some(target=>target.targetId===targetId))throw error;
+  }
+}
+
 export async function checkContextualHelp({evaluate,send,key,section,helpWindows}) {
   assert.equal(await evaluate(`document.querySelectorAll('[data-operator-section]:not(:has(>summary a.documentation-help))').length`),0,'every major disclosure has collapsed help');
   assert.equal(await evaluate(`document.querySelectorAll('details>summary:not(:has(a.documentation-help))').length`),0,'every disclosure, including generated UDP controls, has contextual help');
@@ -47,7 +59,7 @@ export async function checkContextualHelp({evaluate,send,key,section,helpWindows
       const version=new URL(helpWindows.at(-1).url).pathname.split('/')[2];
       assert.equal(await evaluate(`[...document.querySelectorAll('a.documentation-help')].every(a=>new URL(a.href).pathname.startsWith('/en/${version}/'))`),true,'one maintained manual version across the shipped page');
       const targets=await send('Target.getTargets');
-      for(const target of targets.targetInfos) if(target.openerId)await send('Target.closeTarget',{targetId:target.targetId});
+      for(const target of targets.targetInfos) if(target.openerId)await closeHelpTarget(send,target.targetId);
       assert.equal(await evaluate(`JSON.stringify({hash:location.hash,state:history.state,area:document.getElementById('station-area').hidden,open:[...document.querySelectorAll('details')].map(e=>e.open)})===helpSnapshot && document.getElementById('message-frequency').value==='invalid raw draft' && document.getElementById('job-file').files[0]===helpFile`),true,'native help preserves drafts, selected file, History and collapsed state');
     }
   }

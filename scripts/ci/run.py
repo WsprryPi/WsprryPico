@@ -146,7 +146,7 @@ def host_checks(deps, audit):
     execute(log, 'npm', 'test', cwd=web)
     execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py')
     execute(log, 'node', '--test', ROOT / 'tests/ui_process_cleanup.test.mjs',
-            ROOT / 'tests/chrome_startup.test.mjs')
+            ROOT / 'tests/chrome_startup.test.mjs', ROOT / 'tests/contextual_help_cleanup.test.mjs')
     chrome = shutil.which('google-chrome')
     if not chrome:
         raise ValueError('Runner Chrome is required for the consumer frequency UI check')
