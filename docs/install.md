@@ -12,9 +12,9 @@ Install the **WsprryPico** firmware using the commands below.
 
 ## Select Beta firmware
 
-Use the published [Beta 5 firmware, version **1.0.0-beta.5**](https://github.com/WsprryPi/WsprryPico/releases/tag/v1.0.0-beta.5), for Beta testing. The Beta installation, update, and image-check commands below include `--version 1.0.0-beta.5` to select that exact release. The version argument omits the tag's `v` prefix. The installer verifies image identity, source, workflow, and SHA-256 checksums before programming; it stops if the selected release is unavailable or fails verification.
+Use the published [Beta 6 firmware, version **1.0.0-beta.6**](https://github.com/WsprryPi/WsprryPico/releases/tag/v1.0.0-beta.6), for Beta testing. The Beta installation, update, and image-check commands below include `--version 1.0.0-beta.6` to select that exact release. The version argument omits the tag's `v` prefix. The installer verifies image identity, source, workflow, and SHA-256 checksums before programming; it stops if the selected release is unavailable or fails verification.
 
-No `--branch` option is needed for Beta 5. The firmware version is independent of the installer source and any WsprryPi branch. The `devel` segment in the installer download URL below selects the installer source, while `--version 1.0.0-beta.5` selects the firmware.
+No `--branch` option is needed for Beta 6. The firmware version is independent of the installer source and any WsprryPi branch. The `devel` segment in the installer download URL below selects the installer source, while `--version 1.0.0-beta.6` selects the firmware.
 
 For development firmware, use the [published devel download](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-devel) and the [devel upgrade command](#upgrade-to-devel-firmware).
 
@@ -41,10 +41,10 @@ curl --fail --silent --show-error --location \
   --proto '=https' --proto-redir '=https' \
   --connect-timeout 10 --max-time 60 --max-filesize 1048576 \
   https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh \
-  | bash -s -- install --board pico2_w --yes --version 1.0.0-beta.5
+  | bash -s -- install --board pico2_w --yes --version 1.0.0-beta.6
 ```
 
-This installs the exact Beta 5 firmware after checking the existing flash. Installation refuses existing saved data. Keep `--version 1.0.0-beta.5` in the command; `--branch devel` does not select the Beta release.
+This installs the exact Beta 6 firmware after checking the existing flash. Installation refuses existing saved data. Keep `--version 1.0.0-beta.6` in the command; `--branch devel` does not select the Beta release.
 
 For an existing WsprryPico, complete [the update preparation below](#preserve-settings-during-an-update), leave its firmware running, and replace `install` with `upgrade` in the command. Starting an upgrade in BOOTSEL stops before downloading tools or firmware. Reconnect without holding BOOTSEL before retrying. If an update already has a retained transaction, use its printed recovery command.
 
@@ -61,7 +61,7 @@ After the operation, the installer offers cleanup only if it downloaded picotool
 For unattended use, provide `--device SERIAL` and explicitly allow downloading with `--download-picotool`. `--yes` confirms programming; it does not approve tool downloads. Choose `--tool-cleanup keep` or `--tool-cleanup remove` to skip the cleanup question. Without a terminal, or with `--json-only`, the default keeps downloaded tools. For example:
 
 ```sh
-bash install_usb.sh upgrade --version 1.0.0-beta.5 --device SERIAL \
+bash install_usb.sh upgrade --version 1.0.0-beta.6 --device SERIAL \
   --board pico2_w --yes --download-picotool --tool-cleanup remove
 ```
 
@@ -73,14 +73,14 @@ The bootstrap removes its temporary files on exit. A deliberately downloaded `in
 2. Run the installer. Confirm that the numbered selection is your **Pico 2 W**:
 
    ```sh
-   bash install_usb.sh install --board pico2_w --yes --version 1.0.0-beta.5
+   bash install_usb.sh install --board pico2_w --yes --version 1.0.0-beta.6
    ```
 
 3. Keep USB connected through programming and verification. A final verified result, followed by the running firmware identity, confirms completion.
 
 After successful installation, leave the Pico powered and continue to [Connect to your Pico](connect.md). Its setup Wi-Fi lets you save the network details and open the control page.
 
-The command selects Beta 5 explicitly. If an existing application cannot be identified, stop and inspect the refusal; do not assume that replacing it can preserve its settings.
+The command selects Beta 6 explicitly. If an existing application cannot be identified, stop and inspect the refusal; do not assume that replacing it can preserve its settings.
 
 ## Preserve settings during an update
 
@@ -88,7 +88,7 @@ The command selects Beta 5 explicitly. If an existing application cannot be iden
 2. Run:
 
    ```sh
-   bash install_usb.sh upgrade --board pico2_w --yes --version 1.0.0-beta.5
+   bash install_usb.sh upgrade --board pico2_w --yes --version 1.0.0-beta.6
    ```
 
 3. Choose the intended Pico from the list. The installer binds the transaction to its serial and physical port, checks compatibility, backs up flash, and verifies retained settings after programming.
@@ -121,15 +121,15 @@ Do not delete the reference, edit its source identity, or erase the Pico to get 
 ## Check an image without programming
 
 ```sh
-bash install_usb.sh plan --version 1.0.0-beta.5 --output ./pico-beta-5-bundle
+bash install_usb.sh plan --version 1.0.0-beta.6 --output ./pico-beta-6-bundle
 ```
 
-The output directory must be new. Confirm the returned version is `1.0.0-beta.5` and review the full source revision and manifest. The saved verified bundle can be used offline with `--bundle ./pico-beta-5-bundle` in place of `--version 1.0.0-beta.5`. A checksum verifies integrity; it is not a signature. The ordinary download uses anonymous HTTPS. If GitHub reports a rate limit, wait until the reported UTC retry time; the installer does not substitute another image or branch.
+The output directory must be new. Confirm the returned version is `1.0.0-beta.6` and review the full source revision and manifest. The saved verified bundle can be used offline with `--bundle ./pico-beta-6-bundle` in place of `--version 1.0.0-beta.6`. A checksum verifies integrity; it is not a signature. The ordinary download uses anonymous HTTPS. If GitHub reports a rate limit, wait until the reported UTC retry time; the installer does not substitute another image or branch.
 
 ## Other firmware selectors
 
 `--branch devel` selects the latest [published devel firmware](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-devel). Its download page identifies the firmware version and source revision.
 
-Choose firmware explicitly with `--branch devel` or `--version 1.0.0-beta.5`. The `--version` option selects an exact published release. If the requested image is unavailable or fails verification, the installer stops without substituting another image.
+Choose firmware explicitly with `--branch devel` or `--version 1.0.0-beta.6`. The `--version` option selects an exact published release. If the requested image is unavailable or fails verification, the installer stops without substituting another image.
 
 For destructive erase, see [Recovery and reset](maintain.md#recovery-and-reset).

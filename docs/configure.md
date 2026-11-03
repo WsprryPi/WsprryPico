@@ -71,6 +71,8 @@ To prevent later automatic starts, uncheck **Enable standalone schedules**, save
 
 These settings apply to WSPR, Morse modes, and test tones. Open **Station Control → Time and calibration**. Saved values load automatically; a read button appears only if recovery needs a fresh observation.
 
+See [output and reference options](reference/time.md#understand-the-output-and-reference-options) for how Direct GPIO, Si5351, GPS, PPS and loopback work together. The [measured carrier-error examples](reference/time.md#measured-carrier-error-examples) compare manual-zero operation with GPS/PPS automatic correction.
+
 (ntp-update-timeout)=
 ### NTP update timeout
 

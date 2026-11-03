@@ -4,7 +4,7 @@ This is the distinct TODO list for selected unfinished work, with completed and 
 
 ## Possible future work
 
-No remaining TODO items.
+21. **Si5351 automatic carrier-correction repeatability — follow-up.** The [close-spaced carrier comparison](gps-pps-validation.md#close-spaced-carrier-comparison) is complete with the existing RSP1B; the RSPduo is not a prerequisite. Two off/on repeats at each selected 160 m, 60 m and 10 m point establish GP2 improvement beyond the declared measurement allowances. Si5351 baseline errors are stable, while corrected errors vary between repeats; consistent Si5351 improvement remains unestablished. Investigate the selected calibration estimates, observation spans and engine realization before claiming repeatable improvement for Si5351. Keep this specific question separate from the completed GPS/PPS implementation and accepted launch timing. Further receiver/temperature coverage is not implied by the present bench results.
 
 ## Closed — will not do
 
@@ -21,6 +21,8 @@ No remaining TODO items.
 
 ## Completed work
 
+22. ✅ **RF launch timing — complete and accepted for the agreed operating needs.** Approximately one second early or late is the operator's acceptable comparison scale; better alignment is a goal, not a precision requirement, admission gate or reason to reject otherwise usable transmissions. The [capture-interface assessment](gps-pps-validation.md#practical-launch-timing-and-the-current-capture-interface) identifies wspr5's PPS-disciplined host UTC, the absence of SDR hardware timestamps, and the difference between host read times and sample acquisition times. Retrospective comparison of 12 existing scheduled launches, four Si5351 and eight GP2 tone/WSPR captures, gives approximate host-anchored offsets of +39 to +65 ms, consistent with that practical goal. This is a coarse operational check, not an independently bounded absolute RF timing qualification. Receiver/driver delay remains uncalibrated; no new transmission, configuration change or additional timing hardware was needed for this assessment.
+
 13. ✅ **Si5351 — complete and merged into `devel`.**
 
 Item 13 is complete. The current software provides Si5351 synthesis and local execution, bounded input-only loopback capture, no-GPS UTC rate assistance, retained-rate continuity across jobs and capture loss, strict paired Control/1 interfaces, and informational UTC uncertainty. Optional GPS/PPS ingestion and automatic RF correction are implemented; their independent measurement limits are recorded with completed item 14.
@@ -35,4 +37,4 @@ Reference hardware, its declared uncertainty allowance and hardware qualificatio
 
 14. ✅ **GPS UTC + PPS, RF calibration, location and improved holdover — complete and merged into `devel`.** Optional GPS UTC/PPS ingestion, separate oscillator correction, location/day-night policy, retained-rate holdover and coordinated Pi consumers are implemented and merged into `devel`. The [GPS/PPS contract](gps-pps.md) describes current behavior; the [validation record](gps-pps-validation.md) identifies exact source/image pairs, the completed Si5351 and GP2 measurements, restoration and limitations.
     - **Selected GP2 transmission test completed:** manual-zero and GPS-corrected five-second tones on 160 m, 60 m and 10 m, once-only manual residual, delayed ARM/frozen correction, one complete decoded WSPR interval and exact handback passed on the recorded 138 MHz/4 mA conducted setup. Delayed serial labels use the original captured PPS edge. Control-path memory was corrected without reducing safety reserves, and the controller resumed one logical WTP session per boot. Cumulative DUT RF was 170.592 seconds within the finite 200-second budget; no antenna or PPS disconnection was used.
-    - Independently bounded absolute RF launch UTC and consistently improved absolute carrier accuracy remain unestablished. Retain those limits until supporting measurements exist. Source loss/recovery has software evidence only; a live PPS cable-disconnection test is outside the selected scope.
+    - Launch timing is complete under the accepted operating scope in item 22; no further precision-timing qualification or additional PPS hardware is required. The later close-spaced comparison establishes GP2 carrier improvement on the three selected bands; item 21 retains the specific Si5351 repeatability follow-up. Source loss/recovery has software evidence as selected; a live PPS cable-disconnection test is outside the selected scope.

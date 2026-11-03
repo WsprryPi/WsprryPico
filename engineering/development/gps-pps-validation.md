@@ -1,6 +1,6 @@
 # GPS/PPS validation
 
-Optional GPS UTC/PPS input, independent Pico and Si5351 oscillator estimates, automatic RF correction with manual residual trim, GPS location, day/night scheduling and transmission provenance are implemented. Software and conducted measurements establish the bounded behavior below. Calibrated absolute RF launch timing and consistently improved absolute carrier accuracy remain unestablished. The separate GP2 conducted test covers the three selected 160 m, 60 m and 10 m points, with its own image, capture and restoration evidence below. [Backlog item 14](consolidated-backlog.md) retains the independent measurement limits.
+Optional GPS UTC/PPS input, independent Pico and Si5351 oscillator estimates, automatic RF correction with manual residual trim, GPS location, day/night scheduling and transmission provenance are implemented. Software and conducted measurements establish the bounded behavior below. RF launch timing is complete and accepted for the agreed roughly one-second operating goal. The close-spaced carrier comparison establishes GP2 improvement at the selected 160 m, 60 m and 10 m points; Si5351 improvement varies between repeats. Each campaign retains its own image, capture and restoration identity below. [Backlog item 21](consolidated-backlog.md) records the specific Si5351 repeatability follow-up.
 
 ## Validated Si5351 implementation and checks
 
@@ -49,6 +49,48 @@ The Si5351 setup used the QRP Labs Rev. 6 external-XA 25 MHz TCXO profile, I²C 
 The receiver was RSP1B serial `2404058C60`, at 250 ksps with 200 kHz bandwidth, gain 20, AGC off and bias supply off. The GPSDO was LBE1421 firmware 1.9, serial `0673ED0FA107`; satellite/PLL lock and antenna health were checked. Its original state was both outputs enabled at 10 MHz with LOW drive. LOW is a drive setting, not an output-off indication.
 
 ## Observations and measurement limits
+
+### Practical launch timing and the current capture interface
+
+The operational launch-time goal is RF onset reasonably close to scheduled UTC. Approximately one second early or late is acceptable for this validation; improved alignment is desirable, but submillisecond qualification is not a project completion requirement. Launch timing is accepted as complete for this scope; further precision-timing qualification, GPSDO USB PPS comparison and additional marker hardware are not required. wspr5 continues to use PPS from its onboard GPS. This comparison scale introduces no firmware setting, scheduling veto or protocol change. [TODO item 21](consolidated-backlog.md) retains the Si5351 carrier-correction follow-up; completed item 22 records the coarse timing assessment.
+
+wspr5 provides an independent GPS/PPS-disciplined host clock. Inspection on 2026-11-03 found Chrony selecting the PPS reference, normal leap state, a 0.690 microsecond RMS offset and approximately 12.3 microseconds root dispersion. Those are reported synchronization statistics, not an independent calibration of receiver, antenna or cable delay. The configured receiver path is `/dev/ttyAMA0` at 9600 baud with the PPS device `/dev/pps-gps`; Chrony uses the PPS socket and keeps the serial NMEA reference unselected. Serial arrival does not define the second boundary.
+
+The connected receiver is RSP1B serial `2404058C60`, using SDRplay API 3.15. Its live native Soapy probe reports `Timestamps: NO`. The installed SoapySDRPlay3 source revision `6cc31316b730503cee3e30906ff1975175a16400` does not populate `readStream`'s `timeNs` or set `SOAPY_SDR_HAS_TIME`. The SDRplay callback supplies `firstSampleNum`, a sample counter, but this adapter does not associate that counter with host UTC or PPS. A counter alone is not a UTC timestamp. The current capture helper also discards the returned timing fields. Its `configuration_start_utc`, `first_read_start_utc`, `first_read_complete_utc` and `retained_capture_start_utc` are host software timestamps; the last marks opening the retained output before subsequent reads, not the RF acquisition time of its first sample.
+
+The existing interface therefore supplies host-time observations and sample-relative RF onset, but no direct PPS-tagged RF sample. A bounded absolute comparison would need a fresh stream's activation/read bounds, sample continuity, buffering and receiver delay accounted for explicitly. Merely adding an RF sample offset to `retained_capture_start_utc` does not establish that bound. The requested coarse assessment below uses existing captures without additional timing hardware. A direct hardware-timestamp qualification remains distinct from this practical check.
+
+Retrospective analysis of existing successful captures compares `retained_capture_start_utc + RF onset offset` with each accepted ARM `start_utc_ns`. RF onset is the center of the first active 20 ms window at 50% of maximum window peak power within 700 Hz of the expected carrier; accepted signals exceed the median first-second noise power by at least 20 dB. Captures have zero reported overflows or clipping and verified receiver cleanup. The first read takes 65–66 ms, and configuration takes 519–537 ms in these records. These durations characterize host observations; neither is a certified receiver-delay bound.
+
+| Existing scheduled launches | Count | Approximate host-anchored RF onset minus scheduled UTC |
+| --- | --- | --- |
+| Si5351 baseline/corrected tones, 160 m and 20 m | 4 | +44.9 to +53.4 ms |
+| GP2 baseline/corrected/residual tones and one WSPR frame, 160 m, 60 m and 10 m | 8 | +39.2 to +65.0 ms |
+
+The repeated observations are consistent with the requested roughly one-second operating goal. They do not prove a hard ±1 second bound or a submillisecond absolute RF-to-UTC error because receiver/driver latency is uncalibrated. The Si5351 and GP2 source/image identities remain those of their original campaigns below; this is reanalysis of those captures, not a fresh test of later firmware. Capture identities, raw hashes, scheduled UTC values, onset offsets and method are retained in `practical_launch_timing_assessment` in the [machine-readable record](gps-pps-validation.json). No new RF, Pico setting change, GPSDO change or service restart was performed for this assessment.
+
+### Close-spaced carrier comparison
+
+Pico C source `8abeb40aef71`, using the 138 MHz profile, completed 24 finite 12-second tones: two correction-off/on repeats for each engine at 1,840,100, 5,366,200 and 28,126,100 Hz. Si5351 CLK0, GP2 and GPSDO output 1 remained connected through the same combiner and 60 dB path to RSP1B `2404058C60`; one Pico RF engine was active at a time and no antenna was used. Si5351 drive remained 8 mA and GP2 drive remained 4 mA. The user reconfirmed this physical setup during the campaign. Current control helpers came from `29108844`; no firmware load or product-source change was needed.
+
+GPS/PPS supplied the automatic correction, using GP1 serial RX, continuously connected GP3 PPS and CLK2 loopback into GP7 for Si5351. The receiver-delay window was temporarily 600–1200 ms, with manual location and zero manual residual. Separate engine controls selected correction off or GPS/PPS automatic correction. GPSDO LBE-1421 `0673ED0FA107` supplied a simultaneously recorded reference 500 Hz above nominal, with satellite/PLL lock and antenna health verified. Frequency changes were volatile; the complete original GPSDO state was retained for restoration. Receiver settings remained 250 ksps, 200 kHz bandwidth, gain 20, AGC off and bias supply off.
+
+Analysis isolates the two tones from a ten-second interval inside each transmission and fits their differential phase after excluding one second at each filtered edge. Fifteen known-error synthetic cases cover noise, common receiver drift and sample-clock offsets. The declared engineering allowances are 100 ppm sample-rate error over the measured tone spacing, 10 ppb GPSDO error at its RF frequency, and the larger of 0.02 Hz or the greatest observed one-second differential-frequency departure from the fitted average. Their sum is the reported allowance. The GPSDO allowance is an engineering assumption, not a calibration certificate; the sample-rate contribution near 500 Hz is approximately 0.05 Hz, not the total measurement allowance.
+
+| Engine | Band | Baseline errors, repeats 1 / 2 (Hz) | Corrected errors, repeats 1 / 2 (Hz) | Largest allowance among these four records (Hz) |
+| --- | --- | --- | --- | --- |
+| Si5351 | 160 m | −0.148 / −0.146 | +0.192 / +0.075 | ±0.089 |
+| Si5351 | 60 m | −0.458 / −0.455 | +0.538 / +0.189 | ±0.127 |
+| Si5351 | 10 m | −2.770 / −2.809 | +2.448 / +0.600 | ±0.431 |
+| GP2 | 160 m | −1.959 / −2.066 | −0.244 / −0.036 | ±0.108 |
+| GP2 | 60 m | −5.826 / −6.058 | −0.780 / −0.195 | ±0.200 |
+| GP2 | 10 m | −30.888 / −31.921 | −0.537 / +1.000 | ±0.824 |
+
+Allowances in the table are rounded outward; the machine-readable record retains each result's own allowance. Improvement is resolved only when the largest corrected absolute-error upper bound across both repeats is below the smallest baseline absolute-error lower bound across both repeats. GP2 passes that criterion on all three bands. Si5351 does not pass it consistently across the two repeats; its second corrected set is closer to nominal, while its first is comparable to the already small baseline error. The measurements identify Si5351 correction repeatability as the follow-up, rather than receiver availability. They do not establish performance over arbitrary temperature changes or certify the GPSDO.
+
+All 24 receiver captures succeeded with zero reported clipping or overflows and verified cleanup. Commanded Pico RF was 288 seconds within the 300-second cap; an initial harness preflight refusal commanded no RF and was followed by exact restoration before the corrected campaign. Final same-board readback verified exact saved Pico settings, unchanged source, idle/unowned/inactive RF and CLK0 register-disabled. Original GPS settings, engine/pins, manual correction and automatic-calibration choices were restored. GPSDO frequency, output enables, drive flags and mode were restored exactly, and the original wspr5 service was active and enabled. Private captures, snapshots and executable analysis remain in `/home/pi/close-tone-20261103`; sanitized hashes, measurements, accepted LOAD adjustments and restoration receipts are recorded under `close_spaced_carrier_comparison` in the [machine-readable record](gps-pps-validation.json). LOAD adjustments describe reported engine realization and are not substituted for measured physical RF frequency.
+
+### Earlier conducted GPS/PPS observations
 
 GPS-only startup collected 90 samples with networking disabled and zero NTP observations admitted from boot: 83 samples had valid UTC/PPS pairing, 82 selected GPS and 62 had both independent calibration estimates fresh. Four physical production Pi USB resource reads returned 200. A host USB time submission did not replace the selected GPS source. Maximum observed IRQ latency was 29.674 µs; the maximum reported corrected capture bound was 9.712 µs. These local timestamp results do not establish receiver absolute accuracy.
 
