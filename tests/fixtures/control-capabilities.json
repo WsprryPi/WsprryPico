@@ -280,7 +280,7 @@
         0,
         1
       ],
-      "pairing": "qualified_preceding_edge_rmc",
+      "pairing": "qualified_unique_captured_edge_rmc",
       "receiver_uncertainty_maximum_us": 100000,
       "capture_uncertainty_maximum_us": 100000,
       "position_maximum_age_s": 3600,
@@ -318,7 +318,10 @@
         27
       ],
       "pps_capture": "input_only_pwm_gated_timestamp",
-      "pwm_slice_policy": "exclusive_from_si5351_loopback"
+      "pwm_slice_policy": "exclusive_from_si5351_loopback",
+      "message_delay_maximum_ms": 1999,
+      "message_delay_span_maximum_ms": 999,
+      "pulse_history_edges": 5
     },
     "operations_status": {
       "schema": "operations",

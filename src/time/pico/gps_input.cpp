@@ -63,8 +63,7 @@ bool PicoGpsInput::open(const hardware::PinPlan& pins,
     position_.reset();
     observation_.reset();
     cycle_.reset();
-    latest_capture_.reset();
-    preceding_capture_.reset();
+    captures_ = {};
     failed_ = false;
     capture_gap_depth_ = 0;
     clock_gap_ = false;
@@ -217,8 +216,7 @@ void PicoGpsInput::capture_gap(bool entering) {
     parser_.lost();
     pairer_.lost();
     cycle_.reset();
-    latest_capture_.reset();
-    preceding_capture_.reset();
+    captures_ = {};
     if (!entering) {
         // Clear latched events while still blocked. A new edge racing this
         // cleanup may be discarded, but cannot be relabelled as an old edge.
@@ -336,8 +334,7 @@ void PicoGpsInput::poll(std::uint64_t now, Observer observer, void* context) {
         }
         observation_.reset();
         cycle_.reset();
-        latest_capture_.reset();
-        preceding_capture_.reset();
+        captures_ = {};
         return;
     }
     if (clock_gap_) {
@@ -358,8 +355,7 @@ void PicoGpsInput::poll(std::uint64_t now, Observer observer, void* context) {
         // with a post-overflow byte or edge to manufacture fresh authority.
         bytes_.discard();
         pulses_.discard();
-        latest_capture_.reset();
-        preceding_capture_.reset();
+        captures_ = {};
     }
     for (unsigned work = 0; work < 320; ++work) {
         const auto* byte = bytes_.peek();
@@ -373,8 +369,9 @@ void PicoGpsInput::poll(std::uint64_t now, Observer observer, void* context) {
         if (pulse && (!byte || pulse->pulse.raw_ns <= byte_raw)) {
             last_pps_ns_ = pulse->pulse.raw_ns;
             (void)pairer_.pulse(pulse->pulse);
-            preceding_capture_ = latest_capture_;
-            latest_capture_ = *pulse;
+            for (std::size_t i = captures_.size() - 1; i; --i)
+                captures_[i] = captures_[i - 1];
+            captures_[0] = *pulse;
             pulses_.pop();
             continue;
         }
@@ -408,14 +405,13 @@ void PicoGpsInput::poll(std::uint64_t now, Observer observer, void* context) {
             }
             if (const auto observation = pairer_.message(*message)) {
                 observation_ = observation;
-                const auto capture =
-                    latest_capture_ && latest_capture_->pulse.sequence == observation->sequence
-                        ? latest_capture_
-                        : preceding_capture_;
-                cycle_ = capture && capture->pulse.sequence == observation->sequence &&
-                                 capture->cycle.coherent
-                             ? std::optional(capture->cycle)
-                             : std::nullopt;
+                cycle_.reset();
+                for (const auto& capture : captures_)
+                    if (capture && capture->pulse.sequence == observation->sequence) {
+                        if (capture->cycle.coherent)
+                            cycle_ = capture->cycle;
+                        break;
+                    }
                 ++observations_;
                 if (observer)
                     observer(*observation, context);

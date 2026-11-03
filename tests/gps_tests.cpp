@@ -129,7 +129,7 @@ void pairing() {
     assert(!crossing.preceding_pulse(delayed.received_raw_ns));
     policy.edge_offset_ns = -500'000'000;
     Pairer overflowing(policy);
-    assert(overflowing.pulse({UINT64_MAX - 10, 1000, 1}));
+    assert(overflowing.pulse({UINT64_MAX - 10, 0, 1}));
     m.received_raw_ns = UINT64_MAX - 9;
     assert(!overflowing.message(m) && overflowing.error() == "invalid_pps_offset");
     Pairer future(policy);
@@ -148,6 +148,92 @@ void pairing() {
     assert(invalid.pulse({2 * second, 1000, 2}));
     m.received_raw_ns += second;
     assert(!invalid.message(m)); // Fractional RMC epochs cannot qualify a PPS second.
+}
+void late_label_pairing() {
+    PairingPolicy policy;
+    policy.qualified = true;
+    policy.minimum_message_delay_ns = 600'000'000;
+    policy.maximum_message_delay_ns = 1'200'000'000;
+    assert(valid(policy));
+    Pairer pairer(policy);
+    Message m;
+    m.time_valid = true;
+    m.utc_ns = 1'800'000'000ULL * second;
+    assert(pairer.pulse({second, 1000, 1}));
+    assert(pairer.pulse({2 * second, 1000, 2}));
+    m.received_raw_ns = second + 950'000'000;
+    assert(!pairer.message(m));
+    assert(pairer.pulse({3 * second, 1000, 3}));
+    m.received_raw_ns = 3 * second + 25'000'000;
+    *m.utc_ns += second;
+    const auto late = pairer.message(m);
+    assert(late && late->sequence == 2 && late->capture_raw_ns == 2 * second);
+    assert(late->utc_ns == *m.utc_ns); // Keep the original PPS edge and UTC label.
+    assert(!pairer.message(m));
+    assert(pairer.pulse({4 * second, 1000, 4}));
+    m.received_raw_ns = 3 * second + 990'000'000;
+    *m.utc_ns += second;
+    const auto before_edge = pairer.message(m);
+    assert(before_edge && before_edge->capture_raw_ns == 3 * second);
+    assert(pairer.pulse({5 * second, 1000, 5}));
+    assert(pairer.pulse({6 * second, 1000, 6}));
+    m.received_raw_ns = 5 * second + 50'000'000;
+    *m.utc_ns += second;
+    const auto queued = pairer.message(m);
+    assert(queued && queued->capture_raw_ns == 4 * second);
+    pairer.lost();
+    assert(!pairer.message(m));
+    Pairer varying_delay(policy);
+    PpsCalibration calibration;
+    unsigned captured = 0;
+    for (unsigned i = 1; i <= 15; ++i) {
+        while (captured < i + 1) {
+            ++captured;
+            assert(varying_delay.pulse({captured * (second + 10'000), 1000, captured}));
+        }
+        m.utc_ns = (1'800'000'000ULL + i) * second;
+        m.received_raw_ns = i * (second + 10'000) + (i % 2 ? 980'000'000 : 1'020'000'000);
+        if (const auto observation = varying_delay.message(m))
+            calibration.observe(*observation, {}, 0);
+    }
+    assert(calibration.timer() && calibration.timer()->span_ns >= 10 * second);
+    assert(std::abs(calibration.timer()->oscillator_error_ppb - 10'000) <= 1);
+    policy.minimum_message_delay_ns = 0;
+    assert(!valid(policy)); // A window spanning multiple seconds is not qualified.
+    policy.maximum_message_delay_ns = 999'000'000;
+    Pairer ambiguous(policy);
+    assert(ambiguous.pulse({second, 1000, 1}));
+    assert(ambiguous.pulse({second + 999'000'000, 1000, 2}));
+    m.received_raw_ns = second + 999'000'000;
+    assert(!ambiguous.message(m) && ambiguous.error() == "ambiguous_utc");
+    Pairer uncertain(policy);
+    assert(uncertain.pulse({second, 2'000'000, 1}));
+    assert(uncertain.pulse({2 * second, 2'000'000, 2}));
+    m.received_raw_ns = 2 * second + 500'000;
+    assert(!uncertain.message(m) && uncertain.error() == "ambiguous_utc");
+    Pairer invalid_bound(policy);
+    assert(!invalid_bound.pulse({1, 2, 1}));
+    assert(!invalid_bound.pulse({UINT64_MAX - 1, 2, 1}));
+    policy.minimum_message_delay_ns = second;
+    policy.maximum_message_delay_ns = 2 * second - 1;
+    assert(valid(policy));
+    policy.maximum_message_delay_ns = 2 * second;
+    assert(!valid(policy));
+    // Boundaries include the permitted fast PPS cadence and delayed parsing.
+    // A fifth edge must not evict the uniquely labelled original pulse.
+    policy.minimum_message_delay_ns = 1'100'000'000;
+    policy.maximum_message_delay_ns = 1'999'000'000;
+    Pairer buffered(policy);
+    for (unsigned i = 0; i < 5; ++i)
+        assert(buffered.pulse({second + i * 999'000'000ULL, 1000, i + 1}));
+    m.received_raw_ns = second + 1'998'998'000;
+    m.utc_ns = 1'800'000'000ULL * second;
+    assert(!buffered.message(m));
+    assert(buffered.pulse({second + 5 * 999'000'000ULL, 1000, 6}));
+    m.received_raw_ns += 999'000'000;
+    *m.utc_ns += second;
+    const auto oldest = buffered.message(m);
+    assert(oldest && oldest->capture_raw_ns == second + 999'000'000);
 }
 void reference() {
     using microchrony::Engine;
@@ -284,6 +370,15 @@ void allocation() {
     const auto text = serialize_gps(s);
     assert(parse_gps(text) == s);
     assert(!parse_gps(text.substr(0, text.size() - 1) + ",\"extra\":true}"));
+    auto late = s;
+    late.minimum_message_delay_ms = 600;
+    late.maximum_message_delay_ms = 1200;
+    assert(validate_gps_settings(late).empty() && parse_gps(serialize_gps(late)) == late);
+    late.minimum_message_delay_ms = 0;
+    assert(validate_gps_settings(late) == "invalid_gps_policy");
+    late.minimum_message_delay_ms = 1000;
+    late.maximum_message_delay_ms = 2000;
+    assert(validate_gps_settings(late) == "invalid_gps_policy");
     auto conflict = PinPlan{};
     conflict.button = s.pps_gp;
     assert(validate_gps(conflict, {}, s) == "gps_pin_conflict");
@@ -378,6 +473,7 @@ void arbitration() {
 int main() {
     parser();
     pairing();
+    late_label_pairing();
     reference();
     delayed_reference();
     calibration();

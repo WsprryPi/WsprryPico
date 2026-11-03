@@ -73,7 +73,7 @@ class PicoGpsInput {
         gps::CycleSnapshot cycle;
     };
     Queue<CapturedPulse, 8> pulses_;
-    std::optional<CapturedPulse> latest_capture_, preceding_capture_;
+    std::array<std::optional<CapturedPulse>, gps::pulse_history_size> captures_{};
     CycleCapture cycle_capture_ = nullptr;
     std::optional<gps::CycleSnapshot> cycle_;
     hardware::GpsSettings settings_;

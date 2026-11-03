@@ -2,11 +2,16 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string_view>
 
 namespace wsprrypico::time::gps {
+// Up to two seconds of qualified serial delay, one second of sentence
+// assembly and one second of adapter delivery age, including cadence tolerance.
+// No timestamp is renewed.
+inline constexpr std::size_t pulse_history_size = 5;
 inline constexpr std::uint64_t second = 1'000'000'000ULL;
 struct Position {
     std::int32_t latitude_e7 = 0, longitude_e7 = 0;
@@ -49,8 +54,8 @@ struct Observation {
     std::uint64_t capture_raw_ns = 0;
 };
 struct PairingPolicy {
-    // Receiver-specific statement: RMC describes the preceding rising edge
-    // plus this integer offset. A policy is usable only after qualification.
+    // Receiver-specific statement: RMC labels the uniquely selected captured
+    // PPS edge plus this integer offset. Serial arrival is never the boundary.
     bool qualified = false;
     int utc_second_offset = 0;
     std::uint64_t minimum_message_delay_ns = 0;
@@ -72,7 +77,7 @@ class Pairer {
 
   private:
     PairingPolicy policy_;
-    std::optional<Pulse> latest_, preceding_;
+    std::array<Pulse, pulse_history_size> pulses_{};
     std::optional<Observation> previous_;
     std::uint64_t consumed_sequence_ = 0, last_pulse_sequence_ = 0, last_pulse_raw_ns_ = 0;
     std::string_view error_ = "awaiting_pps";

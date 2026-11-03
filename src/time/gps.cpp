@@ -203,19 +203,20 @@ std::optional<Message> Parser::byte(char c, std::uint64_t raw) {
 bool valid(const PairingPolicy& p) {
     return p.qualified && p.utc_second_offset >= -1 && p.utc_second_offset <= 1 &&
            p.minimum_message_delay_ns <= p.maximum_message_delay_ns &&
-           p.maximum_message_delay_ns < second && p.receiver_uncertainty_ns > 0 &&
-           p.receiver_uncertainty_ns <= 100'000'000 && p.edge_offset_ns >= -500'000'000 &&
-           p.edge_offset_ns <= 500'000'000;
+           p.maximum_message_delay_ns < 2 * second &&
+           p.maximum_message_delay_ns - p.minimum_message_delay_ns < second &&
+           p.receiver_uncertainty_ns > 0 && p.receiver_uncertainty_ns <= 100'000'000 &&
+           p.edge_offset_ns >= -500'000'000 && p.edge_offset_ns <= 500'000'000;
 }
 void Pairer::lost() {
-    latest_.reset();
-    preceding_.reset();
+    pulses_ = {};
     previous_.reset();
     error_ = "capture_lost";
 }
 bool Pairer::pulse(Pulse p) {
-    if (!p.raw_ns || !p.sequence || p.uncertainty_ns > 100'000'000 ||
-        p.sequence <= last_pulse_sequence_ || p.raw_ns <= last_pulse_raw_ns_) {
+    if (!p.raw_ns || !p.sequence || p.uncertainty_ns > 100'000'000 || p.raw_ns < p.uncertainty_ns ||
+        p.raw_ns > UINT64_MAX - p.uncertainty_ns || p.sequence <= last_pulse_sequence_ ||
+        p.raw_ns <= last_pulse_raw_ns_) {
         lost();
         error_ = "invalid_pps";
         return false;
@@ -226,8 +227,11 @@ bool Pairer::pulse(Pulse p) {
                                 p.raw_ns - last_pulse_raw_ns_ <= second + 1'000'000);
     last_pulse_raw_ns_ = p.raw_ns;
     last_pulse_sequence_ = p.sequence;
-    preceding_ = continuous ? latest_ : std::nullopt;
-    latest_ = p;
+    if (!continuous)
+        pulses_ = {};
+    for (std::size_t i = pulses_.size() - 1; i; --i)
+        pulses_[i] = pulses_[i - 1];
+    pulses_[0] = p;
     if (!continuous) {
         previous_.reset();
         error_ = "pps_discontinuity";
@@ -236,10 +240,12 @@ bool Pairer::pulse(Pulse p) {
     return true;
 }
 std::optional<Pulse> Pairer::preceding_pulse(std::uint64_t started) const {
-    // Parsing can finish after the next edge. Association uses the first '$'
-    // timestamp, so retain one earlier pulse rather than relabel the sentence.
-    const auto p = latest_ && latest_->raw_ns <= started ? latest_ : preceding_;
-    return p && p->raw_ns <= started && started - p->raw_ns < second ? p : std::nullopt;
+    // Diagnostic nearest preceding edge, independent of the qualified window.
+    // message() selects the UTC label's edge from the complete bounded history.
+    for (const auto& pulse : pulses_)
+        if (pulse.sequence && pulse.raw_ns <= started && started - pulse.raw_ns < second)
+            return pulse;
+    return {};
 }
 std::optional<Observation> Pairer::message(const Message& m) {
     if (!valid(policy_)) {
@@ -253,8 +259,31 @@ std::optional<Observation> Pairer::message(const Message& m) {
         error_ = "invalid_utc";
         return {};
     }
-    const auto pulse = preceding_pulse(m.received_raw_ns);
-    if (!pulse || *m.utc_ns % second || pulse->sequence <= consumed_sequence_ ||
+    std::optional<Pulse> pulse;
+    bool contained = false;
+    for (const auto& captured : pulses_) {
+        if (!captured.sequence)
+            continue;
+        const auto earliest = captured.raw_ns - captured.uncertainty_ns;
+        const auto latest = captured.raw_ns + captured.uncertainty_ns;
+        if (earliest > m.received_raw_ns)
+            continue;
+        const auto maximum_delay = m.received_raw_ns - earliest;
+        if (maximum_delay < policy_.minimum_message_delay_ns ||
+            (latest <= m.received_raw_ns &&
+             m.received_raw_ns - latest > policy_.maximum_message_delay_ns))
+            continue;
+        if (pulse) {
+            previous_.reset();
+            error_ = "ambiguous_utc";
+            return {};
+        }
+        pulse = captured;
+        contained = latest <= m.received_raw_ns &&
+                    m.received_raw_ns - latest >= policy_.minimum_message_delay_ns &&
+                    maximum_delay <= policy_.maximum_message_delay_ns;
+    }
+    if (!pulse || !contained || *m.utc_ns % second || pulse->sequence <= consumed_sequence_ ||
         m.received_raw_ns < pulse->raw_ns ||
         m.received_raw_ns - pulse->raw_ns < policy_.minimum_message_delay_ns ||
         m.received_raw_ns - pulse->raw_ns > policy_.maximum_message_delay_ns) {

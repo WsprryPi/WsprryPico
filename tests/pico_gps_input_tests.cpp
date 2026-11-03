@@ -288,4 +288,39 @@ int main() {
     const auto view = wtp::json::parse(text);
     assert(view && std::stoull(view->get("candidate_pps_raw_ns")->string()) < 31'001'000'000ULL);
     input.close();
+    // The label can arrive almost two seconds after its edge, with another
+    // edge during parsing. Preserve that edge's independent count snapshot.
+    s.minimum_message_delay_ms = 1000;
+    s.maximum_message_delay_ms = 1999;
+    received.clear();
+    assert(input.open({}, {}, s));
+    pulse(input, 50);
+    poll(input);
+    pulse(input, 51);
+    poll(input);
+    for (unsigned i = 50; i <= 51; ++i) {
+        gps_mock::edge(3, false, std::uint64_t(i + 1) * 1'000'000 + 100'000);
+        gps_mock::us += 5;
+        input.pps_interrupt();
+        gps_mock::us = std::uint64_t(i + 1) * 1'000'000 + 950'000;
+        bool next = false;
+        for (const auto c : sentence(i)) {
+            if (!next && gps_mock::us >= std::uint64_t(i + 2) * 1'000'000) {
+                const auto delivery = gps_mock::us;
+                gps_mock::edge(3, true, std::uint64_t(i + 2) * 1'000'000);
+                gps_mock::us = delivery;
+                input.pps_interrupt();
+                next = true;
+            }
+            gps_mock::receive.push_back(std::uint8_t(c));
+            input.uart_interrupt();
+            gps_mock::us += 1100;
+        }
+        assert(next);
+        poll(input);
+    }
+    assert(received.size() == 1);
+    assert(std::abs(std::int64_t(received.back().capture_raw_ns) - 51'000'000'000LL) < 10'000);
+    assert(input.cycle() && input.cycle()->raw_ns < 51'001'000'000ULL);
+    input.close();
 }

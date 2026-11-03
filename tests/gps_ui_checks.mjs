@@ -23,7 +23,13 @@ export async function checkGps({evaluate,section,click,idle,capture,telemetryFix
     assert.equal(await evaluate('document.activeElement.dataset.gps'),'maximum_message_delay_ms');
     await evaluate(`gpsSet('minimum_message_delay_ms',0)`);
     assert.equal(await evaluate(`document.querySelector('[data-gps="maximum_message_delay_ms"]').checkValidity()`),true,'Lowering the minimum clears the maximum-field dependency error');
-    await evaluate(`gpsSet('minimum_message_delay_ms',0);gpsSet('maximum_message_delay_ms',800);gpsSet('receiver','e108');gpsSet('tx_gp',0);gpsSet('receiver','qlg3')`);
+    await evaluate(`gpsSet('minimum_message_delay_ms',0);gpsSet('maximum_message_delay_ms',1200)`);
+    await click('save-pins');await idle();
+    assert.equal(await evaluate('gpsWrites.length'),0,'An ambiguous-width delay window refuses before writes');
+    assert.equal(await evaluate('document.activeElement.dataset.gps'),'maximum_message_delay_ms');
+    await evaluate(`gpsSet('minimum_message_delay_ms',600)`);
+    assert.equal(await evaluate(`document.querySelector('[data-gps="maximum_message_delay_ms"]').checkValidity()`),true);
+    await evaluate(`gpsSet('receiver','e108');gpsSet('tx_gp',0);gpsSet('receiver','qlg3')`);
     await click('save-pins');await idle();
     assert.equal(await evaluate('gpsWrites.length'),0,'QLG3 cannot inherit a configuration-output draft');
     await evaluate(`gpsSet('tx_gp','');gpsSet('rx_gp',1);gpsSet('pps_gp',3)`);
@@ -34,6 +40,8 @@ export async function checkGps({evaluate,section,click,idle,capture,telemetryFix
     assert.equal(await evaluate('currentConfig.gps.enabled'),true);
     assert.equal(await evaluate('currentConfig.gps.pairing_qualified'),false,'Saving pins cannot invent time qualification');
     assert.equal(await evaluate('currentConfig.gps.tx_gp'),null);
+    assert.equal(await evaluate('currentConfig.gps.minimum_message_delay_ms'),600);
+    assert.equal(await evaluate('currentConfig.gps.maximum_message_delay_ms'),1200);
     assert.match(await evaluate('document.querySelector("[data-gps-status]").textContent'),/unavailable|not available|not been read/i);
     await evaluate(`gpsSet('enabled',false)`);await click('save-pins');await idle();
     assert.equal(await evaluate('currentConfig.gps.enabled'),false);

@@ -12,8 +12,10 @@ assert.equal(sample.runtime.position.locator,'EM39AA');
 for(const key of Object.keys(sample.saved)){
  const bad=structuredClone(sample.saved);delete bad[key];assert(!gps.valid(bad),key);
 }
-for(const [key,value] of Object.entries({rx_gp:2,pps_gp:1,tx_gp:0,baud:4800,receiver:'guess',pps_offset_ns:500000001,utc_second_offset:2,maximum_message_delay_ms:1000,minimum_message_delay_ms:801,receiver_uncertainty_us:0,location:'auto',calibration_maximum_age_s:86401}))
+for(const [key,value] of Object.entries({rx_gp:2,pps_gp:1,tx_gp:0,baud:4800,receiver:'guess',pps_offset_ns:500000001,utc_second_offset:2,maximum_message_delay_ms:2000,minimum_message_delay_ms:801,receiver_uncertainty_us:0,location:'auto',calibration_maximum_age_s:86401}))
  assert(!gps.valid({...sample.saved,[key]:value}),key);
+assert(gps.valid({...sample.saved,minimum_message_delay_ms:600,maximum_message_delay_ms:1200}));
+assert(!gps.valid({...sample.saved,minimum_message_delay_ms:0,maximum_message_delay_ms:1000}));
 assert(!gps.valid({...sample.saved,enabled:false,location:'gps'}));
 assert(!gps.valid({...sample.saved,pairing_qualified:false,automatic_rf_calibration:true}));
 assert(gps.valid({...sample.saved,receiver:'e108',tx_gp:0}));
