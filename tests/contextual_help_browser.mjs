@@ -9,6 +9,10 @@ export async function checkContextualHelp({evaluate,send,key,section,helpWindows
   for(const topic of ['LPF and band selector','UDP logging','USB logging','CW timing','Prepared job files','Recurring message schedule','Manual RF correction','NTP timeout and clock state'])
     assert.equal(await evaluate(`!!document.querySelector('[data-help="${topic}"]')`),true,topic);
   assert.equal(await evaluate(`[...document.querySelectorAll('a.documentation-help')].every(a=>a.getAttribute('aria-label') && a.title && a.querySelector('svg[aria-hidden="true"][focusable="false"]') && !a.textContent.trim())`),true,'every contextual link is a named decorative inline icon');
+  assert.equal(await evaluate(`[...document.querySelectorAll('a.documentation-help:not(#header-help)')].every(a=>new URL(a.href).hash.length>1)`),true,'control help always selects a section');
+  assert.equal(await evaluate(`document.querySelector('label[for="ntp-timeout-minutes"]').textContent`),'NTP update timeout: Continue without a valid NTP update for (minutes).');
+  assert.equal(await evaluate(`document.querySelector('#ntp-timeout-form legend')`),null,'timeout has one consolidated label');
+  assert.match(await evaluate(`document.querySelector('#ntp-timeout-form .documentation-help').href`),/#ntp-update-timeout$/);
   for(const width of [1280,390,320,740]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<800});
     assert.equal(await evaluate(`(()=>{const h=document.getElementById('status-heading').getBoundingClientRect(),a=document.querySelector('[data-help="Transmitter status"]'),r=a.getBoundingClientRect(),s=a.querySelector('svg').getBoundingClientRect();return r.x>=h.right && r.x-h.right<=4 && Math.abs(r.y+r.height/2-h.y-h.height/2)<2 && r.width>=44 && r.height>=44 && s.width===16 && s.height===16 && document.documentElement.scrollWidth<=innerWidth})()`),true,'status help stays beside its heading at '+width+'px');

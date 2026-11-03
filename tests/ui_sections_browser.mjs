@@ -69,6 +69,7 @@ async function capture(state,dialog=false) {
     for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844},{name:'landscape',width:740,height:360}]) {
         await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name!=='desktop'});
         if(state==='contextual-help')await evaluate('document.getElementById("radio-settings").scrollIntoView({block:"start"})');
+        else if(state==='time-calibration')await evaluate('document.getElementById("time-calibration").scrollIntoView({block:"start"})');
         else if(state==='field-settings')await evaluate('document.getElementById("field-access").scrollIntoView({block:"start"})');
         else if(state==='si5351-details')await evaluate('document.querySelector("[data-si-status]").scrollIntoView({block:"end"})');
         else if(state==='si5351-settings')await evaluate('document.getElementById("si5351-settings").scrollIntoView({block:"start"})');
@@ -287,6 +288,13 @@ try {
     assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,JSON.stringify(await evaluate('[...document.querySelectorAll("body *")].filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>({tag:e.tagName,id:e.id,right:e.getBoundingClientRect().right})).slice(0,20)')));
     if(process.env.UI_REVIEW_NO_CAPTURE!=='1'){const zoomShot=await send('Page.captureScreenshot',{format:'png'});await writeFile(path.join(output,'zoom.png'),Buffer.from(zoomShot.data,'base64'));}
     pass('desktop/mobile/landscape, long hostname, zoom and native dialog rendering');
+    }
+    if(carrier==='consumer') {
+      await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
+      await navigate();await login();
+      await checkSi5351({evaluate,section,click,idle,capture});
+      await checkGps({evaluate,section,click,idle,capture});
+      pass('consumer encrypted RF/GPS controls retain conditional validation, atomic saves, relocated policy readback, and lock state');
     }
     const result={carrier,browser:(await send('Browser.getVersion')).product,checks,physical_device:false};
     await writeFile(path.join(output,'results.json'),JSON.stringify(result,null,2)+'\n');

@@ -2,6 +2,7 @@
 
 One normal firmware image supports **Direct GPIO** and the qualified external **Si5351** setup. Select the RF engine in Radio pins.
 
+(gpio-drive-strength)=
 ## Direct GPIO output
 
 The direct engine generates **RF**, a radio-frequency signal, on the configured **GPIO output pin**. The factory selection is **GP2, physical pin 4**; see [hardware preparation](../start.md#hardware-connections) for wiring and other pin choices. The Pico uses a **138 MHz** system clock for this output.

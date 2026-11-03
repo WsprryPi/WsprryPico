@@ -14,7 +14,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     ids.push('udp-logging-section','udp-logging-controls','console-frequency-label','console-state','console-warning','console-announcement','console-mode','console-frequency','console-message','console-progress','console-next','console-next-item','console-correction','console-reset','console-actions');
     ids.push('field-access','field-access-form','field-access-settings','field-access-enabled','field-access-read','field-access-status','browser-time-status','pico-password-form','pico-password-settings','pico-password-default','pico-password-status','pico-password-help','pico-password-error','pico-new-password','pico-confirm-password','draft-comparison','message-availability','jump-identity','jump-settings','jump-message','engineering-identity-heading','consumer-identity-heading','radio-settings-heading','job-heading','hostname-error');
     ids.push('message-frequency-label','message-frequency-help','message-shift-help','message-result');
-    ids.push('schedule-save-help','standalone-status');
+    ids.push('schedule-save-help','standalone-status','save-beacon-policy','automatic-beacon-settings');
     ids.push('public-status-note','message-duration','message-scheduling','message-delivery','message-recurrence','message-interval','message-until','message-submit','message-schedule-controls','message-schedule-status','message-schedule-read','message-schedule-adopt','message-schedule-pause','message-schedule-help');
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     elements['message-delivery'].value='recurring';elements['message-interval'].value='10';
@@ -35,7 +35,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         querySelector(selector) {const match=selector.match(/^\[value="([^"]+)"\]$/);return match ? this.options.find(o=>o.value===match[1]) : null;}
     }
     for (const key of ['rf_engine','rf_gp','button_gp','amplifier_gp','amplifier_active_high','indicator','indicator_gp','indicator_active_high']) elements.config.elements[key] = new Select();
-    elements.config.elements.rf_engine.replaceChildren(new Option('Direct GPIO / PIO','direct'),new Option('Si5351 (engineering)','i2c'));
+    elements.config.elements.rf_engine.replaceChildren(new Option('Direct GPIO / PIO','direct'),new Option('Si5351','i2c'));
     elements['consumer-power'] = new Select();
     elements['retirement-target'] = new Select();
     elements.config.elements.indicator.replaceChildren(...['onboard_led','external','disabled'].map(x=>new Option(x,x)));
@@ -90,7 +90,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     for(const input of Object.values(elements.config.elements)) input.reportValidity=()=>true;
     for(const [id,names] of [['engineering-station-form',['callsign','locator','power_dbm']],['engineering-network-form',['ssid','password','ntp_ipv4']],['config',['schedules','expiry']]])
       elements[id].querySelectorAll=()=>names.map(name=>elements.config.elements[name]);
-    const context = vm.createContext({Option,URL,URLSearchParams,document:{getElementById:id=>elements[id],createElement:makeNode,addEventListener(){},querySelectorAll:selector=>selector==='a[href]' ? [elements['station-link'],elements['wifi-host-link'],...navigationLinks] : ['.field-result','[aria-invalid]','#udp-logging-controls summary, #gps-settings summary'].includes(selector)?[]:[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>{if(f.confirmAdvance)f.now+=f.confirmAdvance;return f.confirm;},
+    const context = vm.createContext({Option,URL,URLSearchParams,document:{querySelector:()=>null,getElementById:id=>elements[id],createElement:makeNode,addEventListener(){},querySelectorAll:selector=>selector==='a[href]' ? [elements['station-link'],elements['wifi-host-link'],...navigationLinks] : ['.field-result','[aria-invalid]','#udp-logging-controls summary, #gps-settings summary'].includes(selector)?[]:[elements['station-link'],elements['wifi-host-link']]},crypto:{randomUUID:()=> (++sequence).toString(16).padStart(32,'0')},AbortSignal,Date:TestDate,setTimeout:fn=>{f.now+=2000;fn();},JSON,BigInt,Number,Error,confirm:()=>{if(f.confirmAdvance)f.now+=f.confirmAdvance;return f.confirm;},
         fetch:async (path, options) => {
             calls.push({path,options});
             if(f.expireResetRead&&path.endsWith('config')&&options.method==='GET'){f.expireResetRead=false;f.now+=16000;vm.runInContext('consoleTick()',context);}

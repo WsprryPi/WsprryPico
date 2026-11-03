@@ -64,6 +64,13 @@ def emitted_links(version="devel"):
             if not document.links:
                 raise ValueError('Missing help in embedded document: ' + marker)
             links.extend(document.links)
+        # Generated editors receive their links when organization.js mounts.
+        # Validate those literal section destinations against the same built site.
+        organization = (ROOT / 'src/network/web/organization.js').read_text()
+        paths = set(re.findall(r"['\"]([a-z][a-z0-9/-]*\.html#[a-z0-9-]+)['\"]", organization))
+        template = next(a for a in links if a.get('data-help') == 'UDP logging')
+        for path in sorted(paths):
+            links.append({**template, 'href': f'https://wsprrypico.readthedocs.io/en/{version}/' + path})
         if '@WSPRRY_PICO_HELP_BASE@' in generated:
             raise ValueError('Unresolved help base')
         return links

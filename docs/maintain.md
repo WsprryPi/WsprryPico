@@ -5,6 +5,8 @@
 (change-the-hostname)=
 ### Change the hostname
 
+The **Continue at … (sign in again)** link opens **Station Control** at the top with its controls collapsed. Sign in again to verify the same Pico, a new boot, and the intended saved hostname. The return context carries identity expectations, not your login credentials.
+
 A **hostname** is the Pico's network name, such as `pico-a.local`. Choose a different name for each Pico on the same network. Changing this name does not change the permanent device ID.
 
 Disable the Pico's standalone schedule and resolve any pending, owned, or active job before editing. On a page with saved progress, save and apply the schedule change, then confirm it is disabled. Turning off WsprryPi transmission alone does not disable the Pico's schedule.

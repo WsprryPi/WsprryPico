@@ -236,6 +236,7 @@ try {
     await identity('wsprrypico-0a60df.local');
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Saved for restart: pico-a.local/);
     await capture('saved-rename-pending');
+    await cdp.evaluate(`document.getElementById('message-section').open=true`);
     await click('restart');await until(()=>cdp.evaluate('reconnectRunning && !busy'),'one-shot restart/countdown');
     await capture('restart-countdown');
     await click('restart-cancel');
@@ -255,6 +256,7 @@ try {
     assert.match(await cdp.evaluate(`document.getElementById('restart-status').textContent`),/Same Pico and new boot confirmed/);
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'KEEP DRAFT');
     assert.equal((await f.command({op:'stats'})).config_sequence,before.config_sequence);
+    assert.equal(await cdp.evaluate(`document.getElementById('message-section').open`),true,'same-tab reset retains expanded controls; only hostname-return links collapse them');
     await identity('pico-a.local');await capture('verified-new-boot');
     // New origin carries only expected nonsecret context and needs a fresh password.
     const boot=await cdp.evaluate('hostnameState.target.boot_id');
@@ -262,7 +264,16 @@ try {
     await cdp.send('Page.navigate',{url:'http://pico-a.local/'+receipt});
     await until(()=>cdp.evaluate('typeof localIdentity!=="undefined" && !!localIdentity'),'hostname origin');
     assert.equal(await cdp.evaluate('localAuthenticated'),false);
+    assert.equal(await cdp.evaluate(`!document.getElementById('station-area').hidden && document.getElementById('wifi-host-area').hidden`),true,'hostname arrival selects Station Control before sign-in');
+    // Stale History/expanded disclosures cannot override the validated return.
+    await cdp.evaluate(`history.replaceState({retained:'keep',wsprrypicoPresentation:{section:'hostname-section',area:'wifi-host'}},'',location.href);document.querySelectorAll('[data-operator-section],details details').forEach(e=>e.open=true);scrollTo(0,500);dispatchEvent(new PopStateEvent('popstate'));`);
+    assert.equal(await cdp.evaluate(`!document.getElementById('station-area').hidden && ![...document.querySelectorAll('[data-operator-section],details details')].some(e=>e.open) && scrollY===0`),true,'return overrides stale WiFi History and closes nested controls');
     await login();assert.equal(await cdp.evaluate('document.title'),'pico-a.local - Station control');
+    await until(()=>cdp.evaluate(`returnReceipt===null && !busy && !document.getElementById('station-area').hidden && ![...document.querySelectorAll('[data-operator-section],details details')].some(e=>e.open) && scrollY===0`),'verified hostname return stays collapsed at Station Control top');
+    assert.equal(await cdp.evaluate('history.state.retained'),'keep','return preserves unrelated History data');
+    assert.equal(await cdp.evaluate('location.pathname'),'/station');
+    assert.equal(await cdp.evaluate('location.hash'),'','verified return removes only its receipt');
+
     // Lost reply after a committed rename never resubmits; fresh login/read/review recovers.
     await field('hostname-input','wsprrypico-0a60df.local');dropNext=true;
     await cdp.evaluate(`document.getElementById('hostname-form').requestSubmit()`);

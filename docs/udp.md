@@ -13,6 +13,16 @@ The Pico can send diagnostic events over station Wi-Fi to one explicitly configu
 4. Choose **Save Pico UDP logging** and read back. Saved settings and the active revision are separate. After an uncertain reply or revision conflict, read settings again. Compare **Saved UDP logging settings** with the preserved draft, then choose **Confirm review** before another save.
 5. When the saved policy includes the test event, **Test saved UDP export** admits one finite diagnostic event. Check the destination independently. Local admission or submission counters cannot establish receipt.
 
+(export-limits-and-event-filter)=
+### Export limits and event filter
+
+Select event codes and the rate and burst limits under **Export limits and event filter**. An empty event list includes all approved export-safe event classes. Limits apply to local export; they do not guarantee delivery or collector capacity.
+
+(saved-udp-logging-settings)=
+### Saved UDP logging settings
+
+After an uncertain save or revision conflict, choose **Read UDP logging settings**. Compare **Saved UDP logging settings** with your retained draft, then choose **Confirm review** before saving again. Reading or reviewing does not write settings or resend the earlier save.
+
 A WsprryPi collector is configured under **Logs → Logging on this Pi → Receive network logs on this Pi**. Explicitly admit the Pico's observed station address as a peer. A Pi can also forward this Pico's already collected USB logs; that selection does not enable direct Pico UDP or USB collection implicitly. See the [Pi Logs guide](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Logs/index.html). External collectors receive an RFC 5424 message containing the compact project record. The Pi collector accepts this project profile rather than arbitrary syslog traffic.
 
 For USB forwarding alone, leave this Pico's UDP export disabled. Enable its separate USB logging export, enable collection on the attached Pi, and select that saved Pico under the Pi's UDP forwarding controls. Admit the forwarding Pi's IPv4 address at the collector. The forwarded record retains the Pico's origin and adds one Pi relay observation. Enabling forwarding begins at the current journal tail; it does not replay old USB history.

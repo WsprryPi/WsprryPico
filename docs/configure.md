@@ -71,9 +71,19 @@ To prevent later automatic starts, uncheck **Enable standalone schedules**, save
 
 These settings apply to WSPR, Morse modes, and test tones. Open **Station Control → Time and calibration**. Saved values load automatically; a read button appears only if recovery needs a fresh observation.
 
-**NTP update timeout** sets how long previously synchronized NTP time remains usable without a new valid update. The default is **60 minutes**. Enter **1–1440 whole minutes**, or **0** to keep using the last synchronized time indefinitely. This setting does not extend browser-time holdover. Zero removes the Pico's NTP source-age cutoff; uncertainty remains visible and time can drift. A valid initial time is still required after startup, and an external controller's stricter per-job timing limit still applies. Choose **Save timeout** while idle, then restart the Pico to activate the change. UTC uncertainty does not automatically pause first-party transmissions; an accepted transmission finishes.
+(ntp-update-timeout)=
+### NTP update timeout
+
+The **NTP update timeout: Continue without a valid NTP update for (minutes).** control sets how long previously synchronized NTP time remains usable without a new valid update. The default is **60 minutes**. Enter **1–1440 whole minutes**, or **0** to keep using the last synchronized time indefinitely. This setting does not extend browser-time holdover. Zero removes the Pico's NTP source-age cutoff; uncertainty remains visible and time can drift. A valid initial time is still required after startup, and an external controller's stricter per-job timing limit still applies. Choose **Save timeout** while idle, then restart the Pico to activate the change. UTC uncertainty does not automatically pause first-party transmissions; an accepted transmission finishes.
 
 **Carrier calibration** corrects RF frequency in every mode. Edit **Manual correction (ppm)** and choose **Save calibration**; the saved correction applies when the Pico prepares the next job. Network time disciplines UTC separately. See [Time and frequency correction](reference/time.md#manual-frequency-correction) for measuring the correction.
+
+(automatic-beacon-schedule)=
+### Automatic beacon schedule
+
+In **Time and calibration**, choose **All day**, **Daylight only**, or **Night only** under **Automatic beacon schedule**. All day is the default. Daylight and night policies require GPS input, usable GPS position, and UTC; without them, automatic WSPR and keyed-message schedules wait. This policy does not enable a schedule or change its interval.
+
+Choose **Save RF output settings** to save this policy together with the current GPS and RF output entries, then restart explicitly to activate it. Review any pending Radio pins edits before saving. If validation reveals a conflicting entry, correct the indicated control before trying again.
 
 (pins-and-drive)=
 ## Pins and drive
@@ -86,6 +96,12 @@ Direct RF drive offers **2, 4, 8, or 12 mA**, with **12 mA** as the default. Thi
 
 Pin or drive changes require an **explicit restart** in **Station Control → Transmitter status** before transmitting. Saving does not program the running pad. Changing a value back does not clear the restart requirement. Read saved and active settings separately.
 
+(rf-output-engine)=
+### RF output engine
+
+Select **Direct GPIO / PIO** for the Pico's RF GPIO, or **Si5351** for an external synthesizer. The same ordinary firmware supports both engines. Si5351 controls appear immediately after the engine selection. Other pin roles follow them. Choose **Save RF output settings**, then restart explicitly to apply changes.
+
+(si5351-output-settings)=
 ### Si5351 output settings
 
 Choose **Si5351** under **RF Output** to configure an external Si5351A 10-MSOP module at address **0x60**. Select the complete I²C SDA/SCL pair, the fitted **25 MHz** or **27 MHz** reference, its source, and the transmit clock. Passive crystals also require their specified **6, 8, or 10 pF** load. An external clock or TCXO uses the supported **XA** arrangement; selecting it does not select CLKIN. Output drive is **2, 4, 6, or 8 mA**, independent of reported WSPR power.
@@ -99,15 +115,33 @@ Choose **Save RF output settings** to save the complete engine allocation togeth
 Ordinary firmware supports the tested **QRP Labs Rev. 6 module with its 25 MHz TCXO**, using **External clock / TCXO into XA**, **SDA GP4 / SCL GP5**, **CLK0**, and **8 mA**. Loopback may be **None** or **CLK2 → GP7**; leave **Independent RF gate GPIO** at **None wired**. This profile uses the normal **138 MHz** Pico clock. Other configurations require an explicit engineering build. The same normal image also supports Direct GPIO; changing engines does not require a different firmware image. Runtime readback distinguishes verified register state from unknown; neither proves physical RF inactivity or absolute accuracy. A separately powered module may continue through Pico reset or a failed bus transaction. Engineering operation requires a verified conducted RF path, verified 100 kHz I²C operation and appropriate electrical levels. Optional GPS/PPS input can supply time and calibrate the independent reference through CLK2; see [GPS and PPS](#gps-and-pps).
 
 (gps-and-pps)=
+External XA requires compatible module wiring, electrical levels, and grounding; it does not select CLKIN. An independent RF gate requires an inactive hardware bias. Si5351 output drive is electrical current, not measured RF power or reported WSPR dBm. Saving settings alone does not enable an output. A separately powered module can continue producing output while the Pico resets or after a failed bus transaction.
+
+Positive manual correction lowers programmed RF for a fast reference. Loopback measures a clock ratio and does not establish UTC or absolute RF accuracy. Trusted reference use requires a known uncertainty and can reduce timer drift after an accepted UTC observation; it does not extend time validity. See [trusted local reference](reference/time.md#use-a-trusted-loopback-while-offline). Automatic Si5351 correction requires enabled GPS, validated UTC/PPS association, and a separate CLK2 loopback measurement.
+
 ### GPS and PPS
 
 Open **Station Control → Radio pins → GPS and PPS**. GPS is optional and disabled by default. Select the receiver, then open **GPS wiring and timing** to match the separate serial RX and PPS input pins, baud rate, and pulse polarity to the physical wiring. The [validation platform](reference/pico-validation-platform.md#gpspps-configuration) records QLG3 on GP1 and GP3, with no receiver-configuration output. GP numbers are GPIO names, not physical header numbers. PPS uses an input-only hardware counter and requires an offered odd GPIO. Its complete PWM slice must be separate from the Si5351 loopback slice; the saved configuration checks aliases as well as pin numbers. Save the complete RF output settings while idle and unowned, then restart explicitly.
 
+(gps-wiring-and-timing)=
+#### GPS wiring and timing
+
+The QLG3 connects receiver TX to Pico RX and has no receiver RX header; keep its optional configuration output at **None**. PPS is always an input to the Pico. The E108 profile permits a matching-UART configuration output only when a supported receiver's RX is connected.
+
 PPS marks the second boundary; serial UTC supplies its label and need not arrive at that boundary. Configure a measured serial-delay range narrower than one second, with endpoints from 0 to 1,999 ms. A range crossing the next PPS edge still labels the original captured pulse. Ambiguous associations are refused.
 
-**Validated UTC/PPS association** must remain disabled until the receiver's UTC second, pulse edge, message delay, and capture error have been independently checked. Receiving serial data or finding satellites does not establish that association. Enter conservative timing allowances for the receiver and cable, and a separate timestamp error allowance. The hardware counter measures IRQ delivery latency and removes it from the PPS timestamp. Status reports the latest and maximum IRQ latency, the timestamp error bound, and rejected captures. Counter wrap, an interrupt gap, or a changed clock configuration forces fresh acquisition. The QLG3 profile is receive-only. The E108 profile permits a matching-UART configuration output only for a supported receiver with RX connected.
+The **RMC second offset** labels the selected captured pulse: **0** uses the sentence's timestamp, **−1** assigns one second earlier, and **+1** assigns one second later. A positive **PPS edge delay from UTC boundary (ns)** means the electrical edge arrives after the UTC boundary. Measure these relationships for the actual receiver and wiring. PPS alone supplies no date.
 
-Choose **Use saved manual locator** or **Use current GPS location**. GPS location leaves the manual locator saved and withholds new GPS-located WSPR transmissions when the fix is absent, invalid, or too old. A complete WSPR plan, including both frames of a pair, keeps its original locator. **Daylight only** and **Night only** gate automatic WSPR and keyed-message schedules using current GPS position and UTC; without usable position, those schedules wait. All day is the default.
+(validated-utc-pps-association)=
+#### Validated UTC/PPS association
+
+**Leave this Disabled unless you have independently validated the actual receiver and capture setup.** Enable it only when the pulse edge, RMC second offset, measured message-delay window, and conservative receiver/capture error allowances match that setup. This is your declaration that the association has been checked; enabling it does not run a validation procedure.
+
+With the option disabled, GPS serial and position observations remain available, but GPS cannot supply qualified UTC or automatic PPS-derived RF correction. NTP or authenticated controller/browser time can still supply UTC under their own rules. To use GPS as the time source, validate the setup first, enable this option, save RF output settings, and restart. Keep automatic RF correction disabled until its separate oscillator and loopback requirements are also met.
+
+Receiving serial data or finding satellites does not establish the UTC/PPS association. Enter conservative timing allowances for the receiver and cable, and a separate timestamp error allowance. The hardware counter measures IRQ delivery latency and removes it from the PPS timestamp. Status reports the latest and maximum IRQ latency, the timestamp error bound, and rejected captures. Counter wrap, an interrupt gap, or a changed clock configuration forces fresh acquisition.
+
+Choose **Use saved manual locator** or **Use current GPS location**. GPS location leaves the manual locator saved and withholds new GPS-located WSPR transmissions when the fix is absent, invalid, or too old. A complete WSPR plan, including both frames of a pair, keeps its original locator. Configure the [automatic beacon schedule policy](#automatic-beacon-schedule) under **Time and calibration**.
 
 **Automatic direct GPIO RF correction** requires qualified PPS and a verified shared oscillator. For the Si5351 engine, use its separate automatic-correction control and a configured CLK2 loopback. The GPS section reports Pico clock and Si5351 reference measurements separately. A positive error means a fast oscillator. With automatic correction enabled, the saved manual correction is a residual trim; it is applied once when the job is prepared. Missing, expired, or conflicting calibration withholds a new job. An accepted job or WSPR pair keeps its correction.
 
