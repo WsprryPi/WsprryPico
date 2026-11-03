@@ -34,7 +34,7 @@ class Logger {
         udp_ = &sink;
     }
     void event(unsigned severity, std::string_view code, std::string_view message,
-               std::uint64_t monotonic_ns, std::uint64_t utc_ns = 0);
+               std::uint64_t monotonic_ns, std::uint64_t utc_ns = 0, bool export_udp = true);
     // One complete serialized record. Retain it until an all-or-nothing Logging
     // enqueue succeeds; the USB adapter owns physical short-write recovery.
     std::string_view front() const;

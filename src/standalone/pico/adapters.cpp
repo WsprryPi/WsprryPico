@@ -2,6 +2,7 @@
 #include "provisioning/pico/journal_fault_fixture.hpp"
 #endif
 #include "standalone/pico/adapters.hpp"
+#include "time/capture_gap.hpp"
 
 #ifdef WSPRRY_PICO_CYW43_TX_GUARD
 #include "standalone/pico/cyw43_tx_guard.h"
@@ -127,6 +128,7 @@ bool PicoFlash::erase(std::size_t offset) {
     if (flash_safe_execute(erase, &physical_offset, 100) != PICO_OK)
         return false;
 #else
+    time::CaptureGap capture_gap;
     const auto irq = save_and_disable_interrupts();
     flash_range_erase(flash_base + offset, FLASH_SECTOR_SIZE);
     restore_interrupts(irq);
@@ -162,6 +164,7 @@ bool PicoFlash::program(std::size_t offset, std::span<const std::uint8_t> page) 
     if (flash_safe_execute(program, &write, 100) != PICO_OK)
         return false;
 #else
+    time::CaptureGap capture_gap;
     const auto irq = save_and_disable_interrupts();
     flash_range_program(flash_base + offset, page.data(), page.size());
     restore_interrupts(irq);
@@ -197,6 +200,7 @@ bool PicoProfileMedia::erase(std::size_t offset) {
         if (flash_safe_execute(erase, &address, 100) != PICO_OK)
             return false;
 #else
+        time::CaptureGap capture_gap;
         const auto irq = save_and_disable_interrupts();
         flash_range_erase(physical, FLASH_SECTOR_SIZE);
         restore_interrupts(irq);
@@ -226,6 +230,7 @@ bool PicoProfileMedia::program(std::size_t offset, std::span<const std::uint8_t>
     if (flash_safe_execute(program, &write, 100) != PICO_OK)
         return false;
 #else
+    time::CaptureGap capture_gap;
     const auto irq = save_and_disable_interrupts();
     flash_range_program(flash_layout::profile_base + offset, page.data(), page.size());
     restore_interrupts(irq);
@@ -262,6 +267,7 @@ bool PicoAccessMedia::erase(std::size_t offset) {
     if (flash_safe_execute(erase, &address, 100) != PICO_OK)
         return false;
 #else
+    time::CaptureGap capture_gap;
     const auto irq = save_and_disable_interrupts();
     flash_range_erase(physical, FLASH_SECTOR_SIZE);
     restore_interrupts(irq);
@@ -289,6 +295,7 @@ bool PicoAccessMedia::program(std::size_t offset, std::span<const std::uint8_t> 
     if (flash_safe_execute(program, &write, 100) != PICO_OK)
         return false;
 #else
+    time::CaptureGap capture_gap;
     const auto irq = save_and_disable_interrupts();
     flash_range_program(flash_layout::access_base + offset, page.data(), page.size());
     restore_interrupts(irq);

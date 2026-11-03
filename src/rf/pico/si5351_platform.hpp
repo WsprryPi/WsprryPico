@@ -12,7 +12,8 @@ namespace wsprrypico::rf::si5351 {
 class PicoExecutionPlatform final : public ExecutionPlatform {
   public:
     PicoExecutionPlatform(const hardware::PinPlan&, const hardware::Si5351Settings&,
-                          const hardware::FilterSettings&, PicoBus&, Device&);
+                          const hardware::FilterSettings&, PicoBus&, Device&,
+                          bool pps_calibration = false);
     bool initialize() override;
     std::uint64_t now_ns() const override;
     bool set_gate(bool active) override;
@@ -27,6 +28,9 @@ class PicoExecutionPlatform final : public ExecutionPlatform {
     }
     std::string_view reference_diagnostic() const {
         return monitor_.diagnostic();
+    }
+    time::gps::CycleSnapshot pps_snapshot() const {
+        return capture_.pps_snapshot();
     }
 
   private:

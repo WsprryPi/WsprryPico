@@ -341,8 +341,17 @@ Engine::Engine(Config config) : config_(config) {
         std::isfinite(config.max_delay_deviation_ratio) &&
         std::isfinite(config.correction_time_ratio) && std::isfinite(config.combine_limit) &&
         std::isfinite(config.reselect_distance) && std::isfinite(config.stratum_weight);
-    for (auto& s : sources_)
+    for (unsigned i = 0; i < source_count; ++i) {
+        auto& s = sources_[i];
+        if (i < source_capacity) {
+            s.samples = network_samples_[i];
+            s.predecessors = network_predecessors_[i];
+        } else {
+            s.samples = reference_samples_;
+            s.predecessors = reference_predecessors_;
+        }
         s.status.poll = config_.min_poll;
+    }
 }
 void Engine::seed(std::int32_t frequency_ppb, std::uint32_t skew_ppb) {
     // A provisional persisted seed cannot replace an observed reference or
@@ -449,6 +458,86 @@ bool Engine::observe_frequency_reference(FrequencyReference reference, std::uint
     frequency_reference_state_ = FrequencyReferenceState::Selected;
     return true;
 }
+bool Engine::reference_clock(bool enabled, std::uint64_t now) {
+    if (!config_valid_ || (clock_valid_ && now < clock_raw_ns_))
+        return false;
+    if (reference_enabled_ == enabled)
+        return true;
+    reference_enabled_ = enabled;
+    clear(sources_[reference_slot]);
+    used_generation_[reference_slot] = 0;
+    reference_disagreement_ = false;
+    auto& status = sources_[reference_slot].status;
+    status.endpoint = enabled ? 0x475053U : 0;
+    status.online = enabled;
+    status.reason = Rejection::InsufficientSamples;
+    select(now);
+    return true;
+}
+void Engine::poll(std::uint64_t now) {
+    if (config_valid_ && (!clock_valid_ || now >= clock_raw_ns_))
+        select(now);
+}
+SourceStatus Engine::reference_status(std::uint64_t now) const {
+    auto result = sources_[reference_slot].status;
+    if (now < result.last_accepted_ns || now - result.last_accepted_ns > 5 * second) {
+        result.selected = result.selectable = result.combined = false;
+        result.reason = Rejection::Offline;
+    }
+    if (reference_disagreement_)
+        result.reason = Rejection::Falseticker;
+    return result;
+}
+bool Engine::observe_reference(ReferenceObservation observation, std::uint64_t now) {
+    if (!config_valid_ || !reference_enabled_ || !observation.raw_ns || observation.raw_ns > now ||
+        now - observation.raw_ns > 3 * second || observation.sequence <= reference_sequence_ ||
+        observation.utc_ns < config_.era_start_utc_ns ||
+        observation.utc_ns >= 4'102'444'800ULL * second || !observation.uncertainty_ns ||
+        observation.uncertainty_ns > 200'000'000 || observation.leap == Leap::Unsynchronized ||
+        (clock_valid_ && now < clock_raw_ns_))
+        return false;
+    auto& s = sources_[reference_slot];
+    if (s.last && (observation.raw_ns <= s.last->raw_ns || observation.utc_ns <= s.last->utc_ns))
+        return false;
+    reference_sequence_ = observation.sequence;
+    // A capture gap starts a new bounded history, without restoring authority
+    // to a previously consumed sequence or clearing disagreement.
+    if (s.last && observation.raw_ns - s.last->raw_ns > 5 * second) {
+        clear(s);
+        s.status.endpoint = 0x475053U;
+        s.status.online = true;
+    }
+    Measurement m;
+    m.id = observation.sequence;
+    m.raw_ns = m.receive_raw_ns = m.send_raw_ns = observation.raw_ns;
+    m.utc_ns = observation.utc_ns;
+    m.precision = float(config_.precision);
+    m.root_dispersion = observation.uncertainty_ns / billion;
+    m.leap = observation.leap;
+    m.stratum = 0;
+    s.last = m;
+    ++s.status.replies;
+    s.status.last_receive_ns = observation.raw_ns;
+    s.status.reach = ((s.status.reach << 1) | 1) & 255;
+    append(s, m, observation.raw_ns);
+    bool comparison = false, agreement = true;
+    if (s.status.estimate.valid) {
+        for (unsigned i = 0; i < source_capacity; ++i) {
+            const auto& peer = sources_[i];
+            if (!peer.status.online || !peer.synchronized || !peer.status.estimate.valid ||
+                distance(peer, now) > config_.max_distance)
+                continue;
+            comparison = true;
+            if (std::abs(difference(source_utc(peer, now), source_utc(s, now))) >
+                distance(peer, now) + distance(s, now))
+                agreement = false;
+        }
+    }
+    if (comparison)
+        reference_disagreement_ = !agreement;
+    select(now, true);
+    return true;
+}
 bool Engine::configure(unsigned slot, std::uint32_t endpoint, std::uint64_t now) {
     if (!config_valid_ || slot >= source_capacity || !endpoint)
         return false;
@@ -491,7 +580,8 @@ void Engine::clear(Source& s) {
     s.asymmetry_evidence = 0;
 }
 void Engine::reset(std::uint64_t now) {
-    for (auto& s : sources_) {
+    for (unsigned i = 0; i < source_capacity; ++i) {
+        auto& s = sources_[i];
         const auto endpoint = s.status.endpoint;
         clear(s);
         s.status.endpoint = endpoint;
@@ -501,17 +591,19 @@ void Engine::reset(std::uint64_t now) {
         s.burst_left = config_.initial_burst ? 4 : 0;
         s.burst_attempts = config_.initial_burst ? 8 : 0;
     }
-    selected_ = source_capacity;
+    selected_ = source_count;
     combined_count_ = 0;
     leap_ = Leap::Unsynchronized;
     used_generation_.fill(0);
     ++generation_;
+    select(now);
 }
 void Engine::online(bool enabled, std::uint64_t now) {
     if (online_ == enabled)
         return;
     online_ = enabled;
-    for (auto& s : sources_) {
+    for (unsigned i = 0; i < source_capacity; ++i) {
+        auto& s = sources_[i];
         s.status.online = enabled && s.status.endpoint && !s.denied;
         s.pending = false;
         if (enabled) {
@@ -670,48 +762,7 @@ bool Engine::receive(unsigned slot, std::span<const std::uint8_t> packet, std::u
         if (queue_phase > allowance && std::abs(expected) <= queue_phase + allowance)
             return reject(Rejection::DelayDeviation);
     }
-    // Age the test horizon before admitting a new fit point. A shortened fit
-    // can use predecessors, but cannot later resurrect an obsolete regime as
-    // its window grows. The compact history has a fixed 2*max_samples-1 bound.
-    s.runs_count = std::min(s.runs_count, 2 * (s.count - s.fit_start));
-    if (s.count == config_.max_samples) {
-        const auto& old = s.samples.front();
-        if (!s.predecessor_count) {
-            s.predecessor_raw_ns = old.raw_ns;
-            s.predecessor_utc_ns = old.utc_ns;
-        }
-        auto phase = std::int64_t(old.utc_ns - s.predecessor_utc_ns) -
-                     std::int64_t(old.raw_ns - s.predecessor_raw_ns);
-        if (phase < INT32_MIN || phase > INT32_MAX) {
-            // Rebase before a compact phase overflows. The full 64 originals
-            // remain exact; no wrapped retired point can affect a runs test.
-            s.predecessor_count = 0;
-            s.predecessor_raw_ns = old.raw_ns;
-            s.predecessor_utc_ns = old.utc_ns;
-            s.runs_count = std::min(s.runs_count, s.count);
-            phase = 0;
-        }
-        if (s.predecessor_count == sample_capacity) {
-            std::move(s.predecessors.begin() + 1, s.predecessors.end(), s.predecessors.begin());
-            --s.predecessor_count;
-        }
-        s.predecessors[s.predecessor_count++] = {old.raw_ns, std::int32_t(phase), float(old.delay)};
-        std::move(s.samples.begin() + 1, s.samples.begin() + s.count, s.samples.begin());
-        --s.count;
-        if (s.fit_start)
-            --s.fit_start;
-    }
-    s.samples[s.count++] = measurement;
-    s.runs_count = std::min(s.runs_count + 1, 2 * config_.max_samples - 1);
-    s.synchronized = true;
-    s.status.last_accepted_ns = now;
-    s.status.replace = false;
-    ++s.status.generation;
-    fit(s);
-    s.min_delay = measurement.delay;
-    for (unsigned i = s.fit_start; i < s.count; ++i)
-        s.min_delay = std::min(s.min_delay, s.samples[i].delay);
-    s.status.reason = s.status.estimate.valid ? Rejection::None : Rejection::InsufficientSamples;
+    append(s, measurement, now);
     if (s.burst_left)
         --s.burst_left;
     if (!s.burst_left) {
@@ -728,6 +779,52 @@ bool Engine::receive(unsigned slot, std::span<const std::uint8_t> packet, std::u
     set_poll(s, now, s.token);
     select(now, true);
     return true;
+}
+
+void Engine::append(Source& s, const Measurement& measurement, std::uint64_t now) {
+    // Age the test horizon before admitting a new fit point. A shortened fit
+    // can use predecessors, but cannot later resurrect an obsolete regime as
+    // its window grows. The compact history has a fixed 2*max_samples-1 bound.
+    s.runs_count = std::min(s.runs_count, 2 * (s.count - s.fit_start));
+    if (s.count == std::min(config_.max_samples, unsigned(s.samples.size()))) {
+        const auto& old = s.samples.front();
+        if (!s.predecessor_count) {
+            s.predecessor_raw_ns = old.raw_ns;
+            s.predecessor_utc_ns = old.utc_ns;
+        }
+        auto phase = std::int64_t(old.utc_ns - s.predecessor_utc_ns) -
+                     std::int64_t(old.raw_ns - s.predecessor_raw_ns);
+        if (phase < INT32_MIN || phase > INT32_MAX) {
+            // Rebase before a compact phase overflows. The full 64 originals
+            // remain exact; no wrapped retired point can affect a runs test.
+            s.predecessor_count = 0;
+            s.predecessor_raw_ns = old.raw_ns;
+            s.predecessor_utc_ns = old.utc_ns;
+            s.runs_count = std::min(s.runs_count, s.count);
+            phase = 0;
+        }
+        if (s.predecessor_count == s.predecessors.size()) {
+            std::move(s.predecessors.begin() + 1, s.predecessors.end(), s.predecessors.begin());
+            --s.predecessor_count;
+        }
+        s.predecessors[s.predecessor_count++] = {old.raw_ns, std::int32_t(phase), float(old.delay)};
+        std::move(s.samples.begin() + 1, s.samples.begin() + s.count, s.samples.begin());
+        --s.count;
+        if (s.fit_start)
+            --s.fit_start;
+    }
+    s.samples[s.count++] = measurement;
+    s.runs_count = std::min(s.runs_count + 1,
+                            2 * std::min(config_.max_samples, unsigned(s.samples.size())) - 1);
+    s.synchronized = true;
+    s.status.last_accepted_ns = now;
+    s.status.replace = false;
+    ++s.status.generation;
+    fit(s);
+    s.min_delay = measurement.delay;
+    for (unsigned i = s.fit_start; i < s.count; ++i)
+        s.min_delay = std::min(s.min_delay, s.samples[i].delay);
+    s.status.reason = s.status.estimate.valid ? Rejection::None : Rejection::InsufficientSamples;
 }
 
 void Engine::fit(Source& source) {
@@ -889,14 +986,19 @@ double Engine::selection_distance(const Source& s, std::uint64_t raw) const {
     return path;
 }
 void Engine::select(std::uint64_t now, bool score_update) {
-    std::array<unsigned, source_capacity> candidates{};
+    std::array<unsigned, source_count> candidates{};
     unsigned count = 0;
-    for (unsigned i = 0; i < source_capacity; ++i) {
+    for (unsigned i = 0; i < source_count; ++i) {
         auto& s = sources_[i];
         s.status.selectable = s.status.selected = s.status.combined = false;
         if (!s.status.endpoint || !s.status.online || !s.status.reach || s.denied ||
             !s.synchronized || !s.status.estimate.valid)
             continue;
+        if (i == reference_slot &&
+            (now < s.status.last_accepted_ns || now - s.status.last_accepted_ns > 5 * second)) {
+            s.status.reason = Rejection::Offline;
+            continue;
+        }
         if (distance(s, now) > config_.max_distance) {
             s.status.reason = Rejection::Distance;
             s.status.replace = true;
@@ -908,8 +1010,29 @@ void Engine::select(std::uint64_t now, bool score_update) {
         }
         candidates[count++] = i;
     }
+    if (reference_enabled_ && sources_[reference_slot].status.estimate.valid &&
+        now >= sources_[reference_slot].status.last_accepted_ns &&
+        now - sources_[reference_slot].status.last_accepted_ns <= 5 * second) {
+        const auto& reference = sources_[reference_slot];
+        for (unsigned k = 0; k < count; ++k) {
+            if (candidates[k] == reference_slot)
+                continue;
+            const auto& peer = sources_[candidates[k]];
+            if (std::abs(difference(source_utc(peer, now), source_utc(reference, now))) >
+                distance(peer, now) + distance(reference, now))
+                reference_disagreement_ = true;
+        }
+    }
+    // A GPS/NTP conflict remains latched through source expiry. Only a new
+    // independent agreeing observation or explicit reference removal clears it.
+    if (reference_disagreement_) {
+        selected_ = source_count;
+        combined_count_ = 0;
+        leap_ = Leap::Unsynchronized;
+        return;
+    }
     if (count < config_.min_sources) {
-        selected_ = source_capacity;
+        selected_ = source_count;
         combined_count_ = 0;
         leap_ = Leap::Unsynchronized;
         return;
@@ -937,12 +1060,12 @@ void Engine::select(std::uint64_t now, bool score_update) {
         }
     }
     if (best_count * 2 <= count || best_count < config_.min_sources) {
-        selected_ = source_capacity;
+        selected_ = source_count;
         combined_count_ = 0;
         leap_ = Leap::Unsynchronized;
         return;
     }
-    unsigned best = source_capacity;
+    unsigned best = source_count;
     unsigned minimum_stratum = 16;
     for (unsigned k = 0; k < count; ++k)
         if (best_mask & (1U << k))
@@ -950,7 +1073,7 @@ void Engine::select(std::uint64_t now, bool score_update) {
                 minimum_stratum,
                 sources_[candidates[k]].samples[sources_[candidates[k]].count - 1].stratum);
     double minimum_distance = std::numeric_limits<double>::infinity();
-    std::array<double, source_capacity> selection_distances{};
+    std::array<double, source_count> selection_distances{};
     for (unsigned k = 0; k < count; ++k) {
         auto& s = sources_[candidates[k]];
         if (!(best_mask & (1U << k))) {
@@ -976,8 +1099,7 @@ void Engine::select(std::uint64_t now, bool score_update) {
     // Accumulate evidence for a better source rather than switching on one
     // favorable packet. Scores are relative distances, with reselectdist added
     // only to challengers, and reset when the reference changes.
-    const bool current_usable =
-        selected_ < source_capacity && sources_[selected_].status.selectable;
+    const bool current_usable = selected_ < source_count && sources_[selected_].status.selectable;
     if (current_usable) {
         unsigned challenger = selected_;
         double highest = 10;
@@ -1002,7 +1124,7 @@ void Engine::select(std::uint64_t now, bool score_update) {
     if (best != selected_)
         for (auto& s : sources_)
             s.status.selection_score = 1;
-    std::array<unsigned, source_capacity> combined{};
+    std::array<unsigned, source_count> combined{};
     unsigned combined_count = 0;
     for (unsigned k = 0; k < count; ++k) {
         auto& s = sources_[candidates[k]];
@@ -1050,7 +1172,7 @@ void Engine::discipline(unsigned selected, std::span<const unsigned> combined, s
         return;
     auto& source = sources_[selected];
     const auto origin = source_utc(source, now);
-    std::array<SourceEstimate, source_capacity> estimates;
+    std::array<SourceEstimate, source_count> estimates;
     unsigned index = 0;
     for (auto i : combined) {
         const auto& s = sources_[i];
@@ -1133,17 +1255,18 @@ void Engine::discipline(unsigned selected, std::span<const unsigned> combined, s
     combined_count_ = unsigned(combined.size());
     leap_ = source.samples[source.count - 1].leap;
     last_update_ns_ = now;
-    last_source_raw_ns_ = 0;
-    for (auto i : combined)
-        last_source_raw_ns_ = std::max(last_source_raw_ns_,
-                                       sources_[i].samples[sources_[i].count - 1].receive_raw_ns);
+    // Combination changes the estimate, never the selected source's freshness.
+    // A newer peer sample cannot renew a cached GPS edge (or vice versa).
+    last_source_raw_ns_ = source.samples[source.count - 1].receive_raw_ns;
     ++generation_;
 }
 Tracking Engine::tracking(std::uint64_t now) const {
     Tracking result;
     result.raw_ns = now;
     result.generation = generation_;
-    result.selected = selected_;
+    result.selected = selected_ < source_capacity ? selected_ : source_capacity;
+    result.reference_clock = selected_ == reference_slot;
+    result.reference_disagreement = reference_disagreement_;
     result.combined_sources = combined_count_;
     result.source_raw_ns = last_source_raw_ns_;
     result.leap = leap_;
@@ -1169,8 +1292,11 @@ Tracking Engine::tracking(std::uint64_t now) const {
     result.root_dispersion = root_dispersion_ + difference(now, dispersion_raw_ns_) *
                                                     (skew_ + config_.max_clock_error_ppm * 1e-6);
     const auto root_distance = result.root_delay / 2 + result.root_dispersion;
-    result.synchronized = selected_ < source_capacity && leap_ != Leap::Unsynchronized &&
-                          root_distance <= config_.max_distance;
+    result.synchronized =
+        selected_ < source_count && !reference_disagreement_ &&
+        (selected_ != reference_slot ||
+         (now >= last_source_raw_ns_ && now - last_source_raw_ns_ <= 5 * second)) &&
+        leap_ != Leap::Unsynchronized && root_distance <= config_.max_distance;
     result.uncertainty_ns = rounded_ns(std::abs(remaining) + root_distance);
     return result;
 }

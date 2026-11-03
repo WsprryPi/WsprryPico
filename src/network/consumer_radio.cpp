@@ -294,7 +294,8 @@ HttpResponse ConsumerRadioApi::time_resource(const HttpRequest& request, Session
     } else if (request.method != "GET")
         return http_error(405, "method_not_allowed");
     const auto status = time_->status();
-    const char* source = status.source == time::ActiveTimeSource::Browser      ? "browser"
+    const char* source = status.source == time::ActiveTimeSource::Gps ? "gps"
+                         : status.source == time::ActiveTimeSource::Browser      ? "browser"
                          : status.source == time::ActiveTimeSource::Sntp       ? "network"
                          : status.source == time::ActiveTimeSource::Controller ? "controller"
                          : status.disagreement                                 ? "disagreement"

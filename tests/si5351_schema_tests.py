@@ -46,7 +46,7 @@ for change in (
     lambda v: v['saved'].update(loopback_output=0),
     lambda v: v['saved'].update(loopback_output=None),
     lambda v: v['saved'].update(crystal_load_pf=8),
-    lambda v: v['saved'].update(automatic_calibration=True),
+    lambda v: v['saved'].update(automatic_calibration="true"),
     lambda v: v['runtime'].update(unknown=False),
     lambda v: v['runtime'].update(clock_reference_state='gps'),
     lambda v: v['runtime']['reference_measurement'].update(duration_ns=10_000_000_000),

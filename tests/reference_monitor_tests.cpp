@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "rf/reference_monitor.hpp"
+#include "time/gps_calibration.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -133,4 +134,38 @@ int main() {
     assert(!monitor.current() && capture.begins == starts);
     config.loopback.reset();
     assert(!plan_reference(config));
+    // A normal window begins between whole PPS edges. Qualified GPS must retain
+    // the same counter session through eleven endpoints for a ten-second fit.
+    {
+        BusMemory gps_bus;
+        Device gps_device(gps_bus);
+        std::uint64_t gps_raw = 250'000'000;
+        Capture gps_capture(gps_raw);
+        assert(gps_device.quiesce(gps_raw + 1'000'000));
+        ReferenceMonitor gps_monitor(configuration(), ReferencePolicy{}, gps_device, gps_capture,
+                                     now, &gps_raw, true);
+        wsprrypico::time::gps::PpsCalibration calibration;
+        gps_monitor.service(true);
+        assert(gps_monitor.measuring());
+        for (unsigned i = 1; i <= 11; ++i) {
+            gps_raw = std::uint64_t(i) * 1'000'000'000;
+            gps_monitor.service(true);
+            assert(gps_monitor.measuring() && gps_capture.begins == 1 && gps_capture.finishes == 0);
+            const wsprrypico::time::gps::Observation observation{
+                gps_raw, 1'800'000'000'000'000'000ULL + gps_raw, 1000, i, gps_raw};
+            const wsprrypico::time::gps::CycleSnapshot cycles{(gps_raw - gps_capture.start) / 1000,
+                                                              gps_raw,
+                                                              1000,
+                                                              gps_capture.generation,
+                                                              gps_capture.begins,
+                                                              true};
+            assert(calibration.observe(observation, cycles, 1'000'000));
+        }
+        assert(calibration.timer() && calibration.synthesizer());
+        assert(calibration.synthesizer()->span_ns == 10'000'000'000ULL);
+        // A prepared job still shuts down the reference/counter immediately.
+        assert(gps_monitor.pause(gps_raw + 1'000'000));
+        assert(!gps_monitor.measuring() && gps_capture.finishes == 1);
+        assert(gps_device.reference_state() == ClockOutputState::RegisterDisabled);
+    }
 }

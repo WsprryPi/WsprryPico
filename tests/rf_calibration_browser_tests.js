@@ -8,16 +8,24 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
 (async()=>{
   const input=element('0.000'),mode=element('manual'),read=element(),save=element(),discard=element(),adopt=element(),status=element();
   let target={scope:'member',device_id:'a'.repeat(32),boot_id:'b'.repeat(32)};
-  let writes=0, fail=false, reportedErrors=0;
+  let writes=0, fail=false, reportedErrors=0, selection={next_ppb:0,reason:'manual_mode'};
   const editor=create({input,mode,read,save,discard,adopt,status,onError:()=>{reportedErrors++;},exchange:async(method,body,match)=>{
     if (method==='PUT') { writes++; assert.equal(match,'revision'); if (fail) throw Error('Lost reply'); }
     return {revision:'revision',data:{schema:'rf-calibration',target,storage_healthy:true,
       saved:{manual_ppm:body?.calibration.manual_ppm ?? '0.000',mode:body?.calibration.mode ?? 'manual'},
-      selection:{next_ppb:0,reason:'manual_mode'}}};
+      selection}};
   }});
   editor.setAvailability(true);
   assert.equal(save.disabled,true);
   await read.onclick();
+  selection={next_ppb:0,next_source:'gps',reason:'gps_calibration_required'};
+  await read.onclick();
+  assert.match(status.textContent,/waiting for qualified GPS calibration/);
+  assert.doesNotMatch(status.textContent,/Next job: 0 ppb/);
+  selection={next_ppb:1234,next_source:'gps',reason:'gps_calibrated'};
+  await read.onclick();
+  assert.match(status.textContent,/1234 ppb \(GPS with manual residual trim\)/);
+  selection={next_ppb:0,reason:'manual_mode'};
   input.value='10.000'; input.oninput();
   assert.equal(save.disabled,false);
   mode.value='ntp'; mode.onchange();

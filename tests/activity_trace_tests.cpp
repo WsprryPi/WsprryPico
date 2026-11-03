@@ -5,7 +5,46 @@
 
 using namespace wsprrypico::runtime;
 
+namespace {
+std::size_t allocated = 0, released = 0, free_bytes = 0;
+bool refuse_allocation = false;
+void* allocate(std::size_t bytes) {
+    if (refuse_allocation)
+        return nullptr;
+    allocated += bytes;
+    return std::malloc(bytes);
+}
+void release(void* value) {
+    if (value)
+        ++released;
+    std::free(value);
+}
+} // namespace
+
 int main() {
+    // Cold diagnostics consume no record storage. Admission and nullable
+    // allocation failures leave capture disabled and permit a later retry.
+    static_assert(sizeof(ActivityTrace) < 256);
+    wsprrypico::wtp::allocate_input = allocate;
+    wsprrypico::wtp::deallocate_input = release;
+    wsprrypico::wtp::available_memory = +[] { return free_bytes; };
+    {
+        ActivityTrace cold;
+        assert(allocated == 0 && !cold.begin() && allocated == 0);
+        free_bytes = 65536;
+        refuse_allocation = true;
+        assert(!cold.begin() && cold.capture_epoch() == 0 && cold.records().empty());
+        refuse_allocation = false;
+        assert(cold.begin() && allocated == ActivityTrace::capacity * sizeof(ActivityRecord));
+        cold.end();
+        free_bytes = 0;
+        assert(cold.begin()); // Reuse retained storage without another allocation.
+        assert(allocated == ActivityTrace::capacity * sizeof(ActivityRecord));
+    }
+    assert(released == 1);
+    wsprrypico::wtp::allocate_input = std::malloc;
+    wsprrypico::wtp::deallocate_input = std::free;
+    wsprrypico::wtp::available_memory = nullptr;
     ActivityTrace trace;
     unsigned calls = 0;
     std::uint64_t now = 100;

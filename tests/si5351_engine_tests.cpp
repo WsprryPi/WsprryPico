@@ -94,8 +94,9 @@ struct Clock : wtp::Clock {
     Platform& platform;
     explicit Clock(Platform& value) : platform(value) {}
     bool valid = true;
-    std::uint64_t uncertainty = 1000;
+    std::uint64_t uncertainty = 1000, read_delay = 0;
     wtp::ClockSnapshot snapshot() const override {
+        platform.now += read_delay;
         wtp::ClockSnapshot value;
         value.monotonic_now_ns = platform.now;
         value.utc_now_ns = 1'000'000'000'000ULL + platform.now;
@@ -442,6 +443,21 @@ int main() {
         f.platform.now = start;
         assert(f.engine.poll(f.platform.now).state == wtp::EngineState::Missed);
         assert(!f.engine.output_active());
+    }
+    {
+        Fixture f;
+        Clock clock(f.platform);
+        assert(f.engine.prepare(job()).accepted);
+        const auto start = f.platform.now + 100'000'000;
+        assert(f.engine.schedule(job(), start, {&clock, 1'000'000'000'000ULL + start, 1'000'000}));
+        // The clock read itself takes time. Comparing its projected deadline
+        // with an earlier platform sample otherwise chases a future target.
+        clock.read_delay = 1000;
+        f.platform.now = start;
+        const auto report = f.engine.poll(f.platform.now);
+        assert(report.state == wtp::EngineState::Running);
+        assert(report.launch_monotonic_ns && *report.launch_monotonic_ns >= start);
+        assert(f.engine.disable(f.platform.now + 10'000'000));
     }
     std::cout << "Si5351 finite execution and bounded failure paths passed\n";
 }

@@ -45,11 +45,32 @@ Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), se
         active_network_ = network_digest(*store_.config());
         active_pins_ = store_.config()->pins;
         active_si5351_ = store_.config()->si5351;
+        active_gps_ = store_.config()->gps;
         active_gpio_drive_ma_ = store_.config()->gpio_drive_ma;
         active_amplifier_timing_ = store_.config()->amplifier_timing;
         active_ntp_timeout_s_ = store_.config()->ntp_timeout_s;
         boot_configured_ = store_.healthy();
     }
+}
+std::optional<Config> Scheduler::station_snapshot(const Config& saved) const {
+    auto result = saved;
+    if (!saved.gps || saved.gps->location == hardware::GpsSettings::Location::Manual) return result;
+    const auto now = service_.clock_snapshot().monotonic_now_ns;
+    if (!saved.gps->enabled || !gps_position_ || now < gps_position_->observed_raw_ns ||
+        now - gps_position_->observed_raw_ns > saved.gps->position_maximum_age_s * ns) return {};
+    const auto locator = time::gps::locator(*gps_position_);
+    if (!locator) return {};
+    result.locator = locator->data();
+    return result;
+}
+bool Scheduler::daylight_allowed(std::uint64_t utc, std::uint64_t raw) const {
+    const auto& config = store_.config();
+    if (!config || !config->gps || config->gps->daylight == hardware::GpsSettings::Daylight::Always)
+        return true;
+    if (!config->gps->enabled || !gps_position_ || raw < gps_position_->observed_raw_ns ||
+        raw - gps_position_->observed_raw_ns > config->gps->position_maximum_age_s * ns) return false;
+    const auto day = time::gps::daylight(*gps_position_, utc);
+    return day && (*day == (config->gps->daylight == hardware::GpsSettings::Daylight::Day));
 }
 wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody body) {
     wtp::Request r;
@@ -142,7 +163,9 @@ void Scheduler::poll() {
         last_error_ = wtp::ErrorCode::FrequencyRejected;
         return;
     }
-    const auto plan = encoding::wspr_plan(c.callsign, c.locator, c.power_dbm);
+    const auto station = station_snapshot(c);
+    if (!station || !daylight_allowed(candidate, now.monotonic_now_ns)) return;
+    const auto plan = encoding::wspr_plan(station->callsign, station->locator, station->power_dbm);
     if (!plan) {
         last_error_ = wtp::ErrorCode::UnsupportedMode;
         return;
@@ -178,6 +201,10 @@ void Scheduler::poll() {
     }
     last_frame_count_ = plan->count;
     last_frame_ = 1;
+    prepared_station_.emplace();
+    std::copy_n(station->locator.data(), station->locator.size(), prepared_station_->locator.begin());
+    prepared_station_->gps = c.gps && c.gps->location == hardware::GpsSettings::Location::Gps;
+    prepared_station_->position_raw_ns = prepared_station_->gps ? gps_position_->observed_raw_ns : 0;
     service_.freeze_pair_calibration(plan->count == 2);
     if (plan->count == 2)
         pair_ = Pair{*plan,
@@ -197,6 +224,9 @@ std::uint64_t Scheduler::message_lead_ns() const {
     return minimum > UINT64_MAX - ns ? UINT64_MAX : std::max(message_preparation_ns, minimum + ns);
 }
 std::optional<std::uint64_t> Scheduler::next_message_start() const {
+    return next_message_start_impl(false);
+}
+std::optional<std::uint64_t> Scheduler::next_message_start_impl(bool ignore_gps_policy) const {
     if (!store_.healthy() || !store_.message_schedule() || !store_.message_schedule()->enabled ||
         suspended_ || message_pause_pending_ || message_recovery_required() || reboot_required_)
         return {};
@@ -207,7 +237,7 @@ std::optional<std::uint64_t> Scheduler::next_message_start() const {
     const auto& schedule = *store_.message_schedule();
     const auto next =
         next_message_slot(schedule, now.utc_now_ns + message_lead_ns(), store_.watermark());
-    if (!next)
+    if (!next || (!ignore_gps_policy && !daylight_allowed(*next, now.monotonic_now_ns)))
         return {};
     const auto measured = encoding::measure_message(schedule.message, service_.config().max_events,
                                                     service_.config().max_job_duration_ns);
@@ -229,7 +259,9 @@ std::optional<std::uint64_t> Scheduler::next_wspr_start() const {
     const auto& c = *store_.config();
     if (!c.wspr_dial_frequency_hz)
         return {};
-    const auto plan = encoding::wspr_plan(c.callsign, c.locator, c.power_dbm);
+    const auto station = station_snapshot(c);
+    if (!station) return {};
+    const auto plan = encoding::wspr_plan(station->callsign, station->locator, station->power_dbm);
     if (!plan)
         return {};
     auto candidate = std::numeric_limits<std::uint64_t>::max();
@@ -254,6 +286,7 @@ std::optional<std::uint64_t> Scheduler::next_wspr_start() const {
         (c.expires_utc_s &&
          (candidate >= c.expires_utc_s * ns || tail > c.expires_utc_s * ns - candidate)))
         return {};
+    if (!daylight_allowed(candidate, now.monotonic_now_ns)) return {};
     return candidate;
 }
 std::string Scheduler::message_status() const {
@@ -285,7 +318,7 @@ std::string Scheduler::message_status() const {
                       .error.empty())
             state = "unavailable";
         else if (!next)
-            state = "expired";
+            state = next_message_start_impl(true) ? "waiting" : "expired";
         else
             state = idle() ? "waiting" : "waiting_for_transmitter";
     }
@@ -670,7 +703,7 @@ std::string Scheduler::command(std::string_view line) {
     // network and pin settings are boot-initialized. Compare with the active boot, not
     // the previous save: a later station edit cannot conceal a pending change.
     if (active_pins_ != config->pins || active_gpio_drive_ma_ != config->gpio_drive_ma ||
-        active_amplifier_timing_ != config->amplifier_timing || active_si5351_ != config->si5351) {
+        active_amplifier_timing_ != config->amplifier_timing || active_si5351_ != config->si5351 || active_gps_ != config->gps) {
         pin_restart_required_ = true;
         reboot_required_ = true;
         if (!service_.local_inhibit_output()) {

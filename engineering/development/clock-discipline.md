@@ -1,8 +1,8 @@
 # UTC discipline and RF correction
 
-The original MIT μChrony engine disciplines the virtual UTC clock from NTP. A persisted learned rate is a provisional restart seed; it restores neither UTC, synchronization, source history nor freshness. Manual PPM is the sole RF carrier correction. Internet NTP is not qualified as an RF calibration source.
+The original MIT μChrony engine disciplines the virtual UTC clock from NTP or optional qualified GPS UTC/PPS observations. A persisted learned rate is a provisional restart seed; it restores neither UTC, synchronization, source history nor freshness. Manual PPM is independent from optional PPS-derived RF correction; when automatic correction is selected, manual PPM is a residual trim. Internet NTP is not qualified as an RF calibration source.
 
-The Pico-to-Pi GPIO pulse path and CLOCKPROBE commands are unavailable. No GPIO timing connection is required. Pi GPS HAT services remain independent of Pico UTC discipline. GPS/PPS ingestion is unavailable.
+The Pico-to-Pi GPIO pulse path and CLOCKPROBE commands are unavailable. No Pico-to-Pi GPIO timing connection is required. Pi GPS HAT services remain independent of Pico UTC discipline. Optional receive-only GPS serial/PPS wiring, UTC association, month-boundary safety, separate oscillator calibration, and restart provenance are defined in the [GPS/PPS contract](gps-pps.md).
 
 ## Compatibility and persistence
 
@@ -12,11 +12,11 @@ Positive timeout settings retain internal Config version 1. Zero is serialized a
 
 Saved and boot-active values remain distinct, target/revision-bound, and idle-only. Changes require restart and preserve station/network/pin/frequency/STOP settings. The stable `ntp-timeout` resource belongs to `Wsprry-Control/1`; mutations require the root contract, current target, and revision. Public discovery's aggregate `public-read` catalog includes `ntp-timeout` through `/api/consumer/v1/read/`. Unlimited timeout advertises `UINT64_MAX` for the existing WTP source-age and server uncertainty limits; WTP semantics and an ARM request's own uncertainty limit remain independent. No WTP downgrade or zero-age reinterpretation is introduced.
 
-The existing `rf-calibration` resource remains available for manual PPM. Its GET response reports `saved.mode: "manual"`; PUT accepts manual mode and rejects `mode: "ntp"` with HTTP 400 `ntp_rf_rejected`, without changing the manual value. The browser exposes manual carrier correction only.
+The existing `rf-calibration` resource remains available for manual PPM. Its GET response reports `saved.mode: "manual"`; PUT accepts manual mode and rejects `mode: "ntp"` with HTTP 400 `ntp_rf_rejected`, without changing the manual value. This manual resource remains independent from the GPS and Si5351 automatic-correction selections under Radio pins.
 
 The legacy `ntp_rf_calibration` configuration field remains readable and round-trippable for saved-data and closed-view compatibility. It has no RF effect, including when an older saved configuration contains `true`. A manual calibration save clears it. RF selection reports no NTP availability and an unqualified `ntp_rf_rejected` candidate; older candidate-shaped fields are inert compatibility diagnostics. The separate NTP observation resource can still expose clock-fit diagnostics under its legacy field names; those grant no RF authority.
 
-The existing NTP journal layout and device/topology bindings are preserved. Old RF-prior payloads can still be read so an upgrade does not invalidate the retained UTC seed; they are never applied to RF or newly learned by production. Console RF-prior availability is false. UTC rate/skew persistence and the operator's manual PPM remain separate. No settings erase, journal migration, or manual-correction reset is required.
+The correction journal retains its 256-byte framing and device/topology bindings. Its independently versioned GPS cache payload is defined in the [GPS/PPS contract](gps-pps.md). Old RF-prior payloads can still be read so an upgrade does not invalidate the retained UTC seed; they are never applied to RF or newly learned by production. Console RF-prior availability is false. UTC rate/skew persistence and the operator's manual PPM remain separate. No settings erase, journal migration, or manual-correction reset is required.
 
 ## Measurement boundaries
 

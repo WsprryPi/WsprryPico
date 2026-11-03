@@ -2,13 +2,15 @@
 
 #include "tusb.h"
 #include "usb/roles.h"
+#include "wtp/input_buffer.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <algorithm>
 #include <array>
 
 namespace wsprrypico::usb {
 namespace {
-std::array<char, kConsoleCapacity> console_queue{};
+wtp::InputBuffer console_queue;
 std::size_t head = 0;
 std::size_t size = 0;
 std::array<char, kLoggingCapacity> logging_queue{};
@@ -27,6 +29,7 @@ void disconnect(std::uint8_t port) {
         console_reset = true;
         head = 0;
         size = 0;
+        console_queue = {};
     } else if (port == USB_CDC_MANAGEMENT) {
         management_reset = true;
     } else if (port == USB_CDC_LOGGING) {
@@ -58,9 +61,9 @@ void service() {
         }
     }
     if (connected[USB_CDC_CONSOLE] && size != 0) {
-        const auto count = std::min({size, console_queue.size() - head, kServiceBytes});
+        const auto count = std::min({size, kConsoleCapacity - head, kServiceBytes});
         const auto accepted = tud_cdc_n_write(USB_CDC_CONSOLE, console_queue.data() + head, count);
-        head = (head + accepted) % console_queue.size();
+        head = (head + accepted) % kConsoleCapacity;
         size -= accepted;
     }
     if (connected[USB_CDC_LOGGING] && logging_size != 0) {
@@ -139,11 +142,16 @@ bool take_wtp_reset() {
     return result;
 }
 bool console_write(std::string_view text) {
-    if (!console_connected() || text.size() > console_queue.size() - size) {
+    if (!console_connected() || text.size() > kConsoleCapacity - size) {
         return false;
     }
+    if (text.empty())
+        return true;
+    if (!console_queue.capacity() &&
+        (!wtp::memory_admitted(kConsoleCapacity) || !console_queue.reserve(kConsoleCapacity)))
+        return false;
     for (char byte : text) {
-        console_queue[(head + size) % console_queue.size()] = byte;
+        console_queue.data()[(head + size) % kConsoleCapacity] = byte;
         ++size;
     }
     return true;

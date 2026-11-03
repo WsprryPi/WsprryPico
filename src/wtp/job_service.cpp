@@ -531,6 +531,7 @@ Response JobService::dispatch(Request& request) {
             record_terminal(State::Failed, error, now.monotonic_now_ns);
             return reject(error);
         }
+        if (arm_observer_) arm_observer_(*job_, *body, now, request.principal, arm_observer_context_);
         if (arm_->scheduled_locally)
             release_execution_input();
         return response;
@@ -641,6 +642,11 @@ void JobService::poll() {
             now.leap == LeapState::InsertPending || now.leap == LeapState::DeletePending;
         bool leap_ok = now.leap != LeapState::Unknown &&
                        (pending_leap == now.leap_transition_utc_ns.has_value());
+        std::uint64_t horizon_duration{};
+        const auto horizon_latest = arm_->start_utc_ns + start_window_ns(arm_->start_utc_ns) - 1;
+        leap_ok = leap_ok && time::duration_utc_bound(job_->total_duration_ns, now, horizon_duration) &&
+            horizon_latest < now.valid_until_utc_ns &&
+            horizon_duration < now.valid_until_utc_ns - horizon_latest;
         if (now.leap_transition_utc_ns) {
             const auto transition = *now.leap_transition_utc_ns;
             const auto exclusion_start =
@@ -648,7 +654,7 @@ void JobService::poll() {
             const auto exclusion_end = saturating_add(transition, kLeapExclusionNs);
             std::uint64_t duration{};
             const auto latest = arm_->start_utc_ns + start_window_ns(arm_->start_utc_ns) - 1;
-            leap_ok = time::duration_utc_bound(job_->total_duration_ns, now, duration) &&
+            leap_ok = leap_ok && time::duration_utc_bound(job_->total_duration_ns, now, duration) &&
                       duration <= std::numeric_limits<std::uint64_t>::max() - latest &&
                       (arm_->start_utc_ns > exclusion_end || latest + duration < exclusion_start);
         }
@@ -956,6 +962,12 @@ ErrorCode JobService::validate_arm(const ArmBody& arm, const ClockSnapshot& now,
     start_monotonic_ns = nominal_start;
     if (job_->total_duration_ns > std::numeric_limits<std::uint64_t>::max() - start_monotonic_ns)
         return ErrorCode::InvalidMessage;
+    std::uint64_t horizon_duration{};
+    const auto horizon_latest = arm.start_utc_ns + window - 1;
+    if (!time::duration_utc_bound(job_->total_duration_ns, now, horizon_duration) ||
+        horizon_latest >= now.valid_until_utc_ns ||
+        horizon_duration >= now.valid_until_utc_ns - horizon_latest)
+        return ErrorCode::LeapUnsafe;
     if (now.leap_transition_utc_ns) {
         const auto transition = *now.leap_transition_utc_ns;
         const auto exclusion_start =

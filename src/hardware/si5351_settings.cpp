@@ -27,8 +27,8 @@ std::string validate_si5351_settings(const Si5351Settings& settings) {
     if (settings.manual_correction_ppb < -rf::correction_limit_ppb ||
         settings.manual_correction_ppb > rf::correction_limit_ppb)
         return "invalid_correction";
-    if (settings.automatic_calibration)
-        return "automatic_calibration_unavailable";
+    if (settings.automatic_calibration && !settings.loopback_input)
+        return "automatic_calibration_requires_loopback";
     return {};
 }
 namespace {

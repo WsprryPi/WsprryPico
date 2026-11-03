@@ -516,9 +516,15 @@ HttpResponse BrowserApi::filter_selector() const {
     const auto selected = observation.filter_selector;
     const auto config = effective_config();
     const auto pins = config ? config->pins : hardware::PinPlan{};
-    const auto owners = config && config->si5351 && pins.engine == hardware::PinPlan::Engine::I2c
+    auto owners = config && config->si5351 && pins.engine == hardware::PinPlan::Engine::I2c
                             ? hardware::validate_si5351(pins, *config->si5351).pins.owners
                             : hardware::validate(pins).owners;
+    if (config && config->gps && config->gps->enabled) {
+        const auto& gps = *config->gps;
+        owners[gps.rx_gp] = "gps_rx";
+        owners[gps.pps_gp] = "gps_pps";
+        if (gps.tx_gp) owners[*gps.tx_gp] = "gps_tx";
+    }
     std::string reserved = "[";
     for (unsigned gp = 0; gp < owners.size(); ++gp) {
         if (owners[gp].empty())
@@ -600,6 +606,22 @@ HttpResponse BrowserApi::si5351() const {
            ",\"execution_engine\":" + json::quote(service_.config().capability_engine) +
            ",\"runtime\":" + (si5351_observer_ ? si5351_observer_(si5351_context_) : "null") +
            ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
+    result.etag = revision();
+    return result;
+}
+HttpResponse BrowserApi::gps() const {
+    const auto config = effective_config();
+    const auto& boot = scheduler_.active_gps();
+    auto result = ok("{\"schema\":\"gps\",\"target\":" +
+        application::target(device_, service_.status().boot_id) +
+        ",\"saved\":" + (store_.healthy() && config && config->gps
+            ? hardware::serialize_gps(*config->gps) : "null") +
+        ",\"boot_active\":" + (scheduler_.boot_configured() && boot
+            ? hardware::serialize_gps(*boot) : "null") +
+        ",\"pending_restart\":" + (scheduler_.hardware_restart_required() ? "true" : "false") +
+        ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") +
+        ",\"runtime\":" + (scheduler_.boot_configured() && boot && boot->enabled && gps_observer_
+            ? gps_observer_(gps_context_) : "null") + "}");
     result.etag = revision();
     return result;
 }
@@ -1062,6 +1084,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                  control_descriptor("gpio_drive"),
                  ",\"si5351\":",
                  control_descriptor("si5351"),
+                 ",\"gps\":",
+                 control_descriptor("gps"),
                  carrier != ManagementCarrier::EngineeringField ? ",\"operations_status\":" : "",
                  carrier != ManagementCarrier::EngineeringField
                      ? control_descriptor("operations_status")
@@ -1115,7 +1139,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             const auto clock = service_.clock_snapshot();
             const auto active =
                 time_arbiter_ ? time_arbiter_->status() : time::ControllerTimeStatus{};
-            const char* sources[] = {"none", "sntp", "controller", "browser", "disagreement"};
+            const char* sources[] = {"none", "sntp", "controller", "browser", "gps", "disagreement"};
             return ok(
                 "{\"schema\":\"ntp-observations\",\"target\":" +
                 application::target(device_, service_.status().boot_id) +
@@ -1141,6 +1165,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             return gpio_drive();
         if (r.path == "/api/control/v1/si5351")
             return si5351();
+        if (r.path == "/api/control/v1/gps")
+            return gps();
         if (r.path == "/api/control/v1/ntp-timeout")
             return ntp_timeout();
         if (r.path == "/api/control/v1/config")
@@ -1251,9 +1277,12 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         config.callsign = value->get("callsign")->string();
         config.locator = value->get("locator")->string();
         config.power_dbm = static_cast<unsigned>(power);
+        if (const auto saved = effective_config()) config.gps = saved->gps;
+        const auto station = scheduler_.station_snapshot(config);
+        if (!station) return http_error(409, "gps_position_unavailable");
         if (!encoding::valid_station_details(config.callsign, config.locator, config.power_dbm))
             return http_error(400, "invalid_station");
-        return ok(application::wspr_plan(config));
+        return ok(application::wspr_plan(*station));
     }
     // Review candidates without changing Store, scheduler, engine or GPIO state.
     if (r.path == "/api/control/v1/pins/validate" && r.method == "POST") {

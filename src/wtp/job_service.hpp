@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <deque>
+#include <list>
 #include <initializer_list>
 #include <iterator>
 #include <limits>
@@ -42,6 +43,9 @@ struct ClockSnapshot {
     // to this immutable clock model; neither changes the hardware timer.
     std::uint64_t rate_until_monotonic_ns = UINT64_MAX;
     std::int32_t subsequent_rate_ppb = 0;
+    // Internal source horizon, not a new WTP wire field. A source lacking leap
+    // announcements cannot authorize jobs across its next UTC ambiguity.
+    std::uint64_t valid_until_utc_ns = UINT64_MAX;
     bool operator==(const ClockSnapshot&) const = default;
 };
 
@@ -764,6 +768,13 @@ class JobService {
     void freeze_pair_calibration(bool freeze) {
         engine_.freeze_pair_calibration(freeze);
     }
+    using ArmObserver = void (*)(const Job&, const ArmBody&, const ClockSnapshot&,
+                                  std::string_view principal, void*);
+    // Application-core provenance only; never part of WTP serialization,
+    // replay admission, the RF interrupt path, or launch authorization.
+    void arm_observer(ArmObserver observer, void* context) {
+        arm_observer_ = observer; arm_observer_context_ = context;
+    }
     std::string calibration_status() const {
         return engine_.calibration_status(clock_.snapshot().monotonic_now_ns);
     }
@@ -849,7 +860,9 @@ class JobService {
     PayloadDigest job_digest_{};
     AdjustmentList adjustments_;
     std::optional<ArmRecord> arm_;
-    std::deque<ReplayEntry> replay_cache_;
+    // Allocate one bounded replay entry at a time. A deque implementation may
+    // eagerly allocate sixteen expanded clock replies in a >8 KiB block.
+    std::list<ReplayEntry> replay_cache_;
     std::deque<TerminalRecord> terminal_records_;
     std::deque<RetainedJob> retained_jobs_;
     State state_ = State::Empty;
@@ -858,6 +871,8 @@ class JobService {
     bool ready_ = false;
     bool output_inhibited_ = false;
     std::uint64_t maintenance_deadline_ns_ = 0;
+    ArmObserver arm_observer_ = nullptr;
+    void* arm_observer_context_ = nullptr;
     bool update_verification_ = false;
 };
 

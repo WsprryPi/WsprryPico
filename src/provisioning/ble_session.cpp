@@ -128,6 +128,8 @@ std::string_view source_name(time::ActiveTimeSource source) {
         return "sntp";
     case time::ActiveTimeSource::Controller:
         return "controller";
+    case time::ActiveTimeSource::Gps:
+        return "gps";
     case time::ActiveTimeSource::Browser:
         return "none"; // Browser is not one of Field-GATT/1's named time sources.
     case time::ActiveTimeSource::Disagreement:

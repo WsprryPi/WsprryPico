@@ -221,6 +221,7 @@ int main() {
         assert(root->get("resources")->elements().size() == network::public_read_resources.size());
         assert(read("/api/consumer/v1/read/amplifier-timing").status == 200);
         assert(read("/api/consumer/v1/read/ntp-timeout").status == 200);
+        assert(read("/api/consumer/v1/read/gps").status == 404); // Precise position requires authenticated control or physical USB.
         for (const auto old : {"/api/consumer/v1/read/2", "/api/consumer/v1/read/3", "/api/consumer/v1/read/ntp-timeout/2", "/api/consumer/v1/read/config/4"})
             assert(read(old).status==404);
         assert(read("/api/consumer/v1/read/amplifier-timing", "PUT", "{}").status==405);

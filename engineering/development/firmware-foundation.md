@@ -56,6 +56,12 @@ The target clock reports monotonic microsecond hardware time converted to nanose
 
 See the [USB CDC roles guide](usb-cdc.md) for transport bounds, connection semantics, descriptor identity, Linux/macOS validation, and focused tests.
 
+## RAM ownership
+
+The runtime button capture keeps its 2,048-word DMA ring in a separate 8 KiB-aligned storage object. Capture state refers to that storage, avoiding alignment padding around unrelated fields. Ring capacity, DMA wrap configuration, sampling cadence and button thresholds remain unchanged. Compile-time assertions enforce the ring size/alignment and bound the separate capture-state footprint.
+
+Inactive diagnostics do not reserve their full buffers. Activity tracing allocates its fixed 256-record storage only on the first successful BEGIN and retains it for subsequent reads and captures; recording itself never allocates. Console allocates its 8,192-byte ring on the first nonempty write and releases it on disconnect. Both optional allocations use the existing nullable buffer allocator and retain the common 32 KiB safety reserve. Their allocation failures refuse the diagnostic operation without starting a capture or queuing a partial console write. The RF waveform buffers and WTP input/decode/preparation reserves are independent and unchanged.
+
 ## USB interfaces and monitoring
 
 The development USB identity uses TinyUSB's shared development VID `0xcafe` and PID `0x4012`. It is not a production USB allocation. The composite device has four CDC functions:

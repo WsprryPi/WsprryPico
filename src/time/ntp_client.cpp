@@ -145,10 +145,11 @@ bool NtpClient::receive(unsigned slot, std::span<const std::uint8_t> packet, std
 }
 bool NtpClient::apply(std::uint64_t now) {
     last_now_ = now;
-    const bool conflict =
+    core_.poll(now);
+    const auto tracking = core_.tracking(now);
+    const bool conflict = tracking.reference_disagreement ||
         core_.frequency_reference_state(now) == microchrony::FrequencyReferenceState::Disagreement;
     clock_.frequency_reference_conflict(conflict);
-    const auto tracking = core_.tracking(now);
     arbiter_selected_ = false;
     control_ = {};
     if (conflict || !tracking.synchronized || tracking.source_raw_ns > now) {
@@ -215,7 +216,9 @@ bool NtpClient::apply(std::uint64_t now) {
                                  tracking.utc_frequency_ppb,
                                  tracking.rate_error_bound_ppb,
                                  tracking.generation};
-    arbiter_selected_ = clock_.observe_ntp_model(source, model, tracking.rate_error_bound_ppb);
+    arbiter_selected_ = tracking.reference_clock
+        ? clock_.observe_reference_model(source, model, tracking.rate_error_bound_ppb)
+        : clock_.observe_ntp_model(source, model, tracking.rate_error_bound_ppb);
     if (arbiter_selected_) {
         control_ = {model.utc_now_ns,
                     now,

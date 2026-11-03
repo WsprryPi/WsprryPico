@@ -224,7 +224,7 @@ The request has only the common fields and uses the field session. Success adds:
 }
 ```
 
-`time_source` is `none`, `sntp`, `controller`, or `disagreement`. `indicator` is `off`, `softap_ready`, or `identify`. Age and uncertainty are canonical decimal strings. This is nonsensitive status; it contains no credential or BLE principal.
+`time_source` is `none`, `sntp`, `controller`, `gps`, or `disagreement`. GPS names the optional accepted GPS/PPS UTC source; it grants no controller authority and changes neither Field-GATT/1 framing nor time-submit admission. `indicator` is `off`, `softap_ready`, or `identify`. Age and uncertainty are canonical decimal strings. This is nonsensitive status; it contains no credential or BLE principal.
 
 ### Controller time: `time_challenge` and `time_submit`
 

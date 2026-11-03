@@ -18,9 +18,10 @@ PicoExecutionPlatform* PicoExecutionPlatform::instance_ = nullptr;
 PicoExecutionPlatform::PicoExecutionPlatform(const hardware::PinPlan& pins,
                                              const hardware::Si5351Settings& settings,
                                              const hardware::FilterSettings& filters, PicoBus& bus,
-                                             Device& device)
+                                             Device& device, bool pps_calibration)
     : pins_(pins), settings_(settings), filters_(filters), bus_(bus),
-      monitor_(settings.synthesis, policy(settings), device, capture_, raw_now, nullptr) {}
+      monitor_(settings.synthesis, policy(settings), device, capture_, raw_now, nullptr,
+               pps_calibration) {}
 std::uint64_t PicoExecutionPlatform::raw_now(void*) {
     return time_us_64() * 1000ULL;
 }

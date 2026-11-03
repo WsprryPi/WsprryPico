@@ -1,6 +1,6 @@
 # Independent clock measurements
 
-NTP disciplines UTC; RF correction uses independent manual PPM. GPS/PPS input is not implemented. A synchronized host or attached GPSDO alone does not calibrate the Pico or receiver. Absolute UTC phase remains unqualified by USB round trips because transport latency and asymmetry are not independently known.
+NTP and optional qualified GPS/PPS observations discipline UTC. RF correction selects independent manual PPM or separate PPS-derived oscillator measurements with manual residual trim; see [GPS/PPS](gps-pps.md). A synchronized host or attached GPSDO alone does not calibrate the Pico or receiver. Absolute UTC phase remains unqualified by USB round trips because transport latency and asymmetry are not independently known.
 
 ## Frequency references and clock binding
 

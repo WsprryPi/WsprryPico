@@ -32,6 +32,21 @@ class NtpRetention {
         Provenance utc_source;
         std::optional<RfPrior> rf;
         std::uint32_t utc_skew_ppb = 2'000'000;
+        struct GpsPrior {
+            // Historical values only: deliberately no raw timestamp, freshness,
+            // lock flag, or conversion to an admitted RF Calibration.
+            std::uint64_t settings_fingerprint = 0, reference_utc_ns = 0, generation = 0;
+            std::string boot;
+            struct Rate {
+                std::int32_t error_ppb = 0;
+                std::uint32_t uncertainty_ppb = 0;
+                unsigned span_s = 0;
+                bool operator==(const Rate&) const = default;
+            } timer;
+            std::optional<Rate> synthesizer;
+            bool operator==(const GpsPrior&) const = default;
+        };
+        std::optional<GpsPrior> gps;
     };
     NtpRetention(Flash& flash, std::string device, std::uint64_t topology)
         : flash_(flash), journal_(flash, 0, 256), device_(std::move(device)), topology_(topology) {}
@@ -57,14 +72,15 @@ class NtpRetention {
             if (get(4) != 0x50544e57)
                 return false;
             const auto version = get(2);
-            if ((version != 1 && version != 2) || data.substr(cursor, 32) != device_)
+            if ((version != 1 && version != 2 && version != 3) ||
+                data.substr(cursor, 32) != device_)
                 return false;
             cursor += 32;
             if (get(8) != topology_ || (version == 1 && get(1) != 1))
                 return false;
             Record next;
             next.utc_rate_ppb = signed_rate(get(4));
-            if (version == 2)
+            if (version >= 2)
                 next.utc_skew_ppb = std::uint32_t(get(4));
             auto provenance = [&]() {
                 Provenance value;
@@ -77,6 +93,35 @@ class NtpRetention {
                 return value;
             };
             next.utc_source = provenance();
+            if (version == 3) {
+                // The obsolete, inert RF-prior slot becomes GPS provenance.
+                // The physical journal framing and record size stay unchanged.
+                Record::GpsPrior gps;
+                const auto flags = get(1);
+                gps.settings_fingerprint = get(8);
+                gps.boot = data.substr(cursor, 32);
+                cursor += 32;
+                gps.reference_utc_ns = get(8);
+                gps.generation = get(8);
+                auto rate = [&]() {
+                    return Record::GpsPrior::Rate{signed_rate(get(4)), std::uint32_t(get(4)),
+                                                  unsigned(get(1))};
+                };
+                gps.timer = rate();
+                const auto synthesizer = rate();
+                if (flags == 3)
+                    gps.synthesizer = synthesizer;
+                if ((flags != 1 && flags != 3) || get(3) != 0 || !valid(gps) ||
+                    (flags == 1 && synthesizer != Record::GpsPrior::Rate{}) ||
+                    !valid(next.utc_source) ||
+                    std::abs(std::int64_t(next.utc_rate_ppb)) > 100'000 ||
+                    next.utc_skew_ppb > time::utc_max_rate_uncertainty_ppb)
+                    return false;
+                next.gps = std::move(gps);
+                record_ = std::move(next);
+                healthy_ = true;
+                return true;
+            }
             const auto has_rf = get(1);
             RfPrior rf;
             rf.utc_rate_ppb = signed_rate(get(4));
@@ -127,6 +172,26 @@ class NtpRetention {
               std::uint64_t now_ns, std::uint32_t utc_skew_ppb = 2'000'000) {
         return stage(utc_rate, source, rf, utc_skew_ppb) && flush(now_ns);
     }
+    bool stage_gps(const Record::GpsPrior& gps) {
+        if (!healthy_ || !valid(gps))
+            return false;
+        auto next = pending_ ? *pending_ : record_.value_or(Record{});
+        if (!pending_ && !record_) {
+            // Reciprocal of measured oscillator speed; broad provisional UTC
+            // seed only. Loading it cannot establish an epoch or RF correction.
+            const auto error = std::int64_t(gps.timer.error_ppb);
+            next.utc_rate_ppb = std::int32_t(-error * 1'000'000'000LL / (1'000'000'000LL + error));
+            if (std::abs(std::int64_t(next.utc_rate_ppb)) > 100'000)
+                return false;
+            next.utc_source = {gps.boot, 0x475053, gps.settings_fingerprint, gps.generation,
+                               gps.reference_utc_ns};
+            next.utc_skew_ppb = 2'000'000;
+        }
+        next.gps = gps;
+        next.rf.reset();
+        pending_ = std::move(next);
+        return true;
+    }
     // Only the production idle/unowned/normal-operation boundary calls flush.
     bool flush(std::uint64_t now_ns) {
         if (!healthy_ || !pending_)
@@ -134,11 +199,24 @@ class NtpRetention {
         const auto utc_rate = pending_->utc_rate_ppb;
         const auto& source = pending_->utc_source;
         const auto& rf = pending_->rf;
-        const bool changed =
-            !record_ || std::abs(std::int64_t(utc_rate) - record_->utc_rate_ppb) >= 100 ||
-            (pending_->utc_skew_ppb < record_->utc_skew_ppb / 2) ||
-            (rf && (!record_->rf ||
-                    std::abs(std::int64_t(rf->utc_rate_ppb) - record_->rf->utc_rate_ppb) >= 100));
+        const auto& gps = pending_->gps;
+        const bool gps_changed =
+            gps &&
+            (!record_ || !record_->gps ||
+             gps->settings_fingerprint != record_->gps->settings_fingerprint ||
+             std::abs(std::int64_t(gps->timer.error_ppb) - record_->gps->timer.error_ppb) >= 100 ||
+             gps->timer.uncertainty_ppb < record_->gps->timer.uncertainty_ppb / 2 ||
+             bool(gps->synthesizer) != bool(record_->gps->synthesizer) ||
+             (gps->synthesizer && record_->gps->synthesizer &&
+              (std::abs(std::int64_t(gps->synthesizer->error_ppb) -
+                        record_->gps->synthesizer->error_ppb) >= 100 ||
+               gps->synthesizer->uncertainty_ppb <
+                   record_->gps->synthesizer->uncertainty_ppb / 2)));
+        const bool changed = gps_changed || !record_ ||
+                             std::abs(std::int64_t(utc_rate) - record_->utc_rate_ppb) >= 100 ||
+                             (pending_->utc_skew_ppb < record_->utc_skew_ppb / 2) ||
+                             (rf && (!record_->rf || std::abs(std::int64_t(rf->utc_rate_ppb) -
+                                                              record_->rf->utc_rate_ppb) >= 100));
         if (!changed) {
             pending_.reset();
             return false;
@@ -160,19 +238,35 @@ class NtpRetention {
             put(p.reference_utc_ns, 8);
         };
         put(0x50544e57, 4);
-        put(2, 2); // Statistical frequency + skew; v1 remains readable.
+        put(gps ? 3 : 2, 2); // Independent cache version; old UTC seeds remain readable.
         data += device_;
         put(topology_, 8);
         put(std::uint32_t(utc_rate), 4);
         put(pending_->utc_skew_ppb, 4);
         provenance(source);
-        put(rf.has_value(), 1);
-        const auto prior = rf.value_or(RfPrior{0, 0, 0, 0, {std::string(32, '0'), 0, 0, 0, 0}});
-        put(std::uint32_t(prior.utc_rate_ppb), 4);
-        put(prior.uncertainty_ppb, 4);
-        put(prior.samples, 1);
-        put(prior.span_ns, 8);
-        provenance(prior.source);
+        if (gps) {
+            put(gps->synthesizer ? 3 : 1, 1);
+            put(gps->settings_fingerprint, 8);
+            data += gps->boot;
+            put(gps->reference_utc_ns, 8);
+            put(gps->generation, 8);
+            const auto rate = [&](const Record::GpsPrior::Rate& r) {
+                put(std::uint32_t(r.error_ppb), 4);
+                put(r.uncertainty_ppb, 4);
+                put(r.span_s, 1);
+            };
+            rate(gps->timer);
+            rate(gps->synthesizer.value_or(Record::GpsPrior::Rate{}));
+            put(0, 3);
+        } else {
+            put(rf.has_value(), 1);
+            const auto prior = rf.value_or(RfPrior{0, 0, 0, 0, {std::string(32, '0'), 0, 0, 0, 0}});
+            put(std::uint32_t(prior.utc_rate_ppb), 4);
+            put(prior.uncertainty_ppb, 4);
+            put(prior.samples, 1);
+            put(prior.span_ns, 8);
+            provenance(prior.source);
+        }
         if (data.size() != 192 || !journal_.append(data)) {
             healthy_ = false;
             return false;
@@ -225,6 +319,28 @@ class NtpRetention {
                std::abs(std::int64_t(r.utc_rate_ppb)) <= 100'000 && r.uncertainty_ppb <= 5000 &&
                r.samples >= 3 && r.samples <= microchrony::sample_capacity && r.span_ns > 0 &&
                r.span_ns <= 604'800'000'000'000ULL && valid(r.source);
+    }
+    static bool valid(const Record::GpsPrior& gps) {
+        const auto rate = [](const Record::GpsPrior::Rate& r) {
+            return std::abs(std::int64_t(r.error_ppb)) <= 100'000 && r.uncertainty_ppb &&
+                   r.uncertainty_ppb <= 100'001 && r.span_s >= 10 && r.span_s <= 60;
+        };
+        return gps.settings_fingerprint && gps.generation &&
+               valid(Provenance{gps.boot, 0x475053, 1, gps.generation, gps.reference_utc_ns}) &&
+               rate(gps.timer) && (!gps.synthesizer || rate(*gps.synthesizer));
+    }
+    static std::uint64_t gps_fingerprint(const Config& config) {
+        if (!config.gps)
+            return 0;
+        const auto text = hardware::serialize_gps(*config.gps) +
+                          hardware::serialize_plan(config.pins) +
+                          (config.si5351 ? hardware::serialize_si5351(*config.si5351) : "null");
+        std::uint64_t hash = 14695981039346656037ULL;
+        for (const auto c : text) {
+            hash ^= std::uint8_t(c);
+            hash *= 1099511628211ULL;
+        }
+        return hash ? hash : 1;
     }
 
   private:

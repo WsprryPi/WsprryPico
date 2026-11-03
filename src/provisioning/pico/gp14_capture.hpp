@@ -25,10 +25,13 @@ class PicoGp14Capture {
         NoProgress,
         SampleStream,
     };
-    explicit PicoGp14Capture(std::optional<unsigned> gp = 14)
-        : pin(gp.value_or(14)), enabled_(gp.has_value()) {}
-    const unsigned pin;
     static constexpr std::uint32_t ring_words = 2048;
+    struct alignas(8192) Ring {
+        std::array<std::uint32_t, ring_words> words{};
+    };
+    explicit PicoGp14Capture(Ring& ring, std::optional<unsigned> gp = 14)
+        : pin(gp.value_or(14)), enabled_(gp.has_value()), words_(ring.words) {}
+    const unsigned pin;
 
 #ifdef WSPRRY_PICO_GP14_ROBUSTNESS
     bool start(bool boot_held = false);
@@ -65,7 +68,9 @@ class PicoGp14Capture {
 
   private:
     const bool enabled_;
-    alignas(8192) std::array<std::uint32_t, ring_words> words_{};
+    // Only the DMA ring needs 8 KiB alignment. Embedding it after pin/enabled
+    // pads the containing object to 24 KiB for an 8 KiB ring and small state.
+    std::array<std::uint32_t, ring_words>& words_;
     ButtonSampleStream stream_;
     Rp2350DmaProgress progress_;
     PIO pio_ = nullptr;
@@ -81,5 +86,8 @@ class PicoGp14Capture {
     bool fault_ = false;
     Fault fault_code_ = Fault::None;
 };
+static_assert(sizeof(PicoGp14Capture::Ring) == 8192);
+static_assert(alignof(PicoGp14Capture::Ring) == 8192);
+static_assert(sizeof(PicoGp14Capture) < 512);
 
 } // namespace wsprrypico::provisioning

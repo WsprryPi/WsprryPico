@@ -961,15 +961,54 @@ void standalone_production_memory_admission_test() {
     CHECK(scheduler.last_load_stage() == 2 && engine.prepared == 0);
     CHECK(service.status().state == wtp::State::Empty && !service.status().owner_id);
 }
+void gps_daylight_scheduler_tests() {
+    constexpr std::uint64_t ns = 1'000'000'000ULL;
+    // Polar summer/winter exercise the actual scheduler without inventing
+    // sunrise events; absent, stale and future fixes cannot admit either policy.
+    for (const bool summer : {false, true})
+        for (const bool day : {false, true})
+            for (unsigned fix = 0; fix < 4; ++fix) {
+                MemoryFlash flash;
+                standalone::Store store(flash);
+                auto config = scheduled_config();
+                config.gps.emplace();
+                config.gps->enabled = true;
+                config.gps->daylight = day ? hardware::GpsSettings::Daylight::Day
+                                          : hardware::GpsSettings::Daylight::Night;
+                CHECK(store.load() && store.save(config));
+                Clock clock;
+                clock.value.utc_now_ns = (summer ? 1'782'043'200ULL : 1'797'854'400ULL) * ns - 4 * ns;
+                clock.value.monotonic_now_ns = 116 * ns;
+                Engine engine;
+                Identity identity;
+                wtp::JobService service(clock, engine, identity);
+                standalone::Scheduler scheduler(store, service);
+                if (fix)
+                    scheduler.gps_position(time::gps::Position{
+                        890'000'000, 0,
+                        fix == 2 ? 85 * ns : fix == 3 ? 117 * ns : 116 * ns});
+                const bool allowed = fix == 1 && day == summer;
+                CHECK(scheduler.next_wspr_start().has_value() == allowed);
+                scheduler.poll();
+                CHECK(engine.prepared == (allowed ? 1U : 0U));
+                CHECK((store.watermark() != 0) == allowed);
+                if (!allowed)
+                    CHECK(!service.status().owner_id && !engine.output_active());
+            }
+}
 void paired_scheduler_tests() {
     constexpr std::uint64_t ns = 1'000'000'000ULL, duration = 110'592'000'000ULL;
-    for (unsigned fault = 0; fault < 11; ++fault) {
+    for (unsigned fault = 0; fault < 12; ++fault) {
         MemoryFlash flash;
         standalone::Store store(flash);
         auto config = scheduled_config();
         config.callsign = "PJ4/AA0NT";
         config.locator = "EM18IG";
         config.schedules = {{240, 0}, {240, 120}};
+        if (fault == 11) {
+            config.gps.emplace(); config.gps->enabled = true;
+            config.gps->location = hardware::GpsSettings::Location::Gps;
+        }
         CHECK(store.load() && store.save(config));
         Clock clock;
         clock.advance(236 * ns);
@@ -978,18 +1017,37 @@ void paired_scheduler_tests() {
         Identity identity;
         wtp::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
+        std::vector<standalone::Scheduler::TransmissionStation> recorded_stations;
+        struct RecordContext {
+            standalone::Scheduler* scheduler;
+            std::vector<standalone::Scheduler::TransmissionStation>* records;
+        } record_context{&scheduler, &recorded_stations};
+        service.arm_observer([](const wtp::Job& job, const wtp::ArmBody&,
+                               const wtp::ClockSnapshot&, std::string_view, void* p) {
+            auto& c = *static_cast<RecordContext*>(p);
+            if (const auto station = c.scheduler->transmission_station(job.job_id))
+                c.records->push_back(*station);
+        }, &record_context);
+        if (fault == 11)
+            scheduler.gps_position(time::gps::Position{390'000'000, -940'000'000, clock.value.monotonic_now_ns});
         scheduler.poll();
         CHECK(engine.prepared == 1 && store.watermark() == second);
         CHECK(!scheduler.idle() &&
               scheduler.status().find("\"wspr_frames\":2") != std::string::npos);
         CHECK(scheduler.command("CONFIG " + example).find("busy") != std::string::npos);
-        const auto plan = encoding::wspr_plan(config.callsign, config.locator, config.power_dbm);
+        const auto plan = encoding::wspr_plan(config.callsign, fault == 11 ? "EM39AA" : config.locator, config.power_dbm);
         for (unsigned i = 0; i < 162; ++i)
             CHECK(engine.job.events[i].frequency_nhz ==
                   3'570'097'802'734'375ULL + plan->frames[0].symbols[i] * 1'464'843'750ULL);
         clock.advance(5 * ns);
         scheduler.poll();
         CHECK(engine.began == 1);
+        if (fault == 11) {
+            CHECK(recorded_stations.size() == 1 && recorded_stations[0].gps);
+            CHECK(std::string(recorded_stations[0].locator.data()) == "EM39AA");
+            scheduler.gps_position(time::gps::Position{400'000'000, -940'000'000, clock.value.monotonic_now_ns});
+            CHECK(store.config()->locator == "EM18IG"); // Manual settings remain independent.
+        }
         for (unsigned i = 0; i < 5; ++i) {
             clock.advance(20 * ns);
             scheduler.poll();
@@ -1022,9 +1080,14 @@ void paired_scheduler_tests() {
             clock.value.state = wtp::ClockState::Unsynchronized;
             scheduler.poll();
         }
-        if (fault == 0) {
+        if (fault == 0 || fault == 11) {
             CHECK(engine.prepared == 2 && engine.began == 1);
             CHECK(engine.job.events.size() == 162 && engine.job.total_duration_ns == duration);
+            if (fault == 11) {
+                CHECK(recorded_stations.size() == 2);
+                CHECK(std::string(recorded_stations[1].locator.data()) == "EM39AA");
+                CHECK(recorded_stations[1].position_raw_ns == recorded_stations[0].position_raw_ns);
+            }
             for (unsigned i = 0; i < 162; ++i) {
                 const auto& event = engine.job.events[i];
                 CHECK(event.offset_ns == (std::uint64_t{i} * 2'048'000'000ULL + 1) / 3);
@@ -1221,6 +1284,7 @@ int main() {
     standalone_memory_admission_test();
     standalone_production_memory_admission_test();
     paired_scheduler_tests();
+    gps_daylight_scheduler_tests();
     sntp_tests();
     sntp_poll_schedule_test();
     autonomous_test();

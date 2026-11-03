@@ -17,7 +17,7 @@
 
 using namespace wsprrypico;
 static_assert(sizeof(time::UtcDiscipline) <= 320);
-static_assert(sizeof(microchrony::Engine) <= 32768);
+static_assert(sizeof(microchrony::Engine) <= 36 * 1024);
 namespace {
 constexpr std::uint64_t ns = 1'000'000'000, epoch = 1'800'000'000 * ns;
 std::uint64_t now(void* p) {
@@ -644,6 +644,44 @@ void retention() {
         REQUIRE(recovered.load() && recovered.record()->utc_rate_ppb == retained);
         REQUIRE(recovered.record()->rf == rf);
     }
+    // GPS values occupy a separately versioned historical cache. Neither raw
+    // ages nor RF authority are representable in the restart seed.
+    network_test::Flash gps_media;
+    Cache gps_cache(gps_media, device, topology);
+    REQUIRE(gps_cache.load());
+    Cache::Record::GpsPrior gps;
+    gps.settings_fingerprint = 0x12345678;
+    gps.boot = std::string(32, 'b'); gps.reference_utc_ns = epoch; gps.generation = 3;
+    gps.timer = {20000, 1000, 60};
+    gps.synthesizer = Cache::Record::GpsPrior::Rate{-10000, 2000, 30};
+    REQUIRE(gps_cache.stage_gps(gps) && gps_cache.flush(ns));
+    Cache gps_cold(gps_media, device, topology);
+    REQUIRE(gps_cold.load() && gps_cold.record()->gps == gps);
+    REQUIRE(gps_cold.record()->utc_rate_ppb == -19999);
+    REQUIRE(!gps_cold.record()->rf);
+    REQUIRE(gps_cold.record()->utc_skew_ppb == 2'000'000);
+    auto invalid_gps = gps; invalid_gps.timer.span_s = 9;
+    REQUIRE(!gps_cold.stage_gps(invalid_gps));
+    invalid_gps = gps; invalid_gps.settings_fingerprint = 0;
+    REQUIRE(!gps_cold.stage_gps(invalid_gps));
+    gps.timer.error_ppb = -20000;
+    REQUIRE(gps_cache.stage_gps(gps) && !gps_cache.flush(2 * ns));
+    REQUIRE(gps_cache.stage(-3000, source, {}, 1000) && gps_cache.flush(301 * ns));
+    Cache gps_with_ntp(gps_media, device, topology);
+    REQUIRE(gps_with_ntp.load() && gps_with_ntp.record()->gps == gps);
+    REQUIRE(gps_with_ntp.record()->utc_rate_ppb == -3000);
+    Cache gps_foreign(gps_media, std::string(32, 'd'), topology);
+    REQUIRE(!gps_foreign.load());
+    Cache gps_topology(gps_media, device, topology + 1);
+    REQUIRE(!gps_topology.load());
+    Torn gps_torn_media;
+    Cache gps_torn(gps_torn_media, device, topology);
+    REQUIRE(gps_torn.load() && gps_torn.stage_gps(gps) && gps_torn.flush(ns));
+    gps_torn_media.fail = true; gps.timer.error_ppb = 10000;
+    REQUIRE(gps_torn.stage_gps(gps) && !gps_torn.flush(301 * ns));
+    gps_torn_media.fail = false;
+    Cache gps_recovered(gps_torn_media, device, topology);
+    REQUIRE(gps_recovered.load() && gps_recovered.record()->gps->timer.error_ppb == -20000);
     // Unknown cache versions never make operational configuration unhealthy.
     standalone::Journal journal(flash, 0, 256);
     REQUIRE(journal.load(true));

@@ -45,7 +45,7 @@ void strict_settings() {
               {"\"reference_hz\":25000000", "\"reference_hz\":25000000.0"},
               {"\"reference_hz\":25000000", "\"reference_hz\":\"25000000\""},
               {"\"manual_correction_ppb\":-1234", "\"manual_correction_ppb\":100001"},
-              {"\"automatic_calibration\":false", "\"automatic_calibration\":true"},
+              {"\"automatic_calibration\":false", "\"automatic_calibration\":null"},
               {"\"rf_gate_gp\":null", "\"rf_gate_gp\":7"},
               {"\"reference_use\":\"measurement_only\"", "\"reference_use\":\"trusted_local\""},
               {"\"trusted_uncertainty_ppb\":null", "\"trusted_uncertainty_ppb\":100"}}})

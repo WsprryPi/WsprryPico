@@ -65,6 +65,14 @@ std::string validate_rf_configuration(const Config& config,
         if (!allocation.valid())
             return allocation.error.empty() ? allocation.pins.error : allocation.error;
     }
+    if (config.pins.engine == hardware::PinPlan::Engine::I2c && config.si5351 &&
+        config.si5351->automatic_calibration &&
+        (!config.gps || !config.gps->enabled || !config.gps->pairing_qualified))
+        return "gps_required";
+    if (config.gps) {
+        if (const auto error = hardware::validate_gps(config.pins, config.si5351, *config.gps, filters);
+            !error.empty()) return error;
+    }
     return hardware::validate_filters(filters, config.pins);
 }
 bool valid_ntp_timeout_token(wtp::json::Value value, bool unlimited) {
@@ -164,7 +172,7 @@ std::optional<Config> parse_config(std::string_view text) {
                 {"expires_utc_s", "pins", "allow_unqualified_frequency",
                  "allow_non_amateur_frequency", "gpio_drive_ma", "manual_correction_ppb",
                  "ntp_rf_calibration", "wspr_dial_frequency_hz", "ntp_timeout_s",
-                 "amplifier_timing", "si5351"}) ||
+                 "amplifier_timing", "si5351", "gps"}) ||
         (root->get("version")->raw != "1" && root->get("version")->raw != "2") ||
         (root->get("enabled")->raw != "true" && root->get("enabled")->raw != "false"))
         return {};
@@ -246,6 +254,15 @@ std::optional<Config> parse_config(std::string_view text) {
             c.si5351 = *settings;
         }
     }
+    if (const auto supplied = root->get("gps")) {
+        if (supplied->raw != "null") {
+            const auto parsed = hardware::parse_gps(std::string(supplied->raw));
+            if (!parsed || !hardware::validate_gps(c.pins, c.si5351, *parsed).empty()) return {};
+            c.gps = *parsed;
+        }
+    }
+    if (c.si5351 && c.si5351->automatic_calibration &&
+        (!c.gps || !c.gps->enabled || !c.gps->pairing_qualified)) return {};
     if (c.pins.engine == hardware::PinPlan::Engine::I2c &&
         (!c.si5351 || !hardware::validate_si5351(c.pins, *c.si5351).valid()))
         return {};
@@ -339,6 +356,8 @@ std::string serialize_config(const Config& c, bool amplifier_view) {
             ",\"tail_ms\":" + std::to_string(c.amplifier_timing.tail_ms) + "}";
     if (c.si5351)
         result += ",\"si5351\":" + hardware::serialize_si5351(*c.si5351);
+    if (c.gps)
+        result += ",\"gps\":" + hardware::serialize_gps(*c.gps);
     return result + "}";
 }
 } // namespace wsprrypico::standalone

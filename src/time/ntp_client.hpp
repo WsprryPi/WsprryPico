@@ -15,6 +15,19 @@ class NtpClient {
         std::uint64_t generation = 0, selected_sample_raw_ns = 0, selected_epoch = 0;
     };
     explicit NtpClient(ObservationSink& clock);
+    bool reference_clock(bool enabled, std::uint64_t now) {
+        if (!core_.reference_clock(enabled, now))
+            return false;
+        if (!enabled)
+            clock_.invalidate(ObservationSource::Gps);
+        (void)apply(now);
+        return true;
+    }
+    bool reference_observation(microchrony::ReferenceObservation value, std::uint64_t now) {
+        const bool accepted = core_.observe_reference(value, now);
+        (void)apply(now);
+        return accepted;
+    }
     bool configure(unsigned slot, std::uint32_t endpoint, std::uint64_t now);
     void online(bool enabled, std::uint64_t now) {
         core_.online(enabled, now);
@@ -93,7 +106,7 @@ class NtpClient {
         microchrony::Rejection rejection = microchrony::Rejection::None;
         bool accepted = false;
     };
-    // Independent of the 32 KiB estimator; immutable offered-packet evidence.
+    // Independent of the 36 KiB estimator; immutable offered-packet evidence.
     std::array<PacketRecord, 32> packets_{};
     std::array<std::uint64_t, 4> request_ns_{}, request_tokens_{};
     std::uint64_t packet_sequence_ = 0;

@@ -214,6 +214,12 @@ bool Engine::project_start(std::uint64_t& target) const {
         growth > conditions_.maximum_uncertainty_ns - now.uncertainty_ns ||
         rounding_utc > conditions_.maximum_uncertainty_ns - now.uncertainty_ns - growth)
         return false;
+    std::uint64_t horizon_duration{};
+    const auto horizon_latest = conditions_.start_utc_ns + window - 1;
+    if (!time::duration_utc_bound(plan_->requested_duration_ns, now, horizon_duration) ||
+        horizon_latest >= now.valid_until_utc_ns ||
+        horizon_duration >= now.valid_until_utc_ns - horizon_latest)
+        return false;
     if (now.leap_transition_utc_ns) {
         const auto leap = *now.leap_transition_utc_ns;
         const auto low = leap > 1'000'000'000 ? leap - 1'000'000'000 : 0;
@@ -330,7 +336,7 @@ wtp::EngineReport Engine::poll(std::uint64_t) {
                                     !background_suspended_);
         return report();
     }
-    const auto now = platform_.now_ns();
+    auto now = platform_.now_ns();
     if (state_ == wtp::EngineState::Armed) {
         std::uint64_t projected{};
         if (!project_start(projected)) {
@@ -338,6 +344,9 @@ wtp::EngineReport Engine::poll(std::uint64_t) {
             return report();
         }
         start_ns_ = projected;
+        // Clock projection samples time after this poll's initial read. Use a
+        // fresh local timestamp so a due start cannot keep chasing that read.
+        now = platform_.now_ns();
         if (filters_ && filters_->required()) {
             const auto due =
                 start_ns_ - std::min(start_ns_, amplifier_lead_ns() + filter_preparation_ns());

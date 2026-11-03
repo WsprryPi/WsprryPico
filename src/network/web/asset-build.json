@@ -2,36 +2,37 @@
   "schema": "operator-assets/1",
   "tool": "esbuild/0.28.2",
   "target": "es2020",
-  "recipe_sha256": "faa2c007a1c6697577958a27ad79e508b9cbec840c4c0c9f5455a50657349d91",
+  "recipe_sha256": "975e4d785b35ab3a13c509af50e9adae2719862d8d487a15ad4ccad6f8e1f6fb",
   "groups": {
     "app.min.js": {
       "inputs": {
         "submission.js": "6119ce1314b0ea7626242259173c2b54c0d97c1dae4434cc9360a3b18e4ac392",
-        "control-contract.js": "b27c40e208c31f40f4617cad9df953a2fa7ae7d4b69c44ef0e7d8492b8482597",
-        "si5351.js": "cbe59c7152fe0d0633b939eb60a29baa252fa4f27de353c602aa53d33b34b2a0",
+        "control-contract.js": "1c6bcab60fd1e77511ffc1cede644db4085bc7abe71a753b13d03e7a63c65302",
+        "si5351.js": "bd12a3e96c90a1f144b5f7bc6131cad16cd13f0871ac9c5d5a98f57ec365af91",
+        "gps.js": "9dc3a87891e8ddcf32ca1265860eee8d264f4402dba4b5a6a6349df3b5dcdff4",
         "udp-logging.js": "c75a07a806f16007424d530f8983beaff6a77d14dfbe440cdd159b1f28ceae0b",
         "operations.js": "b1e3d4c42f45a5924aa751dca452b6cf3e54c9cea6b285fc05fbc4094abc1b78",
         "standalone-frequency.js": "690df1c89b02c8075f149b1d48644dee0c2fb8f87d923303822bc804766c1c7e",
-        "rf-calibration.js": "4d874739cfd33b25af459146c115f86cf777ab3823a00fb368441de4b52d8729",
+        "rf-calibration.js": "636d0f9a2555e84357de4c1faf7b387c74e8441bfad59f9faa225e383e914628",
         "amplifier-enable.js": "40d804e65e7f9a0889d2188e5139880c72a65914c9153c1ee11cf6869ba37e08",
         "amplifier-timing.js": "8938ca77042a6d3650b22b0cb4fff8a822e83ae2b178513f8ccdb43d678e09b9",
-        "filter-selector.js": "b5cc6fc67faec9b65236fdf6d01d0ab11ec0f9d236978e1e752e6ce38924d3dc",
+        "filter-selector.js": "9fb1c99755276951c8e846d97c9efb6c8359e7afbe36c632cfaac92c4f422c1c",
         "gpio-drive.js": "c871396aada01cb971ed61694440531dd9fde8d8ab52fac3669da36112f46036",
         "ntp-timeout.js": "470a14f62560f2e4b6af39cb4a61f518a8e9700648da865fe6ba564f350093fc",
         "saved-progress.js": "dc07bb447d3e3f1c75d5c54eea0b9088f91bbf154a37be66611dc4994d2ace4c",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "e7eaae7bef7c033031b98541c1a81229e143bb0bbd7627484fbb561ee4278ccc",
-        "app.js": "6e2bdf17ed401593f60fd9d4f7099d21f4ed0a1a128f7aa2bf8f18cf3becffa9"
+        "app.js": "c50e356ee99432a6fe62a834bdd584b8968b29437b6fcaa1964e32ab20bc4f7d"
       },
-      "sha256": "f0b083a2e07315cfcc7f7f69c5e2f5f5f34344a66fae70be1758591ab7d7ee5a",
-      "bytes": 255864
+      "sha256": "1268a8e3a24335f86c76ee5fa5c62b31d10eb0cada5bf8ed4a34a1270713f25d",
+      "bytes": 274089
     },
     "config-validation.min.js": {
       "inputs": {
-        "config-validation.js": "923d897de97eed6e5b1f311db5a5eb4e66f419993ae67c6c9a81b9b352556f7c"
+        "config-validation.js": "cfb632a9a336581f5087fa0205b88032416f34ced9067e947e303102c9d4bf1d"
       },
-      "sha256": "e2598dc7f090bd51ccff986c491ceb46a4ccb42c0f47f358b4e5fe7011f7ef68",
-      "bytes": 2492
+      "sha256": "c148ccfc0b37240560a89c5852393de8daaaed75442e127df9b0ae651001d05f",
+      "bytes": 2695
     },
     "device-presentation.min.js": {
       "inputs": {
@@ -42,10 +43,10 @@
     },
     "organization.min.js": {
       "inputs": {
-        "organization.js": "b35d275320b621802548fbcf42132ede51fabcbc89758ef5118d61c76809cf5b"
+        "organization.js": "910e88c3b42fd473ad62394938a99dbc697bcfcc0000725df6d4247f3658ec03"
       },
-      "sha256": "d519ad99c21c3f36ab63bdca1dc8f5c81fb620698cde9ef2d3b219a257a1b264",
-      "bytes": 8118
+      "sha256": "aee8a4128e93d623db43f5242a9b4b58b437d4374473dbfda3d668a5f3a1da38",
+      "bytes": 8291
     }
   }
 }

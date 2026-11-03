@@ -20,7 +20,8 @@ class ReferenceMonitor {
   public:
     using Now = std::uint64_t (*)(void*);
     ReferenceMonitor(const si5351::Configuration& config, const ReferencePolicy& policy,
-                     si5351::Device& device, ReferenceCapture& capture, Now now, void* context);
+                     si5351::Device& device, ReferenceCapture& capture, Now now, void* context,
+                     bool pps_calibration = false);
     void service(bool permitted);
     bool pause(std::uint64_t deadline_ns);
     void inhibit();
@@ -37,6 +38,7 @@ class ReferenceMonitor {
     void fault(std::string_view error);
     const si5351::Configuration config_;
     const ReferencePolicy policy_;
+    const bool pps_calibration_;
     const std::optional<si5351::ReferencePlan> plan_;
     si5351::Device& device_;
     ReferenceCapture& capture_;

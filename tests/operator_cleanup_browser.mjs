@@ -196,6 +196,7 @@ try {
   await until(()=>evaluate('typeof settingsLoadedBoot!=="undefined" && !!settingsLoadedBoot && !busy'),'public settings loaded');
   assert.equal(await evaluate('online'),true);
   assert.equal(await evaluate('radio.authenticated'),false);
+  assert.equal(reads.some(read=>read.path==='/api/consumer/v1/read/gps'),false,'private GPS read is not attempted during public settings loading');
   assert.equal(await evaluate('document.getElementById("config").elements.callsign.value'),'AA0NT');
   assert.equal(await evaluate('document.getElementById("config").elements.ssid.value'),'test-network');
   assert.equal(await evaluate('document.getElementById("config").elements.password.value'),'');
@@ -328,10 +329,12 @@ try {
   assert.equal(await evaluate('document.getElementById("config").elements.rf_gp.value'),'4');
   assert.equal((await config()).config.enabled,false,'no schedules enabled by fixture');
   console.log('PASS independent pin save, WSPR progress save/apply and unrelated draft preservation');
+  await evaluate('document.querySelector("[data-gps-status]").textContent="GPS locator EM18IG. Private observation."');
   const before=(await f.command({op:'stats'})).config_sequence;dropPinReply=true;
   await click('save-pins');await until(()=>evaluate('!busy && !radio.authenticated'),'lost committed reply');
   assert.equal(BigInt((await f.command({op:'stats'})).config_sequence),BigInt(before)+1n);
   await evaluate('refresh(true)');
+  assert.doesNotMatch(await evaluate('document.querySelector("[data-gps-status]").textContent'),/Private observation|EM18IG/,'session loss clears private GPS telemetry while public settings remain readable');
   assert.equal(await evaluate('document.getElementById("config").elements.rf_gp.value'),'4');
   assert.equal(await evaluate('document.getElementById("config").elements.schedules.value'),'240 / 0');
   assert.equal(await evaluate('document.getElementById("save-pins").disabled'),true);

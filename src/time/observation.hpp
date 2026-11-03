@@ -7,7 +7,7 @@
 #include <string_view>
 
 namespace wsprrypico::time {
-enum class ObservationSource { Sntp, Controller, Browser };
+enum class ObservationSource { Sntp, Controller, Browser, Gps };
 
 struct RateObservation {
     std::uint64_t utc_ns = 0, raw_ns = 0, uncertainty_ns = 0;
@@ -48,6 +48,10 @@ class ObservationSink {
         (void)model;
         (void)max_clock_error_ppb;
         return false; // A sink must explicitly support age-preserving model import.
+    }
+    virtual bool observe_reference_model(const RateObservation&, const wtp::ClockSnapshot&,
+                                         std::uint32_t) {
+        return false;
     }
     virtual bool observe_frequency_reference(const LocalFrequencyReference&, std::uint64_t) {
         return false;

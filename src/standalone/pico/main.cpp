@@ -1,4 +1,7 @@
 #include "application/resources.hpp"
+#include "logging/transmission_record.hpp"
+#include "logging/gps_record.hpp"
+#include "time/pico/gps_input.hpp"
 #include "network/control.hpp"
 #include "rf/si5351_observation.hpp"
 
@@ -469,7 +472,9 @@ int main() {
     auto& engine = wsprrypico::rf::start_worker(
         clock, boot_pins, store_loaded && store.healthy(), tx_indicator_gate, boot_gpio_drive_ma,
         &amplifier_enable, &filter_selector,
-        store.config() ? store.config()->si5351 : std::nullopt);
+        store.config() ? store.config()->si5351 : std::nullopt,
+        store.config() && store.config()->gps && store.config()->gps->enabled &&
+            store.config()->gps->pairing_qualified);
 #else
     static wsprrypico::standalone::DryRunEngine engine;
 #endif
@@ -482,8 +487,9 @@ int main() {
     const bool runtime_profile_loaded_at_boot =
         profile_store_loaded &&
         runtime_profile.load(profile_store, identities.device_id(), build_bundle);
+    bool gps_clock_fault = false; // A changed raw clock domain requires a new boot.
     const auto runtime_profile_ready = [&]() {
-        return runtime_profile_loaded_at_boot && runtime_profile.control_healthy(profile_store);
+        return !gps_clock_fault && runtime_profile_loaded_at_boot && runtime_profile.control_healthy(profile_store);
     };
     // Source 5 may join station for time, but owner and TLS authority are not
     // active at structural admission. Deny every legacy control path.
@@ -494,15 +500,18 @@ int main() {
         return runtime_profile.consumer_browser_selected(profile_store);
     };
 #ifdef WSPRRY_PICO_STANDALONE_RF
-    const auto config = wsprrypico::standalone::wtp_profile(
+    auto config = wsprrypico::standalone::wtp_profile(
         true, ntp_timeout_s, boot_pins.engine, WSPRRY_PICO_SI5351_ENGINEERING,
         store.config() && store.config()->si5351 &&
             wsprrypico::hardware::si5351_ordinary_qualified(boot_pins, *store.config()->si5351,
                                                             clock_get_hz(clk_sys),
                                                             filter_selector.settings()));
 #else
-    const auto config = wsprrypico::standalone::wtp_profile(false, ntp_timeout_s, boot_pins.engine);
+    auto config = wsprrypico::standalone::wtp_profile(false, ntp_timeout_s, boot_pins.engine);
 #endif
+    if (store.config() && store.config()->gps && store.config()->gps->enabled)
+        config.maximum_holdover_age_ns = std::max<std::uint64_t>(config.maximum_holdover_age_ns,
+                                                               3'600'000'000'000ULL);
     static wsprrypico::standalone::FrequencyPolicyEngine policy_engine(
         engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz);
     static wsprrypico::wtp::JobService service(clock, policy_engine, identities, config);
@@ -520,7 +529,8 @@ int main() {
     static wsprrypico::provisioning::LedScheduleFixture led_schedule;
 #endif
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
-    static wsprrypico::provisioning::PicoGp14Capture gp14_button(boot_pins.button);
+    static wsprrypico::provisioning::PicoGp14Capture::Ring gp14_ring;
+    static wsprrypico::provisioning::PicoGp14Capture gp14_button(gp14_ring, boot_pins.button);
     bool gp14_fault_handled = false;
     bool gp14_reset_pending = false;
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -577,8 +587,38 @@ int main() {
     static wsprrypico::time::ControllerTimeArbiter time_arbiter(clock, monotonic_now, nullptr,
                                                                 identities.device_id());
     static wsprrypico::standalone::PicoNetwork network(time_arbiter, tls_credentials.hostname);
+    static wsprrypico::time::PicoGpsInput gps_input;
+    static wsprrypico::time::gps::PpsCalibration gps_calibration;
+    static const auto boot_gps = scheduler.active_gps();
+    bool gps_opened = false;
+#ifdef WSPRRY_PICO_STANDALONE_RF
+    gps_input.cycle_capture(wsprrypico::rf::reference_count_at_pps);
+#endif
+    if (!boot_recovery && store.healthy() && boot_gps && boot_gps->enabled) {
+        gps_opened = gps_input.open(boot_pins, scheduler.active_si5351(), *boot_gps, boot_filters);
+        (void)network.gps_clock(gps_opened && boot_gps->pairing_qualified, monotonic_now(nullptr));
+    }
+    struct GpsObservationContext {
+        wsprrypico::standalone::PicoNetwork* network;
+        wsprrypico::time::PicoGpsInput* input;
+        wsprrypico::time::gps::PpsCalibration* calibration;
+        long double nominal_hz;
+        wsprrypico::logging::Logger* logger = nullptr;
+    };
+    long double loopback_nominal_hz = 0;
+    if (scheduler.active_si5351()) {
+        const auto plan = wsprrypico::rf::si5351::plan_reference(scheduler.active_si5351()->synthesis);
+        if (plan) loopback_nominal_hz = plan->output.achieved_hz;
+    }
+    static GpsObservationContext gps_context{&network, &gps_input, &gps_calibration, loopback_nominal_hz};
     std::uint64_t ntp_cache_observed_raw_ns = 0;
-    const auto ntp_boot_rate = ntp_prior_loaded && ntp_retention.record()
+    std::uint64_t gps_cache_observed_raw_ns = 0;
+    const bool retained_binding = ntp_prior_loaded && ntp_retention.record() &&
+        (ntp_retention.record()->utc_source.endpoint != 0x475053 ||
+         (store.config() && ntp_retention.record()->gps &&
+          ntp_retention.record()->gps->settings_fingerprint ==
+            wsprrypico::standalone::NtpRetention::gps_fingerprint(*store.config())));
+    const auto ntp_boot_rate = retained_binding
                                    ? std::optional(ntp_retention.record()->utc_rate_ppb)
                                    : std::nullopt;
     if (ntp_boot_rate)
@@ -726,6 +766,7 @@ int main() {
                                               local_identity.hostname);
     static wsprrypico::logging::UsbSession logging_session(logger, identities.device_id(),
                                                            service.status().boot_id);
+    gps_context.logger = &logger;
     logger.settings(store.logging_settings());
     browser_api.logging_service(logger);
     static wsprrypico::logging::UdpSender udp_sender(
@@ -741,6 +782,30 @@ int main() {
     logger.udp_sink(udp_sender);
     browser_api.udp_logging_service(udp_store, udp_sender);
     logger.event(5, "BOOT", "Application started", time_us_64() * 1000ULL);
+    struct TransmissionContext {
+        wsprrypico::logging::Logger* logger;
+        wsprrypico::time::ControllerTimeArbiter* time;
+        wsprrypico::standalone::Scheduler* scheduler;
+        wsprrypico::standalone::FrequencyPolicyEngine* engine;
+    };
+    static TransmissionContext transmission_context{&logger, &time_arbiter, &scheduler, &policy_engine};
+    service.arm_observer([](const wsprrypico::wtp::Job& job, const wsprrypico::wtp::ArmBody& arm,
+        const wsprrypico::wtp::ClockSnapshot& clock, std::string_view principal, void* p) {
+        const auto& c = *static_cast<TransmissionContext*>(p);
+        const auto source = c.time->status().source;
+        constexpr std::array<std::string_view, 6> names{"none", "sntp", "controller", "browser", "gps", "disagreement"};
+        wsprrypico::logging::TransmissionRecord record{job.job_id, names[unsigned(source)], arm.start_utc_ns,
+            clock, {"unknown", "controller_encoded", 0}, {"manual", 0, 0, 0, 0}};
+        const auto station = principal == "standalone-local"
+            ? c.scheduler->transmission_station(job.job_id)
+            : std::optional<wsprrypico::standalone::Scheduler::TransmissionStation>{};
+        if (station)
+            record.station = {station->locator.data(), station->gps ? "gps" : "manual", station->position_raw_ns};
+        if (const auto correction = c.engine->prepared_correction())
+            record.correction = {correction->automatic ? "gps" : "manual", correction->ppb,
+                correction->generation, correction->observed_raw_ns, correction->uncertainty_ppb};
+        wsprrypico::logging::record_transmission(*c.logger, record);
+    }, &transmission_context);
     auto logged_activity = service.activity();
     wsprrypico::logging::ClockStateLogger clock_logger;
     auto logged_config = store.config_sequence();
@@ -766,6 +831,25 @@ int main() {
         },
         &si_runtime);
 #endif
+    browser_api.gps_observer([](void*) {
+        const auto now = monotonic_now(nullptr);
+        const auto calibration = [now](const std::optional<wsprrypico::time::gps::Calibration>& value) {
+            if (!value) return std::string("null");
+            const auto maximum_age = boot_gps ? boot_gps->calibration_maximum_age_s * wsprrypico::time::gps::second : 0;
+            return "{\"oscillator_error_ppb\":" + std::to_string(value->oscillator_error_ppb) +
+                ",\"uncertainty_ppb\":" + std::to_string(value->uncertainty_at(now)) +
+                ",\"observed_raw_ns\":\"" + std::to_string(value->observed_raw_ns) +
+                "\",\"age_ns\":\"" + std::to_string(now >= value->observed_raw_ns ? now - value->observed_raw_ns : 0) +
+                "\",\"span_ns\":\"" + std::to_string(value->span_ns) +
+                "\",\"generation\":\"" + std::to_string(value->generation) +
+                "\",\"fresh\":" + (value->fresh(now, maximum_age) ? "true}" : "false}");
+        };
+        auto result = gps_input.status(now);
+        result.pop_back();
+        result += ",\"timer_calibration\":" + calibration(gps_calibration.timer()) +
+                  ",\"synthesizer_calibration\":" + calibration(gps_calibration.synthesizer()) + "}";
+        return result;
+    }, nullptr);
     // Source 5 keeps public commissioning separate from encrypted, password-
     // authenticated radio requests. Legacy plaintext field mutations stay closed.
     const auto blank_access_available = []() {
@@ -1775,6 +1859,7 @@ int main() {
             } else if (command == "HOLD" && scheduler.idle() && !current.owned &&
                        !current.output_active &&
                        wsprrypico::hardware::validate(boot_pins).owners[15].empty() &&
+                       (!boot_gps || !boot_gps->enabled || boot_gps->pps_gp != 15) &&
                        fixture.hold()) {
                 gpio_init(15);
                 gpio_put(15, false);
@@ -2116,6 +2201,33 @@ int main() {
             maximum(max_loop_us, last_loop_us);
         last_loop_us = measuring ? loop_us : 0;
 #endif
+        if (gps_opened) {
+            const auto now = monotonic_now(nullptr);
+            const bool capture_clock_bound = gps_input.capture_clock_bound();
+            if (!capture_clock_bound && !gps_clock_fault) {
+                gps_clock_fault = true;
+                (void)service.local_inhibit_output();
+                logger.event(3,"GPS_CLOCK_FAULT","Raw clock domain changed; output inhibited until reboot",now);
+            }
+            gps_input.poll(now, [](const wsprrypico::time::gps::Observation& observation, void* p) {
+                auto& context = *static_cast<GpsObservationContext*>(p);
+                const auto current = monotonic_now(nullptr);
+                const bool admitted = context.network->gps_observation(observation, current);
+                (void)context.calibration->observe(observation, context.input->cycle(), context.nominal_hz);
+                if (context.logger) {
+                    const auto nominal = std::isfinite(context.nominal_hz) && context.nominal_hz > 0 &&
+                                         context.nominal_hz <= 10'000'000
+                                             ? std::uint64_t(context.nominal_hz * 1'000'000'000.L) : 0;
+                    wsprrypico::logging::record_gps_capture(*context.logger, observation,
+                        context.input->cycle(), admitted, nominal, current);
+                }
+            }, &gps_context);
+            network.clock_poll(monotonic_now(nullptr));
+            scheduler.gps_position(gps_input.position(now));
+            const bool direct = boot_pins.engine == wsprrypico::hardware::PinPlan::Engine::Direct;
+            policy_engine.gps_calibration(direct ? gps_calibration.timer() : gps_calibration.synthesizer(),
+                now, !gps_clock_fault && capture_clock_bound && (!direct || ntp_retention_topology()), time_arbiter.status().disagreement);
+        }
         // Core 1 owns physical refills/launch. Core 0 reconciles authority and
         // services all transports; packet arrival never times waveform events.
         if (!reset_coordinator.pending() && !bootstrap.setup_pending()) {
@@ -2188,7 +2300,31 @@ int main() {
                              network.link_up(),
                          network.udp_generation());
         const auto cache_now = monotonic_now(nullptr);
-        if (!boot_recovery && !recovery_reset_at && !reset_coordinator.pending() && !reboot_at &&
+        if (gps_opened && !gps_clock_fault && !boot_recovery && !reset_coordinator.pending() &&
+            store.config() && !scheduler.hardware_restart_required() &&
+            ntp_retention_topology() && !time_arbiter.status().disagreement &&
+            gps_input.last_observation() && gps_calibration.timer() &&
+            gps_calibration.timer()->observed_raw_ns != gps_cache_observed_raw_ns &&
+            gps_calibration.timer()->observed_raw_ns == gps_input.last_observation()->raw_ns &&
+            gps_calibration.timer()->fresh(cache_now, 5 * wsprrypico::time::gps::second)) {
+            using Prior = wsprrypico::standalone::NtpRetention::Record::GpsPrior;
+            gps_cache_observed_raw_ns = gps_calibration.timer()->observed_raw_ns;
+            const auto saved_rate = [](const wsprrypico::time::gps::Calibration& c) {
+                return Prior::Rate{c.oscillator_error_ppb, c.uncertainty_ppb,
+                    unsigned(c.span_ns / wsprrypico::time::gps::second)};
+            };
+            Prior prior;
+            prior.settings_fingerprint = wsprrypico::standalone::NtpRetention::gps_fingerprint(*store.config());
+            prior.boot = service.status().boot_id;
+            prior.reference_utc_ns = gps_input.last_observation()->utc_ns;
+            prior.generation = gps_calibration.timer()->generation;
+            prior.timer = saved_rate(*gps_calibration.timer());
+            if (gps_calibration.synthesizer() &&
+                gps_calibration.synthesizer()->fresh(cache_now, 5 * wsprrypico::time::gps::second))
+                prior.synthesizer = saved_rate(*gps_calibration.synthesizer());
+            (void)ntp_retention.stage_gps(prior);
+        }
+        if (!gps_clock_fault && !boot_recovery && !recovery_reset_at && !reset_coordinator.pending() && !reboot_at &&
             time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Sntp &&
             ntp_retention_topology()) {
             const auto original = network.ntp_original();
@@ -2210,7 +2346,7 @@ int main() {
                 (void)ntp_retention.stage(utc, source, std::nullopt, control.rate_uncertainty_ppb);
             }
         }
-        if (!boot_recovery && !recovery_reset_at && !reset_coordinator.pending() &&
+        if (!gps_clock_fault && !boot_recovery && !recovery_reset_at && !reset_coordinator.pending() &&
             !reset_coordinator.blocks_admission() && !reboot_at && !bootstrap.setup_pending() &&
             !bootstrap.owner_claim_pending() && scheduler.idle() &&
             wsprrypico::provisioning::idle_for_access(provisioning_activity(&service)) &&
@@ -2366,8 +2502,9 @@ int main() {
         const auto clock_now = service.clock_snapshot();
         const bool local_wtp_time_ready =
             !local_wtp ||
-            (station_ready && network.accepted_sntp() &&
-             time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Sntp &&
+            (station_ready &&
+             ((network.accepted_sntp() && time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Sntp) ||
+               time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Gps) &&
              clock_now.state == wsprrypico::wtp::ClockState::Synchronized &&
              clock_now.utc_now_ns != 0);
         // Offline station saves retain a TLS-pending journal. Mint only after

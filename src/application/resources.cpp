@@ -66,7 +66,7 @@ std::string capabilities() {
            "\"station_power_meaning\":\"reported_wspr_dbm\","
            "\"recurrence_authorities\":[\"member\"],\"autonomous_modes\":[\"wspr\"],"
            "\"unavailable\":[\"recurrence_transfer\","
-           "\"reference_calibration\",\"waveform_preferences\","
+           "\"waveform_preferences\","
            "\"plain_lan_json_management\",\"ble_json_management\"]}";
 }
 std::string wspr_plan(const standalone::Config& config) {

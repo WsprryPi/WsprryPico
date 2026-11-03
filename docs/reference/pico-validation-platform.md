@@ -16,8 +16,8 @@ The QRP Labs components are available from **Hans Summers' [QRP Labs store](http
 | QRP Labs QLG3 | GPS receiver with its active patch antenna and SMA connection | [QLG3 receiver kit](https://shop.qrp-labs.com/qlg3) |
 | QRP Labs Si5351A synthesizer | Rev. 6 board with onboard regulator and I²C level converters | [Si5351A synthesizer kit](https://shop.qrp-labs.com/synth) |
 | QRP Labs 25 MHz TCXO | Fitted to the Si5351 board instead of the standard crystal | [25 MHz TCXO module](http://shop.qrp-labs.com/tcxo?search=TCXO) |
-| Normally open momentary push button | Runtime control between GP14 and GND | [Buttons used in this platform](https://www.amazon.com/dp/B01J9KO7DC) |
-| External LED with built-in resistor | Active-high indicator on GP15; no separate series resistor required | [LEDs used in this platform](https://www.amazon.com/dp/B087TNB45V) |
+| Normally open momentary push button | Runtime switch between GP14 (physical pin 19) and GND (physical pin 18) | [Buttons used in this platform](https://www.amazon.com/dp/B01J9KO7DC) |
+| External LED with built-in resistor | Active-high indicator on GP17; no separate series resistor required | [LEDs used in this platform](https://www.amazon.com/dp/B087TNB45V) |
 | DuPont-to-BNC lead | BNC center contact to GP2, shield to GND; measurement path includes a suitable load, attenuation and filtering | [Leads used in this platform](https://www.amazon.com/dp/B09VBC7611) |
 | Connecting leads | DuPont jumpers, including a joined supply lead for GPS VDD and VBAT | Suitable leads for the fitted headers |
 
@@ -25,11 +25,11 @@ The fitted synthesizer is a **Rev. 6 board**. The **Rev. 5 documentation remains
 
 ## Base Configuration
 
-The base setup uses **GP2 for direct RF**, **GP14 for the runtime button**, and **GP15 for the external transmit LED**. The diagram uses the **flipped underside view**, with **USB at the top**, **physical pin 40 at upper left**, and **physical pin 1 at upper right**, matching the module wiring view below. Header assignments follow the [Pico 2 W pinout](https://pico2w.pinout.xyz/).
+The base setup uses **GP2 for direct RF**, **GP14 for the runtime button**, and **GP17 for the external transmit LED**. The diagram uses the **flipped underside view**, with **USB at the top**, **physical pin 40 at upper left**, and **physical pin 1 at upper right**, matching the module wiring view below. Header assignments follow the [Pico 2 W pinout](https://pico2w.pinout.xyz/).
 
 The Pico Pinout website provides a **Flip** control to select this view. Commercially pre-pinned Picos have their header pins projecting from the **bottom of the board**, so the flipped image shows the side from which those pins are accessed. Looking at the component side reverses the left and right headers relative to these drawings. **Verify your own board's orientation and every connection before applying power**: identify the USB end, confirm which side faces you, and check the physical pin numbers and signal labels. Do not rely on wire colors or apparent left/right position alone.
 
-![Flipped Pico 2 W underside with GP2 and pin 3 ground connected to the RF connector, GP14 and pin 18 ground connected to a normally open button, and GP15 connected to the LED assembly with its built-in resistor, returning to pin 18 ground](../_static/images/wiring/pico2w-base-configuration.svg)
+![Flipped Pico 2 W underside with GP2 and pin 3 ground connected to the RF connector, GP14 and pin 18 ground connected to a normally open button, and GP17 connected to the LED assembly with its built-in resistor, returning to pin 23 ground](../_static/images/wiring/pico2w-base-configuration.svg)
 
 | Connection | Pico GPIO or supply | Physical Pico pin | Wiring |
 | --- | --- | --- | --- |
@@ -37,19 +37,19 @@ The Pico Pinout website provides a **Flip** control to select this view. Commerc
 | RF ground | GND | 3 | RF connector shield or shell |
 | Runtime control button | GP14 | 19 | One side of a normally open momentary switch |
 | Button ground | GND | 18 | Other side of the switch |
-| External transmit LED | GP15 | 20 | LED assembly positive (+) lead; resistor is built in |
-| LED ground | GND | 18 | LED assembly negative (−) lead; shared with button ground |
+| External transmit LED | GP17 | 22 | LED assembly positive (+) lead; resistor is built in |
+| LED ground | GND | 23 | LED assembly negative (−) lead |
 | Power and host connection | USB | USB socket | USB data cable to the host |
 
 ### Button
 
-Connect the switch between **GP14 (pin 19)** and **GND (pin 18)**. Pressing it pulls the input low. Configure the GPIO as an input with its internal pull-up enabled; this harness has no external pull-up resistor. The switch is separate from the onboard BOOTSEL button. See [button operation](../connect.md#request-setup-wi-fi-with-the-external-button) for application controls.
+The validation platform's runtime switch connects **GP14 (physical pin 19)** to **GND (physical pin 18)**. Pressing it pulls GP14 low. Configure GP14 as an input with its internal pull-up enabled; this harness has no external pull-up resistor. The switch is separate from the onboard BOOTSEL button. See [button operation](../connect.md#request-setup-wi-fi-with-the-external-button) for application controls.
 
 ### External LED
 
-The [LEDs used in this platform](https://www.amazon.com/dp/B087TNB45V) have a **built-in series resistor**, so **no separate resistor is required**. Connect **GP15 (pin 20) → LED assembly positive (+) lead**, then connect **LED assembly negative (−) lead → GND (pin 18)**.
+The [LEDs used in this platform](https://www.amazon.com/dp/B087TNB45V) have a **built-in series resistor**, so **no separate resistor is required**. Connect **GP17 (pin 22) → LED assembly positive (+) lead**, then connect **LED assembly negative (−) lead → GND (physical pin 23)**.
 
-This circuit is **active-high**: driving GP15 high lights the LED. Match the test software's output assignment and polarity to the wiring. See [LED and button settings](../configure.md#led-and-button-settings) for application configuration.
+This circuit is **active-high**: driving GP17 high lights the LED. Match the test software's output assignment and polarity to the wiring. See [LED and button settings](../configure.md#led-and-button-settings) for application configuration.
 
 ### RF connection
 
@@ -96,6 +96,8 @@ The module's onboard regulator converts the 5 V supply on pin 10 to approximatel
 The synthesizer uses I²C address `0x60`. Module pin 11 is unconnected in this harness, so it does not supply the module's I²C pull-up resistors. The bench arrangement relies on Pico internal pull-ups on GP4 and GP5, with a 100 kHz bus. Check bus voltage levels and rise times when changing cable length, bus speed or module assembly.
 
 CLK0 is the RF connection; SDA and SCL carry control data. At the CLK0 SMA connector, the center contact carries RF and the shell is ground. Use an appropriate load, attenuation and filtering for the measurement path. CLK2 feeds GP7 as a separate measurement input; it is not connected to the GPS PPS input.
+
+Conducted Si5351 validation connects CLK0 and the GPSDO reference to a combiner, followed by a path providing 60 dB attenuation to the SDR. No antenna is connected. This arrangement uses the Si5351 RF output, with CLK2 still connected to GP7 for loopback; GP2 is the separate direct GPIO RF connection and carries neither GPS nor Si5351 control signals. Combined-reference tests use 160 m through 4 m.
 
 ## GPS/PPS Configuration
 

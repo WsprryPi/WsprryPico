@@ -23,13 +23,13 @@ static int descriptors[2], action, slot, stratum;
 static uint64_t server_ns;
 static uint64_t server_receive_ns, server_reference_ns;
 static uint32_t upstream_delay_wire, upstream_dispersion_wire;
-static int captured, precision, leap_status;
-static SRC_Instance sources[4];
-static struct timespec sent[4];
-static uint64_t sent_raw_ns[4];
-static uint64_t last_received_raw_ns[4];
-static int pending[4];
-static IPAddr addresses[4];
+static int captured, precision, leap_status, gps_mode;
+static SRC_Instance sources[5];
+static struct timespec sent[5];
+static uint64_t sent_raw_ns[5];
+static uint64_t last_received_raw_ns[5];
+static int pending[5];
+static IPAddr addresses[5];
 
 static void stamp(long double seconds, time_t base, struct timespec* t) {
     time_t whole = (time_t)floorl(seconds);
@@ -102,7 +102,7 @@ static int next(void) {
     if (scanf("%" SCNu64 " %" SCNu64 " %d %d %" SCNu64 " %d", &truth_ns, &raw_ns, &action, &slot,
               &server_ns, &stratum) != 6)
         return 0;
-    if (raw_ns + .5L < current_raw_ns || slot < 0 || slot >= 4)
+    if (raw_ns + .5L < current_raw_ns || slot < 0 || slot >= (gps_mode ? 5 : 4))
         exit(4);
     server_receive_ns = server_ns;
     server_reference_ns = server_ns ? server_ns - 1000000000ULL : 0;
@@ -126,6 +126,24 @@ static void event(int fd, int flags, void* context) {
         LCL_ReadRawTime(&sent[slot]);
         sent_raw_ns[slot] = raw_ns;
         pending[slot] = 1;
+    } else if (gps_mode && action == 4 && slot == 4) {
+        if (!pending[slot]) exit(12);
+        // Qualified, UTC-completed PPS observation. No NTP request/reply or
+        // fabricated network sample is used for this SRC_REFCLOCK source.
+        NTP_Sample sample = {0};
+        LCL_CookTime(&sent[slot], &sample.time, NULL);
+        sample.offset = ((long double)server_ns / 1e9L - epoch) - seconds(&sample.time);
+        sample.peer_dispersion = sample.root_dispersion = .000150;
+        SRC_UpdateStatus(sources[slot], 0, LEAP_Normal);
+        SRC_UpdateReachability(sources[slot], 1);
+        SRC_AccumulateSample(sources[slot], &sample);
+        SRC_SelectSource(sources[slot]);
+        last_received_raw_ns[slot] = sent_raw_ns[slot];
+        pending[slot] = 0;
+    } else if (gps_mode && action == 5) {
+        SRC_UnsetActive(sources[4]); SRC_ResetInstance(sources[4]); SRC_SelectSource(NULL);
+    } else if (gps_mode && action == 6) {
+        SRC_SetActive(sources[4]);
     } else if (action == 2) {
         if (!pending[slot])
             exit(6);
@@ -168,7 +186,7 @@ static void event(int fd, int flags, void* context) {
         RPT_TrackingReport tracking = {0};
         REF_GetTrackingReport(&tracking);
         int selected = -1;
-        for (int i = 0; i < 4; ++i)
+        for (int i = 0; i < (gps_mode ? 5 : 4); ++i)
             if (SRC_IsSyncPeer(sources[i]))
                 selected = i;
         // Pure frequency and actual applied mapping are deliberately separate.
@@ -248,9 +266,10 @@ int main(int argc, char** argv) {
         return 2;
     const int captured_phase = argc == 3 && strcmp(argv[2], "captured-phase") == 0;
     const int phase_only = captured_phase || (argc == 3 && strcmp(argv[2], "phase") == 0);
+    gps_mode = argc == 3 && strcmp(argv[2], "gps") == 0;
     captured = argc == 3 && (strcmp(argv[2], "captured") == 0 || captured_phase ||
                              strcmp(argv[2], "captured-rtc") == 0);
-    if (argc == 3 && !captured && !phase_only)
+    if (argc == 3 && !captured && !phase_only && !gps_mode)
         return 2;
     LOG_Initialise();
     LOG_SetMinSeverity(LOGS_FATAL);
@@ -269,10 +288,11 @@ int main(int argc, char** argv) {
     REF_Initialise();
     SRC_Initialise();
     NSR_Initialise();
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < (gps_mode ? 5 : 4); ++i) {
         addresses[i].family = IPADDR_INET4;
         addresses[i].addr.in4 = 0xc0000201 + i;
-        sources[i] = SRC_CreateNewInstance(i + 1, SRC_NTP, 0, 0, &addresses[i], 6, 64, 0, 1, 0);
+        sources[i] = SRC_CreateNewInstance(i + 1, i == 4 ? SRC_REFCLOCK : SRC_NTP, 0, 0,
+            i == 4 ? NULL : &addresses[i], 6, i == 4 ? 16 : 64, 0, 1, 0);
         SRC_SetActive(sources[i]);
     }
     if (pipe(descriptors))

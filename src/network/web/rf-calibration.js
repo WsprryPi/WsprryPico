@@ -42,7 +42,10 @@
           input.value = v.saved.manual_ppm; mode.value = v.saved.mode; draftTarget = identity(v);
         }
         review = edited && draftTarget !== identity(v);
-        status.textContent = `Saved ${v.saved.manual_ppm} ppm (${v.saved.mode}). Next job: ${v.selection?.next_ppb ?? 'unavailable'} ppb. Network time disciplines UTC only.${edited ? ' Your entry is preserved.' : ''}${review ? ' Review the new Pico identity before using this entry.' : ''}`;
+        const selection=v.selection;
+        const next=selection?.reason==='gps_calibration_required' ? 'waiting for qualified GPS calibration' :
+          `${selection?.next_ppb ?? 'unavailable'} ppb${selection?.next_source==='gps' ? ' (GPS with manual residual trim)' : ' (manual correction)'}`;
+        status.textContent = `Saved ${v.saved.manual_ppm} ppm (${v.saved.mode}). Next job: ${next}. Network time disciplines UTC only.${edited ? ' Your entry is preserved.' : ''}${review ? ' Review the new Pico identity before using this entry.' : ''}`;
       } catch (e) { if (ticket === epoch) { onError(e); status.textContent = e.message; } }
       finally { busy = false; render(); }
     }

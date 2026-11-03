@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1060" viewBox="0 0 1600 1060" role="img" aria-labelledby="title desc">
 <title id="title">Pico 2 W — Base Configuration</title>
-<desc id="desc">Underside view, USB at top. GP2 pin 4 to RF center, pin 3 ground to shield. GP14 pin 19 to normally open switch, returning to pin 18 ground. GP15 pin 20 to the positive lead of an LED assembly with a built-in resistor; its negative lead returns to pin 18 ground. No separate series resistor is required.</desc>
+<desc id="desc">Underside view, USB at top. GP2 pin 4 to RF center, pin 3 ground to shield. GP14 pin 19 to normally open switch, returning to pin 18 ground. GP17 pin 22 to the positive lead of an LED assembly with a built-in resistor; its negative lead returns to pin 23 ground. No separate series resistor is required.</desc>
 <metadata>MIT License
 
 Copyright (c) 2024 Gadgetoid (Phil Howard).
@@ -210,10 +210,10 @@ SOFTWARE.</metadata>
 <text x="55" y="400" class="label" >Base pin assignments</text>
 <text x="55" y="443" class="note" >RF: GP2</text>
 <text x="55" y="480" class="note" >Button: GP14, active-low</text>
-<text x="55" y="517" class="note" >LED: GP15, active-high</text>
+<text x="55" y="517" class="note" >LED: GP17, active-high</text>
 <text x="55" y="625" class="label" >LED with built-in resistor</text>
 <text x="55" y="664" class="note" >No separate resistor needed.</text>
-<text x="55" y="703" class="note" >GP15 (+) • GND (−).</text>
+<text x="55" y="703" class="note" >GP17 (+) • GND (−).</text>
 <polyline points="720,253.25799999999998 890,253.25799999999998 890,290 1080,290" class="wire" stroke="#526575"/>
 <circle cx="720" cy="253.25799999999998" r="5" fill="#526575"/>
 <polyline points="720,288.818 860,288.818 860,350 1105,350" class="wire" stroke="#a63826"/>
@@ -227,9 +227,9 @@ SOFTWARE.</metadata>
 <text x="965" y="422" class="note" >To filtering, attenuation</text>
 <text x="965" y="458" class="note" >and a suitable load / instrument.</text>
 <text x="965" y="502" class="label" >Unfiltered GPIO output.</text>
-<polyline points="720,786.6579999999999 1470,786.6579999999999 1470,960" class="wire" stroke="#526575"/>
+<polyline points="720,786.6579999999999 1470,786.6579999999999 1470,822.218" class="wire" stroke="#526575"/>
 <circle cx="720" cy="786.6579999999999" r="5" fill="#526575"/>
-<text x="1000" y="769.6579999999999" class="note" >GND (18): shared return</text>
+<text x="1000" y="769.6579999999999" class="note" >GND (18): switch return</text>
 <polyline points="720,822.218 1080,822.218" class="wire" stroke="#1654a0"/>
 <circle cx="720" cy="822.218" r="5" fill="#1654a0"/>
 <circle cx="1080" cy="822.218" r="5" fill="#1654a0"/>
@@ -239,19 +239,23 @@ SOFTWARE.</metadata>
 <circle cx="1470" cy="822.218" r="5" fill="#526575"/>
 <text x="965" y="717.218" class="label" >GP14 (19) — runtime button</text>
 <text x="1005" y="861.218" class="note" >Normally open momentary switch</text>
-<polyline points="720,857.7779999999999 850,857.7779999999999 850,960 930,960" class="wire" stroke="#7b3693"/>
-<circle cx="720" cy="857.7779999999999" r="5" fill="#7b3693"/>
+<polyline points="464,822.218 430,822.218 430,960 930,960" class="wire" stroke="#7b3693"/>
+<circle cx="464" cy="822.218" r="5" fill="#7b3693"/>
 <polyline points="930,960 1100,960" class="wire" stroke="#7b3693"/>
 <path d="M1100 940 L1100 980 L1135 960 Z M1135 940 V980" fill="none" stroke="#7b3693" stroke-width="4"/>
-<polyline points="1135,960 1470,960" class="wire" stroke="#7b3693"/>
+<polyline points="464,786.658 320,786.658 320,1014 1470,1014 1470,960 1135,960" class="wire" stroke="#526575"/>
+<circle cx="464" cy="786.658" r="5" fill="#526575"/>
+<text x="55" y="773" class="note">GND (23): LED return</text>
+<rect x="385" y="770.658" width="32" height="28" fill="white"/>
+<text x="415" y="793.658" class="pin" text-anchor="end">23</text>
 <circle cx="1470" cy="960" r="5" fill="#526575"/>
 <path d="M1116 932 l16 -16 m-9 0 h9 v9 M1138 940 l16 -16 m-9 0 h9 v9" fill="none" stroke="#7b3693" stroke-width="3"/>
-<text x="855" y="906" class="label" >GP15 (20)</text>
+<text x="480" y="906" class="label" >GP17 (22)</text>
 <text x="965" y="1000" class="note" >Positive (+)</text>
 <text x="1240" y="1000" class="note" >Negative (−)</text>
 <text x="1210" y="900" class="label" >LED assembly</text>
 <text x="1210" y="929" class="note" >Built-in resistor</text>
-<text x="800" y="1040" class="note" text-anchor="middle">Artwork: pico2w.pinout.xyz / Gadgetoid (Phil Howard), MIT • Wiring annotations: WsprryPico</text>
+<text x="800" y="1050" class="note" text-anchor="middle">Artwork: pico2w.pinout.xyz / Gadgetoid (Phil Howard), MIT • Wiring annotations: WsprryPico</text>
 <rect x="759" y="166.138" width="39" height="28" fill="white"/>
 <text x="770" y="189.138" class="pin" >1</text>
 <rect x="759" y="201.698" width="39" height="28" fill="white"/>

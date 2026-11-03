@@ -2,12 +2,23 @@
 #include "encoding/wspr.hpp"
 #include "standalone/storage.hpp"
 #include "wtp/job_service.hpp"
+#include "time/gps_calibration.hpp"
 
 namespace wsprrypico::standalone {
 class Scheduler {
   public:
     Scheduler(Store& store, wtp::JobService& service);
     void poll();
+    void gps_position(std::optional<time::gps::Position> position) { gps_position_ = position; }
+    std::optional<Config> station_snapshot(const Config&) const;
+    struct TransmissionStation {
+        std::array<char, 7> locator{};
+        bool gps = false;
+        std::uint64_t position_raw_ns = 0;
+    };
+    std::optional<TransmissionStation> transmission_station(std::string_view job) const {
+        return job == last_job_ ? prepared_station_ : std::nullopt;
+    }
     bool idle() const;
     std::uint64_t message_lead_ns() const;
     std::optional<std::uint64_t> next_message_start() const;
@@ -47,6 +58,7 @@ class Scheduler {
     const std::optional<hardware::Si5351Settings>& active_si5351() const {
         return active_si5351_;
     }
+    const std::optional<hardware::GpsSettings>& active_gps() const { return active_gps_; }
     rf::AmplifierTiming active_amplifier_timing() const {
         return active_amplifier_timing_;
     }
@@ -88,6 +100,10 @@ class Scheduler {
                        const std::array<std::uint64_t, 4>& tones);
     void cancel_pair(wtp::ErrorCode reason);
     void poll_pair();
+    bool daylight_allowed(std::uint64_t utc_ns, std::uint64_t raw_ns) const;
+    std::optional<std::uint64_t> next_message_start_impl(bool ignore_gps_policy) const;
+    std::optional<time::gps::Position> gps_position_;
+    std::optional<TransmissionStation> prepared_station_;
     struct Pair {
         encoding::WsprPlan plan;
         std::uint64_t second_slot, config_sequence, renew_at, anchor_utc, anchor_monotonic,
@@ -117,6 +133,7 @@ class Scheduler {
     std::optional<wtp::PayloadDigest> active_network_;
     hardware::PinPlan active_pins_ = factory_config().pins;
     std::optional<hardware::Si5351Settings> active_si5351_;
+    std::optional<hardware::GpsSettings> active_gps_;
     rf::AmplifierTiming active_amplifier_timing_;
     hardware::FilterSettings active_filters_;
     unsigned active_gpio_drive_ma_ = factory_config().gpio_drive_ma;

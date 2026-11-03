@@ -1,8 +1,9 @@
 // Shipped page/bundle -> Chrome -> production HTTP/AEAD; time and board are synthetic.
 import assert from 'node:assert/strict';
 import {checkSi5351} from './si5351_ui_checks.mjs';
+import {checkGps} from './gps_ui_checks.mjs';
 import {checkContextualHelp} from './contextual_help_browser.mjs';
-import {spawn} from 'node:child_process';
+import {spawn,execFileSync} from 'node:child_process';
 import {mkdtemp,readFile,writeFile,mkdir} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -71,10 +72,12 @@ async function capture(state,dialog=false) {
         else if(state==='field-settings')await evaluate('document.getElementById("field-access").scrollIntoView({block:"start"})');
         else if(state==='si5351-details')await evaluate('document.querySelector("[data-si-status]").scrollIntoView({block:"end"})');
         else if(state==='si5351-settings')await evaluate('document.getElementById("si5351-settings").scrollIntoView({block:"start"})');
+        else if(state.startsWith('gps-'))await evaluate('document.getElementById("gps-settings").scrollIntoView({block:"start"})');
         else if(!dialog)await evaluate('scrollTo(0,0)');
         assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'no horizontal overflow');
         if(process.env.UI_REVIEW_NO_CAPTURE==='1')continue;
-        const shot=await send('Page.captureScreenshot',{format:'png'});
+        const gpsClip=state.startsWith('gps-')?await evaluate('(()=>{const r=document.getElementById("gps-settings").getBoundingClientRect();return {x:0,y:r.top+scrollY,width:innerWidth,height:Math.ceil(r.height),scale:1}})()'):null;
+        const shot=await send('Page.captureScreenshot',{format:'png',...(gpsClip?{clip:gpsClip,captureBeyondViewport:true}:{})});
         await writeFile(path.join(output,state+'-'+view.name+'.png'),Buffer.from(shot.data,'base64'));
     }
 }
@@ -111,6 +114,8 @@ try {
       pass('certificate carrier retains authority and explains browser-managed certificate access');
       await checkSi5351({evaluate,section,click,idle,capture});
       pass('native Si5351 conditional controls, validation focus, draft isolation, atomic save and direct restoration');
+      await checkGps({evaluate,section,click,idle,capture,telemetryFixture:process.env.WSPRRY_PICO_GPS_RESOURCE_DRIVER?JSON.parse(execFileSync(process.env.WSPRRY_PICO_GPS_RESOURCE_DRIVER,{encoding:'utf8'})):null});
+      pass('native GPS pin/timing validation focus, QLG3 receive-only protection, atomic save and separate qualification');
     } else if(carrier==='field') {
       await control({op:'field_clock'});
       await send('Page.bringToFront');

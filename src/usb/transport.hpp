@@ -8,7 +8,8 @@
 namespace wsprrypico::usb {
 
 // INFO includes bounded network pools, DNS names and RF worker diagnostics.
-// Keep whole-response enqueue while retaining the 64-byte foreground service budget.
+// Allocate the ring only for nonempty output; release it on disconnect. Keep
+// whole-response enqueue and the 64-byte foreground service budget.
 constexpr std::size_t kConsoleCapacity = 8192;
 constexpr std::size_t kLoggingCapacity = 2048;
 constexpr std::size_t kServiceBytes = 64;

@@ -1,6 +1,6 @@
 # Portable experimental RF stream
 
-Carrier correction is selected centrally before preparation and freezes for the active job or standalone Type 2/3 pair. It uses persistent manual PPM only. The [UTC/RF contract](clock-discipline.md) defines the rejection of NTP-derived RF calibration; μChrony UTC control is independent of carrier correction.
+Carrier correction is selected centrally before preparation and freezes for the active job or standalone Type 2/3 pair. It uses persistent manual PPM or explicitly enabled, fresh PPS-derived calibration with manual residual trim. Direct and Si5351 oscillator errors remain separate; see [GPS/PPS](gps-pps.md). The [UTC/RF contract](clock-discipline.md) defines the rejection of NTP-derived RF calibration; μChrony UTC control is independent of carrier correction.
 
 The portable stream uses an abstract sink; the [PIO/DMA sink](pio-dma-driver.md) provides its SDK implementation. Source validation does not qualify physical IRQ timing, spectral performance, or general RF behavior. Normal `WsprryPico` and compatibility `WsprryPico-StandaloneRF` use the complete 138 MHz PIO/DMA application; `WsprryPico-Inhibited` explicitly selects the `DryRunEngine` simulator. Boot starts unsynchronized until qualified UTC is acquired. See [current application/build selection](firmware-foundation.md).
 

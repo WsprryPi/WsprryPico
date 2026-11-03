@@ -658,7 +658,7 @@
       const response = await this.exchange({version: 1, operation: "field_status",
         request_id: randomId(this.crypto), session_id: this.fieldSession,
         device_id: this.expectedDeviceId});
-      if (!["none", "sntp", "controller", "disagreement"].includes(response.time_source) ||
+      if (!["none", "sntp", "controller", "gps", "disagreement"].includes(response.time_source) ||
           !/^(0|[1-9][0-9]*)$/.test(response.time_age_ns) ||
           !/^(0|[1-9][0-9]*)$/.test(response.time_uncertainty_ns) ||
           typeof response.time_disagreement !== "boolean" ||

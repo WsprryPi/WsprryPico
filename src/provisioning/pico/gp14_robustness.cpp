@@ -153,7 +153,8 @@ int main() {
         tight_loop_contents();
     const bool cores_ok = ready1.load(std::memory_order_acquire) == 1 &&
                           wsprry_stack_guard_snapshot().valid && flash_safe_execute_core_init();
-    static PicoGp14Capture capture;
+    static PicoGp14Capture::Ring ring;
+    static PicoGp14Capture capture(ring);
     const bool started = cores_ok && capture.start(boot_held);
     Action action = boot_held ? Action::BootHeld : Action::Idle;
     std::uint32_t sequence = 0, stops = 0, aps = 0, resets = 0, releases = 0;

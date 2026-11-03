@@ -40,7 +40,7 @@ Browser holdover lasts at most 3,600 seconds and uncertainty grows conservativel
 
 Usable network time and supported controller time retain higher priority. An existing valid non-browser clock cannot be overwritten by a browser sample. Browser observations are pinned to an authenticated session principal; another browser cannot replace a still-valid source. Same-source nonoverlap latches disagreement. Changing to a higher-priority source also checks overlap while the prior source remains valid. Disagreement invalidates new starts and requires two consistent independent observations from the eligible recovery source; a replay is not recovery evidence. A reboot returns to unsynchronized UTC.
 
-NTP age/uncertainty configuration remains independent. Its explicit zero option does not extend browser time. GPS/PPS ingestion and automatic RF calibration are absent. GPSDO measurements used externally are test references, not a new firmware time source.
+NTP age/uncertainty configuration remains independent. Its explicit zero option does not extend browser time. Optional [GPS UTC/PPS input](gps-pps.md) supplies an independent field-time path with a one-hour maximum holdover and explicit receiver association. An external GPSDO used in an SDR measurement path remains a test reference, rather than a firmware UTC input.
 
 ## Launch and UI behavior
 

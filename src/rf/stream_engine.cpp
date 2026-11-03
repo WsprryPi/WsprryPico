@@ -92,6 +92,12 @@ LaunchTarget StreamEngine::project_clock(void* context) {
         now.leap == wtp::LeapState::Unknown || pending != now.leap_transition_utc_ns.has_value()) {
         return {};
     }
+    std::uint64_t horizon_duration{};
+    const auto horizon_latest = conditions.start_utc_ns + window - 1;
+    if (!time::duration_utc_bound(duration, now, horizon_duration) ||
+        horizon_latest >= now.valid_until_utc_ns ||
+        horizon_duration >= now.valid_until_utc_ns - horizon_latest)
+        return {};
     if (now.leap_transition_utc_ns) {
         const auto leap = *now.leap_transition_utc_ns;
         const auto low = leap > 1'000'000'000 ? leap - 1'000'000'000 : 0;
