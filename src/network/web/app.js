@@ -117,6 +117,7 @@ function clearConsole(reason = 'Read a fresh observation before using controls.'
 }
 function clearPrivateStatus() {
   privateStatusVisible=false; settingsLoadedBoot=null;
+  gpsEditor?.observation(null);
   clearConsole('Signed out. Read-only transmitter status remains available.');
   for(const id of ['job-result','message-result','job-progress','standalone-status','recovery','saved-active-status','saved-readback','hostname-status','pico-password-status','progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status','message-schedule-status']) consolePut(id,'');
   if($('saved-readback-details')) $('saved-readback-details').hidden=true;
@@ -891,6 +892,7 @@ function controls(connected) {
   renderAccess();
   online = connected;
   const unlocked=controlsUnlocked();
+  if(!unlocked) gpsEditor?.observation(null);
   if ($('field-access-settings')) $('field-access-settings').disabled = !unlocked || uiBusy() || !fieldTimeSupported();
   for (const id of ['station-settings-lock','wifi-settings-lock']) if($(id)) $(id).disabled=!unlocked || uiBusy();
   loggingControls();
@@ -2121,7 +2123,7 @@ async function loadAllSettings() {
         si5351Editor.observation(observation.data);
       } catch(error) {consolePut('pins-status',error.message);}
     }
-    if(WsprryControl.supported('gps',capabilities?.gps) && gpsEditor) {
+    if(controlsUnlocked() && WsprryControl.supported('gps',capabilities?.gps) && gpsEditor) {
       try {
         const observation=await api('gps');
         const target={scope:'member',device_id:localIdentity?.device_id || operationsTarget?.device_id,boot_id:snapshot?.job.boot_id};
