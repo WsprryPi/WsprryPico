@@ -84,6 +84,12 @@ try {
     await until(()=>cdp.evaluate(`savedReadback?.application?.schema==='application' && savedReadback?.progress?.schema==='progress' && writeState==='review' && !busy`),'current saved-state readback');
     await click('review-saved');
     await until(()=>cdp.evaluate(`writeState==='ready' && !busy && !document.getElementById('consumer-station-settings').disabled`),'review enables editing');
+    for(const locator of ['EM18','EM18IG']){
+        const plan=await cdp.evaluate(`(async()=> (await api('wspr-plan','POST',{callsign:'AA0NT',locator:${JSON.stringify(locator)},power_dbm:20})).data)()`);
+        assert.deepEqual(plan.frame_types,['type1']);
+        assert.match(plan.rationale,/If you saved a six-character locator/);
+        assert.match(plan.rationale,/only the first four are transmitted/);
+    }
     await field('consumer-callsign','AA0NT/12');await field('consumer-locator','EM18');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-wspr-plan')`),null,'no provisional message-type callout');
     await cdp.evaluate(`document.getElementById('consumer-callsign').focus()`);

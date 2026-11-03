@@ -22,6 +22,20 @@ int main(int argc, char**) {
     };
     REQUIRE(call(request("GET", "/api/control/v1/capabilities")).body_text().find("application_resources") !=
             std::string::npos);
+    for (const auto locator : {"EM18", "EM18IG"}) {
+        const auto before = *f.store.config();
+        const auto revision = f.api.revision();
+        const auto preview = call(request(
+            "POST", "/api/control/v1/wspr-plan",
+            "{\"callsign\":\"AA0NT\",\"locator\":" + wtp::json::quote(locator) + ",\"power_dbm\":37}"));
+        const auto plan = wtp::json::parse(preview.body_view());
+        REQUIRE(preview.status == 200 && plan && plan->get("supported")->boolean());
+        const auto rationale = plan->get("rationale")->string();
+        REQUIRE(rationale.find("If you saved a six-character locator") != std::string::npos);
+        REQUIRE(rationale.find("only the first four are transmitted") != std::string::npos);
+        REQUIRE(*f.store.config() == before && f.api.revision() == revision &&
+                f.store.watermark() == 100);
+    }
     for (const auto callsign :
          {"AA0NT", "AA0NT/12", "<AA0NT>", "<AA0NT/12>", "PJ4/AA0NT", "W1A/AA0NT", "<W1A/AA0NT>"}) {
         const std::string station = "{\"callsign\":" + wtp::json::quote(callsign) +

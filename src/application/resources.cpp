@@ -90,8 +90,9 @@ std::string wspr_plan(const standalone::Config& config) {
               "needed to resolve the full call."
         : plan->frames[0].type == encoding::WsprType::Type2
             ? "Type 2 carries the compound call and power; it carries no locator."
-            : "Type 1 carries the call, first four locator characters and power. All six saved "
-              "locator characters are retained.";
+            : "Type 1 carries the callsign, four-character locator, and reported power. If you saved "
+              "a six-character locator, all six characters remain saved; only the first four are "
+              "transmitted.";
     const std::string_view alternate =
         plan ? std::string_view(plan->alternate_call.data(), plan->alternate_length)
              : std::string_view{};
