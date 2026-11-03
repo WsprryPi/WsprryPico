@@ -38,7 +38,7 @@ GPS/PPS can measure the Pico oscillator, while PPS plus CLK2 loopback measures t
 
 Conducted checks on the validation platform exercised Si5351 CLK0 output with CLK2 loopback, GPS-only startup without NTP, correction behavior and a complete paired WSPR transmission. They do not establish calibrated absolute RF launch timing or consistently improved absolute carrier accuracy.
 
-GP2 is the separate direct GPIO RF output. Its GPS-derived RF correction still needs its own conducted transmission test; the Si5351 measurements do not qualify that path. That test is selected in the backlog and has not been performed. It can use PPS continuously. Loss and reacquisition are covered by software checks; physically removing the PPS wire is outside the selected test scope.
+GP2 is the separate direct GPIO RF output. Its GPS-derived RF correction still needs its own conducted transmission test; the Si5351 measurements do not qualify that path. The selected conducted test covers 160 m through 10 m; GP2 RF qualification remains incomplete. It can use PPS continuously. Loss and reacquisition are covered by software checks; physically removing the PPS wire is outside the selected test scope.
 
 ## Use a trusted loopback while offline
 

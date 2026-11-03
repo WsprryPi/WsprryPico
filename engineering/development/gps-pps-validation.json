@@ -304,5 +304,125 @@
       "antenna": true
     },
     "wsprrypi_service": "active"
+  },
+  "gp2_prearm_attempt": {
+    "date": "2026-11-03",
+    "outcome": "blocked_before_arm",
+    "board_serial": "1545B6EFBF78028C",
+    "device_id": "c2a3a2a314c948b50a8562a1aeb69669",
+    "image_identity": "c7d3b5befe90",
+    "engine": "pio-dma-gp2",
+    "rf_gp": 2,
+    "system_clock_hz": 138000000,
+    "gpio_drive_ma": 4,
+    "maximum_band": "10m",
+    "planned_frequencies_hz": [
+      1840100,
+      14097100,
+      28126100
+    ],
+    "combiner_inputs": [
+      "GP2",
+      "Si5351 CLK0 register-disabled",
+      "GPSDO output1"
+    ],
+    "attenuation_db": 60,
+    "antenna": false,
+    "pps_disconnected": false,
+    "maximum_commanded_dut_rf_s": 200,
+    "planned_commanded_dut_rf_s": 145.592,
+    "actual_commanded_dut_rf_s": 0,
+    "load_acknowledged": false,
+    "arm_sent": false,
+    "captures": [],
+    "gps_preflight": {
+      "time_valid": true,
+      "timer_calibration": {
+        "oscillator_error_ppb": 96,
+        "uncertainty_ppb": 9781,
+        "observed_raw_ns": "56515996663",
+        "age_ns": "1637678337",
+        "span_ns": "41000000000",
+        "generation": "33",
+        "fresh": true
+      },
+      "maximum_irq_latency_ns": "14837",
+      "capture_error_bound_ns": "8712"
+    },
+    "clock_preflight": {
+      "active_source": "gps",
+      "source_disagreement": false,
+      "network_enabled": false,
+      "ntp_accepted": 0,
+      "phase_settled": true,
+      "clock_state": "synchronized"
+    },
+    "heap_available_bytes_at_console_sample": 56552,
+    "load_decode_workspace_bytes": 32768,
+    "load_decode_reserve_bytes": 32768,
+    "failures": [
+      {
+        "attempt": "v1",
+        "stage": "preflight",
+        "reason": "harness expected direct rather than advertised pio-dma-gp2; restored"
+      },
+      {
+        "attempt": "v2",
+        "stage": "preflight",
+        "reason": "USB ntp-observations and capabilities deadlines; small reads remained available; explicit recovery restored"
+      },
+      {
+        "attempt": "v3",
+        "stage": "LOAD",
+        "reason": "First manual-zero 160 m tone LOAD and subsequent same-session STATUS timed out before ARM; restored"
+      }
+    ],
+    "diagnosis": "Observed free heap below generic LOAD decode workspace plus unchanged safety reserve; source admission can close the endpoint before dispatch. Root cause and corrective implementation remain unresolved.",
+    "restoration": {
+      "verified": true,
+      "saved_semantics_equal": true,
+      "idle": true,
+      "clk0": "register_disabled",
+      "gp2": "inactive",
+      "pins_restored": true
+    },
+    "network_restored_by_restart": true,
+    "gpsdo_restoration": {
+      "verified": true,
+      "state": {
+        "serial": "0673ED0FA107",
+        "f1": 10000000,
+        "f2": 10000000,
+        "out1": true,
+        "out2": true,
+        "pps1": false,
+        "fll": false,
+        "out1low": true,
+        "out2low": true
+      }
+    },
+    "service_after": {
+      "wsprrypi": "active"
+    },
+    "saved_semantics_equal": true,
+    "firmware_changed": false,
+    "installed_bundle_sha256": "b307528274f0d5294c000b99c3f9ae9be15492d26ed42b8262d5b255f15c9b41",
+    "final_handback": {
+      "verified": true,
+      "serial": "1545B6EFBF78028C",
+      "boot": "8f4c43ca55445c5f60989e729e7ac6bd",
+      "idle": true,
+      "owned": false,
+      "output_active": false,
+      "clk0": "register_disabled",
+      "clk2": "register_enabled",
+      "gps_absent": true,
+      "network_enabled": true,
+      "logging_restored": true,
+      "installer_reference_sha256": "b307528274f0d5294c000b99c3f9ae9be15492d26ed42b8262d5b255f15c9b41",
+      "gpsdo_restored": true,
+      "gpsdo_locked": true,
+      "firmware_changed": false
+    }
   }
 }

@@ -1,6 +1,6 @@
 # Si5351 continuity validation
 
-This evidence covers the no-GPS rate-assistance implementation developed from Pico `b5678828f5d4455d60a6d0b6a6a124a4701a56ba` and Pi `3e2f64b20f5774e4698a491529e50ab4a4fd125e` on `codex/si5351-execution`. Final paired revisions, commands, logs, CI runs, installer receipts and image identities belong in the retained developer bundle's validation report. Software completion follows the paired checks and delivery criteria in the [backlog](consolidated-backlog.md#si5351-backlog). Hardware selection, reference allowance and hardware qualification are local operator responsibilities; environmental and absolute-timing hardware measurements are not project completion gates.
+This evidence covers the no-GPS rate-assistance implementation developed from Pico `b5678828f5d4455d60a6d0b6a6a124a4701a56ba` and Pi `3e2f64b20f5774e4698a491529e50ab4a4fd125e` on `codex/si5351-execution`. Final paired revisions, commands, logs, CI runs, installer receipts and image identities belong in the retained developer bundle's validation report. Software completion follows the paired checks and delivery criteria in the [backlog](consolidated-backlog.md#completed-work). Hardware selection, reference allowance and hardware qualification are local operator responsibilities; environmental and absolute-timing hardware measurements are not project completion gates.
 
 ## Software behavior
 
