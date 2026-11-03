@@ -2,6 +2,21 @@
 
 **UTC**, Coordinated Universal Time, is the worldwide time standard used for transmission starts. It has no local time zone or daylight-saving adjustment. **RF frequency correction** adjusts the radio signal's frequency. Correct start time and correct radio frequency are separate settings and measurements.
 
+## Understand the output and reference options
+
+Choose an RF output engine first, then configure the time source and any frequency correction needed for that hardware. GPS and PPS can be used with either RF engine.
+
+| Option | What it does | When to use it |
+| --- | --- | --- |
+| **Direct GPIO / PIO** | Generates the RF signal using the Pico's clock and an RF GPIO. The validation setup uses GP2. | Select this engine when using the Pico's direct RF output. |
+| **Si5351** | Generates RF with an external synthesizer and its own crystal or TCXO reference, controlled by the Pico over I²C. | Select this engine when using a supported Si5351 module. |
+| **GPS serial input** | Supplies UTC date/time labels and position from the receiver. | Connect it together with PPS for GPS time and automatic GPS/PPS calibration. GPS is optional when another supported time source is available. |
+| **PPS input** | Marks each second boundary. The associated GPS serial message identifies which UTC second it is. | Use it with the GPS serial input and a validated pulse association. |
+| **Si5351 CLK2 loopback** | Lets the Pico measure the synthesizer reference separately from its own clock. | Required for automatic Si5351 frequency correction; also supports optional trusted-reference clock-rate assistance. |
+| **Manual or automatic carrier correction** | Compensates for RF frequency error. With automatic correction enabled, manual correction becomes residual trim. | Use a measured manual correction, or GPS/PPS automatic correction after checking the result against a trustworthy reference. |
+
+The [RF output engine](../configure.md#rf-output-engine), [Si5351 output settings](../configure.md#si5351-output-settings), and [GPS and PPS](../configure.md#gps-and-pps) sections explain the controls and wiring. A GPSDO used to measure the transmitted carrier is external test equipment; it is not required for normal operation.
+
 ## Set the time source
 
 The Pico sets and maintains its clock from the configured **time server** using NTP (the Network Time Protocol). Its clock software is called **μChrony**. A connected WsprryPi controller can also supply time over a supported connection, including USB.
@@ -40,7 +55,26 @@ GPS/PPS can measure the Pico oscillator, while PPS plus CLK2 loopback measures t
 
 Conducted checks on the validation platform exercised Si5351 CLK0 output with CLK2 loopback, GPS-only startup without NTP, correction behavior and a complete paired WSPR transmission. They do not establish calibrated absolute RF launch timing or consistently improved absolute carrier accuracy.
 
-GP2 is the separate direct GPIO RF output. Its conducted GPS/PPS test completed baseline and corrected tones at the selected 160 m, 60 m and 10 m points, manual residual trim, frozen correction across delayed ARM and one complete decoded WSPR frame. These checks apply to the tested setup. Absolute RF launch timing and consistently improved absolute carrier accuracy remain unestablished. PPS remained connected. Loss and reacquisition are covered by software checks; physically removing the PPS wire is outside the selected test scope.
+GP2 is the separate direct GPIO RF output. GPS/PPS automatic correction improved its measured carrier accuracy at the selected 160 m, 60 m and 10 m test points in two off/on comparisons per point. Si5351 correction did not show consistent improvement across both comparisons. Check carrier accuracy for the hardware and settings in use; automatic correction does not guarantee that every oscillator becomes more accurate. Launch timing is accepted for the intended operating needs, with roughly one second early or late acceptable; this is not a precision UTC timing guarantee. PPS remained connected. Loss and reacquisition are covered by software checks; physically removing the PPS wire is outside the selected test scope.
+
+### Measured carrier-error examples
+
+These examples show why measuring before and after enabling automatic correction is useful. They use Pico C, a QRP Labs Si5351 module with a 25 MHz TCXO, and the direct GP2 output. Each selected RF output was measured alongside a GPSDO reference tone with an SDRplay RSP1B. The reference was 500 Hz away, and each tone lasted 12 seconds. No antenna was used.
+
+**Correction off** uses zero manual correction. **GPS/PPS correction on** uses automatic correction with zero manual residual. Each range below covers two repeats. Negative error means the measured carrier is below its nominal frequency; positive error means it is above. All values are in Hz.
+
+| RF output | Band | Correction off | GPS/PPS correction on | Largest measurement allowance |
+| --- | --- | --- | --- | --- |
+| Si5351 | 160 m | −0.148 to −0.146 | +0.075 to +0.192 | ±0.09 |
+| Si5351 | 60 m | −0.458 to −0.455 | +0.189 to +0.538 | ±0.13 |
+| Si5351 | 10 m | −2.809 to −2.770 | +0.600 to +2.448 | ±0.44 |
+| GP2 | 160 m | −2.066 to −1.959 | −0.244 to −0.036 | ±0.11 |
+| GP2 | 60 m | −6.058 to −5.826 | −0.780 to −0.195 | ±0.20 |
+| GP2 | 10 m | −31.921 to −30.888 | −0.537 to +1.000 | ±0.83 |
+
+The last column gives the largest declared measurement allowance across the four measurements in each row, rounded outward. It includes the GPSDO reference, SDR sample-rate and frequency-estimation allowances. The ranges show variation between repeats; they are not uncertainty bounds. These are results for the tested hardware and settings, not guaranteed errors for other boards.
+
+GP2 improved beyond the measurement allowances on all three bands in both repeats. Si5351's uncorrected TCXO was already close to nominal, and its corrected results varied between repeats. For a Si5351 setup, compare the measured carrier before and after enabling automatic correction rather than assuming that enabling it improves accuracy.
 
 ## Use a trusted loopback while offline
 
