@@ -5,9 +5,9 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {spawn} from 'node:child_process';
 import {Fixture} from './consumer_sessions.test.mjs';
 import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
+import {launchChrome} from './chrome_startup.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const driver=process.argv[2];
@@ -179,12 +179,11 @@ async function capture(state) {
 }
 try {
   await f.time(1000);await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-  chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',[
+  const browser=launchChrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',[
     '--headless=new','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check',
-    '--remote-debugging-port=0','--user-data-dir='+profile,...(process.platform==='linux'?['--no-sandbox']:[]),'about:blank'],{stdio:'ignore',detached:processGroup});
-  await until(()=>fs.existsSync(path.join(profile,'DevToolsActivePort')),'Chrome startup');
-  const [port]=fs.readFileSync(path.join(profile,'DevToolsActivePort'),'utf8').split('\n');
-  const pages=await(await fetch(`http://127.0.0.1:${port}/json`)).json();ws=new WebSocket(pages.find(page=>page.type==='page').webSocketDebuggerUrl);
+    '--remote-debugging-port=0','--user-data-dir='+profile,...(process.platform==='linux'?['--no-sandbox']:[]),'about:blank'],profile,{processGroup});
+  chrome=browser.process;
+  const pages=await browser.ready;ws=new WebSocket(pages.find(page=>page.type==='page').webSocketDebuggerUrl);
   ws.onmessage=event=>{
     const value=JSON.parse(event.data);
     if(value.method==='Page.javascriptDialogOpening') {void send('Page.handleJavaScriptDialog',{accept:true});return;}
