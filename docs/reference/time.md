@@ -34,6 +34,12 @@ An optional GPS receiver can supply UTC through separate serial and PPS inputs a
 
 GPS/PPS can measure the Pico oscillator, while PPS plus CLK2 loopback measures the independent Si5351 reference. The clock's UTC rate and these two oscillator errors are different quantities. Manual correction stays separate and becomes residual trim when automatic correction is enabled. The page reports each calibration's age and estimated bound. PPS capture also reports IRQ latency separately from the corrected timestamp error bound; neither value establishes the receiver's absolute UTC accuracy. Fresh measurements are required after restart, and improved clock statistics alone do not establish carrier accuracy.
 
+## GPS/PPS validation scope
+
+Conducted checks on the validation platform exercised Si5351 CLK0 output with CLK2 loopback, GPS-only startup without NTP, correction behavior and a complete paired WSPR transmission. They do not establish calibrated absolute RF launch timing or consistently improved absolute carrier accuracy.
+
+GP2 is the separate direct GPIO RF output. Its GPS-derived RF correction still needs its own conducted transmission test; the Si5351 measurements do not qualify that path. That test is selected in the backlog and has not been performed. It can use PPS continuously. Loss and reacquisition are covered by software checks; physically removing the PPS wire is outside the selected test scope.
+
 ## Use a trusted loopback while offline
 
 With a supported Si5351 module and its loopback connected, **Trust local reference for Pico rate** can reduce timer drift after your phone supplies UTC through the authenticated Pico AP page. The phone supplies the date and time; the loopback helps maintain the clock rate. Configure its wiring and a known oscillator uncertainty in [Si5351 output settings](../configure.md#si5351-output-settings).

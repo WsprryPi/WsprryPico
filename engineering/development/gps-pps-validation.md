@@ -1,0 +1,71 @@
+# GPS/PPS validation
+
+Optional GPS UTC/PPS input, independent Pico and Si5351 oscillator estimates, automatic RF correction with manual residual trim, GPS location, day/night scheduling and transmission provenance are implemented. Software and conducted measurements establish the bounded behavior below. Calibrated absolute RF launch timing and consistently improved absolute carrier accuracy remain unestablished. The selected GP2 direct-output test remains in [backlog item 14](consolidated-backlog.md); the tested Si5351 path does not qualify it.
+
+## Validated implementation and checks
+
+| Component | Validated revision |
+| --- | --- |
+| Pico | `c7d3b5befe90f7615c34f5b7583d6086cd3a1463` |
+| Pi | `40c049c7f68767a1db316b471e35d15a2c5926e4` |
+
+These revisions identify the validated implementation on `codex/gps-pps-integration`, not delivery on `devel` or `main`. Later documentation-only commits do not change this implementation pair or the installed image. No merge, tag or release formed part of this validation.
+
+[Pico CI run 41562836673](https://github.com/WsprryPi/WsprryPico/actions/runs/41562836673) passed verification; publication was intentionally skipped. [Paired Pi CI run 41565967348](https://github.com/WsprryPi/WsprryPi/actions/runs/41565967348) passed all seven jobs with the Pico revision above selected explicitly. Both USB and network jobs recorded that exact source. The Pico preview merge checkout had the same tree as the validated feature revision.
+
+| Requirement | Evidence | Boundary |
+| --- | --- | --- |
+| Bounded serial/PPS reception and separate time/position validity | Parser, actual SDK adapter and resource tests; ordinary GPS-only startup with no NTP admitted | Receiver and capture allowances remain explicit engineering assumptions |
+| One UTC discipline, source arbitration and retained-rate holdover | Production clock/arbiter tests and six-case external Chrony 4.9 comparison covering fast/slow clocks, warmup, loss/reacquisition, restart and conflict | No live PPS cable-disconnection test was performed |
+| Separate timer and synthesizer calibration | Known-error tests, coherent CLK2/PPS observations and independent timer/count acquisition baselines | Estimates retain original observation ages and conservative bounds |
+| Manual residual once and frozen plans | Signed known-error tests, conducted residual-trim trial, accepted LOAD adjustments and paired transmission records | Short-window results do not prove consistent accuracy improvement |
+| GPS location, day/night policy and paired WSPR snapshots | Stale/future/moving-position and polar/day-night tests; full Type 2/3 pair decoded with frozen GPS location/correction | Location and timing validity remain independent |
+| Current Control/1 on both carriers | Production network runtime/interoperability/configuration and USB management/pair suites, native controls, source-selection proof and kernel reply routing | Hardware-free fixtures do not qualify physical installation or RF |
+| Native controls and documentation | 202 local host checks, actual HTTP/crypto/journal browser checks, eight-plan Pi recovery workflow, strict Sphinx and 103 contextual-help targets | Precise GPS readback requires authentication or physical USB |
+| Preserving ordinary deployment | Same-board shared-installer transaction, retained exact bundle, postboot verification and final five-second conducted tone | Full Pi service installation was not claimed; its original state was preserved |
+
+The actual production pair recipes include `wtp-network-runtime-test`, `wtp-network-interop-test`, `wtp-config-interop-test`, the Pico `usb_management_driver`, `wtp-usb-pair-client-build`, `wtp-usb-management-test` and `WSPRRYPI_GPIO_DRIVE_REQUIRED=1 node WsprryPi-UI/tests/wtp_usb_pair_test.js CLIENT DRIVER`. The checked-in Pi `.github/workflows/debian-non-hardware.yml` supplies the complete recipes and additional browser/routing/source-selection gates. MbedTLS was pinned to `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`.
+
+The external oracle entered Chrony 4.9 after receiver qualification through its reference-clock interface. It did not exercise a native hardware receiver driver or link Chrony into firmware. The comparison retained the documented policy difference between Pico's latched source conflict and Chrony's later source selection after expiry.
+
+Local host verification used the existing configured build with `source scripts/xcode_env.sh`, `cmake --build build/gps-pps-integration/host --parallel 4` and `ctest --test-dir build/gps-pps-integration/host --output-on-failure --parallel 4`; all 202 checks passed in 54.49 seconds after the browser access correction. Native checks included `operator_cleanup_browser.mjs` and both consumer/engineering `ui_sections_browser.mjs` contexts. The final Pi recovery fixture supplied the current closed GPS resource and passed all eight station-plan cases, keyboard access, desktop/mobile layouts, light/dark themes and 200% text scaling. Production validators were not relaxed to accommodate fixtures.
+
+## Conducted setup
+
+Board C was Pico 2 W/RP2350 serial `1545B6EFBF78028C`, device `c2a3a2a314c948b50a8562a1aeb69669`, at 138 MHz. QLG3 serial input used GP1/UART0 RX at 9600 baud; rising PPS used input-only GP3. CLK2 fed input-only GP7 for separate Si5351 loopback. RMC first-dollar delay was qualified over 600–999 ms, UTC second offset was zero and configured PPS edge offset was zero. Receiver and capture allowances were 100 µs each; the receiver allowance was not independently certified.
+
+The Si5351 setup used the QRP Labs Rev. 6 external-XA 25 MHz TCXO profile, I²C GP4/GP5 at 100 kHz, address `0x60`, CLK0 at 8 mA and measurement-only reference policy. CLK0 and independently identified GPSDO output 1 entered a combiner, then the 60 dB path to the SDR. No antenna was used. The conducted range was 160 m through 4 m. GP2 was not connected or driven in this campaign.
+
+The receiver was RSP1B serial `2404058C60`, at 250 ksps with 200 kHz bandwidth, gain 20, AGC off and bias supply off. The GPSDO was LBE1421 firmware 1.9, serial `0673ED0FA107`; satellite/PLL lock and antenna health were checked. Its original state was both outputs enabled at 10 MHz with LOW drive. LOW is a drive setting, not an output-off indication.
+
+## Observations and measurement limits
+
+GPS-only startup collected 90 samples with networking disabled and zero NTP observations admitted from boot: 83 samples had valid UTC/PPS pairing, 82 selected GPS and 62 had both independent calibration estimates fresh. Four physical production Pi USB resource reads returned 200. A host USB time submission did not replace the selected GPS source. Maximum observed IRQ latency was 29.674 µs; the maximum reported corrected capture bound was 9.712 µs. These local timestamp results do not establish receiver absolute accuracy.
+
+Independent host/PPS bracketing supported UTC second offset zero with an intersection approximately −18.15 to +22.36 ms. It excludes the observed alternative integer-second association but cannot establish a 100 µs absolute UTC or RF launch allowance. Source loss/recovery was covered in software as selected; disconnecting the PPS wire is neither a completed physical test nor a prerequisite for the selected GP2 transmission test. GP2 baseline/correction measurements can retain continuous PPS input.
+
+Each baseline/corrected tone lasted five seconds, with a simultaneous GPSDO carrier 30 kHz above the nominal DUT frequency. Line differencing removed common receiver tuning error. Conditional allowances used 100 ppm sample-rate error over measured carrier spacing, reciprocal margin, two 0.25 Hz line allowances and a 10 ppb GPSDO bench allowance. A single reference carrier does not calibrate both SDR tuning and sample clocks. Accepted captures had zero clipped samples and overflows, with verified receiver cleanup.
+
+| Nominal frequency (Hz) | Manual-zero baseline error (Hz) | GPS-corrected error (Hz) |
+| --- | --- | --- |
+| 1,840,100 | −0.181 ± 3.519 | +0.175 ± 3.519 |
+| 14,097,100 | −1.454 ± 3.642 | −4.688 ± 3.642 |
+| 70,400,000 | −7.363 ± 4.205 | +5.456 ± 4.204 |
+
+The programmed shifts were +0.356979473 Hz, −3.185943810 Hz and +12.812811840 Hz, respectively; the measured changes agreed within the declared bounds. A +20,000 ppb manual residual trial at 14.0971 MHz produced approximately −281 Hz of error, consistent with once-only residual application within the combined measurement allowance. These results do not demonstrate consistently improved absolute carrier accuracy or 0.05 Hz measurement accuracy.
+
+A complete locally scheduled `AA0NT/P` Type 2/3 WSPR pair decoded successfully. Its two receiver-envelope intervals measured 110.75 seconds at 0.25-second analysis resolution, 120.0 seconds apart; nominal frame duration was 110.592 seconds. The second decode contained the expected six-character GPS locator. USB records retained the same frozen locator/fix timestamp and correction/generation across the pair, with GPS time provenance. The raw capture SHA-256 was `00196f060088e34f47fac43ed391c28d68177852e1929d8f67d2f51dc8eb94a2`. Receiver-relative timing is not calibrated absolute RF launch UTC. Precise receiver coordinates and decoded locator text are excluded from the tracked record.
+
+The nominal commanded DUT RF total, including an earlier complete Type 1 frame and the final installed-image tone, was 371.776 seconds against a declared finite 500-second budget. Failed/refused experiments were not counted as qualification passes. No calibrated output power, emissions, general all-band suitability or direct GPIO RF qualification follows from these measurements.
+
+## Installed image and handback
+
+The clean ordinary image used validated Pico revision `c7d3b5befe90f7615c34f5b7583d6086cd3a1463`, with source-input SHA-256 `5fa0dabb60f42916cf9bd7a5d1319ec321872c345e86bcf465defc62a426d0f7`. Its 6,222,336-byte UF2 SHA-256 was `b307528274f0d5294c000b99c3f9ae9be15492d26ed42b8262d5b255f15c9b41`. Build inputs were Pico SDK 2.3.1 at `079c6f39023649b154152db30f1d781e884879bc` and Arm GNU 15.3.1.
+
+Full RF/GPS measurements used the candidate source-input SHA-256 `9b3f6086153af529ca6c02de8859a700c34b17e3eef3c567ac9bb2ee1c4f89ee`, based on Pico `4f9ca837e7161cf8fedc454746a63eece0d136b6` plus the then-uncommitted implementation. All 323 owned Pico C/C++/PIO production files were byte-identical to the validated revision above. Browser behavior, embedded assets and regression tests changed afterward; the final installed image separately passed its five-second conducted tone. Pi's 570 owned production C/C++/PIO files likewise matched the physically exercised source set; later provenance and fixture changes are identified by the validated Pi revision.
+
+Programming used `scripts/usb_installer.py upgrade` with the exact generated normal developer bundle, same-board image reference and postboot verification. The transaction was retained on wspr5 at `/var/lib/wsprrypi/pico-usb/1545B6EFBF78028C-b9pyq1qz/transaction.json`. The exact bundle remains in `build/gps-pps-integration/bundle-final` on the development host and `/home/pi/gps-pps-integration-20261102/bundle-final` on wspr5; private raw captures and logs remain outside tracked source. Recovery assets were retained. No direct programming bypass was used.
+
+At handback, the board was idle, unowned and output-inactive, with CLK0 register-disabled and the installed image/reference hashes verified. Original GPS absence, manual-zero/automatic-off correction, measurement-only reference policy, station/network settings, logging and disabled schedules were restored. Legitimate autonomous watermark advances were preserved. The original GPSDO state and active `wsprrypi` service were verified. Wiring documentation matched GP17 LED positive, physical pin 23 LED ground return and GP14 runtime switch.
+
+The adjacent [machine-readable record](gps-pps-validation.json) retains measurement scalars, source/image identities, capture hashes and restoration results. It contains no receiver coordinates, decoded locator text, credentials, firmware or raw capture data. The [GPS/PPS contract](gps-pps.md) specifies current behavior; [backlog item 14](consolidated-backlog.md) contains only the selected unfinished qualification work.

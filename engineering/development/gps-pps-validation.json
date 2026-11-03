@@ -1,0 +1,308 @@
+{
+  "schema": "gps-pps-validation/1",
+  "validated_implementation": {
+    "pico": "c7d3b5befe90f7615c34f5b7583d6086cd3a1463",
+    "pi": "40c049c7f68767a1db316b471e35d15a2c5926e4"
+  },
+  "ci": {
+    "pico": "https://github.com/WsprryPi/WsprryPico/actions/runs/41562836673",
+    "pi": "https://github.com/WsprryPi/WsprryPi/actions/runs/41565967348"
+  },
+  "installed_image": {
+    "source": {
+      "dirty": false,
+      "identity": "c7d3b5befe90",
+      "inputs_sha256": "5fa0dabb60f42916cf9bd7a5d1319ec321872c345e86bcf465defc62a426d0f7",
+      "revision": "c7d3b5befe90f7615c34f5b7583d6086cd3a1463"
+    },
+    "uf2": {
+      "bytes": 6222336,
+      "path": "WsprryPico-0.0.0-devel-pico2_w.uf2",
+      "sha256": "b307528274f0d5294c000b99c3f9ae9be15492d26ed42b8262d5b255f15c9b41"
+    }
+  },
+  "observations": {
+    "rf": {
+      "rf-baseline-v2": {
+        "scope": "Simultaneous GPSDO output1 subtracts common receiver tuning error; residual sample clock allowance 100 ppm over measured carrier spacing (about 3 Hz), including reciprocal margin, two 0.25 Hz line allowances, GPSDO engineering allowance 10 ppb. Conditional measurement only; no full sample clock, power, emissions or absolute UTC calibration.",
+        "results": [
+          {
+            "frequency_hz": 14097100,
+            "dut": {
+              "observed_hz": 14097114.422701444,
+              "snr_db": 99.68363659944266
+            },
+            "reference": {
+              "observed_hz": 14127115.87695574,
+              "snr_db": 62.66148153270953
+            },
+            "difference_corrected_error_hz": -1.4542542956769466,
+            "conditional_error_allowance_hz": 3.641746441426365,
+            "analysis_start_s": 4.25,
+            "analysis_duration_s": 4,
+            "rf_execution_complete": true,
+            "capture_sha256": "1e63f2be274561ced4294e680d5346347cc655fbe026e75b5099f5ea094ae8aa",
+            "quality_verified": true
+          },
+          {
+            "frequency_hz": 1840100,
+            "dut": {
+              "observed_hz": 1840102.250185014,
+              "snr_db": 100.40193495266851
+            },
+            "reference": {
+              "observed_hz": 1870102.4312420683,
+              "snr_db": 73.29781713577583
+            },
+            "difference_corrected_error_hz": -0.181057054316625,
+            "conditional_error_allowance_hz": 3.5190491076970596,
+            "analysis_start_s": 4.25,
+            "analysis_duration_s": 4,
+            "rf_execution_complete": true,
+            "capture_sha256": "a60b7b406ba68247a2e87ff02b992db6944bd4e9b0789fcda6ec312e61c898d5",
+            "quality_verified": true
+          }
+        ]
+      },
+      "rf-baseline-4m-v1": {
+        "scope": "Simultaneous GPSDO output1 subtracts common receiver tuning error; residual sample clock allowance 100 ppm over measured carrier spacing (about 3 Hz), including reciprocal margin, two 0.25 Hz line allowances, GPSDO engineering allowance 10 ppb. Conditional measurement only; no full sample clock, power, emissions or absolute UTC calibration.",
+        "results": [
+          {
+            "frequency_hz": 70400000,
+            "dut": {
+              "observed_hz": 70400069.88860671,
+              "snr_db": 106.89894480480937
+            },
+            "reference": {
+              "observed_hz": 70430077.25112538,
+              "snr_db": 93.29333542683432
+            },
+            "difference_corrected_error_hz": -7.362518668174744,
+            "conditional_error_allowance_hz": 4.205366332854523,
+            "analysis_start_s": 4.25,
+            "analysis_duration_s": 4,
+            "rf_execution_complete": true,
+            "capture_sha256": "024413b6f799a10c3ae74d5f801e754362438d92cfa15ed7b50be8eaa956ca73",
+            "quality_verified": true
+          }
+        ]
+      },
+      "rf-corrected-v1": {
+        "scope": "Simultaneous GPSDO output1 subtracts common receiver tuning error; residual sample clock allowance 100 ppm over measured carrier spacing (about 3 Hz), including reciprocal margin, two 0.25 Hz line allowances, GPSDO engineering allowance 10 ppb. Conditional measurement only; no full sample clock, power, emissions or absolute UTC calibration.",
+        "results": [
+          {
+            "frequency_hz": 14097100,
+            "dut": {
+              "observed_hz": 14097111.115589708,
+              "snr_db": 99.45705436119803
+            },
+            "reference": {
+              "observed_hz": 14127115.803186473,
+              "snr_db": 67.3173218903595
+            },
+            "difference_corrected_error_hz": -4.6875967644155025,
+            "conditional_error_allowance_hz": 3.642069811240006,
+            "analysis_start_s": 4.25,
+            "analysis_duration_s": 4,
+            "rf_execution_complete": true,
+            "capture_sha256": "6fbd13904188a5472fb2ffa8ec0e83a4f7a703b5aed8fce14d8c798fb7ffba7a",
+            "quality_verified": true
+          },
+          {
+            "frequency_hz": 1840100,
+            "dut": {
+              "observed_hz": 1840102.6007884047,
+              "snr_db": 99.82416686622388
+            },
+            "reference": {
+              "observed_hz": 1870102.4260493035,
+              "snr_db": 69.6190549299254
+            },
+            "difference_corrected_error_hz": 0.1747391012031585,
+            "conditional_error_allowance_hz": 3.51901352416775,
+            "analysis_start_s": 4.25,
+            "analysis_duration_s": 4,
+            "rf_execution_complete": true,
+            "capture_sha256": "f8a57fa8279ff2f60292731aee6ea24b3eefc410bed8463a7c7ac42128431e24",
+            "quality_verified": true
+          },
+          {
+            "frequency_hz": 70400000,
+            "dut": {
+              "observed_hz": 70400082.50208023,
+              "snr_db": 72.37387782718662
+            },
+            "reference": {
+              "observed_hz": 70430077.0463493,
+              "snr_db": 52.71254528661792
+            },
+            "difference_corrected_error_hz": 5.455730929970741,
+            "conditional_error_allowance_hz": 4.204084366893963,
+            "analysis_start_s": 5.0,
+            "analysis_duration_s": 4,
+            "rf_execution_complete": true,
+            "capture_sha256": "a8b410096df02711f1bffe87f44668970a47b0f798d039e2c7443c34154c62da",
+            "quality_verified": true
+          }
+        ]
+      },
+      "rf-residual-v1": {
+        "scope": "Simultaneous GPSDO output1 subtracts common receiver tuning error; residual sample clock allowance 100 ppm over measured carrier spacing (about 3 Hz), including reciprocal margin, two 0.25 Hz line allowances, GPSDO engineering allowance 10 ppb. Conditional measurement only; no full sample clock, power, emissions or absolute UTC calibration.",
+        "results": [
+          {
+            "frequency_hz": 14097100,
+            "dut": {
+              "observed_hz": 14096834.638960106,
+              "snr_db": 99.78346120311738
+            },
+            "reference": {
+              "observed_hz": 14127115.72461401,
+              "snr_db": 94.9507755802492
+            },
+            "difference_corrected_error_hz": -281.0856539029628,
+            "conditional_error_allowance_hz": 3.6697126573324894,
+            "analysis_start_s": 4.25,
+            "analysis_duration_s": 4,
+            "rf_execution_complete": true,
+            "capture_sha256": "85d86932c43d8dda5f20972963321bb136d0ded0453042571a3a1fad5338d932",
+            "quality_verified": true
+          }
+        ]
+      }
+    },
+    "offline": {
+      "serial": "1545B6EFBF78028C",
+      "boot": "8715790944b0c69729ba24cf1a63857a",
+      "samples": 90,
+      "valid_pairing_samples": 83,
+      "gps_selected_samples": 82,
+      "calibrated_samples": 62,
+      "timer": {
+        "oscillator_error_ppb": -896,
+        "uncertainty_ppb": 10885,
+        "observed_raw_ns": "137063740727",
+        "age_ns": "5207284273",
+        "span_ns": "37000000000",
+        "generation": "73",
+        "fresh": true
+      },
+      "synthesizer": {
+        "oscillator_error_ppb": -50,
+        "uncertainty_ppb": 59685,
+        "observed_raw_ns": "74063793372",
+        "age_ns": "68207231628",
+        "span_ns": "10000000000",
+        "generation": "29",
+        "fresh": true
+      },
+      "maximum_irq_latency_ns": 29674,
+      "maximum_capture_error_bound_ns": 9712,
+      "physical_pair_statuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "offline_boot": true,
+      "scope": "Finite GPS-only acquisition with no NTP admitted after boot, runtime network withdrawn, and independent CLK2 loopback; 100 us receiver allowance is an engineering assumption, not an absolute UTC guarantee; no RF job"
+    },
+    "wspr": {
+      "scope": "Two finite local GPS-located WSPR frames; receiver-relative envelope times at0.25s resolution with assumed100ppm sample-clock allowance, not calibrated absolute RF launch UTC. External existing wsprd decodes derived audio; private location retained in protected logs only.",
+      "frames": [
+        {
+          "frame": 1,
+          "rf_begin_s": 2.75,
+          "rf_end_s": 113.5,
+          "duration_s": 110.75,
+          "decoded": true,
+          "callsign_found": true,
+          "gps_locator_found": false
+        },
+        {
+          "frame": 2,
+          "rf_begin_s": 122.75,
+          "rf_end_s": 233.5,
+          "duration_s": 110.75,
+          "decoded": true,
+          "callsign_found": true,
+          "gps_locator_found": true
+        }
+      ],
+      "relative_slot_spacing_s": 120.0,
+      "paired_frozen_location": true,
+      "paired_frozen_correction": true,
+      "gps_time_provenance": true,
+      "correction_ppb": 0,
+      "capture_sha256": "00196f060088e34f47fac43ed391c28d68177852e1929d8f67d2f51dc8eb94a2",
+      "capture_quality": {
+        "overflows": 0,
+        "clipped_samples": 0,
+        "cleanup": "verified"
+      }
+    },
+    "wspr_restoration": {
+      "verified": true,
+      "saved_semantics_equal_except_advanced_watermark": true,
+      "watermark_before": "1793670121000000000",
+      "watermark_after": "1793670601000000000",
+      "idle": true,
+      "clk0": "register_disabled"
+    }
+  },
+  "handback": {
+    "serial": "1545B6EFBF78028C",
+    "target": {
+      "scope": "member",
+      "device_id": "c2a3a2a314c948b50a8562a1aeb69669",
+      "boot_id": "731e832569ec41972f688636d4e24e92"
+    },
+    "source": {
+      "dirty": false,
+      "identity": "c7d3b5befe90",
+      "inputs_sha256": "5fa0dabb60f42916cf9bd7a5d1319ec321872c345e86bcf465defc62a426d0f7",
+      "revision": "c7d3b5befe90f7615c34f5b7583d6086cd3a1463"
+    },
+    "uf2": {
+      "bytes": 6222336,
+      "path": "WsprryPico-0.0.0-devel-pico2_w.uf2",
+      "sha256": "b307528274f0d5294c000b99c3f9ae9be15492d26ed42b8262d5b255f15c9b41"
+    },
+    "installer_reference_verified": true,
+    "saved_semantics_equal": true,
+    "schedules_enabled": false,
+    "job": "empty",
+    "owner": null,
+    "output_active": false,
+    "clk0": "register_disabled",
+    "clk2_reference": "register_enabled",
+    "gps_absent": true,
+    "automatic_correction": false,
+    "manual_correction_ppb": 0,
+    "reference_use": "measurement_only",
+    "logging": {
+      "enabled": true,
+      "maximum_severity": 6
+    },
+    "station_restored": true,
+    "watermark_utc_ns": "1793670601000000000",
+    "button_gp": 14,
+    "led_gp": 17,
+    "gpsdo": {
+      "serial": "0673ED0FA107",
+      "f1": 10000000,
+      "f2": 10000000,
+      "out1": true,
+      "out2": true,
+      "pps1": false,
+      "fll": false,
+      "out1low": true,
+      "out2low": true
+    },
+    "gpsdo_lock": {
+      "sat": true,
+      "pll": true,
+      "antenna": true
+    },
+    "wsprrypi_service": "active"
+  }
+}
