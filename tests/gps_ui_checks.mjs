@@ -3,6 +3,10 @@
 import assert from 'node:assert/strict';
 export async function checkGps({evaluate,section,click,idle,capture,telemetryFixture}) {
     await section('radio-pins');await idle();
+    assert.equal(await evaluate(`document.querySelector('[data-gps="daylight"]').closest('[data-operator-section]').id`),'time-calibration');
+    assert.equal(await evaluate(`document.querySelector('#gps-settings details').querySelectorAll('p,small').length`),0,'wiring explanations live in the manual');
+    assert.match(await evaluate(`document.querySelector('[data-help="Validated UTC/PPS association"]').href`),/#validated-utc-pps-association$/);
+
     await evaluate(`globalThis.gpsWrites=[];globalThis.gpsApi=api;api=async(...a)=>{if(a[1]&&a[1]!=='GET')gpsWrites.push(structuredClone(a));return gpsApi(...a)};
       globalThis.gpsSet=(key,value)=>{const e=document.querySelector('[data-gps="'+key+'"]');e.value=String(value);e.dispatchEvent(new Event('change',{bubbles:true}))};`);
     assert.equal(await evaluate(`document.querySelector('[data-gps="enabled"]').disabled`),false);
@@ -42,6 +46,15 @@ export async function checkGps({evaluate,section,click,idle,capture,telemetryFix
     assert.equal(await evaluate('currentConfig.gps.tx_gp'),null);
     assert.equal(await evaluate('currentConfig.gps.minimum_message_delay_ms'),600);
     assert.equal(await evaluate('currentConfig.gps.maximum_message_delay_ms'),1200);
+    await section('time-calibration');await evaluate(`gpsSet('daylight','day')`);
+    await click('save-beacon-policy');await idle();
+    assert.equal(await evaluate('currentConfig.gps.daylight'),'day','relocated policy saves through production configuration path');
+    assert.equal(await evaluate(`document.querySelector('[data-gps="daylight"]').value`),'day','confirmed policy readback stays in relocated control');
+    await capture('time-calibration');
+    await evaluate(`gpsEditor.enable(false)`);
+    assert.equal(await evaluate(`document.querySelector('[data-gps="daylight"]').disabled`),true,'relocated input follows editor lock');
+    await idle();await section('radio-pins');await evaluate(`gpsSet('daylight','always')`);
+
     assert.match(await evaluate('document.querySelector("[data-gps-status]").textContent'),/unavailable|not available|not been read/i);
     await evaluate(`gpsSet('enabled',false)`);await click('save-pins');await idle();
     assert.equal(await evaluate('currentConfig.gps.enabled'),false);

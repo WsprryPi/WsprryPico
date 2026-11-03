@@ -5,6 +5,10 @@ export async function checkSi5351({evaluate,section,click,idle,capture}) {
   await evaluate(`globalThis.siOriginalPins=structuredClone(currentConfig.pins);globalThis.siWrites=[];globalThis.siApi=api;api=async(...a)=>{if(a[1] && a[1]!=='GET')siWrites.push(structuredClone(a));return siApi(...a)};
     document.getElementById('config').elements.rf_engine.value='i2c';document.getElementById('config').elements.rf_engine.dispatchEvent(new Event('change',{bubbles:true}));`);
   assert.equal(await evaluate(`document.getElementById('si5351-settings').hidden`),false);
+  assert.equal(await evaluate(`document.getElementById('si5351-settings').nextElementSibling.id`),'gps-settings','I2C setup precedes GPS');
+  assert.equal(await evaluate(`document.querySelector('[name="rf_engine"] option[value="i2c"]').textContent`),'Si5351');
+  assert.equal(await evaluate(`document.querySelectorAll('#si5351-settings p:not([data-si-status])').length`),0,'I2C explanations live in the manual');
+
   assert.equal(await evaluate(`document.getElementById('gpio-drive-form').hidden && document.getElementById('rf-calibration-form').hidden`),true);
   assert.equal(await evaluate('siWrites.length'),0);
   await click('save-pins'); await idle();

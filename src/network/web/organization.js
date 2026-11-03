@@ -1,21 +1,40 @@
 'use strict';
 // Fixed section IDs are presentation only; they never select API authority.
 (() => {
-  // The UDP editor has already mounted its nested disclosures. Reuse its
-  // inline topic link so dynamic sections keep the same offline icon and URL.
-  const udpHelp = $('udp-logging-section').querySelector('summary a.documentation-help');
-  for (const summary of document.querySelectorAll('#udp-logging-controls summary, #gps-settings summary')) {
-    const topic=summary.textContent, group=document.createElement('span'), label=document.createElement('span');
-    group.className='help-heading'; label.textContent=topic;
-    const link=udpHelp.cloneNode(true);
-    if(summary.closest('#gps-settings')) {
-      const base=document.getElementById('header-help').href;
-      link.href=new URL('configure.html#gps-pps-configuration',base).href;
-    }
+  // Reuse the native topic link's icon and accessibility attributes.
+  const helpTemplate = $('udp-logging-section').querySelector('summary a.documentation-help');
+  function help(node,topic,path) {
+    const link=helpTemplate.cloneNode(true);
+    link.href=new URL(path,$('header-help').href).href;
     link.dataset.help=topic;
     link.title=topic+' — online help opens in a new tab';
     link.setAttribute('aria-label','Help: '+topic+' (online, opens in a new tab)');
-    group.append(label,link); summary.replaceChildren(group);
+    node.append(link);
+  }
+  for (const summary of document.querySelectorAll('#udp-logging-controls summary, #gps-settings summary')) {
+    const topic=summary.textContent, group=document.createElement('span'), label=document.createElement('span');
+    group.className='help-heading'; label.textContent=topic;
+    group.append(label);
+    help(group,topic,summary.closest('#gps-settings') ? 'configure.html#gps-wiring-and-timing' :
+      /saved/i.test(topic) ? 'udp.html#saved-udp-logging-settings' : 'udp.html#export-limits-and-event-filter');
+    summary.replaceChildren(group);
+  }
+  for (const [selector,topic,path] of [
+    ['#gps-settings h3','GPS and PPS','configure.html#gps-and-pps'],
+    ['[data-si-heading]','Si5351 I²C setup','configure.html#si5351-output-settings'],
+    ['[data-gps="daylight"]','Automatic beacon schedule','configure.html#automatic-beacon-schedule'],
+    ['[data-gps="pairing_qualified"]','Validated UTC/PPS association','configure.html#validated-utc-pps-association'],
+    ['[name="rf_engine"]','RF output engine','configure.html#rf-output-engine']
+  ]) {
+    const field=document.querySelector(selector);
+    if(!field) continue;
+    const node=field.matches('input,select') ? field.closest('label') : field;
+    const group=document.createElement('span'),label=document.createElement('span');
+    group.className='help-heading';
+    // Keep the input's label text, native label association, and input in place.
+    if(node===field) {label.textContent=node.textContent;node.replaceChildren(group);}
+    else {label.textContent=node.firstChild.textContent;node.firstChild.remove();node.prepend(group);}
+    group.append(label);help(group,topic,path);
   }
   const station = $('station-area'), wifi = $('wifi-host-area');
   const sections = new Map([
@@ -68,6 +87,7 @@
     globalThis.scrollTo?.({top:0,left:0,behavior:'auto'});
   }
   function restore(focus=false) {
+    if (returnReceipt) { hostnameReturn(); return; }
     const saved=history.state?.[stateKey];
     const id=fragment() || (receipt() && (sections.has(saved?.section) || saved?.section==='top') ? saved.section : null);
     const savedArea=['station','wifi-host'].includes(saved?.area)?saved.area:null;
@@ -76,6 +96,14 @@
     if (id==='top') { if(focus) top(); else if(receipt()) reveal($(pendingSection())); }
     else if (id) reveal($(id),focus);
     else if (receipt() && !savedArea) reveal($(pendingSection()));
+  }
+  function hostnameReturn() {
+    setArea('station');
+    const prior=history.state;
+    const existing=prior && typeof prior==='object' && !Array.isArray(prior) ? prior : prior==null ? {} : {wsprrypicoPreviousState:prior};
+    history.replaceState({...existing,[stateKey]:{section:'top',area:'station'}},'',
+      '/station'+location.search+location.hash);
+    top();
   }
   function navigate(id,area,path) {
     closePopovers();
@@ -117,11 +145,15 @@
       }
     });
   }
-  globalThis.WsprryPicoSections={reveal,top,recovery:()=>reveal($('saved-settings')),setup:()=>reveal($(pendingSection()))};
+  globalThis.WsprryPicoSections={reveal,top,hostnameReturn,recovery:()=>reveal($('saved-settings')),setup:()=>reveal($(pendingSection()))};
   addEventListener('popstate',()=>restore(true));
   addEventListener('hashchange',()=>restore(true));
   restore(Boolean(fragment()));
-  if(consumerAttempt || returnReceipt) reveal($(pendingSection()));
+  if(consumerAttempt) reveal($(pendingSection()));
+  // Load/pageshow can restore scroll after script initialization. Reapply only
+  // while a validated return receipt is pending, never during ordinary use.
+  addEventListener('load',()=>{if(returnReceipt) hostnameReturn();});
+  addEventListener('pageshow',()=>{if(returnReceipt) hostnameReturn();});
 
   for (const kind of ['station','network']) {
     const form = $('engineering-' + kind + '-form');

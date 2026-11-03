@@ -59,9 +59,11 @@ let activePlan = null, capabilitiesBoot = null, pinChoices = null, filterSaved =
 let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
 let stopRequested = false, stopping = false;
 const si5351Editor = $('si5351-settings') ? WsprrySi5351.create($('si5351-settings'), {
+  compact:true,
   changed:()=>{dirty=true;showDraftComparison();lockPins();}
 }) : null;
 const gpsEditor = $('gps-settings') ? WsprryGps.create($('gps-settings'), {
+  compact:true,scheduleContainer:$('automatic-beacon-controls'),
   changed:()=>{dirty=true;showDraftComparison();lockPins();}
 }) : null;
 function syncRfEngine() {
@@ -942,6 +944,7 @@ function controls(connected) {
   si5351Editor?.enable(controlsUnlocked() && !uiBusy() && idle && writeState==='ready');
   gpsEditor?.enable(controlsUnlocked() && !uiBusy() && idle && writeState==='ready' && WsprryControl.supported('gps',capabilities?.gps));
   if($('save-pins')) $('save-pins').disabled = uiBusy() || !idle || writeState !== 'ready' || !currentConfig;
+  $('save-beacon-policy').disabled = $('save-pins').disabled || !WsprryControl.supported('gps',capabilities?.gps);
   $('job-settings').disabled = uiBusy() || !idle || snapshot.standalone.reboot_required;
   $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
   $('message-availability').textContent = !unlocked ? '' : !online ? (radio && !localAuthenticated ? 'Use the lock beside the hostname to unlock controls and prepare a message.' : 'Connection unavailable. Refresh status before preparing a message; RF output is unknown.') :
@@ -1871,7 +1874,7 @@ function showContinuation(expected) {
   const destination = new URL(globalThis.location.href);
   destination.username = ''; destination.password = '';
   destination.hostname = expected.name;
-  destination.pathname = radio ? '/' : destination.pathname;
+  destination.pathname = '/station';
   destination.search = '';
   destination.hash = new URLSearchParams({'hostname-return':JSON.stringify(expected)}).toString();
   link.href = destination.href; link.hidden = false;
@@ -1924,13 +1927,15 @@ async function readHostname(token = pageIdentity.request()) {
   if (d.pending_restart) showContinuation({device:d.target.device_id,boot:d.target.boot_id,name:d.saved});
   else { $('hostname-continue').hidden=true; $('hostname-continue').href=''; }
   if (returnReceipt) {
-    if (d.target.boot_id === returnReceipt.boot) $('restart-status').textContent = 'The original boot is still running. Restart has not been observed.';
+    if (!accessAuthenticated()) $('restart-status').textContent = 'Sign in to confirm the same Pico, new boot, and saved hostname.';
+    else if (d.target.boot_id === returnReceipt.boot) $('restart-status').textContent = 'The original boot is still running. Restart has not been observed.';
     else if (d.active !== returnReceipt.name || d.saved !== returnReceipt.name)
       $('restart-status').textContent = 'A new boot was observed, but the intended hostname is not applied. Check saved settings.';
     else {
       $('restart-status').textContent = 'Same Pico and new boot confirmed. Hostname applied: ' + d.active +
         '.';
       returnReceipt = null; restartSent = false;
+      globalThis.WsprryPicoSections?.hostnameReturn();
       consoleState('Reset confirmed','Authenticated observation confirms the same Pico and a new boot.');
       globalThis.history?.replaceState(history.state,'',globalThis.location.pathname + globalThis.location.search);
     }
@@ -2164,7 +2169,7 @@ function amplifierPinsChanged() {
   const pins=readPins();
   return ['amplifier_gp','amplifier_active_high'].some(key=>pins[key]!==currentConfig.pins[key]);
 }
-for (const id of ['pin-settings','amplifier-pin-settings']) $(id).addEventListener('input',event=>{dirty=true;editedProgress(event);showDraftComparison();timingEditor?.notify();});
+for (const id of ['pin-settings','amplifier-pin-settings','automatic-beacon-settings']) $(id).addEventListener('input',event=>{dirty=true;editedProgress(event);showDraftComparison();timingEditor?.notify();});
 async function saveRadioPins(amplifierOnly=false) {
   if(writeState!=='ready') throw new Error('Read and review saved settings before saving pins.');
   const draft=readPins();
@@ -2215,6 +2220,7 @@ async function saveRadioPins(amplifierOnly=false) {
   } catch(error) { requireReadback(); consolePut('pins-status','Read saved settings and review the pin result before another save. '+error.message); throw error; }
 }
 $('save-pins').onclick=()=>action(()=>saveRadioPins());
+$('save-beacon-policy').onclick=()=>action(()=>saveRadioPins());
 async function applyWsprProgress() {
   if(!savedProgress || writeState!=='ready' || !currentConfig) throw new Error('Read and review saved WSPR settings before applying.');
   const fields=savedProgress.data.fields, patch={};
