@@ -4,6 +4,7 @@
 #include "usb/roles.h"
 #include "usb/transport.hpp"
 #include "wtp/frame_parser.hpp"
+#include "wtp/memory_budget.hpp"
 
 #include <algorithm>
 #include <array>
@@ -21,6 +22,19 @@
         }                                                                                          \
     } while (false)
 namespace {
+std::size_t console_allocations = 0, console_releases = 0, free_bytes = 0;
+bool refuse_console_allocation = false;
+void* console_allocate(std::size_t bytes) {
+    if (refuse_console_allocation)
+        return nullptr;
+    ++console_allocations;
+    return std::malloc(bytes);
+}
+void console_release(void* data) {
+    if (data)
+        ++console_releases;
+    std::free(data);
+}
 struct Port {
     bool connected = false;
     std::size_t capacity = 64;
@@ -107,6 +121,26 @@ int main() {
     open(USB_CDC_WTP);
     CHECK(take_wtp_reset());
     CHECK(!take_wtp_reset());
+    // Merely connecting does not reserve 8 KiB. Failed optional diagnostics
+    // preserve the safety reserve; a successful retry and disconnect release it.
+    wsprrypico::wtp::allocate_input = console_allocate;
+    wsprrypico::wtp::deallocate_input = console_release;
+    wsprrypico::wtp::available_memory = +[] { return free_bytes; };
+    CHECK(console_write("") && console_allocations == 0);
+    CHECK(console_allocations == 0 && !console_write("pressure"));
+    CHECK(console_allocations == 0);
+    free_bytes = 65536;
+    refuse_console_allocation = true;
+    CHECK(!console_write("allocation refused") && !console_output_pending());
+    refuse_console_allocation = false;
+    CHECK(console_write("retry") && console_allocations == 1);
+    ports[USB_CDC_CONSOLE].connected = false;
+    service();
+    CHECK(console_releases == 1 && !console_output_pending());
+    open(USB_CDC_CONSOLE);
+    wsprrypico::wtp::allocate_input = std::malloc;
+    wsprrypico::wtp::deallocate_input = std::free;
+    wsprrypico::wtp::available_memory = nullptr;
     // Startup-sized UTF-8 diagnostic survives short writes; WTP stays silent.
     const std::string banner = "WsprryPico\r\n" + std::string(600, 'x') + " UTF-8: π\r\n";
     ports[0].capacity = 7;

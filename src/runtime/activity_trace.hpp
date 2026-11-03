@@ -1,8 +1,12 @@
 #pragma once
 
+#include "wtp/input_buffer.hpp"
+#include "wtp/memory_budget.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <span>
 #include <string_view>
 
@@ -26,8 +30,9 @@ struct ActivityRecord {
     ActivityOutcome outcome = ActivityOutcome::Pending;
 };
 
-// Single core-0 caller only; never call from interrupts/core 1. No allocation,
-// persistence, payloads, addresses or protocol identifiers. Captures are opt-in
+// Single core-0 caller only; never call from interrupts/core 1. Allocate fixed
+// storage only on the first successful opt-in BEGIN, never while recording.
+// No persistence, payloads, addresses or protocol identifiers. Captures are opt-in
 // and retain the first 256 records until the next successful begin(). Each
 // admitted span reserves its END: overflow drops a whole new span, not a mate.
 class ActivityTrace {
@@ -35,6 +40,9 @@ class ActivityTrace {
     static constexpr std::size_t capacity = 256;
     bool begin() {
         if (open_spans_)
+            return false;
+        if (!storage_.capacity() && (!wtp::memory_admitted(capacity * sizeof(ActivityRecord)) ||
+                                     !storage_.reserve(capacity * sizeof(ActivityRecord))))
             return false;
         count_ = 0;
         ++capture_epoch_;
@@ -67,7 +75,7 @@ class ActivityTrace {
         return open_spans_;
     }
     std::span<const ActivityRecord> records() const {
-        return {records_.data(), count_};
+        return {reinterpret_cast<const ActivityRecord*>(storage_.data()), count_};
     }
     std::uint64_t start(ActivityKind kind, std::uint64_t now_ns) {
         if (!enabled_ || kind == ActivityKind::None)
@@ -89,7 +97,7 @@ class ActivityTrace {
             return false;
         bool found = false;
         for (std::size_t i = 0; i < count_; ++i) {
-            const auto& record = records_[i];
+            const auto& record = records()[i];
             if (record.span != id)
                 continue;
             if (record.kind != kind || record.phase == ActivityPhase::End)
@@ -109,9 +117,9 @@ class ActivityTrace {
             clock_regressed_ = true;
         last_ns_ = record.monotonic_ns;
         record.sequence = ++sequence_;
-        records_[count_++] = record;
+        std::construct_at(reinterpret_cast<ActivityRecord*>(storage_.data()) + count_++, record);
     }
-    std::array<ActivityRecord, capacity> records_{};
+    wtp::InputBuffer storage_;
     std::size_t count_ = 0, open_spans_ = 0;
     std::uint64_t sequence_ = 0, dropped_spans_ = 0, last_ns_ = 0, capture_epoch_ = 0;
     bool enabled_ = false, clock_regressed_ = false;

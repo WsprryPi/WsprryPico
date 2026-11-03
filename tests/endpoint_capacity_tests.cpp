@@ -235,6 +235,42 @@ void capacity(bool escaped) {
     CHECK(conflict.find("REQUEST_ID_REUSE") != std::string::npos);
     CHECK(peer.engine.prepared == 1);
 }
+void direct_wspr_headroom() {
+    std::string body =
+        "{\"job_id\":" + json::quote(std::string(32, 'c')) +
+        R"(,"profile":"rf-events/1","mode":"wspr","total_duration_ns":"110592000000","allow_frequency_adjustment":true,"events":[)";
+    for (unsigned i = 0; i < 162; ++i) {
+        if (i)
+            body += ',';
+        const auto begin = (i * 8192ULL * 1000000000 + 6000) / 12000;
+        const auto end = ((i + 1) * 8192ULL * 1000000000 + 6000) / 12000;
+        body += "{\"offset_ns\":" + decimal(begin, false) +
+                ",\"duration_ns\":" + decimal(end - begin, false) +
+                ",\"rf_on\":true,\"frequency_nhz\":" +
+                decimal(14097100000000000ULL + i % 4 * 1464843750ULL, false) + '}';
+    }
+    const auto payload = request(3, "LOAD", body + "]}");
+    CHECK(payload.size() < 20480);
+    {
+        Peer peer;
+        forced_pressure = heap_budget - 56552; // Observed failing Direct/GPS headroom.
+        peer.hello_claim();
+        CHECK(peer.send(payload).empty());
+        CHECK(peer.engine.prepared == 0);
+    }
+    CHECK(live_bytes == 0);
+    {
+        Peer peer;
+        forced_pressure = heap_budget - 88000; // Below the corrected target's headroom.
+        peer.hello_claim();
+        CHECK(peer.response_ok(peer.send(payload)));
+        CHECK(!peer.endpoint.closed() && peer.engine.prepared == 1 && peer.engine.events == 162);
+        CHECK(available() >= 32768); // The unchanged authority reserve still fits.
+        CHECK(peer.response_ok(peer.send(payload)));
+        CHECK(peer.engine.prepared == 1);
+    }
+    forced_pressure = 0;
+}
 void deferred_compacted_digest() {
     Peer peer;
     peer.hello_claim();
@@ -287,6 +323,10 @@ int main() {
     available_memory = available;
     {
         bounded_control_pressure();
+    }
+    CHECK(live_bytes == 0);
+    {
+        direct_wspr_headroom();
     }
     CHECK(live_bytes == 0);
     {

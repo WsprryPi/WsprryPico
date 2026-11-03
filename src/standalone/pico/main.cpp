@@ -529,7 +529,8 @@ int main() {
     static wsprrypico::provisioning::LedScheduleFixture led_schedule;
 #endif
 #ifdef WSPRRY_PICO_GP14_RUNTIME_BUTTON
-    static wsprrypico::provisioning::PicoGp14Capture gp14_button(boot_pins.button);
+    static wsprrypico::provisioning::PicoGp14Capture::Ring gp14_ring;
+    static wsprrypico::provisioning::PicoGp14Capture gp14_button(gp14_ring, boot_pins.button);
     bool gp14_fault_handled = false;
     bool gp14_reset_pending = false;
 #ifdef WSPRRY_PICO_STANDALONE_RF
