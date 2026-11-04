@@ -23,6 +23,13 @@ MIT, copyright 2024 Gadgetoid (Phil Howard). The complete retained notice is
 [`pico2w-pinout-LICENSE.txt`](docs/_static/images/wiring/pico2w-pinout-LICENSE.txt)
 and is also embedded in the SVG. Preserve it with distributions of these diagrams.
 
+The annotated Si5351 and QLG3 wiring images
+`docs/_static/images/wiring/qrp-labs-si5351-pico2w-wiring.png` and
+`docs/_static/images/wiring/qrp-labs-qlg3-pico2w-wiring.png` use QRP Labs board
+artwork with permission from Hans Summers, QRP Labs. WsprryPico adds the wiring
+annotations. The underlying artwork remains the property of QRP Labs and is
+not covered by the project's MIT license.
+
 The optional host interoperability test compiles unmodified WTP-Client
 sources from [WsprryPi](https://github.com/WsprryPi/WsprryPi) at
 `c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf`. The external component is MIT,

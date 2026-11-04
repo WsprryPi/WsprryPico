@@ -91,6 +91,8 @@ Module pin numbers in this table refer to the **QRP Labs board header**, not the
 
 ![Rev. 5 reference artwork showing the Rev. 6 platform wiring: VBUS, ground, I²C, CLK0 RF output and GP7 feedback, with module pin 11 unconnected](../_static/images/wiring/qrp-labs-si5351-pico2w-wiring.png)
 
+*QRP Labs board artwork used with permission from Hans Summers, QRP Labs. Wiring annotations added by WsprryPico.*
+
 The module's onboard regulator converts the 5 V supply on pin 10 to approximately 3.3 V for the synthesizer and fitted TCXO. **Pin 11 is the supply for the I²C level-converter pull-up resistors**, rather than the synthesizer's main power input. These functions are described separately in the [Rev. 5 manual, pages 1–2](https://qrp-labs.com/images/synth/synth_assembly5.pdf).
 
 The synthesizer uses I²C address `0x60`. Module pin 11 is unconnected in this harness, so it does not supply the module's I²C pull-up resistors. The bench arrangement relies on Pico internal pull-ups on GP4 and GP5, with a 100 kHz bus. Check bus voltage levels and rise times when changing cable length, bus speed or module assembly.
@@ -119,10 +121,12 @@ The QLG3 five-pin header has no GPS RX input, so no connection to Pico GP0 is ne
 
 ![QLG3 connector with VDD, VBAT, PPS, GPS TX and ground labeled in the supplied board orientation](../_static/images/wiring/qrp-labs-qlg3-pico2w-wiring.png)
 
+*QRP Labs board artwork used with permission from Hans Summers, QRP Labs. Wiring annotations added by WsprryPico.*
+
 The [QLG3 module information](https://qrp-labs.com/qlg3) specifies a regulated 3.3 V supply. The [QMX+ assembly manual, pages 62–63](https://www.qrp-labs.com/images/qmxp/manuals/assembly_2_00.pdf) explains the powered VBAT requirement. This platform ties VBAT to VDD rather than using a separate backup battery.
 
 ## Drawing credits
 
 The base, GPS and Si5351 Pico diagrams incorporate the underside artwork from [Gadgetoid's Pico 2 W pinout](https://pico2w.pinout.xyz/), copyright 2024 Gadgetoid (Phil Howard), under the MIT license. Its [retained license notice](../_static/images/wiring/pico2w-pinout-LICENSE.txt) accompanies the adapted SVG. Pin labels and wiring annotations are project additions.
 
-The QLG3 and Si5351 illustrations annotate user-supplied QRP Labs board artwork. Original artwork and product names retain their respective ownership; these annotations do not relicense them as original MIT project code.
+The QLG3 and Si5351 illustrations annotate QRP Labs board artwork used with permission from Hans Summers, QRP Labs. Original artwork and product names retain their respective ownership; these annotations do not relicense them as original MIT project code.
