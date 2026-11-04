@@ -71,9 +71,10 @@ test('reports a missing executable without waiting for the startup deadline',{ti
  try {await assert.rejects(browser.ready,/Chrome launch failed:.*ENOENT/);}
  finally {await cleanupUiProcesses([browser.process],profile);}
 });
-test('never treats an endpoint without a page as ready',async()=>{
- await withBrowser('no-page',async browser=>{
-  await assert.rejects(browser.ready,error=>/Timed out: Chrome startup/.test(error.message) && /no ready page target/.test(error.message));
+test('never treats an endpoint without a page as ready',{timeout:2000},async()=>{
+ await withBrowser('no-page',async(browser,profile)=>{
+  await assert.rejects(browser.ready,/Timed out: Chrome startup/);
+  assert(Number(await readFile(path.join(profile,'probes'),'utf8'))>0, 'the empty page endpoint was probed');
  },750);
 });
 test('bounds a stalled DevTools request by the startup deadline',async()=>{
