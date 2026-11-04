@@ -67,6 +67,15 @@ node tests/ui_sections_browser.mjs build-host/consumer_bootstrap_driver build/ui
 
 Set `CHROME_BIN` to the installed browser executable on hosts using another path. The consumer and engineering checks run sequentially because each owns a fixed local fixture port range. They use RAM-backed synthetic configuration, isolated browser profiles, and bounded requests; they access no Pico or RF hardware. The certificate fixture supplies an authenticated principal and does not qualify browser certificate selection or TLS admission. The existing organization and session-timeout browser workflows cover setup/save reconciliation and session lifetime separately.
 
+Browser startup and process-lifecycle fixtures run with
+`node --test tests/chrome_startup.test.mjs tests/ui_process_cleanup.test.mjs`.
+Fault cases establish an observed probe, incomplete-discovery read, or captured
+stderr before advancing an injected startup-deadline clock. The normal browser
+startup uses a monotonic 60-second budget; an independent real watchdog remains
+finite when tests control the deadline clock. The cold-start regression retains
+its real 21-second stimulus. These are host-only fixtures, with no firmware,
+settings, service, or RF changes.
+
 The shipped Station/Wi-Fi controls also have a production HTTP/AEAD fixture for public settings, lock behavior, independent WSPR/pin saves, a committed lost reply, responsive layout, and keyboard navigation:
 
 ```sh
