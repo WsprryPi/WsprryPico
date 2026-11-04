@@ -183,7 +183,9 @@ try {
     '--headless=new','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check',
     '--remote-debugging-port=0','--user-data-dir='+profile,...(process.platform==='linux'?['--no-sandbox']:[]),'about:blank'],profile,{processGroup});
   chrome=browser.process;
-  const pages=await browser.ready;ws=new WebSocket(pages.find(page=>page.type==='page').webSocketDebuggerUrl);
+  const pages=await browser.ready;
+  console.log('Chrome startup: '+browser.diagnostic());
+  ws=new WebSocket(pages.find(page=>page.type==='page').webSocketDebuggerUrl);
   ws.onmessage=event=>{
     const value=JSON.parse(event.data);
     if(value.method==='Page.javascriptDialogOpening') {void send('Page.handleJavaScriptDialog',{accept:true});return;}

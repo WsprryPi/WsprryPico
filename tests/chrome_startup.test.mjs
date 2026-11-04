@@ -21,18 +21,19 @@ else {
   res.setHeader('Content-Type','application/json');
   res.end(JSON.stringify(requests===1 || mode==='no-page'?[]:[{type:'page',webSocketDebuggerUrl:'ws://127.0.0.1:'+port+'/devtools/page/fixture'}]));
  });
- server.listen(0,'127.0.0.1',()=>{
+ const listen=()=>server.listen(0,'127.0.0.1',()=>{
   port=server.address().port;
   if(mode==='file') {
    fs.writeFileSync(path.join(profile,'DevToolsActivePort'),'');
    setTimeout(()=>fs.writeFileSync(path.join(profile,'DevToolsActivePort'),String(port)+'\\n/devtools/browser/fixture\\n'),30);
   } else console.error('DevTools listening on ws://127.0.0.1:'+port+'/devtools/browser/fixture');
  });
+ if(mode==='cold')setTimeout(listen,21000);else listen();
 }
 `;
 async function withBrowser(mode,check,timeoutMs=2000) {
  const profile=await mkdtemp(path.join(os.tmpdir(),'chrome-startup-test-'));
- const browser=launchChrome(process.execPath,['--input-type=module','-e',fixture,mode,profile],profile,{timeoutMs});
+ const browser=launchChrome(process.execPath,['--input-type=module','-e',fixture,mode,profile],profile,timeoutMs===null?{}:{timeoutMs});
  try {await check(browser,profile);}
  finally {await cleanupUiProcesses([browser.process],profile);}
 }
@@ -49,6 +50,15 @@ test('handles a partially written port file and waits for the page endpoint',asy
   assert.equal((await browser.ready)[0].type,'page');
   assert(Number(await readFile(path.join(profile,'probes'),'utf8'))>=2);
  });
+});
+test('allows cold endpoint startup beyond 20 seconds within the shared 60-second budget',{timeout:30000},async()=>{
+ await withBrowser('cold',async browser=>{
+  assert.equal((await browser.ready)[0].type,'page');
+  const timing=JSON.parse(browser.diagnostic());
+  assert.equal(timing.budgetMs,60000);
+  assert(timing.endpointMs>=21000);
+  assert(timing.probes>=2);
+ },null);
 });
 test('reports an early exit with its actual code and stderr',async()=>{
  await withBrowser('exit',async browser=>{
