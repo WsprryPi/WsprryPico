@@ -260,7 +260,8 @@ class BundleTests(unittest.TestCase):
     def verify(self, **kwargs):
         # Synthetic fixture has no ELF. Actual image inspection is mandatory in
         # the CLI; these tests isolate untrusted manifests and artifact inventories.
-        with patch.object(bundle, 'required_tests', return_value={'fixture'}):
+        with patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=None):
             return bundle.verify(self.deploy, self.audit, kwargs.get('source', self.source),
                                   kwargs.get('version', self.version), inspect=False)
 
@@ -280,6 +281,30 @@ class BundleTests(unittest.TestCase):
         (self.deploy / 'SHA256SUMS').write_text(''.join(
             hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n'
             for p in sorted(self.deploy.iterdir()) if p.name != 'SHA256SUMS'))
+
+    def test_new_producer_requires_execution_sidecar_even_when_inventory_is_resealed(self):
+        with patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=['npm']):
+            with self.assertRaises(FileNotFoundError):
+                bundle.verify(self.deploy, self.audit, self.source, self.version, inspect=False)
+        # The same distribution fixture remains readable for a frozen old producer.
+        self.verify()
+
+    def test_execution_policy_is_read_only_from_frozen_source(self):
+        path = 'scripts/ci/execution-policy.json'
+        policy = json.dumps({'schema': 'ci-execution-policy/1', 'contexts': ['npm']})
+        with patch.object(bundle, 'capture', side_effect=[path, policy]) as capture:
+            self.assertEqual(bundle.required_execution_contexts(self.source), ['npm'])
+        self.assertEqual(capture.call_args_list[-1].args[-1], self.source + ':' + path)
+        with patch.object(bundle, 'capture', return_value=''):
+            self.assertIsNone(bundle.required_execution_contexts(self.source))
+        for malformed in [policy.replace('npm', 'unknown'), policy.replace('["npm"]', '[]'),
+                          policy.replace('["npm"]', '["npm", "npm"]')]:
+            with patch.object(bundle, 'capture', side_effect=[path, malformed]), self.assertRaises(ValueError):
+                bundle.required_execution_contexts(self.source)
+        with patch.object(bundle, 'capture', side_effect=subprocess.CalledProcessError(1, 'git')):
+            with self.assertRaises(subprocess.CalledProcessError):
+                bundle.required_execution_contexts(self.source)
 
     def test_layout_is_bound_to_frozen_source(self):
         self.assertEqual(self.created_boundary, '103ec000')
@@ -555,7 +580,8 @@ class BundleTests(unittest.TestCase):
         version = '0.1.0-testing.1'
         with patch.dict(os.environ, env):
             bundle.create(created, self.audit, self.source, version, ['consumer'], self.checks, self.inputs)
-        with patch.object(bundle, 'required_tests', return_value={'fixture'}):
+        with patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=None):
             result = bundle.verify(created, self.audit, self.source, version, inspect=False)
         self.assertFalse(result['deployment_candidate'])
         self.assertEqual(result['testing_release'], bundle.testing_metadata(self.source))

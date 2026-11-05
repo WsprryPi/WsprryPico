@@ -547,6 +547,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(control_contract_tests PRIVATE wsprrypico_core)
     target_compile_options(control_contract_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME control_contract COMMAND control_contract_tests)
+    add_test(NAME ci_execution_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/ci_execution_tests.py)
     add_test(NAME control_policy COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_control_policy.py)
     add_test(NAME control_policy_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/control_policy_tests.py)
     add_test(NAME control_contract_generated COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_control_contract.py --check)

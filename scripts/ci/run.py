@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts/ci'))
 import bundle
+import execution
 sys.path.insert(0, str(ROOT / 'scripts'))
 from check_control_policy import check_files as check_control_policy
 
@@ -22,16 +23,17 @@ def capture(*args):
     return subprocess.check_output(list(map(str, args)), cwd=ROOT, text=True).strip()
 
 
-def execute(log, *args, cwd=ROOT):
-    print('+', ' '.join(map(str, args)), flush=True)
-    with log.open('a') as output:
-        output.write('+ ' + ' '.join(map(str, args)) + '\n')
-        output.flush()
-        result = subprocess.run(list(map(str, args)), cwd=cwd, stdout=output,
-                                stderr=subprocess.STDOUT, check=False)
-    if result.returncode:
-        print(log.read_text()[-24000:], flush=True)
-        raise RuntimeError(f'Command failed ({result.returncode}); see {log.name}')
+def execute(log, *args, cwd=ROOT, context=None):
+    command = list(map(str, args))
+    print('+', ' '.join(command), flush=True)
+    try:
+        execution.execute(log, command, cwd, capture('git', 'rev-parse', 'HEAD'), context)
+    except BaseException as primary:
+        try:
+            print(log.read_text()[-24000:], flush=True)
+        except OSError as diagnostic:
+            raise BaseExceptionGroup('command and diagnostic read failed', [primary, diagnostic]) from None
+        raise
 
 
 def inputs():
@@ -130,46 +132,41 @@ def host_checks(deps, audit):
     (audit / 'registered-tests.json').write_text(json.dumps(registered, indent=2) + '\n')
     execute(log, 'cmake', '--build', host, '--parallel', '4')
     execute(log, 'ctest', '--test-dir', host, '--output-on-failure', '--timeout', '240',
-            '--output-junit', audit / 'host-tests.xml')
+            '--output-junit', audit / 'host-tests.xml', context='ctest')
     suite = ET.parse(audit / 'host-tests.xml').getroot()
     cases = suite.findall('testcase')
-    if (len(cases) != len(names) or any(case.find('skipped') is not None or
-            case.find('failure') is not None or case.find('error') is not None for case in cases)):
-        raise ValueError('Incomplete, skipped or failed required CTest suite')
-    # CTest does not expose unittest's internal skips as skipped CTest cases.
-    internal_skips = [case.attrib['name'] for case in cases
-                      if re.search(r'\bskipped=\d+', ''.join(case.itertext()))]
-    if internal_skips:
-        raise ValueError('Internally skipped required suite: ' + ', '.join(internal_skips))
+    execution.ctest_result(suite, names)
     (audit / 'evidence-skips.json').write_text('[]\n')
-    execute(log, sys.executable, ROOT / 'scripts/validate_wtp_contract.py')
-    execute(log, 'npm', 'test', cwd=web)
-    execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py')
+    execute(log, sys.executable, ROOT / 'scripts/validate_wtp_contract.py', context='wtp-contract')
+    execute(log, 'npm', 'test', cwd=web, context='npm')
+    execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py', context='packaging')
     execute(log, 'node', '--test', ROOT / 'tests/ui_process_cleanup.test.mjs',
-            ROOT / 'tests/chrome_startup.test.mjs', ROOT / 'tests/contextual_help_cleanup.test.mjs')
+            ROOT / 'tests/chrome_startup.test.mjs', ROOT / 'tests/contextual_help_cleanup.test.mjs', context='browser-lifecycle')
     chrome = shutil.which('google-chrome')
     if not chrome:
         raise ValueError('Runner Chrome is required for the consumer frequency UI check')
     os.environ['CHROME_BIN'] = chrome
     execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
-            host / 'consumer_bootstrap_driver', audit / 'consumer-ui')
+            host / 'consumer_bootstrap_driver', audit / 'consumer-ui', context='frequency')
     execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
-            host / 'consumer_bootstrap_driver', audit / 'first-wspr-ui', 'first-use:network', 'transmission')
+            host / 'consumer_bootstrap_driver', audit / 'first-wspr-ui', 'first-use:network', 'transmission', context='first-use')
     execute(log, 'node', ROOT / 'tests/session_timeout_browser.mjs',
-            host / 'consumer_bootstrap_driver', audit / 'session-timeout-ui')
+            host / 'consumer_bootstrap_driver', audit / 'session-timeout-ui', context='session-timeout')
     execute(log, 'env', 'PROGRESS_BROWSER_NO_CAPTURE=1', 'node', ROOT / 'tests/progress_browser_integration.mjs',
-            host / 'consumer_bootstrap_driver', audit / 'progress-ui')
-    execute(log, 'node', ROOT / 'tests/consumer_recovery_browser.mjs', host / 'consumer_bootstrap_driver')
+            host / 'consumer_bootstrap_driver', audit / 'progress-ui', context='progress')
+    execute(log, 'node', ROOT / 'tests/consumer_recovery_browser.mjs', host / 'consumer_bootstrap_driver', context='recovery')
     execute(log, 'env', 'UI_REVIEW_NO_CAPTURE=1', 'node', ROOT / 'tests/submission_ui_browser.mjs',
-            host / 'consumer_bootstrap_driver', audit / 'submission-ui')
+            host / 'consumer_bootstrap_driver', audit / 'submission-ui', context='submission')
     for suite in ('hostname_browser_integration', 'organization_browser_integration',
                   'wspr_browser_integration', 'message_frequency_ui_integration'):
         execute(log, 'env', 'PICO_BROWSER_NO_CAPTURE=1', 'node', ROOT / f'tests/{suite}.mjs',
-                host / 'consumer_bootstrap_driver', audit / suite)
-    execute(log, 'node', ROOT / 'tests/operator_cleanup_browser.mjs', host / 'consumer_session_driver')
+                host / 'consumer_bootstrap_driver', audit / suite,
+                context={'hostname_browser_integration': 'hostname', 'organization_browser_integration': 'organization',
+                         'wspr_browser_integration': 'wspr', 'message_frequency_ui_integration': 'message-frequency'}[suite])
+    execute(log, 'node', ROOT / 'tests/operator_cleanup_browser.mjs', host / 'consumer_session_driver', context='operator')
     for carrier in ('consumer', 'engineering'):
         execute(log, 'env', 'UI_REVIEW_NO_CAPTURE=1', 'node', ROOT / 'tests/ui_sections_browser.mjs',
-                host / 'consumer_bootstrap_driver', audit / f'sections-{carrier}', carrier)
+                host / 'consumer_bootstrap_driver', audit / f'sections-{carrier}', carrier, context=f'sections-{carrier}')
     return {'registered': len(names), 'passed': len(cases), 'failed': 0, 'skipped': 0,
             'test_names': sorted(names), 'wtp_contract': 'passed', 'browser_npm': 'passed',
             'packaging_failure_tests': 'passed', 'consumer_ui': 'passed',
@@ -316,6 +313,8 @@ def build(deps, output):
     build_inputs['linked_resources'] = {
         name: bundle.sha(deps / 'sdk/lib/cyw43-driver/firmware' / name)
         for name in ('wb43439A0_7_95_49_00_combined.h', 'wifi_nvram_43439.h', 'cyw43_btfw_43439.h')}
+    execution.verify(json.loads((audit / 'execution.json').read_text()), source,
+                     os.environ['GITHUB_RUN_ID'], os.environ['GITHUB_RUN_ATTEMPT'])
     bundle.create(deployment, audit, source, version, selected, checks, build_inputs)
     bundle.verify(deployment, audit, source, version)
     print(json.dumps({'source': source, 'version': version, 'profiles': selected,

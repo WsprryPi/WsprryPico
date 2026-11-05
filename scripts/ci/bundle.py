@@ -13,6 +13,8 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
+import execution
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from check_application_image import validate as validate_engine
@@ -171,6 +173,20 @@ def required_tests(source=None):
     if loop:  # Frozen earlier artifacts used a generated campaign-test registration.
         expected.update(name + '_tests' for name in loop[1].split())
     return expected
+
+
+def required_execution_contexts(source):
+    path = 'scripts/ci/execution-policy.json'
+    present = capture('git', '-C', ROOT, 'ls-tree', '--name-only', source, '--', path)
+    if not present:
+        return None  # Only frozen producers predating this independent evidence format.
+    require(present == path, 'Invalid frozen execution policy path')
+    value = json.loads(capture('git', '-C', ROOT, 'show', source + ':' + path), object_pairs_hook=unique)
+    require(isinstance(value, dict) and set(value) == {'schema', 'contexts'} and
+            value['schema'] == 'ci-execution-policy/1' and isinstance(value['contexts'], list) and
+            value['contexts'] and all(isinstance(x, str) and x in execution.HOST_CONTEXTS for x in value['contexts']) and
+            len(value['contexts']) == len(set(value['contexts'])), 'Invalid frozen execution policy')
+    return value['contexts']
 
 
 def binary_identity(report):
@@ -393,6 +409,13 @@ def verify(deployment, audit, source, version, inspect=True):
     require(all(case.find('failure') is None and case.find('error') is None and
                 case.find('skipped') is None and case.attrib.get('status', 'run') in ('run', 'passed')
                 for case in cases), 'Audit report contains failed or skipped required tests')
+    # New execution evidence is required by its frozen producer, without
+    # changing the independently versioned deployment manifest or older bundles.
+    contexts = required_execution_contexts(source)
+    if contexts is not None:
+        report = read_json(audit / 'execution.json')
+        execution.verify(report, source, manifest['workflow']['run_id'], manifest['workflow']['attempt'], contexts)
+        execution.verify_logs(report, audit)
     require(read_json(audit / 'evidence-skips.json') == checks['historical_evidence_skips'],
             'Historical skip inventory differs')
     allowed_skips = read_json(Path(__file__).with_name('legacy-test-skip-reasons.json'))
