@@ -6,22 +6,26 @@ detection are acceptance gates. Speed and maintenance reductions are optimizatio
 targets within those gates. Improvements may add code or runtime. A 50% reduction
 is a feasibility question for each metric, never a completion quota.
 
-The saved prompts are execution instructions for later explicit phase invocation.
-Preparing, reviewing, committing, or pushing them does not execute a phase.
-Current authorization covers campaign documents only: no product/harness changes,
-test runs, dependency installation, hosted CI, hardware, merge, or publication.
-Prompt preparation and phase execution have separate status.
+The eleven prompts are authorized for sequential execution in this session.
+The user's Wsprry Development Session standing authority supersedes the earlier
+preparation-only, per-phase invocation, separate routine approval, and no-CI
+restrictions in these documents. It covers development, dependencies, Git/CI,
+related Docker infrastructure, WsprryPi/WsprryPi-Docs/WsprryPico, wspr4/wspr5, and
+Pico C within the assigned campaign. Preserve unrelated data/services and shared
+Git history. Identify hardware and verify the actual conducted RF termination
+before any transmission; this software campaign requires no RF by default.
+Prompt preparation and implementation acceptance remain separate statuses.
 
 ## Phase list
 
 All eleven prompts have completed an authoring adversarial review, correction,
-and reassessment. None of the execution phases has started. The phase numbers
-match the agreed campaign and remain stable.
+and reassessment. Execution is tracked below. The phase numbers match the agreed
+campaign and remain stable. Legend: ✅ complete, ⏳ in progress, ▧ not started.
 
 | Phase | Purpose | Saved prompt | Prompt review | Execution |
 | --- | --- | --- | --- | --- |
-| 01 | Establish the baseline and accounting | [Prompt](phase-01-baseline.md) | Reviewed, findings closed | ▧ Not started |
-| 02 | Make CI outcomes enforceable and observable | [Prompt](phase-02-ci-outcomes.md) | Reviewed, findings closed | ▧ Not started |
+| 01 | Establish the baseline and accounting | [Prompt](phase-01-baseline.md) | Reviewed, findings closed | ✅ Complete |
+| 02 | Make CI outcomes enforceable and observable | [Prompt](phase-02-ci-outcomes.md) | Reviewed, findings closed | ⏳ In progress |
 | 03 | Repair process ownership and failure propagation | [Prompt](phase-03-process-ownership.md) | Reviewed, findings closed | ▧ Not started |
 | 04 | Qualify the session browser pilot | [Prompt](phase-04-browser-pilot.md) | Reviewed, findings closed | ▧ Not started |
 | 05 | Adopt the qualified browser lifecycle | [Prompt](phase-05-browser-adoption.md) | Reviewed, findings closed | ▧ Not started |
@@ -34,7 +38,8 @@ match the agreed campaign and remain stable.
 
 ## Sequence and completion
 
-Execute phases in order, one explicitly invoked phase at a time. Each phase
+Execute phases in order under the standing authority, reporting and printing the
+updated list after each phase before continuing. Each phase
 consumes the accepted implementation evidence and interfaces of its predecessors.
 Phase 02's separately pending remote-settings approval may remain outstanding
 while independent later implementation proceeds; this does not mark phase 02
@@ -73,20 +78,19 @@ historical counts, suspected defects, refs, and prior green results are leads.
   and ownership before editing. Preserve user work and other worktrees/processes.
   Start from the phase's intended current candidate, recording its relationship
   to current devel; do not silently reset to this campaign's preparation SHA.
-- Keep work in WsprryPico. Read affected Pi clients and fixtures as needed.
-  Reading them does not authorize companion edits, branches, commits, or pushes.
-  Secure explicit companion authority if necessary; unavailable authority or
-  dependencies are blockers, not a deferred requirement behind completion.
-- An explicit phase invocation authorizes its bounded implementation and local,
-  hardware-free validation. It does not authorize unrelated phases, remote
-  settings changes, hosted CI dispatch, dependency installation/downloads,
-  hardware, service changes, merge, release, or firmware deployment. Use retained
-  dependencies; request missing authority after preparing the concrete result.
-- This preparation branch is codex/pico-ci-reliability-campaign. Future execution
-  must identify its own intended branch/worktree. Do not stage, commit, or push
-  implementation unless that execution task authorizes it. Every commit/push in
-  the present document-authoring task uses [skip ci]; do not trigger CI indirectly
-  through a PR, tag, dispatch, or branch-setting change.
+- Keep implementation within the campaign and its necessary companion slices.
+  Companion development is authorized by the session standing authority. Record
+  intended paired refs; unavailable credentials or dependencies remain blockers,
+  not a deferred requirement behind completion.
+- Execute each bounded phase and its required validation under the session
+  standing authority, including necessary companion work, dependencies, CI, and
+  project settings. Do not repeat routine approval requests already answered.
+  Respect higher-priority technical permission boundaries and the user's explicit
+  restrictions on protected history, unrelated data, and unverified RF paths.
+- Execution uses codex/pico-ci-reliability-campaign and its isolated worktree.
+  Validated implementation commits/pushes and necessary CI are now authorized.
+  Document-only status/evidence commits may use [skip ci]. Do not rewrite shared
+  history or weaken existing branch protections.
 
 ### Efficacy and timing
 
@@ -159,9 +163,15 @@ historical counts, suspected defects, refs, and prior green results are leads.
   USB/network, service, timing, GPIO, and RF qualification.
 - Mark a phase complete only after its acceptance gates pass; distinguish a
   separately blocked settings action from completed coding subtasks. Do not
-  auto-execute the next phase. Update this active plan during authorized execution.
+  skip prerequisite acceptance gates when continuing to the next phase. Update this active plan during authorized execution.
   Retire completed temporary prompts only after consolidating needed instructions
   and repairing references under phase 10 and repository retention rules.
+
+## Execution evidence
+
+[Phase 01 baseline](baseline.md) and [exact inventory](baseline.json) freeze the
+original executable inputs and qualified historical measurements. Unknown semantic
+denominators remain explicit; later phase costs reconcile against this baseline.
 
 ## Preparation review records
 
