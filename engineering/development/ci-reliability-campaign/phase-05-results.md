@@ -71,3 +71,29 @@ registration are charged; the extracted three native-profile cases remain. Exist
 Chrome cold-start regressions and pilot sensitivity cases remain required. OS
 inventory scans add work per selected fixture startup. These figures establish
 neither a whole-CI speedup nor a 50% physical-code reduction.
+
+## Source-pair acceptance
+
+Both complete production recipes passed with committed Pico
+540dc6bdbff6edfae54e9e933809520886dcf90e and selected Pi
+1e15b2485ac6e1b9cbb6ff435afc0f0232528804, recursive MbedTLS
+0bebf8b8c7f07abe3571ded48a11aa907a1ffb20. The candidate tree was clean;
+no uncommitted input was tested in the pair acceptance run. The actual
+usb_management_driver was confirmed current at that commit before its pair ran.
+
+Commands follow the explicit phase 03 recipe: network-runtime-test (916 checks),
+wtp-network-interop-test, wtp-config-interop-test, wtp-usb-pair-client-build,
+wtp-usb-management-test, wtp_usb_settings_test.js, and wtp_usb_pair_test.js with
+WSPRRYPI_GPIO_DRIVE_REQUIRED=1. The network runtime target's full name is
+wtp-network-runtime-test; PICO_SOURCE, MBEDTLS_SOURCE, and native build selection
+were explicit. Ignored build/campaign-phase05-network.log and
+campaign-phase05-usb.log retain complete output. Hardware access was disabled;
+these results do not qualify physical USB, installation, timing, or RF.
+
+[Canonical phase 05 run](https://github.com/WsprryPi/WsprryPico/actions/runs/42086214552)
+was still running at local acceptance and remains tracked for final acceptance.
+The prior phase 04 canonical run is independently verified in its result record.
+Final reassessment found no remaining actionable migration finding. Phase 06 owns
+the documented TLS synchronization and hostname timer work; phase 07 owns inner
+CTest framework discovery/skip qualification. Phase 09 owns scheduling. No merge,
+release, deployment, or product timing change was performed.

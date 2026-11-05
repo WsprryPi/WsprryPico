@@ -71,9 +71,15 @@ selection follows phase 03 recipes; phase04-network.log and phase04-usb.log
 retain completion records. These are hardware-free software results.
 
 [Canonical candidate CI](https://github.com/WsprryPi/WsprryPico/actions/runs/42082815052)
-was still running at local phase acceptance and remains tracked for subsequent
-acceptance. It is not represented as passed. The earlier phase 03 canonical
-run completed successfully. Executable changes total 695 net physical lines
+completed successfully after local acceptance. GitHub's actual merge source
+33a11823e8493d5b235c31cd2a1d55fa4c79ccf8 has parents c9fd28ef and
+61c5eb44, independently checked through the GitHub commit API. Audit artifact
+13443227336 and firmware artifact 13443466797 were produced. Independent local
+verification accepted all 28 command receipts, exact log byte digests, actual
+completion evidence, and the exact 225-name CTest inventory with no failures or
+skips. Aggregate command elapsed was 1261.144 seconds; hosted job span was about
+1412 seconds. Different sources/runner conditions prevent causal comparison.
+Executable changes total 695 net physical lines
 across 19 paths, including nine new helper/regression files; documentation is
 accounted separately. No code-reduction credit is claimed.
 
