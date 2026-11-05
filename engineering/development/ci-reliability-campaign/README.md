@@ -27,6 +27,7 @@ Prompts are added below after their individual adversarial reviews close.
 | 07 | Close coverage and source pair gaps | [Prompt](phase-07-coverage-and-pair.md) | Reviewed, findings closed | ▧ Not started |
 | 08 | Consolidate demonstrably redundant build work | [Prompt](phase-08-build-consolidation.md) | Reviewed, findings closed | ▧ Not started |
 | 09 | Optimize isolated execution scheduling | [Prompt](phase-09-scheduling.md) | Reviewed, findings closed | ▧ Not started |
+| 10 | Resolve holds and repair documentation | [Prompt](phase-10-retention.md) | Reviewed, findings closed | ▧ Not started |
 
 ## Shared execution contract
 
