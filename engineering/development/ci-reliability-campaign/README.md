@@ -19,6 +19,7 @@ Prompts are added below after their individual adversarial reviews close.
 | Phase | Purpose | Saved prompt | Prompt review | Execution |
 | --- | --- | --- | --- | --- |
 | 01 | Establish the baseline and accounting | [Prompt](phase-01-baseline.md) | Reviewed, findings closed | ▧ Not started |
+| 02 | Make CI outcomes enforceable and observable | [Prompt](phase-02-ci-outcomes.md) | Reviewed, findings closed | ▧ Not started |
 
 ## Shared execution contract
 
