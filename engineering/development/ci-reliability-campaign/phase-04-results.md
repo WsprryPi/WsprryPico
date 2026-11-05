@@ -58,8 +58,24 @@ and four pilot sensitivity cases. All thirteen production browser invocations
 passed their existing completion contracts. Execution's 12 methods and bundle's
 59 methods passed. The positive pilot retained four captures and passed the added
 persisted-journal assertion. Ignored build/campaign-phase04-* logs retain details.
-Both production carrier results and committed source identities are recorded
-below after candidate validation; they remain mandatory acceptance gates.
+Both full production source-pair recipes passed with Pico
+61c5eb44bddc0446386f8fbb6e3b48b5bf10c485 and Pi
+1e15b2485ac6e1b9cbb6ff435afc0f0232528804, recursive MbedTLS
+0bebf8b8c7f07abe3571ded48a11aa907a1ffb20. No tested uncommitted inputs.
+Network commands: wtp-network-runtime-test (916 checks),
+wtp-network-interop-test, and wtp-config-interop-test. USB commands:
+wtp-usb-pair-client-build, wtp-usb-management-test,
+wtp_usb_settings_test.js, and wtp_usb_pair_test.js with the actual candidate
+usb_management_driver and WSPRRYPI_GPIO_DRIVE_REQUIRED=1. Exact source and build
+selection follows phase 03 recipes; phase04-network.log and phase04-usb.log
+retain completion records. These are hardware-free software results.
+
+[Canonical candidate CI](https://github.com/WsprryPi/WsprryPico/actions/runs/42082815052)
+was still running at local phase acceptance and remains tracked for subsequent
+acceptance. It is not represented as passed. The earlier phase 03 canonical
+run completed successfully. Executable changes total 695 net physical lines
+across 19 paths, including nine new helper/regression files; documentation is
+accounted separately. No code-reduction credit is claimed.
 
 Regular review-server startup demand is 70 baseline native drivers across seven
 calls versus 61 after this pilot's ten-to-one selection. Native selection tests
