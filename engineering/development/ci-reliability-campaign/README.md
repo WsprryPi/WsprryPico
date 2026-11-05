@@ -20,6 +20,7 @@ Prompts are added below after their individual adversarial reviews close.
 | --- | --- | --- | --- | --- |
 | 01 | Establish the baseline and accounting | [Prompt](phase-01-baseline.md) | Reviewed, findings closed | ▧ Not started |
 | 02 | Make CI outcomes enforceable and observable | [Prompt](phase-02-ci-outcomes.md) | Reviewed, findings closed | ▧ Not started |
+| 03 | Repair process ownership and failure propagation | [Prompt](phase-03-process-ownership.md) | Reviewed, findings closed | ▧ Not started |
 
 ## Shared execution contract
 
