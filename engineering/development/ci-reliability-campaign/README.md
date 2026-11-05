@@ -29,8 +29,8 @@ campaign and remain stable. Legend: ✅ complete, ⏳ in progress, ▧ not start
 | 03 | Repair process ownership and failure propagation | [Prompt](phase-03-process-ownership.md) | Reviewed, findings closed | ✅ Complete |
 | 04 | Qualify the session browser pilot | [Prompt](phase-04-browser-pilot.md) | Reviewed, findings closed | ✅ Complete |
 | 05 | Adopt the qualified browser lifecycle | [Prompt](phase-05-browser-adoption.md) | Reviewed, findings closed | ✅ Complete |
-| 06 | Remove scheduler dependent synchronization | [Prompt](phase-06-synchronization.md) | Reviewed, findings closed | ⏳ In progress |
-| 07 | Close coverage and source pair gaps | [Prompt](phase-07-coverage-and-pair.md) | Reviewed, findings closed | ▧ Not started |
+| 06 | Remove scheduler dependent synchronization | [Prompt](phase-06-synchronization.md) | Reviewed, findings closed | ✅ Complete |
+| 07 | Close coverage and source pair gaps | [Prompt](phase-07-coverage-and-pair.md) | Reviewed, findings closed | ⏳ In progress |
 | 08 | Consolidate demonstrably redundant build work | [Prompt](phase-08-build-consolidation.md) | Reviewed, findings closed | ▧ Not started |
 | 09 | Optimize isolated execution scheduling | [Prompt](phase-09-scheduling.md) | Reviewed, findings closed | ▧ Not started |
 | 10 | Resolve holds and repair documentation | [Prompt](phase-10-retention.md) | Reviewed, findings closed | ▧ Not started |

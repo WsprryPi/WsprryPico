@@ -1,8 +1,7 @@
 # Phase 06 deterministic synchronization
 
-Implementation and local adversarial verification are complete. Both full
-production source-pair recipes remain acceptance gates for the committed candidate.
-The phase list remains in progress until those gates pass.
+Implementation, local adversarial verification, and both full production
+source-pair recipes passed. This phase is accepted for the candidate below.
 
 ## Timing and synchronization contracts
 
@@ -111,3 +110,25 @@ Ignored build/campaign-phase06-* logs retain diagnoses, commands, mutation sourc
 hashes, and results. Reassessment closed the actionable findings above. Remaining
 inner-framework discovery/skip qualification and other reader adoption belong to
 phase 07; build reuse and execution scheduling remain phases 08 and 09.
+
+## Source-pair acceptance
+
+Pico 0b24fd5c5a129d6b6436c0459b1737b8d2389c0e and Pi
+1e15b2485ac6e1b9cbb6ff435afc0f0232528804 passed both complete recipes with
+recursive MbedTLS 0bebf8b8c7f07abe3571ded48a11aa907a1ffb20. The candidate
+was committed and clean; no tested uncommitted input is hidden in this gate.
+
+Network commands were wtp-network-runtime-test (916 checks),
+wtp-network-interop-test, and wtp-config-interop-test. USB commands were
+wtp-usb-pair-client-build, wtp-usb-management-test, wtp_usb_settings_test.js,
+and wtp_usb_pair_test.js with the actual candidate usb_management_driver and
+WSPRRYPI_GPIO_DRIVE_REQUIRED=1. PICO_SOURCE explicitly selected this campaign
+worktree; MBEDTLS_SOURCE selected /deps/mbedtls-pinned. Network build output was
+explicitly /home/campaign/pair-network. WSPRRYPI_DISABLE_HARDWARE_ACCESS=1
+remained set. Full outputs are build/campaign-phase06-network.log and
+campaign-phase06-usb.log. These are hardware-free software results.
+
+[Canonical phase 06 run](https://github.com/WsprryPi/WsprryPico/actions/runs/42094622087)
+was still active at local acceptance; it remains tracked for final acceptance.
+The prior phase 05 canonical result is independently verified in its result record.
+No merge, release, deployment, or physical qualification was performed.
