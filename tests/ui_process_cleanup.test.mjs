@@ -225,7 +225,10 @@ test('idle stdout EOF refuses new commands and diagnostics retain no stderr secr
     const code=`process.stderr.write(${JSON.stringify(secret)});process.stdout.end();process.stdin.resume();`;
     const f=new FixtureProcess(process.execPath,['-e',code]);
     try {
-        await once(f.process.stdout,'end');
+        await deadlinePromise('fixture-idle-eof',resolve=>{
+            if(f.stdoutClosed||f.process.stdout.readableEnded){resolve();return;}
+            f.process.stdout.once('end',resolve);return()=>f.process.stdout.removeListener('end',resolve);
+        },5000);
         await assert.rejects(f.command({op:'after-eof'}),/stdout closed|driver is closed/);
         assert.equal(f.stderr.includes(secret),false);
         assert.equal(String(f.failure).includes(secret),false);
