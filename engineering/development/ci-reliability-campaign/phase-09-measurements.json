@@ -12,7 +12,7 @@
     },
     {
       "path": "scripts/ci/ctest-completion-policy.json",
-      "sha256": "c97edd47cdcca7208486bce0d803d57e2b2c2ca646bdeae406614fd6497fd05b",
+      "sha256": "9b121b5c3ce55f758875cff6c6d4050416978ba72fbe228653fc5eadd9d7bbac",
       "bytes": 8252,
       "physical_lines": 304,
       "previous_bytes": 8252,
@@ -36,7 +36,7 @@
     },
     {
       "path": "scripts/ci/inputs.json",
-      "sha256": "f52ff1c5f3e3df79d4d51b9452f5a5f14c2a31c79e18f67326b8a0eb3c71ade1",
+      "sha256": "9864339ed5276be78ebdc7640fc6dd6fbc82cdda4cb04207f9ed420149f9a43a",
       "bytes": 1249,
       "physical_lines": 23,
       "previous_bytes": 1249,
@@ -83,6 +83,14 @@
       "previous_physical_lines": 250
     },
     {
+      "path": "tests/ui_process_cleanup.test.mjs",
+      "sha256": "dc360d66c19c3a41aea05e4d85931252496ac115edb12fec5679c0219e33eb06",
+      "bytes": 22514,
+      "physical_lines": 379,
+      "previous_bytes": 20442,
+      "previous_physical_lines": 345
+    },
+    {
       "path": "tests/usb_installer_tests.py",
       "sha256": "982129173777409c9f9f5f9145916792e983169ef705988b8c8198af516685a0",
       "bytes": 125202,
@@ -91,12 +99,20 @@
       "previous_physical_lines": 1950
     }
   ],
-  "net_physical_lines": 212,
-  "net_bytes": 14423,
+  "net_physical_lines": 246,
+  "net_bytes": 16495,
   "companion": {
     "baseline": "1e15b2485ac6e1b9cbb6ff435afc0f0232528804",
-    "revision": "28915d31026b2c9a97f451c01d48820fb52c097f",
+    "revision": "d3ffc3b26d50f55f205382bb5aac7cdfee054d99",
     "files": [
+      {
+        "path": ".github/workflows/debian-non-hardware.yml",
+        "sha256": "49fefa483d9781404a0ac94e40e7c2a90deb48af3f250835c84f5062e45377b3",
+        "bytes": 28381,
+        "physical_lines": 578,
+        "previous_bytes": 27890,
+        "previous_physical_lines": 564
+      },
       {
         "path": "src/Makefile",
         "sha256": "c8f85afa59834a349259c235048eb5fef7593af7135bd9fd055b3deffe927afb",
@@ -154,14 +170,68 @@
         "previous_physical_lines": 260
       }
     ],
-    "net_physical_lines": 100,
-    "net_bytes": 4953,
+    "net_physical_lines": 114,
+    "net_bytes": 5444,
     "documentation_changed": [
       "docs/development/README.md"
     ]
   },
-  "added_test_methods": 5,
+  "added_test_methods": 6,
   "ctest_registrations_added": 1,
   "planned_parallel_workers": 2,
-  "serial_exclusions_removed": 0
+  "serial_exclusions_removed": 0,
+  "local_scheduling_observations": {
+    "source": "4117a37ce8891d02a75029f112e6ddab08ba60d9",
+    "companion": "28915d31026b2c9a97f451c01d48820fb52c097f",
+    "tracked_input_sha256": "53ac12fac3aef39bb9774643859c764c423af80efd8ea0a6b9a7d9f238657d12",
+    "canonical_frameworks": 57,
+    "missing_local_frameworks": [
+      "cyw43_tx_overlay_tests",
+      "rf_abort_analysis_tests",
+      "rf_analysis_jobs_tests",
+      "rf_bench_analysis_tests",
+      "rf_bench_measurement_tests",
+      "rf_correction_analysis_tests",
+      "rf_drive_comparison_tests",
+      "rf_keyed_analysis_tests",
+      "rf_presence_tests",
+      "wspr_type23_decode_tests"
+    ],
+    "trials": [
+      {
+        "trial": 1,
+        "workers": 1,
+        "elapsed_s": 209.6104043039959,
+        "registered": 214,
+        "frameworks": 47,
+        "all_passed": true
+      },
+      {
+        "trial": 2,
+        "workers": 2,
+        "elapsed_s": 170.1544476179406,
+        "registered": 214,
+        "frameworks": 47,
+        "all_passed": true
+      },
+      {
+        "trial": 3,
+        "workers": 2,
+        "elapsed_s": 170.3337961609941,
+        "registered": 214,
+        "frameworks": 47,
+        "all_passed": true
+      },
+      {
+        "trial": 4,
+        "workers": 1,
+        "elapsed_s": 209.60330801294185,
+        "registered": 214,
+        "frameworks": 47,
+        "all_passed": true
+      }
+    ],
+    "scheduler_cost_seed_sha256": "68b26f8d12cae2f698fc076a87d7465f04cce67c6a4d60e38bc0c109bb223f5f",
+    "scope": "Four completed first-attempt warm Docker CTest observations before later standalone-lifecycle and hosted USB setup fixes; preserve these exact source identities."
+  }
 }

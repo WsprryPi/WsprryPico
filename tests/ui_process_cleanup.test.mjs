@@ -4,6 +4,7 @@ import {EventEmitter,once} from 'node:events';
 import {access,mkdtemp,rm,writeFile,readFile,chmod} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
 
@@ -266,6 +267,38 @@ function observedDriver(body) {
     return `#!/usr/bin/env node\nconst fs=require('node:fs');const destination=process.env.FIXTURE_OWNER_OBSERVATION;const report=stage=>{fs.writeFileSync(destination+'.tmp',JSON.stringify({pid:process.pid,stage}));fs.renameSync(destination+'.tmp',destination);};${body}\n`;
 }
 
+const reviewFixture=fileURLToPath(new URL('./ui_review_fixture.mjs',import.meta.url));
+async function observeInitialization(fixture,observation,label){
+    let stderr='',closed,spawnError;
+    const diagnostic=bytes=>{stderr=(stderr+bytes.toString()).slice(-8192);};
+    const close=(code,signal)=>{closed={code,signal};};
+    const error=value=>{spawnError=value;};
+    fixture.stderr.on('data',diagnostic);fixture.once('close',close);fixture.once('error',error);
+    const check=()=>{
+        if(spawnError||closed)throw Error(`stage=${label}; fixture exited before initialization; child_exit=${closed?.code}; child_signal=${closed?.signal}; ${spawnError?.message||''}; stderr=${stderr}`);
+    };
+    try{return await until(async()=>{
+        check();let value;
+        try{value=JSON.parse(await readFile(observation,'utf8'));}
+        catch(error){if(error.code!=='ENOENT')throw error;}
+        check();return value||false;
+    },label,5000);}
+    finally{fixture.stderr.removeListener('data',diagnostic);fixture.removeListener('close',close);fixture.removeListener('error',error);}
+}
+
+test('initialization observation reports an actual missing worker instead of a readiness timeout',{timeout:10000},async()=>{
+    const directory=await mkdtemp(path.join(os.tmpdir(),'pico-init-exit-'));
+    const missing=path.join(directory,'missing-worker.mjs');
+    const fixture=spawn(process.execPath,[missing],{stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32'});
+    try{
+        await assert.rejects(observeInitialization(fixture,path.join(directory,'never-created.json'),'missing-worker'),error=>{
+            assert.match(error.message,/fixture exited before initialization; child_exit=1/);
+            assert.ok(error.message.includes('Cannot find module')&&error.message.includes(missing));
+            assert.ok(!error.message.includes('last_transition=pending'));return true;
+        });
+    }finally{await cleanupUiProcesses([fixture],directory,{processGroup:process.platform!=='win32'});}
+});
+
 test('review fixture interruption during initialization reaps its registered driver',{timeout:15000},async()=>{
     const directory=await mkdtemp(path.join(os.tmpdir(),'pico-initialization-owner-'));
     const driver=path.join(directory,'driver.cjs'),observation=path.join(directory,'observed.json');
@@ -273,14 +306,14 @@ test('review fixture interruption during initialization reaps its registered dri
     await chmod(driver,0o755);
     let fixture,driverPid;
     try{
-        fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'19189',directory],{
+        fixture=spawn(process.execPath,[reviewFixture,driver,'19189',directory],{
             stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32',
             env:{...process.env,FIXTURE_OWNER_OBSERVATION:observation}
         });
         const exited=once(fixture,'exit');
-        const observed=await until(async()=>{try{return JSON.parse(await readFile(observation,'utf8'));}catch(error){if(error.code==='ENOENT')return false;throw error;}},'observed initialization command',5000);
-        assert.equal(observed.stage,'held');driverPid=observed.pid;
-        fixture.kill('SIGTERM');
+        const observed=await observeInitialization(fixture,observation,'observed initialization command');
+        assert.equal(observed.stage,'held');driverPid=observed.pid;process.kill(driverPid,0);
+        assert.equal(fixture.kill('SIGTERM'),true,'fault requires a live initialization owner');
         const [code]=await deadlinePromise('interrupted fixture exit',(resolve,reject)=>{exited.then(resolve,reject);},7000);
         assert.notEqual(code,0,'interrupted initialization cannot qualify a ready fixture');
         assert.throws(()=>process.kill(driverPid,0),{code:'ESRCH'},'registered driver must be reaped before owner exits');
@@ -322,16 +355,17 @@ test('abrupt review-server exit cannot strand its initialized native driver grou
         catch(error){if(error.status===1)return true;throw error;}
     };
     try{
-        fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'19189',directory],{
+        fixture=spawn(process.execPath,[reviewFixture,driver,'19189',directory],{
             stdio:['ignore','pipe','pipe'],detached:true,env:{...process.env,FIXTURE_OWNER_OBSERVATION:observation}
         });
-        const observed=await until(async()=>{try{return JSON.parse(await readFile(observation,'utf8'));}catch(error){if(error.code==='ENOENT')return false;throw error;}},'observed held initialization',5000);
+        const observed=await observeInitialization(fixture,observation,'observed held initialization');
         driverPid=observed.pid;
         const group=Number(execFileSync('ps',['-o','pgid=','-p',String(driverPid)],{encoding:'utf8'}).trim());
         assert.equal(group,fixture.pid,'native driver must remain inside the browser-owned server group');
-        fixture.kill('SIGTERM');
+        assert.equal(fixture.kill('SIGTERM'),true,'fault requires a live initialization owner');
         await until(async()=>JSON.parse(await readFile(observation,'utf8')).stage==='eof-held','observed ignored driver EOF',5000);
-        const exited=once(fixture,'exit');fixture.kill('SIGKILL');await exited;
+        const exited=once(fixture,'exit');assert.equal(fixture.kill('SIGKILL'),true);
+        const [code,signal]=await exited;assert.equal(code,null);assert.equal(signal,'SIGKILL');
         assert.equal(await dead(),false,'the fault must leave a live driver before group recovery');
         await cleanupUiProcesses([fixture],directory,{processGroup:true,remove:async(profile,options)=>{
             assert.equal(await dead(),true,'profile removal requires observed descendant death');

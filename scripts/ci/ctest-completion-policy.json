@@ -298,7 +298,7 @@
     },
     "browser-lifecycle": {
       "kind": "node-test",
-      "count": 39
+      "count": 40
     }
   }
 }

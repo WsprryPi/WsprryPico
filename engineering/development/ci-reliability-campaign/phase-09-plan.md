@@ -65,3 +65,40 @@ local registrations (canonical 234), including the new actual-engine clock case.
 Hash both tracked source trees, check clean paired refs throughout, and restore
 the same owned scheduler-cost seed before every observation. Keep all first-window
 logs/results as failure evidence. No same-source retry or tolerance expansion.
+
+## Hosted companion findings after the completed window
+
+The repaired 4117a37c / Pi 28915d31 ABBA window completed all four first attempts:
+209.56, 170.11, 170.28, and 209.57 seconds (214 local CTest registrations, 47
+available frameworks). Its canonical Pico run 42118794855 passed 234 registrations,
+57 frameworks, and 27 command records; immutable archive digests and full bundle
+receipts were independently verified. These records retain their actual source
+identities, not the later fixes described here.
+
+The actual Pi workflow 42118908771 selected Pico 4117a37c and exposed two lifecycle
+regressions invoked from the companion working directory. Relative worker paths
+resolved in Pi rather than Pico; the cases waited for nonexistent initialization.
+The test module now resolves its own worker URL and observes closed-child status
+plus bounded stderr. A real missing-worker regression refuses on its actual exit
+and diagnostic. Restoring either relative launch fails at that qualified oracle.
+All 40 lifecycle cases pass from both repository directories. The additional case
+is standalone browser-lifecycle coverage, not a CTest registration; no CTest command,
+resource exclusion, or scheduling setting changes after the completed window.
+
+The same intended-pair run's USB job passed. PR run 42118910865's USB job exhausted
+its unchanged 15-minute budget downloading duplicate distribution CMake/Node
+packages. Trusted logs show the exact archive transfers/retries, while the named
+Ubuntu image inventory provides CMake 3.31.6 and Node 22.23.4 outside dpkg. Replace
+only that USB lane's redundant installation with executable/version/OpenSSL checks;
+keep every actual CMake configure, compile/link, client, negative, and production
+pair command. The real Linux preflight passes; injected unusable CMake, Node, and
+pkg-config each preserve exit 17 without fallback. All 12 existing execution-graph
+regressions pass. The pipeline's actual subsequent builds remain the compiler/
+header/link qualification; tool inventory is not byte-reproducible system provenance.
+
+The final paired companion ref is d3ffc3b26d50f55f205382bb5aac7cdfee054d99 on the same feature branch.
+A new full source-pair execution and canonical/companion hosted qualification must
+bind the final Pico source and this companion. Preserve older failure/cancellation
+classifications; superseded diagnostic runs are not accepted successes. Local
+scheduling observations remain explicitly scoped to the completed 4117a37c /
+28915d31 window; later standalone-lifecycle/setup changes are separately charged.
