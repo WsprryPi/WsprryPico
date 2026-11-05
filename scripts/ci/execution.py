@@ -10,6 +10,7 @@ import re
 import signal
 import subprocess
 import time
+import threading
 
 # Distinct command contexts, not logical test-case counts. Keep both carriers.
 HOST_CONTEXTS = (
@@ -222,6 +223,26 @@ def evidence(context, output, audit):
 
 
 def execute(log, command, cwd, source, context=None, watchdog=3600, expected=None):
+    # Install ownership before spawn. A repeated cancellation cannot interrupt
+    # cleanup or turn the first interruption into a successful receipt.
+    handlers = {}
+    cancellation = {'spawning': False, 'closing': False, 'interruption': None}
+    def cancelled(number, frame):
+        if cancellation['interruption'] is None:
+            cancellation['interruption'] = InterruptedError(f'CI command interrupted by signal={number}')
+            if not cancellation['spawning'] and not cancellation['closing']:
+                raise cancellation['interruption']
+    try:
+        if threading.current_thread() is threading.main_thread():
+            for number in (signal.SIGINT, signal.SIGTERM):
+                handlers[number] = signal.signal(number, cancelled)
+        return _execute(log, command, cwd, source, context, watchdog, expected, cancellation)
+    finally:
+        for number, handler in handlers.items():
+            signal.signal(number, handler)
+
+
+def _execute(log, command, cwd, source, context, watchdog, expected, cancellation):
     """The existing 60-minute CI job budget is a hang guard, not a speed oracle."""
     require(type(watchdog) in (int, float) and math.isfinite(watchdog) and watchdog > 0, 'Invalid execution watchdog')
     audit = log.parent
@@ -242,8 +263,16 @@ def execute(log, command, cwd, source, context=None, watchdog=3600, expected=Non
         output.write('+ ' + ' '.join(command) + '\n'); output.flush()
         offset = output.tell()
         try:
-            child = subprocess.Popen(command, cwd=cwd, stdout=output, stderr=subprocess.STDOUT,
-                                     start_new_session=os.name != 'nt')
+            # Defer raising during Popen registration without masking signals in
+            # the child. It must inherit ordinary cancellation behavior.
+            cancellation['spawning'] = True
+            try:
+                child = subprocess.Popen(command, cwd=cwd, stdout=output, stderr=subprocess.STDOUT,
+                                         start_new_session=os.name != 'nt')
+            finally:
+                cancellation['spawning'] = False
+            if cancellation['interruption'] is not None:
+                raise cancellation['interruption']
             child.wait(timeout=watchdog)
             if os.name != 'nt':
                 try:
@@ -256,6 +285,7 @@ def execute(log, command, cwd, source, context=None, watchdog=3600, expected=Non
                 raise RuntimeError(f'stage={context}; child_exit={child.returncode}; log={log.name}')
         except BaseException as error:
             primary = error
+            cancellation['closing'] = True
             if child is not None:
                 failures = []
                 try:
@@ -274,7 +304,10 @@ def execute(log, command, cwd, source, context=None, watchdog=3600, expected=Non
                 if failures:
                     primary = BaseExceptionGroup('command and owned cleanup failed', [primary, *failures])
         finally:
+            cancellation['closing'] = True
             output.flush()
+    if primary is None and cancellation['interruption'] is not None:
+        primary = cancellation['interruption']
     try:
         raw = log.read_bytes()[offset:]
     except BaseException as diagnostic:

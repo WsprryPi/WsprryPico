@@ -187,6 +187,39 @@ def require(condition, message):
         raise Refusal(message)
 
 
+def verify_actions_provenance(run, jobs, run_id, attempt, source, branch):
+    """Bind trusted Actions API records; uploaded producer names are insufficient."""
+    base = f'https://api.github.com/repos/{REPOSITORY}'
+    run_url = f'{base}/actions/runs/{run_id}'
+    require(type(run_id) is int and run_id > 0 and type(attempt) is int and attempt > 0 and
+            isinstance(run, dict) and type(run.get('id')) is int and run['id'] == run_id and
+            type(run.get('run_attempt')) is int and run['run_attempt'] == attempt and
+            run.get('head_sha') == source and run.get('head_branch') == branch and
+            run.get('path') == '.github/workflows/software-build.yml' and
+            type(run.get('workflow_id')) is int and run['workflow_id'] > 0 and
+            run.get('workflow_url') == f"{base}/actions/workflows/{run['workflow_id']}" and
+            run.get('html_url') == f'https://github.com/{REPOSITORY}/actions/runs/{run_id}',
+            'Actions workflow/run provenance mismatch')
+    repository = run.get('repository', {})
+    peer = run.get('head_repository', {})
+    require(isinstance(repository, dict) and isinstance(peer, dict) and
+            repository.get('full_name') == peer.get('full_name') == REPOSITORY and
+            type(repository.get('id')) is int and repository['id'] > 0 and
+            type(peer.get('id')) is int and peer['id'] == repository['id'],
+            'Actions repository provenance mismatch')
+    identifiers = set()
+    for job in jobs:
+        require(isinstance(job, dict) and type(job.get('id')) is int and job['id'] > 0 and
+                job['id'] not in identifiers and type(job.get('run_id')) is int and job['run_id'] == run_id and
+                type(job.get('run_attempt')) is int and job['run_attempt'] == attempt and
+                job.get('head_sha') == source and job.get('head_branch') == branch and
+                job.get('run_url') == run_url and
+                job.get('html_url') == f"https://github.com/{REPOSITORY}/actions/runs/{run_id}/job/{job['id']}" and
+                job.get('check_run_url') == f"{base}/check-runs/{job['id']}",
+                'Actions job provenance mismatch')
+        identifiers.add(job['id'])
+
+
 def sha(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -529,6 +562,8 @@ def resolve(client, branch='main', version=None, stable=False):
                 run['event'] == manifest['workflow']['event'] and
                 run['run_attempt'] == manifest['workflow']['attempt'], 'CI run is not a canonical success')
         jobs = client.api(f"actions/runs/{manifest['workflow']['run_id']}/attempts/{manifest['workflow']['attempt']}/jobs?per_page=100")
+        verify_actions_provenance(run, jobs['jobs'], manifest['workflow']['run_id'],
+                                  manifest['workflow']['attempt'], manifest['source']['revision'], expected_branch)
         by_name = {job['name']: job for job in jobs['jobs']}
         require(jobs['total_count'] == len(jobs['jobs']) == len(by_name) and
                 set(by_name) == {'verify', 'publish'} and

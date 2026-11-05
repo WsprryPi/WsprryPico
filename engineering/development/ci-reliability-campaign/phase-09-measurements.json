@@ -1,0 +1,84 @@
+{
+  "baseline_commit": "f5dad6af0ee6a7fb0209cf4d2b3a6c823c925f3d",
+  "scope": "changed executable/configuration inputs only",
+  "files": [
+    {
+      "path": "scripts/ci/ctest-completion-policy.json",
+      "sha256": "c97edd47cdcca7208486bce0d803d57e2b2c2ca646bdeae406614fd6497fd05b",
+      "bytes": 8252,
+      "physical_lines": 304,
+      "previous_bytes": 8252,
+      "previous_physical_lines": 304
+    },
+    {
+      "path": "scripts/ci/download.py",
+      "sha256": "aa2d01028ec5c20a6a7208194537327479e1f61cf66d738147cbbb3959df4f03",
+      "bytes": 16420,
+      "physical_lines": 269,
+      "previous_bytes": 15583,
+      "previous_physical_lines": 260
+    },
+    {
+      "path": "scripts/ci/execution.py",
+      "sha256": "cf2fb258281095ae9df238987b3984be55969169a3e1b33ac295ec12415aa32b",
+      "bytes": 22222,
+      "physical_lines": 377,
+      "previous_bytes": 20550,
+      "previous_physical_lines": 344
+    },
+    {
+      "path": "scripts/ci/run.py",
+      "sha256": "fab5222f5dd3b4e3e968528d2c5c2c4bf959379f8308ae2ee9035cc2427ef82d",
+      "bytes": 24956,
+      "physical_lines": 428,
+      "previous_bytes": 24937,
+      "previous_physical_lines": 428
+    },
+    {
+      "path": "scripts/usb_installer.py",
+      "sha256": "e4a6696f3508e4857bd94651b9c91a4e3767ad26a999da3decd5086645e5a7dd",
+      "bytes": 150372,
+      "physical_lines": 2482,
+      "previous_bytes": 147958,
+      "previous_physical_lines": 2447
+    },
+    {
+      "path": "tests/chrome_startup.test.mjs",
+      "sha256": "ed2b39d472129040fbfe2eef4b88ec3bb8d6ae368b72424249f7994696cc6bee",
+      "bytes": 9822,
+      "physical_lines": 184,
+      "previous_bytes": 9172,
+      "previous_physical_lines": 173
+    },
+    {
+      "path": "tests/ci_bundle_tests.py",
+      "sha256": "8b9a6e76e96b2386a78ae35e78430092f3f252ca0fa546e0ac85ae7d3ec67279",
+      "bytes": 77839,
+      "physical_lines": 1221,
+      "previous_bytes": 74499,
+      "previous_physical_lines": 1180
+    },
+    {
+      "path": "tests/ci_execution_tests.py",
+      "sha256": "fbc699d12b747bf51ca2ac9b283f8e61d1c10ef8acfc969dd01bfc7dacafd2a4",
+      "bytes": 18697,
+      "physical_lines": 305,
+      "previous_bytes": 15478,
+      "previous_physical_lines": 250
+    },
+    {
+      "path": "tests/usb_installer_tests.py",
+      "sha256": "982129173777409c9f9f5f9145916792e983169ef705988b8c8198af516685a0",
+      "bytes": 125202,
+      "physical_lines": 1974,
+      "previous_bytes": 123232,
+      "previous_physical_lines": 1950
+    }
+  ],
+  "net_physical_lines": 208,
+  "net_bytes": 14121,
+  "added_test_methods": 5,
+  "ctest_registrations_added": 0,
+  "planned_parallel_workers": 2,
+  "serial_exclusions_removed": 0
+}

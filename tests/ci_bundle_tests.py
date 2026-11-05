@@ -635,16 +635,25 @@ class BundleTests(unittest.TestCase):
             records.append(dict(id=identifier,
                 name=f'WsprryPico-{kind}-1-1-consumer' if legacy else bundle.artifact_name(kind, branch, 1, 1),
                 digest='sha256:' + bundle.sha(archive), expired=False, expires_at='2030-01-01T00:00:00Z'))
-        run = dict(status='completed', conclusion='success', run_attempt=1,
+        run = dict(id=1, repository={'id': 42, 'full_name': download.REPOSITORY},
+                   workflow_url='https://api.github.com/repos/'+download.REPOSITORY+'/actions/workflows/7',
+                   status='completed', conclusion='success', run_attempt=1,
                    head_sha=self.source, head_branch='v'+self.version if branch == 'release' else branch, event=event,
                    path='.github/workflows/software-build.yml', workflow_id=7,
-                   head_repository={'full_name':download.REPOSITORY}, html_url='https://github.com/'+download.REPOSITORY+'/actions/runs/1')
+                   head_repository={'id':42,'full_name':download.REPOSITORY}, html_url='https://github.com/'+download.REPOSITORY+'/actions/runs/1')
         responses = {'actions/runs/1/attempts/1':run,
                      'actions/workflows/software-build.yml':{'id':7,'path':run['path']},
                      'actions/runs/1/attempts/1/jobs':{'total_count':len(download.required_jobs(self.source)),
-                         'jobs':[{'id':9,'name':name,'status':'completed','conclusion':'success'}
-                                 for name in download.required_jobs(self.source)]},
+                         'jobs':[dict(id=9+i,name=name,status='completed',conclusion='success',
+                                      run_id=1,run_attempt=1,head_sha=self.source,head_branch=run['head_branch'],
+                                      run_url='https://api.github.com/repos/'+download.REPOSITORY+'/actions/runs/1',
+                                      html_url=run['html_url']+'/job/'+str(9+i),
+                                      check_run_url='https://api.github.com/repos/'+download.REPOSITORY+'/check-runs/'+str(9+i))
+                                 for i,name in enumerate(sorted(download.required_jobs(self.source)))]},
                      'actions/runs/1/artifacts?per_page=100':{'total_count':2,'artifacts':records}}
+        for record in records:
+            record['workflow_run'] = dict(id=1,repository_id=42,head_repository_id=42,
+                                          head_sha=self.source,head_branch=run['head_branch'])
         args = SimpleNamespace(branch=branch, run=1, attempt=1, source=self.source,
                                version=self.version, destination=self.base / (branch + '-download'))
         return args, responses, archives
@@ -787,12 +796,40 @@ class BundleTests(unittest.TestCase):
                     self.retrieve_fixture(args, responses, archives)
                 self.assertFalse(args.destination.exists())
 
+    def test_download_rejects_foreign_job_provenance_before_fetch(self):
+        for index, (field, wrong) in enumerate((('id', True), ('run_id', 2), ('run_attempt', 2),
+                ('head_sha', 'b'*40), ('head_branch', 'main'), ('run_url', 'https://attacker.invalid'),
+                ('html_url', 'https://attacker.invalid'), ('check_run_url', 'https://attacker.invalid'))):
+            args, responses, archives = self.download_fixture('devel')
+            args.destination = self.base/('bad-job-'+str(index))
+            responses['actions/runs/1/attempts/1/jobs']['jobs'][0][field] = wrong
+            with self.subTest(field=field), patch.object(download, 'fetch_archive') as fetch:
+                with self.assertRaisesRegex(ValueError, 'job provenance'):
+                    self.retrieve_fixture(args, responses, archives)
+                fetch.assert_not_called()
+                self.assertFalse(args.destination.exists())
+
+    def test_download_rejects_foreign_artifact_provenance_before_fetch(self):
+        for index, (field, wrong) in enumerate((('id', 2), ('repository_id', True),
+                ('head_repository_id', 43), ('head_sha', 'b'*40), ('head_branch', 'main'))):
+            args, responses, archives = self.download_fixture('devel')
+            args.destination = self.base/('bad-artifact-'+str(index))
+            responses['actions/runs/1/artifacts?per_page=100']['artifacts'][0]['workflow_run'][field] = wrong
+            with self.subTest(field=field), patch.object(download, 'fetch_archive') as fetch:
+                with self.assertRaisesRegex(ValueError, 'Artifact workflow/source provenance'):
+                    self.retrieve_fixture(args, responses, archives)
+                fetch.assert_not_called()
+                self.assertFalse(list(args.destination.glob('*.zip')))
+
     def test_main_manifest_cannot_be_relabelled_as_devel(self):
         args, responses, archives = self.download_fixture('main')
         args.branch = 'devel'
         responses['actions/runs/1/attempts/1']['head_branch'] = 'devel'
+        for job in responses['actions/runs/1/attempts/1/jobs']['jobs']:
+            job['head_branch'] = 'devel'
         for kind, record in zip(('firmware','audit'), responses['actions/runs/1/artifacts?per_page=100']['artifacts']):
             record['name'] = bundle.artifact_name(kind, 'devel', 1, 1)
+            record['workflow_run']['head_branch'] = 'devel'
         with self.assertRaisesRegex(ValueError, 'different CI run/attempt'):
             self.retrieve_fixture(args, responses, archives)
 
@@ -1139,9 +1176,13 @@ class BundleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'current trusted publisher'):
             self.retrieve_fixture(args, responses, archives, publication=True)
         responses['actions/runs/1/attempts/1'].update(status='in_progress', conclusion=None)
-        responses['actions/runs/1/attempts/1/jobs'] = {'total_count':2, 'jobs':[
-            dict(id=9,name='verify',status='completed',conclusion='success'),
-            dict(id=10,name='publish',status='in_progress',conclusion=None)]}
+        verify = dict(next(j for j in responses['actions/runs/1/attempts/1/jobs']['jobs'] if j['name'] == 'verify'),
+                      id=9,html_url=responses['actions/runs/1/attempts/1']['html_url']+'/job/9',
+                      check_run_url='https://api.github.com/repos/'+download.REPOSITORY+'/check-runs/9')
+        publisher = dict(verify,id=10,name='publish',status='in_progress',conclusion=None,
+                         html_url=responses['actions/runs/1/attempts/1']['html_url']+'/job/10',
+                         check_run_url='https://api.github.com/repos/'+download.REPOSITORY+'/check-runs/10')
+        responses['actions/runs/1/attempts/1/jobs'] = {'total_count':2, 'jobs':[verify,publisher]}
         env = dict(GITHUB_ACTIONS='true',GITHUB_JOB='publish',GITHUB_RUN_ID='1',GITHUB_RUN_ATTEMPT='1',
                    GITHUB_SHA=self.source,GITHUB_REF='refs/heads/devel',GITHUB_REPOSITORY=download.REPOSITORY)
         with patch.dict(os.environ,env), patch.object(download,'required_jobs',return_value={'verify','publish'}):

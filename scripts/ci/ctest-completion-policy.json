@@ -28,7 +28,7 @@
     },
     "ci_execution_tests": {
       "kind": "unittest",
-      "count": 22,
+      "count": 24,
       "entrypoint": "tests/ci_execution_tests.py"
     },
     "console_info_format_tests": {
@@ -258,7 +258,7 @@
     },
     "usb_installer_tests": {
       "kind": "unittest",
-      "count": 114,
+      "count": 115,
       "entrypoint": "tests/usb_installer_tests.py"
     },
     "usb_inventory_tests": {
@@ -294,7 +294,7 @@
     },
     "packaging": {
       "kind": "unittest",
-      "count": 68
+      "count": 70
     },
     "browser-lifecycle": {
       "kind": "node-test",

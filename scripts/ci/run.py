@@ -207,7 +207,7 @@ def host_checks(deps, audit):
     (audit / 'ctest-completion-policy.json').write_text(json.dumps(completion, indent=2) + '\n')
     (audit / 'registered-tests.json').write_text(json.dumps(registered, indent=2) + '\n')
     execute(log, 'cmake', '--build', host, '--parallel', '4')
-    execute(log, 'ctest', '--test-dir', host, '--output-on-failure', '--timeout', '240',
+    execute(log, 'ctest', '--test-dir', host, '--parallel', '2', '--output-on-failure', '--timeout', '240',
             '--test-output-size-passed', '1048576', '--test-output-size-failed', '1048576',
             '--output-junit', audit / 'host-tests.xml', context='ctest')
     suite = ET.parse(audit / 'host-tests.xml').getroot()

@@ -11,6 +11,7 @@ import subprocess
 import zipfile
 
 import bundle
+from usb_installer import verify_actions_provenance
 
 REPOSITORY = 'WsprryPi/WsprryPico'
 
@@ -115,6 +116,7 @@ def retrieve(args, for_publication=False):
     bundle.require(workflow['id'] == run['workflow_id'] and workflow['path'] == run['path'],
                    'Wrong canonical workflow')
     jobs = api(f'actions/runs/{args.run}/attempts/{args.attempt}/jobs')
+    verify_actions_provenance(run, jobs['jobs'], args.run, args.attempt, args.source, head_branch)
     expected_jobs = required_jobs(args.source)
     by_name = {job['name']:job for job in jobs['jobs']}
     bundle.require(jobs['total_count'] == len(jobs['jobs']) == len(by_name) and
@@ -139,6 +141,13 @@ def retrieve(args, for_publication=False):
     receipts = []
     for kind, prefix in (('deployment', 'firmware'), ('audit', 'audit')):
         artifact = select_artifact(inventory, prefix, args.branch, args.run, args.attempt)
+        origin = artifact.get('workflow_run', {})
+        bundle.require(type(artifact.get('id')) is int and artifact['id'] > 0 and
+                       isinstance(origin, dict) and type(origin.get('id')) is int and origin['id'] == args.run and
+                       origin.get('head_sha') == args.source and origin.get('head_branch') == head_branch and
+                       type(origin.get('repository_id')) is int and origin['repository_id'] == run['repository']['id'] and
+                       type(origin.get('head_repository_id')) is int and origin['head_repository_id'] == run['head_repository']['id'],
+                       'Artifact workflow/source provenance mismatch')
         digest = artifact.get('digest', '')
         bundle.require(re.fullmatch(r'sha256:[0-9a-f]{64}', digest), 'Artifact archive digest unavailable')
         archive = destination / (kind + '.zip')

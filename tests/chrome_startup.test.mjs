@@ -43,7 +43,12 @@ else {
    fs.watch(profile,publish);publish();
   } else console.error('DevTools listening on ws://127.0.0.1:'+port+'/devtools/browser/fixture');
  });
- if(mode==='cold')setTimeout(listen,21000);else listen();
+ if(mode==='cold'){
+  let opened=false;
+  const publish=()=>{if(!opened&&fs.existsSync(path.join(profile,'release-cold'))){opened=true;watcher.close();listen();}};
+  const watcher=fs.watch(profile,publish);
+  fs.writeFileSync(path.join(profile,'cold-waiting'),'');publish();
+ }else listen();
 }
 `;
 async function withBrowser(mode,check,timeoutMs=2000) {
@@ -82,14 +87,20 @@ test('handles a partially written port file and waits for the page endpoint',asy
   assert(Number(await readFile(path.join(profile,'probes'),'utf8'))>=2);
  });
 });
-test('allows cold endpoint startup beyond 20 seconds within the shared 60-second budget',{timeout:30000},async()=>{
- await withBrowser('cold',async browser=>{
+test('allows observed cold startup beyond the former 20-second cutoff within the unchanged budget',{timeout:10000},async()=>{
+ let now=0;
+ await withBrowser('cold',async(browser,profile)=>{
+  let ready=false;void browser.ready.then(()=>{ready=true;},()=>{});
+  await waitForState(async()=>{await readFile(path.join(profile,'cold-waiting'));return true;},'cold child holds endpoint behind its release gate');
+  assert.equal(ready,false,'a held endpoint must not establish readiness');
+  now=21000;
+  await writeFile(path.join(profile,'release-cold'),'');
   assert.equal((await browser.ready)[0].type,'page');
   const timing=JSON.parse(browser.diagnostic());
   assert.equal(timing.budgetMs,60000);
-  assert(timing.endpointMs>=21000);
+  assert.equal(timing.deadlineElapsedMs,21000);
   assert(timing.probes>=2);
- },null);
+ },{now:()=>now});
 });
 test('reports an early exit with its actual code and stderr',async()=>{
  await withBrowser('exit',async browser=>{

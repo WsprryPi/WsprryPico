@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import signal
+import socket
 import sys
 import tempfile
 import unittest
@@ -78,8 +80,11 @@ class ExecutionTests(unittest.TestCase):
                     self.waited = True
                     raise subprocess.TimeoutExpired('observed-held-command', timeout)
                 return 0
+        def denied(*args):
+            signal.raise_signal(signal.SIGTERM)  # Cancellation cannot interrupt cleanup after timeout.
+            raise PermissionError('owned signal denied')
         with patch.object(execution.subprocess, 'Popen', return_value=Child()), \
-             patch.object(execution.os, 'killpg', side_effect=PermissionError('owned signal denied')):
+             patch.object(execution.os, 'killpg', side_effect=denied):
             with self.assertRaises(RuntimeError) as result:
                 self.execute('held')
         cause = result.exception.__cause__
@@ -94,6 +99,56 @@ class ExecutionTests(unittest.TestCase):
                 "assert p.stdout.readline().strip()=='READY'\n")
         with self.assertRaisesRegex(RuntimeError, 'owned descendants remain'):
             self.execute(code)
+
+    @unittest.skipIf(os.name == 'nt', 'POSIX owned process groups')
+    def test_actual_sigterm_after_observed_ready_reaps_child_and_records_failure(self):
+        with socket.socket(socket.AF_UNIX) as ready:
+            address = str(self.audit/'ready')
+            ready.bind(address); ready.listen(); ready.settimeout(5)
+            code = ("import socket,os,signal,json; s=socket.socket(socket.AF_UNIX);s.connect("+repr(address)+
+                    ");s.sendall(json.dumps([os.getpid(),signal.SIGTERM in signal.pthread_sigmask(signal.SIG_BLOCK,[]) ]).encode());s.close();signal.pause()")
+            runner = ("import sys;sys.path.insert(0,"+repr(str(ROOT/'scripts/ci'))+
+                      ");import execution;from pathlib import Path;execution.execute(Path("+repr(str(self.audit/'host.log'))+
+                      "),[sys.executable,'-c',"+repr(code)+"],Path.cwd(),'a'*40,watchdog=20)")
+            child = subprocess.Popen([sys.executable, '-c', runner], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            pid = None
+            try:
+                connection, _ = ready.accept()
+                with connection:
+                    pid, blocked = json.loads(connection.recv(1024))
+                self.assertFalse(blocked, 'Owned child inherited masked cancellation')
+                child.send_signal(signal.SIGTERM)
+                _, error = child.communicate(timeout=7)
+                self.assertNotEqual(child.returncode, 0)
+                self.assertIn(b'interrupted by signal=15', error)
+                with self.assertRaises(ProcessLookupError):
+                    os.kill(pid, 0)
+                record = json.loads((self.audit/'execution.json').read_text())['records'][0]
+                self.assertEqual(record['outcome'], 'failed')
+                self.assertLess(record['returncode'], 0)
+            finally:
+                if child.poll() is None:
+                    child.kill(); child.wait(timeout=5)
+                if pid is not None:
+                    try: os.killpg(pid, signal.SIGKILL)
+                    except ProcessLookupError: pass
+                child.stdout.close(); child.stderr.close()
+
+    def test_cancellation_during_spawn_registration_cleans_registered_child(self):
+        class Child:
+            pid = 42
+            returncode = -9
+            def wait(self, timeout): return self.returncode
+        original = signal.getsignal(signal.SIGTERM)
+        def spawn(*args, **kwargs):
+            signal.raise_signal(signal.SIGTERM)
+            return Child()
+        with patch.object(execution.subprocess, 'Popen', side_effect=spawn), patch.object(execution.os, 'killpg') as kill:
+            with self.assertRaisesRegex(RuntimeError, 'interrupted by signal=15'):
+                self.execute('observed spawn registration')
+            kill.assert_called_once_with(42, signal.SIGKILL)
+        self.assertIs(signal.getsignal(signal.SIGTERM), original)
+        self.assertEqual(json.loads((self.audit/'execution.json').read_text())['records'][0]['outcome'], 'failed')
 
     def test_evidence_write_failure_preserves_the_child_failure(self):
         with patch.object(Path, 'write_text', side_effect=OSError('evidence disk full')):

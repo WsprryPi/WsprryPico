@@ -145,11 +145,19 @@ class Network:
                                     for n, d in assets.items()])
         for artifact in self.proof['artifacts']:
             next(a for a in self.release['assets'] if a['name'] == artifact['kind'] + '.zip')['digest'] = 'sha256:' + artifact['archive_sha256']
-        self.run = dict(status='completed', conclusion='success', head_sha=self.proof['source'],
+        self.run = dict(id=self.proof['run_id'],repository={'id':42,'full_name':installer.REPOSITORY},
+                        workflow_id=7,workflow_url='https://api.github.com/repos/'+installer.REPOSITORY+'/actions/workflows/7',
+                        html_url=self.proof['url'],status='completed', conclusion='success', head_sha=self.proof['source'],
                         head_branch=self.tag if version else branch, path='.github/workflows/software-build.yml',
-                        head_repository={'full_name': installer.REPOSITORY}, event='workflow_dispatch' if version else 'push', run_attempt=1)
+                        head_repository={'id':42,'full_name': installer.REPOSITORY}, event='workflow_dispatch' if version else 'push', run_attempt=1)
         self.jobs = {'total_count': 2, 'jobs': [dict(name='verify', id=self.proof['verify_job']['id'], status='completed', conclusion='success'),
                                               dict(name='publish', id=2, status='completed', conclusion='success')]}
+        for job in self.jobs['jobs']:
+            job.update(run_id=self.proof['run_id'],run_attempt=1,head_sha=self.proof['source'],
+                       head_branch=self.run['head_branch'],
+                       run_url='https://api.github.com/repos/'+installer.REPOSITORY+'/actions/runs/'+str(self.proof['run_id']),
+                       html_url=self.proof['url']+'/job/'+str(job['id']),
+                       check_run_url='https://api.github.com/repos/'+installer.REPOSITORY+'/check-runs/'+str(job['id']))
         self.unavailable_run = False
 
     def api(self, path):
@@ -412,6 +420,22 @@ class InstallerTests(unittest.TestCase):
             net = Network()
             change(net)
             with self.subTest(change=change), self.assertRaises(installer.Refusal):
+                installer.resolve(net, 'devel')
+
+    def test_live_workflow_and_job_provenance_refuse_substitutions(self):
+        mutations = [lambda n: n.run.update(id=2), lambda n: n.run.update(workflow_id=True),
+                     lambda n: n.run.update(workflow_url='https://attacker.invalid'),
+                     lambda n: n.run.update(repository={'id':43,'full_name':installer.REPOSITORY}),
+                     lambda n: n.run.update(html_url='https://attacker.invalid')]
+        for field, wrong in (('id', True), ('run_id', 2), ('run_attempt', 2), ('head_sha', 'b'*40),
+                             ('head_branch', 'main'), ('run_url', 'https://attacker.invalid'),
+                             ('html_url', 'https://attacker.invalid'), ('check_run_url', 'https://attacker.invalid')):
+            mutations.append(lambda n, field=field, wrong=wrong: n.jobs['jobs'][0].update({field:wrong}))
+        mutations.append(lambda n: n.jobs['jobs'][1].update(n.jobs['jobs'][0],name='publish'))
+        for change in mutations:
+            net = Network()
+            change(net)
+            with self.subTest(change=change), self.assertRaisesRegex(installer.Refusal, 'provenance'):
                 installer.resolve(net, 'devel')
 
     def test_preserved_receipt_after_actions_expiry(self):
