@@ -99,6 +99,65 @@ exercised on macOS.
 
 ## Acceptance
 
-Implementation validation is in progress. Final candidate identity, actual
-network/USB results, native-browser results, measured costs, and the final
-adversarial reassessment will be recorded before this phase is marked complete.
+The accepted implementation candidate is Pico
+`5f85c3b08c8559c1939979b55c9eba6f412417de`, paired with clean Pi devel
+`1e15b2485ac6e1b9cbb6ff435afc0f0232528804`. No source edits occurred during
+its final pair run. The MbedTLS dependency remains the clean exact
+`0bebf8b8c7f07abe3571ded48a11aa907a1ffb20` with its required recursive inputs.
+
+All affected local gates passed:
+
+- 16 Python ownership methods on macOS and Linux; 21 process methods on macOS;
+  all 34 Linux process/startup/contextual-help cases with no skips/cancellations.
+- The seven affected CTest registrations passed in 18.43 seconds. Commands:
+  `ctest --test-dir build/campaign-host -R
+  "^(fixture_process_tests|endpoint_tests|network_tls_tests|network_tls_nagle_tests|network_local_wtp_tests|network_plain_wtp_tests|network_plain_admission_tests)$"
+  --output-on-failure` and the direct Python/Node commands above.
+- All 13 native production browser invocations passed with the final group
+  topology. Their final log slices and result files were independently rechecked
+  with the strict execution verifier. Receipts identify the prior documentation
+  HEAD `a872f42e` plus the then-tested uncommitted implementation, subsequently
+  committed unchanged as `5f85c3b0`; the final macOS runs and pair run use that
+  committed candidate directly.
+- Network recipe: `make -C <Pi>/src wtp-network-runtime-test BACKENDS=simulated
+  ANCILLARY_GPIO=0 SUDO= WTP_NETWORK_BUILD_DIR=/home/campaign/pair-network`, then
+  `make -C <Pi>/src wtp-network-interop-test wtp-config-interop-test SUDO=
+  PICO_SOURCE=<campaign Pico> MBEDTLS_SOURCE=/deps/mbedtls-pinned
+  WTP_NETWORK_BUILD_DIR=/home/campaign/pair-network`. All runtime, TLS,
+  configuration, production UI/coordinator, resource, journal, and both native
+  browser-crypto-context assertions passed.
+- USB recipe: `make -C <Pi>/src wtp-usb-pair-client-build
+  wtp-usb-management-test SUDO=`, the actual `wtp_usb_settings_test.js`, and
+  `WSPRRYPI_GPIO_DRIVE_REQUIRED=1 node <Pi>/WsprryPi-UI/tests/wtp_usb_pair_test.js
+  <Pi>/src/build/wtp-network/wtp_usb_pair_client
+  <Pico>/build/campaign-host/usb_management_driver`. The real Pico driver was
+  built from this candidate worktree. All production UMP framing/ACK, settings,
+  blank/create/replace/delete/recreate, progress, station, time, and GPIO cases
+  passed. The complete sequential pair command returned zero.
+
+Detailed local logs remain under ignored `build/campaign-phase03-*` and
+`build/campaign-native-audit-phase03-final`. Final process inspection in the
+init-enabled validation container found only its init/idle command and the
+inspection itself, with no surviving test processes, zombies, or profile writers.
+No devices were programmed and no hardware, installation, service, timing, or RF
+qualification is claimed.
+
+Canonical [Pico run 42070500676](https://github.com/WsprryPi/WsprryPico/actions/runs/42070500676)
+is separately in progress for the immutable candidate. It is not yet represented
+as passing. Phase 03's specified affected-test and both-production-carrier gates
+are successful; final campaign acceptance still requires a successful canonical
+run for the final campaign candidate, and any hosted failure will be resolved.
+
+Final adversarial reassessment found no unresolved issue in this phase's shared
+ownership/framing slice. The observation-file race in the new fault tests was
+reproduced under Linux; atomic rename now publishes complete state, without a
+sleep or a permissive JSON retry. Late-exit assertions accept either event order
+and require the actual nonzero exit diagnostic. Additional browser/CDP lifecycle
+adoption remains explicitly assigned to phases 04/05 above.
+
+The executable/test slice adds two files and 653 net physical lines across
+23 changed paths, including the helpers and regressions. Indentation changes
+inside lexical ownership scopes receive no reduction credit. These are
+correctness costs, not savings. The local affected slice and cold-start suite
+measurements are observations, not whole-CI speed claims. Phase 03 is complete;
+phase 04 is in progress.
