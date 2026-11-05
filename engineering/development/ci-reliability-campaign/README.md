@@ -24,6 +24,7 @@ Prompts are added below after their individual adversarial reviews close.
 | 04 | Qualify the session browser pilot | [Prompt](phase-04-browser-pilot.md) | Reviewed, findings closed | ▧ Not started |
 | 05 | Adopt the qualified browser lifecycle | [Prompt](phase-05-browser-adoption.md) | Reviewed, findings closed | ▧ Not started |
 | 06 | Remove scheduler dependent synchronization | [Prompt](phase-06-synchronization.md) | Reviewed, findings closed | ▧ Not started |
+| 07 | Close coverage and source pair gaps | [Prompt](phase-07-coverage-and-pair.md) | Reviewed, findings closed | ▧ Not started |
 
 ## Shared execution contract
 
