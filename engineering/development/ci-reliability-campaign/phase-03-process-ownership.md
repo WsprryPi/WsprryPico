@@ -67,5 +67,5 @@ rerun affected checks, and reassess; green happy paths alone are insufficient.
 Supply the ownership map, reproduced versus disproved concerns, exact expected
 shutdown contracts, regression results, source-pair evidence, and net maintenance/
 execution cost. No scenario or negative oracle may disappear during extraction.
-Publish the helper/caller interfaces for phases 04/05/06, reconcile phase 02 result
+Document the helper/caller interfaces for phases 04/05/06, reconcile phase 02 result
 reporting, update phase status only after all required checks pass, and stop.

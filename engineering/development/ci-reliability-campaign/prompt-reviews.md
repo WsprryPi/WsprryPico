@@ -19,3 +19,17 @@ contract. Additional cross-phase findings are recorded as they are closed.
 | 09 | Job splitting could trust forged producer labels, drop required statuses, or claim causal speedup across different coverage. | Verify trusted job provenance, coordinate approved status transitions, retain resource exclusions, and compare identical current-coverage schedules separately from cumulative totals. | Closed; cancellation/partial artifacts, independent builds, hosted authority, overhead costs, and both-carrier gates checked. |
 | 10 | No local caller is not retirement proof; completed coding could cause deletion of still-needed settings/validation handoffs. | Trace imports/external copies, require replacement sensitivity, retain unfinished gates/prompts, and bound cleanup to inspected campaign artifacts. | Closed; reusable cleanup process, no archives, provenance, external authority, reference repair, and conditional runtime gates checked. |
 | 11 | Final documentation retirement can change source identity after validation; local success could be mistaken for hosted enforcement or delivered companion refs. | Freeze after planned consolidation, record/revalidate later source changes, require intended-ref and remote evidence, and retain unresolved acceptance gates. | Closed; restored counterfactuals, affected reruns, no 50% quota, accurate final scorecard, retention, and no automatic delivery checked. |
+
+## Campaign consistency reassessment
+
+The final cross-phase review checked source freshness, dependency ordering,
+authority, no-CI document preparation, shared helper ownership, every finding's
+phase assignment, metric reconciliation, both-carrier gates, and prompt retention.
+One cross-phase ambiguity was closed: accepted predecessor implementation evidence
+does not imply that pending remote settings or hosted evidence is complete.
+The index now permits independent work without waiving correctness prerequisites
+or allowing final acceptance to conceal those outstanding gates.
+
+All eleven prompt files and their links/anchors, phase assignments, review rows,
+and final new-file content were checked. These are documentation checks only;
+no implementation, runtime tests, firmware builds, or CI dispatch occurred.

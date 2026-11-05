@@ -14,7 +14,9 @@ Prompt preparation and phase execution have separate status.
 
 ## Phase list
 
-Prompts are added below after their individual adversarial reviews close.
+All eleven prompts have completed an authoring adversarial review, correction,
+and reassessment. None of the execution phases has started. The phase numbers
+match the agreed campaign and remain stable.
 
 | Phase | Purpose | Saved prompt | Prompt review | Execution |
 | --- | --- | --- | --- | --- |
@@ -29,6 +31,32 @@ Prompts are added below after their individual adversarial reviews close.
 | 09 | Optimize isolated execution scheduling | [Prompt](phase-09-scheduling.md) | Reviewed, findings closed | ▧ Not started |
 | 10 | Resolve holds and repair documentation | [Prompt](phase-10-retention.md) | Reviewed, findings closed | ▧ Not started |
 | 11 | Perform adversarial acceptance and handoff | [Prompt](phase-11-final-acceptance.md) | Reviewed, findings closed | ▧ Not started |
+
+## Sequence and completion
+
+Execute phases in order, one explicitly invoked phase at a time. Each phase
+consumes the accepted implementation evidence and interfaces of its predecessors.
+Phase 02's separately pending remote-settings approval may remain outstanding
+while independent later implementation proceeds; this does not mark phase 02
+complete or waive any local/paired validation gate. Apply the same distinction to
+phase 09's separately pending hosted/settings evidence. Do not proceed with work
+whose actual correctness prerequisite is unresolved. Phase 11 must report such
+pending gates and cannot declare the complete campaign accepted until required
+evidence and authority are satisfied.
+
+| Finding or responsibility | Owning phases |
+| --- | --- |
+| Reproducible inventory, denominators, source identity, and reliability observations | 01; reconciled in every later phase |
+| Required merge checks, truthful suite results, and false-green paths | 02, 09, 11 |
+| Partial I/O, late child failure, detached descendants, and cleanup ownership | 03; adopted in 04 through 06 |
+| Representative session browser and selective-profile interface | 04 |
+| Remaining browser lifecycle duplication and excess fixture starts | 05 |
+| Arbitrary synchronization, accelerated host time, and cancellation observation | 06 |
+| Missing tool-download coverage, optional subcases, and current companion pin | 07 |
+| Duplicate client compilation, equivalent firmware work, and verified input reuse | 08 |
+| Resource-safe parallelism and trustworthy elapsed-time measurement | 09 |
+| Historical fixture holds, prompt retention, references, and current documentation | 10, 11 |
+| Final adversarial sensitivity, both production carriers, and honest scorecard | 11 |
 
 ## Shared execution contract
 
