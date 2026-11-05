@@ -92,7 +92,7 @@ after the conflicting owner exits. Phase 09 must preserve port isolation.
 
 ## Remote enforcement and pending acceptance
 
-The prepared [enforcement change](phase-02-enforcement.md) was applied under the
+The prepared [enforcement policy](../software-build-ci.md#merge-gates-and-performance-observations) was applied under the
 standing authority. Remote readback confirms devel requires strict/up-to-date
 `verify` from GitHub Actions application 15368, enforces administrators, requires
 a PR, and prohibits force pushes/deletion. Optional `publish` is not required.

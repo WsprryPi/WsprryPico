@@ -2,7 +2,8 @@
 
 Accepted Pico `1a383a993833f05ab0ea574286dc5eec8ba4d09b` with companion
 `d3ffc3b26d50f55f205382bb5aac7cdfee054d99`. Both feature branches are pushed;
-original devel checkouts and remote tips remain Pico c9fd28ef and Pi 1e15b248.
+remote devel tips remain Pico c9fd28ef and Pi 1e15b248. Original checkout branches
+can move independently of the explicitly selected campaign worktrees.
 Delivery is on the feature branches, with draft PRs
 [Pico 16](https://github.com/WsprryPi/WsprryPico/pull/16) and
 [Pi 469](https://github.com/WsprryPi/WsprryPi/pull/469). No merge or deployment.
@@ -133,8 +134,8 @@ Do not infer general reliability or an exhaustive historical failure rate.
 
 Strict current-candidate verify from Actions app 15368, PR merging, administrator
 enforcement, no force push, and no deletion were read back on Pico devel. Main
-and unrelated settings remain unchanged. Both feature worktrees and both original
-devel checkouts are clean before this documentation-only acceptance update.
+and unrelated settings remain unchanged. Both feature worktrees and original
+checkouts had no tracked changes at the acceptance readback.
 
 Documentation impact: Pi's development guide describes logical fixture clocks,
 runner-provided tools, and software-only evidence limits. Pico engineering guide

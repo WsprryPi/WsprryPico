@@ -14,6 +14,12 @@ Normal firmware `all`, the `pico2-w` preset, and `scripts/build_pico.sh` select 
 
 Firmware versions and the installer's implementation version are independent. Installation downloads a compiled, verified UF2. Pushes run verification without publishing firmware.
 
+The [CI execution contract](software-build-ci.md#execution-completeness-and-local-qualification)
+defines mandatory contexts and framework counts, nonempty focused checks, shared
+process/browser ownership, isolated scheduling, verified build reuse, and both
+production source-pair recipes. Its source-bound completion policy governs
+canonical acceptance; a local optional-dependency subset does not satisfy it.
+
 ## Deterministic validation
 
 Build and run the hardware-free portable core on a supported host:
@@ -21,7 +27,7 @@ Build and run the hardware-free portable core on a supported host:
 ```sh
 cmake -S . -B build-host -DCMAKE_BUILD_TYPE=Debug -DWSPRRY_PICO_BUILD_TESTS=ON
 cmake --build build-host --parallel
-ctest --test-dir build-host --output-on-failure
+ctest --test-dir build-host --no-tests=error --output-on-failure
 ```
 
 Use an unused build directory when existing outputs have another duty. On a Pi, cap parallelism to available resources, normally leaving one core free. Do not retry a known broken local macOS compiler without explicit toolchain repair or local-build authorization. `scripts/check_host.sh` and `scripts/xcode_env.sh` select installed Xcode for an available macOS host setup; they do not install or repair it. Linux CI defines the reproducible software baseline. A host test or build establishes no device timing or RF performance.

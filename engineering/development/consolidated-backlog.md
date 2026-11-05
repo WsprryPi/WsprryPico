@@ -4,7 +4,7 @@ This is the distinct TODO list for selected unfinished work, with completed and 
 
 ## Selected unfinished work
 
-23. **CI reliability and efficiency campaign — ⏳ in progress.** The [eleven-phase campaign](ci-reliability-campaign/README.md) defines reviewed execution prompts for reliable failure detection, bounded fixture lifetimes, state-based synchronization, complete coverage, verified source pairs, build reuse, measured scheduling, retention, and final acceptance. Reliability, safety, and efficacy govern speed and reduction targets. Prompt preparation and the baseline are complete; implementation is tracked in the campaign phase list.
+23. **CI reliability and efficiency campaign — ⏳ in progress.** The [eleven-phase campaign](ci-reliability-campaign/README.md) defines reviewed execution prompts for reliable failure detection, bounded fixture lifetimes, state-based synchronization, complete coverage, verified source pairs, build reuse, measured scheduling, retention, and final acceptance. Reliability, safety, and efficacy govern speed and reduction targets. Phases 01–09 are accepted; retention and final acceptance are tracked in the campaign phase list.
 
 ## Possible future work
 

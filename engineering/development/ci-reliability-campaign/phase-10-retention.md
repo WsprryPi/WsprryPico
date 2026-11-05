@@ -1,8 +1,8 @@
 # Phase 10 Resolve holds and repair documentation
 
-Execute only phase 10 when explicitly invoked. Read the complete
+Execute phase 10 under the current campaign standing authority. Read the complete
 [shared execution contract](README.md#shared-execution-contract),
-[orientation](orientation.md), accepted evidence through phase 09, and the full
+[current CI guide](../software-build-ci.md), accepted evidence through phase 09, and the full
 [reusable cleanup instructions](../repository-cleanup-prompt.md). Apply their
 inventory, retention, reference-repair, and validation process to this bounded
 campaign scope. Reading or preparing this prompt does not invoke cleanup.

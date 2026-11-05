@@ -1,179 +1,87 @@
 # CI reliability and efficiency campaign
 
-This active plan defines eleven bounded phases for trustworthy, effective, and
-efficient WsprryPico CI. Reliability, safety, required coverage, and defect
-detection are acceptance gates. Speed and maintenance reductions are optimization
-targets within those gates. Improvements may add code or runtime. A 50% reduction
-is a feasibility question for each metric, never a completion quota.
-
-The eleven prompts are authorized for sequential execution in this session.
-The user's Wsprry Development Session standing authority supersedes the earlier
-preparation-only, per-phase invocation, separate routine approval, and no-CI
-restrictions in these documents. It covers development, dependencies, Git/CI,
-related Docker infrastructure, WsprryPi/WsprryPi-Docs/WsprryPico, wspr4/wspr5, and
-Pico C within the assigned campaign. Preserve unrelated data/services and shared
-Git history. Identify hardware and verify the actual conducted RF termination
-before any transmission; this software campaign requires no RF by default.
-Prompt preparation and implementation acceptance remain separate statuses.
+This eleven-phase campaign treats reliability, safety, complete coverage, and
+independent defect detection as acceptance gates. Speed and maintenance reductions
+are optimization targets within those gates. A 50% reduction is a feasibility
+question for each metric, never a completion quota.
 
 ## Phase list
 
-All eleven prompts have completed an authoring adversarial review, correction,
-and reassessment. Execution is tracked below. The phase numbers match the agreed
-campaign and remain stable. Legend: ✅ complete, ⏳ in progress, ▧ not started.
+Legend: ✅ complete, ⏳ in progress, ▧ not started. All eleven saved prompts passed
+an authoring adversarial review, correction, and reassessment. The first nine
+execution slices are accepted. Completed prompts remain accessible at their saved
+immutable Git revisions; current operating instructions are consolidated in the
+[CI guide](../software-build-ci.md).
 
-| Phase | Purpose | Saved prompt | Prompt review | Execution |
-| --- | --- | --- | --- | --- |
-| 01 | Establish the baseline and accounting | [Prompt](phase-01-baseline.md) | Reviewed, findings closed | ✅ Complete |
-| 02 | Make CI outcomes enforceable and observable | [Prompt](phase-02-ci-outcomes.md) | Reviewed, findings closed | ✅ Complete |
-| 03 | Repair process ownership and failure propagation | [Prompt](phase-03-process-ownership.md) | Reviewed, findings closed | ✅ Complete |
-| 04 | Qualify the session browser pilot | [Prompt](phase-04-browser-pilot.md) | Reviewed, findings closed | ✅ Complete |
-| 05 | Adopt the qualified browser lifecycle | [Prompt](phase-05-browser-adoption.md) | Reviewed, findings closed | ✅ Complete |
-| 06 | Remove scheduler dependent synchronization | [Prompt](phase-06-synchronization.md) | Reviewed, findings closed | ✅ Complete |
-| 07 | Close coverage and source pair gaps | [Prompt](phase-07-coverage-and-pair.md) | Reviewed, findings closed | ✅ Complete |
-| 08 | Consolidate demonstrably redundant build work | [Prompt](phase-08-build-consolidation.md) | Reviewed, findings closed | ✅ Complete |
-| 09 | Optimize isolated execution scheduling | [Prompt](phase-09-scheduling.md) | Reviewed, findings closed | ✅ Complete |
-| 10 | Resolve holds and repair documentation | [Prompt](phase-10-retention.md) | Reviewed, findings closed | ⏳ In progress |
-| 11 | Perform adversarial acceptance and handoff | [Prompt](phase-11-final-acceptance.md) | Reviewed, findings closed | ▧ Not started |
-
-## Sequence and completion
-
-Execute phases in order under the standing authority, reporting and printing the
-updated list after each phase before continuing. Each phase
-consumes the accepted implementation evidence and interfaces of its predecessors.
-Phase 02's separately pending remote-settings approval may remain outstanding
-while independent later implementation proceeds; this does not mark phase 02
-complete or waive any local/paired validation gate. Apply the same distinction to
-phase 09's separately pending hosted/settings evidence. Do not proceed with work
-whose actual correctness prerequisite is unresolved. Phase 11 must report such
-pending gates and cannot declare the complete campaign accepted until required
-evidence and authority are satisfied.
-
-| Finding or responsibility | Owning phases |
-| --- | --- |
-| Reproducible inventory, denominators, source identity, and reliability observations | 01; reconciled in every later phase |
-| Required merge checks, truthful suite results, and false-green paths | 02, 09, 11 |
-| Partial I/O, late child failure, detached descendants, and cleanup ownership | 03; adopted in 04 through 06 |
-| Representative session browser and selective-profile interface | 04 |
-| Remaining browser lifecycle duplication and excess fixture starts | 05 |
-| Arbitrary synchronization, accelerated host time, and cancellation observation | 06 |
-| Missing tool-download coverage, optional subcases, and current companion pin | 07 |
-| Duplicate client compilation, equivalent firmware work, and verified input reuse | 08 |
-| Resource-safe parallelism and trustworthy elapsed-time measurement | 09 |
-| Historical fixture holds, prompt retention, references, and current documentation | 10, 11 |
-| Final adversarial sensitivity, both production carriers, and honest scorecard | 11 |
+| Phase | Purpose | Saved prompt | Execution |
+| --- | --- | --- | --- |
+| 01 | Establish the baseline and accounting | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-01-baseline.md) | ✅ Complete |
+| 02 | Make CI outcomes enforceable and observable | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-02-ci-outcomes.md) | ✅ Complete |
+| 03 | Repair process ownership and failure propagation | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-03-process-ownership.md) | ✅ Complete |
+| 04 | Qualify the session browser pilot | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-04-browser-pilot.md) | ✅ Complete |
+| 05 | Adopt the qualified browser lifecycle | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-05-browser-adoption.md) | ✅ Complete |
+| 06 | Remove scheduler dependent synchronization | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-06-synchronization.md) | ✅ Complete |
+| 07 | Close coverage and source pair gaps | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-07-coverage-and-pair.md) | ✅ Complete |
+| 08 | Consolidate demonstrably redundant build work | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-08-build-consolidation.md) | ✅ Complete |
+| 09 | Optimize isolated execution scheduling | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-09-scheduling.md) | ✅ Complete |
+| 10 | Resolve holds and repair documentation | [Prompt](phase-10-retention.md) | ⏳ In progress |
+| 11 | Perform adversarial acceptance and handoff | [Prompt](phase-11-final-acceptance.md) | ▧ Not started |
 
 ## Shared execution contract
 
-Every phase prompt incorporates this contract. Read it, the
-[orientation review](orientation.md), and the applicable phase prompt before
-executing only that phase. Read root and nested AGENTS.md, README.md, CONTRACT.md,
-engineering/architecture.md, engineering/development/README.md, and actual owning
-workflow/build definitions. Current instructions and verified sources govern;
-historical counts, suspected defects, refs, and prior green results are leads.
+The user's Wsprry Development Session standing authority authorizes sequential
+execution in this session, including necessary development, dependencies, Git/CI,
+and approved enforcement changes in the three Wsprry repositories. It supersedes
+preparation-only, separate routine approval, and no-CI clauses in the original
+prompts. Continue through accepted phase boundaries without another invocation.
+Preserve unrelated work, shared tools, protected history, credentials, and devices.
+No merge, publication, release, deployment, service change, or RF test is part of
+this software campaign. The independent original Pi checkout can move branches;
+explicit campaign worktrees and paired refs determine validation inputs.
 
-### Source identity and scope
+- Read the active prompt, current project instructions, owning implementation,
+  and [CI execution contract](../software-build-ci.md#execution-completeness-and-local-qualification).
+  Inspect and preserve current working changes before mutation.
+- Keep the one current settings/control major and strict schema/identity/limit
+  checks. WTP, transport, storage, and deployment formats remain independent.
+  Preserve crypto, framing/ACK, journals, no-write refusals, inhibition, source/
+  shipped browser paths, captures, and independently fresh reproducibility.
+- Observe readiness and fault entry before advancing logical clocks. Product
+  timing stays intact; finite watchdogs bound hangs. Register owned resources
+  before fallible work, preserve primary/cleanup errors, and confirm writer death
+  before removing profiles. No blind retries or timeout expansion for a green run.
+- Required affected checks must actually pass. Both production network and USB
+  suites are required for shared fixture/protocol changes and final acceptance;
+  use the [exact paired recipes](../software-build-ci.md#build-reuse-and-source-pairs)
+  with identified candidate sources and pinned recursive dependencies. Missing,
+  skipped, cancelled, failed, stale, or wrong-source results remain unresolved.
+- Reassess deliberate-defect sensitivity after affected changes. Existing proof
+  can be reused only for unchanged behavior. Source, run/attempt, workflow/job,
+  profile, artifacts, logs, and result counts must agree; producer names alone
+  do not establish provenance. Software checks establish no physical timing/RF
+  qualification.
+- Charge every helper, regression, activated suite, setup/transfer, companion
+  change, and retained build context. Keep physical and logical counting units
+  separate. Unused fixture retirement earns zero reduction-goal credit.
+- Preserve active build/recovery dependencies and user work. Inventory exact
+  retirement/retention decisions, consolidate useful current instructions, and
+  repair references before removing completed prompts or temporary narratives.
+  Keep unfinished handoffs reachable; use no archive copies.
+- Commit and push validated slices to the feature branches. Intermediate
+  documentation-only status/evidence updates may skip CI. The final candidate
+  must have its current required verification and source-bound artifact checks;
+  earlier artifacts cannot be relabelled after a source-identity change.
+- After each phase, report actual results/limitations, update this list, and
+  print all eleven statuses. Do not declare the campaign complete with unresolved
+  required checks or missing intended companion refs.
 
-- Inspect current branches, staged/unstaged/untracked changes, source identities,
-  and ownership before editing. Preserve user work and other worktrees/processes.
-  Start from the phase's intended current candidate, recording its relationship
-  to current devel; do not silently reset to this campaign's preparation SHA.
-- Keep implementation within the campaign and its necessary companion slices.
-  Companion development is authorized by the session standing authority. Record
-  intended paired refs; unavailable credentials or dependencies remain blockers,
-  not a deferred requirement behind completion.
-- Execute each bounded phase and its required validation under the session
-  standing authority, including necessary companion work, dependencies, CI, and
-  project settings. Do not repeat routine approval requests already answered.
-  Respect higher-priority technical permission boundaries and the user's explicit
-  restrictions on protected history, unrelated data, and unverified RF paths.
-- Execution uses codex/pico-ci-reliability-campaign and its isolated worktree.
-  Validated implementation commits/pushes and necessary CI are now authorized.
-  Document-only status/evidence commits may use [skip ci]. Do not rewrite shared
-  history or weaken existing branch protections.
+## Acceptance inputs for the final review
 
-### Efficacy and timing
-
-- Preserve required triggers, frequency, merge gates, carriers, logical cases,
-  strict current control validation, real crypto, framing/ACK, journals,
-  identity/revision checks, no-write refusals, inhibition, independent expected
-  values, artifact provenance, and recovery assets. Retain independently
-  versioned WTP, transport, and storage boundaries. Do not add historical control
-  views, downgrade fallback, permissive stubs, or fabricated success results.
-- Verify suspected defects with source inspection and an appropriate bounded
-  reproduction before repair. Do not force a change when the concern is already
-  resolved. A no-change decision requires evidence and obligation reconciliation.
-- Classify waits as product timing, logical test time, observed synchronization,
-  finite failure watchdog, pacing/retry, diagnostics, or unsupported assumptions.
-  Preserve product timing. Observe readiness and fault entry before advancing
-  injected clocks. Propagate monotonic enclosing budgets to inner operations;
-  reject late success, and retain an independent real watchdog for controlled
-  clocks. Sleeps, wider timeouts, retry-until-green, and absent markers are not
-  readiness or cleanup evidence.
-- Register ownership before fallible work. Bound partial I/O, EOF, child exit,
-  cancellation, shutdown, and owned descendant handling. Attempt every finalizer,
-  preserve primary and secondary errors, check expected termination, and remove
-  private profiles only after writers are confirmed stopped. Never kill unrelated
-  processes or expose credentials in diagnostics.
-
-### Validation and adversarial closure
-
-- Derive exact supported commands from current development docs and checked-in
-  recipes; do not invent a command or call an opt-in hardware script for discovery.
-  Run affected deterministic tests and deliberate-defect sensitivity checks.
-  Inspect actual results, registration, execution, and final status propagation.
-  Required skipped, failed, cancelled, timed-out, or missing checks stay unresolved.
-- For phases changing shared fixtures or behavior, run both production network
-  and USB source-pair suites, even when only one carrier appears affected. Phases
-  03 through 09 and final phase 11 explicitly require both. Phase 02 also requires
-  both if it changes their selection, result handling, or required status mapping.
-  Apply the repository gate to any other protocol-facing change regardless of
-  this list. Read-only phase 01 and documentation-only phase 10 do not require
-  manufacturing test runs when executable inputs remain unchanged.
-- Use WsprryPi .github/workflows/debian-non-hardware.yml recipes. Network includes
-  wtp-network-runtime-test, wtp-network-interop-test, and wtp-config-interop-test.
-  USB includes the actual Pico usb_management_driver, wtp-usb-pair-client-build,
-  wtp-usb-management-test, and WsprryPi-UI/tests/wtp_usb_pair_test.js. Exercise
-  production clients/coordinators, Pico handlers, real crypto, serialization,
-  framing/ACK, and journals. Select exact candidate sources and pinned dependencies
-  explicitly, including recursive MbedTLS inputs. Old CI and mocks are insufficient.
-- Review each implementation adversarially for lost cases, false-green exits,
-  missing tools, empty discovery, optional skips, cleanup races, stale sources,
-  self-confirming oracles, hidden costs, and incorrect counts. Fix findings,
-  rerun affected checks, then reassess until no actionable findings remain.
-  Record unresolved risks without claiming completion.
-
-### Accounting and handoff
-
-- Freeze reproducible baselines. Separate physical code/bytes/files from active
-  files, scenarios, assertions, generated/vendor content, and documentation.
-  Mark ambiguous embedded orchestration rather than inventing a denominator.
-  Count logical coverage separately from process, suite, compiler/linker, job,
-  and matrix executions. Unused-test cleanup receives zero reduction credit.
-- Charge helpers, relocated code, regressions, companion work, dependencies,
-  repeated setup, and transfers. Preserve an independently fresh reproducibility
-  build. Compare equivalent source/toolchain/coverage inputs and cold/warm
-  observations; distinguish queue delay, elapsed, aggregate job spans, retries,
-  cancellations, and failures. Do not label job spans billed cost or sum
-  overlapping savings. A passing rerun does not erase the first failure.
-- Report changed paths, both candidate identities and uncommitted input hashes,
-  commands/results and CI links when applicable, adversarial findings and their
-  closure, coverage/context reconciliation, net budgets, limitations, and actual
-  Git state. Distinguish local evidence, hosted CI, installed hardware, physical
-  USB/network, service, timing, GPIO, and RF qualification.
-- Mark a phase complete only after its acceptance gates pass; distinguish a
-  separately blocked settings action from completed coding subtasks. Do not
-  skip prerequisite acceptance gates when continuing to the next phase. Update this active plan during authorized execution.
-  Retire completed temporary prompts only after consolidating needed instructions
-  and repairing references under phase 10 and repository retention rules.
-
-## Execution evidence
-
-[Phase 01 baseline](baseline.md) and [exact inventory](baseline.json) freeze the
-original executable inputs and qualified historical measurements. Unknown semantic
-denominators remain explicit; later phase costs reconcile against this baseline.
-
-## Preparation review records
-
-[Prompt adversarial reviews](prompt-reviews.md) record authoring findings,
-corrections, and reassessment. They are not implementation or runtime evidence.
+The [frozen baseline](baseline.json) and [baseline definitions](baseline.md)
+remain active accounting inputs. Accepted evidence is retained for final
+reconciliation: [02](phase-02-results.md), [03](phase-03-results.md),
+[04](phase-04-results.md), [05](phase-05-results.md), [06](phase-06-results.md),
+[07](phase-07-results.md), [08](phase-08-results.md), and [09](phase-09-results.md).
+The final review consolidates the necessary scorecard and current limitations
+before retiring intermediate evidence narratives. This active plan and the
+requested saved-prompt index remain the campaign entry point.

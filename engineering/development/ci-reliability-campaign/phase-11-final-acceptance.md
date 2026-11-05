@@ -1,11 +1,11 @@
 # Phase 11 Perform adversarial acceptance and handoff
 
-Execute only phase 11 when explicitly invoked. Read the complete
-[shared execution contract](README.md#shared-execution-contract), the surviving
-active plan/current technical guides, phase 01's frozen baseline, and accepted
-evidence for phases 02 through 10. Review all pending checks, approvals, holds,
-and no-change decisions before claiming campaign completion. Do not assume that
-prompt review, a commit, or a prior green run establishes implementation acceptance.
+Execute phase 11 after phase 10 is accepted under the current session authority.
+Read the [shared execution contract](README.md#shared-execution-contract), current
+phase list, [CI guide](../software-build-ci.md), [frozen baseline](baseline.json),
+and accepted evidence for phases 02 through 10. Review pending checks, holds, and
+supported no-change decisions. Prompt review, a commit, or a prior green run does
+not establish implementation acceptance.
 
 ## Objective and scope
 
@@ -45,9 +45,10 @@ Use only currently authorized repositories/environments and retained dependencie
    evidence. Any final fix invalidates affected earlier results: rerun those
    checks, including both carriers when shared behavior changes, then reassess.
 6. Verify current hosted required-check/status/artifact wiring and approved remote
-   settings where those are campaign deliverables. Obtain separate authority
-   before hosted dispatch or settings mutation. If unavailable, report those
-   acceptance gates unresolved; do not substitute local results or old CI links.
+   settings where those are campaign deliverables. The standing session authority
+   covers required hosted validation and approved Pico devel enforcement; preserve
+   its limits and verify actual readback. Unavailable required evidence remains
+   unresolved; local results or older CI links do not substitute for it.
 7. Reconcile final physical files/code/bytes, active/equivalent files, logical
    coverage, process/suite/compiler/linker/job/matrix counts, and elapsed timings.
    Charge helpers, moved code, regressions, activated coverage, companion edits,

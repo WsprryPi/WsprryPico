@@ -1,6 +1,6 @@
 # Phase 05 lifecycle adoption results
 
-The [caller matrix](phase-05-contexts.md) reconciles all eleven maintained native
+The [caller matrix](../software-build-ci.md#native-scenario-obligations) reconciles all eleven maintained native
 browser entry files and thirteen ordinary invocations, explicit software opt-ins,
 source/shipped assets, replacement fixtures, and distinct browser contexts.
 No product UI or protocol behavior changed. The session pilot retains its

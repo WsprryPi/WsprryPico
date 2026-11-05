@@ -145,7 +145,13 @@ Console `INFO` adds RF-worker service-gap/poll/roundtrip, command count, core st
 
 ## Hardware-free validation
 
-The normal host suite adds HTTP/API tests, browser behavior tests (when Node is available), certificate lifecycle tests, and physical Console abort failure tests. Actual TLS tests use the SDK-pinned local library and ephemeral test certificates:
+The [CI fixture contract](software-build-ci.md#fixture-ownership-clocks-and-resources)
+defines observed synchronization, enclosing budgets, owned cleanup, module-relative
+worker paths, and exclusive loopback resources. Use the current registered CTest
+names and reject empty focused selections. Both actual production source-pair
+recipes are defined in the [CI source-pair guide](software-build-ci.md#build-reuse-and-source-pairs).
+
+The normal host suite adds HTTP/API tests, browser behavior tests (when Node is available), certificate lifecycle tests, and Console abort failure-path checks. Actual TLS tests use the SDK-pinned local library and ephemeral test certificates:
 
 ```sh
 cmake -S . -B build-host -DCMAKE_BUILD_TYPE=Debug \
