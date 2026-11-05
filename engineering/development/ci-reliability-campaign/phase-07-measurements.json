@@ -55,5 +55,14 @@
   "new_files": 1,
   "new_test_methods": 15,
   "new_ctest_registrations": 1,
-  "newly_activated_existing_test_methods": 39
+  "newly_activated_existing_test_methods": 39,
+  "activated_tool_suite": {
+    "scope": "single instrumented non-root Linux tool suite; all traced process tasks; no CLONE_THREAD calls",
+    "cases": 39,
+    "processes_including_suite": 216,
+    "descendant_processes": 215,
+    "successful_exec_calls": 216,
+    "instrumented_suite_s": 4.648,
+    "normal_suite_s": 1.242
+  }
 }

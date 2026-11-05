@@ -1,7 +1,8 @@
 # Phase 07 coverage and source pair qualification
 
-Implementation is prepared. Phase acceptance remains pending the final local,
-current-pair, and canonical evidence recorded below.
+Implementation, adversarial qualification, both required production source-pair
+suites, and canonical full-policy verification passed. Phase 07 is accepted for
+the candidate below.
 
 ## Coverage and completion contract
 
@@ -10,7 +11,12 @@ execution passed all 39 cases in 1.242 seconds with zero skips. The suite uses
 fake HTTPS, temporary HOME/cache, and a fake picotool that refuses USB operations.
 It exercises consent/terminal/bootstrap prerequisites, cache ownership and locks,
 archive and receipt tampering, traversal/symlinks, pending recovery, and cleanup
-refusal. This activation adds coverage and receives no reduction credit.
+refusal. Existing Linux strace process accounting separately observed 216
+processes including the suite, 215 descendants, 216 successful exec calls, and
+no CLONE_THREAD calls. That instrumented 39-case run passed in 4.648 seconds;
+it is not substituted for the 1.242-second normal measurement. The trace is
+build/campaign-phase07-tool-process.trace. This activation adds coverage and
+receives no reduction credit.
 
 The current producer requires execution-policy/2 and an immutable-source-bound
 completion policy. All 56 registered Node/unittest frameworks bind to their actual
@@ -79,11 +85,60 @@ lines count as configuration cost. No product protocol/schema change or new
 fixture process replaces a required native context. Timers remain hang guards;
 no readiness assertion or product deadline was enlarged.
 
-## Results still required
+## Accepted results
 
-Final local XML qualification, committed-candidate full network and USB recipes,
-and the new canonical full-policy run remain pending. No phase completion,
-merge, release, deployment, physical USB, timing, or RF qualification is claimed.
+All 212 local CTest suites passed in 204.71 seconds. With complete retained
+output, all 46 locally available frameworks independently passed their exact
+478-case inventory in 61.65 seconds. Post-commit execution and packaging methods
+passed again (22 and 64 cases). A deliberate root tool-suite execution produced
+three failures, 22 errors, and one skip, and its actual output was refused. This
+qualifies unsupported-user refusal, not an isolated skip-only experiment; unit
+regressions separately isolate the skipped-result check.
+
+The current reader also verified the real phase 06 frozen version-1 producer
+bundle and its downloaded audit against the verified merge source, using its
+source-specific policy. Linked-image inspectors were not rerun in that separate
+reader check.
+
+The required full production source-pair commands from the checked-in Pi CI
+recipes passed for Pico 5df16dcf826762e890461e8f9687f73e6c21d844 and Pi
+1e15b2485ac6e1b9cbb6ff435afc0f0232528804, with recursive pinned Mbed TLS
+0bebf8b8c7f07abe3571ded48a11aa907a1ffb20. Both worktrees were clean at execution
+entry. Only this result Markdown changed during execution; changed executable
+input hashes still match the candidate manifest.
+
+Commands were wtp-network-runtime-test (916 checks), wtp-network-interop-test,
+wtp-config-interop-test, wtp-usb-pair-client-build, wtp-usb-management-test,
+wtp_usb_settings_test.js, and wtp_usb_pair_test.js with
+WSPRRYPI_GPIO_DRIVE_REQUIRED=1 and the actual candidate usb_management_driver.
+The network build explicitly selected /home/campaign/pair-network,
+PICO_SOURCE=/private/tmp/wsprrypico-ci-reliability-campaign and
+MBEDTLS_SOURCE=/deps/mbedtls-pinned. WSPRRYPI_DISABLE_HARDWARE_ACCESS=1 was set.
+The network output explicitly confirms actual changed-IPv4 rebinding and contains
+no prerequisite SKIP. Full outputs are build/campaign-phase07-network.log,
+campaign-phase07-usb.log, and campaign-phase07-source-pair.log. These are the
+required source-pair commands, not a claim that the entire Pi workflow or its
+unrelated build/routing jobs passed.
+
+[Canonical run 42099685863](https://github.com/WsprryPi/WsprryPico/actions/runs/42099685863)
+passed on its first attempt. Independent downloaded-evidence checks verified all
+28 command receipts and log digests, exact completion for all 56 frameworks,
+standalone framework counts, and the full 232-suite CTest inventory with no
+required skips or failures. Aggregate command elapsed was 1266.687 seconds and
+the verify job took 1422 seconds. This is one observation with different coverage
+and runner conditions from earlier phases; it is not a causal speed comparison.
+
+The actual merge source 0eccf9ecd258e77a5e37c03038a9775f7fa122e5 has verified
+parents c9fd28ef57265c942900bdfe0595f90a31926ff9 and candidate
+5df16dcf826762e890461e8f9687f73e6c21d844. Its tree equals the candidate tree.
+The GitHub commit API independently confirmed those identities. Audit artifact
+13448979660 and firmware artifact 13451070146 were downloaded; the current reader
+verified the real bundle, its exact frozen policy, complete audit inventory,
+source/dependency binding, XML, receipts, and hashes. Linked-image inspectors
+passed inside canonical CI and were not rerun in this independent download check.
+The explicitly opt-in publisher was appropriately skipped; no publication was
+requested. No merge, release, deployment, physical USB, timing, or RF qualification
+was performed.
 
 ## Documentation Impact
 
