@@ -14,7 +14,7 @@ const output=process.argv[3]&&path.resolve(process.argv[3]);
 if(output)fs.mkdirSync(output,{recursive:true});
 const f=new Fixture(process.argv[2]);
 const profile=fs.mkdtempSync(path.join(os.tmpdir(),'pico-recovery-browser-'));
-const processGroup=process.platform==='linux';
+const processGroup=process.platform!=='win32';
 let chrome,ws,dropNextReply=false,dropRetirementReply=false;
 const dialogs=[],pending=new Map();let seq=0,queue=Promise.resolve();
 const server=http.createServer((req,res)=>{queue=queue.then(()=>serve(req,res));});

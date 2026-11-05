@@ -16,7 +16,7 @@ if(!driver) throw Error('Usage: node tests/operator_cleanup_browser.mjs DRIVER [
 const output=process.argv[3] && path.resolve(process.argv[3]);
 const filterOnly=process.argv.includes('--filter-ui-only') || process.env.WSPRRY_PICO_FILTER_UI_ONLY==='1';
 if(output) fs.mkdirSync(output,{recursive:true});
-const processGroup=process.platform==='linux';
+const processGroup=process.platform!=='win32';
 const f=new Fixture(driver),profile=fs.mkdtempSync(path.join(os.tmpdir(),'pico-operator-cleanup-'));
 let chrome,ws,serial=0,dropPinReply=false,primaryFailure;
 let screenshotCount=0;

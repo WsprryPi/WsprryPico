@@ -15,7 +15,7 @@ const driver=process.argv[2],output=path.resolve(process.argv[3] || 'build/ui-se
 if(!driver)throw Error('Usage: node tests/ui_sections_browser.mjs DRIVER [OUTPUT]');
 await mkdir(output,{recursive:true});
 const profile=await mkdtemp(path.join(os.tmpdir(),'pico-session-browser-'));
-const processGroup=process.platform==='linux';
+const processGroup=process.platform!=='win32';
 let fixture,chrome,ws,serial=0,now=1000;
 const pending=new Map();
 function send(method,params={}) {

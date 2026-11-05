@@ -13,7 +13,7 @@ const port=firstUse==='refusal' ? 18944 : firstUse ? 18945+['network','usb','ove
 if (!driver) throw Error('Usage: node standalone_frequency_ui_integration.mjs DRIVER [OUTPUT]');
 await mkdir(output,{recursive:true});
 const profile=await mkdtemp(path.join(os.tmpdir(),'wsprrypico-frequency-browser-'));
-const processGroup=process.platform==='linux';
+const processGroup=process.platform!=='win32';
 let fixture, chrome, cdp;
 class Cdp {
   constructor(url) {

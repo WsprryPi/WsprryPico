@@ -11,7 +11,7 @@ import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
 
 if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; Node 20 needs --experimental-websocket');
 if (!process.argv[2]) throw Error('Usage: node tests/hostname_browser_integration.mjs CONSUMER_BOOTSTRAP_DRIVER [OUTPUT_DIRECTORY]');
-const processGroup=process.platform==='linux';
+const processGroup=process.platform!=='win32';
 const noCapture=process.env.PICO_BROWSER_NO_CAPTURE==='1' || process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1';
 const output=path.resolve(process.argv[3] || 'build/hostname-browser-integration');
 await mkdir(output,{recursive:true});

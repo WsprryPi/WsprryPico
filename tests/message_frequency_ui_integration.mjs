@@ -10,7 +10,7 @@ const driver=process.argv[2], output=path.resolve(process.argv[3] || 'build/mess
 if (!driver) throw Error('Usage: node message_frequency_ui_integration.mjs DRIVER [OUTPUT]');
 await mkdir(output,{recursive:true});
 const profile=await mkdtemp(path.join(os.tmpdir(),'wsprrypico-cw-browser-'));
-const processGroup=process.platform==='linux';
+const processGroup=process.platform!=='win32';
 let fixture, chrome, cdp, fixturePort=19039;
 class Cdp {
   constructor(url) {

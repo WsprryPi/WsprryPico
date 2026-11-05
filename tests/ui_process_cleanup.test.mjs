@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
+import {spawn,execFileSync} from 'node:child_process';
 import {EventEmitter,once} from 'node:events';
-import {access,mkdtemp,rm} from 'node:fs/promises';
+import {access,mkdtemp,rm,writeFile,readFile,chmod} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -101,7 +101,7 @@ test('owned profile writer descendants stop after their parent exits',{
 
 // Phase budgets and the JSON fixture run through the ordinary cleanup-test owner.
 import {FixtureProcess} from './fixture_process.mjs';
-import {createDeadlineTools,deadlinePromise,preserveCleanup} from './browser_deadline.mjs';
+import {createDeadlineTools,deadlinePromise,preserveCleanup,until} from './browser_deadline.mjs';
 import {readFileSync} from 'node:fs';
 function fixtureObservation(child,text) {
     return deadlinePromise('fixture-observation',(resolve,reject)=>{
@@ -233,4 +233,113 @@ test('idle stdout EOF refuses new commands and diagnostics retain no stderr secr
         assert.equal(f.stderr.includes(secret),false);
         assert.equal(String(f.failure).includes(secret),false);
     }finally{await f.stop();}
+});
+
+test('last successful reply cannot hide a subsequent nonzero fixture exit',{timeout:10000},async()=>{
+    const f=new FixtureProcess(process.execPath,['-e',`process.stdin.once('data',()=>process.stdout.write('{}\\n',()=>process.exit(17)));`]);
+    const exited=once(f.process,'exit');
+    assert.deepEqual(await f.command({op:'last'}),{});await exited;
+    let failure;
+    await assert.rejects(f.stop(),error=>{
+        failure=error;
+        const errors=error instanceof AggregateError?error.errors:[error];
+        assert.ok(errors.some(item=>/child_exit=17/.test(String(item))));return true;
+    });
+    await assert.rejects(f.stop(),error=>error===failure,'idempotent finalization retains its failed outcome');
+});
+
+test('nonzero exit caused by orderly EOF cannot qualify fixture shutdown',{timeout:10000},async()=>{
+    const f=new FixtureProcess(process.execPath,['-e',`process.stdin.on('data',()=>process.stdout.write('{}\\n'));process.stdin.on('end',()=>process.exit(19));`]);
+    assert.deepEqual(await f.command({op:'ready'}),{});
+    await assert.rejects(f.stop(),/child_exit=19/);
+});
+
+test('invalid UTF-8 and oversized JSON lines cannot become valid fixture responses',{timeout:10000},async()=>{
+    for(const answer of [`Buffer.from([123,34,120,34,58,34,255,34,125,10])`,`Buffer.alloc(1024*1024+1,32)`]){
+        const f=new FixtureProcess(process.execPath,['-e',`process.stdin.once('data',()=>process.stdout.write(${answer}));`]);
+        try{await assert.rejects(f.command({op:'probe'}),/malformed JSON\/UTF-8|byte bound/);}finally{await f.stop();}
+    }
+});
+
+
+function observedDriver(body) {
+    return `#!/usr/bin/env node\nconst fs=require('node:fs');const destination=process.env.FIXTURE_OWNER_OBSERVATION;const report=stage=>{fs.writeFileSync(destination+'.tmp',JSON.stringify({pid:process.pid,stage}));fs.renameSync(destination+'.tmp',destination);};${body}\n`;
+}
+
+test('review fixture interruption during initialization reaps its registered driver',{timeout:15000},async()=>{
+    const directory=await mkdtemp(path.join(os.tmpdir(),'pico-initialization-owner-'));
+    const driver=path.join(directory,'driver.cjs'),observation=path.join(directory,'observed.json');
+    await writeFile(driver,observedDriver("process.stdin.on('data',()=>report('held'));process.stdin.on('end',()=>process.exit(0));"));
+    await chmod(driver,0o755);
+    let fixture,driverPid;
+    try{
+        fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'0',directory],{
+            stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32',
+            env:{...process.env,FIXTURE_OWNER_OBSERVATION:observation}
+        });
+        const exited=once(fixture,'exit');
+        const observed=await until(async()=>{try{return JSON.parse(await readFile(observation,'utf8'));}catch(error){if(error.code==='ENOENT')return false;throw error;}},'observed initialization command',5000);
+        assert.equal(observed.stage,'held');driverPid=observed.pid;
+        fixture.kill('SIGTERM');
+        const [code]=await deadlinePromise('interrupted fixture exit',(resolve,reject)=>{exited.then(resolve,reject);},7000);
+        assert.notEqual(code,0,'interrupted initialization cannot qualify a ready fixture');
+        assert.throws(()=>process.kill(driverPid,0),{code:'ESRCH'},'registered driver must be reaped before owner exits');
+    }finally{
+        if(fixture)await cleanupUiProcesses([fixture],undefined,{processGroup:process.platform!=='win32',remove:async()=>{}});
+        if(driverPid){try{process.kill(-driverPid,'SIGKILL');}catch(error){if(error.code!=='ESRCH')throw error;}}
+        await rm(directory,{recursive:true,force:true});
+    }
+});
+
+
+test('a failing fixture stream finalizer cannot skip the remaining stream finalizers',async()=>{
+    const finished=[];
+    const f=Object.create(FixtureProcess.prototype);
+    f.process={exitCode:0,signalCode:null};f.stopping=null;
+    for(const name of ['stdin','stdout','stderr'])f.process[name]={destroy(){
+        finished.push(name);if(name==='stdin')throw Error('owned stream disposer failed');
+    }};
+    await assert.rejects(f.stop(),error=>{
+        assert.ok(error instanceof AggregateError);
+        assert.ok(error.errors.some(item=>/owned stream disposer failed/.test(String(item))));return true;
+    });
+    assert.deepEqual(finished,['stdin','stdout','stderr']);
+});
+
+
+test('abrupt review-server exit cannot strand its initialized native driver group',{skip:process.platform==='win32',timeout:15000},async()=>{
+    const directory=await mkdtemp(path.join(os.tmpdir(),'pico-group-owner-'));
+    const driver=path.join(directory,'driver.cjs'),observation=path.join(directory,'observed.json');
+    await writeFile(driver,observedDriver("process.on('SIGTERM',()=>{});process.stdin.on('data',()=>report('held'));process.stdin.on('end',()=>report('eof-held'));setInterval(()=>{},1000);"));
+    await chmod(driver,0o755);
+    let fixture,driverPid,removed=false;
+    const dead=async()=>{
+        if(process.platform==='linux'){
+            try{return (await readFile(`/proc/${driverPid}/stat`,'utf8')).split(/\) (?=[A-Za-z] )/).at(-1).split(' ')[0]==='Z';}
+            catch(error){if(error.code==='ENOENT')return true;throw error;}
+        }
+        try{return execFileSync('ps',['-o','stat=','-p',String(driverPid)],{encoding:'utf8'}).trim().startsWith('Z');}
+        catch(error){if(error.status===1)return true;throw error;}
+    };
+    try{
+        fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'0',directory],{
+            stdio:['ignore','pipe','pipe'],detached:true,env:{...process.env,FIXTURE_OWNER_OBSERVATION:observation}
+        });
+        const observed=await until(async()=>{try{return JSON.parse(await readFile(observation,'utf8'));}catch(error){if(error.code==='ENOENT')return false;throw error;}},'observed held initialization',5000);
+        driverPid=observed.pid;
+        const group=Number(execFileSync('ps',['-o','pgid=','-p',String(driverPid)],{encoding:'utf8'}).trim());
+        assert.equal(group,fixture.pid,'native driver must remain inside the browser-owned server group');
+        fixture.kill('SIGTERM');
+        await until(async()=>JSON.parse(await readFile(observation,'utf8')).stage==='eof-held','observed ignored driver EOF',5000);
+        const exited=once(fixture,'exit');fixture.kill('SIGKILL');await exited;
+        assert.equal(await dead(),false,'the fault must leave a live driver before group recovery');
+        await cleanupUiProcesses([fixture],directory,{processGroup:true,remove:async(profile,options)=>{
+            assert.equal(await dead(),true,'profile removal requires observed descendant death');
+            removed=true;await rm(profile,options);
+        }});
+        assert.equal(removed,true);
+    }finally{
+        if(fixture)await cleanupUiProcesses([fixture],directory,{processGroup:true});
+        if(driverPid&&!await dead())process.kill(driverPid,'SIGKILL');
+    }
 });

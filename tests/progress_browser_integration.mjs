@@ -18,7 +18,7 @@ const axeSource=process.env.UI_REVIEW_AXE_PATH ? await readFile(process.env.UI_R
 const accessibility=[];
 const profile=await mkdtemp(path.join(os.tmpdir(),'p159-chrome-'));
 if (!process.argv[2]) throw Error('Usage: node tests/progress_browser_integration.mjs CONSUMER_BOOTSTRAP_DRIVER [OUTPUT_DIRECTORY]');
-const processGroup=process.platform==='linux';
+const processGroup=process.platform!=='win32';
 let f=new Fixture(process.argv[2]);
 let engineering=false, engineeringFault=null, radioFault=null, heldReply=null, releaseReply=null, chrome, cdp; const requests=[];
 let proxyQueue=Promise.resolve();
