@@ -7,10 +7,13 @@ question for each metric, never a completion quota.
 
 ## Phase list
 
-Legend: ✅ complete, ⏳ in progress, ▧ not started. All eleven saved prompts passed
-an authoring adversarial review, correction, and reassessment. The first ten
-execution slices are accepted. Completed prompts remain accessible at their saved
-immutable Git revisions; current operating instructions are consolidated in the
+Legend: ✅ complete, ⏳ in progress, ▧ not started. All eleven prompts passed
+an authoring adversarial review, correction, and reassessment. The campaign's
+substantive work and final review are complete. Delivery is gated on successful
+verification and source/artifact rebinding of the final committed head; a failed
+required result reopens the affected phase. See the [scorecard](acceptance.md)
+and [exact accounting ledger](accounting.json). Saved prompts remain accessible
+at immutable Git revisions; current operating instructions are in the
 [CI guide](../software-build-ci.md).
 
 | Phase | Purpose | Saved prompt | Execution |
@@ -24,8 +27,8 @@ immutable Git revisions; current operating instructions are consolidated in the
 | 07 | Close coverage and source pair gaps | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-07-coverage-and-pair.md) | ✅ Complete |
 | 08 | Consolidate demonstrably redundant build work | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-08-build-consolidation.md) | ✅ Complete |
 | 09 | Optimize isolated execution scheduling | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-09-scheduling.md) | ✅ Complete |
-| 10 | Resolve holds and repair documentation | [Prompt](phase-10-retention.md) | ✅ Complete |
-| 11 | Perform adversarial acceptance and handoff | [Prompt](phase-11-final-acceptance.md) | ⏳ In progress |
+| 10 | Resolve holds and repair documentation | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/61278631cbcf16c00b716e0d37e7009e2d8d3105/engineering/development/ci-reliability-campaign/phase-10-retention.md) | ✅ Complete |
+| 11 | Perform adversarial acceptance and handoff | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/61278631cbcf16c00b716e0d37e7009e2d8d3105/engineering/development/ci-reliability-campaign/phase-11-final-acceptance.md) | ✅ Complete |
 
 ## Shared execution contract
 
@@ -75,13 +78,14 @@ explicit campaign worktrees and paired refs determine validation inputs.
   print all eleven statuses. Do not declare the campaign complete with unresolved
   required checks or missing intended companion refs.
 
-## Acceptance inputs for the final review
+## Campaign handoff
 
-The [frozen baseline](baseline.json) and [baseline definitions](baseline.md)
-remain active accounting inputs. Accepted evidence is retained for final
-reconciliation: [02](phase-02-results.md), [03](phase-03-results.md),
-[04](phase-04-results.md), [05](phase-05-results.md), [06](phase-06-results.md),
-[07](phase-07-results.md), [08](phase-08-results.md), [09](phase-09-results.md), and [10](phase-10-results.md).
-The final review consolidates the necessary scorecard and current limitations
-before retiring intermediate evidence narratives. This active plan and the
-requested saved-prompt index remain the campaign entry point.
+The [scorecard](acceptance.md) preserves current assurance, reduction verdicts,
+observation limits, unsuccessful attempts, retention decisions, exact source-pair
+commands, and final-head verification requirements. The [ledger](accounting.json)
+reconciles every scoped baseline/current file and all sixteen added registrations.
+Completed prompts, intermediate reports, and superseded comparison files were
+retired after consolidating necessary data. Current Git/Actions identities and
+immutable artifact verification accompany the final delivery report. Neither
+feature branch is merged, and no release, deployment, or hardware/RF
+qualification is implied.
