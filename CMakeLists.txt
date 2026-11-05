@@ -79,8 +79,13 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     scripts/generate_web_assets.py)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     engineering/protocol/control-policy.json engineering/protocol/control-1.schema.json
-    scripts/check_control_policy.py)
+    engineering/protocol/wtp-1.schema.json
+    scripts/check_control_policy.py scripts/generate_control_contract.py
+    src/network/control_contract.hpp src/network/public_read.hpp
+    src/network/web/control-contract.js src/hardware/si5351_qualification_profile.hpp)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_control_policy.py
+    COMMAND_ERROR_IS_FATAL ANY)
+execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_control_contract.py --check
     COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_web_assets.py
     ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
@@ -560,6 +565,9 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME control_contract COMMAND control_contract_tests)
     add_test(NAME ci_execution_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/ci_execution_tests.py)
+    add_test(NAME generated_control_build_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/generated_control_build_tests.py)
+    set_tests_properties(generated_control_build_tests PROPERTIES TIMEOUT 120)
     add_test(NAME fixture_process_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/fixture_process_tests.py)
     add_test(NAME control_policy COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_control_policy.py)

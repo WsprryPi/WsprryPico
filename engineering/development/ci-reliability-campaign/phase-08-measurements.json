@@ -3,6 +3,12 @@
   "scope": "changed executable/configuration inputs only; other inputs remain in baseline commit",
   "files": [
     {
+      "path": "CMakeLists.txt",
+      "sha256": "b2fed1743f23efd9f596fb608a954fcf579fb41665da77e81b219fb8ffebfd6d",
+      "bytes": 63450,
+      "physical_lines": 941
+    },
+    {
       "path": "cmake/host_client_interop.cmake",
       "sha256": "ee40b88ecedf39f47a8431f35f998ac7d4fe59fa9a0e50c22dd1e87f0e3e339a",
       "bytes": 1708,
@@ -22,32 +28,39 @@
     },
     {
       "path": "scripts/ci/ctest-completion-policy.json",
-      "sha256": "6e7bda7b65e786d958077ae95c51f601f07af10eb9854f9f856d80c574611e2d",
-      "bytes": 8101,
-      "physical_lines": 299
+      "sha256": "2c6d4542034933fbf30113adb5798cd9cfdbd3e20fa5b9edf8db1cff432f0e97",
+      "bytes": 8252,
+      "physical_lines": 304
     },
     {
       "path": "scripts/ci/run.py",
-      "sha256": "f9dee94ed73c4864bb1f5dac1d3d31ba02f8e1c5d3593514dc1b1d20d5ff36a3",
-      "bytes": 23318,
-      "physical_lines": 401
+      "sha256": "e1bd3602638c144230146046ba429dc4c2bf692186faa56ad1867c47d05867e8",
+      "bytes": 24937,
+      "physical_lines": 428
     },
     {
       "path": "tests/ci_bundle_tests.py",
-      "sha256": "8a38d36c5ae56bdb48cad1c78107ed12b873c935d35f4362e3040bec65a825ce",
-      "bytes": 73446,
-      "physical_lines": 1166
+      "sha256": "485281d46cd709bd94319fa3fa1f93f15a05ecd08f25f29a6d6e678a98172a7c",
+      "bytes": 74499,
+      "physical_lines": 1180
     },
     {
       "path": "tests/companion_source_selection_tests.py",
       "sha256": "3df051da9e166eb49f617e1d16af716ed9cd744b92ed748be33c88100c47e03c",
       "bytes": 3036,
       "physical_lines": 57
+    },
+    {
+      "path": "tests/generated_control_build_tests.py",
+      "sha256": "cc562ee6af1daaea2303581be425d4a7ea3f9f109c3dbb5f4b70ca70d78ba886",
+      "bytes": 3529,
+      "physical_lines": 70
     }
   ],
-  "net_physical_lines": 124,
-  "new_files": 1,
-  "new_test_methods": 4,
-  "new_ctest_registrations": 0,
-  "added_incremental_header_compile_per_source_selection_run": 1
+  "net_physical_lines": 248,
+  "new_files": 2,
+  "new_test_methods": 5,
+  "new_ctest_registrations": 1,
+  "added_incremental_header_compile_per_source_selection_run": 1,
+  "added_incremental_header_links_per_source_selection_run": 2
 }

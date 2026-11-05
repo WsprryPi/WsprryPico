@@ -61,6 +61,11 @@
       "count": 16,
       "entrypoint": "tests/fixture_process_tests.py"
     },
+    "generated_control_build_tests": {
+      "kind": "unittest",
+      "count": 1,
+      "entrypoint": "tests/generated_control_build_tests.py"
+    },
     "gp14_robustness_tests": {
       "kind": "unittest",
       "count": 13,

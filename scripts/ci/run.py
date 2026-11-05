@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -43,7 +44,7 @@ def producer_execution_policy():
 
 
 DIRECT_COMPILER_OPTIONS = tuple(f'-DCMAKE_{language}_COMPILER_LAUNCHER='
-                                for language in ('C', 'CXX', 'ASM'))
+                                for language in ('C', 'CXX'))
 
 
 def fresh_directory(path):
@@ -71,8 +72,33 @@ def direct_firmware_compilers(build, deps):
         bundle.require(compiler and Path(compiler).resolve() ==
                        (directory / ('arm-none-eabi-' + binary)).resolve(),
                        'Firmware compiler differs from verified archive: ' + language)
-        bundle.require(values.get(f'CMAKE_{language}_COMPILER_LAUNCHER') == '',
-                       'Compiler cache/launcher forbidden in fresh builds: ' + language)
+        if language != 'ASM':
+            bundle.require(values.get(f'CMAKE_{language}_COMPILER_LAUNCHER') == '',
+                           'Compiler cache/launcher forbidden in fresh builds: ' + language)
+        else:
+            bundle.require(values.get('CMAKE_ASM_COMPILER_LAUNCHER', '') == '', 'Unsupported ASM launcher override')
+    # Target properties can override cache defaults. Inspect the actual declared
+    # commands as well; CMake has no ASM_COMPILER_LAUNCHER property.
+    commands = bundle.read_json(build / 'compile_commands.json', limit=bundle.MAX_FILE)
+    bundle.require(isinstance(commands, list) and bool(commands), 'Missing direct compiler command inventory')
+    trusted = {(directory / ('arm-none-eabi-' + binary)).resolve() for binary in ('gcc', 'g++')}
+    resolved = {}
+    for entry in commands:
+        bundle.require(isinstance(entry, dict) and ('arguments' in entry) != ('command' in entry),
+                       'Ambiguous compiler command inventory')
+        if 'arguments' in entry:
+            args = entry['arguments']
+        else:
+            bundle.require(isinstance(entry['command'], str), 'Invalid compiler command')
+            lexer = shlex.shlex(entry['command'], posix=True)
+            lexer.whitespace_split = True
+            lexer.commenters = ''
+            args = [next(lexer, None)]
+        bundle.require(isinstance(args, list) and bool(args) and all(isinstance(arg, str) and arg for arg in args),
+                       'Invalid compiler command arguments')
+        if args[0] not in resolved:
+            resolved[args[0]] = Path(args[0]).resolve()
+        bundle.require(resolved[args[0]] in trusted, 'Compiler command is wrapped or outside the verified archive')
 
 
 def inputs():
@@ -343,6 +369,7 @@ def build(deps, output):
         fresh = fresh_directory(ROOT / 'build/ci-reproducibility')
         execute(audit / 'reproducibility.log', 'cmake', '-S', ROOT, '-B', fresh, '-G', 'Ninja',
                 *DIRECT_COMPILER_OPTIONS,
+                '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
                 '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
                 '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w', '-DPICOTOOL_NO_LIBUSB=1',
                 f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',

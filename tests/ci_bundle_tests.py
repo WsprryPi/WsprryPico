@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import os
+import shlex
 from pathlib import Path
 import struct
 import subprocess
@@ -46,12 +47,16 @@ class TestingInputTests(unittest.TestCase):
                         ci_run.direct_compiler_environment()
 
     def test_firmware_compilers_bind_to_archive_and_refuse_launchers(self):
-        with tempfile.TemporaryDirectory() as temporary:
+        with tempfile.TemporaryDirectory(prefix="compiler guard ") as temporary:
             root = Path(temporary)
             directory = root/'arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi/bin'
             values = {f'CMAKE_{language}_COMPILER':str(directory/('arm-none-eabi-'+binary))
                       for language,binary in (('C','gcc'),('CXX','g++'),('ASM','gcc'))}
             values.update({f'CMAKE_{language}_COMPILER_LAUNCHER':'' for language in ('C','CXX','ASM')})
+            commands=[{'arguments':[values[f'CMAKE_{language}_COMPILER'],'-c','source.c']}
+                      for language in ('C','CXX','ASM')]
+            command_path=root/'compile_commands.json'
+            command_path.write_text(json.dumps(commands))
             def write(values):
                 (root/'CMakeCache.txt').write_text('\n'.join(key+':FILEPATH='+value for key,value in values.items()))
             write(values)
@@ -63,6 +68,15 @@ class TestingInputTests(unittest.TestCase):
                         ci_run.direct_firmware_compilers(root,root)
             values.pop('CMAKE_ASM_COMPILER');write(values)
             with self.assertRaises(ValueError):ci_run.direct_firmware_compilers(root,root)
+            values['CMAKE_ASM_COMPILER']=str(directory/'arm-none-eabi-gcc');write(values)
+            command_path.write_text(json.dumps([{'command':shlex.join(entry['arguments'])} for entry in commands]))
+            ci_run.direct_firmware_compilers(root,root)
+            for wrong in ([],[{'arguments':['cache-wrapper',str(directory/'arm-none-eabi-gcc'),'-c','source.c']}],
+                          [{'arguments':['/unverified/compiler','-c','source.c']}],
+                          [{'arguments':commands[0]['arguments'],'command':'ambiguous'}]):
+                command_path.write_text(json.dumps(wrong))
+                with self.subTest(commands=wrong),self.assertRaises(ValueError):
+                    ci_run.direct_firmware_compilers(root,root)
 
     def test_shared_image_build_refuses_another_target_missing_image_or_directory(self):
         with tempfile.TemporaryDirectory() as temporary, patch.object(ci_run,'execute') as execute:
