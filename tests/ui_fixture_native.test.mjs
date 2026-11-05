@@ -1,3 +1,4 @@
+import {qualifyNativeChildren} from './ui_fixture_inventory.mjs';
 // Real native driver inventory and public handlers, independent of echoed labels.
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -12,29 +13,10 @@ import {RadioClient} from '../src/network/bootstrap_web/radio-client.js';
 const execute=promisify(execFile),driver=process.argv[2];
 if(!driver)throw Error('Actual consumer_bootstrap_driver path required');
 await access(driver);
-async function nativeChildren(group,expected){
-  const rows=[];
-  if(process.platform==='linux'){
-    for(const entry of await readdir('/proc')){
-      if(!/^\d+$/.test(entry))continue;
-      try{
-        const text=await readFile(`/proc/${entry}/stat`,'utf8'),fields=text.slice(text.lastIndexOf(') ')+2).split(' ');
-        if(Number(fields[2])===group&&Number(entry)!==group&&fields[0]!=='Z')rows.push({pid:Number(entry),parent:Number(fields[1]),executable:await readlink(`/proc/${entry}/exe`)});
-      }catch(error){if(error.code!=='ENOENT'&&error.code!=='ESRCH')throw error;}
-    }
-  }else{
-    const {stdout}=await execute('ps',['-axo','pid=,ppid=,pgid=,comm='],{timeout:5000});
-    for(const line of stdout.split('\n')){const match=line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/);if(match&&Number(match[3])===group&&Number(match[1])!==group)rows.push({pid:Number(match[1]),parent:Number(match[2]),executable:match[4]});}
-  }
-  assert.equal(rows.length,expected.length,'OS inventory must contain exactly the selected native drivers');
-  assert.deepEqual(rows.map(value=>value.pid).sort((a,b)=>a-b),expected.map(value=>value.driver_pid).sort((a,b)=>a-b));
-  const binary=await realpath(driver);
-  for(const row of rows){assert.equal(row.parent,group);assert.ok(row.executable===binary||(process.platform!=='linux'&&row.executable===path.basename(binary)),'each process must execute the actual candidate driver');}
-}
 async function owned(t,port,profiles,check){
   const output=await mkdtemp(path.join(os.tmpdir(),'pico-selected-profiles-'));
   const server=launchUiFixture(driver,port,output,{profiles});let primary;
-  try{const records=await server.ready;await nativeChildren(server.process.pid,records);await check(records,t.signal);}
+  try{const records=await server.ready;await qualifyNativeChildren(driver,server.process.pid,records);await check(records,t.signal);}
   catch(error){primary=error;throw error;}
   finally{await preserveCleanup(primary,[async()=>{await server.stop();await rm(output,{recursive:true,force:true});}]);}
 }

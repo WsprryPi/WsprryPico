@@ -442,6 +442,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
             --test ${CMAKE_SOURCE_DIR}/tests/browser_cdp.test.mjs)
         add_test(NAME browser_scope_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             --test ${CMAKE_SOURCE_DIR}/tests/browser_scope.test.mjs)
+        add_test(NAME browser_harness_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            --test ${CMAKE_SOURCE_DIR}/tests/browser_harness.test.mjs)
         add_test(NAME ui_fixture_process_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             --test ${CMAKE_SOURCE_DIR}/tests/ui_fixture_process.test.mjs)
         add_test(NAME oob_defaults_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}

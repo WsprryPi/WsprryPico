@@ -11,13 +11,13 @@ test('accepts a vanished popup only after a fresh target enumeration confirms ab
   const calls=[];
   await closeHelpTarget(async(method,params)=>{
     calls.push([method,params]);
-    if(method==='Target.closeTarget')throw Error('No target with given id found');
+    if(method==='Target.closeTarget')throw Object.assign(Error('stage=CDP Target.closeTarget; No target with given id found'),{code:-32602,protocolMessage:'No target with given id found'});
     return {targetInfos:[{targetId:'main'},{targetId:'another-popup'}]};
   },'help');
   assert.deepEqual(calls,[['Target.closeTarget',{targetId:'help'}],['Target.getTargets',undefined]]);
 });
 test('fails when the supposedly vanished popup is still present',async()=>{
-  const failure=Error('No target with given id found');
+  const failure=Object.assign(Error('stage=CDP Target.closeTarget; No target with given id found'),{code:-32602,protocolMessage:'No target with given id found'});
   await assert.rejects(closeHelpTarget(async method=>{
     if(method==='Target.closeTarget')throw failure;
     return {targetInfos:[{targetId:'help'}]};
@@ -31,7 +31,7 @@ test('preserves other protocol failures without treating them as an already clos
 test('fails when absence cannot be confirmed',async()=>{
   const failure=Error('Target enumeration failed');
   await assert.rejects(closeHelpTarget(async method=>{
-    if(method==='Target.closeTarget')throw Error('No target with given id found');
+    if(method==='Target.closeTarget')throw Object.assign(Error('stage=CDP Target.closeTarget; No target with given id found'),{code:-32602,protocolMessage:'No target with given id found'});
     throw failure;
   },'help'),error=>error===failure);
 });

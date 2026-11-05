@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 export async function closeHelpTarget(send,targetId) {
   try {await send('Target.closeTarget',{targetId});}
   catch(error) {
-    if(error.message!=='No target with given id found')throw error;
+    if(error.code!==-32602||error.protocolMessage!=='No target with given id found')throw error;
     // A popup can disappear after enumeration. Confirm that exact target is
     // gone; other protocol failures or a still-live popup remain failures.
     const targets=await send('Target.getTargets');

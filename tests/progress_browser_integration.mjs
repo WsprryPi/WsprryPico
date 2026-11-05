@@ -1,25 +1,22 @@
-import {launchChrome} from './chrome_startup.mjs';
-import {deadlinePromise,until as waitUntil,preserveCleanup} from './browser_deadline.mjs';
 // Shipped page/bundle -> real browser -> production HTTP/crypto/commissioning.
 // Only TCP/board/time boundaries use the existing deterministic fixture.
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import {mkdtemp, readFile, writeFile, mkdir} from 'node:fs/promises';
+import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
-import {Fixture} from './consumer_sessions.test.mjs';
 import {scanAccessibility} from './ui_review_accessibility.mjs';
-import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
+import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
+const h=new BrowserHarness();
+await h.run(async()=>{
 
 if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; Node 20 needs --experimental-websocket');
 const output=path.resolve(process.argv[3] || 'build/progress-browser-integration');
 await mkdir(output,{recursive:true});
 const axeSource=process.env.UI_REVIEW_AXE_PATH ? await readFile(process.env.UI_REVIEW_AXE_PATH,'utf8') : null;
 const accessibility=[];
-const profile=await mkdtemp(path.join(os.tmpdir(),'p159-chrome-'));
+const profile=await h.profile('p159-chrome-');
 if (!process.argv[2]) throw Error('Usage: node tests/progress_browser_integration.mjs CONSUMER_BOOTSTRAP_DRIVER [OUTPUT_DIRECTORY]');
-const processGroup=process.platform!=='win32';
-let f=new Fixture(process.argv[2]);
+let f=await h.fixture(process.argv[2]);
 let engineering=false, engineeringFault=null, radioFault=null, heldReply=null, releaseReply=null, chrome, cdp; const requests=[];
 let proxyQueue=Promise.resolve();
 const proxy=http.createServer((req,res)=>{proxyQueue=proxyQueue.then(()=>serve(req,res));});
@@ -64,17 +61,9 @@ async function serve(req,res){
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
     }catch(error){res.writeHead(500,{'Content-Type':'text/plain'});res.end(error.message);}
 }
-try {await f.time(1000);await deadlinePromise('fixture-http-listen',(resolve,reject)=>{proxy.once('error',reject);proxy.listen(0,'127.0.0.1',resolve);return()=>proxy.removeListener('error',reject);});}
-catch(error){await preserveCleanup(error,[()=>f.stop(),()=>cleanupUiProcesses([],profile,{processGroup})]);throw error;}
+await h.server(proxy,()=>proxyQueue);await f.time(1000);await h.listen(proxy);
 const port=proxy.address().port;
-class Cdp {
-    constructor(url){this.ws=new WebSocket(url);this.sequence=0;this.pending=new Map();const fail=()=>{for(const pending of this.pending.values())pending.reject(Error('CDP socket closed or failed'));this.pending.clear();};this.ws.addEventListener('close',fail);this.ws.addEventListener('error',fail);this.ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&this.pending.has(m.id)){const p=this.pending.get(m.id);this.pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}};}
-    async open(){if(this.ws.readyState===1)return;await deadlinePromise('browser-socket-open',(resolve,reject)=>{this.ws.onopen=resolve;this.ws.onerror=reject;return()=>{this.ws.onopen=null;this.ws.onerror=null;};});}
-    send(method,params={}){const id=++this.sequence;return deadlinePromise('CDP '+method,(resolve,reject)=>{this.pending.set(id,{resolve,reject});this.ws.send(JSON.stringify({id,method,params}));return()=>this.pending.delete(id);});}
-    async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
-}
-const until=(fn,label,ms=10000)=>waitUntil(fn,label,ms,{retryErrors:true});
-let primaryFailure;
+
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)}) || document.querySelector('[name="'+${JSON.stringify(id)}+'"]');globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 async function click(id){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.click();}`);}
 async function capture(name){
@@ -105,14 +94,12 @@ async function reloadAndLogin() {
     await until(()=>cdp.evaluate('localAuthenticated && !busy'),'login after reload');
 }
 try {
-    const browser=launchChrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-        ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
-            '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],profile,{processGroup});
-    chrome=browser.process;const page=(await browser.ready).find(page=>page.type==='page');
-    cdp=new Cdp(page.webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
+    const started=await h.chrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
+            '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],profile);chrome=started.browser.process;
+    cdp=await h.connect(started.pages[0].webSocketDebuggerUrl);await cdp.send('Page.enable');
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate(`typeof radio !== 'undefined' && !!document.getElementById('local-password')`),'shipped radio page');
-    await until(()=>cdp.evaluate(`!busy && !!localIdentity`),'radio discovery complete');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && !!localIdentity`),'radio discovery complete');
     await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
     await until(()=>cdp.evaluate(`localAuthenticated && !busy`),'actual browser login');
     await cdp.evaluate('WsprryPicoSections.recovery()');
@@ -126,7 +113,7 @@ try {
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-station-form').noValidate`),true,'partial saves bypass native completeness checks');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-locator').validity.valueMissing`),true);
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.fields.callsign==='AA0NT/09' && savedProgress.data.fields.locator===null`),'callsign saved beside blank locator/QRSS');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.fields.callsign==='AA0NT/09' && savedProgress.data.fields.locator===null`),'callsign saved beside blank locator/QRSS');
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'');
     assert.match(await cdp.evaluate(`document.getElementById('progress-station-status').textContent`),/grid locator.*missing/);
     let stats=await f.command({op:'stats'});assert.equal(stats.profile_programs,before.profile_programs);assert.equal(stats.config_sequence,before.config_sequence);assert.equal(stats.api_restarts,0);
@@ -138,7 +125,7 @@ try {
     await capture('incomplete-saved');
     await field('consumer-callsign','AA0NT/12');await field('consumer-locator','BAD');await field('consumer-power','0');
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.fields.callsign==='AA0NT/12' && savedProgress.data.fields.power_dbm===0`),'mixed valid fields saved');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.fields.callsign==='AA0NT/12' && savedProgress.data.fields.power_dbm===0`),'mixed valid fields saved');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-locator').value`),'BAD');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-locator').getAttribute('aria-invalid')`),'true');
     assert.equal(await cdp.evaluate(`savedProgress.data.fields.locator`),null);
@@ -148,30 +135,30 @@ try {
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-locator').value`),'BAD');
     await click('review-saved');await until(()=>cdp.evaluate(`writeState==='ready' && !busy`),'explicit review');
     await field('consumer-callsign','BB1BB');await cdp.evaluate('window.confirm=()=>true');
-    await reloadAndLogin();await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-callsign').value==='AA0NT/12'`),'reload restores device-saved draft, not applied');
+    await reloadAndLogin();await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && document.getElementById('consumer-callsign').value==='AA0NT/12'`),'reload restores device-saved draft, not applied');
     assert.equal(await cdp.evaluate('progressEdits.size'),0);assert.equal(await cdp.evaluate(`document.getElementById('consumer-locator').value`),'');
     await field('consumer-locator','EM18IG');await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && savedProgress.data.station.power_dbm===0`),'complete persisted station');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.station_complete && savedProgress.data.station.power_dbm===0`),'complete persisted station');
     assert.deepEqual(await cdp.evaluate(`savedProgress.data.wspr_plan.frame_types`),['type2','type3']);
     await field('consumer-locator','BAD');await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-locator').getAttribute('aria-invalid')==='true'`),'invalid locator result');
-    await reloadAndLogin();await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-locator').value==='EM18IG'`),'explicit reload adopts saved valid locator');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && document.getElementById('consumer-locator').getAttribute('aria-invalid')==='true'`),'invalid locator result');
+    await reloadAndLogin();await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && document.getElementById('consumer-locator').value==='EM18IG'`),'explicit reload adopts saved valid locator');
     assert.notEqual(await cdp.evaluate(`document.getElementById('consumer-locator').getAttribute('aria-invalid')`),'true');
     assert.match(await cdp.evaluate(`document.getElementById('progress-station-status').textContent`),/WSPR Type 2 \+ Type 3/);
     // Native selection exposes an explicit clear without coercing blank to zero.
     assert.equal(await cdp.evaluate(`Array.from(document.getElementById('consumer-power').options).some(o=>o.value==='')`),true,'native empty power option');
     const beforeClear=await f.command({op:'stats'});
     await field('consumer-power','');await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.fields.power_dbm===null`),'native blank power is a saved tombstone');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.fields.power_dbm===null`),'native blank power is a saved tombstone');
     const afterClear=await f.command({op:'stats'});
     for(const key of ['profile_programs','config_sequence','api_restarts']) assert.equal(afterClear[key],beforeClear[key],'clear has no applied-profile/config/restart side effect');
     assert.equal(await cdp.evaluate(`document.getElementById('apply-station-progress').matches(':disabled')`),true);
     await field('consumer-power','0');await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && savedProgress.data.station.power_dbm===0`),'explicit zero restored');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.station_complete && savedProgress.data.station.power_dbm===0`),'explicit zero restored');
     await capture('complete-unapplied');
     await f.command({op:'production_listeners'});
     await click('apply-station-progress');
-    await until(()=>cdp.evaluate(`!busy && document.getElementById('consumer-save-status').textContent.startsWith('Station settings applied.')`),'uninterrupted explicit station application');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && document.getElementById('consumer-save-status').textContent.startsWith('Station settings applied.')`),'uninterrupted explicit station application');
     await f.time(f.now+61000);
     assert.equal(await cdp.evaluate('localAuthenticated && radio.authenticated'),true);
     assert.equal((await f.command({op:'stats'})).restarts,0);
@@ -185,7 +172,7 @@ try {
     await cdp.send('Page.navigate',{url:'about:blank'});await f.command({op:'reboot'});await f.time(f.now+1000);
     const b=f.client();await f.login(b);const resource=await b.request('progress');const progress=await resource.json();
     assert.equal(progress.fields.callsign,'AA0NT/12');assert.equal(progress.fields.power_dbm,0);assert.equal(progress.matches_applied,true);await b.logout();
-    await f.stop();f=new Fixture(process.argv[2]);await f.time(1000);await f.command({op:'page_profile',mode:'network'});
+    await f.stop();f=await h.fixture(process.argv[2]);await f.time(1000);await f.command({op:'page_profile',mode:'network'});
     // A network-only profile now uses the same shipped authenticated management page.
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/station'});
     await until(()=>cdp.evaluate(`typeof localIdentity!=='undefined' && localIdentity && !busy`),'network-only discovery');
@@ -193,7 +180,7 @@ try {
     await until(()=>cdp.evaluate(`localAuthenticated && !busy && savedProgress`),'network-only login');
     const networkBefore=await f.command({op:'stats'});
     await field('consumer-callsign','AA0NT');await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.fields.callsign==='AA0NT'`),'network-only partial save');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.fields.callsign==='AA0NT'`),'network-only partial save');
     assert.equal(await cdp.evaluate(`savedProgress.data.station_complete`),false);
     assert.equal((await f.command({op:'stats'})).profile_programs,networkBefore.profile_programs);
     assert.equal((await f.command({op:'stats'})).config_sequence,networkBefore.config_sequence);
@@ -201,7 +188,7 @@ try {
     const beforeLost=await (await peer.request('progress')).json();
     radioFault='drop';await field('consumer-callsign','CC2CC');
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && !radio.authenticated`),'lost encrypted progress reply');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && !radio.authenticated`),'lost encrypted progress reply');
     const lostResponse=await peer.request('progress'),lost=await lostResponse.json();
     assert.equal(BigInt(lost.draft_revision),BigInt(beforeLost.draft_revision)+1n);
     assert.equal(lost.fields.callsign,'CC2CC');
@@ -211,23 +198,23 @@ try {
     assert.equal(changed.status,200);
     await field('consumer-callsign','DD3DD');await f.time(f.now+1000);
     await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && radio.authenticated && writeState==='review'`),'explicit login and readback');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && radio.authenticated && writeState==='review'`),'explicit login and readback');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-callsign').value`),'DD3DD');
     assert.equal(await cdp.evaluate(`savedProgress.data.fields.callsign`),'BB1BB');
-    await click('review-saved');await until(()=>cdp.evaluate(`!busy && writeState==='ready'`),'review independent saved progress');
+    await click('review-saved');await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && writeState==='ready'`),'review independent saved progress');
     assert.equal((await (await peer.request('progress')).json()).draft_revision,(await changed.json()).draft_revision,'review does not replay a save');
     radioFault='hold';await field('consumer-callsign','AA0NT');
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
     await until(()=>heldReply,'held production progress acknowledgement');
     await field('consumer-callsign','EE4EE');releaseReply();
-    await until(()=>cdp.evaluate(`!busy`),'late acknowledgement');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy`),'late acknowledgement');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-callsign').value`),'EE4EE','late acknowledgement preserves newer edit');
     assert.equal(await cdp.evaluate(`savedProgress.data.fields.callsign`),'AA0NT');
     assert.equal((await f.command({op:'stats'})).profile_programs,networkBefore.profile_programs);
     await peer.logout();
     await field('consumer-callsign','AA0NT');await field('consumer-locator','EM18IG');await field('consumer-power','0');
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && savedProgress.data.station.power_dbm===0`),'network-only complete draft');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.station_complete && savedProgress.data.station.power_dbm===0`),'network-only complete draft');
     await capture('network-complete-draft');
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
     await cdp.evaluate(`document.documentElement.style.zoom='2';document.getElementById('radio-settings').open=true;document.getElementById('progress-station-status').scrollIntoView()`);
@@ -243,49 +230,49 @@ try {
     await until(()=>cdp.evaluate(`typeof savedProgress!=='undefined' && savedProgress && !busy && !radio`),'engineering saved progress');
     await click('wifi-host-link');await field('ssid','é');await field('password','test-password');
     await cdp.evaluate(`document.getElementById('engineering-network-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && document.querySelector('[name=ssid]').getAttribute('aria-invalid')==='true'`),'grouped Wi-Fi validation');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && document.querySelector('[name=ssid]').getAttribute('aria-invalid')==='true'`),'grouped Wi-Fi validation');
     assert.equal(await cdp.evaluate(`['ssid','password'].every(n=>document.querySelector('[name='+n+']').getAttribute('aria-invalid')==='true' && document.querySelector('[name='+n+']').getAttribute('aria-describedby').includes('progress-error-settings-wifi'))`),true);
     await field('password','corrected-password');
     assert.equal(await cdp.evaluate(`['ssid','password'].every(n=>document.querySelector('[name='+n+']').getAttribute('aria-invalid')==='false')`),true,'editing either Wi-Fi member clears group stale error');
     await field('ssid','test');await click('station-link');
     await field('callsign','BB1BB');await field('power_dbm','2147483648');
     await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.fields.callsign==='BB1BB'`),'engineering partial save with overflow');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.fields.callsign==='BB1BB'`),'engineering partial save with overflow');
     assert.equal(await cdp.evaluate(`savedProgress.data.last_outcomes.power_dbm`),'invalid');
     assert.equal(await cdp.evaluate(`document.querySelector('[name=power_dbm]').value`),'2147483648');
     assert.equal(await cdp.evaluate(`document.querySelector('[name=power_dbm]').getAttribute('aria-invalid')`),'true');
     await capture('engineering-mixed');
     await field('schedules','2147483648 / 0');await field('expiry','2040-01-01T00:00');
     await cdp.evaluate(`{const e=document.querySelector('[name=enabled]');e.checked=true;e.dispatchEvent(new Event('input',{bubbles:true}));document.getElementById('config').requestSubmit();}`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.fields.enabled===true`),'radio partial save beside overflow schedule and expiry');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.fields.enabled===true`),'radio partial save beside overflow schedule and expiry');
     assert.equal(await cdp.evaluate(`savedProgress.data.last_outcomes.schedules`),'invalid');
     assert.equal(await cdp.evaluate(`savedProgress.data.last_outcomes.expires_utc_s`),'invalid');
     assert.equal(await cdp.evaluate(`currentConfig.enabled`),false);
     // Contradictory future acknowledgement is uncertain; read/review never retries.
     await field('power_dbm','3e1');await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.fields.power_dbm===30`),'native-valid exact integer spelling');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.fields.power_dbm===30`),'native-valid exact integer spelling');
     await field('callsign','CC2CC');engineeringFault='future';
     await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && writeState==='readback'`),'future acknowledgement blocks writes');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && writeState==='readback'`),'future acknowledgement blocks writes');
     assert.equal(await cdp.evaluate(`document.getElementById('save-engineering-station-progress').matches(':disabled')`),true);
     assert.equal(await cdp.evaluate(`document.querySelector('[name=callsign]').value`),'CC2CC');
     await capture('engineering-unconfirmed');
-    await click('read-saved');await until(()=>cdp.evaluate(`!busy && writeState==='review'`),'uncertain progress authoritative readback');
+    await click('read-saved');await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && writeState==='review'`),'uncertain progress authoritative readback');
     const uncertainSequence=await cdp.evaluate(`savedProgress.data.draft_revision`);
-    await click('review-saved');await until(()=>cdp.evaluate(`!busy && writeState==='ready'`),'uncertain progress explicit review');
+    await click('review-saved');await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && writeState==='ready'`),'uncertain progress explicit review');
     assert.equal(await cdp.evaluate(`savedProgress.data.draft_revision`),uncertainSequence);
     // A delayed acknowledgement cannot replace a newer browser edit.
     await field('callsign','DD3DD');engineeringFault='hold';
     await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
     await until(()=>heldReply,'held committed reply');await field('callsign','EE4EE');releaseReply();
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.fields.callsign==='DD3DD'`),'late acknowledgement reconciliation');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.fields.callsign==='DD3DD'`),'late acknowledgement reconciliation');
     assert.equal(await cdp.evaluate(`document.querySelector('[name=callsign]').value`),'EE4EE');
     assert.equal(await cdp.evaluate(`progressEdits.has('callsign')`),true);
     assert.match(await cdp.evaluate(`document.getElementById('progress-error-settings-callsign').textContent`),/newer edit remains unsaved/);
     await field('locator','BAD');engineeringFault='hold';
     await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
     await until(()=>heldReply,'engineering rejected earlier locator reply');await field('locator','EM18IG');releaseReply();
-    await until(()=>cdp.evaluate(`!busy`),'engineering rejected late acknowledgement');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy`),'engineering rejected late acknowledgement');
     const engineeringMixed=await cdp.evaluate(`document.getElementById('progress-error-settings-locator').textContent`);
     assert.match(engineeringMixed,/not saved/i);assert.match(engineeringMixed,/newer edit remains unsaved/);assert.doesNotMatch(engineeringMixed,/Earlier value (was )?saved/);
     assert.equal(await cdp.evaluate(`document.querySelector('[name=locator]').value`),'EM18IG');
@@ -294,14 +281,14 @@ try {
     await field('locator','');engineeringFault='hold';
     await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
     await until(()=>heldReply,'engineering earlier clear reply');await field('locator','EM18IG');releaseReply();
-    await until(()=>cdp.evaluate(`!busy`),'engineering clear late acknowledgement');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy`),'engineering clear late acknowledgement');
     assert.match(await cdp.evaluate(`document.getElementById('progress-error-settings-locator').textContent`),/cleared/i);
     assert.equal(await cdp.evaluate(`savedProgress.data.fields.locator`),null);
     assert.equal(await cdp.evaluate(`document.getElementById('apply-engineering-station-progress').matches(':disabled')`),true);
     // Complete the saved station explicitly before checking the enabled Apply
     // control's keyboard position; clearing correctly disabled that control.
     await cdp.evaluate(`document.getElementById('engineering-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && !document.getElementById('apply-engineering-station-progress').matches(':disabled')`),'explicit engineering completion after clear');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.station_complete && !document.getElementById('apply-engineering-station-progress').matches(':disabled')`),'explicit engineering completion after clear');
     await cdp.evaluate(`WsprryPicoSections.reveal(document.getElementById('save-engineering-station-progress'));document.getElementById('save-engineering-station-progress').focus()`);
     await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
     await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
@@ -310,12 +297,5 @@ try {
 } catch(error) {
     primaryFailure=error;
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,1800)})`).catch(e=>e.message):null}));throw error;
-} finally {
-    await preserveCleanup(primaryFailure,[
-        async()=>{releaseReply?.();cdp?.ws.close();},
-        ()=>cleanupUiProcesses([chrome],profile,{processGroup}),
-        async()=>{proxy.closeAllConnections();await deadlinePromise('fixture-proxy-close',(resolve,reject)=>{proxy.close(error=>error&&error.code!=='ERR_SERVER_NOT_RUNNING'?reject(error):resolve());},3000);},
-        ()=>f.stop(),
-        ()=>deadlinePromise('fixture-proxy-drain',(resolve,reject)=>{proxyQueue.then(resolve,reject);})
-    ]);
 }
+});

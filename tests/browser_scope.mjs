@@ -13,9 +13,10 @@ export class BrowserScope {
     try{for(const [name,handler] of this.handlers)this.process.on(name,handler);}
     catch(primary){const errors=[];for(const [name,handler] of this.handlers)try{this.process.removeListener(name,handler);}catch(error){errors.push(error);}if(errors.length)throw new AggregateError([primary,...errors],'scope acquisition and rollback failed');throw primary;}
   }
-  async own(resource,dispose) {
+  async own(resource,dispose,{priority=0}={}) {
+    if(!Number.isSafeInteger(priority))throw TypeError('Cleanup priority must be an integer');
     if(typeof dispose!=='function')throw TypeError('Owned resource finalizer required');
-    const record={value:Promise.resolve(resource),dispose,stopping:null};
+    const record={value:Promise.resolve(resource),dispose,priority,stopping:null};
     const finish=()=>{record.stopping ||= (async()=>{let value;try{value=await record.value;}catch{return;}await dispose(value);})();return record.stopping;};
     record.finish=finish;
     if(this.closing){
@@ -34,7 +35,7 @@ export class BrowserScope {
   }
   close(primary=this.interruption) {
     if(this.closing)return this.closing;
-    const actions=this.resources.splice(0).reverse().map(record=>()=>
+    const actions=this.resources.splice(0).reverse().sort((a,b)=>b.priority-a.priority).map(record=>()=>
       this.cleanup('browser-resource-cleanup',(resolve,reject)=>{record.finish().then(resolve,reject);},20000));
     this.closing=(async()=>{await preserveCleanup(primary,actions);if(primary)throw primary;})();return this.closing;
   }

@@ -1,3 +1,4 @@
+import {qualifyNativeChildren} from './ui_fixture_inventory.mjs';
 // Shipped page/bundle -> Chrome -> production HTTP/AEAD; time and board are synthetic.
 import assert from 'node:assert/strict';
 import {mkdtemp,writeFile,mkdir,rm} from 'node:fs/promises';
@@ -79,6 +80,8 @@ try{await scope.run(async()=>{
       return()=>scope.signal.removeEventListener('abort',interrupted);
     },15000);
     const nativeProfiles=await fixture.ready;
+    await qualifyNativeChildren(driver,fixture.process.pid,nativeProfiles);
+    console.log(JSON.stringify({kind:'native-fixture-inventory/1',owner:fixture.process.pid,count:nativeProfiles.length,profiles:nativeProfiles.map(value=>value.name)}));
     const initialJournal=await journal();
     assert.deepEqual(nativeProfiles.map(value=>value.name),['consumer-lan']);
     const chrome=launchChrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',[

@@ -2,21 +2,19 @@
 // Only TCP/board/time boundaries use the existing deterministic fixture.
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import {spawn} from 'node:child_process';
-import {mkdtemp, readFile, writeFile, mkdir} from 'node:fs/promises';
+import {writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
-import {Fixture} from './consumer_sessions.test.mjs';
-import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
+import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
+const h=new BrowserHarness();
+await h.run(async()=>{
 
 if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; Node 20 needs --experimental-websocket');
 if (!process.argv[2]) throw Error('Usage: node tests/wspr_browser_integration.mjs CONSUMER_BOOTSTRAP_DRIVER [OUTPUT_DIRECTORY]');
-const processGroup=process.platform!=='win32';
 const noCapture=process.env.PICO_BROWSER_NO_CAPTURE==='1' || process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1';
 const output=path.resolve(process.argv[3] || 'build/wspr-browser-integration');
 await mkdir(output,{recursive:true});
-const profile=await mkdtemp(path.join(os.tmpdir(),'p158-chrome-'));
-let f=new Fixture(process.argv[2]);await f.time(1000);
+const profile=await h.profile('p158-chrome-');
+let f=await h.fixture(process.argv[2]);await f.time(1000);
 let chrome, cdp; const requests=[];
 let proxyQueue=Promise.resolve();
 const proxy=http.createServer((req,res)=>{proxyQueue=proxyQueue.then(()=>serve(req,res));});
@@ -45,18 +43,12 @@ async function serve(req,res){
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
     }catch(error){res.writeHead(500,{'Content-Type':'text/plain'});res.end(error.message);}
 }
-await new Promise(resolve=>proxy.listen(0,'127.0.0.1',resolve));
+await h.server(proxy,()=>proxyQueue);await h.listen(proxy);
 const port=proxy.address().port;
-class Cdp {
-    constructor(url){this.ws=new WebSocket(url);this.sequence=0;this.pending=new Map();this.ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&this.pending.has(m.id)){const p=this.pending.get(m.id);this.pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}};}
-    async open(){if(this.ws.readyState===1)return;await new Promise((resolve,reject)=>{this.ws.onopen=resolve;this.ws.onerror=reject;});}
-    send(method,params={}){const id=++this.sequence;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('CDP deadline: '+method));},15000);this.pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});this.ws.send(JSON.stringify({id,method,params}));});}
-    async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
-}
-async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(Date.now()<end){try{const r=await fn();if(r)return r;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+label+(last?' '+last.message:''));}
+
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 // Submit once the production form admits it; discovery/polling can briefly disable login.
-async function submitLogin(){await until(()=>cdp.evaluate(`!busy && !document.getElementById('login-submit').disabled && (document.getElementById('local-login').requestSubmit(),true)`),'login form available');}
+async function submitLogin(){await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && !document.getElementById('login-submit').disabled && (document.getElementById('local-login').requestSubmit(),true)`),'login form available');}
 async function click(id){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.click();}`);}
 async function capture(name){
     for(const theme of ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
@@ -70,14 +62,12 @@ async function capture(name){
     }
 }
 try {
-    chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-        ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
-            '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','http://192.168.1.53/'],{stdio:'ignore',detached:processGroup});
-    const debugPort=await until(async()=>Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]),'Chrome startup',60000);
-    const page=await until(async()=>(await (await fetch(`http://127.0.0.1:${debugPort}/json`)).json()).find(p=>p.type==='page'),'page');
-    cdp=new Cdp(page.webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
+    const started=await h.chrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
+            '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','http://192.168.1.53/'],profile);chrome=started.browser.process;
+    const debugPort=new URL(started.pages[0].webSocketDebuggerUrl).port;
+    cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});await cdp.send('Page.enable');
     await until(()=>cdp.evaluate(`typeof radio !== 'undefined' && !!document.getElementById('local-password')`),'shipped radio page');
-    await until(()=>cdp.evaluate(`!busy && !!localIdentity`),'discovery complete before login');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && !!localIdentity`),'discovery complete before login');
     await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate(`localAuthenticated && !busy`),'actual browser login');
     await click('read-saved');
@@ -113,12 +103,12 @@ try {
     await capture('pair-ambiguity');
     const before=await f.command({op:'stats'});
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress?.data.station_complete && savedProgress.data.fields.callsign==='AA0NT/09'`),'station draft confirmed');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress?.data.station_complete && savedProgress.data.fields.callsign==='AA0NT/09'`),'station draft confirmed');
     assert.equal((await f.command({op:'stats'})).profile_programs,before.profile_programs,'draft save does not apply station');
     assert.match(await cdp.evaluate(`document.getElementById('progress-station-status').textContent`),/WSPR Type 2 \+ Type 3/);
     await cdp.evaluate('globalThis.stationSessionBefore=radio.state');
     await click('apply-station-progress');
-    await until(()=>cdp.evaluate(`!busy && localAuthenticated && currentConfig?.station.callsign==='AA0NT/09' && document.getElementById('consumer-save-status').textContent.startsWith('Station settings applied.')`),'one explicit live station application');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && localAuthenticated && currentConfig?.station.callsign==='AA0NT/09' && document.getElementById('consumer-save-status').textContent.startsWith('Station settings applied.')`),'one explicit live station application');
     assert.equal(await cdp.evaluate('radio.state===stationSessionBefore'),true,'live station application retains the login');
     await f.time(f.now+1000); // A separate reader still obeys the login admission interval.
     const a=f.client();await f.login(a);const saved=await (await a.request('config')).json();
@@ -128,14 +118,14 @@ try {
     await a.logout();
     await cdp.send('Page.navigate',{url:'about:blank'});
     await until(()=>cdp.evaluate(`location.href==='about:blank'`),'old page stopped');
-    await f.stop();f=new Fixture(process.argv[2]);await f.time(1000);
+    await f.stop();f=await h.fixture(process.argv[2]);await f.time(1000);
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate(`typeof localIdentity!=='undefined' && localIdentity && !busy`),'fresh consumer discovery');
     await field('local-password','test-password');await submitLogin();
     await until(()=>cdp.evaluate(`localAuthenticated && !busy`),'fresh consumer login');
     await field('consumer-callsign','<AA0NT>');await field('consumer-locator','EM18IG');
     await cdp.evaluate(`document.getElementById('consumer-station-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && savedProgress.data.station_complete && savedProgress.data.fields.callsign==='<AA0NT>'`),'saved Type 3 draft');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && savedProgress.data.station_complete && savedProgress.data.fields.callsign==='<AA0NT>'`),'saved Type 3 draft');
     const unsupportedBefore=await f.command({op:'stats'});
     // Refuse the one current application read. Crypto, save/apply handlers and
     // journals still run through production code; no alternate view is selected.
@@ -144,7 +134,7 @@ try {
       return actualRead(resource,...args);
     };`);
     await click('apply-station-progress');
-    await until(()=>cdp.evaluate(`!busy && document.getElementById('notice').textContent.includes('Unsupported application view')`),'unconfirmed application-view refusal');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && document.getElementById('notice').textContent.includes('Unsupported application view')`),'unconfirmed application-view refusal');
     assert.equal(await cdp.evaluate('applicationReads'),1,'one current application read; no fallback or replay');
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-callsign').value`),'<AA0NT>');
     assert.equal((await f.command({op:'stats'})).profile_programs,unsupportedBefore.profile_programs);
@@ -155,13 +145,5 @@ try {
 } catch(error) {
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,600),scripts:[...document.scripts].map(s=>s.src)})`).catch(e=>e.message):null}));
     throw error;
-} finally {
-    cdp?.ws.close();
-    try {await cleanupUiProcesses([chrome],profile,{processGroup});}
-    finally {
-        proxy.closeAllConnections();await new Promise(resolve=>proxy.close(resolve));await proxyQueue;
-        const stopped=await Promise.allSettled([f.stop()]);
-        const errors=stopped.filter(result=>result.status==='rejected').map(result=>result.reason);
-        if(errors.length)throw new AggregateError(errors,'Fixture shutdown failed');
-    }
 }
+});

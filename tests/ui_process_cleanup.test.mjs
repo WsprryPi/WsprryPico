@@ -160,20 +160,19 @@ test('monotonic stage refuses late inner success and propagates its remaining co
 });
 
 test('actual progress CDP dispatch preserves reordered replies and refuses socket loss',async()=>{
-    const source=readFileSync(new URL('./progress_browser_integration.mjs',import.meta.url),'utf8');
-    const code=source.slice(source.indexOf('class Cdp {'),source.indexOf('\nconst until='));
+    const {Cdp}=await import('./browser_cdp.mjs');
     class Socket extends EventTarget {
         readyState=1;sent=[];
         constructor(){super();Socket.last=this;}
         send(value){this.sent.push(JSON.parse(value));}
-        reply(index,result){this.onmessage({data:JSON.stringify({id:this.sent[index].id,result})});}
+        reply(index,result){this.dispatchEvent(new MessageEvent('message',{data:JSON.stringify({id:this.sent[index].id,result})}));}
+        close(){this.readyState=3;this.dispatchEvent(new Event('close'));}
     }
-    const Cdp=new Function('deadlinePromise','WebSocket',code+';return Cdp;')(deadlinePromise,Socket);
-    const cdp=new Cdp('owned-test');await cdp.open();
+    const cdp=new Cdp('ws://127.0.0.1:12345/devtools/page/owned-test',{WebSocketImpl:Socket});await cdp.open();
     const a=cdp.send('A'),b=cdp.send('B');Socket.last.reply(1,{value:'b'});Socket.last.reply(0,{value:'a'});
     assert.deepEqual(await Promise.all([a,b]),[{value:'a'},{value:'b'}]);
     const missing=cdp.send('lost');const refused=assert.rejects(missing,/socket/);Socket.last.dispatchEvent(new Event('close'));await refused;
-    assert.equal(cdp.pending.size,0);
+    assert.equal(cdp.pending.size,0);await cdp.stop();
 });
 
 test('cleanup retains the original failure and attempts every remaining finalizer',async()=>{

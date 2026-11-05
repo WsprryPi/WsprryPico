@@ -65,3 +65,20 @@ test('observed unclosed socket remains a failed cleanup with no retained timers/
   assert.equal(Socket.last.closeEntered,true);clock.expire(3001);await failed;
   assert.equal(clock.timers.size,0);assert.equal(Socket.last.listenerCount,0);Socket.last.readyState=3;
 });
+
+test('flattened recovery sessions retain independent correlation and refuse another session reply',async()=>{
+  const cdp=new Cdp(url,{WebSocketImpl:Socket});
+  const a=cdp.send('READ',{},'a'),b=cdp.send('READ',{},'b');
+  Socket.last.message({id:2,sessionId:'b',result:{owner:'b'}});
+  Socket.last.message({id:1,sessionId:'a',result:{owner:'a'}});
+  assert.deepEqual(await Promise.all([a,b]),[{owner:'a'},{owner:'b'}]);
+  const wrong=cdp.send('CHECK',{},'a'),refused=assert.rejects(wrong,/malformed or uncorrelated/);
+  Socket.last.message({id:3,sessionId:'b',result:{owner:'wrong'}});await refused;await cdp.stop();
+});
+test('event work records the actual session and preserves an asynchronous handler failure',async()=>{
+  const cdp=new Cdp(url,{WebSocketImpl:Socket});let observed;
+  cdp.on('Page.javascriptDialogOpening',async(params,session)=>{observed={params,session};throw Error('event handler failed');});
+  Socket.last.message({method:'Page.javascriptDialogOpening',params:{message:'confirm'},sessionId:'isolated'});
+  await assert.rejects(cdp.stop(),/event handler failed/);
+  assert.deepEqual(observed,{params:{message:'confirm'},session:'isolated'});assert.equal(cdp.eventWork.size,0);
+});

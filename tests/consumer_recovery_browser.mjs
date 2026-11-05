@@ -3,20 +3,18 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
-import os from 'node:os';
 import path from 'node:path';
-import {spawn} from 'node:child_process';
-import {Fixture} from './consumer_sessions.test.mjs';
-import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
+import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
+const h=new BrowserHarness();
+await h.run(async()=>{
 if(!globalThis.WebSocket)throw Error('Node with built-in WebSocket is required');
 if(!process.argv[2])throw Error('Usage: node tests/consumer_recovery_browser.mjs CONSUMER_BOOTSTRAP_DRIVER [OUTPUT_DIRECTORY]');
 const output=process.argv[3]&&path.resolve(process.argv[3]);
 if(output)fs.mkdirSync(output,{recursive:true});
-const f=new Fixture(process.argv[2]);
-const profile=fs.mkdtempSync(path.join(os.tmpdir(),'pico-recovery-browser-'));
-const processGroup=process.platform!=='win32';
-let chrome,ws,dropNextReply=false,dropRetirementReply=false;
-const dialogs=[],pending=new Map();let seq=0,queue=Promise.resolve();
+const f=await h.fixture(process.argv[2]);
+const profile=await h.profile('pico-recovery-browser-');
+let cdp,dropNextReply=false,dropRetirementReply=false;
+const dialogs=[];let queue=Promise.resolve();
 const server=http.createServer((req,res)=>{queue=queue.then(()=>serve(req,res));});
 async function serve(req,res){
   try {
@@ -37,13 +35,7 @@ async function serve(req,res){
     res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
   }catch(error){res.writeHead(500);res.end(error.message);}
 }
-const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-async function until(fn){for(let i=0;i<400;i++){if(await fn())return;await pause(40);}throw Error('Browser deadline');}
-function send(method,params={},sessionId){return new Promise((resolve,reject)=>{
-  const id=++seq,timer=setTimeout(()=>{pending.delete(id);reject(Error('CDP deadline: '+method));},20000);
-  pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});
-  ws.send(JSON.stringify({id,method,params,sessionId}));
-});}
+const send=(...args)=>cdp.send(...args);
 async function evaluate(session,expression){const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true},session);if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
 async function context(){const {browserContextId}=await send('Target.createBrowserContext');const {targetId}=await send('Target.createTarget',{url:'about:blank',browserContextId});const {sessionId}=await send('Target.attachToTarget',{targetId,flatten:true});await send('Page.enable',{},sessionId);await send('Runtime.enable',{},sessionId);await send('Page.navigate',{url:'http://192.168.1.53/'},sessionId);await until(()=>evaluate(sessionId,'typeof localIdentity!=="undefined" && Boolean(localIdentity) && !busy'));return sessionId;}
 async function login(session){
@@ -51,17 +43,14 @@ async function login(session){
   await evaluate(session,'if(!document.getElementById("local-access").open)document.getElementById("access-toggle").click();true');
   assert.equal(await evaluate(session,'document.getElementById("local-access").open'),true,'native access dialog');
   await evaluate(session,'document.getElementById("local-password").value="test-password";document.getElementById("local-login").requestSubmit();true');await until(()=>evaluate(session,'!busy && localAuthenticated && online'));}
-try{
-  await f.time(1000);await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-  chrome=spawn(process.env.CHROME_BIN||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    ['--headless=new','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check',
-      '--remote-debugging-port=0','--user-data-dir='+profile,'--proxy-server=http://127.0.0.1:'+server.address().port,'--proxy-bypass-list=<-loopback>','about:blank'],
-    {stdio:'ignore',detached:processGroup});
-  await until(()=>fs.existsSync(path.join(profile,'DevToolsActivePort')));
-  const [port,socket]=fs.readFileSync(path.join(profile,'DevToolsActivePort'),'utf8').split('\n');
-  ws=new WebSocket('ws://127.0.0.1:'+port+socket);
-  ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.method==='Page.javascriptDialogOpening'){dialogs.push(m.params.message);void send('Page.handleJavaScriptDialog',{accept:true},m.sessionId);return;}const p=pending.get(m.id);if(!p)return;pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);};
-  await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
+{
+  await h.server(server,()=>queue);await f.time(1000);await h.listen(server);
+  const started=await h.chrome(process.env.CHROME_BIN||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check',
+      '--remote-debugging-port=0','--user-data-dir='+profile,'--proxy-server=http://127.0.0.1:'+server.address().port,'--proxy-bypass-list=<-loopback>','about:blank'],profile);
+  const port=new URL(started.pages[0].webSocketDebuggerUrl).port;
+  const version=await fixtureJson('http://127.0.0.1:'+port+'/json/version');
+  cdp=await h.connect(version.webSocketDebuggerUrl);
+  cdp.on('Page.javascriptDialogOpening',async(params,session)=>{dialogs.push(params.message);await send('Page.handleJavaScriptDialog',{accept:true},session);});
   const a=await context(),b=await context();await login(a);await f.time(2000);await login(b);
   assert.equal(await evaluate(a,'radio.authenticated'),true);
   // Independent UI drafts survive another client's save and a stale explicit save.
@@ -138,8 +127,5 @@ try{
   assert.ok(dialogs.length>=3);assert.ok(dialogs.every(text=>text.includes('another operator')&&text.includes('radio jobs remain')));
   console.log(JSON.stringify({browser:(await send('Browser.getVersion')).product,independent_contexts:3,conflict_draft_preserved:true,authenticated_retirement:true,known_and_fresh_page:true,lost_commit_once:true,readback_review_required:true,keyboard:true,lost_self_retirement_blocks_save:true,dialogs:dialogs.length,screenshots:output?8:0}));
 
-}finally{
-  ws?.close();
-  try{await cleanupUiProcesses([chrome],profile,{processGroup});}
-  finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await queue;await f.stop();}
 }
+});

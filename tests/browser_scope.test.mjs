@@ -47,3 +47,13 @@ test('partial handler registration rolls back the first acquired handler',()=>{
   const host=new EventEmitter(),on=host.on.bind(host);host.on=(name,handler)=>{if(name==='SIGINT')throw Error('registration denied');return on(name,handler);};
   assert.throws(()=>new BrowserScope({processImpl:host}),/registration denied/);noHooks(host);
 });
+
+test('replacement fixtures finalize after browsers and HTTP queues regardless of acquisition order',async()=>{
+  const scope=new BrowserScope(),closed=[];
+  await scope.own('old fixture',value=>closed.push(value),{priority:-10});
+  await scope.own('server',value=>closed.push(value),{priority:-5});
+  await scope.own('browser',value=>closed.push(value));
+  await scope.own('replacement fixture',value=>closed.push(value),{priority:-10});
+  await scope.run(async()=>{});
+  assert.deepEqual(closed,['browser','server','replacement fixture','old fixture']);
+});
