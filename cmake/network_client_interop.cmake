@@ -38,6 +38,12 @@ if(WSPRRY_PICO_NETWORK_CLIENT_SOURCE AND TARGET network_tls_driver)
     add_custom_command(TARGET pico_tls_server POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink ${WSPRRY_PICO_TEST_CREDENTIAL_DIR} ${CMAKE_BINARY_DIR}/credentials-v3)
     # Retain the historical target name for existing developer invocations.
+    add_executable(wtp_fixture_clock_test ${source}/tests/network/fixture_clock_test.cpp)
+    target_include_directories(wtp_fixture_clock_test PRIVATE ${source}/tests/network)
+    target_link_libraries(wtp_fixture_clock_test PRIVATE wsprrypico_core)
+    target_compile_options(wtp_fixture_clock_test PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_dependencies(wtp_fixture_clock_test verify_network_client)
+    add_test(NAME paired_fixture_clock_test COMMAND wtp_fixture_clock_test)
     add_test(NAME network_11_1_interop COMMAND ${Python3_EXECUTABLE}
         ${source}/tests/wtp_network_interop_test.py ${CMAKE_BINARY_DIR})
     set_tests_properties(network_11_1_interop PROPERTIES TIMEOUT 200 RUN_SERIAL TRUE)

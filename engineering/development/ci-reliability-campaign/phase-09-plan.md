@@ -38,3 +38,30 @@ all affected suites, both actual production source-pair recipes, a first-attempt
 canonical run, downloaded immutable audit/deployment evidence, and unchanged strict
 required-status settings. Keep completed historical bundles readable and Actions
 expiry support. Record any deliberate failed/cancelled diagnostic separately.
+
+## Revised window after qualified failure
+
+The first frozen candidate a8950ed3 produced serial 204.21 s, parallel 161.45 s,
+parallel 161.93 s, then a failed closing serial observation (187.99 s; 212/213
+passed). The real production interop reported HOST_DRY_RUN_MISSED with 134800 ns
+poll lateness and a 1-ms uncertainty allowance. The old diagnostic cannot identify
+which predicate failed. Do not accept that window, discard the failed sample, or
+infer the parallel setting caused or repaired the failure.
+
+Deterministic production-engine checks reproduce two existing fixture hazards:
+a fractional timestamp can leave a one-nanosecond UTC-second launch window, and
+independently sampled/changing wall/monotonic correlation can fail strict mapping.
+The selected Pi fixture now anchors one logical UTC epoch to monotonic progression,
+selects a complete future UTC second, retains true late/narrow-window and bad-clock
+refusals, removes the unused host-time scaling override, and logs the exact window
+and mapping on a miss. Product engine and uncertainty/window policy are unchanged.
+Clock projection, overflow/backward refusal, and actual engine policies have
+independent checks; three deliberate mutants reach their intended assertions.
+
+Freeze the repaired Pico candidate and companion 28915d31026b2c9a97f451c01d48820fb52c097f on
+codex/pico-ci-reliability-companion. The original Pi devel remains unchanged.
+Repeat a new full ABBA window with the same acceptance rules, now 214 available
+local registrations (canonical 234), including the new actual-engine clock case.
+Hash both tracked source trees, check clean paired refs throughout, and restore
+the same owned scheduler-cost seed before every observation. Keep all first-window
+logs/results as failure evidence. No same-source retry or tolerance expansion.

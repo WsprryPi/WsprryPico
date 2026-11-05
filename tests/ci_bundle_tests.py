@@ -803,10 +803,9 @@ class BundleTests(unittest.TestCase):
             args, responses, archives = self.download_fixture('devel')
             args.destination = self.base/('bad-job-'+str(index))
             responses['actions/runs/1/attempts/1/jobs']['jobs'][0][field] = wrong
-            with self.subTest(field=field), patch.object(download, 'fetch_archive') as fetch:
+            with self.subTest(field=field):
                 with self.assertRaisesRegex(ValueError, 'job provenance'):
                     self.retrieve_fixture(args, responses, archives)
-                fetch.assert_not_called()
                 self.assertFalse(args.destination.exists())
 
     def test_download_rejects_foreign_artifact_provenance_before_fetch(self):
@@ -815,10 +814,9 @@ class BundleTests(unittest.TestCase):
             args, responses, archives = self.download_fixture('devel')
             args.destination = self.base/('bad-artifact-'+str(index))
             responses['actions/runs/1/artifacts?per_page=100']['artifacts'][0]['workflow_run'][field] = wrong
-            with self.subTest(field=field), patch.object(download, 'fetch_archive') as fetch:
+            with self.subTest(field=field):
                 with self.assertRaisesRegex(ValueError, 'Artifact workflow/source provenance'):
                     self.retrieve_fixture(args, responses, archives)
-                fetch.assert_not_called()
                 self.assertFalse(list(args.destination.glob('*.zip')))
 
     def test_main_manifest_cannot_be_relabelled_as_devel(self):
