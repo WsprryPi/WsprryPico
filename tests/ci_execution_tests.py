@@ -102,6 +102,13 @@ class ExecutionTests(unittest.TestCase):
         self.assertIn('child_exit=17', str(result.exception.exceptions[0]))
         self.assertIn('disk full', str(result.exception.exceptions[1]))
 
+    def test_log_read_failure_preserves_the_child_failure(self):
+        with patch.object(Path, 'read_bytes', side_effect=OSError('log storage unavailable')):
+            with self.assertRaises(BaseExceptionGroup) as result:
+                self.execute('raise SystemExit(17)')
+        self.assertIn('child_exit=17', str(result.exception.exceptions[0]))
+        self.assertIn('storage unavailable', str(result.exception.exceptions[1]))
+
     def test_node_summary_requires_actual_nonempty_unskipped_execution(self):
         good = '\n'.join('ℹ '+k+' '+str(v) for k, v in {'tests': 2, 'pass': 2, 'fail': 0, 'cancelled': 0, 'skipped': 0, 'todo': 0}.items())
         self.assertEqual(execution.evidence('npm', good, self.audit), {'kind': 'node-test', 'count': 2})
@@ -122,6 +129,16 @@ class ExecutionTests(unittest.TestCase):
                 execution.evidence('wspr', json.dumps(bad), self.audit)
         with self.assertRaises(ValueError):
             execution.evidence('wspr', json.dumps(good)+'\n'+json.dumps(good), self.audit)
+
+    def test_submission_completion_requires_nonempty_executed_checks(self):
+        result = self.audit / 'submission-ui/results.json'
+        result.parent.mkdir()
+        for value in [{'physical_device': False}, {'physical_device': False, 'checks': []}]:
+            result.write_text(json.dumps(value))
+            with self.assertRaises(ValueError):
+                execution.evidence('submission', '', self.audit)
+        result.write_text(json.dumps({'physical_device': False, 'checks': ['observed mutation refusal']}))
+        execution.evidence('submission', '', self.audit)
 
     def test_contract_and_ctest_need_nonempty_completion_summaries(self):
         execution.evidence('ctest', '100% tests passed, 0 tests failed out of 2\n', self.audit)

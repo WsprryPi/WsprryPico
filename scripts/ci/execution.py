@@ -91,6 +91,8 @@ def evidence(context, output, audit):
             value = candidates[0]
         require(isinstance(value, dict) and all(type(value.get(k)) is type(v) and value[k] == v for k, v in expected.items()),
                 'Incomplete browser context: ' + context)
+        if context in ('submission', 'sections-consumer', 'sections-engineering'):
+            require('checks' in value, 'Missing browser checks')
         if 'checks' in value:
             require(isinstance(value['checks'], list) and bool(value['checks']) and
                     all(isinstance(x, str) and x for x in value['checks']), 'Empty browser checks')
@@ -152,7 +154,12 @@ def execute(log, command, cwd, source, context=None, watchdog=3600):
                     primary = BaseExceptionGroup('command and owned cleanup failed', [primary, *failures])
         finally:
             output.flush()
-    raw = log.read_bytes()[offset:]
+    try:
+        raw = log.read_bytes()[offset:]
+    except BaseException as diagnostic:
+        if primary is not None:
+            raise BaseExceptionGroup('command and log read failed', [primary, diagnostic]) from None
+        raise
     qualified = None
     if primary is None:
         try:
