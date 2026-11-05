@@ -501,6 +501,7 @@ class BundleTests(unittest.TestCase):
         with patch.object(download, 'api', side_effect=responses.__getitem__), \
              patch.object(download, 'fetch_archive', side_effect=lambda a,p: p.write_bytes(archives[a['id']].read_bytes())), \
              patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=None), \
              patch.object(bundle, 'verify', side_effect=lambda d,a,s,v,**kw:verifier(d,a,s,v,inspect=False)), \
              patch.object(bundle, 'inspect_payload'), \
              patch.object(bundle, 'capture', side_effect=lambda *a:
@@ -715,6 +716,7 @@ class BundleTests(unittest.TestCase):
                      patch.object(download.subprocess,'run',side_effect=fetch), \
                      patch.object(download,'inspection_tool',return_value={'path':'fixture'}), \
                      patch.object(bundle,'required_tests',return_value={'fixture'}), \
+                     patch.object(bundle,'required_execution_contexts',return_value=None), \
                      patch.object(bundle,'verify',side_effect=lambda d,a,s,v:verifier(d,a,s,v,inspect=False)):
                     self.assertEqual(download.retrieve_published(args)['version'],version)
 
@@ -741,7 +743,8 @@ class BundleTests(unittest.TestCase):
                        CI_WORKFLOW_SHA=self.source,GITHUB_RUN_ID='1',GITHUB_RUN_ATTEMPT='1')
             with patch.dict(os.environ,env):
                 bundle.create(created,self.audit,self.source,version,['consumer'],self.checks,self.inputs)
-            with patch.object(bundle,'required_tests',return_value={'fixture'}):
+            with patch.object(bundle,'required_tests',return_value={'fixture'}), \
+                 patch.object(bundle,'required_execution_contexts',return_value=None):
                 manifest=bundle.verify(created,self.audit,self.source,version,inspect=False)
             usb_installer.schema_check(manifest,bundle.read_json(bundle.SCHEMA))
         self.release_fixture('1.0.0-beta.1')
@@ -1009,6 +1012,7 @@ class BundleTests(unittest.TestCase):
              patch.object(download.subprocess,'run',side_effect=fetch), \
              patch.object(download,'inspection_tool',return_value={'path':'fixture-tool','sha256':'a'*64,'version':'fixture'}), \
              patch.object(bundle,'required_tests',return_value={'fixture'}), \
+             patch.object(bundle,'required_execution_contexts',return_value=None), \
              patch.object(bundle,'verify',side_effect=lambda d,a,s,v:verifier(d,a,s,v,inspect=False)):
             downloaded = download.retrieve_published(args)
         self.assertEqual(downloaded['branch'], 'main')
