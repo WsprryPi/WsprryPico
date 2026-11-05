@@ -23,11 +23,11 @@ def capture(*args):
     return subprocess.check_output(list(map(str, args)), cwd=ROOT, text=True).strip()
 
 
-def execute(log, *args, cwd=ROOT, context=None):
+def execute(log, *args, cwd=ROOT, context=None, expected=None):
     command = list(map(str, args))
     print('+', ' '.join(command), flush=True)
     try:
-        execution.execute(log, command, cwd, capture('git', 'rev-parse', 'HEAD'), context)
+        execution.execute(log, command, cwd, capture('git', 'rev-parse', 'HEAD'), context, expected=expected)
     except BaseException as primary:
         try:
             print(log.read_text()[-24000:], flush=True)
@@ -36,7 +36,15 @@ def execute(log, *args, cwd=ROOT, context=None):
         raise
 
 
+def producer_execution_policy():
+    policy = bundle.validate_execution_policy(bundle.read_json(ROOT / "scripts/ci/execution-policy.json"))
+    bundle.require(policy["schema"] == "ci-execution-policy/2", "Current producer requires current completion policy")
+    return policy
+
+
 def inputs():
+    execution.require_unoptimized_python()
+    producer_execution_policy()
     profile = os.environ.get('CI_PROFILE', 'consumer')
     if profile != 'consumer':
         raise ValueError('Unsupported profile')
@@ -92,6 +100,7 @@ def expected_tests():
 
 
 def host_checks(deps, audit):
+    completion = execution.completion_policy(bundle.read_json(ROOT / "scripts/ci/ctest-completion-policy.json"))
     chrome = shutil.which('google-chrome')
     if not chrome:
         raise ValueError('Runner Chrome is required for the native browser checks')
@@ -129,23 +138,26 @@ def host_checks(deps, audit):
     execute(log, 'cmake', '-S', ROOT, '-B', host, '-G', 'Ninja',
             *(f'-D{k}={v}' for k, v in options.items()))
     registered = json.loads(capture('ctest', '--test-dir', host, '--show-only=json-v1'))
+    execution.completion_registration(registered, completion, source_root=ROOT)
     names = {test['name'] for test in registered['tests']}
     missing = expected_tests() - names
     if missing:
         raise ValueError('Required tests not registered: ' + ', '.join(sorted(missing)))
+    (audit / 'ctest-completion-policy.json').write_text(json.dumps(completion, indent=2) + '\n')
     (audit / 'registered-tests.json').write_text(json.dumps(registered, indent=2) + '\n')
     execute(log, 'cmake', '--build', host, '--parallel', '4')
     execute(log, 'ctest', '--test-dir', host, '--output-on-failure', '--timeout', '240',
+            '--test-output-size-passed', '1048576', '--test-output-size-failed', '1048576',
             '--output-junit', audit / 'host-tests.xml', context='ctest')
     suite = ET.parse(audit / 'host-tests.xml').getroot()
     cases = suite.findall('testcase')
-    execution.ctest_result(suite, names)
+    execution.ctest_result(suite, names, completion, registered, command_root=ROOT)
     (audit / 'evidence-skips.json').write_text('[]\n')
     execute(log, sys.executable, ROOT / 'scripts/validate_wtp_contract.py', context='wtp-contract')
-    execute(log, 'npm', 'test', cwd=web, context='npm')
-    execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py', context='packaging')
+    execute(log, 'npm', 'test', cwd=web, context='npm', expected=completion['contexts']['npm'])
+    execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py', context='packaging', expected=completion['contexts']['packaging'])
     execute(log, 'node', '--test', ROOT / 'tests/ui_process_cleanup.test.mjs',
-            ROOT / 'tests/chrome_startup.test.mjs', ROOT / 'tests/contextual_help_cleanup.test.mjs', context='browser-lifecycle')
+            ROOT / 'tests/chrome_startup.test.mjs', ROOT / 'tests/contextual_help_cleanup.test.mjs', context='browser-lifecycle', expected=completion['contexts']['browser-lifecycle'])
     execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
             host / 'consumer_bootstrap_driver', audit / 'consumer-ui', context='frequency')
     execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',

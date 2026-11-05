@@ -175,18 +175,42 @@ def required_tests(source=None):
     return expected
 
 
-def required_execution_contexts(source):
+def source_execution_policy(source):
     path = 'scripts/ci/execution-policy.json'
     present = capture('git', '-C', ROOT, 'ls-tree', '--name-only', source, '--', path)
     if not present:
-        return None  # Only frozen producers predating this independent evidence format.
+        return None  # Frozen producers before independent command evidence.
     require(present == path, 'Invalid frozen execution policy path')
     value = json.loads(capture('git', '-C', ROOT, 'show', source + ':' + path), object_pairs_hook=unique)
-    require(isinstance(value, dict) and set(value) == {'schema', 'contexts'} and
-            value['schema'] == 'ci-execution-policy/1' and isinstance(value['contexts'], list) and
-            value['contexts'] and all(isinstance(x, str) and x in execution.HOST_CONTEXTS for x in value['contexts']) and
+    return validate_execution_policy(value)
+
+
+def validate_execution_policy(value):
+    require(isinstance(value, dict) and value.get('schema') in ('ci-execution-policy/1', 'ci-execution-policy/2'),
+            'Invalid frozen execution policy')
+    fields = {'schema', 'contexts'} | ({'completion_policy'} if value['schema'].endswith('/2') else set())
+    require(set(value) == fields and isinstance(value['contexts'], list) and value['contexts'] and
+            all(isinstance(x, str) and x in execution.HOST_CONTEXTS for x in value['contexts']) and
             len(value['contexts']) == len(set(value['contexts'])), 'Invalid frozen execution policy')
-    return value['contexts']
+    if value['schema'].endswith('/2'):
+        require(set(value['contexts']) == set(execution.HOST_CONTEXTS) and
+                value['completion_policy'] == 'scripts/ci/ctest-completion-policy.json',
+                'Incomplete current execution policy')
+    return value
+
+
+def required_execution_contexts(source):
+    value = source_execution_policy(source)
+    return None if value is None else value['contexts']
+
+
+def required_completion_policy(source):
+    value = source_execution_policy(source)
+    if value is None or value['schema'] == 'ci-execution-policy/1':
+        return None
+    path = value['completion_policy']
+    policy = json.loads(capture('git', '-C', ROOT, 'show', source + ':' + path), object_pairs_hook=unique)
+    return execution.completion_policy(policy)
 
 
 def binary_identity(report):
@@ -416,6 +440,13 @@ def verify(deployment, audit, source, version, inspect=True):
         report = read_json(audit / 'execution.json')
         execution.verify(report, source, manifest['workflow']['run_id'], manifest['workflow']['attempt'], contexts)
         execution.verify_logs(report, audit)
+        completion = required_completion_policy(source)
+        if completion is not None:
+            require(read_json(audit / 'ctest-completion-policy.json') == completion, 'Completion policy differs from frozen producer')
+            execution.verify_completion_counts(report, completion)
+            ctest_record = next(record for record in report['records'] if record['context'] == 'ctest')
+            execution.ctest_result(ET.parse(audit / 'host-tests.xml').getroot(), names, completion, registered,
+                                   command_root=ctest_record['cwd'])
     require(read_json(audit / 'evidence-skips.json') == checks['historical_evidence_skips'],
             'Historical skip inventory differs')
     allowed_skips = read_json(Path(__file__).with_name('legacy-test-skip-reasons.json'))

@@ -161,6 +161,90 @@ class ExecutionTests(unittest.TestCase):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
                 check(bad)
 
+    def framework_fixture(self, kind='node-test', count=2):
+        expected={'kind':kind,'count':count,'entrypoint':'tests/one.py' if kind=='unittest' else 'tests/one.test.mjs'}
+        policy={'schema':'ci-ctest-completion/1','tests':{'one':expected},'contexts':{
+            'npm':{'kind':'node-test','count':2},'packaging':{'kind':'unittest','count':2},
+            'browser-lifecycle':{'kind':'node-test','count':2}}}
+        registered={'tests':[{'name':'one','command':['python' if kind=='unittest' else 'node',str(self.audit/expected['entrypoint'])]}]}
+        output=('Ran '+str(count)+' tests in 0.01s\nOK\n' if kind=='unittest' else
+                '\n'.join('# '+key+' '+str(value) for key,value in {'tests':count,'pass':count,'fail':0,'cancelled':0,'skipped':0,'todo':0}.items()))
+        suite=ET.Element('testsuite');case=ET.SubElement(suite,'testcase',name='one');ET.SubElement(case,'system-out').text=output
+        return policy,registered,suite
+
+    def test_ctest_framework_counts_bind_to_actual_entrypoint_and_output(self):
+        for kind in ('node-test','unittest'):
+            policy,registered,suite=self.framework_fixture(kind)
+            self.assertEqual(execution.ctest_result(suite,['one'],policy,registered,command_root=self.audit),1)
+
+    def test_green_ctest_cannot_hide_zero_or_partial_framework_discovery(self):
+        for kind in ('node-test','unittest'):
+            policy,registered,_=self.framework_fixture(kind,2)
+            for count in (0,1):
+                _,_,suite=self.framework_fixture(kind,count)
+                with self.subTest(kind=kind,count=count),self.assertRaises(ValueError):execution.ctest_result(suite,['one'],policy,registered)
+
+    def test_green_ctest_cannot_hide_inner_skip_or_forged_duplicate_summary(self):
+        policy,registered,suite=self.framework_fixture()
+        node=suite.find('testcase/system-out');good=node.text
+        for bad in [good.replace('skipped 0','skipped 1'),good+'\n# tests 2',good+'\nok 1 - hidden # SKIP',good.replace('todo 0','todo 1'),good+'\n[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]']:
+            node.text=bad
+            with self.assertRaises(ValueError):execution.ctest_result(suite,['one'],policy,registered)
+
+    def test_completion_policy_refuses_unknown_fields_types_and_missing_contexts(self):
+        policy,_,_=self.framework_fixture()
+        for change in [lambda p:p.update(extra=True),lambda p:p['tests']['one'].update(count=True),
+                       lambda p:p['tests']['one'].update(entrypoint='tests/../outside.py'),
+                       lambda p:p['contexts'].pop('packaging'),lambda p:p['tests']['one'].update(kind='exit')]:
+            value=copy.deepcopy(policy);change(value)
+            with self.assertRaises(ValueError):execution.completion_policy(value)
+
+    def test_new_framework_source_cannot_be_omitted_from_policy(self):
+        policy,registered,_=self.framework_fixture()
+        (self.audit/'tests').mkdir()
+        (self.audit/'tests/one.test.mjs').write_text("import test from 'node:test';\n")
+        other=self.audit/'tests/new.test.mjs';other.write_text("import test from 'node:test';\n")
+        registered['tests'].append({'name':'unlisted','command':['node',str(other)]})
+        with self.assertRaisesRegex(ValueError,'missing from completion policy'):
+            execution.completion_registration(registered,policy,source_root=self.audit)
+
+    def test_framework_with_missing_command_or_wrong_source_root_is_refused(self):
+        policy,registered,suite=self.framework_fixture()
+        for command in [[],['node','/another-checkout/tests/one.test.mjs']]:
+            registered['tests'][0]['command']=command
+            with self.assertRaises(ValueError):execution.ctest_result(suite,['one'],policy,registered,command_root=self.audit)
+
+    def test_required_prerequisite_skip_is_not_a_passing_native_case(self):
+        policy,registered,suite=self.framework_fixture()
+        registered['tests'].append({'name':'native','command':['native']})
+        case=ET.SubElement(suite,'testcase',name='native');ET.SubElement(case,'system-out').text='SKIP actual second-IPv4 TLS rebind: unavailable\n'
+        with self.assertRaisesRegex(ValueError,'prerequisite was skipped'):
+            execution.ctest_result(suite,['one','native'],policy,registered)
+
+    def test_actual_partial_command_records_failure_and_forged_completion_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError,'Incomplete expected framework discovery'):
+            execution.execute(self.audit/'host.log',[sys.executable,'-c',"print('Ran 1 test in 0.01s\\nOK')"],self.audit,self.source,'packaging',expected={'kind':'unittest','count':2})
+        value=json.loads((self.audit/'execution.json').read_text());record=value['records'][0]
+        self.assertEqual(record['returncode'],0);self.assertEqual(record['outcome'],'failed')
+        record['outcome']='passed';record['evidence']['count']=2
+        execution.verify(value,self.source,123,1,('packaging',))
+        with self.assertRaisesRegex(ValueError,'Completion evidence differs'):execution.verify_logs(value,self.audit)
+
+    def test_standalone_policy_rejects_missing_partial_or_typed_completion(self):
+        policy,_,_=self.framework_fixture()
+        report={'records':[{'context':context,'evidence':copy.deepcopy(expected)} for context,expected in policy['contexts'].items()]}
+        execution.verify_completion_counts(report,policy)
+        for change in [lambda r:r['records'].pop(),lambda r:r['records'][0]['evidence'].update(count=1),lambda r:r['records'][0]['evidence'].update(count=True)]:
+            value=copy.deepcopy(report);change(value)
+            with self.assertRaises(ValueError):execution.verify_completion_counts(value,policy)
+
+    def test_optimized_python_cannot_disable_required_assertions(self):
+        from types import SimpleNamespace
+        with patch.object(execution.sys,'flags',SimpleNamespace(optimize=1)):
+            with self.assertRaisesRegex(ValueError,'optimized Python'):execution.require_unoptimized_python()
+        execution.require_unoptimized_python()
+
+
 
 if __name__ == '__main__':
     unittest.main()

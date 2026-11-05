@@ -284,7 +284,8 @@ class BundleTests(unittest.TestCase):
 
     def test_new_producer_requires_execution_sidecar_even_when_inventory_is_resealed(self):
         with patch.object(bundle, 'required_tests', return_value={'fixture'}), \
-             patch.object(bundle, 'required_execution_contexts', return_value=['npm']):
+             patch.object(bundle, 'required_execution_contexts', return_value=['npm']), \
+             patch.object(bundle, 'required_completion_policy', return_value=None):
             with self.assertRaises(FileNotFoundError):
                 bundle.verify(self.deploy, self.audit, self.source, self.version, inspect=False)
         # The same distribution fixture remains readable for a frozen old producer.
@@ -299,7 +300,8 @@ class BundleTests(unittest.TestCase):
                               ROOT, self.source, 'npm')
         self.reseal()
         with patch.object(bundle, 'required_tests', return_value={'fixture'}), \
-             patch.object(bundle, 'required_execution_contexts', return_value=['npm']):
+             patch.object(bundle, 'required_execution_contexts', return_value=['npm']), \
+             patch.object(bundle, 'required_completion_policy', return_value=None):
             bundle.verify(self.deploy, self.audit, self.source, self.version, inspect=False)
             report = self.audit / 'execution.json'
             value = json.loads(report.read_text()); value['attempt'] = '2'
@@ -322,6 +324,77 @@ class BundleTests(unittest.TestCase):
         with patch.object(bundle, 'capture', side_effect=subprocess.CalledProcessError(1, 'git')):
             with self.assertRaises(subprocess.CalledProcessError):
                 bundle.required_execution_contexts(self.source)
+
+    def framework_policy_fixture(self):
+        return {'schema':'ci-ctest-completion/1','tests':{'fixture':{
+            'kind':'node-test','count':2,'entrypoint':'tests/fixture.test.mjs'}},'contexts':{
+            'npm':{'kind':'node-test','count':2},'packaging':{'kind':'unittest','count':2},
+            'browser-lifecycle':{'kind':'node-test','count':2}}}
+
+    def current_policy_fixture(self):
+        import execution
+        policy=self.framework_policy_fixture()
+        summary='\n'.join('# '+key+' '+str(value) for key,value in
+                          {'tests':2,'pass':2,'fail':0,'cancelled':0,'skipped':0,'todo':0}.items())
+        registered={'tests':[{'name':'fixture','command':['node','--test',str(ROOT/'tests/fixture.test.mjs')]}]}
+        (self.audit/'registered-tests.json').write_text(json.dumps(registered))
+        import xml.etree.ElementTree as ET
+        suite=ET.Element('testsuite');case=ET.SubElement(suite,'testcase',name='fixture');ET.SubElement(case,'system-out').text=summary
+        ET.ElementTree(suite).write(self.audit/'host-tests.xml')
+        (self.audit/'ctest-completion-policy.json').write_text(json.dumps(policy))
+        outputs={'ctest':'100% tests passed, 0 tests failed out of 1','npm':summary,
+                 'packaging':'Ran 2 tests in 0.01s\nOK\n','browser-lifecycle':summary}
+        with patch.dict(os.environ,{'GITHUB_RUN_ID':'1','GITHUB_RUN_ATTEMPT':'1'}):
+            for context,output in outputs.items():
+                execution.execute(self.audit/'host.log',[sys.executable,'-c','print('+repr(output)+')'],ROOT,self.source,context)
+        self.reseal()
+        return policy
+
+    def verify_current_policy_fixture(self, policy):
+        with patch.object(bundle,'required_tests',return_value={'fixture'}), \
+             patch.object(bundle,'required_execution_contexts',return_value=['ctest','npm','packaging','browser-lifecycle']), \
+             patch.object(bundle,'required_completion_policy',return_value=policy):
+            bundle.verify(self.deploy,self.audit,self.source,self.version,inspect=False)
+
+    def test_completion_policy_is_loaded_from_its_frozen_current_producer(self):
+        import execution
+        path='scripts/ci/execution-policy.json';completion='scripts/ci/ctest-completion-policy.json'
+        value={'schema':'ci-execution-policy/2','contexts':list(execution.HOST_CONTEXTS),'completion_policy':completion}
+        expected=self.framework_policy_fixture()
+        with patch.object(bundle,'capture',side_effect=[path,json.dumps(value),json.dumps(expected)]) as capture:
+            self.assertEqual(bundle.required_completion_policy(self.source),expected)
+        self.assertEqual(capture.call_args.args[-1],self.source+':'+completion)
+        changed={**value,'contexts':value['contexts'][:-1]}
+        with self.assertRaisesRegex(ValueError,'Incomplete current'):bundle.validate_execution_policy(changed)
+
+    def test_current_frozen_policy_cannot_fall_back_when_missing_or_malformed(self):
+        value={'schema':'ci-execution-policy/2','completion_policy':'scripts/ci/ctest-completion-policy.json'}
+        with patch.object(bundle,'source_execution_policy',return_value=value):
+            with patch.object(bundle,'capture',side_effect=subprocess.CalledProcessError(1,'git')):
+                with self.assertRaises(subprocess.CalledProcessError):bundle.required_completion_policy(self.source)
+            with patch.object(bundle,'capture',return_value='{"schema":"unknown"}'):
+                with self.assertRaises(ValueError):bundle.required_completion_policy(self.source)
+        with patch.object(bundle,'source_execution_policy',return_value={'schema':'ci-execution-policy/1'}):
+            self.assertIsNone(bundle.required_completion_policy(self.source))
+
+    def test_distribution_requires_exact_frozen_policy_even_after_resealing(self):
+        policy=self.current_policy_fixture();self.verify_current_policy_fixture(policy)
+        path=self.audit/'ctest-completion-policy.json';path.write_text('{}');self.reseal()
+        with self.assertRaisesRegex(ValueError,'policy differs'):self.verify_current_policy_fixture(policy)
+        path.unlink();self.reseal()
+        with self.assertRaises(FileNotFoundError):self.verify_current_policy_fixture(policy)
+
+    def test_distribution_refuses_partial_framework_result_even_after_resealing(self):
+        policy=self.current_policy_fixture()
+        path=self.audit/'host-tests.xml';path.write_text(path.read_text().replace('# tests 2','# tests 1').replace('# pass 2','# pass 1'));self.reseal()
+        with self.assertRaisesRegex(ValueError,'Incomplete framework discovery'):self.verify_current_policy_fixture(policy)
+
+    def test_current_producer_refuses_legacy_policy_without_breaking_old_reader(self):
+        legacy={'schema':'ci-execution-policy/1','contexts':['npm']}
+        self.assertEqual(bundle.validate_execution_policy(legacy),legacy)
+        with patch.object(bundle,'read_json',return_value=legacy):
+            with self.assertRaisesRegex(ValueError,'Current producer requires'):ci_run.producer_execution_policy()
+
 
     def test_layout_is_bound_to_frozen_source(self):
         self.assertEqual(self.created_boundary, '103ec000')

@@ -1,0 +1,299 @@
+{
+  "schema": "ci-ctest-completion/1",
+  "tests": {
+    "application_image_tests": {
+      "kind": "unittest",
+      "count": 2,
+      "entrypoint": "tests/application_image_tests.py"
+    },
+    "browser_cdp_transport": {
+      "kind": "node-test",
+      "count": 11,
+      "entrypoint": "tests/browser_cdp.test.mjs"
+    },
+    "browser_harness_tests": {
+      "kind": "node-test",
+      "count": 5,
+      "entrypoint": "tests/browser_harness.test.mjs"
+    },
+    "browser_scope_tests": {
+      "kind": "node-test",
+      "count": 7,
+      "entrypoint": "tests/browser_scope.test.mjs"
+    },
+    "capacity_pending_tests": {
+      "kind": "unittest",
+      "count": 3,
+      "entrypoint": "tests/capacity_pending_tests.py"
+    },
+    "ci_execution_tests": {
+      "kind": "unittest",
+      "count": 22,
+      "entrypoint": "tests/ci_execution_tests.py"
+    },
+    "console_info_format_tests": {
+      "kind": "unittest",
+      "count": 1,
+      "entrypoint": "tests/console_info_format_tests.py"
+    },
+    "console_trace_tests": {
+      "kind": "unittest",
+      "count": 7,
+      "entrypoint": "tests/console_trace_tests.py"
+    },
+    "cyw43_tx_overlay_tests": {
+      "kind": "unittest",
+      "count": 6,
+      "entrypoint": "tests/cyw43_tx_overlay_tests.py"
+    },
+    "firmware_fixture_options_tests": {
+      "kind": "unittest",
+      "count": 3,
+      "entrypoint": "tests/firmware_fixture_options_tests.py"
+    },
+    "firmware_payload_tests": {
+      "kind": "unittest",
+      "count": 3,
+      "entrypoint": "tests/firmware_payload_tests.py"
+    },
+    "fixture_process_tests": {
+      "kind": "unittest",
+      "count": 16,
+      "entrypoint": "tests/fixture_process_tests.py"
+    },
+    "gp14_robustness_tests": {
+      "kind": "unittest",
+      "count": 13,
+      "entrypoint": "tests/gp14_robustness_tests.py"
+    },
+    "heap_hook_image_tests": {
+      "kind": "unittest",
+      "count": 7,
+      "entrypoint": "tests/heap_hook_image_tests.py"
+    },
+    "independent_clock_measurement": {
+      "kind": "unittest",
+      "count": 17,
+      "entrypoint": "tests/clock_measurement_tests.py"
+    },
+    "inhibited_network_acceptance_tests": {
+      "kind": "unittest",
+      "count": 13,
+      "entrypoint": "tests/inhibited_network_acceptance_tests.py"
+    },
+    "inhibited_sync_image_checker_tests": {
+      "kind": "unittest",
+      "count": 1,
+      "entrypoint": "tests/inhibited_sync_image_checker_tests.py"
+    },
+    "journal_power_cut_tests": {
+      "kind": "unittest",
+      "count": 1,
+      "entrypoint": "tests/journal_power_cut_tests.py"
+    },
+    "load_reply_tests": {
+      "kind": "unittest",
+      "count": 7,
+      "entrypoint": "tests/load_reply_tests.py"
+    },
+    "network_certificate_strict_tests": {
+      "kind": "unittest",
+      "count": 1,
+      "entrypoint": "tests/network_certificate_strict_tests.py"
+    },
+    "network_control_tests": {
+      "kind": "unittest",
+      "count": 8,
+      "entrypoint": "tests/network_control_tests.py"
+    },
+    "network_replies_tests": {
+      "kind": "unittest",
+      "count": 12,
+      "entrypoint": "tests/network_replies_tests.py"
+    },
+    "network_socket_tests": {
+      "kind": "unittest",
+      "count": 5,
+      "entrypoint": "tests/network_socket_tests.py"
+    },
+    "network_trace_tests": {
+      "kind": "unittest",
+      "count": 4,
+      "entrypoint": "tests/network_trace_tests.py"
+    },
+    "ntp_packet_evidence": {
+      "kind": "unittest",
+      "count": 6,
+      "entrypoint": "tests/ntp_packet_tests.py"
+    },
+    "operator_asset_build_tests": {
+      "kind": "unittest",
+      "count": 8,
+      "entrypoint": "tests/operator_asset_build_tests.py"
+    },
+    "pico_application_adapter_tests": {
+      "kind": "unittest",
+      "count": 6,
+      "entrypoint": "tests/pico_application_adapter_tests.py"
+    },
+    "populated_flash_fixture_tests": {
+      "kind": "unittest",
+      "count": 7,
+      "entrypoint": "tests/populated_flash_fixture_tests.py"
+    },
+    "provisioning_flash_fixture_tests": {
+      "kind": "unittest",
+      "count": 15,
+      "entrypoint": "tests/provisioning_flash_fixture_tests.py"
+    },
+    "radio_capture_tests": {
+      "kind": "unittest",
+      "count": 12,
+      "entrypoint": "tests/radio_capture_tests.py"
+    },
+    "raspberry_pi_ble_client_tests": {
+      "kind": "unittest",
+      "count": 31,
+      "entrypoint": "tests/raspberry_pi_ble_client_tests.py"
+    },
+    "rf_abort_analysis_tests": {
+      "kind": "unittest",
+      "count": 2,
+      "entrypoint": "tests/rf_abort_analysis_tests.py"
+    },
+    "rf_analysis_jobs_tests": {
+      "kind": "unittest",
+      "count": 5,
+      "entrypoint": "tests/rf_analysis_jobs_tests.py"
+    },
+    "rf_bench_analysis_tests": {
+      "kind": "unittest",
+      "count": 5,
+      "entrypoint": "tests/rf_bench_analysis_tests.py"
+    },
+    "rf_bench_capture_tests": {
+      "kind": "unittest",
+      "count": 5,
+      "entrypoint": "tests/rf_bench_capture_tests.py"
+    },
+    "rf_bench_client_tests": {
+      "kind": "unittest",
+      "count": 13,
+      "entrypoint": "tests/rf_bench_client_tests.py"
+    },
+    "rf_bench_measurement_tests": {
+      "kind": "unittest",
+      "count": 23,
+      "entrypoint": "tests/rf_bench_measurement_tests.py"
+    },
+    "rf_correction_analysis_tests": {
+      "kind": "unittest",
+      "count": 5,
+      "entrypoint": "tests/rf_correction_analysis_tests.py"
+    },
+    "rf_drive_comparison_tests": {
+      "kind": "unittest",
+      "count": 5,
+      "entrypoint": "tests/rf_drive_comparison_tests.py"
+    },
+    "rf_feasibility_tests": {
+      "kind": "unittest",
+      "count": 6,
+      "entrypoint": "tests/rf_feasibility_tests.py"
+    },
+    "rf_keyed_analysis_tests": {
+      "kind": "unittest",
+      "count": 14,
+      "entrypoint": "tests/rf_keyed_analysis_tests.py"
+    },
+    "rf_presence_tests": {
+      "kind": "unittest",
+      "count": 2,
+      "entrypoint": "tests/rf_presence_tests.py"
+    },
+    "rf_renderer_image_tests": {
+      "kind": "unittest",
+      "count": 3,
+      "entrypoint": "tests/rf_renderer_image_tests.py"
+    },
+    "session_pilot_sensitivity": {
+      "kind": "node-test",
+      "count": 4,
+      "entrypoint": "tests/session_pilot_sensitivity.test.mjs"
+    },
+    "shutdown_image_tests": {
+      "kind": "unittest",
+      "count": 2,
+      "entrypoint": "tests/shutdown_image_tests.py"
+    },
+    "stack_guard_image_tests": {
+      "kind": "unittest",
+      "count": 5,
+      "entrypoint": "tests/stack_guard_image_tests.py"
+    },
+    "standalone_console_tests": {
+      "kind": "unittest",
+      "count": 4,
+      "entrypoint": "tests/standalone_console_tests.py"
+    },
+    "standalone_image_tests": {
+      "kind": "unittest",
+      "count": 3,
+      "entrypoint": "tests/standalone_image_tests.py"
+    },
+    "ui_fixture_native_profiles": {
+      "kind": "node-test",
+      "count": 3,
+      "entrypoint": "tests/ui_fixture_native.test.mjs"
+    },
+    "ui_fixture_process_tests": {
+      "kind": "node-test",
+      "count": 7,
+      "entrypoint": "tests/ui_fixture_process.test.mjs"
+    },
+    "usb_installer_tests": {
+      "kind": "unittest",
+      "count": 114,
+      "entrypoint": "tests/usb_installer_tests.py"
+    },
+    "usb_inventory_tests": {
+      "kind": "unittest",
+      "count": 7,
+      "entrypoint": "tests/usb_inventory_tests.py"
+    },
+    "usb_tool_download_tests": {
+      "kind": "unittest",
+      "count": 39,
+      "entrypoint": "tests/usb_tool_download_tests.py"
+    },
+    "wspr_type23_decode_tests": {
+      "kind": "unittest",
+      "count": 7,
+      "entrypoint": "tests/wspr_type23_decode_tests.py"
+    },
+    "wtp_capacity_tests": {
+      "kind": "unittest",
+      "count": 6,
+      "entrypoint": "tests/wtp_capacity_tests.py"
+    },
+    "wtp_monitor_tests": {
+      "kind": "unittest",
+      "count": 3,
+      "entrypoint": "tests/wtp_monitor_tests.py"
+    }
+  },
+  "contexts": {
+    "npm": {
+      "kind": "node-test",
+      "count": 26
+    },
+    "packaging": {
+      "kind": "unittest",
+      "count": 64
+    },
+    "browser-lifecycle": {
+      "kind": "node-test",
+      "count": 39
+    }
+  }
+}

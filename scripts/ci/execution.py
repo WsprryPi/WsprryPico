@@ -1,5 +1,7 @@
 """Source-bound command evidence; watchdogs bound hangs, never assert readiness."""
 import hashlib
+import ast
+import sys
 import json
 import math
 import os
@@ -38,7 +40,126 @@ def require(condition, message):
         raise ValueError(message)
 
 
-def ctest_result(suite, names):
+def framework_evidence(kind, output):
+    require('[This part of the test output was removed' not in output, 'Framework output was truncated')
+    if kind == 'node-test':
+        def count(key):
+            values = re.findall(r'^(?:ℹ|#)\s+' + key + r'\s+(\d+)\s*$', output, re.M)
+            require(len(values) == 1, 'Missing or duplicate Node test summary: ' + key)
+            return int(values[0])
+        total, passed = count('tests'), count('pass')
+        require(total > 0 and passed == total and all(count(k) == 0 for k in ('fail', 'cancelled', 'skipped', 'todo')),
+                'Incomplete or skipped Node test execution')
+        require(not re.search(r'^\s*(?:not\s+)?ok\b[^\n]*#\s*(?:SKIP|TODO)\b', output, re.M | re.I),
+                'Required Node case was skipped or TODO')
+    elif kind == 'unittest':
+        totals = re.findall(r'^Ran (\d+) tests? in ', output, re.M)
+        require(len(totals) == 1 and int(totals[0]) > 0 and len(re.findall(r'^OK\s*$', output, re.M)) == 1,
+                'Missing or incomplete unittest execution')
+        require(not re.search(r'\bskipped=[1-9][0-9]*\b|^FAILED\b', output, re.M),
+                'Internally skipped or failed unittest execution')
+        total = int(totals[0])
+    else:
+        raise ValueError('Unknown completion framework')
+    return {'kind': kind, 'count': total}
+
+
+def completion_policy(value):
+    require(isinstance(value, dict) and set(value) == {'schema', 'tests', 'contexts'} and
+            value['schema'] == 'ci-ctest-completion/1', 'Invalid completion policy')
+    require(isinstance(value['tests'], dict) and bool(value['tests']), 'Empty framework policy')
+    for name, expected in value['tests'].items():
+        require(isinstance(name, str) and re.fullmatch(r'[a-zA-Z0-9_-]+', name) and
+                isinstance(expected, dict) and set(expected) == {'kind', 'count', 'entrypoint'},
+                'Invalid framework identity')
+        _completion_expected(expected)
+        path = expected['entrypoint']
+        require(isinstance(path, str) and re.fullmatch(r'tests/[a-zA-Z0-9_./-]+\.(?:py|mjs|js)', path) and
+                '..' not in Path(path).parts and
+                (path.endswith('.py') if expected['kind'] == 'unittest' else path.endswith(('.js', '.mjs'))),
+                'Invalid framework entrypoint')
+    require(isinstance(value['contexts'], dict) and
+            set(value['contexts']) == {'npm', 'packaging', 'browser-lifecycle'}, 'Missing standalone framework policy')
+    for context, expected in value['contexts'].items():
+        require(isinstance(expected, dict) and set(expected) == {'kind', 'count'}, 'Invalid standalone completion')
+        _completion_expected(expected)
+        require(expected['kind'] == ('unittest' if context == 'packaging' else 'node-test'),
+                'Standalone framework kind mismatch')
+    return value
+
+
+def _completion_expected(value):
+    require(value.get('kind') in ('node-test', 'unittest') and type(value.get('count')) is int and
+            value['count'] > 0, 'Invalid expected completion count')
+
+
+def require_unoptimized_python():
+    require(sys.flags.optimize == 0, 'Required assertion-based checks cannot run with optimized Python')
+
+
+def framework_source_kind(path):
+    if path.suffix in ('.js', '.mjs'):
+        return 'node-test' if re.search(r"(?:from\s*|require\(\s*)['\"]node:test['\"]", path.read_text()) else None
+    if path.suffix == '.py':
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and any(
+                    isinstance(base, ast.Attribute) and base.attr == 'TestCase' or
+                    isinstance(base, ast.Name) and base.id == 'TestCase' for base in node.bases):
+                return 'unittest'
+    return None
+
+
+def completion_registration(registered, policy, source_root=None, command_root=None):
+    completion_policy(policy)
+    require(isinstance(registered, dict) and isinstance(registered.get('tests'), list), 'Missing registered commands')
+    entries = registered['tests']
+    require(all(isinstance(entry, dict) and isinstance(entry.get('name'), str) for entry in entries), 'Invalid registered test identity')
+    names = [entry['name'] for entry in entries]
+    require(len(names) == len(set(names)) and set(policy['tests']) <= set(names), 'Required framework registration missing')
+    root = Path(source_root).resolve() if source_root is not None else None
+    command_base = Path(command_root).resolve() if command_root is not None else root
+    for entry in entries:
+        name, command = entry['name'], entry.get('command', [])
+        require(isinstance(command, list) and all(isinstance(arg, str) for arg in command), 'Invalid registered command')
+        detected = 'node-test' if command and Path(command[0]).name in ('node', 'node.exe') and '--test' in command else None
+        if command and '-m' in command and 'unittest' in command:
+            detected = 'unittest'
+        if root is not None:
+            for arg in command[1:]:
+                if arg.startswith('-') or not arg.endswith(('.py', '.js', '.mjs')):
+                    continue
+                candidate = Path(arg)
+                candidate = (root / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
+                if candidate.is_relative_to(root) and candidate.is_file():
+                    kind = framework_source_kind(candidate)
+                    if kind:
+                        require(detected in (None, kind), 'Ambiguous registered framework')
+                        detected = kind
+        expected = policy['tests'].get(name)
+        if detected is not None:
+            require(expected is not None and expected['kind'] == detected, 'Framework is missing from completion policy: ' + name)
+        if expected is not None:
+            if root is not None:
+                require((root / expected['entrypoint']).is_file(), 'Required framework source missing: ' + name)
+            if command_base is not None:
+                require(any((Path(arg) if Path(arg).is_absolute() else command_base / arg).resolve() == command_base / expected['entrypoint']
+                            for arg in command[1:]), 'Framework command selects the wrong source root: ' + name)
+            require(bool(command) and any(arg == expected['entrypoint'] or arg.endswith('/' + expected['entrypoint'])
+                                         for arg in command[1:]), 'Required framework command/entrypoint missing: ' + name)
+
+
+def verify_completion_counts(report, policy):
+    completion_policy(policy)
+    records = {entry['context']: entry for entry in report['records']}
+    for context, expected in policy['contexts'].items():
+        observed = records.get(context, {}).get('evidence')
+        require(isinstance(observed, dict) and set(observed) == {'kind', 'count'}, 'Missing standalone framework evidence')
+        _completion_expected(observed)
+        require(observed == expected,
+                'Incomplete standalone framework count: ' + context)
+
+def ctest_result(suite, names, policy=None, registered=None, command_root=None):
     cases = suite.findall('testcase')
     actual = [case.get('name') for case in cases]
     require(bool(names) and len(actual) == len(set(actual)) == len(names) and set(actual) == set(names),
@@ -47,6 +168,17 @@ def ctest_result(suite, names):
             'Failed or skipped required CTest suite')
     require(not any(re.search(r'\bskipped=[1-9][0-9]*\b', ''.join(case.itertext())) for case in cases),
             'Internally skipped required CTest suite')
+    if policy is not None:
+        completion_registration(registered, policy, command_root=command_root)
+        for case in cases:
+            output = ''.join(case.itertext())
+            require(not re.search(r'^\s*SKIP(?:\s|:)', output, re.M), 'Required prerequisite was skipped: ' + case.get('name'))
+            expected = policy['tests'].get(case.get('name'))
+            if expected is not None:
+                observed = framework_evidence(expected['kind'], output)
+                require(observed['count'] == expected['count'], 'Incomplete framework discovery: ' + case.get('name'))
+            elif re.search(r'^(?:ℹ|#)\s+tests\s+\d+\s*$|^Ran \d+ tests? in ', output, re.M):
+                raise ValueError('Observed framework absent from policy: ' + case.get('name'))
     return len(cases)
 
 
@@ -60,20 +192,9 @@ def evidence(context, output, audit):
         require(len(totals) == 1 and all(int(x) > 0 for x in totals[0]), 'Missing or empty WTP contract completion')
         return {'kind': 'wtp-contract', 'count': sum(map(int, totals[0]))}
     if context in ('npm', 'browser-lifecycle'):
-        def count(key):
-            values = re.findall(r'^(?:ℹ|#)\s+' + key + r'\s+(\d+)\s*$', output, re.M)
-            require(len(values) == 1, 'Missing or duplicate Node test summary: ' + key)
-            return int(values[0])
-        total, passed = count('tests'), count('pass')
-        require(total > 0 and passed == total and all(count(k) == 0 for k in ('fail', 'cancelled', 'skipped', 'todo')),
-                'Incomplete or skipped Node test execution')
-        return {'kind': 'node-test', 'count': total}
+        return framework_evidence('node-test', output)
     if context == 'packaging':
-        totals = re.findall(r'^Ran (\d+) tests? in ', output, re.M)
-        require(len(totals) == 1 and int(totals[0]) > 0 and re.search(r'^OK\s*$', output, re.M),
-                'Missing or incomplete unittest execution')
-        require(not re.search(r'\bskipped=[1-9][0-9]*\b', output), 'Internally skipped unittest execution')
-        return {'kind': 'unittest', 'count': int(totals[0])}
+        return framework_evidence('unittest', output)
     if context in NATIVE:
         filename, expected = NATIVE[context]
         if filename:
@@ -100,7 +221,7 @@ def evidence(context, output, audit):
     return {'kind': 'exit', 'count': 1}
 
 
-def execute(log, command, cwd, source, context=None, watchdog=3600):
+def execute(log, command, cwd, source, context=None, watchdog=3600, expected=None):
     """The existing 60-minute CI job budget is a hang guard, not a speed oracle."""
     require(type(watchdog) in (int, float) and math.isfinite(watchdog) and watchdog > 0, 'Invalid execution watchdog')
     audit = log.parent
@@ -164,6 +285,10 @@ def execute(log, command, cwd, source, context=None, watchdog=3600):
     if primary is None:
         try:
             qualified = evidence(context, raw.decode(errors='replace'), audit)
+            if expected is not None:
+                require(isinstance(expected, dict) and set(expected) == {'kind', 'count'}, 'Invalid command completion expectation')
+                _completion_expected(expected)
+                require(qualified == expected, 'Incomplete expected framework discovery: ' + context)
         except BaseException as error:
             primary = error
     data['records'].append({'context': context, 'command': command, 'cwd': str(cwd),

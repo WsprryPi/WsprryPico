@@ -1,0 +1,59 @@
+{
+  "baseline_commit": "36ed98689304e25b9f7302559b868a1c368e291f",
+  "scope": "changed executable/configuration inputs only; other inputs remain in baseline commit",
+  "files": [
+    {
+      "path": "CMakeLists.txt",
+      "sha256": "fc3628ebad350005347722943f48fa8a2a859f9d89a3b5d8e211f5cfc3107bfe",
+      "bytes": 62851,
+      "physical_lines": 933
+    },
+    {
+      "path": "scripts/ci/bundle.py",
+      "sha256": "ecc562bd690fe69242c0e54711e5ccb0f7cc40858c75d7646abb5e87d753b050",
+      "bytes": 29923,
+      "physical_lines": 499
+    },
+    {
+      "path": "scripts/ci/execution-policy.json",
+      "sha256": "14122ee69bf0ad2b9bbfd86d92687cb7f089ed0db76ff3608754ce077941773f",
+      "bytes": 461,
+      "physical_lines": 24
+    },
+    {
+      "path": "scripts/ci/execution.py",
+      "sha256": "4480853d323e311626dc787a3de0b63a035ad180eac985fa4208028a21416947",
+      "bytes": 20550,
+      "physical_lines": 344
+    },
+    {
+      "path": "scripts/ci/run.py",
+      "sha256": "3c604b10f9802cc315c99f75abdb719215a3b460bb49189eb232135931d43c44",
+      "bytes": 20498,
+      "physical_lines": 351
+    },
+    {
+      "path": "tests/ci_bundle_tests.py",
+      "sha256": "d3ee583a30e005c784364c75ceaae9f182f91ceedfb783caf10c6eb2897bd10d",
+      "bytes": 69981,
+      "physical_lines": 1114
+    },
+    {
+      "path": "tests/ci_execution_tests.py",
+      "sha256": "2e391cde4383881246082ceeaba8dcf4ab25dbe9d60055b4f3a6c929226b0f0f",
+      "bytes": 15478,
+      "physical_lines": 250
+    },
+    {
+      "path": "scripts/ci/ctest-completion-policy.json",
+      "sha256": "26924cc5a48b83b00c9d82a272847cec7e1656b4e49642857e87447328f4427b",
+      "bytes": 8101,
+      "physical_lines": 299
+    }
+  ],
+  "net_physical_lines": 628,
+  "new_files": 1,
+  "new_test_methods": 15,
+  "new_ctest_registrations": 1,
+  "newly_activated_existing_test_methods": 39
+}

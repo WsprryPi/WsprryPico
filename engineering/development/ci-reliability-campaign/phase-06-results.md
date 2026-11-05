@@ -129,6 +129,13 @@ remained set. Full outputs are build/campaign-phase06-network.log and
 campaign-phase06-usb.log. These are hardware-free software results.
 
 [Canonical phase 06 run](https://github.com/WsprryPi/WsprryPico/actions/runs/42094622087)
-was still active at local acceptance; it remains tracked for final acceptance.
-The prior phase 05 canonical result is independently verified in its result record.
+completed successfully. Independent download verification checked all 28 command
+receipts and log digests, and the exact 231-suite CTest inventory without failures
+or skips. Aggregate command elapsed was 847.579 seconds; the verify job took
+971 seconds. Its actual merge source a66bb83af52ea0ec7af183fc00c5362b15639100
+has the verified parents c9fd28ef57265c942900bdfe0595f90a31926ff9 and the
+accepted candidate 0b24fd5c5a129d6b6436c0459b1737b8d2389c0e. This source
+binding was checked independently against the GitHub commit API. The evidence
+remains version 1 command evidence; phase 07 adds source-bound inner discovery
+counts. The prior phase 05 result is independently verified in its result record.
 No merge, release, deployment, or physical qualification was performed.
