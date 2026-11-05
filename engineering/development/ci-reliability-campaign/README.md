@@ -8,7 +8,7 @@ question for each metric, never a completion quota.
 ## Phase list
 
 Legend: ✅ complete, ⏳ in progress, ▧ not started. All eleven saved prompts passed
-an authoring adversarial review, correction, and reassessment. The first nine
+an authoring adversarial review, correction, and reassessment. The first ten
 execution slices are accepted. Completed prompts remain accessible at their saved
 immutable Git revisions; current operating instructions are consolidated in the
 [CI guide](../software-build-ci.md).
@@ -24,8 +24,8 @@ immutable Git revisions; current operating instructions are consolidated in the
 | 07 | Close coverage and source pair gaps | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-07-coverage-and-pair.md) | ✅ Complete |
 | 08 | Consolidate demonstrably redundant build work | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-08-build-consolidation.md) | ✅ Complete |
 | 09 | Optimize isolated execution scheduling | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-09-scheduling.md) | ✅ Complete |
-| 10 | Resolve holds and repair documentation | [Prompt](phase-10-retention.md) | ⏳ In progress |
-| 11 | Perform adversarial acceptance and handoff | [Prompt](phase-11-final-acceptance.md) | ▧ Not started |
+| 10 | Resolve holds and repair documentation | [Prompt](phase-10-retention.md) | ✅ Complete |
+| 11 | Perform adversarial acceptance and handoff | [Prompt](phase-11-final-acceptance.md) | ⏳ In progress |
 
 ## Shared execution contract
 
@@ -81,7 +81,7 @@ The [frozen baseline](baseline.json) and [baseline definitions](baseline.md)
 remain active accounting inputs. Accepted evidence is retained for final
 reconciliation: [02](phase-02-results.md), [03](phase-03-results.md),
 [04](phase-04-results.md), [05](phase-05-results.md), [06](phase-06-results.md),
-[07](phase-07-results.md), [08](phase-08-results.md), and [09](phase-09-results.md).
+[07](phase-07-results.md), [08](phase-08-results.md), [09](phase-09-results.md), and [10](phase-10-results.md).
 The final review consolidates the necessary scorecard and current limitations
 before retiring intermediate evidence narratives. This active plan and the
 requested saved-prompt index remain the campaign entry point.
