@@ -32,8 +32,8 @@ campaign and remain stable. Legend: ✅ complete, ⏳ in progress, ▧ not start
 | 06 | Remove scheduler dependent synchronization | [Prompt](phase-06-synchronization.md) | Reviewed, findings closed | ✅ Complete |
 | 07 | Close coverage and source pair gaps | [Prompt](phase-07-coverage-and-pair.md) | Reviewed, findings closed | ✅ Complete |
 | 08 | Consolidate demonstrably redundant build work | [Prompt](phase-08-build-consolidation.md) | Reviewed, findings closed | ✅ Complete |
-| 09 | Optimize isolated execution scheduling | [Prompt](phase-09-scheduling.md) | Reviewed, findings closed | ⏳ In progress |
-| 10 | Resolve holds and repair documentation | [Prompt](phase-10-retention.md) | Reviewed, findings closed | ▧ Not started |
+| 09 | Optimize isolated execution scheduling | [Prompt](phase-09-scheduling.md) | Reviewed, findings closed | ✅ Complete |
+| 10 | Resolve holds and repair documentation | [Prompt](phase-10-retention.md) | Reviewed, findings closed | ⏳ In progress |
 | 11 | Perform adversarial acceptance and handoff | [Prompt](phase-11-final-acceptance.md) | Reviewed, findings closed | ▧ Not started |
 
 ## Sequence and completion
