@@ -25,6 +25,7 @@ Prompts are added below after their individual adversarial reviews close.
 | 05 | Adopt the qualified browser lifecycle | [Prompt](phase-05-browser-adoption.md) | Reviewed, findings closed | ▧ Not started |
 | 06 | Remove scheduler dependent synchronization | [Prompt](phase-06-synchronization.md) | Reviewed, findings closed | ▧ Not started |
 | 07 | Close coverage and source pair gaps | [Prompt](phase-07-coverage-and-pair.md) | Reviewed, findings closed | ▧ Not started |
+| 08 | Consolidate demonstrably redundant build work | [Prompt](phase-08-build-consolidation.md) | Reviewed, findings closed | ▧ Not started |
 
 ## Shared execution contract
 
