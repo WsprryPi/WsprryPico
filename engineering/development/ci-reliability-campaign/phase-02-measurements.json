@@ -1,0 +1,238 @@
+{
+  "source": "1c068c0d34a7389e5f83e74ecc9f1fb3b72b9227",
+  "feature_head": "7d41f381b134ec42da46e5afe9941e6f90bf10bd",
+  "run": 42064334122,
+  "attempt": 1,
+  "audit_artifact_id": 13433284043,
+  "execution_sha256": "a5bc3c3373190cada18ee44a62c3e0701296d69290fdf68f0fa9853625422346",
+  "job_elapsed_s": 950,
+  "ctest_registrations": 219,
+  "ctest_case_elapsed_s": 281.552619788,
+  "command_elapsed_s": 835.3452824190001,
+  "commands": [
+    {
+      "context": "command-1",
+      "elapsed_s": 0.5168771360000051,
+      "evidence": {
+        "kind": "exit",
+        "count": 1
+      }
+    },
+    {
+      "context": "command-2",
+      "elapsed_s": 2.419277459,
+      "evidence": {
+        "kind": "exit",
+        "count": 1
+      }
+    },
+    {
+      "context": "command-3",
+      "elapsed_s": 84.67308085900001,
+      "evidence": {
+        "kind": "exit",
+        "count": 1
+      }
+    },
+    {
+      "context": "ctest",
+      "elapsed_s": 281.88030010500006,
+      "evidence": {
+        "kind": "ctest",
+        "count": 219
+      }
+    },
+    {
+      "context": "wtp-contract",
+      "elapsed_s": 0.11409911099997316,
+      "evidence": {
+        "kind": "wtp-contract",
+        "count": 39
+      }
+    },
+    {
+      "context": "npm",
+      "elapsed_s": 0.5685353119999945,
+      "evidence": {
+        "kind": "node-test",
+        "count": 26
+      }
+    },
+    {
+      "context": "packaging",
+      "elapsed_s": 3.9216646879999644,
+      "evidence": {
+        "kind": "unittest",
+        "count": 59
+      }
+    },
+    {
+      "context": "browser-lifecycle",
+      "elapsed_s": 22.566737883999963,
+      "evidence": {
+        "kind": "node-test",
+        "count": 28
+      }
+    },
+    {
+      "context": "frequency",
+      "elapsed_s": 17.46022085600009,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "first-use",
+      "elapsed_s": 4.929531997000026,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "session-timeout",
+      "elapsed_s": 3.0248652340000035,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "progress",
+      "elapsed_s": 4.327964789999896,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "recovery",
+      "elapsed_s": 3.180053811000107,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "submission",
+      "elapsed_s": 2.573976767999966,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "hostname",
+      "elapsed_s": 7.8422732080000515,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "organization",
+      "elapsed_s": 8.299624117999997,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "wspr",
+      "elapsed_s": 1.9729186439999467,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "message-frequency",
+      "elapsed_s": 4.680813865999994,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "operator",
+      "elapsed_s": 2.9757691249999425,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "sections-consumer",
+      "elapsed_s": 11.648173472000053,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "sections-engineering",
+      "elapsed_s": 1.82492347099992,
+      "evidence": {
+        "kind": "native-browser",
+        "count": 1
+      }
+    },
+    {
+      "context": "command-22",
+      "elapsed_s": 2.0176932169999873,
+      "evidence": {
+        "kind": "exit",
+        "count": 1
+      }
+    },
+    {
+      "context": "command-23",
+      "elapsed_s": 106.78346544100009,
+      "evidence": {
+        "kind": "exit",
+        "count": 1
+      }
+    },
+    {
+      "context": "command-24",
+      "elapsed_s": 2.169502987000101,
+      "evidence": {
+        "kind": "exit",
+        "count": 1
+      }
+    },
+    {
+      "context": "command-25",
+      "elapsed_s": 100.16897981199998,
+      "evidence": {
+        "kind": "exit",
+        "count": 1
+      }
+    },
+    {
+      "context": "command-26",
+      "elapsed_s": 44.36811773900001,
+      "evidence": {
+        "kind": "exit",
+        "count": 1
+      }
+    },
+    {
+      "context": "command-27",
+      "elapsed_s": 2.0184451439999975,
+      "evidence": {
+        "kind": "exit",
+        "count": 1
+      }
+    },
+    {
+      "context": "command-28",
+      "elapsed_s": 106.41739616500001,
+      "evidence": {
+        "kind": "exit",
+        "count": 1
+      }
+    }
+  ]
+}

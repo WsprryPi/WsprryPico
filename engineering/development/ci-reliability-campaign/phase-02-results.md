@@ -99,7 +99,45 @@ a PR, and prohibits force pushes/deletion. Optional `publish` is not required.
 No unrelated branch or repository settings changed. Draft PR:
 https://github.com/WsprryPi/WsprryPico/pull/16.
 
-Hosted and final source-pair acceptance remains pending. Phase 02 is in progress;
-none of the preceding local results is a claim of complete hosted acceptance.
-The additional receipts, validators, and regressions add maintenance/runtime;
-this correctness cost is charged to the campaign rather than hidden as savings.
+Both actual local source-pair suites are successful: the runtime recipe completed
+34 TLS cases and the plain/runtime cases; the serialized network/config recipe
+completed IPv4 rebind, idle lifetime, real scheduled execution, replay, all three
+carriers, journals, current policy, GPIO, GPS/Si5351, and native Pi runtime plus two
+shipped-browser crypto contexts. Exact commands and logs are retained in ignored
+`build/campaign-network-native.log`, `build/campaign-network-pair-final.log`, and
+`build/campaign-usb.log`. The selected implementation is Pico
+`5aa416a1ccb3d09476eed18df400f91f52107426` with the final receipt/test-only edits
+subsequently committed as `7d41f381b134ec42da46e5afe9941e6f90bf10bd`; Pi remains
+`1e15b2485ac6e1b9cbb6ff435afc0f0232528804`. No production handler differs between
+those Pico candidates.
+
+Canonical candidate [run 42064334122](https://github.com/WsprryPi/WsprryPico/actions/runs/42064334122)
+passed for feature head `7d41f381b134ec42da46e5afe9941e6f90bf10bd` and its actual
+PR merge source `1c068c0d34a7389e5f83e74ecc9f1fb3b72b9227`. The downloaded audit
+independently passed the current strict receipt/log validators: 28 successful
+commands, all 18 required host contexts, and 219 exact CTest names with no
+required skips. The canonical job itself passed the linked-image, inhibited,
+compatibility, fresh reproducibility, bundle, and provenance gates. The publisher
+was intentionally skipped. Verification took 950 seconds; recorded child command
+wall time totals 835.345 seconds. This is a single observation, not an attributed
+speed improvement over the baseline's different runner instance.
+
+The required hosted pair jobs also passed in
+[Pi run 42062554127, attempt 2](https://github.com/WsprryPi/WsprryPi/actions/runs/42062554127/attempts/2):
+network job 127389906711 and USB job 127389901037. Their selected Pico is the
+phase's earlier `86f8a13818115d61c1b044038e83609de96da4dc`; later Pico changes in
+this phase affect the CI runner/receipts, companion test adapter/pin, and tests,
+not the production handler source exercised by that pair. The complete local
+recipes above cover the final intended production source pair as well.
+
+The first USB job was cancelled during downloads from azure.archive.ubuntu.com,
+before any source-pair checks ran. The targeted rerun passed in 137 seconds;
+no integration assertion, deadline, or job budget was relaxed. The full Pi run
+still has an unrelated cancelled 30-minute Ubuntu release-build job and is not
+represented as a successful whole workflow. This separate scheduling observation
+is retained for phase 09's investigation, not used as accepted paired evidence.
+
+Phase 02 is complete. The additional receipts, validators, source-pair fixture,
+and regressions add maintenance/runtime; this correctness cost is charged to the
+campaign rather than hidden as savings. Existing reduction targets remain
+subordinate to reliability and efficacy. Phase 03 is in progress.
