@@ -1,28 +1,16 @@
 // Genuine Noble browser client -> production Pico HTTP/parser/session/AEAD/API.
 // lwIP calls are deterministic boundary doubles; this is software evidence.
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
-import {createInterface} from 'node:readline';
+import {FixtureProcess} from './fixture_process.mjs';
 import {RadioClient} from '../src/network/bootstrap_web/radio-client.js';
 import {seal,open,begin} from '../src/network/bootstrap_web/radio-crypto.js';
 
-export class Fixture {
-  constructor(executable,args=[]) {
-    this.process=spawn(executable,args,{stdio:['pipe','pipe','pipe']});
-    this.lines=createInterface({input:this.process.stdout});
-    this.queue=[]; this.stderr=''; this.now=1000;
-    this.process.stderr.on('data',bytes=>this.stderr+=bytes);
-    this.lines.on('line',line=>{const next=this.queue.shift(); assert.ok(next); next.resolve(JSON.parse(line));});
-    this.process.on('exit',code=>{for(const next of this.queue.splice(0))next.reject(new Error(`driver exited ${code}: ${this.stderr}`));});
-    this.pending=Promise.resolve();
-  }
+export class Fixture extends FixtureProcess {
+  constructor(executable,args=[],options={}) {super(executable,args,options);this.now=1000;}
   command(value) {
     if(value.hex!==undefined){value={...value,b64:Buffer.from(value.hex,'hex').toString('base64url')};delete value.hex;}
     if(typeof value.socket==='number')value={...value,socket:String(value.socket)};
-    // Core 0 is serialized, even when independent clients issue concurrent JS calls.
-    const result=this.pending.then(()=>new Promise((resolve,reject)=>{
-      this.queue.push({resolve,reject}); this.process.stdin.write(JSON.stringify(value)+'\n');
-    })); this.pending=result.catch(()=>{}); return result;
+    return super.command(value);
   }
   async time(ms) {this.now=ms;await this.command({op:'time',ms:String(ms)});}
   client(host='192.168.1.53',ap=false) {
@@ -40,7 +28,6 @@ export class Fixture {
     return new Response(wire.subarray(end+4),{status,headers:headers.map(line=>{const i=line.indexOf(':');return [line.slice(0,i),line.slice(i+1).trim()];})});
   }
   async login(client,password='test-password') {await client.login(password,await client.identity());}
-  async stop() {if(this.process.exitCode!==null||this.process.signalCode!==null)return;this.process.stdin.end();await new Promise(resolve=>this.process.once('exit',resolve));}
 }
 async function run(name,fn) {
   const f=new Fixture(process.argv[2]);

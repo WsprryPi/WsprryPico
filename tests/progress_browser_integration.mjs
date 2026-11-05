@@ -1,8 +1,9 @@
+import {launchChrome} from './chrome_startup.mjs';
+import {deadlinePromise,until as waitUntil,preserveCleanup} from './browser_deadline.mjs';
 // Shipped page/bundle -> real browser -> production HTTP/crypto/commissioning.
 // Only TCP/board/time boundaries use the existing deterministic fixture.
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import {spawn} from 'node:child_process';
 import {mkdtemp, readFile, writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
@@ -18,7 +19,7 @@ const accessibility=[];
 const profile=await mkdtemp(path.join(os.tmpdir(),'p159-chrome-'));
 if (!process.argv[2]) throw Error('Usage: node tests/progress_browser_integration.mjs CONSUMER_BOOTSTRAP_DRIVER [OUTPUT_DIRECTORY]');
 const processGroup=process.platform==='linux';
-let f=new Fixture(process.argv[2]);await f.time(1000);
+let f=new Fixture(process.argv[2]);
 let engineering=false, engineeringFault=null, radioFault=null, heldReply=null, releaseReply=null, chrome, cdp; const requests=[];
 let proxyQueue=Promise.resolve();
 const proxy=http.createServer((req,res)=>{proxyQueue=proxyQueue.then(()=>serve(req,res));});
@@ -63,15 +64,17 @@ async function serve(req,res){
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
     }catch(error){res.writeHead(500,{'Content-Type':'text/plain'});res.end(error.message);}
 }
-await new Promise(resolve=>proxy.listen(0,'127.0.0.1',resolve));
+try {await f.time(1000);await deadlinePromise('fixture-http-listen',(resolve,reject)=>{proxy.once('error',reject);proxy.listen(0,'127.0.0.1',resolve);return()=>proxy.removeListener('error',reject);});}
+catch(error){await preserveCleanup(error,[()=>f.stop(),()=>cleanupUiProcesses([],profile,{processGroup})]);throw error;}
 const port=proxy.address().port;
 class Cdp {
-    constructor(url){this.ws=new WebSocket(url);this.sequence=0;this.pending=new Map();this.ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&this.pending.has(m.id)){const p=this.pending.get(m.id);this.pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}};}
-    async open(){if(this.ws.readyState===1)return;await new Promise((resolve,reject)=>{this.ws.onopen=resolve;this.ws.onerror=reject;});}
-    send(method,params={}){const id=++this.sequence;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('CDP deadline: '+method));},20000);this.pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});this.ws.send(JSON.stringify({id,method,params}));});}
+    constructor(url){this.ws=new WebSocket(url);this.sequence=0;this.pending=new Map();const fail=()=>{for(const pending of this.pending.values())pending.reject(Error('CDP socket closed or failed'));this.pending.clear();};this.ws.addEventListener('close',fail);this.ws.addEventListener('error',fail);this.ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&this.pending.has(m.id)){const p=this.pending.get(m.id);this.pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}};}
+    async open(){if(this.ws.readyState===1)return;await deadlinePromise('browser-socket-open',(resolve,reject)=>{this.ws.onopen=resolve;this.ws.onerror=reject;return()=>{this.ws.onopen=null;this.ws.onerror=null;};});}
+    send(method,params={}){const id=++this.sequence;return deadlinePromise('CDP '+method,(resolve,reject)=>{this.pending.set(id,{resolve,reject});this.ws.send(JSON.stringify({id,method,params}));return()=>this.pending.delete(id);});}
     async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
 }
-async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(Date.now()<end){try{const r=await fn();if(r)return r;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+label+(last?' '+last.message:''));}
+const until=(fn,label,ms=10000)=>waitUntil(fn,label,ms,{retryErrors:true});
+let primaryFailure;
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)}) || document.querySelector('[name="'+${JSON.stringify(id)}+'"]');globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 async function click(id){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.click();}`);}
 async function capture(name){
@@ -102,11 +105,10 @@ async function reloadAndLogin() {
     await until(()=>cdp.evaluate('localAuthenticated && !busy'),'login after reload');
 }
 try {
-    chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    const browser=launchChrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
         ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
-            '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore',detached:processGroup});
-    const debugPort=await until(async()=>Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]),'Chrome startup',60000);
-    const page=await until(async()=>(await (await fetch(`http://127.0.0.1:${debugPort}/json`)).json()).find(p=>p.type==='page'),'page');
+            '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],profile,{processGroup});
+    chrome=browser.process;const page=(await browser.ready).find(page=>page.type==='page');
     cdp=new Cdp(page.webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate(`typeof radio !== 'undefined' && !!document.getElementById('local-password')`),'shipped radio page');
@@ -306,9 +308,14 @@ try {
     assert.equal(await cdp.evaluate(`document.activeElement.id`),'apply-engineering-station-progress');
     console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,real_crypto:true,callsign_only:true,blank_qrss:true,mixed_outcomes:true,zero_power:true,explicit_reload:true,keep_draft_readback:true,explicit_application:true,reconstructed_reboot:true,network_only_no_profile_promotion:true,engineering_numeric_overflow:true,keyboard:true,future_reply:true,late_edit:true,late_rejected_and_cleared_outcomes:true,network_only_lost_reply_readback:true,native_power_clear:true,captures_enabled:process.env.PROGRESS_BROWSER_NO_CAPTURE!=='1'}));
 } catch(error) {
+    primaryFailure=error;
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,1800)})`).catch(e=>e.message):null}));throw error;
 } finally {
-    releaseReply?.();cdp?.ws.close();
-    try {await cleanupUiProcesses([chrome],profile,{processGroup});}
-    finally {proxy.closeAllConnections();await new Promise(resolve=>proxy.close(resolve));await proxyQueue;await f.stop();}
+    await preserveCleanup(primaryFailure,[
+        async()=>{releaseReply?.();cdp?.ws.close();},
+        ()=>cleanupUiProcesses([chrome],profile,{processGroup}),
+        async()=>{proxy.closeAllConnections();await deadlinePromise('fixture-proxy-close',(resolve,reject)=>{proxy.close(error=>error&&error.code!=='ERR_SERVER_NOT_RUNNING'?reject(error):resolve());},3000);},
+        ()=>f.stop(),
+        ()=>deadlinePromise('fixture-proxy-drain',(resolve,reject)=>{proxyQueue.then(resolve,reject);})
+    ]);
 }
