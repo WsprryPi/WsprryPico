@@ -42,9 +42,43 @@ def producer_execution_policy():
     return policy
 
 
+DIRECT_COMPILER_OPTIONS = tuple(f'-DCMAKE_{language}_COMPILER_LAUNCHER='
+                                for language in ('C', 'CXX', 'ASM'))
+
+
+def fresh_directory(path):
+    if path.exists() or path.is_symlink():
+        raise ValueError('Fresh build directory required: ' + str(path))
+    return path
+
+
+def direct_compiler_environment():
+    for key in ('CC', 'CXX', 'ASM', 'CMAKE_C_COMPILER_LAUNCHER',
+                'CMAKE_CXX_COMPILER_LAUNCHER', 'CMAKE_ASM_COMPILER_LAUNCHER'):
+        if os.environ.get(key):
+            raise ValueError('Canonical builds require direct configured compilers; override: ' + key)
+
+
+def direct_firmware_compilers(build, deps):
+    values = {}
+    for line in (build / 'CMakeCache.txt').read_text().splitlines():
+        if line and not line.startswith(('#', '//')) and '=' in line and ':' in line.split('=', 1)[0]:
+            key, value = line.split('=', 1)
+            values[key.split(':', 1)[0]] = value
+    directory = deps / 'arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi/bin'
+    for language, binary in (('C', 'gcc'), ('CXX', 'g++'), ('ASM', 'gcc')):
+        compiler = values.get(f'CMAKE_{language}_COMPILER', '')
+        bundle.require(compiler and Path(compiler).resolve() ==
+                       (directory / ('arm-none-eabi-' + binary)).resolve(),
+                       'Firmware compiler differs from verified archive: ' + language)
+        bundle.require(values.get(f'CMAKE_{language}_COMPILER_LAUNCHER') == '',
+                       'Compiler cache/launcher forbidden in fresh builds: ' + language)
+
+
 def inputs():
     execution.require_unoptimized_python()
     producer_execution_policy()
+    direct_compiler_environment()
     profile = os.environ.get('CI_PROFILE', 'consumer')
     if profile != 'consumer':
         raise ValueError('Unsupported profile')
@@ -91,6 +125,8 @@ def inputs():
             raise ValueError('Local override or credential input: ' + name)
     if os.environ.get('GITHUB_REPOSITORY') != 'WsprryPi/WsprryPico':
         raise ValueError('Unexpected repository')
+    for name in ('host-debug', 'ci-consumer', 'ci-reproducibility'):
+        fresh_directory(ROOT / 'build' / name)
     selected = ['consumer']
     return source, version, selected
 
@@ -119,9 +155,7 @@ def host_checks(deps, audit):
     log = audit / 'host.log'
     web = ROOT / 'src/network/bootstrap_web'
     execute(log, 'npm', 'ci', '--ignore-scripts', '--no-audit', '--no-fund', cwd=web)
-    host = ROOT / 'build/host-debug'
-    if host.exists():
-        raise ValueError('Fresh host directory required')
+    host = fresh_directory(ROOT / 'build/host-debug')
     options = {
         'CMAKE_BUILD_TYPE': 'Debug', 'WSPRRY_PICO_BUILD_TESTS': 'ON',
         'WSPRRY_PICO_BUILD_FIRMWARE': 'OFF',
@@ -136,6 +170,7 @@ def host_checks(deps, audit):
         'WSPRRY_PICO_HARNESS_PYTHON': sys.executable,
     }
     execute(log, 'cmake', '-S', ROOT, '-B', host, '-G', 'Ninja',
+            *DIRECT_COMPILER_OPTIONS,
             *(f'-D{k}={v}' for k, v in options.items()))
     registered = json.loads(capture('ctest', '--test-dir', host, '--show-only=json-v1'))
     execution.completion_registration(registered, completion, source_root=ROOT)
@@ -196,20 +231,28 @@ def documentation_version():
     return 'main' if stream == 'main' else 'devel'
 
 
-def firmware(deps, audit, identifier, version):
+def firmware(deps, audit, identifier, version, reuse_build=None):
     profile = bundle.PROFILES[identifier]
     target = profile['target']
-    build = ROOT / ('build/ci-' + identifier)
-    if build.exists():
-        raise ValueError('Fresh firmware build directory required')
     log = audit / (identifier + '.log')
-    execute(log, 'cmake', '-S', ROOT, '-B', build, '-G', 'Ninja',
-            '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
-            '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w',
-            '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DPICOTOOL_NO_LIBUSB=1',
-            f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
-            f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
-            f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
+    if reuse_build is None:
+        build = fresh_directory(ROOT / ('build/ci-' + identifier))
+        execute(log, 'cmake', '-S', ROOT, '-B', build, '-G', 'Ninja',
+                *DIRECT_COMPILER_OPTIONS,
+                '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
+                '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w',
+                '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DPICOTOOL_NO_LIBUSB=1',
+                f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
+                f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
+                f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
+    else:
+        # Both targets are declared by the same configuration with their own
+        # definitions, sources, metadata, and post-link checks. Only common
+        # CMake library objects are shared; no per-image objects are substituted.
+        build = reuse_build
+        bundle.require(identifier == 'inhibited-regression' and build == ROOT / 'build/ci-consumer' and
+                       (build / 'firmware/WsprryPico.uf2').is_file(), 'Invalid shared image build context')
+    direct_firmware_compilers(build, deps)
     execute(log, 'cmake', '--build', build, '--target', target, '--parallel', '4')
     directory = audit / identifier
     directory.mkdir()
@@ -283,7 +326,12 @@ def build(deps, output):
     for identifier in selected:
         images[identifier], overlays[identifier] = firmware(deps, audit, identifier, version)
     # Compatibility shares application wiring, but is never a deployment asset.
-    _, overlays['inhibited-regression'] = firmware(deps, audit, 'inhibited-regression', version)
+    normal = ROOT / 'build/ci-consumer/firmware/WsprryPico'
+    retained_normal = {suffix: bundle.sha(Path(str(normal) + suffix)) for suffix in ('.elf', '.elf.map', '.uf2')}
+    _, overlays['inhibited-regression'] = firmware(deps, audit, 'inhibited-regression', version,
+                                                 reuse_build=normal.parent.parent)
+    bundle.require(all(bundle.sha(Path(str(normal) + suffix)) == digest
+                       for suffix, digest in retained_normal.items()), 'Inhibited build changed the accepted normal image')
     (audit / 'inhibited-regression/WsprryPico-Inhibited.uf2').unlink()
     checks['inhibited_regression'] = 'passed'
     if 'consumer' in selected:
@@ -292,13 +340,15 @@ def build(deps, output):
         checks['compatibility_rf'] = 'passed'
         # Independent fresh directory with identical declared inputs and identity.
         original = ROOT / 'build/ci-consumer'
-        fresh = ROOT / 'build/ci-reproducibility'
+        fresh = fresh_directory(ROOT / 'build/ci-reproducibility')
         execute(audit / 'reproducibility.log', 'cmake', '-S', ROOT, '-B', fresh, '-G', 'Ninja',
+                *DIRECT_COMPILER_OPTIONS,
                 '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
                 '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w', '-DPICOTOOL_NO_LIBUSB=1',
                 f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
                 f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
                 f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
+        direct_firmware_compilers(fresh, deps)
         execute(audit / 'reproducibility.log', 'cmake', '--build', fresh,
                 '--target', 'WsprryPico', '--parallel', '4')
         checks['reproducibility'] = 'identical' if bundle.sha(original / 'firmware/WsprryPico.uf2') == bundle.sha(fresh / 'firmware/WsprryPico.uf2') else 'different'

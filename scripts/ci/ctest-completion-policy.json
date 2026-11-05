@@ -289,7 +289,7 @@
     },
     "packaging": {
       "kind": "unittest",
-      "count": 64
+      "count": 68
     },
     "browser-lifecycle": {
       "kind": "node-test",

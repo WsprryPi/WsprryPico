@@ -7,12 +7,8 @@ if(WSPRRY_PICO_NETWORK_CLIENT_SOURCE AND TARGET network_tls_driver)
     add_custom_target(verify_network_client
         COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/scripts/verify_wsprrypi_client.py" "${parent}")
     find_package(OpenSSL REQUIRED)
-    set(client "${parent}/src/WTP-Client")
-    add_library(network_11_1_client STATIC
-        ${client}/src/codec.cpp ${client}/src/frame_parser.cpp ${client}/src/wire.cpp
-        ${client}/src/session.cpp ${client}/src/detail/json.cpp)
-    target_include_directories(network_11_1_client PUBLIC ${client}/include PRIVATE ${client}/src)
-    add_dependencies(network_11_1_client verify_network_client)
+    include(${CMAKE_SOURCE_DIR}/cmake/selected_host_client.cmake)
+    wsprry_selected_host_client(network_11_1_client "${parent}" verify_network_client)
     set(source "${parent}/src")
     add_executable(wtp_network_interop_test
         ${source}/tests/wtp_network_interop_test.cpp

@@ -22,6 +22,58 @@ import run as ci_run
 
 
 class TestingInputTests(unittest.TestCase):
+    def test_fresh_build_refuses_existing_file_directory_and_broken_symlink(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.assertEqual(ci_run.fresh_directory(root/'new'), root/'new')
+            for name in ('file', 'directory', 'link'):
+                path = root/name
+                if name == 'file': path.write_text('preserve existing work')
+                elif name == 'directory': path.mkdir()
+                else: path.symlink_to(root/'missing-target')
+                with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'Fresh build'):
+                    ci_run.fresh_directory(path)
+            self.assertEqual((root/'file').read_text(), 'preserve existing work')
+            self.assertTrue((root/'link').is_symlink())
+
+    def test_compiler_environment_overrides_cannot_hide_a_cache_wrapper(self):
+        with patch.dict(os.environ, {}, clear=True):
+            ci_run.direct_compiler_environment()
+            for name in ('CC', 'CXX', 'ASM', 'CMAKE_C_COMPILER_LAUNCHER',
+                         'CMAKE_CXX_COMPILER_LAUNCHER', 'CMAKE_ASM_COMPILER_LAUNCHER'):
+                with self.subTest(name=name), patch.dict(os.environ, {name:'cache-wrapper compiler'}):
+                    with self.assertRaisesRegex(ValueError, 'direct configured compilers'):
+                        ci_run.direct_compiler_environment()
+
+    def test_firmware_compilers_bind_to_archive_and_refuse_launchers(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            directory = root/'arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi/bin'
+            values = {f'CMAKE_{language}_COMPILER':str(directory/('arm-none-eabi-'+binary))
+                      for language,binary in (('C','gcc'),('CXX','g++'),('ASM','gcc'))}
+            values.update({f'CMAKE_{language}_COMPILER_LAUNCHER':'' for language in ('C','CXX','ASM')})
+            def write(values):
+                (root/'CMakeCache.txt').write_text('\n'.join(key+':FILEPATH='+value for key,value in values.items()))
+            write(values)
+            ci_run.direct_firmware_compilers(root,root)
+            for language in ('C','CXX','ASM'):
+                for suffix,wrong in (('COMPILER','/unverified/compiler'),('COMPILER_LAUNCHER','cache-wrapper')):
+                    changed={**values,f'CMAKE_{language}_{suffix}':wrong};write(changed)
+                    with self.subTest(language=language,suffix=suffix),self.assertRaises(ValueError):
+                        ci_run.direct_firmware_compilers(root,root)
+            values.pop('CMAKE_ASM_COMPILER');write(values)
+            with self.assertRaises(ValueError):ci_run.direct_firmware_compilers(root,root)
+
+    def test_shared_image_build_refuses_another_target_missing_image_or_directory(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(ci_run,'execute') as execute:
+            root=Path(temporary)
+            with patch.object(ci_run,'ROOT',root):
+                for identifier,path in [('consumer',root),('inhibited-regression',root),
+                                        ('inhibited-regression',root/'build/ci-consumer')]:
+                    with self.subTest(identifier=identifier,path=path), self.assertRaisesRegex(ValueError,'shared image'):
+                        ci_run.firmware(root,root,identifier,'0.0.0-test',reuse_build=path)
+            execute.assert_not_called()
+
     def test_documentation_version_uses_actual_build_stream(self):
         for ref, expected in [('refs/heads/main', 'main'), ('refs/heads/devel', 'devel'),
                               ('refs/tags/v1.0.0-alpha.1', 'devel'),
