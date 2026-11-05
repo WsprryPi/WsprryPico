@@ -6,10 +6,12 @@ import {appendFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {Fixture} from './consumer_sessions.test.mjs';
 import {deadlinePromise,preserveCleanup} from './browser_deadline.mjs';
+import {parseProfileSelection} from './ui_fixture_profiles.mjs';
 
 const executable = process.argv[2];
-if (!executable) throw new Error('Usage: node tests/ui_review_fixture.mjs DRIVER [PORT] [OUTPUT]');
+if (!executable) throw new Error('Usage: node tests/ui_review_fixture.mjs DRIVER [PORT] [OUTPUT] [messages] [--profiles=NAME,...]');
 const firstPort = Number(process.argv[3] || 18719);
+const {selected,messages}=parseProfileSelection(process.argv.slice(5),firstPort);
 const output = path.resolve(process.argv[4] || 'build/ui-review');
 await mkdir(output, {recursive:true});
 const instances = [];
@@ -34,13 +36,7 @@ async function stop(primary) {
 for(const signal of ['SIGTERM','SIGINT'])process.once(signal,()=>{
   void stop().catch(error=>{console.error(error);process.exitCode=1;});
 });
-const definitions = [
-  ['consumer-lan', null, false], ['blank', 'blank', true],
-  ['network-only', 'network', true], ['unavailable', 'unavailable', true],
-  ['consumer-ap', null, true], ['engineering', null, false],
-  ['first-use-network', 'first-use:network', false], ['first-use-usb', 'first-use:usb', false],
-  ['first-use-overlay', 'first-use:overlay', false], ['first-use-network-backing', 'first-use:network-backing', false]
-];
+
 
 function decodeWire(wire) {
   const bytes = Buffer.from(wire, 'hex'), boundary = bytes.indexOf('\r\n\r\n');
@@ -51,7 +47,7 @@ function decodeWire(wire) {
 }
 
 try {
-  for (const [index, [name, profile, ap]] of definitions.entries()) {
+  for (const {index,name,profile,ap} of selected) {
     if(stopping)throw Error('fixture initialization interrupted');
     // Native drivers stay inside this server's owned group. A parent must still
     // be able to kill every driver if this orchestrator cannot finish teardown.
@@ -60,7 +56,7 @@ try {
     await fixture.time(1000);
     if (profile?.startsWith('first-use:')) await fixture.command({op:'first_use_profile',mode:profile.slice(10)});
     else if (profile) await fixture.command({op:'page_profile', mode:profile});
-    if (process.argv[5] === 'messages') await fixture.command({op:'message_review'});
+    if (messages) await fixture.command({op:'message_review'});
     if(stopping)throw Error('fixture initialization interrupted');
     let queue = Promise.resolve();
     const server = http.createServer((request, response) => {
@@ -70,7 +66,7 @@ try {
             request.headers.host === `127.0.0.1:${firstPort+index}`) {
           const chunks=[]; for await (const chunk of request) chunks.push(chunk);
           const command=JSON.parse(Buffer.concat(chunks));
-          assert(['reboot','flash_failure','frequency_state','accepted_job','field_clock','time','activate','forget_engineering_station','schedule_tick','message_review'].includes(command.op));
+          assert(['reboot','flash_failure','frequency_state','accepted_job','field_clock','time','activate','forget_engineering_station','schedule_tick','message_review','sensitivity_saved_mutation'].includes(command.op));
           const result=await fixture.command(command);
           if (command.op === 'time') fixture.now = Number(command.ms);
           response.writeHead(200,{'Content-Type':'application/json'}); response.end(JSON.stringify(result)); return;
@@ -116,7 +112,7 @@ try {
       return()=>server.removeListener('error',reject);
     });
     console.log(JSON.stringify({name,url:ap?'http://192.168.4.1/':'http://192.168.1.53/',
-      proxy:`http://127.0.0.1:${firstPort+index}`,pid:process.pid,
+      proxy:`http://127.0.0.1:${firstPort+index}`,pid:process.pid,driver_pid:fixture.process.pid,
       authority:ap ? '192.168.4.1' : '192.168.1.53',synthetic_password:profile ? undefined : 'test-password'}));
   }
   console.log('READY; configure an isolated test browser with the named loopback proxy and canonical URL. Direct loopback previews do not qualify commissioning or retirement. Stop with SIGINT/SIGTERM. No physical-network claim.');

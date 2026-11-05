@@ -123,6 +123,13 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_link_libraries(consumer_bootstrap_driver PRIVATE wsprrypico_core mbedcrypto)
     target_compile_options(consumer_bootstrap_driver PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME ui_fixture_native_profiles COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/ui_fixture_native.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
+        set_tests_properties(ui_fixture_native_profiles PROPERTIES TIMEOUT 60)
+        add_test(NAME session_pilot_sensitivity COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/session_pilot_sensitivity.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
+        # Four workers have 200-second watchdogs; retain a finite family teardown reserve.
+        set_tests_properties(session_pilot_sensitivity PROPERTIES TIMEOUT 840 RUN_SERIAL TRUE)
         add_test(NAME standalone_frequency_first_use_sessions COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/standalone_frequency_first_use_sessions.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
         add_test(NAME station_live_apply COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}

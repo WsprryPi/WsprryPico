@@ -143,10 +143,11 @@ No devices were programmed and no hardware, installation, service, timing, or RF
 qualification is claimed.
 
 Canonical [Pico run 42070500676](https://github.com/WsprryPi/WsprryPico/actions/runs/42070500676)
-is separately in progress for the immutable candidate. It is not yet represented
-as passing. Phase 03's specified affected-test and both-production-carrier gates
-are successful; final campaign acceptance still requires a successful canonical
-run for the final campaign candidate, and any hosted failure will be resolved.
+passed for the immutable implementation candidate, with publication intentionally
+skipped. It covers the complete software, firmware, image, provenance, and fresh
+reproducibility gates in addition to the exact local source-pair results above.
+Final campaign acceptance still requires successful canonical validation for the
+final campaign candidate.
 
 Final adversarial reassessment found no unresolved issue in this phase's shared
 ownership/framing slice. The observation-file race in the new fault tests was

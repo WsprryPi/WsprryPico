@@ -438,6 +438,12 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME bootstrap_wire_tests COMMAND bootstrap_wire_tests)
     find_program(WSPRRY_PICO_NODE_EXECUTABLE node)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME browser_cdp_transport COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            --test ${CMAKE_SOURCE_DIR}/tests/browser_cdp.test.mjs)
+        add_test(NAME browser_scope_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            --test ${CMAKE_SOURCE_DIR}/tests/browser_scope.test.mjs)
+        add_test(NAME ui_fixture_process_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            --test ${CMAKE_SOURCE_DIR}/tests/ui_fixture_process.test.mjs)
         add_test(NAME oob_defaults_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/oob_defaults_browser_tests.js)
         add_test(NAME device_presentation_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}

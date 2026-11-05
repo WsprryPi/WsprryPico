@@ -24,6 +24,19 @@ async function groupAlive(pid,budget) {
     return stdout.trim().split('\n').some(line=>{const [group,state]=line.trim().split(/\s+/);return Number(group)===pid&&!state.startsWith('Z');});
 }
 
+// Recovery is limited to groups retained from this run's ownership records.
+export async function ownedGroupAlive(pid,timeoutMs=3000) {
+    if(!Number.isSafeInteger(pid)||pid<=1)throw TypeError('Retained owned group required');
+    return cleanupDeadlines.deadlinePromise('owned-group-probe',(resolve,reject,budget)=>{
+        groupAlive(pid,budget).then(resolve,reject);
+    },timeoutMs);
+}
+export async function recoverOwnedGroup(pid,timeoutMs=3000) {
+    if(!await ownedGroupAlive(pid,timeoutMs))return;
+    try{process.kill(-pid,'SIGKILL');}catch(error){if(error.code!=='ESRCH')throw error;}
+    await cleanupDeadlines.until(async()=>!await ownedGroupAlive(pid,timeoutMs),'owned-group-recovery',timeoutMs);
+}
+
 function hasExited(child) {return child.exitCode!==null || child.signalCode!==null;}
 
 function signalOwned(child,signal,processGroup) {
@@ -58,7 +71,9 @@ function signalAndWait(child,signal,timeoutMs,processGroup) {
 async function stopChild(child,timeoutMs,processGroup) {
     if(!child)return;
     const end=performance.now()+2*timeoutMs;
-    if(!await signalAndWait(child,'SIGTERM',timeoutMs,processGroup) &&
+    // Let an orchestrator close its owned channels before signalling drivers.
+    // Forced recovery still targets the complete retained group.
+    if(!await signalAndWait(child,'SIGTERM',timeoutMs,false) &&
        !await signalAndWait(child,'SIGKILL',Math.max(0,end-performance.now()),processGroup)) {
         throw Error('UI fixture process did not exit after SIGKILL');
     }

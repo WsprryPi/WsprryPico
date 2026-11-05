@@ -192,9 +192,10 @@ test('owned fixture timeout and denied cleanup remain visible together',{skip:pr
     const realKill=process.kill.bind(process);let patched;
     try {
         const entered=fixtureObservation(f.process,'COMMAND_HELD');const refused=assert.rejects(f.command({op:'hold'}),/fixture-command/);await entered;
-        patched=t.mock.method(process,'kill',(pid,signal)=>{
-            if(pid===-f.process.pid&&signal!=='SIGKILL')throw Object.assign(Error('owned signal denied'),{code:'EPERM'});
-            return realKill(pid,signal);
+        const childKill=f.process.kill.bind(f.process);
+        patched=t.mock.method(f.process,'kill',signal=>{
+            if(signal==='SIGTERM')throw Object.assign(Error('owned signal denied'),{code:'EPERM'});
+            return childKill(signal);
         });
         now=20001;for(const timer of [...timers])timer();await refused;
         await assert.rejects(f.stop(),error=>{
@@ -273,7 +274,7 @@ test('review fixture interruption during initialization reaps its registered dri
     await chmod(driver,0o755);
     let fixture,driverPid;
     try{
-        fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'0',directory],{
+        fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'19189',directory],{
             stdio:['ignore','pipe','pipe'],detached:process.platform!=='win32',
             env:{...process.env,FIXTURE_OWNER_OBSERVATION:observation}
         });
@@ -322,7 +323,7 @@ test('abrupt review-server exit cannot strand its initialized native driver grou
         catch(error){if(error.status===1)return true;throw error;}
     };
     try{
-        fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'0',directory],{
+        fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'19189',directory],{
             stdio:['ignore','pipe','pipe'],detached:true,env:{...process.env,FIXTURE_OWNER_OBSERVATION:observation}
         });
         const observed=await until(async()=>{try{return JSON.parse(await readFile(observation,'utf8'));}catch(error){if(error.code==='ENOENT')return false;throw error;}},'observed held initialization',5000);

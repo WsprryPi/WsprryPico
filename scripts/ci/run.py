@@ -92,6 +92,10 @@ def expected_tests():
 
 
 def host_checks(deps, audit):
+    chrome = shutil.which('google-chrome')
+    if not chrome:
+        raise ValueError('Runner Chrome is required for the native browser checks')
+    os.environ['CHROME_BIN'] = chrome
     harness_source = str(deps / 'harness/src')
     sys.path.insert(0, harness_source)
     os.environ['PYTHONPATH'] = harness_source
@@ -142,10 +146,6 @@ def host_checks(deps, audit):
     execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py', context='packaging')
     execute(log, 'node', '--test', ROOT / 'tests/ui_process_cleanup.test.mjs',
             ROOT / 'tests/chrome_startup.test.mjs', ROOT / 'tests/contextual_help_cleanup.test.mjs', context='browser-lifecycle')
-    chrome = shutil.which('google-chrome')
-    if not chrome:
-        raise ValueError('Runner Chrome is required for the consumer frequency UI check')
-    os.environ['CHROME_BIN'] = chrome
     execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
             host / 'consumer_bootstrap_driver', audit / 'consumer-ui', context='frequency')
     execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
