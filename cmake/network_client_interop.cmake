@@ -25,10 +25,21 @@ if(WSPRRY_PICO_NETWORK_CLIENT_SOURCE AND TARGET network_tls_driver)
     target_include_directories(wtp_network_interop_test PRIVATE ${source})
     target_link_libraries(wtp_network_interop_test PRIVATE network_11_1_client OpenSSL::SSL OpenSSL::Crypto Threads::Threads)
     target_compile_options(wtp_network_interop_test PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    # Original MIT client and restart orchestrator are built/read unchanged.
-    # Pico's own driver supports the same boot/device fault injection arguments.
-    add_custom_command(TARGET network_tls_driver POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E create_symlink $<TARGET_FILE:network_tls_driver> ${CMAKE_BINARY_DIR}/pico_tls_server
+    # Compile the selected companion's orchestrator and server together. Its
+    # READY protocol and real-clock RF adapter belong to that source pair;
+    # aliasing Pico's diagnostic driver silently substituted a different fixture.
+    add_executable(pico_tls_server
+        ${source}/tests/network/pico_tls_server.cpp ${source}/tests/network/tcp.cpp
+        src/network/pico/server.cpp src/network/pico/psa_lifetime.cpp
+        src/provisioning/pico/credential_validator.cpp)
+    target_include_directories(pico_tls_server PRIVATE ${source}/tests/network
+        tests tests/network_mock ${CMAKE_BINARY_DIR}/network-test-generated)
+    target_compile_definitions(pico_tls_server PRIVATE MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}")
+    target_link_libraries(pico_tls_server PRIVATE wsprrypico_core wsprrypico_rf
+        Threads::Threads mbedtls mbedx509 mbedcrypto)
+    target_compile_options(pico_tls_server PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_dependencies(pico_tls_server verify_network_client)
+    add_custom_command(TARGET pico_tls_server POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink ${WSPRRY_PICO_TEST_CREDENTIAL_DIR} ${CMAKE_BINARY_DIR}/credentials-v3)
     # Retain the historical target name for existing developer invocations.
     add_test(NAME network_11_1_interop COMMAND ${Python3_EXECUTABLE}

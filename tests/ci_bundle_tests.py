@@ -290,6 +290,23 @@ class BundleTests(unittest.TestCase):
         # The same distribution fixture remains readable for a frozen old producer.
         self.verify()
 
+    def test_new_execution_sidecar_survives_distribution_verification_and_rejects_wrong_run(self):
+        import execution
+        summary = '\n'.join('# '+key+' '+str(value) for key, value in
+                            {'tests': 1, 'pass': 1, 'fail': 0, 'cancelled': 0, 'skipped': 0, 'todo': 0}.items())
+        with patch.dict(os.environ, {'GITHUB_RUN_ID': '1', 'GITHUB_RUN_ATTEMPT': '1'}):
+            execution.execute(self.audit / 'host.log', [sys.executable, '-c', 'print('+repr(summary)+')'],
+                              ROOT, self.source, 'npm')
+        self.reseal()
+        with patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=['npm']):
+            bundle.verify(self.deploy, self.audit, self.source, self.version, inspect=False)
+            report = self.audit / 'execution.json'
+            value = json.loads(report.read_text()); value['attempt'] = '2'
+            report.write_text(json.dumps(value)); self.reseal()
+            with self.assertRaisesRegex(ValueError, 'identity mismatch'):
+                bundle.verify(self.deploy, self.audit, self.source, self.version, inspect=False)
+
     def test_execution_policy_is_read_only_from_frozen_source(self):
         path = 'scripts/ci/execution-policy.json'
         policy = json.dumps({'schema': 'ci-execution-policy/1', 'contexts': ['npm']})
