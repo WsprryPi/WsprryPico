@@ -3,8 +3,12 @@
 import json
 import pathlib
 import socket
+import select
+import ssl
 import subprocess
 from fixture_process import FixtureProcess, process_scope
+from network_socket import connect_socket
+from network_control import NetworkControl
 import sys
 import time
 
@@ -13,7 +17,7 @@ from validate_wtp_contract import frame
 from wtp_monitor import FrameDecoder
 
 
-with process_scope(timeout=30):
+with process_scope(timeout=8):
     expected_block = sys.argv[2:] == ["--expect-blocked"]
     assert not sys.argv[2:] or expected_block
     process = FixtureProcess([sys.argv[1], "0", "a", "--plain-with-tls"],
@@ -21,16 +25,18 @@ with process_scope(timeout=30):
                                stderr=subprocess.PIPE, text=True)
 
 
+    controls = NetworkControl(process)
+
     def line():
-        return process.line(timeout=3).strip()
+        return controls.line().strip()
 
 
-    def control(command):
-        process.send_line(command)
+    def control(command, **options):
+        controls.send(command, **options)
 
 
-    def network():
-        control("NETWORK STATUS")
+    def network(deadline=None):
+        control("NETWORK STATUS",deadline=deadline)
         value = line().split()
         assert value[0] == "NETWORK", value
         return tuple(map(int, value[1:]))
@@ -59,12 +65,24 @@ with process_scope(timeout=30):
         assert line() == "READY 18443 PSA 1 PEAK 2 PLAIN 18444"
         control("HANDSHAKE PAUSE")
         assert network() == (0, 0, 0)
-        with socket.create_connection(("127.0.0.1", 18443), timeout=3) as stalled:
+        with connect_socket(("127.0.0.1", 18443),deadline=process.deadline,timeout=3) as stalled:
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE  # Only emits ClientHello; no peer is trusted.
+            context.minimum_version = context.maximum_version = ssl.TLSVersion.TLSv1_3
+            context.set_alpn_protocols(['http/1.1'])
+            incoming, outgoing = ssl.MemoryBIO(), ssl.MemoryBIO()
+            handshake = context.wrap_bio(incoming, outgoing, server_hostname='127.0.0.1')
+            try:handshake.do_handshake()
+            except ssl.SSLWantReadError:pass
+            client_hello = outgoing.read()
+            assert client_hello, 'actual TLS ClientHello required before paused-handshake assertion'
+            stalled.sendall(client_hello)
             deadline = time.monotonic() + 2
-            while network()[0] != 1:
+            while (snapshot := network(deadline))[0] != 1 or snapshot[2] == 0:
                 assert time.monotonic() < deadline, "TLS slot did not activate"
                 time.sleep(.005)
-            with socket.create_connection(("127.0.0.1", 18444), timeout=3) as plain:
+            with connect_socket(("127.0.0.1", 18444),deadline=process.deadline,timeout=3) as plain:
                 decoder = FrameDecoder()
                 try:
                     hello = request(plain, decoder, 1, "HELLO",
@@ -80,17 +98,14 @@ with process_scope(timeout=30):
                     status = request(plain, decoder, 2, "STATUS", {})
                     assert status["body"]["state"] == "empty"
                     assert network()[:2] == (2, 0)
-                    with socket.create_connection(("127.0.0.1", 18444), timeout=3) as duplicate:
+                    with connect_socket(("127.0.0.1", 18444),deadline=process.deadline,timeout=3) as duplicate:
                         duplicate.settimeout(3)
                         try:
                             assert duplicate.recv(1) == b"", "duplicate WTP client was admitted"
                         except ConnectionResetError:
                             pass
-                    stalled.settimeout(.05)
-                    try:
-                        assert not stalled.recv(1), "paused TLS advanced application traffic"
-                    except TimeoutError:
-                        pass
+                    assert network()[2] > 0, 'actual TLS bytes must remain queued after independent Plain STATUS progress'
+                    assert not select.select([stalled], [], [], 0)[0], 'paused TLS emitted a server flight'
                     print("Plain HELLO/STATUS responded during paused TLS; duplicate WTP rejected")
             control("HANDSHAKE RESUME")
     finally:

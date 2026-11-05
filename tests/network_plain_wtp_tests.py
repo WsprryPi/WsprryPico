@@ -6,6 +6,7 @@ import pathlib
 import socket
 import subprocess
 from fixture_process import FixtureProcess, process_scope
+from network_socket import connect_socket
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
@@ -20,7 +21,7 @@ def rejected(stream, explanation):
         pass  # lwIP may abort a rejected peer instead of sending FIN.
 
 
-with process_scope(timeout=30):
+with process_scope(timeout=23):
     process = FixtureProcess([sys.argv[1], "0", "a", "--plain-wtp"],
                                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, text=True)
@@ -45,7 +46,7 @@ with process_scope(timeout=30):
 
     try:
         assert process.line().strip() == "READY 18443 PSA 1 PEAK 2 PLAIN 18444"
-        with socket.create_connection(("127.0.0.1", 18444), timeout=5) as stream:
+        with connect_socket(("127.0.0.1", 18444),deadline=process.deadline,timeout=5) as stream:
             stream.settimeout(5)
             decoder = FrameDecoder()
             hello = request(stream, decoder, 1, "HELLO",
@@ -54,16 +55,16 @@ with process_scope(timeout=30):
             assert hello["body"]["device_id"] == "a" * 32
             status = request(stream, decoder, 2, "STATUS", {})
             assert status["body"]["state"] == "empty"
-            with socket.create_connection(("127.0.0.1", 18444), timeout=5) as second:
+            with connect_socket(("127.0.0.1", 18444),deadline=process.deadline,timeout=5) as second:
                 second.settimeout(5)
                 rejected(second, "second WTP owner was not rejected")
-        with socket.create_connection(("127.0.0.1", 18444), timeout=5) as stream:
+        with connect_socket(("127.0.0.1", 18444),deadline=process.deadline,timeout=5) as stream:
             # Production expires partial frames after 5,000 ms. Leave one second
             # for host receipt of its close; the target deadline is unchanged.
             stream.settimeout(6)
             stream.sendall(b"GET /api/v1/status HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
             rejected(stream, "plain WTP port exposed HTTP")
-        with socket.create_connection(("127.0.0.1", 18443), timeout=5) as stream:
+        with connect_socket(("127.0.0.1", 18443),deadline=process.deadline,timeout=5) as stream:
             stream.settimeout(5)
             rejected(stream, "SoftAP-only TLS admitted a station client")
         print("plain TCP WTP accepted HELLO/STATUS and rejected duplicate WTP and HTTP")
@@ -79,7 +80,7 @@ with process_scope(timeout=30):
                                   env={**os.environ, "WSPRRY_TEST_SOFTAP_INTERFACE": "1"})
     try:
         assert ap_process.line().strip() == "READY 18443 PSA 1 PEAK 2 PLAIN 18444"
-        with socket.create_connection(("127.0.0.1", 18444), timeout=5) as stream:
+        with connect_socket(("127.0.0.1", 18444),deadline=ap_process.deadline,timeout=5) as stream:
             stream.settimeout(5)
             rejected(stream, "plain WTP accepted an AP-classified client")
     finally:

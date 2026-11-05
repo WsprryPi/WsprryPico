@@ -5,11 +5,14 @@
 #include <algorithm>
 #include <arpa/inet.h>
 #include <array>
+#include <atomic>
 #include <cerrno>
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <limits>
+#include <mutex>
 #include <netinet/in.h>
 #include <random>
 #include <sys/socket.h>
@@ -59,16 +62,39 @@ void mock_tcp_fragment_writes(bool enabled) {
     fragment_writes = enabled;
     block_write = false;
 }
+namespace {
+// Single test-control writer, independently scheduled worker readers. The mode
+// flag preserves the ordinary monotonic path without requiring 64-bit atomic
+// linker support on existing hosts. Firmware never links this socket adapter.
+std::atomic<bool> manual_clock_enabled{false};
+std::mutex manual_clock_mutex;
+std::uint64_t manual_time_us = 1'000'000;
+constexpr auto max_manual_us = std::numeric_limits<std::uint64_t>::max() / 1000;
+} // namespace
+void mock_tcp_enable_manual_time() {
+    const std::lock_guard lock(manual_clock_mutex);
+    assert(!manual_clock_enabled.load());
+    manual_time_us = 1'000'000;
+    manual_clock_enabled.store(true);
+}
+bool mock_tcp_advance_time_us(std::uint64_t amount) {
+    if (!manual_clock_enabled.load())
+        return false;
+    const std::lock_guard lock(manual_clock_mutex);
+    if (amount > max_manual_us - manual_time_us)
+        return false;
+    manual_time_us += amount;
+    return true;
+}
 std::uint64_t time_us_64() {
+    if (manual_clock_enabled.load()) {
+        const std::lock_guard lock(manual_clock_mutex);
+        return manual_time_us;
+    }
     static const auto origin = std::chrono::steady_clock::now();
-    static const auto scale =
-        std::getenv("WSPRRY_NETWORK_TEST_TIME_SCALE")
-            ? std::strtoul(std::getenv("WSPRRY_NETWORK_TEST_TIME_SCALE"), nullptr, 10)
-            : 1;
     return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() -
                                                                  origin)
-               .count() *
-           scale;
+        .count();
 }
 extern "C" int mbedtls_hardware_poll(void*, unsigned char* output, std::size_t count,
                                      std::size_t* used) {

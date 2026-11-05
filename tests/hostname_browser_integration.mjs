@@ -6,7 +6,10 @@ import {writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
 const h=new BrowserHarness();
-await h.run(async()=>{
+const cancellationSensitivity=process.env.HOSTNAME_CANCEL_SENSITIVITY;
+let cancellationFaultEntered=false,cancellationAssertion;
+try{await h.run(async()=>{
+if(cancellationSensitivity!==undefined&&cancellationSensitivity!=='1')throw Error('Unknown hostname sensitivity mode');
 
 if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; Node 20 needs --experimental-websocket');
 if (!process.argv[2]) throw Error('Usage: node tests/hostname_browser_integration.mjs CONSUMER_BOOTSTRAP_DRIVER [OUTPUT_DIRECTORY]');
@@ -227,11 +230,23 @@ try {
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Saved for restart: pico-a.local/);
     await capture('saved-rename-pending');
     await cdp.evaluate(`document.getElementById('message-section').open=true`);
-    await click('restart');await until(()=>cdp.evaluate('reconnectRunning && !busy'),'one-shot restart/countdown');
+    // Capture the actual first countdown callback while monitorRestart enters
+    // synchronously. Restore the global scheduler before any unrelated task runs.
+    await cdp.evaluate(`globalThis.reconnectBoundary={};const originalMonitor=monitorRestart;monitorRestart=(...args)=>{const nativeTimer=globalThis.setTimeout;globalThis.setTimeout=(callback,delay,...values)=>{if(delay!==1000)throw Error('Unexpected reconnect timer boundary');if(reconnectBoundary.callback)throw Error('Duplicate initial reconnect timer');Object.assign(reconnectBoundary,{callback,values,delay,called:0});return 0;};try{const task=originalMonitor(...args);reconnectBoundary.task=task;reconnectBoundary.epoch=reconnectEpoch;return task;}finally{globalThis.setTimeout=nativeTimer;monitorRestart=originalMonitor;}};`);
+    await click('restart');await until(()=>cdp.evaluate('reconnectRunning && !busy && typeof reconnectBoundary.callback==="function"'),'actual reconnect callback held');
     await capture('restart-countdown');
     await click('restart-cancel');
     const attempts=(await f.command({op:'stats'})).api_restarts;
-    await new Promise(r=>setTimeout(r,2200));
+    if(cancellationSensitivity){
+      await cdp.evaluate('reconnectEpoch=reconnectBoundary.epoch;reconnectRunning=true');
+      cancellationFaultEntered=true;
+    }
+    const cancellation=await cdp.evaluate(`(async()=>{const nativeTimer=globalThis.setTimeout;let next;const scheduled=new Promise(resolve=>next=resolve);globalThis.setTimeout=(callback,delay,...values)=>{if(delay===1000){reconnectBoundary.next={callback,values};next({finished:false});return 0;}return nativeTimer(callback,delay,...values);};try{reconnectBoundary.called++;reconnectBoundary.callback(...reconnectBoundary.values);return {...await Promise.race([reconnectBoundary.task.then(()=>({finished:true})),scheduled]),called:reconnectBoundary.called,delay:reconnectBoundary.delay};}finally{globalThis.setTimeout=nativeTimer;}})()`);
+    assert.equal(cancellation.called,1,'actual scheduled callback executed exactly once');
+    assert.equal(cancellation.delay,1000,'observed product countdown boundary');
+    try{assert.equal(cancellation.finished,true,'cancelled reconnect must finish after its actual scheduled callback');}
+    catch(error){cancellationAssertion=error;throw error;}
+    assert.equal(await cdp.evaluate('reconnectRunning'),false);
     assert.equal((await f.command({op:'stats'})).api_restarts,attempts);
     const previousBoot=await cdp.evaluate('localIdentity.boot_id');
     await f.command({op:'reboot'});await f.time(5000);
@@ -334,4 +349,7 @@ try {
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,600),scripts:[...document.scripts].map(s=>s.src)})`).catch(e=>e.message):null}));
     throw error;
 }
-});
+});}catch(error){
+  if(cancellationSensitivity)console.log(JSON.stringify({kind:'hostname-cancel-sensitivity/1',fault_entered:cancellationFaultEntered,assertion_detected:error===cancellationAssertion,cleanup_completed:error===cancellationAssertion}));
+  throw error;
+}

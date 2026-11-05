@@ -54,3 +54,7 @@ void mock_tcp_hold_next_ack();
 void mock_tcp_hold_next_handshake_ack();
 tcp_pcb* mock_tcp_pending_burst(unsigned& refused);
 void mock_tcp_pending_disconnect(tcp_pcb*, bool reset);
+
+// Explicit host-only clock control; units are monotonic microseconds.
+void mock_tcp_enable_manual_time();
+bool mock_tcp_advance_time_us(std::uint64_t amount);

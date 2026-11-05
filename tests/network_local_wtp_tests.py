@@ -6,6 +6,7 @@ import socket
 import ssl
 import subprocess
 from fixture_process import FixtureProcess, process_scope
+from network_socket import connect_socket
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
@@ -13,7 +14,7 @@ from validate_wtp_contract import frame
 from wtp_monitor import FrameDecoder
 
 
-with process_scope(timeout=30):
+with process_scope(timeout=23):
     exe, credentials = sys.argv[1:]
     credentials = pathlib.Path(credentials)
     process = FixtureProcess([exe, "0", "a", "--local-wtp"], stdin=subprocess.PIPE,
@@ -25,8 +26,7 @@ with process_scope(timeout=30):
         context.minimum_version = context.maximum_version = ssl.TLSVersion.TLSv1_3
         if protocol:
             context.set_alpn_protocols([protocol])
-        raw = socket.create_connection(("127.0.0.1", 18443), timeout=5)
-        return context.wrap_socket(raw, server_hostname="127.0.0.1")
+        return connect_socket(("127.0.0.1",18443),deadline=process.deadline,tls_context=context,server_hostname="127.0.0.1")
 
 
     try:

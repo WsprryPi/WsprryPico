@@ -91,7 +91,13 @@ campaign-phase05-usb.log retain complete output. Hardware access was disabled;
 these results do not qualify physical USB, installation, timing, or RF.
 
 [Canonical phase 05 run](https://github.com/WsprryPi/WsprryPico/actions/runs/42086214552)
-was still running at local acceptance and remains tracked for final acceptance.
+completed successfully after local acceptance. Its actual GitHub merge source
+1ba1de9e23b8a1d0954b793d62b561d475716896 has parents c9fd28ef and
+540dc6bd, checked through the commit API. Audit artifact 13445680442 and
+firmware artifact 13443683497 were produced. Independent verification accepted
+all 28 receipts, exact log digests, completion facts, and all 226 registered
+CTest suites without failures or skips. Aggregate command elapsed was
+1261.781 seconds; no causal whole-CI speed claim is made.
 The prior phase 04 canonical run is independently verified in its result record.
 Final reassessment found no remaining actionable migration finding. Phase 06 owns
 the documented TLS synchronization and hostname timer work; phase 07 owns inner

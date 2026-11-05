@@ -7,30 +7,32 @@ import socket
 import ssl
 import subprocess
 from fixture_process import FixtureProcess, process_scope
+from network_socket import connect_socket
+from network_control import NetworkControl
 import sys
 
 
-with process_scope(timeout=15):
+with process_scope(timeout=8):
     exe, directory = sys.argv[1:]
     credentials = pathlib.Path(directory)
     process = FixtureProcess([exe], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, text=True, env=os.environ.copy())
+    controls = NetworkControl(process)
     try:
-        assert process.line().strip() == 'READY 18443 PSA 1 PEAK 2'
-        process.send_line('NAGLE HOLD')
-        assert process.line().strip() == 'NAGLE HOLD READY'
+        assert controls.line().strip() == 'READY 18443 PSA 1 PEAK 2'
+        controls.send('NAGLE HOLD')
+        assert controls.line().strip() == 'NAGLE HOLD READY'
         context = ssl.create_default_context(cafile=str(credentials / 'client-ca.crt'))
         context.minimum_version = context.maximum_version = ssl.TLSVersion.TLSv1_3
         context.set_alpn_protocols(['http/1.1'])
         context.load_cert_chain(credentials / 'client.crt', credentials / 'client.key')
-        with socket.create_connection(('127.0.0.1', 18443), timeout=4) as raw:
-            with context.wrap_socket(raw, server_hostname='127.0.0.1') as stream:
-                assert stream.version() == 'TLSv1.3'
-                assert stream.selected_alpn_protocol() == 'http/1.1'
-                stream.sendall(b'GET /api/control/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\nConnection: close\r\n\r\n')
-                response = bytearray()
-                while block := stream.recv(4096):
-                    response.extend(block)
+        with connect_socket(('127.0.0.1',18443),deadline=process.deadline,timeout=4,tls_context=context,server_hostname='127.0.0.1') as stream:
+            assert stream.version() == 'TLSv1.3'
+            assert stream.selected_alpn_protocol() == 'http/1.1'
+            stream.sendall(b'GET /api/control/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\nConnection: close\r\n\r\n')
+            response = bytearray()
+            while block := stream.recv(4096):
+                response.extend(block)
         header, body = bytes(response).split(b'\r\n\r\n', 1)
         assert int(header.splitlines()[0].split()[1]) == 200
         fields = dict(line.split(b': ', 1) for line in header.splitlines()[1:])
