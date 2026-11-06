@@ -47,6 +47,17 @@ except (OSError, subprocess.CalledProcessError):
 version = os.environ.get("READTHEDOCS_VERSION", "devel")
 release = f"{version} · {source_revision}"
 
+# Update this value when recommending a newly published firmware release.
+recommended_firmware_version = "1.0.0-rc.1"
+
+
+def substitute_recommended_firmware(app, docname, source):
+    """Resolve the version in prose, URLs, inline code, and fenced commands."""
+    if docname == "install":
+        source[0] = source[0].replace(
+            "@RECOMMENDED_FIRMWARE_VERSION@", app.config.recommended_firmware_version
+        )
+
 
 def verify_contextual_help(app, exception):
     """A removed help target must fail local and published HTML builds."""
@@ -58,4 +69,6 @@ def verify_contextual_help(app, exception):
 
 
 def setup(app):
+    app.add_config_value('recommended_firmware_version', recommended_firmware_version, 'env')
+    app.connect('source-read', substitute_recommended_firmware)
     app.connect('build-finished', verify_contextual_help)
