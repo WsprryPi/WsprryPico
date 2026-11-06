@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {once} from 'node:events';
 import {mkdtemp,readFile,writeFile} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -11,6 +12,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 const [mode,profile]=process.argv.slice(1);
+if(mode==='late-exit')process.on('SIGUSR2',()=>process.exit(17));
 if(mode==='exit') {console.error('fixture startup failure');process.exit(17);}
 if(mode==='hang') {console.error('fixture waiting without DevTools');setInterval(()=>{},1000);}
 else {
@@ -18,6 +20,15 @@ else {
  const server=http.createServer((req,res)=>{
   fs.writeFileSync(path.join(profile,'probes'),String(++requests));
   if(mode==='stall')return;
+  if(mode==='malformed'){res.end('{broken');return;}
+  if(mode==='oversized-body'){res.end('x'.repeat(65537));return;}
+  if(mode==='late-body'){
+   res.writeHead(200,{'Content-Type':'application/json'});res.flushHeaders();
+   fs.writeFileSync(path.join(profile,'headers-observed'),'');
+   const publish=()=>{if(fs.existsSync(path.join(profile,'release-body'))&&!res.writableEnded)res.end(JSON.stringify([{type:'page',webSocketDebuggerUrl:'ws://127.0.0.1:'+port+'/devtools/page/fixture'}]));};
+   fs.watch(profile,publish);publish();return;
+  }
+
   res.setHeader('Content-Type','application/json');
   res.end(JSON.stringify(requests===1 || mode==='no-page'?[]:[{type:'page',webSocketDebuggerUrl:'ws://127.0.0.1:'+port+'/devtools/page/fixture'}]));
  });
@@ -32,7 +43,12 @@ else {
    fs.watch(profile,publish);publish();
   } else console.error('DevTools listening on ws://127.0.0.1:'+port+'/devtools/browser/fixture');
  });
- if(mode==='cold')setTimeout(listen,21000);else listen();
+ if(mode==='cold'){
+  let opened=false;
+  const publish=()=>{if(!opened&&fs.existsSync(path.join(profile,'release-cold'))){opened=true;watcher.close();listen();}};
+  const watcher=fs.watch(profile,publish);
+  fs.writeFileSync(path.join(profile,'cold-waiting'),'');publish();
+ }else listen();
 }
 `;
 async function withBrowser(mode,check,timeoutMs=2000) {
@@ -71,14 +87,20 @@ test('handles a partially written port file and waits for the page endpoint',asy
   assert(Number(await readFile(path.join(profile,'probes'),'utf8'))>=2);
  });
 });
-test('allows cold endpoint startup beyond 20 seconds within the shared 60-second budget',{timeout:30000},async()=>{
- await withBrowser('cold',async browser=>{
+test('allows observed cold startup beyond the former 20-second cutoff within the unchanged budget',{timeout:10000},async()=>{
+ let now=0;
+ await withBrowser('cold',async(browser,profile)=>{
+  let ready=false;void browser.ready.then(()=>{ready=true;},()=>{});
+  await waitForState(async()=>{await readFile(path.join(profile,'cold-waiting'));return true;},'cold child holds endpoint behind its release gate');
+  assert.equal(ready,false,'a held endpoint must not establish readiness');
+  now=21000;
+  await writeFile(path.join(profile,'release-cold'),'');
   assert.equal((await browser.ready)[0].type,'page');
   const timing=JSON.parse(browser.diagnostic());
   assert.equal(timing.budgetMs,60000);
-  assert(timing.endpointMs>=21000);
+  assert.equal(timing.deadlineElapsedMs,21000);
   assert(timing.probes>=2);
- },null);
+ },{now:()=>now});
 });
 test('reports an early exit with its actual code and stderr',async()=>{
  await withBrowser('exit',async browser=>{
@@ -115,4 +137,48 @@ test('retains bounded stderr when no endpoint ever appears',{timeout:10000},asyn
   now=750;
   await assert.rejects(browser.ready,error=>/Timed out: Chrome startup/.test(error.message) && /fixture waiting without DevTools/.test(error.message));
  },{timeoutMs:750,now:()=>now});
+});
+
+
+test('rejects valid page discovery released after the observed logical deadline',{timeout:10000},async()=>{
+ let now=0;
+ await withBrowser('late-body',async(browser,profile)=>{
+  await waitForState(()=>readFile(path.join(profile,'headers-observed')).then(()=>true),'DevTools headers arrived while body is withheld');
+  now=751;await writeFile(path.join(profile,'release-body'),'');
+  await assert.rejects(browser.ready,/Timed out: Chrome startup/);
+ },{timeoutMs:750,now:()=>now});
+});
+test('partial numeric port without a complete discovery record cannot be probed',{timeout:10000},async()=>{
+ await withBrowser('file',async(browser,profile)=>{
+  await waitForState(()=>JSON.parse(browser.diagnostic()).incompleteDiscoveryReads>0,'incomplete discovery opened');
+  await writeFile(path.join(profile,'DevToolsActivePort'),'123');
+  await waitForState(()=>JSON.parse(browser.diagnostic()).lastDiscoveryBytes===3,'numeric fragment actually read');
+  assert.equal(JSON.parse(browser.diagnostic()).probes,0);
+  await writeFile(path.join(profile,'publish-port'),'');assert.equal((await browser.ready)[0].type,'page');
+ });
+});
+test('oversized discovery refuses before contacting an endpoint',{timeout:10000},async()=>{
+ await withBrowser('file',async(browser,profile)=>{
+  await waitForState(()=>JSON.parse(browser.diagnostic()).incompleteDiscoveryReads>0,'discovery reader entered');
+  await writeFile(path.join(profile,'DevToolsActivePort'),'x'.repeat(4097));
+  await assert.rejects(browser.ready,/Chrome discovery failed.*Invalid Chrome discovery file/s);
+  assert.equal(JSON.parse(browser.diagnostic()).probes,0);
+ });
+});
+
+
+test('malformed and oversized DevTools discovery fail without qualifying readiness',{timeout:10000},async()=>{
+ for(const mode of ['malformed','oversized-body'])await withBrowser(mode,async browser=>{
+  await assert.rejects(browser.ready,/Invalid Chrome DevTools discovery/);
+  assert.equal(JSON.parse(browser.diagnostic()).probes,1,'malformed protocol input must not trigger blind retries');
+ });
+});
+
+
+test('observed nonzero Chrome exit after readiness fails owned finalization',{timeout:10000},async()=>{
+ await withBrowser('late-exit',async browser=>{
+  assert.equal((await browser.ready)[0].type,'page');
+  const exited=once(browser.process,'exit');browser.process.kill('SIGUSR2');await exited;
+  await assert.rejects(browser.stop(),error=>/Chrome exited unexpectedly/.test(error.message)&&/exit=17/.test(error.message));
+ });
 });

@@ -2,24 +2,25 @@
 // Only TCP/board/time boundaries use the existing deterministic fixture.
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import {spawn} from 'node:child_process';
-import {mkdtemp, readFile, writeFile, mkdir} from 'node:fs/promises';
+import {writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os';
-import {Fixture} from './consumer_sessions.test.mjs';
-import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
+import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
+const h=new BrowserHarness();
+const cancellationSensitivity=process.env.HOSTNAME_CANCEL_SENSITIVITY;
+let cancellationFaultEntered=false,cancellationAssertion;
+try{await h.run(async()=>{
+if(cancellationSensitivity!==undefined&&cancellationSensitivity!=='1')throw Error('Unknown hostname sensitivity mode');
 
 if (!globalThis.WebSocket) throw new Error('Use Node with built-in WebSocket; Node 20 needs --experimental-websocket');
 if (!process.argv[2]) throw Error('Usage: node tests/hostname_browser_integration.mjs CONSUMER_BOOTSTRAP_DRIVER [OUTPUT_DIRECTORY]');
-const processGroup=process.platform==='linux';
 const noCapture=process.env.PICO_BROWSER_NO_CAPTURE==='1' || process.env.HOSTNAME_BROWSER_NO_CAPTURE==='1';
 const output=path.resolve(process.argv[3] || 'build/hostname-browser-integration');
 await mkdir(output,{recursive:true});
-const profile=await mkdtemp(path.join(os.tmpdir(),'p1510-chrome-'));
-let f=new Fixture(process.argv[2]);await f.time(1000);await f.command({op:'reboot'});await f.time(1000);
+const profile=await h.profile('p1510-chrome-');
+let f=await h.fixture(process.argv[2]);await f.time(1000);await f.command({op:'reboot'});await f.time(1000);
 let dropNext=false, blockPresentation=true, failRadioRequests=false, chrome, cdp, cdpB;
 let captures=0;
-const fB=new Fixture(process.argv[2],['2'.repeat(32)]);await fB.time(1000);
+const fB=await h.fixture(process.argv[2],['2'.repeat(32)]);await fB.time(1000);
 const bClient=fB.client();await fB.login(bClient);const bResource=await bClient.request('hostname');const bName=await bResource.json();
 await bClient.request('hostname','PUT',{schema:'hostname',target:bName.target,hostname:'pico-b.local'},bResource.headers.get('etag'));
 await fB.command({op:'reboot'});await fB.time(3000); const requests=[];
@@ -55,18 +56,12 @@ async function serve(req,res){
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
     }catch(error){res.writeHead(500,{'Content-Type':'text/plain'});res.end(error.message);}
 }
-await new Promise(resolve=>proxy.listen(0,'127.0.0.1',resolve));
+await h.server(proxy,()=>proxyQueue);await h.listen(proxy);
 const port=proxy.address().port;
-class Cdp {
-    constructor(url){this.ws=new WebSocket(url);this.sequence=0;this.pending=new Map();this.ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.method==='Page.javascriptDialogOpening'){void this.send('Page.handleJavaScriptDialog',{accept:true});return;}if(m.id&&this.pending.has(m.id)){const p=this.pending.get(m.id);this.pending.delete(m.id);m.error?p.reject(Error(m.error.message)):p.resolve(m.result);}};}
-    async open(){if(this.ws.readyState===1)return;await new Promise((resolve,reject)=>{this.ws.onopen=resolve;this.ws.onerror=reject;});}
-    send(method,params={}){const id=++this.sequence;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('CDP deadline: '+method));},15000);this.pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});this.ws.send(JSON.stringify({id,method,params}));});}
-    async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
-}
-async function until(fn,label,ms=10000){const end=Date.now()+ms;let last;while(Date.now()<end){try{const r=await fn();if(r)return r;}catch(e){last=e;}await new Promise(r=>setTimeout(r,50));}throw Error('Timed out: '+label+(last?' '+last.message:''));}
+
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 // Submit once the production form admits it; discovery/polling can briefly disable login.
-async function submitLogin(){await until(()=>cdp.evaluate(`!busy && !document.getElementById('login-submit').disabled && (document.getElementById('local-login').requestSubmit(),true)`),'login form available');}
+async function submitLogin(){await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && !document.getElementById('login-submit').disabled && (document.getElementById('local-login').requestSubmit(),true)`),'login form available');}
 async function click(id){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.click();}`);}
 async function capture(name,target){
     if(process.env.HOSTNAME_BROWSER_CAPTURE_PREFIX && !name.startsWith(process.env.HOSTNAME_BROWSER_CAPTURE_PREFIX))return;
@@ -81,22 +76,20 @@ async function capture(name,target){
     }
 }
 try {
-    chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-        ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
-            '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore',detached:processGroup});
-    const debugPort=await until(async()=>Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]),'Chrome startup',60000);
-    const page=await until(async()=>(await (await fetch(`http://127.0.0.1:${debugPort}/json`)).json()).find(p=>p.type==='page'),'page');
-    cdp=new Cdp(page.webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
+    const started=await h.chrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
+            '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],profile);chrome=started.browser.process;
+    const debugPort=new URL(started.pages[0].webSocketDebuggerUrl).port;
+    cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});await cdp.send('Page.enable');
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate(`typeof radio !== 'undefined' && !!document.getElementById('local-password')`),'shipped radio page');
 
     async function login() {
-        await until(()=>cdp.evaluate('!busy && !!localIdentity'),'identity read complete before login');
+        await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !!localIdentity'),'identity read complete before login');
         await field('local-password','test-password');
         await submitLogin();
         await until(()=>cdp.evaluate(`localAuthenticated && !busy && online`),'login and hostname readback');
     }
-    await until(()=>cdp.evaluate('!busy && !!localIdentity'),'unknown metadata state');
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !!localIdentity'),'unknown metadata state');
     // Detailed public readback can confirm the active name even when the optional
     // lightweight presentation endpoint is unavailable.
     assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),'wsprrypico-0a60df.local');
@@ -128,7 +121,7 @@ try {
         assert.equal(diagnosticsAfter[key],diagnosticsBefore[key],key+' unchanged by diagnostics/navigation');
     assert.equal(requests.length,diagnosticsRequests,'Diagnostics/navigation emit no requests, including session/job mutations');
     await field('local-password','wrong-password');await submitLogin();
-    await until(()=>cdp.evaluate('!busy'),'rejected login');
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'rejected login');
     assert.equal(await cdp.evaluate('localAuthenticated'),false);await identity('wsprrypico-0a60df.local');
     assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/failed|rejected|password|authentication/);
     await capture('rejected-login');
@@ -146,13 +139,13 @@ try {
             repeat_count:1,repeat_gap_ns:'0',allow_frequency_adjustment:true}};
     const scheduled=await other.request('message-schedule','PUT',{schema:schedule.schema,target:schedule.target,schedule:recurring},scheduleRead.headers.get('etag'));
     assert.equal(scheduled.status,200);
-    await click('refresh');await until(()=>cdp.evaluate('!busy'),'enabled recurrence');
+    await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'enabled recurrence');
     assert.equal(await cdp.evaluate(`document.getElementById('console-next').textContent`),'QRSS: CQ AA0NT');
     assert.equal(await cdp.evaluate(`document.getElementById('console-next-item').hidden`),false);
     await capture('operations-next-message','operations-console');
     const paused=await other.request('message-schedule/pause','POST',{schema:schedule.schema,target:schedule.target,pause:true},scheduled.headers.get('etag'));
     assert.equal(paused.status,200);
-    await click('refresh');await until(()=>cdp.evaluate('!busy'),'paused recurrence');
+    await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'paused recurrence');
     assert.equal(await cdp.evaluate(`document.getElementById('console-next-item').hidden`),true);
     assert.equal(await cdp.evaluate(`document.getElementById('console-next').textContent`),'');
     const logicalOwner='8'.repeat(32);
@@ -170,11 +163,11 @@ try {
         const before=await (await other.request('operations')).json();
         const start=(BigInt(before.standalone.utc_now_ns)+2000000000n).toString();
         await radioJob('ARM',{job_id:jobId,start_utc_ns:start,max_start_uncertainty_ns:'1000'});
-        await click('refresh');await until(()=>cdp.evaluate('!busy'),'armed operations');
+        await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'armed operations');
         assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Job armed');
         assert.equal(await cdp.evaluate(`document.getElementById('restart').disabled`),true);
         await f.command({op:'schedule_tick',delta_ns:'2000000000'});
-        await click('refresh');await until(()=>cdp.evaluate('!busy'),'running operations');
+        await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'running operations');
         assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Job running');
         assert.equal(await cdp.evaluate(`document.getElementById('console-frequency').textContent`),mode==='fskcw'?'135.495/135.500 kHz':mode==='dfcw'?'135.505/135.500 kHz':mode==='wspr'?'Unavailable':'135.5 kHz');
         assert.equal(await cdp.evaluate(`document.getElementById('console-frequency-label').textContent`),({qrss:'Carrier',fskcw:'Space/Mark',dfcw:'Dot/Dash',wspr:'Dial frequency'}[mode]||'Frequency'));
@@ -192,7 +185,7 @@ try {
         assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'PRESERVE LOCAL DRAFT');
         await radioJob('ABORT',{job_id:jobId});await radioJob('RELEASE');
     }
-    await other.logout();await click('refresh');await until(()=>cdp.evaluate('!busy'),'operations released');
+    await other.logout();await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'operations released');
     await capture('operations-idle','operations-console');
     await cdp.evaluate('document.getElementById("message-section").open=true');
     await cdp.evaluate(`document.getElementById('message-text').focus()`);
@@ -210,7 +203,7 @@ try {
     assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
     await field('hostname-input','K.local');
     await cdp.evaluate(`document.getElementById('hostname-form').dispatchEvent(new Event('submit',{cancelable:true}))`);
-    await until(()=>cdp.evaluate('!busy'),'invalid hostname');
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'invalid hostname');
     assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/full .local hostname/);
     assert.equal(await cdp.evaluate('document.title'),'wsprrypico-0a60df.local - Station control');
     await field('hostname-input','x'.repeat(63)+'.local');
@@ -224,7 +217,7 @@ try {
     await field('hostname-input','pico-a.local');
     const before=await f.command({op:'stats'});
     await cdp.evaluate(`document.getElementById('hostname-form').requestSubmit()`);
-    await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'profile save logs in again');
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !localAuthenticated'),'profile save logs in again');
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'KEEP DRAFT');
     assert.equal((await f.command({op:'stats'})).profile_generation,'2');
     await login();
@@ -237,15 +230,27 @@ try {
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Saved for restart: pico-a.local/);
     await capture('saved-rename-pending');
     await cdp.evaluate(`document.getElementById('message-section').open=true`);
-    await click('restart');await until(()=>cdp.evaluate('reconnectRunning && !busy'),'one-shot restart/countdown');
+    // Capture the actual first countdown callback while monitorRestart enters
+    // synchronously. Restore the global scheduler before any unrelated task runs.
+    await cdp.evaluate(`globalThis.reconnectBoundary={};const originalMonitor=monitorRestart;monitorRestart=(...args)=>{const nativeTimer=globalThis.setTimeout;globalThis.setTimeout=(callback,delay,...values)=>{if(delay!==1000)throw Error('Unexpected reconnect timer boundary');if(reconnectBoundary.callback)throw Error('Duplicate initial reconnect timer');Object.assign(reconnectBoundary,{callback,values,delay,called:0});return 0;};try{const task=originalMonitor(...args);reconnectBoundary.task=task;reconnectBoundary.epoch=reconnectEpoch;return task;}finally{globalThis.setTimeout=nativeTimer;monitorRestart=originalMonitor;}};`);
+    await click('restart');await until(()=>cdp.evaluate('reconnectRunning && !busy && typeof reconnectBoundary.callback==="function"'),'actual reconnect callback held');
     await capture('restart-countdown');
     await click('restart-cancel');
     const attempts=(await f.command({op:'stats'})).api_restarts;
-    await new Promise(r=>setTimeout(r,2200));
+    if(cancellationSensitivity){
+      await cdp.evaluate('reconnectEpoch=reconnectBoundary.epoch;reconnectRunning=true');
+      cancellationFaultEntered=true;
+    }
+    const cancellation=await cdp.evaluate(`(async()=>{const nativeTimer=globalThis.setTimeout;let next;const scheduled=new Promise(resolve=>next=resolve);globalThis.setTimeout=(callback,delay,...values)=>{if(delay===1000){reconnectBoundary.next={callback,values};next({finished:false});return 0;}return nativeTimer(callback,delay,...values);};try{reconnectBoundary.called++;reconnectBoundary.callback(...reconnectBoundary.values);return {...await Promise.race([reconnectBoundary.task.then(()=>({finished:true})),scheduled]),called:reconnectBoundary.called,delay:reconnectBoundary.delay};}finally{globalThis.setTimeout=nativeTimer;}})()`);
+    assert.equal(cancellation.called,1,'actual scheduled callback executed exactly once');
+    assert.equal(cancellation.delay,1000,'observed product countdown boundary');
+    try{assert.equal(cancellation.finished,true,'cancelled reconnect must finish after its actual scheduled callback');}
+    catch(error){cancellationAssertion=error;throw error;}
+    assert.equal(await cdp.evaluate('reconnectRunning'),false);
     assert.equal((await f.command({op:'stats'})).api_restarts,attempts);
     const previousBoot=await cdp.evaluate('localIdentity.boot_id');
     await f.command({op:'reboot'});await f.time(5000);
-    await click('refresh');await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'old-boot session withdrawn before unlock');
+    await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !localAuthenticated'),'old-boot session withdrawn before unlock');
     assert.equal(await cdp.evaluate('radio.authenticated'),false,'public reboot observation retires old keys');
     assert.notEqual(await cdp.evaluate('localIdentity.boot_id'),previousBoot,'new boot observed before explicit login');
     assert.equal(await cdp.evaluate(`document.getElementById('local-login').hidden`),false);
@@ -277,7 +282,7 @@ try {
     // Lost reply after a committed rename never resubmits; fresh login/read/review recovers.
     await field('hostname-input','wsprrypico-0a60df.local');dropNext=true;
     await cdp.evaluate(`document.getElementById('hostname-form').requestSubmit()`);
-    await until(()=>cdp.evaluate('!busy && !radio.authenticated'),'lost save reply');
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !radio.authenticated'),'lost save reply');
     assert.equal((await f.command({op:'stats'})).profile_generation,'3');
     assert.match(await cdp.evaluate('document.title'),/last confirmed|connection unknown/);
     await login();assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
@@ -287,8 +292,8 @@ try {
 
     // Two device-bound production fixtures in separate real browser tabs.
     const tabB=await cdp.send('Target.createTarget',{url:'http://pico-b.local/'});
-    const infoB=await until(async()=>(await(await fetch(`http://127.0.0.1:${debugPort}/json`)).json()).find(p=>p.id===tabB.targetId),'second Pico tab');
-    cdpB=new Cdp(infoB.webSocketDebuggerUrl);await cdpB.open();
+    const infoB=await until(async()=>(await fixtureJson(`http://127.0.0.1:${debugPort}/json`)).find(p=>p.id===tabB.targetId),'second Pico tab');
+    cdpB=await h.connect(infoB.webSocketDebuggerUrl,{dialogs:true});
     await until(()=>cdpB.evaluate('document.title==="pico-b.local - Station control"'),'second Pico title');
     assert.match(await cdp.evaluate('document.title'),/^pico-a.local - Station control/);
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:640,height:450,deviceScaleFactor:1,mobile:false});
@@ -305,19 +310,19 @@ try {
     await until(()=>cdp.evaluate(`document.getElementById('notice')?.textContent.includes('different Pico')`),'wrong return identity');
     const starts=requests.filter(r=>r.path.endsWith('/start')).length;
     await field('local-password','test-password');await submitLogin();
-    await until(()=>cdp.evaluate('!busy'),'wrong-device explicit login refused');
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'wrong-device explicit login refused');
     assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,starts);
     assert.equal((await f.command({op:'stats'})).profile_generation,'3');
     // Maximum name comes from a real persisted profile/new boot, never a DOM injection.
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
-    await until(()=>cdp.evaluate('!busy && !!localIdentity'),'return by IP');await login();
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !!localIdentity'),'return by IP');await login();
     await click('wifi-host-link');await click('hostname-review');
     const longName='x'.repeat(63)+'.local';await field('hostname-input',longName);
     await cdp.evaluate(`document.getElementById('hostname-form').requestSubmit()`);
-    await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'long name saved');
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !localAuthenticated'),'long name saved');
     await f.command({op:'reboot'});await f.time(f.now+3000);
     await cdp.send('Page.navigate',{url:'http://'+longName+'/'});
-    await until(()=>cdp.evaluate(`!busy && document.getElementById('device-name').textContent===${JSON.stringify(longName)}`),'long name applied');
+    await until(()=>cdp.evaluate(`typeof busy!=="undefined" && !busy && document.getElementById('device-name').textContent===${JSON.stringify(longName)}`),'long name applied');
     await identity(longName);await cdp.evaluate(`document.getElementById('device-diagnostics').open=true`);
     await capture('maximum-active-hostname');await login();
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:640,height:450,deviceScaleFactor:1,mobile:false});
@@ -329,11 +334,11 @@ try {
     // Only the server's fixture clock advances here. Discover its expiry with
     // an explicit authenticated read; public polling must not renew the login.
     await f.time(f.now+idleLimit+1);await cdp.evaluate('void action(()=>api("management"))');
-    await until(()=>cdp.evaluate('!busy && !localAuthenticated && !radio.authenticated'),'session expiry');
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !localAuthenticated && !radio.authenticated'),'session expiry');
     assert.match(await cdp.evaluate(`document.getElementById('local-status').textContent`),/locked|expired|unconfirmed/i);
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Last confirmed/);
     await capture('session-expired');await login();
-    failRadioRequests=true;await click('refresh');await until(()=>cdp.evaluate('!busy && !online'),'connection failure');
+    failRadioRequests=true;await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !online'),'connection failure');
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Last confirmed/);
     assert.equal(await cdp.evaluate('radio.authenticated'),true,'public observation failure does not retire a valid login');
     assert.match(await cdp.evaluate('document.title'),/last confirmed/);await capture('disconnected-last-confirmed');
@@ -343,13 +348,8 @@ try {
 } catch(error) {
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,600),scripts:[...document.scripts].map(s=>s.src)})`).catch(e=>e.message):null}));
     throw error;
-} finally {
-    cdpB?.ws.close();cdp?.ws.close();
-    try {await cleanupUiProcesses([chrome],profile,{processGroup});}
-    finally {
-        proxy.closeAllConnections();await new Promise(resolve=>proxy.close(resolve));await proxyQueue;
-        const stopped=await Promise.allSettled([f.stop(),fB.stop()]);
-        const errors=stopped.filter(result=>result.status==='rejected').map(result=>result.reason);
-        if(errors.length)throw new AggregateError(errors,'Fixture shutdown failed');
-    }
+}
+});}catch(error){
+  if(cancellationSensitivity)console.log(JSON.stringify({kind:'hostname-cancel-sensitivity/1',fault_entered:cancellationFaultEntered,assertion_detected:error===cancellationAssertion,cleanup_completed:error===cancellationAssertion}));
+  throw error;
 }

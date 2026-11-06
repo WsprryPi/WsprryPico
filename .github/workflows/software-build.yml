@@ -78,7 +78,11 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: WsprryPico-failure-logs-${{ env.CI_STREAM }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/wsprrypico-output/audit/*.log
+          path: |
+            ${{ runner.temp }}/wsprrypico-output/audit/*.log
+            ${{ runner.temp }}/wsprrypico-output/audit/execution.json
+            ${{ runner.temp }}/wsprrypico-output/audit/host-tests.xml
+            ${{ runner.temp }}/wsprrypico-output/audit/registered-tests.json
           if-no-files-found: ignore
           retention-days: 14
 

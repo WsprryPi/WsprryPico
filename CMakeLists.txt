@@ -79,8 +79,13 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     scripts/generate_web_assets.py)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     engineering/protocol/control-policy.json engineering/protocol/control-1.schema.json
-    scripts/check_control_policy.py)
+    engineering/protocol/wtp-1.schema.json
+    scripts/check_control_policy.py scripts/generate_control_contract.py
+    src/network/control_contract.hpp src/network/public_read.hpp
+    src/network/web/control-contract.js src/hardware/si5351_qualification_profile.hpp)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_control_policy.py
+    COMMAND_ERROR_IS_FATAL ANY)
+execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_control_contract.py --check
     COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_web_assets.py
     ${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated/web_assets.cpp
@@ -322,6 +327,9 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_compile_options(usb_maintenance_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME usb_maintenance_tests COMMAND usb_maintenance_tests)
     add_test(NAME usb_installer_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/usb_installer_tests.py)
+    if(UNIX)
+        add_test(NAME usb_tool_download_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/usb_tool_download_tests.py)
+    endif()
     add_executable(usb_management_tests tests/usb_management_tests.cpp)
     target_link_libraries(usb_management_tests PRIVATE wsprrypico_core)
     target_compile_options(usb_management_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
@@ -438,6 +446,14 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME bootstrap_wire_tests COMMAND bootstrap_wire_tests)
     find_program(WSPRRY_PICO_NODE_EXECUTABLE node)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME browser_cdp_transport COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            --test ${CMAKE_SOURCE_DIR}/tests/browser_cdp.test.mjs)
+        add_test(NAME browser_scope_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            --test ${CMAKE_SOURCE_DIR}/tests/browser_scope.test.mjs)
+        add_test(NAME browser_harness_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            --test ${CMAKE_SOURCE_DIR}/tests/browser_harness.test.mjs)
+        add_test(NAME ui_fixture_process_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            --test ${CMAKE_SOURCE_DIR}/tests/ui_fixture_process.test.mjs)
         add_test(NAME oob_defaults_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/oob_defaults_browser_tests.js)
         add_test(NAME device_presentation_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
@@ -547,6 +563,13 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(control_contract_tests PRIVATE wsprrypico_core)
     target_compile_options(control_contract_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME control_contract COMMAND control_contract_tests)
+    add_test(NAME ci_execution_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/ci_execution_tests.py)
+    add_test(NAME generated_control_build_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/generated_control_build_tests.py)
+    set_tests_properties(generated_control_build_tests PROPERTIES TIMEOUT 120)
+    add_test(NAME fixture_process_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/fixture_process_tests.py)
     add_test(NAME control_policy COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/check_control_policy.py)
     add_test(NAME control_policy_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/control_policy_tests.py)
     add_test(NAME control_contract_generated COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/generate_control_contract.py --check)

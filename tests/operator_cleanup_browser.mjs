@@ -2,13 +2,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
-import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {Fixture} from './consumer_sessions.test.mjs';
-import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
-import {launchChrome} from './chrome_startup.mjs';
-import {deadlinePromise,until,preserveCleanup} from './browser_deadline.mjs';
+import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
+import {deadlinePromise} from './browser_deadline.mjs';
+const h=new BrowserHarness();
+await h.run(async()=>{
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const driver=process.argv[2];
@@ -16,15 +15,14 @@ if(!driver) throw Error('Usage: node tests/operator_cleanup_browser.mjs DRIVER [
 const output=process.argv[3] && path.resolve(process.argv[3]);
 const filterOnly=process.argv.includes('--filter-ui-only') || process.env.WSPRRY_PICO_FILTER_UI_ONLY==='1';
 if(output) fs.mkdirSync(output,{recursive:true});
-const processGroup=process.platform==='linux';
-const f=new Fixture(driver),profile=fs.mkdtempSync(path.join(os.tmpdir(),'pico-operator-cleanup-'));
-let chrome,ws,serial=0,dropPinReply=false,primaryFailure;
+const f=await h.fixture(driver),profile=await h.profile('pico-operator-cleanup-');
+let chrome,ws,cdp,dropPinReply=false,primaryFailure;
 let screenshotCount=0;
 function saveScreenshot(name,shot) {
   fs.writeFileSync(path.join(output,name),Buffer.from(shot.data,'base64'));
   ++screenshotCount;
 }
-const pending=new Map(),errors=[],reads=[];
+const errors=[],reads=[];
 const server=http.createServer(async(req,res)=>{
   try {
     if(req.url.startsWith('/api/')) {
@@ -51,12 +49,7 @@ const server=http.createServer(async(req,res)=>{
     res.writeHead(404);res.end();
   } catch(error) {errors.push(error.message);res.writeHead(500);res.end();}
 });
-function send(method,params={}) {
-  return deadlinePromise('CDP '+method,(resolve,reject)=>{
-    const id=++serial;pending.set(id,{resolve,reject});ws.send(JSON.stringify({id,method,params}));
-    return()=>pending.delete(id);
-  });
-}
+const send=(...args)=>cdp.send(...args);
 async function evaluate(expression) {
   const result=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
   if(result.exceptionDetails) throw Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
@@ -173,23 +166,14 @@ async function capture(state) {
   await click(zoomArea==='station'?'station-link':'wifi-host-link');
 }
 try {
-  await f.time(1000);await deadlinePromise('fixture-http-listen',(resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);return()=>server.removeListener('error',reject);});
-  const browser=launchChrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',[
+  await h.server(server);await f.time(1000);await h.listen(server);
+  const started=await h.chrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',[
     '--headless=new','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check',
-    '--remote-debugging-port=0','--user-data-dir='+profile,...(process.platform==='linux'?['--no-sandbox']:[]),'about:blank'],profile,{processGroup});
-  chrome=browser.process;
-  const pages=await browser.ready;
-  console.log('Chrome startup: '+browser.diagnostic());
-  ws=new WebSocket(pages.find(page=>page.type==='page').webSocketDebuggerUrl);
-  const failSocket=()=>{for(const item of pending.values())item.reject(Error('CDP socket closed or failed'));pending.clear();};
-  ws.addEventListener('close',failSocket);ws.addEventListener('error',failSocket);
-  ws.onmessage=event=>{
-    const value=JSON.parse(event.data);
-    if(value.method==='Page.javascriptDialogOpening') {void send('Page.handleJavaScriptDialog',{accept:true});return;}
-    if(value.method==='Runtime.exceptionThrown') errors.push(value.params.exceptionDetails.exception?.description || value.params.exceptionDetails.text);
-    const request=pending.get(value.id);if(request){pending.delete(value.id);value.error?request.reject(Error(value.error.message)):request.resolve(value.result);}
-  };
-  await deadlinePromise('browser-socket-open',(resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;return()=>{ws.onopen=null;ws.onerror=null;};});await send('Page.enable');await send('Runtime.enable');
+    '--remote-debugging-port=0','--user-data-dir='+profile,...(process.platform==='linux'?['--no-sandbox']:[]),'about:blank'],profile);chrome=started.browser.process;
+  console.log('Chrome startup: '+started.browser.diagnostic());
+  cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});ws=cdp.ws;
+  cdp.on('Runtime.exceptionThrown',params=>errors.push(params.exceptionDetails.exception?.description||params.exceptionDetails.text));
+  await send('Page.enable');await send('Runtime.enable');
   await send('Page.navigate',{url:`http://127.0.0.1:${server.address().port}/station`});
   await until(()=>evaluate('typeof settingsLoadedBoot!=="undefined" && !!settingsLoadedBoot && !busy'),'public settings loaded');
   assert.equal(await evaluate('online'),true);
@@ -454,11 +438,5 @@ try {
   primaryFailure=error;
   console.error(JSON.stringify({errors,reads:reads.slice(-12),state:ws ? await evaluate('({notice:document.getElementById("notice")?.textContent,online:typeof online!=="undefined"?online:null,busy:typeof busy!=="undefined"?busy:null,settings:typeof settingsLoadedBoot!=="undefined"?settingsLoadedBoot:null})').catch(()=>null):null}));
   throw error;
-} finally {
-  await preserveCleanup(primaryFailure,[
-    async()=>{if(ws){await send('Browser.close').catch(()=>{});ws.close();}},
-    async()=>{server.closeAllConnections();await deadlinePromise('fixture-http-close',(resolve,reject)=>{server.close(error=>error&&error.code!=='ERR_SERVER_NOT_RUNNING'?reject(error):resolve());},3000);},
-    ()=>f.stop(),
-    ()=>cleanupUiProcesses([chrome],profile,{processGroup})
-  ]);
 }
+});

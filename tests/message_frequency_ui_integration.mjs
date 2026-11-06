@@ -1,34 +1,23 @@
 // Real shipped UI and synthetic RAM-backed consumer API; no board or RF access.
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
-import {mkdtemp,readFile,writeFile,mkdir} from 'node:fs/promises';
-import os from 'node:os';
+import {writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
-import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
+import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
+const h=new BrowserHarness();
+await h.run(async()=>{
 
 const driver=process.argv[2], output=path.resolve(process.argv[3] || 'build/message-frequency-ui');
 if (!driver) throw Error('Usage: node message_frequency_ui_integration.mjs DRIVER [OUTPUT]');
 await mkdir(output,{recursive:true});
-const profile=await mkdtemp(path.join(os.tmpdir(),'wsprrypico-cw-browser-'));
-const processGroup=process.platform==='linux';
+let profile;
 let fixture, chrome, cdp, fixturePort=19039;
-class Cdp {
-  constructor(url) {
-    this.ws=new WebSocket(url);this.pending=new Map();this.sequence=0;
-    this.ws.onmessage=event=>{const r=JSON.parse(event.data),p=this.pending.get(r.id);if(p){this.pending.delete(r.id);r.error?p.reject(Error(r.error.message)):p.resolve(r.result);}};
-  }
-  async open(){if(this.ws.readyState!==1)await new Promise((resolve,reject)=>{this.ws.onopen=resolve;this.ws.onerror=reject;});}
-  send(method,params={}){const id=++this.sequence;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('Browser deadline: '+method));},15000);this.pending.set(id,{resolve:v=>{clearTimeout(timer);resolve(v);},reject:e=>{clearTimeout(timer);reject(e);}});this.ws.send(JSON.stringify({id,method,params}));});}
-  async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
-}
-async function until(fn,label,ms=15000){const end=Date.now()+ms;while(Date.now()<end){if(await fn())return;await new Promise(resolve=>setTimeout(resolve,50));}let detail='';try{detail=await cdp.evaluate(`JSON.stringify({feedback:document.getElementById('message-result')?.textContent,notice:document.getElementById('notice')?.textContent,active:document.activeElement?.id,writes:globalThis.cwRequests?.slice(-5)})`);}catch{}throw Error('Timed out: '+label+' '+detail);}
+
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});if(${JSON.stringify(id)}==='local-password'&&!document.getElementById('local-access').open)document.getElementById('access-toggle').click();globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 // Submit once the production form admits it; discovery/polling can briefly disable login.
 async function submitLogin(){await until(()=>cdp.evaluate(`!busy && !document.getElementById('login-submit').disabled && (document.getElementById('local-login').requestSubmit(),true)`),'login form available');}
 async function click(id){await cdp.evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
 async function control(command) {
-  const r=await fetch('http://127.0.0.1:'+fixturePort+'/.fixture-control',{method:'POST',body:JSON.stringify(command)});
-  assert.equal(r.status,200);return r.json();
+  return fixtureJson('http://127.0.0.1:'+fixturePort+'/.fixture-control',{method:'POST',body:JSON.stringify(command)});
 }
 async function capture(name,target='job-heading'){
   for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
@@ -59,21 +48,15 @@ function expectedEvents(mode, base, upper, characters=false) {
   });
 }
 const evidence=[];
-try {
-  let fixtureOutput='';
-  fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'19039',output,'messages'],{stdio:['ignore','pipe','pipe'],detached:processGroup});
-  fixture.stdout.on('data',data=>fixtureOutput+=data);fixture.stderr.on('data',data=>fixtureOutput+=data);
-  await until(()=>fixtureOutput.includes('READY;'),'fixture startup');
+{
+  fixture=await h.review(driver,19039,output,{profiles:['consumer-lan','engineering'],messages:true});await fixture.ready;
   for(const surface of ['consumer','engineering']) {
     const port=surface==='consumer'?19039:19044;
     fixturePort=port;
-    chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
-       '--remote-debugging-port=0',`--user-data-dir=${profile}`,'--proxy-server=http://127.0.0.1:'+port,'--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore',detached:processGroup});
-    let debugPort;
-    await until(async()=>{try{debugPort=Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]);return !!debugPort;}catch{return false;}},'browser startup',30000);
-    const pages=await(await fetch(`http://127.0.0.1:${debugPort}/json`)).json();
-    cdp=new Cdp(pages.find(p=>p.type==='page').webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
+    profile=await h.profile('pico-message-'+surface+'-');
+    const started=await h.chrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
+       '--remote-debugging-port=0',`--user-data-dir=${profile}`,'--proxy-server=http://127.0.0.1:'+port,'--proxy-bypass-list=<-loopback>','about:blank'],profile);chrome=started.browser.process;
+    cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:false});await cdp.send('Page.enable');
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     if(surface==='consumer') {
       await until(()=>cdp.evaluate('typeof localIdentity!=="undefined" && !!localIdentity && !busy'),'consumer page');
@@ -190,9 +173,8 @@ try {
     assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-adopt').textContent`),'Restore saved schedule');
     await capture(surface+'-schedule-during-send-once','message-schedule-controls');
     let restoreDialog;
-    const acceptRestore=event=>{const r=JSON.parse(event.data);if(r.method==='Page.javascriptDialogOpening'){restoreDialog=r.params;void cdp.send('Page.handleJavaScriptDialog',{accept:true});}};
-    cdp.ws.addEventListener('message',acceptRestore);
-    try{await click('message-schedule-adopt');}finally{cdp.ws.removeEventListener('message',acceptRestore);}
+    const releaseRestore=cdp.on('Page.javascriptDialogOpening',async params=>{restoreDialog=params;await cdp.send('Page.handleJavaScriptDialog',{accept:true});});
+    try{await click('message-schedule-adopt');}finally{releaseRestore();}
     assert.match(restoreDialog?.message||'',/Replace the current message draft/);
     assert.deepEqual(await cdp.evaluate(`['message-delivery','message-text'].map(id=>document.getElementById(id).value)`),['recurring','E']);
     await cdp.evaluate(`{const original=api;api=async(...args)=>{const response=await original(...args);if(args[0]==='message-schedule'&&args[1]==='PUT'){api=original;throw Error('Saved schedule reply lost');}return response;};document.getElementById('message-form').requestSubmit();}`);
@@ -217,11 +199,10 @@ try {
     const afterSchedule=await control({op:'frequency_state'});
     assert.equal(afterSchedule.saved_dial_hz,beforeState.saved_dial_hz,'message schedule leaves the WSPR dial unchanged');
     assert.equal(afterSchedule.enabled,beforeState.enabled,'message schedule leaves WSPR enablement unchanged');
-    cdp.ws.close();cdp=null;await cleanupUiProcesses([chrome],profile,{processGroup});chrome=null;
+    await cdp.stop();cdp=null;await started.browser.stop();chrome=null;
     console.log('PASS '+surface+' shipped CW requests, compiled events, explicit API, keyboard, errors, drafts and views');
   }
   await writeFile(path.join(output,'cw-evidence.json'),JSON.stringify(evidence,null,2)+'\n');
   await writeFile(path.join(output,'result.json'),JSON.stringify({passed:true,surfaces:['consumer','engineering'],modes:['qrss','fskcw','dfcw'],themes:['light'],views:['desktop','mobile'],text_zoom:200,physical_qualification:false},null,2)+'\n');
-} finally {
-  cdp?.ws.close();await cleanupUiProcesses([chrome,fixture],profile,{processGroup});
 }
+});

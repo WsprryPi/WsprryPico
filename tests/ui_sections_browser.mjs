@@ -3,42 +3,26 @@ import assert from 'node:assert/strict';
 import {checkSi5351} from './si5351_ui_checks.mjs';
 import {checkGps} from './gps_ui_checks.mjs';
 import {checkContextualHelp} from './contextual_help_browser.mjs';
-import {spawn,execFileSync} from 'node:child_process';
-import {mkdtemp,readFile,writeFile,mkdir} from 'node:fs/promises';
-import os from 'node:os';
+import {execFileSync} from 'node:child_process';
+import {writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
-import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
+import {BrowserHarness,until,fixtureJson,navigationTransient} from './browser_harness.mjs';
+const h=new BrowserHarness();
+await h.run(async()=>{
 
 const carrier=process.argv[4] || 'consumer';
+if(!['consumer','engineering','field'].includes(carrier))throw Error('Unknown section carrier');
 const proxyPort=carrier==='engineering' ? 19154 : carrier==='field' ? 19153 : 19149;
 const driver=process.argv[2],output=path.resolve(process.argv[3] || 'build/ui-sections-browser');
 if(!driver)throw Error('Usage: node tests/ui_sections_browser.mjs DRIVER [OUTPUT]');
 await mkdir(output,{recursive:true});
-const profile=await mkdtemp(path.join(os.tmpdir(),'pico-session-browser-'));
-const processGroup=process.platform==='linux';
-let fixture,chrome,ws,serial=0,now=1000;
-const pending=new Map();
-function send(method,params={}) {
-    const id=++serial;
-    return new Promise((resolve,reject)=>{
-        const timer=setTimeout(()=>{pending.delete(id);reject(Error('Browser deadline: '+method));},method==='Page.navigate'?60000:15000);
-        pending.set(id,{resolve:value=>{clearTimeout(timer);resolve(value);},reject:error=>{clearTimeout(timer);reject(error);}});
-        ws.send(JSON.stringify({id,method,params}));
-    });
-}
-async function evaluate(expression) {
-    const result=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});
-    if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
-    return result.result.value;
-}
-async function until(fn,label) {
-    const end=Date.now()+15000;
-    while(Date.now()<end){if(await fn())return;await new Promise(resolve=>setTimeout(resolve,40));}
-    throw Error('Timed out: '+label);
-}
+let profile=await h.profile('pico-session-browser-');
+let fixture,chrome,cdp,now=1000;
+const send=(...args)=>cdp.send(...args);
+const evaluate=expression=>cdp.evaluate(expression);
+
 async function control(value) {
-    const response=await fetch('http://127.0.0.1:'+proxyPort+'/.fixture-control',{method:'POST',body:JSON.stringify(value)});
-    assert.equal(response.status,200);return response.json();
+    return fixtureJson('http://127.0.0.1:'+proxyPort+'/.fixture-control',{method:'POST',body:JSON.stringify(value)});
 }
 async function click(id) {await evaluate(`document.getElementById(${JSON.stringify(id)}).click()`);}
 async function section(id) {await evaluate(`(()=>{const node=document.getElementById('${id}'),area=node.closest('[data-task-area]').dataset.taskArea;history.pushState({...history.state,wsprrypicoPresentation:{section:'${id}',area}},'','/'+area+(/^#(?:save|hostname-return)=/.test(location.hash)?location.hash:'#${id}'));dispatchEvent(new PopStateEvent('popstate'));})()`);}
@@ -49,7 +33,7 @@ async function key(key,code=key) {
 async function idle() {await until(()=>evaluate('typeof busy!=="undefined" && !busy'),'serialized request finished');}
 async function navigate(hash='') {
     await send('Page.navigate',{url:'about:blank'});
-    await until(()=>evaluate('location.href==="about:blank"').catch(()=>false),'blank document');
+    await until(()=>evaluate('location.href==="about:blank"').catch(navigationTransient),'blank document');
     await send('Page.navigate',{url:(carrier==='field'?'http://192.168.4.1/station':'http://192.168.1.53/')+hash});
     await until(()=>evaluate('typeof accessCarrier!=="undefined" && (!!localIdentity || accessCarrier==="certificate") && !busy'),'shipped admitted page');
 }
@@ -83,21 +67,13 @@ async function capture(state,dialog=false) {
     }
 }
 try {
-    let fixtureLog='';
-    fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'19149',output],{stdio:['ignore','pipe','pipe'],detached:processGroup});
-    fixture.stdout.on('data',data=>fixtureLog+=data);fixture.stderr.on('data',data=>fixtureLog+=data);
-    await until(()=>fixtureLog.includes('READY;'),'fixture startup');
-    chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',[
+    fixture=await h.review(driver,19149,output,{profiles:[carrier==='engineering'?'engineering':carrier==='field'?'consumer-ap':'consumer-lan']});await fixture.ready;
+    const started=await h.chrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',[
         '--headless=new','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check',
         '--remote-debugging-port=0','--user-data-dir='+profile,'--proxy-server=http://127.0.0.1:'+proxyPort,
-        '--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore',detached:processGroup});
-    let debugPort;
-    await until(async()=>{try{debugPort=Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]);return !!debugPort;}catch{return false;}},'Chrome startup');
-    const pages=await(await fetch('http://127.0.0.1:'+debugPort+'/json')).json();
-    ws=new WebSocket(pages.find(page=>page.type==='page').webSocketDebuggerUrl);
-    ws.onmessage=event=>{const value=JSON.parse(event.data);if(value.method==='Page.windowOpen'){helpWindows.push(value.params);return;}if(value.method==='Page.javascriptDialogOpening'){void send('Page.handleJavaScriptDialog',{accept:true});return;}const request=pending.get(value.id);if(request){pending.delete(value.id);value.error?request.reject(Error(value.error.message)):request.resolve(value.result);}};
-    await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});await send('Page.enable');
-    await until(()=>evaluate('!!document.documentElement').catch(()=>false),'active Chrome page');
+        '--proxy-bypass-list=<-loopback>','about:blank'],profile);chrome=started.browser.process;
+    cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});cdp.on('Page.windowOpen',params=>helpWindows.push(params));await send('Page.enable');
+    await until(()=>evaluate('!!document.documentElement').catch(navigationTransient),'active Chrome page');
     await navigate();
     await capture('help-status');
     await checkContextualHelp({evaluate,send,key,section,helpWindows});
@@ -169,7 +145,7 @@ try {
     assert.equal(await evaluate('document.querySelectorAll("[data-operator-section][open]").length'),0);
     await evaluate('history.forward()');await until(()=>evaluate('document.getElementById("wifi-settings").open'),'receipt Forward section');
     await evaluate('globalThis.sectionReloadMarker=true');await send('Page.reload');
-    await until(()=>evaluate('!globalThis.sectionReloadMarker && typeof localIdentity!=="undefined" && !!localIdentity && !busy').catch(()=>false),'new document receipt reload');
+    await until(()=>evaluate('!globalThis.sectionReloadMarker && typeof localIdentity!=="undefined" && !!localIdentity && !busy').catch(navigationTransient),'new document receipt reload');
     assert.equal(await evaluate('document.getElementById("radio-settings").open'),true);
     assert.equal(await evaluate('document.getElementById("consumer-setup").closest("#station-identity")!==null'),true);
     assert.equal(await evaluate('location.hash'),receipt);
@@ -301,6 +277,5 @@ try {
 } catch(error) {
     console.error('UI failure state',await evaluate('JSON.stringify({busy,online,carrier:accessCarrier,authenticated:localAuthenticated,notice:document.getElementById("notice").textContent,field:capabilities?.field_access,context:radio?.context,hidden:document.hidden,fieldSupported:fieldTimeSupported(),focus:document.activeElement.id,open:[...document.querySelectorAll("[data-operator-section][open]")].map(e=>e.id)})').catch(()=>null));
     throw error;
-} finally {
-    if(ws){await send('Browser.close').catch(()=>{});ws.close();}await cleanupUiProcesses([chrome,fixture],profile,{processGroup});
 }
+});

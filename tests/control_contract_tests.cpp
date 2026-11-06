@@ -25,6 +25,9 @@ void envelope_admission() {
                             R"({"contract":"Wsprry-Control/1","contract":"Wsprry-Control/1"})",
                             R"({"contract":"Wsprry-Control/1","x":1,"x":2})"})
         REQUIRE(!network::control_payload(wtp::InputView(body)));
+    // A complete bare Config v1 document carries no current control authority.
+    REQUIRE(wtp::json::parse(network_test::config)->get("version")->integer() == 1);
+    REQUIRE(!network::control_payload(wtp::InputView(network_test::config)));
     const auto empty = network::control_payload(wtp::InputView(R"({"contract":"Wsprry-Control/1"})"));
     REQUIRE(empty && *empty == "{}");
     network::HttpResponse response;

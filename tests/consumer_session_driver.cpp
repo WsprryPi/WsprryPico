@@ -635,6 +635,18 @@ struct Driver {
             f.flash.fail = v.get("fail")->boolean();
             return "{}";
         }
+#ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
+        if (op == "sensitivity_saved_mutation") {
+            // Deliberate host-only defect: simulate an unauthorized journal
+            // write for the browser pilot's independent no-write oracle.
+            // This driver is not firmware and cannot address physical hardware.
+            check(f.scheduler.idle() && f.store.config().has_value());
+            auto config = *f.store.config();
+            config.power_dbm = config.power_dbm == 37 ? 33 : 37;
+            check(f.store.save(config));
+            return "{}";
+        }
+#endif
         if (op == "field_reference") {
             // Synthetic counter observation enters the same production NTP
             // adapter and arbiter used by target CLK2 observations.

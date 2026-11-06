@@ -1,0 +1,24 @@
+{
+  "schema": "ci-execution-policy/2",
+  "contexts": [
+    "ctest",
+    "wtp-contract",
+    "npm",
+    "packaging",
+    "browser-lifecycle",
+    "frequency",
+    "first-use",
+    "session-timeout",
+    "progress",
+    "recovery",
+    "submission",
+    "hostname",
+    "organization",
+    "wspr",
+    "message-frequency",
+    "operator",
+    "sections-consumer",
+    "sections-engineering"
+  ],
+  "completion_policy": "scripts/ci/ctest-completion-policy.json"
+}

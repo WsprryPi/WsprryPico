@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import os
+import shlex
 from pathlib import Path
 import struct
 import subprocess
@@ -22,6 +23,71 @@ import run as ci_run
 
 
 class TestingInputTests(unittest.TestCase):
+    def test_fresh_build_refuses_existing_file_directory_and_broken_symlink(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.assertEqual(ci_run.fresh_directory(root/'new'), root/'new')
+            for name in ('file', 'directory', 'link'):
+                path = root/name
+                if name == 'file': path.write_text('preserve existing work')
+                elif name == 'directory': path.mkdir()
+                else: path.symlink_to(root/'missing-target')
+                with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'Fresh build'):
+                    ci_run.fresh_directory(path)
+            self.assertEqual((root/'file').read_text(), 'preserve existing work')
+            self.assertTrue((root/'link').is_symlink())
+
+    def test_compiler_environment_overrides_cannot_hide_a_cache_wrapper(self):
+        with patch.dict(os.environ, {}, clear=True):
+            ci_run.direct_compiler_environment()
+            for name in ('CC', 'CXX', 'ASM', 'CMAKE_C_COMPILER_LAUNCHER',
+                         'CMAKE_CXX_COMPILER_LAUNCHER', 'CMAKE_ASM_COMPILER_LAUNCHER'):
+                with self.subTest(name=name), patch.dict(os.environ, {name:'cache-wrapper compiler'}):
+                    with self.assertRaisesRegex(ValueError, 'direct configured compilers'):
+                        ci_run.direct_compiler_environment()
+
+    def test_firmware_compilers_bind_to_archive_and_refuse_launchers(self):
+        with tempfile.TemporaryDirectory(prefix="compiler guard ") as temporary:
+            root = Path(temporary)
+            directory = root/'arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi/bin'
+            values = {f'CMAKE_{language}_COMPILER':str(directory/('arm-none-eabi-'+binary))
+                      for language,binary in (('C','gcc'),('CXX','g++'),('ASM','gcc'))}
+            values.update({f'CMAKE_{language}_COMPILER_LAUNCHER':'' for language in ('C','CXX','ASM')})
+            commands=[{'arguments':[values[f'CMAKE_{language}_COMPILER'],'-c','source.c']}
+                      for language in ('C','CXX','ASM')]
+            command_path=root/'compile_commands.json'
+            command_path.write_text(json.dumps(commands))
+            def write(values):
+                (root/'CMakeCache.txt').write_text('\n'.join(key+':FILEPATH='+value for key,value in values.items()))
+            write(values)
+            ci_run.direct_firmware_compilers(root,root)
+            for language in ('C','CXX','ASM'):
+                for suffix,wrong in (('COMPILER','/unverified/compiler'),('COMPILER_LAUNCHER','cache-wrapper')):
+                    changed={**values,f'CMAKE_{language}_{suffix}':wrong};write(changed)
+                    with self.subTest(language=language,suffix=suffix),self.assertRaises(ValueError):
+                        ci_run.direct_firmware_compilers(root,root)
+            values.pop('CMAKE_ASM_COMPILER');write(values)
+            with self.assertRaises(ValueError):ci_run.direct_firmware_compilers(root,root)
+            values['CMAKE_ASM_COMPILER']=str(directory/'arm-none-eabi-gcc');write(values)
+            command_path.write_text(json.dumps([{'command':shlex.join(entry['arguments'])} for entry in commands]))
+            ci_run.direct_firmware_compilers(root,root)
+            for wrong in ([],[{'arguments':['cache-wrapper',str(directory/'arm-none-eabi-gcc'),'-c','source.c']}],
+                          [{'arguments':['/unverified/compiler','-c','source.c']}],
+                          [{'arguments':commands[0]['arguments'],'command':'ambiguous'}]):
+                command_path.write_text(json.dumps(wrong))
+                with self.subTest(commands=wrong),self.assertRaises(ValueError):
+                    ci_run.direct_firmware_compilers(root,root)
+
+    def test_shared_image_build_refuses_another_target_missing_image_or_directory(self):
+        with tempfile.TemporaryDirectory() as temporary, patch.object(ci_run,'execute') as execute:
+            root=Path(temporary)
+            with patch.object(ci_run,'ROOT',root):
+                for identifier,path in [('consumer',root),('inhibited-regression',root),
+                                        ('inhibited-regression',root/'build/ci-consumer')]:
+                    with self.subTest(identifier=identifier,path=path), self.assertRaisesRegex(ValueError,'shared image'):
+                        ci_run.firmware(root,root,identifier,'0.0.0-test',reuse_build=path)
+            execute.assert_not_called()
+
     def test_documentation_version_uses_actual_build_stream(self):
         for ref, expected in [('refs/heads/main', 'main'), ('refs/heads/devel', 'devel'),
                               ('refs/tags/v1.0.0-alpha.1', 'devel'),
@@ -260,7 +326,8 @@ class BundleTests(unittest.TestCase):
     def verify(self, **kwargs):
         # Synthetic fixture has no ELF. Actual image inspection is mandatory in
         # the CLI; these tests isolate untrusted manifests and artifact inventories.
-        with patch.object(bundle, 'required_tests', return_value={'fixture'}):
+        with patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=None):
             return bundle.verify(self.deploy, self.audit, kwargs.get('source', self.source),
                                   kwargs.get('version', self.version), inspect=False)
 
@@ -280,6 +347,120 @@ class BundleTests(unittest.TestCase):
         (self.deploy / 'SHA256SUMS').write_text(''.join(
             hashlib.sha256(p.read_bytes()).hexdigest() + '  ' + p.name + '\n'
             for p in sorted(self.deploy.iterdir()) if p.name != 'SHA256SUMS'))
+
+    def test_new_producer_requires_execution_sidecar_even_when_inventory_is_resealed(self):
+        with patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=['npm']), \
+             patch.object(bundle, 'required_completion_policy', return_value=None):
+            with self.assertRaises(FileNotFoundError):
+                bundle.verify(self.deploy, self.audit, self.source, self.version, inspect=False)
+        # The same distribution fixture remains readable for a frozen old producer.
+        self.verify()
+
+    def test_new_execution_sidecar_survives_distribution_verification_and_rejects_wrong_run(self):
+        import execution
+        summary = '\n'.join('# '+key+' '+str(value) for key, value in
+                            {'tests': 1, 'pass': 1, 'fail': 0, 'cancelled': 0, 'skipped': 0, 'todo': 0}.items())
+        with patch.dict(os.environ, {'GITHUB_RUN_ID': '1', 'GITHUB_RUN_ATTEMPT': '1'}):
+            execution.execute(self.audit / 'host.log', [sys.executable, '-c', 'print('+repr(summary)+')'],
+                              ROOT, self.source, 'npm')
+        self.reseal()
+        with patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=['npm']), \
+             patch.object(bundle, 'required_completion_policy', return_value=None):
+            bundle.verify(self.deploy, self.audit, self.source, self.version, inspect=False)
+            report = self.audit / 'execution.json'
+            value = json.loads(report.read_text()); value['attempt'] = '2'
+            report.write_text(json.dumps(value)); self.reseal()
+            with self.assertRaisesRegex(ValueError, 'identity mismatch'):
+                bundle.verify(self.deploy, self.audit, self.source, self.version, inspect=False)
+
+    def test_execution_policy_is_read_only_from_frozen_source(self):
+        path = 'scripts/ci/execution-policy.json'
+        policy = json.dumps({'schema': 'ci-execution-policy/1', 'contexts': ['npm']})
+        with patch.object(bundle, 'capture', side_effect=[path, policy]) as capture:
+            self.assertEqual(bundle.required_execution_contexts(self.source), ['npm'])
+        self.assertEqual(capture.call_args_list[-1].args[-1], self.source + ':' + path)
+        with patch.object(bundle, 'capture', return_value=''):
+            self.assertIsNone(bundle.required_execution_contexts(self.source))
+        for malformed in [policy.replace('npm', 'unknown'), policy.replace('["npm"]', '[]'),
+                          policy.replace('["npm"]', '["npm", "npm"]')]:
+            with patch.object(bundle, 'capture', side_effect=[path, malformed]), self.assertRaises(ValueError):
+                bundle.required_execution_contexts(self.source)
+        with patch.object(bundle, 'capture', side_effect=subprocess.CalledProcessError(1, 'git')):
+            with self.assertRaises(subprocess.CalledProcessError):
+                bundle.required_execution_contexts(self.source)
+
+    def framework_policy_fixture(self):
+        return {'schema':'ci-ctest-completion/1','tests':{'fixture':{
+            'kind':'node-test','count':2,'entrypoint':'tests/fixture.test.mjs'}},'contexts':{
+            'npm':{'kind':'node-test','count':2},'packaging':{'kind':'unittest','count':2},
+            'browser-lifecycle':{'kind':'node-test','count':2}}}
+
+    def current_policy_fixture(self):
+        import execution
+        policy=self.framework_policy_fixture()
+        summary='\n'.join('# '+key+' '+str(value) for key,value in
+                          {'tests':2,'pass':2,'fail':0,'cancelled':0,'skipped':0,'todo':0}.items())
+        registered={'tests':[{'name':'fixture','command':['node','--test',str(ROOT/'tests/fixture.test.mjs')]}]}
+        (self.audit/'registered-tests.json').write_text(json.dumps(registered))
+        import xml.etree.ElementTree as ET
+        suite=ET.Element('testsuite');case=ET.SubElement(suite,'testcase',name='fixture');ET.SubElement(case,'system-out').text=summary
+        ET.ElementTree(suite).write(self.audit/'host-tests.xml')
+        (self.audit/'ctest-completion-policy.json').write_text(json.dumps(policy))
+        outputs={'ctest':'100% tests passed, 0 tests failed out of 1','npm':summary,
+                 'packaging':'Ran 2 tests in 0.01s\nOK\n','browser-lifecycle':summary}
+        with patch.dict(os.environ,{'GITHUB_RUN_ID':'1','GITHUB_RUN_ATTEMPT':'1'}):
+            for context,output in outputs.items():
+                execution.execute(self.audit/'host.log',[sys.executable,'-c','print('+repr(output)+')'],ROOT,self.source,context)
+        self.reseal()
+        return policy
+
+    def verify_current_policy_fixture(self, policy):
+        with patch.object(bundle,'required_tests',return_value={'fixture'}), \
+             patch.object(bundle,'required_execution_contexts',return_value=['ctest','npm','packaging','browser-lifecycle']), \
+             patch.object(bundle,'required_completion_policy',return_value=policy):
+            bundle.verify(self.deploy,self.audit,self.source,self.version,inspect=False)
+
+    def test_completion_policy_is_loaded_from_its_frozen_current_producer(self):
+        import execution
+        path='scripts/ci/execution-policy.json';completion='scripts/ci/ctest-completion-policy.json'
+        value={'schema':'ci-execution-policy/2','contexts':list(execution.HOST_CONTEXTS),'completion_policy':completion}
+        expected=self.framework_policy_fixture()
+        with patch.object(bundle,'capture',side_effect=[path,json.dumps(value),json.dumps(expected)]) as capture:
+            self.assertEqual(bundle.required_completion_policy(self.source),expected)
+        self.assertEqual(capture.call_args.args[-1],self.source+':'+completion)
+        changed={**value,'contexts':value['contexts'][:-1]}
+        with self.assertRaisesRegex(ValueError,'Incomplete current'):bundle.validate_execution_policy(changed)
+
+    def test_current_frozen_policy_cannot_fall_back_when_missing_or_malformed(self):
+        value={'schema':'ci-execution-policy/2','completion_policy':'scripts/ci/ctest-completion-policy.json'}
+        with patch.object(bundle,'source_execution_policy',return_value=value):
+            with patch.object(bundle,'capture',side_effect=subprocess.CalledProcessError(1,'git')):
+                with self.assertRaises(subprocess.CalledProcessError):bundle.required_completion_policy(self.source)
+            with patch.object(bundle,'capture',return_value='{"schema":"unknown"}'):
+                with self.assertRaises(ValueError):bundle.required_completion_policy(self.source)
+        with patch.object(bundle,'source_execution_policy',return_value={'schema':'ci-execution-policy/1'}):
+            self.assertIsNone(bundle.required_completion_policy(self.source))
+
+    def test_distribution_requires_exact_frozen_policy_even_after_resealing(self):
+        policy=self.current_policy_fixture();self.verify_current_policy_fixture(policy)
+        path=self.audit/'ctest-completion-policy.json';path.write_text('{}');self.reseal()
+        with self.assertRaisesRegex(ValueError,'policy differs'):self.verify_current_policy_fixture(policy)
+        path.unlink();self.reseal()
+        with self.assertRaises(FileNotFoundError):self.verify_current_policy_fixture(policy)
+
+    def test_distribution_refuses_partial_framework_result_even_after_resealing(self):
+        policy=self.current_policy_fixture()
+        path=self.audit/'host-tests.xml';path.write_text(path.read_text().replace('# tests 2','# tests 1').replace('# pass 2','# pass 1'));self.reseal()
+        with self.assertRaisesRegex(ValueError,'Incomplete framework discovery'):self.verify_current_policy_fixture(policy)
+
+    def test_current_producer_refuses_legacy_policy_without_breaking_old_reader(self):
+        legacy={'schema':'ci-execution-policy/1','contexts':['npm']}
+        self.assertEqual(bundle.validate_execution_policy(legacy),legacy)
+        with patch.object(bundle,'read_json',return_value=legacy):
+            with self.assertRaisesRegex(ValueError,'Current producer requires'):ci_run.producer_execution_policy()
+
 
     def test_layout_is_bound_to_frozen_source(self):
         self.assertEqual(self.created_boundary, '103ec000')
@@ -454,16 +635,25 @@ class BundleTests(unittest.TestCase):
             records.append(dict(id=identifier,
                 name=f'WsprryPico-{kind}-1-1-consumer' if legacy else bundle.artifact_name(kind, branch, 1, 1),
                 digest='sha256:' + bundle.sha(archive), expired=False, expires_at='2030-01-01T00:00:00Z'))
-        run = dict(status='completed', conclusion='success', run_attempt=1,
+        run = dict(id=1, repository={'id': 42, 'full_name': download.REPOSITORY},
+                   workflow_url='https://api.github.com/repos/'+download.REPOSITORY+'/actions/workflows/7',
+                   status='completed', conclusion='success', run_attempt=1,
                    head_sha=self.source, head_branch='v'+self.version if branch == 'release' else branch, event=event,
                    path='.github/workflows/software-build.yml', workflow_id=7,
-                   head_repository={'full_name':download.REPOSITORY}, html_url='https://github.com/'+download.REPOSITORY+'/actions/runs/1')
+                   head_repository={'id':42,'full_name':download.REPOSITORY}, html_url='https://github.com/'+download.REPOSITORY+'/actions/runs/1')
         responses = {'actions/runs/1/attempts/1':run,
                      'actions/workflows/software-build.yml':{'id':7,'path':run['path']},
                      'actions/runs/1/attempts/1/jobs':{'total_count':len(download.required_jobs(self.source)),
-                         'jobs':[{'id':9,'name':name,'status':'completed','conclusion':'success'}
-                                 for name in download.required_jobs(self.source)]},
+                         'jobs':[dict(id=9+i,name=name,status='completed',conclusion='success',
+                                      run_id=1,run_attempt=1,head_sha=self.source,head_branch=run['head_branch'],
+                                      run_url='https://api.github.com/repos/'+download.REPOSITORY+'/actions/runs/1',
+                                      html_url=run['html_url']+'/job/'+str(9+i),
+                                      check_run_url='https://api.github.com/repos/'+download.REPOSITORY+'/check-runs/'+str(9+i))
+                                 for i,name in enumerate(sorted(download.required_jobs(self.source)))]},
                      'actions/runs/1/artifacts?per_page=100':{'total_count':2,'artifacts':records}}
+        for record in records:
+            record['workflow_run'] = dict(id=1,repository_id=42,head_repository_id=42,
+                                          head_sha=self.source,head_branch=run['head_branch'])
         args = SimpleNamespace(branch=branch, run=1, attempt=1, source=self.source,
                                version=self.version, destination=self.base / (branch + '-download'))
         return args, responses, archives
@@ -476,6 +666,7 @@ class BundleTests(unittest.TestCase):
         with patch.object(download, 'api', side_effect=responses.__getitem__), \
              patch.object(download, 'fetch_archive', side_effect=lambda a,p: p.write_bytes(archives[a['id']].read_bytes())), \
              patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=None), \
              patch.object(bundle, 'verify', side_effect=lambda d,a,s,v,**kw:verifier(d,a,s,v,inspect=False)), \
              patch.object(bundle, 'inspect_payload'), \
              patch.object(bundle, 'capture', side_effect=lambda *a:
@@ -555,7 +746,8 @@ class BundleTests(unittest.TestCase):
         version = '0.1.0-testing.1'
         with patch.dict(os.environ, env):
             bundle.create(created, self.audit, self.source, version, ['consumer'], self.checks, self.inputs)
-        with patch.object(bundle, 'required_tests', return_value={'fixture'}):
+        with patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=None):
             result = bundle.verify(created, self.audit, self.source, version, inspect=False)
         self.assertFalse(result['deployment_candidate'])
         self.assertEqual(result['testing_release'], bundle.testing_metadata(self.source))
@@ -604,12 +796,38 @@ class BundleTests(unittest.TestCase):
                     self.retrieve_fixture(args, responses, archives)
                 self.assertFalse(args.destination.exists())
 
+    def test_download_rejects_foreign_job_provenance_before_fetch(self):
+        for index, (field, wrong) in enumerate((('id', True), ('run_id', 2), ('run_attempt', 2),
+                ('head_sha', 'b'*40), ('head_branch', 'main'), ('run_url', 'https://attacker.invalid'),
+                ('html_url', 'https://attacker.invalid'), ('check_run_url', 'https://attacker.invalid'))):
+            args, responses, archives = self.download_fixture('devel')
+            args.destination = self.base/('bad-job-'+str(index))
+            responses['actions/runs/1/attempts/1/jobs']['jobs'][0][field] = wrong
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(ValueError, 'job provenance'):
+                    self.retrieve_fixture(args, responses, archives)
+                self.assertFalse(args.destination.exists())
+
+    def test_download_rejects_foreign_artifact_provenance_before_fetch(self):
+        for index, (field, wrong) in enumerate((('id', 2), ('repository_id', True),
+                ('head_repository_id', 43), ('head_sha', 'b'*40), ('head_branch', 'main'))):
+            args, responses, archives = self.download_fixture('devel')
+            args.destination = self.base/('bad-artifact-'+str(index))
+            responses['actions/runs/1/artifacts?per_page=100']['artifacts'][0]['workflow_run'][field] = wrong
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(ValueError, 'Artifact workflow/source provenance'):
+                    self.retrieve_fixture(args, responses, archives)
+                self.assertFalse(list(args.destination.glob('*.zip')))
+
     def test_main_manifest_cannot_be_relabelled_as_devel(self):
         args, responses, archives = self.download_fixture('main')
         args.branch = 'devel'
         responses['actions/runs/1/attempts/1']['head_branch'] = 'devel'
+        for job in responses['actions/runs/1/attempts/1/jobs']['jobs']:
+            job['head_branch'] = 'devel'
         for kind, record in zip(('firmware','audit'), responses['actions/runs/1/artifacts?per_page=100']['artifacts']):
             record['name'] = bundle.artifact_name(kind, 'devel', 1, 1)
+            record['workflow_run']['head_branch'] = 'devel'
         with self.assertRaisesRegex(ValueError, 'different CI run/attempt'):
             self.retrieve_fixture(args, responses, archives)
 
@@ -689,6 +907,7 @@ class BundleTests(unittest.TestCase):
                      patch.object(download.subprocess,'run',side_effect=fetch), \
                      patch.object(download,'inspection_tool',return_value={'path':'fixture'}), \
                      patch.object(bundle,'required_tests',return_value={'fixture'}), \
+                     patch.object(bundle,'required_execution_contexts',return_value=None), \
                      patch.object(bundle,'verify',side_effect=lambda d,a,s,v:verifier(d,a,s,v,inspect=False)):
                     self.assertEqual(download.retrieve_published(args)['version'],version)
 
@@ -715,7 +934,8 @@ class BundleTests(unittest.TestCase):
                        CI_WORKFLOW_SHA=self.source,GITHUB_RUN_ID='1',GITHUB_RUN_ATTEMPT='1')
             with patch.dict(os.environ,env):
                 bundle.create(created,self.audit,self.source,version,['consumer'],self.checks,self.inputs)
-            with patch.object(bundle,'required_tests',return_value={'fixture'}):
+            with patch.object(bundle,'required_tests',return_value={'fixture'}), \
+                 patch.object(bundle,'required_execution_contexts',return_value=None):
                 manifest=bundle.verify(created,self.audit,self.source,version,inspect=False)
             usb_installer.schema_check(manifest,bundle.read_json(bundle.SCHEMA))
         self.release_fixture('1.0.0-beta.1')
@@ -954,9 +1174,13 @@ class BundleTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'current trusted publisher'):
             self.retrieve_fixture(args, responses, archives, publication=True)
         responses['actions/runs/1/attempts/1'].update(status='in_progress', conclusion=None)
-        responses['actions/runs/1/attempts/1/jobs'] = {'total_count':2, 'jobs':[
-            dict(id=9,name='verify',status='completed',conclusion='success'),
-            dict(id=10,name='publish',status='in_progress',conclusion=None)]}
+        verify = dict(next(j for j in responses['actions/runs/1/attempts/1/jobs']['jobs'] if j['name'] == 'verify'),
+                      id=9,html_url=responses['actions/runs/1/attempts/1']['html_url']+'/job/9',
+                      check_run_url='https://api.github.com/repos/'+download.REPOSITORY+'/check-runs/9')
+        publisher = dict(verify,id=10,name='publish',status='in_progress',conclusion=None,
+                         html_url=responses['actions/runs/1/attempts/1']['html_url']+'/job/10',
+                         check_run_url='https://api.github.com/repos/'+download.REPOSITORY+'/check-runs/10')
+        responses['actions/runs/1/attempts/1/jobs'] = {'total_count':2, 'jobs':[verify,publisher]}
         env = dict(GITHUB_ACTIONS='true',GITHUB_JOB='publish',GITHUB_RUN_ID='1',GITHUB_RUN_ATTEMPT='1',
                    GITHUB_SHA=self.source,GITHUB_REF='refs/heads/devel',GITHUB_REPOSITORY=download.REPOSITORY)
         with patch.dict(os.environ,env), patch.object(download,'required_jobs',return_value={'verify','publish'}):
@@ -983,6 +1207,7 @@ class BundleTests(unittest.TestCase):
              patch.object(download.subprocess,'run',side_effect=fetch), \
              patch.object(download,'inspection_tool',return_value={'path':'fixture-tool','sha256':'a'*64,'version':'fixture'}), \
              patch.object(bundle,'required_tests',return_value={'fixture'}), \
+             patch.object(bundle,'required_execution_contexts',return_value=None), \
              patch.object(bundle,'verify',side_effect=lambda d,a,s,v:verifier(d,a,s,v,inspect=False)):
             downloaded = download.retrieve_published(args)
         self.assertEqual(downloaded['branch'], 'main')

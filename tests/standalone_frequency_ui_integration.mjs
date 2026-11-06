@@ -1,30 +1,21 @@
 // Real shipped UI and synthetic RAM-backed consumer API; no board or RF access.
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
-import {mkdtemp,readFile,writeFile,mkdir} from 'node:fs/promises';
-import os from 'node:os';
+import {writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
-import {cleanupUiProcesses} from './ui_process_cleanup.mjs';
+import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
 import {firstWsprTransmission} from './standalone_wspr_trial.mjs';
+const h=new BrowserHarness();
+await h.run(async()=>{
 
 const driver=process.argv[2], output=path.resolve(process.argv[3] || 'build/standalone-frequency-ui');
 const firstUse=process.argv[4]?.startsWith('first-use:') ? process.argv[4].slice(10) : null;
 const port=firstUse==='refusal' ? 18944 : firstUse ? 18945+['network','usb','overlay','network-backing'].indexOf(firstUse) : 18939;
+if(firstUse&&!['network','usb','overlay','network-backing','refusal'].includes(firstUse))throw Error('Unknown first-use context');
 if (!driver) throw Error('Usage: node standalone_frequency_ui_integration.mjs DRIVER [OUTPUT]');
 await mkdir(output,{recursive:true});
-const profile=await mkdtemp(path.join(os.tmpdir(),'wsprrypico-frequency-browser-'));
-const processGroup=process.platform==='linux';
+let profile=await h.profile('wsprrypico-frequency-browser-');
 let fixture, chrome, cdp;
-class Cdp {
-  constructor(url) {
-    this.ws=new WebSocket(url);this.pending=new Map();this.sequence=0;
-    this.ws.onmessage=event=>{const r=JSON.parse(event.data);if(r.method==='Page.javascriptDialogOpening'){void this.send('Page.handleJavaScriptDialog',{accept:true});return;}const p=this.pending.get(r.id);if(p){this.pending.delete(r.id);r.error?p.reject(Error(r.error.message)):p.resolve(r.result);}};
-  }
-  async open(){if(this.ws.readyState!==1)await new Promise((resolve,reject)=>{this.ws.onopen=resolve;this.ws.onerror=reject;});}
-  send(method,params={}){const id=++this.sequence;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>{this.pending.delete(id);reject(Error('Browser deadline: '+method));},15000);this.pending.set(id,{resolve:v=>{clearTimeout(timer);resolve(v);},reject:e=>{clearTimeout(timer);reject(e);}});this.ws.send(JSON.stringify({id,method,params}));});}
-  async evaluate(expression){const r=await this.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw Error(r.exceptionDetails.exception?.description||r.exceptionDetails.text);return r.result.value;}
-}
-async function until(fn,label,ms=15000){const end=Date.now()+ms;while(Date.now()<end){if(await fn())return;await new Promise(resolve=>setTimeout(resolve,50));}let detail='';try{detail=await cdp.evaluate(`JSON.stringify({feedback:document.getElementById('standalone-frequency-status')?.textContent,active:document.activeElement?.id,writes:globalThis.frequencyWrites,online:typeof online!=='undefined'&&online,busy:typeof busy!=='undefined'&&busy,notice:document.getElementById('notice')?.textContent,readDisabled:document.getElementById('standalone-frequency-read')?.disabled,inputDisabled:document.getElementById('standalone-frequency')?.disabled,adoptHidden:document.getElementById('standalone-frequency-adopt')?.hidden,observations:globalThis.frequencyObservations})`);}catch{}throw Error('Timed out: '+label+' '+detail);}
+
 async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
 async function click(id){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});globalThis.WsprryPicoSections?.reveal(e);e.click();}`);}
 async function login() {
@@ -46,32 +37,24 @@ async function login() {
   }
 }
 async function control(command) {
-  const r=await fetch(`http://127.0.0.1:${port}/.fixture-control`,{method:'POST',body:JSON.stringify(command)});
-  assert.equal(r.status,200);return r.json();
+  return fixtureJson(`http://127.0.0.1:${port}/.fixture-control`,{method:'POST',body:JSON.stringify(command)});
 }
 async function capture(name){
-  if(process.env.UI_REVIEW_NO_CAPTURE==='1') return;
   for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]){
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name==='mobile'});
     await cdp.evaluate(`document.getElementById('${name.includes('text-200') ? 'standalone-frequency-status' : 'standalone-frequency-form'}').scrollIntoView({block:'start'})`);
     assert.equal(await cdp.evaluate('document.documentElement.scrollWidth>innerWidth'),false,'horizontal overflow');
+    if(process.env.UI_REVIEW_NO_CAPTURE==='1')continue;
     const png=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});
     await writeFile(path.join(output,`${name}-${view.name}.png`),Buffer.from(png.data,'base64'));
   }
 }
-try {
-  let fixtureOutput='';
-  fixture=spawn(process.execPath,['tests/ui_review_fixture.mjs',driver,'18939',output,...(process.argv[5]==='transmission' ? ['messages'] : [])],{stdio:['ignore','pipe','pipe'],detached:processGroup});
-  fixture.stdout.on('data',data=>{fixtureOutput+=data;});
-  fixture.stderr.on('data',data=>{fixtureOutput+=data;});
-  await until(()=>fixtureOutput.includes('READY;'),'fixture startup');
-  chrome=spawn(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    ['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
-     '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],{stdio:'ignore',detached:processGroup});
-  let debugPort;
-  await until(async()=>{try{debugPort=Number((await readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0]);return !!debugPort;}catch{return false;}},'browser startup',30000);
-  const pages=await(await fetch(`http://127.0.0.1:${debugPort}/json`)).json();
-  cdp=new Cdp(pages.find(p=>p.type==='page').webSocketDebuggerUrl);await cdp.open();await cdp.send('Page.enable');
+{
+  const selected=firstUse==='refusal'?'engineering':firstUse?'first-use-'+firstUse:'consumer-lan';
+  fixture=await h.review(driver,18939,output,{profiles:[selected],messages:process.argv[5]==='transmission'});await fixture.ready;
+  const started=await h.chrome(process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',['--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check','--disable-background-networking',
+     '--remote-debugging-port=0',`--user-data-dir=${profile}`,`--proxy-server=http://127.0.0.1:${port}`,'--proxy-bypass-list=<-loopback>','about:blank'],profile);chrome=started.browser.process;
+    cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});await cdp.send('Page.enable');
   await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
   if(firstUse==='refusal') {
     await until(()=>cdp.evaluate(`typeof online!=='undefined' && online && !busy`),'engineering page');
@@ -279,7 +262,5 @@ try {
   await writeFile(path.join(output,'result.json'),JSON.stringify({passed:true,frequency_initial:14095600,frequency_saved_hz:3568737,policy_rejection:true,stale_recovery:true,target_rejection:true,identity_review:true,storage_fault:true,keyboard_save:true,text_zoom:200,themes:['light'],schedule_enabled:false,views:['desktop','mobile'],physical_qualification:false},null,2)+'\n');
   console.log('Consumer frequency UI: factory dial, explicit save, disabled schedules, desktop/mobile and accessible label passed');
   }
-} finally {
-  cdp?.ws.close();
-  await cleanupUiProcesses([chrome,fixture],profile,{processGroup});
 }
+});

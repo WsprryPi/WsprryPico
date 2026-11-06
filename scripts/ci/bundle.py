@@ -13,6 +13,8 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
+import execution
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from check_application_image import validate as validate_engine
@@ -171,6 +173,44 @@ def required_tests(source=None):
     if loop:  # Frozen earlier artifacts used a generated campaign-test registration.
         expected.update(name + '_tests' for name in loop[1].split())
     return expected
+
+
+def source_execution_policy(source):
+    path = 'scripts/ci/execution-policy.json'
+    present = capture('git', '-C', ROOT, 'ls-tree', '--name-only', source, '--', path)
+    if not present:
+        return None  # Frozen producers before independent command evidence.
+    require(present == path, 'Invalid frozen execution policy path')
+    value = json.loads(capture('git', '-C', ROOT, 'show', source + ':' + path), object_pairs_hook=unique)
+    return validate_execution_policy(value)
+
+
+def validate_execution_policy(value):
+    require(isinstance(value, dict) and value.get('schema') in ('ci-execution-policy/1', 'ci-execution-policy/2'),
+            'Invalid frozen execution policy')
+    fields = {'schema', 'contexts'} | ({'completion_policy'} if value['schema'].endswith('/2') else set())
+    require(set(value) == fields and isinstance(value['contexts'], list) and value['contexts'] and
+            all(isinstance(x, str) and x in execution.HOST_CONTEXTS for x in value['contexts']) and
+            len(value['contexts']) == len(set(value['contexts'])), 'Invalid frozen execution policy')
+    if value['schema'].endswith('/2'):
+        require(set(value['contexts']) == set(execution.HOST_CONTEXTS) and
+                value['completion_policy'] == 'scripts/ci/ctest-completion-policy.json',
+                'Incomplete current execution policy')
+    return value
+
+
+def required_execution_contexts(source):
+    value = source_execution_policy(source)
+    return None if value is None else value['contexts']
+
+
+def required_completion_policy(source):
+    value = source_execution_policy(source)
+    if value is None or value['schema'] == 'ci-execution-policy/1':
+        return None
+    path = value['completion_policy']
+    policy = json.loads(capture('git', '-C', ROOT, 'show', source + ':' + path), object_pairs_hook=unique)
+    return execution.completion_policy(policy)
 
 
 def binary_identity(report):
@@ -393,6 +433,20 @@ def verify(deployment, audit, source, version, inspect=True):
     require(all(case.find('failure') is None and case.find('error') is None and
                 case.find('skipped') is None and case.attrib.get('status', 'run') in ('run', 'passed')
                 for case in cases), 'Audit report contains failed or skipped required tests')
+    # New execution evidence is required by its frozen producer, without
+    # changing the independently versioned deployment manifest or older bundles.
+    contexts = required_execution_contexts(source)
+    if contexts is not None:
+        report = read_json(audit / 'execution.json')
+        execution.verify(report, source, manifest['workflow']['run_id'], manifest['workflow']['attempt'], contexts)
+        execution.verify_logs(report, audit)
+        completion = required_completion_policy(source)
+        if completion is not None:
+            require(read_json(audit / 'ctest-completion-policy.json') == completion, 'Completion policy differs from frozen producer')
+            execution.verify_completion_counts(report, completion)
+            ctest_record = next(record for record in report['records'] if record['context'] == 'ctest')
+            execution.ctest_result(ET.parse(audit / 'host-tests.xml').getroot(), names, completion, registered,
+                                   command_root=ctest_record['cwd'])
     require(read_json(audit / 'evidence-skips.json') == checks['historical_evidence_skips'],
             'Historical skip inventory differs')
     allowed_skips = read_json(Path(__file__).with_name('legacy-test-skip-reasons.json'))

@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -14,6 +15,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'scripts/ci'))
 import bundle
+import execution
 sys.path.insert(0, str(ROOT / 'scripts'))
 from check_control_policy import check_files as check_control_policy
 
@@ -22,19 +24,87 @@ def capture(*args):
     return subprocess.check_output(list(map(str, args)), cwd=ROOT, text=True).strip()
 
 
-def execute(log, *args, cwd=ROOT):
-    print('+', ' '.join(map(str, args)), flush=True)
-    with log.open('a') as output:
-        output.write('+ ' + ' '.join(map(str, args)) + '\n')
-        output.flush()
-        result = subprocess.run(list(map(str, args)), cwd=cwd, stdout=output,
-                                stderr=subprocess.STDOUT, check=False)
-    if result.returncode:
-        print(log.read_text()[-24000:], flush=True)
-        raise RuntimeError(f'Command failed ({result.returncode}); see {log.name}')
+def execute(log, *args, cwd=ROOT, context=None, expected=None):
+    command = list(map(str, args))
+    print('+', ' '.join(command), flush=True)
+    try:
+        execution.execute(log, command, cwd, capture('git', 'rev-parse', 'HEAD'), context, expected=expected)
+    except BaseException as primary:
+        try:
+            print(log.read_text()[-24000:], flush=True)
+        except OSError as diagnostic:
+            raise BaseExceptionGroup('command and diagnostic read failed', [primary, diagnostic]) from None
+        raise
+
+
+def producer_execution_policy():
+    policy = bundle.validate_execution_policy(bundle.read_json(ROOT / "scripts/ci/execution-policy.json"))
+    bundle.require(policy["schema"] == "ci-execution-policy/2", "Current producer requires current completion policy")
+    return policy
+
+
+DIRECT_COMPILER_OPTIONS = tuple(f'-DCMAKE_{language}_COMPILER_LAUNCHER='
+                                for language in ('C', 'CXX'))
+
+
+def fresh_directory(path):
+    if path.exists() or path.is_symlink():
+        raise ValueError('Fresh build directory required: ' + str(path))
+    return path
+
+
+def direct_compiler_environment():
+    for key in ('CC', 'CXX', 'ASM', 'CMAKE_C_COMPILER_LAUNCHER',
+                'CMAKE_CXX_COMPILER_LAUNCHER', 'CMAKE_ASM_COMPILER_LAUNCHER'):
+        if os.environ.get(key):
+            raise ValueError('Canonical builds require direct configured compilers; override: ' + key)
+
+
+def direct_firmware_compilers(build, deps):
+    values = {}
+    for line in (build / 'CMakeCache.txt').read_text().splitlines():
+        if line and not line.startswith(('#', '//')) and '=' in line and ':' in line.split('=', 1)[0]:
+            key, value = line.split('=', 1)
+            values[key.split(':', 1)[0]] = value
+    directory = deps / 'arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi/bin'
+    for language, binary in (('C', 'gcc'), ('CXX', 'g++'), ('ASM', 'gcc')):
+        compiler = values.get(f'CMAKE_{language}_COMPILER', '')
+        bundle.require(compiler and Path(compiler).resolve() ==
+                       (directory / ('arm-none-eabi-' + binary)).resolve(),
+                       'Firmware compiler differs from verified archive: ' + language)
+        if language != 'ASM':
+            bundle.require(values.get(f'CMAKE_{language}_COMPILER_LAUNCHER') == '',
+                           'Compiler cache/launcher forbidden in fresh builds: ' + language)
+        else:
+            bundle.require(values.get('CMAKE_ASM_COMPILER_LAUNCHER', '') == '', 'Unsupported ASM launcher override')
+    # Target properties can override cache defaults. Inspect the actual declared
+    # commands as well; CMake has no ASM_COMPILER_LAUNCHER property.
+    commands = bundle.read_json(build / 'compile_commands.json', limit=bundle.MAX_FILE)
+    bundle.require(isinstance(commands, list) and bool(commands), 'Missing direct compiler command inventory')
+    trusted = {(directory / ('arm-none-eabi-' + binary)).resolve() for binary in ('gcc', 'g++')}
+    resolved = {}
+    for entry in commands:
+        bundle.require(isinstance(entry, dict) and ('arguments' in entry) != ('command' in entry),
+                       'Ambiguous compiler command inventory')
+        if 'arguments' in entry:
+            args = entry['arguments']
+        else:
+            bundle.require(isinstance(entry['command'], str), 'Invalid compiler command')
+            lexer = shlex.shlex(entry['command'], posix=True)
+            lexer.whitespace_split = True
+            lexer.commenters = ''
+            args = [next(lexer, None)]
+        bundle.require(isinstance(args, list) and bool(args) and all(isinstance(arg, str) and arg for arg in args),
+                       'Invalid compiler command arguments')
+        if args[0] not in resolved:
+            resolved[args[0]] = Path(args[0]).resolve()
+        bundle.require(resolved[args[0]] in trusted, 'Compiler command is wrapped or outside the verified archive')
 
 
 def inputs():
+    execution.require_unoptimized_python()
+    producer_execution_policy()
+    direct_compiler_environment()
     profile = os.environ.get('CI_PROFILE', 'consumer')
     if profile != 'consumer':
         raise ValueError('Unsupported profile')
@@ -81,6 +151,8 @@ def inputs():
             raise ValueError('Local override or credential input: ' + name)
     if os.environ.get('GITHUB_REPOSITORY') != 'WsprryPi/WsprryPico':
         raise ValueError('Unexpected repository')
+    for name in ('host-debug', 'ci-consumer', 'ci-reproducibility'):
+        fresh_directory(ROOT / 'build' / name)
     selected = ['consumer']
     return source, version, selected
 
@@ -90,6 +162,11 @@ def expected_tests():
 
 
 def host_checks(deps, audit):
+    completion = execution.completion_policy(bundle.read_json(ROOT / "scripts/ci/ctest-completion-policy.json"))
+    chrome = shutil.which('google-chrome')
+    if not chrome:
+        raise ValueError('Runner Chrome is required for the native browser checks')
+    os.environ['CHROME_BIN'] = chrome
     harness_source = str(deps / 'harness/src')
     sys.path.insert(0, harness_source)
     os.environ['PYTHONPATH'] = harness_source
@@ -104,9 +181,7 @@ def host_checks(deps, audit):
     log = audit / 'host.log'
     web = ROOT / 'src/network/bootstrap_web'
     execute(log, 'npm', 'ci', '--ignore-scripts', '--no-audit', '--no-fund', cwd=web)
-    host = ROOT / 'build/host-debug'
-    if host.exists():
-        raise ValueError('Fresh host directory required')
+    host = fresh_directory(ROOT / 'build/host-debug')
     options = {
         'CMAKE_BUILD_TYPE': 'Debug', 'WSPRRY_PICO_BUILD_TESTS': 'ON',
         'WSPRRY_PICO_BUILD_FIRMWARE': 'OFF',
@@ -121,55 +196,50 @@ def host_checks(deps, audit):
         'WSPRRY_PICO_HARNESS_PYTHON': sys.executable,
     }
     execute(log, 'cmake', '-S', ROOT, '-B', host, '-G', 'Ninja',
+            *DIRECT_COMPILER_OPTIONS,
             *(f'-D{k}={v}' for k, v in options.items()))
     registered = json.loads(capture('ctest', '--test-dir', host, '--show-only=json-v1'))
+    execution.completion_registration(registered, completion, source_root=ROOT)
     names = {test['name'] for test in registered['tests']}
     missing = expected_tests() - names
     if missing:
         raise ValueError('Required tests not registered: ' + ', '.join(sorted(missing)))
+    (audit / 'ctest-completion-policy.json').write_text(json.dumps(completion, indent=2) + '\n')
     (audit / 'registered-tests.json').write_text(json.dumps(registered, indent=2) + '\n')
     execute(log, 'cmake', '--build', host, '--parallel', '4')
-    execute(log, 'ctest', '--test-dir', host, '--output-on-failure', '--timeout', '240',
-            '--output-junit', audit / 'host-tests.xml')
+    execute(log, 'ctest', '--test-dir', host, '--parallel', '2', '--output-on-failure', '--timeout', '240',
+            '--test-output-size-passed', '1048576', '--test-output-size-failed', '1048576',
+            '--output-junit', audit / 'host-tests.xml', context='ctest')
     suite = ET.parse(audit / 'host-tests.xml').getroot()
     cases = suite.findall('testcase')
-    if (len(cases) != len(names) or any(case.find('skipped') is not None or
-            case.find('failure') is not None or case.find('error') is not None for case in cases)):
-        raise ValueError('Incomplete, skipped or failed required CTest suite')
-    # CTest does not expose unittest's internal skips as skipped CTest cases.
-    internal_skips = [case.attrib['name'] for case in cases
-                      if re.search(r'\bskipped=\d+', ''.join(case.itertext()))]
-    if internal_skips:
-        raise ValueError('Internally skipped required suite: ' + ', '.join(internal_skips))
+    execution.ctest_result(suite, names, completion, registered, command_root=ROOT)
     (audit / 'evidence-skips.json').write_text('[]\n')
-    execute(log, sys.executable, ROOT / 'scripts/validate_wtp_contract.py')
-    execute(log, 'npm', 'test', cwd=web)
-    execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py')
+    execute(log, sys.executable, ROOT / 'scripts/validate_wtp_contract.py', context='wtp-contract')
+    execute(log, 'npm', 'test', cwd=web, context='npm', expected=completion['contexts']['npm'])
+    execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py', context='packaging', expected=completion['contexts']['packaging'])
     execute(log, 'node', '--test', ROOT / 'tests/ui_process_cleanup.test.mjs',
-            ROOT / 'tests/chrome_startup.test.mjs', ROOT / 'tests/contextual_help_cleanup.test.mjs')
-    chrome = shutil.which('google-chrome')
-    if not chrome:
-        raise ValueError('Runner Chrome is required for the consumer frequency UI check')
-    os.environ['CHROME_BIN'] = chrome
+            ROOT / 'tests/chrome_startup.test.mjs', ROOT / 'tests/contextual_help_cleanup.test.mjs', context='browser-lifecycle', expected=completion['contexts']['browser-lifecycle'])
     execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
-            host / 'consumer_bootstrap_driver', audit / 'consumer-ui')
+            host / 'consumer_bootstrap_driver', audit / 'consumer-ui', context='frequency')
     execute(log, 'node', ROOT / 'tests/standalone_frequency_ui_integration.mjs',
-            host / 'consumer_bootstrap_driver', audit / 'first-wspr-ui', 'first-use:network', 'transmission')
+            host / 'consumer_bootstrap_driver', audit / 'first-wspr-ui', 'first-use:network', 'transmission', context='first-use')
     execute(log, 'node', ROOT / 'tests/session_timeout_browser.mjs',
-            host / 'consumer_bootstrap_driver', audit / 'session-timeout-ui')
+            host / 'consumer_bootstrap_driver', audit / 'session-timeout-ui', context='session-timeout')
     execute(log, 'env', 'PROGRESS_BROWSER_NO_CAPTURE=1', 'node', ROOT / 'tests/progress_browser_integration.mjs',
-            host / 'consumer_bootstrap_driver', audit / 'progress-ui')
-    execute(log, 'node', ROOT / 'tests/consumer_recovery_browser.mjs', host / 'consumer_bootstrap_driver')
+            host / 'consumer_bootstrap_driver', audit / 'progress-ui', context='progress')
+    execute(log, 'node', ROOT / 'tests/consumer_recovery_browser.mjs', host / 'consumer_bootstrap_driver', context='recovery')
     execute(log, 'env', 'UI_REVIEW_NO_CAPTURE=1', 'node', ROOT / 'tests/submission_ui_browser.mjs',
-            host / 'consumer_bootstrap_driver', audit / 'submission-ui')
+            host / 'consumer_bootstrap_driver', audit / 'submission-ui', context='submission')
     for suite in ('hostname_browser_integration', 'organization_browser_integration',
                   'wspr_browser_integration', 'message_frequency_ui_integration'):
         execute(log, 'env', 'PICO_BROWSER_NO_CAPTURE=1', 'node', ROOT / f'tests/{suite}.mjs',
-                host / 'consumer_bootstrap_driver', audit / suite)
-    execute(log, 'node', ROOT / 'tests/operator_cleanup_browser.mjs', host / 'consumer_session_driver')
+                host / 'consumer_bootstrap_driver', audit / suite,
+                context={'hostname_browser_integration': 'hostname', 'organization_browser_integration': 'organization',
+                         'wspr_browser_integration': 'wspr', 'message_frequency_ui_integration': 'message-frequency'}[suite])
+    execute(log, 'node', ROOT / 'tests/operator_cleanup_browser.mjs', host / 'consumer_session_driver', context='operator')
     for carrier in ('consumer', 'engineering'):
         execute(log, 'env', 'UI_REVIEW_NO_CAPTURE=1', 'node', ROOT / 'tests/ui_sections_browser.mjs',
-                host / 'consumer_bootstrap_driver', audit / f'sections-{carrier}', carrier)
+                host / 'consumer_bootstrap_driver', audit / f'sections-{carrier}', carrier, context=f'sections-{carrier}')
     return {'registered': len(names), 'passed': len(cases), 'failed': 0, 'skipped': 0,
             'test_names': sorted(names), 'wtp_contract': 'passed', 'browser_npm': 'passed',
             'packaging_failure_tests': 'passed', 'consumer_ui': 'passed',
@@ -187,20 +257,28 @@ def documentation_version():
     return 'main' if stream == 'main' else 'devel'
 
 
-def firmware(deps, audit, identifier, version):
+def firmware(deps, audit, identifier, version, reuse_build=None):
     profile = bundle.PROFILES[identifier]
     target = profile['target']
-    build = ROOT / ('build/ci-' + identifier)
-    if build.exists():
-        raise ValueError('Fresh firmware build directory required')
     log = audit / (identifier + '.log')
-    execute(log, 'cmake', '-S', ROOT, '-B', build, '-G', 'Ninja',
-            '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
-            '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w',
-            '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DPICOTOOL_NO_LIBUSB=1',
-            f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
-            f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
-            f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
+    if reuse_build is None:
+        build = fresh_directory(ROOT / ('build/ci-' + identifier))
+        execute(log, 'cmake', '-S', ROOT, '-B', build, '-G', 'Ninja',
+                *DIRECT_COMPILER_OPTIONS,
+                '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
+                '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w',
+                '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON', '-DPICOTOOL_NO_LIBUSB=1',
+                f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
+                f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
+                f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
+    else:
+        # Both targets are declared by the same configuration with their own
+        # definitions, sources, metadata, and post-link checks. Only common
+        # CMake library objects are shared; no per-image objects are substituted.
+        build = reuse_build
+        bundle.require(identifier == 'inhibited-regression' and build == ROOT / 'build/ci-consumer' and
+                       (build / 'firmware/WsprryPico.uf2').is_file(), 'Invalid shared image build context')
+    direct_firmware_compilers(build, deps)
     execute(log, 'cmake', '--build', build, '--target', target, '--parallel', '4')
     directory = audit / identifier
     directory.mkdir()
@@ -274,7 +352,12 @@ def build(deps, output):
     for identifier in selected:
         images[identifier], overlays[identifier] = firmware(deps, audit, identifier, version)
     # Compatibility shares application wiring, but is never a deployment asset.
-    _, overlays['inhibited-regression'] = firmware(deps, audit, 'inhibited-regression', version)
+    normal = ROOT / 'build/ci-consumer/firmware/WsprryPico'
+    retained_normal = {suffix: bundle.sha(Path(str(normal) + suffix)) for suffix in ('.elf', '.elf.map', '.uf2')}
+    _, overlays['inhibited-regression'] = firmware(deps, audit, 'inhibited-regression', version,
+                                                 reuse_build=normal.parent.parent)
+    bundle.require(all(bundle.sha(Path(str(normal) + suffix)) == digest
+                       for suffix, digest in retained_normal.items()), 'Inhibited build changed the accepted normal image')
     (audit / 'inhibited-regression/WsprryPico-Inhibited.uf2').unlink()
     checks['inhibited_regression'] = 'passed'
     if 'consumer' in selected:
@@ -283,13 +366,16 @@ def build(deps, output):
         checks['compatibility_rf'] = 'passed'
         # Independent fresh directory with identical declared inputs and identity.
         original = ROOT / 'build/ci-consumer'
-        fresh = ROOT / 'build/ci-reproducibility'
+        fresh = fresh_directory(ROOT / 'build/ci-reproducibility')
         execute(audit / 'reproducibility.log', 'cmake', '-S', ROOT, '-B', fresh, '-G', 'Ninja',
+                *DIRECT_COMPILER_OPTIONS,
+                '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
                 '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
                 '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w', '-DPICOTOOL_NO_LIBUSB=1',
                 f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
                 f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
                 f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
+        direct_firmware_compilers(fresh, deps)
         execute(audit / 'reproducibility.log', 'cmake', '--build', fresh,
                 '--target', 'WsprryPico', '--parallel', '4')
         checks['reproducibility'] = 'identical' if bundle.sha(original / 'firmware/WsprryPico.uf2') == bundle.sha(fresh / 'firmware/WsprryPico.uf2') else 'different'
@@ -316,6 +402,8 @@ def build(deps, output):
     build_inputs['linked_resources'] = {
         name: bundle.sha(deps / 'sdk/lib/cyw43-driver/firmware' / name)
         for name in ('wb43439A0_7_95_49_00_combined.h', 'wifi_nvram_43439.h', 'cyw43_btfw_43439.h')}
+    execution.verify(json.loads((audit / 'execution.json').read_text()), source,
+                     os.environ['GITHUB_RUN_ID'], os.environ['GITHUB_RUN_ATTEMPT'])
     bundle.create(deployment, audit, source, version, selected, checks, build_inputs)
     bundle.verify(deployment, audit, source, version)
     print(json.dumps({'source': source, 'version': version, 'profiles': selected,

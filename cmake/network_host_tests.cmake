@@ -55,6 +55,17 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     configure_file(${CMAKE_SOURCE_DIR}/cmake/network_credentials.hpp.in
                    ${CMAKE_BINARY_DIR}/network-test-generated/network_credentials.hpp @ONLY)
     file(CHMOD ${CMAKE_BINARY_DIR}/network-test-generated/network_credentials.hpp PERMISSIONS OWNER_READ OWNER_WRITE)
+    add_executable(network_clock_tests tests/network_clock_tests.cpp tests/network_mock/tcp.cpp)
+    target_include_directories(network_clock_tests PRIVATE tests/network_mock)
+    target_link_libraries(network_clock_tests PRIVATE Threads::Threads)
+    target_compile_options(network_clock_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME network_clock_tests COMMAND network_clock_tests)
+    add_test(NAME network_socket_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/network_socket_tests.py)
+    add_test(NAME network_replies_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/network_replies_tests.py)
+    add_test(NAME network_control_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/network_control_tests.py)
     add_executable(network_tls_driver
         tests/network_tls_driver.cpp tests/network_mock/tcp.cpp
         src/network/pico/psa_lifetime.cpp src/network/pico/server.cpp
@@ -63,6 +74,9 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_compile_definitions(network_tls_driver PRIVATE MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}")
     target_link_libraries(network_tls_driver PRIVATE wsprrypico_core wsprrypico_rf Threads::Threads mbedtls mbedx509 mbedcrypto)
     target_compile_options(network_tls_driver PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME network_control_native_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/network_control_native_tests.py $<TARGET_FILE:network_tls_driver>)
+    set_tests_properties(network_control_native_tests PROPERTIES TIMEOUT 30 RUN_SERIAL TRUE)
     add_test(NAME network_tls_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_tls_tests.py
         $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
     set_tests_properties(network_tls_tests PROPERTIES TIMEOUT 90 RUN_SERIAL TRUE)
@@ -123,6 +137,13 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_link_libraries(consumer_bootstrap_driver PRIVATE wsprrypico_core mbedcrypto)
     target_compile_options(consumer_bootstrap_driver PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
+        add_test(NAME ui_fixture_native_profiles COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/ui_fixture_native.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
+        set_tests_properties(ui_fixture_native_profiles PROPERTIES TIMEOUT 60)
+        add_test(NAME session_pilot_sensitivity COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/session_pilot_sensitivity.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
+        # Four workers have 200-second watchdogs; retain a finite family teardown reserve.
+        set_tests_properties(session_pilot_sensitivity PROPERTIES TIMEOUT 840 RUN_SERIAL TRUE)
         add_test(NAME standalone_frequency_first_use_sessions COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/standalone_frequency_first_use_sessions.test.mjs $<TARGET_FILE:consumer_bootstrap_driver>)
         add_test(NAME station_live_apply COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}

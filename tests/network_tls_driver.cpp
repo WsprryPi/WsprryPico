@@ -6,9 +6,11 @@
 #include "pico/time.h"
 #include "provisioning/pico/credential_validator.hpp"
 #include "rf/worker.hpp"
+#include "wtp/codec.hpp"
 #include "wtp/memory_budget.hpp"
 
 #include <atomic>
+#include <charconv>
 #include <chrono>
 #include <csignal>
 #include <cstdlib>
@@ -98,6 +100,12 @@ int main(int argc, char** argv) {
     const auto* selected_address = std::getenv("WSPRRY_TEST_LISTEN_ADDRESS");
     const std::string address = selected_address ? selected_address : "127.0.0.1";
     const std::string device(32, argc > 2 ? argv[2][0] : 'a');
+    const auto* manual_clock = std::getenv("WSPRRY_NETWORK_TEST_MANUAL_CLOCK");
+    if (manual_clock) {
+        if (std::string_view(manual_clock) != "1")
+            return 2;
+        mock_tcp_enable_manual_time();
+    }
     network_test::Flash flash;
     standalone::Store store(flash);
     if (!store.load())
@@ -238,19 +246,76 @@ int main(int argc, char** argv) {
     bool link = true;
     bool allow_http_steps = true;
     std::string commands;
+    std::uint64_t sync_sequence = 0;
+    bool discarding_command = false;
     std::cout << "READY " << server.port() << " PSA " << network::PsaCryptoOwner::owners()
               << " PEAK " << network::PsaCryptoOwner::peak_owners() << (plain ? " PLAIN 18444" : "")
               << std::endl;
     while (!stopping) {
         char bytes[128];
         const auto count = read(STDIN_FILENO, bytes, sizeof(bytes));
-        if (count > 0)
-            commands.append(bytes, static_cast<std::size_t>(count));
+        if (count > 0) {
+            auto input = std::string_view(bytes, static_cast<std::size_t>(count));
+            if (discarding_command) {
+                const auto newline = input.find('\n');
+                if (newline == input.npos)
+                    input = {};
+                else {
+                    input.remove_prefix(newline + 1);
+                    discarding_command = false;
+                }
+            }
+            commands.append(input);
+        }
         while (commands.find('\n') != commands.npos) {
             const auto end = commands.find('\n');
             const auto command = commands.substr(0, end);
             commands.erase(0, end + 1);
-            if (command == "RESTART COUNT")
+            if (command.size() > 256) {
+                std::cout << "CONTROL ERROR OVERSIZED" << std::endl;
+                continue;
+            }
+            if (command.starts_with("SYNC ")) {
+                std::uint64_t sequence = 0;
+                const auto value = std::string_view(command).substr(5);
+                const auto parsed =
+                    std::from_chars(value.data(), value.data() + value.size(), sequence);
+                if (parsed.ec != std::errc{} || parsed.ptr != value.data() + value.size() ||
+                    std::to_string(sequence) != value || sequence == 0 ||
+                    sync_sequence == UINT64_MAX || sequence != sync_sequence + 1) {
+                    std::cout << "CONTROL ERROR SYNC" << std::endl;
+                    continue;
+                }
+                mock_tcp_poll();
+                server.poll(link && network.enabled, address + ":" + std::to_string(server.port()),
+                            allow_http_steps);
+                sync_sequence = sequence;
+                std::cout << "SYNC " << sequence << std::endl;
+            } else if (command.starts_with("TIME ADVANCE ")) {
+                std::uint64_t amount = 0;
+                const auto value = std::string_view(command).substr(13);
+                const auto parsed =
+                    std::from_chars(value.data(), value.data() + value.size(), amount);
+                if (!manual_clock || parsed.ec != std::errc{} ||
+                    parsed.ptr != value.data() + value.size() || std::to_string(amount) != value ||
+                    !mock_tcp_advance_time_us(amount))
+                    std::cout << "CONTROL ERROR TIME" << std::endl;
+                else
+                    std::cout << "TIME " << time_us_64() << std::endl;
+            } else if (command == "STATE") {
+                mock_tcp_poll();
+                server.poll(link && network.enabled, address + ":" + std::to_string(server.port()),
+                            allow_http_steps);
+                const auto resources = server.resources();
+                std::cout << "STATE " << resources.active_connections << ' '
+                          << resources.pending_connections << ' ' << resources.buffered_rx_bytes
+                          << ' ' << resources.pending_tcp_bytes << ' ' << server.metrics().timeouts
+                          << ' ' << server.metrics().admitted << ' ' << server.metrics().closed
+                          << ' ' << allow_http_steps << ' ' << time_us_64() << ' '
+                          << wtp::state_name(service.status().state) << std::endl;
+            } else if (command == "BARRIER") {
+                // SYNC observes the following normal foreground iteration.
+            } else if (command == "RESTART COUNT")
                 std::cout << "RESTARTS " << restarts << std::endl;
             else if (command == "NAGLE HOLD") {
                 mock_tcp_hold_next_handshake_ack();
@@ -328,6 +393,13 @@ int main(int argc, char** argv) {
                 mock_tcp_ack_and_close(false);
             else if (command == "ACK RESET")
                 mock_tcp_ack_and_close(true);
+            else
+                std::cout << "CONTROL ERROR UNKNOWN" << std::endl;
+        }
+        if (commands.size() > 256) {
+            commands.clear();
+            discarding_command = true;
+            std::cout << "CONTROL ERROR OVERSIZED" << std::endl;
         }
         mock_tcp_poll();
         server.poll(link && network.enabled, address + ":" + std::to_string(server.port()),

@@ -2,6 +2,10 @@
 
 This is the distinct TODO list for selected unfinished work, with completed and closed items marked below. Current behavior is documented in the engineering guides. The reusable [cleanup instructions](repository-cleanup-prompt.md) apply to repository and harness cleanup. Item numbers remain stable.
 
+## Selected unfinished work
+
+23. **CI reliability and efficiency campaign — ✅ complete.** The [eleven-phase campaign](ci-reliability-campaign/README.md) and [scorecard](ci-reliability-campaign/acceptance.md) record qualified failure detection, ownership, state-based synchronization, complete coverage, verified source pairs, build reuse, measured scheduling, and final acceptance. Reliability, safety, and efficacy govern speed and reduction targets. Broad 50% reductions were not demonstrated. Changes are on paired feature branches; merge, release, deployment, and physical qualification remain separate.
+
 ## Possible future work
 
 21. **Si5351 automatic carrier-correction repeatability — follow-up.** The [close-spaced carrier comparison](gps-pps-validation.md#close-spaced-carrier-comparison) is complete with the existing RSP1B; the RSPduo is not a prerequisite. Two off/on repeats at each selected 160 m, 60 m and 10 m point establish GP2 improvement beyond the declared measurement allowances. Si5351 baseline errors are stable, while corrected errors vary between repeats; consistent Si5351 improvement remains unestablished. Investigate the selected calibration estimates, observation spans and engine realization before claiming repeatable improvement for Si5351. Keep this specific question separate from the completed GPS/PPS implementation and accepted launch timing. Further receiver/temperature coverage is not implied by the present bench results.
