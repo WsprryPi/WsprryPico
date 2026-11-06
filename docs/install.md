@@ -13,8 +13,9 @@ Install the **WsprryPico** firmware using the commands below.
 ## Select Beta firmware
 
 `devel` is the default source branch for active development and prereleases.
-`main` is reserved for stable releases, starting with `1.0.0`. Release tags identify
-exact released versions; use an explicit firmware version to select a Beta release.
+`main` is absent during prerelease development and can be recreated when stable
+`1.0.0` is ready. Release tags identify exact released versions; use an explicit
+firmware version to select a Beta release.
 
 Use the published [Beta 6 firmware, version **1.0.0-beta.6**](https://github.com/WsprryPi/WsprryPico/releases/tag/v1.0.0-beta.6), for Beta testing. The Beta installation, update, and image-check commands below include `--version 1.0.0-beta.6` to select that exact release. The version argument omits the tag's `v` prefix. The installer verifies image identity, source, workflow, and SHA-256 checksums before programming; it stops if the selected release is unavailable or fails verification.
 

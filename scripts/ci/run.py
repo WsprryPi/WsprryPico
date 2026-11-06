@@ -247,11 +247,8 @@ def host_checks(deps, audit):
 
 
 def documentation_version():
-    stream = bundle.build_stream(os.environ.get('GITHUB_EVENT_NAME'), os.environ.get('GITHUB_REF'))
-    if stream == 'release':
-        release_version = os.environ['GITHUB_REF'].removeprefix('refs/tags/v')
-        return 'main' if bundle.version_kind(release_version) == 'stable' else 'devel'
-    return 'main' if stream == 'main' else 'devel'
+    bundle.build_stream(os.environ.get('GITHUB_EVENT_NAME'), os.environ.get('GITHUB_REF'))
+    return 'devel'
 
 
 def firmware(deps, audit, identifier, version, reuse_build=None):

@@ -6,13 +6,13 @@ Images contain no applied station identity, device credentials, or enabled sched
 
 ## Build identity
 
-Pushes to `devel`, `main`, and semantic `v<version>` tags run checks and build firmware. Pull requests to either branch build preview images. There are no path filters or build cancellation groups. Manual dispatch accepts the enumerated `consumer` profile. Ordinary embedded versions use `0.1.0-ci.<run-id>.<attempt>`; firmware tags use `v` followed by SemVer. The embedded version omits `v`, accepts valid build metadata, and is limited to 128 ASCII characters. Numeric identifiers obey SemVer leading-zero rules. Firmware versions do not select control or storage compatibility.
+Pushes to `devel` and semantic `v<version>` tags run checks and build firmware. Pull requests to `devel` build preview images. There are no path filters or build cancellation groups. Manual dispatch accepts the enumerated `consumer` profile. Ordinary embedded versions use `0.1.0-ci.<run-id>.<attempt>`; firmware tags use `v` followed by SemVer. The embedded version omits `v`, accepts valid build metadata, and is limited to 128 ASCII characters. Numeric identifiers obey SemVer leading-zero rules. Firmware versions do not select control or storage compatibility.
 
 The full checked-out source SHA identifies each build. PR heads, synthetic merge commits, and trusted branch commits are distinct. Preview artifacts are not trusted installation candidates. Verification is read-only; a successful build grants no publication authority. The installer consumes immutable, verified bundles independently of its own implementation version.
 
-Firmware help links use the `devel` operator manual for development builds and all
-prereleases, including release candidates. Stable release tags and `main` builds
-use the `main` manual, reserved for stable releases starting with `1.0.0`.
+All current firmware help links use the `devel` operator manual. `main` is absent
+during prerelease development; recreating it and selecting stable documentation
+belong to the stable `1.0.0` release process. The USB installer defaults to `devel`.
 
 ## Inputs and checks
 
@@ -65,7 +65,6 @@ Read a branch bookmark without changing it:
 
 ```sh
 python scripts/ci/publish.py --resolve devel
-python scripts/ci/publish.py --resolve main
 ```
 
 A bookmark identifies the newest accepted source along the selected branch's ancestry, independently of run timestamps. Installation uses one complete immutable bundle with its source/run/attempt, profile, manifest, and UF2 hashes.

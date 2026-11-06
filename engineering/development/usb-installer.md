@@ -18,7 +18,7 @@ The bounded CLI/core erase observation is Pico C / Pico 2 W / RP2350 on wspr4, U
 
 ## Image selection and planning
 
-An explicit `--version` selects an exact semantic tag independently of the checkout or bootstrap branch. Without an explicit version or another image selector, the firmware branch defaults to **main**; `--branch devel` selects devel explicitly. Branch resolution requires the corresponding `ci-main` or `ci-devel` bookmark and its exact verified bundle. The bookmark is a locator; the selected manifest and immutable image hashes establish identity. Missing bookmarks, assets, or provenance cause refusal without substituting another branch, older image, or local compilation.
+An explicit `--version` selects an exact semantic tag independently of the checkout or bootstrap branch. Without an explicit version or another image selector, the firmware branch defaults to **devel**. Branch resolution requires the `ci-devel` bookmark and its exact verified bundle. Explicit historical `main` selections and installed bundles retain their independent provenance checks. The bookmark is a locator; the selected manifest and immutable image hashes establish identity. Missing bookmarks, assets, or provenance cause refusal without substituting another branch, older image, or local compilation.
 
 Output directories must be new. `--bundle DIRECTORY` revalidates a previously saved public bundle without another download. It cannot accompany another image selector. `recent_ci` reports additional run status separately from the immutable selected image. Missing or invalid downloads still cause refusal.
 
