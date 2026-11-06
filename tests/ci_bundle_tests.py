@@ -89,12 +89,12 @@ class TestingInputTests(unittest.TestCase):
             execute.assert_not_called()
 
     def test_documentation_version_uses_actual_build_stream(self):
-        for ref, expected in [('refs/heads/main', 'main'), ('refs/heads/devel', 'devel'),
+        for ref, expected in [('refs/heads/main', 'devel'), ('refs/heads/devel', 'devel'),
                               ('refs/tags/v1.0.0-alpha.1', 'devel'),
                               ('refs/tags/v1.0.0-beta.1', 'devel'),
-                              ('refs/tags/v1.0.0-rc.1', 'main'),
-                              ('refs/tags/v1.0.0-RC.2+build.1', 'main'),
-                              ('refs/tags/v1.0.0', 'main')]:
+                              ('refs/tags/v1.0.0-rc.1', 'devel'),
+                              ('refs/tags/v1.0.0-RC.2+build.1', 'devel'),
+                              ('refs/tags/v1.0.0', 'devel')]:
             with self.subTest(ref=ref), patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': ref}, clear=True):
                 self.assertEqual(ci_run.documentation_version(), expected)
         with patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'push', 'GITHUB_REF': 'refs/heads/arbitrary'}, clear=True):
@@ -255,8 +255,8 @@ class BundleTests(unittest.TestCase):
     def test_workflow_commands_parse_as_strings(self):
         import yaml
         workflow = yaml.load((ROOT / '.github/workflows/software-build.yml').read_text(), Loader=yaml.BaseLoader)
-        self.assertEqual(set(workflow['on']['push']['branches']), {'devel', 'main'})
-        self.assertEqual(set(workflow['on']['pull_request']['branches']), {'devel', 'main'})
+        self.assertEqual(set(workflow['on']['push']['branches']), {'devel'})
+        self.assertEqual(set(workflow['on']['pull_request']['branches']), {'devel'})
         self.assertNotIn('paths-ignore', workflow['on']['push'])
         self.assertNotIn('paths', workflow['on']['push'])
         self.assertNotIn('concurrency', workflow)  # Every push must start its build.

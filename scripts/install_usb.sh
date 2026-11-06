@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MIT. Bootstrap a single immutable installer revision; firmware defaults to main.
+# MIT. Bootstrap a single immutable installer revision; firmware defaults to devel.
 set -euo pipefail
 case "$(uname -s)" in
     Darwin|Linux) ;;

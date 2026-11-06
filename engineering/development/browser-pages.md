@@ -84,7 +84,7 @@ Deterministic tests demonstrate overlapping-intent refusal, cleanup-error recove
 
 ## Contextual operator documentation
 
-Native documentation anchors open a new tab with `noopener noreferrer` and an explicit no-referrer policy. The asset generator resolves the single fixed `HELP_BASE` to the RTD manual: main builds use `/en/main/`, development builds use `/en/devel/`. `WSPRRY_PICO_DOCUMENTATION_VERSION` accepts only `main` or `devel`, or `auto` for local builds; local CMake defaults main checkouts to main and other development checkouts to devel. Canonical CI selects the actual validated stream explicitly, including detached main sources. Device input, firmware versions, and control majors do not select URLs. No runtime help loader, remote requests on page load, or shared component interface is involved. CSP and control admission remain unchanged. Links inside native summaries are independent of disclosure activation and remain usable inside disabled fieldsets.
+Native documentation anchors open a new tab with `noopener noreferrer` and an explicit no-referrer policy. The asset generator resolves the single fixed `HELP_BASE` to the active RTD manual at `/en/devel/`. `WSPRRY_PICO_DOCUMENTATION_VERSION` accepts `devel`, or `auto` to select `devel` for local builds. Canonical CI also selects `devel`, including for release candidates. Device input, firmware versions, and control majors do not select URLs. No runtime help loader, remote requests on page load, or shared component interface is involved. CSP and control admission remain unchanged. Links inside native summaries are independent of disclosure activation and remain usable inside disabled fieldsets.
 
 | Surface / operator question | Manual destination |
 | --- | --- |

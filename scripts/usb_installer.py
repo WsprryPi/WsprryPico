@@ -488,7 +488,7 @@ def verify_bundle(files, branch, schema_path=SCHEMA):
     return manifest, image
 
 
-def resolve(client, branch='main', version=None, stable=False):
+def resolve(client, branch='devel', version=None, stable=False):
     """Resolve once through the maintained source-ordered branch bookmark."""
     require(branch in ('main', 'devel'), 'Unsupported branch')
     if stable:
@@ -2285,7 +2285,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     SCHEMA_BYTES = schema_bytes
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('operation', choices=('discover', 'plan', 'snapshot', 'install', 'upgrade', 'recover', 'erase'))
-    parser.add_argument('--branch', choices=('main', 'devel'), default='main')
+    parser.add_argument('--branch', choices=('main', 'devel'), default='devel')
     choice = parser.add_mutually_exclusive_group()
     choice.add_argument('--version', help='Exact beta/final or CI version, without v (never silently falls back)')
     choice.add_argument('--stable', action='store_true', help='Explicit stable selection; refuses when no compatible stable is published')
@@ -2358,7 +2358,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
         elif args.operation == 'erase':
             require(not (args.version or args.stable or args.local_build or args.local_bundle or args.bundle or
                          args.output or args.transaction or args.build_dir or args.source_revision or args.allow_dirty or
-                         args.branch != 'main'), 'Erase does not accept firmware image selectors, output or transaction options')
+                         args.branch != 'devel'), 'Erase does not accept firmware image selectors, output or transaction options')
             require(args.device and args.yes and args.board == 'pico2_w',
                     'Erase requires --device SERIAL --board pico2_w --yes')
             if human:

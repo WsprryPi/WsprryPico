@@ -386,11 +386,11 @@ class InstallerTests(unittest.TestCase):
                 self.assertEqual(manifest['workflow']['ref'], 'refs/heads/' + branch)
                 self.assertEqual(sum(c.startswith('releases/tags/ci-') for c in net.calls), 1)
 
-    def test_default_main_does_not_substitute_devel(self):
-        net = Network('devel')
-        with self.assertRaisesRegex(installer.Refusal, 'No verified main'):
+    def test_default_devel_does_not_substitute_main(self):
+        net = Network('main')
+        with self.assertRaisesRegex(installer.Refusal, 'No verified devel'):
             installer.resolve(net)
-        self.assertEqual(net.calls, ['releases/tags/ci-main'])
+        self.assertEqual(net.calls, ['releases/tags/ci-devel'])
 
     def test_explicit_version_does_not_read_bookmark(self):
         net = Network()
@@ -477,24 +477,24 @@ class InstallerTests(unittest.TestCase):
             with self.assertRaises(installer.Refusal):
                 installer.uf2_blocks(data, 0x103EE000)
 
-    def test_cli_plan_uses_main_and_never_usb_or_tool(self):
-        net = Network('main')
+    def test_cli_plan_uses_devel_and_never_usb_or_tool(self):
+        net = Network('devel')
         with patch.object(installer, 'Https', return_value=net), \
              patch.object(installer, 'discover', side_effect=AssertionError('USB opened')), \
              patch.object(installer, 'Picotool', side_effect=AssertionError('Tool opened')), \
              contextlib.redirect_stdout(io.StringIO()) as output:
             self.assertEqual(installer.main(['plan']), 0)
-        self.assertEqual(json.loads(output.getvalue())['branch'], 'main')
+        self.assertEqual(json.loads(output.getvalue())['branch'], 'devel')
 
     def test_programming_requires_device_and_operation_confirmation(self):
-        net = Network('main')
+        net = Network('devel')
         with patch.object(installer, 'Https', return_value=net), \
              patch.object(installer, 'Picotool', side_effect=AssertionError('Programming attempted')), \
              contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(installer.main(['install']), 2)
 
     def test_success_and_failure_results_use_public_result_schema(self):
-        net = Network('main')
+        net = Network('devel')
         record = dict(schema='wsprrypico-usb-transaction/1', stage='failed', recovery_required=True)
         for failure in (False, True):
             with patch.object(installer, 'Https', return_value=net), \
@@ -1343,7 +1343,7 @@ class InteractiveSelectionTests(unittest.TestCase):
                   dict(serial=SERIAL, mode='application', parent='1-1.3', ports={})] if boards is None else boards
         terminal = self.Terminal(answer) if isinstance(answer, str) else answer
         messages = self.Terminal() if tty else io.StringIO()
-        net = Network('main')
+        net = Network('devel')
         def transaction(args, *_):
             return dict(stage='complete', serial=args.device, preserved=True, recovery_required=False)
         with patch.object(installer, 'open', return_value=terminal, side_effect=open_error, create=True) as opened, \
@@ -1534,7 +1534,7 @@ class StandaloneGuidanceTests(unittest.TestCase):
         stdout = InteractiveSelectionTests.Terminal() if terminal_output else io.StringIO()
         with tempfile.NamedTemporaryFile() as transaction, \
              patch.object(installer, 'selected', return_value=dict(serial=SERIAL, mode='bootsel' if operation == 'install' else 'application', parent='1-1.3')), \
-             patch.object(installer, 'Https', return_value=Network('main')), \
+             patch.object(installer, 'Https', return_value=Network('devel')), \
              patch.object(installer, 'prepare_standalone_picotool', return_value=None), \
              patch.object(installer, 'transaction', return_value=record,
                           side_effect=installer.TransactionFailure('not ready', record, Path(record['transaction'])) if failure else None), \
@@ -1602,7 +1602,7 @@ class StandaloneGuidanceTests(unittest.TestCase):
         cleanup = []
         manager = SimpleNamespace(cleanup=lambda args, pending: cleanup.append(pending), close=lambda: None)
         with patch.object(installer, 'selected', return_value=dict(serial=SERIAL, mode='application', parent='1-1.3')), \
-             patch.object(installer, 'Https', return_value=Network('main')), \
+             patch.object(installer, 'Https', return_value=Network('devel')), \
              patch.object(installer, 'prepare_standalone_picotool', return_value=manager), \
              patch.object(installer, 'transaction', side_effect=installer.Refusal('preflight refused')), \
              contextlib.redirect_stdout(io.StringIO()) as output:
