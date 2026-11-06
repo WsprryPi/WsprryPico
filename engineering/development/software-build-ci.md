@@ -10,6 +10,10 @@ Pushes to `devel`, `main`, and semantic `v<version>` tags run checks and build f
 
 The full checked-out source SHA identifies each build. PR heads, synthetic merge commits, and trusted branch commits are distinct. Preview artifacts are not trusted installation candidates. Verification is read-only; a successful build grants no publication authority. The installer consumes immutable, verified bundles independently of its own implementation version.
 
+Firmware help links use the `devel` operator manual for development builds and all
+prereleases, including release candidates. Stable release tags and `main` builds
+use the `main` manual, reserved for stable releases starting with `1.0.0`.
+
 ## Inputs and checks
 
 [`scripts/ci/inputs.json`](../../scripts/ci/inputs.json) pins SDK, all linked SDK submodules, picotool, the read-only qualification Harness, the Arm Linux archive, and actual Wi-Fi/Bluetooth resources. SDK 2.3.1 and Arm compiler 15.3.1 remain unchanged. The official Arm archive's SHA-256 is checked before extraction; dependency Git identities and clean submodules are checked before use. No dependency cache substitutes for verification. SDK/firmware/host build directories are separate and fresh.

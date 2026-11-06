@@ -3,6 +3,11 @@
 Read [the project contract](CONTRACT.md), [architecture](engineering/architecture.md)
 and [development guide](engineering/development/README.md) before making changes.
 
+Use `devel`, the default branch, as the base and pull request target for development
+and prerelease work. `main` is reserved for stable releases, starting with `1.0.0`.
+Do not merge development or prerelease work into `main` before that release.
+Release tags identify exact released versions.
+
 Keep changes focused and preserve existing work. Update the relevant design
 or protocol documentation with behavior changes, clearly identifying drafts.
 Use the established review, implementation, repair and reassessment workflow;

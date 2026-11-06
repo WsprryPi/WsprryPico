@@ -23,6 +23,10 @@ You need a **Pico 2 W**, a USB **data** cable, a reliable USB power supply, and 
 
 ## Development and contribution
 
+`devel` is the default branch for active development and prereleases. `main` is
+reserved for stable releases, starting with `1.0.0`; development and beta releases
+stay on `devel` until then. Release tags identify exact released versions.
+
 For build instructions and contributor information, see:
 
 - [Development guide](engineering/development/README.md)
