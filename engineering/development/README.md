@@ -164,6 +164,11 @@ Inhibited diagnostics use `WSPRRY_PICO_JOURNAL_FAULT_STAGE`, `WSPRRY_PICO_JOURNA
 
 Current operator instructions are in [the Sphinx manual](../../docs/index.md). Only `docs/` is a Sphinx source tree; engineering contracts, schemas, and technical guides stay here and are excluded from public search.
 
+The recommended firmware version is defined once as `recommended_firmware_version`
+in `docs/conf.py`. After publishing a release, update that value to recommend it.
+The installation manual uses `@RECOMMENDED_FIRMWARE_VERSION@` in prose, release
+links, and commands; Sphinx resolves the token before parsing the page.
+
 Build with the project-local documentation environment:
 
 ```sh
