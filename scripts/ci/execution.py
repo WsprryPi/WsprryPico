@@ -36,6 +36,10 @@ NATIVE = {
 }
 
 
+class CommandInterrupted(RuntimeError):
+    """Cancellation must escape I/O recovery that catches OSError."""
+
+
 def require(condition, message):
     if not condition:
         raise ValueError(message)
@@ -227,9 +231,10 @@ def execute(log, command, cwd, source, context=None, watchdog=3600, expected=Non
     # cleanup or turn the first interruption into a successful receipt.
     handlers = {}
     cancellation = {'spawning': False, 'closing': False, 'interruption': None}
+    failure = None
     def cancelled(number, frame):
         if cancellation['interruption'] is None:
-            cancellation['interruption'] = InterruptedError(f'CI command interrupted by signal={number}')
+            cancellation['interruption'] = CommandInterrupted(f'CI command interrupted by signal={number}')
             if not cancellation['spawning'] and not cancellation['closing']:
                 raise cancellation['interruption']
     try:
@@ -237,9 +242,26 @@ def execute(log, command, cwd, source, context=None, watchdog=3600, expected=Non
             for number in (signal.SIGINT, signal.SIGTERM):
                 handlers[number] = signal.signal(number, cancelled)
         return _execute(log, command, cwd, source, context, watchdog, expected, cancellation)
+    except BaseException as error:
+        failure = error
+        raise
     finally:
+        cancellation['closing'] = True
+        restoration = []
         for number, handler in handlers.items():
-            signal.signal(number, handler)
+            try:
+                signal.signal(number, handler)
+            except BaseException as error:
+                restoration.append(error)
+        # A cancellation during receipt persistence or handler handoff must
+        # not disappear after the child has already completed successfully.
+        interrupted = cancellation['interruption'] if failure is None else None
+        if restoration:
+            primary = failure if failure is not None else interrupted
+            raise BaseExceptionGroup('command and signal restoration failed',
+                                     ([primary] if primary is not None else []) + restoration)
+        if interrupted is not None:
+            raise interrupted
 
 
 def _execute(log, command, cwd, source, context, watchdog, expected, cancellation):
@@ -259,58 +281,67 @@ def _execute(log, command, cwd, source, context, watchdog, expected, cancellatio
     started = time.monotonic()
     child = None
     primary = None
-    with log.open('a') as output:
-        output.write('+ ' + ' '.join(command) + '\n'); output.flush()
-        offset = output.tell()
-        try:
-            # Defer raising during Popen registration without masking signals in
-            # the child. It must inherit ordinary cancellation behavior.
-            cancellation['spawning'] = True
+    try:
+        with log.open('a') as output:
+            output.write('+ ' + ' '.join(command) + '\n'); output.flush()
+            offset = output.tell()
             try:
-                child = subprocess.Popen(command, cwd=cwd, stdout=output, stderr=subprocess.STDOUT,
-                                         start_new_session=os.name != 'nt')
+                # Defer raising during Popen registration without masking signals in
+                # the child. It must inherit ordinary cancellation behavior.
+                cancellation['spawning'] = True
+                try:
+                    child = subprocess.Popen(command, cwd=cwd, stdout=output, stderr=subprocess.STDOUT,
+                                             start_new_session=os.name != 'nt')
+                finally:
+                    cancellation['spawning'] = False
+                if cancellation['interruption'] is not None:
+                    raise cancellation['interruption']
+                child.wait(timeout=watchdog)
+                if os.name != 'nt':
+                    try:
+                        os.killpg(child.pid, 0)
+                    except ProcessLookupError:
+                        pass
+                    else:
+                        raise RuntimeError(f'stage={context}; child_exit={child.returncode}; owned descendants remain after leader exit')
+                if child.returncode:
+                    raise RuntimeError(f'stage={context}; child_exit={child.returncode}; log={log.name}')
+            except BaseException as error:
+                primary = error
+                cancellation['closing'] = True
+                if child is not None:
+                    failures = []
+                    try:
+                        if os.name != 'nt':
+                            os.killpg(child.pid, signal.SIGKILL)
+                        elif child.poll() is None:
+                            child.kill()
+                    except ProcessLookupError:
+                        pass
+                    except BaseException as cleanup:
+                        failures.append(cleanup)
+                    try:
+                        child.wait(timeout=5)
+                    except BaseException as cleanup:
+                        failures.append(cleanup)
+                    if failures:
+                        primary = BaseExceptionGroup('command and owned cleanup failed', [primary, *failures])
             finally:
-                cancellation['spawning'] = False
-            if cancellation['interruption'] is not None:
-                raise cancellation['interruption']
-            child.wait(timeout=watchdog)
-            if os.name != 'nt':
-                try:
-                    os.killpg(child.pid, 0)
-                except ProcessLookupError:
-                    pass
-                else:
-                    raise RuntimeError(f'stage={context}; child_exit={child.returncode}; owned descendants remain after leader exit')
-            if child.returncode:
-                raise RuntimeError(f'stage={context}; child_exit={child.returncode}; log={log.name}')
-        except BaseException as error:
-            primary = error
-            cancellation['closing'] = True
-            if child is not None:
-                failures = []
-                try:
-                    if os.name != 'nt':
-                        os.killpg(child.pid, signal.SIGKILL)
-                    elif child.poll() is None:
-                        child.kill()
-                except ProcessLookupError:
-                    pass
-                except BaseException as cleanup:
-                    failures.append(cleanup)
-                try:
-                    child.wait(timeout=5)
-                except BaseException as cleanup:
-                    failures.append(cleanup)
-                if failures:
-                    primary = BaseExceptionGroup('command and owned cleanup failed', [primary, *failures])
-        finally:
-            cancellation['closing'] = True
-            output.flush()
+                cancellation['closing'] = True
+                output.flush()
+    except BaseException as finalization:
+        if primary is None and cancellation['interruption'] is not None:
+            primary = cancellation['interruption']
+        if primary is not None and primary is not finalization:
+            raise BaseExceptionGroup('command and log finalization failed', [primary, finalization]) from None
+        raise
     if primary is None and cancellation['interruption'] is not None:
         primary = cancellation['interruption']
     try:
         raw = log.read_bytes()[offset:]
     except BaseException as diagnostic:
+        if primary is None and cancellation['interruption'] is not None:
+            primary = cancellation['interruption']
         if primary is not None:
             raise BaseExceptionGroup('command and log read failed', [primary, diagnostic]) from None
         raise
@@ -323,7 +354,11 @@ def _execute(log, command, cwd, source, context, watchdog, expected, cancellatio
                 _completion_expected(expected)
                 require(qualified == expected, 'Incomplete expected framework discovery: ' + context)
         except BaseException as error:
-            primary = error
+            interrupted = cancellation['interruption']
+            primary = (BaseExceptionGroup('command cancellation and qualification failed', [interrupted, error])
+                       if interrupted is not None and interrupted is not error else error)
+    if primary is None and cancellation['interruption'] is not None:
+        primary = cancellation['interruption']
     data['records'].append({'context': context, 'command': command, 'cwd': str(cwd),
                             'elapsed_s': time.monotonic() - started,
                             'returncode': child.returncode if child else None,
@@ -333,7 +368,13 @@ def _execute(log, command, cwd, source, context, watchdog, expected, cancellatio
     temporary = report.with_suffix('.tmp')
     try:
         temporary.write_text(json.dumps(data, indent=2) + '\n'); temporary.replace(report)
+        if primary is None and cancellation['interruption'] is not None:
+            primary = cancellation['interruption']
+            data['records'][-1]['outcome'] = 'failed'
+            temporary.write_text(json.dumps(data, indent=2) + '\n'); temporary.replace(report)
     except BaseException as persistence:
+        if primary is None and cancellation['interruption'] is not None:
+            primary = cancellation['interruption']
         if primary is not None:
             raise BaseExceptionGroup('command and evidence persistence failed', [primary, persistence]) from None
         raise

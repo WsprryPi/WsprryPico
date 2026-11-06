@@ -116,7 +116,11 @@ Native browser scenarios use
 [`fixture_process.py`](../../tests/fixture_process.py) own command/reply fixtures.
 Register ownership before fallible initialization, preserve the original error
 alongside cleanup errors, check late child exits, stop every owned writer, and
-remove private profiles only after observed termination. Worker/module paths
+remove private profiles only after observed termination. Cancellation remains
+visible through qualification, receipt commit, and signal-handler handoff; its
+non-I/O exception cannot be swallowed as a recoverable OSError. Child/cancellation
+failures remain grouped with log, storage, or handler-restoration failures.
+Worker/module paths
 resolve relative to their owning module; the caller's working directory does not
 select another repository's worker.
 

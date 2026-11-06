@@ -5,7 +5,7 @@
     "pi": "1e15b2485ac6e1b9cbb6ff435afc0f0232528804"
   },
   "candidate": {
-    "pico_parent": "61278631cbcf16c00b716e0d37e7009e2d8d3105",
+    "pico_parent": "6c1d6fcb570dd6e1670f28d31d01aa8a6200678f",
     "pi": "d3ffc3b26d50f55f205382bb5aac7cdfee054d99",
     "identity": "Current scoped file hashes bind this ledger. The final documentation commit changes Git identity; current CI must independently bind that final commit."
   },
@@ -39,8 +39,8 @@
   },
   "after": {
     "files": 521,
-    "bytes": 5027764,
-    "physical_lines": 89191
+    "bytes": 5038547,
+    "physical_lines": 89380
   },
   "entries": [
     {
@@ -841,7 +841,7 @@
       "after": {
         "bytes": 8252,
         "physical_lines": 304,
-        "sha256": "9b121b5c3ce55f758875cff6c6d4050416978ba72fbe228653fc5eadd9d7bbac"
+        "sha256": "f48ca92e9fe294de253ba61486871544791773933c6a828c39d2cb4187c36617"
       },
       "reason": "Current production, generated, test, dependency, build, workflow, or documentation input; preserve current obligation."
     },
@@ -876,9 +876,9 @@
       "action": "ADD",
       "before": null,
       "after": {
-        "bytes": 22222,
-        "physical_lines": 377,
-        "sha256": "cf2fb258281095ae9df238987b3984be55969169a3e1b33ac295ec12415aa32b"
+        "bytes": 24583,
+        "physical_lines": 418,
+        "sha256": "b27bc0c14a6778ad1967751af4309b203d5566c1b40e54942e55425eb92021df"
       },
       "reason": "Current production, generated, test, dependency, build, workflow, or documentation input; preserve current obligation."
     },
@@ -2603,9 +2603,9 @@
       "action": "ADD",
       "before": null,
       "after": {
-        "bytes": 18697,
-        "physical_lines": 305,
-        "sha256": "fbc699d12b747bf51ca2ac9b283f8e61d1c10ef8acfc969dd01bfc7dacafd2a4"
+        "bytes": 27119,
+        "physical_lines": 453,
+        "sha256": "0684a32d1f84b20288c5b0874a155cc07bb8529d6ae9526f943cbea93f5cf54e"
       },
       "reason": "Current production, generated, test, dependency, build, workflow, or documentation input; preserve current obligation."
     },
@@ -8607,292 +8607,6 @@
     "elapsed_window_seconds": 27308.0,
     "limitations": "Different sources, changing coverage, runner state and development interventions. All listed attempts are 1, but earlier cancelled candidates and local failures remain. Not a flake-rate denominator or total project cost; Pi CI, local/mutation builds, transfer/setup and engineering wall time add costs."
   },
-  "qualified_sensitivity_inputs": {
-    "firmware_sources_unchanged_from": "c9fd28ef57265c942900bdfe0595f90a31926ff9",
-    "entries": [
-      {
-        "group": "browser lifecycle/session",
-        "path": "tests/browser_harness.mjs",
-        "qualified_ref": "540dc6bd",
-        "sha256": "43c51f4752646726186add7acbf86174a4302f0a7a89ac6ab0946f43c779fc5c",
-        "unchanged": true
-      },
-      {
-        "group": "browser lifecycle/session",
-        "path": "tests/browser_scope.mjs",
-        "qualified_ref": "540dc6bd",
-        "sha256": "8d743632887710e237d70249a9e7c297f5ceea37827308ea8f9b51e9da820691",
-        "unchanged": true
-      },
-      {
-        "group": "browser lifecycle/session",
-        "path": "tests/browser_cdp.mjs",
-        "qualified_ref": "540dc6bd",
-        "sha256": "4ca9626fdb19c0e244659d583a9286a575faaaf40f61d689ec043a217458d8ab",
-        "unchanged": true
-      },
-      {
-        "group": "browser lifecycle/session",
-        "path": "tests/browser_deadline.mjs",
-        "qualified_ref": "540dc6bd",
-        "sha256": "418f554cfc5451b91145df00e4cf62ecc7ecd4353ab5135e3713c05528b0a0de",
-        "unchanged": true
-      },
-      {
-        "group": "browser lifecycle/session",
-        "path": "tests/chrome_startup.mjs",
-        "qualified_ref": "540dc6bd",
-        "sha256": "51b6b9f6b3994ed7e048ba1c0a0555ef94f35b440965e5f7f881a2858450e988",
-        "unchanged": true
-      },
-      {
-        "group": "browser lifecycle/session",
-        "path": "tests/ui_process_cleanup.mjs",
-        "qualified_ref": "540dc6bd",
-        "sha256": "a3524d2fd8bbaa828679613e0ce93bf73f6b2f6351c03ba0548a30597b5ca13a",
-        "unchanged": true
-      },
-      {
-        "group": "browser lifecycle/session",
-        "path": "tests/fixture_process.mjs",
-        "qualified_ref": "540dc6bd",
-        "sha256": "7e1442226790964c9e0f50ddfa9018e4b70d553c8147dd16f6b047f03dcceb5f",
-        "unchanged": true
-      },
-      {
-        "group": "browser lifecycle/session",
-        "path": "tests/session_timeout_browser.mjs",
-        "qualified_ref": "540dc6bd",
-        "sha256": "47ea5055e63cea54ce36405de4767d68ecf20f693b2c59bbdd8cd5783d5f32da",
-        "unchanged": true
-      },
-      {
-        "group": "browser lifecycle/session",
-        "path": "tests/session_pilot_sensitivity.test.mjs",
-        "qualified_ref": "540dc6bd",
-        "sha256": "3ec4f7706a2d7425c8e950595cd217dd73638536cb4707f0867ef7e10f9bf2b6",
-        "unchanged": true
-      },
-      {
-        "group": "synchronized network/hostname",
-        "path": "tests/network_tls_driver.cpp",
-        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
-        "sha256": "6602f6ae69cd0e202e47b44f1e24233a967801de88aba72cb7bbf35f79a455e8",
-        "unchanged": true
-      },
-      {
-        "group": "synchronized network/hostname",
-        "path": "tests/network_tls_tests.py",
-        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
-        "sha256": "febd94e5301f23738e8d57ad658d7eefe1e9c51fa119ee35a53d4a2693a81671",
-        "unchanged": true
-      },
-      {
-        "group": "synchronized network/hostname",
-        "path": "tests/network_plain_admission_tests.py",
-        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
-        "sha256": "53b5d6046cf107c46b960c83e4467eaee79939f34c9b59589c6d026ef12b139a",
-        "unchanged": true
-      },
-      {
-        "group": "synchronized network/hostname",
-        "path": "tests/network_control.py",
-        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
-        "sha256": "219bd1dca3ab7feb46d70d8430fc955eea8e5ef987678e548f8882cd3c8049dc",
-        "unchanged": true
-      },
-      {
-        "group": "synchronized network/hostname",
-        "path": "tests/network_replies.py",
-        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
-        "sha256": "c2cc781de567bfcbefbf7c79699663009334ef70449f00cd92253fe0ecaa61ab",
-        "unchanged": true
-      },
-      {
-        "group": "synchronized network/hostname",
-        "path": "tests/network_socket.py",
-        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
-        "sha256": "e5852b28ea092ae2f53d3def84c29d0ffa5ed36f11b057d0a4ee38c1033b892b",
-        "unchanged": true
-      },
-      {
-        "group": "synchronized network/hostname",
-        "path": "tests/fixture_process.py",
-        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
-        "sha256": "024c5fbf1e64bc13043c37be1b0cbf67ea9db8eea60163d6a5a8ed7c0b75e019",
-        "unchanged": true
-      },
-      {
-        "group": "synchronized network/hostname",
-        "path": "tests/hostname_browser_integration.mjs",
-        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
-        "sha256": "ddcc6cde151f007ad3f03988e4a56dd6772023505752c68c445c28d0a951c9c3",
-        "unchanged": true
-      },
-      {
-        "group": "synchronized network/hostname",
-        "path": "tests/network_mock/tcp.cpp",
-        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
-        "sha256": "82cc9cfb33bcb479351519cd29bf5ebfef80fb21e340277a6d34701083bad72d",
-        "unchanged": true
-      },
-      {
-        "group": "build graph/image inspections",
-        "path": "CMakeLists.txt",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "sha256": "b2fed1743f23efd9f596fb608a954fcf579fb41665da77e81b219fb8ffebfd6d",
-        "unchanged": true
-      },
-      {
-        "group": "build graph/image inspections",
-        "path": "cmake/selected_host_client.cmake",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "sha256": "b6ac5b0cbab9d499e61a32e4c7f4f3140606cbb752a20f669bf66af40f27c015",
-        "unchanged": true
-      },
-      {
-        "group": "build graph/image inspections",
-        "path": "cmake/host_client_interop.cmake",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "sha256": "ee40b88ecedf39f47a8431f35f998ac7d4fe59fa9a0e50c22dd1e87f0e3e339a",
-        "unchanged": true
-      },
-      {
-        "group": "build graph/image inspections",
-        "path": "scripts/check_gp14_rf_image.py",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "sha256": "265648142742fd5ce0ded64328d9a1b8eb7c29846b65e0005a0be084810d72a7",
-        "unchanged": true
-      },
-      {
-        "group": "build graph/image inspections",
-        "path": "scripts/check_standalone_image.py",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "sha256": "e25c79414d26d384d62acbfbb161b2e6b9e921bffa8c511b1dfae3b18d415f64",
-        "unchanged": true
-      },
-      {
-        "group": "build graph/image inspections",
-        "path": "scripts/check_rf_renderer.py",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "sha256": "9d159acffb201b3d7fa050560ad905f18a527e23ff56641ac877ebcb23b58137",
-        "unchanged": true
-      },
-      {
-        "group": "completion/provenance/cancellation",
-        "path": "scripts/ci/execution.py",
-        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
-        "sha256": "cf2fb258281095ae9df238987b3984be55969169a3e1b33ac295ec12415aa32b",
-        "unchanged": true
-      },
-      {
-        "group": "completion/provenance/cancellation",
-        "path": "scripts/ci/bundle.py",
-        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
-        "sha256": "ecc562bd690fe69242c0e54711e5ccb0f7cc40858c75d7646abb5e87d753b050",
-        "unchanged": true
-      },
-      {
-        "group": "completion/provenance/cancellation",
-        "path": "scripts/ci/download.py",
-        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
-        "sha256": "aa2d01028ec5c20a6a7208194537327479e1f61cf66d738147cbbb3959df4f03",
-        "unchanged": true
-      },
-      {
-        "group": "completion/provenance/cancellation",
-        "path": "scripts/usb_installer.py",
-        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
-        "sha256": "e4a6696f3508e4857bd94651b9c91a4e3767ad26a999da3decd5086645e5a7dd",
-        "unchanged": true
-      },
-      {
-        "group": "completion/provenance/cancellation",
-        "path": "tests/ci_execution_tests.py",
-        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
-        "sha256": "fbc699d12b747bf51ca2ac9b283f8e61d1c10ef8acfc969dd01bfc7dacafd2a4",
-        "unchanged": true
-      },
-      {
-        "group": "completion/provenance/cancellation",
-        "path": "tests/ci_bundle_tests.py",
-        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
-        "sha256": "e3a49c4ab357395879e9ff8a82729008a8f6bffbf54105e26cf2ba3f6389c046",
-        "unchanged": true
-      },
-      {
-        "group": "completion/provenance/cancellation",
-        "path": "tests/usb_installer_tests.py",
-        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
-        "sha256": "982129173777409c9f9f5f9145916792e983169ef705988b8c8198af516685a0",
-        "unchanged": true
-      },
-      {
-        "group": "completion/provenance/cancellation",
-        "path": "tests/ui_process_cleanup.test.mjs",
-        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
-        "sha256": "dc360d66c19c3a41aea05e4d85931252496ac115edb12fec5679c0219e33eb06",
-        "unchanged": true
-      },
-      {
-        "group": "completion/provenance/cancellation",
-        "path": "tests/chrome_startup.test.mjs",
-        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
-        "sha256": "ed2b39d472129040fbfe2eef4b88ec3bb8d6ae368b72424249f7994696cc6bee",
-        "unchanged": true
-      },
-      {
-        "group": "fresh build/invalidation functions",
-        "path": "scripts/ci/run.py:fresh_directory",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "ast_sha256": "f3788f31f27004217aa84b0b2b70e5b1146a67e0a2b46959e40c9941cea06f6c",
-        "unchanged": true
-      },
-      {
-        "group": "fresh build/invalidation functions",
-        "path": "scripts/ci/run.py:direct_compiler_environment",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "ast_sha256": "36bf31870c747f565a7055b29f4d662fe8f7c0e24c7db1e430c5ec5967f563ed",
-        "unchanged": true
-      },
-      {
-        "group": "fresh build/invalidation functions",
-        "path": "scripts/ci/run.py:direct_firmware_compilers",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "ast_sha256": "4ac4ac9d3b86fc2fdd8048d451c6c5526b44fbf63723cc27a116345c09aef202",
-        "unchanged": true
-      },
-      {
-        "group": "fresh build/invalidation functions",
-        "path": "scripts/ci/run.py:firmware",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "ast_sha256": "fd256de6060f3e9393d44444b2a0282c3afe0e1b475dfdbd9d1132cdc4d4f710",
-        "unchanged": true
-      },
-      {
-        "group": "fresh build/invalidation functions",
-        "path": "scripts/ci/run.py:build",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "ast_sha256": "e3a016478ad174f6cc784bc6a9709a002e5afeebd1d4e36959338df05e8db963",
-        "unchanged": true
-      },
-      {
-        "group": "linked image/payload verification",
-        "path": "scripts/ci/bundle.py:inspect_payload",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "ast_sha256": "57920e8dfee8bcdfc37904d4021ac4a375c5e8f63941a2eafc6206896595a075",
-        "unchanged": true
-      },
-      {
-        "group": "linked image/payload verification",
-        "path": "scripts/ci/bundle.py:inspect_profile",
-        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
-        "ast_sha256": "b4099a3dc6406ffc001d610970d0813262aef719f03ed78d90074905a65f2753",
-        "unchanged": true
-      }
-    ],
-    "limits": "Only unchanged behavior reuses prior qualified fault observations. Current positive checks and final hosted/source-pair/artifact identities remain mandatory."
-  },
   "retirement": {
     "phase10": [
       {
@@ -9142,5 +8856,339 @@
       ],
       "retained": "Current CI guide, reusable cleanup instructions, explicit final scorecard and machine accounting, saved Git prompt links; active source/build/SDK/recovery environments remain preserved."
     }
+  },
+  "qualified_sensitivity_inputs": {
+    "firmware_sources_unchanged_from": "c9fd28ef57265c942900bdfe0595f90a31926ff9",
+    "entries": [
+      {
+        "group": "browser lifecycle/session",
+        "path": "tests/browser_harness.mjs",
+        "qualified_ref": "540dc6bd",
+        "sha256": "43c51f4752646726186add7acbf86174a4302f0a7a89ac6ab0946f43c779fc5c",
+        "unchanged": true
+      },
+      {
+        "group": "browser lifecycle/session",
+        "path": "tests/browser_scope.mjs",
+        "qualified_ref": "540dc6bd",
+        "sha256": "8d743632887710e237d70249a9e7c297f5ceea37827308ea8f9b51e9da820691",
+        "unchanged": true
+      },
+      {
+        "group": "browser lifecycle/session",
+        "path": "tests/browser_cdp.mjs",
+        "qualified_ref": "540dc6bd",
+        "sha256": "4ca9626fdb19c0e244659d583a9286a575faaaf40f61d689ec043a217458d8ab",
+        "unchanged": true
+      },
+      {
+        "group": "browser lifecycle/session",
+        "path": "tests/browser_deadline.mjs",
+        "qualified_ref": "540dc6bd",
+        "sha256": "418f554cfc5451b91145df00e4cf62ecc7ecd4353ab5135e3713c05528b0a0de",
+        "unchanged": true
+      },
+      {
+        "group": "browser lifecycle/session",
+        "path": "tests/chrome_startup.mjs",
+        "qualified_ref": "540dc6bd",
+        "sha256": "51b6b9f6b3994ed7e048ba1c0a0555ef94f35b440965e5f7f881a2858450e988",
+        "unchanged": true
+      },
+      {
+        "group": "browser lifecycle/session",
+        "path": "tests/ui_process_cleanup.mjs",
+        "qualified_ref": "540dc6bd",
+        "sha256": "a3524d2fd8bbaa828679613e0ce93bf73f6b2f6351c03ba0548a30597b5ca13a",
+        "unchanged": true
+      },
+      {
+        "group": "browser lifecycle/session",
+        "path": "tests/fixture_process.mjs",
+        "qualified_ref": "540dc6bd",
+        "sha256": "7e1442226790964c9e0f50ddfa9018e4b70d553c8147dd16f6b047f03dcceb5f",
+        "unchanged": true
+      },
+      {
+        "group": "browser lifecycle/session",
+        "path": "tests/session_timeout_browser.mjs",
+        "qualified_ref": "540dc6bd",
+        "sha256": "47ea5055e63cea54ce36405de4767d68ecf20f693b2c59bbdd8cd5783d5f32da",
+        "unchanged": true
+      },
+      {
+        "group": "browser lifecycle/session",
+        "path": "tests/session_pilot_sensitivity.test.mjs",
+        "qualified_ref": "540dc6bd",
+        "sha256": "3ec4f7706a2d7425c8e950595cd217dd73638536cb4707f0867ef7e10f9bf2b6",
+        "unchanged": true
+      },
+      {
+        "group": "synchronized network/hostname",
+        "path": "tests/network_tls_driver.cpp",
+        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
+        "sha256": "6602f6ae69cd0e202e47b44f1e24233a967801de88aba72cb7bbf35f79a455e8",
+        "unchanged": true
+      },
+      {
+        "group": "synchronized network/hostname",
+        "path": "tests/network_tls_tests.py",
+        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
+        "sha256": "febd94e5301f23738e8d57ad658d7eefe1e9c51fa119ee35a53d4a2693a81671",
+        "unchanged": true
+      },
+      {
+        "group": "synchronized network/hostname",
+        "path": "tests/network_plain_admission_tests.py",
+        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
+        "sha256": "53b5d6046cf107c46b960c83e4467eaee79939f34c9b59589c6d026ef12b139a",
+        "unchanged": true
+      },
+      {
+        "group": "synchronized network/hostname",
+        "path": "tests/network_control.py",
+        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
+        "sha256": "219bd1dca3ab7feb46d70d8430fc955eea8e5ef987678e548f8882cd3c8049dc",
+        "unchanged": true
+      },
+      {
+        "group": "synchronized network/hostname",
+        "path": "tests/network_replies.py",
+        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
+        "sha256": "c2cc781de567bfcbefbf7c79699663009334ef70449f00cd92253fe0ecaa61ab",
+        "unchanged": true
+      },
+      {
+        "group": "synchronized network/hostname",
+        "path": "tests/network_socket.py",
+        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
+        "sha256": "e5852b28ea092ae2f53d3def84c29d0ffa5ed36f11b057d0a4ee38c1033b892b",
+        "unchanged": true
+      },
+      {
+        "group": "synchronized network/hostname",
+        "path": "tests/fixture_process.py",
+        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
+        "sha256": "024c5fbf1e64bc13043c37be1b0cbf67ea9db8eea60163d6a5a8ed7c0b75e019",
+        "unchanged": true
+      },
+      {
+        "group": "synchronized network/hostname",
+        "path": "tests/hostname_browser_integration.mjs",
+        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
+        "sha256": "ddcc6cde151f007ad3f03988e4a56dd6772023505752c68c445c28d0a951c9c3",
+        "unchanged": true
+      },
+      {
+        "group": "synchronized network/hostname",
+        "path": "tests/network_mock/tcp.cpp",
+        "qualified_ref": "0b24fd5c5a129d6b6436c0459b1737b8d2389c0e",
+        "sha256": "82cc9cfb33bcb479351519cd29bf5ebfef80fb21e340277a6d34701083bad72d",
+        "unchanged": true
+      },
+      {
+        "group": "build graph/image inspections",
+        "path": "CMakeLists.txt",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "sha256": "b2fed1743f23efd9f596fb608a954fcf579fb41665da77e81b219fb8ffebfd6d",
+        "unchanged": true
+      },
+      {
+        "group": "build graph/image inspections",
+        "path": "cmake/selected_host_client.cmake",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "sha256": "b6ac5b0cbab9d499e61a32e4c7f4f3140606cbb752a20f669bf66af40f27c015",
+        "unchanged": true
+      },
+      {
+        "group": "build graph/image inspections",
+        "path": "cmake/host_client_interop.cmake",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "sha256": "ee40b88ecedf39f47a8431f35f998ac7d4fe59fa9a0e50c22dd1e87f0e3e339a",
+        "unchanged": true
+      },
+      {
+        "group": "build graph/image inspections",
+        "path": "scripts/check_gp14_rf_image.py",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "sha256": "265648142742fd5ce0ded64328d9a1b8eb7c29846b65e0005a0be084810d72a7",
+        "unchanged": true
+      },
+      {
+        "group": "build graph/image inspections",
+        "path": "scripts/check_standalone_image.py",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "sha256": "e25c79414d26d384d62acbfbb161b2e6b9e921bffa8c511b1dfae3b18d415f64",
+        "unchanged": true
+      },
+      {
+        "group": "build graph/image inspections",
+        "path": "scripts/check_rf_renderer.py",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "sha256": "9d159acffb201b3d7fa050560ad905f18a527e23ff56641ac877ebcb23b58137",
+        "unchanged": true
+      },
+      {
+        "group": "completion/provenance/cancellation",
+        "path": "scripts/ci/bundle.py",
+        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
+        "sha256": "ecc562bd690fe69242c0e54711e5ccb0f7cc40858c75d7646abb5e87d753b050",
+        "unchanged": true
+      },
+      {
+        "group": "completion/provenance/cancellation",
+        "path": "scripts/ci/download.py",
+        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
+        "sha256": "aa2d01028ec5c20a6a7208194537327479e1f61cf66d738147cbbb3959df4f03",
+        "unchanged": true
+      },
+      {
+        "group": "completion/provenance/cancellation",
+        "path": "scripts/usb_installer.py",
+        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
+        "sha256": "e4a6696f3508e4857bd94651b9c91a4e3767ad26a999da3decd5086645e5a7dd",
+        "unchanged": true
+      },
+      {
+        "group": "completion/provenance/cancellation",
+        "path": "tests/ci_bundle_tests.py",
+        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
+        "sha256": "e3a49c4ab357395879e9ff8a82729008a8f6bffbf54105e26cf2ba3f6389c046",
+        "unchanged": true
+      },
+      {
+        "group": "completion/provenance/cancellation",
+        "path": "tests/usb_installer_tests.py",
+        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
+        "sha256": "982129173777409c9f9f5f9145916792e983169ef705988b8c8198af516685a0",
+        "unchanged": true
+      },
+      {
+        "group": "completion/provenance/cancellation",
+        "path": "tests/ui_process_cleanup.test.mjs",
+        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
+        "sha256": "dc360d66c19c3a41aea05e4d85931252496ac115edb12fec5679c0219e33eb06",
+        "unchanged": true
+      },
+      {
+        "group": "completion/provenance/cancellation",
+        "path": "tests/chrome_startup.test.mjs",
+        "qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
+        "sha256": "ed2b39d472129040fbfe2eef4b88ec3bb8d6ae368b72424249f7994696cc6bee",
+        "unchanged": true
+      },
+      {
+        "group": "fresh build/invalidation functions",
+        "path": "scripts/ci/run.py:fresh_directory",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "ast_sha256": "f3788f31f27004217aa84b0b2b70e5b1146a67e0a2b46959e40c9941cea06f6c",
+        "unchanged": true
+      },
+      {
+        "group": "fresh build/invalidation functions",
+        "path": "scripts/ci/run.py:direct_compiler_environment",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "ast_sha256": "36bf31870c747f565a7055b29f4d662fe8f7c0e24c7db1e430c5ec5967f563ed",
+        "unchanged": true
+      },
+      {
+        "group": "fresh build/invalidation functions",
+        "path": "scripts/ci/run.py:direct_firmware_compilers",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "ast_sha256": "4ac4ac9d3b86fc2fdd8048d451c6c5526b44fbf63723cc27a116345c09aef202",
+        "unchanged": true
+      },
+      {
+        "group": "fresh build/invalidation functions",
+        "path": "scripts/ci/run.py:firmware",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "ast_sha256": "fd256de6060f3e9393d44444b2a0282c3afe0e1b475dfdbd9d1132cdc4d4f710",
+        "unchanged": true
+      },
+      {
+        "group": "fresh build/invalidation functions",
+        "path": "scripts/ci/run.py:build",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "ast_sha256": "e3a016478ad174f6cc784bc6a9709a002e5afeebd1d4e36959338df05e8db963",
+        "unchanged": true
+      },
+      {
+        "group": "linked image/payload verification",
+        "path": "scripts/ci/bundle.py:inspect_payload",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "ast_sha256": "57920e8dfee8bcdfc37904d4021ac4a375c5e8f63941a2eafc6206896595a075",
+        "unchanged": true
+      },
+      {
+        "group": "linked image/payload verification",
+        "path": "scripts/ci/bundle.py:inspect_profile",
+        "qualified_ref": "5e2fe098adfcd999629089279517aa3da97e6a3b",
+        "ast_sha256": "b4099a3dc6406ffc001d610970d0813262aef719f03ed78d90074905a65f2753",
+        "unchanged": true
+      }
+    ],
+    "reassessed": [
+      {
+        "group": "completion/provenance/cancellation",
+        "path": "scripts/ci/execution.py",
+        "previous_qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
+        "current_sha256": "b27bc0c14a6778ad1967751af4309b203d5566c1b40e54942e55425eb92021df",
+        "qualification": "31-case actual-signal/error-preservation suite passed on macOS and non-root Linux; private old-source actual-signal counterfactuals reject; new hosted head verification remains required."
+      },
+      {
+        "group": "completion/provenance/cancellation",
+        "path": "tests/ci_execution_tests.py",
+        "previous_qualified_ref": "1a383a993833f05ab0ea574286dc5eec8ba4d09b",
+        "current_sha256": "0684a32d1f84b20288c5b0874a155cc07bb8529d6ae9526f943cbea93f5cf54e",
+        "qualification": "31-case actual-signal/error-preservation suite passed on macOS and non-root Linux; private old-source actual-signal counterfactuals reject; new hosted head verification remains required."
+      },
+      {
+        "path": "scripts/ci/ctest-completion-policy.json",
+        "current_sha256": "f48ca92e9fe294de253ba61486871544791773933c6a828c39d2cb4187c36617",
+        "execution_framework_count": 31
+      }
+    ],
+    "limits": "Only unchanged behavior reuses prior qualified fault observations. Current positive checks and final hosted/source-pair/artifact identities remain mandatory."
+  },
+  "phase11_reassessment": {
+    "superseded_green_candidate": "6c1d6fcb570dd6e1670f28d31d01aa8a6200678f",
+    "superseded_canonical_run": 42133077033,
+    "findings": [
+      "Actual SIGTERM during post-child qualification or receipt/handler handoff could disappear.",
+      "InterruptedError derives from OSError and was swallowed by Python 3.15 macOS kqueue wait recovery.",
+      "Deferred cancellation combined with diagnostic/storage errors and failed child combined with log finalization errors must preserve both causes."
+    ],
+    "changes": "Non-I/O CommandInterrupted; cancellation checkpoints and atomic failed receipt rewrite; final handler handoff guard; grouped primary/log/qualification/storage/restoration errors.",
+    "positive": {
+      "macos": "build/campaign-phase11-execution-mac-qualified.log",
+      "nonroot_linux": "build/campaign-phase11-execution-linux-qualified.log",
+      "methods": 31,
+      "skips": 0
+    },
+    "counterfactual": {
+      "counterfactual_source": "6c1d6fcb570dd6e1670f28d31d01aa8a6200678f",
+      "counterfactual_sha256": "cf2fb258281095ae9df238987b3984be55969169a3e1b33ac295ec12415aa32b",
+      "candidate_sha256": "b27bc0c14a6778ad1967751af4309b203d5566c1b40e54942e55425eb92021df",
+      "test_sha256": "0684a32d1f84b20288c5b0874a155cc07bb8529d6ae9526f943cbea93f5cf54e",
+      "actual_signals": true,
+      "actual_children": true,
+      "private_old_module_only": true,
+      "qualified_failures": [
+        {
+          "test": "test_actual_cancellation_during_qualification_records_failure (cancel_checks.ExecutionTests.test_actual_cancellation_during_qualification_records_failure)",
+          "failure": "Traceback (most recent call last):\n  File \"/private/tmp/wsprrypico-ci-reliability-campaign/tests/ci_execution_tests.py\", line 171, in test_actual_cancellation_during_qualification_records_failure\n    with self.assertRaisesRegex(RuntimeError, 'interrupted by signal=15'):\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: RuntimeError not raised\n"
+        },
+        {
+          "test": "test_actual_cancellation_during_handler_handoff_cannot_return_success (cancel_checks.ExecutionTests.test_actual_cancellation_during_handler_handoff_cannot_return_success)",
+          "failure": "Traceback (most recent call last):\n  File \"/private/tmp/wsprrypico-ci-reliability-campaign/tests/ci_execution_tests.py\", line 220, in test_actual_cancellation_during_handler_handoff_cannot_return_success\n    with self.assertRaisesRegex(RuntimeError, 'interrupted by signal=15') as failure:\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: RuntimeError not raised\n"
+        },
+        {
+          "test": "test_cancellation_escapes_io_recovery_and_reaps_actual_child (cancel_checks.ExecutionTests.test_cancellation_escapes_io_recovery_and_reaps_actual_child)",
+          "failure": "Traceback (most recent call last):\n  File \"/var/folders/0f/yql6nmgj0v1gw2fs4hkpjbzc0000gn/T/ci-cancel-counterfactual-k0br39ii/execution.py\", line 276, in _execute\n    child.wait(timeout=watchdog)\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^\n  File \"<string>\", line 3, in wait\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/unittest/mock.py\", line 1176, in __call__\n    return self._mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/unittest/mock.py\", line 1180, in _mock_call\n    return self._execute_mock_call(*args, **kwargs)\n           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.15/3.15.2/Frameworks/Python.framework/Versions/3.15/lib/python3.15/unittest/mock.py\", line 1247, in _execute_mock_call\n    result = effect(*args, **kwargs)\n  File \"/private/tmp/wsprrypico-ci-reliability-campaign/tests/ci_execution_tests.py\", line 236, in wait\n    raise RuntimeError('I/O recovery swallowed cancellation') from None\nRuntimeError: I/O recovery swallowed cancellation\n\nThe above exception was the direct cause of the following exception:\n\nRuntimeError: stage=probe; elapsed=0.004s; hang_guard=3600s; log=host.log; I/O recovery swallowed cancellation\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/private/tmp/wsprrypico-ci-reliability-campaign/tests/ci_execution_tests.py\", line 239, in test_cancellation_escapes_io_recovery_and_reaps_actual_child\n    with self.assertRaisesRegex(RuntimeError, 'interrupted by signal=15') as failure:\n         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: \"interrupted by signal=15\" does not match \"stage=probe; elapsed=0.004s; hang_guard=3600s; log=host.log; I/O recovery swallowed cancellation\"\n"
+        }
+      ],
+      "current_source_unchanged": true
+    },
+    "remaining": "New committed-head hosted and source-pair qualification required; old successful artifacts cannot substitute."
   }
 }

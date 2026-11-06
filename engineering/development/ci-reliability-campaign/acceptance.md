@@ -30,8 +30,11 @@ scorecard, not an archive of completed prompts or intermediate reports.
 | Provenance and aggregation | Actual trusted Actions repository/workflow/run/attempt/source/job identifiers and exact URIs bind artifact origin and immutable archive digests. Missing/foreign/malformed/resealed receipts, partial uploads, failed whole runs, and incomplete source-bound logs refuse. Frozen older deployment evidence remains readable under its own independently versioned policy; this does not add historical control views. |
 | Resources and scheduled pair | Two CTest workers preserve every RUN_SERIAL exclusion and private profiles/journals. Controlled over-budget, shared-resource, failure, stall, and cancellation cases refuse or reap as intended. The actual Pi TLS fixture projects logical UTC from one monotonic clock; scheduled starts select a full future UTC second. Narrow-window, late-start, and torn-clock mappings still refuse. Product launch-window/uncertainty policy is unchanged. |
 
-Forty source/function bindings remain identical to the accepted qualification
-inputs; the ledger records their hashes or normalized function AST hashes.
+Thirty-eight source/function bindings remain identical to the accepted qualification
+inputs; the ledger records their hashes or normalized function AST hashes. The
+execution owner, its regression source, and completion policy were requalified
+after the final cancellation findings; all 31 execution cases pass on macOS and
+non-root Linux, including actual signal delivery and combined failure paths.
 Earlier fault evidence is reused only for those unchanged behaviors. Current
 positive/negative framework checks and the final source-pair/hosted gates remain
 mandatory. All Pico firmware product sources under `src/` are unchanged from
@@ -67,8 +70,8 @@ subset omits SDK/analysis registrations and cannot qualify that lane.
 | Measure and denominator | Before → after | Verdict |
 | --- | --- | --- |
 | Physical files in declared mixed audit envelope | 497 → 521 (+24; +4.83%) | 50% reduction not achieved. Physical files are not active/equivalent files. |
-| Physical lines, same mixed envelope | 85,843 → 89,191 (+3,348; +3.90%) | 50% reduction not achieved; includes comments/blank lines and mixed roles. |
-| Bytes, same mixed envelope | 4,836,592 → 5,027,764 (+191,172; +3.95%) | 50% reduction not achieved. |
+| Physical lines, same mixed envelope | 85,843 → 89,380 (+3,537; +4.12%) | 50% reduction not achieved; includes comments/blank lines and mixed roles. |
+| Bytes, same mixed envelope | 4,836,592 → 5,038,547 (+201,955; +4.18%) | 50% reduction not achieved. |
 | Qualified harness-only code / active-equivalent files | Unqualified denominator → unqualified denominator | No reduction percentage demonstrated; no artificial file merger or relocated code earns credit. |
 | Seven review-server invocations' actual native profiles | 70 → 8 (88.57% reduction) | Narrow 50% target exceeded; other direct/replacement/regression process starts are additional. |
 | Ordinary browser commands / Chrome launches | 13/14 → 13/14 | No reduction; distinct obligations preserved. |
@@ -81,7 +84,7 @@ subset omits SDK/analysis registrations and cannot qualify that lane.
 The mixed envelope is the frozen prefix/extra-path rule in the ledger. It includes
 all new helpers/regressions in that envelope. Four obsolete unused fixtures total
 four files, 233 lines, and 17,009 bytes; they earn **zero** reduction-goal credit.
-Adding those extents back gives 525 files, 89,424 lines, and 5,044,773 bytes, still
+Adding those extents back gives 525 files, 89,613 lines, and 5,055,556 bytes, still
 above baseline. The 50% physical thresholds would be at most 248 files, 42,921
 lines, and 2,418,296 bytes; no claim that these are safely removable is made.
 Pico current guides/backlog and this requested planning/scorecard/ledger are
@@ -98,6 +101,26 @@ whole-session speed reduction is demonstrated. Dependencies/tool versions and
 source inventories are independently retained in the canonical audit/manifest.
 
 ## Observations and unsuccessful attempts
+
+Final adversarial assessment reproduced actual SIGTERM arriving after child exit
+but during result qualification being ignored, with a successful return and
+passed receipt. The green earlier candidate `6c1d6fcb…` and its canonical run
+[42133077033](https://github.com/WsprryPi/WsprryPico/actions/runs/42133077033)
+therefore remain superseded evidence, not final qualification. Cancellation now
+propagates through qualification, receipt commit, and signal-handler handoff;
+failed receipts are rewritten atomically when possible. Pending cancellation and
+qualification/log/storage failures remain visible together. A failed child and
+log flush/close or handler-restoration failure retain both causes.
+
+The macOS actual-READY probe also exposed Python 3.15.2 kqueue wait recovery
+catching the old InterruptedError as OSError and continuing to wait. Cancellation
+now has a distinct non-I/O exception and escapes that recovery path. The original
+READY probe passes with its unchanged guard. Seven added methods bring the
+execution suite from 24 to 31; all pass on macOS and Linux. Three private old-source
+counterfactuals fail the intended actual-signal rejection assertions. No arbitrary
+sleep, timeout expansion, or product timing change was introduced. Corrected
+committed-head CI, immutable artifacts, and both actual source-pair recipes must
+pass again; a prior green candidate is not relabelled as the correction.
 
 The accepted matched scheduling window binds Pico
 `4117a37ce8891d02a75029f112e6ddab08ba60d9` / Pi

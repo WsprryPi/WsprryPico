@@ -157,6 +157,154 @@ class ExecutionTests(unittest.TestCase):
         self.assertIn('child_exit=17', str(result.exception.exceptions[0]))
         self.assertIn('disk full', str(result.exception.exceptions[1]))
 
+    def test_actual_cancellation_during_qualification_records_failure(self):
+        original = execution.evidence
+        previous = signal.getsignal(signal.SIGTERM)
+        observed = []
+        def qualify(context, output, audit):
+            self.assertIn('actual child completion', output)
+            value = original(context, output, audit)
+            observed.append(value)
+            signal.raise_signal(signal.SIGTERM)
+            return value
+        with patch.object(execution, 'evidence', side_effect=qualify):
+            with self.assertRaisesRegex(RuntimeError, 'interrupted by signal=15'):
+                self.execute("print('actual child completion')")
+        self.assertTrue(observed)
+        record = json.loads((self.audit/'execution.json').read_text())['records'][0]
+        self.assertEqual(record['returncode'], 0)
+        self.assertEqual(record['outcome'], 'failed')
+        self.assertIs(signal.getsignal(signal.SIGTERM), previous)
+
+    def test_actual_cancellation_during_receipt_commit_cannot_pass(self):
+        original = Path.replace
+        previous = signal.getsignal(signal.SIGTERM)
+        for broken_store in (False, True):
+            with self.subTest(broken_store=broken_store):
+                (self.audit/'execution.json').unlink(missing_ok=True)
+                commits = []
+                def commit(path, target):
+                    if commits and broken_store:
+                        raise OSError('cancelled receipt store unavailable')
+                    result = original(path, target)
+                    commits.append(target)
+                    if len(commits) == 1:
+                        signal.raise_signal(signal.SIGTERM)
+                    return result
+                with patch.object(Path, 'replace', autospec=True, side_effect=commit):
+                    if broken_store:
+                        with self.assertRaises(BaseExceptionGroup) as failure:
+                            self.execute("print('actual child completion')")
+                        self.assertIsInstance(failure.exception.exceptions[0], execution.CommandInterrupted)
+                        self.assertIn('store unavailable', str(failure.exception.exceptions[1]))
+                    else:
+                        with self.assertRaisesRegex(RuntimeError, 'interrupted by signal=15'):
+                            self.execute("print('actual child completion')")
+                        record = json.loads((self.audit/'execution.json').read_text())['records'][0]
+                        self.assertEqual(record['returncode'], 0)
+                        self.assertEqual(record['outcome'], 'failed')
+                self.assertTrue(commits, 'The actual receipt commit was not observed')
+                self.assertIs(signal.getsignal(signal.SIGTERM), previous)
+
+    def test_actual_cancellation_during_handler_handoff_cannot_return_success(self):
+        original = signal.signal
+        previous = {number: signal.getsignal(number) for number in (signal.SIGINT, signal.SIGTERM)}
+        observed = []
+        def restore(number, handler):
+            result = original(number, handler)
+            if number == signal.SIGINT and handler is previous[number]:
+                observed.append(number)
+                signal.raise_signal(signal.SIGTERM)
+            return result
+        with patch.object(signal, 'signal', side_effect=restore):
+            with self.assertRaisesRegex(RuntimeError, 'interrupted by signal=15') as failure:
+                self.execute("print('actual child completion')")
+        self.assertIsInstance(failure.exception, execution.CommandInterrupted)
+        self.assertTrue(observed)
+        for number, handler in previous.items():
+            self.assertIs(signal.getsignal(number), handler)
+
+    def test_cancellation_escapes_io_recovery_and_reaps_actual_child(self):
+        original = subprocess.Popen.wait
+        observed = []
+        def wait(child, timeout):
+            if not observed:
+                observed.append(child.pid)
+                try:
+                    signal.raise_signal(signal.SIGTERM)
+                except OSError:
+                    raise RuntimeError('I/O recovery swallowed cancellation') from None
+            return original(child, timeout=timeout)
+        with patch.object(subprocess.Popen, 'wait', autospec=True, side_effect=wait):
+            with self.assertRaisesRegex(RuntimeError, 'interrupted by signal=15') as failure:
+                self.execute('import signal;signal.pause()')
+        self.assertIsInstance(failure.exception.__cause__, execution.CommandInterrupted)
+        self.assertTrue(observed)
+        record = json.loads((self.audit/'execution.json').read_text())['records'][0]
+        self.assertLess(record['returncode'], 0)
+        self.assertEqual(record['outcome'], 'failed')
+
+    def test_signal_restoration_failure_preserves_the_command_failure(self):
+        original = signal.signal
+        previous = {number: signal.getsignal(number) for number in (signal.SIGINT, signal.SIGTERM)}
+        def restore(number, handler):
+            result = original(number, handler)
+            if number == signal.SIGINT and handler is previous[number]:
+                raise OSError('observed signal restoration failure')
+            return result
+        with patch.object(signal, 'signal', side_effect=restore):
+            with self.assertRaises(BaseExceptionGroup) as failure:
+                self.execute('raise SystemExit(17)')
+        self.assertIn('child_exit=17', str(failure.exception.exceptions[0]))
+        self.assertIn('signal restoration failure', str(failure.exception.exceptions[1]))
+        for number, handler in previous.items():
+            self.assertIs(signal.getsignal(number), handler)
+
+    def test_cancellation_and_diagnostic_failures_remain_visible(self):
+        for operation in ('read_bytes', 'write_text', 'evidence'):
+            with self.subTest(operation=operation):
+                def unavailable(*args, **kwargs):
+                    signal.raise_signal(signal.SIGTERM)
+                    raise OSError('observed ' + operation + ' failure')
+                owner = execution if operation == 'evidence' else Path
+                with patch.object(owner, operation, side_effect=unavailable):
+                    with self.assertRaises((RuntimeError, BaseExceptionGroup)) as failure:
+                        self.execute("print('actual child completion')")
+                group = failure.exception.__cause__
+                if group is None:
+                    group = failure.exception
+                self.assertIsInstance(group, BaseExceptionGroup)
+                self.assertIsInstance(group.exceptions[0], execution.CommandInterrupted)
+                self.assertIn('observed ' + operation, str(group.exceptions[1]))
+
+    def test_log_finalization_failure_preserves_actual_child_failure(self):
+        original = Path.open
+        path = self.audit/'host.log'
+        for operation in ('flush', 'close'):
+            with self.subTest(operation=operation):
+                def open_log(filename, *args, **kwargs):
+                    raw = original(filename, *args, **kwargs)
+                    if filename != path or not args or args[0] != 'a':
+                        return raw
+                    class Log:
+                        def __getattr__(self, name): return getattr(raw, name)
+                        def __enter__(self): return self
+                        def __exit__(self, *error):
+                            raw.close()
+                            if operation == 'close':
+                                raise OSError('observed log close failure')
+                        def flush(self):
+                            raw.flush()
+                            if operation == 'flush' and '\nOBSERVED-CHILD-FAILURE\n' in path.read_text():
+                                raise OSError('observed log flush failure')
+                    return Log()
+                path.unlink(missing_ok=True)
+                with patch.object(Path, 'open', autospec=True, side_effect=open_log):
+                    with self.assertRaises(BaseExceptionGroup) as failure:
+                        self.execute("print('OBSERVED-CHILD-FAILURE');raise SystemExit(17)")
+                self.assertIn('child_exit=17', str(failure.exception.exceptions[0]))
+                self.assertIn('observed log ' + operation, str(failure.exception.exceptions[1]))
+
     def test_log_read_failure_preserves_the_child_failure(self):
         with patch.object(Path, 'read_bytes', side_effect=OSError('log storage unavailable')):
             with self.assertRaises(BaseExceptionGroup) as result:

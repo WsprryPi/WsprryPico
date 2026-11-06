@@ -28,7 +28,7 @@
     },
     "ci_execution_tests": {
       "kind": "unittest",
-      "count": 24,
+      "count": 31,
       "entrypoint": "tests/ci_execution_tests.py"
     },
     "console_info_format_tests": {
