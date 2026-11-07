@@ -2,7 +2,7 @@
 // Only TCP/board/time boundaries use the existing deterministic fixture.
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import {writeFile, mkdir} from 'node:fs/promises';
+import {writeFile, readFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
 const h=new BrowserHarness();
@@ -51,7 +51,8 @@ async function serve(req,res){
         }
         assert.equal(bytes.length,expected,'complete production HTTP response');
         requests.push({path:u.pathname,status:response.status,bytes:bytes.length});
-        if(u.pathname === "/") await writeFile(path.join(output,"root.html"),bytes);
+        if(u.pathname === "/" && response.status===200 && response.headers.get('content-type')?.startsWith('text/html'))
+            await writeFile(path.join(output,"root.html"),bytes);
         if(dropNext && u.pathname.endsWith('/request')) { dropNext=false;res.destroy();return; }
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
     }catch(error){res.writeHead(500,{'Content-Type':'text/plain'});res.end(error.message);}
@@ -359,6 +360,7 @@ try {
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
     await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !!hostnameState'),'initial captive hostname readback');
     assert.equal(await cdp.evaluate('location.pathname'),'/wifi-host');
+    assert.ok((await readFile(path.join(output,'root.html'))).length>0,'captive redirect preserves the retained HTML audit snapshot');
     assert.equal(await cdp.evaluate('hostnameState.source'),'network_profile');
     assert.equal(await cdp.evaluate('hostnameState.writable'),true);
     assert.equal((await f.command({op:'stats'})).config_sequence,'0','station setup is not a rename prerequisite');
