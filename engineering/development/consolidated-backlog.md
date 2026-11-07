@@ -6,7 +6,7 @@ Status: ✅ complete; ⏳ in progress; ▧ not started. Closed/will-not-do items
 
 ## Selected unfinished work
 
-24. ▧ **Remove the initial time/calibration review link.** Review whether Transmitter Status provides sufficient operator information, and remove the “Review Time and calibration result” link shown at the top of the page on first load if it is redundant. The linked Station → Time and calibration section did not provide useful additional information during operator use. The [saved execution prompt](initial-time-calibration-link-prompt.md) defines the implementation, validation, adversarial review loop, and standing execution authority; it has not been executed.
+24. ✅ **Remove the initial time/calibration review link — complete.** Automatic timeout and calibration read errors stay beside their controls without a top-level save-result link. Transmitter status retains current clock and transmission observations; Time and calibration remains available through normal navigation and bookmarks. Explicit failed reads and unconfirmed saves retain their recovery links. See [contextual saved-state review](browser-pages.md#contextual-saved-state-review).
 
 25. ▧ **Hostname editing in the captive portal.** Allow the operator to change the device hostname from the captive portal page. The [saved execution prompt](captive-portal-hostname-prompt.md) defines the implementation, validation, adversarial review loop, and standing execution authority; it has not been executed.
 
