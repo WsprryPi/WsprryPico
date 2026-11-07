@@ -12,7 +12,7 @@ unchanged from that revision, along with `docs/_templates/layout.html` and
 `tests/test_image_delivery.py`. The adapted `docs/_ext/image_delivery.py`
 converts inferred pixel styles to intrinsic HTML dimensions for the pinned
 Docutils 0.21 writer, preserving responsive sizing and authored dimensions.
-MIT, copyright 2026 Lee Bussy; the complete
+MIT, copyright 2024 and 2026 Lee Bussy; the complete
 retained notice is in [the manual's credits](docs/reference/credits.md).
 Preserve that notice with distributions of these assets and adapted material.
 The firmware also embeds the same unmodified favicon for local browser pages.
