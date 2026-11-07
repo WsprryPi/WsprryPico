@@ -1333,6 +1333,86 @@ class EraseTests(unittest.TestCase):
         self.args.transaction = Path(result['transaction'])
         self.assertTrue(installer.recover_transaction(self.args)['erase_verified'])
 
+    def test_software_erase_persists_reset_intent_and_verifies_same_board(self):
+        self.board['mode'] = 'application'
+        self.args.software_bootsel = True
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)},
+                    'revision': 'revision-fixture', 'config': {'config': {'enabled': False}}}
+        test = self
+        class Maintenance:
+            def __init__(self, board): pass
+            def __enter__(self): return self
+            def __exit__(self, *_): pass
+            def enter_bootsel(self, value):
+                test.assertEqual(value, snapshot)
+                records = [installer.decode(p.read_bytes()) for p in test.root.glob('*/transaction.json')]
+                test.assertEqual(records[-1]['stage'], 'entering_bootsel')
+                test.assertEqual(records[-1]['preflight_revision'], snapshot['revision'])
+                test.board['mode'] = 'bootsel'
+        with patch.object(installer, 'public_snapshot', return_value=snapshot), \
+             patch.object(installer, 'admit_snapshot'), patch.object(installer, 'Management', Maintenance):
+            result = installer.erase_transaction(self.args)
+        self.assertTrue(result['erase_verified'])
+        self.assertFalse(result['manual_bootsel_required'])
+        self.assertEqual(self.flash, b'\xff' * installer.FLASH_SIZE)
+
+    def test_software_erase_reset_intent_failure_never_resets(self):
+        self.board['mode'] = 'application'
+        self.args.software_bootsel = True
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)},
+                    'revision': 'revision-fixture', 'config': {'config': {'enabled': False}}}
+        real_save = installer.save_json
+        def fail_intent(path, record):
+            if record['stage'] == 'entering_bootsel': raise OSError('disk full')
+            real_save(path, record)
+        with patch.object(installer, 'public_snapshot', return_value=snapshot), \
+             patch.object(installer, 'admit_snapshot'), patch.object(installer, 'save_json', side_effect=fail_intent), \
+             patch.object(installer, 'Management') as management, self.assertRaises(installer.TransactionFailure):
+            installer.erase_transaction(self.args)
+        management.assert_not_called()
+        self.assertFalse(self.calls)
+
+    def test_software_erase_unconfirmed_reset_retains_recovery_without_flash(self):
+        self.board['mode'] = 'application'
+        self.args.software_bootsel = True
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)},
+                    'revision': 'revision-fixture', 'config': {'config': {'enabled': False}}}
+        with patch.object(installer, 'public_snapshot', return_value=snapshot), \
+             patch.object(installer, 'admit_snapshot'), patch.object(installer, 'Management'), \
+             patch.object(installer.time, 'monotonic', side_effect=[0, 16]), \
+             self.assertRaises(installer.TransactionFailure) as caught:
+            installer.erase_transaction(self.args)
+        self.assertTrue(caught.exception.result['recovery_required'])
+        self.assertFalse(self.calls)
+
+    def test_software_erase_wrong_port_and_duplicate_identity_never_flash(self):
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)},
+                    'revision': 'revision-fixture', 'config': {'config': {'enabled': False}}}
+        for duplicate in (False, True):
+            self.board.update(mode='application', parent='same-port')
+            self.args.software_bootsel = True
+            test = self
+            class Maintenance:
+                def __init__(self, board): pass
+                def __enter__(self): return self
+                def __exit__(self, *_): pass
+                def enter_bootsel(self, _):
+                    test.board['mode'] = 'bootsel'
+                    if not duplicate: test.board['parent'] = 'wrong-port'
+            def discovery():
+                return [self.board, dict(self.board)] if duplicate and self.board['mode']=='bootsel' else [self.board]
+            with patch.object(installer, 'public_snapshot', return_value=snapshot), \
+                 patch.object(installer, 'admit_snapshot'), patch.object(installer, 'Management', Maintenance), \
+                 patch.object(installer, 'discover', side_effect=discovery), self.assertRaises(installer.TransactionFailure):
+                installer.erase_transaction(self.args)
+            self.assertFalse(self.calls)
+
+    def test_software_bootsel_flag_is_erase_only_json_refusal(self):
+        code, result = self.cli(['discover', '--software-bootsel'])
+        self.assertEqual(code, 2)
+        self.assertFalse(result['ok'])
+        self.assertFalse(self.calls)
+
     def prepare_wait(self):
         self.board['mode'] = 'application'
         snapshot = {'target': {'device_id': installer.device_id(SERIAL)}, 'config': {'config': {'enabled': False}}}

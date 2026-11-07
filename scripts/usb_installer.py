@@ -1652,8 +1652,8 @@ def erase_transaction(args):
             'Erasing firmware and all saved data requires --device SERIAL --board pico2_w --yes')
     with device_lock(args.device):
         board = selected(args.device)
-        # A running image may only prepare a manual BOOTSEL handoff. Do not
-        # reset it, stop a job, or read/copy credential-bearing flash.
+        # Software maintenance is opt-in. Legacy/manual preparation remains
+        # available; neither route stops a job or copies credential-bearing flash.
         if board['mode'] == 'application':
             snapshot = public_snapshot(board)
             admit_snapshot(snapshot)
@@ -1676,7 +1676,33 @@ def erase_transaction(args):
         path = directory / 'transaction.json'
         save_json(path, record)
         if board['mode'] == 'application':
-            return dict(record, transaction=str(path))
+            if not getattr(args, 'software_bootsel', False):
+                return dict(record, transaction=str(path))
+            try:
+                record.update(stage='entering_bootsel', preflight_target=snapshot['target'],
+                              preflight_revision=snapshot['revision'])
+                save_json(path, record)  # Reset intent must survive a lost ACK or controller.
+                with Management(board) as management:
+                    management.enter_bootsel(snapshot)
+                deadline = time.monotonic() + 15
+                while time.monotonic() < deadline:
+                    matches = [d for d in discover() if d['serial'] == args.device and d['mode'] == 'bootsel']
+                    if matches:
+                        require(len(matches) == 1 and matches[0]['parent'] == board['parent'],
+                                'BOOTSEL device/port changed')
+                        break
+                    time.sleep(.1)
+                else:
+                    raise Refusal('Guarded BOOTSEL transition unconfirmed; no flash was erased. '
+                                  'Inspect the selected board and use the retained recovery transaction; do not repeat reset blindly.')
+            except BaseException as error:
+                record.update(failure_stage=record['stage'], stage='failed', recovery_required=True,
+                              failure_reason=str(error), erase_verified=False)
+                try:
+                    save_json(path, record)
+                except OSError:
+                    record['record_write_failed'] = True
+                raise TransactionFailure(str(error), record, path, error) from error
         return finish_erase(args, record, path)
 
 
@@ -2340,6 +2366,8 @@ def main(argv=None, schema_bytes=None, *, human=False):
     parser.add_argument('--device', help='Physical USB serial; required for unattended operations')
     parser.add_argument('--board', choices=('pico2_w',), help='Confirm the actual BOOTSEL board is Pico 2 W')
     parser.add_argument('--yes', action='store_true', help='Confirm the explicit install, upgrade, recovery or destructive erase operation')
+    parser.add_argument('--software-bootsel', action='store_true',
+                        help='Erase only: use guarded idle software maintenance instead of manual BOOTSEL')
     parser.add_argument('--replace-unidentified-application', action='store_true',
                         help='Initial installation only: explicitly replace unknown application bytes, requiring erased saved state')
     parser.add_argument('--picotool', help='Existing executable; an explicit path never triggers a fallback download')
@@ -2356,6 +2384,8 @@ def main(argv=None, schema_bytes=None, *, human=False):
     os.umask(0o077)
     managed_tool, recovery_pending = None, False
     try:
+        require(not args.software_bootsel or args.operation == 'erase',
+                '--software-bootsel is only supported for erase')
         if args.terminal_ui:
             terminal_section('WsprryPico USB installer')
             terminal_paragraph({'install': 'Install firmware', 'upgrade': 'Upgrade firmware',
